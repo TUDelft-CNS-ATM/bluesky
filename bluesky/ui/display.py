@@ -1208,7 +1208,8 @@ class Screen:
 
         pg.display.set_caption("BlueSky Open ATM Simulator (F11 = Full Screen)",
                                "BlueSky")
-        iconbmp = pg.image.load('icon.gif')
+        iconpath = imgpath = os.path.dirname(__file__) + "/../../data/graphics/icon.gif"
+        iconbmp = pg.image.load(iconpath)
         pg.display.set_icon(iconbmp)
 
         if switch:
