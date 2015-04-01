@@ -7,10 +7,17 @@ Created by  : Jacco M. Hoekstra
 from Tkinter import *
 import tkFileDialog
 import os
+import sys
 
 
 def fileopen():
     """returns filename fo scenatriofile selected"""
+
+    # load Tk crash on Mac
+    # temporary work around mac without loading and file
+    if sys.platform == 'darwin':
+        return ''
+
     dirpath = imgpath = os.path.dirname(__file__) + "/../../data/scenario"
     os.chdir(dirpath)
 

@@ -3,7 +3,7 @@ import datetime, os
 
 import pygame as pg
 import numpy as np
-import Image
+from PIL import Image
 
 from ..tools.fastfont import Fastfont
 from ..tools.aero_np import ft, kts, nm, latlondist, qdrdist, qdrpos
