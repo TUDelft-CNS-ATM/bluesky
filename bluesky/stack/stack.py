@@ -94,7 +94,7 @@ class Commandstack:
             self.scenlines = []
 
             # Save also empty ic file for next time
-            fpath = os.path.dirname(__file__) + "/../../data/icfile.dat"
+            fpath = os.path.dirname(__file__) + "/../../tmp/icfile.dat"
             f = open(fpath, "w")
             f.write("icfile= " + chr(13) + chr(10))
             f.write(" ")
@@ -141,7 +141,7 @@ class Commandstack:
             self.scentime = 0.
 
             # Save ic file for next time
-            fpath = os.path.dirname(__file__) + "/../../data/icfile.dat"
+            fpath = os.path.dirname(__file__) + "/../../tmp/icfile.dat"
             f = open(fpath, "w")
             f.write("icfile=" + scenfile + chr(13) + chr(10))
             f.write(" ")
