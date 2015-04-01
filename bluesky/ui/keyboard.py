@@ -1,27 +1,19 @@
-""" 
-Keyboard class definition : keyboard & mouse input processing class
-
-Methods:
-    Keyboard(tmx)                      :  constructor
-
-    update()                           : Check for input & process it
-    radarclick(pos,command,scr,traf)   : Process click on radar window to
-                                         to insert data in edit window
-
-Created by  : Jacco M. Hoekstra (TU Delft)
-Date        : September 2013
-
-Modifation  :
-By          :
-Date        :
-
-"""
-
-
 import pygame as pg
 from math import *
 
 class Keyboard:
+    """ 
+    Keyboard class definition : keyboard & mouse input processing class
+
+    Methods:
+        Keyboard(tmx)                      :  constructor
+
+        update()                           : Check for input & process it
+        radarclick(pos,command,scr,traf)   : Process click on radar window to
+                                             to insert data in edit window
+
+    Created by  : Jacco M. Hoekstra (TU Delft)
+    """
     def __init__(self,tmx):
 
         self.tmx     = tmx
@@ -34,21 +26,20 @@ class Keyboard:
         return
     
     def update(self):
-
-# Quick access to other bobject via tmx object        
+        # Quick access to other bobject via tmx object        
         sim  = self.tmx.sim
         cmd  = self.tmx.cmd
         scr  = self.tmx.scr
         traf = self.tmx.traf
 
-# Get events        
+        # Get events
         for event in pg.event.get():
             if event.type==pg.QUIT:
                 sim.stop()
 
             elif event.type==pg.KEYDOWN:
 
-# Alphanumeric key
+                # Alphanumeric key
                 if event.key>31 and event.key<127:
                     scr.editwin.insert(str(event.unicode).upper())
 
@@ -68,7 +59,7 @@ class Keyboard:
                 elif event.key ==pg.K_F3: # F3: Insert last command
                     scr.editwin.insert(self.lastcmd.strip().upper()+" ")
                    
-# Display keys
+                # Display keys
                 elif event.key == 269: # Num lock minus
                     cmd.stack("ZOOM OUT")
                 elif event.key == 270: # Num lock pluus
@@ -90,23 +81,23 @@ class Keyboard:
 
                 else: #TEST OPTION
                     pass
-#                    scr.editwin.insert(str(event.key))
-                        
-#debug                    print cmdline
+                
+                # scr.editwin.insert(str(event.key))
+                # TBD            
+                # scr.insedit(chr(ikey))
+                
+            # End of keys selection
 
-# TBD            scr.insedit(chr(ikey))
-#  End of keys selection
 
+            # Mouse events:
+            #    MOUSEMOTION      pos, rel, buttons
+            #    MOUSEBUTTONUP    pos, button
+            #    MOUSEBUTTONDOWN  pos, button
 
-# Mouse events:
-#    MOUSEMOTION      pos, rel, buttons
-#    MOUSEBUTTONUP    pos, button
-#    MOUSEBUTTONDOWN  pos, button
-
-# Mouse button 1 release: enter value in edit line
+            # Mouse button 1 release: enter value in edit line
             elif event.type==pg.MOUSEBUTTONUP:
 
-# Reselase edit window if necessary
+                # Reselase edit window if necessary
                 if event.button==1:
                     if self.dragedit:
                         scr.editwin.winx = event.pos[0]-self.dragdx
@@ -116,15 +107,15 @@ class Keyboard:
                         scr.editwin.rect = pg.Rect(scr.editwin.winx,scr.editwin.winy, \
                              scr.editwin.bmpdx,scr.editwin.bmpdy)
                         scr.redrawedit = True
-# Menu button click
+                    
+                    # Menu button click
                     elif scr.menu.rect.collidepoint(event.pos) and \
                          not self.dragmenu:
                         cmdtxt = scr.menu.getcmd(event.pos)
                         if cmdtxt != "":
                             cmd.stack(cmdtxt)
-                        
 
-# In all other cases process as radar click
+                    # In all other cases process as radar click
                     elif self.dragmenu:
                         self.dragmenu    = False
                         self.dragpotmenu = False
@@ -132,13 +123,12 @@ class Keyboard:
                     else:
                         self.radarclick(event.pos,cmd,scr,traf)
 
-# Make sure edit and menu window are released
+                # Make sure edit and menu window are released
                 self.dragedit    = False
                 self.dragmenu    = False
                 self.dragpotmenu = False
 
-# Mouse button down: lock onto edit window if insied edit window     
-
+            # Mouse button down: lock onto edit window if insied edit window     
             elif event.type==pg.MOUSEBUTTONDOWN:
 
                 self.dragmenu = False
@@ -157,10 +147,9 @@ class Keyboard:
                         scr.redrawedit   = True
                         self.dragdx = event.pos[0] - scr.menu.x
                         self.dragdy = event.pos[1] - scr.menu.y
-                        
 
-# Mouse motion: drag edit/menu window with mouse, if necessary
-# Check also for mouse button 1                    
+            # Mouse motion: drag edit/menu window with mouse, if necessary
+            # Check also for mouse button 1                    
             elif event.type==pg.MOUSEMOTION and \
                 (self.dragedit or self.dragpotmenu or self.dragmenu):
                 if self.dragedit:
@@ -198,44 +187,40 @@ class Keyboard:
                         self.dragpotmenu = False
                         self.dragmenu = False
 
-                   
-#========== End of Update=========
+        #----- End of Update -----
         return
     
-# Process click in radar window
-    
     def radarclick(self,pos,command,scr,traf):
-
-# Not in navdisp mode
+        """Process click in radar window"""
+        
+        # Not in navdisp mode
         if scr.swnavdisp:   return
 
-#---------- Interpret current edit line
-
+        # Interpret current edit line
         cmdline = scr.editwin.getline()
 
         while cmdline.find(",,")>=0:
             cmdline = cmdline.replace(",,",",@,") # Mark empty arguments
 
-# Replace comma's by space
+        # Replace comma's by space
         cmdline = cmdline.replace(","," ")            
 
-# Split using spaces
+        # Split using spaces
         cmdargs = cmdline.split()     # Make list of cmd arguments
 
-# Adjust for empty arguments
+        # Adjust for empty arguments
         for i in range(len(cmdargs)):
             if cmdargs[i]=="@":
                 cmdargs[i]=""
         numargs = len(cmdargs)-1
 
-# Save command
+        # Save command
         if numargs>=0:
             cmd = cmdargs[0]
         else:
             cmd=""
 
-# Check for acid first in command line
-
+        # Check for acid first in command line
         if numargs >=1:
             if cmd != "" and traf.id.count(cmd) >0:
                 acid = cmd
@@ -245,22 +230,20 @@ class Keyboard:
             if numargs>=1:
                     acid = cmdargs[1]
                     
-# -------- Process click
-# Double click on aircaft = POS command
-
+        # -------- Process click --------
+        # Double click on aircaft = POS command
         if numargs==0 and traf.id.count(cmdargs[0])>0:
             scr.editwin.enter()
             command.stack("POS "+cmdargs[0])
 
-# No command: insert nearest aircraft id
-
+        # No command: insert nearest aircraft id
         if cmd=="" :
             lat,lon = scr.xy2ll(pos[0],pos[1])
             idx = traf.findnearest(lat,lon)
             if idx>=0:
                 scr.editwin.insert(traf.id[idx]+" ")
   
-# Insert: nearestaircraft id
+        # Insert: nearestaircraft id
         elif (cmd == "HDG" or cmd=="POS" or cmd=="SPD"  or cmd=="ALT" or \
               cmd == "DEL" or cmd=="VS"  or cmd=="MOVE" or cmd=="ND"  or\
               cmd == "NAVDISP" or cmd=="LISTRTE" or cmd=="ADDWPT" or\
@@ -271,10 +254,8 @@ class Keyboard:
             idx = traf.findnearest(lat,lon)
             if idx>=0:
                 scr.editwin.insert(traf.id[idx]+" ")
-                
 
-
-# Insert: lat,lon position        
+        # Insert: lat,lon position        
         elif (cmd=="CRE"  and  numargs==2) or \
              (cmd=="MOVE" and  numargs==1) or \
              (cmd=="PAN"  and  numargs==0) or \
@@ -286,20 +267,20 @@ class Keyboard:
             lat,lon = scr.xy2ll(pos[0],pos[1])
             scr.editwin.insert(" "+str(round(lat,6))+","+str(round(lon,6))+" ")
 
-# When last in line, enter ENTER
+            # When last in line, enter ENTER
             if cmd=="PAN" or ((cmd=="DIST" or cmd=="AREA") and numargs==2) or \
                (cmd=="LINE" and numargs==3):
                 cmdline = scr.editwin.getline()
                 scr.editwin.enter()
                 if len(cmdline)>0:
                     command.stack(cmdline)
-#Insert: heading
+        
+        #Insert: heading
         elif (cmd=="CRE"  and numargs == 4) or     \
              (cmd=="HDG"  and numargs == 1) or   \
              (cmd=="MOVE" and numargs == 4):
 
-# Read start position from line
-
+            # Read start position from line
             if cmd=="CRE":
                 try:
                     lat = float(cmdargs[3])
@@ -323,8 +304,7 @@ class Keyboard:
                 else:
                     synerr = True
             
-# Estimate heading using clicked position
-
+            # Estimate heading using clicked position
             if not synerr:
                 lat1,lon1 = scr.xy2ll(pos[0],pos[1])
                 dy =  lat1-lat
@@ -333,7 +313,7 @@ class Keyboard:
 
                 scr.editwin.insert(" "+str(int(hdg))+" ")
 
-# Insert ENTER if hdg command
+                # Insert ENTER if hdg command
                 if cmd=="HDG":
                     cmdline = scr.editwin.getline()
                     scr.editwin.enter()
@@ -341,5 +321,3 @@ class Keyboard:
                         self.lastcmd = cmdline
                         command.stack(cmdline)
         return
-        
-    

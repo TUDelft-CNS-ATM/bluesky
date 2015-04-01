@@ -1,26 +1,21 @@
-""" 
-Simulation class definition : simulation control (time, mode etc.) class
-
-Methods:
-    Simulation()            : constructor
-
-    update()                : update sim variables (like time)
-    start()                 : go from IC/HOLD to OPERATE mode
-    pause()                 : go to HOLD mode (pause)
-    stop()                  : quit function
-   
-Created by  : Jacco M. Hoekstra (TU Delft)
-Date        : September 2013
-
-Modifation  :
-By          :
-Date        :
-
-"""
 import time
 from ..tools.datalog import Datalog
 
 class Simulation:
+    """ 
+    Simulation class definition : simulation control (time, mode etc.) class
+
+    Methods:
+        Simulation()            : constructor
+
+        update()                : update sim variables (like time)
+        start()                 : go from IC/HOLD to OPERATE mode
+        pause()                 : go to HOLD mode (pause)
+        stop()                  : quit function
+       
+    Created by  : Jacco M. Hoekstra (TU Delft)
+    """
+    
     init = 0
     op   = 1
     hold = 2
@@ -28,10 +23,10 @@ class Simulation:
 
     def __init__(self,tmx):
 
-# Access to other objects
+        # Access to other objects
         self.tmx = tmx
 
-# simmode
+        # simmode
         self.mode   = self.init
 
         self.t      = 0.0   # Runtime 
@@ -40,14 +35,14 @@ class Simulation:
         self.dt     = 0.0
         self.tsys   = 0.0 # system time
 
-# Directories
+        # Directories
         self.datadir = "./data/"
         self.dts = []
 
-# Create datalog instance
+        # Create datalog instance
         self.datalog = Datalog()
 
-# Fixed dt mode for fast forward
+        # Fixed dt mode for fast forward
         self.ffmode = False  # Default FF off
         self.fixdt = 0.1     # Default time step
         self.ffstop = -1.    # Indefinitely
@@ -57,24 +52,23 @@ class Simulation:
 
         self.tsys = time.clock()
 
-# Closk for run(=op) mode
+        # Closk for run(=op) mode
         if self.mode==self.op:
 
-# Not fast forward: variable dt            
+            # Not fast forward: variable dt            
             if not self.ffmode:
                 self.tprev = self.t
                 self.t     = self.tsys - self.syst0
                 self.dt = self.t - self.tprev
 
-# Protect against incidental dt's larger than 1 second,
-# due to window moving, switch to/from full screen, etc.
-
+                # Protect against incidental dt's larger than 1 second,
+                # due to window moving, switch to/from full screen, etc.
                 if self.dt>1.0:
                     extra = self.dt-1.0
                     self.t = self.t - extra
                     self.syst0 = self.tsys-self.t
  
-# Fast forward: fixed dt until ffstop time, goto pause
+            # Fast forward: fixed dt until ffstop time, goto pause
             else:
                 self.dt = self.fixdt
                 self.t = self.t+self.fixdt
@@ -83,20 +77,20 @@ class Simulation:
                     self.ffmode = False
                     self.mode = self.hold
 
-# For measuring game loop frequency                 
+            # For measuring game loop frequency                 
             self.dts.append(self.dt)
             if len(self.dts)>20:
                     del self.dts[0]
 
-# HOLD/Pause mode
+        # HOLD/Pause mode
         else:
             self.syst0 = self.tsys-self.t
             self.dt = 0.0
 
         return          
 
-    def start(self):   # Initial Condition mode, start running with t=0
-       
+    def start(self):
+        """Initial Condition mode, start running with t=0"""
         self.mode   = self.op
         self.tsys   = time.clock()
         self.syst0  = time.clock()
