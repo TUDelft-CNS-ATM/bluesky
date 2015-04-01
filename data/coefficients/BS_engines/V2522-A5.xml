@@ -1,0 +1,42 @@
+<!--Created on Tue Jan 13 11:52:49 2015 @author: Isabel A319 engine coefficient file - TEST -->
+
+<!--accepted units
+masses: kg ;lbs 
+forces: N, lb
+distances: m; ft, inch
+areas: sqm, sqft
+speeds: m/s ; kts 
+fuel flow: kg/s and kg/m
+-->
+
+<engine_file>
+
+    <engines>
+        <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <engine>V2522-A5</engine>
+        <Thr unit ="N">102660</Thr> <!--ICAO database-->
+        <BPR>4.88</BPR>
+        <BPR_cat>1</BPR_cat> <!-- >5 = high, 0=high, 1=low, 2 = pure turbojet-->
+    </engines>
+
+
+    <ff> <!-- per engine! -->
+        <ff_to unit = "kg/s">0.971</ff_to> <!--ICAO database-->
+        <ff_cl unit = "kg/s">0.817</ff_cl> <!--ICAO database-->
+        <ff_cr unit = "kg/s">0.311</ff_cr> <!--ffap from ICAO database -->
+        <ff_ap unit = "kg/s">0.311</ff_ap> <!--ICAO database-->
+        <ff_id unit = "kg/s">0.118</ff_id> <!--ICAO database-->
+    </ff>
+
+
+</engine_file>
+
+
+
+<!-- References -->
+
+<!-- "ICAO database" refers to the ICAO Aircraft Engine Emission Databank, version 01/2015, retreived 3 February 2015 
+from http://easa.europa.eu/document-library/icao-aircraft-engine-emissions-databank -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/DisplayPage.aspx?DocType=Reference&ItemId=+++1342550,
+updated on 7 February 2014 and retreived on 4 February, 2015 -->

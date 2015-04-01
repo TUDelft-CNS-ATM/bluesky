@@ -1,0 +1,40 @@
+<!-- CF6-80E1A2 engine coefficient file -->
+
+<!--accepted units
+masses: kg ;lbs 
+forces: N, lb
+distances: m; ft, inch
+areas: sqm, sqft
+speeds: m/s ; kts 
+fuel flow: kg/s and kg/m
+-->
+
+<engine_file>
+
+    <engines>
+        <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <engine>CF6-80E1A2</engine> <!-- Jane's -->
+        <Thr unit ="N">287000</Thr> <!--ICAO database-->
+        <BPR>5.1</BPR>
+        <BPR_cat>0</BPR_cat> <!-- >5 equals high, 0=high, 1=low, 2 = pure turbojet-->
+    </engines>
+
+
+    <ff> <!-- per engine! -->
+        <ff_to unit = "kg/s">2.767</ff_to> <!--ICAO database-->
+        <ff_cl unit = "kg/s">2.245</ff_cl> <!--ICAO database-->
+        <ff_cr unit = "kg/s">0.724</ff_cr> <!--ffap, ICAO database-->
+        <ff_ap unit = "kg/s">0.724</ff_ap> <!--ICAO database-->
+        <ff_id unit = "kg/s">0.228</ff_id> <!--ICAO database-->
+    </ff>
+
+
+</engine_file>
+
+<!-- References: -->
+
+<!-- "ICAO database" refers to the ICAO Aircraft Engine Emission Databank, version 01/2015, retreived 3 February 2015 
+from http://easa.europa.eu/document-library/icao-aircraft-engine-emissions-databank -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/DisplayPage.aspx?DocType=Reference&ItemId=+++1342554,
+updated on 7 February 2014 and retreived on 4 February, 2015 -->

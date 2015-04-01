@@ -1,0 +1,16 @@
+# Screen configuration
+
+1     # Fullscreen (0)  or window (1)
+
+1100  # width [pixels] window size <= means full screen
+840  # height [pixels] window size  <= means full screen
+
+# Console/Edit window
+
+48   # width in number of character
+10    # number of lines
+
+15   # x-coordinate of edit window in pixels from left side 
+15   # y-coordinate of edit window in pixels from bottom of edit window
+
+

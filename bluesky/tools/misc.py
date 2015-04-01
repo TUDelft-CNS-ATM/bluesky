@@ -1,0 +1,115 @@
+""" 
+Miscellaneous modules
+
+Modules:
+     txt2alt(txt): read altitude[ft] from txt (FL ot ft)
+     txt2spd(spd,h): read CAS or Mach and convert to TAS for given altitude
+     tim2txt(t)  : convert time[s] to HH:MM:SS.hh
+     i2txt(i,n)  : convert integer to string of n chars with leading zeros
+
+Created by  : Jacco M. Hoekstra
+"""
+
+from numpy import *
+from time import strftime,gmtime
+from aero import cas2tas, mach2tas, eas2tas, kts, nm
+
+
+def txt2alt(txt):
+    """Convert text to altitude in ft: also FL300 => 30000. as float"""
+    # First check for FL otherwise feet
+    if txt.upper()[:2]=='FL' and len(txt)>=4: # Syntax check Flxxx or Flxx 
+        try:
+            return 100.*int(txt[2:])
+        except:
+            return -999.
+    else:
+        try:
+            return float(txt)
+        except:
+            return -999.
+    return -999
+
+def tim2txt(t):
+    """Convert time to timestring: HH:MM:SS.hh"""
+    return strftime("%H:%M:%S.",gmtime(t))+i2txt(int((t-int(t))*100.),2)
+    
+
+def i2txt(i,n):
+    """Convert integer to string with leading zeros to make it n chars long"""
+    itxt = str(i)
+    return "0"*(n-len(itxt))+itxt
+
+
+def txt2spd(txt,h):
+    """Convert text to speed (EAS [kts]/MACH[-] to TAS[m/s])"""    
+    if len(txt)==0:
+        return -1.
+    try:    
+        if txt[0]=='M':
+            M_ = float(txt[1:])
+            if M_>=20:   # Handle M95 notation as .95
+                M_= M_*0.01
+            acspd = mach2tas(M_,h) # m/s
+            
+        elif txt[0]=='.' or (len(txt)>=2 and txt[:2]=='0.'):
+            spd_ = float(txt)
+            acspd = mach2tas(spd_,h) # m/s
+    
+        else:
+            spd_ = float(txt)*kts
+            acspd = cas2tas(spd_,h) # m/s
+    except:
+        return -1.
+        
+    return acspd
+
+
+def kwikdist(lata,lona,latb,lonb):
+    """
+    Convert text to altitude: 4500 = 4500 ft, 
+    Return altitude in meters
+    Quick and dirty dist [nm] inreturn 
+    """
+
+    re   = 6371000.  # readius earth [m]
+    dlat = array(radians(latb - lata))
+    dlon = array(radians(lonb - lona))
+    cavelat = array(cos(radians(lata+latb)/2.))
+
+    dangle = sqrt(dlat*dlat+dlon*dlon*cavelat*cavelat)
+    dist = re*dangle/nm
+
+    return mat(dist)
+
+
+def kwikqdrdist(lata,lona,latb,lonb):
+    """Gives quick and dirty qdr[deg] and dist [nm] inreturn """
+    re   = 6371000.  # readius earth [m]
+    dlat = array(radians(latb - lata))
+    dlon = array(radians(lonb - lona))
+    cavelat = array(cos(radians(lata+latb)/2.))
+
+    dangle = sqrt(dlat*dlat+dlon*dlon*cavelat*cavelat)
+    dist   = re*dangle
+
+    qdr = degrees(arctan2(dlon*cavelat,dlat))%360.
+
+    return mat(qdr),mat(dist)
+
+def col2rgb(txt):
+    cols = {"black":(0,0,0),  "white":(255,255,255), "green":(0,255,0), 
+            "red":(255,0,0),  "blue":(0,0,255),      "magenta":(255,0,255),
+            "yellow":(240,255,127),"amber":(255,255,0),  "cyan":(0,255,255)}
+    try:
+        rgb = cols[txt.lower().strip()]
+    except:
+        rgb = cols["white"]  # default
+        
+    return rgb     
+
+def degto180(angle): 
+    """Change to domain -180,180 """
+    return (angle+180.)%360-180.
+    
+    
