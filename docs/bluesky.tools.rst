@@ -4,6 +4,14 @@ bluesky.tools package
 Submodules
 ----------
 
+bluesky.tools.adsb module
+-------------------------
+
+.. automodule:: bluesky.tools.adsb
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 bluesky.tools.aero module
 -------------------------
 

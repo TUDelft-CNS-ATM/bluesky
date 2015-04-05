@@ -8,7 +8,6 @@ Subpackages
 
     bluesky.sim
     bluesky.stack
-    bluesky.stream
     bluesky.tools
     bluesky.traf
     bluesky.ui
