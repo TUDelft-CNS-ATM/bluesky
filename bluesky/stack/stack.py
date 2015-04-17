@@ -138,8 +138,26 @@ class Commandstack:
             # imin = int(tstamp[3:5])
             # isec = float(tstamp[6:8]+"."+tstamp[9:11])
             
-            self.scentime = 0.
+            self.scentime = []
+            self.scencmd = []
 
+            # Split scenario file line in times and commands
+            for line in self.scenlines:
+                lstrip = line.strip()
+                    # Try reading timestamp and command
+                try:
+                    icmdline = line.index('>')
+                    tstamp = line[:icmdline]
+                    ttxt = tstamp.strip().split(':')
+                    ihr = int(ttxt[0])
+                    imin = int(ttxt[1])
+                    xsec = float(ttxt[2])
+                    self.scentime.append(ihr * 3600. + imin * 60. + xsec)
+                    self.scencmd.append(line[icmdline + 1:-1])
+                except:
+                    print "except this:",line
+                    pass # nice try, we will just ignore this syntax error
+        
             # Save ic file for next time
             fpath = os.path.dirname(__file__) + "/../../tmp/icfile.dat"
             f = open(fpath, "w")
@@ -157,41 +175,14 @@ class Commandstack:
         if self.tmx.sim.mode != self.tmx.sim.op:
             return
 
-        # Limit umber of lines to process per call
-        n = 0
-        nmax = 500  # Max number of commands read per update cycle
+        # Empty command buffer when it's time
+        while len(self.scencmd)>0 and self.tmx.sim.t >= self.scentime[0]:
+   
+             self.stack(self.scencmd[0])
+             del self.scencmd[0]
+             del self.scentime[0]
 
-        while self.tmx.sim.t >= self.scentime and n < nmax \
-                and self.linenr < len(self.scenlines):
-            line = self.scenlines[self.linenr]
-            self.linenr = self.linenr + 1
-
-            icmdline = line.find('>')
-            if line[0] != "#" and icmdline > 0 and len(line) > icmdline:
-                self.stack(line[icmdline + 1:])
-                n = n + 1
-
-            if self.linenr < len(self.scenlines):
-                line = self.scenlines[self.linenr]
-
-                # Try reading timestamp and command
-                try:
-                    icmdline = line.index('>')
-                    tstamp = line[:icmdline]
-                    ttxt = tstamp.strip().split(':')
-                    ihr = int(ttxt[0])
-                    imin = int(ttxt[1])
-                    xsec = float(ttxt[2])
-                    self.scentime = ihr * 3600. + imin * 60. + xsec
-
-                # No command or timestamp found
-                except:
-                    self.linenr = self.linenr + 1
-
-            else:
-                self.scentime = 999999999.
         return
-
 
     def saveic(self, fname, sim, traf):
 
