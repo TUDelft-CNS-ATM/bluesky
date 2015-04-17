@@ -398,7 +398,7 @@ class Route():
            if traf.swvnav[i]:
                if self.wpalt[wpidx]:
                     traf.aalt[i] = self.wpalt[wpidx]
-               spd = self.wpspd[wpdix]
+               spd = self.wpspd[wpidx]
                if spd>0:
                     if spd<2.0:
                        traf.aspd[i] = mach2cas(spd,traf.alt[i])                            
