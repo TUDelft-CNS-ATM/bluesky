@@ -585,15 +585,15 @@ class Traffic:
 
                     elif toalt>0:
                         # VNAV calculated altitude
-                       if traf.alt[i]>toalt:
+                       if self.alt[i]>toalt:
                         # Descent:
                            steepness = 3000*ft/(10*nm) # 1:3 rule for now
                            maxaltwp = toalt+xtoalt*steepness
-                           self.actwpalt[i] = min(traf.alt[i],maxaltwp)
-                           if maxaltwp<traf.alt[i]:
+                           self.actwpalt[i] = min(self.alt[i],maxaltwp)
+                           if maxaltwp<self.alt[i]:
                                self.aalt[i] = toalt
                                t2go = xtoalt/max(0.01,self.gs[i])
-                               self.avs[i] = (toalt-traf.alt[i])/t2go
+                               self.avs[i] = (toalt-self.alt[i])/t2go
                                
                     if spd>0 and self.swvnav:
                         if spd<2.0:
