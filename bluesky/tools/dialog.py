@@ -11,7 +11,8 @@ import sys
 
 
 def fileopen():
-    """returns filename fo scenatriofile selected"""
+    """returns filename of scenariofile selected"""
+    cdir = os.getcwd()
 
     # load Tk crash on Mac
     # temporary work around mac without loading and file
@@ -30,5 +31,5 @@ def fileopen():
 
     # Close Tk, return to working directory    
     master.quit()
-    os.chdir('..')
+    os.chdir(cdir)
     return file_path
