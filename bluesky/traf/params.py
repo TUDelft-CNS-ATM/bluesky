@@ -1142,7 +1142,7 @@ class CoeffBS:
         
         # parse AC files
                 
-        path = 'data/coefficients/BS_aircraft/'
+        path = './data/coefficients/BS_aircraft/'
         files = os.listdir(path)
         for file in files:
             acdoc = ElementTree.parse(path + file)
