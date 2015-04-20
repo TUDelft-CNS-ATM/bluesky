@@ -34,7 +34,7 @@ class Commandstack:
         self.tmx       = tmx       # parent object
         self.cmdstack  = []
         self.scenlines = []
-        self.scentime  = 9999999.
+        self.scentime  = []
         self.linenr    = 0
         self.scenfile  = ""
         
@@ -787,7 +787,7 @@ class Commandstack:
                         scr.echo("Opening " + filename + " ...")
 
                     # Open file in ./scenario subfolder
-                    self.scentime = 0.
+                    
                     sim.t = 0.
                     traf.deleteall()
 
