@@ -569,7 +569,7 @@ class Traffic:
                 for i in iwpclose:
 
                     lat, lon, alt, spd, lnavon, xtoalt, toalt =  \
-                           self.route[i].getnextwp()
+                           self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
     
                     if not lnavon:
                         self.swlnav[i] = False # Drop LNAV at end of route
@@ -585,7 +585,7 @@ class Traffic:
                         # VNAV calculated altitude
                        if self.alt[i]>toalt:
                         # Descent:
-                           steepness = 3000*ft/(10*nm) # 1:3 rule for now
+                           steepness = 3000*ft/(10.*nm) # 1:3 rule of thumb for now
                            maxaltwp = toalt+xtoalt*steepness
                            self.actwpalt[i] = min(self.alt[i],maxaltwp)
                            if maxaltwp<self.alt[i]:

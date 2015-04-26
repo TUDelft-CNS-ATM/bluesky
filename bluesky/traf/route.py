@@ -1,4 +1,4 @@
-from ..tools.aero import ft, kts, g0, qdrdist
+from ..tools.aero import ft, kts, g0, qdrdist, nm
 
 
 class Route():
@@ -487,7 +487,7 @@ class Route():
              qdr,dist = qdrdist(self.wplat[i]  ,self.wplon[i], \
                                 self.wplat[i+1],self.wplon[i+1])
              self.wpdirfrom[i] = qdr
-             self.wpdistto[i+1]  = dist
+             self.wpdistto[i+1]  = dist #[nm]
 
         if self.nwp>1:
             self.wpdirfrom[-1] = self.wpdirfrom[-2]
@@ -501,16 +501,16 @@ class Route():
             if self.wptype[i]==self.dest:
                 ialt   = i
                 toalt  = 0.
-                xtoalt = 0.
+                xtoalt = 0.   
             elif self.wpalt[i]>=0:
                 ialt   = i
                 toalt  = self.wpalt[i]
-                xtoalt = 0.
+                xtoalt = 0.   # [m]
             else:
-                xtoalt = xtoalt+self.wpdistto[i]
+                xtoalt = xtoalt+self.wpdistto[i]*nm  # [m]
                 
             self.wpialt[i] = ialt  
-            self.wptoalt[i] = toalt
-            self.wpxtoalt[i] = xtoalt
+            self.wptoalt[i] = toalt   #[m]
+            self.wpxtoalt[i] = xtoalt  #[m]
             # print i,self.wpname[i],self.wpxtoalt[i]," to ",self.wptoalt[i]
         return        

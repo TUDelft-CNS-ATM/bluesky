@@ -35,9 +35,11 @@ class Commandstack:
         self.cmdstack  = []
         self.scenlines = []
         self.scentime  = []
-        self.linenr    = 0
         self.scenfile  = ""
-        
+        self.scentime = []
+        self.scencmd = []
+
+
         # An advanced way to add your own commands: add your entry to the dictionary.        
         # The dictionary should be formed as {"Key":'module'}.
         # "Key" is a TWO-letterd reference that is used at the start of the command.
@@ -115,7 +117,9 @@ class Commandstack:
         print
 
         # Read lines into buffer
-        self.linenr = 0
+        self.scentime = []
+        self.scencmd = []
+
         if os.path.exists(scenfile):
             fscen = open(scenfile, 'r')
             self.scenlines = fscen.readlines()
@@ -137,10 +141,7 @@ class Commandstack:
             # ihr = int(tstamp[:2])
             # imin = int(tstamp[3:5])
             # isec = float(tstamp[6:8]+"."+tstamp[9:11])
-            
-            self.scentime = []
-            self.scencmd = []
-
+        
             # Split scenario file line in times and commands
             for line in self.scenlines:
                 lstrip = line.strip()
@@ -1511,6 +1512,39 @@ class Commandstack:
                     else:
                         scr.echo("Usage: DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER, " +
                             " DATAFEED ON/OFF, DATAFEED DEMO, DATAFEED LOG ON/OFF")
+
+                #------------------------------------------------------------------
+                # DUMPRTE acid: Dump the route to the route-file for debugging
+                # 
+                #------------------------------------------------------------------
+                elif cmd[:7] == "DUMPRTE":
+                    if numargs == 0:
+                        scr.echo("DUMPRTE acid")
+                    else:
+                        acid = cmdargs[1]
+                        i = traf.id2idx(acid)
+                        
+                        # Open file in append mode, write header
+                        f = open("./data/output/routelog.txt","a")
+                        f.write("\nRoute "+acid+":\n")
+                        f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
+                        f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
+                        # write flight plan VNAV data (Lateral is visible on screen)
+                        for j in range(traf.route[i].nwp):
+                            f.write( str(( j, \
+                                  traf.route[i].wpname[j],  \
+                                  traf.route[i].wptype[j],  \
+                                  round(traf.route[i].wplat[j],4),   \
+                                  round(traf.route[i].wplon[j],4),   \
+                                  int(0.5+traf.route[i].wpalt[j]/ft),   \
+                                  int(0.5+traf.route[i].wpspd[j]/kts),   \
+                                  int(0.5+traf.route[i].wptoalt[j]/ft),   \
+                                  round(traf.route[i].wpxtoalt[j]/nm,3) \
+                                  )) + "\n")
+
+                        # End of data
+                        f.write("----\n")
+                        f.close()
 
                 #------------------------------------------------------------------
                 # !!! This is a template, please make a copy and keep it !!!
