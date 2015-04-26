@@ -109,7 +109,7 @@ class Commandstack:
 
         # If it is with a path don't touch it, else add path
         if scenname.find("/") < 0:
-            scenfile = "./scenario/" + scenname.lower()
+            scenfile = "./data/scenario/" + scenname.lower()
         else:
             scenfile = scenname
 

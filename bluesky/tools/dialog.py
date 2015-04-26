@@ -32,4 +32,5 @@ def fileopen():
     # Close Tk, return to working directory    
     master.quit()
     os.chdir(cdir)
+    print file_path
     return file_path
