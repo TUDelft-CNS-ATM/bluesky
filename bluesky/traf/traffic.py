@@ -1,20 +1,18 @@
 import numpy as np
 import os
-import time
 from math import *
 
-from ..tools.aero import fpm, kts, ft, nm, g0, a0, T0, rho0, tas2eas, tas2mach, tas2cas, mach2cas,  \
-    eas2tas, temp, density, Rearth, gamma, gamma1, gamma2,  beta, R
+from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2cas,  \
+     temp, density, Rearth
 
-from ..tools.aero_np import vatmos, vcas2tas, veas2tas, vtas2cas, vvsound, vtas2mach, vmach2cas, \
-    cas2mach, vmach2tas, qdrdist
-
+from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
+    vmach2tas, qdrdist
 from ..tools.misc import degto180
 from ..tools.datalog import Datalog
 
 from metric import Metric
 from navdb import Navdatabase
-from params import Route
+from route import Route
 from params import Trails
 from asas import Dbconf
 
@@ -570,7 +568,7 @@ class Traffic:
                 # Shift for aircraft i where necessary
                 for i in iwpclose:
 
-                    lat, lon, alt, spd, lnavon, xalt, toalt =  \
+                    lat, lon, alt, spd, lnavon, xtoalt, toalt =  \
                            self.route[i].getnextwp()
     
                     if not lnavon:
@@ -595,7 +593,7 @@ class Traffic:
                                t2go = xtoalt/max(0.01,self.gs[i])
                                self.avs[i] = (toalt-self.alt[i])/t2go
                                
-                    if spd>0 and self.swvnav:
+                    if spd>0. and self.swvnav[i]:
                         if spd<2.0:
                            self.aspd[i] = mach2cas(spd,trafalt[i])                            
                         else:    
@@ -604,7 +602,7 @@ class Traffic:
                     # Calculate distance before waypoint where to start the turn
                     # Turn radius:      R = V2 tan phi / g
                     # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
-                    turnrad = self.tas[i]*self.tas[i]/tan(radians(self.bank)) /g0 /nm # default bank angle per flight phase
+                    turnrad = self.tas[i]*self.tas[i]/tan(radians(self.bank[i])) /g0 /nm # default bank angle per flight phase
                                        
                     self.actwpturn[i] = turnrad*min(4.,abs(tan(0.5*degto180(qdr[i]- \
                          self.route[i].wpdirfrom[self.route[i].iactwp]))))                    
