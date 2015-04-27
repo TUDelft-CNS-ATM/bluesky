@@ -91,17 +91,7 @@ class Commandstack:
 
     def openfile(self, scenname):
         # No filename: empty start
-        if len(scenname.strip()) == 0:
-            # print "empty start"
-            self.scenlines = []
-
-            # Save also empty ic file for next time
-            fpath = os.path.dirname(__file__) + "/../../tmp/icfile.dat"
-            f = open(fpath, "w")
-            f.write("icfile= " + chr(13) + chr(10))
-            f.write(" ")
-            f.close()
-            return
+        self.scenlines = []
 
         # Add .scn extension if necessary
         if scenname.lower().find(".scn") < 0:
@@ -159,12 +149,6 @@ class Commandstack:
                     print "except this:",line
                     pass # nice try, we will just ignore this syntax error
         
-            # Save ic file for next time
-            fpath = os.path.dirname(__file__) + "/../../tmp/icfile.dat"
-            f = open(fpath, "w")
-            f.write("icfile=" + scenfile + chr(13) + chr(10))
-            f.write(" ")
-            f.close()
         else:
             print"Error: cannot find file:", scenfile
 
