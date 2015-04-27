@@ -1,3 +1,4 @@
+from numpy import *
 from ..tools.aero import ft, kts, g0, qdrdist, nm
 
 
@@ -396,7 +397,7 @@ class Route():
                     
         # Compare angles to rates:
         epsh = 50.*ft   # Nothing to be done for small altitude changes 
-        epsx = 1.*nm    # [m] Nothing to be done at this hort range
+        epsx = 1.*nm    # [m] Nothing to be done at this short range
         i = 0
         while i<len(alt)-1:
             if name[i][:2]=="T/":
@@ -408,14 +409,14 @@ class Route():
             dxdes = abs(dy)/desslope
             dxclb = abs(dy)/clbslope
 
-            if dy<eps and  dx + epsx > dxdes:   # insert T/D?
+            if dy<epsh and  dx + epsx > dxdes:   # insert T/D?
 
                name.insert(i+1,"T/D")
                alt.insert(i+1,alt[i])
                x.insert(i+1,x[i+1]-dxdes)
                i = i+1
  
-            elif dy>eps and  dx + epsx > dxclb:  # insert T/C?                 
+            elif dy>epsh and  dx + epsx > dxclb:  # insert T/C?                 
                
                name.insert(i+1,"T/C")
                alt.insert(i+1,alt[i+1])
@@ -426,7 +427,6 @@ class Route():
                
         # Now insert T/Cs and T/Ds in actual flight plan
         nvwp = len(alt)
-        jwp = self.nwp    # start insert in at zero
         for i in range(nvwp,-1,-1):
 
             # Copy all new waypoints (which are all named T/C or T/D)
@@ -435,7 +435,8 @@ class Route():
                 # Find place in flight plan to insert T/C or T/D
                 while dist2go[j]<x[i] and j>1:
                     j=j-1
-                    
+
+                # Interpolation factor for position on leg                    
                 f   = (x[i]-dist2go[j+1])/(dist2go[j]-dist2go[j+1])
 
                 lat = f*self.wplat[j]+(1.-f)*wplat[j+1]
@@ -488,7 +489,7 @@ class Route():
              qdr,dist = qdrdist(self.wplat[i]  ,self.wplon[i], \
                                 self.wplat[i+1],self.wplon[i+1])
              self.wpdirfrom[i] = qdr
-             self.wpdistto[i+1]  = dist #[nm]
+             self.wpdistto[i+1]  = dist #[nm]  distto is in nautical miles
 
         if self.nwp>1:
             self.wpdirfrom[-1] = self.wpdirfrom[-2]
@@ -499,17 +500,17 @@ class Route():
         toalt = -999.
         xtoalt = 0.
         for i in range(self.nwp-1,-1,-1):
-            if self.wptype[i]==self.dest:
-                ialt   = i
-                toalt  = 0.
-                xtoalt = 0.   
-            elif self.wpalt[i]>=0:
+
+            # waypoint with altitude constraint (dest of al specified)        
+            if self.wptype[i]==self.dest or self.wpalt[i] >= 0:
                 ialt   = i
                 toalt  = self.wpalt[i]
-                xtoalt = 0.   # [m]
-            else:
-                xtoalt = xtoalt+self.wpdistto[i]*nm  # [m]
-                
+                xtoalt = 0.                # [m]
+
+            # waypoint with no altitude constraint:keep counting
+            else:                          
+                xtoalt = xtoalt+self.wpdistto[i+1]*nm  # [m] xtoalt is in meters!
+
             self.wpialt[i] = ialt  
             self.wptoalt[i] = toalt   #[m]
             self.wpxtoalt[i] = xtoalt  #[m]

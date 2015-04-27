@@ -55,22 +55,6 @@ class Commandstack:
             obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
             self.extracmdrefs[key]=obj
 
-        # Use IC file from datafile
-        # try:
-        #     f = open("./data/icfile.dat", "r")
-        #     lines = f.readlines()
-        #     f.close()
-        #     i = 0
-        #     while lines[i] == "#":  # Skip comment lines
-        #         i = i + 1
-        #     isep = lines[i].find("=")
-        #     if isep > 0:
-        #         self.scenfile = lines[i][isep + 1:].strip()
-        #         # print "init scn fname=",self.scenfile
-        #         self.openfile(self.scenfile)
-        # except:
-        #     pass
-
         # Open file dialog:
         print '\nSelect a file in the "Open file"-dialog.\n(Use Alt-Tab if necessary.)\n'
         self.scenfile = opendialog()
