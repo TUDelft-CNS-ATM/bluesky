@@ -568,7 +568,7 @@ class Traffic:
                 # Shift for aircraft i where necessary
                 for i in iwpclose:
 
-                    lat, lon, alt, spd, lnavon, xtoalt, toalt =  \
+                    lat, lon, alt, spd, xtoalt, toalt, lnavon =  \
                            self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
     
                     if not lnavon:
@@ -593,7 +593,7 @@ class Traffic:
                                t2go = xtoalt/max(0.01,self.gs[i])
                                self.avs[i] = (toalt-self.alt[i])/t2go
                                
-                    if spd>0. and self.swvnav[i]:
+                    if spd>0. and self.lnav[i] and self.swvnav[i]:
                         if spd<2.0:
                            self.aspd[i] = mach2cas(spd,trafalt[i])                            
                         else:    
