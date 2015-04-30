@@ -1,5 +1,6 @@
 from numpy import *
 from ..tools.aero import ft, kts, g0, qdrdist, nm
+from ..tools.misc import degto180
 
 
 class Route():

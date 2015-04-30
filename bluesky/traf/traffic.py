@@ -564,8 +564,11 @@ class Traffic:
 
                 # Check whether shift based dist [nm] is required, set closer than WP turn distance
                 iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
-                    
+                print sim.t, iwpclose   
+                print dist,self.actwpturn                 
+                
                 # Shift for aircraft i where necessary
+
                 for i in iwpclose:
 
                     lat, lon, alt, spd, xtoalt, toalt, lnavon =  \
@@ -586,14 +589,14 @@ class Traffic:
                        if self.alt[i]>toalt:
                         # Descent:
                            steepness = 3000*ft/(10.*nm) # 1:3 rule of thumb for now
-                           maxaltwp = toalt+xtoalt*steepness
+                           maxaltwp = toalt+(xtoalt+dist*nm)*steepness
                            self.actwpalt[i] = min(self.alt[i],maxaltwp)
                            if maxaltwp<self.alt[i]:
                                self.aalt[i] = toalt
                                t2go = xtoalt/max(0.01,self.gs[i])
                                self.avs[i] = (toalt-self.alt[i])/t2go
                                
-                    if spd>0. and self.lnav[i] and self.swvnav[i]:
+                    if spd>0. and lnavon and self.swvnav[i]:
                         if spd<2.0:
                            self.aspd[i] = mach2cas(spd,trafalt[i])                            
                         else:    
@@ -603,7 +606,7 @@ class Traffic:
                     # Turn radius:      R = V2 tan phi / g
                     # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                     turnrad = self.tas[i]*self.tas[i]/tan(radians(self.bank[i])) /g0 /nm # default bank angle per flight phase
-                                       
+                    print turnrad                    
                     self.actwpturn[i] = turnrad*min(4.,abs(tan(0.5*degto180(qdr[i]- \
                          self.route[i].wpdirfrom[self.route[i].iactwp]))))                    
                     
