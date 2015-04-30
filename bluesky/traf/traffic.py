@@ -564,8 +564,8 @@ class Traffic:
 
                 # Check whether shift based dist [nm] is required, set closer than WP turn distance
                 iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
-                print sim.t, iwpclose   
-                print dist,self.actwpturn                 
+#                print sim.t, iwpclose   
+#                print dist,self.actwpturn                 
                 
                 # Shift for aircraft i where necessary
 
@@ -606,7 +606,7 @@ class Traffic:
                     # Turn radius:      R = V2 tan phi / g
                     # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                     turnrad = self.tas[i]*self.tas[i]/tan(radians(self.bank[i])) /g0 /nm # default bank angle per flight phase
-                    print turnrad                    
+#                    print turnrad                    
                     self.actwpturn[i] = turnrad*min(4.,abs(tan(0.5*degto180(qdr[i]- \
                          self.route[i].wpdirfrom[self.route[i].iactwp]))))                    
                     
