@@ -9,7 +9,6 @@ Start this module to start the program
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
 
-
 from bluesky.traf import Traffic
 from bluesky.sim import Simulation
 from bluesky.ui import Screen, Keyboard
@@ -20,7 +19,6 @@ from bluesky.tools import splash
 import time
 import numpy as np
 import pygame as pg   
-
 
 class TMX():
     """Main BlueSky Traffic simulation main executable (tmx) object"""

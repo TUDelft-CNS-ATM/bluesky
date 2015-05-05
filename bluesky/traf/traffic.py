@@ -605,7 +605,7 @@ class Traffic:
                     # Calculate distance before waypoint where to start the turn
                     # Turn radius:      R = V2 tan phi / g
                     # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
-                    turnrad = self.tas[i]*self.tas[i]/tan(radians(self.bank[i])) /g0 /nm # default bank angle per flight phase
+                    turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # default bank angle per flight phase
 #                    print turnrad                    
                     self.actwpturn[i] = turnrad*min(4.,abs(tan(0.5*degto180(qdr[i]- \
                          self.route[i].wpdirfrom[self.route[i].iactwp]))))                    
