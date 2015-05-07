@@ -711,7 +711,7 @@ class Traffic:
             self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
             swaltsel = np.abs(self.delalt) >      \
                                  np.abs(2. * sim.dt * np.abs(self.vs))
-            print swaltsel
+#            print swaltsel
 
             #self.vs = swaltsel * vsdef
             self.alt = swaltsel * (self.alt + self.vs * sim.dt) + \
