@@ -581,21 +581,29 @@ class Traffic:
                     self.actwplon[i] = lon
 
                     # User entered altitude
-                    if alt>0:
+                    if alt>0.:
                        self.actwpalt[i] = alt
 
-                    elif toalt>0:
-                        # VNAV calculated altitude
-                       if self.alt[i]>toalt:
-                        # Descent:
-                           steepness = 3000*ft/(10.*nm) # 1:3 rule of thumb for now
-                           maxaltwp = toalt+(xtoalt+dist*nm)*steepness
-                           self.actwpalt[i] = min(self.alt[i],maxaltwp)
-                           if maxaltwp<self.alt[i]:
-                               self.aalt[i] = toalt
-                               t2go = xtoalt/max(0.01,self.gs[i])
-                               self.avs[i] = (toalt-self.alt[i])/t2go
-                               
+                    if toalt>0.:   # VNAV calculated altitude is available
+                        
+                       if self.alt[i]>toalt:       # Descent part is in this range of waypoints:
+                 
+                           steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
+                           maxaltwp  = toalt + xtoalt*steepness    # max allowed altitude at next wp
+                           self.actwpalt[i] = min(self.alt[i],maxaltwp) #To descend now or descend later?
+
+                           if maxaltwp<self.alt[i]: # if descent is necessary with maximum steepness
+                               self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+
+                               t2go         = xtoalt/max(0.01,self.gs[i])
+                               self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
+                           
+                           else:
+                               pass # TBD
+                       else:    
+                           pass # TBD
+                           
+                           
                     if spd>0. and lnavon and self.swvnav[i]:
                         if spd<2.0:
                            self.aspd[i] = mach2cas(spd,trafalt[i])                            
@@ -703,6 +711,7 @@ class Traffic:
             self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
             swaltsel = np.abs(self.delalt) >      \
                                  np.abs(2. * sim.dt * np.abs(self.vs))
+            print swaltsel
 
             #self.vs = swaltsel * vsdef
             self.alt = swaltsel * (self.alt + self.vs * sim.dt) + \
@@ -710,6 +719,7 @@ class Traffic:
 
             # HDG HOLD/SEL mode: ahdg = ap selected heading
             delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  #[deg]
+
             # print delhdg
             # omega = np.degrees(g0 * np.tan(self.aphi) / \
             # np.maximum(self.tas, self.eps))
