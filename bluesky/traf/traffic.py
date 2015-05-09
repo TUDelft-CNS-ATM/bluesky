@@ -3,7 +3,7 @@ import os
 from math import *
 
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2cas,  \
-     temp, density, Rearth
+     cas2tas, temp, density, Rearth
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
     vmach2tas, qdrdist
@@ -309,7 +309,7 @@ class Traffic:
         self.actwplat  = np.append(self.actwplat, 89.99)  # Active WP latitude
         self.actwplon  = np.append(self.actwplon, 0.0)   # Active WP longitude
         self.actwpalt  = np.append(self.actwpalt, 0.0)   # Active WP altitude
-        self.actwpspd  = np.append(self.actwpspd, 0.0)   # Active WP speed
+        self.actwpspd  = np.append(self.actwpspd, -999.)   # Active WP speed
         self.actwpturn = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
 
         # VNAV cruise level
@@ -560,32 +560,46 @@ class Traffic:
                 self.t0fms = sim.t
                 
                 # FMS LNAV mode:
+
                 qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon)
 
                 # Check whether shift based dist [nm] is required, set closer than WP turn distance
+
                 iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
                 
                 # Shift for aircraft i where necessary
+
                 for i in iwpclose:
+
+                # Get next wp (lnavon = False if no more waypoints)
 
                     lat, lon, alt, spd, xtoalt, toalt, lnavon =  \
                            self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
+                # End of route/no more waypoints: switch off LNAV
+
                     if not lnavon:
                         self.swlnav[i] = False # Drop LNAV at end of route
+
+                # In case of no LNAV do not allow VNAV moe
+
+                    if not self.swlnav[i]:
+                        self.swvnav[i] = False
                         
                     self.actwplat[i] = lat
                     self.actwplon[i] = lon
 
                     # User entered altitude
+
                     if alt>0.:
                         self.actwpalt[i] = alt
-
-                    if toalt>0.:   # VNAV calculated altitude is available
+                        
+                    # VNAV calculated altitude is available and active
                     
+                    if toalt  >0. and self.swvnav[i]:
                         # Descent VNAV mode (T/D logic)
                         
-                        if self.alt[i]>toalt:       # Descent part is in this range of waypoints:
+                        if self.alt[i]>toalt+10.*ft:       # Descent part is in this range of waypoints:
 
                             # Flat earth distance to next wp
                             dx = (self.lat[i]-lat)
@@ -609,7 +623,16 @@ class Traffic:
                                 pass # TBD
 
                         # Climb VNAV mode: climb as soon as possible (T/C logic)                        
-                        else:
+
+                        elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
+
+                            # Flat earth distance to next wp
+
+                            dx = (self.lat[i]-lat)
+                            dy = (self.lon[i]-lon)*cos(radians(lat))
+                            dist2wp = 60.*nm*sqrt(dx*dx+dx*dy)
+
+
                             self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
 
                             t2go         = max(0.1,dist2wp)/max(0.01,self.gs[i])
@@ -618,9 +641,11 @@ class Traffic:
                            
                     if spd>0. and lnavon and self.swvnav[i]:
                         if spd<2.0:
-                           self.aspd[i] = mach2cas(spd,trafalt[i])                            
+                           self.actwpspd[i] = mach2cas(spd,self.alt[i])                            
                         else:    
-                           self.aspd[i] = spd
+                           self.actwpspd[i] = cas2tas(spd,self.alt[i])
+                    else:
+                        self.actwpspd[i] = -999.
 
                     # Calculate distance before waypoint where to start the turn
                     # Turn radius:      R = V2 tan phi / g
@@ -660,7 +685,6 @@ class Traffic:
                 turblon=np.zeros(self.ntraf) #[m]
 
 
-
             # ASAS AP switches
             #--------- Select Autopilot settings to follow: destination or ASAS ----------
 
@@ -698,7 +722,10 @@ class Traffic:
             #---------- Basic Autopilot  modes ----------
 
             # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
-            # for information:
+            # for information:    
+            self.aptas = (self.actwpspd>0.)*self.actwpspd + \
+                                      (self.actwpspd<=0.)*self.aptas
+            self.delspd = self.aptas - self.tas 
             swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
             ax = np.minimum(abs(self.delspd / sim.dt), self.ax)
             self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
