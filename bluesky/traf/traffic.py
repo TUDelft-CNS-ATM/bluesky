@@ -263,8 +263,8 @@ class Traffic:
         self.cas = np.append(self.cas, tas2cas(acspd, acalt))
         self.M   = np.append (self.M, tas2mach(acspd, acalt)) 
 
-        # AC is initialized with neutral bank angle
-        self.bank = np.append(self.bank, 0)
+        # AC is initialized with neutral max bank angle
+        self.bank = np.append(self.bank, 25.)
         if self.ntraf<2:
             self.bphase = np.deg2rad(np.array([15,35,35,35,15,45]))
         self.hdgsel = np.append(self.hdgsel, False)
@@ -564,16 +564,13 @@ class Traffic:
 
                 # Check whether shift based dist [nm] is required, set closer than WP turn distance
                 iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
-#                print sim.t, iwpclose   
-#                print dist,self.actwpturn                 
                 
                 # Shift for aircraft i where necessary
-
                 for i in iwpclose:
 
                     lat, lon, alt, spd, xtoalt, toalt, lnavon =  \
                            self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
-    
+
                     if not lnavon:
                         self.swlnav[i] = False # Drop LNAV at end of route
                         
@@ -582,26 +579,42 @@ class Traffic:
 
                     # User entered altitude
                     if alt>0.:
-                       self.actwpalt[i] = alt
+                        self.actwpalt[i] = alt
 
                     if toalt>0.:   # VNAV calculated altitude is available
+                    
+                        # Descent VNAV mode (T/D logic)
                         
-                       if self.alt[i]>toalt:       # Descent part is in this range of waypoints:
-                 
-                           steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
-                           maxaltwp  = toalt + xtoalt*steepness    # max allowed altitude at next wp
-                           self.actwpalt[i] = min(self.alt[i],maxaltwp) #To descend now or descend later?
+                        if self.alt[i]>toalt:       # Descent part is in this range of waypoints:
 
-                           if maxaltwp<self.alt[i]: # if descent is necessary with maximum steepness
-                               self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+                            # Flat earth distance to next wp
+                            dx = (self.lat[i]-lat)
+                            dy = (self.lon[i]-lon)*cos(radians(lat))
+                            dist2wp = 60.*nm*sqrt(dx*dx+dx*dy)
+                            print dist2wp,self.route[i].wpdistto[i]*nm
+                  
+                            steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
+                            maxaltwp  = toalt + xtoalt*steepness    # max allowed altitude at next wp
+                            self.actwpalt[i] = min(self.alt[i],maxaltwp) #To descend now or descend later?
 
-                               t2go         = xtoalt/max(0.01,self.gs[i])
-                               self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
+                            if maxaltwp<self.alt[i]: # if descent is necessary with maximum steepness
+
+                                self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+
+                                t2go         = max(0.1,dist2wp)/max(0.01,self.gs[i])
+                                self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
                            
-                           else:
-                               pass # TBD
-                       else:    
-                           pass # TBD
+                               
+                            else:
+                                print "else 1"
+                                pass # TBD
+
+                        # Climb VNAV mode: climb as soon as possible (T/C logic)                        
+                        else:
+                            self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+
+                            t2go         = max(0.1,dist2wp)/max(0.01,self.gs[i])
+                            self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
                            
                            
                     if spd>0. and lnavon and self.swvnav[i]:
@@ -709,7 +722,7 @@ class Traffic:
 
             # update altitude
             self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
-            swaltsel = np.abs(self.delalt) >      \
+            swaltsel = np.abs(self.aalt-self.alt) >      \
                                  np.abs(2. * sim.dt * np.abs(self.vs))
 #            print swaltsel
 
