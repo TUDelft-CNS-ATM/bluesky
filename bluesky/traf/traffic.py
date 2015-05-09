@@ -591,7 +591,6 @@ class Traffic:
                             dx = (self.lat[i]-lat)
                             dy = (self.lon[i]-lon)*cos(radians(lat))
                             dist2wp = 60.*nm*sqrt(dx*dx+dx*dy)
-                            print dist2wp,self.route[i].wpdistto[i]*nm
                   
                             steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
                             maxaltwp  = toalt + xtoalt*steepness    # max allowed altitude at next wp
