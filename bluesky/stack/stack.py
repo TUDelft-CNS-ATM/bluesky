@@ -470,7 +470,7 @@ class Commandstack:
                         if idx >= 0:
                             try:
                                 # update flight level as well as altitude
-                                traf.aalt[idx] = float(cmdargs[2]) * ft
+                                traf.aalt[idx] = txt2alt(cmdargs[2]) * ft
                                 traf.afll[idx] = (traf.aalt[idx])/(100*ft)
                                 traf.swvnav[idx] = False
 
@@ -528,7 +528,7 @@ class Commandstack:
                             eascmd = float(cmdargs[2]) * kts
                             traf.aspd[idx] = eascmd
                             traf.ama[idx] = cas2mach(eascmd, traf.alt[idx])
-                            traf.swvnav[idx] = False
+                            traf.swvnav[idx] = False  # switch off VNAV
 
                         else:
                             scr.echo(cmd + ": " + acid + " not found.")
@@ -553,7 +553,7 @@ class Commandstack:
                         syntax = False                
 
                 #----------------------------------------------------------------------
-                # VS vertspeed [ft/min] Vertical speed auropilot command
+                # VS vertspeed [ft/min] Vertical speed autopilot command
                 #----------------------------------------------------------------------
                 elif cmd == "VS":
                     if numargs < 2:
@@ -564,6 +564,7 @@ class Commandstack:
                         if idx >= 0:
                             traf.avs[idx] = float(cmdargs[2]) * fpm
                             # traf.vs[idx]=float(cmdargs[2]) * fpm
+                            traf.swvnav[idx] = False
                         else:
                             scr.echo(cmd + ": " + acid + " not found.")
                     else:

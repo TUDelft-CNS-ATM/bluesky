@@ -581,7 +581,7 @@ class Traffic:
                     if not lnavon:
                         self.swlnav[i] = False # Drop LNAV at end of route
 
-                # In case of no LNAV do not allow VNAV moe
+                # In case of no LNAV, do not allow VNAV mode on it sown
 
                     if not self.swlnav[i]:
                         self.swvnav[i] = False

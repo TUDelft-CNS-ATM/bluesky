@@ -1,5 +1,5 @@
 from numpy import *
-from ..tools.aero import ft, kts, g0, qdrdist, nm
+from ..tools.aero import ft, kts, g0, qdrdist, nm, cas2tas, mach2tas
 from ..tools.misc import degto180
 
 
@@ -225,7 +225,7 @@ class Route():
                     if spd<2.0:
                        traf.aspd[i] = mach2cas(spd,traf.alt[i])                            
                     else:    
-                       traf.aspd[i] = spd
+                       traf.aspd[i] = cas2tas(spd,traf.alt[i])
                vnavok =  True
            else:
                vnavok = False
