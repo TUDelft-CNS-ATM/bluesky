@@ -591,12 +591,12 @@ class Traffic:
 
                     # User entered altitude
 
-                    if alt>0.:
+                    if alt >= 0.:
                         self.actwpalt[i] = alt
                         
                     # VNAV calculated altitude is available and active
                     
-                    if toalt  >0. and self.swvnav[i]:
+                    if toalt  >= 0. and self.swvnav[i]:
                         # Descent VNAV mode (T/D logic)
                         
                         if self.alt[i]>toalt+10.*ft:       # Descent part is in this range of waypoints:
@@ -604,7 +604,7 @@ class Traffic:
                             # Flat earth distance to next wp
                             dx = (self.lat[i]-lat)
                             dy = (self.lon[i]-lon)*cos(radians(lat))
-                            dist2wp = 60.*nm*sqrt(dx*dx+dx*dy)
+                            dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
                   
                             steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
                             maxaltwp  = toalt + xtoalt*steepness    # max allowed altitude at next wp
@@ -630,7 +630,7 @@ class Traffic:
 
                             dx = (self.lat[i]-lat)
                             dy = (self.lon[i]-lon)*cos(radians(lat))
-                            dist2wp = 60.*nm*sqrt(dx*dx+dx*dy)
+                            dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
 
 
                             self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
