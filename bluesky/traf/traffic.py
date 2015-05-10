@@ -652,8 +652,8 @@ class Traffic:
                     # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                     turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # default bank angle per flight phase
 #                    print turnrad                    
-                    self.actwpturn[i] = turnrad*min(4.,abs(tan(0.5*degto180(qdr[i]- \
-                         self.route[i].wpdirfrom[self.route[i].iactwp]))))                    
+                    self.actwpturn[i] = abs(turnrad*min(4.,abs(tan(0.5*degto180(qdr[i]- \
+                         self.route[i].wpdirfrom[self.route[i].iactwp])))))                   
                     
                 # Set headings based on swlnav
                 self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
