@@ -561,7 +561,7 @@ class Traffic:
                 
                 # FMS LNAV mode:
 
-                qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon)
+                qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm]
 
                 # Check whether shift based dist [nm] is required, set closer than WP turn distance
 
@@ -602,8 +602,8 @@ class Traffic:
                         if self.alt[i]>toalt+10.*ft:       # Descent part is in this range of waypoints:
 
                             # Flat earth distance to next wp
-                            dx = (self.lat[i]-lat)
-                            dy = (self.lon[i]-lon)*cos(radians(lat))
+                            dy = (lat-self.lat[i])
+                            dx = (lon-self.lon[i])*cos(radians(lat))
                             dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
                   
                             steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
@@ -628,8 +628,8 @@ class Traffic:
 
                             # Flat earth distance to next wp
 
-                            dx = (self.lat[i]-lat)
-                            dy = (self.lon[i]-lon)*cos(radians(lat))
+                            dy = (lat-self.lat[i])
+                            dx = (lon-self.lon[i])*cos(radians(lat))
                             dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
 
 
@@ -650,10 +650,13 @@ class Traffic:
                     # Calculate distance before waypoint where to start the turn
                     # Turn radius:      R = V2 tan phi / g
                     # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
-                    turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # default bank angle per flight phase
-#                    print turnrad                    
+                    turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] default bank angle per flight phase
+#                    print turnrad
+                    dy = (self.actwplat[i]-self.lat[i])
+                    dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
+                    qdr[i] = degrees(atan2(dx,dy))                    
                     self.actwpturn[i] = max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]- \
-                         self.route[i].wpdirfrom[self.route[i].iactwp])))))                  
+                         self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
                     
                 # Set headings based on swlnav
                 self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
@@ -749,10 +752,12 @@ class Traffic:
             # update altitude
             self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
             swaltsel = np.abs(self.aalt-self.alt) >      \
-                                 np.abs(2. * sim.dt * np.abs(self.vs))
+                      np.maximum(3.,np.abs(2. * sim.dt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
 #            print swaltsel
 
-            #self.vs = swaltsel * vsdef
+            self.vs = swaltsel*((1-self.swvnav)*np.abs(1500./60.*ft) + \
+                         self.swvnav*np.abs(self.avs)*np.sign(self.aalt-self.alt))
+
             self.alt = swaltsel * (self.alt + self.vs * sim.dt) + \
                        (1. - swaltsel) * self.aalt + turbalt
 
