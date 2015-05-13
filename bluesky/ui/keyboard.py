@@ -231,7 +231,7 @@ class Keyboard:
                     acid = cmdargs[1]
                     
         # -------- Process click --------
-        # Double click on aircaft = POS command
+        # Double click on aircraft = POS command
         if numargs==0 and traf.id.count(cmdargs[0])>0:
             scr.editwin.enter()
             command.stack("POS "+cmdargs[0])
@@ -245,6 +245,7 @@ class Keyboard:
   
         # Insert: nearestaircraft id
         elif (cmd == "HDG" or cmd=="POS" or cmd=="SPD"  or cmd=="ALT" or \
+              cmd == "ORIG" or cmd=="DEST" or\
               cmd == "DEL" or cmd=="VS"  or cmd=="MOVE" or cmd=="ND"  or\
               cmd == "NAVDISP" or cmd=="LISTRTE" or cmd=="ADDWPT" or\
               cmd == "LNAV" or cmd=="VNAV" or cmd=="ASAS")    \

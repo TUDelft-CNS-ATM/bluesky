@@ -574,10 +574,18 @@ class Commandstack:
                 # DEST/ORIG: Destination/Origin command: set destination/origin airport
                 #----------------------------------------------------------------------
                 elif cmd == "DEST" or cmd == "ORIG":
-                    if numargs >=1:
+                    if numargs==0:
+                        scr.echo(cmd+" acid, airport")
+                    elif numargs >=1:
                         acid = cmdargs[1]
                         idx = traf.id2idx(acid)
-                        if idx >= 0 and numargs>=2:
+                        if idx>=0 and numargs==1:
+                            if cmd=="DEST":
+                                scr.echo("DEST "+acid+": "+traf.dest[idx])                            
+                            else:
+                                scr.echo("ORIG "+acid+": "+traf.orig[idx])                            
+                            
+                        elif idx >= 0 and numargs>=2:
                             # Destination is default waypoint
                             if cmd == "DEST":
                                 traf.dest[idx] = cmdargs[2].upper().strip()
