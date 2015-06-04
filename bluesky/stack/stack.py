@@ -1476,8 +1476,8 @@ class Commandstack:
                     elif numargs == 1 and cmdargs[1].upper() == "OFF":
                         self.tmx.df.stop()
                     elif numargs == 1 and cmdargs[1].upper() == "DEMO":
-                        scr.echo("Use demo server [IP 145.94.54.54, Port 10001]")
-                        self.tmx.df.connect('145.94.54.54', 10001)
+                        scr.echo("Use demo server [IP 131.180.117.39, Port 10001]")
+                        self.tmx.df.connect('131.180.117.39', 10001)
                     elif numargs == 1 and cmdargs[1].upper() == "LOG":
                         self.tmx.df.set_console_print(True)
                     elif numargs == 2 and cmdargs[1].upper() == "LOG" \

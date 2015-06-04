@@ -19,7 +19,7 @@ from bluesky.tools.adsb_datafeed import DataFeed
 # Only used for debugging
 import time
 import numpy as np
-import pygame as pg   
+import pygame as pg
 
 class TMX():
     """Main BlueSky Traffic simulation main executable (tmx) object"""

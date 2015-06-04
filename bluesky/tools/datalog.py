@@ -24,7 +24,7 @@ from time import strftime,gmtime
 class Datalog():
     def __init__(self):
         # Create a buffer and save filename
-        self.fname = os.path.dirname(__file__) + "/../../data/output/" \
+        self.fname = os.path.dirname(__file__) + "/../../tmp/" \
             + strftime("%Y-%m-%d-%H-%M-%S-BlueSky.tmx", gmtime())
         
         self.buffer=[]

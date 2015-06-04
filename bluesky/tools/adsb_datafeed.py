@@ -8,7 +8,7 @@ import socket
 import time
 import threading
 import math
-import adsb_decoder as decoder
+import adsb_decoder
 
 class TcpClient:
     """A TCP Client receving message from server, analysing the data, and """
@@ -87,12 +87,31 @@ class TcpClient:
             # print "Type:%d | Len:%d | AcTime:%d | ReceiverTime:%d | Power:%d | MSG: %s"  % \
             #     (msgtype, datalen, t_sec_ac, t_sec_receiver, power, msg)
 
-            df = decoder.get_df(msg)
+            df = adsb_decoder.get_df(msg)
+            tc = adsb_decoder.get_tc(msg)
+            ca = adsb_decoder.get_ca(msg)
+
             if df == 17:
-                addr = decoder.get_icao_addr(msg)
-                print df, addr, power, time.time()
-    
-            # self.datafeed.process_message(msg)
+                addr = adsb_decoder.get_icao_addr(msg)
+
+                if tc>=1 and tc<=4:                     # aircraft identification
+                    callsign = adsb_decoder.get_callsign(msg)
+                    self.datafeed.update_callsign_data(addr, callsign)
+                if tc>=9 and tc<=18:                    # airbone postion frame
+                    alt = adsb_decoder.get_alt(msg)
+                    oe = adsb_decoder.get_oe_flag(msg)  # odd or even frame
+                    cprlat = adsb_decoder.get_cprlat(msg)
+                    cprlon = adsb_decoder.get_cprlon(msg)
+                    dataset = {'addr':addr, 'oe':oe, 'time':t_sec_ac, 'alt':alt,
+                            'cprlat':cprlat, 'cprlon':cprlon}
+                    # print dataset
+                    self.datafeed.push_cprpos_data(dataset)
+                elif tc==19:        # airbone velocity frame
+                    sh = adsb_decoder.get_speed_heading(msg)
+                    if sh:
+                        dataset = {'addr':addr, 'speed':sh[0], 'heading':sh[1]}
+                        self.datafeed.push_speed_heading_data(dataset)
+
             return
 
 
@@ -110,9 +129,12 @@ class TcpClient:
                     data = [ord(i) for i in raw_data]    # covert the char to int
 
                     if data[0] == 27:                    # looking for ADS-B data, start with "0x1B"
-                        datatype = int(raw_data[1])
-                        datalen = data[2]<<8 | data[3]
-                        self.read_message(datatype, data[4:], datalen)
+                        try:
+                            datatype = int(raw_data[1])
+                            datalen = data[2]<<8 | data[3]
+                            self.read_message(datatype, data[4:], datalen)
+                        except:
+                            pass
                 except socket.error, exc:
                     print "Socket reading error: %s" % exc
             else:
@@ -170,6 +192,7 @@ class DataFeed:
     def set_console_print(self, flag):
             self.console_print = flag
     
+
     ''' Add an adsb cpr position data to the pool '''  
     def push_cprpos_data(self, data):
 
@@ -180,12 +203,13 @@ class DataFeed:
 
         acdata['alt'] = data['alt']
         if data['oe'] == '1':       # odd frame cpr position
-            acdata['cprlat_o'] = data['cprlat']
-            acdata['cprlon_o'] = data['cprlon']
+            acdata['cprlat1'] = data['cprlat']
+            acdata['cprlon1'] = data['cprlon']
+            acdata['t1'] = data['time']
         if data['oe'] == '0':       # even frame cpr position
-            acdata['cprlat_e'] = data['cprlat']
-            acdata['cprlon_e'] = data['cprlon']
-        acdata['time'] = data['time']
+            acdata['cprlat0'] = data['cprlat']
+            acdata['cprlon0'] = data['cprlon']
+            acdata['t0'] = data['time']
 
         self.acdata_pool[data['addr']] = acdata
         # self.routine()
@@ -214,13 +238,13 @@ class DataFeed:
 
     ''' Loop through the aircraft pool, calculate and update all positions  '''
     def update_all_ac_postition(self):
-        keys = ('cprlat_e', 'cprlon_e', 'cprlat_o', 'cprlon_o')
+        keys = ('cprlat0', 'cprlat1', 'cprlon0', 'cprlon1')
         for ac, acdata in self.acdata_pool.items():
             # check if all needed keys are in dict
             if set(keys).issubset(acdata):
-                pos = adsb_decoder.decodeCPR(acdata['cprlat_e'], acdata['cprlon_e'], 
-                    acdata['cprlat_o'], acdata['cprlon_o'])
-                
+                pos = adsb_decoder.cpr2position(acdata['cprlat0'], acdata['cprlat1'], 
+                    acdata['cprlon0'], acdata['cprlon1'], acdata['t0'], acdata['t1'])
+
                 # update positions of all aircrafts in the list
                 if pos:
                     self.acdata_pool[ac]['lat'] = pos[0]
@@ -229,12 +253,12 @@ class DataFeed:
 
     ''' Generate and stack command to command controller '''  
     def stack_all_commands(self):
-        keys = ('acid', 'lat', 'lon', 'alt', 'speed', 'heading')
+        keys = ('lat', 'lon', 'alt', 'speed', 'heading')
         for ac, acdata in self.acdata_pool.items():
             # check if all needed keys are in dict
             if set(keys).issubset(acdata):
-                # acid = ac
-                acid = acdata['acid']
+                acid = ac
+                # acid = acdata['acid']
                 # check is aircraft is already beening displayed
                 if(self.tmx.traf.id2idx(acid) < 0):
                     cmdstr = 'CRE %s, %s, %f, %f, %f, %d, %d' % \
@@ -257,18 +281,13 @@ class DataFeed:
     def print_acdata(self):
         os.system('cls' if os.name == 'nt' else 'clear')    # clear the console to print up-to-date table info
 
-        print '---- Aircraft in sight (%s) ----' % str(int(time.time()))
+        count = 0
+        keys = ('lat', 'lon', 'alt', 'speed', 'heading')
         for ac, acdata in self.acdata_pool.items():
-            acid =  acdata['acid'] if 'acid' in acdata else 'n/a'
-            lat =  acdata['lat'] if 'lat' in acdata else 0
-            lon =  acdata['lon'] if 'lon' in acdata else 0
-            alt =  acdata['alt'] if 'alt' in acdata else 0
-            spd =  acdata['speed'] if 'speed' in acdata else 0
-            hdg =  acdata['heading'] if 'heading' in acdata else 0
-            ts =  acdata['time'] if 'time' in acdata else 0
+            if set(keys).issubset(acdata):
+                count += 1
 
-            print "AC: %s | ID: %s | LAT: %f | LON: %f | ALT: %d | SPD: %d | HDG: %d | TIME: %d" % \
-                (ac, acid, lat, lon, alt, spd, hdg, ts)
+        print 'time:', str(int(time.time())), " | Active aircraft counts: ", count
         return
 
     ''' House keeping, remove old entries that are not updated for more than 100 second  '''
