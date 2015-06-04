@@ -14,6 +14,7 @@ from bluesky.sim import Simulation
 from bluesky.ui import Screen, Keyboard
 from bluesky.stack import Commandstack
 from bluesky.tools import splash
+from bluesky.tools.adsb_datafeed import DataFeed
 
 # Only used for debugging
 import time
@@ -41,6 +42,7 @@ class TMX():
         self.keyb = Keyboard(self)     # processes input from keyboard & mouse 
         self.scr  = Screen(self)         # screen output object
         self.cmd  = Commandstack(self)    # list with strings with commands from file or user
+        self.df   = DataFeed(self)     # render real time flights with ADS-B datafeed
         return
         
 
