@@ -9,6 +9,7 @@ import time
 import threading
 import math
 import adsb_decoder
+import aero
 
 class TcpClient:
     """A TCP Client receving message from server, analysing the data, and """
@@ -261,9 +262,10 @@ class DataFeed:
                 # acid = acdata['acid']
                 # check is aircraft is already beening displayed
                 if(self.tmx.traf.id2idx(acid) < 0):
+                    v_cas = aero.tas2cas(acdata['speed']*0.8, acdata['alt']/3.2808)
                     cmdstr = 'CRE %s, %s, %f, %f, %f, %d, %d' % \
-                        (acid, 'B737', acdata['lat'], acdata['lon'], \
-                            acdata['heading'], acdata['alt'], acdata['speed'])
+                        (acid, 'A340', acdata['lat'], acdata['lon'], \
+                            acdata['heading'], acdata['alt'], v_cas)
                     self.tmx.cmd.stack(cmdstr)
                 else:
                     cmdstr = 'MOVE %s, %f, %f, %d' % \
@@ -273,7 +275,8 @@ class DataFeed:
                     cmdstr = 'HDG %s, %f' % (acid,  acdata['heading'])
                     self.tmx.cmd.stack(cmdstr)
 
-                    cmdstr = 'SPD %s, %f' % (acid,  acdata['speed'])
+                    v_cas = aero.tas2cas(acdata['speed']*0.8, acdata['alt']/3.2808)
+                    cmdstr = 'SPD %s, %f' % (acid,  v_cas)
                     self.tmx.cmd.stack(cmdstr)
         return
 
