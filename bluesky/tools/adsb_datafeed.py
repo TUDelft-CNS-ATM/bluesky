@@ -262,9 +262,9 @@ class DataFeed:
                 # acid = acdata['acid']
                 # check is aircraft is already beening displayed
                 if(self.tmx.traf.id2idx(acid) < 0):
-                    v_cas = aero.tas2cas(acdata['speed']*0.8, acdata['alt']/3.2808)
+                    v_cas = aero.tas2cas(acdata['speed'], acdata['alt']/3.2808)
                     cmdstr = 'CRE %s, %s, %f, %f, %f, %d, %d' % \
-                        (acid, 'A340', acdata['lat'], acdata['lon'], \
+                        (acid, 'B738', acdata['lat'], acdata['lon'], \
                             acdata['heading'], acdata['alt'], v_cas)
                     self.tmx.cmd.stack(cmdstr)
                 else:
@@ -275,7 +275,7 @@ class DataFeed:
                     cmdstr = 'HDG %s, %f' % (acid,  acdata['heading'])
                     self.tmx.cmd.stack(cmdstr)
 
-                    v_cas = aero.tas2cas(acdata['speed']*0.8, acdata['alt']/3.2808)
+                    v_cas = aero.tas2cas(acdata['speed'], acdata['alt']/3.2808)
                     cmdstr = 'SPD %s, %f' % (acid,  v_cas)
                     self.tmx.cmd.stack(cmdstr)
         return
