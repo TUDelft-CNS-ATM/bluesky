@@ -387,11 +387,8 @@ class Commandstack:
                             if len(txt)>0:
                                 scr.echo(txt)
 
-                        # Show route for this auircraft (toggle switch)
-                        if scr.acidrte==acid:
-                            scr.acidrte = ""
-                        else:
-                            scr.acidrte = acid
+                        # Show route for this aircraft (toggle switch)
+                        scr.showroute(acid)
 
                     else:
                          synerr = True
@@ -669,17 +666,25 @@ class Commandstack:
                         continue
                     # LEFT/RIGHT/UP/DOWN
                     elif numargs == 1:
+                        # First get current view
+                        scrlat0,scrlat1,scrlon0,scrlon1 = scr.getviewlatlon()
+
+                        # Current center of display
+                        ctrlat = 0.5*(scrlat0 + scrlat1)
+                        ctrlon = 0.5*(scrlon0+scrlon1)
+                        
+                        # Pan to edges of display
                         if cmdargs[1] == "LEFT":
-                            scr.pan(scr.ctrlat, scr.lon0)
+                            scr.pan(ctrlat, scrlon0)
     
                         elif cmdargs[1] == "RIGHT":
-                            scr.pan(scr.ctrlat, scr.lon1)
+                            scr.pan(ctrlat, scr.lon1)
     
                         elif cmdargs[1] == "UP":
-                            scr.pan(scr.lat1, scr.ctrlon)
+                            scr.pan(scrlat1, ctrlon)
     
                         elif cmdargs[1] == "DOWN":
-                            scr.pan(scr.lat0, scr.ctrlon)
+                            scr.pan(scrlat0, ctrlon)
 
                         # Try aicraft id, waypoint of airport
                         else:
@@ -718,34 +723,34 @@ class Commandstack:
                 #----------------------------------------------------------------------
                 # NAVDISP/ND  acid:  Activate Navdisplay mode
                 #----------------------------------------------------------------------
-                elif cmd == "ND" or cmd == "NAVDISP":
-
-                    if numargs < 1:  # Help text
-                        scr.echo("NAVDISP acid/OFF")
-                        if scr.swnavdisp:
-                            scr.echo("Ownship is" + scr.ndacid)
-                        else:
-                            scr.echo("NAVDISP is off")
-
-                    # Or switch off
-                    elif cmdargs[1] == "OFF":
-                        scr.swnavdisp = False
-                        scr.redrawradbg = True
-                        scr.geosel = ()
-                        scr.firsel = ()
-
-                    # Follow aircraft
-                    else:
-                        i = traf.id2idx(cmdargs[1])
-                        if i >= 0:
-                            scr.ndacid = cmdargs[1]
-                            scr.swnavdisp = True
-                            scr.redrawradbg = True
-                            scr.geosel = ()
-                            scr.firsel = ()
-                        else:
-                            scr.echo("NAVDISP: " + cmdargs[1] + " not found.")
-
+#                elif cmd == "ND" or cmd == "NAVDISP":
+#
+#                    if numargs < 1:  # Help text
+#                        scr.echo("NAVDISP acid/OFF")
+#                        if scr.swnavdisp:
+#                            scr.echo("Ownship is" + scr.ndacid)
+#                        else:
+#                            scr.echo("NAVDISP is off")
+#
+#                    # Or switch off
+#                    elif cmdargs[1] == "OFF":
+#                        scr.swnavdisp = False
+#                        scr.redrawradbg = True
+#                        scr.geosel = ()
+#                        scr.firsel = ()
+#
+#                    # Follow aircraft
+#                    else:
+#                        i = traf.id2idx(cmdargs[1])
+#                        if i >= 0:
+#                            scr.ndacid = cmdargs[1]
+#                            scr.swnavdisp = True
+#                            scr.redrawradbg = True
+#                            scr.geosel = ()
+#                            scr.firsel = ()
+#                        else:
+#                            scr.echo("NAVDISP: " + cmdargs[1] + " not found.")
+#
 
                 #----------------------------------------------------------------------
                 # IC scenfile: command: restart with new filename (.scn will be added if necessary)
@@ -903,7 +908,7 @@ class Commandstack:
                     elif numargs == 1:
                         if cmdargs[1] == "OFF":
                             traf.swarea = False
-                            scr.redrawradbg = True
+                            scr.drawradbg() # redraw radar background
                             traf.area = ""
                         if cmdargs[1] == "FIR":
                             scr.echo("Specify FIR")
@@ -952,7 +957,7 @@ class Commandstack:
 
                         traf.area = "Circle"
                         traf.swarea = True
-                        scr.redrawradbg = True
+                        scr.drawradbg()
                         traf.inside = traf.ntraf * [False]
                     else:
                         scr.echo("AREA command unknown")
@@ -982,14 +987,15 @@ class Commandstack:
                         scr.echo("SWRAD GEO / GRID / APT / VOR / " + \
                                  "WPT / LABEL / TRAIL [dt] / [value]")
                     else:
-                        sw = cmdargs[1]
-                        scr.redrawradbg = True
-                        # Coastlines
-                        if sw == "GEO":
-                            scr.swgeo = not scr.swgeo
-                        
+                        sw = cmdargs[1] # Which switch
+
+                        if numargs==2:
+                            arg = cmdargs[2] # optional argument
+                        else:
+                            arg = ""
+
                         # FIR boundaries
-                        elif sw == "TRAIL" or sw == "TRAILS":
+                        if sw == "TRAIL" or sw == "TRAILS":
 
                             traf.swtrails = not traf.swtrails
                             if numargs == 2:
@@ -998,36 +1004,12 @@ class Commandstack:
                                     traf.trails.dt = trdt
                                 except:
                                     scr.echo("TRAIL ON dt")
-                        
-                        # FIR boundaries
-                        elif sw == "FIR":
-                            scr.swfir = not scr.swfir
 
-                        # Airport: 0 = None, 1 = Large, 2= All
-                        elif sw == "APT":
-                            scr.apsw = (scr.apsw + 1) % 3
-                            if numargs == 2:
-                                scr.apsw = int(cmdargs[2])
-                            scr.navsel = []
+                        elif scr.feature(sw,arg): # Toggle screen feature                        
+                              scr.drawradbg() # When success: Force redraw radar background
 
-                        # Waypoint: 0 = None, 1 = VOR, 2 = also WPT, 3 = Also terminal area wpts
-                        elif sw == "VOR" or sw == "WPT" or sw == "WP" or sw == "NAV":
-                            scr.wpsw = (scr.wpsw + 1) % 4
-                            if numargs == 2:
-                                scr.wpsw = int(cmdargs[2])
-                            scr.navsel = []
-                        
-                        # Satellite image background on/off
-                        elif sw == "SAT":
-                            scr.swsat = not scr.swsat
-
-                        # Traffic labels: cycle nr of lines 0,1,2,3
-                        elif sw[:3] == "LAB":  # Nr lines in label
-                            scr.swlabel = (scr.swlabel + 1) % 4
-                            if numargs == 2:
-                                scr.swlabel = int(cmdargs[2])
                         else:
-                            scr.redrawradbg = False
+                            scr.redrawradbg = False # Switch not found
 
                 #----------------------------------------------------------------------
                 # TRAILS ON/OFF
@@ -1108,9 +1090,12 @@ class Commandstack:
                                 else:
                                     actype = cmdargs[2].upper()
                                 
-                                # Lat/lon.hdg always random on-screen                                    
-                                aclat = random() * (scr.lat1 - scr.lat0) + scr.lat0
-                                aclon = random() * (scr.lon1 - scr.lon0) + scr.lon0
+                                # Lat/lon.hdg always random on-screen
+                                scrlat0,scrlat1,scrlon0,scrlon1 =          \
+                                                 scr.getviewlatlon()
+                                                 
+                                aclat = random() * (scrlat1 - scrlat0) + scrlat0
+                                aclon = random() * (scrlon1 - scrlon0) + scrlon0
                                 achdg = float(randint(1, 360))
 
                                 # Random altitude

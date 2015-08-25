@@ -1042,4 +1042,58 @@ class Screen:
         self.objcolor = []
         self.objdata  = []
         return
+        
+    def showroute(self,acid): # Toggle show route for an aircraft id
+        if self.acidrte==acid:
+           self.acidrte = "" # Click twice on same: route disappear
+        else:
+           self.acidrte = acid # Show this route
+        return
 
+    def getviewlatlon(self): # Return current viewing area in lat, lon
+        return self.lat0, self.lat1, self.lon0, self.lon1  
+    
+    def drawradbg(self): # redraw radar background
+        self.redrawradbg = True
+        return
+        
+    def feature(self,sw,arg=""):
+        # Switch/toggle/cycle radar screen features e.g. from SWRAD command        
+        # Coastlines
+        if sw == "GEO":
+            self.swgeo = not self.swgeo
+        
+        
+        # FIR boundaries
+        elif sw == "FIR":
+            self.swfir = not self.swfir
+
+        # Airport: 0 = None, 1 = Large, 2= All
+        elif sw == "APT":
+            self.apsw = (self.apsw + 1) % 3
+            if not (arg== ""):
+                self.apsw = int(cmdargs[2])
+            self.navsel = []
+
+        # Waypoint: 0 = None, 1 = VOR, 2 = also WPT, 3 = Also terminal area wpts
+        elif sw == "VOR" or sw == "WPT" or sw == "WP" or sw == "NAV":
+            self.wpsw = (self.wpsw + 1) % 4
+            if not (arg== ""):
+                self.wpsw = int(arg)
+            self.navsel = []
+        
+        # Satellite image background on/off
+        elif sw == "SAT":
+            self.swsat = not self.swsat
+
+        # Traffic labels: cycle nr of lines 0,1,2,3
+        elif sw[:3] == "LAB":  # Nr lines in label
+            self.swlabel = (self.swlabel + 1) % 4
+            if not (arg == ""):
+                self.swlabel = int(arg)
+
+        else:
+            return False # switch not found
+ 
+        return True # Success
+    
