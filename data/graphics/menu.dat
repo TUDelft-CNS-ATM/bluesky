@@ -1,0 +1,47 @@
+Starting menu page = 0  
+
+> Mode commands
+FIXDT OFF;OP
+FIXDT OFF;HOLD
+DT 0.1;FIXDT ON;OP
+DT 0.1;FIXDT ON 10;OP
+FIXDT OFF;IC
+FIXDT OFF;IC IC
+ECHO Recording option under construction
+QUIT
+
+> Display commands
++
+-
+PAN LEFT
+PAN RIGHT
+PAN UP
+PAN DOWN
+INSEDIT PAN
+SWRAD WPT
+SWRAD APT
+SWRAD SAT
+SWRAD LABEL
+
+> Traffic commands 
+CRE;INSEDIT CRE
+ALT;INSEDIT ALT
+HDG;INSEDIT HDG
+SPD;INSEDIT SPD
+V/S;INSEDIT VS
+DEST;INSEDIT DEST
+ASAS;INSEDIT ASAS
+LNAV;INSEDIT LNAV
+VNAV;;INSEDIT VNAV
+
+> Misc
+ECHO <Custom 1>
+ECHO <Custom 2>
+ECHO <Custom 3>
+ECHO <Custom 4>
+ECHO <Custom 5>
+ECHO <Custom 6>
+ECHO <Custom 7>
+ECHO <Custom 8>
+
+> end

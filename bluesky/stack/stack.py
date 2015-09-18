@@ -6,32 +6,30 @@ import os
 from ..tools.aero import kts, ft, fpm, nm, lbs, \
     qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
 from ..tools.misc import txt2alt, txt2spd, col2rgb
-from ..tools.dialog import fileopen as opendialog
 
 
 class Commandstack:
-    """ 
+    """
     Commandstack class definition : command stack & processing class
 
     Methods:
-        Commandstack(tmx)       :  constructor
+        Commandstack()          :  constructor
 
         stack(cmdline)          : add a command to the command stack
         openfile(scenname)      : start playing a scenario file scenname.SCN
                                   from scenario folder
-        savefile(scenname,traf) : save current traffic situation as 
+        savefile(scenname,traf) : save current traffic situation as
                                   scenario file scenname.SCN
-        checkfile(t)            : check whether commands need to be 
+        checkfile(t)            : check whether commands need to be
                                   processed from scenario file
-        
-        process(tmx)            : central command processing method
+
+        process(sim, traf, scr) : central command processing method
                                   (with long elif tree with all commands)
-       
+
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
-    def __init__(self,tmx):
-        
-        self.tmx       = tmx       # parent object
+    def __init__(self):
+
         self.cmdstack  = []
         self.scenlines = []
         self.scentime  = []
@@ -39,37 +37,31 @@ class Commandstack:
         self.scentime = []
         self.scencmd = []
 
-
-        # An advanced way to add your own commands: add your entry to the dictionary.        
+        # An advanced way to add your own commands: add your entry to the dictionary.
         # The dictionary should be formed as {"Key":'module'}.
         # "Key" is a TWO-letterd reference that is used at the start of the command.
-        # 'module' is the name of the .py-file in which the commands are located (without .py). 
+        # 'module' is the name of the .py-file in which the commands are located (without .py).
         # Make sure that the module has a function "process" with
         # arguments (command, number of args, array of args, sim, traf, scr, cmd)
         # self.extracmdmodules={"FF_": "freeflight"}
-        self.extracmdmodules={}
+        self.extracmdmodules = {}
 
         # Import modules from the list
-        self.extracmdrefs={}        
+        self.extracmdrefs = {}
         for key in self.extracmdmodules:
-            obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
-            self.extracmdrefs[key]=obj
-
-        # Open file dialog:
-        print '\nSelect a file in the "Open file"-dialog.\n(Use Alt-Tab if necessary.)\n'
-        self.scenfile = opendialog()
-        self.openfile(self.scenfile)
+            obj = __import__(self.extracmdmodules[key], globals(), locals(), [], 0)
+            self.extracmdrefs[key] = obj
 
         return
 
     def stack(self, cmdline):  # Stack one or more commands separated by ";"
         cline = cmdline.strip()  # remove leading & trailing spaces
         if cline.count(";") == 0:
-            self.cmdstack.append(cline.upper())  #pass on in upper case only
+            self.cmdstack.append(cline.upper())  # pass on in upper case only
         else:
             clinelst = cline.split(";")
             for line in clinelst:
-                self.cmdstack.append(line.upper())  #pass on in upper case only
+                self.cmdstack.append(line.upper())  # pass on in upper case only
 
         return
 
@@ -107,7 +99,7 @@ class Commandstack:
                 else:
                     i = i + 1
 
-            # Optional?            
+            # Optional?
             # scenlines.sort()
 
             # Set timer until what is read
@@ -115,11 +107,11 @@ class Commandstack:
             # ihr = int(tstamp[:2])
             # imin = int(tstamp[3:5])
             # isec = float(tstamp[6:8]+"."+tstamp[9:11])
-        
+
             # Split scenario file line in times and commands
             for line in self.scenlines:
-                lstrip = line.strip()
-                    # Try reading timestamp and command
+                # lstrip = line.strip()
+                # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
                     tstamp = line[:icmdline]
@@ -130,26 +122,20 @@ class Commandstack:
                     self.scentime.append(ihr * 3600. + imin * 60. + xsec)
                     self.scencmd.append(line[icmdline + 1:-1])
                 except:
-                    print "except this:",line
-                    pass # nice try, we will just ignore this syntax error
-        
+                    print "except this:", line
+                    pass  # nice try, we will just ignore this syntax error
+
         else:
             print"Error: cannot find file:", scenfile
 
         return
 
-
-    def checkfile(self):
-        # Only when in operate
-        if self.tmx.sim.mode != self.tmx.sim.op:
-            return
-
+    def checkfile(self, simt):
         # Empty command buffer when it's time
-        while len(self.scencmd)>0 and self.tmx.sim.t >= self.scentime[0]:
-   
-             self.stack(self.scencmd[0])
-             del self.scencmd[0]
-             del self.scentime[0]
+        while len(self.scencmd) > 0 and simt >= self.scentime[0]:
+            self.stack(self.scencmd[0])
+            del self.scencmd[0]
+            del self.scentime[0]
 
         return
 
@@ -162,7 +148,7 @@ class Commandstack:
         # If it is with path don't touch it, else add path
         if fname.find("/") < 0:
             scenfile = "./scenario/" + fname.lower()
-        
+
         try:
             f = open(scenfile, "w")
         except:
@@ -210,7 +196,7 @@ class Commandstack:
             if abs(delspd) > 0.4:
                 cmdline = "SPD " + traf.id[i] + "," + repr(traf.aspd[i] / kts)
                 f.write(timtxt + cmdline + chr(13) + chr(10))
-            
+
             # DEST acid,dest-apt
             if traf.dest[i] != "":
                 cmdline = "DEST " + traf.id[i] + "," + traf.dest[i]
@@ -225,15 +211,9 @@ class Commandstack:
         # Saveic: should close
         f.close()
         return 0
-        
 
-    def process(self):
+    def process(self, sim, traf, scr):
         """process and empty command stack"""
-
-        # Create quick access
-        sim  = self.tmx.sim
-        traf = self.tmx.traf
-        scr  = self.tmx.scr  
 
         # Process stack of commands
         for cmdline in self.cmdstack:
@@ -300,12 +280,12 @@ class Commandstack:
                     scr.echo("To get help on a command,"+\
                              " enter it without arguments."+\
                              "Some basic commands are given below:")
-                    scr.echo(" ")         
+                    scr.echo(" ")
                     scr.echo("CRE HDG SPD ALT DEL OP HOLD QUIT DEST ORIG")
                     scr.echo("MCRE ADDWPT DELWPT LISTRTE LNAV VNAV")
                     scr.echo("POS ZOOM PAN SWRAD AREA")
                     scr.echo("DATAFEED")
-                    scr.echo(" ")         
+                    scr.echo(" ")
                     scr.echo("See Doc folder for more info.")
 
 
@@ -666,59 +646,49 @@ class Commandstack:
                         continue
                     # LEFT/RIGHT/UP/DOWN
                     elif numargs == 1:
-                        # First get current view
-                        scrlat0,scrlat1,scrlon0,scrlon1 = scr.getviewlatlon()
-
-                        # Current center of display
-                        ctrlat = 0.5*(scrlat0 + scrlat1)
-                        ctrlon = 0.5*(scrlon0+scrlon1)
-                        
-                        # Pan to edges of display
                         if cmdargs[1] == "LEFT":
-                            scr.pan(ctrlat, scrlon0)
-    
+                            scr.pan((0.0, -1.0))
                         elif cmdargs[1] == "RIGHT":
-                            scr.pan(ctrlat, scr.lon1)
-    
-                        elif cmdargs[1] == "UP":
-                            scr.pan(scrlat1, ctrlon)
-    
-                        elif cmdargs[1] == "DOWN":
-                            scr.pan(scrlat0, ctrlon)
+                            scr.pan((0.0, 1.0))
 
-                        # Try aicraft id, waypoint of airport
+                        elif cmdargs[1] == "UP":
+                            scr.pan((1.0, 0.0))
+
+                        elif cmdargs[1] == "DOWN":
+                            scr.pan((-1.0, 0.0))
                         else:
+
+                            # Try aicraft id, waypoint of airport
                             i = traf.id2idx(cmdargs[1])
                             if i >= 0:
                                 lat = traf.lat[i]
                                 lon = traf.lon[i]
-                                if not (np.isnan(lat) or np.isnan(lon)):
-                                     scr.pan(lat, lon)
+                                if (np.isnan(lat) or np.isnan(lon)):
+                                    continue
                             else:
-                                i = traf.navdb.getwpidx(cmdargs[1], \
-                                                        scr.ctrlat, scr.ctrlon)
+                                i = traf.navdb.getwpidx(cmdargs[1], 0.0, 0.0)  # TODO: get current pan from display?
                                 if i >= 0:
                                     lat = traf.navdb.wplat[i]
                                     lon = traf.navdb.wplon[i]
-                                    if not (np.isnan(lat) or np.isnan(lon)):
-                                         scr.pan(lat, lon)
+                                    if (np.isnan(lat) or np.isnan(lon)):
+                                        continue
                                 else:
                                     i = traf.navdb.getapidx(cmdargs[1])
                                     if i >= 0:
                                         lat = traf.navdb.aplat[i]
                                         lon = traf.navdb.aplon[i]
-                                        if not (np.isnan(lat) or np.isnan(lon)):
-                                              scr.pan(lat, lon)
+                                        if (np.isnan(lat) or np.isnan(lon)):
+                                            continue
                                     else:
                                         scr.echo(cmdargs[1] + " not found.")
-                    
-                    # PAN to lat,lon position
-                    elif numargs == 2:
-                       lat = float(cmdargs[1])
-                       lon = float(cmdargs[2])
-                       if not (np.isnan(lat) or np.isnan(lon)):
-                           scr.pan(lat, lon)
 
+                            # PAN to lat,lon position
+                            if numargs == 2:
+                                lat = float(cmdargs[1])
+                                lon = float(cmdargs[2])
+
+                            if not (np.isnan(lat) or np.isnan(lon)):
+                                scr.pan((lat, lon), absolute=True)
 
                 #----------------------------------------------------------------------
                 # NAVDISP/ND  acid:  Activate Navdisplay mode
@@ -751,38 +721,44 @@ class Commandstack:
 #                        else:
 #                            scr.echo("NAVDISP: " + cmdargs[1] + " not found.")
 #
+                #----------------------------------------------------------------------
+                # RUNFT: toggle fast time running
+                #----------------------------------------------------------------------
+                elif cmd == "RUNFT":
+                    sim.run_fixed = (not sim.run_fixed)
 
                 #----------------------------------------------------------------------
                 # IC scenfile: command: restart with new filename (.scn will be added if necessary)
                 # IC IC: same file
                 #----------------------------------------------------------------------
                 elif cmd == "IC":
-
                     # If no arg is given: check
                     if numargs >= 1:
                         filename = cmdargs[1]
-                        if filename.upper() == "IC": # same file
-                           filename = self.scenfile
+                        if filename.upper() == "IC":  # same file
+                            filename = self.scenfile
+
+                        if filename.strip() != "":
+                            scr.echo("Opening " + filename + " ...")
+
+                        # Open file in ./scenario subfolder
+                        sim.reset()
+                        traf.deleteall()
+
+                        self.scenfile = filename
+                        self.openfile(self.scenfile)
                     else:
-                        filename = opendialog()
+                        filename = scr.show_file_dialog()
+                        if len(filename) > 0:
+                            self.scenfile = filename
+                            self.openfile(self.scenfile)
 
-                    if filename.strip() != "":
-                        scr.echo("Opening " + filename + " ...")
 
-                    # Open file in ./scenario subfolder
-                    
-                    sim.t = 0.
-                    traf.deleteall()
-
-                    self.scenfile = filename
-                    self.openfile(self.scenfile)
-                    sim.mode = sim.init
-                      
                 #----------------------------------------------------------------------
                 # OP: Continue to run
                 #----------------------------------------------------------------------
                 elif cmd == "OP" or cmd == "START" or cmd == "CONTINUE" or cmd == "RUN":
-                    sim.play()
+                    sim.start()
 
                 #----------------------------------------------------------------------
                 # HOLD/PAUSE: HOLD/PAUSE mode

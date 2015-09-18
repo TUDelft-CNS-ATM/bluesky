@@ -50,7 +50,7 @@ class Dbconf:
         return
 
 
-    def cd_state(self,sim):
+    def cd_state(self):
         """Conflict Detection based on state"""
 
         # t0_ = time.clock()     # Timing of ASAS calculation
@@ -233,7 +233,7 @@ class Dbconf:
         self.altintcpa = np.array(self.altintcpa)
         return
     
-    def cr_eby(self, sim): 
+    def cr_eby(self): 
         """Conflict Resolution with Eby's method"""
 
         # required change in velocity
@@ -279,7 +279,7 @@ class Dbconf:
 
     #============================= ============================
         
-    def APorASAS(self, sim):
+    def APorASAS(self):
         """Trajectory Recovery. Decide for each aircraft whether 
         the ASAS should be followed or not"""
         
