@@ -26,3 +26,9 @@ class MainLoop:
         simthread = Thread(MainLoop.sim)
         simthread.start(Thread.HighestPriority)
         MainLoop.gui.start()
+
+        # Stopping simulation thread
+        print 'Stopping Threads'
+        MainLoop.sim.stop()
+        simthread.quit()
+        simthread.wait()

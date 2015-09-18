@@ -6,7 +6,7 @@ import os
 from ..tools.aero import kts, ft, fpm, nm, lbs, \
     qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
 from ..tools.misc import txt2alt, txt2spd, col2rgb
-
+from .. import settings
 
 class Commandstack:
     """
@@ -75,7 +75,10 @@ class Commandstack:
 
         # If it is with a path don't touch it, else add path
         if scenname.find("/") < 0:
-            scenfile = "./data/scenario/" + scenname.lower()
+            scenfile = settings.scenario_path
+            if scenfile[-1] is not '/':
+                scenfile += '/'
+            scenfile += scenname.lower()
         else:
             scenfile = scenname
 

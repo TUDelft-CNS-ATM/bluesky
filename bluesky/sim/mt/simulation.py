@@ -10,6 +10,7 @@ import time
 from screenio import ScreenIO
 from ...traf import Traffic
 from ...stack import Commandstack
+from ... import settings
 
 
 class Simulation(QObject):
@@ -17,10 +18,10 @@ class Simulation(QObject):
     # Settings
     # =========================================================================
     # Simulation timestep [seconds]
-    simdt = 0.02
+    simdt = settings.simdt
 
     # Simulation loop update rate [Hz]
-    sys_rate = 50
+    sys_rate = settings.sim_update_rate
 
     # Flag indicating running at fixed rate or fast time
     run_fixed = True
