@@ -55,10 +55,13 @@ class Simulation:
 
         self.tsys = time.clock()
 
-        # Closk for run(=op) mode
-        if self.mode==self.op:
+        if self.mode == Simulation.init:
+            self.start()
 
-            # Not fast forward: variable dt            
+        # Closk for run(=op) mode
+        if self.mode == Simulation.op:
+
+            # Not fast forward: variable dt
             if not self.ffmode:
                 self.tprev = self.t
                 self.t     = self.tsys - self.syst0
@@ -122,4 +125,9 @@ class Simulation:
         self.syst0 = self.tsys-self.t
         self.tprev = self.t-0.001 # allow 1 msec step rto avoid div by zero
         return
- 
+    
+    def reset(self):
+        self.t = 0.0
+        self.mode = Simulation.init
+        del self.traf
+        self.traf = Traffic()
