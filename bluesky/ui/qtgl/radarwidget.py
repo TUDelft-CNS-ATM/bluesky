@@ -162,7 +162,9 @@ class RadarWidget(QGLWidget):
 
     def paintGL(self):
         """Paint the scene."""
-        tstart = time.time()
+        # pass if the framebuffer isn't complete yet
+        if not gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE:
+            return
 
         # clear the buffer
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
