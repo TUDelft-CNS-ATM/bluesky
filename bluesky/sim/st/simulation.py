@@ -48,7 +48,7 @@ class Simulation:
 
         # Simulation objects
         self.stack = Commandstack()
-        self.traf = Traffic()
+        self.traf = Traffic()        
         return
 
     def update(self, scr):
