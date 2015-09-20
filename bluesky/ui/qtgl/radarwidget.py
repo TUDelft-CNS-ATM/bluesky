@@ -14,6 +14,7 @@ import time
 from ...tools.aero import ft, nm, kts
 from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_array_buffer
 from uievents import PanZoomEvent
+from ...settings import text_size, apt_size, wpt_size, ac_size
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 
@@ -88,14 +89,14 @@ class RadarWidget(QGLWidget):
 
         # ------- A/C symbol -----------------------------
         self.ac_symbol = RenderObject()
-        acvertices = np.array([(0.0, 0.01), (-0.01, -0.01), (0.0, -0.005), (0.01, -0.01)], dtype=np.float32)
+        acvertices = np.array([(0.0, 0.5 * ac_size), (-0.5 * ac_size, -0.5 * ac_size), (0.0, -0.25 * ac_size), (0.5 * ac_size, -0.5 * ac_size)], dtype=np.float32)
         self.ac_symbol.bind_vertex_attribute(acvertices)
         self.ac_symbol.bind_lat_attribute(self.aclatbuf)
         self.ac_symbol.bind_lon_attribute(self.aclonbuf)
         self.ac_symbol.bind_orientation_attribute(self.achdgbuf)
         self.ac_symbol.bind_color_attribute(self.accolorbuf)
         self.aclabels = TextObject()
-        self.aclabels.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, vertex_offset=(0.02, -0.01))
+        self.aclabels.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, text_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
 
         # ------- Coastlines -----------------------------
         self.coastlines = RenderObject()
@@ -105,21 +106,21 @@ class RadarWidget(QGLWidget):
 
         # ------- Waypoints ------------------------------
         self.waypoints = RenderObject()
-        wptvertices = np.array([(0.0, 0.006), (-0.006, -0.006), (0.006, -0.006)], dtype=np.float32)  # a triangle
+        wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
         self.waypoints.bind_vertex_attribute(wptvertices)
         self.wptlatbuf = self.waypoints.bind_lat_attribute(self.wptlat)
         self.wptlonbuf = self.waypoints.bind_lon_attribute(self.wptlon)
         self.wptlabels = TextObject()
-        self.wptlabels.prepare_text_instanced(self.wptlabeldata, self.wptlatbuf, self.wptlonbuf, (5, 1), vertex_offset=(0.02, 0.01))
+        self.wptlabels.prepare_text_instanced(self.wptlabeldata, self.wptlatbuf, self.wptlonbuf, (5, 1), text_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
 
         # ------- Airports -------------------------------
         self.airports = RenderObject()
-        aptvertices = np.array([(-0.006, -0.006), (0.006, -0.006), (0.006, 0.006), (-0.006, 0.006)], dtype=np.float32)  # a square
+        aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
         self.airports.bind_vertex_attribute(aptvertices)
         self.aptlatbuf = self.airports.bind_lat_attribute(self.aptlat)
         self.aptlonbuf = self.airports.bind_lon_attribute(self.aptlon)
         self.aptlabels = TextObject()
-        self.aptlabels.prepare_text_instanced(self.aptlabeldata, self.aptlatbuf, self.aptlonbuf, (4, 1), vertex_offset=(0.02, 0.01))
+        self.aptlabels.prepare_text_instanced(self.aptlabeldata, self.aptlatbuf, self.aptlonbuf, (4, 1), text_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
 
         # Unbind VAO, VBO
         RenderObject.unbind_all()
@@ -130,17 +131,7 @@ class RadarWidget(QGLWidget):
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
-        # f = open('opengl_test.txt', 'w')
-        # f.write('Supported OpenGL version: ' + gl.glGetString(gl.GL_VERSION) + '\n')
-        # f.write('Supported GLSL version: ' + gl.glGetString(gl.GL_SHADING_LANGUAGE_VERSION) + '\n')
-        # numext = gl.glGetIntegerv(gl.GL_NUM_EXTENSIONS)
-        # f.write('Supported OpenGL extensions:' + '\n')
-        # extensions = ''
-        # for i in range(numext):
-        #     extensions += ', ' + gl.glGetStringi(gl.GL_EXTENSIONS, i)
-        # f.write(extensions)
-        # f.close()
-        # return
+
         # background color
         gl.glClearColor(0, 0, 0, 0)
         gl.glEnable(gl.GL_BLEND)
@@ -237,9 +228,6 @@ class RadarWidget(QGLWidget):
 
         self.swapBuffers()
 
-        tend = time.time()
-        #print("dt=%.4f [msec]\n"%((tend-tstart)*1000))
-
     def resizeGL(self, width, height):
         """Called upon window resizing: reinitialize the viewport."""
         # update the window size
@@ -247,10 +235,12 @@ class RadarWidget(QGLWidget):
         pixel_ratio = 1
         if QT_VERSION >= 5:
             pixel_ratio = self.devicePixelRatio()
+        self.zoom *= float(self.width) / float(width) * pixel_ratio
         self.width, self.height = width / pixel_ratio, height / pixel_ratio
 
         self.ar = float(width) / float(height)
-        BlueSkyProgram.set_aspect_ratio(self.ar)
+        BlueSkyProgram.set_win_width_height(width, height)
+        BlueSkyProgram.set_pan_and_zoom(self.pan[0], self.pan[1], self.zoom)
         # paint within the whole window
         gl.glViewport(0, 0, width, height)
 

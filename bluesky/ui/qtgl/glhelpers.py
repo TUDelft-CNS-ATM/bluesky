@@ -48,7 +48,7 @@ def update_array_buffer(buf_id, data):
 
 
 class GlobalData(Structure):
-    _fields_ = [("wrapdir", c_int), ("wraplon", c_float), ("panlon", c_float), ("panlat", c_float), ("zoom", c_float), ("ar", c_float), ("vertex_scale_type", c_int)]
+    _fields_ = [("wrapdir", c_int), ("wraplon", c_float), ("panlon", c_float), ("panlat", c_float), ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
 
 
 class BlueSkyProgram():
@@ -122,7 +122,7 @@ class BlueSkyProgram():
             # First initialization of global uniform buffer
             BlueSkyProgram.ubo_globaldata = gl.glGenBuffers(1)
             gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-            gl.glBufferData(gl.GL_UNIFORM_BUFFER, 28, pointer(BlueSkyProgram.globaldata), gl.GL_STREAM_DRAW)
+            gl.glBufferData(gl.GL_UNIFORM_BUFFER, 32, pointer(BlueSkyProgram.globaldata), gl.GL_STREAM_DRAW)
             gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 1, BlueSkyProgram.ubo_globaldata)
             BlueSkyProgram.initialized = True
 
@@ -138,8 +138,9 @@ class BlueSkyProgram():
         BlueSkyProgram.globaldata.zoom = zoom
 
     @staticmethod
-    def set_aspect_ratio(ar):
-        BlueSkyProgram.globaldata.ar = ar
+    def set_win_width_height(w, h):
+        BlueSkyProgram.globaldata.screen_width  = w
+        BlueSkyProgram.globaldata.screen_height = h
 
     @staticmethod
     def enable_wrap(flag=True):
@@ -154,12 +155,12 @@ class BlueSkyProgram():
     def set_vertex_scale_type(vertex_scale_type):
         BlueSkyProgram.globaldata.vertex_scale_type = vertex_scale_type
         gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 28, pointer(BlueSkyProgram.globaldata))
+        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 32, pointer(BlueSkyProgram.globaldata))
 
     @staticmethod
     def update_global_uniforms():
         gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 28, pointer(BlueSkyProgram.globaldata))
+        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 32, pointer(BlueSkyProgram.globaldata))
 
 
 class RenderObject(object):
@@ -264,7 +265,7 @@ class TextObject(RenderObject):
     def bind_texdepth_attribute(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=1):
         return self.bind_attribute(RenderObject.attrib_texdepth, 1, data, storagetype, instance_divisor, gl.GL_UNSIGNED_BYTE)
 
-    def prepare_text_string(self, text_string, text_size=0.015, text_color=(0.0, 1.0, 0.0)):
+    def prepare_text_string(self, text_string, text_size=16.0, text_color=(0.0, 1.0, 0.0)):
         vertices, texcoords = [], []
         w, h = text_size, text_size * self.char_ar
         for i in range(len(text_string)):
@@ -278,9 +279,10 @@ class TextObject(RenderObject):
         self.bind_color_attribute(np.array(text_color, dtype=np.float32))
 
         self.n_instances = -1
+        self.text_size = text_size
         self.textblock_size = (len(text_string), 1)
 
-    def prepare_text_instanced(self, text_array, origin_lat, origin_lon, textblock_size, text_color=None, text_size=0.015, vertex_offset=(0.0, 0.0)):
+    def prepare_text_instanced(self, text_array, origin_lat, origin_lon, textblock_size, text_color=None, text_size=16.0, vertex_offset=(0.0, 0.0)):
         w, h = text_size, text_size * self.char_ar
         x, y = vertex_offset
         texcoords = [(0, 0, 32), (0, 1, 32), (1, 0, 32), (1, 0, 32), (0, 1, 32), (1, 1, 32)]
@@ -297,6 +299,7 @@ class TextObject(RenderObject):
             self.bind_color_attribute(text_color, instance_divisor=divisor)
 
         self.textblock_size = textblock_size
+        self.text_size = text_size
 
     def draw(self, position=None, color=None, n_instances=0):
         if RenderObject.bound_vao is not self.vao_id:
@@ -314,7 +317,7 @@ class TextObject(RenderObject):
         if color is not None:
             gl.glVertexAttrib3f(RenderObject.attrib_color, color[0], color[1], color[2])
 
-        gl.glUniform2f(TextObject.loc_char_size, 0.015, 0.015*self.char_ar)
+        gl.glUniform2f(TextObject.loc_char_size, self.text_size, self.text_size*self.char_ar)
         if n_instances > 0:
             gl.glUniform2i(TextObject.loc_block_size, self.textblock_size[0], self.textblock_size[1])
             gl.glDrawArraysInstanced(gl.GL_TRIANGLES, 0, 6, n_instances * self.textblock_size[0] * self.textblock_size[1])

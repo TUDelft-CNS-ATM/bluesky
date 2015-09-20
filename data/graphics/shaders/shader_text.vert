@@ -8,7 +8,8 @@ int wrap_dir;           // Wrap-around direction
 float wrap_lon;         // Wrap-around longitude
 vec2 pan;               // Map panning coordinates [lat,lon]
 float zoom;             // Screen zoom factor [-]
-float aspect_ratio;     // Screen aspect ratio [-]
+int screen_width;       // Screen width in pixels
+int screen_height;      // Screen height in pixels
 int vertex_scale_type;  // Vertex scale type
 };
 
@@ -34,7 +35,7 @@ void main() {
     texcoords_fs = texcoords_in;
     texcoords_fs.p -= 32.0;
 
-    vec2 vAR = vec2(1.0, aspect_ratio);
+    vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
     vec2 flat_earth = vec2(cos(DEG2RAD*pan.y), 1.0);
 
     vec2 position = vec2(lon_in, lat_in);
@@ -46,12 +47,15 @@ void main() {
     position -= pan;
     position *= (zoom * flat_earth);
 
+    vec2 vertex = vertex_in;
+
     // When text_dims is non-zero we are drawing instanced
     if (block_size[0] > 0) {
         texcoords_fs.p = texdepth_in - 32.0;
-        position.x += float(gl_InstanceID%block_size[0]) * char_size.x;
-        position.y -= floor(float((gl_InstanceID%(block_size[0]*block_size[1])))/block_size[0]) * char_size.y;
+        vertex.x += float(gl_InstanceID%block_size[0]) * char_size.x;
+        vertex.y -= floor(float((gl_InstanceID%(block_size[0]*block_size[1])))/block_size[0]) * char_size.y;
     }
+    vertex = vec2(2.0 * vertex.x / float(screen_width), 2.0 * vertex.y / float(screen_height));
 
-    gl_Position = vec4(vAR * (position + vertex_in), 0.0, 1.0);
+    gl_Position = vec4(vAR * position + vertex, 0.0, 1.0);
 }

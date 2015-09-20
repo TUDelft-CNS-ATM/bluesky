@@ -12,8 +12,9 @@ int wrap_dir;           // Wrap-around direction
 float wrap_lon;         // Wrap-around longitude
 vec2 pan;               // Map panning coordinates [lat,lon]
 float zoom;             // Screen zoom factor [-]
-float aspect_ratio;     // Screen aspect ratio [-]
-int vertex_scale_type;	// Vertex scale type
+int screen_width;       // Screen width in pixels
+int screen_height;      // Screen height in pixels
+int vertex_scale_type;  // Vertex scale type
 };
 
 layout (location = 0) in vec2 vertex_in;
@@ -31,7 +32,7 @@ void main()
 	color_fs = color_in;
 	texcoords_fs = texcoords_in;
 
-	vec2 vAR = vec2(1.0, aspect_ratio);
+	vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
 	vec2 flat_earth = vec2(cos(DEG2RAD*pan.y), 1.0);
     mat2 mrot = mat2(cos(DEG2RAD*orientation_in), -sin(DEG2RAD*orientation_in), sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
 
@@ -46,7 +47,10 @@ void main()
 
 	switch (vertex_scale_type) {
 		case VERTEX_IS_SCREEN:
-			gl_Position = vec4(vAR * (zoom * flat_earth * position + mrot * vertex_in), 0.0, 1.0);
+			// Vertex coordinates are screen pixels, so correct for screen size
+			vec2 vertex = mrot * vertex_in;
+			vertex = vec2(2.0 * vertex.x / float(screen_width), 2.0 * vertex.y / float(screen_height));
+			gl_Position = vec4(vAR * zoom * flat_earth * position + vertex, 0.0, 1.0);
 			break;
 		case VERTEX_IS_METERS:
 			gl_Position = vec4(vAR * zoom * (flat_earth * position + mrot * (vertex_in * REARTH_INV * RAD2DEG)), 0.0, 1.0);

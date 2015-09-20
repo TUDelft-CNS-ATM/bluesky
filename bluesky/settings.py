@@ -8,6 +8,21 @@ simdt = 0.02
 # Simulation thread update rate [Hz]
 sim_update_rate = 50
 
+# =============================================================================
+# QTGL Gui specific settings
+# =============================================================================
+# Radarscreen font size in pixels
+text_size = 20
+
+# Radarscreen airport symbol size in pixels
+apt_size = 20
+
+# Radarscreen waypoint symbol size in pixels
+wpt_size = 20
+
+# Radarscreen aircraft symbol size in pixels
+ac_size = 30
+
 # Import conig settings from settings.cfg if this exists, if it doesn't create an initial config file
 import os
 if os.path.isfile('settings.cfg'):
