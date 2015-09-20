@@ -24,9 +24,8 @@ def fileopen():
     master = Tk()
     master.withdraw()  # hiding tkinter window
     master.focus_set()
-    print 'here'
-    d = tkFileDialog(master)
-    file_path = d.askopenfilename(title="Open scenario file", 
+    
+    file_path = tkFileDialog.askopenfilename(title="Open scenario file", 
         filetypes=[("Scenario files",".scn"),("All files",".*")])
 
     # Close Tk, return to working directory
