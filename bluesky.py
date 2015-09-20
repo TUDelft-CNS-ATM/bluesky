@@ -6,12 +6,13 @@ from bluesky.sim import Simulation, MainLoop
 # =============================================================================
 # Create gui and simulation objects
 # =============================================================================
-MainLoop.gui = Gui(sys.argv)
-MainLoop.sim = Simulation()
+gui = Gui(sys.argv)
+sim = Simulation()
+
 
 # =============================================================================
 # Start the mainloop (and possible other threads)
 # =============================================================================
-MainLoop.start()
+MainLoop(gui, sim)
 
 print 'BlueSky normal end.'

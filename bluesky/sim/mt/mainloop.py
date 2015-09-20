@@ -1,34 +1,29 @@
 from thread import Thread
 
 
-class MainLoop:
-    gui = []
-    sim = []
+def MainLoop(gui, sim):
+    # =============================================================================
+    # Connect signals between gui and sim
+    # =============================================================================
+    # Periodic simulation statistics from sim thread to gui (actual update frequency, dt, simtime)
+    sim.screenio.signal_siminfo.connect(gui.callback_siminfo)
+    # Periodic communication of aircraft states to gui for visualization of traffic
+    sim.screenio.signal_update_aircraft.connect(gui.callback_update_aircraft)
+    # Non-periodic signal to open a file dialog from the stack
+    sim.screenio.signal_show_filedialog.connect(gui.show_file_dialog)
+    # Non-periodic signal to display stack text in the gui text box
+    sim.screenio.signal_display_text.connect(gui.callback_stack_output)
+    # Non-periodic signal to alter radarscreen pan/zoom from the stack
+    sim.screenio.signal_panzoom.connect(gui.callback_panzoom)
+    # Non-periodic signal to send user-inputs from gui to stack
+    gui.signal_command.connect(sim.screenio.callback_userinput)
 
-    @staticmethod
-    def start():
-        # =============================================================================
-        # Connect signals between gui and sim
-        # =============================================================================
-        # Periodic simulation statistics from sim thread to gui (actual update frequency, dt, simtime)
-        MainLoop.sim.screenio.signal_siminfo.connect(MainLoop.gui.callback_siminfo)
-        # Periodic communication of aircraft states to gui for visualization of traffic
-        MainLoop.sim.screenio.signal_update_aircraft.connect(MainLoop.gui.callback_update_aircraft)
-        # Non-periodic signal to open a file dialog from the stack
-        MainLoop.sim.screenio.signal_show_filedialog.connect(MainLoop.gui.show_file_dialog)
-        # Non-periodic signal to display stack text in the gui text box
-        MainLoop.sim.screenio.signal_display_text.connect(MainLoop.gui.callback_stack_output)
-        # Non-periodic signal to alter radarscreen pan/zoom from the stack
-        MainLoop.sim.screenio.signal_panzoom.connect(MainLoop.gui.callback_panzoom)
-        # Non-periodic signal to send user-inputs from gui to stack
-        MainLoop.gui.signal_command.connect(MainLoop.sim.screenio.callback_userinput)
+    simthread = Thread(sim)
+    simthread.start(Thread.HighestPriority)
+    gui.start()
 
-        simthread = Thread(MainLoop.sim)
-        simthread.start(Thread.HighestPriority)
-        MainLoop.gui.start()
-
-        # Stopping simulation thread
-        print 'Stopping Threads'
-        MainLoop.sim.stop()
-        simthread.quit()
-        simthread.wait()
+    # Stopping simulation thread
+    print 'Stopping Threads'
+    sim.stop()
+    simthread.quit()
+    simthread.wait()

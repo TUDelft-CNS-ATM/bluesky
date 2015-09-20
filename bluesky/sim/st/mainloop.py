@@ -1,17 +1,12 @@
-class MainLoop:
-    gui = []
-    sim = []
+def MainLoop(gui, sim):
+    sim.start()
 
-    @staticmethod
-    def start():
-        MainLoop.sim.start()
+    # Main loop for tmx object
+    while not sim.mode == sim.end:
+        sim.update(gui.scr)  # Update sim
+        gui.update(sim)      # Update GUI
 
-        # Main loop for tmx object
-        while not MainLoop.sim.mode == MainLoop.sim.end:
-            MainLoop.sim.update(MainLoop.gui.scr)  # Update sim
-            MainLoop.gui.update(MainLoop.sim)      # Update GUI
-
-            # Restart traffic simulation:
-            if MainLoop.sim.mode == MainLoop.sim.init:
-                MainLoop.sim.reset()
-                MainLoop.gui.reset()
+        # Restart traffic simulation:
+        if sim.mode == sim.init:
+            sim.reset()
+            gui.reset()
