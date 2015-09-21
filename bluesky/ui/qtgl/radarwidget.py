@@ -14,7 +14,7 @@ import time
 from ...tools.aero import ft, nm, kts
 from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_array_buffer
 from uievents import PanZoomEvent
-from ...settings import text_size, apt_size, wpt_size, ac_size
+from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 
@@ -60,6 +60,8 @@ class RadarWidget(QGLWidget):
         self.nairports = 0
 
     def create_objects(self):
+        # Initialize font for radar view with specified settings
+        TextObject.create_font_array(char_height=text_texture_size, font_family=font_family, font_weight=font_weight)
         # Load and bind world texture
         # self.map_texture = load_texture('data/world.jpg')
         self.map_texture = self.bindTexture('data/graphics/world.16384x8192-mipmap.dds')

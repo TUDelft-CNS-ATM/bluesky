@@ -326,10 +326,11 @@ class TextObject(RenderObject):
             gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6 * self.textblock_size[0])
 
     @staticmethod
-    def create_font_array(char_height=62, pixel_margin=1, font_family='Courier'):
+    def create_font_array(char_height=62, pixel_margin=1, font_family='Courier', font_weight=50):
         # Load font and get the dimensions of one character (assuming monospaced font)
         f = QFont(font_family)
         f.setPixelSize(char_height)
+        f.setWeight(font_weight)
         fm = QFontMetrics(f, QImage())
 
         char_width = char_height = 0
