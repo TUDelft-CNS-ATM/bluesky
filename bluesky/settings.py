@@ -12,16 +12,16 @@ sim_update_rate = 50
 # QTGL Gui specific settings
 # =============================================================================
 # Radarscreen font size in pixels
-text_size = 20
+text_size = 16
 
 # Radarscreen airport symbol size in pixels
-apt_size = 20
+apt_size = 16
 
 # Radarscreen waypoint symbol size in pixels
-wpt_size = 20
+wpt_size = 16
 
 # Radarscreen aircraft symbol size in pixels
-ac_size = 30
+ac_size = 20
 
 # Import conig settings from settings.cfg if this exists, if it doesn't create an initial config file
 import os

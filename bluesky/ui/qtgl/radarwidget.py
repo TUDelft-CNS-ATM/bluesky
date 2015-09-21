@@ -235,14 +235,21 @@ class RadarWidget(QGLWidget):
         pixel_ratio = 1
         if QT_VERSION >= 5:
             pixel_ratio = self.devicePixelRatio()
-        self.zoom *= float(self.width) / float(width) * pixel_ratio
-        self.width, self.height = width / pixel_ratio, height / pixel_ratio
 
+        # Calculate zoom so that the window resize doesn't affect the scale, but only enlarges or shrinks the view
+        zoom   = float(self.width) / float(width) * pixel_ratio
+        origin = (width / 2, height / 2)
+
+        # Update width, height, and aspect ratio
+        self.width, self.height = width / pixel_ratio, height / pixel_ratio
         self.ar = float(width) / float(height)
         BlueSkyProgram.set_win_width_height(width, height)
-        BlueSkyProgram.set_pan_and_zoom(self.pan[0], self.pan[1], self.zoom)
+
         # paint within the whole window
         gl.glViewport(0, 0, width, height)
+
+        # Update zoom
+        self.event(PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
 
     def update_aircraft_data(self, data):
         n_ac = len(data.lat)
@@ -378,7 +385,7 @@ class RadarWidget(QGLWidget):
             elif event.panzoom_type() == PanZoomEvent.Zoom:
                 prevzoom = self.zoom
                 glxy = self.pixelCoordsToGLxy(event.origin()[0], event.origin()[1])
-                self.zoom = event.zoom()
+                self.zoom *= event.zoom()
 
                 # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
                 self.zoom = max(self.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))

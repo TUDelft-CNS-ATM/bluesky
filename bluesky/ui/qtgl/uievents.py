@@ -9,7 +9,7 @@ class ACDataEvent(object):
 
 
 class PanZoomEvent(QEvent):
-    PanZoomEventType, Pan, PanAbsolute, Zoom = range(4)
+    PanZoomEventType, Pan, PanAbsolute, Zoom, ZoomAbsolute = range(5)
 
     def __init__(self, pztype, value, origin=None):
         super(PanZoomEvent, self).__init__(self.PanZoomEventType)

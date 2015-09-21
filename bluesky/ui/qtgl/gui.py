@@ -28,7 +28,6 @@ class Gui(QApplication):
         self.command_mem = ''
         # Register our custom pan/zoom event
         PanZoomEvent.PanZoomEventType = QEvent.registerEventType()
-        self.zoom = self.prevzoom = 1.0
         self.prevmousepos = (0.0, 0.0)
 
         self.splash = Splash()
@@ -58,19 +57,19 @@ class Gui(QApplication):
             if event.type() == QEvent.Wheel:
                 # For mice we zoom with control/command and the scrolwheel
                 if event.modifiers() & Qt.ControlModifier:
-                    self.prevzoom = self.zoom
                     origin = (event.pos().x(), event.pos().y())
+                    zoom   = 1.0
                     try:
                         if event.pixelDelta():
                             # High resolution scroll
-                            self.zoom *= (1.0 + 0.01 * event.pixelDelta().y())
+                            zoom *= (1.0 + 0.01 * event.pixelDelta().y())
                         else:
                             # Low resolution scroll
-                            self.zoom *= (1.0 + 0.001 * event.angleDelta().y())
+                            zoom *= (1.0 + 0.001 * event.angleDelta().y())
                     except:
-                        self.zoom *= (1.0 + 0.001 * event.delta())
+                        zoom *= (1.0 + 0.001 * event.delta())
 
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Zoom, self.zoom, origin))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
                 # For touchpad scroll (2D) is used for panning
                 else:
                     try:
@@ -81,14 +80,13 @@ class Gui(QApplication):
             # For touchpad, pinch gesture is used for zoom
             elif event.type() == QEvent.Gesture:
                 origin = (0, 0)
+                zoom   = 1.0
                 for g in event.gestures():
                     if g.gestureType() == Qt.PinchGesture:
                         origin = (g.centerPoint().x(), g.centerPoint().y())
-                        self.zoom = g.scaleFactor() * self.prevzoom
-                        if g.state() == Qt.GestureFinished:
-                            self.prevzoom = self.zoom
+                        zoom  *= g.scaleFactor() / g.lastScaleFactor()
 
-                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Zoom, self.zoom, origin))
+                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
 
             elif event.type() == QEvent.MouseButtonPress:
                 # For mice we pan with control/command and mouse movement. Mouse button press marks the beginning of a pan
@@ -177,11 +175,9 @@ class Gui(QApplication):
 
     @pyqtSlot(PanZoomEvent)
     def callback_panzoom(self, panzoom):
-        # Stack doesn't set a zoom origin, and zoom is relative
+        # Stack doesn't set a zoom origin
         if panzoom.panzoom_type() == PanZoomEvent.Zoom:
             panzoom.vorigin = self.radarwidget.pan
-            self.zoom *= panzoom.value
-            panzoom.value = self.zoom
 
         # send the pan/zoom event to the radarwidget
         super(Gui, self).notify(self.radarwidget, panzoom)
