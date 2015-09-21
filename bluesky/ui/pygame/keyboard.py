@@ -185,6 +185,33 @@ class Keyboard:
     
     def radarclick(self,pos,command,scr,traf):
         """Process click in radar window"""
+
+        # Specify which argument can be clicked, and how, in this dictionary
+        # and when it's the last, also add ENTER
+
+        clickcmd = {"POS"    : "acid",
+                    "CRE"    :  "-,-,latlon,-,hdg,-,-",
+                    "HDG"    : "acid,hdg",
+                    "SPD"    : "acid,-",
+                    "ALT"    : "acid,-",
+                    "LISTRTE": "acid,-",
+                    "ADDWPT" : "acid,latlon,-,-,-",
+                    "ASAS"   : "acid,-",
+                    "DEl"    : "acid,-",
+                    "LNAV"   : "acid,-",
+                    "VNAV"   : "acid,-",
+                    "VS"     : "acid,-",
+                    "ND"     : "acid",
+                    "NAVDISP": "acid",
+                    "ASAS"   : "acid,-",
+                    "ORIG"   : "acid,apt",
+                    "DEST"   : "acid,apt",
+                    "PAN"    : "latlon",
+                    "MOVE"   : "acid,latlon,-,-,hdg",
+                    "DIST"   : "latlon,-,latlon",
+                    "LINE"   : "latlon,-,latlon",
+                    "AREA"   : "latlon,-,latlon",
+                    }
         
         # Not in navdisp mode
         if scr.swnavdisp:   return
@@ -213,7 +240,8 @@ class Keyboard:
         else:
             cmd=""
 
-        # Check for acid first in command line
+        # Check for acid first in command line: 
+        # (as "HDG acid,hdg"  and "acid HDG hdg" are both a correct syntax
         if numargs >=1:
             if cmd != "" and traf.id.count(cmd) >0:
                 acid = cmd
@@ -228,90 +256,74 @@ class Keyboard:
         if numargs==0 and traf.id.count(cmdargs[0])>0:
             scr.editwin.enter()
             command.stack("POS "+cmdargs[0])
-
+            
         # No command: insert nearest aircraft id
-        if cmd=="" :
+        elif cmd=="" :
             lat,lon = scr.xy2ll(pos[0],pos[1])
             idx = traf.findnearest(lat,lon)
             if idx>=0:
                 scr.editwin.insert(traf.id[idx]+" ")
   
         # Insert: nearestaircraft id
-        elif (cmd == "HDG" or cmd=="POS" or cmd=="SPD"  or cmd=="ALT" or \
-              cmd == "ORIG" or cmd=="DEST" or\
-              cmd == "DEL" or cmd=="VS"  or cmd=="MOVE" or cmd=="ND"  or\
-              cmd == "NAVDISP" or cmd=="LISTRTE" or cmd=="ADDWPT" or\
-              cmd == "LNAV" or cmd=="VNAV" or cmd=="ASAS")    \
-              and numargs == 0:
+        else:
 
-            lat,lon = scr.xy2ll(pos[0],pos[1])
-            idx = traf.findnearest(lat,lon)
-            if idx>=0:
-                scr.editwin.insert(traf.id[idx]+" ")
+            # Find command in clickcmd dictionary
+            lookup = clickcmd[cmd]
+            if lookup:
+                
+                # Detrmine argument click type
+                clickargs = lookup.lower().split(",")
+                if numargs < len(clickargs):
+                    clicktype = clickargs[numargs]
 
-        # Insert: lat,lon position        
-        elif (cmd=="CRE"  and  numargs==2) or \
-             (cmd=="MOVE" and  numargs==1) or \
-             (cmd=="PAN"  and  numargs==0) or \
-             ((cmd=="DIST" or cmd=="AREA") and \
-                              (numargs==0 or numargs==2)) or \
-             (cmd=="LINE" and (numargs==1 or numargs==3)) or \
-             (cmd=="ADDWPT" and numargs==1):
+                                          
+                    if clicktype=="acid":
+                        lat,lon = scr.xy2ll(pos[0],pos[1])
+                        idx = traf.findnearest(lat,lon)
+                        if idx>=0:
+                            scr.editwin.insert(traf.id[idx]+" ")
 
-            lat,lon = scr.xy2ll(pos[0],pos[1])
-            scr.editwin.insert(" "+str(round(lat,6))+","+str(round(lon,6))+" ")
+                    elif clicktype=="latlon":
+                        lat,lon = scr.xy2ll(pos[0],pos[1])
+                        scr.editwin.insert(" "+str(round(lat,6))+","+str(round(lon,6))+" ")
 
-            # When last in line, enter ENTER
-            if cmd=="PAN" or ((cmd=="DIST" or cmd=="AREA") and numargs==2) or \
-               (cmd=="LINE" and numargs==3):
-                cmdline = scr.editwin.getline()
-                scr.editwin.enter()
-                if len(cmdline)>0:
-                    command.stack(cmdline)
-        
-        #Insert: heading
-        elif (cmd=="CRE"  and numargs == 4) or     \
-             (cmd=="HDG"  and numargs == 1) or   \
-             (cmd=="MOVE" and numargs == 4):
+                    elif clicktype=="hdg":
+                        # Read start position from command line
+                        if cmd=="CRE":
+                            try:
+                                lat = float(cmdargs[3])
+                                lon = float(cmdargs[4])
+                                synerr = False
+                            except:
+                                synerr = True
+                        elif cmd=="MOVE":
+                            try:
+                                lat = float(cmdargs[2])
+                                lon = float(cmdargs[3])
+                                synerr = False
+                            except:
+                                synerr = True
+                        else:
+                            if traf.id.count(acid)>0:
+                                idx = traf.id.index(acid)
+                                lat = traf.lat[idx]
+                                lon = traf.lon[idx]
+                                synerr = False
+                            else:
+                                synerr = True
+                        if not synerr:
+                            lat1,lon1 = scr.xy2ll(pos[0],pos[1])
+                            dy =  lat1-lat
+                            dx = (lon1-lon)*cos(radians(lat))
+                            hdg = degrees(atan2(dx,dy))%360.
 
-            # Read start position from line
-            if cmd=="CRE":
-                try:
-                    lat = float(cmdargs[3])
-                    lon = float(cmdargs[4])
-                    synerr = False
-                except:
-                    synerr = True
-            elif cmd=="MOVE":
-                try:
-                    lat = float(cmdargs[2])
-                    lon = float(cmdargs[3])
-                    synerr = False
-                except:
-                    synerr = True
-            else:
-                if traf.id.count(acid)>0:
-                    idx = traf.id.index(acid)
-                    lat = traf.lat[idx]
-                    lon = traf.lon[idx]
-                    synerr = False
-                else:
-                    synerr = True
-            
-            # Estimate heading using clicked position
-            if not synerr:
-                lat1,lon1 = scr.xy2ll(pos[0],pos[1])
-                dy =  lat1-lat
-                dx = (lon1-lon)*cos(radians(lat))
-                hdg = degrees(atan2(dx,dy))%360.
+                            scr.editwin.insert(" "+str(int(hdg))+" ")
 
-                scr.editwin.insert(" "+str(int(hdg))+" ")
-
-                # Insert ENTER if hdg command
-                if cmd=="HDG":
-                    cmdline = scr.editwin.getline()
-                    scr.editwin.enter()
-                    if len(cmdline)>0:
-                        self.lastcmd = cmdline
-                        command.stack(cmdline)
+                    # Is it the last argument? (then we will insert ENTER as well)
+                    if numargs+1 >= len(clickargs):
+                        cmdline = scr.editwin.getline()
+                        scr.editwin.enter()
+                        if len(cmdline)>0:
+                            command.stack(cmdline)
+                   
         return
