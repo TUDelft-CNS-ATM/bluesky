@@ -57,11 +57,11 @@ class Commandstack:
     def stack(self, cmdline):  # Stack one or more commands separated by ";"
         cline = cmdline.strip()  # remove leading & trailing spaces
         if cline.count(";") == 0:
-            self.cmdstack.append(cline.upper())  # pass on in upper case only
+            self.cmdstack.append(cline)
         else:
             clinelst = cline.split(";")
             for line in clinelst:
-                self.cmdstack.append(line.upper())  # pass on in upper case only
+                self.cmdstack.append(line)
 
         return
 
@@ -219,7 +219,8 @@ class Commandstack:
         """process and empty command stack"""
 
         # Process stack of commands
-        for cmdline in self.cmdstack:
+        for line in self.cmdstack:
+            cmdline = line.upper() # Save original lower case in variable line
 
             # Use both comma and space as aseparatotr: two commas mean an empty argument
             while cmdline.find(",,") >= 0:
@@ -737,7 +738,8 @@ class Commandstack:
                 elif cmd == "IC":
                     # If no arg is given: check
                     if numargs >= 1:
-                        filename = cmdargs[1]
+                        # Use lower case line for filename and allow space in path
+                        filename = line.strip()[3:].strip()
                         if filename.upper() == "IC":  # same file
                             filename = self.scenfile
 
