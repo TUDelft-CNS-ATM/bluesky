@@ -15,4 +15,10 @@ sim = Simulation()
 # =============================================================================
 MainLoop(gui, sim)
 
+# =============================================================================
+# Clean up before exit. Comment this out when debugging for checking variables
+# in the shell.
+# =============================================================================
+del gui, sim
+
 print 'BlueSky normal end.'

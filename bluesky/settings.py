@@ -21,7 +21,7 @@ text_texture_size = 62
 font_family = 'Courier'
 
 # Font weight. A weight of 0 is ultralight, whilst 99 will be an extremely black. 50 is normal, and 75 is bold.
-font_weight = 50
+font_weight = 99
 
 # Radarscreen airport symbol size in pixels
 apt_size = 16

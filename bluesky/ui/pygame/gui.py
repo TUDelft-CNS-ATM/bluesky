@@ -1,6 +1,7 @@
 from keyboard import Keyboard
 from screen import Screen
 import splash
+import pygame as pg
 
 
 class Gui:
@@ -15,3 +16,6 @@ class Gui:
 
     def reset(self):
         self.scr.objdel()                                     # Delete user defined objects
+
+    def close(self):
+        pg.quit()

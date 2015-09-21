@@ -10,3 +10,6 @@ def MainLoop(gui, sim):
         if sim.mode == sim.init:
             sim.reset()
             gui.reset()
+
+    # After the simulation is done, close the gui
+    gui.close()
