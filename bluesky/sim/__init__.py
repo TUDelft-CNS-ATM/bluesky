@@ -1,6 +1,6 @@
 from ..settings import gui
 
 if gui == 'qtgl':
-    from mt import Simulation, MainLoop
+    from qtgl import Simulation, MainLoop
 elif gui == 'pygame':
-    from st import Simulation, MainLoop
+    from pygame import Simulation, MainLoop
