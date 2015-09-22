@@ -83,11 +83,13 @@ def kwikdist(lata,lona,latb,lonb):
     return mat(dist)
 
 
-def kwikqdrdist(lata,lona,latb,lonb):
-    """Gives quick and dirty qdr[deg] and dist [nm] inreturn """
-    re   = 6371000.  # readius earth [m]
+def kwikqdrdist(lata,lona,latb,lonb): 
+    """Gives quick and dirty qdr[deg] and dist [nm]
+       (note: does not work well close to poles)"""
+    
+    re   = 6371000.  # radius earth [m]
     dlat = array(radians(latb - lata))
-    dlon = array(radians(lonb - lona))
+    dlon = array(radians(degto180(lonb - lona)))
     cavelat = array(cos(radians(lata+latb)/2.))
 
     dangle = sqrt(dlat*dlat+dlon*dlon*cavelat*cavelat)
@@ -111,5 +113,17 @@ def col2rgb(txt):
 def degto180(angle): 
     """Change to domain -180,180 """
     return (angle+180.)%360-180.
-    
+
+def findnearest(lat,lon,latarr,lonarr):
+    """Find index of nearest postion in numpy arrays with lat and lon"""
+    if len(latarr)>0 and len(latarr)==len(lonarr):
+        coslat = cos(radians(lat))
+        dy = radians(lat-latarr)
+        dx = coslat*radians(degto180(lon-lonarr))
+        d2   = dx*dx + dy*dy
+        idx = list(d2).index(d2.min())
+        return idx
+    else:
+        return -1
+
     
