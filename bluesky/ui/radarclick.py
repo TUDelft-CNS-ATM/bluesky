@@ -1,16 +1,17 @@
-from findnearest import findnearest
+from ..tools.misc import findnearest
 from math import cos, atan2, radians, degrees
 
 
-def radarclick(cmdline, lat, lon, traf):
-    """Process click in radar window"""
+def radarclick(cmdline, lat, lon, traf, navdb):
+    """Process lat,lon as clicked in radar window"""
     tostack   = ''
     todisplay = cmdline
 
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
 
-    clickcmd = {"POS": "acid",
+    clickcmd = {""   : "acid,-",
+                "POS": "acid",
                 "CRE":  "-,-,latlon,-,hdg,-,-",
                 "HDG": "acid,hdg",
                 "SPD": "acid,-",
@@ -55,7 +56,7 @@ def radarclick(cmdline, lat, lon, traf):
     else:
         cmd = ""
 
-    # Check for acid first in command line:
+    # Check for syntax of acid first in command line:
     # (as "HDG acid,hdg"  and "acid HDG hdg" are both a correct syntax
     if numargs >= 1:
         if cmd != "" and traf.id.count(cmd) > 0:
@@ -74,7 +75,7 @@ def radarclick(cmdline, lat, lon, traf):
 
     # No command: insert nearest aircraft id
     elif cmd == "":
-        idx = findnearest(traf, lat, lon)
+        idx = findnearest(lat,lon,traf.lat,traf.lon)
         if idx >= 0:
             todisplay = traf.id[idx] + " "
 
@@ -91,40 +92,46 @@ def radarclick(cmdline, lat, lon, traf):
                 clicktype = clickargs[numargs]
 
                 if clicktype == "acid":
-                    idx = findnearest(traf, lat, lon)
+                    idx = findnearest(lat,lon,traf.lat,traf.lon)
                     if idx >= 0:
                         todisplay = traf.id[idx] + " "
 
                 elif clicktype == "latlon":
                     todisplay = " " + str(round(lat, 6)) + "," + str(round(lon, 6)) + " "
 
+                elif clicktype=="apt":
+                    idx = findnearest(lat,lon,navdb.aplat,navdb.aplon)
+                    if idx>=0:
+                        todisplay = navdb.apid[idx] + " "
+
+
                 elif clicktype == "hdg":
                     # Read start position from command line
                     if cmd == "CRE":
                         try:
-                            clat = float(cmdargs[3])
-                            clon = float(cmdargs[4])
+                            reflat = float(cmdargs[3])
+                            reflon = float(cmdargs[4])
                             synerr = False
                         except:
                             synerr = True
                     elif cmd == "MOVE":
                         try:
-                            clat = float(cmdargs[2])
-                            clon = float(cmdargs[3])
+                            reflat = float(cmdargs[2])
+                            reflon = float(cmdargs[3])
                             synerr = False
                         except:
                             synerr = True
                     else:
                         if traf.id.count(acid) > 0:
                             idx = traf.id.index(acid)
-                            clat = traf.lat[idx]
-                            clon = traf.lon[idx]
+                            reflat = traf.lat[idx]
+                            reflon = traf.lon[idx]
                             synerr = False
                         else:
                             synerr = True
                     if not synerr:
-                        dy = lat - clat
-                        dx = (lon - clon) * cos(radians(clat))
+                        dy = lat - reflat
+                        dx = (lon - reflon) * cos(radians(reflat))
                         hdg = degrees(atan2(dx, dy)) % 360.
 
                         todisplay = " " + str(int(hdg)) + " "

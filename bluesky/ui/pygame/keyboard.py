@@ -1,6 +1,6 @@
 import pygame as pg
 from math import *
-from ...tools.radarclick import radarclick
+from ..radarclick import radarclick
 
 
 class Keyboard:
@@ -11,8 +11,8 @@ class Keyboard:
         Keyboard(tmx)                      :  constructor
 
         update()                           : Check for input & process it
-        radarclick(pos,command,scr,traf)   : Process click on radar window to
-                                             to insert data in edit window
+        radarclick(pos,command,scr,traf,navdb)   : Process click on radar window to
+                                                   to insert data in edit window
 
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
@@ -120,7 +120,7 @@ class Keyboard:
                             # Interpret current edit line
                             cmdline = scr.editwin.getline()
                             lat, lon = scr.xy2ll(event.pos[0], event.pos[1])
-                            tostack, todisplay = radarclick(cmdline, lat, lon, traf)
+                            tostack, todisplay = radarclick(cmdline, lat, lon, traf, traf.navdb)
                             if len(todisplay) > 0:
                                 if todisplay[0] == '\n':
                                     scr.editwin.enter()
