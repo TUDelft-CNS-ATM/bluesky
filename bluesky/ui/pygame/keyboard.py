@@ -1,5 +1,7 @@
 import pygame as pg
 from math import *
+from ...tools.radarclick import radarclick
+
 
 class Keyboard:
     """ 
@@ -114,7 +116,19 @@ class Keyboard:
                         self.dragpotmenu = False
                         
                     else:
-                        self.radarclick(event.pos,cmd,scr,traf)
+                        if not scr.swnavdisp:
+                            # Interpret current edit line
+                            cmdline = scr.editwin.getline()
+                            lat, lon = scr.xy2ll(event.pos[0], event.pos[1])
+                            tostack, todisplay = radarclick(cmdline, lat, lon, traf)
+                            if len(todisplay) > 0:
+                                if todisplay[0] == '\n':
+                                    scr.editwin.enter()
+                                scr.editwin.insert(todisplay.strip())
+                                if todisplay[-1] == '\n':
+                                    scr.editwin.enter()
+                            if len(tostack) > 0:
+                                cmd.stack(tostack)
 
                 # Make sure edit and menu window are released
                 self.dragedit    = False
@@ -181,149 +195,4 @@ class Keyboard:
                         self.dragmenu = False
 
         #----- End of Update -----
-        return
-    
-    def radarclick(self,pos,command,scr,traf):
-        """Process click in radar window"""
-
-        # Specify which argument can be clicked, and how, in this dictionary
-        # and when it's the last, also add ENTER
-
-        clickcmd = {"POS"    : "acid",
-                    "CRE"    :  "-,-,latlon,-,hdg,-,-",
-                    "HDG"    : "acid,hdg",
-                    "SPD"    : "acid,-",
-                    "ALT"    : "acid,-",
-                    "LISTRTE": "acid,-",
-                    "ADDWPT" : "acid,latlon,-,-,-",
-                    "ASAS"   : "acid,-",
-                    "DEl"    : "acid,-",
-                    "LNAV"   : "acid,-",
-                    "VNAV"   : "acid,-",
-                    "VS"     : "acid,-",
-                    "ND"     : "acid",
-                    "NAVDISP": "acid",
-                    "ASAS"   : "acid,-",
-                    "ORIG"   : "acid,apt",
-                    "DEST"   : "acid,apt",
-                    "PAN"    : "latlon",
-                    "MOVE"   : "acid,latlon,-,-,hdg",
-                    "DIST"   : "latlon,-,latlon",
-                    "LINE"   : "latlon,-,latlon",
-                    "AREA"   : "latlon,-,latlon",
-                    }
-        
-        # Not in navdisp mode
-        if scr.swnavdisp:   return
-
-        # Interpret current edit line
-        cmdline = scr.editwin.getline()
-
-        while cmdline.find(",,")>=0:
-            cmdline = cmdline.replace(",,",",@,") # Mark empty arguments
-
-        # Replace comma's by space
-        cmdline = cmdline.replace(","," ")            
-
-        # Split using spaces
-        cmdargs = cmdline.split()     # Make list of cmd arguments
-
-        # Adjust for empty arguments
-        for i in range(len(cmdargs)):
-            if cmdargs[i]=="@":
-                cmdargs[i]=""
-        numargs = len(cmdargs)-1
-
-        # Save command
-        if numargs>=0:
-            cmd = cmdargs[0]
-        else:
-            cmd=""
-
-        # Check for acid first in command line: 
-        # (as "HDG acid,hdg"  and "acid HDG hdg" are both a correct syntax
-        if numargs >=1:
-            if cmd != "" and traf.id.count(cmd) >0:
-                acid = cmd
-                cmd = cmdargs[1]
-                cmdargs[1] = acid
-
-            if numargs>=1:
-                    acid = cmdargs[1]
-                    
-        # -------- Process click --------
-        # Double click on aircraft = POS command
-        if numargs==0 and traf.id.count(cmdargs[0])>0:
-            scr.editwin.enter()
-            command.stack("POS "+cmdargs[0])
-            
-        # No command: insert nearest aircraft id
-        elif cmd=="" :
-            lat,lon = scr.xy2ll(pos[0],pos[1])
-            idx = traf.findnearest(lat,lon)
-            if idx>=0:
-                scr.editwin.insert(traf.id[idx]+" ")
-  
-        # Insert: nearestaircraft id
-        else:
-
-            # Find command in clickcmd dictionary
-            lookup = clickcmd[cmd]
-            if lookup:
-                
-                # Detrmine argument click type
-                clickargs = lookup.lower().split(",")
-                if numargs < len(clickargs):
-                    clicktype = clickargs[numargs]
-
-                                          
-                    if clicktype=="acid":
-                        lat,lon = scr.xy2ll(pos[0],pos[1])
-                        idx = traf.findnearest(lat,lon)
-                        if idx>=0:
-                            scr.editwin.insert(traf.id[idx]+" ")
-
-                    elif clicktype=="latlon":
-                        lat,lon = scr.xy2ll(pos[0],pos[1])
-                        scr.editwin.insert(" "+str(round(lat,6))+","+str(round(lon,6))+" ")
-
-                    elif clicktype=="hdg":
-                        # Read start position from command line
-                        if cmd=="CRE":
-                            try:
-                                lat = float(cmdargs[3])
-                                lon = float(cmdargs[4])
-                                synerr = False
-                            except:
-                                synerr = True
-                        elif cmd=="MOVE":
-                            try:
-                                lat = float(cmdargs[2])
-                                lon = float(cmdargs[3])
-                                synerr = False
-                            except:
-                                synerr = True
-                        else:
-                            if traf.id.count(acid)>0:
-                                idx = traf.id.index(acid)
-                                lat = traf.lat[idx]
-                                lon = traf.lon[idx]
-                                synerr = False
-                            else:
-                                synerr = True
-                        if not synerr:
-                            lat1,lon1 = scr.xy2ll(pos[0],pos[1])
-                            dy =  lat1-lat
-                            dx = (lon1-lon)*cos(radians(lat))
-                            hdg = degrees(atan2(dx,dy))%360.
-
-                            scr.editwin.insert(" "+str(int(hdg))+" ")
-
-                    # Is it the last argument? (then we will insert ENTER as well)
-                    if numargs+1 >= len(clickargs):
-                        cmdline = scr.editwin.getline()
-                        scr.editwin.enter()
-                        if len(cmdline)>0:
-                            command.stack(cmdline)
-                   
         return

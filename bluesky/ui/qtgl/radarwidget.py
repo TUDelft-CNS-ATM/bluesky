@@ -8,7 +8,7 @@ except ImportError:
     QT_VERSION = 5
 import numpy as np
 import OpenGL.GL as gl
-import time
+from math import radians
 
 # Local imports
 from ...tools.aero import ft, nm, kts
@@ -269,7 +269,7 @@ class RadarWidget(QGLWidget):
             # Labels
             rawlabel = ''
             for i in range(n_ac):
-                rawlabel += '%-6sFL%03d %-6d' % (data.ids[i], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
+                rawlabel += '%-6sFL%03d %-6d' % (data.id[i], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
 
             update_array_buffer(self.aclblbuf, np.array(rawlabel, dtype=np.string_))
 
@@ -359,10 +359,10 @@ class RadarWidget(QGLWidget):
         glx = (float(2.0 * x) / self.width  - 1.0)
         gly = -(float(2.0 * y) / self.height - 1.0)
 
-        # glxy   = zoom * (pan + latlon)
-        # latlon = glxy / zoom - pan
-        lat = gly / (self.zoom * self.flat_earth) - self.pan[0]
-        lon = glx / (self.zoom * self.ar) - self.pan[1]
+        # glxy   = zoom * (pan - latlon)
+        # latlon = pan - glxy / zoom
+        lat = radians(self.pan[0] - gly / (self.zoom * self.flat_earth))
+        lon = radians(self.pan[1] - glx / (self.zoom * self.ar))
         return (lat, lon)
 
     def event(self, event):

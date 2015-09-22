@@ -11,6 +11,7 @@ except ImportError:
     print('Using Qt5 for windows and widgets')
 
 # Local imports
+from ...tools.radarclick import radarclick
 from mainwindow import MainWindow, Splash
 from uievents import PanZoomEvent, ACDataEvent
 import autocomplete as ac
@@ -22,6 +23,7 @@ class Gui(QApplication):
 
     def __init__(self, args):
         super(Gui, self).__init__(args)
+        self.acdata = ACDataEvent()
         self.radarwidget = []
         self.command_history = []
         self.history_pos = 0
@@ -94,8 +96,18 @@ class Gui(QApplication):
                     self.prevmousepos = (event.x(), event.y())
 
                 else:
-                    tap_latlon = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                    self.win.lineEdit.insert(str(tap_latlon[0]) + ', ' + str(tap_latlon[1]))
+                    latlon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
+                    print('lat=%.4f, lon=%.4f'%latlon)
+                    cmdline = str(self.win.lineEdit.text())[2:]
+                    tostack, todisplay = radarclick(cmdline, latlon[0], latlon[1], self.acdata)
+                    if len(todisplay) > 0:
+                        if todisplay[0] == '\n':
+                            self.win.lineEdit.setText(">>")
+                        self.win.lineEdit.insert(todisplay.strip())
+                        if todisplay[-1] == '\n':
+                            self.win.lineEdit.setText(">>")
+                        if len(tostack) > 0:
+                            self.signal_command.emit(tostack)
                     event.accept()
                     return True
 
@@ -184,4 +196,5 @@ class Gui(QApplication):
 
     @pyqtSlot(ACDataEvent)
     def callback_update_aircraft(self, data):
+        self.acdata = data
         self.radarwidget.update_aircraft_data(data)

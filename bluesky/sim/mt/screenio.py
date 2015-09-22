@@ -48,7 +48,7 @@ class ScreenIO(QObject):
     @pyqtSlot()
     def send_aircraft_data(self):
         data = ACDataEvent()
-        data.ids = list(self.sim.traf.id)
+        data.id  = list(self.sim.traf.id)
         data.lat = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
         data.lon = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
         data.alt = np.array(self.sim.traf.alt, copy=True)

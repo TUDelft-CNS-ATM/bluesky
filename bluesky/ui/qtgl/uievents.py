@@ -5,7 +5,7 @@ except ImportError:
 
 
 class ACDataEvent(object):
-    lat = lon = alt = tas = trk = colors = ids = []
+    lat = lon = alt = tas = trk = colors = id = []
 
 
 class PanZoomEvent(QEvent):

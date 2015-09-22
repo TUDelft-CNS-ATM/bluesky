@@ -31,7 +31,6 @@ class Traffic:
         create(acid,actype,aclat,aclon,achdg,acalt,acspd) : create aircraft
         delete(acid)         : delete an aircraft from traffic data
         update(sim)          : do a numerical integration step
-        findnearest(lat,lon) : find nearest a/c to lat/lon position
         trafperf ()          : calculate aircraft performance parameters
 
     Members: see create
@@ -841,19 +840,6 @@ class Traffic:
 
         #         # Update area status
         #         self.inside[i] = inside
-
-
-
-    def findnearest(self, lat, lon):
-        """Find nearest aircraft"""
-        if self.ntraf > 0:
-            d2 = (lat - self.lat) ** 2 + cos(radians(lat)) * (lon - self.lon) ** 2
-            idx = np.argmin(d2)
-            del d2
-            return idx
-        else:
-            return -1
-
 
     def id2idx(self, acid):
         """Find index of aircraft id"""

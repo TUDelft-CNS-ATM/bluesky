@@ -1,7 +1,7 @@
 
 import glob
 from ...settings import scenario_path
-#scenario_path = 'data/scenario'
+
 previous_g = ''
 
 
@@ -11,6 +11,7 @@ def complete(cmd):
     displaytext = ''
 
     if lcmd[0] == 'IC':
+        global previous_g
         g = scenario_path
         striplen = len(g)
         if g[-1] is not '/':
@@ -25,7 +26,6 @@ def complete(cmd):
                 for f in files:
                     displaytext += f[striplen:] + '  '
             else:
-                global previous_g
                 previous_g = g
 
                 idx = len(g)
