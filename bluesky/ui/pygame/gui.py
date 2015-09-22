@@ -5,7 +5,7 @@ import pygame as pg
 
 
 class Gui:
-    def __init__(self, args):
+    def __init__(self, navdb):
         splash.show()
         self.keyb = Keyboard()                                # processes input from keyboard & mouse
         self.scr  = Screen()                                  # screen output object

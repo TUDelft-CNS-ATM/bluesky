@@ -8,8 +8,6 @@ except ImportError:
     from PyQt5.QtWidgets import QMainWindow, QMenuBar, QLabel, QSplashScreen
     from PyQt5 import uic
 
-from radarwidget import RadarWidget
-
 
 class Splash(QSplashScreen):
     def __init__(self):
@@ -18,7 +16,7 @@ class Splash(QSplashScreen):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, app):
+    def __init__(self, app, radarwidget):
         super(MainWindow, self).__init__()
         self.app = app
         uic.loadUi("./data/graphics/mainwindow.ui", self)
@@ -91,12 +89,11 @@ class MainWindow(QMainWindow):
         self.siminfoLabel = QLabel('F = 0 Hz')
         self.verticalLayout.addWidget(self.siminfoLabel)
 
-        self.radarwidget = RadarWidget()
-        self.radarwidget.setParent(self.centralwidget)
-        self.verticalLayout.insertWidget(0, self.radarwidget, 1)
+        radarwidget.setParent(self.centralwidget)
+        self.verticalLayout.insertWidget(0, radarwidget, 1)
 
         timer = QTimer(self)
-        timer.timeout.connect(self.radarwidget.updateGL)
+        timer.timeout.connect(radarwidget.updateGL)
         timer.start(50)
 
     @pyqtSlot()
@@ -104,12 +101,12 @@ class MainWindow(QMainWindow):
         if self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
-            self.app.signal_command.emit('IC IC')
+            self.app.stack('IC IC')
         elif self.sender() == self.hold:
-            self.app.signal_command.emit('HOLD')
+            self.app.stack('HOLD')
         elif self.sender() == self.op:
-            self.app.signal_command.emit('OP')
+            self.app.stack('OP')
         elif self.sender() == self.fast:
             print('Fast clicked')
         elif self.sender() == self.fast10:
-            self.app.signal_command.emit('RUNFT')
+            self.app.stack('RUNFT')

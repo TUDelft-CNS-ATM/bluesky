@@ -6,7 +6,8 @@
 layout (std140) uniform global_data {
 int wrap_dir;           // Wrap-around direction
 float wrap_lon;         // Wrap-around longitude
-vec2 pan;               // Map panning coordinates [lat,lon]
+float panlat;           // Map panning coordinates [deg]
+float panlon;           // Map panning coordinates [deg]
 float zoom;             // Screen zoom factor [-]
 int screen_width;       // Screen width in pixels
 int screen_height;      // Screen height in pixels
@@ -36,7 +37,7 @@ void main() {
     texcoords_fs.p -= 32.0;
 
     vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
-    vec2 flat_earth = vec2(cos(DEG2RAD*pan.y), 1.0);
+    vec2 flat_earth = vec2(cos(DEG2RAD*panlat), 1.0);
 
     vec2 position = vec2(lon_in, lat_in);
     if (wrap_dir < -0.1 && position.x > wrap_lon) {
@@ -44,7 +45,7 @@ void main() {
     } else if (wrap_dir > 0.1 && position.x < wrap_lon) {
         position.x += 360.0;
     }
-    position -= pan;
+    position -= vec2(panlon, panlat);
     position *= (zoom * flat_earth);
 
     vec2 vertex = vertex_in;

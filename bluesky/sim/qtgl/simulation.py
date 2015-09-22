@@ -32,7 +32,7 @@ class Simulation(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self):
+    def __init__(self, navdb):
         super(Simulation, self).__init__()
         self.mode = Simulation.init
 
@@ -42,7 +42,8 @@ class Simulation(QObject):
         # Simulation objects
         self.screenio = ScreenIO(self)
         self.stack = Commandstack()
-        self.traf = Traffic()
+        self.traf = Traffic(navdb)
+        self.navdb = navdb
         print 'Initializing multi-threaded simulation'
 
     def moveToThread(self, target_thread):
@@ -97,4 +98,4 @@ class Simulation(QObject):
         self.simt = 0.0
         self.mode = Simulation.init
         del self.traf
-        self.traf = Traffic()
+        self.traf = Traffic(self.navdb)

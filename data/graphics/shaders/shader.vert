@@ -10,7 +10,8 @@
 layout (std140) uniform global_data {
 int wrap_dir;           // Wrap-around direction
 float wrap_lon;         // Wrap-around longitude
-vec2 pan;               // Map panning coordinates [lat,lon]
+float panlat;           // Map panning coordinates [deg]
+float panlon;           // Map panning coordinates [deg]
 float zoom;             // Screen zoom factor [-]
 int screen_width;       // Screen width in pixels
 int screen_height;      // Screen height in pixels
@@ -33,7 +34,7 @@ void main()
 	texcoords_fs = texcoords_in;
 
 	vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
-	vec2 flat_earth = vec2(cos(DEG2RAD*pan.y), 1.0);
+	vec2 flat_earth = vec2(cos(DEG2RAD*panlat), 1.0);
     mat2 mrot = mat2(cos(DEG2RAD*orientation_in), -sin(DEG2RAD*orientation_in), sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
 
 	// Vertex position and rotation calculations
@@ -43,7 +44,7 @@ void main()
 	} else if (wrap_dir > 0 && position.x < wrap_lon) {
 		position.x += 360.0;
 	}
-	position -= pan;
+	position -= vec2(panlon, panlat);
 
 	switch (vertex_scale_type) {
 		case VERTEX_IS_SCREEN:

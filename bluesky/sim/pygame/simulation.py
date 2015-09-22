@@ -24,7 +24,7 @@ class Simulation:
     hold = 2
     end  = 3
 
-    def __init__(self):
+    def __init__(self, navdb):
         # simmode
         self.mode   = self.init
 
@@ -48,7 +48,8 @@ class Simulation:
 
         # Simulation objects
         self.stack = Commandstack()
-        self.traf  = Traffic()        
+        self.traf  = Traffic(navdb)
+        self.navdb = navdb
         return
 
     def update(self, scr):
@@ -130,4 +131,4 @@ class Simulation:
         self.t = 0.0
         self.mode = Simulation.init
         del self.traf
-        self.traf = Traffic()
+        self.traf = Traffic(self.navdb)

@@ -48,7 +48,7 @@ def update_array_buffer(buf_id, data):
 
 
 class GlobalData(Structure):
-    _fields_ = [("wrapdir", c_int), ("wraplon", c_float), ("panlon", c_float), ("panlat", c_float), ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
+    _fields_ = [("wrapdir", c_int), ("wraplon", c_float), ("panlat", c_float), ("panlon", c_float), ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
 
 
 class BlueSkyProgram():

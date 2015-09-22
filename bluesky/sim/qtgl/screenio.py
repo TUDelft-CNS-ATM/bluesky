@@ -1,14 +1,16 @@
 try:
     # Try Qt4 first
-    from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
+    from PyQt4.QtCore import QObject, QTimer, pyqtSlot
+    from PyQt4.QtCore import QCoreApplication as qapp
 except ImportError:
     # Else PyQt5 imports
-    from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
+    from PyQt5.QtCore import QObject, QTimer, pyqtSlot, QThread
+    from PyQt5.QtCore import QCoreApplication as qapp
 import numpy as np
 import time
 
 # Local imports
-from ...ui.qtgl import ACDataEvent, PanZoomEvent
+from ...ui.qtgl import ACDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, StackTextEventType
 
 
 class ScreenIO(QObject):
@@ -22,15 +24,6 @@ class ScreenIO(QObject):
     acupdate_rate = 5
 
     # =========================================================================
-    # Signals
-    # =========================================================================
-    signal_siminfo = pyqtSignal(float, float, float, int, int)  # signal contents: sys freq, simdt, simt, n_ac, mode
-    signal_update_aircraft = pyqtSignal(ACDataEvent)
-    signal_show_filedialog = pyqtSignal()
-    signal_display_text = pyqtSignal(str)
-    signal_panzoom = pyqtSignal(PanZoomEvent)
-
-    # =========================================================================
     # Slots
     # =========================================================================
     @pyqtSlot(str)
@@ -41,7 +34,7 @@ class ScreenIO(QObject):
     def send_siminfo(self):
         t = time.time()
         dt = t - self.prevtime
-        self.signal_siminfo.emit((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode)
+        qapp.postEvent(qapp.instance(), SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
         self.prevtime = t
         self.prevcount = self.sim.samplecount
 
@@ -54,8 +47,9 @@ class ScreenIO(QObject):
         data.alt = np.array(self.sim.traf.alt, copy=True)
         data.tas = np.array(self.sim.traf.tas, copy=True)
         data.trk = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
-
-        self.signal_update_aircraft.emit(data)
+        # print data
+        # print 'getting sent in thread %d' % QThread.currentThreadId()
+        qapp.postEvent(qapp.instance(), data)
 
     # =========================================================================
     # Functions
@@ -85,17 +79,25 @@ class ScreenIO(QObject):
         super(ScreenIO, self).moveToThread(target_thread)
 
     def echo(self, text):
-        self.signal_display_text.emit(text)
+        qapp.postEvent(qapp.instance(), StackTextEvent(text))
 
     def zoom(self, zoomfac):
-        self.signal_panzoom.emit(PanZoomEvent(PanZoomEvent.Zoom, zoomfac))
+        qapp.postEvent(qapp.instance(), PanZoomEvent(PanZoomEvent.Zoom, zoomfac))
 
     def pan(self, pan, absolute=False):
         if absolute:
-            self.signal_panzoom.emit(PanZoomEvent(PanZoomEvent.PanAbsolute, pan))
+            qapp.postEvent(qapp.instance(), PanZoomEvent(PanZoomEvent.PanAbsolute, pan))
         else:
-            self.signal_panzoom.emit(PanZoomEvent(PanZoomEvent.Pan, pan))
+            qapp.postEvent(qapp.instance(), PanZoomEvent(PanZoomEvent.Pan, pan))
+
+    def showroute(self, acid):
+        qapp.postEvent(qapp.instance(), DisplayFlagEvent(flag_target=acid))
 
     def show_file_dialog(self):
-        self.signal_show_filedialog.emit()
+        qapp.postEvent(qapp.instance(), ShowDialogEvent())
         return ''
+
+    def event(self, event):
+        if event.type() == StackTextEventType:
+            self.sim.stack.stack(event.text)
+        return True

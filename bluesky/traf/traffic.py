@@ -11,7 +11,6 @@ from ..tools.misc import degto180
 from ..tools.datalog import Datalog
 
 # from metric import Metric
-from navdb import Navdatabase
 from route import Route
 from params import Trails
 from asas import Dbconf
@@ -38,7 +37,7 @@ class Traffic:
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self):
+    def __init__(self, navdb):
         self.dts = []
         self.ntraf = 0
 
@@ -196,7 +195,7 @@ class Traffic:
         self.dbconf = Dbconf(self,300., 5.*nm, 1000.*ft) # hard coded values to be replaced
 
         # Import navigation data base
-        self.navdb  = Navdatabase("global")  # Read nav data from global folder
+        self.navdb  = navdb
 
         # Traffic area: delete traffic when it leaves this area (so not when outside)
         self.swarea    = False

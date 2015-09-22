@@ -122,8 +122,7 @@ def findnearest(lat,lon,latarr,lonarr):
         dx = coslat*radians(degto180(lon-lonarr))
         d2   = dx*dx + dy*dy
         idx = list(d2).index(d2.min())
+
         return idx
     else:
         return -1
-
-    

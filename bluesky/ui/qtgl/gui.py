@@ -1,10 +1,10 @@
 try:
-    from PyQt4.QtCore import Qt, QEvent, pyqtSlot, pyqtSignal
+    from PyQt4.QtCore import Qt, QEvent
     from PyQt4.QtGui import QColor, QApplication, QFileDialog
     from PyQt4.QtOpenGL import QGLFormat
     print('Using Qt4 for windows and widgets')
 except ImportError:
-    from PyQt5.QtCore import Qt, QEvent, pyqtSlot, pyqtSignal
+    from PyQt5.QtCore import Qt, QEvent
     from PyQt5.QtGui import QColor
     from PyQt5.QtWidgets import QApplication, QFileDialog
     from PyQt5.QtOpenGL import QGLFormat
@@ -13,23 +13,29 @@ except ImportError:
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
-from uievents import PanZoomEvent, ACDataEvent
+from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType
+from radarwidget import RadarWidget
 import autocomplete as ac
 
 
 class Gui(QApplication):
-    signal_command = pyqtSignal(str)
     modes = ['Init', 'Operate', 'Hold', 'End']
 
-    def __init__(self, args):
-        super(Gui, self).__init__(args)
+    def __init__(self, navdb):
+        super(Gui, self).__init__([])
         self.acdata = ACDataEvent()
+        self.navdb = navdb
         self.radarwidget = []
         self.command_history = []
         self.history_pos = 0
         self.command_mem = ''
+        self.simevent_target = 0
         # Register our custom pan/zoom event
-        PanZoomEvent.PanZoomEventType = QEvent.registerEventType()
+        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType]:
+            reg_etype = QEvent.registerEventType(etype)
+            if reg_etype != etype:
+                print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
+
         self.prevmousepos = (0.0, 0.0)
 
         self.splash = Splash()
@@ -39,12 +45,15 @@ class Gui(QApplication):
         self.processEvents()
 
         # Create the main window
-        self.win = MainWindow(self)
-        self.radarwidget = self.win.radarwidget
+        self.radarwidget = RadarWidget(navdb)
+        self.win = MainWindow(self, self.radarwidget)
 
         # Check OpenGL capabilities
         if not QGLFormat.hasOpenGL():
             raise RuntimeError('No OpenGL support detected for this system!')
+
+    def setSimEventTarget(self, obj):
+        self.simevent_target = obj
 
     def start(self):
         self.win.show()
@@ -54,8 +63,43 @@ class Gui(QApplication):
         self.exec_()
 
     def notify(self, receiver, event):
+        # Events from the simulation thread
+        if receiver is self:
+            if event.type() == PanZoomEventType:
+                if event.panzoom_type() == PanZoomEvent.Zoom:
+                    event.vorigin = self.radarwidget.pan
+
+                # send the pan/zoom event to the radarwidget
+                receiver = self.radarwidget
+
+            elif event.type() == ACDataEventType:
+                self.acdata = event
+                self.radarwidget.update_aircraft_data(event)
+                return True
+
+            elif event.type() == SimInfoEventType:
+                self.win.siminfoLabel.setText('<b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>sim_t</b> = %.1f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
+                    % (event.sys_freq, event.simdt, event.simt, event.n_ac, self.modes[event.mode]))
+                return True
+
+            elif event.type() == StackTextEventType:
+                self.win.stackText.setTextColor(QColor(0, 255, 0))
+                self.win.stackText.insertHtml('<br>' + event.text)
+                self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
+                return True
+
+            elif event.type() == ShowDialogEventType:
+                if event.dialog_type == event.filedialog_type:
+                    self.show_file_dialog()
+                return True
+
+            elif event.type() == DisplayFlagEventType:
+                print 'toggle event received by gui'
+                return True
+
         # Mouse/trackpad event handling for the Radar widget
         if receiver is self.radarwidget:
+
             if event.type() == QEvent.Wheel:
                 # For mice we zoom with control/command and the scrolwheel
                 if event.modifiers() & Qt.ControlModifier:
@@ -97,9 +141,8 @@ class Gui(QApplication):
 
                 else:
                     latlon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                    print('lat=%.4f, lon=%.4f'%latlon)
                     cmdline = str(self.win.lineEdit.text())[2:]
-                    tostack, todisplay = radarclick(cmdline, latlon[0], latlon[1], self.acdata)
+                    tostack, todisplay = radarclick(cmdline, latlon[0], latlon[1], self.acdata, self.navdb)
                     if len(todisplay) > 0:
                         if todisplay[0] == '\n':
                             self.win.lineEdit.setText(">>")
@@ -107,7 +150,7 @@ class Gui(QApplication):
                         if todisplay[-1] == '\n':
                             self.win.lineEdit.setText(">>")
                         if len(tostack) > 0:
-                            self.signal_command.emit(tostack)
+                            self.stack(tostack)
                     event.accept()
                     return True
 
@@ -127,7 +170,7 @@ class Gui(QApplication):
                     # emit a signal with the command for the simulation thread
                     cmd = str(self.win.lineEdit.text())[2:]
                     self.command_history.append(cmd)
-                    self.signal_command.emit(cmd)
+                    self.stack(cmd)
 
                     self.win.lineEdit.setText(">>")
                     self.win.lineEdit.setCursorPosition(2)
@@ -164,7 +207,9 @@ class Gui(QApplication):
             # Call Base Class Method to Continue Normal Event Processing
             return super(Gui, self).notify(receiver, event)
 
-    @pyqtSlot()
+    def stack(self, text):
+        self.postEvent(self.simevent_target, StackTextEvent(text))
+
     def show_file_dialog(self):
         print 'here'
         response = QFileDialog.getOpenFileName(self.win, 'Open file', 'data/scenario', 'Scenario files (*.scn)')
@@ -173,28 +218,4 @@ class Gui(QApplication):
         else:
             fname = response
         if len(fname) > 0:
-            self.signal_command.emit('IC ' + str(fname))
-
-    @pyqtSlot(float, float, float, int, int)
-    def callback_siminfo(self, simfreq, simdt, simt, n_ac, mode):
-        self.win.siminfoLabel.setText('<b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>sim_t</b> = %.1f, <b>n_aircraft</b> = %d, <b>mode</b> = %s' % (simfreq, simdt, simt, n_ac, self.modes[mode]))
-
-    @pyqtSlot(str)
-    def callback_stack_output(self, text):
-        self.win.stackText.setTextColor(QColor(0, 255, 0))
-        self.win.stackText.insertHtml('<br>' + text)
-        self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
-
-    @pyqtSlot(PanZoomEvent)
-    def callback_panzoom(self, panzoom):
-        # Stack doesn't set a zoom origin
-        if panzoom.panzoom_type() == PanZoomEvent.Zoom:
-            panzoom.vorigin = self.radarwidget.pan
-
-        # send the pan/zoom event to the radarwidget
-        super(Gui, self).notify(self.radarwidget, panzoom)
-
-    @pyqtSlot(ACDataEvent)
-    def callback_update_aircraft(self, data):
-        self.acdata = data
-        self.radarwidget.update_aircraft_data(data)
+            self.stack('IC ' + str(fname))

@@ -8,13 +8,13 @@ except ImportError:
     QT_VERSION = 5
 import numpy as np
 import OpenGL.GL as gl
-from math import radians
 
 # Local imports
 from ...tools.aero import ft, nm, kts
 from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_array_buffer
-from uievents import PanZoomEvent
+from uievents import PanZoomEvent, PanZoomEventType
 from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
+
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 
@@ -26,7 +26,7 @@ class RadarWidget(QGLWidget):
     show_traf = show_lbl = show_wpt = show_apt = True
     vcount_circle = 36
     width = height = 600
-    pan = [0.0, 0.0]
+    panlat = panlon = 0.0
     zoom = 1.0
     ar = 1.0
     flat_earth = 1.0
@@ -35,16 +35,16 @@ class RadarWidget(QGLWidget):
     color_wpt = color_apt = (149.0/255.0, 179.0/255.0, 235/255.0)
     color_wptlbl = color_aptlbl = (219.0/255.0, 249.0/255.0, 255/255.0)
 
-    def __init__(self, parent=None):
+    def __init__(self, navdb):
         f = QGLFormat()
         f.setVersion(3, 3)
         f.setProfile(QGLFormat.CoreProfile)
         f.setDoubleBuffer(True)
         if QT_VERSION == 4:
-            QGLWidget.__init__(self, QGLContext(f, None), parent)
+            QGLWidget.__init__(self, QGLContext(f, None))
         else:
             # Qt 5
-            QGLWidget.__init__(self, QGLContext(f), parent)
+            QGLWidget.__init__(self, QGLContext(f))
 
         print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
 
@@ -58,6 +58,7 @@ class RadarWidget(QGLWidget):
         self.naircraft = 0
         self.nwaypoints = 0
         self.nairports = 0
+        self.navdb = navdb
 
     def create_objects(self):
         # Initialize font for radar view with specified settings
@@ -80,6 +81,16 @@ class RadarWidget(QGLWidget):
         self.map.bind_vertex_attribute(mapvertices)
         self.map.bind_texcoords_attribute(texcoords)
 
+        # ------- Coastlines -----------------------------
+        self.coastlines = RenderObject()
+        coastvertices, coastindices = load_coast_data()
+        self.coastlines.bind_vertex_attribute(coastvertices)
+        coastlinecolor = np.array((84.0/255.0, 84.0/255.0, 114.0/255.0), dtype=np.float32)
+        self.coastlines.bind_color_attribute(coastlinecolor)
+        self.vcount_coast = len(coastvertices)
+        self.coastindices = coastindices
+        del coastvertices
+
         # ------- Circle ---------------------------------
         # Create a new VAO (Vertex Array Object) and bind it
         self.protectedzone = RenderObject()
@@ -100,36 +111,40 @@ class RadarWidget(QGLWidget):
         self.aclabels = TextObject()
         self.aclabels.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, text_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
 
-        # ------- Coastlines -----------------------------
-        self.coastlines = RenderObject()
-        self.coastlines.bind_vertex_attribute(self.coastvertices)
-        coastlinecolor = np.array((84.0/255.0, 84.0/255.0, 114.0/255.0), dtype=np.float32)
-        self.coastlines.bind_color_attribute(coastlinecolor)
-
         # ------- Waypoints ------------------------------
         self.waypoints = RenderObject()
         wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
         self.waypoints.bind_vertex_attribute(wptvertices)
-        self.wptlatbuf = self.waypoints.bind_lat_attribute(self.wptlat)
-        self.wptlonbuf = self.waypoints.bind_lon_attribute(self.wptlon)
+        self.nwaypoints = len(self.navdb.wplat)
+        self.wptlatbuf = self.waypoints.bind_lat_attribute(np.array(self.navdb.wplat, dtype=np.float32))
+        self.wptlonbuf = self.waypoints.bind_lon_attribute(np.array(self.navdb.wplon, dtype=np.float32))
         self.wptlabels = TextObject()
-        self.wptlabels.prepare_text_instanced(self.wptlabeldata, self.wptlatbuf, self.wptlonbuf, (5, 1), text_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        wptids = ''
+        for wptid in self.navdb.wpid:
+            wptids += wptid.ljust(5)
+        self.wptlabels.prepare_text_instanced(np.array(wptids, dtype=np.string_), self.wptlatbuf, self.wptlonbuf, (5, 1), text_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        del wptids
 
         # ------- Airports -------------------------------
         self.airports = RenderObject()
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
         self.airports.bind_vertex_attribute(aptvertices)
-        self.aptlatbuf = self.airports.bind_lat_attribute(self.aptlat)
-        self.aptlonbuf = self.airports.bind_lon_attribute(self.aptlon)
+        self.nairports = len(self.navdb.aplat)
+        self.aptlatbuf = self.airports.bind_lat_attribute(np.array(self.navdb.aplat, dtype=np.float32))
+        self.aptlonbuf = self.airports.bind_lon_attribute(np.array(self.navdb.aplon, dtype=np.float32))
         self.aptlabels = TextObject()
-        self.aptlabels.prepare_text_instanced(self.aptlabeldata, self.aptlatbuf, self.aptlonbuf, (4, 1), text_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
+        aptids = ''
+        for aptid in self.navdb.apid:
+            aptids += aptid.ljust(4)
+        self.aptlabels.prepare_text_instanced(np.array(aptids, dtype=np.string_), self.aptlatbuf, self.aptlonbuf, (4, 1), text_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
+        del aptids
 
         # Unbind VAO, VBO
         RenderObject.unbind_all()
 
         # Set initial values for the global uniforms
         BlueSkyProgram.set_wrap(self.wraplon, self.wrapdir)
-        BlueSkyProgram.set_pan_and_zoom(self.pan[0], self.pan[1], self.zoom)
+        BlueSkyProgram.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
@@ -150,7 +165,6 @@ class RadarWidget(QGLWidget):
         TextObject.init_shader(self.text)
 
         # create a vertex array objects
-        self.load_data()
         self.create_objects()
 
     def paintGL(self):
@@ -183,15 +197,15 @@ class RadarWidget(QGLWidget):
         # Draw coastlines
         if self.wrapdir == 0:
             # Normal case, no wrap around
-            self.coastlines.draw(gl.GL_LINES, 0, len(self.coastvertices), latlon=(0.0, 0.0))
+            self.coastlines.draw(gl.GL_LINES, 0, self.vcount_coast, latlon=(0.0, 0.0))
         else:
             wrapindex = np.uint32(self.coastindices[int(self.wraplon)+180])
             if self.wrapdir == 1:
                 self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 360.0))
-                self.coastlines.draw(gl.GL_LINES, wrapindex, len(self.coastvertices) - wrapindex, latlon=(0.0, 0.0))
+                self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, 0.0))
             else:
                 self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 0.0))
-                self.coastlines.draw(gl.GL_LINES, wrapindex, len(self.coastvertices) - wrapindex, latlon=(0.0, -360.0))
+                self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, -360.0))
 
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
@@ -275,118 +289,47 @@ class RadarWidget(QGLWidget):
 
         self.naircraft = n_ac
 
-    def load_data(self):
-        """Load static data: coaslines, waypoint and airport database.
-        """
-        # -------------------------COASTLINE DATA----------------------------------
-        # Init geo (coastline)  data and convert pen up/pen down format of
-        # coastlines to numpy arrays with lat/lon
-        coast = []
-        clat = clon = 0.0
-        with open("data/global/coastlines.dat", 'r') as f:
-            for line in f:
-                if not (line.strip() == "" or line.strip()[0] == '#'):
-                    arg = line.split()
-                    if len(arg) == 3:
-                        lat, lon = float(arg[1]), float(arg[2])
-                        if arg[0] == 'D':
-                            coast.append([clon, clat, lon, lat])
-                        clat, clon = lat, lon
-        # Sort the line segments by longitude of the first vertex
-        self.coastvertices = np.array(
-            sorted(coast, key=lambda a_entry: a_entry[0]), dtype=np.float32)
-        self.coastindices = np.zeros(361)
-        coastlon = self.coastvertices[:, 0]
-        for i in range(0, 360):
-            self.coastindices[i] = np.searchsorted(coastlon, i - 180) * 2
-        self.coastvertices = self.coastvertices.reshape((self.coastvertices.size/2, 2))
-        del coast
-
-        # Waypoints data file. Example line:
-        # ABARA, , 61.1833, 50.85, UUYY, High and Low Level, RS
-        #  [id]    [lat]    [lon]  [airport]  [type] [country code]
-        #   0  1     2       3         4        5         6
-        wptlat = []
-        wptlon = []
-        wptids = ''
-        with open('data/global/waypoints.dat', 'r') as f:
-            for line in f:
-                if not (line.strip() == "" or line.strip()[0] == '#'):
-                    arg = line.split(',')
-                    wptids += arg[0].ljust(5)
-                    wptlat.append(float(arg[2]))
-                    wptlon.append(float(arg[3]))
-        self.wptlat = np.array(wptlat, dtype=np.float32)
-        self.wptlon = np.array(wptlon, dtype=np.float32)
-        self.wptlabeldata = np.array(wptids, dtype=np.string_)
-        self.nwaypoints = len(self.wptlat)
-        del wptlat, wptlon, wptids
-
-        # Airports data file.
-        # [code], [name], [lat], [lon], [class], [alt], [country code]
-        #    0       1      2      3       4       5          6
-        aptlat = []
-        aptlon = []
-        aptids = ''
-        with open('data/global/airports.dat', 'r') as f:
-            for line in f:
-                if not (line.strip() == "" or line.strip()[0] == '#'):
-                    arg = line.split(',')
-                    # Skip apts without ID
-                    if not arg[0].strip() == "":
-                        aptids += arg[0].ljust(4)
-                        aptlat.append(float(arg[2]))
-                        aptlon.append(float(arg[3]))
-        self.aptlat = np.array(aptlat, dtype=np.float32)
-        self.aptlon = np.array(aptlon, dtype=np.float32)
-        self.aptlabeldata = np.array(aptids, dtype=np.string_)
-        self.nairports = len(self.aptlat)
-        del aptlat, aptlon, aptids
-
     def pixelCoordsToGLxy(self, x, y):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
         """
         # GL coordinates (x, y range -1 -- 1)
         glx = (float(2.0 * x) / self.width  - 1.0)
         gly = -(float(2.0 * y) / self.height - 1.0)
-
-        return (glx, gly)
+        return glx, gly
 
     def pixelCoordsToLatLon(self, x, y):
         """Convert screen pixel coordinates to lat/lon coordinates
         """
-        # GL coordinates (x, y range -1 -- 1)
-        glx = (float(2.0 * x) / self.width  - 1.0)
-        gly = -(float(2.0 * y) / self.height - 1.0)
+        glx, gly = self.pixelCoordsToGLxy(x, y)
 
-        # glxy   = zoom * (pan - latlon)
-        # latlon = pan - glxy / zoom
-        lat = radians(self.pan[0] - gly / (self.zoom * self.flat_earth))
-        lon = radians(self.pan[1] - glx / (self.zoom * self.ar))
+        # glxy   = zoom * (latlon - pan)
+        # latlon = pan + glxy / zoom
+        lat = self.panlat + gly / (self.zoom * self.ar)
+        lon = self.panlon + glx / (self.zoom * self.flat_earth)
         return (lat, lon)
 
     def event(self, event):
-        if event.type() == PanZoomEvent.PanZoomEventType:
+        if event.type() == PanZoomEventType:
             if event.panzoom_type() == PanZoomEvent.Pan or event.panzoom_type() == PanZoomEvent.PanAbsolute:
                 # Relative pan operation
                 if event.panzoom_type() == PanZoomEvent.Pan:
-                    self.pan[1] += event.pan()[1] / (self.zoom * self.flat_earth)
-                    self.pan[0] += event.pan()[0] / (self.zoom * self.ar)
+                    self.panlat += event.panlat() / (self.zoom * self.ar)
+                    self.panlon += event.panlon() / (self.zoom * self.flat_earth)
                 # Absolute pan operation
                 else:
-                    self.pan[1] = event.pan()[1]
-                    self.pan[0] = event.pan()[0]
+                    self.panlat = event.panlat()
+                    self.panlon = event.panlon()
 
                 # Don't pan further than the poles in y-direction
-                self.pan[0] = min(max(self.pan[0], -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
+                self.panlat = min(max(self.panlat, -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
 
                 # Update flat-earth factor and possibly zoom in case of very wide windows (> 2:1)
-                self.flat_earth = np.cos(np.deg2rad(self.pan[0]))
+                self.flat_earth = np.cos(np.deg2rad(self.panlat))
                 self.zoom = max(self.zoom, 1.0 / (180.0 * self.flat_earth))
 
             elif event.panzoom_type() == PanZoomEvent.Zoom:
                 prevzoom = self.zoom
-                glxy = self.pixelCoordsToGLxy(event.origin()[0], event.origin()[1])
+                glx, gly = self.pixelCoordsToGLxy(event.origin()[0], event.origin()[1])
                 self.zoom *= event.zoom()
 
                 # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
@@ -395,40 +338,69 @@ class RadarWidget(QGLWidget):
                 # Correct pan so that zoom actions are around the mouse position, not around 0, 0
                 # glxy / zoom1 - pan1 = glxy / zoom2 - pan2
                 # pan2 = pan1 + glxy (1/zoom2 - 1/zoom1)
-                self.pan[1] = self.pan[1] - glxy[0] * (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
-                self.pan[0] = self.pan[0] - glxy[1] * (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
+                self.panlon = self.panlon - glx * (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
+                self.panlat = self.panlat - gly * (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
 
                 # Don't pan further than the poles in y-direction
-                self.pan[0] = min(max(self.pan[0], -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
+                self.panlat = min(max(self.panlat, -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
 
                 # Update flat-earth factor
-                self.flat_earth = np.cos(np.deg2rad(self.pan[0]))
+                self.flat_earth = np.cos(np.deg2rad(self.panlat))
             event.accept()
 
             # Check for necessity wrap-around in x-direction
             self.wraplon  = -999.9
             self.wrapdir  = 0
-            if self.pan[1] + 1.0 / (self.zoom * self.flat_earth) < -180.0:
+            if self.panlon + 1.0 / (self.zoom * self.flat_earth) < -180.0:
                 # The left edge of the map has passed the right edge of the screen: we can just change the pan position
-                self.pan[1] += 360.0
-            elif self.pan[1] - 1.0 / (self.zoom * self.flat_earth) < -180.0:
+                self.panlon += 360.0
+            elif self.panlon - 1.0 / (self.zoom * self.flat_earth) < -180.0:
                 # The left edge of the map has passed the left edge of the screen: we need to wrap around to the left
-                self.wraplon = float(np.ceil(360.0 + self.pan[1] - 1.0 / (self.zoom * self.flat_earth)))
+                self.wraplon = float(np.ceil(360.0 + self.panlon - 1.0 / (self.zoom * self.flat_earth)))
                 self.wrapdir = -1
-            elif self.pan[1] - 1.0 / (self.zoom * self.flat_earth) > 180.0:
+            elif self.panlon - 1.0 / (self.zoom * self.flat_earth) > 180.0:
                 # The right edge of the map has passed the left edge of the screen: we can just change the pan position
-                self.pan[1] -= 360.0
-            elif self.pan[1] + 1.0 / (self.zoom * self.flat_earth) > 180.0:
+                self.panlon -= 360.0
+            elif self.panlon + 1.0 / (self.zoom * self.flat_earth) > 180.0:
                 # The right edge of the map has passed the right edge of the screen: we need to wrap around to the right
-                self.wraplon = float(np.floor(-360.0 + self.pan[1] + 1.0 / (self.zoom * self.flat_earth)))
+                self.wraplon = float(np.floor(-360.0 + self.panlon + 1.0 / (self.zoom * self.flat_earth)))
                 self.wrapdir = 1
 
             BlueSkyProgram.set_wrap(self.wraplon, self.wrapdir)
 
             # update pan and zoom on GPU for all shaders
-            BlueSkyProgram.set_pan_and_zoom(self.pan[0], self.pan[1], self.zoom)
+            BlueSkyProgram.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
             return True
 
         else:
             return super(RadarWidget, self).event(event)
+
+
+def load_coast_data():
+    """Load static data: coaslines, waypoint and airport database.
+    """
+    # -------------------------COASTLINE DATA----------------------------------
+    # Init geo (coastline)  data and convert pen up/pen down format of
+    # coastlines to numpy arrays with lat/lon
+    coast = []
+    clat = clon = 0.0
+    with open("data/global/coastlines.dat", 'r') as f:
+        for line in f:
+            if not (line.strip() == "" or line.strip()[0] == '#'):
+                arg = line.split()
+                if len(arg) == 3:
+                    lat, lon = float(arg[1]), float(arg[2])
+                    if arg[0] == 'D':
+                        coast.append([clon, clat, lon, lat])
+                    clat, clon = lat, lon
+    # Sort the line segments by longitude of the first vertex
+    coastvertices = np.array(
+        sorted(coast, key=lambda a_entry: a_entry[0]), dtype=np.float32)
+    coastindices = np.zeros(361)
+    coastlon = coastvertices[:, 0]
+    for i in range(0, 360):
+        coastindices[i] = np.searchsorted(coastlon, i - 180) * 2
+    coastvertices = coastvertices.reshape((coastvertices.size/2, 2))
+    del coast
+    return coastvertices, coastindices

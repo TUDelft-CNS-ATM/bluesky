@@ -1,13 +1,13 @@
-import sys
-
+from bluesky.traf import Navdatabase
 from bluesky.ui import Gui
 from bluesky.sim import Simulation, MainLoop
 
 # =============================================================================
 # Create gui and simulation objects
 # =============================================================================
-gui = Gui(sys.argv)
-sim = Simulation()
+navdb = Navdatabase('global')
+gui = Gui(navdb)
+sim = Simulation(navdb)
 
 
 # =============================================================================
