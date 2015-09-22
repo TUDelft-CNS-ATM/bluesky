@@ -11,7 +11,7 @@ except ImportError:
     print('Using Qt5 for windows and widgets')
 
 # Local imports
-from ...tools.radarclick import radarclick
+from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
 from uievents import PanZoomEvent, ACDataEvent
 import autocomplete as ac

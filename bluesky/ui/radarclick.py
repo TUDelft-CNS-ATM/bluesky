@@ -54,7 +54,9 @@ def radarclick(cmdline, lat, lon, traf, navdb):
     if numargs >= 0:
         cmd = cmdargs[0]
     else:
-        cmd = ""
+        #avoid negative nr of args when there is no cmd
+        cmd     = ""
+        numargs = 0 
 
     # Check for syntax of acid first in command line:
     # (as "HDG acid,hdg"  and "acid HDG hdg" are both a correct syntax
@@ -69,21 +71,16 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
     # -------- Process click --------
     # Double click on aircraft = POS command
-    if numargs == 0 and traf.id.count(cmdargs[0]) > 0:
+    if cmd!="" and numargs == 0 and traf.id.count(cmdargs[0]) > 0:
         todisplay = '\n'                 # Clear the current command
         tostack   = "POS " + cmdargs[0]  # And send a pos command to the stack
-
-    # No command: insert nearest aircraft id
-    elif cmd == "":
-        idx = findnearest(lat,lon,traf.lat,traf.lon)
-        if idx >= 0:
-            todisplay = traf.id[idx] + " "
 
     # Insert: nearestaircraft id
     else:
 
         # Find command in clickcmd dictionary
         lookup = clickcmd[cmd]
+        print 
         if lookup:
 
             # Detrmine argument click type

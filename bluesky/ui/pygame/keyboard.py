@@ -124,7 +124,7 @@ class Keyboard:
                             if len(todisplay) > 0:
                                 if todisplay[0] == '\n':
                                     scr.editwin.enter()
-                                scr.editwin.insert(todisplay.strip())
+                                scr.editwin.insert(todisplay.strip('\n'))
                                 if todisplay[-1] == '\n':
                                     scr.editwin.enter()
                             if len(tostack) > 0:
