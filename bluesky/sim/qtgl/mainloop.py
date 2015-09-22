@@ -6,7 +6,7 @@ def MainLoop(gui, sim):
     simthread = Thread(sim)
     simthread.start(Thread.HighestPriority)
 
-    # Set sim as an event target for the gui, so that the gui can send events to the sim object
+    # Set sim.screenio as an event target for the gui, so that the gui can send events to the sim object
     gui.setSimEventTarget(sim.screenio)
 
     # Start the gui

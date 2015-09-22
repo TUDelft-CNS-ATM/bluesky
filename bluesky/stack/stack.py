@@ -220,7 +220,7 @@ class Commandstack:
 
         # Process stack of commands
         for line in self.cmdstack:
-            cmdline = line.upper() # Save original lower case in variable line
+            cmdline = line.upper()  # Save original lower case in variable line
 
             # Use both comma and space as aseparatotr: two commas mean an empty argument
             while cmdline.find(",,") >= 0:

@@ -4,7 +4,7 @@ try:
     from PyQt4.QtCore import QCoreApplication as qapp
 except ImportError:
     # Else PyQt5 imports
-    from PyQt5.QtCore import QObject, QTimer, pyqtSlot, QThread
+    from PyQt5.QtCore import QObject, QTimer, pyqtSlot
     from PyQt5.QtCore import QCoreApplication as qapp
 import numpy as np
 import time

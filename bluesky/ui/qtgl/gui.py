@@ -23,12 +23,13 @@ class Gui(QApplication):
 
     def __init__(self, navdb):
         super(Gui, self).__init__([])
-        self.acdata = ACDataEvent()
-        self.navdb = navdb
-        self.radarwidget = []
+        self.acdata          = ACDataEvent()
+        self.navdb           = navdb
+        self.radarwidget     = []
         self.command_history = []
-        self.history_pos = 0
-        self.command_mem = ''
+        self.history_pos     = 0
+        self.command_mem     = ''
+        self.command_line    = ''
         self.simevent_target = 0
         # Register our custom pan/zoom event
         for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType]:
@@ -161,46 +162,105 @@ class Gui(QApplication):
 
         # Other events
         if event.type() == QEvent.KeyPress:
-            linelength = len(self.win.lineEdit.text())
             if event.key() == Qt.Key_Backspace:
-                if linelength > 2:
-                    return super(Gui, self).notify(self.win.lineEdit, event)
-            if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-                if self.win.lineEdit.text() != ">>":
-                    # emit a signal with the command for the simulation thread
-                    cmd = str(self.win.lineEdit.text())[2:]
-                    self.command_history.append(cmd)
-                    self.stack(cmd)
+                self.command_line = self.command_line[:-1]
 
-                    self.win.lineEdit.setText(">>")
-                    self.win.lineEdit.setCursorPosition(2)
+            if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+                if len(self.command_line) > 0:
+                    # emit a signal with the command for the simulation thread
+                    self.command_history.append(self.command_line)
+                    self.stack(self.command_line)
+                    self.command_line = ''
+
             elif event.key() == Qt.Key_Up:
-                if self.history_pos == 0 and self.win.lineEdit.text() != ">>":
-                    self.command_mem = self.win.lineEdit.text()[2:]
+                if self.history_pos == 0:
+                    self.command_mem = self.command_line
                 if len(self.command_history) >= self.history_pos + 1:
                     self.history_pos += 1
-                    self.win.lineEdit.setText('>>' + self.command_history[-self.history_pos])
+                    self.command_line = self.command_history[-self.history_pos]
 
             elif event.key() == Qt.Key_Down:
                 if self.history_pos > 0:
                     self.history_pos -= 1
                     if self.history_pos == 0:
-                        self.win.lineEdit.setText('>>' + self.command_mem)
+                        self.command_line = self.command_mem
                     else:
-                        self.win.lineEdit.setText('>>' + self.command_history[-self.history_pos])
+                        self.command_line = self.command_history[-self.history_pos]
 
             elif event.key() == Qt.Key_Tab:
-                if self.win.lineEdit.text() != ">>":
-                    cmd = str(self.win.lineEdit.text())[2:]
-                    if len(cmd) > 0:
-                        newcmd, displaytext = ac.complete(cmd)
-                        self.win.lineEdit.setText('>>' + newcmd)
-                        if len(displaytext) > 0:
-                            self.callback_stack_output(displaytext)
+                if len(self.command_line) > 0:
+                    newcmd, displaytext = ac.complete(self.command_line)
+                    self.command_line = newcmd
+                    if len(displaytext) > 0:
+                        self.callback_stack_output(displaytext)
 
-            else:
-                self.win.lineEdit.insert(str(event.text()).upper())
+            elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
+                self.command_line += str(event.text()).upper()
+
+            # Accept the event and update the commandline in the gui
             event.accept()
+            usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
+                            'POS' : 'acid',
+                            'MOVE': 'acid,lat,lon,[alt,hdg,spd,vspd]',
+                            'DEL': 'acid',
+                            'ALT': 'acid,alt',
+                            'HDG': 'acid,hdg',
+                            'SPD': 'acid,spd',
+                            'NOM': 'acid',
+                            'VS': 'acid,vs',
+                            'ORIG': 'acid,apt',
+                            'DEST': 'acid,apt',
+                            'ZOOM': 'in/out',
+                            'PAN': 'LEFT/RIGHT/UP/DOWN/acid/airport/navid',
+                            'IC': 'IC/filename',
+                            'SAVEIC': 'filename',
+                            'DT': 'dt',
+                            'AREA': 'lat0,lon0,lat1,lon1[,lowalt]',
+                            'TAXI': 'ON/OFF',
+                            'SWRAD': 'GEO/GRID/APT/VOR/WPT/LABEL/TRAIL [dt]/[value]',
+                            'TRAIL': 'ON/OFF [dt]/TRAIL acid color',
+                            'MCRE': 'n, type/*, alt/*, spd/*, dest/*',
+                            'DIST': 'lat1,lon1,lat2,lon2',
+                            'LNAV': 'acid,ON/OFF',
+                            'VNAV': 'acid,ON/OFF',
+                            'ASAS': 'acid,ON/OFF',
+                            'ADDWPT': 'acid, (wpname/lat,lon),[alt],[spd],[afterwp]',
+                            'DELWPT': 'acid, wpname',
+                            'DIRECT': 'acid, wpname',
+                            'LISTRTE': 'acid,[pagenr]',
+                            'ND': 'acid',
+                            'NAVDISP': 'acid',
+                            'NOISE': 'ON/OFF',
+                            'LINE': 'color,lat1,lon1,lat2,lon2',
+                            'ENG': 'acid',
+                            'DATAFEED': 'CONNECT,address,port'
+                            }
+            cmdline = self.command_line
+            # Use both comma and space as a separator: two commas mean an empty argument
+            while cmdline.find(",,") >= 0:
+                cmdline = cmdline.replace(",,", ",@,")  # Mark empty arguments
+
+            # Replace comma's by space
+            cmdline = cmdline.replace(",", " ")
+
+            # Split using spaces
+            cmdargs = cmdline.split()  # Make list of cmd arguments
+
+            # Adjust for empty arguments
+            for i in range(len(cmdargs)):
+                if cmdargs[i] == "@":
+                    cmdargs[i] = ""
+
+            hint = ''
+            if len(cmdargs) > 0:
+                if cmdargs[0] in usage_hints:
+                    hint = usage_hints[cmdargs[0]]
+                    if len(cmdargs) > 1:
+                        hintargs = hint.split(',')
+                        hint = str.join(',', hintargs[len(cmdargs)-1:])
+
+            self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa"> ' + hint + '</font>')
+
             return True
 
         else:
