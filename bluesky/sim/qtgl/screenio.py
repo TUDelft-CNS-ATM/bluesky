@@ -10,7 +10,7 @@ import numpy as np
 import time
 
 # Local imports
-from ...ui.qtgl import ACDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, StackTextEventType
+from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, StackTextEventType
 
 
 class ScreenIO(QObject):
@@ -91,7 +91,18 @@ class ScreenIO(QObject):
             qapp.postEvent(qapp.instance(), PanZoomEvent(PanZoomEvent.Pan, pan))
 
     def showroute(self, acid):
-        qapp.postEvent(qapp.instance(), DisplayFlagEvent(flag_target=acid))
+        data       = RouteDataEvent()
+        data.acidx = self.sim.traf.id2idx(acid)
+        if data.acidx >= 0:
+            route = self.sim.traf.route[data.acidx]
+            n_segments   = len(route.wplat) + 1
+            data.lat     = np.empty(n_segments, dtype=np.float32)
+            data.lat[0]  = self.sim.traf.lat[data.acidx]
+            data.lat[1:] = route.wplat
+            data.lon     = np.empty(n_segments, dtype=np.float32)
+            data.lon[0]  = self.sim.traf.lon[data.acidx]
+            data.lon[1:] = route.wplon
+        qapp.postEvent(qapp.instance(), data)
 
     def show_file_dialog(self):
         qapp.postEvent(qapp.instance(), ShowDialogEvent())

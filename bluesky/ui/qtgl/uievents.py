@@ -3,7 +3,7 @@ try:
 except ImportError:
     from PyQt5.QtCore import QEvent
 
-PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType = range(1000, 1006)
+PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType = range(1000, 1007)
 
 
 class DisplayFlagEvent(QEvent):
@@ -36,6 +36,14 @@ class ShowDialogEvent(QEvent):
     def __init__(self, dialog_type=0):
         super(ShowDialogEvent, self).__init__(ShowDialogEventType)
         self.dialog_type = dialog_type
+
+
+class RouteDataEvent(QEvent):
+    lat = lon = []
+    acidx = 0
+
+    def __init__(self):
+        super(RouteDataEvent, self).__init__(RouteDataEventType)
 
 
 class ACDataEvent(QEvent):

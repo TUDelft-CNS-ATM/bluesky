@@ -13,7 +13,7 @@ except ImportError:
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
-from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType
+from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType
 from radarwidget import RadarWidget
 import autocomplete as ac
 
@@ -69,7 +69,7 @@ class Gui(QApplication):
         self.command_line    = ''
         self.simevent_target = 0
         # Register our custom pan/zoom event
-        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType]:
+        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType]:
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -117,6 +117,10 @@ class Gui(QApplication):
             elif event.type() == ACDataEventType:
                 self.acdata = event
                 self.radarwidget.update_aircraft_data(event)
+                return True
+
+            elif event.type() == RouteDataEventType:
+                self.radarwidget.update_route_data(event)
                 return True
 
             elif event.type() == SimInfoEventType:

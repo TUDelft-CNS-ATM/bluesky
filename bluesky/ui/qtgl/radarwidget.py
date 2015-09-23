@@ -19,7 +19,8 @@ from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, fon
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 
 # Static defines
-MAX_NAIRCRAFT = 10000
+MAX_NAIRCRAFT    = 10000
+MAX_ROUTE_LENGTH = 100
 
 
 class RadarWidget(QGLWidget):
@@ -34,6 +35,8 @@ class RadarWidget(QGLWidget):
     wrapdir = int(0)
     color_wpt = color_apt = (149.0/255.0, 179.0/255.0, 235/255.0)
     color_wptlbl = color_aptlbl = (219.0/255.0, 249.0/255.0, 255/255.0)
+    color_route = (1.0, 0.0, 1.0)
+    coastlinecolor = (84.0/255.0, 84.0/255.0, 114.0/255.0)
 
     def __init__(self, navdb):
         f = QGLFormat()
@@ -73,6 +76,7 @@ class RadarWidget(QGLWidget):
         self.aclonbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.accolorbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
         self.aclblbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
+        self.routebuf = RenderObject.create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject()
@@ -85,8 +89,7 @@ class RadarWidget(QGLWidget):
         self.coastlines = RenderObject()
         coastvertices, coastindices = load_coast_data()
         self.coastlines.bind_vertex_attribute(coastvertices)
-        coastlinecolor = np.array((84.0/255.0, 84.0/255.0, 114.0/255.0), dtype=np.float32)
-        self.coastlines.bind_color_attribute(coastlinecolor)
+        self.coastlines.bind_color_attribute(np.array(self.coastlinecolor, dtype=np.float32))
         self.vcount_coast = len(coastvertices)
         self.coastindices = coastindices
         del coastvertices
@@ -110,6 +113,12 @@ class RadarWidget(QGLWidget):
         self.ac_symbol.bind_color_attribute(self.accolorbuf)
         self.aclabels = TextObject()
         self.aclabels.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, text_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
+
+        # ------- Aircraft Route -------------------------
+        self.route = RenderObject()
+        self.route.bind_vertex_attribute(self.routebuf)
+        self.route.bind_color_attribute(np.array(self.color_route, dtype=np.float32))
+        self.n_route_segments = 0
 
         # ------- Waypoints ------------------------------
         self.waypoints = RenderObject()
@@ -207,6 +216,10 @@ class RadarWidget(QGLWidget):
                 self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 0.0))
                 self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, -360.0))
 
+        # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
+        if self.n_route_segments > 0:
+            self.route.draw(gl.GL_LINE_STRIP, 0, self.n_route_segments)
+
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
         BlueSkyProgram.enable_wrap(True)
@@ -241,7 +254,6 @@ class RadarWidget(QGLWidget):
         # Unbind everything
         RenderObject.unbind_all()
         gl.glUseProgram(0)
-
         self.swapBuffers()
 
     def resizeGL(self, width, height):
@@ -266,6 +278,19 @@ class RadarWidget(QGLWidget):
 
         # Update zoom
         self.event(PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
+
+    def update_route_data(self, data):
+        self.route_acidx      = data.acidx
+        if self.route_acidx >= 0:
+            self.n_route_segments = len(data.lat)
+            routedata       = np.empty((self.n_route_segments, 2), dtype=np.float32)
+            routedata[:, 0] = data.lon
+            routedata[:, 1] = data.lat
+            routedata.resize((1, 2 * self.n_route_segments))
+
+            update_array_buffer(self.routebuf, routedata)
+        else:
+            self.n_route_segments = 0
 
     def update_aircraft_data(self, data):
         n_ac = len(data.lat)
