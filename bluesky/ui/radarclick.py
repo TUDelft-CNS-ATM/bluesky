@@ -1,16 +1,16 @@
-from ..tools.misc import findnearest
+from ..tools.misc import findnearest, cmdsplit
 from math import cos, atan2, radians, degrees
 
 
 def radarclick(cmdline, lat, lon, traf, navdb):
     """Process lat,lon as clicked in radar window"""
-    tostack   = ''
+    tostack = ''
     todisplay = cmdline
 
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
 
-    clickcmd = {""   : "acid,-",
+    clickcmd = {"": "acid,-",
                 "POS": "acid",
                 "CRE":  "-,-,latlon,-,hdg,-,-",
                 "HDG": "acid,hdg",
@@ -35,28 +35,16 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "AREA": "latlon,-,latlon",
                 }
 
-    while cmdline.find(",,") >= 0:
-        cmdline = cmdline.replace(",,", ",@,")  # Mark empty arguments
-
-    # Replace comma's by space
-    cmdline = cmdline.replace(",", " ")
-
-    # Split using spaces
-    cmdargs = cmdline.split()     # Make list of cmd arguments
-
-    # Adjust for empty arguments
-    for i in range(len(cmdargs)):
-        if cmdargs[i] == "@":
-            cmdargs[i] = ""
+    cmdargs = cmdsplit(cmdline)
     numargs = len(cmdargs) - 1
 
     # Save command
     if numargs >= 0:
         cmd = cmdargs[0]
     else:
-        #avoid negative nr of args when there is no cmd
-        cmd     = ""
-        numargs = 0 
+        # avoid negative nr of args when there is no cmd
+        cmd = ""
+        numargs = 0
 
     # Check for syntax of acid first in command line:
     # (as "HDG acid,hdg"  and "acid HDG hdg" are both a correct syntax
@@ -71,9 +59,9 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
     # -------- Process click --------
     # Double click on aircraft = POS command
-    if cmd!="" and numargs == 0 and traf.id.count(cmdargs[0]) > 0:
+    if cmd != "" and numargs == 0 and traf.id.count(cmdargs[0]) > 0:
         todisplay = '\n'                 # Clear the current command
-        tostack   = "POS " + cmdargs[0]  # And send a pos command to the stack
+        tostack = "POS " + cmdargs[0]  # And send a pos command to the stack
 
     # Insert: nearestaircraft id
     else:
@@ -88,18 +76,17 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 clicktype = clickargs[numargs]
 
                 if clicktype == "acid":
-                    idx = findnearest(lat,lon,traf.lat,traf.lon)
+                    idx = findnearest(lat, lon, traf.lat, traf.lon)
                     if idx >= 0:
                         todisplay = traf.id[idx] + " "
 
                 elif clicktype == "latlon":
                     todisplay = " " + str(round(lat, 6)) + "," + str(round(lon, 6)) + " "
 
-                elif clicktype=="apt":
-                    idx = findnearest(lat,lon,navdb.aplat,navdb.aplon)
-                    if idx>=0:
+                elif clicktype == "apt":
+                    idx = findnearest(lat, lon, navdb.aplat, navdb.aplon)
+                    if idx >= 0:
                         todisplay = navdb.apid[idx] + " "
-
 
                 elif clicktype == "hdg":
                     # Read start position from command line

@@ -5,7 +5,7 @@ import os
 
 from ..tools.aero import kts, ft, fpm, nm, lbs, \
     qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
-from ..tools.misc import txt2alt, txt2spd, col2rgb
+from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit
 from .. import settings
 
 class Commandstack:
@@ -222,20 +222,7 @@ class Commandstack:
         for line in self.cmdstack:
             cmdline = line.upper()  # Save original lower case in variable line
 
-            # Use both comma and space as aseparatotr: two commas mean an empty argument
-            while cmdline.find(",,") >= 0:
-                cmdline = cmdline.replace(",,", ",@,")  # Mark empty arguments
-
-            # Replace comma's by space
-            cmdline = cmdline.replace(",", " ")
-
-            # Split using spaces
-            cmdargs = cmdline.split()  # Make list of cmd arguments
-
-            # Adjust for empty arguments
-            for i in range(len(cmdargs)):
-                if cmdargs[i] == "@":
-                    cmdargs[i] = ""
+            cmdargs = cmdsplit(cmdline)
 
             # Empty line: next command
             if len(cmdargs) == 0 or cmdline.strip() == "":
@@ -267,7 +254,6 @@ class Commandstack:
                 #**********************************************************************
                 #=====================  Start of command branches =====================
                 #**********************************************************************
-
 
                 #----------------------------------------------------------------------
                 # QUIT/STOP/END/Q: stop program

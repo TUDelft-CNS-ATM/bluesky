@@ -28,7 +28,7 @@ class Navdatabase:
         apname                    : long name
         aplat                     : latitude
         aplon                     : longitude
-        aptype                    : type of airport 
+        aptype                    : type of airport (1=large, 2=medium, 3=small)
         apmaxrwy                  : max rwy length in meters
         apco                      : country code
         apswbmp                   : switch indicating whether label bmp is present
@@ -113,12 +113,13 @@ class Navdatabase:
         self.aplat     = []              # latitude [deg]
         self.aplon     = []              # longitude [deg]
         self.apmaxrwy  = []              # reference airport {string}
-        self.aptype    = []              # type (string)
+        self.aptype    = []              # type (int, 1=large, 2=medium, 3=small)
         self.apco      = []              # two char country code (string)
         self.apswbmp   = []              # switch indicating whether label bmp is present
         self.aplabel   = []              # list to store bitmaps           
 
         # Process lines to fill database
+        types = {'L': 1, 'M': 2, 'S': 3}
         for line in lines:
             # Skip empty lines or comments
             if line.strip()=="":
@@ -134,8 +135,8 @@ class Navdatabase:
        
             fields = line.split(",")
 
-            # Skip airports without identifier in file
-            if fields[0].strip()=="":
+            # Skip airports without identifier in file and closed airports
+            if fields[0].strip()=="" or fields[4].strip() == 'Closed':
                 continue
 
             # print fields[0]
@@ -146,7 +147,7 @@ class Navdatabase:
             self.aplat.append(float(fields[2]))  # latitude [deg]
             self.aplon.append(float(fields[3]))  # longitude [deg]
 
-            self.aptype.append(fields[4].strip().lower())  #large/medium/small
+            self.aptype.append(types[fields[4].strip()[0]])  # large=1, medium=2, small=3
 
             # Not all airports have rwy length (e.g. heliports)
             try:
@@ -163,6 +164,7 @@ class Navdatabase:
         self.aplat    = np.array(self.aplat)
         self.aplon    = np.array(self.aplon)
         self.apmaxrwy = np.array(self.apmaxrwy)
+        self.aptype   = np.array(self.aptype)
 
         print "    ",len(self.apid),"airports read."
 

@@ -16,6 +16,7 @@ from mainwindow import MainWindow, Splash
 from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType
 from radarwidget import RadarWidget
 import autocomplete as ac
+from ...tools.misc import cmdsplit
 
 usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'POS' : 'acid',
@@ -129,9 +130,7 @@ class Gui(QApplication):
                 return True
 
             elif event.type() == StackTextEventType:
-                self.win.stackText.setTextColor(QColor(0, 255, 0))
-                self.win.stackText.insertHtml('<br>' + event.text)
-                self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
+                self.display_stack(event.text)
                 return True
 
             elif event.type() == ShowDialogEventType:
@@ -233,29 +232,15 @@ class Gui(QApplication):
             elif event.key() == Qt.Key_Tab:
                 if len(self.command_line) > 0:
                     newcmd, displaytext = ac.complete(self.command_line)
-                    self.command_line = newcmd
+                    self.command_line   = newcmd
                     if len(displaytext) > 0:
-                        self.callback_stack_output(displaytext)
+                        self.display_stack(displaytext)
 
             elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
                 self.command_line += str(event.text()).upper()
 
         if self.command_line != prev_cmdline:
-            cmdline = self.command_line
-            # Use both comma and space as a separator: two commas mean an empty argument
-            while cmdline.find(",,") >= 0:
-                cmdline = cmdline.replace(",,", ",@,")  # Mark empty arguments
-
-            # Replace comma's by space
-            cmdline = cmdline.replace(",", " ")
-
-            # Split using spaces
-            cmdargs = cmdline.split()  # Make list of cmd arguments
-
-            # Adjust for empty arguments
-            for i in range(len(cmdargs)):
-                if cmdargs[i] == "@":
-                    cmdargs[i] = ""
+            cmdargs = cmdsplit(self.command_line)
 
             hint = ''
             if len(cmdargs) > 0:
@@ -263,9 +248,9 @@ class Gui(QApplication):
                     hint = usage_hints[cmdargs[0]]
                     if len(cmdargs) > 1:
                         hintargs = hint.split(',')
-                        hint = str.join(',', hintargs[len(cmdargs)-1:])
+                        hint = ' ' + str.join(',', hintargs[len(cmdargs)-1:])
 
-            self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa"> ' + hint + '</font>')
+            self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa">' + hint + '</font>')
 
         if not event_processed:
             # We haven't processed the event: call Base Class Method to Continue Normal Event Processing
@@ -276,6 +261,11 @@ class Gui(QApplication):
 
     def stack(self, text):
         self.postEvent(self.simevent_target, StackTextEvent(text))
+
+    def display_stack(self, text):
+        self.win.stackText.setTextColor(QColor(0, 255, 0))
+        self.win.stackText.insertHtml('<br>' + text)
+        self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
     def show_file_dialog(self):
         print 'here'

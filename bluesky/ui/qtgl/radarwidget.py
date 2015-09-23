@@ -58,10 +58,11 @@ class RadarWidget(QGLWidget):
         self.setAutoBufferSwap(False)
 
         # The number of aircraft in the simulation
-        self.naircraft = 0
-        self.nwaypoints = 0
-        self.nairports = 0
-        self.navdb = navdb
+        self.naircraft   = 0
+        self.nwaypoints  = 0
+        self.nairports   = 0
+        self.route_acidx = -1
+        self.navdb       = navdb
 
     def create_objects(self):
         # Initialize font for radar view with specified settings
@@ -139,11 +140,20 @@ class RadarWidget(QGLWidget):
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
         self.airports.bind_vertex_attribute(aptvertices)
         self.nairports = len(self.navdb.aplat)
-        self.aptlatbuf = self.airports.bind_lat_attribute(np.array(self.navdb.aplat, dtype=np.float32))
-        self.aptlonbuf = self.airports.bind_lon_attribute(np.array(self.navdb.aplon, dtype=np.float32))
+        indices = self.navdb.aptype.argsort()
+        aplat   = np.array(self.navdb.aplat[indices], dtype=np.float32)
+        aplon   = np.array(self.navdb.aplon[indices], dtype=np.float32)
+        aptypes = self.navdb.aptype[indices]
+        apnames = np.array(self.navdb.apid)
+        apnames = apnames[indices]
+        # The number of large, large+med, and large+med+small airports
+        self.nairports = [aptypes.searchsorted(2), aptypes.searchsorted(3), self.nairports]
+
+        self.aptlatbuf = self.airports.bind_lat_attribute(aplat)
+        self.aptlonbuf = self.airports.bind_lon_attribute(aplon)
         self.aptlabels = TextObject()
         aptids = ''
-        for aptid in self.navdb.apid:
+        for aptid in apnames:
             aptids += aptid.ljust(4)
         self.aptlabels.prepare_text_instanced(np.array(aptids, dtype=np.string_), self.aptlatbuf, self.aptlonbuf, (4, 1), text_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
         del aptids
@@ -235,18 +245,28 @@ class RadarWidget(QGLWidget):
         if self.naircraft > 0 and self.show_traf:
             self.ac_symbol.draw(gl.GL_TRIANGLE_FAN, 0, 4, self.naircraft)
 
+        if self.zoom >= 0.5:
+            nairports = self.nairports[2]
+            show_wpt = self.show_wpt
+        elif self.zoom  >= 0.25:
+            nairports = self.nairports[1]
+            show_wpt = False
+        else:
+            nairports = self.nairports[0]
+            show_wpt = False
+
         # Draw waypoint symbols
-        if self.show_wpt:
+        if show_wpt:
             self.waypoints.draw(gl.GL_LINE_LOOP, 0, 3, self.nwaypoints, color=self.color_wpt)
 
         # Draw airport symbols
         if self.show_apt:
-            self.airports.draw(gl.GL_LINE_LOOP, 0, 4, self.nairports, color=self.color_apt)
+            self.airports.draw(gl.GL_LINE_LOOP, 0, 4, nairports, color=self.color_apt)
 
         self.text.use()
         if self.show_apt:
-            self.aptlabels.draw(color=self.color_aptlbl, n_instances=self.nairports)
-        if self.zoom >= 0.5 and self.show_wpt:
+            self.aptlabels.draw(color=self.color_aptlbl, n_instances=nairports)
+        if self.zoom >= 1.0 and show_wpt:
             self.wptlabels.draw(color=self.color_wptlbl, n_instances=self.nwaypoints)
         if self.naircraft > 0 and self.show_traf and self.show_lbl:
             self.aclabels.draw(n_instances=self.naircraft)
@@ -300,8 +320,8 @@ class RadarWidget(QGLWidget):
             update_array_buffer(self.aclonbuf, data.lon)
             update_array_buffer(self.achdgbuf, data.trk)
             # temp color
-            color = np.zeros((n_ac, 3), dtype=np.float32)
-            color[:,:] = (0.0, 1.0, 0.0)
+            color       = np.zeros((n_ac, 3), dtype=np.float32)
+            color[:, :] = (0.0, 1.0, 0.0)
 
             update_array_buffer(self.accolorbuf, color)
 
@@ -311,6 +331,10 @@ class RadarWidget(QGLWidget):
                 rawlabel += '%-6sFL%03d %-6d' % (data.id[i], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
 
             update_array_buffer(self.aclblbuf, np.array(rawlabel, dtype=np.string_))
+
+            # If there is a visible route, update the start position
+            if self.route_acidx >= 0:
+                update_array_buffer(self.routebuf, np.array([data.lon[self.route_acidx], data.lat[self.route_acidx]], dtype=np.float32))
 
         self.naircraft = n_ac
 
@@ -426,6 +450,6 @@ def load_coast_data():
     coastlon = coastvertices[:, 0]
     for i in range(0, 360):
         coastindices[i] = np.searchsorted(coastlon, i - 180) * 2
-    coastvertices = coastvertices.reshape((coastvertices.size/2, 2))
+    coastvertices.resize((coastvertices.size/2, 2))
     del coast
     return coastvertices, coastindices
