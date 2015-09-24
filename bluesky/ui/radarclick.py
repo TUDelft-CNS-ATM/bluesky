@@ -128,4 +128,9 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                     tostack = cmdline + todisplay
                     todisplay = todisplay + '\n'
 
+        # No clickable command (cmd not in dictionary)
+        else:
+            tostack   = ""
+            todisplay = ""
+            
     return tostack, todisplay
