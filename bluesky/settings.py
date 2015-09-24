@@ -8,8 +8,10 @@ simdt = 0.02
 # Simulation thread update rate [Hz]
 sim_update_rate = 50
 
+
 # =============================================================================
-# QTGL Gui specific settings
+#   QTGL Gui specific settings below 
+#   Pygame Gui options in /data/grapics/scr_cfg.dat
 # =============================================================================
 # Radarscreen font size in pixels
 text_size = 16
