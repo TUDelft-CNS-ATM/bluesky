@@ -634,18 +634,19 @@ class Commandstack:
                         scr.echo("Syntax error in command")
                         scr.echo("PAN LEFT/RIGHT/UP/DOWN/acid/airport/navid")
                         continue
+
                     # LEFT/RIGHT/UP/DOWN
                     elif numargs == 1:
                         if cmdargs[1] == "LEFT":
-                            scr.pan((0.0, -1.0))
+                            scr.pan((0.0, -0.5)) # move half screen left
                         elif cmdargs[1] == "RIGHT":
-                            scr.pan((0.0, 1.0))
+                            scr.pan((0.0, 0.5)) # move half screen right
 
                         elif cmdargs[1] == "UP":
-                            scr.pan((1.0, 0.0))
+                            scr.pan((0.5, 0.0))  # move half screen up
 
                         elif cmdargs[1] == "DOWN":
-                            scr.pan((-1.0, 0.0))
+                            scr.pan((-0.5, 0.0)) # move half screen down
                         else:
 
                             # Try aicraft id, waypoint of airport

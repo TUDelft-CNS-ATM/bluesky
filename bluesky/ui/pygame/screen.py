@@ -1,7 +1,9 @@
 from math import *
-import datetime, os
 
 import pygame as pg
+
+import datetime, os
+
 import numpy as np
 
 from ...tools.aero_np import ft, kts, nm, latlondist, qdrdist, qdrpos
@@ -901,9 +903,20 @@ class Screen:
         self.zoom(factor)
 
 
-    def pan(self, lat, lon):
-        """Pan function"""
+    def pan(self, (xlat, xlon), absolute=False):
+        """Pan function:
+               absolute: lat,lon; 
+               relative: screen width factor,screen height factor"""
 
+        if absolute:
+            lat,lon = xlat,xlon
+
+        # relative        
+        else:
+            latsize = self.lat1 - self.lat0
+            lonsize = self.lon1 - self.lon0
+            lat,lon = self.ctrlat + xlat*latsize, self.ctrlon + xlon*lonsize
+            
         # Maintain size
         dellat2 = (self.lat1 - self.lat0) * 0.5
 
@@ -911,7 +924,8 @@ class Screen:
         self.ctrlat = max(min(lat, 90. - dellat2), dellat2 - 90.)
 
         # Allow wrap around of longitude
-        dellon2 = dellat2 * self.width / (self.height * cos(radians(self.ctrlat)))
+        dellon2 = dellat2 * self.width /   \
+                                    (self.height * cos(radians(self.ctrlat)))
         self.ctrlon = (lon + 180.) % 360 - 180.
 
         self.lat0 = self.ctrlat - dellat2
