@@ -66,15 +66,20 @@ def radarclick(cmdline, lat, lon, traf, navdb):
     # Insert: nearestaircraft id
     else:
 
-        # Find command in clickcmd dictionary
+        # Try to find command in clickcmd dictionary
         try:
             lookup = clickcmd[cmd]
-        except KeyError:
-            lookup = False
 
+        except KeyError: 
+            # When command was not found in dictionary: 
+            # do nothing, return empty strings
+            lookup = False
+            return "",""
+
+        # For valid value, insert relevant dat on edit line            
         if lookup:
 
-            # Detrmine argument click type
+            # Determine argument click type
             clickargs = lookup.lower().split(",")
             if numargs < len(clickargs):
                 clicktype = clickargs[numargs]
@@ -128,9 +133,5 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                     tostack = cmdline + todisplay
                     todisplay = todisplay + '\n'
 
-        # No clickable command (cmd not in dictionary)
-        else:
-            tostack   = ""
-            todisplay = ""
             
     return tostack, todisplay
