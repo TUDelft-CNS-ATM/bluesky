@@ -276,7 +276,7 @@ class Commandstack:
                     scr.echo("POS ZOOM PAN SWRAD AREA")
                     scr.echo("DATAFEED")
                     scr.echo(" ")
-                    scr.echo("See Doc folder for more info.")
+                    scr.echo("See InFo subfolder for more info.")
 
 
                 #----------------------------------------------------------------------
