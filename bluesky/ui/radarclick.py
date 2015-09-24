@@ -67,7 +67,11 @@ def radarclick(cmdline, lat, lon, traf, navdb):
     else:
 
         # Find command in clickcmd dictionary
-        lookup = clickcmd[cmd]
+        try:
+            lookup = clickcmd[cmd]
+        except KeyError:
+            lookup = False
+
         if lookup:
 
             # Detrmine argument click type
