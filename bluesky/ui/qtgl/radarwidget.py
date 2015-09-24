@@ -362,8 +362,8 @@ class RadarWidget(QGLWidget):
             if event.panzoom_type() == PanZoomEvent.Pan or event.panzoom_type() == PanZoomEvent.PanAbsolute:
                 # Relative pan operation
                 if event.panzoom_type() == PanZoomEvent.Pan:
-                    self.panlat += event.panlat() / (self.zoom * self.ar)
-                    self.panlon += event.panlon() / (self.zoom * self.flat_earth)
+                    self.panlat += event.panlat()
+                    self.panlon += event.panlon()
                 # Absolute pan operation
                 else:
                     self.panlat = event.panlat()

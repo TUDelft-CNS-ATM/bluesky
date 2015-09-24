@@ -114,6 +114,10 @@ class Gui(QApplication):
                 if event.panzoom_type() == PanZoomEvent.Zoom:
                     event.vorigin = self.radarwidget.pan
 
+                if event.panzoom_type() == PanZoomEvent.Pan:
+                    event.value = (2.0 * event.value[0] / (self.radarwidget.zoom * self.radarwidget.ar),
+                                   2.0 * event.value[1] / (self.radarwidget.zoom * self.radarwidget.flat_earth))
+
                 # send the pan/zoom event to the radarwidget
                 receiver = self.radarwidget
 
@@ -184,7 +188,7 @@ class Gui(QApplication):
             elif event.type() == QEvent.MouseButtonPress:
                 event_processed = True
                 # For mice we pan with control/command and mouse movement. Mouse button press marks the beginning of a pan
-                if event.modifiers() & Qt.ControlModifier:
+                if event.button() & Qt.RightButton:
                     self.prevmousepos = (event.x(), event.y())
 
                 else:
@@ -198,7 +202,7 @@ class Gui(QApplication):
                         if len(tostack) > 0:
                             self.stack(tostack)
 
-            elif event.type() == QEvent.MouseMove and event.modifiers() & Qt.ControlModifier and event.buttons() & Qt.LeftButton:
+            elif event.type() == QEvent.MouseMove and event.buttons() & Qt.RightButton:
                 pan = (0.003 * (event.y() - self.prevmousepos[1]), 0.003 * (self.prevmousepos[0] - event.x()))
                 self.prevmousepos = (event.x(), event.y())
                 return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, pan))
@@ -206,7 +210,19 @@ class Gui(QApplication):
         # Other events
         if event.type() == QEvent.KeyPress:
             event_processed = True
-            if event.key() == Qt.Key_Backspace:
+            if event.modifiers() & Qt.ShiftModifier:
+                dlat = 1.0  / (self.radarwidget.zoom * self.radarwidget.ar)
+                dlon = 1.0  / (self.radarwidget.zoom * self.radarwidget.flat_earth)
+                if event.key() == Qt.Key_Up:
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (dlat, 0.0)))
+                elif event.key() == Qt.Key_Down:
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (-dlat, 0.0)))
+                elif event.key() == Qt.Key_Left:
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (0.0, -dlon)))
+                elif event.key() == Qt.Key_Right:
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (0.0, dlon)))
+
+            elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]
 
             if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:

@@ -640,16 +640,19 @@ class Commandstack:
                     elif numargs == 1:
                         if cmdargs[1] == "LEFT":
                             scr.pan((0.0, -0.5)) # move half screen left
+                            continue
                         elif cmdargs[1] == "RIGHT":
                             scr.pan((0.0, 0.5)) # move half screen right
+                            continue
 
                         elif cmdargs[1] == "UP":
                             scr.pan((0.5, 0.0))  # move half screen up
+                            continue
 
                         elif cmdargs[1] == "DOWN":
                             scr.pan((-0.5, 0.0)) # move half screen down
+                            continue
                         else:
-
                             # Try aicraft id, waypoint of airport
                             i = traf.id2idx(cmdargs[1])
                             if i >= 0:
@@ -679,8 +682,8 @@ class Commandstack:
                         lat = float(cmdargs[1])
                         lon = float(cmdargs[2])
 
-                        if not (np.isnan(lat) or np.isnan(lon)):
-                            scr.pan((lat, lon), absolute=True)
+                    if not (np.isnan(lat) or np.isnan(lon)):
+                        scr.pan((lat, lon), absolute=True)
 
                 #----------------------------------------------------------------------
                 # NAVDISP/ND  acid:  Activate Navdisplay mode
