@@ -145,7 +145,31 @@ class Gui(QApplication):
                 return True
 
             elif event.type() == DisplayFlagEventType:
-                print 'toggle event received by gui'
+                # Switch/toggle/cycle radar screen features e.g. from SWRAD command
+                # Coastlines
+                if event.switch == "GEO":
+                    self.radarwidget.show_coast = not self.radarwidget.show_coast
+
+                # FIR boundaries
+                elif event.switch == "FIR":
+                    self.radarwidget.showfir = not self.radarwidget.showfir
+
+                # Airport: 0 = None, 1 = Large, 2= All
+                elif event.switch == "APT":
+                    self.radarwidget.show_apt = not self.radarwidget.show_apt
+
+                # Waypoint: 0 = None, 1 = VOR, 2 = also WPT, 3 = Also terminal area wpts
+                elif event.switch == "VOR" or event.switch == "WPT" or event.switch == "WP" or event.switch == "NAV":
+                    self.radarwidget.show_apt = not self.radarwidget.show_apt
+
+                # Satellite image background on/off
+                elif event.switch == "SAT":
+                    self.radarwidget.show_map = not self.radarwidget.show_map
+
+                # Satellite image background on/off
+                elif event.switch == "TRAF":
+                    self.radarwidget.show_traf = not self.radarwidget.show_traf
+
                 return True
 
         # Mouse/trackpad event handling for the Radar widget

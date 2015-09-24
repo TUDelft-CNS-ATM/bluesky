@@ -24,7 +24,7 @@ MAX_ROUTE_LENGTH = 100
 
 
 class RadarWidget(QGLWidget):
-    show_traf = show_lbl = show_wpt = show_apt = True
+    show_map = show_coast = show_traf = show_lbl = show_wpt = show_apt = True
     vcount_circle = 36
     width = height = 600
     panlat = panlon = 0.0
@@ -198,36 +198,39 @@ class RadarWidget(QGLWidget):
         # Send the (possibly) updated global uniforms to the buffer
         BlueSkyProgram.update_global_uniforms()
         BlueSkyProgram.set_vertex_scale_type(VERTEX_IS_LATLON)
-        # Select the texture shader
-        self.texture.use()
 
         # --- DRAW THE MAP AND COASTLINES ---------------------------------------------
         # Map and coastlines: don't wrap around in the shader
         BlueSkyProgram.enable_wrap(False)
 
-        # Draw map texture
-        gl.glActiveTexture(gl.GL_TEXTURE0 + 0)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.map_texture)
-        self.map.draw(gl.GL_TRIANGLE_FAN, 0, 4)
+        if self.show_map:
+            # Select the texture shader
+            self.texture.use()
+
+            # Draw map texture
+            gl.glActiveTexture(gl.GL_TEXTURE0 + 0)
+            gl.glBindTexture(gl.GL_TEXTURE_2D, self.map_texture)
+            self.map.draw(gl.GL_TRIANGLE_FAN, 0, 4)
 
         # Select the non-textured shader
         self.color.use()
 
         # Draw coastlines
-        if self.wrapdir == 0:
-            # Normal case, no wrap around
-            self.coastlines.draw(gl.GL_LINES, 0, self.vcount_coast, latlon=(0.0, 0.0))
-        else:
-            wrapindex = np.uint32(self.coastindices[int(self.wraplon)+180])
-            if self.wrapdir == 1:
-                self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 360.0))
-                self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, 0.0))
+        if self.show_coast:
+            if self.wrapdir == 0:
+                # Normal case, no wrap around
+                self.coastlines.draw(gl.GL_LINES, 0, self.vcount_coast, latlon=(0.0, 0.0))
             else:
-                self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 0.0))
-                self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, -360.0))
+                wrapindex = np.uint32(self.coastindices[int(self.wraplon)+180])
+                if self.wrapdir == 1:
+                    self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 360.0))
+                    self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, 0.0))
+                else:
+                    self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 0.0))
+                    self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, -360.0))
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
-        if self.n_route_segments > 0:
+        if self.n_route_segments > 0 and self.show_traf:
             self.route.draw(gl.GL_LINE_STRIP, 0, self.n_route_segments)
 
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------

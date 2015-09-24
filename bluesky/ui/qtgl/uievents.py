@@ -8,10 +8,10 @@ ShowDialogEventType, DisplayFlagEventType, RouteDataEventType = range(1000, 1007
 
 
 class DisplayFlagEvent(QEvent):
-    def __init__(self, flag_target='', flag=True):
+    def __init__(self, switch='', argument=''):
         super(DisplayFlagEvent, self).__init__(DisplayFlagEventType)
-        self.flag_target = flag_target
-        self.flag = flag
+        self.switch = switch
+        self.argument = argument
 
 
 class SimInfoEvent(QEvent):

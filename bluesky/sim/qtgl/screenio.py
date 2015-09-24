@@ -108,6 +108,9 @@ class ScreenIO(QObject):
         qapp.postEvent(qapp.instance(), ShowDialogEvent())
         return ''
 
+    def feature(self, switch, argument=''):
+        qapp.postEvent(qapp.instance(), DisplayFlagEvent(switch, argument))
+
     def event(self, event):
         if event.type() == StackTextEventType:
             self.sim.stack.stack(event.text)
