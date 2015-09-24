@@ -907,7 +907,7 @@ class Screen:
         """Pan function:
                absolute: lat,lon; 
                relative: screen width factor,screen height factor"""
-
+        print "panning"
         if absolute:
             lat,lon = xlat,xlon
 

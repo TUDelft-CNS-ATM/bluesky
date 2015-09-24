@@ -631,7 +631,8 @@ class Commandstack:
                 elif cmd[:4] == "PAN":
 
                     if not (numargs == 1 or numargs == 2):
-                        scr.echo("Syntax error in command")
+                        if numargs>0:
+                            scr.echo("Syntax error in command")
                         scr.echo("PAN LEFT/RIGHT/UP/DOWN/acid/airport/navid")
                         continue
 
@@ -673,13 +674,13 @@ class Commandstack:
                                     else:
                                         scr.echo(cmdargs[1] + " not found.")
 
-                            # PAN to lat,lon position
-                            if numargs == 2:
-                                lat = float(cmdargs[1])
-                                lon = float(cmdargs[2])
+                    # PAN to lat,lon position
+                    elif numargs == 2:
+                        lat = float(cmdargs[1])
+                        lon = float(cmdargs[2])
 
-                            if not (np.isnan(lat) or np.isnan(lon)):
-                                scr.pan((lat, lon), absolute=True)
+                        if not (np.isnan(lat) or np.isnan(lon)):
+                            scr.pan((lat, lon), absolute=True)
 
                 #----------------------------------------------------------------------
                 # NAVDISP/ND  acid:  Activate Navdisplay mode

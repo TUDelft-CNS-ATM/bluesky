@@ -3,7 +3,8 @@ try:
 except ImportError:
     from PyQt5.QtCore import QEvent
 
-PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType = range(1000, 1007)
+PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
+ShowDialogEventType, DisplayFlagEventType, RouteDataEventType = range(1000, 1007)
 
 
 class DisplayFlagEvent(QEvent):

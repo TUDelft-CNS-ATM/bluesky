@@ -70,7 +70,9 @@ class Gui(QApplication):
         self.command_line    = ''
         self.simevent_target = 0
         # Register our custom pan/zoom event
-        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType]:
+        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,  \
+                      StackTextEventType, ShowDialogEventType,              \
+                      DisplayFlagEventType, RouteDataEventType]:
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
