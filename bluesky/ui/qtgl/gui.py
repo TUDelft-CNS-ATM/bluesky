@@ -112,7 +112,7 @@ class Gui(QApplication):
         if receiver is self:
             if event.type() == PanZoomEventType:
                 if event.panzoom_type() == PanZoomEvent.Zoom:
-                    event.vorigin = self.radarwidget.pan
+                    event.vorigin = (0, 0)
 
                 if event.panzoom_type() == PanZoomEvent.Pan:
                     event.value = (2.0 * event.value[0] / (self.radarwidget.zoom * self.radarwidget.ar),
@@ -170,8 +170,9 @@ class Gui(QApplication):
                 # For touchpad scroll (2D) is used for panning
                 else:
                     try:
-                        pan = (0.01 * event.pixelDelta().y(), -0.01 * event.pixelDelta().x())
-                        return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, pan))
+                        dlat =  0.01 * event.pixelDelta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
+                        dlon = -0.01 * event.pixelDelta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
+                        return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (dlat, dlon)))
                     except:
                         pass
             # For touchpad, pinch gesture is used for zoom
