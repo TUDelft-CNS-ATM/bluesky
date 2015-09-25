@@ -477,7 +477,7 @@ class Traffic:
             self.delete(self.id[-1])
         self.ntraf = 0
         self.dbconf.reset()
-        self.perf.reset
+        self.perf.reset()
         return
 
     def update(self, simt, simdt):

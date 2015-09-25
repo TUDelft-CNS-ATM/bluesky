@@ -26,29 +26,24 @@ class ScreenIO(QObject):
     # =========================================================================
     # Slots
     # =========================================================================
-    @pyqtSlot(str)
-    def callback_userinput(self, command):
-        self.sim.stack.stack(str(command))
-
     @pyqtSlot()
     def send_siminfo(self):
-        t = time.time()
+        t  = time.time()
         dt = t - self.prevtime
         qapp.postEvent(qapp.instance(), SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
-        self.prevtime = t
+        self.prevtime  = t
         self.prevcount = self.sim.samplecount
 
     @pyqtSlot()
     def send_aircraft_data(self):
-        data = ACDataEvent()
-        data.id  = list(self.sim.traf.id)
-        data.lat = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
-        data.lon = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
-        data.alt = np.array(self.sim.traf.alt, copy=True)
-        data.tas = np.array(self.sim.traf.tas, copy=True)
-        data.trk = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
-        # print data
-        # print 'getting sent in thread %d' % QThread.currentThreadId()
+        data       = ACDataEvent()
+        data.id    = list(self.sim.traf.id)
+        data.lat   = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
+        data.lon   = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
+        data.alt   = np.array(self.sim.traf.alt, copy=True)
+        data.tas   = np.array(self.sim.traf.tas, copy=True)
+        data.iconf = np.array(self.sim.traf.iconf, copy=True)
+        data.trk   = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
         qapp.postEvent(qapp.instance(), data)
 
     # =========================================================================

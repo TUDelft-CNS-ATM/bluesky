@@ -22,13 +22,19 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 MAX_NAIRCRAFT    = 10000
 MAX_ROUTE_LENGTH = 100
 
+# Colors
+red   = (1.0, 0.0, 0.0)
+green = (0.0, 1.0, 0.0)
+blue  = (0.0, 0.0, 1.0)
+amber = (1.0, 0.6, 0.0)
 
 class RadarWidget(QGLWidget):
     show_map = show_coast = show_traf = show_lbl = show_wpt = show_apt = True
     vcount_circle = 36
     width = height = 600
-    panlat = panlon = 0.0
-    zoom = 1.0
+    panlat = 51.5
+    panlon = 6.5
+    zoom = 0.5
     ar = 1.0
     flat_earth = 1.0
     wraplon = int(-999)
@@ -322,17 +328,15 @@ class RadarWidget(QGLWidget):
             update_array_buffer(self.aclatbuf, data.lat)
             update_array_buffer(self.aclonbuf, data.lon)
             update_array_buffer(self.achdgbuf, data.trk)
-            # temp color
-            color       = np.zeros((n_ac, 3), dtype=np.float32)
-            color[:, :] = (0.0, 1.0, 0.0)
 
-            update_array_buffer(self.accolorbuf, color)
-
-            # Labels
+            # Labels and colors
             rawlabel = ''
+            color    = np.zeros((n_ac, 3), dtype=np.float32)
             for i in range(n_ac):
                 rawlabel += '%-6sFL%03d %-6d' % (data.id[i], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
+                color[i, :] = green if data.iconf[i] < 0 else amber
 
+            update_array_buffer(self.accolorbuf, color)
             update_array_buffer(self.aclblbuf, np.array(rawlabel, dtype=np.string_))
 
             # If there is a visible route, update the start position

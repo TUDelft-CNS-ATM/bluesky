@@ -48,7 +48,7 @@ class RouteDataEvent(QEvent):
 
 
 class ACDataEvent(QEvent):
-    lat = lon = alt = tas = trk = colors = id = []
+    lat = lon = alt = tas = trk = iconf = id = []
 
     def __init__(self):
         super(ACDataEvent, self).__init__(ACDataEventType)
