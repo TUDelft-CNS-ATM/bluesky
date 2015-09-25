@@ -29,7 +29,7 @@ blue  = (0.0, 0.0, 1.0)
 amber = (1.0, 0.6, 0.0)
 
 class RadarWidget(QGLWidget):
-    show_map = show_coast = show_traf = show_lbl = show_wpt = show_apt = True
+    show_map = show_coast = show_traf = show_pz = show_lbl = show_wpt = show_apt = True
     vcount_circle = 36
     width = height = 600
     panlat = 51.5

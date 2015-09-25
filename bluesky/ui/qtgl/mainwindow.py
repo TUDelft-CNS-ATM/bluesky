@@ -1,10 +1,10 @@
 try:
-    from PyQt4.QtCore import Qt, QRect, QPoint, QTimer, pyqtSlot
-    from PyQt4.QtGui import QImage, QPixmap, QPainter, QColor, QMainWindow, QMenuBar, QBrush, QIcon, QPolygon, QLabel, QSplashScreen
+    from PyQt4.QtCore import Qt, QTimer, pyqtSlot
+    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QIcon, QLabel, QSplashScreen
     from PyQt4 import uic
 except ImportError:
-    from PyQt5.QtCore import Qt, QRect, QPoint, QTimer, pyqtSlot
-    from PyQt5.QtGui import QImage, QPixmap, QPainter, QColor, QBrush, QIcon, QPolygon
+    from PyQt5.QtCore import Qt, QTimer, pyqtSlot
+    from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QMenuBar, QLabel, QSplashScreen
     from PyQt5 import uic
 
@@ -20,38 +20,27 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.app = app
         uic.loadUi("./data/graphics/mainwindow.ui", self)
-        img = QImage(32, 32, QImage.Format_ARGB32)
-        painter = QPainter(img)
-        painter.setBrush(QBrush(QColor(149, 179, 215)))
-        img.fill(0)
-        painter.drawRect(QRect(6, 6, 20, 20))
-        self.ic.setIcon(QIcon(QPixmap.fromImage(img)))
+
+        # Tab 1
+        self.ic.setIcon(QIcon(QPixmap('data/graphics/icons/stop.png')))
         self.ic.setToolTip('Initial condition')
-        img.fill(0)
-        painter.drawRect(QRect(6, 6, 7, 20))
-        painter.drawRect(QRect(19, 6, 7, 20))
-        self.hold.setIcon(QIcon(QPixmap.fromImage(img)))
-        self.hold.setToolTip('Hold')
-        img.fill(0)
-        painter.drawPolygon(QPolygon([QPoint(6, 6), QPoint(6, 26), QPoint(26, 16)]))
-        self.op.setIcon(QIcon(QPixmap.fromImage(img)))
+        self.op.setIcon(QIcon(QPixmap('data/graphics/icons/play.png')))
         self.op.setToolTip('Operate')
-        painter.drawRect(QRect(6, 6, 4, 20))
-        painter.drawPolygon(QPolygon([QPoint(9, 16), QPoint(18, 26), QPoint(18, 6)]))
-        painter.drawPolygon(QPolygon([QPoint(17, 16), QPoint(26, 26), QPoint(26, 6)]))
-        self.sameic.setIcon(QIcon(QPixmap.fromImage(img)))
-        self.sameic.setToolTip('Restart same IC')
-        img.fill(0)
-        painter.drawPolygon(QPolygon([QPoint(6, 6), QPoint(6, 26), QPoint(16, 16)]))
-        painter.drawPolygon(QPolygon([QPoint(16, 6), QPoint(16, 26), QPoint(26, 16)]))
-        self.fast.setIcon(QIcon(QPixmap.fromImage(img)))
+        self.hold.setIcon(QIcon(QPixmap('data/graphics/icons/pause.png')))
+        self.hold.setToolTip('Hold')
+        self.fast.setIcon(QIcon(QPixmap('data/graphics/icons/fwd.png')))
         self.fast.setToolTip('Enable fast-time')
-        img.fill(0)
-        painter.drawPolygon(QPolygon([QPoint(6, 6), QPoint(6, 26), QPoint(15, 16)]))
-        painter.drawPolygon(QPolygon([QPoint(14, 6), QPoint(14, 26), QPoint(23, 16)]))
-        painter.drawRect(QRect(22, 6, 4, 20))
-        self.fast10.setIcon(QIcon(QPixmap.fromImage(img)))
-        painter.end()
+        self.fast10.setIcon(QIcon(QPixmap('data/graphics/icons/ffwd.png')))
+        self.sameic.setIcon(QIcon(QPixmap('data/graphics/icons/frwd.png')))
+        self.sameic.setToolTip('Restart same IC')
+
+        # Tab 2
+        self.showac.setIcon(QIcon(QPixmap('data/graphics/icons/AC.png')))
+        self.showpz.setIcon(QIcon(QPixmap('data/graphics/icons/PZ.png')))
+        self.showapt.setIcon(QIcon(QPixmap('data/graphics/icons/apt.png')))
+        self.showwpt.setIcon(QIcon(QPixmap('data/graphics/icons/wpt.png')))
+        self.showlabels.setIcon(QIcon(QPixmap('data/graphics/icons/lbl.png')))
+        self.showmap.setIcon(QIcon(QPixmap('data/graphics/icons/geo.png')))
 
         self.ic.clicked.connect(self.buttonClicked)
         self.hold.clicked.connect(self.buttonClicked)
@@ -59,6 +48,12 @@ class MainWindow(QMainWindow):
         self.sameic.clicked.connect(self.buttonClicked)
         self.fast.clicked.connect(self.buttonClicked)
         self.fast10.clicked.connect(self.buttonClicked)
+        self.showac.clicked.connect(self.buttonClicked)
+        self.showpz.clicked.connect(self.buttonClicked)
+        self.showapt.clicked.connect(self.buttonClicked)
+        self.showwpt.clicked.connect(self.buttonClicked)
+        self.showlabels.clicked.connect(self.buttonClicked)
+        self.showmap.clicked.connect(self.buttonClicked)
 
         self.menubar = QMenuBar()
 
@@ -89,6 +84,7 @@ class MainWindow(QMainWindow):
         self.siminfoLabel = QLabel('F = 0 Hz')
         self.verticalLayout.addWidget(self.siminfoLabel)
 
+        self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
 
@@ -110,3 +106,15 @@ class MainWindow(QMainWindow):
             print('Fast clicked')
         elif self.sender() == self.fast10:
             self.app.stack('RUNFT')
+        elif self.sender() == self.showac:
+            self.radarwidget.show_traf = not self.radarwidget.show_traf
+        elif self.sender() == self.showpz:
+            self.radarwidget.show_pz = not self.radarwidget.show_pz
+        elif self.sender() == self.showapt:
+            self.radarwidget.show_apt = not self.radarwidget.show_apt
+        elif self.sender() == self.showwpt:
+            self.radarwidget.show_wpt = not self.radarwidget.show_wpt
+        elif self.sender() == self.showlabels:
+            self.radarwidget.show_lbl = not self.radarwidget.show_lbl
+        elif self.sender() == self.showmap:
+            self.radarwidget.show_map = not self.radarwidget.show_map
