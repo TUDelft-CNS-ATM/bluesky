@@ -1,7 +1,7 @@
 import numpy as np
-import time
-from ..tools.aero_np import qdrdist_vector,nm,qdrpos,vtas2eas
+from ..tools.aero_np import qdrdist_vector, nm, qdrpos, vtas2eas
 #from tools import kwikqdrdist
+
 
 class Dbconf:
     """
@@ -9,7 +9,7 @@ class Dbconf:
     Inputs:
        lat [deg]  = array with traffic latitude
        lon [deg]  = array with traffic longitude
-       alt [m]    = array with traffic altitude 
+       alt [m]    = array with traffic altitude
        trk [deg]  = array with traffic track angle
        gs [m/s]   = array with ground speed [m/s]
        vs [m/s]   = array with vertical speed [m/s]
@@ -19,7 +19,7 @@ class Dbconf:
        dtconfl = time to conflict
     """
 
-    def __init__(self,traf,tlook, R, dh):
+    def __init__(self, traf, tlook, R, dh):
         self.swasas = False
         self.dtlookahead = tlook  # [s] lookahead time
         self.R           = R      # [m] Horizontal separation minimum
@@ -43,7 +43,7 @@ class Dbconf:
         self.idown     = []
         self.idoth     = []
 
-        self.conflist_all= [] #Create a list of all Conflicts       
+        self.conflist_all= [] #Create a list of all Conflicts
         self.LOSlist_all = [] #Create a list of all Losses Of Separation
         self.conflist_now= [] #Create a list of current Conflicts       
         self.LOSlist_now = [] #Create a list of current Losses Of Separation

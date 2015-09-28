@@ -36,14 +36,16 @@ class ScreenIO(QObject):
 
     @pyqtSlot()
     def send_aircraft_data(self):
-        data       = ACDataEvent()
-        data.id    = list(self.sim.traf.id)
-        data.lat   = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
-        data.lon   = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
-        data.alt   = np.array(self.sim.traf.alt, copy=True)
-        data.tas   = np.array(self.sim.traf.tas, copy=True)
-        data.iconf = np.array(self.sim.traf.iconf, copy=True)
-        data.trk   = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
+        data            = ACDataEvent()
+        data.id         = list(self.sim.traf.id)
+        data.lat        = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
+        data.lon        = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
+        data.alt        = np.array(self.sim.traf.alt, copy=True)
+        data.tas        = np.array(self.sim.traf.tas, copy=True)
+        data.iconf      = np.array(self.sim.traf.iconf, copy=True)
+        data.confcpalat = np.array(self.sim.traf.dbconf.latowncpa, copy=True)
+        data.confcpalon = np.array(self.sim.traf.dbconf.lonowncpa, copy=True)
+        data.trk        = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
         qapp.postEvent(qapp.instance(), data)
 
     # =========================================================================

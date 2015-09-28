@@ -20,6 +20,7 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 
 # Static defines
 MAX_NAIRCRAFT    = 10000
+MAX_NCONFLICTS   = 1000
 MAX_ROUTE_LENGTH = 100
 
 # Colors
@@ -27,6 +28,7 @@ red   = (1.0, 0.0, 0.0)
 green = (0.0, 1.0, 0.0)
 blue  = (0.0, 0.0, 1.0)
 amber = (1.0, 0.6, 0.0)
+
 
 class RadarWidget(QGLWidget):
     show_map = show_coast = show_traf = show_pz = show_lbl = show_wpt = show_apt = True
@@ -65,6 +67,7 @@ class RadarWidget(QGLWidget):
 
         # The number of aircraft in the simulation
         self.naircraft   = 0
+        self.ncpalines   = 0
         self.nwaypoints  = 0
         self.nairports   = 0
         self.route_acidx = -1
@@ -78,12 +81,13 @@ class RadarWidget(QGLWidget):
         self.map_texture = self.bindTexture('data/graphics/world.16384x8192-mipmap.dds')
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
-        self.achdgbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclatbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclonbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.achdgbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclatbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclonbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.accolorbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
-        self.aclblbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
-        self.routebuf = RenderObject.create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.aclblbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
+        self.confcpabuf = RenderObject.create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
+        self.routebuf   = RenderObject.create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject()
@@ -120,6 +124,11 @@ class RadarWidget(QGLWidget):
         self.ac_symbol.bind_color_attribute(self.accolorbuf)
         self.aclabels = TextObject()
         self.aclabels.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, text_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
+
+        # ------- Aircraft Route -------------------------
+        self.cpalines = RenderObject()
+        self.cpalines.bind_vertex_attribute(self.confcpabuf)
+        self.cpalines.bind_color_attribute(np.array(amber, dtype=np.float32))
 
         # ------- Aircraft Route -------------------------
         self.route = RenderObject()
@@ -239,12 +248,15 @@ class RadarWidget(QGLWidget):
         if self.n_route_segments > 0 and self.show_traf:
             self.route.draw(gl.GL_LINE_STRIP, 0, self.n_route_segments)
 
+        if self.ncpalines > 0 and self.show_traf:
+            self.cpalines.draw(gl.GL_LINES, 0, self.ncpalines)
+
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
         BlueSkyProgram.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if self.naircraft > 0 and self.show_traf and self.zoom >= 0.15:
+        if self.naircraft > 0 and self.show_traf and self.show_pz and self.zoom >= 0.15:
             BlueSkyProgram.set_vertex_scale_type(VERTEX_IS_METERS)
             self.protectedzone.draw(gl.GL_LINE_STRIP, 0, self.vcount_circle, self.naircraft)
 
@@ -322,28 +334,37 @@ class RadarWidget(QGLWidget):
             self.n_route_segments = 0
 
     def update_aircraft_data(self, data):
-        n_ac = len(data.lat)
-        if n_ac > 0:
+        self.naircraft = len(data.lat)
+        if self.naircraft > 0:
             # Update data in GPU buffers
             update_array_buffer(self.aclatbuf, data.lat)
             update_array_buffer(self.aclonbuf, data.lon)
             update_array_buffer(self.achdgbuf, data.trk)
 
+            # CPA lines to indicate conflicts
+            self.ncpalines = len(data.confcpalat)
+            cpalines       = np.zeros((2 * self.ncpalines, 2), dtype=np.float32)
+
             # Labels and colors
             rawlabel = ''
-            color    = np.zeros((n_ac, 3), dtype=np.float32)
-            for i in range(n_ac):
+            color    = np.zeros((self.naircraft, 3), dtype=np.float32)
+            for i in range(self.naircraft):
                 rawlabel += '%-6sFL%03d %-6d' % (data.id[i], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
-                color[i, :] = green if data.iconf[i] < 0 else amber
+                confidx = data.iconf[i]
+                if confidx >= 0:
+                    color[i, :] = amber
+                    cpalines[2 * confidx, :]     = (data.lon[i], data.lat[i])
+                    cpalines[2 * confidx + 1, :] = (data.confcpalon[confidx], data.confcpalat[confidx])
+                else:
+                    color[i, :] = green
 
+            update_array_buffer(self.confcpabuf, cpalines)
             update_array_buffer(self.accolorbuf, color)
             update_array_buffer(self.aclblbuf, np.array(rawlabel, dtype=np.string_))
 
             # If there is a visible route, update the start position
             if self.route_acidx >= 0:
                 update_array_buffer(self.routebuf, np.array([data.lon[self.route_acidx], data.lat[self.route_acidx]], dtype=np.float32))
-
-        self.naircraft = n_ac
 
     def pixelCoordsToGLxy(self, x, y):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
