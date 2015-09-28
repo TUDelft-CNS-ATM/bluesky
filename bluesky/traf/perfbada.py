@@ -3,6 +3,7 @@ from glob import glob
 if len(glob(perf_path_bada + '/*.OPF')) == 0:
     raise ImportError('BADA performance model: No BADA files found in ' + perf_path_bada + '!')
 
+import os
 import numpy as np
 from math import *
 from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
@@ -10,7 +11,361 @@ from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 from ..tools.performance import esf, phases, limits, vmin
 from ..tools.datalog import Datalog
 
-from params import Coefficients
+
+class Coefficients:
+    """ 
+    Coefficient class definition : get aircraft-specific coefficients from database
+
+    Methods:
+        coeff() : reading BADA files and store coefficients for all aircraft types
+
+    Created by  : Lisanne Adriaens & Isabel Metz
+
+    This class is based on:
+    EUROCONTROL. User Manual for the Base of Aircraft Data (BADA) Revision 3.12, 
+    EEC Technical/Scientific Report No. 14/04/24-44 edition, 2014.
+
+    supported aircraft types (licensed users only):
+    A124, A140, A148, A306, A30B, A310, A318, A319, A320, A321, A332, A333, A342, 
+    A343, A345, A346, A388, A3ST, AN24, AN28, AN30, AN32, AN38, AT43, AT45, AT72, 
+    AT73, AT75, ATP, B190, B350, B462, B463, B703, B712, B722, B732, B733, B734, 
+    B735, B736, B737, B738, B739, B742, B743, B744, B748, B752, B753, B762, B763, 
+    B764, B772, B773, B77L, B77W, B788, BA11, BE20, BE30, BE40, BE58, BE99, BE9L, 
+    C130, C160, C172, C182, C25A, C25B, C25C, C421, C510, C525, C550, C551, C560, 
+    C56X, C650, C680, C750, CL60, CRJ1, CRJ2, CRJ9, D228, D328, DA42, DC10, DC87, 
+    DC93, DC94, DH8A, DH8C, DH8D, E120, E135, E145, E170, E190, E50P, E55P, EA50, 
+    F100, F27, F28, F2TH, F50, F70, F900, FA10, FA20, FA50, FA7X, FGTH, FGTL, FGTN, 
+    GL5T, GLEX, GLF5, H25A, H25B, IL76, IL86, IL96, JS32, JS41, L101, LJ35, LJ45, 
+    LJ60, MD11, MD82, MD83, MU2, P180, P28A, P28U, P46T, PA27, PA31, PA34, PA44, 
+    PA46, PAY2, PAY3, PC12, PRM1, RJ1H, RJ85, SB20, SF34, SH36, SR22, SU95, SW4, 
+    T134, T154, T204, TB20, TB21, TBM7, TBM8, YK40, YK42
+    """
+    def __init__(self):
+        # Check opffiles in folder 
+        self.path = os.path.abspath(os.path.join(os.path.dirname(__file__),"../../data/coefficients/BADA/"))
+        self.files = os.listdir(self.path)
+        return
+        
+    def coeff(self):
+        # create empty database
+        # structure according to BADA OPF files
+        self.atype = [] # aircraft type
+        self.etype = [] # engine type
+        self.engines = [] # engine
+
+        # mass information
+        self.mref =  [] # reference mass [t]
+        self.mmin =  [] # min mass [t]
+        self.mmax =  [] # max mass [t]
+        self.mpyld = [] # max payload [t]
+        self.gw =    [] # weight gradient on max. alt [ft/kg]
+
+        # flight enveloppe
+        self.vmo =  [] # max operating speed [kCAS]
+        self.mmo =  [] # max operating mach number 
+        self.hmo =  [] # max operating alt [ft]
+        self.hmax = [] # max alt at MTOW and ISA [ft]
+        self.gt =   [] # temp gradient on max. alt [ft/kg]
+
+        # Surface Area [m^2]
+        self.Sref = []
+
+        # Buffet Coefficients
+        self.clbo = [] # buffet onset lift coefficient
+        self.k =    [] # buffet coefficient
+        self.cm16 = [] # CM16
+                
+        # stall speeds
+        self.vsto = [] # stall speed take off [knots] (CAS)
+        self.vsic = [] # stall speed initial climb [knots] (CAS)
+        self.vscr = [] # stall speed cruise [knots] (CAS)
+        self.vsapp = [] # stall speed approach [knots] (CAS)
+        self.vsld = [] # stall speed landing [knots] (CAS)
+
+        # minimum speeds
+        self.vmto = [] # minimum speed take off [knots] (CAS)
+        self.vmic = [] # minimum speed initial climb [knots] (CAS)
+        self.vmcr = [] # minimum speed cruise [knots] (CAS)
+        self.vmap = [] # minimum speed approach [knots] (CAS)
+        self.vmld = [] # minimum speed landing [knots] (CAS)
+        self.cvmin = 0 # minimum speed coefficient[-]
+        self.cvminto = 0 # minimum speed coefficient [-]
+        
+        # standard ma speeds
+        self.macl = []
+        self.macr = []
+        self.mades = []
+        
+        # standard CAS speeds
+        self.cascl = []
+        self.cascr = []
+        self.casdes = []
+
+        # parasitic drag coefficients per phase
+        self.cd0to = [] # phase takeoff
+        self.cd0ic = [] # phase initial climb
+        self.cd0cr = [] # phase cruise
+        self.cd0ap = [] # phase approach
+        self.cd0ld = [] # phase land
+        self.gear = []  # drag due to gear down
+        
+        # induced drag coefficients per phase
+        self.cd2to = [] # phase takeoff
+        self.cd2ic = [] # phase initial climb
+        self.cd2cr = [] # phase cruise
+        self.cd2ap = [] # phase approach
+        self.cd2ld = [] # phase land
+
+        self.credj = [] # jet
+        self.credt = [] # turbo
+
+        # max climb thrust coefficients
+        self.ctcth1 = [] # jet/piston [N], turboprop [ktN]
+        self.ctcth2 = [] # [ft]
+        self.ctcth3 = [] # jet [1/ft^2], turboprop [N], piston [ktN]
+
+        # 1st and 2nd thrust temp coefficient 
+        self.ctct1 = [] # [k]
+        self.ctct2 = [] # [1/k]
+
+        # Descent Fuel Flow Coefficients
+        # Note: Ctdes,app and Ctdes,lnd assume a 3 degree descent gradient during app and lnd
+        self.ctdesl =  [] # low alt descent thrust coefficient [-]
+        self.ctdesh =  [] # high alt descent thrust coefficient [-]
+        self.ctdesa =  [] # approach thrust coefficient [-]
+        self.ctdesld = [] # landing thrust coefficient [-]
+
+        # transition altitude for calculation of descent thrust
+        self.hpdes = [] # [ft]
+
+        # reference speed during descent
+        self.vdes = [] # [kCAS]
+        self.mdes = [] # [-]
+
+        # Thrust specific fuel consumption coefficients
+        self.cf1 = [] # jet [kg/(min*kN)], turboprop [kg/(min*kN*knot)], piston [kg/min]
+        self.cf2 = [] # [knots]
+        self.cf3 = [] # [kg/min]
+        self.cf4 = [] # [ft]
+        self.cf5 = [] # [-]
+
+        # ground
+        self.tol =  [] # take-off length[m]
+        self. ldl = []#landing length[m]
+        self.ws =   [] # wingspan [m]
+        self.len =  [] # aircraft length[m]
+
+        #  global parameters. 
+        # Source: EUROCONTROL (2014). User Manual for the Base of Aircraft Data (BADA) Revision 3.12
+
+        # bank angles
+        # self.bank = np.deg2rad(np.array([15,35,35,35,15]))
+        
+        # minimum speed coefficients
+        self.cvmin = 1.3
+        self.cvminto = 1.2
+        
+        # reduced power coefficients
+        self.credt = 0.25
+        self.credj = 0.15
+        self.credp = 0.0
+                            
+        # read OPF-File
+        for f in self.files:
+            if ".OPF" in f:
+                OPFread = open(self.path + f,'r')
+                # Read-in of OPFfiles
+                OPFin = OPFread.read()
+                # information is given in colums
+                OPFin = OPFin.split(' ')
+
+                # get the aircraft type
+                OPFname = f[:-6]
+                OPFname = OPFname.strip('_')
+
+                # get engine type
+                if OPFin[665] == "Jet":
+                    etype = 1
+                elif OPFin[665] == "Turboprop":
+                    etype = 2
+                elif OPFin[665] == "Piston":
+                    etype = 3
+                else:
+                    etype = 1
+               
+                # for some aircraft, the engine name is split up in multiple elements. 
+                # Here: Remove non-needed elements to avoid errors when allocating
+                # the values in the BADA files to the according parameters
+                engine = []
+                for i in xrange (len(OPFin)):
+                    if OPFname =="C160" or OPFname == "FGTH":
+                        continue
+                    else:
+                        if OPFin[i] =="with":
+                            engine.append(OPFin[i+1])
+                            i = i+2
+                            if OPFin[i] == "engines" or OPFin[i]=="engineswake" or OPFin[i]== "eng." or OPFin[i]=="Engines":
+                                break
+                            else:
+                                while i<len(OPFin):
+                                    if OPFin[i]!="engines" and OPFin[i]!="engineswake" and OPFin[i]!= "eng." and OPFin[i]!="Engines":
+                                        OPFin.pop(i)
+                                    else:
+                                        break
+                                break
+                # only consider numeric values in the remaining document
+                for i in range(len(OPFin))[::-1]:
+                                   
+                    if "E" not in OPFin[i]:
+                        OPFin.pop(i) 
+                        
+                for j in range(len(OPFin))[::-1]:
+                    OPFline = OPFin[j]
+                    if len(OPFin[j])==0 or OPFline.isalpha() == 1:
+                        OPFin.pop(j)
+
+                    # convert all values to floats
+                    while j in range(len(OPFin)):
+                        try:
+                            OPFin[j] = float(OPFin[j])
+                            break
+                        except ValueError:
+                            OPFin.pop(j)
+
+                #add the engine type
+                OPFout = OPFin.append(etype)
+
+                # format the result                  
+                OPFout = np.asarray(OPFin)
+                OPFout = OPFout.astype(float)
+
+                # fill the database                
+                self.atype.append(OPFname)
+                self.etype.append(OPFout[70])
+                self.engines.append(engine)
+
+                # mass information
+                self.mref.append(OPFout[0])
+                self.mmin.append(OPFout[1])
+                self.mmax.append(OPFout[2])
+                self.mpyld.append(OPFout[3])
+                self.gw.append(OPFout[4])
+
+                # flight enveloppe
+                self.vmo.append(OPFout[5])
+                self.mmo.append(OPFout[6]) 
+                self.hmo.append(OPFout[7])
+                self.hmax.append(OPFout[8])
+                self.gt.append(OPFout[9])
+
+                # Surface Area [m^2]
+                self.Sref.append(OPFout[10])
+
+                # Buffet Coefficients
+                self.clbo.append(OPFout[11])
+                self.k.append(OPFout[12])
+                self.cm16.append(OPFout[13])
+
+                # stall speeds per phase
+                self.vsto.append(OPFout[22])
+                self.vsic.append(OPFout[18])
+                self.vscr.append(OPFout[14])
+                self.vsapp.append(OPFout[26])
+                self.vsld.append(OPFout[30])
+
+                # minimum speeds
+                self.vmto.append(OPFout[22]*self.cvminto)
+                self.vmic.append(OPFout[18]*self.cvmin)
+                self.vmcr.append(OPFout[14]*self.cvmin)
+                self.vmap.append(OPFout[26]*self.cvmin)
+                self.vmld.append(OPFout[30]*self.cvmin)
+
+                # parasitic drag coefficients per phase
+                self.cd0to.append(OPFout[23])
+                self.cd0ic.append(OPFout[19])
+                self.cd0cr.append(OPFout[15])
+                self.cd0ap.append(OPFout[27])
+                self.cd0ld.append(OPFout[31])
+                self.gear.append(OPFout[36])
+                
+                # induced drag coefficients per phase
+                self.cd2to.append(OPFout[24])
+                self.cd2ic.append(OPFout[20])
+                self.cd2cr.append(OPFout[16])
+                self.cd2ap.append(OPFout[28])
+                self.cd2ld.append(OPFout[32])
+
+                # max climb thrust coefficients
+                self.ctcth1.append(OPFout[41]) # jet/piston [N], turboprop [ktN]
+                self.ctcth2.append(OPFout[42]) # [ft]
+                self.ctcth3.append(OPFout[43]) # jet [1/ft^2], turboprop [N], piston [ktN]
+
+                # 1st and 2nd thrust temp coefficient 
+                self.ctct1.append(OPFout[44]) # [k]
+                self.ctct2.append(OPFout[45]) # [1/k]
+
+                # Descent Fuel Flow Coefficients
+                # Note: Ctdes,app and Ctdes,lnd assume a 3 degree descent gradient during app and lnd
+                self.ctdesl.append(OPFout[46])
+                self.ctdesh.append(OPFout[47])
+                self.ctdesa.append(OPFout[49])
+                self.ctdesld.append(OPFout[50])
+
+                # transition altitude for calculation of descent thrust
+                self.hpdes.append(OPFout[48])
+
+                # reference speed during descent
+                self.vdes.append(OPFout[51])
+                self.mdes.append(OPFout[52])
+
+                # Thrust specific fuel consumption coefficients
+                self.cf1.append(OPFout[56])
+                self.cf2.append(OPFout[57])
+                self.cf3.append(OPFout[58])
+                self.cf4.append(OPFout[59])
+                self.cf5.append(OPFout[60])
+
+                # ground
+                self.tol.append(OPFout[65])
+                self. ldl.append(OPFout[66])
+                self.ws.append(OPFout[67])
+                self.len.append(OPFout[68])         
+                OPFread.close()   
+
+            # Airline Procedure Files
+            elif ".APF" in f:
+                APFread = open(self.path + f,'r')          
+            
+                for line in APFread.readlines():
+                    if not line.startswith("CC") and not line.strip() =="":
+                        # whitespaces for splitting the columns
+                        content = line.split()
+
+                        # for the moment only values for "average weight" (=mref),
+                        # as mach values for all weight classes (low, average, high)
+                        # are equal
+                        if line.find("AV") != -1:
+                            if float(content[5]) < 100:                        
+                               self.cascl.append(float(content[4]))
+                               self.macl.append(float(content[5]))
+                               self.cascr.append(float(content[7]))
+                               self.macr.append(float(content[8]))
+                               self.mades.append(float(content[9]))  
+                               self.casdes.append(float(content[10]))
+                            else:
+                                self.cascl.append(float(content[5]))
+                                self.macl.append(float(content[6]))
+                                self.cascr.append(float(content[8]))
+                                self.macr.append(float(content[9]))
+                                self.mades.append(float(content[10]))
+                                self.casdes.append(float(content[11]))
+                APFread.close()      
+
+        self.macl = np.array(self.macl)/100
+        self.macr = np.array(self.macr)/100
+        self.mades = np.array(self.mades)/100
+        return
+
 
 coeff = Coefficients()
 
@@ -726,4 +1081,4 @@ class PerfBADA():
         # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \
         # self.Thr, self.D, self.ff,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
         # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
-        # CD0f, kf, self.hmaxact   
+        # CD0f, kf, self.hmaxact

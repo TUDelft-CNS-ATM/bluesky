@@ -1,12 +1,304 @@
+import os
 import numpy as np
-
+from xml.etree import ElementTree
 from math import *
-from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R
+from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, kts, lbs, inch, sqft, fpm
 from ..tools.aero_np import vtas2cas
 
 from ..tools.performance import esf, phases, limits
 
-from params import CoeffBS
+
+class CoeffBS:
+    """ 
+    Coefficient class definition : get aircraft-specific coefficients from database
+    Created by  : Isabel Metz
+
+    References:
+
+    - D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series.
+    American Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012.
+    - R. Babikian. The Historical Fuel Efficiency Characteristics of Regional Aircraft from 
+    Technological, Operational, and Cost Perspectives. Master's Thesis, Massachusetts 
+    Institute of Technology, Boston, U.S.
+    """
+
+    def __init__(self):
+        return
+
+    def convert(self, value, unit):
+        factors = {'kg': 1., 't':1000, 'lbs': lbs, 'N': 1., 'W': 1, \
+                    'm':1.,'km': 1000, 'inch': inch,'ft': ft, \
+                    'sqm': 1., 'sqft': sqft, 'sqin': 0.00064516 ,\
+                    'm/s': 1., 'km/h': 0.27778, 'kts': kts, 'fpm': fpm, \
+                    "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 }
+        unit = unit
+        try: 
+            converted = factors[unit] * float(value)
+        except:
+            converted = float(value)
+            if not self.warned:
+                print "Unit mismatch. Could not find ", unit     
+                self.warned = True
+        return converted 
+        
+
+    def coeff(self):
+
+        # aircraft
+        self.atype     = [] # aircraft type
+        self.j_ac      = [] # list of all jet aircraft
+        self.tp_ac     = [] # list of all turboprop aircraft
+        
+        # engine
+        self.etype     = [] # jet / turboprop
+        self.engines   = [] # engine types avaliable per aircraft type
+        self.j_engines = [] # engine types for jet aircraft
+        self.tp_engines= [] # engine types for turboprop aircraft
+        self.n_eng     = [] # number of engines
+        
+        # weights
+        self.MTOW      = [] # maximum takeoff weight
+       
+        # speeds
+        self.to_spd    = [] # nominal takeoff speed
+        self.ld_spd    = [] # nominal landing speed
+        self.max_spd   = [] # maximum CAS
+        self.cr_Ma     = [] # nominal cruise Mach at 35000 ft
+        self.cr_spd    = [] # cruise speed
+        self.max_Ma    = [] # maximum Mach
+        
+        # limits
+        self.vmto   = [] # minimum speed during takeoff
+        self.vmld   = [] # minimum speed during landing
+        self.clmax_cr = [] # max. cruise lift coefficient
+        self.max_alt   = [] # maximum altitude
+        
+        # dimensions
+        #span      = [] # wing span
+        self.Sref = [] # reference wing area
+        #wet_area  = [] # wetted area
+        
+        # aerodynamics
+        #Cfe       = [] # equivalent skin friction coefficient (Raymer, p.428)
+        self.CD0       = [] # parasite drag coefficient
+        #oswald    = [] # oswald factor
+        self.k         = [] # induced drag factor
+        
+        # scaling factors for drag (FAA_2005 SAGE)
+        # order of flight phases: TO, IC, CR ,AP, LD ,LD gear
+        self.d_CD0j = [1.476, 1.143,1.0, 1.957, 3.601, 1.037]
+        self.d_kj = [1.01, 1.071, 1.0 ,0.992, 0.932, 1.0]
+        self.d_CD0t = [1.220, 1.0, 1.0, 1.279, 1.828, 0.496]
+        self.d_kt = [0.948, 1.0, 1.0, 0.94, 0.916, 1.0]
+        
+        # bank angles per phase. Order: TO, IC, CR, AP, LD. Currently already in CTraffic
+        # self.bank = np.deg2rad(np.array([15,35,35,35,15]))
+
+        # flag: did we already warn about invalid input unit?
+        self.warned = False
+        
+        # parse AC files
+                
+        path = './data/coefficients/BS_aircraft/'
+        files = os.listdir(path)
+        for file in files:
+            acdoc = ElementTree.parse(path + file)
+
+            #actype = doc.find('ac_type')
+            self.atype.append(acdoc.find('ac_type').text)
+
+            # engine 
+            self.etype.append(int(acdoc.find('engine/eng_type').text))     
+
+            # store jet and turboprop aircraft in seperate lists for accessing specific engine data
+            if int(acdoc.find('engine/eng_type').text) ==1:
+                self.j_ac.append(acdoc.find('ac_type').text)
+
+            elif int(acdoc.find('engine/eng_type').text) ==2:
+                self.tp_ac.append(acdoc.find('ac_type').text)
+
+            self.n_eng.append(float(acdoc.find('engine/num_eng').text))
+
+            engine = []
+            for eng in acdoc.findall('engine/eng'):
+                engine.append(eng.text)
+
+            # weights
+            MTOW = self.convert(acdoc.find('weights/MTOW').text, acdoc.find('weights/MTOW').attrib['unit'])             
+
+            self.MTOW.append(MTOW)   
+                
+            MLW= self.convert(acdoc.find('weights/MLW').text, acdoc.find('weights/MLW').attrib['unit'])
+
+            # dimensions 
+            # wingspan    
+            span = self.convert(acdoc.find('dimensions/span').text, acdoc.find('dimensions/span').attrib['unit'])
+            # reference surface area   
+            S_ref = self.convert(acdoc.find('dimensions/wing_area').text, acdoc.find('dimensions/wing_area').attrib['unit'])
+            self.Sref.append(S_ref)   
+            
+            # wetted area
+            S_wet = self.convert(acdoc.find('dimensions/wetted_area').text, acdoc.find('dimensions/wetted_area').attrib['unit'])
+
+            # speeds
+            # cruise Mach number
+            crma = acdoc.find('speeds/cr_MA')
+            if float(crma.text) == 0.0:
+                # to be refined
+                self.cr_Ma.append(0.8) 
+            else:
+                self.cr_Ma.append(float(crma.text))
+
+            # cruise TAS
+            crspd = acdoc.find('speeds/cr_spd')
+
+            # to be refined
+            if float(crspd.text) == 0.0:
+                self.cr_spd.append(self.convert(250, 'kts'))
+            else: 
+                self.cr_spd.append(self.convert(acdoc.find('speeds/cr_spd').text, acdoc.find('speeds/cr_spd').attrib['unit']))
+
+            # limits
+            # min takeoff speed
+            tospd = acdoc.find('speeds/to_spd')
+            if float (tospd.text) == 0.:
+                clmax_to = float(acdoc.find('aerodynamics/clmax_to').text)
+                self.vmto.append (sqrt((2*g0)/(S_ref*clmax_to))) # influence of current weight and density follows in CTraffic
+            else: 
+                tospd = self.convert(acdoc.find('speeds/to_spd').text, acdoc.find('speeds/to_spd').attrib['unit'])
+                self.vmto.append(tospd/(1.13*sqrt(MTOW/rho0))) # min spd according to CS-/FAR-25.107
+            # min ic, cr, ap speed
+            clmaxcr = (acdoc.find('aerodynamics/clmax_cr'))
+            self.clmax_cr.append(float(clmaxcr.text))
+            
+            # min landing speed
+            ldspd = acdoc.find('speeds/ld_spd')
+            if float(ldspd.text) == 0. :                 
+                clmax_ld = (acdoc.find('aerodynamics/clmax_ld'))
+                self.vmld.append (sqrt((2*g0)/(S_ref*float(clmax_ld.text)))) # influence of current weight and density follows in CTraffic              
+            else:
+                ldspd = self.convert(acdoc.find('speeds/ld_spd').text, acdoc.find('speeds/ld_spd').attrib['unit'])
+                clmax_ld = MLW*g0*2/(rho0*(ldspd**2)*S_ref)
+                self.vmld.append(ldspd/(1.23*sqrt(MLW/rho0)))
+            # maximum CAS
+            maxspd = acdoc.find('limits/max_spd')
+            if float(maxspd.text) == 0.0:
+                # to be refined
+                self.max_spd.append(400.)  
+            else:
+                self.max_spd.append(self.convert(acdoc.find('limits/max_spd').text, acdoc.find('limits/max_spd').attrib['unit']))
+            # maximum Mach
+            maxma = acdoc.find('limits/max_MA')
+            if float(maxma.text) == 0.0:
+                # to be refined
+                self.max_Ma.append(0.8)  
+            else:
+                self.max_Ma.append(float(maxma.text))
+
+                
+            # maximum altitude    
+            maxalt = acdoc.find('limits/max_alt')
+            if float(maxalt.text) == 0.0:
+                #to be refined
+                self.max_alt.append(11000.)     
+            else:
+                self.max_alt.append(self.convert(acdoc.find('limits/max_alt').text, acdoc.find('limits/max_alt').attrib['unit'])) 
+
+            # aerodynamics
+                
+            # parasitic drag - according to Raymer, p. 429
+            Cfe = float((acdoc.find('aerodynamics/Cfe').text))
+            self.CD0.append (Cfe*S_wet/S_ref) 
+            
+            # induced drag
+            oswald = acdoc.find('aerodynamics/oswald')
+            if float(oswald.text) == 0.0:
+                # math method according to Obert 2009, p.542: e = 1/(1.02+0.09*pi*AR) combined with Nita 2012, p.2
+                self.k.append(1.02/(pi*(span**2/S_ref))+0.009)
+            else:
+                oswald = float(acdoc.find('aerodynamics/oswald').text)
+                self.k.append(1/(pi*oswald*(span**2/S_ref)))
+            
+            #users = doc.find( 'engine' )
+            #for node in users.getiterator():
+            #    print node.tag, node.attrib, node.text, node.tail
+            
+            # to collect avaliable engine types per aircraft
+            # 2do!!! access via console so user may choose preferred engine
+            # for data file: statistics provided by flightglobal for first choice
+            # if not declared differently: first engine is taken!
+            self.engines.append(engine)
+
+            if int(acdoc.find('engine/eng_type').text) ==1:
+                self.j_engines.append(engine)
+                
+            elif int(acdoc.find('engine/eng_type').text) ==2:
+                self.tp_engines.append(engine)
+
+        # engines
+        self.enlist     = [] # list of all engines
+        self.jetenlist  = [] # list of all jet engines
+        self.propenlist = [] # list of all turbopropengines
+
+        # a. jet aircraft        
+        self.rThr       = [] # rated Thrust (one engine)
+        self.ffto       = [] # fuel flow takeoff
+        self.ffcl       = [] # fuel flow climb
+        self.ffcr       = [] # fuel flow cruise
+        self.ffid       = [] # fuel flow idle
+        self.ffap       = [] # fuel flow approach        
+        self.SFC        = [] # specific fuel flow cruise
+        
+        
+        # b. turboprops      
+        self.P          = [] # max. power (Turboprops, one engine)
+        self.PSFC_TO     = [] # SFC takeoff
+        self.PSFC_CR     = [] # SFC cruise
+
+        # parse engine files
+        path = os.path.dirname(__file__) + '/../../data/coefficients/BS_engines/'
+        files = os.listdir(path)
+        for file in files:
+            endoc = ElementTree.parse(path + file)
+            self.enlist.append(endoc.find('engines/engine').text)
+
+            # thrust
+            # a. jet engines            
+            if int(endoc.find('engines/eng_type').text) ==1:
+                
+                # store engine in jet-engine list
+                self.jetenlist.append(endoc.find('engines/engine').text)    
+                # thrust           
+                self.rThr.append(self.convert(endoc.find('engines/Thr').text, endoc.find('engines/Thr').attrib['unit']))
+                # bypass ratio    
+                BPRc = int(endoc.find('engines/BPR_cat').text)
+                # different SFC for different bypass ratios (reference: Raymer, p.36)
+                SFC = [14.1, 22.7, 25.5]
+                self.SFC.append(SFC[BPRc])
+    
+                # fuel flow: Takeoff, climb, cruise, approach, idle
+                self.ffto.append(self.convert(endoc.find('ff/ff_to').text, endoc.find('ff/ff_to').attrib['unit'])) 
+                self.ffcl.append(self.convert(endoc.find('ff/ff_cl').text, endoc.find('ff/ff_cl').attrib['unit'])) 
+                self.ffcr.append(self.convert(endoc.find('ff/ff_cr').text, endoc.find('ff/ff_cr').attrib['unit'])) 
+                self.ffap.append(self.convert(endoc.find('ff/ff_ap').text, endoc.find('ff/ff_ap').attrib['unit'])) 
+                self.ffid.append(self.convert(endoc.find('ff/ff_id').text, endoc.find('ff/ff_id').attrib['unit'])) 
+
+            # b. turboprop engines
+            elif int(endoc.find('engines/eng_type').text) ==2:
+                
+                # store engine in prop-engine list
+                self.propenlist.append(endoc.find('engines/engine').text) 
+                
+                # power
+                self.P.append(self.convert(endoc.find('engines/Power').text, endoc.find('engines/Power').attrib['unit']))                 
+                # specific fuel consumption: takeoff and cruise   
+                PSFC_TO = self.convert(endoc.find('SFC/SFC_TO').text, endoc.find('SFC/SFC_TO').attrib['unit'])
+                self.PSFC_TO.append(PSFC_TO) 
+                # according to Babikian (function based on PSFC in [mug/J]), input in [kg/J]
+                self.PSFC_CR.append(self.convert((0.7675*PSFC_TO*1000000.0 + 23.576), 'mug/J'))
+                # print PSFC_TO, self.PSFC_CR
+        return
+
 
 coeffBS = CoeffBS()
 
@@ -448,10 +740,3 @@ class Perf():
         self.ffid[idx]   = coeffBS.ffid[self.jetengidx]*coeffBS.n_eng[idx]
         self.ffap[idx]   = coeffBS.ffap[self.jetengidx]*coeffBS.n_eng[idx]         
         return
-
-
-
-
-
-
-
