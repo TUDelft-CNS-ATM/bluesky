@@ -539,7 +539,7 @@ class CoeffBS:
         except:
             converted = float(value)
             if not self.warned:
-                print "Unit missmatch. Could not find ", unit     
+                print "Unit mismatch. Could not find ", unit     
                 self.warned = True
         return converted 
         

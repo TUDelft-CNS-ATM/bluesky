@@ -2,8 +2,18 @@
 # Try the pygame implementation if you are having issues with qtgl.
 gui = 'qtgl'
 
-# Select the scenario path
+# Select the performance model. options: 'bluesky', 'bada'
+performance_model = 'bada'
+
+# Indicate the scenario path
 scenario_path = 'data/scenario'
+
+# Indicate the path for the aircraft performance data
+perf_path = 'data/coefficients/BS_aircraft'
+
+# Indicate the path for the BADA aircraft performance data (leave empty if BADA is not available)
+perf_path_bada = 'data/coefficients/BADA'
+
 
 # Simulation timestep [seconds]
 simdt = 0.02

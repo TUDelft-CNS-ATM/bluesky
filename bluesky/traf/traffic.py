@@ -1,5 +1,4 @@
 import numpy as np
-import os
 from math import *
 
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2cas,  \
@@ -14,19 +13,26 @@ from ..tools.datalog import Datalog
 from route import Route
 from params import Trails
 from asas import Dbconf
+from .. import settings
 
-from perf import Perf, PerfBADA
+try:
+    if settings.performance_model == 'bluesky':
+        from perf import Perf
+    elif settings.performance_model == 'bada':
+        from perfbada import PerfBADA as Perf
+except ImportError as e:
+    print '\033[91m' + e.args[0] + '\033[0m'
+    print 'Falling back to BlueSky performance model'
+    from perf import Perf
 
-# from params import Coefficients
-# coeff = Coefficients()
 
 class Traffic:
-    """ 
+    """
     Traffic class definition    : Traffic data
 
     Methods:
         Traffic()            :  constructor
-        
+
         create(acid,actype,aclat,aclon,achdg,acalt,acspd) : create aircraft
         delete(acid)         : delete an aircraft from traffic data
         update(sim)          : do a numerical integration step
@@ -46,21 +52,7 @@ class Traffic:
         # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
         # for working with EUROCONTROL`s Base of Aircraft Data revision 3.12
 
-        # Check for BADA OPF file 
-        path = os.path.dirname(__file__) + '/../../data/coefficients/BADA/'
-        files = os.listdir(path)
-        self.bada = False
-
-        for f in files:
-            if f.upper().find(".OPF")!=-1:
-                self.bada=True
-                break
-            
-        # Initialize correct performance models
-        if self.bada:
-            self.perf = PerfBADA(self)
-        else:
-            self.perf = Perf(self)
+        self.perf = Perf(self)
 
         self.dts = []
 
