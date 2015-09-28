@@ -27,7 +27,7 @@ sim_update_rate = 20
 #=============================================================================
 
 # Radarscreen font size in pixels
-text_size = 16
+text_size = 10
 
 # The size in pixels of the font texture of one character (Change this if the font scaling doesn't look good)
 text_texture_size = 62
@@ -36,22 +36,28 @@ text_texture_size = 62
 font_family = 'Courier'
 
 # Font weight. A weight of 0 is ultralight, whilst 99 will be an extremely black. 50 is normal, and 75 is bold.
-font_weight = 60
+font_weight = 99
 
 # Radarscreen airport symbol size in pixels
-apt_size = 16
+apt_size = 10
 
 # Radarscreen waypoint symbol size in pixels
-wpt_size = 16
+wpt_size = 10
 
 # Radarscreen aircraft symbol size in pixels
-ac_size = 20
+ac_size = 16
 
 # END OF SETTINGS
 
 # Import config settings from settings.cfg if this exists, if it doesn't create an initial config file
-import os
-if not os.path.isfile('settings.cfg'):
+import os, sys
+configfile = 'settings.cfg'
+for i in range(len(sys.argv)):
+    if sys.argv[i] == '--config-file':
+        configfile = sys.argv[i+1]
+        break
+
+if not os.path.isfile(configfile):
     print
     print '\033[91mNo config file settings.cfg found in your BlueSky starting directory!\033[0m'
     print
@@ -84,9 +90,16 @@ if not os.path.isfile('settings.cfg'):
             lines += line + '\n'
             line = fin.readline().strip('\n')
 
-    with open('settings.cfg', 'w') as fout:
+    with open(configfile, 'w') as fout:
         fout.write(lines)
 else:
     print 'Reading config from settings.cfg'
 
-execfile('settings.cfg')
+execfile(configfile)
+
+if len(sys.argv) > 1:
+    args = str.join(',', sys.argv[1:])
+    if args.find('pygame'):
+        gui = 'pygame'
+    elif args.find('qtgl'):
+        gui = 'qtgl'

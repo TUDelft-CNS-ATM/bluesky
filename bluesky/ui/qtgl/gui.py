@@ -9,6 +9,7 @@ except ImportError:
     from PyQt5.QtWidgets import QApplication, QFileDialog
     from PyQt5.QtOpenGL import QGLFormat
     print('Using Qt5 for windows and widgets')
+import numpy as np
 
 # Local imports
 from ..radarclick import radarclick
@@ -35,6 +36,8 @@ usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'SAVEIC': 'filename',
                 'DT': 'dt',
                 'AREA': 'lat0,lon0,lat1,lon1,[lowalt]',
+                'BOX': 'boxname,lat0,lon0,lat1,lon1',
+                'POLY': 'polyname,lat0,lon0,lat1,lon1,lat2,lon2,...',
                 'TAXI': 'ON/OFF',
                 'SWRAD': 'GEO/GRID/APT/VOR/WPT/LABEL/TRAIL,[dt]/[value]',
                 'TRAIL': 'ON/OFF,[delta_t]',
@@ -65,19 +68,22 @@ class Gui(QApplication):
         self.navdb           = navdb
         self.radarwidget     = []
         self.command_history = []
+        self.cmdargs         = []
         self.history_pos     = 0
         self.command_mem     = ''
         self.command_line    = ''
+        self.prev_cmdline    = ''
         self.simevent_target = 0
+        self.mousepos        = (0, 0)
+        self.prevmousepos    = (0, 0)
+
         # Register our custom pan/zoom event
-        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,  \
-                      StackTextEventType, ShowDialogEventType,              \
+        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,
+                      StackTextEventType, ShowDialogEventType,
                       DisplayFlagEventType, RouteDataEventType]:
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
-
-        self.prevmousepos = (0.0, 0.0)
 
         self.splash = Splash()
         self.splash.show()
@@ -104,8 +110,7 @@ class Gui(QApplication):
         self.exec_()
 
     def notify(self, receiver, event):
-        # Keep track if we have to update the commandline
-        prev_cmdline    = self.command_line
+        # Keep track of event processing
         event_processed = False
 
         # Events from the simulation thread
@@ -174,7 +179,6 @@ class Gui(QApplication):
 
         # Mouse/trackpad event handling for the Radar widget
         if receiver is self.radarwidget:
-
             if event.type() == QEvent.Wheel:
                 # For mice we zoom with control/command and the scrolwheel
                 if event.modifiers() & Qt.ControlModifier:
@@ -217,8 +221,8 @@ class Gui(QApplication):
                     self.prevmousepos = (event.x(), event.y())
 
                 else:
-                    latlon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                    tostack, todisplay = radarclick(self.command_line, latlon[0], latlon[1], self.acdata, self.navdb)
+                    lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
+                    tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb)
                     if len(todisplay) > 0:
                         if '\n' in todisplay:
                             self.command_line = ''
@@ -227,10 +231,13 @@ class Gui(QApplication):
                         if len(tostack) > 0:
                             self.stack(tostack)
 
-            elif event.type() == QEvent.MouseMove and event.buttons() & Qt.RightButton:
-                pan = (0.003 * (event.y() - self.prevmousepos[1]), 0.003 * (self.prevmousepos[0] - event.x()))
-                self.prevmousepos = (event.x(), event.y())
-                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, pan))
+            elif event.type() == QEvent.MouseMove:
+                event_processed = True
+                self.mousepos = (event.x(), event.y())
+                if event.buttons() & Qt.RightButton:
+                    pan = (0.003 * (event.y() - self.prevmousepos[1]), 0.003 * (self.prevmousepos[0] - event.x()))
+                    self.prevmousepos = (event.x(), event.y())
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, pan))
 
         # Other events
         if event.type() == QEvent.KeyPress:
@@ -256,6 +263,8 @@ class Gui(QApplication):
                     self.command_history.append(self.command_line)
                     self.stack(self.command_line)
                     self.command_line = ''
+                    # Clear any shape command preview on the radar display
+                    self.radarwidget.previewpoly(None)
 
             elif event.key() == Qt.Key_Up:
                 if self.history_pos == 0:
@@ -282,22 +291,39 @@ class Gui(QApplication):
             elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
                 self.command_line += str(event.text()).upper()
 
-        if self.command_line != prev_cmdline:
-            cmdargs = cmdsplit(self.command_line)
+        # If we haven't processed the event: call Base Class Method to Continue Normal Event Processing
+        if not event_processed:
+            return super(Gui, self).notify(receiver, event)
+
+        # Otherwise, final processing of the command line and accept the event.
+        if self.command_line != self.prev_cmdline:
+            self.cmdargs = cmdsplit(self.command_line)
 
             hint = ''
-            if len(cmdargs) > 0:
-                if cmdargs[0] in usage_hints:
-                    hint = usage_hints[cmdargs[0]]
-                    if len(cmdargs) > 1:
+            if len(self.cmdargs) > 0:
+                if self.cmdargs[0] in usage_hints:
+                    hint = usage_hints[self.cmdargs[0]]
+                    if len(self.cmdargs) > 1:
                         hintargs = hint.split(',')
-                        hint = ' ' + str.join(',', hintargs[len(cmdargs)-1:])
+                        hint = ' ' + str.join(',', hintargs[len(self.cmdargs)-1:])
 
             self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa">' + hint + '</font>')
+            self.prev_cmdline = self.command_line
 
-        if not event_processed:
-            # We haven't processed the event: call Base Class Method to Continue Normal Event Processing
-            return super(Gui, self).notify(receiver, event)
+        if self.mousepos != self.prevmousepos and len(self.cmdargs) >= 4:
+            self.prevmousepos = self.mousepos
+            if self.cmdargs[0] in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+                try:
+                    data = np.zeros(len(self.cmdargs), dtype=np.float32)
+                    data[1], data[0] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
+                    for i in range(2, len(self.cmdargs), 2):
+                        data[i]     = float(self.cmdargs[i+1])
+                        data[i + 1] = float(self.cmdargs[i])
+
+                    self.radarwidget.previewpoly(self.cmdargs[0], data)
+
+                except ValueError:
+                    pass
 
         event.accept()
         return True

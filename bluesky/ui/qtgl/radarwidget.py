@@ -19,9 +19,10 @@ from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, fon
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 
 # Static defines
-MAX_NAIRCRAFT    = 10000
-MAX_NCONFLICTS   = 1000
-MAX_ROUTE_LENGTH = 100
+MAX_NAIRCRAFT        = 10000
+MAX_NCONFLICTS       = 1000
+MAX_ROUTE_LENGTH     = 100
+MAX_POLYGON_SEGMENTS = 100
 
 # Colors
 red   = (1.0, 0.0, 0.0)
@@ -81,13 +82,14 @@ class RadarWidget(QGLWidget):
         self.map_texture = self.bindTexture('data/graphics/world.16384x8192-mipmap.dds')
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
-        self.achdgbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclatbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclonbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.accolorbuf = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
-        self.aclblbuf   = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
-        self.confcpabuf = RenderObject.create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
-        self.routebuf   = RenderObject.create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.achdgbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclatbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclonbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.accolorbuf  = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
+        self.aclblbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
+        self.confcpabuf  = RenderObject.create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
+        self.polyprevbuf = RenderObject.create_empty_buffer(MAX_POLYGON_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.routebuf    = RenderObject.create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject()
@@ -104,6 +106,13 @@ class RadarWidget(QGLWidget):
         self.vcount_coast = len(coastvertices)
         self.coastindices = coastindices
         del coastvertices
+
+        # Polygon preview object
+        self.polyprevsize = 0
+        self.polyprev = RenderObject()
+        self.polyprev.bind_vertex_attribute(self.polyprevbuf)
+        self.polyprev.bind_color_attribute(np.array(blue, dtype=np.float32))
+
 
         # ------- Circle ---------------------------------
         # Create a new VAO (Vertex Array Object) and bind it
@@ -244,6 +253,10 @@ class RadarWidget(QGLWidget):
                     self.coastlines.draw(gl.GL_LINES, 0, wrapindex, latlon=(0.0, 0.0))
                     self.coastlines.draw(gl.GL_LINES, wrapindex, self.vcount_coast - wrapindex, latlon=(0.0, -360.0))
 
+        # --- DRAW POLYGON AREAS (WHEN AVAILABLE) -----------------------------
+        if self.polyprevsize > 0:
+            self.polyprev.draw(gl.GL_LINE_LOOP, 0, self.polyprevsize)
+
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
         if self.n_route_segments > 0 and self.show_traf:
             self.route.draw(gl.GL_LINE_STRIP, 0, self.n_route_segments)
@@ -366,6 +379,22 @@ class RadarWidget(QGLWidget):
             if self.route_acidx >= 0:
                 update_array_buffer(self.routebuf, np.array([data.lon[self.route_acidx], data.lat[self.route_acidx]], dtype=np.float32))
 
+    def previewpoly(self, shape_type, data_in=None):
+        if shape_type == None:
+            self.polyprevsize = 0
+            return
+        if shape_type == 'BOX':
+            # For a box we need to add two additional corners
+            data = np.zeros(8, dtype=np.float32)
+            data[0:2] = data_in[0:2]
+            data[2:4] = data_in[2], data_in[1]
+            data[4:6] = data_in[2:4]
+            data[6:8] = data_in[0], data_in[3]
+        else:
+            data = data_in
+        update_array_buffer(self.polyprevbuf, data)
+        self.polyprevsize = len(data)/2
+
     def pixelCoordsToGLxy(self, x, y):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
         """
@@ -383,7 +412,7 @@ class RadarWidget(QGLWidget):
         # latlon = pan + glxy / zoom
         lat = self.panlat + gly / (self.zoom * self.ar)
         lon = self.panlon + glx / (self.zoom * self.flat_earth)
-        return (lat, lon)
+        return lat, lon
 
     def event(self, event):
         if event.type() == PanZoomEventType:

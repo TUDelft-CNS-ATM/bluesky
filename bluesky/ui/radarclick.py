@@ -4,8 +4,8 @@ from math import cos, atan2, radians, degrees
 
 def radarclick(cmdline, lat, lon, traf, navdb):
     """Process lat,lon as clicked in radar window"""
-    tostack = ''
-    todisplay = cmdline
+    tostack   = ''
+    todisplay = ''
 
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
@@ -33,6 +33,9 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "DIST": "latlon,-,latlon",
                 "LINE": "latlon,-,latlon",
                 "AREA": "latlon,-,latlon",
+                "BOX": "-,latlon,-,latlon",
+                "POLY": "-,latlon,...",
+                "POLYGON": "-,latlon,..."
                 }
 
     cmdargs = cmdsplit(cmdline)
@@ -70,32 +73,41 @@ def radarclick(cmdline, lat, lon, traf, navdb):
         try:
             lookup = clickcmd[cmd]
 
-        except KeyError: 
-            # When command was not found in dictionary: 
+        except KeyError:
+            # When command was not found in dictionary:
             # do nothing, return empty strings
             lookup = False
-            return "",""
+            return "", ""
 
-        # For valid value, insert relevant dat on edit line            
+        # For valid value, insert relevant dat on edit line
         if lookup:
+            if cmdline[-1] != ' ':
+                todisplay = ' '
 
             # Determine argument click type
             clickargs = lookup.lower().split(",")
-            if numargs < len(clickargs):
-                clicktype = clickargs[numargs]
+            totargs   = len(clickargs)
+            curarg    = numargs
+            # Exception case: if the last item of the clickargs list is "..." then the one-but-last can be repeatedly added (e.g., the definition of a polygon)
+            if clickargs[-1] == "...":
+                totargs = 999
+                curarg  = min(curarg, len(clickargs) - 2)
+
+            if curarg <= totargs:
+                clicktype = clickargs[curarg]
 
                 if clicktype == "acid":
                     idx = findnearest(lat, lon, traf.lat, traf.lon)
                     if idx >= 0:
-                        todisplay = traf.id[idx] + " "
+                        todisplay += traf.id[idx] + " "
 
                 elif clicktype == "latlon":
-                    todisplay = " " + str(round(lat, 6)) + "," + str(round(lon, 6)) + " "
+                    todisplay += str(round(lat, 6)) + "," + str(round(lon, 6)) + " "
 
                 elif clicktype == "apt":
                     idx = findnearest(lat, lon, navdb.aplat, navdb.aplon)
                     if idx >= 0:
-                        todisplay = navdb.apid[idx] + " "
+                        todisplay += navdb.apid[idx] + " "
 
                 elif clicktype == "hdg":
                     # Read start position from command line
@@ -126,12 +138,11 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                         dx = (lon - reflon) * cos(radians(reflat))
                         hdg = degrees(atan2(dx, dy)) % 360.
 
-                        todisplay = " " + str(int(hdg)) + " "
+                        todisplay += str(int(hdg)) + " "
 
                 # Is it the last argument? (then we will insert ENTER as well)
-                if numargs + 1 >= len(clickargs):
+                if curarg + 1 >= totargs:
                     tostack = cmdline + todisplay
                     todisplay = todisplay + '\n'
 
-            
     return tostack, todisplay
