@@ -269,12 +269,13 @@ class Perf():
 
     def perf(self):
         """Aircraft performance"""
-        
+        swbada = False # no-bada version
+
         # allocate aircraft to their flight phase
         self.phase, self.bank = \
         phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
         self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
-        self.traf.hdgsel, self.traf.bada)
+        self.traf.hdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)

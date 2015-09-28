@@ -18,8 +18,10 @@ from .. import settings
 try:
     if settings.performance_model == 'bluesky':
         from perf import Perf
+
     elif settings.performance_model == 'bada':
         from perfbada import PerfBADA as Perf
+
 except ImportError as e:
     print '\033[91m' + e.args[0] + '\033[0m'
     print 'Falling back to BlueSky performance model'
@@ -146,9 +148,9 @@ class Traffic:
         self.asasvsp = np.array([]) # speed vspeed by the ASAS [m/s]
 
         self.desalt = np.array([]) #desired altitude [m]
-        self.deshdg =np.array([]) #desired heading
-        self.desvs =np.array([]) #desired vertical speed [m/s]
-        self.desspd =np.array([]) #desired speed [m/s]
+        self.deshdg = np.array([]) #desired heading
+        self.desvs  = np.array([]) #desired vertical speed [m/s]
+        self.desspd = np.array([]) #desired speed [m/s]
 
         # Display information on label
         self.label = []  # Text and bitmap of traffic label
@@ -158,10 +160,10 @@ class Traffic:
         self.inside = []
         
         # Transmitted data to other aircraft due to truncated effect
-        self.adsbtime=np.array([])
-        self.adsblat=np.array([])        
-        self.adsblon=np.array([])
-        self.adsbalt=np.array([])
+        self.adsbtime = np.array([])
+        self.adsblat = np.array([])        
+        self.adsblon =np.array([])
+        self.adsbalt = np.array([])
         self.adsbtrk=np.array([])
         self.adsbtas=np.array([])
         self.adsbgs=np.array([])
