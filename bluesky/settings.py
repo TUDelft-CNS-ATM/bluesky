@@ -3,7 +3,7 @@
 gui = 'qtgl'
 
 # Select the performance model. options: 'bluesky', 'bada'
-performance_model = 'bada'
+performance_model = 'bluesky'
 
 # Indicate the scenario path
 scenario_path = 'data/scenario'
@@ -16,14 +16,14 @@ perf_path_bada = 'data/coefficients/BADA'
 
 
 # Simulation timestep [seconds]
-simdt = 0.02
+simdt = 0.05
 
 # Simulation thread update rate [Hz]
-sim_update_rate = 50
+sim_update_rate = 20
 
 #=============================================================================
 #=   QTGL Gui specific settings below
-#=   Pygame Gui options in /data/grapics/scr_cfg.dat
+#=   Pygame Gui options in /data/graphics/scr_cfg.dat
 #=============================================================================
 
 # Radarscreen font size in pixels
@@ -49,7 +49,7 @@ ac_size = 20
 
 # END OF SETTINGS
 
-# Import conig settings from settings.cfg if this exists, if it doesn't create an initial config file
+# Import config settings from settings.cfg if this exists, if it doesn't create an initial config file
 import os
 if not os.path.isfile('settings.cfg'):
     print
