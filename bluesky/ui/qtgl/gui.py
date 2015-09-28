@@ -226,6 +226,8 @@ class Gui(QApplication):
                     if len(todisplay) > 0:
                         if '\n' in todisplay:
                             self.command_line = ''
+                            # Clear any shape command preview on the radar display
+                            self.radarwidget.previewpoly(None)
                         else:
                             self.command_line += todisplay
                         if len(tostack) > 0:
@@ -312,7 +314,7 @@ class Gui(QApplication):
 
         if self.mousepos != self.prevmousepos and len(self.cmdargs) >= 4:
             self.prevmousepos = self.mousepos
-            if self.cmdargs[0] in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+            if self.cmdargs[0] in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
                 try:
                     data = np.zeros(len(self.cmdargs), dtype=np.float32)
                     data[1], data[0] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])

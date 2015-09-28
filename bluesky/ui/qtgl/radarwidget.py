@@ -383,8 +383,8 @@ class RadarWidget(QGLWidget):
         if shape_type == None:
             self.polyprevsize = 0
             return
-        if shape_type == 'BOX':
-            # For a box we need to add two additional corners
+        if shape_type in ['BOX', 'AREA']:
+            # For a box (an area is a box) we need to add two additional corners
             data = np.zeros(8, dtype=np.float32)
             data[0:2] = data_in[0:2]
             data[2:4] = data_in[2], data_in[1]
