@@ -4,7 +4,8 @@ except ImportError:
     from PyQt5.QtCore import QEvent
 
 PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
-ShowDialogEventType, DisplayFlagEventType, RouteDataEventType = range(1000, 1007)
+ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
+DisplayShapeEventType = range(1000, 1008)
 
 
 class DisplayFlagEvent(QEvent):
@@ -45,6 +46,16 @@ class RouteDataEvent(QEvent):
 
     def __init__(self):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
+
+
+class DisplayShapeEvent(QEvent):
+    name = ''
+    data = None
+
+    def __init__(self, name, data=None):
+        super(DisplayShapeEvent, self).__init__(DisplayShapeEventType)
+        self.name = name
+        self.data = data
 
 
 class ACDataEvent(QEvent):

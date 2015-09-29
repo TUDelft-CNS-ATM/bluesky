@@ -941,7 +941,6 @@ class Commandstack:
                         scr.echo("or")
                         scr.echo("AREA fir,radius[,lowalt]")
 
-                
                 #----------------------------------------------------------------------
                 # TAXI command: TAXI ON/OFF : if off, 
                 #   autodelete descending aircraft below 1500 ft
@@ -1376,22 +1375,34 @@ class Commandstack:
                             scr.echo('Syntax error')
                             scr.echo("NOISE ON/OFF")
 
+                elif cmd == "BOX":
+                    if numargs == 0:
+                        scr.echo(cmd + " name,lat1,lon1,lat2,lon2")
+                    data = []
+                    for i in cmdargs[2:]:
+                        data.append(float(i))
+                    scr.objappend(2, cmdargs[1], data)
+                elif cmd[:4] == "POLY":
+                    if numargs == 0:
+                        scr.echo(cmd + " name,lat1,lon1,lat2,lon2,...")
+                    data = []
+                    for i in cmdargs[2:]:
+                        data.append(float(i))
+                    scr.objappend(4, cmdargs[1], data)
+                elif cmd == "CIRCLE":
+                    pass
                 #------------------------------------------------------------------
                 # LINE color,lat1,lon1,lat2,lon2 command: draw a line
                 #------------------------------------------------------------------
                 elif cmd[:4] == "LINE":
 
                     if numargs == 0:
-                        scr.echo("LINE color,lat1,lon1,lat2,lon2")
+                        scr.echo("LINE name,lat1,lon1,lat2,lon2")
                         scr.echo("color=red,green,cyan.. (8 basic colours)")
                     else:
-                        if numargs==5:
-                                icol = col2rgb(cmdargs[1]) # get rgb value for this colour
-                                lat1 =  float(cmdargs[2])
-                                lon1 =  float(cmdargs[3])
-                                lat2 =  float(cmdargs[4])
-                                lon2 =  float(cmdargs[5])
-                                scr.objappend(1,icol,lat1,lon1,lat2,lon2)
+                        if numargs == 5:
+                                data = [float(cmdargs[2]), float(cmdargs[3]), float(cmdargs[4]), float(cmdargs[5])]
+                                scr.objappend(1,cmdargs[1],data)
 
 
                 #------------------------------------------------------------------

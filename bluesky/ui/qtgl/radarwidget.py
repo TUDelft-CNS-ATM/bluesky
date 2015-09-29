@@ -28,6 +28,8 @@ MAX_POLYGON_SEGMENTS = 100
 red   = (1.0, 0.0, 0.0)
 green = (0.0, 1.0, 0.0)
 blue  = (0.0, 0.0, 1.0)
+lightblue = (0.0, 0.8, 1.0)
+cyan  = (0.0, 1.0, 0.0)
 amber = (1.0, 0.6, 0.0)
 
 
@@ -93,8 +95,8 @@ class RadarWidget(QGLWidget):
 
         # ------- Map ------------------------------------
         self.map = RenderObject(gl.GL_TRIANGLE_FAN, vertex_count=4)
-        mapvertices = np.array([(540.0, -90.0), (-540.0, -90.0), (-540.0, 90.0), (540.0, 90.0)], dtype=np.float32)
-        texcoords = np.array([(3, 1), (0, 1), (0, 0), (3, 0)], dtype=np.float32)
+        mapvertices = np.array([(-90.0, 540.0), (-90.0, -540.0), (90.0, -540.0), (90.0, 540.0)], dtype=np.float32)
+        texcoords = np.array([(1, 3), (1, 0), (0, 0), (0, 3)], dtype=np.float32)
         self.map.bind_vertex_attribute(mapvertices)
         self.map.bind_texcoords_attribute(texcoords)
 
@@ -110,7 +112,7 @@ class RadarWidget(QGLWidget):
         # Polygon preview object
         self.polyprev = RenderObject(gl.GL_LINE_LOOP)
         self.polyprev.bind_vertex_attribute(self.polyprevbuf)
-        self.polyprev.bind_color_attribute(np.array(blue, dtype=np.float32))
+        self.polyprev.bind_color_attribute(np.array(lightblue, dtype=np.float32))
 
         # ------- Circle ---------------------------------
         # Create a new VAO (Vertex Array Object) and bind it
@@ -253,8 +255,12 @@ class RadarWidget(QGLWidget):
                     self.coastlines.draw(first_vertex=0, vertex_count=wrapindex, latlon=(0.0, 0.0))
                     self.coastlines.draw(first_vertex=wrapindex, vertex_count=self.vcount_coast - wrapindex, latlon=(0.0, -360.0))
 
-        # --- DRAW POLYGON AREAS (WHEN AVAILABLE) -----------------------------
+        # --- DRAW PREVIEW SHAPE (WHEN AVAILABLE) -----------------------------
         self.polyprev.draw()
+
+        # --- DRAW CUSTOM SHAPES (WHEN AVAILABLE) -----------------------------
+        for i in self.polys.iteritems():
+            i[1].draw()
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
         if self.show_traf:
@@ -379,11 +385,17 @@ class RadarWidget(QGLWidget):
             if self.route_acidx >= 0:
                 update_array_buffer(self.routebuf, np.array([data.lon[self.route_acidx], data.lat[self.route_acidx]], dtype=np.float32))
 
+    def delpoly(self, name):
+        del self.polys[name]
+
     def addpoly(self, name, data_in):
-        pass
+        newpoly = RenderObject(gl.GL_LINE_LOOP, vertex_count=len(data_in)/2)
+        newpoly.bind_vertex_attribute(data_in)
+        newpoly.bind_color_attribute(np.array(blue, dtype=np.float32))
+        self.polys[name] = newpoly
 
     def previewpoly(self, shape_type, data_in=None):
-        if shape_type == None:
+        if shape_type is None:
             self.polyprev.set_vertex_count(0)
             return
         if shape_type in ['BOX', 'AREA']:
@@ -501,7 +513,7 @@ def load_coast_data():
                 if len(arg) == 3:
                     lat, lon = float(arg[1]), float(arg[2])
                     if arg[0] == 'D':
-                        coast.append([clon, clat, lon, lat])
+                        coast.append([clat, clon, lat, lon])
                     clat, clon = lat, lon
     # Sort the line segments by longitude of the first vertex
     coastvertices = np.array(

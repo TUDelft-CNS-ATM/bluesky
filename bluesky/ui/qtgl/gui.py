@@ -14,7 +14,8 @@ import numpy as np
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
-from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType
+from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType,  \
+                     StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType
 from radarwidget import RadarWidget
 import autocomplete as ac
 from ...tools.misc import cmdsplit
@@ -80,7 +81,8 @@ class Gui(QApplication):
         # Register our custom pan/zoom event
         for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,
                       StackTextEventType, ShowDialogEventType,
-                      DisplayFlagEventType, RouteDataEventType]:
+                      DisplayFlagEventType, RouteDataEventType,
+                      DisplayShapeEventType]:
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -134,6 +136,12 @@ class Gui(QApplication):
             elif event.type() == RouteDataEventType:
                 self.radarwidget.update_route_data(event)
                 return True
+
+            elif event.type() == DisplayShapeEventType:
+                if event.data is None:
+                    self.radarwidget.delpoly(event.name)
+                else:
+                    self.radarwidget.addpoly(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
                 self.win.siminfoLabel.setText('<b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>sim_t</b> = %.1f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
@@ -312,20 +320,25 @@ class Gui(QApplication):
             self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa">' + hint + '</font>')
             self.prev_cmdline = self.command_line
 
-        if self.mousepos != self.prevmousepos and len(self.cmdargs) >= 4:
+        if self.mousepos != self.prevmousepos and len(self.cmdargs) >= 3:
             self.prevmousepos = self.mousepos
-            if self.cmdargs[0] in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
-                try:
+            try:
+                if self.cmdargs[0] == 'AREA':
+                    data = np.zeros(4, dtype=np.float32)
+                    data[0:2] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
+                    data[2] = float(self.cmdargs[1])
+                    data[3] = float(self.cmdargs[2])
+                    self.radarwidget.previewpoly(self.cmdargs[0], data)
+                elif self.cmdargs[0] in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
                     data = np.zeros(len(self.cmdargs), dtype=np.float32)
-                    data[1], data[0] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
+                    data[0:2] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
                     for i in range(2, len(self.cmdargs), 2):
-                        data[i]     = float(self.cmdargs[i+1])
-                        data[i + 1] = float(self.cmdargs[i])
-
+                        data[i]     = float(self.cmdargs[i])
+                        data[i + 1] = float(self.cmdargs[i+1])
                     self.radarwidget.previewpoly(self.cmdargs[0], data)
 
-                except ValueError:
-                    pass
+            except ValueError:
+                pass
 
         event.accept()
         return True

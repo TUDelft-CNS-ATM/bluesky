@@ -31,7 +31,6 @@ void main()
 {
 	// Pass color and texture coordinates to the fragment shader
 	color_fs = color_in;
-	texcoords_fs = texcoords_in;
 
 	vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
 	vec2 flat_earth = vec2(cos(DEG2RAD*panlat), 1.0);
@@ -52,13 +51,19 @@ void main()
 			vec2 vertex = mrot * vertex_in;
 			vertex = vec2(2.0 * vertex.x / float(screen_width), 2.0 * vertex.y / float(screen_height));
 			gl_Position = vec4(vAR * zoom * flat_earth * position + vertex, 0.0, 1.0);
+			texcoords_fs = texcoords_in;
 			break;
 		case VERTEX_IS_METERS:
-			gl_Position = vec4(vAR * zoom * (flat_earth * position + mrot * (vertex_in * REARTH_INV * RAD2DEG)), 0.0, 1.0);
+			// Vertex coordinates in meters use a right-handed coordinate system, where the positive x-axis points to the north
+			// The elements in each vertex therefore need to be flipped
+			gl_Position = vec4(vAR * zoom * (flat_earth * position + mrot * (vertex_in.yx * REARTH_INV * RAD2DEG)), 0.0, 1.0);
+			texcoords_fs = texcoords_in.ts;
 			break;
 		case VERTEX_IS_LATLON:
 		default:
-			gl_Position = vec4(vAR * flat_earth * zoom * (position + mrot * vertex_in), 0.0, 1.0);
+			// Lat/lon vertex coordinates are flipped: lat is index 0, but screen y-axis, and lon is index 1, but screen x-axis
+			gl_Position = vec4(vAR * flat_earth * zoom * (position + mrot * vertex_in.yx), 0.0, 1.0);
+			texcoords_fs = texcoords_in.ts;
 			break;	
 	}
 }

@@ -1030,11 +1030,11 @@ class Screen:
         return self.ltopix_eq(lat)
 
 
-    def objappend(self,itype,col,lat0,lon0,lat1,lon1):
+    def objappend(self,itype,name,data):
         """Add user defined objects"""
         self.objtype.append(itype)
-        self.objcolor.append(col)
-        self.objdata.append((lat0,lon0,lat1,lon1))
+        self.objcolor.append(blue)
+        self.objdata.append(data)
         
         self.redrawradbg = True # redraw background
 

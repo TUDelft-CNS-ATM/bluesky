@@ -10,7 +10,8 @@ import numpy as np
 import time
 
 # Local imports
-from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, StackTextEventType
+from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, \
+                       ShowDialogEvent, DisplayFlagEvent, StackTextEventType, DisplayShapeEvent
 
 
 class ScreenIO(QObject):
@@ -107,6 +108,23 @@ class ScreenIO(QObject):
 
     def feature(self, switch, argument=''):
         qapp.postEvent(qapp.instance(), DisplayFlagEvent(switch, argument))
+
+    def objappend(self, objtype, objname, data_in):
+        if objtype == 1 or objtype == 4:
+            # LINE(1) or POLY(4)
+            data = np.array(data_in, dtype=np.float32)
+        elif objtype == 2:
+            # BOX
+            data = np.array([data_in[0], data_in[1],
+                             data_in[0], data_in[3],
+                             data_in[2], data_in[3],
+                             data_in[2], data_in[1]], dtype=np.float32)
+
+        elif objtype == 3:
+            # CIRCLE
+            pass
+
+        qapp.postEvent(qapp.instance(), DisplayShapeEvent(objname, data))
 
     def event(self, event):
         if event.type() == StackTextEventType:
