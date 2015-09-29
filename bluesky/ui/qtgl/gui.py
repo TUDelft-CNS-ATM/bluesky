@@ -347,3 +347,7 @@ class Gui(QApplication):
             fname = response
         if len(fname) > 0:
             self.stack('IC ' + str(fname))
+
+    def __del__(self):
+        # Make sure to Clean up at quit event
+        self.aboutToQuit.connect(self.win.cleanUp)
