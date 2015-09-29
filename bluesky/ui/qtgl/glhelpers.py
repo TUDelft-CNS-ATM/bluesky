@@ -168,9 +168,12 @@ class RenderObject(object):
     attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = range(7)
     bound_vao = -1
 
-    def __init__(self):
-        self.vao_id = gl.glGenVertexArrays(1)
+    def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0):
+        self.vao_id             = gl.glGenVertexArrays(1)
         self.enabled_attributes = []
+        self.primitive_type     = primitive_type
+        self.first_vertex       = first_vertex
+        self.vertex_count       = vertex_count
 
     def bind_attribute(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT):
         if RenderObject.bound_vao is not self.vao_id:
@@ -219,7 +222,25 @@ class RenderObject(object):
     def bind_orientation_attribute(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=1):
         return self.bind_attribute(RenderObject.attrib_orientation, 1, data, storagetype, instance_divisor)
 
-    def draw(self, primitive_type, first_vertex, vertex_count, n_instances=0, latlon=None, color=None):
+    def set_vertex_count(self, count):
+        self.vertex_count = count
+
+    def set_first_vertex(self, vertex):
+        self.first_vertex = vertex
+
+    def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=0, latlon=None, color=None):
+        if primitive_type is None:
+            primitive_type = self.primitive_type
+
+        if first_vertex is None:
+            first_vertex = self.first_vertex
+
+        if vertex_count is None:
+            vertex_count = self.vertex_count
+
+        if vertex_count == 0:
+            return
+
         if RenderObject.bound_vao is not self.vao_id:
             gl.glBindVertexArray(self.vao_id)
             RenderObject.bound_vao = self.vao_id
