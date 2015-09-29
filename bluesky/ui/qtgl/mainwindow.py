@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
         self.showlabels.clicked.connect(self.buttonClicked)
         self.showmap.clicked.connect(self.buttonClicked)
 
-        self.menubar = QMenuBar()
+        self.menubar = QMenuBar(self)
 
         # File menu
         self.fileMenu = self.menubar.addMenu('&File')
@@ -79,6 +79,8 @@ class MainWindow(QMainWindow):
         self.connectionsMenu = self.menubar.addMenu('Connections')
         self.connectionsMenu.addAction('Connect to ADS-B server')
         self.connectionsMenu.addAction('Enable output to UDP')
+
+        self.setMenuBar(self.menubar)
 
         # Siminfo label
         self.siminfoLabel = QLabel('F = 0 Hz')

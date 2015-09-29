@@ -193,7 +193,6 @@ class Screen:
         winx = lst[5]  # x-coordinate in pixels of left side
         winy = self.height - lst[6]  # y-coordinate in pixels of bottom
         self.editwin = Console(self.win, nch, nlin, winx, winy)
-        self.editwin.echo("BlueSky Edit Window: Enter HELP or ? for info.")        
    
         # Menu button window
         self.menu = Menu(self.win,10,20)

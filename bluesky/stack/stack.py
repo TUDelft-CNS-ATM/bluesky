@@ -51,6 +51,10 @@ class Commandstack:
         for key in self.extracmdmodules:
             obj = __import__(self.extracmdmodules[key], globals(), locals(), [], 0)
             self.extracmdrefs[key] = obj
+            
+        # Display Help text on start of program
+        self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")        
+        self.stack("ECHO Or select IC to Open a scenario file.")        
 
         return
 
@@ -1318,7 +1322,7 @@ class Commandstack:
                     if numargs == 0:
                         scr.echo("ECHO txt")
                     else:
-                        scr.echo(cmdline.strip()[5:])
+                        scr.echo(line.strip()[5:])
 
                 #----------------------------------------------------------------------
                 # INSEDIT: insert text in Edit window
