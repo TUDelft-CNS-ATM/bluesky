@@ -2,8 +2,6 @@ from bluesky.traf import Navdatabase
 from bluesky.ui import Gui
 from bluesky.sim import Simulation, MainLoop
 
-import sys
-
 # =============================================================================
 # Create gui and simulation objects
 # =============================================================================
@@ -25,4 +23,3 @@ del gui
 #--debug---del sim
 
 print 'BlueSky normal end.'
-sys.exit()
