@@ -101,6 +101,9 @@ class Gui(QApplication):
         if not QGLFormat.hasOpenGL():
             raise RuntimeError('No OpenGL support detected for this system!')
 
+        # Enable HiDPI support
+        self.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
     def setSimEventTarget(self, obj):
         self.simevent_target = obj
 

@@ -26,25 +26,25 @@ class MainWindow(QMainWindow):
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
-        buttons = { self.zoomin  :    ['zoomin.png', 'Zoom in', self.buttonClicked],
-                    self.zoomout :    ['zoomout.png', 'Zoom out', self.buttonClicked],
-                    self.ic :         ['stop.png', 'Initial condition', self.buttonClicked],
-                    self.op :         ['play.png', 'Operate', self.buttonClicked],
-                    self.hold :       ['pause.png', 'Hold', self.buttonClicked],
-                    self.fast :       ['fwd.png', 'Enable fast-time', self.buttonClicked],
-                    self.fast10 :     ['ffwd.png', 'Fast-forward 10 seconds', self.buttonClicked],
-                    self.sameic :     ['frwd.png', 'Restart same IC', self.buttonClicked],
-                    self.showac :     ['AC.png', 'Show/hide aircraft', self.buttonClicked],
-                    self.showpz :     ['PZ.png', 'Show/hide PZ', self.buttonClicked],
-                    self.showapt :    ['apt.png', 'Show/hide airports', self.buttonClicked],
-                    self.showwpt :    ['wpt.png', 'Show/hide waypoints', self.buttonClicked],
-                    self.showlabels : ['lbl.png', 'Show/hide text labels', self.buttonClicked],
-                    self.showmap :    ['geo.png', 'Show/hide satellite image', self.buttonClicked]}
+        buttons = { self.zoomin  :    ['zoomin.svg', 'Zoom in', self.buttonClicked],
+                    self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked],
+                    self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked],
+                    self.op :         ['play.svg', 'Operate', self.buttonClicked],
+                    self.hold :       ['pause.svg', 'Hold', self.buttonClicked],
+                    self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked],
+                    self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked],
+                    self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked],
+                    self.showac :     ['AC.svg', 'Show/hide aircraft', self.buttonClicked],
+                    self.showpz :     ['PZ.svg', 'Show/hide PZ', self.buttonClicked],
+                    self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked],
+                    self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked],
+                    self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked],
+                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked]}
 
         for b in buttons.iteritems():
             # Set icon
             if not b[1][0] is None:
-                b[0].setIcon(QIcon(QPixmap('data/graphics/icons/' + b[1][0])))
+                b[0].setIcon(QIcon('data/graphics/icons/' + b[1][0]))
             # Set tooltip
             if not b[1][1] is None:
                 b[0].setToolTip(b[1][1])

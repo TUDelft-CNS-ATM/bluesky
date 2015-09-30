@@ -483,6 +483,9 @@ p, li { white-space: pre-wrap; }
          <property name="sizeConstraint">
           <enum>QLayout::SetDefaultConstraint</enum>
          </property>
+         <property name="formAlignment">
+          <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
+         </property>
          <property name="horizontalSpacing">
           <number>1</number>
          </property>
@@ -496,7 +499,7 @@ p, li { white-space: pre-wrap; }
           <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>1</number>
          </property>
          <property name="bottomMargin">
           <number>0</number>
@@ -661,6 +664,9 @@ p, li { white-space: pre-wrap; }
          <property name="sizeConstraint">
           <enum>QLayout::SetDefaultConstraint</enum>
          </property>
+         <property name="formAlignment">
+          <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
+         </property>
          <property name="horizontalSpacing">
           <number>1</number>
          </property>
@@ -674,7 +680,7 @@ p, li { white-space: pre-wrap; }
           <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>1</number>
          </property>
          <property name="bottomMargin">
           <number>0</number>
@@ -839,6 +845,9 @@ p, li { white-space: pre-wrap; }
          <property name="sizeConstraint">
           <enum>QLayout::SetDefaultConstraint</enum>
          </property>
+         <property name="formAlignment">
+          <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
+         </property>
          <property name="horizontalSpacing">
           <number>1</number>
          </property>
@@ -852,7 +861,7 @@ p, li { white-space: pre-wrap; }
           <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>1</number>
          </property>
          <property name="bottomMargin">
           <number>0</number>
