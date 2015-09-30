@@ -1,11 +1,11 @@
 try:
     from PyQt4.QtCore import Qt, QTimer, pyqtSlot
-    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QIcon, QLabel, QSplashScreen
+    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QIcon, QSplashScreen
     from PyQt4 import uic
 except ImportError:
     from PyQt5.QtCore import Qt, QTimer, pyqtSlot
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QLabel, QSplashScreen
+    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QSplashScreen
     from PyQt5 import uic
 
 # Local imports
@@ -24,45 +24,32 @@ class MainWindow(QMainWindow):
         self.app = app
         uic.loadUi("./data/graphics/mainwindow.ui", self)
 
-        # Radarwin bar
-        self.zoomin.setIcon(QIcon(QPixmap('data/graphics/icons/zoomin.png')))
-        self.zoomout.setIcon(QIcon(QPixmap('data/graphics/icons/zoomout.png')))
+        # list of buttons to connect to, give icons, and tooltips
+        #           the button         the icon      the tooltip    the callback
+        buttons = { self.zoomin  :    ['zoomin.png', 'Zoom in', self.buttonClicked],
+                    self.zoomout :    ['zoomout.png', 'Zoom out', self.buttonClicked],
+                    self.ic :         ['stop.png', 'Initial condition', self.buttonClicked],
+                    self.op :         ['play.png', 'Operate', self.buttonClicked],
+                    self.hold :       ['pause.png', 'Hold', self.buttonClicked],
+                    self.fast :       ['fwd.png', 'Enable fast-time', self.buttonClicked],
+                    self.fast10 :     ['ffwd.png', 'Fast-forward 10 seconds', self.buttonClicked],
+                    self.sameic :     ['frwd.png', 'Restart same IC', self.buttonClicked],
+                    self.showac :     ['AC.png', 'Show/hide aircraft', self.buttonClicked],
+                    self.showpz :     ['PZ.png', 'Show/hide PZ', self.buttonClicked],
+                    self.showapt :    ['apt.png', 'Show/hide airports', self.buttonClicked],
+                    self.showwpt :    ['wpt.png', 'Show/hide waypoints', self.buttonClicked],
+                    self.showlabels : ['lbl.png', 'Show/hide text labels', self.buttonClicked],
+                    self.showmap :    ['geo.png', 'Show/hide satellite image', self.buttonClicked]}
 
-        # Tab 1
-        self.ic.setIcon(QIcon(QPixmap('data/graphics/icons/stop.png')))
-        self.ic.setToolTip('Initial condition')
-        self.op.setIcon(QIcon(QPixmap('data/graphics/icons/play.png')))
-        self.op.setToolTip('Operate')
-        self.hold.setIcon(QIcon(QPixmap('data/graphics/icons/pause.png')))
-        self.hold.setToolTip('Hold')
-        self.fast.setIcon(QIcon(QPixmap('data/graphics/icons/fwd.png')))
-        self.fast.setToolTip('Enable fast-time')
-        self.fast10.setIcon(QIcon(QPixmap('data/graphics/icons/ffwd.png')))
-        self.sameic.setIcon(QIcon(QPixmap('data/graphics/icons/frwd.png')))
-        self.sameic.setToolTip('Restart same IC')
-
-        # Tab 2
-        self.showac.setIcon(QIcon(QPixmap('data/graphics/icons/AC.png')))
-        self.showpz.setIcon(QIcon(QPixmap('data/graphics/icons/PZ.png')))
-        self.showapt.setIcon(QIcon(QPixmap('data/graphics/icons/apt.png')))
-        self.showwpt.setIcon(QIcon(QPixmap('data/graphics/icons/wpt.png')))
-        self.showlabels.setIcon(QIcon(QPixmap('data/graphics/icons/lbl.png')))
-        self.showmap.setIcon(QIcon(QPixmap('data/graphics/icons/geo.png')))
-
-        self.zoomin.clicked.connect(self.buttonClicked)
-        self.zoomout.clicked.connect(self.buttonClicked)
-        self.ic.clicked.connect(self.buttonClicked)
-        self.hold.clicked.connect(self.buttonClicked)
-        self.op.clicked.connect(self.buttonClicked)
-        self.sameic.clicked.connect(self.buttonClicked)
-        self.fast.clicked.connect(self.buttonClicked)
-        self.fast10.clicked.connect(self.buttonClicked)
-        self.showac.clicked.connect(self.buttonClicked)
-        self.showpz.clicked.connect(self.buttonClicked)
-        self.showapt.clicked.connect(self.buttonClicked)
-        self.showwpt.clicked.connect(self.buttonClicked)
-        self.showlabels.clicked.connect(self.buttonClicked)
-        self.showmap.clicked.connect(self.buttonClicked)
+        for b in buttons.iteritems():
+            # Set icon
+            if not b[1][0] is None:
+                b[0].setIcon(QIcon(QPixmap('data/graphics/icons/' + b[1][0])))
+            # Set tooltip
+            if not b[1][1] is None:
+                b[0].setToolTip(b[1][1])
+            # Connect clicked signal
+            b[0].clicked.connect(b[1][2])
 
         self.menubar = QMenuBar(self)
 
