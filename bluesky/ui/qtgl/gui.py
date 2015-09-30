@@ -119,7 +119,7 @@ class Gui(QApplication):
         if receiver is self:
             if event.type() == PanZoomEventType:
                 if event.panzoom_type() == PanZoomEvent.Zoom:
-                    event.vorigin = (0, 0)
+                    event.vorigin = (self.radarwidget.width / 2, self.radarwidget.height / 2)
 
                 if event.panzoom_type() == PanZoomEvent.Pan:
                     event.value = (2.0 * event.value[0] / (self.radarwidget.zoom * self.radarwidget.ar),
@@ -138,10 +138,7 @@ class Gui(QApplication):
                 return True
 
             elif event.type() == DisplayShapeEventType:
-                if event.data is None:
-                    self.radarwidget.delpoly(event.name)
-                else:
-                    self.radarwidget.addpoly(event.name, event.data)
+                self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
                 self.win.siminfoLabel.setText('<b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>sim_t</b> = %.1f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'

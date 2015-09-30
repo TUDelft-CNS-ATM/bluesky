@@ -8,6 +8,9 @@ except ImportError:
     from PyQt5.QtWidgets import QMainWindow, QMenuBar, QLabel, QSplashScreen
     from PyQt5 import uic
 
+# Local imports
+from uievents import PanZoomEvent
+
 
 class Splash(QSplashScreen):
     def __init__(self):
@@ -20,6 +23,10 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.app = app
         uic.loadUi("./data/graphics/mainwindow.ui", self)
+
+        # Radarwin bar
+        self.zoomin.setIcon(QIcon(QPixmap('data/graphics/icons/zoomin.png')))
+        self.zoomout.setIcon(QIcon(QPixmap('data/graphics/icons/zoomout.png')))
 
         # Tab 1
         self.ic.setIcon(QIcon(QPixmap('data/graphics/icons/stop.png')))
@@ -42,6 +49,8 @@ class MainWindow(QMainWindow):
         self.showlabels.setIcon(QIcon(QPixmap('data/graphics/icons/lbl.png')))
         self.showmap.setIcon(QIcon(QPixmap('data/graphics/icons/geo.png')))
 
+        self.zoomin.clicked.connect(self.buttonClicked)
+        self.zoomout.clicked.connect(self.buttonClicked)
         self.ic.clicked.connect(self.buttonClicked)
         self.hold.clicked.connect(self.buttonClicked)
         self.op.clicked.connect(self.buttonClicked)
@@ -83,8 +92,8 @@ class MainWindow(QMainWindow):
         self.setMenuBar(self.menubar)
 
         # Siminfo label
-        self.siminfoLabel = QLabel('F = 0 Hz')
-        self.verticalLayout.addWidget(self.siminfoLabel)
+        # self.siminfoLabel = QLabel('F = 0 Hz')
+        # self.verticalLayout.addWidget(self.siminfoLabel)
 
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
@@ -96,7 +105,11 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def buttonClicked(self):
-        if self.sender() == self.ic:
+        if self.sender() == self.zoomin:
+            self.app.notify(self.app, PanZoomEvent(PanZoomEvent.Zoom, 1.4142135623730951))
+        elif self.sender() == self.zoomout:
+            self.app.notify(self.app, PanZoomEvent(PanZoomEvent.Zoom, 0.70710678118654746))
+        elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
             self.app.stack('IC IC')

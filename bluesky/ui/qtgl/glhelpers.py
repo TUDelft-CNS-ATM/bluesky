@@ -205,22 +205,28 @@ class RenderObject(object):
         return buf_id
 
     def bind_vertex_attribute(self, data, storagetype=gl.GL_STATIC_DRAW):
-        return self.bind_attribute(RenderObject.attrib_vertex, 2, data, storagetype)
+        self.vertexbuf = self.bind_attribute(RenderObject.attrib_vertex, 2, data, storagetype)
+        return self.vertexbuf
 
     def bind_texcoords_attribute(self, data, size=2, storagetype=gl.GL_STATIC_DRAW):
-        return self.bind_attribute(RenderObject.attrib_texcoords, size, data, storagetype)
+        self.texcoordsbuf = self.bind_attribute(RenderObject.attrib_texcoords, size, data, storagetype)
+        return self.texcoordsbuf
 
     def bind_color_attribute(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=1):
-        return self.bind_attribute(RenderObject.attrib_color, 3, data, storagetype, instance_divisor)
+        self.colorbuf = self.bind_attribute(RenderObject.attrib_color, 3, data, storagetype, instance_divisor)
+        return self.colorbuf
 
     def bind_lat_attribute(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=1):
-        return self.bind_attribute(RenderObject.attrib_lat, 1, data, storagetype, instance_divisor)
+        self.latbuf = self.bind_attribute(RenderObject.attrib_lat, 1, data, storagetype, instance_divisor)
+        return self.latbuf
 
     def bind_lon_attribute(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=1):
-        return self.bind_attribute(RenderObject.attrib_lon, 1, data, storagetype, instance_divisor)
+        self.lonbuf = self.bind_attribute(RenderObject.attrib_lon, 1, data, storagetype, instance_divisor)
+        return self.lonbuf
 
     def bind_orientation_attribute(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=1):
-        return self.bind_attribute(RenderObject.attrib_orientation, 1, data, storagetype, instance_divisor)
+        self.orientationbuf =  self.bind_attribute(RenderObject.attrib_orientation, 1, data, storagetype, instance_divisor)
+        return self.orientationbuf
 
     def set_vertex_count(self, count):
         self.vertex_count = count

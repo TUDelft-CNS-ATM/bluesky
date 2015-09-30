@@ -110,7 +110,10 @@ class ScreenIO(QObject):
         qapp.postEvent(qapp.instance(), DisplayFlagEvent(switch, argument))
 
     def objappend(self, objtype, objname, data_in):
-        if objtype == 1 or objtype == 4:
+        if data_in is None:
+            # This is an object delete event
+            data = None
+        elif objtype == 1 or objtype == 4:
             # LINE(1) or POLY(4)
             data = np.array(data_in, dtype=np.float32)
         elif objtype == 2:

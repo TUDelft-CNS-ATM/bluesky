@@ -1,4 +1,4 @@
-from ..tools.misc import findnearest, cmdsplit
+from ..tools import kwikdist, findnearest, cmdsplit
 from math import cos, atan2, radians, degrees
 
 
@@ -35,7 +35,8 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "AREA": "latlon,-,latlon",
                 "BOX": "-,latlon,-,latlon",
                 "POLY": "-,latlon,...",
-                "POLYGON": "-,latlon,..."
+                "POLYGON": "-,latlon,...",
+                "CIRCLE": "-,latlon,-,dist"
                 }
 
     cmdargs = cmdsplit(cmdline)
@@ -103,6 +104,10 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
                 elif clicktype == "latlon":
                     todisplay += str(round(lat, 6)) + "," + str(round(lon, 6)) + " "
+
+                elif clicktype == "dist":
+                    latref, lonref = float(cmdargs[2]), float(cmdargs[3])
+                    todisplay += str(round(kwikdist(latref, lonref, lat, lon), 6))
 
                 elif clicktype == "apt":
                     idx = findnearest(lat, lon, navdb.aplat, navdb.aplon)

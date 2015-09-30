@@ -883,9 +883,11 @@ class Commandstack:
                         scr.echo("AREA fir,radius[,lowalt]")
                     elif numargs == 1:
                         if cmdargs[1] == "OFF":
-                            traf.swarea = False
-                            scr.drawradbg() # redraw radar background
-                            traf.area = ""
+                            if traf.swarea:
+                                traf.swarea = False
+                                scr.redrawradbg = True
+                                traf.area = ""
+                                scr.objappend(2, "AREA", None)
                         if cmdargs[1] == "FIR":
                             scr.echo("Specify FIR")
 
@@ -909,6 +911,7 @@ class Commandstack:
                         traf.area = "Square"
                         traf.swarea = True
                         scr.redrawradbg = True
+                        scr.objappend(2, "AREA", [lat0, lon0, lat1, lon1])
 
                         # Avoid mass delete due to redefinition of area
                         traf.inside = traf.ntraf * [False]

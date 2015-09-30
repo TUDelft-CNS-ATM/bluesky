@@ -330,7 +330,7 @@ class RadarWidget(QGLWidget):
         # Update width, height, and aspect ratio
         self.width, self.height = width / pixel_ratio, height / pixel_ratio
         self.ar = float(width) / max(1,float(height))
-        BlueSkyProgram.set_win_width_height(width, height)
+        BlueSkyProgram.set_win_width_height(self.width, self.height)
 
         # paint within the whole window
         gl.glViewport(0, 0, width, height)
@@ -385,14 +385,21 @@ class RadarWidget(QGLWidget):
             if self.route_acidx >= 0:
                 update_array_buffer(self.routebuf, np.array([data.lon[self.route_acidx], data.lat[self.route_acidx]], dtype=np.float32))
 
-    def delpoly(self, name):
-        del self.polys[name]
-
-    def addpoly(self, name, data_in):
-        newpoly = RenderObject(gl.GL_LINE_LOOP, vertex_count=len(data_in)/2)
-        newpoly.bind_vertex_attribute(data_in)
-        newpoly.bind_color_attribute(np.array(blue, dtype=np.float32))
-        self.polys[name] = newpoly
+    def updatePolygon(self, name, data_in):
+        if name in self.polys:
+            if data_in is None:
+                del self.polys[name]
+            else:
+                update_array_buffer(self.polys[name].vertexbuf, data_in)
+                self.polys[name].set_vertex_count(len(data_in) / 2)
+        else:
+            if data_in is None:
+                print "Delete '" + name + "': object not found!"
+            else:
+                newpoly = RenderObject(gl.GL_LINE_LOOP, vertex_count=len(data_in)/2)
+                newpoly.bind_vertex_attribute(data_in)
+                newpoly.bind_color_attribute(np.array(blue, dtype=np.float32))
+                self.polys[name] = newpoly
 
     def previewpoly(self, shape_type, data_in=None):
         if shape_type is None:
