@@ -414,8 +414,8 @@ class Perf():
         self.refcas = np.append(self.refcas, vtas2cas(coeffBS.cr_spd[self.coeffidx], 35000*ft)) # nominal cruise CAS
 
         # limits   
-        self.vm_to = np.append(self.vmto, coeffBS.vmto[self.coeffidx])
-        self.vm_ld = np.append(self.vmld, coeffBS.vmld[self.coeffidx])   
+        self.vm_to = np.append(self.vm_to, coeffBS.vmto[self.coeffidx])
+        self.vm_ld = np.append(self.vm_ld, coeffBS.vmld[self.coeffidx])   
         self.vmto = np.append(self.vmto, 0.0)
         self.vmic = np.append(self.vmic, 0.0)        
         self.vmcr = np.append(self.vmcr, 0.0)

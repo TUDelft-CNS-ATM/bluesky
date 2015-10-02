@@ -420,16 +420,15 @@ class Commandstack:
                 #----------------------------------------------------------------------
                 elif cmd == "DEL":
                     if numargs == 1:
-                        if cmdargs[1]=="LINE" or cmdargs[1]=="LINES":
-                            scr.objdel() # delete raw objects
+                        if cmdargs[1] == "LINE" or cmdargs[1] == "LINES":
+                            scr.objdel()  # delete raw objects
                         else:
                             success = traf.delete(cmdargs[1].upper())
                             if not success:
-                               sim.datalog.write(sim.t,
-                                          "DEL: " + cmdargs[1] + " not found.")
+                                scr.echo("DEL: " + cmdargs[1] + " not found.")
 
                 #----------------------------------------------------------------------
-                # ALT command: altitude [ft/FLnnn], [VS [fpm]] 
+                # ALT command: altitude [ft/FLnnn], [VS [fpm]]
                 # altitude autopilot command
                 #----------------------------------------------------------------------
                 elif cmd == "ALT":
@@ -560,7 +559,7 @@ class Commandstack:
                             # Destination is default waypoint
                             if cmd == "DEST":
                                 traf.dest[idx] = cmdargs[2].upper().strip()
-                                iwp = traf.route[idx].addwpt(traf,i,traf.dest[idx],
+                                iwp = traf.route[idx].addwpt(traf,idx,traf.dest[idx],
                                                                traf.route[idx].dest,
                                                                traf.lat[idx], traf.lon[idx],
                                                                0.0, traf.cas[idx])
@@ -581,7 +580,7 @@ class Commandstack:
                             # Origin: bookkeeping only for now
                             else:
                                 traf.orig[idx] = cmdargs[2]
-                                iwp = traf.route[idx].addwpt(traf,i,traf.orig[idx],traf.route[idx].orig,
+                                iwp = traf.route[idx].addwpt(traf,idx,traf.orig[idx],traf.route[idx].orig,
                                                  traf.lat[idx], traf.lon[idx],
                                                           0.0, traf.cas[idx])
                                 if iwp < 0:
@@ -1223,7 +1222,7 @@ class Commandstack:
 
                                 # Add the wpt to route
                                 if wpok: 
-                                    wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
+                                    wpidx = rte.addwpt(traf,idx,name,wptype,lat,lon,alt,spd,afterwp)
                                     norig = int(traf.orig[i]!="")
                                     ndest = int(traf.dest[i]!="")
 
