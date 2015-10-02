@@ -368,6 +368,10 @@ class RadarWidget(QGLWidget):
             rawlabel = ''
             color    = np.zeros((self.naircraft, 3), dtype=np.float32)
             for i in range(self.naircraft):
+                if np.isnan(data.tas[i]):
+                    print 'NaN in %d: %s' % (i, data.id[i])
+                    data.tas[i] = 0.0
+
                 rawlabel += '%-6sFL%03d %-6d' % (data.id[i], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
                 confidx = data.iconf[i]
                 if confidx >= 0:

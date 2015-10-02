@@ -78,10 +78,6 @@ class MainWindow(QMainWindow):
 
         self.setMenuBar(self.menubar)
 
-        # Siminfo label
-        # self.siminfoLabel = QLabel('F = 0 Hz')
-        # self.verticalLayout.addWidget(self.siminfoLabel)
-
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
