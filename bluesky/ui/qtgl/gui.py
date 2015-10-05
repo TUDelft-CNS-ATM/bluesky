@@ -111,9 +111,9 @@ class Gui(QApplication):
         self.nd  = ND(shareWidget=self.radarwidget)
 
         # Enable HiDPI support
-        self.setAttribute(Qt.AA_UseHighDpiPixmaps)
+#        self.setAttribute(Qt.AA_UseHighDpiPixmaps)
         # Share GL context between GL widgets (i.e., widgets share buffers, textures, ...)
-        self.setAttribute(Qt.AA_ShareOpenGLContexts)
+#        self.setAttribute(Qt.AA_ShareOpenGLContexts)
 
         timer = QTimer(self)
         timer.timeout.connect(self.radarwidget.updateGL)
@@ -239,7 +239,7 @@ class Gui(QApplication):
                 for g in event.gestures():
                     if g.gestureType() == Qt.PinchGesture:
                         origin = (g.centerPoint().x(), g.centerPoint().y())
-                        zoom  *= g.scaleFactor() / g.lastScaleFactor()
+                        zoom  *= g.scaleFactor() #/ g.lastScaleFactor()
 
                 return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
 
