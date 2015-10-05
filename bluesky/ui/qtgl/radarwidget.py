@@ -57,7 +57,6 @@ class RadarWidget(QGLWidget):
 
         # The number of aircraft in the simulation
         self.naircraft   = 0
-        self.ncpalines   = 0
         self.nwaypoints  = 0
         self.nairports   = 0
         self.route_acidx = -1
@@ -122,7 +121,7 @@ class RadarWidget(QGLWidget):
         self.aclabels.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, text_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
 
         # ------- Conflict CPA lines ---------------------
-        self.cpalines = RenderObject()
+        self.cpalines = RenderObject(gl.GL_LINES)
         self.cpalines.bind_vertex_attribute(self.confcpabuf)
         self.cpalines.bind_color_attribute(np.array(amber, dtype=np.float32))
 
@@ -253,8 +252,8 @@ class RadarWidget(QGLWidget):
         if self.show_traf:
             self.route.draw()
 
-        if self.ncpalines > 0 and self.show_traf:
-            self.cpalines.draw(gl.GL_LINES, 0, self.ncpalines)
+        if self.show_traf:
+            self.cpalines.draw()
 
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
@@ -347,8 +346,9 @@ class RadarWidget(QGLWidget):
             update_array_buffer(self.achdgbuf, data.trk)
 
             # CPA lines to indicate conflicts
-            self.ncpalines = len(data.confcpalat)
-            cpalines       = np.zeros((2 * self.ncpalines, 2), dtype=np.float32)
+            ncpalines = len(data.confcpalat)
+            cpalines  = np.zeros(4 * ncpalines, dtype=np.float32)
+            self.cpalines.set_vertex_count(2 * ncpalines)
 
             # Labels and colors
             rawlabel = ''
@@ -366,8 +366,8 @@ class RadarWidget(QGLWidget):
                 confidx = data.iconf[i]
                 if confidx >= 0:
                     color[i, :] = amber
-                    cpalines[2 * confidx, :]     = (data.lon[i], data.lat[i])
-                    cpalines[2 * confidx + 1, :] = (data.confcpalon[confidx], data.confcpalat[confidx])
+                    cpalines[4 * confidx : 4 * confidx + 4] = [ data.lat[i], data.lon[i],
+                                                                data.confcpalat[confidx], data.confcpalon[confidx]]
                 else:
                     color[i, :] = green
 
