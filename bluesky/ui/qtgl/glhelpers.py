@@ -28,6 +28,8 @@ import OpenGL.GL as gl
 import numpy as np
 from ctypes import c_void_p, c_float, c_int, Structure, pointer
 
+VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = range(4)
+
 
 def load_texture(fname):
     img = QImage(fname)
@@ -55,16 +57,21 @@ class BlueSkyProgram():
     # Static variables
     initialized = False
     globaldata  = GlobalData()
-
-    def __init__(self):
-        self.shaders = []
+    programs    = dict()
 
     def __init__(self, vertex_shader, fragment_shader):
-        self.shaders = []
-        self.compile_shader(vertex_shader, gl.GL_VERTEX_SHADER)
-        self.compile_shader(fragment_shader, gl.GL_FRAGMENT_SHADER)
-        self.link()
-        self.init()
+        if (vertex_shader, fragment_shader) in BlueSkyProgram.programs:
+            self.program = BlueSkyProgram.programs[(vertex_shader, fragment_shader)]
+            gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
+            gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 1, BlueSkyProgram.ubo_globaldata)
+            self.init()
+        else:
+            self.shaders = []
+            self.compile_shader(vertex_shader, gl.GL_VERTEX_SHADER)
+            self.compile_shader(fragment_shader, gl.GL_FRAGMENT_SHADER)
+            self.link()
+            self.init()
+            BlueSkyProgram.programs[(vertex_shader, fragment_shader)] = self.program
 
     def compile_shader(self, fname, type):
         """Compile a vertex shader from source."""
@@ -398,5 +405,6 @@ class TextObject(RenderObject):
 
     @staticmethod
     def init_shader(program):
-        TextObject.loc_char_size = gl.glGetUniformLocation(program.program, 'char_size')
-        TextObject.loc_block_size = gl.glGetUniformLocation(program.program, 'block_size')
+        if TextObject.loc_char_size == -1:
+            TextObject.loc_char_size = gl.glGetUniformLocation(program.program, 'char_size')
+            TextObject.loc_block_size = gl.glGetUniformLocation(program.program, 'block_size')

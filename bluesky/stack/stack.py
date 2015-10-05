@@ -691,10 +691,12 @@ class Commandstack:
                 #----------------------------------------------------------------------
                 # NAVDISP/ND  acid:  Activate Navdisplay mode
                 #----------------------------------------------------------------------
-#                elif cmd == "ND" or cmd == "NAVDISP":
-#
-#                    if numargs < 1:  # Help text
-#                        scr.echo("NAVDISP acid/OFF")
+                elif cmd == "ND" or cmd == "NAVDISP":
+
+                    if numargs < 1:  # Help text
+                        scr.echo("NAVDISP acid/OFF")
+                    else:
+                        scr.feature("ND", cmdargs[1])
 #                        if scr.swnavdisp:
 #                            scr.echo("Ownship is" + scr.ndacid)
 #                        else:

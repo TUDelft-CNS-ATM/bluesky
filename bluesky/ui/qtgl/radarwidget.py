@@ -1,22 +1,21 @@
 try:
     from PyQt4.QtCore import Qt
-    from PyQt4.QtOpenGL import QGLWidget, QGLFormat, QGLContext
+    from PyQt4.QtOpenGL import QGLWidget
     QT_VERSION = 4
 except ImportError:
     from PyQt5.QtCore import Qt
-    from PyQt5.QtOpenGL import QGLWidget, QGLFormat, QGLContext
+    from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
 import numpy as np
 import OpenGL.GL as gl
 
 # Local imports
 from ...tools.aero import ft, nm, kts
-from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_array_buffer
+from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_array_buffer, \
+                      VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN
 from uievents import PanZoomEvent, PanZoomEventType
 from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
 
-
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 
 # Static defines
 MAX_NAIRCRAFT        = 10000
@@ -49,24 +48,12 @@ class RadarWidget(QGLWidget):
     color_route = (1.0, 0.0, 1.0)
     coastlinecolor = (84.0/255.0, 84.0/255.0, 114.0/255.0)
 
-    def __init__(self, navdb):
-        f = QGLFormat()
-        f.setVersion(3, 3)
-        f.setProfile(QGLFormat.CoreProfile)
-        f.setDoubleBuffer(True)
-        if QT_VERSION == 4:
-            QGLWidget.__init__(self, QGLContext(f, None))
-        else:
-            # Qt 5
-            QGLWidget.__init__(self, QGLContext(f))
-
-        print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
-
+    def __init__(self, navdb, shareWidget=None):
+        super(RadarWidget, self).__init__(shareWidget=shareWidget)
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.grabGesture(Qt.PanGesture)
         self.grabGesture(Qt.PinchGesture)
         self.grabGesture(Qt.SwipeGesture)
-        self.setAutoBufferSwap(False)
 
         # The number of aircraft in the simulation
         self.naircraft   = 0
@@ -313,7 +300,6 @@ class RadarWidget(QGLWidget):
         # Unbind everything
         RenderObject.unbind_all()
         gl.glUseProgram(0)
-        self.swapBuffers()
 
     def resizeGL(self, width, height):
         """Called upon window resizing: reinitialize the viewport."""

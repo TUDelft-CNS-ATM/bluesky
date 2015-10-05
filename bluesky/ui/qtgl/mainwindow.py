@@ -1,9 +1,9 @@
 try:
-    from PyQt4.QtCore import Qt, QTimer, pyqtSlot
+    from PyQt4.QtCore import Qt, pyqtSlot
     from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QIcon, QSplashScreen
     from PyQt4 import uic
 except ImportError:
-    from PyQt5.QtCore import Qt, QTimer, pyqtSlot
+    from PyQt5.QtCore import Qt, pyqtSlot
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QMenuBar, QSplashScreen
     from PyQt5 import uic
@@ -81,10 +81,6 @@ class MainWindow(QMainWindow):
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
-
-        timer = QTimer(self)
-        timer.timeout.connect(radarwidget.updateGL)
-        timer.start(50)
 
     @pyqtSlot()
     def buttonClicked(self):

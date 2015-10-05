@@ -1,10 +1,10 @@
 try:
-    from PyQt4.QtCore import Qt, QEvent
+    from PyQt4.QtCore import Qt, QEvent, QTimer
     from PyQt4.QtGui import QColor, QApplication, QFileDialog
     from PyQt4.QtOpenGL import QGLFormat
     print('Using Qt4 for windows and widgets')
 except ImportError:
-    from PyQt5.QtCore import Qt, QEvent
+    from PyQt5.QtCore import Qt, QEvent, QTimer
     from PyQt5.QtGui import QColor
     from PyQt5.QtWidgets import QApplication, QFileDialog
     from PyQt5.QtOpenGL import QGLFormat
@@ -17,6 +17,7 @@ from mainwindow import MainWindow, Splash
 from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType
 from radarwidget import RadarWidget
+from nd import ND
 import autocomplete as ac
 from ...tools.misc import cmdsplit
 
@@ -93,16 +94,31 @@ class Gui(QApplication):
         self.splash.showMessage('Constructing main window')
         self.processEvents()
 
+        # Check and set OpenGL capabilities
+        if not QGLFormat.hasOpenGL():
+            raise RuntimeError('No OpenGL support detected for this system!')
+        else:
+            f = QGLFormat()
+            f.setVersion(3, 3)
+            f.setProfile(QGLFormat.CoreProfile)
+            f.setDoubleBuffer(True)
+            QGLFormat.setDefaultFormat(f)
+            print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
+
         # Create the main window
         self.radarwidget = RadarWidget(navdb)
         self.win = MainWindow(self, self.radarwidget)
-
-        # Check OpenGL capabilities
-        if not QGLFormat.hasOpenGL():
-            raise RuntimeError('No OpenGL support detected for this system!')
+        self.nd  = ND(shareWidget=self.radarwidget)
 
         # Enable HiDPI support
         self.setAttribute(Qt.AA_UseHighDpiPixmaps)
+        # Share GL context between GL widgets (i.e., widgets share buffers, textures, ...)
+        self.setAttribute(Qt.AA_ShareOpenGLContexts)
+
+        timer = QTimer(self)
+        timer.timeout.connect(self.radarwidget.updateGL)
+        timer.timeout.connect(self.nd.updateGL)
+        timer.start(50)
 
     def setSimEventTarget(self, obj):
         self.simevent_target = obj
@@ -183,6 +199,10 @@ class Gui(QApplication):
                 elif event.switch == "TRAF":
                     self.radarwidget.show_traf = not self.radarwidget.show_traf
 
+                # ND window for selected aircraft
+                elif event.switch == "ND":
+                    self.nd.setVisible(not self.nd.isVisible())
+
                 return True
 
         # Mouse/trackpad event handling for the Radar widget
@@ -239,6 +259,7 @@ class Gui(QApplication):
                         else:
                             self.command_line += todisplay
                         if len(tostack) > 0:
+                            self.command_history.append(tostack)
                             self.stack(tostack)
 
             elif event.type() == QEvent.MouseMove:
@@ -352,7 +373,6 @@ class Gui(QApplication):
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
     def show_file_dialog(self):
-        print 'here'
         response = QFileDialog.getOpenFileName(self.win, 'Open file', 'data/scenario', 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
