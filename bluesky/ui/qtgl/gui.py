@@ -145,7 +145,7 @@ class Gui(QApplication):
                 if event.zoom is not None:
                     event.origin = (self.radarwidget.width / 2, self.radarwidget.height / 2)
 
-                if event.pan is not None:
+                if event.pan is not None and not event.absolute:
                     event.pan = (2.0 * event.pan[0] / (self.radarwidget.zoom * self.radarwidget.ar),
                                  2.0 * event.pan[1] / (self.radarwidget.zoom * self.radarwidget.flat_earth))
 
