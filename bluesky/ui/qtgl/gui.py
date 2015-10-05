@@ -201,6 +201,7 @@ class Gui(QApplication):
 
                 # ND window for selected aircraft
                 elif event.switch == "ND":
+                    self.nd.setWindowTitle(event.argument)
                     self.nd.setVisible(not self.nd.isVisible())
 
                 return True
