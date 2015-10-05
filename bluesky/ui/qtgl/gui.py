@@ -2,12 +2,14 @@ try:
     from PyQt4.QtCore import Qt, QEvent, QTimer
     from PyQt4.QtGui import QColor, QApplication, QFileDialog
     from PyQt4.QtOpenGL import QGLFormat
+    QT_VERSION = 4
     print('Using Qt4 for windows and widgets')
 except ImportError:
     from PyQt5.QtCore import Qt, QEvent, QTimer
     from PyQt5.QtGui import QColor
     from PyQt5.QtWidgets import QApplication, QFileDialog
     from PyQt5.QtOpenGL import QGLFormat
+    QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
 import numpy as np
 
@@ -20,6 +22,10 @@ from radarwidget import RadarWidget
 from nd import ND
 import autocomplete as ac
 from ...tools.misc import cmdsplit
+
+import platform
+
+is_osx = platform.system() == 'Darwin'
 
 usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'POS' : 'acid',
@@ -105,15 +111,14 @@ class Gui(QApplication):
             QGLFormat.setDefaultFormat(f)
             print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
 
-        # Create the main window
+        # Create the main window and related widgets
         self.radarwidget = RadarWidget(navdb)
         self.win = MainWindow(self, self.radarwidget)
         self.nd  = ND(shareWidget=self.radarwidget)
 
-        # Enable HiDPI support
-#        self.setAttribute(Qt.AA_UseHighDpiPixmaps)
-        # Share GL context between GL widgets (i.e., widgets share buffers, textures, ...)
-#        self.setAttribute(Qt.AA_ShareOpenGLContexts)
+        # Enable HiDPI support (Qt5 only)
+        if QT_VERSION == 5:
+            self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         timer = QTimer(self)
         timer.timeout.connect(self.radarwidget.updateGL)
@@ -137,12 +142,12 @@ class Gui(QApplication):
         # Events from the simulation thread
         if receiver is self:
             if event.type() == PanZoomEventType:
-                if event.panzoom_type() == PanZoomEvent.Zoom:
-                    event.vorigin = (self.radarwidget.width / 2, self.radarwidget.height / 2)
+                if event.zoom is not None:
+                    event.origin = (self.radarwidget.width / 2, self.radarwidget.height / 2)
 
-                if event.panzoom_type() == PanZoomEvent.Pan:
-                    event.value = (2.0 * event.value[0] / (self.radarwidget.zoom * self.radarwidget.ar),
-                                   2.0 * event.value[1] / (self.radarwidget.zoom * self.radarwidget.flat_earth))
+                if event.pan is not None:
+                    event.pan = (2.0 * event.pan[0] / (self.radarwidget.zoom * self.radarwidget.ar),
+                                 2.0 * event.pan[1] / (self.radarwidget.zoom * self.radarwidget.flat_earth))
 
                 # send the pan/zoom event to the radarwidget
                 receiver = self.radarwidget
@@ -223,25 +228,36 @@ class Gui(QApplication):
                     except:
                         zoom *= (1.0 + 0.001 * event.delta())
 
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(zoom=zoom, origin=origin))
                 # For touchpad scroll (2D) is used for panning
                 else:
                     try:
                         dlat =  0.01 * event.pixelDelta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
                         dlon = -0.01 * event.pixelDelta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
-                        return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (dlat, dlon)))
+                        return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(dlat, dlon)))
                     except:
                         pass
+
             # For touchpad, pinch gesture is used for zoom
             elif event.type() == QEvent.Gesture:
                 origin = (0, 0)
                 zoom   = 1.0
+                pan    = None
+                dlat   = 0.0
+                dlon   = 0.0
                 for g in event.gestures():
                     if g.gestureType() == Qt.PinchGesture:
                         origin = (g.centerPoint().x(), g.centerPoint().y())
-                        zoom  *= g.scaleFactor() #/ g.lastScaleFactor()
+                        zoom  *= g.scaleFactor()
+                        if is_osx:
+                            zoom /= g.lastScaleFactor()
 
-                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
+                    elif g.gestureType() == Qt.PanGesture:
+                        dlat += 0.01 * g.delta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
+                        dlon -= 0.01 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
+                        pan = (dlat, dlon)
+
+                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=pan, zoom=zoom, origin=origin))
 
             elif event.type() == QEvent.MouseButtonPress:
                 event_processed = True
@@ -269,7 +285,7 @@ class Gui(QApplication):
                 if event.buttons() & Qt.RightButton:
                     pan = (0.003 * (event.y() - self.prevmousepos[1]), 0.003 * (self.prevmousepos[0] - event.x()))
                     self.prevmousepos = (event.x(), event.y())
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, pan))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=pan))
 
         # Other events
         if event.type() == QEvent.KeyPress:
@@ -278,13 +294,13 @@ class Gui(QApplication):
                 dlat = 1.0  / (self.radarwidget.zoom * self.radarwidget.ar)
                 dlon = 1.0  / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                 if event.key() == Qt.Key_Up:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (dlat, 0.0)))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(dlat, 0.0)))
                 elif event.key() == Qt.Key_Down:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (-dlat, 0.0)))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(-dlat, 0.0)))
                 elif event.key() == Qt.Key_Left:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (0.0, -dlon)))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(0.0, -dlon)))
                 elif event.key() == Qt.Key_Right:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(PanZoomEvent.Pan, (0.0, dlon)))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(0.0, dlon)))
 
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]

@@ -66,31 +66,9 @@ class ACDataEvent(QEvent):
 
 
 class PanZoomEvent(QEvent):
-    # Internally a panzoom event can be of the following types:
-    Pan, PanAbsolute, Zoom, ZoomAbsolute = range(4)
-
-    def __init__(self, pztype, value, origin=None):
+    def __init__(self, pan=None, zoom=None, origin=None, absolute=False):
         super(PanZoomEvent, self).__init__(PanZoomEventType)
-        self.pztype = pztype
-        self.value = value
-        self.vorigin = origin
-
-    # The corresponding pan lattitude when this is a pan event
-    def panlat(self):
-        return self.value[0]
-
-    # The corresponding pan longitude when this is a pan event
-    def panlon(self):
-        return self.value[1]
-
-    # The corresponding value when this is a zoom event
-    def zoom(self):
-        return self.value
-
-    # Location of the cursor during the event. Used during zoom
-    def origin(self):
-        return self.vorigin
-
-    # Is this a pan or a zoom event?
-    def panzoom_type(self):
-        return self.pztype
+        self.pan      = pan
+        self.origin   = origin
+        self.zoom     = zoom
+        self.absolute = absolute

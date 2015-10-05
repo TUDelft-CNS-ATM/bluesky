@@ -79,14 +79,11 @@ class ScreenIO(QObject):
     def echo(self, text):
         qapp.postEvent(qapp.instance(), StackTextEvent(text))
 
-    def zoom(self, zoomfac):
-        qapp.postEvent(qapp.instance(), PanZoomEvent(PanZoomEvent.Zoom, zoomfac))
+    def zoom(self, zoomfac, absolute=False):
+        qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
 
     def pan(self, pan, absolute=False):
-        if absolute:
-            qapp.postEvent(qapp.instance(), PanZoomEvent(PanZoomEvent.PanAbsolute, pan))
-        else:
-            qapp.postEvent(qapp.instance(), PanZoomEvent(PanZoomEvent.Pan, pan))
+        qapp.postEvent(qapp.instance(), PanZoomEvent(pan=pan, absolute=absolute))
 
     def showroute(self, acid):
         data       = RouteDataEvent()

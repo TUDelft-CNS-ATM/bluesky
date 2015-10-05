@@ -315,14 +315,14 @@ class RadarWidget(QGLWidget):
 
         # Update width, height, and aspect ratio
         self.width, self.height = width / pixel_ratio, height / pixel_ratio
-        self.ar = float(width) / max(1,float(height))
+        self.ar = float(width) / max(1, float(height))
         BlueSkyProgram.set_win_width_height(self.width, self.height)
 
         # paint within the whole window
         gl.glViewport(0, 0, width, height)
 
         # Update zoom
-        self.event(PanZoomEvent(PanZoomEvent.Zoom, zoom, origin))
+        self.event(PanZoomEvent(zoom=zoom, origin=origin))
 
     def update_route_data(self, data):
         self.route_acidx      = data.acidx
@@ -432,15 +432,15 @@ class RadarWidget(QGLWidget):
 
     def event(self, event):
         if event.type() == PanZoomEventType:
-            if event.panzoom_type() == PanZoomEvent.Pan or event.panzoom_type() == PanZoomEvent.PanAbsolute:
-                # Relative pan operation
-                if event.panzoom_type() == PanZoomEvent.Pan:
-                    self.panlat += event.panlat()
-                    self.panlon += event.panlon()
+            if event.pan is not None:
                 # Absolute pan operation
+                if event.absolute:
+                    self.panlat = event.pan[0]
+                    self.panlon = event.pan[1]
+                # Relative pan operation
                 else:
-                    self.panlat = event.panlat()
-                    self.panlon = event.panlon()
+                    self.panlat += event.pan[0]
+                    self.panlon += event.pan[1]
 
                 # Don't pan further than the poles in y-direction
                 self.panlat = min(max(self.panlat, -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
@@ -449,19 +449,23 @@ class RadarWidget(QGLWidget):
                 self.flat_earth = np.cos(np.deg2rad(self.panlat))
                 self.zoom = max(self.zoom, 1.0 / (180.0 * self.flat_earth))
 
-            elif event.panzoom_type() == PanZoomEvent.Zoom:
-                prevzoom = self.zoom
-                glx, gly = self.pixelCoordsToGLxy(event.origin()[0], event.origin()[1])
-                self.zoom *= event.zoom()
+            if event.zoom is not None:
+                if event.absolute:
+                    # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
+                    self.zoom = max(event.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
+                else:
+                    prevzoom = self.zoom
+                    glx, gly = self.pixelCoordsToGLxy(event.origin[0], event.origin[1])
+                    self.zoom *= event.zoom
 
-                # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
-                self.zoom = max(self.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
+                    # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
+                    self.zoom = max(self.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
 
-                # Correct pan so that zoom actions are around the mouse position, not around 0, 0
-                # glxy / zoom1 - pan1 = glxy / zoom2 - pan2
-                # pan2 = pan1 + glxy (1/zoom2 - 1/zoom1)
-                self.panlon = self.panlon - glx * (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
-                self.panlat = self.panlat - gly * (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
+                    # Correct pan so that zoom actions are around the mouse position, not around 0, 0
+                    # glxy / zoom1 - pan1 = glxy / zoom2 - pan2
+                    # pan2 = pan1 + glxy (1/zoom2 - 1/zoom1)
+                    self.panlon = self.panlon - glx * (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
+                    self.panlat = self.panlat - gly * (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
 
                 # Don't pan further than the poles in y-direction
                 self.panlat = min(max(self.panlat, -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))

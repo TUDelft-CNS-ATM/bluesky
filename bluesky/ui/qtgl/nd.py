@@ -57,6 +57,10 @@ class ND(QGLWidget):
 
         self.create_objects()
 
+    def resizeGL(self, width, height):
+        # paint within the whole window
+        gl.glViewport(0, 0, width, height)
+
     def paintGL(self):
         """Paint the scene."""
         # pass if the framebuffer isn't complete yet
