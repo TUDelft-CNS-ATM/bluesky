@@ -443,7 +443,8 @@ class RadarWidget(QGLWidget):
                     self.panlon += event.pan[1]
 
                 # Don't pan further than the poles in y-direction
-                self.panlat = min(max(self.panlat, -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
+                self.panlat = min(max(self.panlat, -90.0 + 1.0 /   \
+                      (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
 
                 # Update flat-earth factor and possibly zoom in case of very wide windows (> 2:1)
                 self.flat_earth = np.cos(np.deg2rad(self.panlat))
