@@ -38,6 +38,7 @@ void main() {
 
     vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
     vec2 flat_earth = vec2(cos(DEG2RAD*panlat), 1.0);
+    mat2 mrot = mat2(cos(DEG2RAD*orientation_in), -sin(DEG2RAD*orientation_in), sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
 
     vec2 position = vec2(lon_in, lat_in);
     if (wrap_dir < -0.1 && position.x > wrap_lon) {
@@ -48,7 +49,7 @@ void main() {
     position -= vec2(panlon, panlat);
     position *= (zoom * flat_earth);
 
-    vec2 vertex = vertex_in;
+    vec2 vertex = mrot * vertex_in;
 
     // When text_dims is non-zero we are drawing instanced
     if (block_size[0] > 0) {

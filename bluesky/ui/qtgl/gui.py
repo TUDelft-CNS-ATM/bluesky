@@ -253,14 +253,11 @@ class Gui(QApplication):
                             zoom /= g.lastScaleFactor()
 
                     elif g.gestureType() == Qt.PanGesture:
-                        print g.delta().x(), g.delta().y()
-                        dx, dy = self.radarwidget.pixelCoordsToGLxy(g.delta().x(), g.delta().y())
-                        dlat += dy / (self.radarwidget.zoom * self.radarwidget.ar)
-                        dlon += dx / (self.radarwidget.zoom * self.radarwidget.flat_earth)
+                        dlat += 0.005 * g.delta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
+                        dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                         pan = (dlat, dlon)
 
-                return super(Gui, self).notify(self.radarwidget, PanZoomEvent \
-                                                        (pan=pan, zoom=zoom, origin=origin))
+                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan, zoom, origin))
 
             elif event.type() == QEvent.MouseButtonPress:
                 event_processed = True

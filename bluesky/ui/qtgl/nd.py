@@ -35,6 +35,15 @@ class ND(QGLWidget):
         self.map.bind_color_attribute(np.array((1.0, 1.0, 1.0), dtype=np.float32))
         self.map.set_vertex_count(len(mapvertices))
 
+        self.ticks = RenderObject(gl.GL_LINES, vertex_count=144)
+        ticks = np.zeros(288, dtype=np.float32)
+        for i in range(72):
+            ticktop = 1.46 if i % 6 == 0 else (1.44 if i % 2 == 0 else 1.42)
+            ticks[4*i  :4*i+2] = (1.4 * sin(radians(i * 5)), -0.7 + 1.4 * cos(radians(i * 5)))
+            ticks[4*i+2:4*i+4] = (ticktop * sin(radians(i * 5)), -0.7 + ticktop * cos(radians(i * 5)))
+        self.ticks.bind_vertex_attribute(ticks)
+        self.ticks.bind_color_attribute(np.array((1.0, 1.0, 1.0), dtype=np.float32))
+
         self.ownship = RenderObject(gl.GL_LINES, vertex_count=6)
         self.ownship.bind_vertex_attribute(np.array([0.0, -0.7, 0.0, -0.82, 0.065, -0.73, -0.065, -0.73, 0.022, -0.8, -0.022, -0.8], dtype=np.float32))
         self.ownship.bind_color_attribute(np.array((1.0, 1.0, 0.0), dtype=np.float32))
@@ -75,6 +84,7 @@ class ND(QGLWidget):
         # Select the non-textured shader
         self.color.use()
         self.map.draw()
+        self.ticks.draw()
         self.ownship.draw()
 
         # Unbind everything
