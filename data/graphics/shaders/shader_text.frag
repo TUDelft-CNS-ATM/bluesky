@@ -14,6 +14,6 @@ void main()
 { 
     // Output color = color of the texture at the specified UV
     //vec4 texcolor = texture(tex_sampler, texcoords_fs);
-    //color = vec4(color_fs, texcolor.a);
+    //color = vec4(color_fs, 1.0);
     color = texture(tex_sampler, texcoords_fs) * vec4(color_fs, 1.0);
 }

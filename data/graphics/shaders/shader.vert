@@ -48,7 +48,7 @@ void main()
 
 	switch (vertex_scale_type) {
 		case VERTEX_IS_GLXY:
-			gl_Position = vec4(vertex_in, 0.0, 1.0);
+			gl_Position = vec4(mrot * vertex_in, 0.0, 1.0);
 			texcoords_fs = texcoords_in;
 			break;
 		case VERTEX_IS_SCREEN:

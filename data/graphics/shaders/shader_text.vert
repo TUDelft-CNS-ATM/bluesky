@@ -1,7 +1,10 @@
 #version 330
+#define VERTEX_IS_LATLON 0
+#define VERTEX_IS_METERS 1
+#define VERTEX_IS_SCREEN 2
+#define VERTEX_IS_GLXY   3
 #define DEG2RAD 0.01745329252
 
-// Uniform block of global data
 // Uniform block of global data
 layout (std140) uniform global_data {
 int wrap_dir;           // Wrap-around direction
@@ -57,7 +60,14 @@ void main() {
         vertex.x += float(gl_InstanceID%block_size[0]) * char_size.x;
         vertex.y -= floor(float((gl_InstanceID%(block_size[0]*block_size[1])))/block_size[0]) * char_size.y;
     }
-    vertex = vec2(2.0 * vertex.x / float(screen_width), 2.0 * vertex.y / float(screen_height));
-
-    gl_Position = vec4(vAR * position + vertex, 0.0, 1.0);
+    switch (vertex_scale_type) {
+        case VERTEX_IS_SCREEN:
+            vertex = vec2(2.0 * vertex.x / float(screen_width), 2.0 * vertex.y / float(screen_height));
+            gl_Position = vec4(vAR * position + vertex, 0.0, 1.0);
+            break;
+        default:
+        case VERTEX_IS_GLXY:
+            gl_Position = vec4(mrot * vertex_in, 0.0, 1.0);
+            break;
+    }
 }

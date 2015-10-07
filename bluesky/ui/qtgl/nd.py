@@ -14,8 +14,8 @@ from glhelpers import BlueSkyProgram, RenderObject, TextObject, \
 
 
 class ND(QGLWidget):
-    def __init__(self, shareWidget=None):
-        super(ND, self).__init__(shareWidget=shareWidget)
+    def __init__(self, parent=None, shareWidget=None):
+        super(ND, self).__init__(parent=parent, shareWidget=shareWidget)
 
         # Set size
         self.resize(400, 400)
@@ -44,12 +44,44 @@ class ND(QGLWidget):
         self.ticks.bind_vertex_attribute(ticks)
         self.ticks.bind_color_attribute(np.array((1.0, 1.0, 1.0), dtype=np.float32))
 
+        self.ticklbls = TextObject(vertex_count=12 * 36)
+        #self.ticklbls = RenderObject(gl.GL_TRIANGLES, vertex_count=12 * 36)
+        ticklbls = np.zeros(24 * 36, dtype=np.float32)
+        texcoords = np.zeros(36 * 36, dtype=np.float32)
+
+        for i in range(36):
+            if i % 3 == 0:
+                w, h, y = 0.04, 0.08, 1.48
+            else:
+                w, h, y = 0.03, 0.06, 1.46
+            tmp = [(-w, h+y), (-w, y), (0.0, h+y), (0.0, h+y), (-w, y), (0.0, y),
+                   (0.0, h+y), (0.0, y), (w, h+y), (w, h+y), (0.0, y), (w, y)]
+
+            # numerics start at ASCII 48
+            c1 = i / 10 + 48
+            c2 = i % 10 + 48
+            texcoords[36*i:36*i+18]    = [0, 0, c1, 0, 1, c1, 1, 0, c1, 1, 0, c1, 0, 1, c1, 1, 1, c1]
+            texcoords[36*i+18:36*i+36] = [0, 0, c2, 0, 1, c2, 1, 0, c2, 1, 0, c2, 0, 1, c2, 1, 1, c2]
+            rot = np.array([[cos(radians(10 * i)), -sin(radians(10 * i))], [sin(radians(10 * i)), cos(radians(10 * i))]])
+            for j in range(12):
+                ticklbls[24*i+2*j:24*i+2*j+2] = rot.dot(tmp[j])
+                ticklbls[24*i+2*j+1] -= 0.7
+
+        self.ticklbls.bind_vertex_attribute(ticklbls)
+        self.ticklbls.bind_texcoords_attribute(texcoords, size=3)
+        self.ticklbls.bind_color_attribute(np.array((1.0, 1.0, 1.0), dtype=np.float32))
+
         self.ownship = RenderObject(gl.GL_LINES, vertex_count=6)
         self.ownship.bind_vertex_attribute(np.array([0.0, -0.7, 0.0, -0.82, 0.065, -0.73, -0.065, -0.73, 0.022, -0.8, -0.022, -0.8], dtype=np.float32))
         self.ownship.bind_color_attribute(np.array((1.0, 1.0, 0.0), dtype=np.float32))
 
+        self.test = TextObject()
+        self.test.prepare_text_string('test', 0.2)
+
         # Unbind VAO, VBO
         RenderObject.unbind_all()
+
+        print 'is sharing? %d' % self.context().isSharing()
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
@@ -86,6 +118,12 @@ class ND(QGLWidget):
         self.map.draw()
         self.ticks.draw()
         self.ownship.draw()
+
+        # Select the text shader
+        self.text.use()
+
+        self.ticklbls.draw()
+        self.test.draw()
 
         # Unbind everything
         RenderObject.unbind_all()

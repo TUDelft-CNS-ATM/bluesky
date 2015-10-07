@@ -8,7 +8,7 @@ except ImportError:
     from PyQt5.QtCore import Qt, QEvent, QTimer
     from PyQt5.QtGui import QColor
     from PyQt5.QtWidgets import QApplication, QFileDialog
-    from PyQt5.QtOpenGL import QGLFormat
+    from PyQt5.QtOpenGL import QGLFormat, QGLContext
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
 import numpy as np

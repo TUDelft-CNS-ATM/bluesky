@@ -120,7 +120,7 @@ class BlueSkyProgram():
 
         # If this is a shader with a texture sampler, initialize it
         loc_sampler = gl.glGetUniformLocation(self.program, 'tex_sampler')
-        if loc_sampler is not -1:
+        if loc_sampler != -1:
             gl.glProgramUniform1i(self.program, loc_sampler, 0)
 
     @staticmethod
@@ -181,6 +181,7 @@ class RenderObject(object):
         self.primitive_type     = primitive_type
         self.first_vertex       = first_vertex
         self.vertex_count       = vertex_count
+        self.n_instances        = -1
 
     def bind_attribute(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT):
         if RenderObject.bound_vao is not self.vao_id:
@@ -291,8 +292,10 @@ class TextObject(RenderObject):
     tex_id = -1
     char_ar = -1.0
 
-    def __init__(self):
-        super(TextObject, self).__init__()
+    def __init__(self, primitive_type=gl.GL_TRIANGLES, vertex_count=None):
+        super(TextObject, self).__init__(primitive_type=primitive_type, vertex_count=vertex_count)
+        self.text_size      = 16
+        self.textblock_size = (1, 1)
         if TextObject.tex_id is -1:
             TextObject.create_font_array()
 
@@ -312,9 +315,9 @@ class TextObject(RenderObject):
         self.bind_texcoords_attribute(np.array(texcoords, dtype=np.float32), size=3)
         self.bind_color_attribute(np.array(text_color, dtype=np.float32))
 
-        self.n_instances = -1
         self.text_size = text_size
         self.textblock_size = (len(text_string), 1)
+        self.set_vertex_count(6 * len(text_string))
 
     def prepare_text_instanced(self, text_array, origin_lat, origin_lon, textblock_size, text_color=None, text_size=16.0, vertex_offset=(0.0, 0.0)):
         w, h = text_size, text_size * self.char_ar
@@ -334,6 +337,7 @@ class TextObject(RenderObject):
 
         self.textblock_size = textblock_size
         self.text_size = text_size
+        self.set_vertex_count(6)
 
     def draw(self, position=None, color=None, n_instances=0):
         if RenderObject.bound_vao is not self.vao_id:
@@ -351,13 +355,13 @@ class TextObject(RenderObject):
         if color is not None:
             gl.glVertexAttrib3f(RenderObject.attrib_color, color[0], color[1], color[2])
 
-        gl.glUniform2f(TextObject.loc_char_size, self.text_size, self.text_size*self.char_ar)
         if n_instances > 0:
+            gl.glUniform2f(TextObject.loc_char_size, self.text_size, self.text_size*self.char_ar)
             gl.glUniform2i(TextObject.loc_block_size, self.textblock_size[0], self.textblock_size[1])
-            gl.glDrawArraysInstanced(gl.GL_TRIANGLES, 0, 6, n_instances * self.textblock_size[0] * self.textblock_size[1])
+            gl.glDrawArraysInstanced(self.primitive_type, self.first_vertex, self.vertex_count,
+                                     n_instances * self.textblock_size[0] * self.textblock_size[1])
         else:
-            gl.glUniform2i(TextObject.loc_block_size, 0, 0)
-            gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6 * self.textblock_size[0])
+            gl.glDrawArrays(self.primitive_type, self.first_vertex, self.vertex_count)
 
     @staticmethod
     def create_font_array(char_height=62, pixel_margin=1, font_family='Courier', font_weight=50):
