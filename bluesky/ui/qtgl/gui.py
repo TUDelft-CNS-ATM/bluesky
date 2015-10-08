@@ -155,6 +155,12 @@ class Gui(QApplication):
             elif event.type() == ACDataEventType:
                 self.acdata = event
                 self.radarwidget.update_aircraft_data(event)
+                if self.nd.ac_id in event.id:
+                    idx = event.id.index(self.nd.ac_id.upper())
+                    lat = event.lat[idx]
+                    lon = event.lon[idx]
+                    trk = event.trk[idx]
+                    self.nd.update_aircraft_data(lat, lon, trk)
                 return True
 
             elif event.type() == RouteDataEventType:
@@ -206,7 +212,7 @@ class Gui(QApplication):
 
                 # ND window for selected aircraft
                 elif event.switch == "ND":
-                    self.nd.setWindowTitle(event.argument)
+                    self.nd.setAircraftID(event.argument)
                     self.nd.setVisible(not self.nd.isVisible())
 
                 return True

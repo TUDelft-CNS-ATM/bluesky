@@ -694,9 +694,11 @@ class Commandstack:
                 elif cmd == "ND" or cmd == "NAVDISP":
 
                     if numargs < 1:  # Help text
-                        scr.echo("NAVDISP acid/OFF")
-                    else:
+                        scr.echo(cmd + ' acid')
+                    elif cmdargs[1] in traf.id:
                         scr.feature("ND", cmdargs[1])
+                    else:
+                        scr.echo(cmd + ': Aircraft with id=' + cmdargs[1] + ' not found.')
 #                        if scr.swnavdisp:
 #                            scr.echo("Ownship is" + scr.ndacid)
 #                        else:

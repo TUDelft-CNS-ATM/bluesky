@@ -8,11 +8,11 @@ except ImportError:
     QT_VERSION = 5
 import numpy as np
 import OpenGL.GL as gl
+from ctypes import c_float, c_int, Structure
 
 # Local imports
 from ...tools.aero import ft, nm, kts
-from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_array_buffer, \
-                      VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN
+from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_array_buffer, UniformBuffer
 from uievents import PanZoomEvent, PanZoomEventType
 from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
 
@@ -30,6 +30,45 @@ blue  = (0.0, 0.0, 1.0)
 lightblue = (0.0, 0.8, 1.0)
 cyan  = (0.0, 1.0, 0.0)
 amber = (1.0, 0.6, 0.0)
+
+VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
+
+
+class radarUBO(UniformBuffer):
+    class Data(Structure):
+        _fields_ = [("wrapdir", c_int), ("wraplon", c_float), ("panlat", c_float), ("panlon", c_float),
+        ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
+
+    data = Data()
+
+    def __init__(self):
+        super(radarUBO, self).__init__(self.data)
+
+    def set_wrap(self, wraplon, wrapdir):
+        self.data.wrapdir = wrapdir
+        self.data.wraplon = wraplon
+
+    def set_pan_and_zoom(self, panlat, panlon, zoom):
+        self.data.panlat = panlat
+        self.data.panlon = panlon
+        self.data.zoom   = zoom
+
+    def set_win_width_height(self, w, h):
+        self.data.screen_width  = w
+        self.data.screen_height = h
+
+    def enable_wrap(self, flag=True):
+        if not flag:
+            wrapdir = self.data.wrapdir
+            self.data.wrapdir = 0
+            self.update(0, 4)
+            self.data.wrapdir = wrapdir
+        else:
+            self.update(0, 4)
+
+    def set_vertex_scale_type(self, vertex_scale_type):
+        self.data.vertex_scale_type = vertex_scale_type
+        self.update()
 
 
 class RadarWidget(QGLWidget):
@@ -176,8 +215,8 @@ class RadarWidget(QGLWidget):
         RenderObject.unbind_all()
 
         # Set initial values for the global uniforms
-        BlueSkyProgram.set_wrap(self.wraplon, self.wrapdir)
-        BlueSkyProgram.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
+        self.globaldata.set_wrap(self.wraplon, self.wrapdir)
+        self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
@@ -187,14 +226,19 @@ class RadarWidget(QGLWidget):
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
+        self.globaldata = radarUBO()
+
         # Compile shaders and link color shader program
-        self.color = BlueSkyProgram('data/graphics/shaders/shader.vert', 'data/graphics/shaders/color_shader.frag')
+        self.color = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-color.frag')
+        self.color.bind_uniform_buffer('global_data', self.globaldata)
 
         # Compile shaders and link texture shader program
-        self.texture = BlueSkyProgram('data/graphics/shaders/shader.vert', 'data/graphics/shaders/texture_shader.frag')
+        self.texture = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-texture.frag')
+        self.texture.bind_uniform_buffer('global_data', self.globaldata)
 
         # Compile shaders and link text shader program
-        self.text = BlueSkyProgram('data/graphics/shaders/shader_text.vert', 'data/graphics/shaders/shader_text.frag')
+        self.text = BlueSkyProgram('data/graphics/shaders/radarwidget-text.vert', 'data/graphics/shaders/radarwidget-text.frag')
+        self.text.bind_uniform_buffer('global_data', self.globaldata)
         TextObject.init_shader(self.text)
 
         # create a vertex array objects
@@ -210,12 +254,11 @@ class RadarWidget(QGLWidget):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
         # Send the (possibly) updated global uniforms to the buffer
-        BlueSkyProgram.update_global_uniforms()
-        BlueSkyProgram.set_vertex_scale_type(VERTEX_IS_LATLON)
+        self.globaldata.set_vertex_scale_type(VERTEX_IS_LATLON)
 
         # --- DRAW THE MAP AND COASTLINES ---------------------------------------------
         # Map and coastlines: don't wrap around in the shader
-        BlueSkyProgram.enable_wrap(False)
+        self.globaldata.enable_wrap(False)
 
         if self.show_map:
             # Select the texture shader
@@ -259,14 +302,14 @@ class RadarWidget(QGLWidget):
 
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
-        BlueSkyProgram.enable_wrap(True)
+        self.globaldata.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
         if self.naircraft > 0 and self.show_traf and self.show_pz and self.zoom >= 0.15:
-            BlueSkyProgram.set_vertex_scale_type(VERTEX_IS_METERS)
+            self.globaldata.set_vertex_scale_type(VERTEX_IS_METERS)
             self.protectedzone.draw(n_instances=self.naircraft)
 
-        BlueSkyProgram.set_vertex_scale_type(VERTEX_IS_SCREEN)
+        self.globaldata.set_vertex_scale_type(VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
         if self.naircraft > 0 and self.show_traf:
@@ -319,7 +362,7 @@ class RadarWidget(QGLWidget):
         # Update width, height, and aspect ratio
         self.width, self.height = width / pixel_ratio, height / pixel_ratio
         self.ar = float(width) / max(1, float(height))
-        BlueSkyProgram.set_win_width_height(self.width, self.height)
+        self.globaldata.set_win_width_height(self.width, self.height)
 
         # paint within the whole window
         gl.glViewport(0, 0, width, height)
@@ -497,10 +540,10 @@ class RadarWidget(QGLWidget):
                 self.wraplon = float(np.floor(-360.0 + self.panlon + 1.0 / (self.zoom * self.flat_earth)))
                 self.wrapdir = 1
 
-            BlueSkyProgram.set_wrap(self.wraplon, self.wrapdir)
+            self.globaldata.set_wrap(self.wraplon, self.wrapdir)
 
             # update pan and zoom on GPU for all shaders
-            BlueSkyProgram.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
+            self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
             return True
 

@@ -2,7 +2,6 @@
 #define VERTEX_IS_LATLON 0
 #define VERTEX_IS_METERS 1
 #define VERTEX_IS_SCREEN 2
-#define VERTEX_IS_GLXY   3
 #define DEG2RAD 0.01745329252
 #define RAD2DEG 57.295779513
 #define REARTH_INV 1.56961231e-7
@@ -47,10 +46,6 @@ void main()
 	position -= vec2(panlon, panlat);
 
 	switch (vertex_scale_type) {
-		case VERTEX_IS_GLXY:
-			gl_Position = vec4(mrot * vertex_in, 0.0, 1.0);
-			texcoords_fs = texcoords_in;
-			break;
 		case VERTEX_IS_SCREEN:
 			// Vertex coordinates are screen pixels, so correct for screen size
 			vec2 vertex = mrot * vertex_in;

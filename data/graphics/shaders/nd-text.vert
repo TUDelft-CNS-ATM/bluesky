@@ -3,10 +3,9 @@
 
 // Uniform block of global data
 layout (std140) uniform global_data {
-int wrap_dir;           // Wrap-around direction
-float wrap_lon;         // Wrap-around longitude
-float panlat;           // Map panning coordinates [deg]
-float panlon;           // Map panning coordinates [deg]
+float ownhdg;           // Ownship heading/track [deg]
+float ownlat;           // Ownship coordinates [deg]
+float ownlon;           // Ownship coordinates [deg]
 float zoom;             // Screen zoom factor [-]
 int screen_width;       // Screen width in pixels
 int screen_height;      // Screen height in pixels
@@ -36,19 +35,14 @@ void main() {
     texcoords_fs.p -= 32.0;
 
     vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
-    vec2 flat_earth = vec2(cos(DEG2RAD*panlat), 1.0);
-    mat2 mrot = mat2(cos(DEG2RAD*orientation_in), -sin(DEG2RAD*orientation_in), sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
+    vec2 flat_earth = vec2(cos(DEG2RAD*ownlat), 1.0);
+    mat2 mrot = mat2(cos(DEG2RAD*(orientation_in - ownhdg)), -sin(DEG2RAD*(orientation_in - ownhdg)), sin(DEG2RAD*(orientation_in - ownhdg)), cos(DEG2RAD*(orientation_in - ownhdg)));
 
     vec2 position = vec2(lon_in, lat_in);
-    if (wrap_dir < -0.1 && position.x > wrap_lon) {
-        position.x -= 360.0;
-    } else if (wrap_dir > 0.1 && position.x < wrap_lon) {
-        position.x += 360.0;
-    }
-    position -= vec2(panlon, panlat);
+    position -= vec2(ownlon, ownlat);
     position *= (zoom * flat_earth);
 
-    vec2 vertex = mrot * vertex_in;
+    vec2 vertex = vec2(0.0, -0.7) + mrot * vertex_in;
 
     // When text_dims is non-zero we are drawing instanced
     if (block_size[0] > 0) {
@@ -57,6 +51,6 @@ void main() {
         vertex.y -= floor(float((gl_InstanceID%(block_size[0]*block_size[1])))/block_size[0]) * char_size.y;
     }
 
-    vertex = vec2(2.0 * vertex.x / float(screen_width), 2.0 * vertex.y / float(screen_height));
-    gl_Position = vec4(vAR * position + vertex, 0.0, 1.0);
+    gl_Position = vec4(vertex, 0.0, 1.0);
+
 }

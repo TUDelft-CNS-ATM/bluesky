@@ -26,9 +26,7 @@ except ImportError:
     from PyQt5.QtGui import QImage, QPainter, QColor, QFont, QFontMetrics
 import OpenGL.GL as gl
 import numpy as np
-from ctypes import c_void_p, c_float, c_int, Structure, pointer
-
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = range(4)
+from ctypes import c_void_p, pointer, sizeof
 
 
 def load_texture(fname):
@@ -49,29 +47,35 @@ def update_array_buffer(buf_id, data):
     gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, data.nbytes, data)
 
 
-class GlobalData(Structure):
-    _fields_ = [("wrapdir", c_int), ("wraplon", c_float), ("panlat", c_float), ("panlon", c_float), ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
+class UniformBuffer(object):
+    max_binding = 1
+
+    def __init__(self, data):
+        self.data = data
+        self.nbytes = sizeof(data)
+        self.ubo = gl.glGenBuffers(1)
+        self.binding = self.max_binding
+        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)
+        gl.glBufferData(gl.GL_UNIFORM_BUFFER, self.nbytes, pointer(self.data), gl.GL_STREAM_DRAW)
+        gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, self.binding, self.ubo)
+        UniformBuffer.max_binding += 1
+
+    def update(self, offset=0, size=None):
+        if size is None:
+            size = self.nbytes
+        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)
+        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, offset, size, pointer(self.data))
 
 
 class BlueSkyProgram():
     # Static variables
     initialized = False
-    globaldata  = GlobalData()
-    programs    = dict()
 
     def __init__(self, vertex_shader, fragment_shader):
-        if False and (vertex_shader, fragment_shader) in BlueSkyProgram.programs:
-            self.program = BlueSkyProgram.programs[(vertex_shader, fragment_shader)]
-            gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-            gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 1, BlueSkyProgram.ubo_globaldata)
-            self.init()
-        else:
-            self.shaders = []
-            self.compile_shader(vertex_shader, gl.GL_VERTEX_SHADER)
-            self.compile_shader(fragment_shader, gl.GL_FRAGMENT_SHADER)
-            self.link()
-            self.init()
-            BlueSkyProgram.programs[(vertex_shader, fragment_shader)] = self.program
+        self.shaders = []
+        self.compile_shader(vertex_shader, gl.GL_VERTEX_SHADER)
+        self.compile_shader(fragment_shader, gl.GL_FRAGMENT_SHADER)
+        self.link()
 
     def compile_shader(self, fname, type):
         """Compile a vertex shader from source."""
@@ -111,63 +115,9 @@ class BlueSkyProgram():
     def use(self):
         gl.glUseProgram(self.program)
 
-    def init(self):
-        BlueSkyProgram.static_init()
-
-        # Connect the global uniform buffer to this shader
-        idx = gl.glGetUniformBlockIndex(self.program, 'global_data')
-        gl.glUniformBlockBinding(self.program, idx, 1)
-
-        # If this is a shader with a texture sampler, initialize it
-        self.loc_sampler = gl.glGetUniformLocation(self.program, 'tex_sampler')
-        if self.loc_sampler != -1:
-            gl.glProgramUniform1i(self.program, self.loc_sampler, 0)
-
-    @staticmethod
-    def static_init():
-        if not BlueSkyProgram.initialized:
-            # First initialization of global uniform buffer
-            BlueSkyProgram.ubo_globaldata = gl.glGenBuffers(1)
-            gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-            gl.glBufferData(gl.GL_UNIFORM_BUFFER, 32, pointer(BlueSkyProgram.globaldata), gl.GL_STREAM_DRAW)
-            gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 1, BlueSkyProgram.ubo_globaldata)
-            BlueSkyProgram.initialized = True
-
-    @staticmethod
-    def set_wrap(wraplon, wrapdir):
-        BlueSkyProgram.globaldata.wrapdir = wrapdir
-        BlueSkyProgram.globaldata.wraplon = wraplon
-
-    @staticmethod
-    def set_pan_and_zoom(panlat, panlon, zoom):
-        BlueSkyProgram.globaldata.panlat = panlat
-        BlueSkyProgram.globaldata.panlon = panlon
-        BlueSkyProgram.globaldata.zoom = zoom
-
-    @staticmethod
-    def set_win_width_height(w, h):
-        BlueSkyProgram.globaldata.screen_width  = w
-        BlueSkyProgram.globaldata.screen_height = h
-
-    @staticmethod
-    def enable_wrap(flag=True):
-        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-        if flag:
-            gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 4, pointer(BlueSkyProgram.globaldata))
-        else:
-            tmp = c_int(0)
-            gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 4, pointer(tmp))
-
-    @staticmethod
-    def set_vertex_scale_type(vertex_scale_type):
-        BlueSkyProgram.globaldata.vertex_scale_type = vertex_scale_type
-        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 32, pointer(BlueSkyProgram.globaldata))
-
-    @staticmethod
-    def update_global_uniforms():
-        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
-        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, 32, pointer(BlueSkyProgram.globaldata))
+    def bind_uniform_buffer(self, ubo_name, ubo):
+        idx = gl.glGetUniformBlockIndex(self.program, ubo_name)
+        gl.glUniformBlockBinding(self.program, idx, ubo.binding)
 
 
 class RenderObject(object):
