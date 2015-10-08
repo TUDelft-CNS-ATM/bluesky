@@ -62,7 +62,8 @@ class ND(QGLWidget):
             c2 = i % 10 + 48
             texcoords[36*i:36*i+18]    = [0, 0, c1, 0, 1, c1, 1, 0, c1, 1, 0, c1, 0, 1, c1, 1, 1, c1]
             texcoords[36*i+18:36*i+36] = [0, 0, c2, 0, 1, c2, 1, 0, c2, 1, 0, c2, 0, 1, c2, 1, 1, c2]
-            rot = np.array([[cos(radians(10 * i)), -sin(radians(10 * i))], [sin(radians(10 * i)), cos(radians(10 * i))]])
+            angle = radians(10 * (36 - i))
+            rot = np.array([[cos(angle), -sin(angle)], [sin(angle), cos(angle)]])
             for j in range(12):
                 ticklbls[24*i+2*j:24*i+2*j+2] = rot.dot(tmp[j])
                 ticklbls[24*i+2*j+1] -= 0.7
@@ -74,9 +75,6 @@ class ND(QGLWidget):
         self.ownship = RenderObject(gl.GL_LINES, vertex_count=6)
         self.ownship.bind_vertex_attribute(np.array([0.0, -0.7, 0.0, -0.82, 0.065, -0.73, -0.065, -0.73, 0.022, -0.8, -0.022, -0.8], dtype=np.float32))
         self.ownship.bind_color_attribute(np.array((1.0, 1.0, 0.0), dtype=np.float32))
-
-        self.test = TextObject()
-        self.test.prepare_text_string('test', 0.2)
 
         # Unbind VAO, VBO
         RenderObject.unbind_all()
@@ -96,6 +94,8 @@ class ND(QGLWidget):
         self.text = BlueSkyProgram('data/graphics/shaders/shader_text.vert', 'data/graphics/shaders/shader_text.frag')
         TextObject.init_shader(self.text)
 
+        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
+        gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 1, BlueSkyProgram.ubo_globaldata)
         self.create_objects()
 
     def resizeGL(self, width, height):
@@ -121,9 +121,7 @@ class ND(QGLWidget):
 
         # Select the text shader
         self.text.use()
-
         self.ticklbls.draw()
-        self.test.draw()
 
         # Unbind everything
         RenderObject.unbind_all()

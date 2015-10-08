@@ -48,6 +48,8 @@ class RadarWidget(QGLWidget):
     color_route = (1.0, 0.0, 1.0)
     coastlinecolor = (84.0/255.0, 84.0/255.0, 114.0/255.0)
 
+    do_text = True
+
     def __init__(self, navdb, shareWidget=None):
         super(RadarWidget, self).__init__(shareWidget=shareWidget)
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
@@ -220,7 +222,7 @@ class RadarWidget(QGLWidget):
             self.texture.use()
 
             # Draw map texture
-            gl.glActiveTexture(gl.GL_TEXTURE0)
+            gl.glActiveTexture(gl.GL_TEXTURE0 + 0)
             gl.glBindTexture(gl.GL_TEXTURE_2D, self.map_texture)
             self.map.draw()
 
@@ -288,13 +290,15 @@ class RadarWidget(QGLWidget):
         if self.show_apt:
             self.airports.draw(n_instances=nairports, color=self.color_apt)
 
-        self.text.use()
-        if self.show_apt:
-            self.aptlabels.draw(color=self.color_aptlbl, n_instances=nairports)
-        if self.zoom >= 1.0 and show_wpt:
-            self.wptlabels.draw(color=self.color_wptlbl, n_instances=self.nwaypoints)
-        if self.naircraft > 0 and self.show_traf and self.show_lbl:
-            self.aclabels.draw(n_instances=self.naircraft)
+        if self.do_text:
+            self.text.use()
+
+            if self.show_apt:
+                self.aptlabels.draw(color=self.color_aptlbl, n_instances=nairports)
+            if self.zoom >= 1.0 and show_wpt:
+                self.wptlabels.draw(color=self.color_wptlbl, n_instances=self.nwaypoints)
+            if self.naircraft > 0 and self.show_traf and self.show_lbl:
+                self.aclabels.draw(n_instances=self.naircraft)
 
         # Unbind everything
         RenderObject.unbind_all()

@@ -60,7 +60,7 @@ class BlueSkyProgram():
     programs    = dict()
 
     def __init__(self, vertex_shader, fragment_shader):
-        if (vertex_shader, fragment_shader) in BlueSkyProgram.programs:
+        if False and (vertex_shader, fragment_shader) in BlueSkyProgram.programs:
             self.program = BlueSkyProgram.programs[(vertex_shader, fragment_shader)]
             gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, BlueSkyProgram.ubo_globaldata)
             gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 1, BlueSkyProgram.ubo_globaldata)
@@ -119,9 +119,9 @@ class BlueSkyProgram():
         gl.glUniformBlockBinding(self.program, idx, 1)
 
         # If this is a shader with a texture sampler, initialize it
-        loc_sampler = gl.glGetUniformLocation(self.program, 'tex_sampler')
-        if loc_sampler != -1:
-            gl.glProgramUniform1i(self.program, loc_sampler, 0)
+        self.loc_sampler = gl.glGetUniformLocation(self.program, 'tex_sampler')
+        if self.loc_sampler != -1:
+            gl.glProgramUniform1i(self.program, self.loc_sampler, 0)
 
     @staticmethod
     def static_init():
@@ -346,7 +346,7 @@ class TextObject(RenderObject):
             for attrib in self.enabled_attributes:
                 gl.glEnableVertexAttribArray(attrib)
 
-        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glActiveTexture(gl.GL_TEXTURE0+0)
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, TextObject.tex_id)
 
         if position is not None:
