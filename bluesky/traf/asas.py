@@ -52,27 +52,34 @@ class Dbconf:
 
     def cd_state(self):
         """Conflict Detection based on state"""
+        ntraf     = self.traf.ntraf 
 
         # t0_ = time.clock()     # Timing of ASAS calculation
 
         # ---------- Horizontal conflict -----------
         # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
+#        qdlst = qdrdist_vector(np.mat(self.traf.lat),np.mat(self.traf.lon),\
+#                                  np.mat(self.traf.adsblat),np.mat(self.traf.adsblon))
         qdlst = qdrdist_vector(np.mat(self.traf.lat),np.mat(self.traf.lon),\
-                                  np.mat(self.traf.adsblat),np.mat(self.traf.adsblon))
+                                  np.mat(self.traf.lat),np.mat(self.traf.lon))
 
         # Convert results from mat-> array
-        self.qdr = np.array(qdlst[0])   # degrees
-        I = np.eye(self.traf.ntraf)     # Identity matric of order ntraf
+
+        # Use I to generate high nhuimbers along diagonal to 
+        # prevent self-self conflicts
+        I         = np.eye(ntraf)               # Identity matric of order ntraf
+
+        self.qdr  = np.array(qdlst[0])   # degrees
         self.dist = np.array(qdlst[1])*nm + 1e9*I   # meters i to j
-                    
+            
         # Transmission noise
         if self.traf.ADSBtransnoise:
             # error in the determined bearing between two a/c
-            bearingerror=np.random.normal(0,self.traf.transerror[0],self.qdr.shape) #degrees
-            self.qdr+=bearingerror
+            bearingerror = np.random.normal(0,self.traf.transerror[0],(ntraf,ntraf)) #degrees
+            self.qdr     = self.qdr + bearingerror
             # error in the perceived distance between two a/c
-            disterror=np.random.normal(0,self.traf.transerror[1],self.dist.shape) #meters
-            self.dist+=disterror
+            disterror = np.random.normal(0,self.traf.transerror[1],(ntraf,ntraf)) #meters
+            self.dist = self.dist + disterror
 
         # Calculate horizontal closest point of approach (CPA)        
         qdrrad  = np.radians(self.qdr)
@@ -80,27 +87,31 @@ class Dbconf:
         dy      = self.dist * np.cos(qdrrad) # is pos j rel to i
         
         trkrad = np.radians(self.traf.trk)
-        u      = self.traf.gs*np.sin(trkrad).reshape((1,len(trkrad)))  # m/s
-        v      = self.traf.gs*np.cos(trkrad).reshape((1,len(trkrad)))  # m/s
+        u      = self.traf.gs*np.sin(trkrad).reshape((1,ntraf))  # m/s
+        v      = self.traf.gs*np.cos(trkrad).reshape((1,ntraf))  # m/s
         
         # parameters received through ADSB
         adsbtrkrad = np.radians(self.traf.adsbtrk)
-        adsbu  = self.traf.adsbgs*np.sin(adsbtrkrad).reshape((1,len(adsbtrkrad)))  # m/s
-        adsbv  = self.traf.adsbgs*np.cos(adsbtrkrad).reshape((1,len(adsbtrkrad)))  # m/s
-        
+        adsbu  = self.traf.adsbgs*np.sin(adsbtrkrad).reshape((1,ntraf))  # m/s
+        adsbv  = self.traf.adsbgs*np.cos(adsbtrkrad).reshape((1,ntraf))  # m/s
+
+        # Calculate relative ground speeds
+        # Matrix: speed of column aircraft minus row aircraft        
         du = u - adsbu.T  # Speed du[i,j] is perceived eastern speed of i to j
         dv = v - adsbv.T  # Speed dv[i,j] is perceived northern speed of i to j
-        
+
+        # Calculate magnitude of relative speed squared        
         dv2  = du*du+dv*dv
         dv2  = np.where(np.abs(dv2)<1e-6,1e-6,dv2) # limit lower absolute value
-        
-        vrel = np.sqrt(dv2)
-        
-        tcpa = -(du*dx + dv*dy) / dv2   + 1e9*I
 
+        # Relative speed as scalar matrix
+        vrel = np.sqrt(dv2)
+      
+        tcpa = -(du*dx + dv*dy) / dv2   + 1e9*I
+ 
         # Calculate CPA positions
-        xcpa = tcpa*du
-        ycpa = tcpa*dv
+#        xcpa = tcpa*du
+#        ycpa = tcpa*dv
 
         # Calculate distance^2 at CPA (minimum distance^2)
         dcpa2 = self.dist*self.dist-tcpa*tcpa*dv2
@@ -109,32 +120,33 @@ class Dbconf:
         R2        = self.R*self.R
         swhorconf = dcpa2<R2 # conflict or not
 
-        # Calculate times of entering and leaving horizontal conflict        
-        dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) # half the distance travelled inzide zone
-        dtinhor   = dxinhor/vrel
+        print np.sqrt(dcpa2)/1852.
 
+        # Calculate half the distance and time in horizontal conflict using pythagoras
+        dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) 
+        dtinhor   = dxinhor/vrel                      
+
+        # Calculate relative times of entering and leaving horizontal conflict        
         tinhor    = np.where(swhorconf,tcpa - dtinhor,1e8) # Set very large if no conf
-        
         touthor   = np.where(swhorconf,tcpa + dtinhor,-1e8) # set very large if no conf
 
-        # swhorconf = swhorconf*(touthor>0)*(tinhor<self.dtlook)
+        #swhorconf = swhorconf*(touthor>0)*(tinhor<self.dtlook)
        
         # ----------- Vertical conflict ------------
 
         # Vertical crossing of disk (-dh,+dh)
-        alt       = self.traf.alt.reshape((1,self.traf.ntraf))
-        adsbalt   = self.traf.adsbalt.reshape((1,self.traf.ntraf))
+        alt       = self.traf.alt.reshape((1,ntraf))
+        adsbalt   = self.traf.adsbalt.reshape((1,ntraf))
+
         if self.traf.ADSBtransnoise:
             # error in the determined altitude of other a/c
-            alterror=np.random.normal(0,self.traf.transerror[2],adsbalt.shape) #degrees
-            adsbalt+=alterror        
-        
+            alterror = np.random.normal(0,self.traf.transerror[2],adsbalt.shape) #degrees
+            adsbalt  = adsbalt + alterror        
+       
         dalt = alt - adsbalt.T
-        vs = self.traf.vs
-        avs = self.traf.adsbvs
-        vs = vs.reshape(1,len(vs))
-        avs = avs.reshape(1,len(avs))
-        dvs = vs-avs.T
+        vs = self.traf.vs.reshape((1,ntraf))
+        avs = self.traf.adsbvs.reshape((1,ntraf))
+        dvs = vs - avs.T
 
         # Check for passing through each others zone       
         dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
@@ -152,14 +164,16 @@ class Dbconf:
 
         # --------- Combine vertical and horizontal conflict ----------
 
-        self.tinconf = np.maximum(tinver,tinhor)        
+        self.tinconf = np.maximum(tinver,tinhor) # take maximum value of 2 tables      
         self.toutconf = np.minimum(toutver,touthor)
+
         self.swconfl = swhorconf*(self.tinconf<=self.toutconf)*    \
            (self.toutconf>0.)*(self.tinconf<self.dtlookahead) \
            *(1.-I)
-                       
+                      
         # Calculate CPA positions of traffic in lat/lon?
         # Select conflicting pairs: each a/c gets their own record
+
         self.confidxs = np.where(self.swconfl)
         self.nconf = len(self.confidxs[0])
         iown = self.confidxs[0]
@@ -173,21 +187,29 @@ class Dbconf:
         self.altintcpa = []
 
         # Store result
-        self.traf.iconf = self.traf.ntraf*[-1]
+        self.traf.iconf = self.traf.ntraf*[-1] # Empty current pointers
         self.idown = []
         self.idoth = []
         
         self.LOSlist_now=[]
         self.conflist_now=[]
-        
+
+#        print 'Conflict poll result:'
         for idx in range(self.nconf):
+
+            # get indices of ownship and ohter aircraft            
             i = iown[idx]
             j = ioth[idx]
+
+            # avoid conflict with self being registered
             if i==j:
                 continue
 
             self.idown.append(self.traf.id[i])
             self.idoth.append(self.traf.id[j])
+
+#            print "    ",idx,i,j,self.traf.id[i],self.traf.id[j]
+
             
             self.traf.iconf[i] = idx
             rng = tcpa[i,j]*self.traf.gs[i]/nm
@@ -223,6 +245,9 @@ class Dbconf:
                     self.LOSlist_now.append(combi)
                     
         self.nconf = len(self.idown)
+#        print "nconf =",self.nconf
+#        print
+
 
         # Convert to numpy arrays for vectorisation
         self.latowncpa = np.array(self.latowncpa)

@@ -509,19 +509,21 @@ class Traffic:
         
         #-------------------- ADSB update: --------------------
 
-        self.adsbtime+=simdt
-        ADSB_update=np.where(self.adsbtime>self.trunctime)
-        if not self.ADSBtrunc:
-            ADSB_update=range(self.ntraf)
+        self.adsbtime = self.adsbtime + simdt
+        if self.ADSBtrunc:
+            ADSB_update = np.where(self.adsbtime>self.trunctime)
+        else:
+            ADSB_update = range(self.ntraf)
+
         for i in ADSB_update:
-            self.adsbtime[i]-=self.trunctime
-            self.adsblat[i]=self.lat[i]
-            self.adsblon[i]=self.lon[i]
-            self.adsbalt[i]=self.alt[i]
-            self.adsbtrk[i]=self.trk[i]
-            self.adsbtas[i]=self.tas[i]
-            self.adsbgs[i]=self.gs[i]
-            self.adsbvs[i]=self.vs[i]
+            self.adsbtime[i] = self.adsbtime[i] - self.trunctime
+            self.adsblat[i]  = self.lat[i]
+            self.adsblon[i]  = self.lon[i]
+            self.adsbalt[i]  = self.alt[i]
+            self.adsbtrk[i]  = self.trk[i]
+            self.adsbtas[i]  = self.tas[i]
+            self.adsbgs[i]   = self.gs[i]
+            self.adsbvs[i]   = self.vs[i]
         
 
         #------------------- ASAS update: ---------------------
@@ -853,21 +855,15 @@ class Traffic:
 
     def setNoise(self,A):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
-        self.noise=A
+        self.noise = A
         self.trunctime=1 # seconds
         self.transerror = [1,100, 100 * ft] #[degree,m,m] standard bearing, distance, altitude error
         self.standardturbulence = [0,0.1,0.1] #m/s standard turbulence  (nonnegative)
         # in (horizontal flight direction, horizontal wing direction, vertical)
         
-        if self.noise:
-            self.turbulence=True
-            self.ADSBtransnoise=True
-            self.ADSBtrunc=True
-        else:
-            self.turbulence=False
-            self.ADSBtransnoise=False
-            self.ADSBtrunc=False
-        return
+        self.turbulence     = self.noise
+        self.ADSBtransnoise = self.noise
+        self.ADSBtrunc      = self.noise
 
     def engchange (self, acid, engid):
         """Change of engines"""
