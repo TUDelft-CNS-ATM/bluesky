@@ -24,9 +24,16 @@ class Keyboard:
         self.dragdx = 0
         self.dragdy = 0
         self.lastcmd  = ""     # previously typed command line
+        self.firstx = True
         return
     
     def update(self, sim, cmd, scr, traf):
+
+        # First time: IC window in pygame version        
+        if self.firstx:
+            cmd.stack("IC")
+            self.firstx = False
+        
         # Get events
         for event in pg.event.get():
             if event.type==pg.QUIT:

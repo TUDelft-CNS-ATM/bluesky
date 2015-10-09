@@ -906,7 +906,6 @@ class Screen:
         """Pan function:
                absolute: lat,lon; 
                relative: screen width factor,screen height factor"""
-        print "panning"
         if absolute:
             lat,lon = xlat,xlon
 
@@ -1103,5 +1102,4 @@ class Screen:
         return True # Success
 
     def show_file_dialog(self):
-        print 'here'
         return opendialog()
