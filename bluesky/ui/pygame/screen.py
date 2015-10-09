@@ -597,6 +597,7 @@ class Screen:
             # Find pixel size of horizontal separation on screen
             pixelrad=self.dtopix_eq(traf.dbconf.R/2)
 
+            # Loop through all traffic indices which we found on screen
             for i in trafsel:
 
                 # Get index of ac symbol, based on heading and its rect object
@@ -675,23 +676,29 @@ class Screen:
                 if self.swspd:
                     # just a nominal length: a speed of 150 kts will be displayed
                     # as an arrow of 30 pixels long on screen
-                    nomlength=30
-                    nomspeed=150
-                    vectorlength=nomlength*traf.tas[i]/nomspeed
-                    spdvcx=trafx[i]+np.sin(np.radians(traf.trk[i]))*vectorlength
-                    spdvcy=trafy[i]-np.cos(np.radians(traf.trk[i]))*vectorlength-traf.vs[i]/nomspeed*nomlength*self.isoalt/self.dtopix_eq(1e5)*1e5
+                    nomlength    = 30
+                    nomspeed     = 150.
+
+                    vectorlength = float(nomlength)*traf.tas[i]/nomspeed
+
+                    spdvcx = trafx[i] + np.sin(np.radians(traf.trk[i])) * vectorlength
+                    spdvcy = trafy[i] - np.cos(np.radians(traf.trk[i])) * vectorlength \
+                                - traf.vs[i]/nomspeed*nomlength*self.isoalt /   \
+                                            self.dtopix_eq(1e5)*1e5
                     
                     pg.draw.line(self.win,green,(trafx[i],trafy[i]),(spdvcx,spdvcy))
+
+            # ---- End of per aircraft i loop                
 
 
             # Draw conflicts: line from a/c to closest point of approach
             if traf.dbconf.nconf>0:
                 xc,yc = self.ll2xy(traf.dbconf.latowncpa,traf.dbconf.lonowncpa)
-                yc = yc - traf.dbconf.altowncpa*self.isoalt
+                yc    = yc - traf.dbconf.altowncpa*self.isoalt
 
                 for j in range(traf.dbconf.nconf):
                     i = traf.id2idx(traf.dbconf.idown[j])
-                    if i>=0:
+                    if i>=0 and i<traf.ntraf and (i in trafsel):
                         pg.draw.line(self.win,amber,(xc[j],yc[j]),(trafx[i],trafy[i]))             
                 
             # Draw selected route:
@@ -733,7 +740,8 @@ class Screen:
                         if traf.route[i].iactwp == j:
                             x0,y0 = self.ll2xy(traf.lat[i],traf.lon[i])
                             pg.draw.line(self.win, magenta,(x0,y0),(x1,y1))
-                            
+
+
 
             # Draw aircraft trails which are on screen
             if traf.swtrails:
