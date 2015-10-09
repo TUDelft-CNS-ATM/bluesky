@@ -50,8 +50,9 @@ class ND(QGLWidget):
         super(ND, self).__init__(parent=parent, shareWidget=shareWidget)
 
         self.ac_id = ''
-
+        self.initialized = False
         # Set size
+        self.viewport = (0, 0, 400, 400)
         self.resize(400, 400)
 
     def setAircraftID(self, ac_id):
@@ -62,19 +63,35 @@ class ND(QGLWidget):
         self.globaldata.set_pos_and_hdg(ownlat, ownlon, ownhdg)
 
     def create_objects(self):
-        self.map = RenderObject(gl.GL_LINES)
-        mapvertices = []
-        for i in range(1, 5):
+        self.edge = RenderObject(gl.GL_LINE_STRIP, vertex_count=60)
+        edge = np.zeros(120, dtype=np.float32)
+        edge[0:120:2] = 1.4 * np.sin(np.radians(np.arange(-60, 60, 2)))
+        edge[1:120:2] = 1.4 * np.cos(np.radians(np.arange(-60, 60, 2)))
+        self.edge.bind_vertex_attribute(edge)
+        self.edge.bind_color_attribute(np.array((1.0, 1.0, 1.0), dtype=np.float32))
+        self.arcs = RenderObject(gl.GL_LINES)
+        arcs = []
+        for i in range(1, 4):
             for angle in range(-60, 60, max(2, 6 - 2 * i)):
-                mapvertices.append(float(i) * 0.35 * sin(radians(angle)))
-                mapvertices.append(float(i) * 0.35 * cos(radians(angle)))
+                arcs.append(float(i) * 0.35 * sin(radians(angle)))
+                arcs.append(float(i) * 0.35 * cos(radians(angle)))
                 if i == 4:
-                    mapvertices.append(float(i) * 0.35 * sin(radians(angle + 2)))
-                    mapvertices.append(float(i) * 0.35 * cos(radians(angle + 2)))
+                    arcs.append(float(i) * 0.35 * sin(radians(angle + 2)))
+                    arcs.append(float(i) * 0.35 * cos(radians(angle + 2)))
 
-        self.map.bind_vertex_attribute(np.array(mapvertices, dtype=np.float32))
-        self.map.bind_color_attribute(np.array((1.0, 1.0, 1.0), dtype=np.float32))
-        self.map.set_vertex_count(len(mapvertices))
+        self.arcs.bind_vertex_attribute(np.array(arcs, dtype=np.float32))
+        self.arcs.bind_color_attribute(np.array((1.0, 1.0, 1.0), dtype=np.float32))
+        self.arcs.set_vertex_count(len(arcs))
+
+        self.mask = RenderObject(gl.GL_TRIANGLE_STRIP, vertex_count=120)
+        mask = []
+        for angle in range(-60, 60, 2):
+            mask.append(1.4*sin(radians(angle)))
+            mask.append(10.0)
+            mask.append(1.4*sin(radians(angle)))
+            mask.append(1.4*cos(radians(angle)))
+        self.mask.bind_vertex_attribute(np.array(mask, dtype=np.float32))
+        self.mask.bind_color_attribute(np.array((0.0, 0.0, 0.0), dtype=np.float32))
 
         self.ticks = RenderObject(gl.GL_LINES, vertex_count=144)
         ticks = np.zeros(288, dtype=np.float32)
@@ -139,14 +156,19 @@ class ND(QGLWidget):
         self.create_objects()
 
     def resizeGL(self, width, height):
-        # paint within the whole window
-        gl.glViewport(0, 0, width, height)
+        # paint within the largest possible rectangular area in the window
+        w = h = min(width, height)
+        x = max(0, (width - w) / 2)
+        y = max(0, (height - h) / 2)
+        self.viewport = (x, y, w, h)
 
     def paintGL(self):
         """Paint the scene."""
         # pass if the framebuffer isn't complete yet
         if not gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE:
             return
+
+        gl.glViewport(*self.viewport)
 
         # Update uniform global data
         self.globaldata.update()
@@ -158,8 +180,10 @@ class ND(QGLWidget):
 
         # Select the non-textured shader
         self.color.use()
-        self.map.draw()
+        self.arcs.draw()
         self.ownship.draw()
+        self.mask.draw()
+        self.edge.draw()
 
         self.globaldata.enable_hdg_rotate(True)
         self.ticks.draw()

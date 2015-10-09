@@ -34,7 +34,7 @@ void main() {
     texcoords_fs = texcoords_in;
     texcoords_fs.p -= 32.0;
 
-    vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
+    float AR = float(screen_height) / float(screen_width);
     vec2 flat_earth = vec2(cos(DEG2RAD*ownlat), 1.0);
     mat2 mrot = mat2(cos(DEG2RAD*(orientation_in - ownhdg)), -sin(DEG2RAD*(orientation_in - ownhdg)), sin(DEG2RAD*(orientation_in - ownhdg)), cos(DEG2RAD*(orientation_in - ownhdg)));
 
@@ -51,6 +51,6 @@ void main() {
         vertex.y -= floor(float((gl_InstanceID%(block_size[0]*block_size[1])))/block_size[0]) * char_size.y;
     }
 
-    gl_Position = vec4(vertex, 0.0, 1.0);
+    gl_Position = vec4(vertex.x, vertex.y, 0.0, 1.0);
 
 }

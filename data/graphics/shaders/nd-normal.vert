@@ -32,7 +32,7 @@ void main()
 	// Pass color and texture coordinates to the fragment shader
 	color_fs = color_in;
 
-	vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
+	float AR = float(screen_height) / float(screen_width);
 	vec2 flat_earth = vec2(cos(DEG2RAD*ownlat), 1.0);
     mat2 mrot = mat2(cos(DEG2RAD*(orientation_in - ownhdg)), -sin(DEG2RAD*(orientation_in - ownhdg)), sin(DEG2RAD*(orientation_in - ownhdg)), cos(DEG2RAD*(orientation_in - ownhdg)));
 
@@ -40,6 +40,6 @@ void main()
 	vec2 position = vec2(lon_in, lat_in);
 	position -= vec2(ownlon, ownlat);
 	vec2 vertex = vec2(0.0, -0.7) + mrot * vertex_in;
-	gl_Position = vec4(vertex, 0.0, 1.0);
+	gl_Position = vec4(vertex.x, vertex.y, 0.0, 1.0);
 	texcoords_fs = texcoords_in;
 }
