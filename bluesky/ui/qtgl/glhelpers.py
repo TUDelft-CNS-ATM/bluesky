@@ -53,6 +53,7 @@ class UniformBuffer(object):
     def __init__(self, data):
         self.data = data
         self.nbytes = sizeof(data)
+        print 'uniform buffer size=%d' % self.nbytes
         self.ubo = gl.glGenBuffers(1)
         self.binding = self.max_binding
         gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)
@@ -123,22 +124,21 @@ class BlueSkyProgram():
 class RenderObject(object):
     # Attribute locations
     attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = range(7)
+    vertexbuf = texcoordsbuf = latbuf = lonbuf = orientationbuf = colorbuf = texdepthbuf = -1
     bound_vao = -1
 
-    def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0):
+    def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0, n_instances=0):
         self.vao_id             = gl.glGenVertexArrays(1)
-        self.enabled_attributes = []
+        self.enabled_attributes = dict()
         self.primitive_type     = primitive_type
         self.first_vertex       = first_vertex
         self.vertex_count       = vertex_count
-        self.n_instances        = -1
+        self.n_instances        = n_instances
 
     def bind_attribute(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT):
         if RenderObject.bound_vao is not self.vao_id:
             gl.glBindVertexArray(self.vao_id)
             RenderObject.bound_vao = self.vao_id
-
-        self.enabled_attributes.append(attrib_id)
 
         # If the input is an array create a new GL buffer, otherwise assume the buffer already exists and a buffer ID is passed
         if type(data) is np.ndarray:
@@ -159,6 +159,8 @@ class RenderObject(object):
             gl.glVertexAttribDivisor(attrib_id, instance_divisor)
         # Clean up
         gl.glDisableVertexAttribArray(attrib_id)
+
+        self.enabled_attributes[attrib_id] = [size, buf_id, instance_divisor, datatype]
 
         return buf_id
 
@@ -192,7 +194,7 @@ class RenderObject(object):
     def set_first_vertex(self, vertex):
         self.first_vertex = vertex
 
-    def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=0, latlon=None, color=None):
+    def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=None, latlon=None, color=None):
         if primitive_type is None:
             primitive_type = self.primitive_type
 
@@ -201,6 +203,9 @@ class RenderObject(object):
 
         if vertex_count is None:
             vertex_count = self.vertex_count
+
+        if n_instances is None:
+            n_instances = self.n_instances
 
         if vertex_count == 0:
             return
@@ -236,16 +241,30 @@ class RenderObject(object):
         gl.glBufferData(target, size, None, usage)
         return buf_id
 
+    @staticmethod
+    def copy(original):
+        """ Copy a renderobject from one context to the other.
+        """
+        if type(original) is RenderObject:
+            ret = RenderObject(original.primitive_type, original.first_vertex, original.vertex_count, original.n_instances)
+        elif type(original) is TextObject:
+            ret = TextObject(vertex_count=original.vertex_count, n_instances=original.n_instances, text_size=original.text_size, textblock_size=original.textblock_size)
+
+        # [size, buf_id, instance_divisor, datatype]
+        for attrib, params in original.enabled_attributes.iteritems():
+            ret.bind_attribute(attrib, params[0], params[1], instance_divisor=params[2], datatype=params[3])
+        return ret
+
 
 class TextObject(RenderObject):
     loc_char_size = loc_block_size = -1
     tex_id = -1
     char_ar = -1.0
 
-    def __init__(self, primitive_type=gl.GL_TRIANGLES, vertex_count=None):
-        super(TextObject, self).__init__(primitive_type=primitive_type, vertex_count=vertex_count)
-        self.text_size      = 16
-        self.textblock_size = (1, 1)
+    def __init__(self, primitive_type=gl.GL_TRIANGLES, vertex_count=None, n_instances=0, text_size=16, textblock_size=(1, 1)):
+        super(TextObject, self).__init__(primitive_type=primitive_type, vertex_count=vertex_count, n_instances=n_instances)
+        self.text_size      = text_size
+        self.textblock_size = textblock_size
         if TextObject.tex_id is -1:
             TextObject.create_font_array()
 
@@ -289,7 +308,7 @@ class TextObject(RenderObject):
         self.text_size = text_size
         self.set_vertex_count(6)
 
-    def draw(self, position=None, color=None, n_instances=0):
+    def draw(self, position=None, color=None, n_instances=None):
         if RenderObject.bound_vao is not self.vao_id:
             gl.glBindVertexArray(self.vao_id)
             RenderObject.bound_vao = self.vao_id
@@ -298,6 +317,9 @@ class TextObject(RenderObject):
 
         gl.glActiveTexture(gl.GL_TEXTURE0+0)
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, TextObject.tex_id)
+
+        if n_instances is None:
+            n_instances = self.n_instances
 
         if position is not None:
             gl.glVertexAttrib2f(RenderObject.attrib_position, position[0], position[1])

@@ -172,10 +172,11 @@ class RadarWidget(QGLWidget):
         self.route.bind_color_attribute(np.array(self.color_route, dtype=np.float32))
 
         # ------- Waypoints ------------------------------
-        self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=3)
+        self.nwaypoints = len(self.navdb.wplat)
+        print '%d waypoints in radarwidget' % self.nwaypoints
+        self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=3, n_instances=self.nwaypoints)
         wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
         self.waypoints.bind_vertex_attribute(wptvertices)
-        self.nwaypoints = len(self.navdb.wplat)
         self.wptlatbuf = self.waypoints.bind_lat_attribute(np.array(self.navdb.wplat, dtype=np.float32))
         self.wptlonbuf = self.waypoints.bind_lon_attribute(np.array(self.navdb.wplon, dtype=np.float32))
         self.wptlabels = TextObject()
@@ -186,10 +187,11 @@ class RadarWidget(QGLWidget):
         del wptids
 
         # ------- Airports -------------------------------
-        self.airports = RenderObject(gl.GL_LINE_LOOP, vertex_count=4)
+        self.nairports = len(self.navdb.aplat)
+        print '%d airports in radarwidget' % self.nairports
+        self.airports = RenderObject(gl.GL_LINE_LOOP, vertex_count=4, n_instances=self.nairports)
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
         self.airports.bind_vertex_attribute(aptvertices)
-        self.nairports = len(self.navdb.aplat)
         indices = self.navdb.aptype.argsort()
         aplat   = np.array(self.navdb.aplat[indices], dtype=np.float32)
         aplon   = np.array(self.navdb.aplon[indices], dtype=np.float32)
@@ -327,11 +329,13 @@ class RadarWidget(QGLWidget):
 
         # Draw waypoint symbols
         if show_wpt:
-            self.waypoints.draw(n_instances=self.nwaypoints, color=self.color_wpt)
+            #self.waypoints.draw(n_instances=self.nwaypoints, color=self.color_wpt)
+            self.waypoints.draw(color=self.color_wpt)
 
         # Draw airport symbols
         if self.show_apt:
-            self.airports.draw(n_instances=nairports, color=self.color_apt)
+            #self.airports.draw(n_instances=nairports, color=self.color_apt)
+            self.airports.draw(color=self.color_apt)
 
         if self.do_text:
             self.text.use()

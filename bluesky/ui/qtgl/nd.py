@@ -12,13 +12,18 @@ from ctypes import c_float, c_int, Structure
 
 from glhelpers import BlueSkyProgram, RenderObject, TextObject, UniformBuffer
 
+VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = range(4)
+
+color_wpt = color_apt = (149.0/255.0, 179.0/255.0, 235/255.0)
+color_wptlbl = color_aptlbl = (219.0/255.0, 249.0/255.0, 255/255.0)
+
 
 class ndUBO(UniformBuffer):
     class Data(Structure):
         _fields_ = [("ownhdg", c_float), ("ownlat", c_float), ("ownlon", c_float),
-        ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
+        ("zoom", c_float), ("vertex_modifiers", c_int)]
 
-    data = Data()
+    data = Data(0.0, 0.0, 0.0, 4.0, 3)
 
     def __init__(self):
         super(ndUBO, self).__init__(self.data)
@@ -31,25 +36,18 @@ class ndUBO(UniformBuffer):
         self.data.ownlon = lon
         self.data.ownhdg = hdg
 
-    def set_win_width_height(self, w, h):
-        self.data.screen_width  = w
-        self.data.screen_height = h
-
-    def enable_hdg_rotate(self, flag=True):
-        if not flag:
-            ownhdg = self.data.ownhdg
-            self.data.ownhdg = 0
-            self.update(0, 4)
-            self.data.ownhdg = ownhdg
-        else:
-            self.update(0, 4)
+    def set_vertex_modifiers(self, scale_type, rotate_ownhdg):
+        self.data.vertex_modifiers = scale_type + (10 if rotate_ownhdg else 0)
+        self.update()
 
 
 class ND(QGLWidget):
     def __init__(self, parent=None, shareWidget=None):
         super(ND, self).__init__(parent=parent, shareWidget=shareWidget)
 
+        self.shareWidget = shareWidget
         self.ac_id = ''
+        self.n_aircraft = None
         self.initialized = False
         # Set size
         self.viewport = (0, 0, 400, 400)
@@ -59,8 +57,9 @@ class ND(QGLWidget):
         self.ac_id = ac_id
         self.setWindowTitle(ac_id)
 
-    def update_aircraft_data(self, ownlat, ownlon, ownhdg):
+    def update_aircraft_data(self, ownlat, ownlon, ownhdg, n_aircraft):
         self.globaldata.set_pos_and_hdg(ownlat, ownlon, ownhdg)
+        self.n_aircraft = n_aircraft
 
     def create_objects(self):
         self.edge = RenderObject(gl.GL_LINE_STRIP, vertex_count=60)
@@ -133,6 +132,16 @@ class ND(QGLWidget):
         self.ownship.bind_vertex_attribute(np.array([0.0, 0.0, 0.0, -0.12, 0.065, -0.03, -0.065, -0.03, 0.022, -0.1, -0.022, -0.1], dtype=np.float32))
         self.ownship.bind_color_attribute(np.array((1.0, 1.0, 0.0), dtype=np.float32))
 
+        self.waypoints = RenderObject.copy(self.shareWidget.waypoints)
+        self.wptlabels = RenderObject.copy(self.shareWidget.wptlabels)
+        self.airports  = RenderObject.copy(self.shareWidget.airports)
+        self.aptlabels = RenderObject.copy(self.shareWidget.aptlabels)
+        self.protectedzone = RenderObject.copy(self.shareWidget.protectedzone)
+        self.ac_symbol = RenderObject.copy(self.shareWidget.ac_symbol)
+        self.aclabels = RenderObject.copy(self.shareWidget.aclabels)
+
+        print self.waypoints.n_instances, self.airports.n_instances
+
         # Unbind VAO, VBO
         RenderObject.unbind_all()
 
@@ -155,6 +164,12 @@ class ND(QGLWidget):
 
         self.create_objects()
 
+        # Set initial zoom
+        self.globaldata.set_zoom(4.0)
+
+        # Done initializing
+        self.initialized = True
+
     def resizeGL(self, width, height):
         # paint within the largest possible rectangular area in the window
         w = h = min(width, height)
@@ -164,28 +179,41 @@ class ND(QGLWidget):
 
     def paintGL(self):
         """Paint the scene."""
-        # pass if the framebuffer isn't complete yet
-        if not gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE:
+        # pass if the framebuffer isn't complete yet or if not initialized
+        if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized):
             return
 
+        # Set the viewport and clear the framebuffer
         gl.glViewport(*self.viewport)
-
-        # Update uniform global data
-        self.globaldata.update()
-
-        # clear the buffer
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-
-        self.globaldata.enable_hdg_rotate(False)
 
         # Select the non-textured shader
         self.color.use()
+
+        self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, False)
         self.arcs.draw()
+
+        self.globaldata.set_vertex_modifiers(VERTEX_IS_METERS, False)
+        self.protectedzone.draw(n_instances=self.n_aircraft)
+        self.globaldata.set_vertex_modifiers(VERTEX_IS_SCREEN, True)
+        self.ac_symbol.draw(n_instances=self.n_aircraft)
+
+        self.globaldata.set_vertex_modifiers(VERTEX_IS_SCREEN, False)
+        self.waypoints.draw(color=color_wpt)
+        self.airports.draw(color=color_apt)
+
+        self.text.use()
+        self.wptlabels.draw(color=color_wptlbl, n_instances=self.waypoints.n_instances)
+        self.aptlabels.draw(color=color_aptlbl, n_instances=self.airports.n_instances)
+        self.aclabels.draw(n_instances=self.n_aircraft)
+
+        self.color.use()
+        self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, False)
         self.ownship.draw()
         self.mask.draw()
         self.edge.draw()
 
-        self.globaldata.enable_hdg_rotate(True)
+        self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, True)
         self.ticks.draw()
 
         # Select the text shader

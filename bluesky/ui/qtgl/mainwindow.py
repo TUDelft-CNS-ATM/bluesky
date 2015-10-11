@@ -85,9 +85,9 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def buttonClicked(self):
         if self.sender() == self.zoomin:
-            self.app.notify(self.app, PanZoomEvent(PanZoomEvent.Zoom, 1.4142135623730951))
+            self.app.notify(self.app, PanZoomEvent(zoom=1.4142135623730951))
         elif self.sender() == self.zoomout:
-            self.app.notify(self.app, PanZoomEvent(PanZoomEvent.Zoom, 0.70710678118654746))
+            self.app.notify(self.app, PanZoomEvent(zoom=0.70710678118654746))
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
