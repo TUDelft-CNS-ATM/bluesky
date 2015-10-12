@@ -1,13 +1,13 @@
 try:
     from PyQt4.QtCore import Qt, QEvent, QTimer
-    from PyQt4.QtGui import QColor, QApplication, QFileDialog
+    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
     QT_VERSION = 4
     print('Using Qt4 for windows and widgets')
 except ImportError:
-    from PyQt5.QtCore import Qt, QEvent, QTimer
+    from PyQt5.QtCore import Qt, QEvent, QTimer, qInstallMessageHandler
     from PyQt5.QtGui import QColor
-    from PyQt5.QtWidgets import QApplication, QFileDialog
+    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat, QGLContext
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
@@ -99,6 +99,10 @@ class Gui(QApplication):
 
         self.splash.showMessage('Constructing main window')
         self.processEvents()
+
+        # Install error message handler
+        handler = QErrorMessage.qtHandler()
+        handler.setWindowFlags(Qt.WindowStaysOnTopHint)
 
         # Check and set OpenGL capabilities
         if not QGLFormat.hasOpenGL():

@@ -1,9 +1,9 @@
 try:
-    from PyQt4.QtCore import Qt
+    from PyQt4.QtCore import Qt, qCritical
     from PyQt4.QtOpenGL import QGLWidget
     QT_VERSION = 4
 except ImportError:
-    from PyQt5.QtCore import Qt
+    from PyQt5.QtCore import Qt, qCritical
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
 import numpy as np
@@ -102,6 +102,8 @@ class RadarWidget(QGLWidget):
         self.nairports   = 0
         self.route_acidx = -1
         self.navdb       = navdb
+
+        self.initialized = False
 
     def create_objects(self):
         # Initialize font for radar view with specified settings
@@ -230,26 +232,33 @@ class RadarWidget(QGLWidget):
 
         self.globaldata = radarUBO()
 
-        # Compile shaders and link color shader program
-        self.color = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-color.frag')
-        self.color.bind_uniform_buffer('global_data', self.globaldata)
+        try:
+            # Compile shaders and link color shader program
+            self.color = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-color.frag')
+            self.color.bind_uniform_buffer('global_data', self.globaldata)
 
-        # Compile shaders and link texture shader program
-        self.texture = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-texture.frag')
-        self.texture.bind_uniform_buffer('global_data', self.globaldata)
+            # Compile shaders and link texture shader program
+            self.texture = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-texture.frag')
+            self.texture.bind_uniform_buffer('global_data', self.globaldata)
 
-        # Compile shaders and link text shader program
-        self.text = BlueSkyProgram('data/graphics/shaders/radarwidget-text.vert', 'data/graphics/shaders/radarwidget-text.frag')
-        self.text.bind_uniform_buffer('global_data', self.globaldata)
-        TextObject.init_shader(self.text)
+            # Compile shaders and link text shader program
+            self.text = BlueSkyProgram('data/graphics/shaders/radarwidget-text.vert', 'data/graphics/shaders/radarwidget-text.frag')
+            self.text.bind_uniform_buffer('global_data', self.globaldata)
+            TextObject.init_shader(self.text)
+        except RuntimeError as e:
+            qCritical(e.args[0])
+            return
 
         # create a vertex array objects
         self.create_objects()
 
+        # Done initializing
+        self.initialized = True
+
     def paintGL(self):
         """Paint the scene."""
-        # pass if the framebuffer isn't complete yet
-        if not gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE:
+        # pass if the framebuffer isn't complete yet or if not initialized
+        if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized):
             return
 
         # clear the buffer
