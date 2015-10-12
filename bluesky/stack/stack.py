@@ -1057,7 +1057,7 @@ class Commandstack:
                         scr.echo("MCRE n, type/*, alt/*, spd/*, dest/*")
                     else:
                         # Currently only n,*,*,*,* supported (or MCRE n)
-#                        try:
+                        try:
                             n = int(cmdargs[1])
 
                             if numargs>=3 and cmdargs[3]!="*":
@@ -1094,9 +1094,9 @@ class Commandstack:
                                 # Create a/c
                                 traf.create(acid, actype, aclat, aclon, achdg, \
                                             acalt, acspd)
-#                        except:
-#                            scr.echo('Syntax error')
-#                            scr.echo("MCRE n, type/*, alt/*, spd/*, dest/*")
+                        except:
+                            scr.echo('Syntax error')
+                            scr.echo("MCRE n, type/*, alt/*, spd/*, dest/*")
 
                 #----------------------------------------------------------------------
                 # DIST lat1,lon1,lat2,lon2 : 
