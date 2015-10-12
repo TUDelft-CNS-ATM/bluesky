@@ -164,7 +164,7 @@ class Gui(QApplication):
                     lat = event.lat[idx]
                     lon = event.lon[idx]
                     trk = event.trk[idx]
-                    self.nd.update_aircraft_data(lat, lon, trk, len(event.lat))
+                    self.nd.update_aircraft_data(idx, lat, lon, trk, len(event.lat))
                 return True
 
             elif event.type() == RouteDataEventType:

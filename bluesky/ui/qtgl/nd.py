@@ -1,7 +1,9 @@
 try:
+    from PyQt4.QtCore import qCritical
     from PyQt4.QtOpenGL import QGLWidget
     QT_VERSION = 4
 except ImportError:
+    from PyQt5.QtCore import qCritical
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
 
@@ -21,7 +23,7 @@ color_wptlbl = color_aptlbl = (219.0/255.0, 249.0/255.0, 255/255.0)
 class ndUBO(UniformBuffer):
     class Data(Structure):
         _fields_ = [("ownhdg", c_float), ("ownlat", c_float), ("ownlon", c_float),
-        ("zoom", c_float), ("vertex_modifiers", c_int)]
+        ("zoom", c_float), ("ownid", c_int), ("vertex_modifiers", c_int)]
 
     data = Data(0.0, 0.0, 0.0, 4.0, 3)
 
@@ -31,7 +33,8 @@ class ndUBO(UniformBuffer):
     def set_zoom(self, zoom):
         self.data.zoom   = zoom
 
-    def set_pos_and_hdg(self, lat, lon, hdg):
+    def set_owndata(self, acid, lat, lon, hdg):
+        self.data.ownid  = acid
         self.data.ownlat = lat
         self.data.ownlon = lon
         self.data.ownhdg = hdg
@@ -57,8 +60,8 @@ class ND(QGLWidget):
         self.ac_id = ac_id
         self.setWindowTitle(ac_id)
 
-    def update_aircraft_data(self, ownlat, ownlon, ownhdg, n_aircraft):
-        self.globaldata.set_pos_and_hdg(ownlat, ownlon, ownhdg)
+    def update_aircraft_data(self, ownid, ownlat, ownlon, ownhdg, n_aircraft):
+        self.globaldata.set_owndata(ownid, ownlat, ownlon, ownhdg)
         self.n_aircraft = n_aircraft
 
     def create_objects(self):
@@ -150,17 +153,24 @@ class ND(QGLWidget):
 
         # background color
         gl.glClearColor(0, 0, 0, 0)
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
         self.globaldata = ndUBO()
 
-        # Compile shaders and link color shader program
-        self.color = BlueSkyProgram('data/graphics/shaders/nd-normal.vert', 'data/graphics/shaders/nd-color.frag')
-        self.color.bind_uniform_buffer('global_data', self.globaldata)
+        try:
+            # Compile shaders and link color shader program
+            self.color = BlueSkyProgram('data/graphics/shaders/nd-normal.vert', 'data/graphics/shaders/nd-color.frag')
+            self.color.bind_uniform_buffer('global_data', self.globaldata)
 
-        # Compile shaders and link text shader program
-        self.text = BlueSkyProgram('data/graphics/shaders/nd-text.vert', 'data/graphics/shaders/nd-text.frag')
-        self.text.bind_uniform_buffer('global_data', self.globaldata)
-        TextObject.init_shader(self.text)
+            # Compile shaders and link text shader program
+            self.text = BlueSkyProgram('data/graphics/shaders/nd-text.vert', 'data/graphics/shaders/nd-text.frag')
+            self.text.bind_uniform_buffer('global_data', self.globaldata)
+            TextObject.init_shader(self.text)
+
+        except RuntimeError as e:
+            qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
+            return
 
         self.create_objects()
 
@@ -180,7 +190,7 @@ class ND(QGLWidget):
     def paintGL(self):
         """Paint the scene."""
         # pass if the framebuffer isn't complete yet or if not initialized
-        if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized):
+        if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized and self.isVisible()):
             return
 
         # Set the viewport and clear the framebuffer

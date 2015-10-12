@@ -175,7 +175,6 @@ class RadarWidget(QGLWidget):
 
         # ------- Waypoints ------------------------------
         self.nwaypoints = len(self.navdb.wplat)
-        print '%d waypoints in radarwidget' % self.nwaypoints
         self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=3, n_instances=self.nwaypoints)
         wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
         self.waypoints.bind_vertex_attribute(wptvertices)
@@ -190,7 +189,6 @@ class RadarWidget(QGLWidget):
 
         # ------- Airports -------------------------------
         self.nairports = len(self.navdb.aplat)
-        print '%d airports in radarwidget' % self.nairports
         self.airports = RenderObject(gl.GL_LINE_LOOP, vertex_count=4, n_instances=self.nairports)
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
         self.airports.bind_vertex_attribute(aptvertices)
@@ -246,7 +244,7 @@ class RadarWidget(QGLWidget):
             self.text.bind_uniform_buffer('global_data', self.globaldata)
             TextObject.init_shader(self.text)
         except RuntimeError as e:
-            qCritical(e.args[0])
+            qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
             return
 
         # create a vertex array objects
@@ -258,7 +256,7 @@ class RadarWidget(QGLWidget):
     def paintGL(self):
         """Paint the scene."""
         # pass if the framebuffer isn't complete yet or if not initialized
-        if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized):
+        if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized and self.isVisible()):
             return
 
         # clear the buffer
@@ -338,13 +336,11 @@ class RadarWidget(QGLWidget):
 
         # Draw waypoint symbols
         if show_wpt:
-            #self.waypoints.draw(n_instances=self.nwaypoints, color=self.color_wpt)
-            self.waypoints.draw(color=self.color_wpt)
+            self.waypoints.draw(n_instances=self.nwaypoints, color=self.color_wpt)
 
         # Draw airport symbols
         if self.show_apt:
-            #self.airports.draw(n_instances=nairports, color=self.color_apt)
-            self.airports.draw(color=self.color_apt)
+            self.airports.draw(n_instances=nairports, color=self.color_apt)
 
         if self.do_text:
             self.text.use()
@@ -376,9 +372,6 @@ class RadarWidget(QGLWidget):
         self.width, self.height = width / pixel_ratio, height / pixel_ratio
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
-
-        # paint within the whole window
-        gl.glViewport(0, 0, width, height)
 
         # Update zoom
         self.event(PanZoomEvent(zoom=zoom, origin=origin))

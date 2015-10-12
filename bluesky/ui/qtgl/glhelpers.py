@@ -53,7 +53,6 @@ class UniformBuffer(object):
     def __init__(self, data):
         self.data = data
         self.nbytes = sizeof(data)
-        print 'uniform buffer size=%d' % self.nbytes
         self.ubo = gl.glGenBuffers(1)
         self.binding = self.max_binding
         gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)

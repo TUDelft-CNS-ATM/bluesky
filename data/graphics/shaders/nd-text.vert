@@ -13,6 +13,7 @@ float ownhdg;           // Ownship heading/track [deg]
 float ownlat;           // Ownship coordinates [deg]
 float ownlon;           // Ownship coordinates [deg]
 float zoom;             // Screen zoom factor [-]
+int ownid;
 int vertex_modifiers;   // Vertex scale type
 };
 
@@ -31,8 +32,10 @@ layout (location = 6) in float texdepth_in;
 
 out vec3 texcoords_fs;
 out vec3 color_fs;
+flat out int discard_instance;
 
 void main() {
+    discard_instance          = (ownid == gl_InstanceID / (block_size[0]*block_size[1]) ? 1 : 0);
     int vertex_scale_type     = vertex_modifiers % 10;
     bool vertex_rotate_ownhdg = (vertex_modifiers >= VERTEX_ROTATE_OWN);
     // Pass color and texture coordinates to the fragment shader
