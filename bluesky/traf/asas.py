@@ -312,14 +312,18 @@ class Dbconf:
         self.traf.asasactive.fill(False) 
 
         # Look at all conflicts, also the ones that are solved but CPA is yet to come
-        for conflict in self.conflist_all: 
-            id1,id2=self.ConflictToIndices(conflict)
-            if id1 != "Fail":
-                pastCPA=self.ConflictIsPastCPA(self.traf,id1,id2)
-                if not pastCPA:
-                    # Indicate that the A/C must follow their ASAS
-                    self.traf.asasactive[id1]=True 
-                    self.traf.asasactive[id2]=True        
+        for id in self.idown:
+            i = self.traf.id2idx(id)
+            if i>=0:
+                self.traf.asasactive[i] = True
+#        for conflict in self.conflist_all: 
+#            id1,id2 = self.ConflictToIndices(conflict)
+#            if id1 != "Fail":
+#                pastCPA = self.ConflictIsPastCPA(self.traf,id1,id2)
+#                if not pastCPA:
+#                    # Indicate that the A/C must follow their ASAS
+#                    self.traf.asasactive[id1]=True 
+#                    self.traf.asasactive[id2]=True        
 
 
     def Eby_straight(self, traf, id1, id2, qdr, dist):
@@ -406,9 +410,9 @@ class Dbconf:
         t2=np.radians(traf.trk[id2])
         
         # write velocities as vectors and find relative velocity vector              
-        v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
-        v2=np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
-        v=np.array(v2-v1) 
+        v1 = np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
+        v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
+        v = np.array(v2-v1) 
         
         pastCPA=np.dot(d,v)>0
            

@@ -1057,19 +1057,21 @@ class Commandstack:
                         scr.echo("MCRE n, type/*, alt/*, spd/*, dest/*")
                     else:
                         # Currently only n,*,*,*,* supported (or MCRE n)
-                        try:
+#                        try:
                             n = int(cmdargs[1])
 
-                            if cmdargs[3]!="*":
+                            if numargs>=3 and cmdargs[3]!="*":
                                     acalt = txt2alt(cmdargs[3])*ft
 
-
+                            if numargs<2:
+                                actype = "*"
+                            else:
+                                actype = cmdargs[2].upper()
+                    
                             for i in range(n):
                                 acid = "TUD" + str(randint(100, 99999))
                                 if actype=="*":
                                     actype = "B744"  # for now
-                                else:
-                                    actype = cmdargs[2].upper()
                                 
                                 # Lat/lon.hdg always random on-screen
                                 scrlat0,scrlat1,scrlon0,scrlon1 =          \
@@ -1080,11 +1082,11 @@ class Commandstack:
                                 achdg = float(randint(1, 360))
 
                                 # Random altitude
-                                if cmdargs[3]=="*":
+                                if numargs <3 or cmdargs[3]=="*":
                                     acalt = float(randint(2000, 39000)) * ft
 
                                 # Speed
-                                if cmdargs[4]=="*":
+                                if numargs<4 or cmdargs[4]=="*":
                                     acspd = float(randint(250, 450))
                                 else:
                                     acspd = txt2spd(cmdargs[4],h)
@@ -1092,9 +1094,9 @@ class Commandstack:
                                 # Create a/c
                                 traf.create(acid, actype, aclat, aclon, achdg, \
                                             acalt, acspd)
-                        except:
-                            scr.echo('Syntax error')
-                            scr.echo("TRAILS ON/OFF")
+#                        except:
+#                            scr.echo('Syntax error')
+#                            scr.echo("MCRE n, type/*, alt/*, spd/*, dest/*")
 
                 #----------------------------------------------------------------------
                 # DIST lat1,lon1,lat2,lon2 : 
