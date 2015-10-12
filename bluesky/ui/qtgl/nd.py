@@ -60,7 +60,7 @@ class ND(QGLWidget):
         self.ac_id = ac_id
         self.setWindowTitle(ac_id)
 
-    def update_aircraft_data(self, ownid, ownlat, ownlon, ownhdg, n_aircraft):
+    def update_aircraft_data(self, ownid, ownlat, ownlon, owntas, ownhdg, n_aircraft):
         self.globaldata.set_owndata(ownid, ownlat, ownlon, ownhdg)
         self.n_aircraft = n_aircraft
 
@@ -135,6 +135,11 @@ class ND(QGLWidget):
         self.ownship.bind_vertex_attribute(np.array([0.0, 0.0, 0.0, -0.12, 0.065, -0.03, -0.065, -0.03, 0.022, -0.1, -0.022, -0.1], dtype=np.float32))
         self.ownship.bind_color_attribute(np.array((1.0, 1.0, 0.0), dtype=np.float32))
 
+        self.spdlabel_text  = TextObject()
+        self.spdlabel_text.prepare_text_string('GS    TAS', 0.05, (1.0, 1.0, 1.0), (-0.98, 1.6))
+        self.spdlabel_val = TextObject()
+        self.spdlabel_val.prepare_text_string ('  000    000', 0.05, (0.0, 1.0, 0.0), (-0.97, 1.6))
+
         self.waypoints = RenderObject.copy(self.shareWidget.waypoints)
         self.wptlabels = RenderObject.copy(self.shareWidget.wptlabels)
         self.airports  = RenderObject.copy(self.shareWidget.airports)
@@ -142,8 +147,6 @@ class ND(QGLWidget):
         self.protectedzone = RenderObject.copy(self.shareWidget.protectedzone)
         self.ac_symbol = RenderObject.copy(self.shareWidget.ac_symbol)
         self.aclabels = RenderObject.copy(self.shareWidget.aclabels)
-
-        print self.waypoints.n_instances, self.airports.n_instances
 
         # Unbind VAO, VBO
         RenderObject.unbind_all()
@@ -229,6 +232,10 @@ class ND(QGLWidget):
         # Select the text shader
         self.text.use()
         self.ticklbls.draw()
+
+        self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, False)
+        self.spdlabel_text.draw()
+        self.spdlabel_val.draw()
 
         # Unbind everything
         RenderObject.unbind_all()

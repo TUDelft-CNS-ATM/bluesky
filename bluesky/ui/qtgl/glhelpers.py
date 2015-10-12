@@ -270,14 +270,16 @@ class TextObject(RenderObject):
     def bind_texdepth_attribute(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=1):
         return self.bind_attribute(RenderObject.attrib_texdepth, 1, data, storagetype, instance_divisor, gl.GL_UNSIGNED_BYTE)
 
-    def prepare_text_string(self, text_string, text_size=16.0, text_color=(0.0, 1.0, 0.0)):
+    def prepare_text_string(self, text_string, text_size=16.0, text_color=(0.0, 1.0, 0.0), vertex_offset=(0.0, 0.0)):
         vertices, texcoords = [], []
         w, h = text_size, text_size * self.char_ar
+        x, y = vertex_offset
         for i in range(len(text_string)):
             c = ord(text_string[i])
             # Two triangles per character
             texcoords += [(0, 0, c), (0, 1, c), (1, 0, c), (1, 0, c), (0, 1, c), (1, 1, c)]
-            vertices  += [(i * w, h), (i * w, 0.0), ((i + 1) * w, h), ((i + 1) * w, h), (i * w, 0.0), ((i + 1) * w, 0.0)]
+            vertices  += [(x + i * w, y + h), (x + i * w, y), (x + (i + 1) * w, y + h),
+                          (x + (i + 1) * w, y + h), (x + i * w, y), (x + (i + 1) * w, y)]
 
         self.bind_vertex_attribute(np.array(vertices, dtype=np.float32))
         self.bind_texcoords_attribute(np.array(texcoords, dtype=np.float32), size=3)
