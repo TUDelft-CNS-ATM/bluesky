@@ -62,7 +62,7 @@ void main() {
             if (vertex_rotate_ownhdg) {
                 vertex    = ownrot * (zoom * flat_earth * position + SYMBOLSCALE * symbolrot * vertex);
             } else {
-                vertex    = ownrot * zoom * flat_earth * position + SYMBOLSCALE * symbolrot * vertex;
+                vertex    = ownrot * (zoom * flat_earth * position) + SYMBOLSCALE * symbolrot * vertex;
             }
             break;
 

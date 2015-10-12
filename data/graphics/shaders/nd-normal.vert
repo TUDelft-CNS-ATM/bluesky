@@ -49,7 +49,7 @@ void main()
 			if (vertex_rotate_ownhdg) {
 				vertex    = ownrot * (zoom * flat_earth * position + SYMBOLSCALE * symbolrot * vertex_in);
 			} else {
-				vertex    = ownrot * zoom * flat_earth * position + SYMBOLSCALE * symbolrot * vertex_in;
+				vertex    = ownrot * (zoom * flat_earth * position) + SYMBOLSCALE * symbolrot * vertex_in;
 			}
 			texcoords_fs  = texcoords_in;
 			break;

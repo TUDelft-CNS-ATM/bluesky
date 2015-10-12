@@ -333,6 +333,7 @@ class TextObject(RenderObject):
             gl.glDrawArraysInstanced(self.primitive_type, self.first_vertex, self.vertex_count,
                                      n_instances * self.textblock_size[0] * self.textblock_size[1])
         else:
+            gl.glUniform2i(TextObject.loc_block_size, 0, 0)
             gl.glDrawArrays(self.primitive_type, self.first_vertex, self.vertex_count)
 
     @staticmethod
