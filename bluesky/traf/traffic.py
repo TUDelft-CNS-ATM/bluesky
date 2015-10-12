@@ -722,7 +722,7 @@ class Traffic:
                                   (self.actwpspd<=0.)*self.aptas
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
-        ax = np.minimum(abs(self.delspd / simdt), self.ax)
+        ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
                                           simdt) + (1. - swspdsel) * self.aptas
                                           
