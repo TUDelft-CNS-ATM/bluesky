@@ -60,8 +60,9 @@ class Dbconf:
         # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
 #        qdlst = qdrdist_vector(np.mat(self.traf.lat),np.mat(self.traf.lon),\
 #                                  np.mat(self.traf.adsblat),np.mat(self.traf.adsblon))
-        qdlst = qdrdist_vector(np.mat(self.traf.lat),np.mat(self.traf.lon),\
-                                  np.mat(self.traf.lat),np.mat(self.traf.lon))
+        latmat = np.array([self.traf.lat]) # Make into 2D array with one row
+        lonmat = np.array([self.traf.lon]) # Make into 2D array with one row
+        qdlst = qdrdist_vector(latmat,lonmat,latmat,lonmat) # Calculate qdr- and distance-matrix
 
         # Convert results from mat-> array
 
@@ -120,7 +121,7 @@ class Dbconf:
         R2        = self.R*self.R
         swhorconf = dcpa2<R2 # conflict or not
 
-        print np.sqrt(dcpa2)/1852.
+#        print np.sqrt(dcpa2)/1852.
 
         # Calculate half the distance and time in horizontal conflict using pythagoras
         dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) 
@@ -178,6 +179,8 @@ class Dbconf:
         self.nconf = len(self.confidxs[0])
         iown = self.confidxs[0]
         ioth = self.confidxs[1]
+#        print "nconf = ",self.nconf
+#        print
         
         self.latowncpa = []
         self.lonowncpa = []
