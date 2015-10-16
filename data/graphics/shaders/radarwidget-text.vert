@@ -1,5 +1,4 @@
 #version 330
-#define DEG2RAD 0.01745329252
 
 // Uniform block of global data
 layout (std140) uniform global_data {
@@ -36,8 +35,9 @@ void main() {
     texcoords_fs.p -= 32.0;
 
     vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
-    vec2 flat_earth = vec2(cos(DEG2RAD*panlat), 1.0);
-    mat2 mrot = mat2(cos(DEG2RAD*orientation_in), -sin(DEG2RAD*orientation_in), sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
+    vec2 flat_earth = vec2(cos(radians(panlat)), 1.0);
+    float rot = radians(orientation_in);
+    mat2 mrot = mat2(cos(rot), -sin(rot), sin(rot), cos(rot));
 
     vec2 position = vec2(lon_in, lat_in);
     if (wrap_dir < -0.1 && position.x > wrap_lon) {

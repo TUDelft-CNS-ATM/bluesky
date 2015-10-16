@@ -753,9 +753,10 @@ class Commandstack:
                     else:
                         filename = scr.show_file_dialog()
                         if len(filename) > 0:
+                            sim.reset()
+                            traf.deleteall()
                             self.scenfile = filename
                             self.openfile(self.scenfile)
-
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run

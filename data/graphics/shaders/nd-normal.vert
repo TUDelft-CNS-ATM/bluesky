@@ -4,8 +4,6 @@
 #define VERTEX_IS_SCREEN  2
 #define VERTEX_IS_GLXY    3
 #define VERTEX_ROTATE_OWN 10
-#define DEG2RAD 0.01745329252
-#define RAD2DEG 57.295779513
 #define REARTH_INV 1.56961231e-7
 #define SYMBOLSCALE 0.004
 
@@ -38,11 +36,11 @@ void main()
 	// Pass color and texture coordinates to the fragment shader
 	color_fs = color_in;
 
-	vec2 flat_earth = vec2(cos(DEG2RAD*ownlat), 1.0);
-	mat2 ownrot     = mat2(cos(DEG2RAD*ownhdg), sin(DEG2RAD*ownhdg),
-    	                  -sin(DEG2RAD*ownhdg), cos(DEG2RAD*ownhdg));
-    mat2 symbolrot  = mat2(cos(DEG2RAD*orientation_in),-sin(DEG2RAD*orientation_in),
-    	                   sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
+    vec2 flat_earth = vec2(cos(radians(ownlat)), 1.0);
+    mat2 ownrot     = mat2(cos(radians(ownhdg)), sin(radians(ownhdg)),
+                          -sin(radians(ownhdg)), cos(radians(ownhdg)));
+    mat2 symbolrot  = mat2(cos(radians(orientation_in)),-sin(radians(orientation_in)),
+                           sin(radians(orientation_in)), cos(radians(orientation_in)));
 
     vec2 position   = vec2(lon_in - ownlon, lat_in - ownlat);
 	// Vertex depends on scale type
@@ -61,7 +59,7 @@ void main()
 		case VERTEX_IS_METERS:
 			// Vertex coordinates in meters use a right-handed coordinate system, where the positive x-axis points to the north
 			// The elements in each vertex therefore need to be flipped
-			vertex        = ownrot * zoom * (flat_earth * position + (vertex_in.yx * REARTH_INV * RAD2DEG));
+			vertex        = ownrot * zoom * (flat_earth * position + (degrees(vertex_in.yx * REARTH_INV)));
 			texcoords_fs  = texcoords_in.ts;
 			break;
 

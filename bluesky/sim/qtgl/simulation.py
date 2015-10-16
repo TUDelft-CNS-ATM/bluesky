@@ -67,7 +67,11 @@ class Simulation(QObject):
 
             if self.mode == Simulation.op:
                 self.stack.checkfile(self.simt)
-                self.stack.process(self, self.traf, self.screenio)
+
+            # Always update stack
+            self.stack.process(self, self.traf, self.screenio)
+
+            if self.mode == Simulation.op:
                 self.traf.update(self.simt, self.simdt)
 
                 # Update time for the next timestep
@@ -92,7 +96,7 @@ class Simulation(QObject):
         self.mode = Simulation.op
 
     def pause(self):
-        self.mode = Simulation.pause
+        self.mode = Simulation.hold
 
     def reset(self):
         self.simt = 0.0

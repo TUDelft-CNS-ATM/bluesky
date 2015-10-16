@@ -90,7 +90,11 @@ class Simulation:
                     del self.dts[0]
 
             self.stack.checkfile(self.t)
-            self.stack.process(self, self.traf, scr)
+
+        # Always process stack
+        self.stack.process(self, self.traf, scr)
+
+        if self.mode == Simulation.op:
             self.traf.update(self.t, self.dt)
 
         # HOLD/Pause mode
@@ -98,15 +102,6 @@ class Simulation:
             self.syst0 = self.tsys-self.t
             self.dt = 0.0
 
-        return
-
-    def start(self):
-        """Initial Condition mode, start running with t=0"""
-        self.mode   = self.op
-        self.tsys   = time.clock()
-        self.syst0  = time.clock()
-        self.t      = 0.0
-        self.tprev  = 0.0
         return
 
     def pause(self):  # Hold mode
@@ -120,11 +115,11 @@ class Simulation:
         self.datalog.save()
         return
 
-    def play(self): # Back to op-mode: run after HOLD/PAUSE
+    def start(self):  # Back to op-mode: run after HOLD/PAUSE
         self.mode = self.op
         self.tsys = time.clock()
         self.syst0 = self.tsys-self.t
-        self.tprev = self.t-0.001 # allow 1 msec step rto avoid div by zero
+        self.tprev = self.t-0.001  # allow 1 msec step rto avoid div by zero
         return
     
     def reset(self):

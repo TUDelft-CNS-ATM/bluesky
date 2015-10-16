@@ -2,8 +2,6 @@
 #define VERTEX_IS_LATLON 0
 #define VERTEX_IS_METERS 1
 #define VERTEX_IS_SCREEN 2
-#define DEG2RAD 0.01745329252
-#define RAD2DEG 57.295779513
 #define REARTH_INV 1.56961231e-7
 
 // Uniform block of global data
@@ -33,8 +31,9 @@ void main()
 	color_fs = color_in;
 
 	vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
-	vec2 flat_earth = vec2(cos(DEG2RAD*panlat), 1.0);
-    mat2 mrot = mat2(cos(DEG2RAD*orientation_in), -sin(DEG2RAD*orientation_in), sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
+	vec2 flat_earth = vec2(cos(radians(panlat)), 1.0);
+	float rot = radians(orientation_in);
+    mat2 mrot = mat2(cos(rot), -sin(rot), sin(rot), cos(rot));
 
 	// Vertex position and rotation calculations
 	vec2 position = vec2(lon_in, lat_in);
@@ -56,7 +55,7 @@ void main()
 		case VERTEX_IS_METERS:
 			// Vertex coordinates in meters use a right-handed coordinate system, where the positive x-axis points to the north
 			// The elements in each vertex therefore need to be flipped
-			gl_Position = vec4(vAR * zoom * (flat_earth * position + mrot * (vertex_in.yx * REARTH_INV * RAD2DEG)), 0.0, 1.0);
+			gl_Position = vec4(vAR * zoom * (flat_earth * position + mrot * (degrees(vertex_in.yx * REARTH_INV))), 0.0, 1.0);
 			texcoords_fs = texcoords_in.ts;
 			break;
 		case VERTEX_IS_LATLON:

@@ -4,7 +4,6 @@
 #define VERTEX_IS_SCREEN 2
 #define VERTEX_IS_GLXY   3
 #define VERTEX_ROTATE_OWN 10
-#define DEG2RAD 0.01745329252
 #define SYMBOLSCALE 0.004
 
 // Uniform block of global data
@@ -43,11 +42,11 @@ void main() {
     texcoords_fs = texcoords_in;
     texcoords_fs.p -= 32.0;
 
-    vec2 flat_earth = vec2(cos(DEG2RAD*ownlat), 1.0);
-    mat2 ownrot     = mat2(cos(DEG2RAD*ownhdg), sin(DEG2RAD*ownhdg),
-                          -sin(DEG2RAD*ownhdg), cos(DEG2RAD*ownhdg));
-    mat2 symbolrot  = mat2(cos(DEG2RAD*orientation_in),-sin(DEG2RAD*orientation_in),
-                           sin(DEG2RAD*orientation_in), cos(DEG2RAD*orientation_in));
+    vec2 flat_earth = vec2(cos(radians(ownlat)), 1.0);
+    mat2 ownrot     = mat2(cos(radians(ownhdg)), sin(radians(ownhdg)),
+                          -sin(radians(ownhdg)), cos(radians(ownhdg)));
+    mat2 symbolrot  = mat2(cos(radians(orientation_in)),-sin(radians(orientation_in)),
+                           sin(radians(orientation_in)), cos(radians(orientation_in)));
 
     vec2 position = vec2(lon_in - ownlon, lat_in - ownlat);
     vec2 vertex   = vertex_in;
