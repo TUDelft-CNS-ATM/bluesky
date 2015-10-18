@@ -393,7 +393,7 @@ class Perf():
         try:
             # aircraft
             self.coeffidx = coeffBS.atype.index(actype)
-            print actype
+#            print actype
             # engine
         except:
             self.coeffidx = 0
