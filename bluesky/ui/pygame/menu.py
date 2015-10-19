@@ -41,7 +41,7 @@ class Menu:
             width, height = image.size # Get dimensions
             mode = image.mode
             size = image.size
-            data = image.tostring()
+            data = image.tobytes() 
             
             surface = pg.transform.smoothscale(pg.image.frombuffer(data, size, mode),
                                          (width/2,height/2))
