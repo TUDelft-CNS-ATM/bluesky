@@ -169,6 +169,8 @@ class Traffic:
         self.adsbgs=np.array([])
         self.adsbvs=np.array([])
         
+        self.inconflict=np.array([],dtype=bool)
+        
         #-----------------------------------------------------------------------------
         # Not per aircraft data
 
@@ -342,6 +344,8 @@ class Traffic:
         self.adsbgs=np.append(self.adsbgs,acspd)
         self.adsbvs=np.append(self.adsbvs,0.)
         
+        self.inconflict=np.append(self.inconflict,False)        
+        
         self.eps = np.append(self.eps, 0.01)
 
         return
@@ -458,6 +462,8 @@ class Traffic:
         self.adsbgs=np.delete(self.adsbgs,idx)
         self.adsbvs=np.delete(self.adsbvs,idx)
 
+        self.inconflict=np.delete(self.inconflict,idx)     
+        
         # Decrease number fo aircraft
         self.ntraf = self.ntraf - 1
         
@@ -536,9 +542,10 @@ class Traffic:
             iconf0 = np.array(self.iconf)
 
             # Call with traffic database and sim data
-            self.dbconf.cd_state()
-            self.dbconf.cr_eby()
+            self.dbconf.detect()
+            self.dbconf.conflictlist(simt)
             self.dbconf.APorASAS()
+            self.dbconf.resolve()
 
             # Reset label because of colour change
             chnged = np.where(iconf0!=np.array(self.iconf))[0]

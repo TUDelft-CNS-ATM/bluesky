@@ -2,6 +2,7 @@ from math import *
 import numpy as np
 from random import random, randint
 import os
+import sys
 
 from ..tools.aero import kts, ft, fpm, nm, lbs, \
     qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
@@ -37,21 +38,24 @@ class Commandstack:
         self.scentime = []
         self.scencmd = []
 
-        # An advanced way to add your own commands: add your entry to the dictionary.
+        # An advanced way to add your own commands: add your entry to the dictionary.        
         # The dictionary should be formed as {"Key":'module'}.
-        # "Key" is a TWO-letterd reference that is used at the start of the command.
+
+        # "Key" is a FOUR-symbol reference that is used at the start of the command.
         # 'module' is the name of the .py-file in which the commands are located (without .py).
+
         # Make sure that the module has a function "process" with
         # arguments (command, number of args, array of args, sim, traf, scr, cmd)
-        # self.extracmdmodules={"FF_": "freeflight"}
-        self.extracmdmodules = {}
 
-        # Import modules from the list
-        self.extracmdrefs = {}
+        self.extracmdmodules={"SYN_": 'synthetic', "ASA_":'asascmd', "LOG_":'log'}
+
+# Import modules from the list
+        self.extracmdrefs={}
+        sys.path.append('bluesky/stack/')
         for key in self.extracmdmodules:
-            obj = __import__(self.extracmdmodules[key], globals(), locals(), [], 0)
-            self.extracmdrefs[key] = obj
-            
+            obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
+            self.extracmdrefs[key]=obj
+        
         # Display Help text on start of program
         self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")        
         self.stack("ECHO Or select IC to Open a scenario file.")        
@@ -1519,8 +1523,8 @@ class Commandstack:
                 # Reference to other command files
                 # Check external references
                 #-------------------------------------------------------------------
-                elif cmd[:3] in self.extracmdrefs:
-                    self.extracmdrefs[cmd[:3]].process(cmd[3:], numargs, cmdargs, sim, traf, scr, self)
+                elif cmd[:4] in self.extracmdrefs:
+                    self.extracmdrefs[cmd[:4]].process(cmd[4:], numargs, cmdargs, sim, traf, scr, self)
 
                 #-------------------------------------------------------------------
                 # Command not found
