@@ -745,12 +745,13 @@ class Traffic:
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
         swaltsel = np.abs(self.aalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
-#            print swaltsel
+        print swaltsel
 
-        self.vs = swaltsel*((1-self.swvnav)*np.abs(1500./60.*ft) + \
-                     self.swvnav*np.abs(self.avs)*np.sign(self.aalt-self.alt))
+        self.vs = swaltsel*np.sign(self.aalt-self.alt)*       \
+                    ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
+                      self.swvnav*np.abs(self.avs)         )
 
-        self.alt = swaltsel * (self.alt + self.vs * simdt) + \
+        self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
                    (1. - swaltsel) * self.aalt + turbalt
 
         # HDG HOLD/SEL mode: ahdg = ap selected heading
