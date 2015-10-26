@@ -30,6 +30,7 @@ class ADSBModel():
         
         self.traf = traf        
         
-    def update(self)
+    def update(self):
+        return
         
  
