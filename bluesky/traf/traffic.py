@@ -12,6 +12,7 @@ from ..tools.datalog import Datalog
 # from metric import Metric
 from route import Route
 from params import Trails
+from adsbmodel import ADSBModel
 from asas import Dbconf
 from .. import settings
 
@@ -186,6 +187,8 @@ class Traffic:
         self.perft0 = -self.perfdt # [s] last time checked (in terms of simt)
         self.warned2 = False    # Flag: Did we warn for default engine parameters yet?
 
+        # ADS-B transmission-receiver model
+        self.adsb = ADSBModel(self)
 
         # ASAS objects: Conflict Database
         self.dbconf = Dbconf(self,300., 5.*nm, 1000.*ft) # hard coded values to be replaced
@@ -530,7 +533,9 @@ class Traffic:
             self.adsbtas[i]  = self.tas[i]
             self.adsbgs[i]   = self.gs[i]
             self.adsbvs[i]   = self.vs[i]
-        
+
+        # New version ADSB Model
+        self.adsb.update()        
 
         #------------------- ASAS update: ---------------------
         # Scheduling: when dt has passed or restart:
