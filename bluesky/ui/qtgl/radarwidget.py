@@ -301,6 +301,7 @@ class RadarWidget(QGLWidget):
         # --- DRAW CUSTOM SHAPES (WHEN AVAILABLE) -----------------------------
         for i in self.polys.iteritems():
             i[1].draw()
+            
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
         if self.show_traf:
@@ -433,6 +434,7 @@ class RadarWidget(QGLWidget):
                 update_array_buffer(self.routebuf, np.array([data.lon[self.route_acidx], data.lat[self.route_acidx]], dtype=np.float32))
 
     def updatePolygon(self, name, data_in):
+        self.makeCurrent()
         if name in self.polys:
             if data_in is None:
                 del self.polys[name]
