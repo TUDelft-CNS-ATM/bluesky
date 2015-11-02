@@ -12,6 +12,7 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
     clickcmd = {"": "acid,-",
                 "POS": "acid",
+                "SSD": "acid",
                 "CRE":  "-,-,latlon,-,hdg,-,-",
                 "HDG": "acid,hdg",
                 "SPD": "acid,-",

@@ -6,6 +6,9 @@
 #define VERTEX_ROTATE_OWN 10
 #define SYMBOLSCALE 0.004
 
+const vec2[] texcoords = vec2[6](vec2(0.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0));
+const vec2[] vcoords   = vec2[6](vec2(0.0, 1.0), vec2(0.0, 0.0), vec2(1.0, 1.0), vec2(1.0, 1.0), vec2(0.0, 0.0), vec2(1.0, 0.0));
+
 // Uniform block of global data
 layout (std140) uniform global_data {
 float ownhdg;           // Ownship heading/track [deg]
@@ -39,8 +42,8 @@ void main() {
     bool vertex_rotate_ownhdg = (vertex_modifiers >= VERTEX_ROTATE_OWN);
     // Pass color and texture coordinates to the fragment shader
     color_fs = color_in;
-    texcoords_fs = texcoords_in;
-    texcoords_fs.p -= 32.0;
+    texcoords_fs.st = texcoords[gl_VertexID % 6];
+    texcoords_fs.p  = texcoords_in.p - 32.0;
 
     vec2 flat_earth = vec2(cos(radians(ownlat)), 1.0);
     mat2 ownrot     = mat2(cos(radians(ownhdg)), sin(radians(ownhdg)),
@@ -49,7 +52,7 @@ void main() {
                            sin(radians(orientation_in)), cos(radians(orientation_in)));
 
     vec2 position = vec2(lon_in - ownlon, lat_in - ownlat);
-    vec2 vertex   = vertex_in;
+    vec2 vertex   = vertex_in; //vcoords[gl_VertexID%6] * char_size + vec2(float(gl_VertexID/6) * char_size[0], 0.0);
 
     // When text_dims is non-zero we are drawing instanced
     if (block_size[0] > 0) {

@@ -1415,8 +1415,13 @@ class Commandstack:
                     else:
                         if numargs == 5:
                                 data = [float(cmdargs[2]), float(cmdargs[3]), float(cmdargs[4]), float(cmdargs[5])]
-                                scr.objappend(1,cmdargs[1],data)
+                                scr.objappend(1, cmdargs[1], data)
 
+                elif cmd[:3] == "SSD":
+                    if numargs == 0:
+                        scr.echo("SSD acid/ALL/OFF")
+                    else:
+                        scr.showssd(cmdargs[1])
 
                 #------------------------------------------------------------------
                 # ENG [acid] Change aircraft's engine
@@ -1425,7 +1430,7 @@ class Commandstack:
                 elif cmd == "ENG":
                     if numargs < 1:
                         scr.echo("ENG acid")
-                    elif numargs==1:
+                    elif numargs == 1:
                         acid = cmdargs[1].upper()
                         idx = traf.id.index(acid)
                         scr.echo("available engine types:")

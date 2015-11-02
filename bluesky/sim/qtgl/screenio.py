@@ -41,8 +41,8 @@ class ScreenIO(QObject):
         data.id         = list(self.sim.traf.id)
         data.lat        = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
         data.lon        = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
-        data.alt        = np.array(self.sim.traf.alt, copy=True)
-        data.tas        = np.array(self.sim.traf.tas, copy=True)
+        data.alt        = np.array(self.sim.traf.alt, dtype=np.float32, copy=True)
+        data.tas        = np.array(self.sim.traf.tas, dtype=np.float32, copy=True)
         data.iconf      = np.array(self.sim.traf.iconf, copy=True)
         data.confcpalat = np.array(self.sim.traf.dbconf.latowncpa, copy=True)
         data.confcpalon = np.array(self.sim.traf.dbconf.lonowncpa, copy=True)
@@ -98,6 +98,14 @@ class ScreenIO(QObject):
             data.lon[0]  = self.sim.traf.lon[data.acidx]
             data.lon[1:] = route.wplon
         qapp.postEvent(qapp.instance(), data)
+
+    def showssd(self, param):
+        if param == 'ALL' or param == 'OFF':
+            qapp.postEvent(qapp.instance(), DisplayFlagEvent('SSD', param))
+        else:
+            idx = self.sim.traf.id2idx(param)
+            if idx >= 0:
+                qapp.postEvent(qapp.instance(), DisplayFlagEvent('SSD', idx))
 
     def show_file_dialog(self):
         qapp.postEvent(qapp.instance(), ShowDialogEvent())
