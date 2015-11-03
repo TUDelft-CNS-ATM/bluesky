@@ -26,6 +26,8 @@ class GLTest(QGLWidget):
 
         print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
 
+        print("This script creates a file called 'opengl-test.txt', containing information about the opengl support of your computer. Useful when debugging problems with the opengl version of BlueSky.")
+
     def initializeGL(self):
         gl.glClearColor(0, 0, 0, 0)
 
