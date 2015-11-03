@@ -29,6 +29,7 @@ class GLTest(QGLWidget):
         print("This script creates a file called 'opengl-test.txt', containing information about the opengl support of your computer. Useful when debugging problems with the opengl version of BlueSky.")
 
     def initializeGL(self):
+        self.was_valid_in_init = self.isValid()
         gl.glClearColor(0, 0, 0, 0)
 
     def paintGL(self):
@@ -38,6 +39,7 @@ class GLTest(QGLWidget):
         f = open('opengl_test.txt', 'w')
         f.write('Supported OpenGL version: ' + gl.glGetString(gl.GL_VERSION) + '\n')
         f.write('Supported GLSL version: ' + gl.glGetString(gl.GL_SHADING_LANGUAGE_VERSION) + '\n')
+        f.write('Context was valid in initializeGL? %d\n' % self.was_valid_in_init)
         numext = gl.glGetIntegerv(gl.GL_NUM_EXTENSIONS)
         f.write('Supported OpenGL extensions:' + '\n')
         extensions = ''
