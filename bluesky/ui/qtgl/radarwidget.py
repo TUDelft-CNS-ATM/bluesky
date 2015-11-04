@@ -1,9 +1,9 @@
 try:
-    from PyQt4.QtCore import Qt, qCritical
+    from PyQt4.QtCore import Qt, qCritical, QTimer
     from PyQt4.QtOpenGL import QGLWidget
     QT_VERSION = 4
 except ImportError:
-    from PyQt5.QtCore import Qt, qCritical
+    from PyQt5.QtCore import Qt, qCritical, QTimer
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
 import numpy as np
@@ -91,6 +91,7 @@ class RadarWidget(QGLWidget):
     wrapdir = int(0)
 
     do_text = True
+    invalid_count = 0
 
     def __init__(self, navdb, shareWidget=None):
         super(RadarWidget, self).__init__(shareWidget=shareWidget)
@@ -111,6 +112,15 @@ class RadarWidget(QGLWidget):
         self.initialized = False
 
     def create_objects(self):
+        if not self.isValid():
+            self.invalid_count += 1
+            print 'Context not valid in initializeGL, count=%d' % self.invalid_count
+            QTimer.singleShot(100, self.create_objects)
+            return
+
+        # Make the radarwidget context current, necessary when create_objects is not called from initializeGL
+        self.makeCurrent()
+
         # Initialize font for radar view with specified settings
         TextObject.create_font_array(char_height=text_texture_size, font_family=font_family, font_weight=font_weight)
         # Load and bind world texture
@@ -240,6 +250,8 @@ class RadarWidget(QGLWidget):
         self.globaldata.set_wrap(self.wraplon, self.wrapdir)
         self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
+        self.initialized = True
+
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
 
@@ -272,11 +284,8 @@ class RadarWidget(QGLWidget):
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
             return
 
-        # create a vertex array objects
+        # create all vertex array objects
         self.create_objects()
-
-        # Done initializing
-        self.initialized = True
 
     def paintGL(self):
         """Paint the scene."""

@@ -1,9 +1,9 @@
 try:
-    from PyQt4.QtCore import qCritical
+    from PyQt4.QtCore import qCritical, QTimer
     from PyQt4.QtOpenGL import QGLWidget
     QT_VERSION = 4
 except ImportError:
-    from PyQt5.QtCore import qCritical
+    from PyQt5.QtCore import qCritical, QTimer
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
 
@@ -53,6 +53,7 @@ class ND(QGLWidget):
         self.ac_id = ''
         self.n_aircraft = None
         self.initialized = False
+        self.invalid_count = 0
         # Set size
         self.viewport = (0, 0, 400, 400)
         self.resize(400, 400)
@@ -66,6 +67,15 @@ class ND(QGLWidget):
         self.n_aircraft = n_aircraft
 
     def create_objects(self):
+        if not self.isValid():
+            self.invalid_count += 1
+            print 'Context not valid in initializeGL, count=%d' % self.invalid_count
+            QTimer.singleShot(100, self.create_objects)
+            return
+
+        # Make the nd widget context current, necessary when create_objects is not called from initializeGL
+        self.makeCurrent()
+
         self.edge = RenderObject(gl.GL_LINE_STRIP, vertex_count=60)
         edge = np.zeros(120, dtype=np.float32)
         edge[0:120:2] = 1.4 * np.sin(np.radians(np.arange(-60, 60, 2)))
@@ -152,6 +162,9 @@ class ND(QGLWidget):
         # Unbind VAO, VBO
         RenderObject.unbind_all()
 
+        # Done initializing
+        self.initialized = True
+
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
 
@@ -176,13 +189,10 @@ class ND(QGLWidget):
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
             return
 
-        self.create_objects()
-
         # Set initial zoom
         self.globaldata.set_zoom(4.0)
 
-        # Done initializing
-        self.initialized = True
+        self.create_objects()
 
     def resizeGL(self, width, height):
         # paint within the largest possible rectangular area in the window
