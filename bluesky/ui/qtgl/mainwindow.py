@@ -28,6 +28,10 @@ class MainWindow(QMainWindow):
         #           the button         the icon      the tooltip    the callback
         buttons = { self.zoomin  :    ['zoomin.svg', 'Zoom in', self.buttonClicked],
                     self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked],
+                    self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked],
+                    self.panright :   ['panright.svg', 'Pan right', self.buttonClicked],
+                    self.panup :      ['panup.svg', 'Pan up', self.buttonClicked],
+                    self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked],
                     self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked],
                     self.op :         ['play.svg', 'Operate', self.buttonClicked],
                     self.hold :       ['pause.svg', 'Hold', self.buttonClicked],
@@ -88,6 +92,14 @@ class MainWindow(QMainWindow):
             self.app.notify(self.app, PanZoomEvent(zoom=1.4142135623730951))
         elif self.sender() == self.zoomout:
             self.app.notify(self.app, PanZoomEvent(zoom=0.70710678118654746))
+        elif self.sender() == self.pandown:
+            self.app.notify(self.app, PanZoomEvent(pan=(-0.5,  0.0)))
+        elif self.sender() == self.panup:
+            self.app.notify(self.app, PanZoomEvent(pan=( 0.5,  0.0)))
+        elif self.sender() == self.panleft:
+            self.app.notify(self.app, PanZoomEvent(pan=( 0.0, -0.5)))
+        elif self.sender() == self.panright:
+            self.app.notify(self.app, PanZoomEvent(pan=( 0.0,  0.5)))
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
