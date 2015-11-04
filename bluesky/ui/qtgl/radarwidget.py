@@ -114,7 +114,7 @@ class RadarWidget(QGLWidget):
     def create_objects(self):
         if not self.isValid():
             self.invalid_count += 1
-            print 'Context not valid in initializeGL, count=%d' % self.invalid_count
+            print 'Radarwidget: Context not valid in create_objects, count=%d' % self.invalid_count
             QTimer.singleShot(100, self.create_objects)
             return
 
