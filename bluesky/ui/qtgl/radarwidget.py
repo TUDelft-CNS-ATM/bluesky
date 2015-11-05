@@ -255,6 +255,16 @@ class RadarWidget(QGLWidget):
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
 
+        # First check for supported GL version
+        gl_version = float(gl.glGetString(gl.GL_VERSION)[:3])
+        if gl_version < 3.3:
+            print('OpenGL context created with GL version %.1f' % gl_version)
+            qCritical('Your system reports that it supports OpenGL up to version %.1f. The minimum requirement for BlueSky is OpenGL 3.3. \
+                Generally, AMD/ATI/nVidia cards from 2008 and newer support OpenGL 3.3, and Intel integrated graphics from the Haswell \
+                generation and newer. If you think your graphics system should be able to support GL>=3.3 please open an issue report \
+                on the BlueSky Github page (https://github.com/ProfHoekstra/bluesky/issues)' % gl_version)
+            return
+
         # background color
         gl.glClearColor(0, 0, 0, 0)
         gl.glEnable(gl.GL_BLEND)

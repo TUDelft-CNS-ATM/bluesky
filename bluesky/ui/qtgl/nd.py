@@ -168,6 +168,11 @@ class ND(QGLWidget):
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
 
+        # First check for supported GL version
+        gl_version = float(gl.glGetString(gl.GL_VERSION)[:3])
+        if gl_version < 3.3:
+            return
+
         # background color
         gl.glClearColor(0, 0, 0, 0)
         gl.glEnable(gl.GL_BLEND)
