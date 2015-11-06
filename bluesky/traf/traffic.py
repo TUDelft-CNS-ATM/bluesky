@@ -233,11 +233,12 @@ class Traffic:
         
         return
 
-    def create(self, acid, actype, aclat, aclon, achdg, acalt, acspd):
+
+    def create_ac(self, acid, actype, aclat, aclon, achdg, acalt, acspd):
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
-            return  # already exists do nothing
+            return False # already exists do nothing
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
@@ -351,7 +352,7 @@ class Traffic:
         
         self.eps = np.append(self.eps, 0.01)
 
-        return
+        return True
 
     def delete(self, acid):
         """Delete an aircraft"""
@@ -442,11 +443,10 @@ class Traffic:
         self.desspd=np.delete(self.desspd, idx)
         self.deshdg=np.delete(self.deshdg, idx)  
 
-
         # Metrics, area
-        # del self.inside[idx]
-
-        # Traffic display data: label
+        del self.inside[idx]
+ 
+       # Traffic display data: label
         del self.label[idx]
 
         # Delete bread crumb data
@@ -686,6 +686,7 @@ class Traffic:
             #latitudinal, longitudinal direction
             turblat=np.cos(trkrad)*turbhf-np.sin(trkrad)*turbhw #[m]
             turblon=np.sin(trkrad)*turbhf+np.cos(trkrad)*turbhw #[m]
+
         else:
             turbalt=np.zeros(self.ntraf) #[m]
             turblat=np.zeros(self.ntraf) #[m]
@@ -807,48 +808,51 @@ class Traffic:
 
         # ----------------AREA check----------------
         # Update area once per areadt seconds:
-        # if self.swarea and abs(simt - self.areat0) > self.areadt:
+        if self.swarea and abs(simt - self.areat0) > self.areadt:
+            # Update loop timer
+            self.areat0 = simt
+            # Check all aircraft
+            i = 0
+            while (i < self.ntraf):
+                
+                # Current status
+                if self.area == "Square":
+                    inside = self.arealat0 <= self.lat[i] <= self.arealat1 and \
+                             self.arealon0 <= self.lon[i] <= self.arealon1 and \
+                             self.alt[i] >= self.areafloor and \
+                             (self.alt[i] >= 1500 or self.swtaxi)
+                elif self.area == "Circle":
 
-        #     # Update loop timer
-        #     self.areat0 = simt
+                    ## Average of lat
+                    latavg = (radians(self.lat[i]) + radians(self.metric.fir_circle_point[0])) / 2
+                    cosdlat = (cos(latavg))
 
-        #     # Chekc all aicraft
-        #     for i in xrange(self.ntraf):
+                    # Distance x to centroid
+                    dx = (self.lon[i] - self.metric.fir_circle_point[1]) * cosdlat * 60
+                    dx2 = dx * dx
 
-        #         # Current status
-        #         if self.area == "Square":
-        #             inside = self.arealat0 <= self.lat[i] <= self.arealat1 and \
-        #                      self.arealon0 <= self.lon[i] <= self.arealon1 and \
-        #                      self.alt[i] >= self.areafloor and \
-        #                      (self.alt[i] >= 1500 or self.swtaxi)
-        #         elif self.area == "Circle":
+                    # Distance y to centroid
+                    dy = self.lat[i] - self.metric.fir_circle_point[0]
+                    dy2 = dy * dy * 3600
 
-        #             ## Average of lat
-        #             latavg = (radians(self.lat[i]) + radians(self.metric.fir_circle_point[0])) / 2
-        #             cosdlat = (cos(latavg))
+                    # Radius squared
+                    r2 = self.metric.fir_circle_radius * self.metric.fir_circle_radius
 
-        #             # Distance x to centroid
-        #             dx = (self.lon[i] - self.metric.fir_circle_point[1]) * cosdlat * 60
-        #             dx2 = dx * dx
+                    # Inside if smaller
+                    inside = (dx2 + dy2) < r2
 
-        #             # Distance y to centroid
-        #             dy = self.lat[i] - self.metric.fir_circle_point[0]
-        #             dy2 = dy * dy * 3600
+                # Compare with previous: when leaving area: delete command
+                
+                if self.inside[i] and not inside:
+                    self.delete(self.id[i])
 
-        #             # Radius squared
-        #             r2 = self.metric.fir_circle_radius * self.metric.fir_circle_radius
+                else:
+                    # Update area status
+                    self.inside[i] = inside
+                    i = i + 1       
 
-        #             # Inside if smaller
-        #             inside = (dx2 + dy2) < r2
-
-        #         # Compare with previous: when leaving area: delete command
-        #         if self.inside[i] and not inside:
-        #             # cmd.stack("DEL " + self.id[i])
-        #             self.delete(self.id[i])
-
-        #         # Update area status
-        #         self.inside[i] = inside
-
+        return            
+                    
     def id2idx(self, acid):
         """Find index of aircraft id"""
         try:
@@ -882,3 +886,43 @@ class Traffic:
         """Change of engines"""
         self.perf.engchange(acid, engid)
         return
+    def create(self,arglist):  # CRE command
+        print 'create=',arglist 
+ 
+        if len(arglist)<7:
+            return False
+ 
+        acid  = arglist[0]        
+
+        if self.id.count(acid.upper()) > 0:
+            return False,acid+" already exists" 
+       
+        actype  = arglist[1]
+        aclat   = arglist[2]
+        aclon   = arglist[3]
+        achdg   = arglist[4]
+        acalt   = arglist[5] # m
+        cmdspd  = arglist[6] # Mach/IAS kts (float
+        
+        if 0.1 < cmdspd <1.0 :
+            acspd = mach2tas(cmdspd,acalt)
+        else:
+            acspd = cas2tas(cmdspd*kts,acalt)
+        
+        sw = self.create_ac(acid, actype, aclat, aclon, achdg, acalt, acspd)
+        print "sw =",sw," with ",acid, actype, aclat, aclon, achdg, acalt, acspd
+        print "ntraf=",self.ntraf
+        return sw
+
+    def selhdg(self,arglist): # HDG command
+        if len(arglist)<2:
+           return False #Error/Display helptext
+           
+        idx = arglist[0]  # aircraft index
+        hdg = arglist[1]  # float
+        self.ahdg[idx]   = arglist[2]
+        self.swlnav[idx] = False
+        
+        return True
+
+
