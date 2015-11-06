@@ -47,6 +47,11 @@ class Traffic:
     """
 
     def __init__(self, navdb):
+        
+        self.reset(navdb)
+        return
+
+    def reset(self, navdb):
         self.dts = []
         self.ntraf = 0
 
@@ -887,7 +892,6 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
     def create(self,arglist):  # CRE command
-        print 'create=',arglist 
  
         if len(arglist)<7:
             return False
@@ -910,19 +914,24 @@ class Traffic:
             acspd = cas2tas(cmdspd*kts,acalt)
         
         sw = self.create_ac(acid, actype, aclat, aclon, achdg, acalt, acspd)
-        print "sw =",sw," with ",acid, actype, aclat, aclon, achdg, acalt, acspd
-        print "ntraf=",self.ntraf
         return sw
 
     def selhdg(self,arglist): # HDG command
+
+        # Select heading command: HDG acid, hdg
+
         if len(arglist)<2:
            return False #Error/Display helptext
-           
+
+        # unwrap arguments 
         idx = arglist[0]  # aircraft index
         hdg = arglist[1]  # float
-        self.ahdg[idx]   = arglist[2]
+
+        # Give autopilot commands
+        self.ahdg[idx]   = hdg
         self.swlnav[idx] = False
         
+        # Everything went ok!
         return True
 
 

@@ -7,7 +7,7 @@ from bluesky.sim.pygame import Simulation, MainLoop
 # =============================================================================
 navdb = Navdatabase('global')
 gui = Gui(navdb)
-sim = Simulation(navdb)
+sim = Simulation(gui,navdb)
 
 
 # =============================================================================

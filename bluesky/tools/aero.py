@@ -208,7 +208,7 @@ def tas2eas(tas,h):  # true airspeed to equivent airspeed
     eas = tas*sqrt(rho/rho0)
     return eas
 
-def cas2tas(cas,h):  #cas2tas conversion both m/s 
+def cas2tas(cas,h):  #cas2tas conversion both m/s h in m
     p,rho,T = atmos(h)
     qdyn    = p0*((1.+rho0*cas*cas/(7.*p0))**3.5-1.)
     tas     = sqrt(7.*p/rho*((1.+qdyn/p)**(2./7.)-1.))

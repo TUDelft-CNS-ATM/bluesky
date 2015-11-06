@@ -29,7 +29,25 @@ class Commandstack:
 
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
-    def __init__(self):
+    def __init__(self, sim, traf, scr):
+
+        #Command dictionary: command, helptext, arglist, function to call
+        #----------------------------------------------------------------------
+        self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
+                                      "txt,txt,lat,lon,float,alt,spd",
+                                      traf.create   ],
+                        "HDG": [ "HDG acid,hdg[deg,True]",
+                                       "acid,float",traf.selhdg  ]
+                       }
+
+        #----------------------------------------------------------------------
+        
+        # Command synonym dictionary
+        self.cmdsynon = {"CREATE":"CRE",
+                         "TURN":"HDG",
+                         "DTLOOK":"ASA_DTLOOK",
+                         }
+        #----------------------------------------------------------------------
 
         self.cmdstack  = []
         self.scenlines = []
@@ -39,7 +57,7 @@ class Commandstack:
         self.scencmd = []
 
         # An advanced way to add your own commands: add your entry to the dictionary.        
-        # The dictionary should be formed as {"Key":'module'}.
+        # The dictionary should be formed as {"Key":module'}.
 
         # "Key" is a FOUR-symbol reference that is used at the start of the command.
         # 'module' is the name of the .py-file in which the commands are located (without .py).
@@ -257,6 +275,7 @@ class Commandstack:
             synerr = False
 
             # Catch general errors
+            #try:
             if True:  # optional to switch error protection off
 
                 #**********************************************************************
@@ -264,9 +283,90 @@ class Commandstack:
                 #**********************************************************************
 
                 #----------------------------------------------------------------------
+                # First check command synonymes list, then dictionary
+                #----------------------------------------------------------------------
+                if cmd in self.cmdsynon.keys():
+                    cmd = self.cmdsynon[key]
+                
+                if cmd in self.cmddict.keys():
+                    helptext,argtypelist,function = self.cmddict[cmd]
+                    argtypes = argtypelist.split(",")
+                    numtypes = len(argtypes) 
+                    
+                    # Process arg list
+                    arglist = []
+#                    try:
+                    if True:
+                        for i in range(1,1+min(numtypes,numargs)):
+                            argtype = argtypes[i-1].strip()
+                            if cmdargs[i]=="":  # Empty arg => parse None
+                                arglist.append(None)
+                            elif argtype == "acid": # aircraft id => parse index
+                                idx = traf.id2idx(cmdargs[i])
+                                if idx<0:
+                                    scr.echo(cmd+":"+acid+" not found")
+                                    synerr = True
+                                    break
+                                else:
+                                    arglist.append(i)
+                            elif argtype == "txt":  # simple text
+                                arglist.append(cmdargs[i])
+
+                            elif argtype == "float": # float number
+                                arglist.append(float(cmdargs[i]))
+
+                            elif argtype == "int":   # integer
+                                arglist.append(int(cmdargs[i]))  # switch
+
+                            elif argtype == "onoff" or argtype=="bool":
+                                sw = (cmdargs[i]=="ON" or cmdargs[i]=="1" or \
+                                                      cmdargs[i]=="TRUE")
+                                arglist.append(sw)
+
+                            elif argtype == "lat":
+                                lat = cmdargs[i].replace("S","-").replace("N","")
+                                arglist.append(float(lat))
+
+                            elif argtype == "lon":
+                                lon = cmdargs[i].replace("W","-").replace("E","")
+                                arglist.append(float(lon))
+
+                            elif argtype=="spd":
+                                spd = float(cmdargs[i].upper().replace("M",".").replace("..","."))
+                                arglist.append(spd)  # speed CAS[kts] or Mach (float)
+
+                            elif argtype=="alt":
+                                arglist.append(ft*txt2alt(cmdargs[i])) # alt in m
+                        
+#                    except:
+#                        synerr = False
+#                        scr.echo("Syntax error in processing arguments")
+#                        scr.echo(cmdline)
+#                        scr.echo(helptext)
+
+                    # Call function return flag,text
+                    # flag: indicates sucess
+                    # text: optional error message
+
+                    results = function(arglist)
+                    txt = helptext
+                    if type(results)==bool:
+                        synerr = not results
+                    elif type(results)==list:
+                        if len(results)>=1:
+                            synerr = not results[0]
+                        
+                        if len(results)>=2:
+                            scr.echo(cmd+":"+results[1])
+                    if synerr:                    
+                         scr.echo(helptext)
+
+                    synerr= False  # suppress further error messages
+
+                #----------------------------------------------------------------------
                 # QUIT/STOP/END/Q: stop program
                 #----------------------------------------------------------------------
-                if cmd == "QUIT" or cmd == "STOP" or cmd == "END" \
+                elif cmd == "QUIT" or cmd == "STOP" or cmd == "END" \
                         or cmd == "EXIT" or cmd[0] == "Q":
 
                     sim.stop()
@@ -320,7 +420,7 @@ class Commandstack:
                         synerr = True
 
                     if not synerr:
-                        traf.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
+                        traf.create_ac(acid, actype, aclat, aclon, achdg, acalt, acspd)
                         i = traf.id2idx(acid)
                         traf.crzalt[i] = acalt  # Use CRE-alt as default crzalt
                     else:
@@ -411,7 +511,7 @@ class Commandstack:
                                     traf.tas[idx] = acspd
                                     traf.aspd[idx] = tas2eas(traf.tas[idx], traf.alt[idx])
                                 else:
-                                    syntax = False
+                                    synerr = True
 
                             if numargs >= 7 and cmdargs[7] != "":  # vertical speed
                                 traf.vs[idx] = float(cmdargs[7]) * fpm
@@ -459,13 +559,13 @@ class Commandstack:
                                     traf.avs[idx] = float(cmdargs[3]) * fpm
 
                             except:
-                                syntax = False
+                                synerr = True
 
                         else:
                             scr.echo(cmd + ": " + acid + " not found.")
 
                     else:
-                        syntax = False
+                        synerr = True
 
                 #----------------------------------------------------------------------
                 # HDG heading [deg,true] heading autpilot command
@@ -482,7 +582,7 @@ class Commandstack:
                         else:
                             scr.echo(cmd + ": " + acid + " not found.")
                     else:
-                        syntax = False
+                        synerr = True
 
                 #----------------------------------------------------------------------
                 # SPD speed [kts, CAS] Speed autopilot command
@@ -507,7 +607,7 @@ class Commandstack:
                         else:
                             scr.echo(cmd + ": " + acid + " not found.")
                     else:
-                        syntax = False
+                        synerr = True
               
                 #----------------------------------------------------------------------
                 # reset acceleration back to nominal value 
@@ -524,7 +624,7 @@ class Commandstack:
                         else:
                             scr.echo(cmd + ": " + acid + " not found.")
                     else:
-                        syntax = False                
+                        synerr = True                
 
                 #----------------------------------------------------------------------
                 # VS vertspeed [ft/min] Vertical speed autopilot command
@@ -542,7 +642,7 @@ class Commandstack:
                         else:
                             scr.echo(cmd + ": " + acid + " not found.")
                     else:
-                        syntax = False
+                        synerr = True
 
                 #----------------------------------------------------------------------
                 # DEST/ORIG: Destination/Origin command: set destination/origin airport
@@ -604,7 +704,7 @@ class Commandstack:
                         else:
                             scr.echo(cmd + ": aircraft " + acid + " not found.")
                     else:
-                        syntax = False
+                        synerr = True
 
                 #----------------------------------------------------------------------
                 # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -616,17 +716,17 @@ class Commandstack:
                         zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
                         scr.zoom(zoomfac)
                     else:
-                        syntax = len(cmdargs) == 2
-                        if syntax:
+                        synerr = not(len(cmdargs) == 2)
+                        if not synerr:
                             if cmdargs[1] == "IN":
                                 scr.zoom(1.4142135623730951)  # sqrt(2.)
 
                             elif cmdargs[1] == "OUT":
                                 scr.zoom(0.70710678118654746)  #1./sqrt(2.)
                             else:
-                                syntax = False
+                                synerr = True
 
-                        if not syntax:
+                        if synerr:
                             print "Syntax error in command"
                             scr.echo("Syntax error in command")
                             scr.echo("ZOOM IN/OUT")
@@ -819,7 +919,7 @@ class Commandstack:
                                     sim.ffstop = abs(tstop_) + sim.t
                                 except:
                                     sim.ffstop = -1.
-                                    syntax = False  # syntax is not ok
+                                    synerr = True  # syntax is not ok
                             else:
                                 sim.ffmode = True
                                 sim.ffstop = -1
@@ -1097,7 +1197,7 @@ class Commandstack:
                                     acspd = txt2spd(cmdargs[4],h)
 
                                 # Create a/c
-                                traf.create(acid, actype, aclat, aclon, achdg, \
+                                traf.create_ac(acid, actype, aclat, aclon, achdg, \
                                             acalt, acspd)
                         except:
                             scr.echo('Syntax error')
@@ -1143,10 +1243,21 @@ class Commandstack:
                         scr.echo("LNAV acid, ON/OFF")
                     else:
                         idx = traf.id2idx(cmdargs[1])
-                        if cmdargs[2].upper() == "ON":
-                            traf.swlnav[idx] = True
-                        elif cmdargs[2].upper() == "OFF":
-                            traf.swlnav[idx] = False
+
+                        if idx<0:
+                            scr.echo(acid+"not found")
+ 
+                        elif numargs ==1:
+                            if traf.swlnav[idx] == "ON":
+                                scr.echo(acid+": LNAV ON")
+                            else:
+                                scr.echo(acid+": LNAV OFF")
+
+                        else:
+                            if cmdargs[2].upper() == "ON":
+                                traf.swlnav[idx] = True
+                            elif cmdargs[2].upper() == "OFF":
+                                traf.swlnav[idx] = False
 
                 #----------------------------------------------------------------------
                 # VNAV acid ON/OFF  Switch VNAV (SPD+ALT FMS navigation)  on/off
@@ -1156,10 +1267,20 @@ class Commandstack:
                         scr.echo("VNAV acid, ON/OFF")
                     else:
                         idx = traf.id2idx(cmdargs[1])
-                        if cmdargs[2].upper() == "ON":
-                            traf.swvnav[idx] = True
-                        elif cmdargs[2].upper() == "OFF":
-                            traf.swvnav[idx] = False
+                        if idx<0:
+                            scr.echo(acid+"not found")
+
+                        elif numargs ==1:
+                            if traf.swvnav[idx] == "ON":
+                                scr.echo(acid+": VNAV ON")
+                            else:
+                                scr.echo(acid+": VNAV OFF")
+
+                        else:
+                            if cmdargs[2].upper() == "ON":
+                                traf.swvnav[idx] = True
+                            elif cmdargs[2].upper() == "OFF":
+                                traf.swvnav[idx] = False
 
 
                 #----------------------------------------------------------------------
@@ -1446,7 +1567,7 @@ class Commandstack:
                         # self.engchange(acid, engid)
 
                     else:
-                        syntax = False
+                        synerr = True
 
                 #------------------------------------------------------------------
                 # DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER
