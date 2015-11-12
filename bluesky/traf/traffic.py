@@ -489,6 +489,9 @@ class Traffic:
         return
 
     def update(self, simt, simdt):
+#        i = self.id2idx("TP233")
+#        if i>=0:
+#           print "LNAV TP233:",self.swlnav[i]
         # Update only necessary if there is traffic
         if self.ntraf == 0:
             return
@@ -702,14 +705,13 @@ class Traffic:
         #--------- Select Autopilot settings to follow: destination or ASAS ----------
 
         # desired autopilot settings due to ASAS
-        self.deshdg = self.asasactive*self.asashdg+(1-self.asasactive)*self.ahdg
-        self.desspd = self.asasactive*self.asasspd+(1-self.asasactive)*self.aspd
-        self.desalt = self.asasactive*self.asasalt+(1-self.asasactive)*self.aalt
-        self.desvs = self.asasactive*self.asasvsp+(1-self.asasactive)*self.avs
+        self.deshdg = self.asasactive*self.asashdg + (1-self.asasactive)*self.ahdg
+        self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aspd
+        self.desalt = self.asasactive*self.asasalt + (1-self.asasactive)*self.aalt
+        self.desvs  = self.asasactive*self.asasvsp + (1-self.asasactive)*self.avs
 
         # check for the flight envelope
         self.perf.limits()
- 
 
         # update autopilot settings with values within the flight envelope
         # speed
@@ -922,7 +924,7 @@ class Traffic:
 
         if len(arglist)<2:
            return False #Error/Display helptext
-
+        print "en voorbij de check"
         # unwrap arguments 
         idx = arglist[0]  # aircraft index
         hdg = arglist[1]  # float
@@ -930,7 +932,6 @@ class Traffic:
         # Give autopilot commands
         self.ahdg[idx]   = hdg
         self.swlnav[idx] = False
-        
         # Everything went ok!
         return True
 
