@@ -9,7 +9,6 @@ navdb = Navdatabase('global')
 gui = Gui(navdb)
 sim = Simulation(gui,navdb)
 
-
 # =============================================================================
 # Start the mainloop (and possible other threads)
 # =============================================================================
