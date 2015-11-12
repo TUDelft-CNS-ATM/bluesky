@@ -308,7 +308,7 @@ class Commandstack:
                                     synerr = True
                                     break
                                 else:
-                                    arglist.append(i)
+                                    arglist.append(idx)
                             elif argtype == "txt":  # simple text
                                 arglist.append(cmdargs[i])
 
@@ -430,7 +430,7 @@ class Commandstack:
                         continue
 
                 #----------------------------------------------------------------------
-                # POS command: traffic info;
+                # POS command: traffic info; ("KL204", "POS KL204" or "KL204 ?")
                 #----------------------------------------------------------------------
                 elif cmd == "POS" or cmd=="?":
                     if numargs >= 1:
@@ -443,9 +443,12 @@ class Commandstack:
 
                         # print info on aircraft if found
                         else:
-                            scr.echo("Info on " + acid + " " + traf.type[idx])
-                            scr.echo("Pos = " + str((traf.lat[idx], traf.lon[idx])))
-                            scr.echo(str(int(traf.tas[idx] / kts)) + " kts at " \
+                            scr.echo("Info on " + acid + " " + traf.type[idx]+\
+                                                          "   index = " + str(idx))
+                            taskts = int(round(traf.tas[idx]/kts))                              
+                            caskts = int(round(tas2cas(traf.tas[idx],traf.alt[idx])/kts))                              
+                            scr.echo("Pos = " + str(traf.lat[idx])+" , "+str(traf.lon[idx]))
+                            scr.echo(str(caskts)+" kts (TAS: "+str(taskts)+" kts) at " \
                                      + str(int(traf.alt[idx] / ft)) + " ft")
                             scr.echo("Hdg = " + str(int(traf.trk[idx])))
                             if traf.swvnav[idx]:
@@ -1617,6 +1620,7 @@ class Commandstack:
                         f.write("\nRoute "+acid+":\n")
                         f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
                         f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
+
                         # write flight plan VNAV data (Lateral is visible on screen)
                         for j in range(traf.route[i].nwp):
                             f.write( str(( j, \
