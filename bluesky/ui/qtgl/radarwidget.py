@@ -6,6 +6,7 @@ except ImportError:
     from PyQt5.QtCore import Qt, qCritical, QTimer
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
+from math import sqrt, cos, radians, degrees
 import numpy as np
 import OpenGL.GL as gl
 from ctypes import c_float, c_int, Structure
@@ -23,6 +24,8 @@ MAX_NCONFLICTS       = 1000
 MAX_ROUTE_LENGTH     = 100
 MAX_POLYGON_SEGMENTS = 100
 
+REARTH_INV           = 1.56961231e-7
+
 # Colors
 red                  = (1.0, 0.0, 0.0)
 green                = (0.0, 1.0, 0.0)
@@ -34,6 +37,7 @@ lightblue4           = (0.86, 0.98, 1.0)
 cyan                 = (0.0, 1.0, 0.0)
 amber                = (1.0, 0.6, 0.0)
 magenta              = (1.0, 0.0, 1.0)
+grey                 = (0.4, 0.4, 0.4)
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
@@ -89,6 +93,7 @@ class RadarWidget(QGLWidget):
     flat_earth = 1.0
     wraplon = int(-999)
     wrapdir = int(0)
+    max_texture_size = 0
 
     do_text = True
     invalid_count = 0
@@ -101,6 +106,7 @@ class RadarWidget(QGLWidget):
         self.grabGesture(Qt.SwipeGesture)
 
         # The number of aircraft in the simulation
+        self.map_texture = 0
         self.naircraft   = 0
         self.nwaypoints  = 0
         self.nairports   = 0
@@ -124,8 +130,14 @@ class RadarWidget(QGLWidget):
         # Initialize font for radar view with specified settings
         TextObject.create_font_array(char_height=text_texture_size, font_family=font_family, font_weight=font_weight)
         # Load and bind world texture
-        # self.map_texture = load_texture('data/world.jpg')
-        self.map_texture = self.bindTexture('data/graphics/world.16384x8192-mipmap.dds')
+        max_texture_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
+        print 'Maximum supported texture size: %d' % max_texture_size
+        for i in [16384, 8192, 4096]:
+            if max_texture_size >= i:
+                fname = 'data/graphics/world.%dx%d.dds' % (i, i / 2)
+                print 'Loading texture ' + fname
+                self.map_texture = self.bindTexture(fname)
+                break
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
         self.achdgbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
@@ -154,6 +166,14 @@ class RadarWidget(QGLWidget):
         self.vcount_coast = len(coastvertices)
         self.coastindices = coastindices
         del coastvertices
+
+        # ------- Runways --------------------------------
+        self.runways = RenderObject(gl.GL_TRIANGLES)
+        rwy_vertices = load_rwy_data()
+        self.runways.bind_attrib(ATTRIB_VERTEX, 2, rwy_vertices)
+        self.runways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.float32), instance_divisor=1)
+        self.runways.set_vertex_count(len(rwy_vertices)/2)
+        del rwy_vertices
 
         # Polygon preview object
         self.polyprev = RenderObject(gl.GL_LINE_LOOP)
@@ -335,15 +355,15 @@ class RadarWidget(QGLWidget):
                 self.coastlines.bind()
                 wrapindex = np.uint32(self.coastindices[int(self.wraplon)+180])
                 if self.wrapdir == 1:
-                    gl.glVertexAttrib1f(ATTRIB_LON, 0.0)
-                    self.coastlines.draw(first_vertex=wrapindex, vertex_count=self.vcount_coast - wrapindex)
                     gl.glVertexAttrib1f(ATTRIB_LON, 360.0)
                     self.coastlines.draw(first_vertex=0, vertex_count=wrapindex)
-                else:
                     gl.glVertexAttrib1f(ATTRIB_LON, 0.0)
-                    self.coastlines.draw(first_vertex=0, vertex_count=wrapindex)
+                    self.coastlines.draw(first_vertex=wrapindex, vertex_count=self.vcount_coast - wrapindex)
+                else:
                     gl.glVertexAttrib1f(ATTRIB_LON, -360.0)
                     self.coastlines.draw(first_vertex=wrapindex, vertex_count=self.vcount_coast - wrapindex)
+                    gl.glVertexAttrib1f(ATTRIB_LON, 0.0)
+                    self.coastlines.draw(first_vertex=0, vertex_count=wrapindex)
 
         # --- DRAW PREVIEW SHAPE (WHEN AVAILABLE) -----------------------------
         self.polyprev.draw()
@@ -358,6 +378,9 @@ class RadarWidget(QGLWidget):
 
         if self.show_traf:
             self.cpalines.draw()
+
+        if self.zoom >= 1.0:
+            self.runways.draw()
 
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
@@ -578,7 +601,7 @@ class RadarWidget(QGLWidget):
                     self.panlon += event.pan[1]
 
                 # Don't pan further than the poles in y-direction
-                self.panlat = min(max(self.panlat, -90.0 + 1.0 /   \
+                self.panlat = min(max(self.panlat, -90.0 + 1.0 /
                       (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
 
                 # Update flat-earth factor and possibly zoom in case of very wide windows (> 2:1)
@@ -632,11 +655,50 @@ class RadarWidget(QGLWidget):
 
             # update pan and zoom on GPU for all shaders
             self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
-
             return True
 
         else:
             return super(RadarWidget, self).event(event)
+
+
+def load_rwy_data():
+    # total number of runways
+    nrwy_tot = 33721
+    vertices = np.zeros(nrwy_tot * 12, dtype=np.float32)
+
+    with open("data/global/apt.dat", 'r') as f:
+        n_rwys = 0
+        for line in f:
+            line = line.strip()
+            if line[:4] == '100 ':
+                # This line holds a runway
+                n_rwys += 1
+                l = line.split()
+                width = float(l[1])
+                # Only asphalt and concrete runways
+                if int(l[2]) > 2:
+                    continue
+                # rwy_lbl = (l[8], l[17])
+                lat0 = float(l[9])
+                lon0 = float(l[10])
+                lat1 = float(l[18])
+                lon1 = float(l[19])
+                flat_earth = 1.0 / cos(0.5 * radians(lat0 + lat1))**2
+                dlat = lon1 - lon0
+                dlon = -flat_earth * (lat1 - lat0)
+                d_inv = 1.0 / sqrt(dlat * dlat + dlon * dlon)
+                dlat = degrees(dlat * 0.5 * width * REARTH_INV * d_inv)
+                dlon = degrees(dlon * 0.5 * width * REARTH_INV * d_inv)
+                vertices[(n_rwys - 1) * 12:n_rwys * 12] = [
+                            lat0 + dlat, lon0 + dlon,
+                            lat0 - dlat, lon0 - dlon,
+                            lat1 + dlat, lon1 + dlon,
+                            lat0 - dlat, lon0 - dlon,
+                            lat1 + dlat, lon1 + dlon,
+                            lat1 - dlat, lon1 - dlon]
+        print '%d runways read' % n_rwys
+
+    return vertices
 
 
 def load_coast_data():
@@ -649,7 +711,8 @@ def load_coast_data():
     clat = clon = 0.0
     with open("data/global/coastlines.dat", 'r') as f:
         for line in f:
-            if not (line.strip() == "" or line.strip()[0] == '#'):
+            line = line.strip()
+            if not (line == "" or line[0] == '#'):
                 arg = line.split()
                 if len(arg) == 3:
                     lat, lon = float(arg[1]), float(arg[2])

@@ -67,9 +67,9 @@ class ND(QGLWidget):
         self.n_aircraft = n_aircraft
 
     def create_objects(self):
-        if not self.isValid():
+        if not (self.isValid() and self.shareWidget.initialized):
             self.invalid_count += 1
-            print 'ND: Context not valid in create_objects, count=%d' % self.invalid_count
+            print 'ND: Context not valid in create_objects, or shareWidget not yet initialized'
             QTimer.singleShot(100, self.create_objects)
             return
 
