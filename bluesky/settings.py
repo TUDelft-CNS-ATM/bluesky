@@ -59,13 +59,13 @@ for i in range(len(sys.argv)):
 
 if not os.path.isfile(configfile):
     print
-    print '\033[91mNo config file settings.cfg found in your BlueSky starting directory!\033[0m'
+    print 'No config file settings.cfg found in your BlueSky starting directory!'
     print
     print 'This config file contains several default settings related to the simulation loop and the graphics'
     print 'You can specify your own settings or use the default.'
     print 'Leave empty to use the default settings.'
     print
-    manual_input = (raw_input('Do you want to want to define your own settings? \033[1m(yes/[no])\033[0m: ').lower().find('y') >= 0)
+    manual_input = (raw_input('Do you want to want to define your own settings? (yes/[no]): ').lower().find('y') >= 0)
     print
     lines = ''
     with open(os.path.dirname(__file__) + '/settings.py') as fin:
@@ -75,7 +75,7 @@ if not os.path.isfile(configfile):
                 if len(line) > 0 and line[0] != '#' and line.find('=') >= 0:
                     # Get input from user
                     c = line.split('=')
-                    ans = raw_input('\033[1m[' + c[1].strip(' \'') + ']\033[0m: ')
+                    ans = raw_input('[' + c[1].strip(' \'') + ']: ')
                     if len(ans) > 0:
                         line = c[0] + ' = '
                         if c[1].find('\'') >= 0:
