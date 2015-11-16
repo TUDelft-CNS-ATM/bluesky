@@ -405,7 +405,7 @@ class Gui(QApplication):
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', 'data/scenario', 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', 'scenario', 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:
