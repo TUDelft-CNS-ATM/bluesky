@@ -1357,7 +1357,7 @@ class Commandstack:
 
                                 # Add the wpt to route
                                 if wpok: 
-                                    wpidx = rte.addwpt(traf,idx,name,wptype,lat,lon,alt,spd,afterwp)
+                                    wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
                                     norig = int(traf.orig[i]!="")
                                     ndest = int(traf.dest[i]!="")
 
