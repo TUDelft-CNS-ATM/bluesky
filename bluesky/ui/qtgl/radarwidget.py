@@ -683,12 +683,17 @@ def load_rwy_data():
                 lon0 = float(l[10])
                 lat1 = float(l[18])
                 lon1 = float(l[19])
-                flat_earth = 1.0 / cos(0.5 * radians(lat0 + lat1))**2
-                dlat = lon1 - lon0
-                dlon = -flat_earth * (lat1 - lat0)
-                d_inv = 1.0 / sqrt(dlat * dlat + dlon * dlon)
-                dlat = degrees(dlat * 0.5 * width * REARTH_INV * d_inv)
-                dlon = degrees(dlon * 0.5 * width * REARTH_INV * d_inv)
+                flat_earth = cos(0.5 * radians(lat0 + lat1))
+                lx = lat1 - lat0
+                ly = (lon1 - lon0) * flat_earth
+                l  = sqrt(lx * lx + ly * ly)
+                wx =  ly / l * 0.5 * width
+                wy = -lx / l * 0.5 * width
+                dlat = degrees(wx * REARTH_INV)
+                dlon = degrees(wy * REARTH_INV / flat_earth)
+                #d_inv = 1.0 / sqrt(dlat * dlat + dlon * dlon)
+                #dlat = degrees(dlat * 0.5 * width * REARTH_INV * d_inv)
+                #dlon = degrees(dlon * 0.5 * width * REARTH_INV * d_inv)
                 vertices[(n_rwys - 1) * 12:n_rwys * 12] = [
                             lat0 + dlat, lon0 + dlon,
                             lat0 - dlat, lon0 - dlon,

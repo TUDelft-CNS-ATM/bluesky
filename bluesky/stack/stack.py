@@ -934,44 +934,44 @@ class Commandstack:
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
                 #----------------------------------------------------------------------
                 elif cmd[:6] == "METRIC":
-                    if numargs < 1:
+                    if sim.metric is None:
+                        scr.echo('The METRIC module is not enabled.')
+                    elif numargs < 1:
                         scr.echo("METRICS/METRICS OFF/0/1/2 [dt]")
 
-                        if traf.metricSwitch == 1:
-                            scr.echo("")
-                            scr.echo("Active: " + "(" + str(traf.metric.metric_number + 1) + ") " + traf.metric.name[
-                                traf.metric.metric_number])
-                            scr.echo("Current dt: " + str(traf.metric.dt) + " s")
-                        if traf.metricSwitch == 0:
+                        if sim.metric.metric_number < 0:
                             scr.echo("No metric active")
+                        else:
+                            scr.echo("")
+                            scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                sim.metric.metric_number])
+                            scr.echo("Current dt: " + str(traf.metric.dt) + " s")
 
                     elif cmdargs[1] == "ON":  # arguments are strings
                         scr.echo("METRICS/METRICS OFF/0/1/2 [dt]")
 
                     elif cmdargs[1] == "OFF":  # arguments are strings
-                        traf.metricSwitch = 0
+                        sim.metric.metric_number = -1
                         scr.echo("Metric is off")
 
                     else:
-                        metric_number = int(cmdargs[1]) - 1
-                        if metric_number == -1:
-                            traf.metricSwitch = 0
+                        sim.metric.metric_number = int(cmdargs[1]) - 1
+                        if sim.metric.metric_number < 0:
                             scr.echo("Metric is off")
 
-                        elif metric_number <= len(traf.metric.name) and metric_number >= 0:
+                        elif sim.metric.metric_number <= len(sim.metric.name):
                             if traf.area == "Circle":
-                                traf.metricSwitch = 1
-                                scr.echo("(" + str(traf.metric.metric_number + 1) + ") " + traf.metric.name[
-                                    traf.metric.metric_number] + " activated")
+                                scr.echo("(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                    sim.metric.metric_number] + " activated")
                                 try:
                                     metric_dt = float(cmdargs[2])
                                     if metric_dt > 0:
-                                        traf.metric.dt = metric_dt
+                                        sim.metric.dt = metric_dt
                                         scr.echo("with dt = " + str(metric_dt))
                                     else:
                                         scr.echo("No valid dt")
                                 except:
-                                    scr.echo("with dt = " + str(traf.metric.dt))
+                                    scr.echo("with dt = " + str(sim.metric.dt))
                             else:
                                 scr.echo("First define AREA FIR")
                         else:

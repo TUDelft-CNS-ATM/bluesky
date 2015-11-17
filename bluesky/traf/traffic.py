@@ -9,7 +9,6 @@ from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
 from ..tools.misc import degto180
 from ..tools.datalog import Datalog
 
-# from metric import Metric
 from route import Route
 from params import Trails
 from adsbmodel import ADSBModel
@@ -161,9 +160,6 @@ class Traffic:
         # Display information on label
         self.label = []  # Text and bitmap of traffic label
         self.trailcol = []  # Trail color: default 'Blue'
-
-        # Area
-        self.inside = []
         
         # Transmitted data to other aircraft due to truncated effect
         self.adsbtime = np.array([])
@@ -211,15 +207,15 @@ class Traffic:
         self.areadt    = 5.0  # [s] frequency of area check (simtime)
         self.areat0    = -100.  # last time checked
 
+        self.inside = []
+        self.fir_circle_point = (0.0, 0.0)
+        self.fir_circle_radius = 1.0
+
         # Taxi switch
         self.swtaxi = False  # Default OFF: delete traffic below 1500 ft
 
         # Research Area ("Square" for Square, "Circle" for Circle area)
         self.area = ""
-
-        # Metrics
-        # self.metricSwitch = 0
-        # self.metric       = Metric()
 
         # Bread crumbs for trails
         self.lastlat  = []
@@ -227,23 +223,22 @@ class Traffic:
         self.lasttim  = []
         self.trails   = Trails()
         self.swtrails = False  # Default switched off
-        
+
         # ADS-B Coverage area
         self.swAdsbCoverage = False
-        
+
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
-        
-        self.eps = np.array([])
-        
-        return
 
+        self.eps = np.array([])
+
+        return
 
     def create_ac(self, acid, actype, aclat, aclon, achdg, acalt, acspd):
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
-            return False # already exists do nothing
+            return False  # already exists do nothing
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
@@ -808,11 +803,6 @@ class Traffic:
             self.lastlon = self.lon
             self.lattime = simt
 
-        # Update metrics
-        # if self.metricSwitch == 1:
-        #     self.metric.update(self, sim, cmd)
-
-
         # ----------------AREA check----------------
         # Update area once per areadt seconds:
         if self.swarea and abs(simt - self.areat0) > self.areadt:
@@ -821,7 +811,6 @@ class Traffic:
             # Check all aircraft
             i = 0
             while (i < self.ntraf):
-                
                 # Current status
                 if self.area == "Square":
                     inside = self.arealat0 <= self.lat[i] <= self.arealat1 and \
@@ -829,27 +818,27 @@ class Traffic:
                              self.alt[i] >= self.areafloor and \
                              (self.alt[i] >= 1500 or self.swtaxi)
                 elif self.area == "Circle":
-
+                    pass
                     ## Average of lat
-                    latavg = (radians(self.lat[i]) + radians(self.metric.fir_circle_point[0])) / 2
+                    latavg = (radians(self.lat[i]) + radians(self.fir_circle_point[0])) / 2
                     cosdlat = (cos(latavg))
 
                     # Distance x to centroid
-                    dx = (self.lon[i] - self.metric.fir_circle_point[1]) * cosdlat * 60
+                    dx = (self.lon[i] - self.fir_circle_point[1]) * cosdlat * 60
                     dx2 = dx * dx
 
                     # Distance y to centroid
-                    dy = self.lat[i] - self.metric.fir_circle_point[0]
+                    dy = self.lat[i] - self.fir_circle_point[0]
                     dy2 = dy * dy * 3600
 
                     # Radius squared
-                    r2 = self.metric.fir_circle_radius * self.metric.fir_circle_radius
+                    r2 = self.fir_circle_radius * self.fir_circle_radius
 
                     # Inside if smaller
                     inside = (dx2 + dy2) < r2
 
                 # Compare with previous: when leaving area: delete command
-                
+
                 if self.inside[i] and not inside:
                     self.delete(self.id[i])
 

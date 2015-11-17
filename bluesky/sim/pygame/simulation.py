@@ -2,7 +2,7 @@ import time
 from ...tools.datalog import Datalog
 from ...traf import Traffic
 from ...stack import Commandstack
-
+# from ...traf import Metric
 
 class Simulation:
     """ 
@@ -19,10 +19,8 @@ class Simulation:
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
 
-    init = 0
-    op   = 1
-    hold = 2
-    end  = 3
+    # simulation modes
+    init, op, hold, end = range(4)
 
     def __init__(self, gui, navdb):
         # simmode
@@ -49,9 +47,11 @@ class Simulation:
         # Simulation objects
         self.traf  = Traffic(navdb)
         self.navdb = navdb
+        self.metric = None
+        # self.metric = Metric()
 
         # Stack ties it together
-        self.stack = Commandstack(self,self.traf,gui)
+        self.stack = Commandstack(self, self.traf, gui.scr)
 
         return
 
@@ -99,6 +99,10 @@ class Simulation:
 
         if self.mode == Simulation.op:
             self.traf.update(self.t, self.dt)
+
+            # Update metrics
+            if self.metric is not None:
+                self.metric.update(self, self.traf)
 
         # HOLD/Pause mode
         else:

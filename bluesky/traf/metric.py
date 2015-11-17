@@ -2,9 +2,7 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from math import degrees
-import pygame as pg
 import collections
 from collections import defaultdict
 import itertools as IT
@@ -1326,7 +1324,7 @@ class Metric():
         return        
 
 
-    def update(self,traf,sim,cmd):
+    def update(self, sim, traf):
         """Update: to call for regular logging & runtime analysis"""        
         # Only do something when time is there 
         if abs(sim.t-self.t0)<self.dt:
