@@ -319,7 +319,7 @@ class Commandstack:
                                 arglist.append(int(cmdargs[i]))  # switch
 
                             elif argtype == "onoff" or argtype=="bool":
-                                sw = (cmdargs[i]=="ON" or cmdargs[i]=="1" or \
+                                sw = (cmdargs[i] == "ON" or cmdargs[i]=="1" or \
                                                       cmdargs[i]=="TRUE")
                                 arglist.append(sw)
 
@@ -331,13 +331,13 @@ class Commandstack:
                                 lon = cmdargs[i].replace("W","-").replace("E","")
                                 arglist.append(float(lon))
 
-                            elif argtype=="spd":
-                                spd = float(cmdargs[i].upper().replace("M",".").replace("..","."))
+                            elif argtype == "spd":
+                                spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
                                 arglist.append(spd)  # speed CAS[kts] or Mach (float)
 
-                            elif argtype=="alt":
-                                arglist.append(ft*txt2alt(cmdargs[i])) # alt in m
-                        
+                            elif argtype == "alt":
+                                arglist.append(ft * txt2alt(cmdargs[i]))  # alt in m
+
 #                    except:
 #                        synerr = False
 #                        scr.echo("Syntax error in processing arguments")
