@@ -265,6 +265,7 @@ class ND(QGLWidget):
         # Select the text shader
         self.text_shader.use()
         self.font.use()
+        self.font.set_block_size((0, 0))
         self.ticklbls.draw()
 
         self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, False)
