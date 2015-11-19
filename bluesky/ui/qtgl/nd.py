@@ -77,7 +77,7 @@ class ND(QGLWidget):
         self.makeCurrent()
 
         # Use the same font as the radarwidget
-        self.font = self.shareWidget.font
+        self.font = self.shareWidget.font.copy()
         self.font.init_shader(self.text_shader)
 
         self.edge = RenderObject(gl.GL_LINE_STRIP, vertex_count=60)

@@ -240,11 +240,14 @@ class Font(object):
     # Attribute locations
     attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = range(7)
 
-    def __init__(self):
-        self.tex_id         = 0
+    def __init__(self, tex_id=0, char_ar=1.0):
+        self.tex_id         = tex_id
         self.loc_char_size  = 0
         self.loc_block_size = 0
-        self.char_ar        = 1.0
+        self.char_ar        = char_ar
+
+    def copy(self):
+        return Font(self.tex_id, self.char_ar)
 
     def init_shader(self, program):
         self.loc_char_size = gl.glGetUniformLocation(program.program, 'char_size')
