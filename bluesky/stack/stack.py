@@ -1362,7 +1362,7 @@ class Commandstack:
                                     ndest = int(traf.dest[i]!="")
 
                                     if rte.nwp-norig-ndest==1: # first waypoint: make active
-                                       # rte.direct(traf,i,name)
+                                       rte.direct(traf,i,name)
                                        traf.swlnav[i] = True
 
                                 else:
