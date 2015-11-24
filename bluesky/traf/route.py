@@ -500,7 +500,7 @@ class Route():
         ialt = -1
         toalt = -999.
         xtoalt = 0.
-        for i in range(self.nwp-1,-1,-1):
+        for i in range(self.nwp-2,-1,-1):
 
             # waypoint with altitude constraint (dest of al specified)        
             if self.wptype[i]==self.dest or self.wpalt[i] >= 0:

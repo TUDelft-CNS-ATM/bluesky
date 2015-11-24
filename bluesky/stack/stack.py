@@ -4,9 +4,9 @@ from random import random, randint
 import os
 import sys
 
-from ..tools.aero import kts, ft, fpm, nm, lbs, \
+from ..tools.aero import kts, ft, fpm, nm, lbs,\
     qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
-from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit
+from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
 class Commandstack:
@@ -324,13 +324,19 @@ class Commandstack:
                                 arglist.append(sw)
 
                             elif argtype == "lat":
-                                lat = cmdargs[i].replace("S","-").replace("N","")
-                                arglist.append(float(lat))
-
+                                try:
+                                    lat = txt2lat(cmdargs[i])
+                                    arglist.append(float(lat))
+                                except:
+                                    synerr = True
+                                    
                             elif argtype == "lon":
-                                lon = cmdargs[i].replace("W","-").replace("E","")
-                                arglist.append(float(lon))
-
+                                try:
+                                   lon = txt2lon(cmdargs[i])
+                                   arglist.append(float(lon))
+                                except:
+                                   synerr = True
+ 
                             elif argtype == "spd":
                                 spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
                                 arglist.append(spd)  # speed CAS[kts] or Mach (float)
@@ -350,15 +356,16 @@ class Commandstack:
 
                     results = function(arglist)
                     txt = helptext
-                    if type(results)==bool:
-                        synerr = not results
-                    elif type(results)==list:
-                        if len(results)>=1:
-                            synerr = not results[0]
-                        
-                        if len(results)>=2:
-                            scr.echo(cmd+":"+results[1])
-                    if synerr:                    
+                    if not synerr:
+                        if type(results)==bool:
+                            synerr = not results
+                        elif type(results)==list:
+                            if len(results)>=1:
+                                synerr = not results[0]
+                            
+                            if len(results)>=2:
+                                scr.echo(cmd+":"+results[1])
+                    else: # synerr:                    
                          scr.echo(helptext)
 
                     synerr= False  # suppress further error messages
@@ -1322,17 +1329,23 @@ class Commandstack:
                             alt = -999
                             spd = -999
                             afterwp = ""
-                            if True:
+                            try:
 
                                 # Get waypoint data
                                 # Is arg 2 a number? => lat,lon else waypoint name
-                                if numargs>3 and cmdargs[2].replace("-","")  \
-                                   .replace("+","").replace(".","").isdigit():
+                                print cmdargs[2]
+                                chkdig = cmdargs[2].replace("-","")  \
+                                   .replace("+","").replace(".","")\
+                                   .replace("N","").replace("S","")\
+                                   .replace("E","").replace("W","")\
+                                   .replace("'","").replace('"',"")
+                                print chkdig   
+                                if numargs>=3 and chkdig.isdigit():
       
                                     name    = traf.id[i] # use for wptname
                                     wptype  = rte.wplatlon
-                                    lat     = float(cmdargs[2])
-                                    lon     = float(cmdargs[3])
+                                    lat     = txt2lat(cmdargs[2])
+                                    lon     = txt2lon(cmdargs[3])
                                     if numargs>=4 and cmdargs[4]!="":
                                         alt = txt2alt(cmdargs[4])*ft
                                     if numargs>=5 and cmdargs[5]!="":
@@ -1345,7 +1358,7 @@ class Commandstack:
                                 elif numargs>=2:
                                     name    = cmdargs[2]  # search this wpname closest to
                                     wptype  = rte.wpnav
-                                    lat     = traf.lat[i]  # a/c position in lat,lon
+                                    lat     = traf.lat[i]  # a/c position as reference lat,lon 
                                     lon     = traf.lon[i]
                                     if numargs>=3 and cmdargs[3]!="":
                                         alt = txt2alt(cmdargs[3])*ft
@@ -1368,7 +1381,10 @@ class Commandstack:
                                 else:
                                     scr.echo(trafid[i]+": waypoint not added")
                                     synerr = True
-
+                            except:
+                                scr.echo(trafid[i]+": waypoint not added")
+                                synerr = True
+                                
                 #----------------------------------------------------------------------
                 # DELWPT   : DELWPT acid,WPname
                 #----------------------------------------------------------------------
