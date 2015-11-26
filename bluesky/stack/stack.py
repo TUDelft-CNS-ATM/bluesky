@@ -792,15 +792,18 @@ class Commandstack:
                                         if (np.isnan(lat) or np.isnan(lon)):
                                             continue
                                     else:
+                                        synerr= True
                                         scr.echo(cmdargs[1] + " not found.")
+                            if not synerr and (not (np.isnan(lat) or np.isnan(lon))):
+                                scr.pan((lat, lon), absolute=True)
 
                     # PAN to lat,lon position
                     elif numargs == 2:
                         lat = float(cmdargs[1])
                         lon = float(cmdargs[2])
 
-                    if not (np.isnan(lat) or np.isnan(lon)):
-                        scr.pan((lat, lon), absolute=True)
+                        if not (np.isnan(lat) or np.isnan(lon)):
+                            scr.pan((lat, lon), absolute=True)
 
                 #----------------------------------------------------------------------
                 # NAVDISP/ND  acid:  Activate Navdisplay mode
