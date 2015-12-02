@@ -1,5 +1,25 @@
 #!/usr/bin/python
 import traceback
+print "checking for pyqt,",
+try:
+    import PyQt4
+except ImportError:
+    try:
+        import PyQt5
+    except ImportError:
+        print "pyqt version 4 or 5 missing. You might still be ok if you want to run the pygame version of BlueSky."
+    else:
+        print "OK: PyQt5 found."
+else:
+    print "OK: PyQt4 found."
+
+print "checking for pyopengl,",
+try:
+    import OpenGL.GL
+except:
+    print "pyopengl is missing."
+else:
+    print "OK."
 
 print "checking for pygame,",
 try:
