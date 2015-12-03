@@ -86,6 +86,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
             scr.echo("DTLOOK <TIME>")
             scr.echo("CURRENT DTLOOK: "+str(traf.dbconf.dtlookahead)+" SEC")
         else:
+            print commandargs
             traf.dbconf.dtlookahead=float(commandargs[1])
             
 

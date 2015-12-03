@@ -48,10 +48,10 @@ Rearth = 6371000.  # m  Average earth radius
 
 # Atmosphere up to 22 km (72178 ft)
 
-def vatmos(alt): # alt in m
 
-# Temp
-    T = np.maximum(288.15-0.0065*alt,216.65)
+def vatmos(alt):  # alt in m
+    # Temp
+    T = np.maximum(288.15 - 0.0065 * alt, 216.65)
 
 # Density
     rhotrop = 1.225*(T/288.15)**4.256848030018761 

@@ -669,7 +669,7 @@ class RadarWidget(QGLWidget):
 
 def load_rwy_data():
     # total number of runways
-    nrwy_tot = 33721
+    nrwy_tot = 15019
     vertices = np.zeros(nrwy_tot * 12, dtype=np.float32)
 
     with open("data/global/apt.dat", 'r') as f:
@@ -678,12 +678,12 @@ def load_rwy_data():
             line = line.strip()
             if line[:4] == '100 ':
                 # This line holds a runway
-                n_rwys += 1
                 l = line.split()
                 width = float(l[1])
                 # Only asphalt and concrete runways
                 if int(l[2]) > 2:
                     continue
+                n_rwys += 1
                 # rwy_lbl = (l[8], l[17])
                 lat0 = float(l[9])
                 lon0 = float(l[10])

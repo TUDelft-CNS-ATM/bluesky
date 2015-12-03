@@ -34,7 +34,7 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #----------------------------------------------------------------------
         self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
-                                      "txt,txt,lat,lon,float,alt,spd",
+                                      "txt,txt,lat,lon,hdg,alt,spd",
                                       traf.create   ],
                         "HDG": [ "HDG acid,hdg[deg,True]",
                                        "acid,float",traf.selhdg  ]
@@ -343,6 +343,11 @@ class Commandstack:
 
                             elif argtype == "alt":
                                 arglist.append(ft * txt2alt(cmdargs[i]))  # alt in m
+
+                            elif argtype == "hdg":
+                                # TODO: for now no difference between magnetic/true heading
+                                hdg = float(cmdargs[i].upper().replace('T', '').replace('M', ''))
+                                arglist.append(hdg)
 
 #                    except:
 #                        synerr = False
@@ -919,7 +924,7 @@ class Commandstack:
                         if sim.ffmode:
                             scr.echo("FIXDT mode is ON")
                             if sim.ffstop > 0.:
-                                t_ = sim.ffstop - sim.t
+                                t_ = sim.ffstop - sim.simt
                                 scr.echo("for " + str(t_) + " more seconds")
                         else:
                             scr.echo("FIXDT mode is OFF")
@@ -929,7 +934,7 @@ class Commandstack:
                             if numargs >= 2:
                                 try:
                                     tstop_ = float(cmdargs[2])
-                                    sim.ffstop = abs(tstop_) + sim.t
+                                    sim.ffstop = abs(tstop_) + sim.simt
                                 except:
                                     sim.ffstop = -1.
                                     synerr = True  # syntax is not ok

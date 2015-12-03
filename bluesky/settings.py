@@ -97,9 +97,9 @@ else:
 
 execfile(configfile)
 
-if len(sys.argv) > 1:
-    args = str.join(',', sys.argv[1:])
-    if args.find('pygame'):
-        gui = 'pygame'
-    elif args.find('qtgl'):
-        gui = 'qtgl'
+#if len(sys.argv) > 1:
+#    args = str.join(',', sys.argv[1:])
+#    if args.find('pygame'):
+#        gui = 'pygame'
+#    elif args.find('qtgl'):
+#        gui = 'qtgl'

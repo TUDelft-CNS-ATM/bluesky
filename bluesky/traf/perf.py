@@ -354,6 +354,7 @@ class Perf():
         self.CD0       = np.array([])  # parasite drag coefficient
         self.k         = np.array([])  # induced drag factor      
         self.clmaxcr   = np.array([])   # max. cruise lift coefficient
+        self.qS        = np.array([])
         
         # engines
         self.traf.engines = [] # avaliable engine type per aircraft type
@@ -430,14 +431,14 @@ class Perf():
         self.CD0       = np.append(self.CD0, coeffBS.CD0[self.coeffidx])  # parasite drag coefficient
         self.k         = np.append(self.k, coeffBS.k[self.coeffidx])  # induced drag factor   
         self.clmaxcr   = np.append(self.clmaxcr, coeffBS.clmax_cr[self.coeffidx])   # max. cruise lift coefficient
-
+        self.qS        = np.append(self.qS, 0.0)
         # performance - initialise neutrally       
         self.D = np.append(self.D, 0.) 
         self.ESF = np.append(self.ESF, 1.)
         
         # flight phase
         self.phase = np.append(self.phase, 0.)
-        
+        self.bank  = np.append(self.bank, 0.)
         # engines
 
         # turboprops
@@ -476,86 +477,86 @@ class Perf():
                 self.jetengidx = 0
                 if not self.warned2:
                     print " jet aircraft is using standard engine. Please check valid engine types per aircraft type"
-                    self.warned2 = True        
-                    
-            self.rThr = np.append(self.rThr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx]) # rated thrust (all engines)
-            self.Thr = np.append(self.Thr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx]) # initialize thrust with rated thrust       
-            self.maxthr = np.append (self.maxthr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx]*1.2) # maximum thrust - initialize with 1.2*rThr
-            self.SFC = np.append(self.SFC, coeffBS.SFC[self.jetengidx])
-            self.ff = np.append(self.ff, 0.) # neutral initialisation
-            self.ffto = np.append(self.ffto, coeffBS.ffto[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
-            self.ffcl = np.append(self.ffcl, coeffBS.ffcl[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
-            self.ffcr = np.append(self.ffcr, coeffBS.ffcr[self.jetengidx]*coeffBS.n_eng[self.coeffidx] )
-            self.ffid = np.append(self.ffid, coeffBS.ffid[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
-            self.ffap = np.append(self.ffap, coeffBS.ffap[self.jetengidx]*coeffBS.n_eng[self.coeffidx])  
-            
+                    self.warned2 = True
+
+            self.rThr   = np.append(self.rThr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx])  # rated thrust (all engines)
+            self.Thr    = np.append(self.Thr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx])  # initialize thrust with rated thrust       
+            self.maxthr = np.append (self.maxthr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx]*1.2)  # maximum thrust - initialize with 1.2*rThr
+            self.SFC    = np.append(self.SFC, coeffBS.SFC[self.jetengidx])
+            self.ff     = np.append(self.ff, 0.)  # neutral initialisation
+            self.ffto   = np.append(self.ffto, coeffBS.ffto[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
+            self.ffcl   = np.append(self.ffcl, coeffBS.ffcl[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
+            self.ffcr   = np.append(self.ffcr, coeffBS.ffcr[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
+            self.ffid   = np.append(self.ffid, coeffBS.ffid[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
+            self.ffap   = np.append(self.ffap, coeffBS.ffap[self.jetengidx]*coeffBS.n_eng[self.coeffidx])
+
             # propeller characteristics needed for numpy calculations
-            self.P = np.append(self.P, 1.)                     
-            self.PSFC_TO = np.append(self.PSFC_TO, 1.) 
-            self.PSFC_CR = np.append(self.PSFC_CR, 1.)            
-                    
+            self.P = np.append(self.P, 1.)
+            self.PSFC_TO = np.append(self.PSFC_TO, 1.)
+            self.PSFC_CR = np.append(self.PSFC_CR, 1.)
+
         return
 
     def delete(self, idx):
         """Delete removed aircraft"""
 
-        del self.traf.engines[idx]        
-           
-        self.coeffidxlist = np.delete(self.coeffidxlist, idx)
-        self.mass = np.delete(self.mass, idx) # aircraft weight
-        self.Sref = np.delete(self.Sref, idx) # wing surface reference area
-        self.etype = np.delete(self.etype, idx) # engine type of current aircraft  
-        
-        # limits         
-        # self.to_spd    = np.append(self.to_spd, coeffBS.to_spd[self.coeffidx]) # nominal takeoff speed
-        # self.ld_spd    = np.append(self.ld_spd, coeffBS.ld_spd[self.coeffidx]) # nominal landing speed            
-        self.vmo   = np.delete(self.vmo, idx) # maximum CAS
-        self.mmo    = np.delete(self.mmo, idx) # maximum Mach
+        del self.traf.engines[idx]
 
-        self.vm_to = np.delete(self.vm_to, idx)
-        self.vm_ld = np.delete(self.vm_ld, idx)
-        self.vmto = np.delete(self.vmto, idx)
-        self.vmic = np.delete(self.vmic, idx)
-        self.vmcr = np.delete(self.vmcr, idx)        
-        self.vmap = np.delete(self.vmap, idx)
-        self.vmld = np.delete(self.vmld, idx)
-        self.vmin = np.delete(self.vmin, idx)
-        self.maxthr = np.delete(self.maxthr, idx) 
-        self.hmaxact   = np.delete(self.hmaxact, idx) 
+        self.coeffidxlist = np.delete(self.coeffidxlist, idx)
+        self.mass = np.delete(self.mass, idx)    # aircraft weight
+        self.Sref = np.delete(self.Sref, idx)    # wing surface reference area
+        self.etype = np.delete(self.etype, idx)  # engine type of current aircraft
+
+        # limits
+        # self.to_spd    = np.append(self.to_spd, coeffBS.to_spd[self.coeffidx]) # nominal takeoff speed
+        # self.ld_spd    = np.append(self.ld_spd, coeffBS.ld_spd[self.coeffidx]) # nominal landing speed
+        self.vmo     = np.delete(self.vmo, idx)  # maximum CAS
+        self.mmo     = np.delete(self.mmo, idx)  # maximum Mach
+
+        self.vm_to   = np.delete(self.vm_to, idx)
+        self.vm_ld   = np.delete(self.vm_ld, idx)
+        self.vmto    = np.delete(self.vmto, idx)
+        self.vmic    = np.delete(self.vmic, idx)
+        self.vmcr    = np.delete(self.vmcr, idx)
+        self.vmap    = np.delete(self.vmap, idx)
+        self.vmld    = np.delete(self.vmld, idx)
+        self.vmin    = np.delete(self.vmin, idx)
+        self.maxthr  = np.delete(self.maxthr, idx)
+        self.hmaxact = np.delete(self.hmaxact, idx)
 
         # reference speeds
-        self.refma  = np.delete(self.refma, idx) # nominal cruise Mach at 35000 ft
-        self.refcas = np.delete(self.refcas, idx) # nominal cruise CAS
+        self.refma   = np.delete(self.refma, idx)   # nominal cruise Mach at 35000 ft
+        self.refcas  = np.delete(self.refcas, idx)  # nominal cruise CAS
 
         # aerodynamics
-        self.CD0       = np.delete(self.CD0, idx)  # parasite drag coefficient
-        self.k         = np.delete(self.k, idx)  # induced drag factor   
-        self.clmaxcr   = np.delete(self.clmaxcr, idx)   # max. cruise lift coefficient
-        self.qS        = np.delete(self.qS, idx)   
+        self.CD0     = np.delete(self.CD0, idx)      # parasite drag coefficient
+        self.k       = np.delete(self.k, idx)        # induced drag factor
+        self.clmaxcr = np.delete(self.clmaxcr, idx)  # max. cruise lift coefficient
+        self.qS      = np.delete(self.qS, idx)
 
         # engine
-        self.rThr = np.delete(self.rThr, idx) # rated thrust (all engines)
-        self.SFC = np.delete(self.SFC, idx)
-        self.ffto = np.delete(self.ffto, idx)
-        self.ffcl = np.delete(self.ffcl, idx)
-        self.ffcr = np.delete(self.ffcr, idx)
-        self.ffid = np.delete(self.ffid, idx)
-        self.ffap = np.delete(self.ffap, idx)
-        self.ff   = np.delete(self.ff, idx)
+        self.rThr    = np.delete(self.rThr, idx)     # rated thrust (all engines)
+        self.SFC     = np.delete(self.SFC, idx)
+        self.ffto    = np.delete(self.ffto, idx)
+        self.ffcl    = np.delete(self.ffcl, idx)
+        self.ffcr    = np.delete(self.ffcr, idx)
+        self.ffid    = np.delete(self.ffid, idx)
+        self.ffap    = np.delete(self.ffap, idx)
+        self.ff      = np.delete(self.ff, idx)
 
         # turboprop engines
-        self.P = np.delete(self.P, idx)    # avaliable power at takeoff conditions
-        self.PSFC_TO = np.delete(self.PSFC_TO, idx) # specific fuel consumption takeoff
-        self.PSFC_CR = np.delete(self.PSFC_CR, idx) # specific fuel consumption cruise
+        self.P       = np.delete(self.P, idx)        # avaliable power at takeoff conditions
+        self.PSFC_TO = np.delete(self.PSFC_TO, idx)  # specific fuel consumption takeoff
+        self.PSFC_CR = np.delete(self.PSFC_CR, idx)  # specific fuel consumption cruise
 
         # performance
-        self.Thr = np.delete(self.Thr, idx)
-        self.D = np.delete(self.D, idx)       
-        self.ESF = np.delete(self.ESF, idx)
+        self.Thr     = np.delete(self.Thr, idx)
+        self.D       = np.delete(self.D, idx)
+        self.ESF     = np.delete(self.ESF, idx)
 
         # flight phase
-        self.phase = np.delete(self.phase, idx)
-        self.bank = np.delete(self.bank, idx)
+        self.phase   = np.delete(self.phase, idx)
+        self.bank    = np.delete(self.bank, idx)
 
         return
 

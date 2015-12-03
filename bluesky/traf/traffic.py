@@ -2,7 +2,7 @@ import numpy as np
 from math import *
 
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2cas,  \
-     cas2tas, temp, density, Rearth
+     mach2tas, cas2tas, Rearth
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
     vmach2tas, qdrdist
@@ -23,7 +23,7 @@ try:
         from perfbada import PerfBADA as Perf
 
 except ImportError as e:
-    print '\033[91m' + e.args[0] + '\033[0m'
+    print e.args[0]
     print 'Falling back to BlueSky performance model'
     from perf import Perf
 
@@ -46,7 +46,7 @@ class Traffic:
     """
 
     def __init__(self, navdb):
-        
+
         self.reset(navdb)
         return
 
@@ -64,7 +64,7 @@ class Traffic:
         self.dts = []
 
         self.ntraf = 0
-        
+
         # Create datalog instance
         self.log = Datalog()
 
@@ -78,65 +78,62 @@ class Traffic:
         # Traffic basic flight data
 
         # Traffic basic flight data
-        self.id = []  # identifier (string)
-        self.type = []  # aircaft type (string)
-        self.lat = np.array([])  # latitude [deg]
-        self.lon = np.array([])  # longitude [deg]
-        self.trk = np.array([])  # track angle [deg]
-        self.tas = np.array([])  # true airspeed [m/s]
-        self.gs  = np.array([])  # ground speed [m/s]
-        self.cas = np.array([])  # callibrated airspeed [m/s]
-        self.M =   np.array([])  # mach number
-        self.alt = np.array([])  # altitude [m]
-        self.fll = np.array([]) # flight level [ft/100]       
-        self.vs = np.array([])  # vertical speed [m/s]
-        self.rho = np.array([])  # atmospheric air density [m/s]
-        self.temp = np.array([]) # atmospheric air temperature [K]
-        self.dtemp = np.array([]) # delta t for non-ISA conditions
+        self.id    = []  # identifier (string)
+        self.type  = []  # aircaft type (string)
+        self.lat   = np.array([])  # latitude [deg]
+        self.lon   = np.array([])  # longitude [deg]
+        self.trk   = np.array([])  # track angle [deg]
+        self.tas   = np.array([])  # true airspeed [m/s]
+        self.gs    = np.array([])  # ground speed [m/s]
+        self.cas   = np.array([])  # callibrated airspeed [m/s]
+        self.M     = np.array([])  # mach number
+        self.alt   = np.array([])  # altitude [m]
+        self.fll   = np.array([])  # flight level [ft/100]
+        self.vs    = np.array([])  # vertical speed [m/s]
+        self.p     = np.array([])  # atmospheric air pressure [N/m2]
+        self.rho   = np.array([])  # atmospheric air density [kg/m3]
+        self.temp  = np.array([])  # atmospheric air temperature [K]
+        self.dtemp = np.array([])  # delta t for non-ISA conditions
 
-        
         # Traffic performance data
         self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
-        self.aphi = np.array([])  # [rad] bank angle setting of autopilot
-        self.ax = np.array([])  # [m/s2] absolute value of longitudinal accelleration
-        self.bank = np.array([])          # nominal bank angle, [radian]
+        self.aphi   = np.array([])  # [rad] bank angle setting of autopilot
+        self.ax     = np.array([])  # [m/s2] absolute value of longitudinal accelleration
+        self.bank   = np.array([])          # nominal bank angle, [radian]
         self.bphase = np.array([])             # standard bank angles per phase
         self.hdgsel = np.array([])   # determines whether aircraft is turning
 
         # Crossover altitude
-        self.abco = np.array([])
-        self.belco = np.array([])
-                   
+        self.abco   = np.array([])
+        self.belco  = np.array([])
 
         # Traffic autopilot settings
-        self.ahdg = []  # selected heading [deg]
-        self.aspd = []  # selected spd(eas) [m/s]
-        self.aptas = [] # just for initializing
-        self.ama  = []   # selected spd above crossover altitude (Mach) [-]        
-        self.aalt = []  # selected alt[m]
-        self.afll = []  # selected fl [ft/100]
-        self.avs  = []  # selected vertical speed [m/s]
+        self.ahdg   = []  # selected heading [deg]
+        self.aspd   = []  # selected spd(eas) [m/s]
+        self.aptas  = []  # just for initializing
+        self.ama    = []  # selected spd above crossover altitude (Mach) [-]
+        self.aalt   = []  # selected alt[m]
+        self.afll   = []  # selected fl [ft/100]
+        self.avs    = []  # selected vertical speed [m/s]
 
         # limit settings
-        self.lspd = [] # limit speed
-        self.lalt = [] # limit altitude
-        self.lvs =  [] # limit vertical speed due to thrust limitation
-
+        self.lspd   = []  # limit speed
+        self.lalt   = []  # limit altitude
+        self.lvs    = []  # limit vertical speed due to thrust limitation
 
         # Traffic navigation information
-        self.orig = []  # Four letter code of origin airport
-        self.dest = []  # Four letter code of destination airport
-
+        self.orig   = []  # Four letter code of origin airport
+        self.dest   = []  # Four letter code of destination airport
 
         # LNAV route navigation
         self.swlnav = np.array([])  # Lateral (HDG) based on nav?
         self.swvnav = np.array([])  # Vertical/longitudinal (ALT+SPD) based on nav info
 
-        self.actwplat = np.array([])  # Active WP latitude
-        self.actwplon = np.array([])  # Active WP longitude
-        self.actwpalt = np.array([])  # Active WP altitude to arrive at
-        self.actwpspd = np.array([])  # Active WP speed
-        self.actwpturn = np.array([]) # Distance when to turn to next waypoint
+        self.actwplat  = np.array([])  # Active WP latitude
+        self.actwplon  = np.array([])  # Active WP longitude
+        self.actwpalt  = np.array([])  # Active WP altitude to arrive at
+        self.actwpspd  = np.array([])  # Active WP speed
+        self.actwpturn = np.array([])  # Distance when to turn to next waypoint
 
         # VNAV cruise level
         self.crzalt = np.array([])    # Cruise altitude[m]
@@ -146,33 +143,33 @@ class Traffic:
 
         # ASAS info per aircraft:
         self.iconf = []  # index in 'conflicting' aircraft database
-        self.asasactive = np.array([]) # whether the autopilot follows ASAS or not
-        self.asashdg = np.array([]) # heading provided by the ASAS [deg]
-        self.asasspd = np.array([]) # speed provided by the ASAS (eas) [m/s]
-        self.asasalt = np.array([]) # speed alt by the ASAS [m]
-        self.asasvsp = np.array([]) # speed vspeed by the ASAS [m/s]
+        self.asasactive = np.array([])  # whether the autopilot follows ASAS or not
+        self.asashdg    = np.array([])  # heading provided by the ASAS [deg]
+        self.asasspd    = np.array([])  # speed provided by the ASAS (eas) [m/s]
+        self.asasalt    = np.array([])  # speed alt by the ASAS [m]
+        self.asasvsp    = np.array([])  # speed vspeed by the ASAS [m/s]
 
-        self.desalt = np.array([]) #desired altitude [m]
-        self.deshdg = np.array([]) #desired heading
-        self.desvs  = np.array([]) #desired vertical speed [m/s]
-        self.desspd = np.array([]) #desired speed [m/s]
+        self.desalt     = np.array([])  # desired altitude [m]
+        self.deshdg     = np.array([])  # desired heading
+        self.desvs      = np.array([])  # desired vertical speed [m/s]
+        self.desspd     = np.array([])  # desired speed [m/s]
 
         # Display information on label
-        self.label = []  # Text and bitmap of traffic label
-        self.trailcol = []  # Trail color: default 'Blue'
-        
+        self.label      = []  # Text and bitmap of traffic label
+        self.trailcol   = []  # Trail color: default 'Blue'
+
         # Transmitted data to other aircraft due to truncated effect
-        self.adsbtime = np.array([])
-        self.adsblat = np.array([])        
-        self.adsblon =np.array([])
-        self.adsbalt = np.array([])
-        self.adsbtrk=np.array([])
-        self.adsbtas=np.array([])
-        self.adsbgs=np.array([])
-        self.adsbvs=np.array([])
-        
-        self.inconflict=np.array([],dtype=bool)
-        
+        self.adsbtime   = np.array([])
+        self.adsblat    = np.array([])
+        self.adsblon    = np.array([])
+        self.adsbalt    = np.array([])
+        self.adsbtrk    = np.array([])
+        self.adsbtas    = np.array([])
+        self.adsbgs     = np.array([])
+        self.adsbvs     = np.array([])
+
+        self.inconflict = np.array([], dtype=bool)
+
         #-----------------------------------------------------------------------------
         # Not per aircraft data
 
@@ -184,15 +181,15 @@ class Traffic:
         self.dtasas = 1.00  # interval for ASAS
 
         # Flight performance scheduling
-        self.perfdt = 0.1          # [s] update interval of performance limits
-        self.perft0 = -self.perfdt # [s] last time checked (in terms of simt)
-        self.warned2 = False    # Flag: Did we warn for default engine parameters yet?
+        self.perfdt = 0.1           # [s] update interval of performance limits
+        self.perft0 = -self.perfdt  # [s] last time checked (in terms of simt)
+        self.warned2 = False        # Flag: Did we warn for default engine parameters yet?
 
         # ADS-B transmission-receiver model
         self.adsb = ADSBModel(self)
 
         # ASAS objects: Conflict Database
-        self.dbconf = Dbconf(self,300., 5.*nm, 1000.*ft) # hard coded values to be replaced
+        self.dbconf = Dbconf(self, 300., 5. * nm, 1000. * ft)  # hard coded values to be replaced
 
         # Import navigation data base
         self.navdb  = navdb
@@ -246,40 +243,41 @@ class Traffic:
         # Process input
         self.id.append(acid.upper())
         self.type.append(actype)
-        self.lat = np.append(self.lat, aclat)
-        self.lon = np.append(self.lon, aclon)
-        self.trk = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
-        self.alt = np.append(self.alt, acalt)
-        self.fll = np.append(self.fll, (acalt)/100)
-        self.vs = np.append(self.vs, 0.)
-        self.rho = np.append(self.rho, density(acalt))
-        self.temp = np.append(self.temp, temp(acalt))
-        self.dtemp = np.append(self.dtemp, 0) # at the moment just ISA conditions
-        self.tas = np.append(self.tas, acspd)
-        self.gs  = np.append(self.gs, acspd)
-        self.cas = np.append(self.cas, tas2cas(acspd, acalt))
-        self.M   = np.append (self.M, tas2mach(acspd, acalt)) 
+        self.lat   = np.append(self.lat, aclat)
+        self.lon   = np.append(self.lon, aclon)
+        self.trk   = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
+        self.alt   = np.append(self.alt, acalt)
+        self.fll   = np.append(self.fll, (acalt)/100)
+        self.vs    = np.append(self.vs, 0.)
+        c_temp, c_rho, c_p = vatmos(acalt)
+        self.p     = np.append(self.p, c_p)
+        self.rho   = np.append(self.rho, c_rho)
+        self.temp  = np.append(self.temp, c_temp)
+        self.dtemp = np.append(self.dtemp, 0)  # at the moment just ISA conditions
+        self.tas   = np.append(self.tas, acspd)
+        self.gs    = np.append(self.gs, acspd)
+        self.cas   = np.append(self.cas, tas2cas(acspd, acalt))
+        self.M     = np.append(self.M, tas2mach(acspd, acalt))
 
         # AC is initialized with neutral max bank angle
         self.bank = np.append(self.bank, 25.)
-        if self.ntraf<2:
-            self.bphase = np.deg2rad(np.array([15,35,35,35,15,45]))
+        if self.ntraf < 2:
+            self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
         self.hdgsel = np.append(self.hdgsel, False)
 
-        #------------------------------Performance data--------------------------------                   
-        # Type specific data 
+        #------------------------------Performance data--------------------------------
+        # Type specific data
         #(temporarily default values)
         self.avsdef = np.append(self.avsdef, 1500. * fpm)  # default vertical speed of autopilot
-        self.aphi = np.append(self.aphi, radians(25.))  # bank angle setting of autopilot
-        self.ax = np.append(self.ax, kts)  # absolute value of longitudinal accelleration
+        self.aphi   = np.append(self.aphi, radians(25.))  # bank angle setting of autopilot
+        self.ax     = np.append(self.ax, kts)  # absolute value of longitudinal accelleration
 
         # Crossover altitude
-        self.abco = np.append(self.abco, 0)
-        self.belco = np.append(self.belco, 1)         
-
+        self.abco   = np.append(self.abco, 0)
+        self.belco  = np.append(self.belco, 1)
 
         # performance data
-        self.perf.create(actype)     
+        self.perf.create(actype)
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
         self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
@@ -315,13 +313,19 @@ class Traffic:
         # Route info
         self.route.append(Route(self.navdb))  # create empty route connected with nav databse
 
+        eas = tas2eas(acspd, acalt)
         # ASAS info: no conflict => -1
         self.iconf.append(-1)  # index in 'conflicting' aircraft database
         self.asasactive = np.append(self.asasactive, False)
         self.asashdg = np.append(self.asashdg, achdg)
-        self.asasspd = np.append(self.asasspd, tas2eas(acspd, acalt))
+        self.asasspd = np.append(self.asasspd, eas)
         self.asasalt = np.append(self.asasalt, acalt)
         self.asasvsp = np.append(self.asasvsp, 0.)
+
+        self.desalt  = np.append(self.desalt, acalt)
+        self.desvs   = np.append(self.desvs, 0.0)
+        self.desspd  = np.append(self.desspd, eas)
+        self.deshdg  = np.append(self.deshdg, achdg)
 
         # Area variable set to False to avoid deletion upon creation outside
         self.inside.append(False)
@@ -366,50 +370,49 @@ class Traffic:
         del self.type[idx]
 
         # Traffic basic data
-        self.lat = np.delete(self.lat, idx)
-        self.lon = np.delete(self.lon, idx)
-        self.trk = np.delete(self.trk, idx)
-        self.alt = np.delete(self.alt, idx)
-        self.fll = np.delete(self.fll, idx)
-        self.vs = np.delete(self.vs, idx)
-        self.tas = np.delete(self.tas, idx)
-        self.gs  = np.delete(self.gs, idx)
-        self.cas = np.delete(self.cas, idx)
-        self.M   = np.delete(self.M, idx)
-        self.T = np.delete(self.T, idx)
-        self.p = np.delete(self.p, idx)        
-        self.rho = np.delete(self.rho, idx)
-        self.temp = np.delete(self.temp, idx)
-        self.dtemp = np.delete(self.dtemp, idx)
-        
+        self.lat    = np.delete(self.lat, idx)
+        self.lon    = np.delete(self.lon, idx)
+        self.trk    = np.delete(self.trk, idx)
+        self.alt    = np.delete(self.alt, idx)
+        self.fll    = np.delete(self.fll, idx)
+        self.vs     = np.delete(self.vs, idx)
+        self.tas    = np.delete(self.tas, idx)
+        self.gs     = np.delete(self.gs, idx)
+        self.cas    = np.delete(self.cas, idx)
+        self.M      = np.delete(self.M, idx)
+
+        self.p      = np.delete(self.p, idx)
+        self.rho    = np.delete(self.rho, idx)
+        self.temp   = np.delete(self.temp, idx)
+        self.dtemp  = np.delete(self.dtemp, idx)
         self.hdgsel = np.delete(self.hdgsel, idx)
-        self.bank = np.delete(self.bank, idx)
-      
+        self.bank   = np.delete(self.bank, idx)
+
         # Crossover altitude
-        self.abco = np.delete(self.abco, idx) 
-        self.belco = np.delete(self.belco, idx)
-        
+        self.abco   = np.delete(self.abco, idx)
+        self.belco  = np.delete(self.belco, idx)
+
         # Type specific data (temporarily default values)
         self.avsdef = np.delete(self.avsdef, idx)
-        self.aphi = np.delete(self.aphi, idx)
-        self.ax = np.delete(self.ax, idx)
-  
+        self.aphi   = np.delete(self.aphi, idx)
+        self.ax     = np.delete(self.ax, idx)
+
         # performance data
         self.perf.delete(idx)
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
-        self.ahdg  = np.delete(self.ahdg, idx)
-        self.aspd  = np.delete(self.aspd, idx)
-        self.ama   = np.delete(self.ama, idx)
-        self.aptas = np.delete(self.aptas, idx)
-        self.aalt  = np.delete(self.aalt, idx)
-        self.afll  = np.delete(self.afll, idx)
-        self.avs   = np.delete(self.avs, idx)
-        
+        self.ahdg   = np.delete(self.ahdg, idx)
+        self.aspd   = np.delete(self.aspd, idx)
+        self.ama    = np.delete(self.ama, idx)
+        self.aptas  = np.delete(self.aptas, idx)
+        self.aalt   = np.delete(self.aalt, idx)
+        self.afll   = np.delete(self.afll, idx)
+        self.avs    = np.delete(self.avs, idx)
+
         # limit settings
-        self.lspd = np.delete(self.lspd, idx)
-        self.lalt = np.delete(self.lalt, idx)
-        self.lvs = np.delete(self.lvs, idx)
+        self.lspd   = np.delete(self.lspd, idx)
+        self.lalt   = np.delete(self.lalt, idx)
+        self.lvs    = np.delete(self.lvs, idx)
 
         # Traffic navigation variables
         del self.dest[idx]
@@ -426,27 +429,27 @@ class Traffic:
 
         # VNAV cruise level
         self.crzalt    = np.delete(self.crzalt,    idx)
-        
+
         # Route info
         del self.route[idx]
 
         # ASAS info
         del self.iconf[idx]
-        self.asasactive=np.delete(self.asasactive, idx)        
-        self.asashdg=np.delete(self.asashdg, idx)
-        self.asasspd=np.delete(self.asasspd, idx)
-        self.asasalt=np.delete(self.asasalt, idx)
-        self.asasvsp=np.delete(self.asasvsp, idx)
+        self.asasactive = np.delete(self.asasactive, idx)
+        self.asashdg    = np.delete(self.asashdg, idx)
+        self.asasspd    = np.delete(self.asasspd, idx)
+        self.asasalt    = np.delete(self.asasalt, idx)
+        self.asasvsp    = np.delete(self.asasvsp, idx)
 
-        self.desalt=np.delete(self.desalt, idx)
-        self.desvs=np.delete(self.desvs, idx)
-        self.desspd=np.delete(self.desspd, idx)
-        self.deshdg=np.delete(self.deshdg, idx)  
+        self.desalt     = np.delete(self.desalt, idx)
+        self.desvs      = np.delete(self.desvs, idx)
+        self.desspd     = np.delete(self.desspd, idx)
+        self.deshdg     = np.delete(self.deshdg, idx)
 
         # Metrics, area
         del self.inside[idx]
- 
-       # Traffic display data: label
+
+        # Traffic display data: label
         del self.label[idx]
 
         # Delete bread crumb data
@@ -456,20 +459,20 @@ class Traffic:
         del self.trailcol[idx]
 
         # Transmitted data to other aircraft due to truncated effect
-        self.adsbtime=np.delete(self.adsbtime,idx)
-        self.adsblat=np.delete(self.adsblat,idx)
-        self.adsblon=np.delete(self.adsblon,idx)
-        self.adsbalt=np.delete(self.adsbalt,idx)
-        self.adsbtrk=np.delete(self.adsbtrk,idx)
-        self.adsbtas=np.delete(self.adsbtas,idx)
-        self.adsbgs=np.delete(self.adsbgs,idx)
-        self.adsbvs=np.delete(self.adsbvs,idx)
+        self.adsbtime = np.delete(self.adsbtime, idx)
+        self.adsblat  = np.delete(self.adsblat, idx)
+        self.adsblon  = np.delete(self.adsblon, idx)
+        self.adsbalt  = np.delete(self.adsbalt, idx)
+        self.adsbtrk  = np.delete(self.adsbtrk, idx)
+        self.adsbtas  = np.delete(self.adsbtas, idx)
+        self.adsbgs   = np.delete(self.adsbgs, idx)
+        self.adsbvs   = np.delete(self.adsbvs, idx)
 
-        self.inconflict=np.delete(self.inconflict,idx)     
-        
+        self.inconflict = np.delete(self.inconflict, idx)
+
         # Decrease number fo aircraft
         self.ntraf = self.ntraf - 1
-        
+
         self.eps = np.delete(self.eps, idx)
         return True
 
@@ -494,7 +497,7 @@ class Traffic:
         self.dts.append(simdt)
 
         #---------------- Atmosphere ----------------
-        self.T, self.rho, self.p = vatmos(self.alt)
+        self.temp, self.rho, self.p = vatmos(self.alt)
 
         #-------------- Performance limits autopilot settings --------------
         # Check difference with AP settings for trafperf and autopilot
