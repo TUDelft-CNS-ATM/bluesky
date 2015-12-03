@@ -56,7 +56,7 @@ class Commandstack:
         self.scentime = []
         self.scencmd = []
 
-        # An advanced way to add your own commands: add your entry to the dictionary.        
+        # An advanced way to add your own commands: add your entry to the dictionary.
         # The dictionary should be formed as {"Key":module'}.
 
         # "Key" is a FOUR-symbol reference that is used at the start of the command.
@@ -243,9 +243,9 @@ class Commandstack:
 
     def process(self, sim, traf, scr):
         """process and empty command stack"""
-
         # Process stack of commands
         for line in self.cmdstack:
+            # print line
             cmdline = line.upper()  # Save original lower case in variable line
 
             cmdargs = cmdsplit(cmdline)
@@ -286,7 +286,7 @@ class Commandstack:
                 # First check command synonymes list, then dictionary
                 #----------------------------------------------------------------------
                 if cmd in self.cmdsynon.keys():
-                    cmd = self.cmdsynon[key]
+                    cmd = self.cmdsynon[cmd]
                 
                 if cmd in self.cmddict.keys():
                     helptext,argtypelist,function = self.cmddict[cmd]
