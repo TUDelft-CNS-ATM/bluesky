@@ -92,7 +92,7 @@ class Traffic:
         self.vs    = np.array([])  # vertical speed [m/s]
         self.p     = np.array([])  # atmospheric air pressure [N/m2]
         self.rho   = np.array([])  # atmospheric air density [kg/m3]
-        self.temp  = np.array([])  # atmospheric air temperature [K]
+        self.Temp  = np.array([])  # atmospheric air temperature [K]
         self.dtemp = np.array([])  # delta t for non-ISA conditions
 
         # Traffic performance data
@@ -252,7 +252,7 @@ class Traffic:
         c_temp, c_rho, c_p = vatmos(acalt)
         self.p     = np.append(self.p, c_p)
         self.rho   = np.append(self.rho, c_rho)
-        self.temp  = np.append(self.temp, c_temp)
+        self.Temp  = np.append(self.Temp, c_temp)
         self.dtemp = np.append(self.dtemp, 0)  # at the moment just ISA conditions
         self.tas   = np.append(self.tas, acspd)
         self.gs    = np.append(self.gs, acspd)
@@ -383,7 +383,7 @@ class Traffic:
 
         self.p      = np.delete(self.p, idx)
         self.rho    = np.delete(self.rho, idx)
-        self.temp   = np.delete(self.temp, idx)
+        self.Temp   = np.delete(self.Temp, idx)
         self.dtemp  = np.delete(self.dtemp, idx)
         self.hdgsel = np.delete(self.hdgsel, idx)
         self.bank   = np.delete(self.bank, idx)
@@ -497,7 +497,7 @@ class Traffic:
         self.dts.append(simdt)
 
         #---------------- Atmosphere ----------------
-        self.temp, self.rho, self.p = vatmos(self.alt)
+        self.Temp, self.rho, self.p = vatmos(self.alt)
 
         #-------------- Performance limits autopilot settings --------------
         # Check difference with AP settings for trafperf and autopilot
