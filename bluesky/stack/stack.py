@@ -949,31 +949,35 @@ class Commandstack:
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
                 #----------------------------------------------------------------------
                 elif cmd[:6] == "METRIC":
-                    if sim.metric is None:
-                        scr.echo('The METRIC module is not enabled.')
-                    elif numargs < 1:
-                        scr.echo("METRICS/METRICS OFF/0/1/2 [dt]")
-
-                        if sim.metric.metric_number < 0:
-                            scr.echo("No metric active")
+                    if numargs < 1:
+                        if sim.metric is None:
+                            scr.echo("METRICS module disabled")
+                            break
                         else:
-                            scr.echo("")
-                            scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
-                                sim.metric.metric_number])
-                            scr.echo("Current dt: " + str(traf.metric.dt) + " s")
-
-                    elif cmdargs[1] == "ON":  # arguments are strings
-                        scr.echo("METRICS/METRICS OFF/0/1/2 [dt]")
+                            if sim.metric.metric_number < 0:
+                                scr.echo("No metric active, to configure run:")
+                                scr.echo("METRICS OFF/0/1/2 [dt]")
+                            else:
+                                scr.echo("")
+                                scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                    sim.metric.metric_number])
+                                scr.echo("Current dt: " + str(sim.metric.dt) + " s")
 
                     elif cmdargs[1] == "OFF":  # arguments are strings
                         sim.metric.metric_number = -1
                         scr.echo("Metric is off")
 
                     else:
+                        if sim.metric is None:
+                            scr.echo("METRICS module disabled")
+                            break
+                        elif not cmdargs[1][1:].isdigit():
+#                            print cmdargs[1][1:].isdigit()
+                            scr.echo("Command argument invalid")
+#                            return
                         sim.metric.metric_number = int(cmdargs[1]) - 1
                         if sim.metric.metric_number < 0:
                             scr.echo("Metric is off")
-
                         elif sim.metric.metric_number <= len(sim.metric.name):
                             if traf.area == "Circle":
                                 scr.echo("(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
@@ -998,7 +1002,6 @@ class Commandstack:
                 #               AREA FIR fir radius [lowalt]
                 #----------------------------------------------------------------------
                 elif cmd == "AREA":
-
                     if numargs == 0:
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
@@ -1047,11 +1050,14 @@ class Commandstack:
                         for i in range(0, len(traf.navdb.fir)):
                             if cmdargs[2] == traf.navdb.fir[i][0]:
                                 break
-                        traf.metric.fir_number = i
                         if cmdargs[2] != traf.navdb.fir[i][0]:
                             scr.echo("Uknown FIR, try again")
-                        traf.metric.fir_circle_point = traf.metric.metric_Area.FIR_circle(traf.navdb, traf.metric.fir_number)
-                        traf.metric.fir_circle_radius = float(cmdargs[3])
+                        if sim.metric is not None:
+                            sim.metric.fir_number = i
+                            sim.metric.fir_circle_point = sim.metric.metric_Area.FIR_circle(traf.navdb, sim.metric.fir_number)
+                            sim.metric.fir_circle_radius = float(cmdargs[3])
+                        else:
+                            scr.echo("warning: FIR not loaded into METRICS module because not active")
 
                         if numargs == 4:
                             traf.areafloor = float(cmdargs[4]) * ft

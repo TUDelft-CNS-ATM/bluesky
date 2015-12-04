@@ -510,10 +510,10 @@ class Screen:
 
                 #FIR CIRCLE
                 if traf.area == "Circle":
-                    lat2_circle, lon2_circle = qdrpos(traf.metric.fir_circle_point[0], traf.metric.fir_circle_point[1],
-                                                      180, traf.metric.fir_circle_radius)
+                    lat2_circle, lon2_circle = qdrpos(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1],
+                                                      180, sim.metric.fir_circle_radius)
 
-                    x_circle, y_circle = self.ll2xy(traf.metric.fir_circle_point[0], traf.metric.fir_circle_point[1])
+                    x_circle, y_circle = self.ll2xy(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1])
                     x2_circle, y2_circle = self.ll2xy(lat2_circle, lon2_circle)
                     radius = int(abs(y2_circle - y_circle))
 
@@ -773,7 +773,7 @@ class Screen:
             pg.draw.rect(self.win, white, pg.Rect(1, 1, self.width - 1, self.height - 1), 1)
 
             # Add debug line
-            self.fontsys.printat(self.win, 10, 2, tim2txt(sim.t))
+            self.fontsys.printat(self.win, 10, 2, tim2txt(sim.simt))
             self.fontsys.printat(self.win, 10+80, 2, \
                                  "ntraf = " + str(traf.ntraf))
             self.fontsys.printat(self.win, 10+160, 2, \

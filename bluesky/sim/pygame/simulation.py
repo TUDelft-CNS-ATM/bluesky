@@ -2,7 +2,7 @@ import time
 from ...tools.datalog import Datalog
 from ...traf import Traffic
 from ...stack import Commandstack
-# from ...traf import Metric
+from ...traf.metric import Metric
 
 class Simulation:
     """ 
@@ -47,8 +47,7 @@ class Simulation:
         # Simulation objects
         self.traf  = Traffic(navdb)
         self.navdb = navdb
-        self.metric = None
-        # self.metric = Metric()
+        self.metric = Metric()
 
         # Stack ties it together
         self.stack = Commandstack(self, self.traf, gui.scr)
@@ -100,9 +99,9 @@ class Simulation:
         if self.mode == Simulation.op:
             self.traf.update(self.simt, self.dt)
 
-            # Update metrics
+            # Update metrics, check if metrics instance is present
             if self.metric is not None:
-                self.metric.update(self, self.traf)
+                self.metric.update(self)
 
         # HOLD/Pause mode
         else:
