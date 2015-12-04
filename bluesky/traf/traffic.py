@@ -78,30 +78,30 @@ class Traffic:
         # Traffic basic flight data
 
         # Traffic basic flight data
-        self.id    = []  # identifier (string)
-        self.type  = []  # aircaft type (string)
-        self.lat   = np.array([])  # latitude [deg]
-        self.lon   = np.array([])  # longitude [deg]
-        self.trk   = np.array([])  # track angle [deg]
-        self.tas   = np.array([])  # true airspeed [m/s]
-        self.gs    = np.array([])  # ground speed [m/s]
-        self.cas   = np.array([])  # callibrated airspeed [m/s]
-        self.M     = np.array([])  # mach number
-        self.alt   = np.array([])  # altitude [m]
-        self.fll   = np.array([])  # flight level [ft/100]
-        self.vs    = np.array([])  # vertical speed [m/s]
-        self.p     = np.array([])  # atmospheric air pressure [N/m2]
-        self.rho   = np.array([])  # atmospheric air density [kg/m3]
-        self.Temp  = np.array([])  # atmospheric air temperature [K]
-        self.dtemp = np.array([])  # delta t for non-ISA conditions
+        self.id     = []  # identifier (string)
+        self.type   = []  # aircaft type (string)
+        self.lat    = np.array([])  # latitude [deg]
+        self.lon    = np.array([])  # longitude [deg]
+        self.trk    = np.array([])  # track angle [deg]
+        self.tas    = np.array([])  # true airspeed [m/s]
+        self.gs     = np.array([])  # ground speed [m/s]
+        self.cas    = np.array([])  # callibrated airspeed [m/s]
+        self.M      = np.array([])  # mach number
+        self.alt    = np.array([])  # altitude [m]
+        self.fll    = np.array([])  # flight level [ft/100]
+        self.vs     = np.array([])  # vertical speed [m/s]
+        self.p      = np.array([])  # atmospheric air pressure [N/m2]
+        self.rho    = np.array([])  # atmospheric air density [kg/m3]
+        self.Temp   = np.array([])  # atmospheric air temperature [K]
+        self.dtemp  = np.array([])  # delta t for non-ISA conditions
 
         # Traffic performance data
         self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
         self.aphi   = np.array([])  # [rad] bank angle setting of autopilot
         self.ax     = np.array([])  # [m/s2] absolute value of longitudinal accelleration
-        self.bank   = np.array([])          # nominal bank angle, [radian]
-        self.bphase = np.array([])             # standard bank angles per phase
-        self.hdgsel = np.array([])   # determines whether aircraft is turning
+        self.bank   = np.array([])  # nominal bank angle, [radian]
+        self.bphase = np.array([])  # standard bank angles per phase
+        self.hdgsel = np.array([])  # determines whether aircraft is turning
 
         # Crossover altitude
         self.abco   = np.array([])
@@ -142,7 +142,7 @@ class Traffic:
         self.route = []
 
         # ASAS info per aircraft:
-        self.iconf = []  # index in 'conflicting' aircraft database
+        self.iconf      = []            # index in 'conflicting' aircraft database
         self.asasactive = np.array([])  # whether the autopilot follows ASAS or not
         self.asashdg    = np.array([])  # heading provided by the ASAS [deg]
         self.asasspd    = np.array([])  # speed provided by the ASAS (eas) [m/s]
@@ -773,18 +773,18 @@ class Traffic:
                    (1. - swaltsel) * self.aalt + turbalt
 
         # HDG HOLD/SEL mode: ahdg = ap selected heading
-        delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  #[deg]
+        delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  # [deg]
 
         # print delhdg
         # omega = np.degrees(g0 * np.tan(self.aphi) / \
         # np.maximum(self.tas, self.eps))
-                                       
-        # nominal bank angles per phase from BADA 3.12                               
+
+        # nominal bank angles per phase from BADA 3.12
         omega = np.degrees(g0 * np.tan(self.bank) / \
                            np.maximum(self.tas, self.eps))
-                           
+
         self.hdgsel = np.abs(delhdg) > np.abs(2. * simdt * omega)
-        
+
         self.trk = (self.trk + simdt * omega * self.hdgsel * np.sign(delhdg)) % 360.
 
         #--------- Kinematics: update lat,lon,alt ----------
@@ -822,7 +822,7 @@ class Traffic:
                              (self.alt[i] >= 1500 or self.swtaxi)
                 elif self.area == "Circle":
                     pass
-                    ## Average of lat
+                    # Average of lat
                     latavg = (radians(self.lat[i]) + radians(self.fir_circle_point[0])) / 2
                     cosdlat = (cos(latavg))
 
@@ -848,17 +848,16 @@ class Traffic:
                 else:
                     # Update area status
                     self.inside[i] = inside
-                    i = i + 1       
+                    i = i + 1
 
-        return            
-                    
+        return
+
     def id2idx(self, acid):
         """Find index of aircraft id"""
         try:
             return self.id.index(acid.upper())
         except:
             return -1
-
 
     def changeTrailColor(self, color, idx):
         """Change color of aircraft trail"""
@@ -869,55 +868,56 @@ class Traffic:
         # print "     " + str(self.trails.colorsOfAC[idx])
         return
 
-    def setNoise(self,A):
+    def setNoise(self, A):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
-        self.noise = A
-        self.trunctime=1 # seconds
-        self.transerror = [1,100, 100 * ft] #[degree,m,m] standard bearing, distance, altitude error
-        self.standardturbulence = [0,0.1,0.1] #m/s standard turbulence  (nonnegative)
+        self.noise              = A
+        self.trunctime          = 1                   # seconds
+        self.transerror         = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
+        self.standardturbulence = [0, 0.1, 0.1]       # m/s standard turbulence  (nonnegative)
         # in (horizontal flight direction, horizontal wing direction, vertical)
-        
+
         self.turbulence     = self.noise
         self.ADSBtransnoise = self.noise
         self.ADSBtrunc      = self.noise
 
-    def engchange (self, acid, engid):
+    def engchange(self, acid, engid):
         """Change of engines"""
         self.perf.engchange(acid, engid)
         return
-    def create(self,arglist):  # CRE command
- 
-        if len(arglist)<7:
+
+    def create(self, arglist):  # CRE command
+
+        if len(arglist) < 7:
             return False
- 
-        acid  = arglist[0]        
+
+        acid  = arglist[0]
 
         if self.id.count(acid.upper()) > 0:
-            return False,acid+" already exists" 
-       
+            return False, acid+" already exists"
+
         actype  = arglist[1]
         aclat   = arglist[2]
         aclon   = arglist[3]
         achdg   = arglist[4]
-        acalt   = arglist[5] # m
-        cmdspd  = arglist[6] # Mach/IAS kts (float
-        
-        if 0.1 < cmdspd <1.0 :
-            acspd = mach2tas(cmdspd,acalt)
+        acalt   = arglist[5]  # m
+        cmdspd  = arglist[6]  # Mach/IAS kts (float)
+
+        if 0.1 < cmdspd < 1.0 :
+            acspd = mach2tas(cmdspd, acalt)
         else:
-            acspd = cas2tas(cmdspd*kts,acalt)
-        
+            acspd = cas2tas(cmdspd * kts, acalt)
+
         sw = self.create_ac(acid, actype, aclat, aclon, achdg, acalt, acspd)
         return sw
 
-    def selhdg(self,arglist): # HDG command
+    def selhdg(self, arglist):  # HDG command
 
         # Select heading command: HDG acid, hdg
 
-        if len(arglist)<2:
-           return False #Error/Display helptext
+        if len(arglist) < 2:
+            return False  # Error/Display helptext
         print "en voorbij de check"
-        # unwrap arguments 
+        # unwrap arguments
         idx = arglist[0]  # aircraft index
         hdg = arglist[1]  # float
 
@@ -926,5 +926,3 @@ class Traffic:
         self.swlnav[idx] = False
         # Everything went ok!
         return True
-
-

@@ -941,7 +941,7 @@ class Commandstack:
                             else:
                                 sim.ffmode = True
                                 sim.ffstop = -1
- 
+
                         elif cmdargs[1].upper()[:2] == "OF":
                             sim.ffmode = False
 

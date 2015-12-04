@@ -421,6 +421,7 @@ class Gui(QApplication):
 
     def stack(self, text):
         self.postEvent(self.simevent_target, StackTextEvent(text))
+        self.display_stack(text)
 
     def display_stack(self, text):
         self.win.stackText.setTextColor(QColor(0, 255, 0))
