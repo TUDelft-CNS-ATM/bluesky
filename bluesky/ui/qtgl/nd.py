@@ -12,7 +12,7 @@ from math import sin, cos, radians
 import numpy as np
 from ctypes import c_float, c_int, Structure
 
-from glhelpers import BlueSkyProgram, RenderObject, TextObject, UniformBuffer
+from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = range(4)
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
@@ -76,6 +76,10 @@ class ND(QGLWidget):
         # Make the nd widget context current, necessary when create_objects is not called from initializeGL
         self.makeCurrent()
 
+        # Use the same font as the radarwidget
+        self.font = self.shareWidget.font.copy()
+        self.font.init_shader(self.text_shader)
+
         self.edge = RenderObject(gl.GL_LINE_STRIP, vertex_count=60)
         edge = np.zeros(120, dtype=np.float32)
         edge[0:120:2] = 1.4 * np.sin(np.radians(np.arange(-60, 60, 2)))
@@ -115,8 +119,7 @@ class ND(QGLWidget):
         self.ticks.bind_attrib(ATTRIB_VERTEX, 2, ticks)
         self.ticks.bind_attrib(ATTRIB_COLOR, 3, np.array((1.0, 1.0, 1.0), dtype=np.float32), instance_divisor=1)
 
-        self.ticklbls = TextObject(vertex_count=12 * 36)
-        #self.ticklbls = RenderObject(gl.GL_TRIANGLES, vertex_count=12 * 36)
+        self.ticklbls = RenderObject(gl.GL_TRIANGLES, vertex_count=12 * 36)
         ticklbls = np.zeros(24 * 36, dtype=np.float32)
         texcoords = np.zeros(36 * 36, dtype=np.float32)
 
@@ -146,10 +149,8 @@ class ND(QGLWidget):
         self.ownship.bind_attrib(ATTRIB_VERTEX, 2, np.array([0.0, 0.0, 0.0, -0.12, 0.065, -0.03, -0.065, -0.03, 0.022, -0.1, -0.022, -0.1], dtype=np.float32))
         self.ownship.bind_attrib(ATTRIB_COLOR, 3, np.array((1.0, 1.0, 0.0), dtype=np.float32), instance_divisor=1)
 
-        self.spdlabel_text  = TextObject()
-        self.spdlabel_text.prepare_text_string('GS    TAS', 0.05, (1.0, 1.0, 1.0), (-0.98, 1.6))
-        self.spdlabel_val = TextObject()
-        self.spdlabel_val.prepare_text_string('  000    000', 0.05, (0.0, 1.0, 0.0), (-0.97, 1.6))
+        self.spdlabel_text = self.font.prepare_text_string('GS    TAS', 0.05, (1.0, 1.0, 1.0), (-0.98, 1.6))
+        self.spdlabel_val  = self.font.prepare_text_string('  000    000', 0.05, (0.0, 1.0, 0.0), (-0.97, 1.6))
 
         self.waypoints = RenderObject.copy(self.shareWidget.waypoints)
         self.wptlabels = RenderObject.copy(self.shareWidget.wptlabels)
@@ -182,13 +183,12 @@ class ND(QGLWidget):
 
         try:
             # Compile shaders and link color shader program
-            self.color = BlueSkyProgram('data/graphics/shaders/nd-normal.vert', 'data/graphics/shaders/nd-color.frag')
-            self.color.bind_uniform_buffer('global_data', self.globaldata)
+            self.color_shader = BlueSkyProgram('data/graphics/shaders/nd-normal.vert', 'data/graphics/shaders/nd-color.frag')
+            self.color_shader.bind_uniform_buffer('global_data', self.globaldata)
 
             # Compile shaders and link text shader program
-            self.text = BlueSkyProgram('data/graphics/shaders/nd-text.vert', 'data/graphics/shaders/nd-text.frag')
-            self.text.bind_uniform_buffer('global_data', self.globaldata)
-            TextObject.init_shader(self.text)
+            self.text_shader = BlueSkyProgram('data/graphics/shaders/nd-text.vert', 'data/graphics/shaders/nd-text.frag')
+            self.text_shader.bind_uniform_buffer('global_data', self.globaldata)
 
         except RuntimeError as e:
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
@@ -217,7 +217,7 @@ class ND(QGLWidget):
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
         # Select the non-textured shader
-        self.color.use()
+        self.color_shader.use()
 
         self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, False)
         self.arcs.draw()
@@ -235,16 +235,25 @@ class ND(QGLWidget):
         gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue2)
         self.airports.draw()
 
-        self.text.use()
+        self.text_shader.use()
+        self.font.use()
+        self.font.set_char_size(self.wptlabels.char_size)
+        self.font.set_block_size(self.wptlabels.block_size)
         self.wptlabels.bind()
         gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue3)
         self.wptlabels.draw(n_instances=self.waypoints.n_instances)
+
+        self.font.set_char_size(self.aptlabels.char_size)
+        self.font.set_block_size(self.aptlabels.block_size)
         self.aptlabels.bind()
         gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue3)
         self.aptlabels.draw(n_instances=self.airports.n_instances)
+
+        self.font.set_char_size(self.aclabels.char_size)
+        self.font.set_block_size(self.aclabels.block_size)
         self.aclabels.draw(n_instances=self.n_aircraft)
 
-        self.color.use()
+        self.color_shader.use()
         self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, False)
         self.ownship.draw()
         self.mask.draw()
@@ -254,7 +263,9 @@ class ND(QGLWidget):
         self.ticks.draw()
 
         # Select the text shader
-        self.text.use()
+        self.text_shader.use()
+        self.font.use()
+        self.font.set_block_size((0, 0))
         self.ticklbls.draw()
 
         self.globaldata.set_vertex_modifiers(VERTEX_IS_GLXY, False)

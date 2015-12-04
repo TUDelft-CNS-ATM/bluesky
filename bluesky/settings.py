@@ -6,7 +6,7 @@ gui = 'qtgl'
 performance_model = 'bluesky'
 
 # Indicate the scenario path
-scenario_path = 'data/scenario'
+scenario_path = 'scenario'
 
 # Indicate the path for the aircraft performance data
 perf_path = 'data/coefficients/BS_aircraft'
@@ -97,9 +97,9 @@ else:
 
 execfile(configfile)
 
-if len(sys.argv) > 1:
-    args = str.join(',', sys.argv[1:])
-    if args.find('pygame'):
-        gui = 'pygame'
-    elif args.find('qtgl'):
-        gui = 'qtgl'
+#if len(sys.argv) > 1:
+#    args = str.join(',', sys.argv[1:])
+#    if args.find('pygame'):
+#        gui = 'pygame'
+#    elif args.find('qtgl'):
+#        gui = 'qtgl'

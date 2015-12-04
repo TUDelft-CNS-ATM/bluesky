@@ -10,6 +10,7 @@ import time
 from screenio import ScreenIO
 from ...traf import Traffic
 from ...stack import Commandstack
+# from ...traf import Metric
 from ... import settings
 
 
@@ -43,9 +44,12 @@ class Simulation(QObject):
         self.screenio = ScreenIO(self)
         self.traf = Traffic(navdb)
         self.navdb = navdb
+        # Metrics
+        self.metric = None
+        # self.metric       = Metric()
 
         # Stack ties it all together
-        self.stack = Commandstack(self,self.traf,gui)
+        self.stack = Commandstack(self, self.traf, self.screenio)
 
         print 'Initializing multi-threaded simulation'
 
@@ -76,6 +80,10 @@ class Simulation(QObject):
 
             if self.mode == Simulation.op:
                 self.traf.update(self.simt, self.simdt)
+
+                # Update metrics
+                if self.metric is not None:
+                    self.metric.update(self, self.traf)
 
                 # Update time for the next timestep
                 self.simt += self.simdt

@@ -18,7 +18,7 @@ def fileopen():
     if sys.platform == 'darwin':
        return ''
 
-    dirpath = imgpath = "data/scenario"
+    dirpath = imgpath = "scenario"
     os.chdir(dirpath)
 
     master = Tk()

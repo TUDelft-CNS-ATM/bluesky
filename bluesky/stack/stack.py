@@ -4,9 +4,9 @@ from random import random, randint
 import os
 import sys
 
-from ..tools.aero import kts, ft, fpm, nm, lbs, \
+from ..tools.aero import kts, ft, fpm, nm, lbs,\
     qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
-from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit
+from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
 class Commandstack:
@@ -34,7 +34,7 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #----------------------------------------------------------------------
         self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
-                                      "txt,txt,lat,lon,float,alt,spd",
+                                      "txt,txt,lat,lon,hdg,alt,spd",
                                       traf.create   ],
                         "HDG": [ "HDG acid,hdg[deg,True]",
                                        "acid,float",traf.selhdg  ]
@@ -56,7 +56,7 @@ class Commandstack:
         self.scentime = []
         self.scencmd = []
 
-        # An advanced way to add your own commands: add your entry to the dictionary.        
+        # An advanced way to add your own commands: add your entry to the dictionary.
         # The dictionary should be formed as {"Key":module'}.
 
         # "Key" is a FOUR-symbol reference that is used at the start of the command.
@@ -243,9 +243,9 @@ class Commandstack:
 
     def process(self, sim, traf, scr):
         """process and empty command stack"""
-
         # Process stack of commands
         for line in self.cmdstack:
+            # print line
             cmdline = line.upper()  # Save original lower case in variable line
 
             cmdargs = cmdsplit(cmdline)
@@ -286,7 +286,7 @@ class Commandstack:
                 # First check command synonymes list, then dictionary
                 #----------------------------------------------------------------------
                 if cmd in self.cmdsynon.keys():
-                    cmd = self.cmdsynon[key]
+                    cmd = self.cmdsynon[cmd]
                 
                 if cmd in self.cmddict.keys():
                     helptext,argtypelist,function = self.cmddict[cmd]
@@ -319,25 +319,36 @@ class Commandstack:
                                 arglist.append(int(cmdargs[i]))  # switch
 
                             elif argtype == "onoff" or argtype=="bool":
-                                sw = (cmdargs[i]=="ON" or cmdargs[i]=="1" or \
+                                sw = (cmdargs[i] == "ON" or cmdargs[i]=="1" or \
                                                       cmdargs[i]=="TRUE")
                                 arglist.append(sw)
 
                             elif argtype == "lat":
-                                lat = cmdargs[i].replace("S","-").replace("N","")
-                                arglist.append(float(lat))
-
+                                try:
+                                    lat = txt2lat(cmdargs[i])
+                                    arglist.append(float(lat))
+                                except:
+                                    synerr = True
+                                    
                             elif argtype == "lon":
-                                lon = cmdargs[i].replace("W","-").replace("E","")
-                                arglist.append(float(lon))
-
-                            elif argtype=="spd":
-                                spd = float(cmdargs[i].upper().replace("M",".").replace("..","."))
+                                try:
+                                   lon = txt2lon(cmdargs[i])
+                                   arglist.append(float(lon))
+                                except:
+                                   synerr = True
+ 
+                            elif argtype == "spd":
+                                spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
                                 arglist.append(spd)  # speed CAS[kts] or Mach (float)
 
-                            elif argtype=="alt":
-                                arglist.append(ft*txt2alt(cmdargs[i])) # alt in m
-                        
+                            elif argtype == "alt":
+                                arglist.append(ft * txt2alt(cmdargs[i]))  # alt in m
+
+                            elif argtype == "hdg":
+                                # TODO: for now no difference between magnetic/true heading
+                                hdg = float(cmdargs[i].upper().replace('T', '').replace('M', ''))
+                                arglist.append(hdg)
+
 #                    except:
 #                        synerr = False
 #                        scr.echo("Syntax error in processing arguments")
@@ -350,15 +361,16 @@ class Commandstack:
 
                     results = function(arglist)
                     txt = helptext
-                    if type(results)==bool:
-                        synerr = not results
-                    elif type(results)==list:
-                        if len(results)>=1:
-                            synerr = not results[0]
-                        
-                        if len(results)>=2:
-                            scr.echo(cmd+":"+results[1])
-                    if synerr:                    
+                    if not synerr:
+                        if type(results)==bool:
+                            synerr = not results
+                        elif type(results)==list:
+                            if len(results)>=1:
+                                synerr = not results[0]
+                            
+                            if len(results)>=2:
+                                scr.echo(cmd+":"+results[1])
+                    else: # synerr:                    
                          scr.echo(helptext)
 
                     synerr= False  # suppress further error messages
@@ -785,15 +797,18 @@ class Commandstack:
                                         if (np.isnan(lat) or np.isnan(lon)):
                                             continue
                                     else:
+                                        synerr= True
                                         scr.echo(cmdargs[1] + " not found.")
+                            if not synerr and (not (np.isnan(lat) or np.isnan(lon))):
+                                scr.pan((lat, lon), absolute=True)
 
                     # PAN to lat,lon position
                     elif numargs == 2:
                         lat = float(cmdargs[1])
                         lon = float(cmdargs[2])
 
-                    if not (np.isnan(lat) or np.isnan(lon)):
-                        scr.pan((lat, lon), absolute=True)
+                        if not (np.isnan(lat) or np.isnan(lon)):
+                            scr.pan((lat, lon), absolute=True)
 
                 #----------------------------------------------------------------------
                 # NAVDISP/ND  acid:  Activate Navdisplay mode
@@ -909,7 +924,7 @@ class Commandstack:
                         if sim.ffmode:
                             scr.echo("FIXDT mode is ON")
                             if sim.ffstop > 0.:
-                                t_ = sim.ffstop - sim.t
+                                t_ = sim.ffstop - sim.simt
                                 scr.echo("for " + str(t_) + " more seconds")
                         else:
                             scr.echo("FIXDT mode is OFF")
@@ -919,14 +934,14 @@ class Commandstack:
                             if numargs >= 2:
                                 try:
                                     tstop_ = float(cmdargs[2])
-                                    sim.ffstop = abs(tstop_) + sim.t
+                                    sim.ffstop = abs(tstop_) + sim.simt
                                 except:
                                     sim.ffstop = -1.
                                     synerr = True  # syntax is not ok
                             else:
                                 sim.ffmode = True
                                 sim.ffstop = -1
- 
+
                         elif cmdargs[1].upper()[:2] == "OF":
                             sim.ffmode = False
 
@@ -934,44 +949,44 @@ class Commandstack:
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
                 #----------------------------------------------------------------------
                 elif cmd[:6] == "METRIC":
-                    if numargs < 1:
+                    if sim.metric is None:
+                        scr.echo('The METRIC module is not enabled.')
+                    elif numargs < 1:
                         scr.echo("METRICS/METRICS OFF/0/1/2 [dt]")
 
-                        if traf.metricSwitch == 1:
-                            scr.echo("")
-                            scr.echo("Active: " + "(" + str(traf.metric.metric_number + 1) + ") " + traf.metric.name[
-                                traf.metric.metric_number])
-                            scr.echo("Current dt: " + str(traf.metric.dt) + " s")
-                        if traf.metricSwitch == 0:
+                        if sim.metric.metric_number < 0:
                             scr.echo("No metric active")
+                        else:
+                            scr.echo("")
+                            scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                sim.metric.metric_number])
+                            scr.echo("Current dt: " + str(traf.metric.dt) + " s")
 
                     elif cmdargs[1] == "ON":  # arguments are strings
                         scr.echo("METRICS/METRICS OFF/0/1/2 [dt]")
 
                     elif cmdargs[1] == "OFF":  # arguments are strings
-                        traf.metricSwitch = 0
+                        sim.metric.metric_number = -1
                         scr.echo("Metric is off")
 
                     else:
-                        metric_number = int(cmdargs[1]) - 1
-                        if metric_number == -1:
-                            traf.metricSwitch = 0
+                        sim.metric.metric_number = int(cmdargs[1]) - 1
+                        if sim.metric.metric_number < 0:
                             scr.echo("Metric is off")
 
-                        elif metric_number <= len(traf.metric.name) and metric_number >= 0:
+                        elif sim.metric.metric_number <= len(sim.metric.name):
                             if traf.area == "Circle":
-                                traf.metricSwitch = 1
-                                scr.echo("(" + str(traf.metric.metric_number + 1) + ") " + traf.metric.name[
-                                    traf.metric.metric_number] + " activated")
+                                scr.echo("(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                    sim.metric.metric_number] + " activated")
                                 try:
                                     metric_dt = float(cmdargs[2])
                                     if metric_dt > 0:
-                                        traf.metric.dt = metric_dt
+                                        sim.metric.dt = metric_dt
                                         scr.echo("with dt = " + str(metric_dt))
                                     else:
                                         scr.echo("No valid dt")
                                 except:
-                                    scr.echo("with dt = " + str(traf.metric.dt))
+                                    scr.echo("with dt = " + str(sim.metric.dt))
                             else:
                                 scr.echo("First define AREA FIR")
                         else:
@@ -1322,17 +1337,23 @@ class Commandstack:
                             alt = -999
                             spd = -999
                             afterwp = ""
-                            if True:
+                            try:
 
                                 # Get waypoint data
                                 # Is arg 2 a number? => lat,lon else waypoint name
-                                if numargs>3 and cmdargs[2].replace("-","")  \
-                                   .replace("+","").replace(".","").isdigit():
+                                print cmdargs[2]
+                                chkdig = cmdargs[2].replace("-","")  \
+                                   .replace("+","").replace(".","")\
+                                   .replace("N","").replace("S","")\
+                                   .replace("E","").replace("W","")\
+                                   .replace("'","").replace('"',"")
+                                print chkdig   
+                                if numargs>=3 and chkdig.isdigit():
       
                                     name    = traf.id[i] # use for wptname
                                     wptype  = rte.wplatlon
-                                    lat     = float(cmdargs[2])
-                                    lon     = float(cmdargs[3])
+                                    lat     = txt2lat(cmdargs[2])
+                                    lon     = txt2lon(cmdargs[3])
                                     if numargs>=4 and cmdargs[4]!="":
                                         alt = txt2alt(cmdargs[4])*ft
                                     if numargs>=5 and cmdargs[5]!="":
@@ -1345,7 +1366,7 @@ class Commandstack:
                                 elif numargs>=2:
                                     name    = cmdargs[2]  # search this wpname closest to
                                     wptype  = rte.wpnav
-                                    lat     = traf.lat[i]  # a/c position in lat,lon
+                                    lat     = traf.lat[i]  # a/c position as reference lat,lon 
                                     lon     = traf.lon[i]
                                     if numargs>=3 and cmdargs[3]!="":
                                         alt = txt2alt(cmdargs[3])*ft
@@ -1357,18 +1378,21 @@ class Commandstack:
 
                                 # Add the wpt to route
                                 if wpok: 
-                                    wpidx = rte.addwpt(traf,idx,name,wptype,lat,lon,alt,spd,afterwp)
+                                    wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
                                     norig = int(traf.orig[i]!="")
                                     ndest = int(traf.dest[i]!="")
 
                                     if rte.nwp-norig-ndest==1: # first waypoint: make active
-                                       # rte.direct(traf,i,name)
+                                       rte.direct(traf,i,name)
                                        traf.swlnav[i] = True
 
                                 else:
                                     scr.echo(trafid[i]+": waypoint not added")
                                     synerr = True
-
+                            except:
+                                scr.echo(trafid[i]+": waypoint not added")
+                                synerr = True
+                                
                 #----------------------------------------------------------------------
                 # DELWPT   : DELWPT acid,WPname
                 #----------------------------------------------------------------------

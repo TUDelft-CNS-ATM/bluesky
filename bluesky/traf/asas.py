@@ -68,7 +68,7 @@ class Dbconf():
     def reset(self):
         self.conf        = []     # Start with emtpy database: no conflicts
         self.nconf       = 0      # Number of detected conflicts
-
+        self.swconfl     = np.array([])
         self.latowncpa = np.array([])
         self.lonowncpa = np.array([])
         self.altowncpa = np.array([])
@@ -204,16 +204,18 @@ class Dbconf():
                            
         return
         
-    def conflictlist(self,simt):
-                       
-# Calculate CPA positions of traffic in lat/lon?
+    def conflictlist(self, simt):
+        if len(self.swconfl) == 0:
+            return
+        # Calculate CPA positions of traffic in lat/lon?
 
-# Select conflicting pairs: each a/c gets their own record
+        # Select conflicting pairs: each a/c gets their own record
         self.confidxs = np.where(self.swconfl)
+
         self.nconf = len(self.confidxs[0])
         self.iown = self.confidxs[0]
         self.ioth = self.confidxs[1]
-        
+
         self.latowncpa = []
         self.lonowncpa = []
         self.altowncpa = []

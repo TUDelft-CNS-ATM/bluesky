@@ -4,6 +4,9 @@ settings.cfg
 __pycache__/
 *.py[cod]
 
+# Sublime text project files
+*.sublime*
+
 # C extensions
 *.so
 

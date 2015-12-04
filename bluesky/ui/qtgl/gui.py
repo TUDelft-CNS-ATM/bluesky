@@ -1,17 +1,21 @@
 try:
     from PyQt4.QtCore import Qt, QEvent, QTimer
-    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
+    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage, QProgressDialog
     from PyQt4.QtOpenGL import QGLFormat
     QT_VERSION = 4
     print('Using Qt4 for windows and widgets')
 except ImportError:
-    from PyQt5.QtCore import Qt, QEvent, QTimer, qInstallMessageHandler
+    from PyQt5.QtCore import Qt, QEvent, QTimer, QThread
     from PyQt5.QtGui import QColor
-    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
-    from PyQt5.QtOpenGL import QGLFormat, QGLContext
+    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage, QProgressDialog
+    from PyQt5.QtOpenGL import QGLFormat
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
 import numpy as np
+
+import sys
+import traceback
+
 
 # Local imports
 from ..radarclick import radarclick
@@ -26,6 +30,16 @@ from ...tools.misc import cmdsplit
 import platform
 
 is_osx = platform.system() == 'Darwin'
+
+
+# Create custom system-wide exception handler. For now it replicates python's default traceback message.
+# This was added to counter a new PyQt5.5 feature where unhandled exceptions would result in a qFatal
+# with a very uninformative message
+def exception_handler(exc_type, exc_value, exc_traceback):
+    traceback.print_exception(exc_type, exc_value, exc_traceback)
+    exit()
+
+sys.excepthook = exception_handler
 
 usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'POS' : 'acid',
@@ -130,6 +144,17 @@ class Gui(QApplication):
         timer.timeout.connect(self.nd.updateGL)
         timer.start(50)
 
+        # Load geo data
+        if False:
+            pb = QProgressDialog('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.', 'Cancel', 0, 100)
+            pb.setWindowFlags(Qt.WindowStaysOnTopHint)
+            pb.show()
+            for i in range(101):
+                pb.setValue(i)
+                self.processEvents()
+                QThread.msleep(100)
+            pb.close()
+
     def setSimEventTarget(self, obj):
         self.simevent_target = obj
 
@@ -227,7 +252,7 @@ class Gui(QApplication):
                 return True
 
         # Mouse/trackpad event handling for the Radar widget
-        if receiver is self.radarwidget:
+        if receiver is self.radarwidget and self.radarwidget.initialized:
             if event.type() == QEvent.Wheel:
                 # For mice we zoom with control/command and the scrolwheel
                 if event.modifiers() & Qt.ControlModifier:
@@ -255,14 +280,12 @@ class Gui(QApplication):
 
             # For touchpad, pinch gesture is used for zoom
             elif event.type() == QEvent.Gesture:
-                origin = (0, 0)
                 zoom   = 1.0
                 pan    = None
                 dlat   = 0.0
                 dlon   = 0.0
                 for g in event.gestures():
                     if g.gestureType() == Qt.PinchGesture:
-                        origin = (g.centerPoint().x(), g.centerPoint().y())
                         zoom  *= g.scaleFactor()
                         if is_osx:
                             zoom /= g.lastScaleFactor()
@@ -272,7 +295,7 @@ class Gui(QApplication):
                         dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                         pan = (dlat, dlon)
 
-                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan, zoom, origin))
+                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan, zoom, self.mousepos))
 
             elif event.type() == QEvent.MouseButtonPress:
                 event_processed = True
@@ -398,6 +421,7 @@ class Gui(QApplication):
 
     def stack(self, text):
         self.postEvent(self.simevent_target, StackTextEvent(text))
+        self.display_stack(text)
 
     def display_stack(self, text):
         self.win.stackText.setTextColor(QColor(0, 255, 0))
@@ -405,7 +429,7 @@ class Gui(QApplication):
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', 'data/scenario', 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', 'scenario', 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:

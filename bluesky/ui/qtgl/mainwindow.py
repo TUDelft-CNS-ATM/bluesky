@@ -48,7 +48,8 @@ class MainWindow(QMainWindow):
         for b in buttons.iteritems():
             # Set icon
             if not b[1][0] is None:
-                b[0].setIcon(QIcon('data/graphics/icons/' + b[1][0]))
+                icon = QIcon('data/graphics/icons/' + b[1][0])
+                b[0].setIcon(icon)
             # Set tooltip
             if not b[1][1] is None:
                 b[0].setToolTip(b[1][1])

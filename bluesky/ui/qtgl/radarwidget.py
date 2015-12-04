@@ -13,7 +13,7 @@ from ctypes import c_float, c_int, Structure
 
 # Local imports
 from ...tools.aero import ft, nm, kts
-from glhelpers import BlueSkyProgram, RenderObject, TextObject, update_buffer, UniformBuffer
+from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
 from uievents import PanZoomEvent, PanZoomEventType
 from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
 
@@ -128,7 +128,10 @@ class RadarWidget(QGLWidget):
         self.makeCurrent()
 
         # Initialize font for radar view with specified settings
-        TextObject.create_font_array(char_height=text_texture_size, font_family=font_family, font_weight=font_weight)
+        self.font = Font()
+        self.font.create_font_array(char_height=text_texture_size, font_family=font_family, font_weight=font_weight)
+        self.font.init_shader(self.text_shader)
+
         # Load and bind world texture
         max_texture_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
         print 'Maximum supported texture size: %d' % max_texture_size
@@ -140,16 +143,16 @@ class RadarWidget(QGLWidget):
                 break
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
-        self.achdgbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclatbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclonbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.acaltbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.actasbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.accolorbuf  = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
-        self.aclblbuf    = RenderObject.create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
-        self.confcpabuf  = RenderObject.create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
-        self.polyprevbuf = RenderObject.create_empty_buffer(MAX_POLYGON_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
-        self.routebuf    = RenderObject.create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.achdgbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclatbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclonbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.acaltbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.actasbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.accolorbuf  = create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
+        self.aclblbuf    = create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
+        self.confcpabuf  = create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
+        self.polyprevbuf = create_empty_buffer(MAX_POLYGON_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.routebuf    = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject(gl.GL_TRIANGLE_FAN, vertex_count=4)
@@ -210,8 +213,7 @@ class RadarWidget(QGLWidget):
         self.ac_symbol.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
         self.ac_symbol.bind_attrib(ATTRIB_ORIENTATION, 1, self.achdgbuf, instance_divisor=1)
         self.ac_symbol.bind_attrib(ATTRIB_COLOR, 3, self.accolorbuf, instance_divisor=1)
-        self.aclabels = TextObject()
-        self.aclabels.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, text_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
+        self.aclabels = self.font.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, char_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
 
         # ------- Conflict CPA lines ---------------------
         self.cpalines = RenderObject(gl.GL_LINES)
@@ -230,11 +232,10 @@ class RadarWidget(QGLWidget):
         self.waypoints.bind_attrib(ATTRIB_VERTEX, 2, wptvertices)
         self.wptlatbuf = self.waypoints.bind_attrib(ATTRIB_LAT, 1, np.array(self.navdb.wplat, dtype=np.float32), instance_divisor=1)
         self.wptlonbuf = self.waypoints.bind_attrib(ATTRIB_LON, 1, np.array(self.navdb.wplon, dtype=np.float32), instance_divisor=1)
-        self.wptlabels = TextObject()
         wptids = ''
         for wptid in self.navdb.wpid:
             wptids += wptid.ljust(5)
-        self.wptlabels.prepare_text_instanced(np.array(wptids, dtype=np.string_), self.wptlatbuf, self.wptlonbuf, (5, 1), text_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        self.wptlabels = self.font.prepare_text_instanced(np.array(wptids, dtype=np.string_), self.wptlatbuf, self.wptlonbuf, (5, 1), char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         del wptids
 
         # ------- Airports -------------------------------
@@ -253,11 +254,10 @@ class RadarWidget(QGLWidget):
 
         self.aptlatbuf = self.airports.bind_attrib(ATTRIB_LAT, 1, aplat, instance_divisor=1)
         self.aptlonbuf = self.airports.bind_attrib(ATTRIB_LON, 1, aplon, instance_divisor=1)
-        self.aptlabels = TextObject()
         aptids = ''
         for aptid in apnames:
             aptids += aptid.ljust(4)
-        self.aptlabels.prepare_text_instanced(np.array(aptids, dtype=np.string_), self.aptlatbuf, self.aptlonbuf, (4, 1), text_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
+        self.aptlabels = self.font.prepare_text_instanced(np.array(aptids, dtype=np.string_), self.aptlatbuf, self.aptlonbuf, (4, 1), char_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
         del aptids
 
         # Create a dictionary that can hold a named list of shapes that can be added through the stack
@@ -304,7 +304,6 @@ class RadarWidget(QGLWidget):
             # Compile shaders and link text shader program
             self.text_shader = BlueSkyProgram('data/graphics/shaders/radarwidget-text.vert', 'data/graphics/shaders/radarwidget-text.frag')
             self.text_shader.bind_uniform_buffer('global_data', self.globaldata)
-            TextObject.init_shader(self.text_shader)
 
             self.ssd_shader = BlueSkyProgram('data/graphics/shaders/ssd.vert', 'data/graphics/shaders/ssd.frag', 'data/graphics/shaders/ssd.geom')
             self.ssd_shader.bind_uniform_buffer('global_data', self.globaldata)
@@ -421,16 +420,23 @@ class RadarWidget(QGLWidget):
 
         if self.do_text:
             self.text_shader.use()
+            self.font.use()
 
             if self.show_apt:
+                self.font.set_char_size(self.aptlabels.char_size)
+                self.font.set_block_size(self.aptlabels.block_size)
                 self.aptlabels.bind()
                 gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue4)
                 self.aptlabels.draw(n_instances=nairports)
             if self.zoom >= 1.0 and show_wpt:
+                self.font.set_char_size(self.wptlabels.char_size)
+                self.font.set_block_size(self.wptlabels.block_size)
                 self.wptlabels.bind()
                 gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue4)
                 self.wptlabels.draw(n_instances=self.nwaypoints)
             if self.naircraft > 0 and self.show_traf and self.show_lbl:
+                self.font.set_char_size(self.aclabels.char_size)
+                self.font.set_block_size(self.aclabels.block_size)
                 self.aclabels.draw(n_instances=self.naircraft)
 
         # SSD
@@ -663,7 +669,7 @@ class RadarWidget(QGLWidget):
 
 def load_rwy_data():
     # total number of runways
-    nrwy_tot = 33721
+    nrwy_tot = 15019
     vertices = np.zeros(nrwy_tot * 12, dtype=np.float32)
 
     with open("data/global/apt.dat", 'r') as f:
@@ -672,23 +678,28 @@ def load_rwy_data():
             line = line.strip()
             if line[:4] == '100 ':
                 # This line holds a runway
-                n_rwys += 1
                 l = line.split()
                 width = float(l[1])
                 # Only asphalt and concrete runways
                 if int(l[2]) > 2:
                     continue
+                n_rwys += 1
                 # rwy_lbl = (l[8], l[17])
                 lat0 = float(l[9])
                 lon0 = float(l[10])
                 lat1 = float(l[18])
                 lon1 = float(l[19])
-                flat_earth = 1.0 / cos(0.5 * radians(lat0 + lat1))**2
-                dlat = lon1 - lon0
-                dlon = -flat_earth * (lat1 - lat0)
-                d_inv = 1.0 / sqrt(dlat * dlat + dlon * dlon)
-                dlat = degrees(dlat * 0.5 * width * REARTH_INV * d_inv)
-                dlon = degrees(dlon * 0.5 * width * REARTH_INV * d_inv)
+                flat_earth = cos(0.5 * radians(lat0 + lat1))
+                lx = lat1 - lat0
+                ly = (lon1 - lon0) * flat_earth
+                l  = sqrt(lx * lx + ly * ly)
+                wx =  ly / l * 0.5 * width
+                wy = -lx / l * 0.5 * width
+                dlat = degrees(wx * REARTH_INV)
+                dlon = degrees(wy * REARTH_INV / flat_earth)
+                #d_inv = 1.0 / sqrt(dlat * dlat + dlon * dlon)
+                #dlat = degrees(dlat * 0.5 * width * REARTH_INV * d_inv)
+                #dlon = degrees(dlon * 0.5 * width * REARTH_INV * d_inv)
                 vertices[(n_rwys - 1) * 12:n_rwys * 12] = [
                             lat0 + dlat, lon0 + dlon,
                             lat0 - dlat, lon0 - dlon,

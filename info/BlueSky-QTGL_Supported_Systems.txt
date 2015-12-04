@@ -1,0 +1,6 @@
+PC, Win7, Intel C2D, ATI Radeon Mobility 3430
+PC, Win7, AMD Phenom II, AMD HD5750
+PC, Win10, AMD Phenom II, nVidia GTX 970
+Mac, OSX 10.9-10.11, Macbook Pro Retine 15" late 2013, nVidia GT750M/Iris Pro 5200
+Mac, OSX 10.10, Macbook Pro 15", mid 2011, Intel HD3000
+Mac, OSX 10.10, Macbook Pro 15", early 2009, nVidia 9400M (partly, issues with many wpts/apts)

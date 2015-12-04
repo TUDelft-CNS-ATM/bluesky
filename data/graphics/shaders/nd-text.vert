@@ -54,7 +54,6 @@ void main() {
     vec2 position = vec2(lon_in - ownlon, lat_in - ownlat);
     vec2 vertex   = vertex_in; //vcoords[gl_VertexID%6] * char_size + vec2(float(gl_VertexID/6) * char_size[0], 0.0);
 
-    // When text_dims is non-zero we are drawing instanced
     if (block_size[0] > 0) {
         texcoords_fs.p = texdepth_in - 32.0;
         vertex.x += float(gl_InstanceID%block_size[0]) * char_size.x;
