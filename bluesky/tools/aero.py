@@ -270,7 +270,7 @@ def latlondist(lat1,lon1,lat2,lon2):
 
 # Calculate average local earth radius
     if lat1*lat2>0.:  # same hemisphere
-        r = rwgs(0.5*(lat1+lat2))    
+        r = rwgs84(0.5*(lat1+lat2))    
 
     else:             # different hemisphere
         a = 6378137.0       # [m] Major semi-axis WGS-84
