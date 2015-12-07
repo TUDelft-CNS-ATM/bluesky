@@ -1,7 +1,7 @@
 import numpy as np
 from math import *
 
-from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2cas,  \
+from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
      mach2tas, cas2tas, Rearth
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
@@ -651,7 +651,7 @@ class Traffic:
                        
                 if spd>0. and lnavon and self.swvnav[i]:
                     if spd<2.0:
-                       self.actwpspd[i] = mach2cas(spd,self.alt[i])                            
+                       self.actwpspd[i] = mach2tas(spd,self.alt[i])                            
                     else:    
                        self.actwpspd[i] = cas2tas(spd,self.alt[i])
                 else:
@@ -886,7 +886,6 @@ class Traffic:
         return
 
     def create(self, arglist):  # CRE command
-
         if len(arglist) < 7:
             return False
 

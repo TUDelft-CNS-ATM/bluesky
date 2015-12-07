@@ -295,6 +295,10 @@ class Commandstack:
                     
                     # Process arg list
                     arglist = []
+                    idx    = -1 # Reference aircraft
+                    refalt= 0. # Reference altitude
+                    reflat = scr.ctrlat # Reference latitude
+                    reflon = scr.ctrlon # Reference longitude
 #                    try:
                     if True:
                         for i in range(1,1+min(numtypes,numargs)):
@@ -325,15 +329,15 @@ class Commandstack:
 
                             elif argtype == "lat":
                                 try:
-                                    lat = txt2lat(cmdargs[i])
-                                    arglist.append(float(lat))
+                                    reflat = txt2lat(cmdargs[i])
+                                    arglist.append(float(reflat))
                                 except:
                                     synerr = True
                                     
                             elif argtype == "lon":
                                 try:
-                                   lon = txt2lon(cmdargs[i])
-                                   arglist.append(float(lon))
+                                   reflon = txt2lon(cmdargs[i])
+                                   arglist.append(float(reflon))
                                 except:
                                    synerr = True
  
