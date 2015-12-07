@@ -374,7 +374,7 @@ class Commandstack:
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
-                    else: # synerr:                    
+                    if synerr:# synerr:                    
                          scr.echo(helptext)
 
                     synerr= False  # suppress further error messages
