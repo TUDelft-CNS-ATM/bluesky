@@ -242,8 +242,10 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         else:
             try:
                 traf.deleteall() # start fresh
-                acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs) # process arguments
-                
+                synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
+                if synerror:
+                    raise Exception()
+                    
                 mperdeg=111319.
                 hsep=traf.dbconf.R # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
@@ -264,19 +266,25 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                     alternate = alternate * -1   
                     
                 scr.pan([0,0],True)
+            except Exception:
+                scr.echo('Syntax error: unknown argument flag')
             except:
                 scr.echo('Syntax error')
-                scr.echo(commandhelp)     
+                scr.echo(commandhelp) 
+                
 
     # create a conflict with several aircraft flying in two columns angled towards each other
     elif command == "COLUMN":
+        commandhelp = "SYN_COLUMN n angle [-r=radius in NM] [-a=alt in ft] [-s=speed EAS in kts] [-t=actype]"
         if numargs == 0:
-            scr.echo("SYN_COLUMN n angle [-r=radius in NM] [-a=alt in ft] [-s=speed EAS in kts] [-t=actype]")
+            scr.echo(commandhelp)
         else:
             try:
                 traf.deleteall() # start fresh
-                acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs) # process arguments
-                
+                synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
+                if synerror:
+                    raise Exception() 
+
                 mperdeg=111319.
                 hsep=traf.dbconf.R # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
@@ -298,9 +306,12 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                     traf.create(["ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt, acspd])  
 
                 scr.pan([0,0],True)
+            except Exception:
+                scr.echo('Syntax error: unknown argument flag')
             except:
                 scr.echo('Syntax error')
-                scr.echo(commandhelp)                
+                scr.echo(commandhelp)      
+                
 
 #    elif command == "TESTCIRCLE":
 #        scr.swtestarea = True   #show circles in testing area
@@ -334,28 +345,29 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         scr.echo("Unknown command: " + callsign + command)
 #    pass
 
-class angledtraffic():    
+class angledtraffic():
+    
     @staticmethod        
     def arguments(numargs, cmdargs): 
+        syntaxerror = False        
         # tunables:
         acalt = float(10000) # default
         acspd = float(300) # default
         actype = "B747" # default
         startdistance = 1 # default
         
-        ang = float(cmdargs[2])/2    
+        ang = float(cmdargs[1])/2    
         
         if numargs>2:   #process optional arguments
-            for i in numargs-2: # loop over arguments (TODO: put arguments in np array)
-                if cmdargs[i+2].startswith("-r"): #radius
-                    startdistance = qdrpos(0,0,90,float(cmdargs[i+2][3:]))[2] #input in nm
-                if cmdargs[i+2].startswith("-a"): #altitude
-                    acalt = txt2alt(cmdargs[i+2][3:])*ft
-                elif cmdargs[i+2].startswith("-s"): #speed
-                #TODO:
-                    #acspd = txt2spd(cmdargs[i+2][3:],h)
-                    acspd = acspd
-                elif cmdargs[i+2].startswith("-t"): #ac type
-                    actype = cmdargs[i+2][3:].upper()
-                
-        return acalt,acspd,actype,startdistance,ang
+            for i in range(2 ,numargs): # loop over arguments (TODO: put arguments in np array)
+                if cmdargs[i].upper().startswith("-R"): #radius
+                    startdistance = qdrpos(0,0,90,float(cmdargs[i][3:]))[2] #input in nm
+                elif cmdargs[i].upper().startswith("-A"): #altitude
+                    acalt = txt2alt(cmdargs[i][3:])*ft
+                elif cmdargs[i].upper().startswith("-S"): #speed
+                    acspd = txt2spd(cmdargs[i][3:],acalt)
+                elif cmdargs[i].upper().startswith("-T"): #ac type
+                    actype = cmdargs[i][3:].upper()
+                else:
+                    syntaxerror = True
+        return syntaxerror,acalt,acspd,actype,startdistance,ang
