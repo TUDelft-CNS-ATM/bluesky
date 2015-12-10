@@ -743,7 +743,11 @@ class Commandstack:
                             elif cmdargs[1] == "OUT":
                                 scr.zoom(0.70710678118654746)  #1./sqrt(2.)
                             else:
-                                synerr = True
+                                try:
+                                    zoomfac = float(cmdargs[1])
+                                    scr.zoom(zoomfac, True)
+                                except:
+                                    synerr = True
 
                         if synerr:
                             print "Syntax error in command"
