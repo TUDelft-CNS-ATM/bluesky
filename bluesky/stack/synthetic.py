@@ -1,24 +1,24 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 16 14:55:16 2014
-
-@author: Jerom Maas
-"""
 import sys
 sys.path.append('bluesky/tools/')
 import random
 import numpy as np
-from aero import ft, nm, eas2tas
+from aero import ft, eas2tas, qdrpos
+from misc import txt2alt, txt2spd
+'''
+    Original version by Jerom Maas, fall 2014
+    Adapted and expanded by Pieter Danneels, fall 2015
+    
+'''
 
 savescenarios=False #whether to save a scenario as .scn file after generation via commands
 
-def process(command, numargs, commandargs, sim, traf, scr, cmd):
-    #First, find by which callsign the CFreeFlight module is called in Cstack.py
+def process(command, numargs, cmdargs, sim, traf, scr, cmd):
+    # First, find by which callsign the CFreeFlight module is called in Cstack.py
     for sign,filename in cmd.extracmdmodules.iteritems():
         if filename==__name__:
             callsign = sign
     
-    #change display settings and delete AC to generate own FF scenarios
+    # change display settings and delete AC to generate own FF scenarios
     if command == "START":
         scr.swgeo=False         #don't draw coastlines and borders
         scr.swsat=False         #don't draw the satellite image
@@ -38,13 +38,17 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         #cmd.scenlines.append("00:00:00.00>FIXDT ON")
         
         sim.mode=sim.init
+    # display help    
+    elif command == "HELP":
+        scr.echo("This is the synthetic traffic scenario module")
+        scr.echo("Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER, SPHERE, MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP")
     
     #create a perpendicular conflict between two aircraft
     elif command == "SIMPLE":
         scr.isoalt=0
         traf.deleteall()
-        traf.create("OWN", "GENERIC", -.5, 0, 0, 5000, 200)
-        traf.create("OTH", "GENERIC", 0, .5, 270, 5000, 200)
+        traf.create(["OWN", "GENERIC", -.5, 0, 0, 5000, 200])
+        traf.create(["OTH", "GENERIC", 0, .5, 270, 5000, 200])
         
     #create a perpendicular conflict with slight deviations to aircraft speeds and places
     elif command == "SIMPLED":
@@ -52,54 +56,54 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         traf.deleteall()
         ds=random.uniform(0.92,1.08)
         dd=random.uniform(0.92,1.08)
-        traf.create("OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000, 200*ds)
-        traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000, 200/ds)   
+        traf.create(["OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000, 200*ds])
+        traf.create(["INTRUDER", "GENERIC", 0, .5/dd, 270, 20000, 200/ds])   
      
     
-    #used for testing the differential game resolution method
+    # used for testing the differential game resolution method
     elif command == "DIFG":
         if numargs<5:
             scr.echo("5 ARGUMENTS REQUIRED")
         else:
             scr.isoalt=0
             traf.deleteall()
-            x=  traf.dbconf.xw[int(float(commandargs[1]))]/111319.
-            y=  traf.dbconf.yw[int(float(commandargs[2]))]/111319.
-            v_o=traf.dbconf.v_o[int(float(commandargs[3]))]
-            v_w=traf.dbconf.v_w[int(float(commandargs[4]))]
-            phi=np.degrees(traf.dbconf.phi[int(float(commandargs[5]))])
-            traf.create("OWN", "GENERIC", 0, 0, 0, 5000, v_o)
-            traf.create("WRN", "GENERIC", y, x, phi, 5000, v_w)
+            x=  traf.dbconf.xw[int(float(cmdargs[1]))]/111319.
+            y=  traf.dbconf.yw[int(float(cmdargs[2]))]/111319.
+            v_o=traf.dbconf.v_o[int(float(cmdargs[3]))]
+            v_w=traf.dbconf.v_w[int(float(cmdargs[4]))]
+            phi=np.degrees(traf.dbconf.phi[int(float(cmdargs[5]))])
+            traf.create(["OWN", "GENERIC", 0, 0, 0, 5000, v_o])
+            traf.create(["WRN", "GENERIC", y, x, phi, 5000, v_w])
     
     
-    #create a superconflict of x aircraft in a circle towards the center
+    # create a superconflict of x aircraft in a circle towards the center
     elif command == "SUPER":
         if numargs ==0:
             scr.echo(callsign+"SUPER <NUMBER OF A/C>")
         else:
             scr.isoalt=0
             traf.deleteall()
-            numac=int(float(commandargs[1]))
+            numac=int(float(cmdargs[1]))
             distance=0.50 #this is in degrees lat/lon, for now
             alt=20000 #meters
             spd=200 #kts
             for i in range(numac):
                 angle=2*np.pi/numac*i
                 acid="SUP"+str(i)
-                traf.create(acid,"SUPER",distance*-np.cos(angle),distance*np.sin(angle),360-360/numac*i,alt,spd)
+                traf.create([acid,"SUPER",distance*-np.cos(angle),distance*np.sin(angle),360-360/numac*i,alt,spd])
             if savescenarios:
                 fname="super"+str(numac)
                 cmd.saveic(fname,sim,traf)
 
     
-    #create a sphereconflict of 3 layers of superconflicts
+    # create a sphereconflict of 3 layers of superconflicts
     elif command == "SPHERE":
         if numargs ==0:
             scr.echo(callsign+"SPHERE <NUMBER OF A/C PER LAYER>")
         else:
             scr.isoalt=1./200
             traf.deleteall()
-            numac=int(float(commandargs[1]))
+            numac=int(float(cmdargs[1]))
             distance=0.5 #this is in degrees lat/lon, for now
             distancenm=distance*111319./1852
             alt=20000 #meters
@@ -123,11 +127,11 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
                 track=np.degrees(-angle)
                 
                 acidl="SPH"+str(i)+"LOW"
-                traf.create(acidl,"SUPER",lat,lon,track,lowalt,lospd)    
+                traf.create([acidl,"SUPER",lat,lon,track,lowalt,lospd])    
                 acidm="SPH"+str(i)+"MID"
-                traf.create(acidm,"SUPER",lat,lon,track,midalt,mispd)    
+                traf.create([acidm,"SUPER",lat,lon,track,midalt,mispd])    
                 acidh="SPH"+str(i)+"HIG"
-                traf.create(acidh,"SUPER",lat,lon,track,highalt,hispd)    
+                traf.create([acidh,"SUPER",lat,lon,track,highalt,hispd])    
                 
                 idxl = traf.id.index(acidl)
                 idxh = traf.id.index(acidh)
@@ -145,12 +149,12 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
                 fname="sphere"+str(numac)
                 cmd.saveic(fname,sim,traf)
              
-    #create a conflict with several aircraft flying in a wall formation    
+    # create a conflict with several aircraft flying in a matrix formation    
     elif command == "MATRIX":
         if numargs ==0:
             scr.echo(callsign+"MATRIX <SIZE>")
         else:
-            size=int(float(commandargs[1]))
+            size=int(float(cmdargs[1]))
             scr.isoalt=0
             traf.deleteall()
             mperdeg=111319.
@@ -162,19 +166,19 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
             extradist=(vel*1.1)*5*60/mperdeg #degrees latlon flown in 5 minutes
             for i in range(size):
                 acidn="NORTH"+str(i)
-                traf.create(acidn,"MATRIX",hseplat*(size-1.)/2+extradist,(i-(size-1.)/2)*hseplat,180,20000,vel)
+                traf.create([acidn,"MATRIX",hseplat*(size-1.)/2+extradist,(i-(size-1.)/2)*hseplat,180,20000,vel])
                 acids="SOUTH"+str(i)
-                traf.create(acids,"MATRIX",-hseplat*(size-1.)/2-extradist,(i-(size-1.)/2)*hseplat,0,20000,vel)
+                traf.create([acids,"MATRIX",-hseplat*(size-1.)/2-extradist,(i-(size-1.)/2)*hseplat,0,20000,vel])
                 acide="EAST"+str(i)
-                traf.create(acide,"MATRIX",(i-(size-1.)/2)*hseplat,hseplat*(size-1.)/2+extradist,270,20000,vel)
+                traf.create([acide,"MATRIX",(i-(size-1.)/2)*hseplat,hseplat*(size-1.)/2+extradist,270,20000,vel])
                 acidw="WEST"+str(i)
-                traf.create(acidw,"MATRIX",(i-(size-1.)/2)*hseplat,-hseplat*(size-1.)/2-extradist,90,20000,vel)
+                traf.create([acidw,"MATRIX",(i-(size-1.)/2)*hseplat,-hseplat*(size-1.)/2-extradist,90,20000,vel])
                 
             if savescenarios:
                 fname="matrix"+str(size)
                 cmd.saveic(fname,sim,traf)
 
-    #create a conflict with several aircraft flying in a floor formation    
+    # create a conflict with several aircraft flying in a floor formation    
     elif command == "FLOOR":
         scr.isoalt=1./50
         traf.deleteall()
@@ -183,23 +187,23 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         hsep=traf.dbconf.R # [m] horizontal separation minimum
         floorsep=1.1 #factor of extra spacing in the floor
         hseplat=hsep/mperdeg*floorsep
-        traf.create("OWNSHIP","FLOOR",-1,0,90, 20000+altdif, 200)
+        traf.create(["OWNSHIP","FLOOR",-1,0,90, 20000+altdif, 200])
         idx = traf.id.index("OWNSHIP")
         traf.avs[idx]=-10
         traf.aalt[idx]=20000-altdif
         for i in range(20):
             acid="OTH"+str(i)
-            traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000,200)            
+            traf.create([acid,"FLOOR",-1,(i-10)*hseplat,90,20000,200])            
         if savescenarios:
             fname="floor"
             cmd.saveic(fname,sim,traf)            
 
-    #create a conflict with several aircraft overtaking eachother    
+    # create a conflict with several aircraft overtaking eachother    
     elif command == "TAKEOVER":
         if numargs ==0:
             scr.echo(callsign+"TAKEOVER <NUMBER OF A/C>")
         else:
-            numac=int(float(commandargs[1]))
+            numac=int(float(cmdargs[1]))
             scr.isoalt=0
             traf.deleteall()
             mperdeg=111319.
@@ -208,12 +212,12 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
                 acid="OT"+str(v)
                 distancetofly=v*5*60 #m
                 degtofly=distancetofly/mperdeg
-                traf.create(acid,"OT",0,-degtofly,90,20000,v)
+                traf.create([acid,"OT",0,-degtofly,90,20000,v])
             if savescenarios:
                 fname="takeover"+str(numac)
                 cmd.saveic(fname,sim,traf)
 
-    #create a conflict with several aircraft flying in a wall formation    
+    # create a conflict with several aircraft flying in a wall formation    
     elif command == "WALL":
         scr.isoalt=0
         traf.deleteall()
@@ -222,15 +226,93 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         hsep=traf.dbconf.R # [m] horizontal separation minimum
         hseplat=hsep/mperdeg
         wallsep=1.1 #factor of extra space in the wall
-        traf.create("OWNSHIP","WALL",0,-distance,90, 20000, 200)
+        traf.create(["OWNSHIP","WALL",0,-distance,90, 20000, 200])
         for i in range(20):
             acid="OTHER"+str(i)
-            traf.create(acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000,200)
+            traf.create([acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000,200])
         if savescenarios:
             fname="wall"
-            cmd.saveic(fname,sim,traf)            
+            cmd.saveic(fname,sim,traf)
+    
+    # create a conflict with several aircraft flying in two rows angled towards each other
+    elif command == "ROW":
+        commandhelp = "SYN_ROW n angle [-r=radius in NM] [-a=alt in ft] [-s=speed EAS in kts] [-t=actype]"
+        if numargs == 0:
+            scr.echo(commandhelp)
+        else:
+            try:
+                traf.deleteall() # start fresh
+                synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
+                if synerror:
+                    raise Exception()
+                    
+                mperdeg=111319.
+                hsep=traf.dbconf.R # [m] horizontal separation minimum
+                hseplat=hsep/mperdeg
+                matsep=1.1 #factor of extra space in the formation
+                hseplat=hseplat*matsep
+                       
+                aclat = startdistance * np.cos(np.deg2rad(ang)) #[deg]
+                aclon = startdistance * np.sin(np.deg2rad(ang))
+                latsep = abs(hseplat*np.cos(np.deg2rad(90-ang))) #[deg]
+                lonsep = abs(hseplat*np.sin(np.deg2rad(90-ang)))                
+                
+                alternate = 1
+                for i in range(int(cmdargs[1])): # Create a/c
+                    aclat = aclat+i*latsep*alternate
+                    aclon = aclon-i*lonsep*alternate
+                    traf.create(["ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt, acspd])
+                    traf.create(["ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt, acspd])
+                    alternate = alternate * -1   
+                    
+                scr.pan([0,0],True)
+            except Exception:
+                scr.echo('Syntax error: unknown argument flag')
+            except:
+                scr.echo('Syntax error')
+                scr.echo(commandhelp) 
+                
 
-            
+    # create a conflict with several aircraft flying in two columns angled towards each other
+    elif command == "COLUMN":
+        commandhelp = "SYN_COLUMN n angle [-r=radius in NM] [-a=alt in ft] [-s=speed EAS in kts] [-t=actype]"
+        if numargs == 0:
+            scr.echo(commandhelp)
+        else:
+            try:
+                traf.deleteall() # start fresh
+                synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
+                if synerror:
+                    raise Exception() 
+
+                mperdeg=111319.
+                hsep=traf.dbconf.R # [m] horizontal separation minimum
+                hseplat=hsep/mperdeg
+                matsep=1.1 #factor of extra space in the formation
+                hseplat=hseplat*matsep
+                       
+                aclat = startdistance * np.cos(np.deg2rad(ang)) #[deg]
+                aclon = startdistance * np.sin(np.deg2rad(ang))
+                latsep = abs(hseplat*np.cos(np.deg2rad(ang))) #[deg]
+                lonsep = abs(hseplat*np.sin(np.deg2rad(ang)))
+
+                traf.create(["ANG0", actype, aclat, aclon, 180+ang, acalt, acspd])
+                traf.create(["ANG1", actype, aclat, -aclon, 180-ang, acalt, acspd])  
+                
+                for i in range(1,int(cmdargs[1])): # Create a/c
+                    aclat = aclat+latsep
+                    aclon = aclon+lonsep
+                    traf.create(["ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt, acspd])
+                    traf.create(["ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt, acspd])  
+
+                scr.pan([0,0],True)
+            except Exception:
+                scr.echo('Syntax error: unknown argument flag')
+            except:
+                scr.echo('Syntax error')
+                scr.echo(commandhelp)      
+                
+
 #    elif command == "TESTCIRCLE":
 #        scr.swtestarea = True   #show circles in testing area
 #        scr.redrawradbg=True    #draw the background again
@@ -243,7 +325,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         if numargs == 0:
             scr.echo(callsign+"DISP <SEP/SPD/TEST>")
         else:
-            sw = commandargs[1]
+            sw = cmdargs[1]
             
             #show separation circles between aircraft of 2.5 nm radius
             if sw == "SEP":
@@ -261,5 +343,31 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
     #give up
     else:
         scr.echo("Unknown command: " + callsign + command)
-    pass
+#    pass
 
+class angledtraffic():
+    
+    @staticmethod        
+    def arguments(numargs, cmdargs): 
+        syntaxerror = False        
+        # tunables:
+        acalt = float(10000) # default
+        acspd = float(300) # default
+        actype = "B747" # default
+        startdistance = 1 # default
+        
+        ang = float(cmdargs[1])/2    
+        
+        if numargs>2:   #process optional arguments
+            for i in range(2 ,numargs): # loop over arguments (TODO: put arguments in np array)
+                if cmdargs[i].upper().startswith("-R"): #radius
+                    startdistance = qdrpos(0,0,90,float(cmdargs[i][3:]))[2] #input in nm
+                elif cmdargs[i].upper().startswith("-A"): #altitude
+                    acalt = txt2alt(cmdargs[i][3:])*ft
+                elif cmdargs[i].upper().startswith("-S"): #speed
+                    acspd = txt2spd(cmdargs[i][3:],acalt)
+                elif cmdargs[i].upper().startswith("-T"): #ac type
+                    actype = cmdargs[i][3:].upper()
+                else:
+                    syntaxerror = True
+        return syntaxerror,acalt,acspd,actype,startdistance,ang
