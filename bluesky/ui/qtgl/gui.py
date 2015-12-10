@@ -321,9 +321,10 @@ class Gui(QApplication):
                 event_processed = True
                 self.mousepos = (event.x(), event.y())
                 if event.buttons() & Qt.RightButton:
-                    pan = (0.003 * (event.y() - self.prevmousepos[1]), 0.003 * (self.prevmousepos[0] - event.x()))
+                    dlat = 0.003 * (event.y() - self.prevmousepos[1]) / (self.radarwidget.zoom * self.radarwidget.ar)
+                    dlon = 0.003 * (self.prevmousepos[0] - event.x()) / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                     self.prevmousepos = (event.x(), event.y())
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=pan))
+                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(dlat, dlon)))
 
         # Other events
         if event.type() == QEvent.KeyPress:
