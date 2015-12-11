@@ -58,9 +58,9 @@ class ScreenIO(QObject):
 
         # Keep track of the important parameters of the screen state
         # (We receive these through events from the gui)
-        self.ctrlat = 0.0
-        self.ctrlon = 0.0
-        self.zoom   = 1.0
+        self.ctrlat  = 0.0
+        self.ctrlon  = 0.0
+        self.scrzoom = 1.0
 
         # Keep reference to parent simulation object for access to simulation data
         self.sim = sim
@@ -88,9 +88,9 @@ class ScreenIO(QObject):
 
     def zoom(self, zoomfac, absolute=False):
         if absolute:
-            self.zoom = zoomfac
+            self.scrzoom = zoomfac
         else:
-            self.zoom *= zoomfac
+            self.scrzoom *= zoomfac
         qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
 
     def pan(self, pan, absolute=False):
@@ -156,8 +156,8 @@ class ScreenIO(QObject):
             self.sim.stack.stack(event.text)
 
         elif event.type() == PanZoomEventType:
-            self.ctrlat = event.pan[0]
-            self.ctrlon = event.pan[1]
-            self.zoom   = event.zoom
+            self.ctrlat  = event.pan[0]
+            self.ctrlon  = event.pan[1]
+            self.scrzoom = event.zoom
 
         return True
