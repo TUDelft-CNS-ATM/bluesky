@@ -1,13 +1,13 @@
 try:
     from PyQt4.QtCore import Qt, QEvent, QTimer
-    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage, QProgressDialog
+    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
     QT_VERSION = 4
     print('Using Qt4 for windows and widgets')
 except ImportError:
-    from PyQt5.QtCore import Qt, QEvent, QTimer, QThread
+    from PyQt5.QtCore import Qt, QEvent, QTimer
     from PyQt5.QtGui import QColor
-    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage, QProgressDialog
+    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
@@ -144,17 +144,6 @@ class Gui(QApplication):
         timer.timeout.connect(self.radarwidget.updateGL)
         timer.timeout.connect(self.nd.updateGL)
         timer.start(50)
-
-        # Load geo data
-        if False:
-            pb = QProgressDialog('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.', 'Cancel', 0, 100)
-            pb.setWindowFlags(Qt.WindowStaysOnTopHint)
-            pb.show()
-            for i in range(101):
-                pb.setValue(i)
-                self.processEvents()
-                QThread.msleep(100)
-            pb.close()
 
     def setSimEventTarget(self, obj):
         self.simevent_target = obj
