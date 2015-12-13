@@ -35,17 +35,19 @@ class Commandstack:
         #----------------------------------------------------------------------
         self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
                                       "txt,txt,lat,lon,hdg,alt,spd",
-                                      traf.create   ],
+                                      traf.create],
                         "HDG": [ "HDG acid,hdg[deg,True]",
-                                       "acid,float",traf.selhdg  ]
+                                       "acid,float",traf.selhdg],
+                        "FF":  [ "FF [tend]",
+                                    "time",sim.fastforward]
                        }
 
         #----------------------------------------------------------------------
-        
         # Command synonym dictionary
-        self.cmdsynon = {"CREATE":"CRE",
-                         "TURN":"HDG",
-                         "DTLOOK":"ASA_DTLOOK",
+        self.cmdsynon = {"CREATE": "CRE",
+                         "TURN": "HDG",
+                         "DTLOOK": "ASA_DTLOOK",
+                         "FWD": "FF"
                          }
         #----------------------------------------------------------------------
 
@@ -352,6 +354,13 @@ class Commandstack:
                                 # TODO: for now no difference between magnetic/true heading
                                 hdg = float(cmdargs[i].upper().replace('T', '').replace('M', ''))
                                 arglist.append(hdg)
+
+                            elif argtype == "time":
+                                ttxt = cmdargs[i].strip().split(':')
+                                ihr  = int(ttxt[0])
+                                imin = int(ttxt[1])
+                                xsec = float(ttxt[2])
+                                arglist.append(ihr * 3600. + imin * 60. + xsec)
 
 #                    except:
 #                        synerr = False
@@ -853,11 +862,6 @@ class Commandstack:
 #                        else:
 #                            scr.echo("NAVDISP: " + cmdargs[1] + " not found.")
 #
-                #----------------------------------------------------------------------
-                # RUNFT: toggle fast time running
-                #----------------------------------------------------------------------
-                elif cmd == "RUNFT":
-                    sim.run_fixed = (not sim.run_fixed)
 
                 #----------------------------------------------------------------------
                 # IC scenfile: command: restart with new filename (.scn will be added if necessary)

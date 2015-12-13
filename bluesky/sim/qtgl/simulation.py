@@ -10,6 +10,7 @@ import time
 from screenio import ScreenIO
 from ...traf import Traffic
 from ...stack import Commandstack
+from ...tools.network import StackTelnetServer
 # from ...traf import Metric
 from ... import settings
 
@@ -35,34 +36,40 @@ class Simulation(QObject):
     # =========================================================================
     def __init__(self, gui, navdb):
         super(Simulation, self).__init__()
-        self.mode = Simulation.init
+        print 'Initializing multi-threaded simulation'
 
+        self.mode        = Simulation.init
         self.samplecount = 0
-        self.sysdt = 1000 / self.sys_rate
+        self.sysdt       = 1000 / self.sys_rate
+
+        # Set starting system time [milliseconds]
+        self.syst        = 0.0
+
+        # Starting simulation time [seconds]
+        self.simt        = 0.0
+
+        self.ff_end      = None
 
         # Simulation objects
-        self.screenio = ScreenIO(self)
-        self.traf = Traffic(navdb)
-        self.navdb = navdb
+        self.screenio    = ScreenIO(self)
+        self.traf        = Traffic(navdb)
+        self.stack       = Commandstack(self, self.traf, self.screenio)
+        self.telnet_in   = StackTelnetServer(self.stack)
+        self.navdb       = navdb
         # Metrics
-        self.metric = None
-        # self.metric       = Metric()
-
-        # Stack ties it all together
-        self.stack = Commandstack(self, self.traf, self.screenio)
-
-        print 'Initializing multi-threaded simulation'
+        self.metric      = None
+        # self.metric      = Metric()
 
     def moveToThread(self, target_thread):
         self.screenio.moveToThread(target_thread)
+        self.telnet_in.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
 
     def doWork(self):
-        # Set starting system time [milliseconds]
-        self.syst = int(time.time() * 1000.0)
+        # Start the telnet input server for stack commands
+        self.telnet_in.start()
 
-        # Set starting simulation time [seconds]
-        self.simt  = 0.0
+        self.syst = int(time.time() * 1000.0)
 
         while not self.mode == Simulation.end:
             # Timing bookkeeping
@@ -98,13 +105,18 @@ class Simulation(QObject):
 
                 if remainder > 0:
                     QThread.msleep(remainder)
+            elif self.ff_end is not None:
+                if self.simt >= self.ff_end:
+                    self.start()
 
     def stop(self):
         self.mode = Simulation.end
         # TODO: Communicate quit signal to main thread
 
     def start(self):
-        self.mode = Simulation.op
+        self.run_fixed = True
+        self.syst      = int(time.time() * 1000.0)
+        self.mode      = Simulation.op
 
     def pause(self):
         self.mode = Simulation.hold
@@ -113,3 +125,10 @@ class Simulation(QObject):
         self.simt = 0.0
         self.mode = Simulation.init
         self.traf.reset(self.navdb)
+
+    def fastforward(self, nsec=[]):
+        self.run_fixed  = False
+        if len(nsec) > 0:
+            self.ff_end = self.simt + nsec[0]
+        else:
+            self.ff_end = None

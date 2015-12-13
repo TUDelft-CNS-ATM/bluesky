@@ -110,9 +110,9 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.op:
             self.app.stack('OP')
         elif self.sender() == self.fast:
-            print('Fast clicked')
+            self.app.stack('FF')
         elif self.sender() == self.fast10:
-            self.app.stack('RUNFT')
+            self.app.stack('FF 0:0:10')
         elif self.sender() == self.showac:
             self.radarwidget.show_traf = not self.radarwidget.show_traf
         elif self.sender() == self.showpz:
