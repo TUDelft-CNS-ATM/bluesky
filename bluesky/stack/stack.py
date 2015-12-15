@@ -77,8 +77,12 @@ class Commandstack:
             self.extracmdrefs[key]=obj
         
         # Display Help text on start of program
-        self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")        
-        self.stack("ECHO Or select IC to Open a scenario file.")        
+        self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")
+        self.stack("ECHO Or select IC to Open a scenario file.")
+
+        # Pan to initial location
+        self.stack('PAN ' + settings.start_location)
+        self.stack('ZOOM 0.4')
 
         return
 
@@ -1201,7 +1205,7 @@ class Commandstack:
                         try:
                             n = int(cmdargs[1])
 
-                            if numargs>=3 and cmdargs[3]!="*":
+                            if numargs >= 3 and cmdargs[3] != "*":
                                     acalt = txt2alt(cmdargs[3])*ft
 
                             if numargs<2:

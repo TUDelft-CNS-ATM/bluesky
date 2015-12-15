@@ -88,9 +88,9 @@ class RadarWidget(QGLWidget):
     vcount_circle = 36
     width = height = 600
     viewport = (0, 0, width, height)
-    panlat = 51.5
-    panlon = 6.5
-    zoom = 0.5
+    panlat = 0.0
+    panlon = 0.0
+    zoom = 1.0
     ar = 1.0
     flat_earth = 1.0
     wraplon = int(-999)

@@ -86,6 +86,13 @@ class ScreenIO(QObject):
     def echo(self, text):
         qapp.postEvent(qapp.instance(), StackTextEvent(text))
 
+    def getviewlatlon(self):
+        lat0 = self.ctrlat - 1.0 / self.scrzoom
+        lat1 = self.ctrlat + 1.0 / self.scrzoom
+        lon0 = self.ctrlon - 1.0 / self.scrzoom
+        lon1 = self.ctrlon + 1.0 / self.scrzoom
+        return lat0, lat1, lon0, lon1
+
     def zoom(self, zoomfac, absolute=False):
         if absolute:
             self.scrzoom = zoomfac
