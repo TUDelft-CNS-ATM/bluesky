@@ -26,7 +26,7 @@ class Simulation(QObject):
     sys_rate = settings.sim_update_rate
 
     # Flag indicating running at fixed rate or fast time
-    run_fixed = True
+    run_fast = False
 
     # simulation modes
     init, op, hold, end = range(4)
@@ -99,35 +99,35 @@ class Simulation(QObject):
             QCoreApplication.processEvents()
 
             # When running at a fixed rate, increment system time with sysdt and calculate remainder to sleep
-            if self.run_fixed:
+            if not self.run_fast:
                 self.syst += self.sysdt
                 remainder = self.syst - int(1000.0 * time.time())
 
                 if remainder > 0:
                     QThread.msleep(remainder)
-            elif self.ff_end is not None:
-                if self.simt >= self.ff_end:
-                    self.start()
+            elif self.ff_end is not None and self.simt >= self.ff_end:
+                self.start()
 
     def stop(self):
         self.mode = Simulation.end
         # TODO: Communicate quit signal to main thread
 
     def start(self):
-        self.run_fixed = True
-        self.syst      = int(time.time() * 1000.0)
-        self.mode      = Simulation.op
+        if self.run_fast:
+            self.syst = int(time.time() * 1000.0)
+        self.run_fast = False
+        self.mode     = Simulation.op
 
     def pause(self):
-        self.mode = Simulation.hold
+        self.mode     = Simulation.hold
 
     def reset(self):
-        self.simt = 0.0
-        self.mode = Simulation.init
+        self.simt     = 0.0
+        self.mode     = Simulation.init
         self.traf.reset(self.navdb)
 
     def fastforward(self, nsec=[]):
-        self.run_fixed  = False
+        self.run_fast = True
         if len(nsec) > 0:
             self.ff_end = self.simt + nsec[0]
         else:

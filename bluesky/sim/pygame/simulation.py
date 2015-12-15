@@ -127,7 +127,14 @@ class Simulation:
         self.syst0 = self.syst-self.simt
         self.tprev = self.simt-0.001  # allow 1 msec step rto avoid div by zero
         return
-    
+
+    def fastforward(self, nsec=[]):
+        self.ffmode = True
+        if len(nsec) > 0:
+            self.ffstop = self.simt + nsec[0]
+        else:
+            self.ff_end = -1.0
+
     def reset(self):
         self.simt = 0.0
         self.mode = Simulation.init
