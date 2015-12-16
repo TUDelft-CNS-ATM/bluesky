@@ -405,8 +405,8 @@ class RadarWidget(QGLWidget):
         self.runways.draw()
         if self.zoom >= 1.0:
             for idx in self.apt_inrange:
-                self.pavement.draw(first_vertex=idx[2], vertex_count=idx[3])
                 self.taxiways.draw(first_vertex=idx[0], vertex_count=idx[1])
+                self.pavement.draw(first_vertex=idx[2], vertex_count=idx[3])
 
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
