@@ -132,9 +132,10 @@ class Simulation(QObject):
         self.mode     = Simulation.init
         self.traf.reset(self.navdb)
 
-    def fastforward(self, nsec=[]):
-        self.run_fast = True
-        if len(nsec) > 0:
-            self.ff_end = self.simt + nsec[0]
+    def fastforward(self, nsec=None):
+
+        self.ffmode = True
+        if not nsec== None:
+            self.ffstop = self.simt + nsec
         else:
-            self.ff_end = None
+            self.ff_end = -1.0

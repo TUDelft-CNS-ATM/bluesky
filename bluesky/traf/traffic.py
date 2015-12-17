@@ -905,19 +905,15 @@ class Traffic:
         return
 
 
-    def selhdg(self, arglist):  # HDG command
+    def selhdg(self, idx=None, hdg=None):  # HDG command
 
         # Select heading command: HDG acid, hdg
 
-        if len(arglist) < 2:
-            return False  # Error/Display helptext
-        print "en voorbij de check"
-        # unwrap arguments
-        idx = arglist[0]  # aircraft index
-        hdg = arglist[1]  # float
+        if None in [idx,hdg]:
+            return False  # Not engouh arguments: Error/Display helptext
 
         # Give autopilot commands
-        self.ahdg[idx]   = hdg
+        self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
         return True
