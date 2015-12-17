@@ -121,6 +121,9 @@ class RadarWidget(QGLWidget):
 
         self.initialized    = False
 
+        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, \
+            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_airport_data()
+
     def create_objects(self):
         if not self.isValid():
             self.invalid_count += 1
@@ -145,9 +148,6 @@ class RadarWidget(QGLWidget):
                 print 'Loading texture ' + fname
                 self.map_texture = self.bindTexture(fname)
                 break
-
-        vbuf_asphalt, vbuf_concrete, vbuf_runways, \
-            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_airport_data()
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
         self.achdgbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
@@ -179,21 +179,21 @@ class RadarWidget(QGLWidget):
 
         # ------- Runways --------------------------------
         self.runways = RenderObject(gl.GL_TRIANGLES)
-        self.runways.bind_attrib(ATTRIB_VERTEX, 2, vbuf_runways)
+        self.runways.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_runways)
         self.runways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.float32), instance_divisor=1)
-        self.runways.set_vertex_count(len(vbuf_runways)/2)
+        self.runways.set_vertex_count(len(self.vbuf_runways)/2)
 
         # ------- Taxiways -------------------------------
         self.taxiways = RenderObject(gl.GL_TRIANGLES)
-        self.taxiways.bind_attrib(ATTRIB_VERTEX, 2, vbuf_asphalt)
+        self.taxiways.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_asphalt)
         self.taxiways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.float32), instance_divisor=1)
-        self.taxiways.set_vertex_count(len(vbuf_asphalt)/2)
+        self.taxiways.set_vertex_count(len(self.vbuf_asphalt)/2)
 
         # ------- Pavement -------------------------------
         self.pavement = RenderObject(gl.GL_TRIANGLES)
-        self.pavement.bind_attrib(ATTRIB_VERTEX, 2, vbuf_concrete)
+        self.pavement.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_concrete)
         self.pavement.bind_attrib(ATTRIB_COLOR, 3, np.array(lightgrey, dtype=np.float32), instance_divisor=1)
-        self.pavement.set_vertex_count(len(vbuf_concrete)/2)
+        self.pavement.set_vertex_count(len(self.vbuf_concrete)/2)
 
         # Polygon preview object
         self.polyprev = RenderObject(gl.GL_LINE_LOOP)
@@ -293,6 +293,9 @@ class RadarWidget(QGLWidget):
         # Set initial values for the global uniforms
         self.globaldata.set_wrap(self.wraplon, self.wrapdir)
         self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
+
+        # Clean up memory
+        del self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways
 
         self.initialized = True
 
