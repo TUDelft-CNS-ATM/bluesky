@@ -1,12 +1,12 @@
 try:
-    from PyQt4.QtCore import Qt, pyqtSlot
-    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QIcon, QSplashScreen
-    from PyQt4 import uic
-except ImportError:
     from PyQt5.QtCore import Qt, pyqtSlot
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QMenuBar, QSplashScreen
     from PyQt5 import uic
+except ImportError:
+    from PyQt4.QtCore import Qt, pyqtSlot
+    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QIcon, QSplashScreen
+    from PyQt4 import uic
 
 # Local imports
 from uievents import PanZoomEvent

@@ -1,9 +1,9 @@
 try:
-    from PyQt4.QtCore import Qt
-    from PyQt4.QtGui import QApplication, QProgressDialog
-except ImportError:
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QApplication, QProgressDialog
+except ImportError:
+    from PyQt4.QtCore import Qt
+    from PyQt4.QtGui import QApplication, QProgressDialog
 
 import cPickle as pickle
 import OpenGL.GLU as glu

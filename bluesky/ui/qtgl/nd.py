@@ -1,18 +1,18 @@
 try:
-    from PyQt4.QtCore import qCritical, QTimer
-    from PyQt4.QtOpenGL import QGLWidget
-    QT_VERSION = 4
-except ImportError:
     from PyQt5.QtCore import qCritical, QTimer
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
+except ImportError:
+    from PyQt4.QtCore import qCritical, QTimer
+    from PyQt4.QtOpenGL import QGLWidget
+    QT_VERSION = 4
 
 import OpenGL.GL as gl
 from math import sin, cos, radians
 import numpy as np
 from ctypes import c_float, c_int, Structure
 
-from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer
+from glhelpers import BlueSkyProgram, RenderObject, UniformBuffer
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = range(4)
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
