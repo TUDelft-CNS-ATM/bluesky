@@ -82,7 +82,6 @@ class Commandstack:
 
         # Pan to initial location
         self.stack('PAN ' + settings.start_location)
-        self.stack('ZOOM 0.4')
 
         return
 
@@ -251,7 +250,9 @@ class Commandstack:
         """process and empty command stack"""
         # Process stack of commands
         for line in self.cmdstack:
-            # print line
+
+#Debug            print "CMD:",line
+
             cmdline = line.upper()  # Save original lower case in variable line
 
             cmdargs = cmdsplit(cmdline)
@@ -1364,13 +1365,11 @@ class Commandstack:
 
                                 # Get waypoint data
                                 # Is arg 2 a number? => lat,lon else waypoint name
-                                print cmdargs[2]
                                 chkdig = cmdargs[2].replace("-","")  \
                                    .replace("+","").replace(".","")\
                                    .replace("N","").replace("S","")\
                                    .replace("E","").replace("W","")\
-                                   .replace("'","").replace('"',"")
-                                print chkdig   
+                                   .replace("'","").replace('"',"")  
                                 if numargs>=3 and chkdig.isdigit():
       
                                     name    = traf.id[i] # use for wptname

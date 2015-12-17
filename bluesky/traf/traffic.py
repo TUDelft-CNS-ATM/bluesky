@@ -656,7 +656,7 @@ class Traffic:
                         self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
                        
                        
-                if spd>0. and lnavon and self.swvnav[i]:
+                if spd>0. and swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
                     if spd<2.0:
                        self.actwpspd[i] = mach2tas(spd,self.alt[i])                            
                     else:    
@@ -744,7 +744,7 @@ class Traffic:
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
         # for information:    
         self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
-                            ((self.actwpspd <= 0.01) or (not self.swvnav))*self.aptas
+                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
