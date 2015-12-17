@@ -13,6 +13,7 @@ from ...stack import Commandstack
 from ...tools.network import StackTelnetServer
 # from ...traf import Metric
 from ... import settings
+from ...tools.datafeed import Modesbeast
 
 
 class Simulation(QObject):
@@ -55,6 +56,7 @@ class Simulation(QObject):
         self.traf        = Traffic(navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
         self.telnet_in   = StackTelnetServer(self.stack)
+        #self.modes_in    = Modesbeast(self)
         self.navdb       = navdb
         # Metrics
         self.metric      = None
@@ -63,6 +65,7 @@ class Simulation(QObject):
     def moveToThread(self, target_thread):
         self.screenio.moveToThread(target_thread)
         self.telnet_in.moveToThread(target_thread)
+        #self.modes_in.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
 
     def doWork(self):
@@ -74,6 +77,9 @@ class Simulation(QObject):
         while not self.mode == Simulation.end:
             # Timing bookkeeping
             self.samplecount += 1
+
+            # Update the Mode-S beast parsing
+            #self.modes_in.update()
 
             # TODO: what to do with init
             if self.mode == Simulation.init:

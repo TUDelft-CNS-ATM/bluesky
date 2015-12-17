@@ -9,6 +9,7 @@ except ImportError:
 class TcpClient(QObject):
     def __init__(self, socket=None):
         super(TcpClient, self).__init__()
+        self.is_connected = False
         if socket is None:
             self.socket = QTcpSocket()
         else:
@@ -24,10 +25,12 @@ class TcpClient(QObject):
 
     @pyqtSlot()
     def connected(self):
+        self.is_connected = True
         print 'TcpClient connected'
 
     @pyqtSlot()
     def disconnected(self):
+        self.is_connected = False
         print 'TcpClient disconnected'
 
     @pyqtSlot()
