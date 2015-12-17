@@ -377,8 +377,11 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
+                    try:
+                        results = function(*arglist) # * = unpack list to call arguments
+                    except:
+                        synerr = True
 
-                    results = function(arglist)
                     txt = helptext
                     if not synerr:
                         if type(results)==bool:
@@ -1070,7 +1073,7 @@ class Commandstack:
                             if cmdargs[2] == traf.navdb.fir[i][0]:
                                 break
                         if cmdargs[2] != traf.navdb.fir[i][0]:
-                            scr.echo("Uknown FIR, try again")
+                            scr.echo("Unknown FIR, try again")
                         if sim.metric is not None:
                             sim.metric.fir_number = i
                             sim.metric.fir_circle_point = sim.metric.metric_Area.FIR_circle(traf.navdb, sim.metric.fir_number)
