@@ -82,6 +82,7 @@ class Commandstack:
 
         # Pan to initial location
         self.stack('PAN ' + settings.start_location)
+        self.stack("ZOOM 0.4")
 
         return
 
