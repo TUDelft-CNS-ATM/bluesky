@@ -883,18 +883,19 @@ class Commandstack:
                             scr.echo("Opening " + filename + " ...")
 
                         # Open file in ./scenario subfolder
-                        sim.reset()
-                        traf.deleteall()
 
                         self.scenfile = filename
                         self.openfile(self.scenfile)
+
                     else:
+
                         filename = scr.show_file_dialog()
                         if len(filename) > 0:
-                            sim.reset()
-                            traf.deleteall()
                             self.scenfile = filename
                             self.openfile(self.scenfile)
+                    sim.reset()
+                    traf.deleteall()
+                        
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run

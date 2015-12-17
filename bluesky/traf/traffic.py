@@ -109,7 +109,7 @@ class Traffic:
 
         # Traffic autopilot settings
         self.ahdg   = []  # selected heading [deg]
-        self.aspd   = []  # selected spd(eas) [m/s]
+        self.aspd   = []  # selected spd(CAS) [m/s]
         self.aptas  = []  # just for initializing
         self.ama    = []  # selected spd above crossover altitude (Mach) [-]
         self.aalt   = []  # selected alt[m]
@@ -281,8 +281,8 @@ class Traffic:
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
         self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
-        self.aspd = np.append(self.aspd, tas2eas(acspd, acalt))  # selected spd(eas) [m/s]
-        self.aptas = np.append(self.aptas, vcas2tas(self.aspd, self.alt)) # [m/s]
+        self.aspd = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
+        self.aptas = np.append(self.aptas, cas2tas(self.aspd[-1], self.alt[-1])) # [m/s]
         self.ama  = np.append(self.ama, 0.) # selected spd above crossover (Mach) [-]
         self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
         self.afll = np.append(self.afll, (acalt/100)) # selected fl[ft/100]
@@ -487,6 +487,13 @@ class Traffic:
         return
 
     def update(self, simt, simdt):
+#        print
+#        print "t = ",simt
+#        print        
+#        print "TAS=",self.tas #TAS
+#        print "APTAS=",self.aptas # TAS
+#        print "aspd=",self.aspd #CAS
+
 #        i = self.id2idx("TP233")
 #        if i>=0:
 #           print "LNAV TP233:",self.swlnav[i]
@@ -736,8 +743,8 @@ class Traffic:
 
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
         # for information:    
-        self.aptas = (self.actwpspd>0.)*self.actwpspd + \
-                                  (self.actwpspd<=0.)*self.aptas
+        self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
+                            ((self.actwpspd <= 0.01) or (not self.swvnav))*self.aptas
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
