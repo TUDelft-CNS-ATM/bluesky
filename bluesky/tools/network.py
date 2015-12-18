@@ -41,11 +41,14 @@ class TcpClient(QObject):
     def connectToHost(self, host, port):
         self.socket.connectToHost(host, port)
 
+    def disconnectFromHost(self):
+        self.socket.disconnectFromHost()
+
     def write(self, buf):
         self.socket.write(buf)
 
     def parse_data(self, data):
-        # This is just a placeholder function; override it with your own implementation
+        # Placeholder function; override it with your own implementation
         print str(data).strip()
 
 

@@ -49,6 +49,13 @@ wpt_size = 10
 # Radarscreen aircraft symbol size in pixels
 ac_size = 16
 
+#=========================================================================
+# configue the following to stream data from mode-s beast 
+# TCP server.
+#=========================================================================
+modesbeast_ip = ""
+port = 0
+
 # END OF SETTINGS
 
 # Import config settings from settings.cfg if this exists, if it doesn't create an initial config file

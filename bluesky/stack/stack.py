@@ -39,7 +39,9 @@ class Commandstack:
                         "HDG": [ "HDG acid,hdg[deg,True]",
                                        "acid,float",traf.selhdg],
                         "FF":  [ "FF [tend]",
-                                    "time",sim.fastforward]
+                                    "time",sim.fastforward],
+                        "DATAFEED":  [ "DATAFEED [ON/OFF]",
+                                    "txt",sim.datafeed]
                        }
 
         #----------------------------------------------------------------------

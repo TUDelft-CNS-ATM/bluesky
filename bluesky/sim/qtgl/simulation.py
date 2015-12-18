@@ -56,16 +56,16 @@ class Simulation(QObject):
         self.traf        = Traffic(navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
         self.telnet_in   = StackTelnetServer(self.stack)
-        #self.modes_in    = Modesbeast(self)
         self.navdb       = navdb
         # Metrics
         self.metric      = None
         # self.metric      = Metric()
+        self.beastfeed     = Modesbeast(self.stack, self.traf)
 
     def moveToThread(self, target_thread):
         self.screenio.moveToThread(target_thread)
         self.telnet_in.moveToThread(target_thread)
-        #self.modes_in.moveToThread(target_thread)
+        self.beastfeed.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
 
     def doWork(self):
@@ -79,7 +79,7 @@ class Simulation(QObject):
             self.samplecount += 1
 
             # Update the Mode-S beast parsing
-            #self.modes_in.update()
+            self.beastfeed.update()
 
             # TODO: what to do with init
             if self.mode == Simulation.init:
@@ -138,3 +138,12 @@ class Simulation(QObject):
             self.ff_end = self.simt + nsec[0]
         else:
             self.ff_end = None
+
+    def datafeed(self, params):
+        flag = params[0].lower()
+
+        if flag == "on":
+            self.beastfeed.connectToHost(settings.beast_ip,
+                                         settings.beast_port)
+        if flag == "off":
+            self.beastfeed.disconnectFromHost()
