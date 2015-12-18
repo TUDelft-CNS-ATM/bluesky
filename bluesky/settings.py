@@ -53,8 +53,8 @@ ac_size = 16
 # configue the following to stream data from mode-s beast 
 # TCP server.
 #=========================================================================
-modesbeast_ip = ""
-port = 0
+beast_ip = ""
+beast_port = 0
 
 # END OF SETTINGS
 
