@@ -1,9 +1,9 @@
 try:
-    # Try Qt4 first
-    from PyQt4.QtCore import QThread, QObject, QCoreApplication
-except ImportError:
-    # Else PyQt5 imports
+    # Try Qt5 first
     from PyQt5.QtCore import QThread, QObject, QCoreApplication
+except ImportError:
+    # Else PyQt4 imports
+    from PyQt4.QtCore import QThread, QObject, QCoreApplication
 import time
 
 # Local imports
@@ -132,12 +132,13 @@ class Simulation(QObject):
         self.mode     = Simulation.init
         self.traf.reset(self.navdb)
 
-    def fastforward(self, nsec=[]):
-        self.run_fast = True
-        if len(nsec) > 0:
-            self.ff_end = self.simt + nsec[0]
+    def fastforward(self, nsec=None):
+
+        self.ffmode = True
+        if not nsec== None:
+            self.ffstop = self.simt + nsec
         else:
-            self.ff_end = None
+            self.ff_end = -1.0
 
     def datafeed(self, params):
         flag = params[0].lower()

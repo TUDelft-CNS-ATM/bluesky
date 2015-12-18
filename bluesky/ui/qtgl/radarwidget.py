@@ -1,11 +1,12 @@
 try:
-    from PyQt4.QtCore import Qt, qCritical, QTimer
-    from PyQt4.QtOpenGL import QGLWidget
-    QT_VERSION = 4
-except ImportError:
     from PyQt5.QtCore import Qt, qCritical, QTimer
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
+except ImportError:
+    from PyQt4.QtCore import Qt, qCritical, QTimer
+    from PyQt4.QtOpenGL import QGLWidget
+    QT_VERSION = 4
+
 from math import sqrt, cos, radians, degrees
 import numpy as np
 import OpenGL.GL as gl

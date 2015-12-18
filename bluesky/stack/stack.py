@@ -312,10 +312,14 @@ class Commandstack:
 #                    try:
                     if True:
                         for i in range(1,1+min(numtypes,numargs)):
+
                             argtype = argtypes[i-1].strip()
+
                             if cmdargs[i]=="":  # Empty arg => parse None
                                 arglist.append(None)
+
                             elif argtype == "acid": # aircraft id => parse index
+
                                 idx = traf.id2idx(cmdargs[i])
                                 if idx<0:
                                     scr.echo(cmd+":"+acid+" not found")
@@ -323,6 +327,7 @@ class Commandstack:
                                     break
                                 else:
                                     arglist.append(idx)
+
                             elif argtype == "txt":  # simple text
                                 arglist.append(cmdargs[i])
 
@@ -365,10 +370,13 @@ class Commandstack:
 
                             elif argtype == "time":
                                 ttxt = cmdargs[i].strip().split(':')
-                                ihr  = int(ttxt[0])
-                                imin = int(ttxt[1])
-                                xsec = float(ttxt[2])
-                                arglist.append(ihr * 3600. + imin * 60. + xsec)
+                                if len(ttxt)>=3:
+                                    ihr  = int(ttxt[0])
+                                    imin = int(ttxt[1])
+                                    xsec = float(ttxt[2])
+                                    arglist.append(ihr * 3600. + imin * 60. + xsec)
+                                else:
+                                    arglist.append(float(cmdargs[i]))
 
 #                    except:
 #                        synerr = False
@@ -379,8 +387,11 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
+                    try:
+                        results = function(*arglist) # * = unpack list to call arguments
+                    except:
+                        synerr = True
 
-                    results = function(arglist)
                     txt = helptext
                     if not synerr:
                         if type(results)==bool:
@@ -1072,7 +1083,7 @@ class Commandstack:
                             if cmdargs[2] == traf.navdb.fir[i][0]:
                                 break
                         if cmdargs[2] != traf.navdb.fir[i][0]:
-                            scr.echo("Uknown FIR, try again")
+                            scr.echo("Unknown FIR, try again")
                         if sim.metric is not None:
                             sim.metric.fir_number = i
                             sim.metric.fir_circle_point = sim.metric.metric_Area.FIR_circle(traf.navdb, sim.metric.fir_number)

@@ -1,7 +1,7 @@
 try:
-    from PyQt4.QtCore import QEvent
-except ImportError:
     from PyQt5.QtCore import QEvent
+except ImportError:
+    from PyQt4.QtCore import QEvent
 
 PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
 ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \

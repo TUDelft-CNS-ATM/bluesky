@@ -1,16 +1,16 @@
 try:
-    from PyQt4.QtCore import Qt, QEvent, QTimer
-    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
-    from PyQt4.QtOpenGL import QGLFormat
-    QT_VERSION = 4
-    print('Using Qt4 for windows and widgets')
-except ImportError:
     from PyQt5.QtCore import Qt, QEvent, QTimer
     from PyQt5.QtGui import QColor
     from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
+except ImportError:
+    from PyQt4.QtCore import Qt, QEvent, QTimer
+    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
+    from PyQt4.QtOpenGL import QGLFormat
+    QT_VERSION = 4
+    print('Using Qt4 for windows and widgets')
 import numpy as np
 
 import sys

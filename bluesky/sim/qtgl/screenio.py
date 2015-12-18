@@ -1,11 +1,12 @@
 try:
-    # Try Qt4 first
-    from PyQt4.QtCore import QObject, QTimer, pyqtSlot
-    from PyQt4.QtCore import QCoreApplication as qapp
-except ImportError:
-    # Else PyQt5 imports
+    # Try Qt5 first
     from PyQt5.QtCore import QObject, QTimer, pyqtSlot
     from PyQt5.QtCore import QCoreApplication as qapp
+except ImportError:
+    # Else fall back to Qt4
+    from PyQt4.QtCore import QObject, QTimer, pyqtSlot
+    from PyQt4.QtCore import QCoreApplication as qapp
+
 import numpy as np
 import time
 

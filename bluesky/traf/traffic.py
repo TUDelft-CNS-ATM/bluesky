@@ -231,7 +231,11 @@ class Traffic:
 
         return
 
-    def create_ac(self, acid, actype, aclat, aclon, achdg, acalt, acspd):
+    def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
+
+        if None in [acid,actype,aclat,aclon,achdg,acalt,casmach]:
+            return False
+
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
@@ -239,6 +243,14 @@ class Traffic:
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
+
+        # Convert speed
+        if 0.1 < casmach < 1.0 :
+            acspd = mach2tas(casmach, acalt)
+        else:
+            acspd = cas2tas(casmach * kts, acalt)
+
+
 
         # Process input
         self.id.append(acid.upper())
@@ -892,43 +904,16 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-    def create(self, arglist):  # CRE command
-        if len(arglist) < 7:
-            return False
 
-        acid  = arglist[0]
-
-        if self.id.count(acid.upper()) > 0:
-            return False, acid+" already exists"
-
-        actype  = arglist[1]
-        aclat   = arglist[2]
-        aclon   = arglist[3]
-        achdg   = arglist[4]
-        acalt   = arglist[5]  # m
-        cmdspd  = arglist[6]  # Mach/IAS kts (float)
-
-        if 0.1 < cmdspd < 1.0 :
-            acspd = mach2tas(cmdspd, acalt)
-        else:
-            acspd = cas2tas(cmdspd * kts, acalt)
-
-        sw = self.create_ac(acid, actype, aclat, aclon, achdg, acalt, acspd)
-        return sw
-
-    def selhdg(self, arglist):  # HDG command
+    def selhdg(self, idx=None, hdg=None):  # HDG command
 
         # Select heading command: HDG acid, hdg
 
-        if len(arglist) < 2:
-            return False  # Error/Display helptext
-        print "en voorbij de check"
-        # unwrap arguments
-        idx = arglist[0]  # aircraft index
-        hdg = arglist[1]  # float
+        if None in [idx,hdg]:
+            return False  # Not engouh arguments: Error/Display helptext
 
         # Give autopilot commands
-        self.ahdg[idx]   = hdg
+        self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
         return True

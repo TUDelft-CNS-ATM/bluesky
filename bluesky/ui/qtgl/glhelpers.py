@@ -21,9 +21,9 @@ Date          :
 ------------------------------------------------------------------
 """
 try:
-    from PyQt4.QtGui import QImage, QPainter, QColor, QFont, QFontMetrics
-except ImportError:
     from PyQt5.QtGui import QImage, QPainter, QColor, QFont, QFontMetrics
+except ImportError:
+    from PyQt4.QtGui import QImage, QPainter, QColor, QFont, QFontMetrics
 import OpenGL.GL as gl
 import numpy as np
 from ctypes import c_void_p, pointer, sizeof

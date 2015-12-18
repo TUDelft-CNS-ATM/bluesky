@@ -911,12 +911,6 @@ class Screen:
         self.geosel = ()
 
         return
-        
-    def zoomreset(self):
-        """Set the zoom level to a standard"""
-        factor=(self.lat1-self.lat0)/4
-        self.zoom(factor)
-
 
     def pan(self, (xlat, xlon), absolute=False):
         """Pan function:
