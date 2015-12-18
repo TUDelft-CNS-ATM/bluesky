@@ -29,8 +29,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         scr.redrawradbg=True    #draw the background again
         scr.swsep = True        #show circles of seperation between ac
         scr.swspd = True        #show speed vectors of aircraft
-        scr.zoomreset()         #set zoom level to the standard distance
-        scr.zoom(1.4142135623730951) # zoom in one level
+        scr.zoom(0.7,True) # zoom in one level
         cmd.scenlines=[]        #skip the rest of the scenario
         cmd.scenlines.append("00:00:00.00>"+callsign+"TESTCIRCLE")
         

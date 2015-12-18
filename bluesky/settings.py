@@ -14,6 +14,8 @@ perf_path = 'data/coefficients/BS_aircraft'
 # Indicate the path for the BADA aircraft performance data (leave empty if BADA is not available)
 perf_path_bada = 'data/coefficients/BADA'
 
+# Indicate the start location of the radar screen (e.g. [lat, lon], or airport ICAO code)
+start_location = 'EHAM'
 
 # Simulation timestep [seconds]
 simdt = 0.05

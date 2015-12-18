@@ -1,4 +1,4 @@
-def MainLoop(gui, sim):
+def MainLoop(gui, sim):    
     sim.start()
 
     # Main loop for tmx object

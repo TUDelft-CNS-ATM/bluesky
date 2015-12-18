@@ -35,17 +35,19 @@ class Commandstack:
         #----------------------------------------------------------------------
         self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
                                       "txt,txt,lat,lon,hdg,alt,spd",
-                                      traf.create   ],
+                                      traf.create],
                         "HDG": [ "HDG acid,hdg[deg,True]",
-                                       "acid,float",traf.selhdg  ]
+                                       "acid,float",traf.selhdg],
+                        "FF":  [ "FF [tend]",
+                                    "time",sim.fastforward]
                        }
 
         #----------------------------------------------------------------------
-        
         # Command synonym dictionary
-        self.cmdsynon = {"CREATE":"CRE",
-                         "TURN":"HDG",
-                         "DTLOOK":"ASA_DTLOOK",
+        self.cmdsynon = {"CREATE": "CRE",
+                         "TURN": "HDG",
+                         "DTLOOK": "ASA_DTLOOK",
+                         "FWD": "FF"
                          }
         #----------------------------------------------------------------------
 
@@ -75,8 +77,12 @@ class Commandstack:
             self.extracmdrefs[key]=obj
         
         # Display Help text on start of program
-        self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")        
-        self.stack("ECHO Or select IC to Open a scenario file.")        
+        self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")
+        self.stack("ECHO Or select IC to Open a scenario file.")
+
+        # Pan to initial location
+        self.stack('PAN ' + settings.start_location)
+        self.stack("ZOOM 0.4")
 
         return
 
@@ -245,7 +251,9 @@ class Commandstack:
         """process and empty command stack"""
         # Process stack of commands
         for line in self.cmdstack:
-            # print line
+
+#Debug            print "CMD:",line
+
             cmdline = line.upper()  # Save original lower case in variable line
 
             cmdargs = cmdsplit(cmdline)
@@ -295,13 +303,21 @@ class Commandstack:
                     
                     # Process arg list
                     arglist = []
+                    idx    = -1 # Reference aircraft
+                    refalt= 0. # Reference altitude
+                    reflat = scr.ctrlat # Reference latitude
+                    reflon = scr.ctrlon # Reference longitude
 #                    try:
                     if True:
                         for i in range(1,1+min(numtypes,numargs)):
+
                             argtype = argtypes[i-1].strip()
+
                             if cmdargs[i]=="":  # Empty arg => parse None
                                 arglist.append(None)
+
                             elif argtype == "acid": # aircraft id => parse index
+
                                 idx = traf.id2idx(cmdargs[i])
                                 if idx<0:
                                     scr.echo(cmd+":"+acid+" not found")
@@ -309,6 +325,7 @@ class Commandstack:
                                     break
                                 else:
                                     arglist.append(idx)
+
                             elif argtype == "txt":  # simple text
                                 arglist.append(cmdargs[i])
 
@@ -325,15 +342,15 @@ class Commandstack:
 
                             elif argtype == "lat":
                                 try:
-                                    lat = txt2lat(cmdargs[i])
-                                    arglist.append(float(lat))
+                                    reflat = txt2lat(cmdargs[i])
+                                    arglist.append(float(reflat))
                                 except:
                                     synerr = True
                                     
                             elif argtype == "lon":
                                 try:
-                                   lon = txt2lon(cmdargs[i])
-                                   arglist.append(float(lon))
+                                   reflon = txt2lon(cmdargs[i])
+                                   arglist.append(float(reflon))
                                 except:
                                    synerr = True
  
@@ -349,6 +366,16 @@ class Commandstack:
                                 hdg = float(cmdargs[i].upper().replace('T', '').replace('M', ''))
                                 arglist.append(hdg)
 
+                            elif argtype == "time":
+                                ttxt = cmdargs[i].strip().split(':')
+                                if len(ttxt)>=3:
+                                    ihr  = int(ttxt[0])
+                                    imin = int(ttxt[1])
+                                    xsec = float(ttxt[2])
+                                    arglist.append(ihr * 3600. + imin * 60. + xsec)
+                                else:
+                                    arglist.append(float(cmdargs[i]))
+
 #                    except:
 #                        synerr = False
 #                        scr.echo("Syntax error in processing arguments")
@@ -358,8 +385,11 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
+                    try:
+                        results = function(*arglist) # * = unpack list to call arguments
+                    except:
+                        synerr = True
 
-                    results = function(arglist)
                     txt = helptext
                     if not synerr:
                         if type(results)==bool:
@@ -370,7 +400,7 @@ class Commandstack:
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
-                    else: # synerr:                    
+                    if synerr:# synerr:                    
                          scr.echo(helptext)
 
                     synerr= False  # suppress further error messages
@@ -739,7 +769,11 @@ class Commandstack:
                             elif cmdargs[1] == "OUT":
                                 scr.zoom(0.70710678118654746)  #1./sqrt(2.)
                             else:
-                                synerr = True
+                                try:
+                                    zoomfac = float(cmdargs[1])
+                                    scr.zoom(zoomfac, True)
+                                except:
+                                    synerr = True
 
                         if synerr:
                             print "Syntax error in command"
@@ -845,11 +879,6 @@ class Commandstack:
 #                        else:
 #                            scr.echo("NAVDISP: " + cmdargs[1] + " not found.")
 #
-                #----------------------------------------------------------------------
-                # RUNFT: toggle fast time running
-                #----------------------------------------------------------------------
-                elif cmd == "RUNFT":
-                    sim.run_fixed = (not sim.run_fixed)
 
                 #----------------------------------------------------------------------
                 # IC scenfile: command: restart with new filename (.scn will be added if necessary)
@@ -867,18 +896,19 @@ class Commandstack:
                             scr.echo("Opening " + filename + " ...")
 
                         # Open file in ./scenario subfolder
-                        sim.reset()
-                        traf.deleteall()
 
                         self.scenfile = filename
                         self.openfile(self.scenfile)
+
                     else:
+
                         filename = scr.show_file_dialog()
                         if len(filename) > 0:
-                            sim.reset()
-                            traf.deleteall()
                             self.scenfile = filename
                             self.openfile(self.scenfile)
+                    sim.reset()
+                    traf.deleteall()
+                        
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run
@@ -1051,7 +1081,7 @@ class Commandstack:
                             if cmdargs[2] == traf.navdb.fir[i][0]:
                                 break
                         if cmdargs[2] != traf.navdb.fir[i][0]:
-                            scr.echo("Uknown FIR, try again")
+                            scr.echo("Unknown FIR, try again")
                         if sim.metric is not None:
                             sim.metric.fir_number = i
                             sim.metric.fir_circle_point = sim.metric.metric_Area.FIR_circle(traf.navdb, sim.metric.fir_number)
@@ -1189,7 +1219,7 @@ class Commandstack:
                         try:
                             n = int(cmdargs[1])
 
-                            if numargs>=3 and cmdargs[3]!="*":
+                            if numargs >= 3 and cmdargs[3] != "*":
                                     acalt = txt2alt(cmdargs[3])*ft
 
                             if numargs<2:
@@ -1347,13 +1377,11 @@ class Commandstack:
 
                                 # Get waypoint data
                                 # Is arg 2 a number? => lat,lon else waypoint name
-                                print cmdargs[2]
                                 chkdig = cmdargs[2].replace("-","")  \
                                    .replace("+","").replace(".","")\
                                    .replace("N","").replace("S","")\
                                    .replace("E","").replace("W","")\
-                                   .replace("'","").replace('"',"")
-                                print chkdig   
+                                   .replace("'","").replace('"',"")  
                                 if numargs>=3 and chkdig.isdigit():
       
                                     name    = traf.id[i] # use for wptname

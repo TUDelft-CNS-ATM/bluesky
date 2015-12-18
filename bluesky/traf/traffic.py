@@ -1,7 +1,7 @@
 import numpy as np
 from math import *
 
-from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2cas,  \
+from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
      mach2tas, cas2tas, Rearth
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
@@ -109,7 +109,7 @@ class Traffic:
 
         # Traffic autopilot settings
         self.ahdg   = []  # selected heading [deg]
-        self.aspd   = []  # selected spd(eas) [m/s]
+        self.aspd   = []  # selected spd(CAS) [m/s]
         self.aptas  = []  # just for initializing
         self.ama    = []  # selected spd above crossover altitude (Mach) [-]
         self.aalt   = []  # selected alt[m]
@@ -231,7 +231,11 @@ class Traffic:
 
         return
 
-    def create_ac(self, acid, actype, aclat, aclon, achdg, acalt, acspd):
+    def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
+
+        if None in [acid,actype,aclat,aclon,achdg,acalt,casmach]:
+            return False
+
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
@@ -239,6 +243,14 @@ class Traffic:
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
+
+        # Convert speed
+        if 0.1 < casmach < 1.0 :
+            acspd = mach2tas(casmach, acalt)
+        else:
+            acspd = cas2tas(casmach * kts, acalt)
+
+
 
         # Process input
         self.id.append(acid.upper())
@@ -281,8 +293,8 @@ class Traffic:
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
         self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
-        self.aspd = np.append(self.aspd, tas2eas(acspd, acalt))  # selected spd(eas) [m/s]
-        self.aptas = np.append(self.aptas, vcas2tas(self.aspd, self.alt)) # [m/s]
+        self.aspd = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
+        self.aptas = np.append(self.aptas, cas2tas(self.aspd[-1], self.alt[-1])) # [m/s]
         self.ama  = np.append(self.ama, 0.) # selected spd above crossover (Mach) [-]
         self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
         self.afll = np.append(self.afll, (acalt/100)) # selected fl[ft/100]
@@ -487,6 +499,13 @@ class Traffic:
         return
 
     def update(self, simt, simdt):
+#        print
+#        print "t = ",simt
+#        print        
+#        print "TAS=",self.tas #TAS
+#        print "APTAS=",self.aptas # TAS
+#        print "aspd=",self.aspd #CAS
+
 #        i = self.id2idx("TP233")
 #        if i>=0:
 #           print "LNAV TP233:",self.swlnav[i]
@@ -649,9 +668,9 @@ class Traffic:
                         self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
                        
                        
-                if spd>0. and lnavon and self.swvnav[i]:
+                if spd>0. and swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
                     if spd<2.0:
-                       self.actwpspd[i] = mach2cas(spd,self.alt[i])                            
+                       self.actwpspd[i] = mach2tas(spd,self.alt[i])                            
                     else:    
                        self.actwpspd[i] = cas2tas(spd,self.alt[i])
                 else:
@@ -736,8 +755,8 @@ class Traffic:
 
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
         # for information:    
-        self.aptas = (self.actwpspd>0.)*self.actwpspd + \
-                                  (self.actwpspd<=0.)*self.aptas
+        self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
+                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
@@ -885,44 +904,16 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-    def create(self, arglist):  # CRE command
 
-        if len(arglist) < 7:
-            return False
-
-        acid  = arglist[0]
-
-        if self.id.count(acid.upper()) > 0:
-            return False, acid+" already exists"
-
-        actype  = arglist[1]
-        aclat   = arglist[2]
-        aclon   = arglist[3]
-        achdg   = arglist[4]
-        acalt   = arglist[5]  # m
-        cmdspd  = arglist[6]  # Mach/IAS kts (float)
-
-        if 0.1 < cmdspd < 1.0 :
-            acspd = mach2tas(cmdspd, acalt)
-        else:
-            acspd = cas2tas(cmdspd * kts, acalt)
-
-        sw = self.create_ac(acid, actype, aclat, aclon, achdg, acalt, acspd)
-        return sw
-
-    def selhdg(self, arglist):  # HDG command
+    def selhdg(self, idx=None, hdg=None):  # HDG command
 
         # Select heading command: HDG acid, hdg
 
-        if len(arglist) < 2:
-            return False  # Error/Display helptext
-        print "en voorbij de check"
-        # unwrap arguments
-        idx = arglist[0]  # aircraft index
-        hdg = arglist[1]  # float
+        if None in [idx,hdg]:
+            return False  # Not engouh arguments: Error/Display helptext
 
         # Give autopilot commands
-        self.ahdg[idx]   = hdg
+        self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
         return True

@@ -1,11 +1,12 @@
 try:
-    from PyQt4.QtCore import Qt, qCritical, QTimer
-    from PyQt4.QtOpenGL import QGLWidget
-    QT_VERSION = 4
-except ImportError:
     from PyQt5.QtCore import Qt, qCritical, QTimer
     from PyQt5.QtOpenGL import QGLWidget
     QT_VERSION = 5
+except ImportError:
+    from PyQt4.QtCore import Qt, qCritical, QTimer
+    from PyQt4.QtOpenGL import QGLWidget
+    QT_VERSION = 4
+
 from math import sqrt, cos, radians, degrees
 import numpy as np
 import OpenGL.GL as gl
@@ -15,6 +16,7 @@ from ctypes import c_float, c_int, Structure
 from ...tools.aero import ft, nm, kts
 from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
 from uievents import PanZoomEvent, PanZoomEventType
+from loaddata import load_airport_data
 from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
 
 
@@ -38,6 +40,7 @@ cyan                 = (0.0, 1.0, 0.0)
 amber                = (1.0, 0.6, 0.0)
 magenta              = (1.0, 0.0, 1.0)
 grey                 = (0.4, 0.4, 0.4)
+lightgrey            = (0.6, 0.6, 0.6)
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
@@ -86,9 +89,9 @@ class RadarWidget(QGLWidget):
     vcount_circle = 36
     width = height = 600
     viewport = (0, 0, width, height)
-    panlat = 51.5
-    panlon = 6.5
-    zoom = 0.5
+    panlat = 0.0
+    panlon = 0.0
+    zoom = 1.0
     ar = 1.0
     flat_earth = 1.0
     wraplon = int(-999)
@@ -106,16 +109,20 @@ class RadarWidget(QGLWidget):
         self.grabGesture(Qt.SwipeGesture)
 
         # The number of aircraft in the simulation
-        self.map_texture = 0
-        self.naircraft   = 0
-        self.nwaypoints  = 0
-        self.nairports   = 0
-        self.route_acidx = -1
-        self.ssd_ownship = np.array([], dtype=np.uint16)
-        self.ssd_all     = False
-        self.navdb       = navdb
+        self.map_texture    = 0
+        self.naircraft      = 0
+        self.nwaypoints     = 0
+        self.nairports      = 0
+        self.route_acidx    = -1
+        self.ssd_ownship    = np.array([], dtype=np.uint16)
+        self.apt_inrange    = np.array([])
+        self.ssd_all        = False
+        self.navdb          = navdb
 
-        self.initialized = False
+        self.initialized    = False
+
+        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, \
+            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_airport_data()
 
     def create_objects(self):
         if not self.isValid():
@@ -163,7 +170,7 @@ class RadarWidget(QGLWidget):
 
         # ------- Coastlines -----------------------------
         self.coastlines = RenderObject(gl.GL_LINES)
-        coastvertices, coastindices = load_coast_data()
+        coastvertices, coastindices = load_vertex_data()
         self.coastlines.bind_attrib(ATTRIB_VERTEX, 2, coastvertices)
         self.coastlines.bind_attrib(ATTRIB_COLOR, 3, np.array(lightblue2, dtype=np.float32), instance_divisor=1)
         self.vcount_coast = len(coastvertices)
@@ -172,11 +179,21 @@ class RadarWidget(QGLWidget):
 
         # ------- Runways --------------------------------
         self.runways = RenderObject(gl.GL_TRIANGLES)
-        rwy_vertices = load_rwy_data()
-        self.runways.bind_attrib(ATTRIB_VERTEX, 2, rwy_vertices)
+        self.runways.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_runways)
         self.runways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.float32), instance_divisor=1)
-        self.runways.set_vertex_count(len(rwy_vertices)/2)
-        del rwy_vertices
+        self.runways.set_vertex_count(len(self.vbuf_runways)/2)
+
+        # ------- Taxiways -------------------------------
+        self.taxiways = RenderObject(gl.GL_TRIANGLES)
+        self.taxiways.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_asphalt)
+        self.taxiways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.float32), instance_divisor=1)
+        self.taxiways.set_vertex_count(len(self.vbuf_asphalt)/2)
+
+        # ------- Pavement -------------------------------
+        self.pavement = RenderObject(gl.GL_TRIANGLES)
+        self.pavement.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_concrete)
+        self.pavement.bind_attrib(ATTRIB_COLOR, 3, np.array(lightgrey, dtype=np.float32), instance_divisor=1)
+        self.pavement.set_vertex_count(len(self.vbuf_concrete)/2)
 
         # Polygon preview object
         self.polyprev = RenderObject(gl.GL_LINE_LOOP)
@@ -230,11 +247,18 @@ class RadarWidget(QGLWidget):
         self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=3, n_instances=self.nwaypoints)
         wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
         self.waypoints.bind_attrib(ATTRIB_VERTEX, 2, wptvertices)
-        self.wptlatbuf = self.waypoints.bind_attrib(ATTRIB_LAT, 1, np.array(self.navdb.wplat, dtype=np.float32), instance_divisor=1)
-        self.wptlonbuf = self.waypoints.bind_attrib(ATTRIB_LON, 1, np.array(self.navdb.wplon, dtype=np.float32), instance_divisor=1)
+        # Sort based on id string length
+        llid = sorted(zip(self.navdb.wpid, self.navdb.wplat, self.navdb.wplon), key=lambda i: len(i[0]) > 3)
+        wplat = [lat for (wpid, lat, lon) in llid]
+        wplon = [lon for (wpid, lon, lon) in llid]
+        self.wptlatbuf = self.waypoints.bind_attrib(ATTRIB_LAT, 1, np.array(wplat, dtype=np.float32), instance_divisor=1)
+        self.wptlonbuf = self.waypoints.bind_attrib(ATTRIB_LON, 1, np.array(wplon, dtype=np.float32), instance_divisor=1)
         wptids = ''
-        for wptid in self.navdb.wpid:
-            wptids += wptid.ljust(5)
+        self.nnavaids = 0
+        for wptid in llid:
+            if len(wptid[0]) <= 3:
+                self.nnavaids += 1
+            wptids += wptid[0].ljust(5)
         self.wptlabels = self.font.prepare_text_instanced(np.array(wptids, dtype=np.string_), self.wptlatbuf, self.wptlonbuf, (5, 1), char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         del wptids
 
@@ -269,6 +293,9 @@ class RadarWidget(QGLWidget):
         # Set initial values for the global uniforms
         self.globaldata.set_wrap(self.wraplon, self.wrapdir)
         self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
+
+        # Clean up memory
+        del self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways
 
         self.initialized = True
 
@@ -378,8 +405,12 @@ class RadarWidget(QGLWidget):
         if self.show_traf:
             self.cpalines.draw()
 
+        # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------
+        self.runways.draw()
         if self.zoom >= 1.0:
-            self.runways.draw()
+            for idx in self.apt_inrange:
+                self.taxiways.draw(first_vertex=idx[0], vertex_count=idx[1])
+                self.pavement.draw(first_vertex=idx[2], vertex_count=idx[3])
 
         # --- DRAW THE INSTANCED AIRCRAFT SHAPES ------------------------------
         # update wrap longitude and direction for the instanced objects
@@ -398,19 +429,21 @@ class RadarWidget(QGLWidget):
 
         if self.zoom >= 0.5:
             nairports = self.nairports[2]
-            show_wpt = self.show_wpt
         elif self.zoom  >= 0.25:
             nairports = self.nairports[1]
-            show_wpt = False
         else:
             nairports = self.nairports[0]
-            show_wpt = False
+
+        if self.zoom >= 3:
+            nwaypoints = self.nwaypoints
+        else:
+            nwaypoints = self.nnavaids
 
         # Draw waypoint symbols
-        if show_wpt:
+        if self.show_wpt:
             self.waypoints.bind()
             gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue3)
-            self.waypoints.draw(n_instances=self.nwaypoints)
+            self.waypoints.draw(n_instances=nwaypoints)
 
         # Draw airport symbols
         if self.show_apt:
@@ -428,12 +461,13 @@ class RadarWidget(QGLWidget):
                 self.aptlabels.bind()
                 gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue4)
                 self.aptlabels.draw(n_instances=nairports)
-            if self.zoom >= 1.0 and show_wpt:
+            if self.show_wpt:
                 self.font.set_char_size(self.wptlabels.char_size)
                 self.font.set_block_size(self.wptlabels.block_size)
                 self.wptlabels.bind()
                 gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue4)
-                self.wptlabels.draw(n_instances=self.nwaypoints)
+                self.wptlabels.draw(n_instances=nwaypoints)
+
             if self.naircraft > 0 and self.show_traf and self.show_lbl:
                 self.font.set_char_size(self.aclabels.char_size)
                 self.font.set_block_size(self.aclabels.block_size)
@@ -575,6 +609,13 @@ class RadarWidget(QGLWidget):
         update_buffer(self.polyprevbuf, data)
         self.polyprev.set_vertex_count(len(data)/2)
 
+    def airportsInRange(self):
+        ll_range = max(1.5 / self.zoom, 1.0)
+        indices = np.logical_and.reduce((self.apt_ctrlat >= self.panlat - ll_range, self.apt_ctrlat <= self.panlat + ll_range,
+                                         self.apt_ctrlon >= self.panlon - ll_range, self.apt_ctrlon <= self.panlon + ll_range))
+
+        self.apt_inrange = self.apt_indices[indices]
+
     def pixelCoordsToGLxy(self, x, y):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
         """
@@ -637,6 +678,9 @@ class RadarWidget(QGLWidget):
 
                 # Update flat-earth factor
                 self.flat_earth = np.cos(np.deg2rad(self.panlat))
+
+            if self.zoom >= 1.0:
+                self.airportsInRange()
             event.accept()
 
             # Check for necessity wrap-around in x-direction
@@ -712,7 +756,7 @@ def load_rwy_data():
     return vertices
 
 
-def load_coast_data():
+def load_vertex_data():
     """Load static data: coaslines, waypoint and airport database.
     """
     # -------------------------COASTLINE DATA----------------------------------

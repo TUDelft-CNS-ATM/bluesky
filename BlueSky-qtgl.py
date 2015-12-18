@@ -6,8 +6,8 @@ from bluesky.sim.qtgl import Simulation, MainLoop
 # Create gui and simulation objects
 # =============================================================================
 navdb = Navdatabase('global')
-gui = Gui(navdb)
-sim = Simulation(gui,navdb)
+gui   = Gui(navdb)
+sim   = Simulation(gui,navdb)
 
 
 # =============================================================================

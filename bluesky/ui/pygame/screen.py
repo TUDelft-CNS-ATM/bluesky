@@ -64,8 +64,8 @@ class Screen:
         self.height = int(lst[2])  # default value to create variable
 
         # Dimensions radar window
-        self.lat1 = 54.  # [deg] upper limit display
-        self.lat0 = 50.  # [deg] lowerlimit display
+        self.lat1 = 53.  # [deg] upper limit display
+        self.lat0 = 51.  # [deg] lowerlimit display
         self.lon0 = -1.  # [deg] left side of screen
 
         dellat = self.lat1 - self.lat0
@@ -866,16 +866,20 @@ class Screen:
 
 
 
-    def zoom(self, factor):
+    def zoom(self, factor, absolute = False):
         """Zoom function"""
-
         oldvalues = self.lat0, self.lat1, self.lon0, self.lon1
+
 
         # Zoom factor: 2.0 means halving the display size in degrees lat/lon
         # ZOom out with e.g. 0.5
 
         ctrlat = (self.lat0 + self.lat1) / 2.
-        dellat2 = (self.lat1 - self.lat0) / 2. / factor
+        if not absolute:
+             dellat2 = 0.5*(self.lat1 - self.lat0) / factor
+        else:
+             dellat2 = 1.0/factor
+             
         self.lat0 = ctrlat - dellat2
         self.lat1 = ctrlat + dellat2
 
@@ -888,6 +892,10 @@ class Screen:
         else:
             ctrlon = (self.lon0 + self.lon1 + 360.) / 2
             dellon2 = (360. + self.lon1 - self.lon0) / 2. / factor
+
+        if absolute: 
+            dellon2 = dellat2 * self.width /    \
+                (self.height * cos(radians(ctrlat)))
 
         # Wrap around
         self.lon0 = (ctrlon - dellon2 + 180.) % 360. - 180.
@@ -903,12 +911,6 @@ class Screen:
         self.geosel = ()
 
         return
-        
-    def zoomreset(self):
-        """Set the zoom level to a standard"""
-        factor=(self.lat1-self.lat0)/4
-        self.zoom(factor)
-
 
     def pan(self, (xlat, xlon), absolute=False):
         """Pan function:

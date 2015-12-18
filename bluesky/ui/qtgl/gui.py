@@ -1,16 +1,16 @@
 try:
-    from PyQt4.QtCore import Qt, QEvent, QTimer
-    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage, QProgressDialog
-    from PyQt4.QtOpenGL import QGLFormat
-    QT_VERSION = 4
-    print('Using Qt4 for windows and widgets')
-except ImportError:
-    from PyQt5.QtCore import Qt, QEvent, QTimer, QThread
+    from PyQt5.QtCore import Qt, QEvent, QTimer
     from PyQt5.QtGui import QColor
-    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage, QProgressDialog
+    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
+except ImportError:
+    from PyQt4.QtCore import Qt, QEvent, QTimer
+    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
+    from PyQt4.QtOpenGL import QGLFormat
+    QT_VERSION = 4
+    print('Using Qt4 for windows and widgets')
 import numpy as np
 
 import sys
@@ -99,6 +99,7 @@ class Gui(QApplication):
         self.simevent_target = 0
         self.mousepos        = (0, 0)
         self.prevmousepos    = (0, 0)
+        self.panzoomchanged  = False
 
         # Register our custom pan/zoom event
         for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,
@@ -143,17 +144,6 @@ class Gui(QApplication):
         timer.timeout.connect(self.radarwidget.updateGL)
         timer.timeout.connect(self.nd.updateGL)
         timer.start(50)
-
-        # Load geo data
-        if False:
-            pb = QProgressDialog('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.', 'Cancel', 0, 100)
-            pb.setWindowFlags(Qt.WindowStaysOnTopHint)
-            pb.show()
-            for i in range(101):
-                pb.setValue(i)
-                self.processEvents()
-                QThread.msleep(100)
-            pb.close()
 
     def setSimEventTarget(self, obj):
         self.simevent_target = obj
@@ -253,6 +243,7 @@ class Gui(QApplication):
 
         # Mouse/trackpad event handling for the Radar widget
         if receiver is self.radarwidget and self.radarwidget.initialized:
+            panzoom = None
             if event.type() == QEvent.Wheel:
                 # For mice we zoom with control/command and the scrolwheel
                 if event.modifiers() & Qt.ControlModifier:
@@ -267,14 +258,14 @@ class Gui(QApplication):
                             zoom *= (1.0 + 0.001 * event.angleDelta().y())
                     except:
                         zoom *= (1.0 + 0.001 * event.delta())
+                    panzoom = PanZoomEvent(zoom=zoom, origin=origin)
 
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(zoom=zoom, origin=origin))
                 # For touchpad scroll (2D) is used for panning
                 else:
                     try:
                         dlat =  0.01 * event.pixelDelta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
                         dlon = -0.01 * event.pixelDelta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
-                        return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(dlat, dlon)))
+                        panzoom = PanZoomEvent(pan=(dlat, dlon))
                     except:
                         pass
 
@@ -289,13 +280,11 @@ class Gui(QApplication):
                         zoom  *= g.scaleFactor()
                         if is_osx:
                             zoom /= g.lastScaleFactor()
-
                     elif g.gestureType() == Qt.PanGesture:
                         dlat += 0.005 * g.delta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
                         dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                         pan = (dlat, dlon)
-
-                return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan, zoom, self.mousepos))
+                panzoom = PanZoomEvent(pan, zoom, self.mousepos)
 
             elif event.type() == QEvent.MouseButtonPress:
                 event_processed = True
@@ -321,9 +310,21 @@ class Gui(QApplication):
                 event_processed = True
                 self.mousepos = (event.x(), event.y())
                 if event.buttons() & Qt.RightButton:
-                    pan = (0.003 * (event.y() - self.prevmousepos[1]), 0.003 * (self.prevmousepos[0] - event.x()))
+                    dlat = 0.003 * (event.y() - self.prevmousepos[1]) / (self.radarwidget.zoom * self.radarwidget.ar)
+                    dlon = 0.003 * (self.prevmousepos[0] - event.x()) / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                     self.prevmousepos = (event.x(), event.y())
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=pan))
+                    panzoom = PanZoomEvent(pan=(dlat, dlon))
+
+            # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
+            elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
+                self.panzoomchanged = False
+                self.postEvent(self.simevent_target, PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
+                                                                    zoom=self.radarwidget.zoom, absolute=True))
+
+            # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
+            if panzoom is not None:
+                self.panzoomchanged = True
+                return super(Gui, self).notify(self.radarwidget, panzoom)
 
         # Other events
         if event.type() == QEvent.KeyPress:
@@ -421,6 +422,7 @@ class Gui(QApplication):
 
     def stack(self, text):
         self.postEvent(self.simevent_target, StackTextEvent(text))
+        # Echo back to command window
         self.display_stack(text)
 
     def display_stack(self, text):

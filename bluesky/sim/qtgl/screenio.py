@@ -1,17 +1,19 @@
 try:
-    # Try Qt4 first
-    from PyQt4.QtCore import QObject, QTimer, pyqtSlot
-    from PyQt4.QtCore import QCoreApplication as qapp
-except ImportError:
-    # Else PyQt5 imports
+    # Try Qt5 first
     from PyQt5.QtCore import QObject, QTimer, pyqtSlot
     from PyQt5.QtCore import QCoreApplication as qapp
+except ImportError:
+    # Else fall back to Qt4
+    from PyQt4.QtCore import QObject, QTimer, pyqtSlot
+    from PyQt4.QtCore import QCoreApplication as qapp
+
 import numpy as np
 import time
 
 # Local imports
 from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, \
-                       ShowDialogEvent, DisplayFlagEvent, StackTextEventType, DisplayShapeEvent
+                       ShowDialogEvent, DisplayFlagEvent, StackTextEventType, PanZoomEventType, \
+                       DisplayShapeEvent
 
 
 class ScreenIO(QObject):
@@ -55,6 +57,12 @@ class ScreenIO(QObject):
     def __init__(self, sim):
         super(ScreenIO, self).__init__()
 
+        # Keep track of the important parameters of the screen state
+        # (We receive these through events from the gui)
+        self.ctrlat  = 0.0
+        self.ctrlon  = 0.0
+        self.scrzoom = 1.0
+
         # Keep reference to parent simulation object for access to simulation data
         self.sim = sim
 
@@ -79,10 +87,27 @@ class ScreenIO(QObject):
     def echo(self, text):
         qapp.postEvent(qapp.instance(), StackTextEvent(text))
 
+    def getviewlatlon(self):
+        lat0 = self.ctrlat - 1.0 / self.scrzoom
+        lat1 = self.ctrlat + 1.0 / self.scrzoom
+        lon0 = self.ctrlon - 1.0 / self.scrzoom
+        lon1 = self.ctrlon + 1.0 / self.scrzoom
+        return lat0, lat1, lon0, lon1
+
     def zoom(self, zoomfac, absolute=False):
+        if absolute:
+            self.scrzoom = zoomfac
+        else:
+            self.scrzoom *= zoomfac
         qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
 
     def pan(self, pan, absolute=False):
+        if absolute:
+            self.ctrlat = pan[0]
+            self.ctrlon = pan[1]
+        else:
+            self.ctrlat += pan[0]
+            self.ctrlon += pan[1]
         qapp.postEvent(qapp.instance(), PanZoomEvent(pan=pan, absolute=absolute))
 
     def showroute(self, acid):
@@ -137,4 +162,10 @@ class ScreenIO(QObject):
     def event(self, event):
         if event.type() == StackTextEventType:
             self.sim.stack.stack(event.text)
+
+        elif event.type() == PanZoomEventType:
+            self.ctrlat  = event.pan[0]
+            self.ctrlon  = event.pan[1]
+            self.scrzoom = event.zoom
+
         return True
