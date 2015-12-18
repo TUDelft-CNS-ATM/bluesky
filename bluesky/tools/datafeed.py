@@ -231,8 +231,8 @@ class Modesbeast(TcpClient):
         return
 
     def update(self):
-        if self.connected:
-            # self.debug()
+        if self.is_connected:
+            self.debug()
             self.remove_outdated_ac()
             self.update_all_ac_postition()
             self.stack_all_commands()
