@@ -230,7 +230,7 @@ class RadarWidget(QGLWidget):
         self.ac_symbol.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
         self.ac_symbol.bind_attrib(ATTRIB_ORIENTATION, 1, self.achdgbuf, instance_divisor=1)
         self.ac_symbol.bind_attrib(ATTRIB_COLOR, 3, self.accolorbuf, instance_divisor=1)
-        self.aclabels = self.font.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (6, 3), self.accolorbuf, char_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
+        self.aclabels = self.font.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (8, 3), self.accolorbuf, char_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
 
         # ------- Conflict CPA lines ---------------------
         self.cpalines = RenderObject(gl.GL_LINES)
@@ -547,7 +547,7 @@ class RadarWidget(QGLWidget):
                     print 'ALT NaN in %d: %s' % (i, data.id[i])
                     data.alt[i] = 0.0
 
-                rawlabel += '%-6sFL%03d %-6d' % (data.id[i], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
+                rawlabel += '%-8sFL%03d   %-8d' % (data.id[i][:8], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
                 confidx = data.iconf[i]
                 if confidx >= 0:
                     color[i, :] = amber
