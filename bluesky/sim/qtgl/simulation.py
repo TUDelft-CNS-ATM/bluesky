@@ -135,16 +135,14 @@ class Simulation(QObject):
     def fastforward(self, nsec=None):
 
         self.ffmode = True
-        if not nsec== None:
+        if nsec is not None:
             self.ffstop = self.simt + nsec
         else:
             self.ff_end = -1.0
 
-    def datafeed(self, params):
-        flag = params[0].lower()
-
-        if flag == "on":
-            self.beastfeed.connectToHost(settings.beast_ip,
-                                         settings.beast_port)
-        if flag == "off":
+    def datafeed(self, flag):
+        if flag == "ON":
+            self.beastfeed.connectToHost(settings.modeS_host,
+                                         settings.modeS_port)
+        if flag == "OFF":
             self.beastfeed.disconnectFromHost()

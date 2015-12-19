@@ -50,11 +50,15 @@ wpt_size = 10
 ac_size = 16
 
 #=========================================================================
-# configue the following to stream data from mode-s beast 
-# TCP server.
+#=  Configure the following to stream raw data from a mode-s / ADS-B
+#=  TCP server.
 #=========================================================================
-beast_ip = ""
-beast_port = 0
+
+# Mode-S / ADS-B server hostname / ip
+modeS_host = ''
+
+# Mode-S /ADS-B server port
+modeS_port = 0
 
 # END OF SETTINGS
 

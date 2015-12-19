@@ -39,6 +39,7 @@ class TcpClient(QObject):
         self.parse_data(data)
 
     def connectToHost(self, host, port):
+        print 'Trying to connect to host', host, 'at port', port
         self.socket.connectToHost(host, port)
 
     def disconnectFromHost(self):
