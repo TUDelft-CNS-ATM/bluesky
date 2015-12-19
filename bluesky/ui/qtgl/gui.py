@@ -97,6 +97,7 @@ class Gui(QApplication):
         self.command_line    = ''
         self.prev_cmdline    = ''
         self.simevent_target = 0
+        self.mousedragged    = False
         self.mousepos        = (0, 0)
         self.prevmousepos    = (0, 0)
         self.panzoomchanged  = False
@@ -271,45 +272,51 @@ class Gui(QApplication):
 
             # For touchpad, pinch gesture is used for zoom
             elif event.type() == QEvent.Gesture:
-                zoom   = 1.0
+                zoom   = None
                 pan    = None
                 dlat   = 0.0
                 dlon   = 0.0
                 for g in event.gestures():
                     if g.gestureType() == Qt.PinchGesture:
+                        if zoom is None:
+                            zoom = 1.0
                         zoom  *= g.scaleFactor()
                         if is_osx:
                             zoom /= g.lastScaleFactor()
                     elif g.gestureType() == Qt.PanGesture:
-                        dlat += 0.005 * g.delta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
-                        dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
-                        pan = (dlat, dlon)
-                panzoom = PanZoomEvent(pan, zoom, self.mousepos)
+                        if abs(g.delta().y() + g.delta().x()) > 1e-1:
+                            dlat += 0.005 * g.delta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
+                            dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
+                            pan = (dlat, dlon)
+                if pan is not None or zoom is not None:
+                    panzoom = PanZoomEvent(pan, zoom, self.mousepos)
 
-            elif event.type() == QEvent.MouseButtonPress:
-                event_processed = True
+            elif event.type() == QEvent.MouseButtonPress and event.button() & Qt.LeftButton:
+                event_processed   = True
+                self.mousedragged = False
                 # For mice we pan with control/command and mouse movement. Mouse button press marks the beginning of a pan
-                if event.button() & Qt.RightButton:
-                    self.prevmousepos = (event.x(), event.y())
+                self.prevmousepos = (event.x(), event.y())
 
-                else:
-                    lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                    tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb)
-                    if len(todisplay) > 0:
-                        if '\n' in todisplay:
-                            self.command_line = ''
-                            # Clear any shape command preview on the radar display
-                            self.radarwidget.previewpoly(None)
-                        else:
-                            self.command_line += todisplay
-                        if len(tostack) > 0:
-                            self.command_history.append(tostack)
-                            self.stack(tostack)
+            elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton and not self.mousedragged:
+                event_processed = True
+                lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
+                tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb)
+                if len(todisplay) > 0:
+                    if '\n' in todisplay:
+                        self.command_line = ''
+                        # Clear any shape command preview on the radar display
+                        self.radarwidget.previewpoly(None)
+                    else:
+                        self.command_line += todisplay
+                    if len(tostack) > 0:
+                        self.command_history.append(tostack)
+                        self.stack(tostack)
 
             elif event.type() == QEvent.MouseMove:
-                event_processed = True
+                event_processed   = True
+                self.mousedragged = True
                 self.mousepos = (event.x(), event.y())
-                if event.buttons() & Qt.RightButton:
+                if event.buttons() & Qt.LeftButton:
                     dlat = 0.003 * (event.y() - self.prevmousepos[1]) / (self.radarwidget.zoom * self.radarwidget.ar)
                     dlon = 0.003 * (self.prevmousepos[0] - event.x()) / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                     self.prevmousepos = (event.x(), event.y())
