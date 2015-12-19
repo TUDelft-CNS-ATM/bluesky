@@ -78,6 +78,8 @@ if not os.path.isfile(configfile):
     print 'You can specify your own settings or use the default.'
     print 'Leave empty to use the default settings.'
     print
+    print 'If it will not run, use the BlueSky-pygame,py version'
+    print
     manual_input = (raw_input('Do you want to want to define your own settings? (yes/[no]): ').lower().find('y') >= 0)
     print
     lines = ''
