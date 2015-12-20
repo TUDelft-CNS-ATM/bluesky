@@ -150,16 +150,19 @@ class RadarWidget(QGLWidget):
                 break
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
-        self.achdgbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclatbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclonbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.acaltbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.actasbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.accolorbuf  = create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
-        self.aclblbuf    = create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
-        self.confcpabuf  = create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
-        self.polyprevbuf = create_empty_buffer(MAX_POLYGON_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
-        self.routebuf    = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.achdgbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclatbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclonbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.acaltbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.actasbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.accolorbuf    = create_empty_buffer(MAX_NAIRCRAFT * 12, usage=gl.GL_STREAM_DRAW)
+        self.aclblbuf      = create_empty_buffer(MAX_NAIRCRAFT * 15, usage=gl.GL_STREAM_DRAW)
+        self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
+        self.polyprevbuf   = create_empty_buffer(MAX_POLYGON_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
+        self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
+        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject(gl.GL_TRIANGLE_FAN, vertex_count=4)
@@ -230,7 +233,7 @@ class RadarWidget(QGLWidget):
         self.ac_symbol.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
         self.ac_symbol.bind_attrib(ATTRIB_ORIENTATION, 1, self.achdgbuf, instance_divisor=1)
         self.ac_symbol.bind_attrib(ATTRIB_COLOR, 3, self.accolorbuf, instance_divisor=1)
-        self.aclabels = self.font.prepare_text_instanced(self.aclblbuf, self.aclatbuf, self.aclonbuf, (8, 3), self.accolorbuf, char_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
+        self.aclabels = self.font.prepare_text_instanced(self.aclblbuf, (8, 3), self.aclatbuf, self.aclonbuf, self.accolorbuf, char_size=text_size, vertex_offset=(ac_size, -0.5 * ac_size))
 
         # ------- Conflict CPA lines ---------------------
         self.cpalines = RenderObject(gl.GL_LINES)
@@ -241,6 +244,7 @@ class RadarWidget(QGLWidget):
         self.route = RenderObject(gl.GL_LINE_STRIP)
         self.route.bind_attrib(ATTRIB_VERTEX, 2, self.routebuf)
         self.route.bind_attrib(ATTRIB_COLOR, 3, np.array(magenta, dtype=np.float32), instance_divisor=1)
+        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (8, 1), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
 
         # ------- Waypoints ------------------------------
         self.nwaypoints = len(self.navdb.wplat)
@@ -259,7 +263,7 @@ class RadarWidget(QGLWidget):
             if len(wptid[0]) <= 3:
                 self.nnavaids += 1
             wptids += wptid[0].ljust(5)
-        self.wptlabels = self.font.prepare_text_instanced(np.array(wptids, dtype=np.string_), self.wptlatbuf, self.wptlonbuf, (5, 1), char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        self.wptlabels = self.font.prepare_text_instanced(np.array(wptids, dtype=np.string_), (5, 1), self.wptlatbuf, self.wptlonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         del wptids
 
         # ------- Airports -------------------------------
@@ -281,7 +285,7 @@ class RadarWidget(QGLWidget):
         aptids = ''
         for aptid in apnames:
             aptids += aptid.ljust(4)
-        self.aptlabels = self.font.prepare_text_instanced(np.array(aptids, dtype=np.string_), self.aptlatbuf, self.aptlonbuf, (4, 1), char_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
+        self.aptlabels = self.font.prepare_text_instanced(np.array(aptids, dtype=np.string_), (4, 1), self.aptlatbuf, self.aptlonbuf, char_size=text_size, vertex_offset=(apt_size, 0.5 * apt_size))
         del aptids
 
         # Create a dictionary that can hold a named list of shapes that can be added through the stack
@@ -473,6 +477,10 @@ class RadarWidget(QGLWidget):
                 self.font.set_block_size(self.aclabels.block_size)
                 self.aclabels.draw(n_instances=self.naircraft)
 
+            if self.show_traf and self.route.vertex_count > 1:
+                gl.glVertexAttrib3f(ATTRIB_COLOR, *magenta)
+                self.routelbl.draw(n_instances=self.route.vertex_count-1)
+
         # SSD
         if self.ssd_all or len(self.ssd_ownship) > 0:
             self.ssd_shader.use()
@@ -517,6 +525,9 @@ class RadarWidget(QGLWidget):
             routedata[::2]  = data.lat
             routedata[1::2] = data.lon
             update_buffer(self.routebuf, routedata)
+            update_buffer(self.routewplatbuf, data.lat[1:])
+            update_buffer(self.routewplonbuf, data.lon[1:])
+            update_buffer(self.routelblbuf, data.wptlabels)
         else:
             self.route.set_vertex_count(0)
 
