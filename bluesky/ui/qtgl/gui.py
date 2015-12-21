@@ -78,7 +78,7 @@ usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'NOISE': 'ON/OFF',
                 'LINE': 'color,lat1,lon1,lat2,lon2',
                 'ENG': 'acid',
-                'DATAFEED': 'CONNECT,address,port'
+                'DATAFEED': 'ON/OFF'
                 }
 
 

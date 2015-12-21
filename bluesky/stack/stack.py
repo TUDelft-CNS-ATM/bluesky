@@ -1633,38 +1633,6 @@ class Commandstack:
                         synerr = True
 
                 #------------------------------------------------------------------
-                # DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER
-                # DATAFEED ON/OFF, DATAFEED DEMO, DATAFEED LOG ON/OFF"
-                #------------------------------------------------------------------
-                elif cmd[:8] == "DATAFEED":
-                    if numargs == 3 and cmdargs[1].upper() == "CONNECT":
-                        scr.echo("Connecting to tcp server...")
-                        serverip = cmdargs[2]
-                        port = int(cmdargs[3]) if cmdargs[3].isdigit() else False
-                        if not port:
-                            scr.echo("PORT_NUMBER must be valid number")
-                        else:
-                            self.tmx.df.connect(serverip, port)
-                    elif numargs == 1 and cmdargs[1].upper() == "ON":
-                        self.tmx.df.start()
-                    elif numargs == 1 and cmdargs[1].upper() == "OFF":
-                        self.tmx.df.stop()
-                    elif numargs == 1 and cmdargs[1].upper() == "DEMO":
-                        scr.echo("Use demo server [IP 131.180.117.39, Port 10001]")
-                        self.tmx.df.connect('131.180.117.39', 10001)
-                    elif numargs == 1 and cmdargs[1].upper() == "LOG":
-                        self.tmx.df.set_console_print(True)
-                    elif numargs == 2 and cmdargs[1].upper() == "LOG" \
-                        and cmdargs[2].upper() == "ON":
-                        self.tmx.df.set_console_print(True)
-                    elif numargs == 2 and cmdargs[1].upper() == "LOG" \
-                        and cmdargs[2].upper() == "OFF":
-                        self.tmx.df.set_console_print(False)
-                    else:
-                        scr.echo("Usage: DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER, " +
-                            " DATAFEED ON/OFF, DATAFEED DEMO, DATAFEED LOG ON/OFF")
-
-                #------------------------------------------------------------------
                 # DUMPRTE acid: Dump the route to the route-file for debugging
                 # 
                 #------------------------------------------------------------------
