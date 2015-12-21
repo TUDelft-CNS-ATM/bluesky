@@ -101,6 +101,10 @@ class ScreenIO(QObject):
             self.scrzoom *= zoomfac
         qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
 
+    def symbol(self):
+#        qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
+        return
+
     def pan(self, pan, absolute=False):
         if absolute:
             self.ctrlat = pan[0]

@@ -2,9 +2,9 @@ import numpy as np
 from math import *
 
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
-     mach2tas, cas2tas, Rearth
+     mach2cas, cas2tas, cas2mach, Rearth
 
-from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
+from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach,\
     vmach2tas, qdrdist
 from ..tools.misc import degto180
 from ..tools.datalog import Datalog
@@ -599,6 +599,7 @@ class Traffic:
             # Shift for aircraft i where necessary
 
             for i in iwpclose:
+                
 
             # Get next wp (lnavon = False if no more waypoints)
 
@@ -623,7 +624,8 @@ class Traffic:
                 if alt >= 0.:
                     self.actwpalt[i] = alt
                     
-                # VNAV calculated altitude is available and active
+                # VNAV=-ALT mode
+                # calculated altitude is available and active
                 
                 if toalt  >= 0. and self.swvnav[i]:
                     # Descent VNAV mode (T/D logic)
@@ -645,8 +647,7 @@ class Traffic:
 
                             t2go         = max(0.1,dist2wp)/max(0.01,self.gs[i])
                             self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
-                       
-                           
+                                              
                         else:
                             print "else 1"
                             pass # TBD
@@ -666,15 +667,27 @@ class Traffic:
 
                         t2go         = max(0.1,dist2wp)/max(0.01,self.gs[i])
                         self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
-                       
-                       
-                if spd>0. and swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
-                    if spd<2.0:
-                       self.actwpspd[i] = mach2tas(spd,self.alt[i])                            
-                    else:    
-                       self.actwpspd[i] = cas2tas(spd,self.alt[i])
+               
+                # VNAV spd mode: use speed of this waypoint as commaded speed
+                # while passing waypoint and save next speed for passing next wp
+               
+                if self.swvnav[i] and self.actwpspd[i]>0.0: # check mode and value
+
+                    # Select CAS or Mach command by checking value of actwpspd
+                    if self.actwpspdspd<2.0: # Mach command
+
+                       self.aspd[i] = mach2cas(self.actwpspd[i],self.alt[i])
+                       self.ama[i]  = self.actwpspd[i]                            
+
+                    else:    # CAS command
+                       self.aspd[i] = self.actwpspd[i]
+                       self.ama[i]  = cas2tas(spd,self.alt[i])
+                    
+                
+                if spd>0. and self.swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
+                   self.actwpspd[i] = spd                           
                 else:
-                    self.actwpspd[i] = -999.
+                   self.actwpspd[i] = -999.
 
                 # Calculate distance before waypoint where to start the turn
                 # Turn radius:      R = V2 tan phi / g
@@ -745,7 +758,7 @@ class Traffic:
         #ama is fixed when above crossover
         check = self.abco*(self.ama == 0.)
         swma = np.where(check==True)
-        self.ama[swma] = cas2mach(self.aspd[swma], self.alt[swma])
+        self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
         # ama is deleted when below crossover
         check2 = self.belco*(self.ama!=0.)
         swma2 = np.where(check2==True)
@@ -755,8 +768,10 @@ class Traffic:
 
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
         # for information:    
-        self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
-                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
+
+# no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
+#                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
+
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
@@ -904,10 +919,9 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-
     def selhdg(self, idx=None, hdg=None):  # HDG command
 
-        # Select heading command: HDG acid, hdg
+        """ Select heading command: HDG acid, hdg """
 
         if None in [idx,hdg]:
             return False  # Not engouh arguments: Error/Display helptext
@@ -916,4 +930,23 @@ class Traffic:
         self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
+        return True
+
+    def selspd(self, idx=None, spd=None):  # SPD command
+
+        """ Select speed command: SPD acid, spd (= CASkts/Mach) """
+        print "SPD:",idx,spd
+        if idx<0 or None in [idx,spd] :
+            return False  # Not engouh arguments: Error/Display helptext
+
+        # When >=2.0 it is probably CASkts else it is Mach
+        if spd >= 2.0:
+            self.aspd[idx] = spd * kts # CAS m/s
+            self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
+        else:
+            self.aspd[idx] = mach2cas(spd) # Convert Mach to CAS m/s
+            self.ama[idx]  = spd
+        # Switch off VNAV: SPD command overrides
+        self.swvnav[idx] = False  
+
         return True

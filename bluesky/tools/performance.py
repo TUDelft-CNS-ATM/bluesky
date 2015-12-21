@@ -18,7 +18,7 @@ Date          :
 
 import numpy as np
 from aero import kts, ft, gamma, gamma1, gamma2, R, beta, g0
-from aero_np import vmach2cas, cas2mach
+from aero_np import vmach2cas, vcas2mach
 
 
 
@@ -215,7 +215,7 @@ def limits(desspd, lspd, vmin, vmo, mmo, M, ama, alt, hmaxact, desalt, lalt, max
     if (vmincomp.any() == 1):
         lspd = (vmincomp ==1)*(vmin+1) + (vmincomp==0)*0.0
         # limit for above crossover
-        ama = (vmincomp ==1)*cas2mach(lspd,alt) + (vmincomp==0)*ama        
+        ama = (vmincomp ==1)*vcas2mach(lspd,alt) + (vmincomp==0)*ama        
         #print "below minimum speed", lspd, ama
 
 # maximum speed
@@ -227,7 +227,7 @@ def limits(desspd, lspd, vmin, vmo, mmo, M, ama, alt, hmaxact, desalt, lalt, max
     if (vcomp.all() ==0):
         lspd = (vcomp ==0)*(vmo-1) + (vcomp!=0)*0.0
         # limit for above crossover
-        ama = (vcomp ==0)*cas2mach(lspd,alt) + (vcomp!=0)*ama        
+        ama = (vcomp ==0)*vcas2mach(lspd,alt) + (vcomp!=0)*ama        
        # print "above max CAS speed", lspd
         
 # Mach
@@ -236,7 +236,7 @@ def limits(desspd, lspd, vmin, vmo, mmo, M, ama, alt, hmaxact, desalt, lalt, max
     if(macomp.all() ==0):
         lspd = (macomp ==0)*vmach2cas((mmo-0.001),alt) + (macomp!=0)*0.0
         # limit for above crossover
-        ama = (macomp ==0)*cas2mach(lspd,alt) + (macomp!=0)*ama
+        ama = (macomp ==0)*vcas2mach(lspd,alt) + (macomp!=0)*ama
        # print "above max Mach speed", lspd
         
         

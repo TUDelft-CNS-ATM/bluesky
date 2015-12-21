@@ -15,7 +15,6 @@ class Commandstack:
 
     Methods:
         Commandstack()          :  constructor
-
         stack(cmdline)          : add a command to the command stack
         openfile(scenname)      : start playing a scenario file scenname.SCN
                                   from scenario folder
@@ -36,10 +35,14 @@ class Commandstack:
         self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
                                       "txt,txt,lat,lon,hdg,alt,spd",
                                       traf.create],
-                        "HDG": [ "HDG acid,hdg[deg,True]",
+                        "HDG": [ "HDG acid,hdg [deg,True]",
                                        "acid,float",traf.selhdg],
+                        "SPD": [ "SPD acid,spd [CAS-kts/Mach]",
+                                       "acid,spd",traf.selspd],
                         "FF":  [ "FF [tend]",
                                     "time",sim.fastforward],
+                        "SYMBOL":  [ "SYMBOL",
+                                    "",scr.symbol],
                         "DATAFEED":  [ "DATAFEED [ON/OFF]",
                                     "txt",sim.datafeed]
                        }
@@ -356,11 +359,11 @@ class Commandstack:
                                 except:
                                    synerr = True
  
-                            elif argtype == "spd":
+                            elif argtype == "spd": # CAS[kts] Mach
                                 spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
-                                arglist.append(spd)  # speed CAS[kts] or Mach (float)
+                                arglist.append(spd) # speed CAS[kts] or Mach (float) 
 
-                            elif argtype == "alt":
+                            elif argtype == "alt": #alt: FL250 or 25000 [ft]
                                 arglist.append(ft * txt2alt(cmdargs[i]))  # alt in m
 
                             elif argtype == "hdg":
@@ -387,10 +390,10 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
-                    try:
-                        results = function(*arglist) # * = unpack list to call arguments
-                    except:
-                        synerr = True
+#                    try:
+                    results = function(*arglist) # * = unpack list to call arguments
+#                    except:
+#                        synerr = True
 
                     txt = helptext
                     if not synerr:
@@ -402,8 +405,8 @@ class Commandstack:
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
-                    if synerr:# synerr:                    
-                         scr.echo(helptext)
+                    else:  # synerr:                    
+                         scr.echo("Syntax error: "+helptext)
 
                     synerr= False  # suppress further error messages
 

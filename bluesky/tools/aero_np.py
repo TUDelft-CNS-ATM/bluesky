@@ -124,7 +124,7 @@ def vmach2cas(M,h):
     cas = vtas2cas(tas,h)
     return cas
 
-def cas2mach(cas,h):
+def vcas2mach(cas,h):
     tas = vcas2tas(cas,h)
     M = vtas2mach(tas,h)
     return M
