@@ -9,6 +9,9 @@ modified, cited, etc. without any limitations.
 Please send suggestions, proposed changes or contributions through GitHub, preferrably after 
 debugging it and optimising it for run-time performance.
 
+## BlueSky Wiki
+Installation and user guides are accessiable at:  
+https://github.com/ProfHoekstra/bluesky/wiki
 
 ##Some features of BlueSky:
 - Written in freely available, ultra-simple-hence-easy-to-learn, multi-platform language 
@@ -23,6 +26,6 @@ autopilot, conflict detection and resolutions and airborne separation assurance 
 containing the same commands with a time stamp before the command ("HH:MM:SS.hh>")
 - Mouse clicks in traffic window are use in console for lat/lon/heading and position inputs
 
-## Want to contribute? Great!
+## Contributions
 BlueSky is still under heavy development. We would like to encourage anyone with a strong interesting in 
 ATM and/or Python to join us. Please feel free to comment, criticise, join, and contribute to this project.
