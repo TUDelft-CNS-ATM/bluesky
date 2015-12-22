@@ -156,5 +156,5 @@ class Simulation:
             self.beastfeed.connectToHost(settings.modeS_host,
                                          settings.modeS_port)
         if flag == "OFF":
-            self.beastfeed.disconnect()
+            self.beastfeed.disconnectFromHost()
 

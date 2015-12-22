@@ -2,7 +2,7 @@ from bluesky.traf import Navdatabase
 from bluesky.ui.qtgl import Gui
 from bluesky.sim.qtgl import Simulation, MainLoop
 from bluesky import settings
-settings.gui = 'pygame'
+settings.gui = 'qtgl'
 
 # =============================================================================
 # Create gui and simulation objects
