@@ -1,8 +1,9 @@
+from bluesky import settings
+settings.gui = 'pygame'
+
 from bluesky.traf import Navdatabase
 from bluesky.ui.pygame import Gui
 from bluesky.sim.pygame import Simulation, MainLoop
-from bluesky import settings
-settings.gui = 'pygame'
 
 # =============================================================================
 # Create gui and simulation objects
