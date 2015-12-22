@@ -15,7 +15,6 @@ class Commandstack:
 
     Methods:
         Commandstack()          :  constructor
-
         stack(cmdline)          : add a command to the command stack
         openfile(scenname)      : start playing a scenario file scenname.SCN
                                   from scenario folder
@@ -32,26 +31,49 @@ class Commandstack:
     def __init__(self, sim, traf, scr):
 
         #Command dictionary: command, helptext, arglist, function to call
-        #----------------------------------------------------------------------
-        self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
-                                      "txt,txt,lat,lon,hdg,alt,spd",
-                                      traf.create],
-                        "HDG": [ "HDG acid,hdg[deg,True]",
-                                       "acid,float",traf.selhdg],
-                        "FF":  [ "FF [tend]",
-                                    "time",sim.fastforward],
-                        # "DATAFEED":  [ "DATAFEED [ON/OFF]",
-                        #             "txt",sim.datafeed]
-                       }
+        #--------------------------------------------------------------------
+        self.cmddict = {
+            "CRE": [ 
+                "CRE acid,type,lat,lon,hdg,alt,spd",
+                "txt,txt,lat,lon,hdg,alt,spd",
+                traf.create
+            ],
+            "HDG": [
+                "HDG acid,hdg [deg,True]",
+                "acid,float",
+                traf.selhdg
+            ],
+            "SPD": [
+                "SPD acid,spd [CAS-kts/Mach]",
+                "acid,spd",
+                traf.selspd
+            ],
+            "FF":  [
+                "FF [tend]",
+                "time",
+                sim.fastforward
+            ],
+            "SYMBOL":  [
+                "SYMBOL",
+                "",
+                scr.symbol
+            ],
+            "DATAFEED":  [
+                "DATAFEED [ON/OFF]",
+                "txt",
+                sim.datafeed
+            ]
+        }
 
-        #----------------------------------------------------------------------
+        #--------------------------------------------------------------------
         # Command synonym dictionary
-        self.cmdsynon = {"CREATE": "CRE",
-                         "TURN": "HDG",
-                         "DTLOOK": "ASA_DTLOOK",
-                         "FWD": "FF"
-                         }
-        #----------------------------------------------------------------------
+        self.cmdsynon = {
+            "CREATE": "CRE",
+            "TURN": "HDG",
+            "DTLOOK": "ASA_DTLOOK",
+            "FWD": "FF"
+        }
+        #--------------------------------------------------------------------
 
         self.cmdstack  = []
         self.scenlines = []
@@ -60,24 +82,6 @@ class Commandstack:
         self.scentime = []
         self.scencmd = []
 
-        # An advanced way to add your own commands: add your entry to the dictionary.
-        # The dictionary should be formed as {"Key":module'}.
-
-        # "Key" is a FOUR-symbol reference that is used at the start of the command.
-        # 'module' is the name of the .py-file in which the commands are located (without .py).
-
-        # Make sure that the module has a function "process" with
-        # arguments (command, number of args, array of args, sim, traf, scr, cmd)
-
-        self.extracmdmodules={"SYN_": 'synthetic', "ASA_":'asascmd', "LOG_":'log'}
-
-# Import modules from the list
-        self.extracmdrefs={}
-        sys.path.append('bluesky/stack/')
-        for key in self.extracmdmodules:
-            obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
-            self.extracmdrefs[key]=obj
-        
         # Display Help text on start of program
         self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")
         self.stack("ECHO Or select IC to Open a scenario file.")
@@ -86,9 +90,37 @@ class Commandstack:
         self.stack('PAN ' + settings.start_location)
         self.stack("ZOOM 0.4")
 
+        # ------------------ [start] Deprecated -------------------
+        # An alternative way to add your own commands: 
+        # add your entry to the dictionary.
+        # The dictionary should be formed as {"Key":module'}.
+
+        # "Key" is a FOUR-symbol reference used at the start of command.
+        # 'module' is the name of the .py-file in which the 
+        # commands are located (without .py).
+
+        # Make sure that the module has a function "process" with
+        # arguments:
+        #   command, number of args, array of args, sim, traf, scr, cmd
+
+        self.extracmdmodules = {
+            "SYN_": 'synthetic', 
+            "ASA_":'asascmd', 
+            "LOG_":'log'
+        }
+
+        # Import modules from the list
+        self.extracmdrefs={}
+        sys.path.append('bluesky/stack/')
+        for key in self.extracmdmodules:
+            obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
+            self.extracmdrefs[key]=obj
+        # ------------------ [end] Deprecated -------------------
+        
         return
 
-    def stack(self, cmdline):  # Stack one or more commands separated by ";"
+    def stack(self, cmdline):  
+        # Stack one or more commands separated by ";"
         cline = cmdline.strip()  # remove leading & trailing spaces
         if cline.count(";") == 0:
             self.cmdstack.append(cline)
@@ -253,8 +285,8 @@ class Commandstack:
         """process and empty command stack"""
         # Process stack of commands
         for line in self.cmdstack:
-
-#Debug            print "CMD:",line
+            # Debug
+            # print "CMD:",line
 
             cmdline = line.upper()  # Save original lower case in variable line
 
@@ -356,11 +388,11 @@ class Commandstack:
                                 except:
                                    synerr = True
  
-                            elif argtype == "spd":
+                            elif argtype == "spd": # CAS[kts] Mach
                                 spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
-                                arglist.append(spd)  # speed CAS[kts] or Mach (float)
+                                arglist.append(spd) # speed CAS[kts] or Mach (float) 
 
-                            elif argtype == "alt":
+                            elif argtype == "alt": #alt: FL250 or 25000 [ft]
                                 arglist.append(ft * txt2alt(cmdargs[i]))  # alt in m
 
                             elif argtype == "hdg":
@@ -387,10 +419,10 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
-                    try:
-                        results = function(*arglist) # * = unpack list to call arguments
-                    except:
-                        synerr = True
+#                    try:
+                    results = function(*arglist) # * = unpack list to call arguments
+#                    except:
+#                        synerr = True
 
                     txt = helptext
                     if not synerr:
@@ -402,8 +434,8 @@ class Commandstack:
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
-                    if synerr:# synerr:                    
-                         scr.echo(helptext)
+                    else:  # synerr:                    
+                         scr.echo("Syntax error: "+helptext)
 
                     synerr= False  # suppress further error messages
 
@@ -1637,13 +1669,13 @@ class Commandstack:
                 # DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER
                 # DATAFEED ON/OFF, DATAFEED DEMO, DATAFEED LOG ON/OFF"
                 #------------------------------------------------------------------
-                elif cmd[:8] == "DATAFEED":
-                    if numargs == 1 and cmdargs[1].upper() == "ON":
-                        sim.datafeed('ON')
-                    elif numargs == 1 and cmdargs[1].upper() == "OFF":
-                        sim.datafeed('OFF')
-                    else:
-                        scr.echo("Usage: DATAFEED [ON/OFF]")                
+                # elif cmd[:8] == "DATAFEED":
+                #     if numargs == 1 and cmdargs[1].upper() == "ON":
+                #         sim.datafeed('ON')
+                #     elif numargs == 1 and cmdargs[1].upper() == "OFF":
+                #         sim.datafeed('OFF')
+                #     else:
+                #         scr.echo("Usage: DATAFEED [ON/OFF]")                
 
                 #------------------------------------------------------------------
                 # DUMPRTE acid: Dump the route to the route-file for debugging

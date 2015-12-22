@@ -101,6 +101,9 @@ class Simulation:
 
             self.stack.checkfile(self.simt)
 
+            # Update the Mode-S beast parsing
+            self.beastfeed.update()
+
         # Always process stack
         self.stack.process(self, self.traf, scr)
 
@@ -115,9 +118,6 @@ class Simulation:
         else:
             self.syst0 = self.syst-self.simt
             self.dt = 0.0
-
-        # Update the Mode-S beast parsing
-        self.beastfeed.update()
 
         return
 

@@ -240,6 +240,10 @@ class Gui(QApplication):
                 elif event.switch == "SSD":
                     self.radarwidget.show_ssd(event.argument)
 
+                elif event.switch == "SYM":
+                    # For now only toggle PZ
+                    self.radarwidget.show_pz = not self.radarwidget.show_pz
+
                 return True
 
         # Mouse/trackpad event handling for the Radar widget
