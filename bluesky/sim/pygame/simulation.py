@@ -5,6 +5,7 @@ from ...stack import Commandstack
 from ...traf.metric import Metric
 
 from ...tools.network import StackTelnetServer
+from ... import settings
 from ...tools.datafeed import Modesbeast
 
 
@@ -115,6 +116,9 @@ class Simulation:
             self.syst0 = self.syst-self.simt
             self.dt = 0.0
 
+        # Update the Mode-S beast parsing
+        self.beastfeed.update()
+
         return
 
     def pause(self):  # Hold mode
@@ -152,5 +156,5 @@ class Simulation:
             self.beastfeed.connectToHost(settings.modeS_host,
                                          settings.modeS_port)
         if flag == "OFF":
-            self.beastfeed.disconnectFromHost()
+            self.beastfeed.disconnect()
 

@@ -40,8 +40,8 @@ class Commandstack:
                                        "acid,float",traf.selhdg],
                         "FF":  [ "FF [tend]",
                                     "time",sim.fastforward],
-                        "DATAFEED":  [ "DATAFEED [ON/OFF]",
-                                    "txt",sim.datafeed]
+                        # "DATAFEED":  [ "DATAFEED [ON/OFF]",
+                        #             "txt",sim.datafeed]
                        }
 
         #----------------------------------------------------------------------
@@ -1631,6 +1631,19 @@ class Commandstack:
 
                     else:
                         synerr = True
+
+
+                #------------------------------------------------------------------
+                # DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER
+                # DATAFEED ON/OFF, DATAFEED DEMO, DATAFEED LOG ON/OFF"
+                #------------------------------------------------------------------
+                elif cmd[:8] == "DATAFEED":
+                    if numargs == 1 and cmdargs[1].upper() == "ON":
+                        sim.datafeed('ON')
+                    elif numargs == 1 and cmdargs[1].upper() == "OFF":
+                        sim.datafeed('OFF')
+                    else:
+                        scr.echo("Usage: DATAFEED [ON/OFF]")                
 
                 #------------------------------------------------------------------
                 # DUMPRTE acid: Dump the route to the route-file for debugging

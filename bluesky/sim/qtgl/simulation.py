@@ -65,7 +65,6 @@ class Simulation(QObject):
     def moveToThread(self, target_thread):
         self.screenio.moveToThread(target_thread)
         self.telnet_in.moveToThread(target_thread)
-        self.beastfeed.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
 
     def doWork(self):
@@ -141,8 +140,9 @@ class Simulation(QObject):
             self.ff_end = -1.0
 
     def datafeed(self, flag):
+        print "HERE!!!"
         if flag == "ON":
             self.beastfeed.connectToHost(settings.modeS_host,
                                          settings.modeS_port)
         if flag == "OFF":
-            self.beastfeed.disconnectFromHost()
+            self.beastfeed.disconnect()
