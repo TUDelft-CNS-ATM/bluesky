@@ -102,7 +102,7 @@ class ScreenIO(QObject):
         qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
 
     def symbol(self):
-#        qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
+        qapp.postEvent(qapp.instance(), DisplayFlagEvent('SYM'))
         return
 
     def pan(self, pan, absolute=False):

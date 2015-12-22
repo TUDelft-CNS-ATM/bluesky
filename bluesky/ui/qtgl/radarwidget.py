@@ -85,7 +85,6 @@ class radarUBO(UniformBuffer):
 
 
 class RadarWidget(QGLWidget):
-    show_map = show_coast = show_traf = show_pz = show_lbl = show_wpt = show_apt = True
     vcount_circle = 36
     width = height = 600
     viewport = (0, 0, width, height)
@@ -119,8 +118,18 @@ class RadarWidget(QGLWidget):
         self.ssd_all        = False
         self.navdb          = navdb
 
+        # Display flags
+        self.show_map       = True
+        self.show_coast     = True
+        self.show_traf      = True
+        self.show_pz        = False
+        self.show_lbl       = True
+        self.show_wpt       = True
+        self.show_apt       = True
+
         self.initialized    = False
 
+        # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_airport_data()
 
