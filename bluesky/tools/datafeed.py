@@ -1,59 +1,7 @@
 import time
-import socket
-import threading
 import aero
 import adsb_decoder as decoder
-# from network import TcpClient
-
-
-class TcpClient(object):
-    """A TCP Client receving message from server, analysing the data, and """
-    def __init__(self):
-        self.buffer_size = 1024
-        self.is_connected = False
-        self.receiver_thread = threading.Thread(target=self.receiver)
-        self.receiver_thread.daemon = True
-        self.receiver_thread.start()
-
-    def connectToHost(self, ip, port):
-        try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.setblocking(0)
-            self.sock.settimeout(10)    # 10 second timeout
-            self.sock.connect((ip, port))       # connecting
-            self.is_connected = True
-            print "Server connected. HOST: %s, PORT: %s" % (ip, port)
-        except Exception, err:
-            self.is_connected = False
-            print "Connection Error: %s" % err
-            pass
-
-    def disconnect(self):
-        try:
-            self.sock.close()
-            self.is_connected = False
-            print "Server disconnected."
-        except Exception, err:
-            print "Disconnection Error: %s" % err
-            pass
-
-    def receiver(self):
-        while True:
-            if not self.is_connected:
-                time.sleep(1)
-                continue
-
-            try:
-                data = self.sock.recv(self.buffer_size)
-                self.parse_data(data)
-                time.sleep(0.1)
-            except Exception, err:
-                print "Revecier Error: %s" % err
-                time.sleep(1)
-
-    def parse_data(self, data):
-        # rewrite this function
-        print "parsing data..."
+from network import TcpClient
 
 
 class Modesbeast(TcpClient):
