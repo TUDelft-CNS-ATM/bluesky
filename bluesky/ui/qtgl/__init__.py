@@ -4,4 +4,5 @@ from radarwidget import RadarWidget
 from glhelpers import BlueSkyProgram, RenderObject
 from uievents import PanZoomEvent, ACDataEvent, SimInfoEvent, StackTextEvent, \
                      ShowDialogEvent, DisplayFlagEvent, RouteDataEvent, \
-                     DisplayShapeEvent, StackTextEventType, PanZoomEventType
+                     DisplayShapeEvent, StackTextEventType, PanZoomEventType,\
+                     SimQuitEvent

@@ -20,8 +20,11 @@ import traceback
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
-from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType,  \
-                     StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType
+from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, \
+                     PanZoomEventType, ACDataEventType, SimInfoEventType,  \
+                     StackTextEventType, ShowDialogEventType, \
+                     DisplayFlagEventType, RouteDataEventType, \
+                     DisplayShapeEventType, SimQuitEventType
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete as ac
@@ -106,7 +109,7 @@ class Gui(QApplication):
         for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,
                       StackTextEventType, ShowDialogEventType,
                       DisplayFlagEventType, RouteDataEventType,
-                      DisplayShapeEventType]:
+                      DisplayShapeEventType, SimQuitEventType]:
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -195,6 +198,10 @@ class Gui(QApplication):
             elif event.type() == SimInfoEventType:
                 self.win.siminfoLabel.setText('<b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>sim_t</b> = %.1f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
                     % (event.sys_freq, event.simdt, event.simt, event.n_ac, self.modes[event.mode]))
+                return True
+ 
+            elif event.type() == SimQuitEventType:
+                self.closeAllWindows()
                 return True
 
             elif event.type() == StackTextEventType:
@@ -354,7 +361,7 @@ class Gui(QApplication):
             
             elif event.key() == Qt.Key_Escape:
                     self.stack("QUIT")  # Rather like this, so sim.stop is executed
-                    self.closeAllWindows() # But now in a brute way
+#                    self.closeAllWindows() # But now in a brute way
                     
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]

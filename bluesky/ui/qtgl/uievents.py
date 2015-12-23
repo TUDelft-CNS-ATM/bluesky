@@ -5,7 +5,7 @@ except ImportError:
 
 PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
 ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
-DisplayShapeEventType = range(1000, 1008)
+DisplayShapeEventType, SimQuitEventType = range(1000, 1009)
 
 
 class DisplayFlagEvent(QEvent):
@@ -13,7 +13,7 @@ class DisplayFlagEvent(QEvent):
         super(DisplayFlagEvent, self).__init__(DisplayFlagEventType)
         self.switch = switch
         self.argument = argument
-
+        
 
 class SimInfoEvent(QEvent):
     def __init__(self, sys_freq, simdt, simt, n_ac, mode):
@@ -72,3 +72,8 @@ class PanZoomEvent(QEvent):
         self.origin   = origin
         self.zoom     = zoom
         self.absolute = absolute
+
+
+class SimQuitEvent(QEvent):
+    def __init__(self):
+        super(SimQuitEvent, self).__init__(SimQuitEventType)

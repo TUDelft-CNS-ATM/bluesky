@@ -116,20 +116,20 @@ class Simulation(QObject):
 
     def stop(self):
         self.mode = Simulation.end
-        # TODO: Communicate quit signal to main thread
-
+        self.screenio.postQuit()
+ 
     def start(self):
         if self.run_fast:
             self.syst = int(time.time() * 1000.0)
         self.run_fast = False
-        self.mode     = Simulation.op
+        self.mode     = self.op
 
     def pause(self):
-        self.mode     = Simulation.hold
+        self.mode     = self.hold
 
     def reset(self):
         self.simt     = 0.0
-        self.mode     = Simulation.init
+        self.mode     = self.init
         self.traf.reset(self.navdb)
 
     def fastforward(self, nsec=None):

@@ -13,7 +13,7 @@ import time
 # Local imports
 from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, \
                        ShowDialogEvent, DisplayFlagEvent, StackTextEventType, PanZoomEventType, \
-                       DisplayShapeEvent
+                       DisplayShapeEvent, SimQuitEvent
 
 
 class ScreenIO(QObject):
@@ -142,6 +142,10 @@ class ScreenIO(QObject):
 
     def show_file_dialog(self):
         qapp.postEvent(qapp.instance(), ShowDialogEvent())
+        return ''
+
+    def postQuit(self):
+        qapp.postEvent(qapp.instance(), SimQuitEvent())
         return ''
 
     def feature(self, switch, argument=''):
