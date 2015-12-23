@@ -12,4 +12,5 @@ def MainLoop(gui, sim):
             gui.reset()
 
     # After the simulation is done, close the gui
+    sim.stop()
     gui.close()

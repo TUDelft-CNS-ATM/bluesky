@@ -148,7 +148,7 @@ class Simulation:
 
     def reset(self):
         self.simt = 0.0
-        self.mode = Simulation.init
+        self.mode = self.init
         self.traf.reset(self.navdb)
 
     def datafeed(self, flag):

@@ -353,7 +353,8 @@ class Gui(QApplication):
                     return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(0.0, dlon)))
             
             elif event.key() == Qt.Key_Escape:
-                    self.stack("QUIT")
+                    self.stack("QUIT")  # Rather like this, so sim.stop is executed
+                    self.closeAllWindows() # But now in a brute way
                     
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]
