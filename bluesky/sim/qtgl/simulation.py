@@ -49,6 +49,7 @@ class Simulation(QObject):
         # Starting simulation time [seconds]
         self.simt        = 0.0
 
+        self.ffmode      = False
         self.ff_end      = None
 
         # Simulation objects
@@ -73,6 +74,7 @@ class Simulation(QObject):
         self.telnet_in.start()
 
         self.syst = int(time.time() * 1000.0)
+        self.fixdt = self.simdt
 
         while not self.mode == Simulation.end:
             # Timing bookkeeping
