@@ -325,7 +325,7 @@ class Commandstack:
                 #**********************************************************************
 
                 #----------------------------------------------------------------------
-                # First check command synonymes list, then dictionary
+                # First check command synonymes list, then in dictionary
                 #----------------------------------------------------------------------
                 if cmd in self.cmdsynon.keys():
                     cmd = self.cmdsynon[cmd]
@@ -338,7 +338,7 @@ class Commandstack:
                     # Process arg list
                     arglist = []
                     idx    = -1 # Reference aircraft
-                    refalt= 0. # Reference altitude
+                    refalt = 0. # Reference altitude
                     reflat = scr.ctrlat # Reference latitude
                     reflon = scr.ctrlon # Reference longitude
 #                    try:
@@ -423,11 +423,15 @@ class Commandstack:
                     results = function(*arglist) # * = unpack list to call arguments
 #                    except:
 #                        synerr = True
-
                     txt = helptext
                     if not synerr:
                         if type(results)==bool:
                             synerr = not results
+                            if synerr:
+                                if numargs<=0 or cmdargs[i]=="?":
+                                    scr.echo(helptext)
+                                else:
+                                    scr.eche("Syntax error: " + helptext)
                         elif type(results)==list:
                             if len(results)>=1:
                                 synerr = not results[0]
