@@ -5,8 +5,8 @@ import os
 import sys
 
 from ..tools.aero import kts, ft, fpm, nm, lbs,\
-                        qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach,\
-                        eas2tas, cas2mach, density
+                         qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach,\
+                         eas2tas, cas2mach, density
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
