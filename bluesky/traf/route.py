@@ -26,6 +26,7 @@ class Route():
         self.wplon  = [] 
         self.wpalt  = [] # [m] negative value measn not specified
         self.wpspd  = [] # [m/s] negative value means not specified
+        self.wpflyby = [] # Flyby (True)/flyover(False) switch
 
         # Current actual waypoint
         self.iactwp = -1
@@ -38,7 +39,7 @@ class Route():
         self.calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
         return
 
-    def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp=""):
+    def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp="",flyby=True):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
         self.traf = traf  # Traffic object
         self.iac = iac    # a/c to which this route belongs
@@ -68,6 +69,7 @@ class Route():
                     self.wplon[0]  = wplon
                     self.wpalt[0]  = alt
                     self.wpspd[0]  = spd
+                    self.wpflyby[0] = flyby
 
                 # Or add before the first waypoint in route
                 else:
@@ -77,6 +79,7 @@ class Route():
                     self.wplon  = [wplon]  + self.wplon
                     self.wpalt  = [alt]  + self.wpalt
                     self.wpspd  = [spd]  + self.wpspd
+                    self.wpflyby = [flyby] + self.wpflyby
 
                 self.nwp    = self.nwp + 1
                 if self.iactwp>0:
@@ -99,6 +102,7 @@ class Route():
                 self.wplon[-1]  = wplon
                 self.wpalt[-1]  = max(0.,alt)  # Use h=0 as default value
                 self.wpspd[-1]  = spd
+                self.wpflyby[-1] = flyby
                 self.nwp = len(self.wpname)            
                 idx = self.nwp-1
             
@@ -110,6 +114,7 @@ class Route():
                 self.wplon.append(wplon)
                 self.wpalt.append(max(0.,alt))  # Use h=0 as default value
                 self.wpspd.append(spd)
+                self.wpflyby.append(flyby)
                 self.nwp = len(self.wpname)
                 idx = self.nwp-1
 
@@ -155,6 +160,7 @@ class Route():
                  self.wpalt.insert(wpidx,alt)
                  self.wpspd.insert(wpidx,spd)
                  self.wptype.insert(wpidx,wptype)
+                 self.wpflyby.insert(wpidx,flyby)
                  if self.iactwp>=wpidx:
                      self.iactwp = self.iactwp + 1
 
@@ -173,6 +179,7 @@ class Route():
                     self.wpalt.append(self.wpalt[-1])
                     self.wpspd.append(self.wpspd[-1])
                     self.wptype.append(self.wptype[-1])
+                    self.wpflyby.append(self.wpflyby[-1])
                     
                     self.wpname[-2] = newname
                     self.wplat[-2]  = (wplat+90.)%180.-90.
@@ -190,6 +197,7 @@ class Route():
                     self.wpalt.append(alt)
                     self.wpspd.append(spd)
                     self.wptype.append(wptype)
+                    self.wpflyby.append(flyby)
                     idx = self.nwp-1
 
         # Update pointers and report whether we are ok
@@ -289,7 +297,7 @@ class Route():
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
-               lnavon
+               lnavon,wpflyby[self.iactwp]
 
     def delwpt(self,delwpname):
         """Delete waypoint"""

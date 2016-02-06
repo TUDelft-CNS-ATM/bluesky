@@ -2,10 +2,10 @@ import numpy as np
 from math import *
 
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
-     mach2cas, cas2tas, cas2mach, Rearth
+                         mach2cas, cas2tas, cas2mach, Rearth
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach,\
-    vmach2tas, qdrdist
+                            vmach2tas, qdrdist
 from ..tools.misc import degto180
 from ..tools.datalog import Datalog
 
@@ -124,6 +124,7 @@ class Traffic:
         # Traffic navigation information
         self.orig   = []  # Four letter code of origin airport
         self.dest   = []  # Four letter code of destination airport
+        self.flyby  = True # Default: added waypoints will be fly by
 
         # LNAV route navigation
         self.swlnav = np.array([])  # Lateral (HDG) based on nav?
@@ -134,6 +135,7 @@ class Traffic:
         self.actwpalt  = np.array([])  # Active WP altitude to arrive at
         self.actwpspd  = np.array([])  # Active WP speed
         self.actwpturn = np.array([])  # Distance when to turn to next waypoint
+        self.actwpflyby = np.array([])  # Distance when to turn to next waypoint
 
         # VNAV cruise level
         self.crzalt = np.array([])    # Cruise altitude[m]
@@ -318,6 +320,7 @@ class Traffic:
         self.actwpalt  = np.append(self.actwpalt, 0.0)   # Active WP altitude
         self.actwpspd  = np.append(self.actwpspd, -999.)   # Active WP speed
         self.actwpturn = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
+        self.actwpflyby =np.append(self.actwpflyby, 1.0)   # Flyby/fly-over switch
 
         # VNAV cruise level
         self.crzalt = np.append(self.crzalt,-999.) # Cruise altitude[m] <0=None
@@ -438,6 +441,8 @@ class Traffic:
         self.actwpalt  = np.delete(self.actwpalt,  idx)
         self.actwpspd  = np.delete(self.actwpspd,  idx)
         self.actwpturn = np.delete(self.actwpturn, idx)
+        self.actwpflyby = np.delete(self.actflyby, idx)
+
 
         # VNAV cruise level
         self.crzalt    = np.delete(self.crzalt,    idx)
@@ -603,7 +608,7 @@ class Traffic:
 
             # Get next wp (lnavon = False if no more waypoints)
 
-                lat, lon, alt, spd, xtoalt, toalt, lnavon =  \
+                lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
             # End of route/no more waypoints: switch off LNAV
@@ -616,8 +621,9 @@ class Traffic:
                 if not self.swlnav[i]:
                     self.swvnav[i] = False
                     
-                self.actwplat[i] = lat
-                self.actwplon[i] = lon
+                self.actwplat[i]   = lat
+                self.actwplon[i]   = lon
+                self.actwpflyby[i] = int(flyby) # 1.0 in case of fly by, els fly over
 
                 # User entered altitude
 
@@ -697,7 +703,7 @@ class Traffic:
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
                 qdr[i] = degrees(atan2(dx,dy))                    
-                self.actwpturn[i] = max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]- \
+                self.actwpturn[i] = self.actwpflyby*max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]- \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
                 
             # Set headings based on swlnav

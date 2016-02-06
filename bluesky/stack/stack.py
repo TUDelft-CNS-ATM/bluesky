@@ -5,7 +5,8 @@ import os
 import sys
 
 from ..tools.aero import kts, ft, fpm, nm, lbs,\
-    qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
+                        qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach,\
+                        eas2tas, cas2mach, density
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
@@ -1400,70 +1401,78 @@ class Commandstack:
                     
                     else:
                         acid = cmdargs[1]     # call sign
-                        i = traf.id2idx(cmdargs) # Get index of this a/c
-                        if traf.id2idx(cmdargs[1])<0:
-                            scr.echo("ADDWPT: Aircraft "+cmdargs[1]+" not found.")
+                        
+                        # Chekc for fly-by/fly-over switch
+                        if acid=="FLYBY" or acid=="FLY-BY":
+                            traf.swflyby = True
+                        elif acid=="FLYOVER" or acid=="FLY-OVER":
+                            traf.swflyby = False
                         else:
-                            rte = traf.route[i]   # Get pointer to route object
-
-                            # Default values
-                            wpok =  False
-                            alt = -999
-                            spd = -999
-                            afterwp = ""
-                            try:
-
-                                # Get waypoint data
-                                # Is arg 2 a number? => lat,lon else waypoint name
-                                chkdig = cmdargs[2].replace("-","")  \
-                                   .replace("+","").replace(".","")\
-                                   .replace("N","").replace("S","")\
-                                   .replace("E","").replace("W","")\
-                                   .replace("'","").replace('"',"")  
-                                if numargs>=3 and chkdig.isdigit():
-      
-                                    name    = traf.id[i] # use for wptname
-                                    wptype  = rte.wplatlon
-                                    lat     = txt2lat(cmdargs[2])
-                                    lon     = txt2lon(cmdargs[3])
-                                    if numargs>=4 and cmdargs[4]!="":
-                                        alt = txt2alt(cmdargs[4])*ft
-                                    if numargs>=5 and cmdargs[5]!="":
-                                        spd = txt2spd(cmdargs[5],max(alt,traf.alt[i]))
-                                    if numargs>=6:
-                                        afterwp = cmdargs[6]
-                                    wpok    = True
-
-                                # Is arg navaid/airport/waypoint name?
-                                elif numargs>=2:
-                                    name    = cmdargs[2]  # search this wpname closest to
-                                    wptype  = rte.wpnav
-                                    lat     = traf.lat[i]  # a/c position as reference lat,lon 
-                                    lon     = traf.lon[i]
-                                    if numargs>=3 and cmdargs[3]!="":
-                                        alt = txt2alt(cmdargs[3])*ft
-                                    if numargs>=4 and cmdargs[4]!="":
-                                        spd = txt2spd(cmdargs[4],max(alt,traf.alt[i]))
-                                    if numargs>=5:
-                                        afterwp = cmdargs[5]
-                                    wpok    = True
-
-                                # Add the wpt to route
-                                if wpok: 
-                                    wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
-                                    norig = int(traf.orig[i]!="")
-                                    ndest = int(traf.dest[i]!="")
-
-                                    if rte.nwp-norig-ndest==1: # first waypoint: make active
-                                       rte.direct(traf,i,name)
-                                       traf.swlnav[i] = True
-
-                                else:
+                                
+                            i = traf.id2idx(cmdargs) # Get index of this a/c
+                            if traf.id2idx(cmdargs[1])<0:
+                                scr.echo("ADDWPT: Aircraft "+cmdargs[1]+" not found.")
+                            else:
+                                rte = traf.route[i]   # Get pointer to route object
+    
+                                # Default values
+                                wpok =  False
+                                alt = -999
+                                spd = -999
+                                afterwp = ""
+                                try:
+    
+                                    # Get waypoint data
+                                    # Is arg 2 a number? => lat,lon else waypoint name
+                                    chkdig = cmdargs[2].replace("-","")  \
+                                       .replace("+","").replace(".","")\
+                                       .replace("N","").replace("S","")\
+                                       .replace("E","").replace("W","")\
+                                       .replace("'","").replace('"',"")  
+                                    if numargs>=3 and chkdig.isdigit():
+          
+                                        name    = traf.id[i] # use for wptname
+                                        wptype  = rte.wplatlon
+                                        lat     = txt2lat(cmdargs[2])
+                                        lon     = txt2lon(cmdargs[3])
+                                        if numargs>=4 and cmdargs[4]!="":
+                                            alt = txt2alt(cmdargs[4])*ft
+                                        if numargs>=5 and cmdargs[5]!="":
+                                            spd = txt2spd(cmdargs[5],max(alt,traf.alt[i]))
+                                        if numargs>=6:
+                                            afterwp = cmdargs[6]
+                                        wpok    = True
+    
+                                    # Is arg navaid/airport/waypoint name?
+                                    elif numargs>=2:
+                                        name    = cmdargs[2]  # search this wpname closest to
+                                        wptype  = rte.wpnav
+                                        lat     = traf.lat[i]  # a/c position as reference lat,lon 
+                                        lon     = traf.lon[i]
+                                        if numargs>=3 and cmdargs[3]!="":
+                                            alt = txt2alt(cmdargs[3])*ft
+                                        if numargs>=4 and cmdargs[4]!="":
+                                            spd = txt2spd(cmdargs[4],max(alt,traf.alt[i]))
+                                        if numargs>=5:
+                                            afterwp = cmdargs[5]
+                                        wpok    = True
+    
+                                    # Add the wpt to route
+                                    if wpok: 
+                                        wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
+                                        norig = int(traf.orig[i]!="")
+                                        ndest = int(traf.dest[i]!="")
+    
+                                        if rte.nwp-norig-ndest==1: # first waypoint: make active
+                                           rte.direct(traf,i,name)
+                                           traf.swlnav[i] = True
+    
+                                    else:
+                                        scr.echo(trafid[i]+": waypoint not added")
+                                        synerr = True
+                                except:
                                     scr.echo(trafid[i]+": waypoint not added")
                                     synerr = True
-                            except:
-                                scr.echo(trafid[i]+": waypoint not added")
-                                synerr = True
                                 
                 #----------------------------------------------------------------------
                 # DELWPT   : DELWPT acid,WPname
