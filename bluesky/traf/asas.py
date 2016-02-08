@@ -18,8 +18,8 @@ Date        : October 2014
 #    lon [deg]  = array with traffic longitude
 #    alt [m]    = array with traffic altitude 
 #    trk [deg]  = array with traffic track angle
-#    gs [m/s]   = array with ground speed [m/s]
-#    vs [m/s]   = array with vertical speed [m/s]
+#    gs  [m/s]  = array with ground speed [m/s]
+#    vs  [m/s]  = array with vertical speed [m/s]
 #
 # Outputs:
 #    swconfl = 2D array with True/False for conflict
