@@ -1468,10 +1468,10 @@ class Commandstack:
                                            traf.swlnav[i] = True
     
                                     else:
-                                        scr.echo(trafid[i]+": waypoint not added")
+                                        scr.echo(traf.id[i]+": waypoint not added")
                                         synerr = True
                                 except:
-                                    scr.echo(trafid[i]+": waypoint not added")
+                                    scr.echo(traf.id[i]+": waypoint not added")
                                     synerr = True
                                 
                 #----------------------------------------------------------------------
