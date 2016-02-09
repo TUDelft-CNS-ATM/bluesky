@@ -680,7 +680,7 @@ class Traffic:
                 if self.swvnav[i] and self.actwpspd[i]>0.0: # check mode and value
 
                     # Select CAS or Mach command by checking value of actwpspd
-                    if self.actwpspdspd<2.0: # Mach command
+                    if self.actwpspd[i]<2.0: # Mach command
 
                        self.aspd[i] = mach2cas(self.actwpspd[i],self.alt[i])
                        self.ama[i]  = self.actwpspd[i]                            
