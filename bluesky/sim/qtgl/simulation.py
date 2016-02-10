@@ -26,9 +26,6 @@ class Simulation(QObject):
     # Simulation loop update rate [Hz]
     sys_rate = settings.sim_update_rate
 
-    # Flag indicating running at fixed rate or fast time
-    run_fast = False
-
     # simulation modes
     init, op, hold, end = range(4)
 
@@ -49,8 +46,9 @@ class Simulation(QObject):
         # Starting simulation time [seconds]
         self.simt        = 0.0
 
+        # Flag indicating running at fixed rate or fast time
         self.ffmode      = False
-        self.ff_end      = None
+        self.ffstop      = None
 
         # Simulation objects
         self.screenio    = ScreenIO(self)
@@ -107,23 +105,23 @@ class Simulation(QObject):
             QCoreApplication.processEvents()
 
             # When running at a fixed rate, increment system time with sysdt and calculate remainder to sleep
-            if not self.run_fast:
+            if not self.ffmode:
                 self.syst += self.sysdt
                 remainder = self.syst - int(1000.0 * time.time())
 
                 if remainder > 0:
                     QThread.msleep(remainder)
-            elif self.ff_end is not None and self.simt >= self.ff_end:
+            elif self.ffstop is not None and self.simt >= self.ffstop:
                 self.start()
 
     def stop(self):
         self.mode = Simulation.end
         self.screenio.postQuit()
- 
+
     def start(self):
-        if self.run_fast:
+        if self.ffmode:
             self.syst = int(time.time() * 1000.0)
-        self.run_fast = False
+        self.ffmode = False
         self.mode     = self.op
 
     def pause(self):
@@ -135,12 +133,11 @@ class Simulation(QObject):
         self.traf.reset(self.navdb)
 
     def fastforward(self, nsec=None):
-
         self.ffmode = True
         if nsec is not None:
             self.ffstop = self.simt + nsec
         else:
-            self.ff_end = -1.0
+            self.ffstop = None
 
     def datafeed(self, flag):
         if flag == "ON":
