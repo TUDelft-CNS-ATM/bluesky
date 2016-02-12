@@ -122,14 +122,14 @@ class Simulation(QObject):
         if self.ffmode:
             self.syst = int(time.time() * 1000.0)
         self.ffmode = False
-        self.mode     = self.op
+        self.mode   = self.op
 
     def pause(self):
-        self.mode     = self.hold
+        self.mode   = self.hold
 
     def reset(self):
-        self.simt     = 0.0
-        self.mode     = self.init
+        self.simt   = 0.0
+        self.mode   = self.init
         self.traf.reset(self.navdb)
 
     def fastforward(self, nsec=None):
