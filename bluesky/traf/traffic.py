@@ -441,7 +441,7 @@ class Traffic:
         self.actwpalt  = np.delete(self.actwpalt,  idx)
         self.actwpspd  = np.delete(self.actwpspd,  idx)
         self.actwpturn = np.delete(self.actwpturn, idx)
-        self.actwpflyby = np.delete(self.actflyby, idx)
+        self.actwpflyby = np.delete(self.actwpflyby, idx)
 
 
         # VNAV cruise level
