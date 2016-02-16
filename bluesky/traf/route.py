@@ -297,7 +297,7 @@ class Route():
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
-               lnavon,wpflyby[self.iactwp]
+               lnavon,self.wpflyby[self.iactwp]
 
     def delwpt(self,delwpname):
         """Delete waypoint"""
