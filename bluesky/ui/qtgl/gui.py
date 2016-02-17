@@ -199,7 +199,7 @@ class Gui(QApplication):
                 self.win.siminfoLabel.setText('<b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>sim_t</b> = %.1f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
                     % (event.sys_freq, event.simdt, event.simt, event.n_ac, self.modes[event.mode]))
                 return True
- 
+
             elif event.type() == SimQuitEventType:
                 self.closeAllWindows()
                 return True

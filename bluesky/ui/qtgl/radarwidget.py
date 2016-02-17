@@ -609,9 +609,9 @@ class RadarWidget(QGLWidget):
                 print "Delete '" + name + "': object not found!"
             else:
                 newpoly = RenderObject(gl.GL_LINE_LOOP, vertex_count=len(data_in)/2)
-                newpoly.bind_attrib(ATTRIB_VERTEX, 2, data_in)
-                newpoly.bind_attrib(ATTRIB_COLOR, 3, np.array(blue, dtype=np.float32), instance_divisor=1)
-                self.polys[name] = newpoly
+                newpoly.vertexbuf = newpoly.bind_attrib(ATTRIB_VERTEX, 2, data_in)
+                newpoly.colorbuf  = newpoly.bind_attrib(ATTRIB_COLOR, 3, np.array(blue, dtype=np.float32), instance_divisor=1)
+                self.polys[name]  = newpoly
 
     def previewpoly(self, shape_type, data_in=None):
         if shape_type is None:
