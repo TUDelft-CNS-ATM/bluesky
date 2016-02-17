@@ -703,7 +703,7 @@ class Traffic:
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
                 qdr[i] = degrees(atan2(dx,dy))                    
-                self.actwpturn[i] = self.actwpflyby*max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]- \
+                self.actwpturn[i] = self.actwpflyby[i]*max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]- \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
                 
             # Set headings based on swlnav
