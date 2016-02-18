@@ -22,8 +22,8 @@ try:
     elif settings.performance_model == 'bada':
         from perfbada import PerfBADA as Perf
 
-except ImportError as e:
-    print e.args[0]
+except ImportError as err:
+    print err.args[0]
     print 'Falling back to BlueSky performance model'
     from perf import Perf
 
@@ -124,7 +124,6 @@ class Traffic:
         # Traffic navigation information
         self.orig   = []  # Four letter code of origin airport
         self.dest   = []  # Four letter code of destination airport
-        self.flyby  = True # Default: added waypoints will be fly by
 
         # LNAV route navigation
         self.swlnav = np.array([])  # Lateral (HDG) based on nav?

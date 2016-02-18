@@ -37,9 +37,12 @@ class Route():
         self.orig     = 2   # Origin airport
         self.dest     = 3   # Destination airport
         self.calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
+
+        self.swflyby = True # Default waypoints are flyby waypoint
+
         return
 
-    def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp="",flyby=True):
+    def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
         self.traf = traf  # Traffic object
         self.iac = iac    # a/c to which this route belongs
@@ -69,7 +72,7 @@ class Route():
                     self.wplon[0]  = wplon
                     self.wpalt[0]  = alt
                     self.wpspd[0]  = spd
-                    self.wpflyby[0] = flyby
+                    self.wpflyby[0] = self.swflyby
 
                 # Or add before the first waypoint in route
                 else:
@@ -79,7 +82,7 @@ class Route():
                     self.wplon  = [wplon]  + self.wplon
                     self.wpalt  = [alt]  + self.wpalt
                     self.wpspd  = [spd]  + self.wpspd
-                    self.wpflyby = [flyby] + self.wpflyby
+                    self.wpflyby = [self.swflyby] + self.wpflyby
 
                 self.nwp    = self.nwp + 1
                 if self.iactwp>0:
@@ -102,7 +105,7 @@ class Route():
                 self.wplon[-1]  = wplon
                 self.wpalt[-1]  = max(0.,alt)  # Use h=0 as default value
                 self.wpspd[-1]  = spd
-                self.wpflyby[-1] = flyby
+                self.wpflyby[-1] = self.swflyby
                 self.nwp = len(self.wpname)            
                 idx = self.nwp-1
             
@@ -114,7 +117,7 @@ class Route():
                 self.wplon.append(wplon)
                 self.wpalt.append(max(0.,alt))  # Use h=0 as default value
                 self.wpspd.append(spd)
-                self.wpflyby.append(flyby)
+                self.wpflyby.append(self.swflyby)
                 self.nwp = len(self.wpname)
                 idx = self.nwp-1
 
@@ -160,7 +163,7 @@ class Route():
                  self.wpalt.insert(wpidx,alt)
                  self.wpspd.insert(wpidx,spd)
                  self.wptype.insert(wpidx,wptype)
-                 self.wpflyby.insert(wpidx,flyby)
+                 self.wpflyby.insert(wpidx,self.swflyby)
                  if self.iactwp>=wpidx:
                      self.iactwp = self.iactwp + 1
 

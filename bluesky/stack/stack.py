@@ -1401,25 +1401,27 @@ class Commandstack:
                     
                     else:
                         acid = cmdargs[1]     # call sign
-                        
-                        # Chekc for fly-by/fly-over switch
-                        if acid=="FLYBY" or acid=="FLY-BY":
-                            traf.swflyby = True
-                        elif acid=="FLYOVER" or acid=="FLY-OVER":
-                            traf.swflyby = False
+                           
+                        i = traf.id2idx(cmdargs) # Get index of this a/c
+                        if traf.id2idx(cmdargs[1])<0:
+                            scr.echo("ADDWPT: Aircraft "+cmdargs[1]+" not found.")
                         else:
-                                
-                            i = traf.id2idx(cmdargs) # Get index of this a/c
-                            if traf.id2idx(cmdargs[1])<0:
-                                scr.echo("ADDWPT: Aircraft "+cmdargs[1]+" not found.")
+                            rte = traf.route[i]   # Get pointer to route object
+
+                            # Default values
+                            wpok =  False
+                            alt = -999
+                            spd = -999
+                            afterwp = ""
+                            
+                            # Check for fly-by/fly-over switch per aircraft route
+                            wpid = cmdargs[2]                            
+                            if wpid=="FLYBY" or wpid=="FLY-BY":
+                                traf.route[i].swflyby = True
+                            elif wpid=="FLYOVER" or wpid=="FLY-OVER":
+                                traf.route[i].swflyby = False
                             else:
-                                rte = traf.route[i]   # Get pointer to route object
-    
-                                # Default values
-                                wpok =  False
-                                alt = -999
-                                spd = -999
-                                afterwp = ""
+
                                 try:
     
                                     # Get waypoint data
