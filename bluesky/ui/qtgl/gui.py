@@ -369,6 +369,13 @@ class Gui(QApplication):
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]
 
+            elif event.key() == Qt.Key_F11:  # F11 = Toggle Full Screen mode
+                if not self.win.isFullScreen():
+                    self.win.showFullScreen()
+                else:
+                    self.win.showNormal()
+
+
             if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
                 if len(self.command_line) > 0:
                     # emit a signal with the command for the simulation thread
