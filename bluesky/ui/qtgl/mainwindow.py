@@ -1,11 +1,11 @@
 try:
     from PyQt5.QtCore import Qt, pyqtSlot
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QSplashScreen
+    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QMenu, QSplashScreen
     from PyQt5 import uic
 except ImportError:
     from PyQt4.QtCore import Qt, pyqtSlot
-    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QIcon, QSplashScreen
+    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QMenu, QIcon, QSplashScreen
     from PyQt4 import uic
 
 # Local imports
@@ -45,6 +45,17 @@ class MainWindow(QMainWindow):
                     self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked],
                     self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked]}
 
+        self.simnodemenu = QMenu()
+        node = self.simnodemenu.addAction('Node 1')
+        node.setCheckable(True)
+        node.setChecked(True)
+        self.simnodemenu.addSeparator()
+        addaction = self.simnodemenu.addAction('Add node')
+        f = addaction.font()
+        f.setBold(True)
+        addaction.setFont(f)
+        addaction.setEnabled(False)
+        self.simnodes.setMenu(self.simnodemenu)
         for b in buttons.iteritems():
             # Set icon
             if not b[1][0] is None:
@@ -67,14 +78,13 @@ class MainWindow(QMainWindow):
         # View Menu
         self.viewMenu = self.menubar.addMenu('&View')
         self.resetview_action = self.viewMenu.addAction('&Reset view')
-        self.fullscreen_action = self.viewMenu.addAction('Fullscreen')
 
         # Analysis and metrics menu
         self.analysisMenu = self.menubar.addMenu('&Analysis')
-        self.SD_action = self.analysisMenu.addAction('Static Density')
-        self.DD_action = self.analysisMenu.addAction('Dynamic Density')
-        self.SSD_action = self.analysisMenu.addAction('SSD Metric')
-        self.lyu_action = self.analysisMenu.addAction('Lyapunov analysis')
+        # self.SD_action = self.analysisMenu.addAction('Static Density')
+        # self.DD_action = self.analysisMenu.addAction('Dynamic Density')
+        # self.SSD_action = self.analysisMenu.addAction('SSD Metric')
+        # self.lyu_action = self.analysisMenu.addAction('Lyapunov analysis')
 
         # Connections menu
         self.connectionsMenu = self.menubar.addMenu('Connections')

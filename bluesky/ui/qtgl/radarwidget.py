@@ -22,7 +22,7 @@ from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, fon
 
 # Static defines
 MAX_NAIRCRAFT        = 10000
-MAX_NCONFLICTS       = 1000
+MAX_NCONFLICTS       = 10000
 MAX_ROUTE_LENGTH     = 100
 MAX_POLYGON_SEGMENTS = 100
 
