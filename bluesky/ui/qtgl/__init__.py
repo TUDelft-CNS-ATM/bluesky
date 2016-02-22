@@ -5,4 +5,4 @@ from glhelpers import BlueSkyProgram, RenderObject
 from uievents import PanZoomEvent, ACDataEvent, SimInfoEvent, StackTextEvent, \
                      ShowDialogEvent, DisplayFlagEvent, RouteDataEvent, \
                      DisplayShapeEvent, StackTextEventType, PanZoomEventType,\
-                     SimQuitEvent
+                     SimQuitEvent, AMANEvent

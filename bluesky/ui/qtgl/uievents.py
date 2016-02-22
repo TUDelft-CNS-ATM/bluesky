@@ -5,7 +5,7 @@ except ImportError:
 
 PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
 ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
-DisplayShapeEventType, SimQuitEventType = range(1000, 1009)
+DisplayShapeEventType, SimQuitEventType, AMANEventType = range(1000, 1010)
 
 
 class DisplayFlagEvent(QEvent):
@@ -63,6 +63,13 @@ class ACDataEvent(QEvent):
 
     def __init__(self):
         super(ACDataEvent, self).__init__(ACDataEventType)
+
+
+class AMANEvent(QEvent):
+    ids = iafs = eats = etas = delays = rwys = spdratios = []
+
+    def __init__(self):
+        super(AMANEvent, self).__init__(AMANEventType)
 
 
 class PanZoomEvent(QEvent):

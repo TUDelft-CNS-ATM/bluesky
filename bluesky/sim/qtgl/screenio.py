@@ -13,7 +13,7 @@ import time
 # Local imports
 from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, \
                        ShowDialogEvent, DisplayFlagEvent, StackTextEventType, PanZoomEventType, \
-                       DisplayShapeEvent, SimQuitEvent
+                       DisplayShapeEvent, SimQuitEvent, AMANEvent
 
 
 class ScreenIO(QObject):
@@ -51,6 +51,19 @@ class ScreenIO(QObject):
         data.trk        = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
         qapp.postEvent(qapp.instance(), data)
 
+    @pyqtSlot()
+    def send_aman_data(self):
+        # data            = AMANEvent()
+        # data.ids        = self.sim.traf.AMAN.
+        # data.iafs       = self.sim.traf.AMAN.
+        # data.eats       = self.sim.traf.AMAN.
+        # data.etas       = self.sim.traf.AMAN.
+        # data.delays     = self.sim.traf.AMAN.
+        # data.rwys       = self.sim.traf.AMAN.
+        # data.spdratios  = self.sim.traf.AMAN. 
+        # qapp.postEvent(qapp.instance(), data)
+        pass
+
     # =========================================================================
     # Functions
     # =========================================================================
@@ -73,6 +86,7 @@ class ScreenIO(QObject):
         # Output event timers
         self.siminfo_timer = QTimer()
         self.siminfo_timer.timeout.connect(self.send_siminfo)
+        self.siminfo_timer.timeout.connect(self.send_aman_data)
         self.siminfo_timer.start(1000/self.siminfo_rate)
 
         self.acupdate_timer = QTimer()

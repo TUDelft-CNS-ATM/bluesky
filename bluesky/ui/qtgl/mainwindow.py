@@ -1,11 +1,11 @@
 try:
-    from PyQt5.QtCore import Qt, pyqtSlot
+    from PyQt5.QtCore import Qt, pyqtSlot, QRect
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QMenu, QSplashScreen
+    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QMenu, QSplashScreen, QLabel
     from PyQt5 import uic
 except ImportError:
-    from PyQt4.QtCore import Qt, pyqtSlot
-    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QMenu, QIcon, QSplashScreen
+    from PyQt4.QtCore import Qt, pyqtSlot, QRect
+    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QMenu, QIcon, QSplashScreen, QLabel
     from PyQt4 import uic
 
 # Local imports
@@ -135,3 +135,35 @@ class MainWindow(QMainWindow):
             self.radarwidget.show_lbl = not self.radarwidget.show_lbl
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
+
+
+class AMANDisplay(QMainWindow):
+
+    def __init__(self, app):
+        super(AMANDisplay, self).__init__()
+        self.app = app
+        uic.loadUi("./data/graphics/aman.ui", self)
+        self.aircraft = dict()
+        # self.label = QLabel(self.centralwidget)
+        # self.label.setGeometry(QRect(70, 490, 59, 16))
+        # self.label.setText('De tekst!')
+        self.show()
+
+    def update(self, simt, data):
+        # data has: ids, iafs, eats, etas, delays, rwys, spdratios
+
+        # First delete old labels
+        for key, in self.aircraft.keys:
+            if key not in data.ids:
+                # del label
+                del self.aircraft[key]
+
+        for i in len(data.ids):
+            if data.ids[i] not in self.aircraft:
+                self.aircraft[data.ids[i]] = QLabel()
+
+            # Generate the new label text and position
+            newtext = '<font color=Red>bla</font>'  # veranderen
+            lbl = self.aircraft[data.ids[i]]
+            lbl.setText(newtext)
+            lbl.move(posx, posy)  # move in pixels

@@ -19,12 +19,13 @@ import traceback
 
 # Local imports
 from ..radarclick import radarclick
-from mainwindow import MainWindow, Splash
+from mainwindow import MainWindow, Splash, AMANDisplay
 from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
-                     DisplayShapeEventType, SimQuitEventType
+                     DisplayShapeEventType, SimQuitEventType, \
+                     AMANEventType
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete as ac
@@ -104,12 +105,14 @@ class Gui(QApplication):
         self.mousepos        = (0, 0)
         self.prevmousepos    = (0, 0)
         self.panzoomchanged  = False
+        self.simt            = 0.0
 
         # Register our custom pan/zoom event
         for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,
                       StackTextEventType, ShowDialogEventType,
                       DisplayFlagEventType, RouteDataEventType,
-                      DisplayShapeEventType, SimQuitEventType]:
+                      DisplayShapeEventType, SimQuitEventType,
+                      AMANEventType]:
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -137,8 +140,9 @@ class Gui(QApplication):
 
         # Create the main window and related widgets
         self.radarwidget = RadarWidget(navdb)
-        self.win = MainWindow(self, self.radarwidget)
-        self.nd  = ND(shareWidget=self.radarwidget)
+        self.win  = MainWindow(self, self.radarwidget)
+        self.nd   = ND(shareWidget=self.radarwidget)
+        # self.aman = AMANDisplay(self)
 
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION == 5:
@@ -196,9 +200,10 @@ class Gui(QApplication):
                 self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
-                hours   = np.floor(event.simt / 3600)
-                minutes = np.floor((event.simt - 3600 * hours) / 60)
-                seconds = np.floor(event.simt - 3600 * hours - 60 * minutes)
+                self.simt = event.simt
+                hours     = np.floor(event.simt / 3600)
+                minutes   = np.floor((event.simt - 3600 * hours) / 60)
+                seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
                 self.win.siminfoLabel.setText('<b>sim_t</b> = %02d:%02d:%02d, <b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
                     % (hours, minutes, seconds, event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
                 return True
@@ -255,6 +260,10 @@ class Gui(QApplication):
                     self.radarwidget.show_pz = not self.radarwidget.show_pz
 
                 return True
+
+            elif event.type() == AMANEventType:
+                # self.aman.update(self.simt, event)
+                pass
 
         # Mouse/trackpad event handling for the Radar widget
         if receiver is self.radarwidget and self.radarwidget.initialized:
