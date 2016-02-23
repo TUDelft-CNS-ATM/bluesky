@@ -1,11 +1,11 @@
 try:
     from PyQt5.QtCore import Qt, pyqtSlot, QRect
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QMenu, QSplashScreen, QLabel
+    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QMenu, QSplashScreen, QLabel, QWidget, QFrame
     from PyQt5 import uic
 except ImportError:
     from PyQt4.QtCore import Qt, pyqtSlot, QRect
-    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QMenu, QIcon, QSplashScreen, QLabel
+    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QMenu, QIcon, QSplashScreen, QLabel, QWidget, QFrame
     from PyQt4 import uic
 
 # Local imports
@@ -137,16 +137,23 @@ class MainWindow(QMainWindow):
             self.radarwidget.show_map = not self.radarwidget.show_map
 
 
-class AMANDisplay(QMainWindow):
-
+class AMANDisplay(QWidget):
     def __init__(self, app):
         super(AMANDisplay, self).__init__()
         self.app = app
-        uic.loadUi("./data/graphics/aman.ui", self)
-        self.aircraft = dict()
-        # self.label = QLabel(self.centralwidget)
-        # self.label.setGeometry(QRect(70, 490, 59, 16))
-        # self.label.setText('De tekst!')
+        self.setGeometry(0, 0, 500, 600)
+        self.setStyleSheet('background-color:#233370')
+
+        # Timeline frame
+        line1 = QFrame(self)
+        line1.setGeometry(220, 0, 20, 600)
+        line1.setStyleSheet('color:white')
+        line1.setFrameShape(QFrame.VLine)
+        line2 = QFrame(self)
+        line2.setGeometry(280, 0, 20, 600)
+        line2.setStyleSheet('color:white')
+        line2.setFrameShape(QFrame.VLine)
+
         self.show()
 
     def update(self, simt, data):
