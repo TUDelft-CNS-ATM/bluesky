@@ -19,7 +19,8 @@ import traceback
 
 # Local imports
 from ..radarclick import radarclick
-from mainwindow import MainWindow, Splash, AMANDisplay
+from mainwindow import MainWindow, Splash
+from aman import AMANDisplay
 from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
@@ -142,7 +143,7 @@ class Gui(QApplication):
         self.radarwidget = RadarWidget(navdb)
         self.win  = MainWindow(self, self.radarwidget)
         self.nd   = ND(shareWidget=self.radarwidget)
-        # self.aman = AMANDisplay(self)
+        #self.aman = AMANDisplay()
 
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION == 5:
