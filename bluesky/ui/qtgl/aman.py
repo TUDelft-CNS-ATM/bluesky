@@ -1,9 +1,9 @@
 try:
     from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QPen, QColor
+    from PyQt5.QtGui import QPen, QColor, QFont
     from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItemGroup
 except ImportError:
-    from PyQt4.QtGui import QPen, QColor, QGraphicsView, QGraphicsScene, QGraphicsItemGroup
+    from PyQt4.QtGui import QPen, QColor, QFont, QGraphicsView, QGraphicsScene, QGraphicsItemGroup
 
 
 class AMANDisplay(QGraphicsView):
@@ -29,6 +29,9 @@ class AMANDisplay(QGraphicsView):
             self.timeline.addToGroup(self.scene.addLine(270, y, 280, y, pen))
 
         self.scene.addItem(self.timeline)
+        self.lrwy = self.scene.addText('18R', QFont('Arial', 20, 50))
+        self.lrwy.setPos(1, 1)
+        self.lrwy.setDefaultTextColor(QColor('white'))
         # Finalize
         self.setScene(self.scene)
         self.show()

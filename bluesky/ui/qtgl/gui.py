@@ -143,7 +143,7 @@ class Gui(QApplication):
         self.radarwidget = RadarWidget(navdb)
         self.win  = MainWindow(self, self.radarwidget)
         self.nd   = ND(shareWidget=self.radarwidget)
-        #self.aman = AMANDisplay()
+        # self.aman = AMANDisplay()
 
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION == 5:
