@@ -274,7 +274,7 @@ class Dbconf():
             combi=str(self.traf.id[i])+" "+str(self.traf.id[j])
             combi2=str(self.traf.id[j])+" "+str(self.traf.id[i])
             
-            experimenttime= simt>2100 and simt<5700 # These parameters may be 
+            experimenttime = simt>2100 and simt<5700 # These parameters may be 
             #changed to count only conflicts within a given expirement time window
             
             if combi not in self.conflist_all and combi2 not in self.conflist_all:
@@ -295,8 +295,8 @@ class Dbconf():
                     self.LOSlist_now.append(combi)
                     
                 #Now, we measure intrusion and store it if it is the most severe
-                Ih=1-np.sqrt(hdist2)/self.R
-                Iv=1-vdist/self.dh
+                Ih = 1.0 - np.sqrt(hdist2)/self.R
+                Iv = 1.0 - vdist/self.dh
                 severity=min(Ih,Iv)
                 try:  # Only continue if combi is found in LOSlist (and not combi2)
                     idx = self.LOSlist_all.index(combi)
@@ -305,9 +305,9 @@ class Dbconf():
                                    
                 if idx >=0:
                     if severity > self.LOSmaxsev[idx]:
-                        self.LOSmaxsev[idx]=severity
-                        self.LOShmaxsev[idx]=Ih
-                        self.LOSvmaxsev[idx]=Iv
+                        self.LOSmaxsev[idx]  = severity
+                        self.LOShmaxsev[idx] = Ih
+                        self.LOSvmaxsev[idx] = Iv
 
         self.nconf = len(self.idown)
 

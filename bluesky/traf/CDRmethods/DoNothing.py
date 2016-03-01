@@ -9,4 +9,4 @@ def start(dbconf):
     dbconf.CRname="NoResolution"
 
 def resolve(dbconf):
-    pass
+    dbconf.traf.asasactive.fill(False)

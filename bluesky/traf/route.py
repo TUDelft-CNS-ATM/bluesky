@@ -58,12 +58,18 @@ class Route():
         # ORIGIN: Wptype is origin?
         if wptype==self.orig:
 
-             i = self.navdb.getapidx(name.upper().strip())
-             wpok = (i >= 0)
-             if wpok:
-                wplat = self.navdb.aplat[i]
-                wplon = self.navdb.aplon[i]            
+            if not (name==traf.id[iac]+"ORIG"):   # published identifier
+                 i = self.navdb.getapidx(name.upper().strip())
+                 wpok = (i >= 0)
+                 if wpok:
+                    wplat = self.navdb.aplat[i]
+                    wplon = self.navdb.aplon[i]            
+            else:                                 # lat/lon type
+                 wplat = lat
+                 wplon = lon
+                 wpok = True
 
+            if wpok:
                 # Overwrite existing origin
                 if self.nwp>0 and self.wptype[0]==self.orig:
                     self.wpname[0] = name.upper()
@@ -87,15 +93,22 @@ class Route():
                 self.nwp    = self.nwp + 1
                 if self.iactwp>0:
                     self.iactwp = self.iactwp + 1
-             idx = 0
+            idx = 0
 
         # DESTINATION: Wptype is destination?
+
         elif wptype==self.dest:
-            i = self.navdb.getapidx(name.upper().strip())
-            wpok = (i >= 0)
-            if wpok:
-                wplat = self.navdb.aplat[i]
-                wplon = self.navdb.aplon[i]            
+
+            if not (name==traf.id[iac]+"DEST"):   # published identifier
+                 i = self.navdb.getapidx(name.upper().strip())
+                 wpok = (i >= 0)
+                 if wpok:
+                    wplat = self.navdb.aplat[i]
+                    wplon = self.navdb.aplon[i]            
+            else:                                 # lat/lon type
+                 wplat = lat
+                 wplon = lon
+                 wpok = True
 
             # Overwrite existing destination
             if wpok and self.nwp>0 and self.wptype[-1]==self.dest:
@@ -200,7 +213,7 @@ class Route():
                     self.wpalt.append(alt)
                     self.wpspd.append(spd)
                     self.wptype.append(wptype)
-                    self.wpflyby.append(flyby)
+                    self.wpflyby.append(self.swflyby)
                     idx = self.nwp-1
 
         # Update pointers and report whether we are ok
@@ -229,14 +242,18 @@ class Route():
            traf.actwplon[i] = self.wplon[wpidx]
 
            if traf.swvnav[i]:
+               # Set target altitude for autopilot
                if self.wpalt[wpidx]:
                     traf.aalt[i] = self.wpalt[wpidx]
+
+               # Set target speed for autopilot
                spd = self.wpspd[wpidx]
                if spd>0:
                     if spd<2.0:
                        traf.aspd[i] = mach2cas(spd,traf.alt[i])                            
                     else:    
                        traf.aspd[i] = cas2tas(spd,traf.alt[i])
+
                vnavok =  True
            else:
                vnavok = False

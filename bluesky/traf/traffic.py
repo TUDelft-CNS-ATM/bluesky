@@ -600,23 +600,18 @@ class Traffic:
 
             iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
             
-            # Shift for aircraft i where necessary
-
+            # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
-                
 
-            # Get next wp (lnavon = False if no more waypoints)
-
+                # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
-            # End of route/no more waypoints: switch off LNAV
-
+                # End of route/no more waypoints: switch off LNAV
                 if not lnavon:
                     self.swlnav[i] = False # Drop LNAV at end of route
 
-            # In case of no LNAV, do not allow VNAV mode on it sown
-
+                # In case of no LNAV, do not allow VNAV mode on it sown
                 if not self.swlnav[i]:
                     self.swvnav[i] = False
                     
@@ -632,21 +627,27 @@ class Traffic:
                 # VNAV=-ALT mode
                 # calculated altitude is available and active
                 
-                if toalt  >= 0. and self.swvnav[i]:
+                if toalt  >= 0. and self.swvnav[i]: # somewhere there is an altitude constraint ahead
+
                     # Descent VNAV mode (T/D logic)
-                    
-                    if self.alt[i]>toalt+10.*ft:       # Descent part is in this range of waypoints:
+                    if self.alt[i] > toalt+10.*ft:       
 
                         # Flat earth distance to next wp
                         dy = (lat-self.lat[i])
                         dx = (lon-self.lon[i])*cos(radians(lat))
                         dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
               
-                        steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
-                        maxaltwp  = toalt + xtoalt*steepness    # max allowed altitude at next wp
-                        self.actwpalt[i] = min(self.alt[i],maxaltwp) #To descend now or descend later?
+                        #Steepness dh/dx in [m/m], for now 1:3 rule of thumb
+                        steepness = 3000.*ft/(10.*nm)
+                        
+                        #Calculate max allowed altitude at next wp
+                        maxaltwp  = toalt + xtoalt*steepness
+                        
+                        #To descend now or descend later?
+                        self.actwpalt[i] = min(self.alt[i],maxaltwp)
 
-                        if maxaltwp<self.alt[i]: # if descent is necessary with maximum steepness
+                        #If descent is necessary with maximum steepness
+                        if maxaltwp<self.alt[i]: 
 
                             self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
 
@@ -697,12 +698,14 @@ class Traffic:
                 # Calculate distance before waypoint where to start the turn
                 # Turn radius:      R = V2 tan phi / g
                 # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
-                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] default bank angle per flight phase
+                # using default bank angle per flight phase
+                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] 
 #                    print turnrad
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
                 qdr[i] = degrees(atan2(dx,dy))                    
-                self.actwpturn[i] = self.actwpflyby[i]*max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]- \
+                self.actwpturn[i] = self.actwpflyby[i]*                     \
+                     max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
                 
             # Set headings based on swlnav
