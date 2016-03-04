@@ -666,12 +666,7 @@ class Commandstack:
                                        .replace("+","").replace(".","") \
                                        .replace("N","").replace("S","") \
                                        .replace("E","").replace("W","") \
-                                       .replace("'","").replace('"',"") \
-                                       + cmdargs[3].replace("-","")     \
-                                       .replace("+","").replace(".","") \
-                                       .replace("N","").replace("S","") \
-                                       .replace("E","").replace("W","") \
-                                       .replace("'","").replace('"',"")  
+                                       .replace("'","").replace('"',"") 
 
                                 if chkdig.isdigit():
           
@@ -1371,12 +1366,7 @@ class Commandstack:
                                        .replace("+","").replace(".","")\
                                        .replace("N","").replace("S","")\
                                        .replace("E","").replace("W","")\
-                                       .replace("'","").replace('"',"")\
-                                       + cmdargs[3].replace("-","")  \
-                                       .replace("+","").replace(".","")\
-                                       .replace("N","").replace("S","")\
-                                       .replace("E","").replace("W","")\
-                                       .replace("'","").replace('"',"")  
+                                       .replace("'","").replace('"',"")
 
                                     if numargs>=3 and chkdig.isdigit():
           
