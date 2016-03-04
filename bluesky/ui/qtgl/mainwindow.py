@@ -97,6 +97,9 @@ class MainWindow(QMainWindow):
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
 
+    def closeEvent(self, event):
+        self.app.closeAllWindows()
+
     @pyqtSlot()
     def buttonClicked(self):
         if self.sender() == self.zoomin:
