@@ -45,6 +45,7 @@ class ScreenIO(QObject):
         data.lon        = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
         data.alt        = np.array(self.sim.traf.alt, dtype=np.float32, copy=True)
         data.tas        = np.array(self.sim.traf.tas, dtype=np.float32, copy=True)
+        data.cas        = np.array(self.sim.traf.cas, dtype=np.float32, copy=True)
         data.iconf      = np.array(self.sim.traf.iconf, copy=True)
         data.confcpalat = np.array(self.sim.traf.dbconf.latowncpa, copy=True)
         data.confcpalon = np.array(self.sim.traf.dbconf.lonowncpa, copy=True)

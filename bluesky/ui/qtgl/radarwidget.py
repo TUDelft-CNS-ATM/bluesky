@@ -565,14 +565,14 @@ class RadarWidget(QGLWidget):
             color    = np.zeros((self.naircraft, 3), dtype=np.float32)
             for i in range(self.naircraft):
                 if np.isnan(data.tas[i]):
-                    print 'TAS NaN in %d: %s' % (i, data.id[i])
-                    data.tas[i] = 0.0
+                    print 'CAS NaN in %d: %s' % (i, data.id[i])
+                    data.cas[i] = 0.0
 
                 if np.isnan(data.alt[i]):
                     print 'ALT NaN in %d: %s' % (i, data.id[i])
                     data.alt[i] = 0.0
 
-                rawlabel += '%-8sFL%03d   %-8d' % (data.id[i][:8], int(data.alt[i] / ft / 100), int(data.tas[i] / kts))
+                rawlabel += '%-8sFL%03d   %-8d' % (data.id[i][:8], int(data.alt[i] / ft / 100), int(data.cas[i] / kts))
                 confidx = data.iconf[i]
                 if confidx >= 0:
                     color[i, :] = amber

@@ -85,7 +85,7 @@ class Traffic:
         self.trk    = np.array([])  # track angle [deg]
         self.tas    = np.array([])  # true airspeed [m/s]
         self.gs     = np.array([])  # ground speed [m/s]
-        self.cas    = np.array([])  # callibrated airspeed [m/s]
+        self.cas    = np.array([])  # calibrated airspeed [m/s]
         self.M      = np.array([])  # mach number
         self.alt    = np.array([])  # altitude [m]
         self.fll    = np.array([])  # flight level [ft/100]
