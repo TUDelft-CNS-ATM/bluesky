@@ -140,10 +140,8 @@ class ScreenIO(QObject):
             data.lon       = np.empty(n_segments, dtype=np.float32)
             data.lon[0]    = self.sim.traf.lon[data.acidx]
             data.lon[1:]   = route.wplon
-            wptlabels      = []
-            for i in range(1, n_segments):
-                wptlabels += '%-8s' % route.wpname[i-1]
-            data.wptlabels = np.array(wptlabels)
+            data.wptlabels = np.array(route.wpname)
+
         qapp.postEvent(qapp.instance(), data)
 
     def showssd(self, param):

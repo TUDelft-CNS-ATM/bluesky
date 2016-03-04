@@ -171,7 +171,7 @@ class RadarWidget(QGLWidget):
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
-        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 12, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject(gl.GL_TRIANGLE_FAN, vertex_count=4)
@@ -253,7 +253,7 @@ class RadarWidget(QGLWidget):
         self.route = RenderObject(gl.GL_LINE_STRIP)
         self.route.bind_attrib(ATTRIB_VERTEX, 2, self.routebuf)
         self.route.bind_attrib(ATTRIB_COLOR, 3, np.array(magenta, dtype=np.float32), instance_divisor=1)
-        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (8, 1), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (12, 1), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
 
         # ------- Waypoints ------------------------------
         self.nwaypoints = len(self.navdb.wplat)
@@ -481,14 +481,16 @@ class RadarWidget(QGLWidget):
                 gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue4)
                 self.wptlabels.draw(n_instances=nwaypoints)
 
+            if self.show_traf and self.route.vertex_count > 1:
+                gl.glVertexAttrib3f(ATTRIB_COLOR, *magenta)
+                self.font.set_char_size(self.routelbl.char_size)
+                self.font.set_block_size(self.routelbl.block_size)
+                self.routelbl.draw(n_instances=self.route.vertex_count-1)
+
             if self.naircraft > 0 and self.show_traf and self.show_lbl:
                 self.font.set_char_size(self.aclabels.char_size)
                 self.font.set_block_size(self.aclabels.block_size)
                 self.aclabels.draw(n_instances=self.naircraft)
-
-            if self.show_traf and self.route.vertex_count > 1:
-                gl.glVertexAttrib3f(ATTRIB_COLOR, *magenta)
-                self.routelbl.draw(n_instances=self.route.vertex_count-1)
 
         # SSD
         if self.ssd_all or len(self.ssd_ownship) > 0:
@@ -536,7 +538,10 @@ class RadarWidget(QGLWidget):
             update_buffer(self.routebuf, routedata)
             update_buffer(self.routewplatbuf, data.lat[1:])
             update_buffer(self.routewplonbuf, data.lon[1:])
-            update_buffer(self.routelblbuf, data.wptlabels)
+            wptlabels = []
+            for wp in data.wptlabels:
+                wptlabels += wp[:12].ljust(12)
+            update_buffer(self.routelblbuf, np.array(wptlabels))
         else:
             self.route.set_vertex_count(0)
 
