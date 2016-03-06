@@ -24,7 +24,7 @@ class Route():
         self.wptype = []
         self.wplat  = []
         self.wplon  = [] 
-        self.wpalt  = [] # [m] negative value measn not specified
+        self.wpalt  = [] # [m] negative value means not specified
         self.wpspd  = [] # [m/s] negative value means not specified
         self.wpflyby = [] # Flyby (True)/flyover(False) switch
 
@@ -233,7 +233,8 @@ class Route():
         return idx
 
     def direct(self,traf,i,wpnam):
-        """Set point to a waypoint by name"""
+        """Set active point to a waypoint by name"""
+        
         name = wpnam.upper().strip()
         if name != "" and self.wpname.count(name)>0:
            wpidx = self.wpname.index(name)
@@ -243,8 +244,14 @@ class Route():
 
            if traf.swvnav[i]:
                # Set target altitude for autopilot
-               if self.wpalt[wpidx]:
-                    traf.aalt[i] = self.wpalt[wpidx]
+               if self.wpalt[wpidx]>0:
+                    
+                    if traf.alt[i]<self.wptoalt[i]-10.*ft:                    
+                        traf.actwpalt[i] = self.wptoalt[wpidx]
+                    else:
+                        steepness = 3000.*ft/(10.*nm)
+                        traf.actwpalt[i] = self.wptoalt[wpidx]+self.wpxtoalt*steepness
+
 
                # Set target speed for autopilot
                spd = self.wpspd[wpidx]

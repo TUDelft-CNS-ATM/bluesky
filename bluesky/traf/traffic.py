@@ -640,13 +640,12 @@ class Traffic:
                         #Steepness dh/dx in [m/m], for now 1:3 rule of thumb
                         steepness = 3000.*ft/(10.*nm)
                         
-                        #Calculate max allowed altitude at next wp
+                        #Calculate max allowed altitude at next wp (above toalt)
                         self.actwpalt[i] = toalt + xtoalt*steepness
 
                         # Dist to waypoint where descent should start
                         self.dist2vs = (self.alt[i]-self.actwpalt[i])/steepness
-                        
-
+ 
                         # Flat earth distance to next wp
                         dy = (lat-self.lat[i])
                         dx = (lon-self.lon[i])*cos(radians(lat))
@@ -666,14 +665,16 @@ class Traffic:
                        
                             # Calculate V/s using steepness, 
                             # protect against zero/invalid ground speed value
-                            self.actwpvs[i] = steepness*(self.gs[i] +   \
+                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
                                             (self.gs[i]<0.2*self.tas[i])*self.tas[i])
 
                     # Climb VNAV mode: climb as soon as possible (T/C logic)                        
                     elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
 
-                        self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
-                        self.dist2vs = 9999.
+                        self.actwpalt[i] = toalt
+                        self.aalt[i]     = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+                        self.dist2vs     = 9999.
+#                        print "immediate climb needed"
 
                     # Level leg: never start V/S
                     else:
@@ -712,6 +713,7 @@ class Traffic:
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
                 qdr[i] = degrees(atan2(dx,dy))                    
+
                 self.actwpturn[i] = self.actwpflyby[i]*                     \
                      max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
@@ -719,13 +721,16 @@ class Traffic:
             # End of Waypoint switching loop
             
             # Do VNAV start of descent check
-            self.swvnavvs = self.swvnav*(dist<self.dist2vs)             
+            self.swvnavvs = self.swvnav*(dist<self.dist2vs) + \
+                                     (self.actwpalt>self.alt)            
+            
+ #           print self.swvnavvs,self.alt,self.actwpalt           
             
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
             
 
-        #-------------END fo FMS check-------------------
+        #-------------END of FMS update -------------------
       
         # NOISE: Turbulence
         if self.turbulence:
