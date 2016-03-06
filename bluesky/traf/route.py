@@ -354,7 +354,7 @@ class Route():
 
         # Remove old actual position waypoints
         while self.wpname.count("A/C")>0:
-            self.delwpt("T/C")
+            self.delwpt("A/C")
 
         # Insert actual position as A/C waypoint
         idx = self.iactwp        
