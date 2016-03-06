@@ -8,7 +8,7 @@ from bluesky.sim.pygame import Simulation, MainLoop
 # =============================================================================
 # Create gui and simulation objects
 # =============================================================================
-navdb = Navdatabase('global')
+navdb = Navdatabase('global')   # Read database from specified folder 
 gui   = Gui(navdb)
 sim   = Simulation(gui,navdb)
 
