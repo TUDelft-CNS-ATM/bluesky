@@ -511,16 +511,6 @@ class Traffic:
         return
 
     def update(self, simt, simdt):
-#        print
-#        print "t = ",simt
-#        print        
-#        print "TAS=",self.tas #TAS
-#        print "APTAS=",self.aptas # TAS
-#        print "aspd=",self.aspd #CAS
-
-#        i = self.id2idx("TP233")
-#        if i>=0:
-#           print "LNAV TP233:",self.swlnav[i]
         # Update only necessary if there is traffic
         if self.ntraf == 0:
             return
@@ -644,16 +634,16 @@ class Traffic:
                         self.actwpalt[i] = toalt + xtoalt*steepness
 
                         # Dist to waypoint where descent should start
-                        self.dist2vs = (self.alt[i]-self.actwpalt[i])/steepness
+                        self.dist2vs[i] = (self.alt[i]-self.actwpalt[i])/steepness
  
                         # Flat earth distance to next wp
                         dy = (lat-self.lat[i])
                         dx = (lon-self.lon[i])*cos(radians(lat))
                         legdist = 60.*nm*sqrt(dx*dx+dy*dy)
 
+
                         #If descent is urgent, descent with maximum steepness
-                        if legdist < dist2vs:
-                            
+                        if legdist < self.dist2vs[i]:
                             self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
 
                             t2go         = max(0.1,legdist)/max(0.01,self.gs[i])
@@ -674,7 +664,6 @@ class Traffic:
                         self.actwpalt[i] = toalt
                         self.aalt[i]     = self.actwpalt[i] # dial in altitude of next waypoint as calculated
                         self.dist2vs     = 9999.
-#                        print "immediate climb needed"
 
                     # Level leg: never start V/S
                     else:
@@ -709,7 +698,7 @@ class Traffic:
                 # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                 # using default bank angle per flight phase
                 turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] 
-#                    print turnrad
+
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
                 qdr[i] = degrees(atan2(dx,dy))                    
@@ -721,14 +710,20 @@ class Traffic:
             # End of Waypoint switching loop
             
             # Do VNAV start of descent check
-            self.swvnavvs = self.swvnav*(dist<self.dist2vs) + \
-                                     (self.actwpalt>self.alt)            
-            
- #           print self.swvnavvs,self.alt,self.actwpalt           
-            
+            dy = (self.actwplat-self.lat)
+            dx = (self.actwplon-self.lon)*cos(radians(self.lat))
+            dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
+            steepness = 3000.*ft/(10.*nm)            
+
+            # VNAV AP LOGIC
+            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
+                                     (self.actwpalt>self.alt))            
+
+            self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
+            self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
+
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
-            
 
         #-------------END of FMS update -------------------
       
@@ -786,8 +781,7 @@ class Traffic:
         self.ahdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
-        self.avs = (1.-self.swvnavvs)*((self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs) + \
-                    self.swvnavvs*self.actwpvs
+        self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
 
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         #climb/descend above crossover: Ma = const, else CAS = const  
@@ -812,13 +806,9 @@ class Traffic:
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
+
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
                                           simdt) + (1. - swspdsel) * self.aptas
-                                          
-        # print "DELSPD", self.delspd/simdt, "AX", self.ax, "SELECTED", ax
-        # without that part: non-accelerating ac would have TAS = 0            
-        # print "1-sw", (1. - swspdsel) * self.aptas
-        # print "NEW TAS", self.tas
 
         # Speed conversions
         self.cas = vtas2cas(self.tas, self.alt)
@@ -834,7 +824,6 @@ class Traffic:
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
         swaltsel = np.abs(self.aalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
-#        print swaltsel
 
         self.vs = swaltsel*np.sign(self.aalt-self.alt)*       \
                     ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
@@ -846,7 +835,6 @@ class Traffic:
         # HDG HOLD/SEL mode: ahdg = ap selected heading
         delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  # [deg]
 
-        # print delhdg
         # omega = np.degrees(g0 * np.tan(self.aphi) / \
         # np.maximum(self.tas, self.eps))
 
@@ -932,11 +920,7 @@ class Traffic:
 
     def changeTrailColor(self, color, idx):
         """Change color of aircraft trail"""
-        # print color
-        # print idx
-        # print "     " + str(self.trails.colorsOfAC[idx])
         self.trailcol[idx] = self.trails.colorList[color]
-        # print "     " + str(self.trails.colorsOfAC[idx])
         return
 
     def setNoise(self, A):
@@ -972,7 +956,6 @@ class Traffic:
     def selspd(self, idx=None, spd=None):  # SPD command
 
         """ Select speed command: SPD acid, spd (= CASkts/Mach) """
-        print "SPD:",idx,spd
         if idx<0 or None in [idx,spd] :
             return False  # Not engouh arguments: Error/Display helptext
 

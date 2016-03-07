@@ -1285,6 +1285,10 @@ class Commandstack:
                         else:
                             if cmdargs[2].upper() == "ON":
                                 traf.swlnav[idx] = True
+
+                                iwp = traf.rte.findact()
+                                traf.rte.direct(iwp)
+
                             elif cmdargs[2].upper() == "OFF":
                                 traf.swlnav[idx] = False
 
@@ -1301,13 +1305,22 @@ class Commandstack:
 
                         elif numargs ==1:
                             if traf.swvnav[idx] == "ON":
-                                scr.echo(acid+": VNAV ON")
+                               scr.echo(acid+": VNAV ON")
                             else:
                                 scr.echo(acid+": VNAV OFF")
 
                         else:
                             if cmdargs[2].upper() == "ON":
-                                traf.swvnav[idx] = True
+
+                                if not traf.swlnav[idx]:
+                                    scr.echo(acid+": VNAV ON requires LNAV to be ON")
+                                else:
+                                    traf.swvnav[idx] = True
+                                    # Activate AP seting by prerssing direct again
+                                    if traf.route[idx].nwp>0: 
+                                        traf.route[idx].direct( traf , idx,  \
+                                           traf.route[idx].wpname[traf.route[idx].iactwp])
+
                             elif cmdargs[2].upper() == "OFF":
                                 traf.swvnav[idx] = False
 

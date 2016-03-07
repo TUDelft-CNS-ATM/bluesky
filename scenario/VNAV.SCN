@@ -9,4 +9,5 @@
  0:00:00.00>Addwpt KL204 TRO,FL200
  0:00:00.00>Addwpt KL204 NIK,FL100
 
- 0:00:00.00>KL204 VNAV on     # Switch VNAV on (LNAV is already on)
+ 0:00:00.00>KL204 VNAV on     # Switch VNAV on (LNAV is already on due to ADDWPT)
+ 0:00:00.00>FF

@@ -217,9 +217,6 @@ class Route():
                     idx = self.nwp-1
 
         # Update pointers and report whether we are ok
-        # debug
-        # for i in range(self.nwp):
-        #     print i,self.wpname[i]
 
         if not wpok:
             idx = -1
@@ -229,7 +226,10 @@ class Route():
         # Update waypoints
         if not (wptype == self.calcwp):
             self.calcfp()
-            
+        
+        # Update autopilot settings
+        self.direct(traf,iac,self.wpname[self.iactwp])                        
+          
         return idx
 
     def direct(self,traf,i,wpnam):
@@ -250,8 +250,7 @@ class Route():
                         traf.actwpalt[i] = self.wptoalt[wpidx]
                     else:
                         steepness = 3000.*ft/(10.*nm)
-                        traf.actwpalt[i] = self.wptoalt[wpidx]+self.wpxtoalt*steepness
-
+                        traf.actwpalt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
 
                # Set target speed for autopilot
                spd = self.wpspd[wpidx]
@@ -550,5 +549,36 @@ class Route():
             self.wpialt[i] = ialt  
             self.wptoalt[i] = toalt   #[m]
             self.wpxtoalt[i] = xtoalt  #[m]
-            # print i,self.wpname[i],self.wpxtoalt[i]," to ",self.wptoalt[i]
         return        
+        def findact(traf,i):
+            """ Find best default active waypoint"""
+
+            # Check for easy answers first
+            if self.nwp<=0:
+                return -1
+                
+            elif self.nwp == 1:
+                return 0
+
+            # Find closest    
+            wplat  = np.array(self.actwplat)
+            wplon  = np.array(self.actwplon)
+            dy = wplat - traf.lat[i] 
+            dx = (wplon - traf.lon[i]) * cos(radians(traf.lat[i]))
+            dist2 = dx*dx+dy*dy            
+            iwpnear = np.argmin(dist2)
+            
+            #Unless behind us, next waypoint?
+            if iwpnear+1<self.nwp:
+                qdr = np.arctan2(dx[iwpnear],dy[iwpnear])
+                delhdg = abs(degto180(traf.trk[i]-qdr))
+                if delhdg>90.:
+                    iwpnear= iwpnear+1
+            
+            return iwpnear
+            
+            
+            
+                     
+            
+            
