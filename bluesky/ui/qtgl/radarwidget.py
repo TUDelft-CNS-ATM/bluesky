@@ -572,6 +572,7 @@ class RadarWidget(QGLWidget):
                     print 'ALT NaN in %d: %s' % (i, data.id[i])
                     data.alt[i] = 0.0
 
+                # Make label: 3 lines of 8 characters per aircraft
                 rawlabel += '%-8sFL%03d   %-8d' % (data.id[i][:8], int(data.alt[i] / ft / 100), int(data.cas[i] / kts))
                 confidx = data.iconf[i]
                 if confidx >= 0:
