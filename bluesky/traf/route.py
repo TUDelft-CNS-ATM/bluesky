@@ -248,10 +248,13 @@ class Route():
                     
                     if traf.alt[i]<self.wptoalt[i]-10.*ft:                    
                         traf.actwpalt[i] = self.wptoalt[wpidx]
+                        self.dist2vs[i] = 9999.
                     else:
                         steepness = 3000.*ft/(10.*nm)
                         traf.actwpalt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-
+                        delalt = traf.alt[i] - traf.actwpalt[i]                        
+                        traf.dist2vs[i] = steepness*delalt
+                        
                # Set target speed for autopilot
                spd = self.wpspd[wpidx]
                if spd>0:

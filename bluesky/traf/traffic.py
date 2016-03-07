@@ -450,7 +450,7 @@ class Traffic:
 
         # VNAV cruise level
         self.crzalt    = np.delete(self.crzalt,  idx)
-        self.dist2vs   = np.delete(self.dist2va, idx)    # Distance to start V/S of VANAV
+        self.dist2vs   = np.delete(self.dist2vs, idx)    # Distance to start V/S of VANAV
         self.actwpvs   = np.delete(self.actwpvs, idx)    # Actual V/S to use
 
 
@@ -663,15 +663,15 @@ class Traffic:
 
                         self.actwpalt[i] = toalt
                         self.aalt[i]     = self.actwpalt[i] # dial in altitude of next waypoint as calculated
-                        self.dist2vs     = 9999.
+                        self.dist2vs[i]  = 9999.
 
                     # Level leg: never start V/S
                     else:
-                        self.dist2vs = -999.
+                        self.dist2vs[i] = -999.
                         
                 #No altirude defined: never start V/S
                 else:
-                    self.dist2vs = -999.
+                    self.dist2vs[i] = -999.
                
                 # VNAV spd mode: use speed of this waypoint as commaded speed
                 # while passing waypoint and save next speed for passing next wp
@@ -713,7 +713,7 @@ class Traffic:
             dy = (self.actwplat-self.lat)
             dx = (self.actwplon-self.lon)*np.cos(np.deg2rad(self.lat))
             dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
-            steepness = 3000.*ft/(10.*nm)            
+            steepness = 3000.*ft/(10.*nm)
 
             # VNAV AP LOGIC
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \

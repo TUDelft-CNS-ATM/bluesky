@@ -432,7 +432,7 @@ class Commandstack:
                                 if numargs<=0 or cmdargs[i]=="?":
                                     scr.echo(helptext)
                                 else:
-                                    scr.eche("Syntax error: " + helptext)
+                                    scr.echo("Syntax error: " + helptext)
                         elif type(results)==list:
                             if len(results)>=1:
                                 synerr = not results[0]
