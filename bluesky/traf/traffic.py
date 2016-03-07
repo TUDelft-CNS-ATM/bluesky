@@ -711,8 +711,8 @@ class Traffic:
             
             # Do VNAV start of descent check
             dy = (self.actwplat-self.lat)
-            dx = (self.actwplon-self.lon)*cos(radians(self.lat))
-            dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
+            dx = (self.actwplon-self.lon)*np.cos(np.deg2rad(self.lat))
+            dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
             steepness = 3000.*ft/(10.*nm)            
 
             # VNAV AP LOGIC

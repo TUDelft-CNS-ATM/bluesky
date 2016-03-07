@@ -565,7 +565,7 @@ class Route():
             wplon  = np.array(self.actwplon)
             dy = wplat - traf.lat[i] 
             dx = (wplon - traf.lon[i]) * cos(radians(traf.lat[i]))
-            dist2 = dx*dx+dy*dy            
+            dist2 = dx*dx + dy*dy            
             iwpnear = np.argmin(dist2)
             
             #Unless behind us, next waypoint?
