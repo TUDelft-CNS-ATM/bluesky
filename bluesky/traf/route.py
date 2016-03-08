@@ -567,7 +567,7 @@ class Route():
             wplat  = np.array(self.actwplat)
             wplon  = np.array(self.actwplon)
             dy = wplat - traf.lat[i] 
-            dx = (wplon - traf.lon[i]) * cos(radians(traf.lat[i]))
+            dx = (wplon - traf.lon[i]) * traf.coslat[i]
             dist2 = dx*dx + dy*dy            
             iwpnear = np.argmin(dist2)
             

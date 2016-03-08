@@ -34,11 +34,21 @@ class Traffic:
 
     Methods:
         Traffic()            :  constructor
+        reset()              :  Reset traffic database w.r.t a/c data
 
         create(acid,actype,aclat,aclon,achdg,acalt,acspd) : create aircraft
         delete(acid)         : delete an aircraft from traffic data
+        deletall()           : delete all traffic
         update(sim)          : do a numerical integration step
-        trafperf ()          : calculate aircraft performance parameters
+        id2idx(name)         : return index in traffic database of given call sign
+        selhdg(i,hdg)        : set autopilot heading and activate heading select mode 
+        selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode 
+
+        engchange(i,engtype) : change engine type of an aircraft
+
+        changeTrailColor(color,idx)     : change colour of trail of aircraft idx
+ 
+        setNoise(A)          : Add turbulence
 
     Members: see create
 
@@ -102,6 +112,9 @@ class Traffic:
         self.bank   = np.array([])  # nominal bank angle, [radian]
         self.bphase = np.array([])  # standard bank angles per phase
         self.hdgsel = np.array([])  # determines whether aircraft is turning
+
+        # Help variables to save computation time
+        self.coslat = np.array([])  # Cosine of latitude for flat-earth aproximations
 
         # Crossover altitude
         self.abco   = np.array([])
@@ -309,6 +322,9 @@ class Traffic:
         self.lalt = np.append(self.lalt, 0.0)
         self.lvs = np.append(self.lvs, 0.0)
 
+        # Help variables to save computation time
+        self.coslat = np.append(self.coslat,cos(radians(aclat)))  # Cosine of latitude for flat-earth aproximations
+
         # Traffic navigation information
         self.dest.append("")
         self.orig.append("")
@@ -432,6 +448,9 @@ class Traffic:
         self.lspd   = np.delete(self.lspd, idx)
         self.lalt   = np.delete(self.lalt, idx)
         self.lvs    = np.delete(self.lvs, idx)
+
+        # Help variables to save computation time
+        self.coslat = np.delete(self.coslat,idx)  # Cosine of latitude for flat-earth aproximations
 
         # Traffic navigation variables
         del self.dest[idx]
@@ -638,7 +657,7 @@ class Traffic:
  
                         # Flat earth distance to next wp
                         dy = (lat-self.lat[i])
-                        dx = (lon-self.lon[i])*cos(radians(lat))
+                        dx = (lon-self.lon[i])*self.coslat[i]
                         legdist = 60.*nm*sqrt(dx*dx+dy*dy)
 
 
@@ -700,7 +719,7 @@ class Traffic:
                 turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] 
 
                 dy = (self.actwplat[i]-self.lat[i])
-                dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
+                dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
                 qdr[i] = degrees(atan2(dx,dy))                    
 
                 self.actwpturn[i] = self.actwpflyby[i]*                     \
@@ -711,7 +730,7 @@ class Traffic:
             
             # Do VNAV start of descent check
             dy = (self.actwplat-self.lat)
-            dx = (self.actwplon-self.lon)*np.cos(np.deg2rad(self.lat))
+            dx = (self.actwplon-self.lon)*self.coslat
             dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
             steepness = 3000.*ft/(10.*nm)
 
@@ -852,9 +871,11 @@ class Traffic:
         self.lat = self.lat + np.degrees(ds * np.cos(np.radians(self.trk)+turblat) \
                                          / Rearth)
 
-        self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
-                                         / np.cos(np.radians(self.lat)) / Rearth)
+        self.coslat = np.cos(np.deg2rad(self.lat))
 
+        self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
+                                         / self.coslat / Rearth)
+    
         # Update trails when switched on
         if self.swtrails:
             self.trails.update(simt, self.lat, self.lon,

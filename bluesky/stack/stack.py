@@ -1274,9 +1274,18 @@ class Commandstack:
                         idx = traf.id2idx(cmdargs[1])
 
                         if idx<0:
-                            scr.echo(acid+"not found")
+                            if cmdargs[1]=="*":  # all aircraft
+                               if cmdargs[2].upper() == "ON":
+                                   traf.swlnav = np.array(traf.ntraf*[True])
+                               elif cmdargs[2].upper() == "OFF":
+                                   traf.swlnav = np.array(traf.ntraf*[False])
+                               else:
+                                   synerr = True
+                            else:
+                                scr.echo(cmdargs[1]+"not found")
  
                         elif numargs ==1:
+                            acid = traf.id[idx]
                             if traf.swlnav[idx] == "ON":
                                 scr.echo(acid+": LNAV ON")
                             else:
@@ -1301,15 +1310,26 @@ class Commandstack:
                     else:
                         idx = traf.id2idx(cmdargs[1])
                         if idx<0:
-                            scr.echo(acid+"not found")
+                            if cmdargs[1]=="*":  # all aircraft
+                               if cmdargs[2].upper() == "ON": # Only when LNAV is on!
+                                   traf.swvnav = np.array(traf.ntraf*[True])*traf.swlnav
+                               elif cmdargs[2].upper() == "OFF":
+                                   traf.swvnav = np.array(traf.ntraf*[False])
+                               else:
+                                   synerr = True
+                            else:
+                                scr.echo(cmdargs[1]+"not found")
 
                         elif numargs ==1:
+
+                            acid = traf.id[idx]
                             if traf.swvnav[idx] == "ON":
                                scr.echo(acid+": VNAV ON")
                             else:
                                 scr.echo(acid+": VNAV OFF")
 
                         else:
+                            acid = traf.id[idx]
                             if cmdargs[2].upper() == "ON":
 
                                 if not traf.swlnav[idx]:
@@ -1323,7 +1343,8 @@ class Commandstack:
 
                             elif cmdargs[2].upper() == "OFF":
                                 traf.swvnav[idx] = False
-
+                            else:
+                                synerr = True
 
                 #----------------------------------------------------------------------
                 # ASAS ON/OFF  : switch ASAS on/off
