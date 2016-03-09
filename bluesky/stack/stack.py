@@ -1293,10 +1293,11 @@ class Commandstack:
 
                         else:
                             if cmdargs[2].upper() == "ON":
-                                traf.swlnav[idx] = True
-
-                                iwp = traf.rte.findact()
-                                traf.rte.direct(iwp)
+                                if traf.route[idx].nwp > 0: # If there are any waypoints defined
+                                    traf.swlnav[idx] = True
+    
+                                    iwp = traf.route[idx].findact(traf,idx)
+                                    traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
 
                             elif cmdargs[2].upper() == "OFF":
                                 traf.swlnav[idx] = False

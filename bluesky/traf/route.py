@@ -248,7 +248,7 @@ class Route():
                     
                     if traf.alt[i]<self.wptoalt[i]-10.*ft:                    
                         traf.actwpalt[i] = self.wptoalt[wpidx]
-                        self.dist2vs[i] = 9999.
+                        traf.dist2vs[i] = 9999.
                     else:
                         steepness = 3000.*ft/(10.*nm)
                         traf.actwpalt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
@@ -553,33 +553,34 @@ class Route():
             self.wptoalt[i] = toalt   #[m]
             self.wpxtoalt[i] = xtoalt  #[m]
         return        
-        def findact(traf,i):
-            """ Find best default active waypoint"""
 
-            # Check for easy answers first
-            if self.nwp<=0:
-                return -1
-                
-            elif self.nwp == 1:
-                return 0
+    def findact(self,traf,i):
+        """ Find best default active waypoint"""
 
-            # Find closest    
-            wplat  = np.array(self.actwplat)
-            wplon  = np.array(self.actwplon)
-            dy = wplat - traf.lat[i] 
-            dx = (wplon - traf.lon[i]) * traf.coslat[i]
-            dist2 = dx*dx + dy*dy            
-            iwpnear = np.argmin(dist2)
+        # Check for easy answers first
+        if self.nwp<=0:
+            return -1
             
-            #Unless behind us, next waypoint?
-            if iwpnear+1<self.nwp:
-                qdr = np.arctan2(dx[iwpnear],dy[iwpnear])
-                delhdg = abs(degto180(traf.trk[i]-qdr))
-                if delhdg>90.:
-                    iwpnear= iwpnear+1
-            
-            return iwpnear
-            
+        elif self.nwp == 1:
+            return 0
+
+        # Find closest    
+        wplat  = array(self.actwplat)
+        wplon  = array(self.actwplon)
+        dy = wplat - traf.lat[i] 
+        dx = (wplon - traf.lon[i]) * traf.coslat[i]
+        dist2 = dx*dx + dy*dy            
+        iwpnear = np.argmin(dist2)
+        
+        #Unless behind us, next waypoint?
+        if iwpnear+1<self.nwp:
+            qdr = arctan2(dx[iwpnear],dy[iwpnear])
+            delhdg = abs(degto180(traf.trk[i]-qdr))
+            if delhdg>90.:
+                iwpnear= iwpnear+1
+        
+        return iwpnear
+        
             
             
                      
