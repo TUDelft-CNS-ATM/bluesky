@@ -1298,6 +1298,8 @@ class Commandstack:
     
                                     iwp = traf.route[idx].findact(traf,idx)
                                     traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                                else:
+                                    scr.echo("LNAV "+acid+": no waypoints or destination specified")
 
                             elif cmdargs[2].upper() == "OFF":
                                 traf.swlnav[idx] = False
@@ -1332,12 +1334,11 @@ class Commandstack:
                         else:
                             acid = traf.id[idx]
                             if cmdargs[2].upper() == "ON":
-
-                                if not traf.swlnav[idx]:
+                                if not traf.swlnav[idx]:   
                                     scr.echo(acid+": VNAV ON requires LNAV to be ON")
                                 else:
                                     traf.swvnav[idx] = True
-                                    # Activate AP seting by prerssing direct again
+                                    # Activate AP setting by pressing Direct again
                                     if traf.route[idx].nwp>0: 
                                         traf.route[idx].direct( traf , idx,  \
                                            traf.route[idx].wpname[traf.route[idx].iactwp])
@@ -1448,7 +1449,7 @@ class Commandstack:
                                         ndest = int(traf.dest[i]!="")
     
                                         if rte.nwp-norig-ndest==1: # first waypoint: make active
-                                           rte.direct(traf,i,rte.wpname[1])
+                                           rte.direct(traf,i,rte.wpname[norig]) #0 if no rig
                                            traf.swlnav[i] = True
     
                                     else:
