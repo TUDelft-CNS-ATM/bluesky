@@ -91,11 +91,10 @@ else:
         f.close()
         
         # combine the lines in the current dat file to userAirports list
-        userAirports = userAirports + lines       
-        
+        userAirports = userAirports + lines               
   
 # remove any empty rows in usedAirports. Uncomment line 15 to make this work. 
-userAirports = filter(lambda x: not re.match(r'^\s*$', x), userAirports)    
+userAirports = filter(lambda x: not re.match(r'^\s*$', x), userAirports)       
     
 #%% Read in the default airports file 
 
