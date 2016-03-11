@@ -354,8 +354,8 @@ class Commandstack:
                             elif argtype == "acid": # aircraft id => parse index
 
                                 idx = traf.id2idx(cmdargs[i])
-                                if idx<0:
-                                    scr.echo(cmd+":"+acid+" not found")
+                                if idx < 0:
+                                    scr.echo(cmd + ":" + cmdargs[i] + " not found")
                                     synerr = True
                                     break
                                 else:
