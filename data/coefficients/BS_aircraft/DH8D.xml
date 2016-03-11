@@ -31,11 +31,11 @@ speeds: m/s ; kts
     <dimensions>
         <span unit = "m">28.42</span> <!--Jane's - value includes sharklets-->
         <wing_area unit = "sqm">63.08</wing_area> <!--Jane's-->
-        <wetted_area unit = "sqft">5000.</wetted_area> <!-- estimate from Obert, p.531, currently interpolation between S2000 and F100  - REFINE! -->
+        <wetted_area unit = "sqft">5000.</wetted_area> <!-- estimate from Obert, p.531, currently interpolation between S2000 and F100 -->
     </dimensions>
     
     <speeds>
-        <to_spd unit = "m/s">0.0</to_spd> 
+        <to_spd unit = "kts">138.0</to_spd> <!-- Value for E170, which comes closest to DH8D in terms of geometry --> 
         <ld_spd unit = "km/h">190.0</ld_spd> <!--Kreuzer, p. 24-->
         <cr_MA>0.62</cr_MA> <!--Skybrary-->
         <cr_spd unit ="kts">360</cr_spd> <!--Skybrary: 360kts TAS-->
@@ -49,15 +49,15 @@ speeds: m/s ; kts
 	<roc unit="fpm"></roc>		<!--Jane's-->
         <max_alt unit = "m">7620.</max_alt>    <!--Jane's-->
         <max_spd unit = "kts">360.</max_spd>    <!--Jane's-->
-        <max_MA>0.0</max_MA> <!--Jane's-->
+        <max_MA>0.6</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
     </limits>
     
     <aerodynamics>
-        <Cfe>0.0026</Cfe> <!--equivalent skin-friction coefficient for civil transport aircraft, Raymer, p. 430--> 
+        <Cfe>0.0035</Cfe> <!--estimate from Obert, p. 531, interpolation between S2000 and F100--> 
         <oswald>0.0</oswald>   
-        <clmax_to>2.4</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby--> 
-        <clmax_cr>1.35</clmax_cr>  <!--estimate from Gill & La Rocca and Eshelby--> 
-        <clmax_ld>3.4</clmax_ld> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby-->
+        <clmax_to>1.785</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Obert--> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Raymer and Eshelby-->
     </aerodynamics>
 
 

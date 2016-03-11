@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<procedure_file>
+  <!--generated from http://www.skybrary.aero/index.php/B772-->
+  <aircraft>B772</aircraft>
+  <engine>2</engine>
+  <speeds>
+    <to_cas unit="kts">170</to_cas>
+    <ic_cas unit="kts">200 </ic_cas>
+    <ic2_cas unit="kts">300 </ic2_cas>
+    <cl_Ma unit="none">0.83</cl_Ma>
+    <cr_Ma unit="none">0.84</cr_Ma>
+    <cr_tas unit="kts">480 </cr_tas>
+    <ds_Ma unit="none">0.75</ds_Ma>
+    <ds_cas unit="kts">300 </ds_cas>
+    <ap_cas unit="kts">136</ap_cas>
+  </speeds>
+  <ROCD>
+    <ic_roc unit="fpm">3000</ic_roc>
+    <ic2_roc unit="fpm">2500</ic2_roc>
+    <ic3_roc unit="fpm">2000</ic3_roc>
+    <Ma_roc unit="fpm">1500</Ma_roc>
+    <ds_rod unit="fpm">800</ds_rod>
+    <ds2_rod unit="fpm">3000</ds2_rod>
+  </ROCD>
+</procedure_file>

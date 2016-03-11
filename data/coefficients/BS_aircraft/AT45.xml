@@ -1,0 +1,81 @@
+<!--ATR 42-500, created by Isabel Metz on Pi Day 2015 -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>AT45</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>2</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">PW127E</eng><!--engine name -->  
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">11250.0</OEW> <!-- Jane's -->
+	<MZFW unit="kg">17000.</MZFW> <!-- Jane's, option standard-->
+	<MRW unit="kg">18770.</MRW>  <!--Jane's -->
+	<MFW unit = "kg">4500.</MFW> <!-- Jane's -->
+	<MPL unit="kg">5450.</MPL> <!--Jane's, option standard  -->
+        <MTOW unit="kg">18600.</MTOW> <!--Jane's All the World's Aircraft-->
+        <MLW unit ="kg">18300.</MLW> <!-- Jane's All the World's Aircraft-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">24.57</span> <!--Jane's All the World's Aircraft-->
+        <wing_area unit = "m">54.5</wing_area> <!--Jane's All the World's Aircraft-->
+        <wetted_area unit = "sqft">2500.0</wetted_area> <!--required, values can e.g. be found in Obert (2009), p. 531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">110.0</to_spd> <!-- Skybrary -->
+        <ld_spd unit = "kts">110.0</ld_spd> <!--Skybrary-->
+        <cr_MA>0.0</cr_MA> <!-- -->
+        <cr_spd unit ="kts">300.0</cr_spd> <!-- -->
+    </speeds>
+
+    <cr_alt unit = "">0.0</cr_alt> <!-- -->
+
+    <limits>
+	<roc unit=""></roc>		<!-- -->
+        <max_alt unit = "m">5485.0</max_alt> <!-- Janes -->
+        <max_spd unit = "kts">300.0</max_spd> <!-- if unknown: 350 kts for narrow-body aircraft, 400 kts for wide-body aircraft, 300kts for prop aircraft-->
+        <max_MA>0.6</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0041</Cfe> <!--approximated from Obert, p. 542. Reference aircraft: Saab 2000 and D328--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Obert--> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Raymer and Eshelby-->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/, retreived 15 March 2015 -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Mueller" refers to C. Mueller. Flugzeuge der Welt 2013. Stuttgart, Germany, Motorbuch Verlag, 2013 -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero//index.php/AT45, retreived 14 March 2015-->
