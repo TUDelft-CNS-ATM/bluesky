@@ -1,0 +1,38 @@
+<!--V2500-A1 Engine, created by Isabel Metz on 18 March 2015 -->
+
+<!--accepted units
+force: N, kN
+fuel flow: kg/s and kg/m
+specific fuel consumption: mug/J, mg/J
+-->
+
+<engine_file>
+
+    <engines>
+        <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <engine>V2500-A1</engine> <!-- add engine name. Ensure it is identical to the engine name set in the aircraft file -->
+        <Thr unit ="kW">111.2</Thr> <!--required. Can be found in the ICAO database or in Jane's Aero Engines-->
+        <BPR>5.3</BPR> <!--required. Can be found in the ICAO database-->
+        <BPR_cat>1</BPR_cat> <!-- required. >5 = high, 0=high, 1=low, 2 = pure turbojet-->
+    </engines>
+
+
+    <ff> <!-- per engine! -->
+        <ff_to unit = "kg/s">1.113</ff_to> <!--required. Can be found in the ICAO database or in Jane's Aero Engines-->
+        <ff_cl unit = "kg/s">0.924</ff_cl> <!--required. Can be found in the ICAO database or in Jane's Aero Engines-->
+        <ff_cr unit = "kg/s">0.334</ff_cr> <!--required. Can be found in the ICAO database or in Jane's Aero Engines-->
+        <ff_ap unit = "kg/s">0.334</ff_ap> <!--required. Can be found in the ICAO database or in Jane's Aero Engines-->
+        <ff_id unit = "kg/s">0.124</ff_id> <!--required. Can be found in the ICAO database or in Jane's Aero Engines-->
+    </ff>
+
+
+</engine_file>
+
+
+
+<!-- References -->
+
+<!-- "ICAO database" refers to the ICAO Aircraft Engine Emission Databank, version 01/2015, retreived 3 February 2015 
+from http://easa.europa.eu/document-library/icao-aircraft-engine-emissions-databank -->
+
+<!-- "Jane's Aero Engines" refers to https://www.ihs.com/products/janes-aero-engines.html, retreived March 7, 2015. -->

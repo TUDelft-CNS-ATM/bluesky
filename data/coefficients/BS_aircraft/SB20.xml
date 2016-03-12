@@ -1,0 +1,79 @@
+<!--Saab 2000, Isabel Metz, created on 17 March 2015 -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>SB20</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>2</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">AE2100A</eng><!--engine name 1 (e.g. CF6-80E1A2)-->
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">13800.0</OEW> <!-- Jane's -->
+	<MZFW unit="kg">19700.0</MZFW> <!-- Jane's -->
+	<MRW unit="kg">23000.0</MRW>  <!-- Jane's -->
+	<MFW unit = "kg"></MFW> <!-- Kreuzer -->
+	<MPL unit="kg">5000.0</MPL> <!-- Kreuzer -->
+        <MTOW unit="kg">20000.0</MTOW> <!--Kreuzer-->
+        <MLW unit ="kg">21500.0</MLW> <!--Kreuzer-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">24.76</span> <!--Kreuzer-->
+        <wing_area unit = "sqm">55.7</wing_area> <!--Kreuzer-->
+        <wetted_area unit = "sqft">4062.5</wetted_area> <!-- Obert (2009), p. 531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">110.0</to_spd> <!-- Skybrary, value for ATR72 -->
+        <ld_spd unit = "kts">110.0</ld_spd> <!--Skybrary, value for ATR72-->
+        <cr_MA>0.0</cr_MA> <!--Skybrary, value for ATR72-->
+        <cr_spd unit ="kts">300.0</cr_spd> <!--Skybrary, value for ATR72-->
+    </speeds>
+
+    <cr_alt unit = "m">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="fpm">2250.0</roc>		<!--Jane's-->
+        <max_alt unit = "ft">26000.0</max_alt> <!--Kreuzer-->
+        <max_spd unit = "kts">250</max_spd> <!--Jane's-->
+        <max_MA>0.6</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.00397</Cfe> <!--approximate from Obert,p. 531--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Obert, p. 324 ff. and Raymer (CLmax_to = 0.6-0.8*CLmax_ld) --> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from Obert, p. 324 ff. --> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Obert, p. 324 ff. -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany:
+2002. (p. 126) -->
+
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/index.php/SB20, retreived 17 March 2015-->

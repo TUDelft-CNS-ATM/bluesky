@@ -10,11 +10,11 @@
         <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
         <num_eng>2.</num_eng> <!--Jane's-->
         <eng id="1">V2522-A5</eng> <!--Jane's-->
-        <eng id="2">CFM56-5B5</eng> <!--Jane's-->
-        <eng id="3">CFM56-5B6</eng>     <!--Jane's-->
+        <eng id="2">CFM56-5B5/3</eng> <!--Jane's-->
+        <eng id="3">CFM56-5B6/2</eng>     <!--Jane's-->
         <eng id="4">V2524-A5</eng>    <!--Jane's-->
-        <eng id="5">V2527M-AS</eng>  <!--Jane's-->
-        <eng id="6">CFM56-5B7</eng>    <!--Jane's-->
+        <eng id="5">V2527M-A5</eng>  <!--Jane's-->
+        <eng id="6">CFM56-5B7/3</eng>    <!--Jane's-->
     </engine>
 
     <weights>
@@ -30,11 +30,11 @@
     <dimensions>
         <span unit = "m">35.8</span> <!--Jane's, including sharklets-->
         <wing_area unit = "sqm">122.6</wing_area> <!--Kreuzer, p. 16-->
-        <wetted_area unit = "sqft">7510.0</wetted_area> <!--Obert, p.531, 89% of A320 (Swet is proportional to diameter*length)-->
+        <wetted_area unit = "sqft">7510.0</wetted_area> <!--Obert, p.531, 89% of A320 (Swet is assumed proportional to diameter*length)-->
     </dimensions>
     
     <speeds>
-        <to_spd unit = "m/s">0.0</to_spd> 
+        <to_spd unit = "kts">135.</to_spd>  <!-- Skybrary IAS, assumed to be equal to CAS -->
         <ld_spd unit = "m/s">69.44</ld_spd> <!--Kreuzer, p. 16-->
         <cr_MA>0.79</cr_MA> <!--Jane's: 0.78-->
         <cr_spd unit ="kts">450.0</cr_spd> <!--Skybrary-->
@@ -51,11 +51,11 @@
     </limits>
     
     <aerodynamics>
-        <Cfe>0.0026</Cfe> <!--equivalent skin-friction coefficient for civil transport aircraft, Raymer, p. 430--> 
+        <Cfe>0.0029</Cfe> <!--estimate from Obert, p.531--> 
         <oswald>0.0</oswald>   
-        <clmax_to>2.4</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby--> 
-        <clmax_cr>1.35</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
-        <clmax_ld>3.4</clmax_ld> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby-->
+        <clmax_to>2.4</clmax_to> <!--estimate from Obert, p. 324, value for A320--> 
+        <clmax_cr>1.3</clmax_cr>  <!--estimate from Obert, p. 324, value for A320--> 
+        <clmax_ld>2.6</clmax_ld> <!--estimate from Obert, p. 324, value for A320-->
     </aerodynamics>
 
 

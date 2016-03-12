@@ -1,0 +1,78 @@
+<!--Embraer 170-100, Isabel Metz, created on 16 March 2015 -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>E170</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">CF34-8E5</eng><!--engine name 1 (e.g. CF6-80E1A2)-->
+        <eng id="2">CF34-8E5A1</eng> <!--optional: add further engine names 2-n-->    
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="">22105.0</OEW> <!-- Jane's, ERJ-170-100 -->
+	<MZFW unit="">30140.0</MZFW> <!-- Jane's, ERJ-170-100 -->
+	<MRW unit="">36150.0</MRW>  <!-- Jane's, ERJ-170-100 -->
+	<MFW unit = "">9335.0</MFW> <!-- Jane's, ERJ-170-100 -->
+	<MPL unit="">9035.0</MPL> <!-- Jane's, ERJ-170-100 -->
+        <MTOW unit="">30170.0</MTOW> <!--Jane's, ERJ-170-100-->
+        <MLW unit ="">32800.0</MLW> <!--Jane's, ERJ-170-100-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">26.0</span> <!--required, values can e.g. be found in Jane's All the World's Aircraft-->
+        <wing_area unit = "sqm">72.2</wing_area> <!--required, values can e.g. be found in Jane's All the World's Aircraft-->
+        <wetted_area unit = "sqft">4125.0</wetted_area> <!--Obert (2009), p. 531, reference aircraft: F100-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">138.0</to_spd> <!-- required, can e.g. be found in www.skybrary.aero. Set to 0.0, if unknown -->
+        <ld_spd unit = "kts">124.0</ld_spd> <!--required, can e.g. be found in www.skybrary.aero. Set to 0.0, if unknown-->
+        <cr_MA>0.78</cr_MA> <!--required, can e.g. be found in Jane's or www.skybrary.aero. Set to 0.0, if unknown-->
+        <cr_spd unit ="kts">460</cr_spd> <!--required, can e.g. be found Jane's or in www.skybrary.aero. Set to 0.0, if unknown-->
+    </speeds>
+
+    <cr_alt unit = "kts">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="">0.0</roc>		<!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+        <max_alt unit = "">12495.0</max_alt> <!--Jane's-->
+        <max_spd unit = "km/h">870.0</max_spd> <!--Mueller-->
+        <max_MA>350.0</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0031</Cfe> <!--approximate from Obert,p. 531, or set to 0.0026 (estimate by Raymer, p. 430)--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Obert, p. 324 ff. and Raymer (CLmax_to = 0.6-0.8*CLmax_ld) --> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from Obert, p. 324 ff. --> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Obert, p. 324 ff. -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/, retreived on 13 March 2015 -->
+
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/index.php/E170, received on 16 March 2015-->

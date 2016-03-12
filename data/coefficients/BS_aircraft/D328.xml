@@ -1,0 +1,84 @@
+<!--Fairchild Dornier 328, created by Isabel Metz on 18 March 2015 -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>D328</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>2</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">PW119B</eng><!--Skybrary--> 
+        <eng id="2">PW119C</eng><!--Skybrary--> 
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">8400.0</OEW> <!-- Kreuzer -->
+	<MZFW unit="kg"></MZFW> <!-- Kreuzer -->
+	<MRW unit="kg"></MRW>  <!--Kreuzer -->
+	<MFW unit = "kg">3500.0</MFW> <!--Kreuzer  -->
+	<MPL unit="kg">3450.0</MPL> <!-- Kreuzer -->
+        <MTOW unit="kg">12000</MTOW> <!--Kreuzer-->
+        <MLW unit ="kg">12250.0</MLW> <!--Kreuzer-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">20.97</span> <!--Kreuzer-->
+        <wing_area unit = "sqm">39.5</wing_area> <!--Kreuzer-->
+        <wetted_area unit = "sqft">2500.0</wetted_area> <!-- Obert (2009), p. 531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">110.0</to_spd> <!-- Skybrary -->
+        <ld_spd unit = "kts">110.0</ld_spd> <!--Skybrary-->
+        <cr_MA>0.54</cr_MA> <!--Skybrary-->
+        <cr_spd unit ="kts">310.0</cr_spd> <!--Skybrary-->
+    </speeds>
+
+    <cr_alt unit = "m">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="fpm">0.0</roc>		<!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+        <max_alt unit = "ft">31000.0</max_alt> <!-- Skybrary-->
+        <max_spd unit = "kts">270.0</max_spd> <!--EASA-->
+        <max_MA>0.59</max_MA> <!--EASA-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.00412</Cfe> <!--approximate from Obert,p. 531--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Obert, p. 324 ff. and Raymer (CLmax_to = 0.6-0.8*CLmax_ld) --> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from Obert, p. 324 ff. --> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Obert, p. 324 ff. -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "EASA" refers to EASA. Type-Certificate Data Sheet No.: EASA.A.096 for Dornier 328 Series. 2011 -->
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/ -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Mueller" refers to C. Mueller. Flugzeuge der Welt 2013. Stuttgart, Germany, Motorbuch Verlag, 2013 -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/-->

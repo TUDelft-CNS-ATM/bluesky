@@ -1,0 +1,82 @@
+<!--Add aircraft type, date created and author -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>B738</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">CFM56-7B24</eng><!--engine name -->
+        <eng id="2">CFM56-7B27</eng> <!--engine name 2-->    
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">41145.0</OEW> <!-- Janes (CFM56-7B24s) -->
+	<MZFW unit="kg">61685.0</MZFW> <!--  Janes (CFM56-7B24s) -->
+	<MRW unit="kg">70760.0</MRW>  <!--  Janes (CFM56-7B24s) -->
+	<MFW unit = "kg"></MFW> <!--  Janes (CFM56-7B24s) -->
+	<MPL unit="kg"></MPL> <!--  Janes (CFM56-7B24s) -->
+        <MTOW unit="kg">70535.0</MTOW> <!-- Janes (CFM56-7B24s)-->
+        <MLW unit ="kg">65315.0</MLW> <!-- Janes (CFM56-7B24s)-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">34.32</span> <!--Janes-->
+        <wing_area unit = "m">125.0</wing_area> <!--Janes-->
+        <wetted_area unit = "sqft">8450.0</wetted_area> <!-- Obert (2009), p. 531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">145.0</to_spd> <!-- Skybrary -->
+        <ld_spd unit = "kts">140.0</ld_spd> <!--Skybrary-->
+        <cr_MA>0.785</cr_MA> <!--Janes-->
+        <cr_spd unit ="">460.0</cr_spd> <!--Janes-->
+    </speeds>
+
+    <cr_alt unit = "m">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="fpm">0.0</roc>		<!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+        <max_alt unit = "m">12495.0</max_alt> <!--Janes-->
+        <max_spd unit = "km/h">876.0</max_spd> <!--Mueller-->
+        <max_MA>0.82</max_MA> <!--Janes-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0029</Cfe> <!--approximate from Obert,p. 531--> 
+        <oswald>0.0</oswald>   <!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+        <clmax_to>2.4</clmax_to> <!--estimate from Obert, p. 324 --> 
+        <clmax_cr>1.25</clmax_cr>  <!--estimate from Obert, p. 324 --> 
+        <clmax_ld>2.3</clmax_ld> <!--estimate from Obert, p. 324 -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/, retreived on 13 March 2015-->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Mueller" refers to C. Mueller. Flugzeuge der Welt 2013. Stuttgart, Germany, Motorbuch Verlag, 2013 -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/index/B738, retreived on 15 March 2015-->

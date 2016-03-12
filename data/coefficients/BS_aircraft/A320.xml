@@ -15,8 +15,10 @@ speeds: m/s ; kts
     <engine>
         <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
         <num_eng>2.</num_eng> <!--Jane's-->
-        <eng id="1">V2527-A5</eng> <!--Jane's - V2527-A5 to be precise--> 
-        <eng id="2">CFM56</eng> <!--Jane's - CFM56-54B/P to be precise-->
+        <eng id="1">V2500-A1</eng> <!--Jane's - V2527-A5 to be precise--> 
+        <eng id="2">V2527-A5</eng> <!--Jane's - V2527-A5 to be precise--> 
+        <eng id="3">CFM56-5-A1</eng> <!--Jane's - CFM56-54B/P to be precise-->
+        <eng id="3">CFM56-5A3</eng> <!--Jane's - CFM56-54B/P to be precise-->
     </engine>
 
     <weights>
@@ -36,7 +38,7 @@ speeds: m/s ; kts
     </dimensions>
     
     <speeds>
-        <to_spd unit = "m/s">0.0</to_spd> 
+        <to_spd unit = "kts">145.0</to_spd> <!-- Skybrary, IAS assumed to be equal to CAS -->
         <ld_spd unit = "m/s">70.83</ld_spd>  <!--Kreuzer, p. 18-->
         <cr_MA>0.78</cr_MA>  <!--Jane's-->
         <cr_spd unit ="kts">450.0</cr_spd>  <!--Skybrary-->
@@ -53,7 +55,7 @@ speeds: m/s ; kts
     </limits>
     
     <aerodynamics>
-        <Cfe>0.0026</Cfe> <!--equivalent skin-friction coefficient for civil transport aircraft, Raymer, p. 430--> 
+        <Cfe>0.00283</Cfe> <!--estimate from Obert, p. 531--> 
         <oswald>0.0</oswald>   
         <clmax_to>2.4</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby--> 
         <clmax_cr>1.35</clmax_cr>  <!--estimate from Gill & La Rocca and Eshelby--> 

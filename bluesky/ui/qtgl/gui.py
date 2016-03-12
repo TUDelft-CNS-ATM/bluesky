@@ -42,7 +42,7 @@ is_osx = platform.system() == 'Darwin'
 # with a very uninformative message
 def exception_handler(exc_type, exc_value, exc_traceback):
     traceback.print_exception(exc_type, exc_value, exc_traceback)
-    exit()
+    sys.exit()
 
 sys.excepthook = exception_handler
 

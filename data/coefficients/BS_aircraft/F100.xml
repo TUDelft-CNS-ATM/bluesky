@@ -1,0 +1,82 @@
+<!--Fokker 100, created by Isabel Metz on 11 March 2015 -->
+
+<!-- accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>F100</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">Tay Mk620-15 </eng><!--engine name 1 (e.g. CF6-80E1A2)-->
+        <eng id="2">Tay Mk650-15</eng> <!--optional: add further engine names 2-n-->    
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">24593</OEW> <!-- Jane's -->
+	<MZFW unit="kg">35838</MZFW> <!--Jane's -->
+	<MRW unit="kg">43320</MRW>  <!-- Jane's-->
+	<MFW unit = "kg"></MFW> <!-- Jane's -->
+	<MPL unit="kg">11108</MPL> <!-- Jane's -->
+        <MTOW unit="kg">38000.0</MTOW> <!--Jane's-->
+        <MLW unit ="kg">38780</MLW> <!--Jane's-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">28.02</span> <!--Jane's-->
+        <wing_area unit = "sqm">93.5</wing_area> <!--Jane's-->
+        <wetted_area unit = "sqft">5000</wetted_area> <!--Obert (2009), p. 531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "m/s">0.0</to_spd> <!-- required, can e.g. be found in www.skybrary.aero. Set to 0.0, if unknown -->
+        <ld_spd unit = "km/h">220.0</ld_spd> <!-- Kreuzer-->
+        <cr_MA>0.72</cr_MA> <!--Skybrary-->
+        <cr_spd unit ="kts">414</cr_spd> <!--Skybrary-->
+    </speeds>
+
+    <cr_alt unit = "m/s">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="m/s">0.0</roc>		<!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+        <max_alt unit = "ft">35000</max_alt> <!-- Jane's-->
+        <max_spd unit = "m/s">350.0</max_spd> <!--if unknown: 350 kts for narrow-body aircraft, 400 kts for wide-body aircraft, 300kts for prop aircraft-->
+        <max_MA>0.77</max_MA> <!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0033</Cfe> <!--approximate from Obert,p. 531--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.82</clmax_to> <!--0.7 of CLmax,ld (Estimate from Raymer) --> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from La Rocca and Eshelby. Replace with own value, if avaliable. --> 
+        <clmax_ld>2.6</clmax_ld> <!--Obert, p. 326 -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/ -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Mueller" refers to C. Mueller. Flugzeuge der Welt 2013. Stuttgart, Germany, Motorbuch Verlag, 2013 -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/-->

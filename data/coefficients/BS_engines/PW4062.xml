@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>PW4062</engine>
+    <ICAOengine>PW4062</ICAOengine>
+    <BPR>4.6</BPR>
+    <BPR_cat>1</BPR_cat>
+    <Thr unit="kN">275.8</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">2.725</ff_to>
+    <ff_cl unit="kg/s">2.125</ff_cl>
+    <ff_cr unit="kg/s">0.718</ff_cr>
+    <ff_ap unit="kg/s">0.718</ff_ap>
+    <ff_id unit="kg/s">0.21</ff_id>
+  </ff>
+</engine_file>

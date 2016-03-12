@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>RB211-22B</engine>
+    <ICAOengine>RB211-22B</ICAOengine>
+    <BPR>4.7</BPR>
+    <BPR_cat>1</BPR_cat>
+    <Thr unit="kN">182.5</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">1.877</ff_to>
+    <ff_cl unit="kg/s">1.546</ff_cl>
+    <ff_cr unit="kg/s">0.566</ff_cr>
+    <ff_ap unit="kg/s">0.566</ff_ap>
+    <ff_id unit="kg/s">0.225</ff_id>
+  </ff>
+</engine_file>
