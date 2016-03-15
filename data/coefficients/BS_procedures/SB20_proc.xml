@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<procedure_file>
+  <!--generated from http://www.skybrary.aero/index.php/SB20-->
+  <aircraft>SB20</aircraft>
+  <engine>2</engine>
+  <speeds>
+    <to_cas unit="kts"/>
+    <ic_cas unit="kts"> </ic_cas>
+    <ic2_cas unit="kts"> </ic2_cas>
+    <cl_Ma unit="none"/>
+    <cr_Ma unit="none">0.62</cr_Ma>
+    <cr_tas unit="kts">366 </cr_tas>
+    <ds_Ma unit="none"/>
+    <ds_cas unit="kts"> </ds_cas>
+    <ap_cas unit="kts"/>
+  </speeds>
+  <ROCD>
+    <ic_roc unit="fpm">2300</ic_roc>
+    <ic2_roc unit="fpm"/>
+    <ic3_roc unit="fpm"/>
+    <Ma_roc unit="fpm"/>
+    <ds_rod unit="fpm"/>
+    <ds2_rod unit="fpm"/>
+  </ROCD>
+</procedure_file>

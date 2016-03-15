@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>JT15D-4 series</engine>
+    <ICAOengine>JT15D-4 series</ICAOengine>
+    <BPR>2.68</BPR>
+    <BPR_cat>1</BPR_cat>
+    <Thr unit="kN">11.12</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">0.1697</ff_to>
+    <ff_cl unit="kg/s">0.143</ff_cl>
+    <ff_cr unit="kg/s">0.059</ff_cr>
+    <ff_ap unit="kg/s">0.059</ff_ap>
+    <ff_id unit="kg/s">0.0261</ff_id>
+  </ff>
+</engine_file>

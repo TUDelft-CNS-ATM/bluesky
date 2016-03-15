@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>Trent 772</engine>
+    <ICAOengine>Trent 772</ICAOengine>
+    <BPR>5.03</BPR>
+    <BPR_cat>0</BPR_cat>
+    <Thr unit="kN">320.3</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">3.139</ff_to>
+    <ff_cl unit="kg/s">2.53</ff_cl>
+    <ff_cr unit="kg/s">0.821</ff_cr>
+    <ff_ap unit="kg/s">0.821</ff_ap>
+    <ff_id unit="kg/s">0.27</ff_id>
+  </ff>
+</engine_file>

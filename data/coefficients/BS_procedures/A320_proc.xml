@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<procedure_file>
+  <!--generated from http://www.skybrary.aero/index.php/A320-->
+  <aircraft>A320</aircraft>
+  <engine>1</engine>
+  <speeds>
+    <to_cas unit="kts">145</to_cas>
+    <ic_cas unit="kts">175 </ic_cas>
+    <ic2_cas unit="kts">290 </ic2_cas>
+    <cl_Ma unit="none">0.78</cl_Ma>
+    <cr_Ma unit="none">0.79</cr_Ma>
+    <cr_tas unit="kts">450 </cr_tas>
+    <ds_Ma unit="none">0.78</ds_Ma>
+    <ds_cas unit="kts">290 </ds_cas>
+    <ap_cas unit="kts">137</ap_cas>
+  </speeds>
+  <ROCD>
+    <ic_roc unit="fpm">2500</ic_roc>
+    <ic2_roc unit="fpm">2000</ic2_roc>
+    <ic3_roc unit="fpm">1400</ic3_roc>
+    <Ma_roc unit="fpm">1000</Ma_roc>
+    <ds_rod unit="fpm">1000</ds_rod>
+    <ds2_rod unit="fpm">3500</ds2_rod>
+  </ROCD>
+</procedure_file>

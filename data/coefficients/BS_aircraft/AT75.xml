@@ -1,0 +1,77 @@
+<!--ATR72-500, created by Isabel Metz on Pi Day 2015 -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>AT75</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>2</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">PW127F</eng><!--Janes-->     
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="">12950.0</OEW> <!-- Janes -->
+	<MZFW unit="">20500.0</MZFW> <!-- Janes - version standard -->
+	<MRW unit="">22670.0</MRW><!-- Janes - version standard -->
+	<MFW unit = "">5000.0</MFW> <!--Janes-->
+	<MPL unit="">7550.0</MPL> <!-- Janes - version standard  -->
+        <MTOW unit="">19000.0</MTOW> <!--Janes - version standard-->
+        <MLW unit ="">22350.0</MLW> <!--Janes - version standard-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">27.05</span> <!--required, values can e.g. be found in Jane's All the World's Aircraft-->
+        <wing_area unit = "sqm">61.0</wing_area> <!--required, values can e.g. be found in Jane's All the World's Aircraft-->
+        <wetted_area unit = "sqft">4200.0</wetted_area> <!--required, values can e.g. be found in Obert (2009), p. 531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">110.0</to_spd> <!-- Skybrary -->
+        <ld_spd unit = "kts">120.0</ld_spd> <!--Skybrary-->
+        <cr_MA>0.0</cr_MA>0.0 <!--Skybrary-->
+        <cr_spd unit ="kts">275.0</cr_spd> <!--Skybrary-->
+    </speeds>
+
+    <cr_alt unit = "kts">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="fpm">1335.0</roc>		<!--Janes-->
+        <max_alt unit = "m">7620.0</max_alt> <!--Janes-->
+        <max_spd unit = "kts">300.0</max_spd> <!--if unknown: 350 kts for narrow-body aircraft, 400 kts for wide-body aircraft, 300kts for prop aircraft-->
+        <max_MA>0.6</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0039</Cfe> <!--approximate from Obert,p. 531, reference aircraft: AT45--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Obert--> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Raymer and Eshelby-->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/, retreived 13 March 2015 -->
+
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero//index.php/AT72, retreived 14 March 2015-->

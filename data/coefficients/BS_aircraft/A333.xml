@@ -12,10 +12,8 @@
         <eng id="1">CF6-80E1A2</eng><!--Jane's-->
         <eng id="2">CF6-80E1A3</eng> <!--Jane's-->
         <eng id="3">PW4168A-1D</eng>     <!--Jane's-->
-        <eng id="4">Trent 772-60</eng>    <!--Jane's-->
-        <eng id="5">Trent 772B-60A</eng>  <!--Jane's-->
-        <eng id="6">Trent 772C-60</eng>    <!--Jane's-->
-        <eng id="7">Trent 768-60</eng>     <!--Jane's-->
+        <eng id="4">Trent 772</eng>    <!--Jane's-->
+        <eng id="7">Trent 768</eng>     <!--Jane's-->
     </engine>
 
     <weights>
@@ -35,7 +33,7 @@
     </dimensions>
     
     <speeds>
-        <to_spd unit = "m/s">0.0</to_spd> 
+        <to_spd unit = "kts">145.0</to_spd> <!--Skybrary, IAS assumed to be equal to CAS -->
         <ld_spd unit = "m/s">72.22</ld_spd> <!--Kreuzer, p. 24-->
         <cr_MA>0.82</cr_MA> <!--Jane's-->
         <cr_spd unit ="kts">475.0</cr_spd> <!--Skybrary-->
@@ -51,11 +49,11 @@
     </limits>
     
     <aerodynamics>
-        <Cfe>0.0026</Cfe> <!--equivalent skin-friction coefficient for civil transport aircraft, Raymer, p. 430--> 
+        <Cfe>0.0026</Cfe> <!--estimate from Obert, p. 531, value for A330-200--> 
         <oswald>0.0</oswald>   
-        <clmax_to>2.4</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby--> 
-        <clmax_cr>1.35</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
-        <clmax_ld>3.4</clmax_ld> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby-->
+        <clmax_to>2.25</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby--> 
+        <clmax_cr>1.45</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
+        <clmax_ld>2.5</clmax_ld> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby-->
     </aerodynamics>
 
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<procedure_file>
+  <!--generated from http://www.skybrary.aero/index.php/B744-->
+  <aircraft>B744</aircraft>
+  <engine>1</engine>
+  <speeds>
+    <to_cas unit="kts">185</to_cas>
+    <ic_cas unit="kts">215 </ic_cas>
+    <ic2_cas unit="kts">300 </ic2_cas>
+    <cl_Ma unit="none">0.75</cl_Ma>
+    <cr_Ma unit="none">0.85</cr_Ma>
+    <cr_tas unit="kts">510 </cr_tas>
+    <ds_Ma unit="none">0.85</ds_Ma>
+    <ds_cas unit="kts">300 </ds_cas>
+    <ap_cas unit="kts">160</ap_cas>
+  </speeds>
+  <ROCD>
+    <ic_roc unit="fpm">1500</ic_roc>
+    <ic2_roc unit="fpm">1500</ic2_roc>
+    <ic3_roc unit="fpm">1500</ic3_roc>
+    <Ma_roc unit="fpm">1500</Ma_roc>
+    <ds_rod unit="fpm">1000</ds_rod>
+    <ds2_rod unit="fpm">3000</ds2_rod>
+  </ROCD>
+</procedure_file>

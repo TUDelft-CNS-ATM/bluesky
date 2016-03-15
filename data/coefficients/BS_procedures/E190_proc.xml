@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<procedure_file>
+  <!--generated from http://www.skybrary.aero/index.php/E190-->
+  <aircraft>E190</aircraft>
+  <engine>1</engine>
+  <speeds>
+    <to_cas unit="kts">135</to_cas>
+    <ic_cas unit="kts">200 </ic_cas>
+    <ic2_cas unit="kts">270 </ic2_cas>
+    <cl_Ma unit="none">.76</cl_Ma>
+    <cr_Ma unit="none">0.78</cr_Ma>
+    <cr_tas unit="kts">460 </cr_tas>
+    <ds_Ma unit="none">.78</ds_Ma>
+    <ds_cas unit="kts">290 </ds_cas>
+    <ap_cas unit="kts">127</ap_cas>
+  </speeds>
+  <ROCD>
+    <ic_roc unit="fpm">3400</ic_roc>
+    <ic2_roc unit="fpm">2800</ic2_roc>
+    <ic3_roc unit="fpm">2200</ic3_roc>
+    <Ma_roc unit="fpm">1500</Ma_roc>
+    <ds_rod unit="fpm">2000</ds_rod>
+    <ds2_rod unit="fpm">2500</ds2_rod>
+  </ROCD>
+</procedure_file>

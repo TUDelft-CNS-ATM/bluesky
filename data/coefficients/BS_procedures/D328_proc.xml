@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<procedure_file>
+  <!--generated from http://www.skybrary.aero/index.php/D328-->
+  <aircraft>D328</aircraft>
+  <engine>2</engine>
+  <speeds>
+    <to_cas unit="kts">110</to_cas>
+    <ic_cas unit="kts">140 </ic_cas>
+    <ic2_cas unit="kts">220 </ic2_cas>
+    <cl_Ma unit="none"/>
+    <cr_Ma unit="none">0.54</cr_Ma>
+    <cr_tas unit="kts">310 </cr_tas>
+    <ds_Ma unit="none"/>
+    <ds_cas unit="kts">280 </ds_cas>
+    <ap_cas unit="kts">110</ap_cas>
+  </speeds>
+  <ROCD>
+    <ic_roc unit="fpm">2000</ic_roc>
+    <ic2_roc unit="fpm">1500</ic2_roc>
+    <ic3_roc unit="fpm">1000</ic3_roc>
+    <Ma_roc unit="fpm"/>
+    <ds_rod unit="fpm">1000</ds_rod>
+    <ds2_rod unit="fpm">1500</ds2_rod>
+  </ROCD>
+</procedure_file>

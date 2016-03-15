@@ -1,0 +1,31 @@
+<!--General Electric CT-9B-->
+
+<!--accepted units
+power: W, kW 
+fuel flow: kg/s and kg/m
+specific fuel consumption: mug/J, mg/J
+-->
+
+<engine_file>
+
+    <engines>    
+        <eng_type>2</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <engine>CT7-9B</engine> <!-- add engine name. Ensure it is identical to the engine name set in the aircraft file -->
+        <Power unit ="kW">1394.0</Power> <!--required. Can be found in Jane's All the World's Aircraft-->
+    </engines>
+
+
+    <SFC> <!-- per engine! -->
+        <SFC_TO unit = "mug/J">79.6</SFC_TO> <!--required. Can be found in Jane's All the World's Aircraft-->
+    </SFC>
+
+
+</engine_file>
+
+
+
+<!-- References -->
+
+
+<!-- "Jane's All the World's Aircraft" refers to 
+https://janes.ihs.com/CustomPages/Janes/DisplayPage.aspx?DocType=Reference&ItemId=+++1306370&Pubabbrev=JAE_, retrieved 17 March 2015-->

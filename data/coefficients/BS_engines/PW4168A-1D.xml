@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>PW4168A-1D</engine>
+    <ICAOengine>PW4168A-1D</ICAOengine>
+    <BPR>4.92</BPR>
+    <BPR_cat>1</BPR_cat>
+    <Thr unit="kN">305.1</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">2.937</ff_to>
+    <ff_cl unit="kg/s">2.398</ff_cl>
+    <ff_cr unit="kg/s">0.818</ff_cr>
+    <ff_ap unit="kg/s">0.818</ff_ap>
+    <ff_id unit="kg/s">0.252</ff_id>
+  </ff>
+</engine_file>

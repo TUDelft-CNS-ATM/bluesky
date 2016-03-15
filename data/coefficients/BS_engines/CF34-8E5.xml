@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>CF34-8E5</engine>
+    <BPR>5.13</BPR>
+    <BPR_cat>1</BPR_cat>
+    <Thr unit="kN">59.68</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">0.6518</ff_to>
+    <ff_cl unit="kg/s">0.5326</ff_cl>
+    <ff_cr unit="kg/s">0.18</ff_cr>
+    <ff_ap unit="kg/s">0.18</ff_ap>
+    <ff_id unit="kg/s">0.0644</ff_id>
+  </ff>
+</engine_file>

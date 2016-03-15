@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>V2527M-A5</engine>
+    <ICAOengine>V2527M-A5</ICAOengine>
+    <BPR>4.82</BPR>
+    <BPR_cat>1</BPR_cat>
+    <Thr unit="kN">111.2</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">1.053</ff_to>
+    <ff_cl unit="kg/s">0.88</ff_cl>
+    <ff_cr unit="kg/s">0.319</ff_cr>
+    <ff_ap unit="kg/s">0.319</ff_ap>
+    <ff_id unit="kg/s">0.128</ff_id>
+  </ff>
+</engine_file>

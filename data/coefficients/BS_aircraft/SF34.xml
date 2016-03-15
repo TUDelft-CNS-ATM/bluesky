@@ -1,0 +1,77 @@
+<!--Saab 340, created by Isabel Metz on 17 March 2015 -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>SF34</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>2</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">CT7-9B</eng><!--engine name 1 (e.g. CF6-80E1A2)--> 
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">8225.0</OEW> <!-- Jane's -->
+	<MZFW unit="kg">12020.0</MZFW> <!-- Jane's -->
+	<MRW unit="kg">13290.0</MRW>  <!-- Jane's -->
+	<MFW unit = "kg">2580.0</MFW> <!-- Jane's -->
+	<MPL unit="kg">3795.0</MPL> <!-- Jane's -->
+        <MTOW unit="kg">11340.0</MTOW> <!--Jane's-->
+        <MLW unit ="kg">12930.0</MLW> <!--Jane's-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">21.44</span> <!--required, values can e.g. be found in Jane's All the World's Aircraft-->
+        <wing_area unit = "sqm">41.81</wing_area> <!--required, values can e.g. be found in Jane's All the World's Aircraft-->
+        <wetted_area unit = "sqft">2500.0</wetted_area> <!--required, values can e.g. be found in Obert (2009), p. 531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">110.0</to_spd> <!-- required, can e.g. be found in www.skybrary.aero. Set to 0.0, if unknown -->
+        <ld_spd unit = "kts">110.0</ld_spd> <!--required, can e.g. be found in www.skybrary.aero. Set to 0.0, if unknown-->
+        <cr_MA>0.0</cr_MA> <!--required, can e.g. be found in Jane's or www.skybrary.aero. Set to 0.0, if unknown-->
+        <cr_spd unit ="kts">280</cr_spd> <!--required, can e.g. be found Jane's or in www.skybrary.aero. Set to 0.0, if unknown-->
+    </speeds>
+
+    <cr_alt unit = "m">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="fpm">2000.0</roc>		<!--Jane's-->
+        <max_alt unit = "m">7620.0</max_alt> <!--Jane's-->
+        <max_spd unit = "kts">250</max_spd> <!--Jane's-->
+        <max_MA>0.6</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.00421</Cfe> <!--approximate from Obert,p. 531--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Obert, p. 324 ff. and Raymer (CLmax_to = 0.6-0.8*CLmax_ld) --> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from Obert, p. 324 ff. --> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Obert, p. 324 ff. -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/ , retrieved on 17 March 2015-->
+
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/index.php/SF34, retrieved on 17 March 2015-->

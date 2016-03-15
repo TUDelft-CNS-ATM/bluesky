@@ -1,0 +1,86 @@
+<!-- Cessna Citation II, created by Isabel Metz on 1 April 2015 -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>C550</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">JT15D-4</eng><!--engine name 1 (e.g. CF6-80E1A2)-->
+        <eng id="2">JT15D-4 series</eng> <!--optional: add further engine names 2-n-->
+        <eng id="3"></eng>     
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">3844.13</OEW> <!-- TU Delft -->
+	<MZFW unit="kg">0.0</MZFW> <!-- TU Delft -->
+	<MRW unit="kg">0.0</MRW>  <!--TU Delft -->
+	<MFW unit = "kg">22286.54</MFW> <!-- TU Delft -->
+	<MPL unit="kg">0.0</MPL> <!--TU Delft  -->
+        <MTOW unit="kg">6635.7</MTOW> <!--TU Delft-->
+        <MLW unit ="kg">6131.73</MLW> <!--TU Delft-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">15.76</span> <!--TU Delft-->
+        <wing_area unit = "sqm">30.0</wing_area> <!--TU Delft-->
+        <wetted_area unit = "sqft">1666.67</wetted_area> <!--Obert, estimate for NA-265 Sabre 60-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "km/h">176.28</to_spd> <!-- TU Delft stall speed multiplied with EASA/FAA safety factor for take-off (1.13) -->
+        <ld_spd unit = "km/h">191.88</ld_spd> <!--TU Delft stall speed multiplied with EASA/FAA safety factor for landing (1.23)-->
+        <cr_MA>0.67</cr_MA> <!--Skybrary-->
+        <cr_spd unit ="kts">384.0</cr_spd> <!--TAS. Required, can e.g. be found Jane's or in www.skybrary.aero. Set to 0.0, if unknown-->
+    </speeds>
+
+    <cr_alt unit = "m">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="fpm">0.0</roc>		<!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+        <max_alt unit = "m">13106</max_alt> <!--Required. Can be found in Jane's or Skybrary-->
+        <max_spd unit = "km/h">485.0</max_spd> <!--TU Delft. Assumed IAS equals CAS-->
+        <max_MA>0.706</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.00408</Cfe> <!--approximate from Obert,p. 531, or set to 0.0026 (estimate by Raymer, p. 430)--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Obert, p. 324 ff. and Raymer (CLmax_to = 0.6-0.8*CLmax_ld) --> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from Obert, p. 324 ff. --> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Obert, p. 324 ff. -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/ -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Mueller" refers to C. Mueller. Flugzeuge der Welt 2013. Stuttgart, Germany, Motorbuch Verlag, 2013 -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/-->
+
+<!-- "TU Delft" refers to: T.J. Mulder, M.M. Heiligers, D.M. van Paasen (2011). 
+      Manual for the AE2104P Performance Test Flight with the Cessna Citation II PH-LAB  -->

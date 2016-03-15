@@ -1,0 +1,81 @@
+<!--Add aircraft type, date created and author -->
+
+<!--accepted units: 'kg', 't', 'lbs', 'N', 'kN', 'W', 'kW', 'm', 'km', 'inch', 'ft', 'sqm', 'sqft', 'sqin', 'm/s', 'km/h', 'kts', 'fpm'-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>E190</ac_type> <!--add aircraft code, e.g. B744 for Boeing 747-400--> 
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- turbojets and -fans: 1, turboprops: 2 -->
+        <num_eng>2</num_eng> <!--number of engines-->
+        <eng id="1">CF34-10E2A1</eng><!--all engine names: Jane's-->
+        <eng id="2">CF34-10E6</eng> 
+        <eng id="3">CF34-10E6A1</eng>  
+        <eng id="4">CF34-10E5</eng>    
+        <eng id="5">CF34-10E5A1</eng>
+    </engine>
+
+
+
+    <weights>
+	<OEW unit="kg">27720.0</OEW> <!--  Jane's, ERJ-190-100 -->
+	<MZFW unit="kg">30140.0</MZFW> <!-- Jane's, ERJ-190-100  -->
+	<MRW unit="kg">47950.0</MRW>  <!-- Jane's, ERJ-190-100  -->
+	<MFW unit = "kg">12971.0</MFW> <!-- Jane's, ERJ-190-100  -->
+	<MPL unit="kg">13080.0</MPL> <!-- Jane's, ERJ-190-100  -->
+        <MTOW unit="kg">47790.0</MTOW> <!--Jane's, ERJ-190-100 -->
+        <MLW unit ="kg">43000.0</MLW> <!--Jane's, ERJ-190-100 -->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">28.72</span> <!--Jane's-->
+        <wing_area unit = "sqm">92.53</wing_area> <!--Jane's-->
+        <wetted_area unit = "sqm">5000.0</wetted_area> <!--approximate from Obert,p. 531, reference aircraft: F100-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">135.0</to_spd> <!-- Skybrary -->
+        <ld_spd unit = "kts">127.0</ld_spd> <!--Skybrary-->
+        <cr_MA>0.78</cr_MA> <!--Skybrary-->
+        <cr_spd unit ="kts">460.0</cr_spd> <!--Skybrary-->
+    </speeds>
+
+    <cr_alt unit = "">0.0</cr_alt> <!-- optional. Set to 0.0, if unknown-->
+
+    <limits>
+	<roc unit="fpm">0.0</roc>		<!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+        <max_alt unit = "m">12495</max_alt> <!-- Jane's-->
+        <max_spd unit = "km/h">870.0</max_spd> <!--Mueller-->
+        <max_MA>0.82</max_MA> <!--optional. Values can e.g. be found in Jane's. Set to 0.0, if unknown-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.00308</Cfe> <!--approximate from Obert,p. 531, reference aircraft: F100--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Obert, p. 324 ff. and Raymer (CLmax_to = 0.6-0.8*CLmax_ld) --> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from Obert, p. 324 ff. --> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Obert, p. 324 ff. -->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/ , retreived on 13 March 2015-->
+
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/idex.php/E190-->
