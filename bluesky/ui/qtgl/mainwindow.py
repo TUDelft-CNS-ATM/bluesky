@@ -13,11 +13,13 @@ from uievents import PanZoomEvent
 
 
 class Splash(QSplashScreen):
+    """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
         super(Splash, self).__init__(QPixmap('data/graphics/splash.gif'), Qt.WindowStaysOnTopHint)
 
 
 class MainWindow(QMainWindow):
+    """ Qt window process: from .ui file read UI window-definitionof main window """
 
     def __init__(self, app, radarwidget):
         super(MainWindow, self).__init__()

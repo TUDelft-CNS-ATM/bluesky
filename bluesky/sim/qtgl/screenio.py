@@ -17,6 +17,8 @@ from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, 
 
 
 class ScreenIO(QObject):
+    """Class within sim task which sends/receives data to/from GUI task"""
+
     # =========================================================================
     # Settings
     # =========================================================================
@@ -143,7 +145,7 @@ class ScreenIO(QObject):
             data.lon[1:]   = route.wplon
             data.wptlabels = np.array(route.wpname)
 
-        qapp.postEvent(qapp.instance(), data)
+        qapp.postEvent(qapp.instance(), data) # Send route data to GUI
 
     def showssd(self, param):
         if param == 'ALL' or param == 'OFF':

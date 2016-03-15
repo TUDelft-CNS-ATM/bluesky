@@ -7,6 +7,8 @@ PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
 ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
 DisplayShapeEventType, SimQuitEventType, AMANEventType = range(1000, 1010)
 
+""" Definition of data content to be transferred between GUI and Sim tasks, 
+    these defintions are used on both sides of the communication """
 
 class DisplayFlagEvent(QEvent):
     def __init__(self, switch='', argument=''):
@@ -43,7 +45,6 @@ class ShowDialogEvent(QEvent):
 class RouteDataEvent(QEvent):
     lat = lon = wptlabels = []
     acidx = 0
-
     def __init__(self):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
 
