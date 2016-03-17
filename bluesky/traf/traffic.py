@@ -6,7 +6,7 @@ from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach,\
                             vmach2tas, qdrdist
-from ..tools.misc import degto180
+from ..tools.misc import degto180, kwikdist
 from ..tools.datalog import Datalog
 
 from route import Route
@@ -245,6 +245,22 @@ class Traffic:
         self.setNoise(False)
 
         self.eps = np.array([])
+        
+        ### ---------------- Thom Variables
+       
+        
+        ## Delete Area variables
+        #Global
+        self.t0Delete =  -999.          # Initial Value
+        self.dtDelete = 3               # Delta T to check for deleting AC (now at 3 s)
+        self.DeleteSwitch=True
+        self.DeleteCenterLatLon=[0,0]          # Center location to compare distance with this lat/lon
+        self.DeleteDistance=110         # NM
+        #per AC
+        self.DistanceList=np.array([])
+        self.DeleteIdx=[]
+        
+        
 
         return
 
@@ -887,6 +903,29 @@ class Traffic:
             self.lattime = simt
 
         # ----------------AREA check----------------
+        # Circular Area check
+        if self.DeleteSwitch == True and simt >= 3 and self.ntraf != 0\
+        and (self.t0Delete+self.dtDelete<simt or simt<self.t0Delete):
+            
+            self.t0Delete=simt
+            self.DistanceList= kwikdist(self.DeleteCenterLatLon[0],self.DeleteCenterLatLon[1],self.lat[:],self.lon[:])
+            OutRegionList = np.asarray( (self.DistanceList[:] >= self.DeleteDistance) )[0] # Reshape
+            self.DeleteIdx=np.where(OutRegionList)[0]
+            
+            DeleteId=np.array([])
+            
+            if np.size(self.DeleteIdx) != 0: #check if not empty
+                for i in self.DeleteIdx: #Create vectors with IDs to be deleted
+                    
+                    DeleteId=np.append(DeleteId,self.id[i])
+            
+                for i in range(np.size(DeleteId)): #Delete IDs in DeleteId
+                    self.delete(DeleteId[i])
+            else:
+                pass
+        # End Circular Area Check
+            
+            
         # Update area once per areadt seconds:
         if self.swarea and abs(simt - self.areat0) > self.areadt:
             # Update loop timer
