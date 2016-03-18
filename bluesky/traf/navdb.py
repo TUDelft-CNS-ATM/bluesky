@@ -4,6 +4,8 @@ import numpy as np
 
 from ..tools.aero import ft
 from ..tools.qdr import kwikdist
+from ..settings import airport_file
+
 
 class Navdatabase:
     """ 
@@ -103,7 +105,8 @@ class Navdatabase:
 
         # Read data into list of ascii lines
         path = "./data/"+subfolder+"/"
-        f = open(path+"airports.dat","r")
+        # f = open(path+"airports.dat","r")
+        f = open(airport_file, 'r')
         lines = f.readlines()
         f.close()
 

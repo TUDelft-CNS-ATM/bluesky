@@ -183,33 +183,32 @@ class ScreenIO(QObject):
         elif objtype == 3:
             # CIRCLE
             # parameters
-            radiusEarth = 6371000.0 # radius of the Earth [m]
-            numPoints = 1000.0       # number of straight line segments that make up the circrle
-            
-            # Inputs            
+            radiusEarth = 6371000.0  # radius of the Earth [m]
+            numPoints = 72           # number of straight line segments that make up the circrle
+
+            # Inputs
             lat0 = data_in[0]       # latitude of the center of the circle [deg]
             lon0 = data_in[1]       # longitude of the center of the circle [deg]
-            radius = data_in[2]     # radius of circle [NM]            
-            
+            radius = data_in[2]     # radius of circle [NM]
+            coslatinv = 1.0 / np.cos(np.deg2rad(lat0))
             # convert inputs to meters
             x0 = lon0*((2.0*np.pi)/360.0)*radiusEarth
             y0 = lat0*((2.0*np.pi)/360.0)*radiusEarth
             radiusM = radius*1852.0
-            
-            # compute the x and y coordinates of the circle 
-            angles = np.linspace(0.0, 2.0*np.pi, numPoints) #,endpoint=True) # [rad]
+
+            # compute the x and y coordinates of the circle
+            angles = np.linspace(0.0, 2.0*np.pi, numPoints)  # ,endpoint=True) # [rad]
             xCircle = x0+radiusM*np.cos(angles)
             yCircle = y0+radiusM*np.sin(angles)
-            
+
             # convert back to degrees
-            latCircle = (yCircle/radiusEarth)*(360.0/(2*np.pi)) # [deg]
-            lonCircle = (xCircle/radiusEarth)*(360.0/(2*np.pi)) # [deg]
-            
+            latCircle = (yCircle/radiusEarth)*(360.0/(2*np.pi))  # [deg]
+            lonCircle = (xCircle/radiusEarth)*(360.0/(2*np.pi))*coslatinv  # [deg]
+
             # make the data array in the format needed to plot circle
-            data = np.empty((latCircle.size+lonCircle.size,),dtype=np.float32) # Create empty array
-            data[0::2]=lonCircle # Fill array lat0,lon0,lat1,lon1....
-            data[1::2]=latCircle 
-                        
+            data = np.empty((latCircle.size + lonCircle.size), dtype=np.float32)  # Create empty array
+            data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
+            data[1::2] = lonCircle
 
         qapp.postEvent(qapp.instance(), DisplayShapeEvent(objname, data))
 

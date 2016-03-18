@@ -36,7 +36,7 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #--------------------------------------------------------------------
         self.cmddict = {
-            "CRE": [ 
+            "CRE": [
                 "CRE acid,type,lat,lon,hdg,alt,spd",
                 "txt,txt,lat,lon,hdg,alt,spd",
                 traf.create
@@ -1097,7 +1097,7 @@ class Commandstack:
                         radius = np.float(cmdargs[4]) # Radius of circle Center [NM]                      
                                                
                         # Deleting traffic flying out of experiment area
-                        traf.area = "ExptCircle"
+                        traf.area = "Circle"
                         traf.swarea = True
                         traf.radius = radius
                         traf.arealat0 = lat0 # center of circle sent to traf
