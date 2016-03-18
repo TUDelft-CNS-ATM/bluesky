@@ -1024,6 +1024,13 @@ class Commandstack:
                                 scr.objappend(2, "AREA", None)
                         if cmdargs[1] == "FIR":
                             scr.echo("Specify FIR")
+                            
+                    elif (numargs > 2 and cmdargs[1] == "CIRCLE") and (np.size(cmdargs)==5):
+                        traf.area="Circle"
+                        Circlat = np.float(cmdargs[2]) # Lattitude of circle center
+                        Circlon=np.float(cmdargs[3])  # Longitude of circle center
+                        Circrad=np.float(cmdargs[4])*nm #Radius of circle Center (output in meters)
+                        scr.objappend(3, "AREA", [Circlat,Circlon,Circrad])
 
                     elif numargs > 1 and cmdargs[1][0].isdigit():
 
