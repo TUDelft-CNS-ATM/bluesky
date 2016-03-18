@@ -901,33 +901,13 @@ class Traffic:
                              self.arealon0 <= self.lon[i] <= self.arealon1 and \
                              self.alt[i] >= self.areafloor and \
                              (self.alt[i] >= 1500 or self.swtaxi)
+
                 elif self.area == "Circle":
-                    pass
-                    # Average of lat
-                    latavg = (radians(self.lat[i]) + radians(self.fir_circle_point[0])) / 2
-                    cosdlat = (cos(latavg))
 
-                    # Distance x to centroid
-                    dx = (self.lon[i] - self.fir_circle_point[1]) * cosdlat * 60
-                    dx2 = dx * dx
-
-                    # Distance y to centroid
-                    dy = self.lat[i] - self.fir_circle_point[0]
-                    dy2 = dy * dy * 3600
-
-                    # Radius squared
-                    r2 = self.fir_circle_radius * self.fir_circle_radius
-
-                    # Inside if smaller
-                    inside = (dx2 + dy2) < r2
-
-                elif self.area == "ExptCircle":
-                    
                     # delete aircraft if it is too far from the center of the circular area, or if has decended below the minimum altitude
-                    distance = kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i]) # [NM]
-                    inside = distance < self.radius and  self.alt[i] >= self.areafloor
-                
-                
+                    distance = kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i])  # [NM]
+                    inside = distance < self.radius and self.alt[i] >= self.areafloor
+
                 # Compare with previous: when leaving area: delete command
                 if self.inside[i] and not inside:
                     self.delete(self.id[i])
