@@ -10,6 +10,8 @@ from ..tools.aero import kts, ft, fpm, nm, lbs,\
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
+import pdb
+
 class Commandstack:
     """
     Commandstack class definition : command stack & processing class
@@ -1007,6 +1009,10 @@ class Commandstack:
                 #               AREA FIR fir radius [lowalt]
                 #----------------------------------------------------------------------
                 elif cmd == "AREA":
+                    
+                    # debugger
+#                    pdb.set_trace()                    
+                    
                     if numargs == 0:
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
@@ -1078,17 +1084,17 @@ class Commandstack:
                     
                     # circle code
                     elif (numargs > 2 and cmdargs[1] == "CIRCLE") and (np.size(cmdargs)==5):
-                        traf.area="Circle"
                         
-                        # SOMETHING WITH TRAF. It propbably has something to do with deleting aircraft.
-                        traf.swarea = True
-                        scr.redrawradbg = True
-                       
-                        Circlat = np.float(cmdargs[2]) # Lattitude of circle center
-                        Circlon=np.float(cmdargs[3])  # Longitude of circle center
-                        Circrad=np.float(cmdargs[4])*nm #Radius of circle Center (output in meters)
-                        scr.objappend(3, "AREA", [Circlat,Circlon,Circrad])
+                        lat0 = np.float(cmdargs[2])   # Lattitude of circle center [deg]
+                        lon0 = np.float(cmdargs[3])   # Longitude of circle center [deg]
+                        radius = np.float(cmdargs[4]) # Radius of circle Center [NM]
                         
+                        # debugger
+#                        pdb.set_trace()                     
+                        
+                        scr.objappend(3, "AREA", [lat0,lon0,radius])
+                        
+                     
                     else:
                         scr.echo("AREA command unknown")
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")

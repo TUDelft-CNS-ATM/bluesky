@@ -185,7 +185,7 @@ class ScreenIO(QObject):
         
             # parameters
             radiusEarth = 6371000.0 # radius of the Earth [m]
-            numPoints = 10000.0       # number of straight line segments that make up the circrle
+            numPoints = 100.0       # number of straight line segments that make up the circrle
             
             # Inputs            
             lat0 = data_in[0]       # latitude of the center of the circle [deg]
@@ -204,14 +204,15 @@ class ScreenIO(QObject):
             yCircle = y0+radiusM*np.sin(angles)
             
             # convert back to degrees
-            latCircle = (yCircle/radiusEarth)*(360.0/2*np.pi) # [deg]
-            lonCircle = (xCircle/radiusEarth)*(360.0/2*np.pi) # [deg]
+            latCircle = (yCircle/radiusEarth)*(360.0/(2*np.pi)) # [deg]
+            lonCircle = (xCircle/radiusEarth)*(360.0//(2*np.pi)) # [deg]
             
             # make the data array in the format needed to plot circle
             data = np.empty((latCircle.size+lonCircle.size,),dtype=np.float32) # Create empty array
             data[0::2]=lonCircle # Fill array
             data[1::2]=latCircle # Fill array
             
+                        
 
         qapp.postEvent(qapp.instance(), DisplayShapeEvent(objname, data))
 
