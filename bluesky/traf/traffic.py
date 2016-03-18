@@ -6,7 +6,7 @@ from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach,\
                             vmach2tas, qdrdist
-from ..tools.misc import degto180
+from ..tools.misc import degto180, kwikdist
 from ..tools.datalog import Datalog
 
 from route import Route
@@ -215,11 +215,12 @@ class Traffic:
         self.swarea    = False
         self.arealat0  = 0.0  # [deg] lower latitude defining area
         self.arealat1  = 0.0  # [deg] upper latitude defining area
-        self.arealat0  = 0.0  # [deg] lower longitude defining area
-        self.arealat1  = 0.0  # [deg] upper longitude defining area
+        self.arealon0  = 0.0  # [deg] lower longitude defining area
+        self.arealon1  = 0.0  # [deg] upper longitude defining area
         self.areafloor = -999999.0  # [m] Delete when descending through this h
         self.areadt    = 5.0  # [s] frequency of area check (simtime)
         self.areat0    = -100.  # last time checked
+        self.radius    = 100.0 # [NM] radius of experiment area if it is a circle
 
         self.inside = []
         self.fir_circle_point = (0.0, 0.0)
@@ -920,8 +921,14 @@ class Traffic:
                     # Inside if smaller
                     inside = (dx2 + dy2) < r2
 
+                elif self.area == "ExptCircle":
+                    
+                    # delete aircraft if it is too far from the center of the circular area, or if has decended below the minimum altitude
+                    distance = kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i]) # [NM]
+                    inside = distance < self.radius and  self.alt[i] >= self.areafloor
+                
+                
                 # Compare with previous: when leaving area: delete command
-
                 if self.inside[i] and not inside:
                     self.delete(self.id[i])
 

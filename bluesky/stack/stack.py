@@ -1017,17 +1017,23 @@ class Commandstack:
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
                         scr.echo("AREA fir,radius[,lowalt]")
+                        scr.echo("or")
+                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
                     elif numargs == 1 and cmdargs[1] != "OFF" and cmdargs[1] != "FIR":
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
                         scr.echo("AREA fir,radius[,lowalt]")
+                        scr.echo("or")
+                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
+                        
                     elif numargs == 1:
                         if cmdargs[1] == "OFF":
                             if traf.swarea:
                                 traf.swarea = False
                                 scr.redrawradbg = True
                                 traf.area = ""
-                                scr.objappend(2, "AREA", None)
+                                scr.objappend(2, "AREA", None) # delete square areas
+                                scr.objappend(3, "AREA", None) # delete circle areas
                         if cmdargs[1] == "FIR":
                             scr.echo("Specify FIR")
 
@@ -1083,16 +1089,31 @@ class Commandstack:
                         traf.inside = traf.ntraf * [False]
                     
                     # circle code
-                    elif (numargs > 2 and cmdargs[1] == "CIRCLE") and (np.size(cmdargs)==5):
+                    elif (numargs > 2 and cmdargs[1] == "CIRCLE"):
                         
-                        lat0 = np.float(cmdargs[2])   # Lattitude of circle center [deg]
+                        # draw circular experiment area
+                        lat0 = np.float(cmdargs[2])   # Latitude of circle center [deg]
                         lon0 = np.float(cmdargs[3])   # Longitude of circle center [deg]
-                        radius = np.float(cmdargs[4]) # Radius of circle Center [NM]
+                        radius = np.float(cmdargs[4]) # Radius of circle Center [NM]                      
+                                               
+                        # Deleting traffic flying out of experiment area
+                        traf.area = "ExptCircle"
+                        traf.swarea = True
+                        traf.radius = radius
+                        traf.arealat0 = lat0 # center of circle sent to traf
+                        traf.arealon0 = lon0
                         
-                        # debugger
-#                        pdb.set_trace()                     
-                        
+                        if numargs == 5:
+                            traf.areafloor = float(cmdargs[5]) * ft
+                        else:
+                            traf.areafloor = -9999999.
+                            
+                        # draw the circular experiment area on the radar gui  
+                        scr.redrawradbg = True                        
                         scr.objappend(3, "AREA", [lat0,lon0,radius])
+                        
+                        # Avoid mass delete due to redefinition of area
+                        traf.inside = traf.ntraf * [False]
                         
                      
                     else:
@@ -1100,6 +1121,8 @@ class Commandstack:
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
                         scr.echo("AREA fir,radius[,lowalt]")
+                        scr.echo("or")
+                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
 
                 #----------------------------------------------------------------------
                 # TAXI command: TAXI ON/OFF : if off, 
