@@ -1,4 +1,4 @@
-##!/usr/bin/python
+#!/usr/bin/python
 import traceback
 print "checking for pyqt,",
 try:
