@@ -182,7 +182,27 @@ class ScreenIO(QObject):
 
         elif objtype == 3:
             # CIRCLE
-            pass
+            nrPoints=100
+            latlon2m=111319                 # 1deg is 111319 m (at 0,0)            
+            
+            CircCenterLat=data_in[0]        #Lattitude input of circle center
+            CircCenterLon=data_in[1]        #Longitude input of circle center
+            CircRadius=data_in[2]           # Radius in put in meters
+            
+            Angles=np.linspace(0,2*np.pi,nrPoints)  #Define angles
+            x_vertices=np.transpose(np.array(CircRadius*np.cos(Angles))) #Distances from 0,0 in m
+            y_vertices=np.transpose(np.array(CircRadius*np.sin(Angles))) # Distances from 0,0 in m
+            
+            
+            LatArray=CircCenterLat+x_vertices/latlon2m            # Convert to lat values wrt center [lat]
+            LonArray=CircCenterLon+y_vertices/latlon2m            # Convert to lon values wrt center [lon]
+            
+            data=np.empty((LatArray.size+LonArray.size,),dtype=LatArray.dtype)          # Create empty array
+            data[0::2]=LatArray                                   # Fill array
+            data[1::2]=LonArray                                 # Fill array
+            
+            data=np.array(data, dtype=np.float32)
+           
 
         qapp.postEvent(qapp.instance(), DisplayShapeEvent(objname, data))
 
