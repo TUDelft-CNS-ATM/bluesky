@@ -36,7 +36,6 @@ import platform
 
 is_osx = platform.system() == 'Darwin'
 
-
 # Create custom system-wide exception handler. For now it replicates python's default traceback message.
 # This was added to counter a new PyQt5.5 feature where unhandled exceptions would result in a qFatal
 # with a very uninformative message

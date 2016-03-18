@@ -17,8 +17,10 @@ glu.gluTessCallback(tess, glu.GLU_TESS_VERTEX_DATA, lambda vertex, vbuf: vbuf.ex
 glu.gluTessCallback(tess, glu.GLU_EDGE_FLAG, lambda flag: None)
 glu.gluTessCallback(tess, glu.GLU_TESS_COMBINE, lambda c, d, w: np.array(c))
 
+""" Load static data for GUI from files such as airport, shapes, etc."""
 
 class PolygonSet:
+    
     in_poly    = False
     in_contour = False
 
@@ -120,6 +122,7 @@ class BoundingBox:
 
 
 def load_airport_data():
+    """ Read airport data from navigation database files"""
     if os.path.isfile('data/global/apt.p'):
         f_vdata       = open('data/global/apt.p', 'rb')
         vbuf_asphalt  = pickle.load(f_vdata)

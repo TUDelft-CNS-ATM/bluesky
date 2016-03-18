@@ -260,6 +260,7 @@ class RadarWidget(QGLWidget):
         self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=3, n_instances=self.nwaypoints)
         wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
         self.waypoints.bind_attrib(ATTRIB_VERTEX, 2, wptvertices)
+
         # Sort based on id string length
         llid = sorted(zip(self.navdb.wpid, self.navdb.wplat, self.navdb.wplon), key=lambda i: len(i[0]) > 3)
         wplat = [lat for (wpid, lat, lon) in llid]
