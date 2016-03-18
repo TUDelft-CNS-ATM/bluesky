@@ -1075,6 +1075,20 @@ class Commandstack:
                         traf.swarea = True
                         scr.drawradbg()
                         traf.inside = traf.ntraf * [False]
+                    
+                    # circle code
+                    elif (numargs > 2 and cmdargs[1] == "CIRCLE") and (np.size(cmdargs)==5):
+                        traf.area="Circle"
+                        
+                        # SOMETHING WITH TRAF. It propbably has something to do with deleting aircraft.
+                        traf.swarea = True
+                        scr.redrawradbg = True
+                       
+                        Circlat = np.float(cmdargs[2]) # Lattitude of circle center
+                        Circlon=np.float(cmdargs[3])  # Longitude of circle center
+                        Circrad=np.float(cmdargs[4])*nm #Radius of circle Center (output in meters)
+                        scr.objappend(3, "AREA", [Circlat,Circlon,Circrad])
+                        
                     else:
                         scr.echo("AREA command unknown")
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
