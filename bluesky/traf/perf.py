@@ -33,16 +33,16 @@ class CoeffBS:
                     "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 ,
                     "kW": 1000.,"kN":1000.,
                     "":1.}
-        unit = unit
-#        try: 
-        if True:
+ 
+       if unit in factors:
             converted = factors[unit] * float(value)
+
         else:
-#        except:
             converted = float(value)
             if not self.warned:
                 print "Unit mismatch. Could not find ", unit     
                 self.warned = True
+
         return converted 
         
 
