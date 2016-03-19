@@ -34,7 +34,7 @@ class CoeffBS:
                     "kW": 1000.,"kN":1000.,
                     "":1.}
  
-       if unit in factors:
+        if unit in factors:
             converted = factors[unit] * float(value)
 
         else:
