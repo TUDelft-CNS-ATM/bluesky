@@ -30,11 +30,15 @@ class CoeffBS:
                     'm':1.,'km': 1000, 'inch': inch,'ft': ft, \
                     'sqm': 1., 'sqft': sqft, 'sqin': 0.00064516 ,\
                     'm/s': 1., 'km/h': 0.27778, 'kts': kts, 'fpm': fpm, \
-                    "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 }
+                    "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 ,
+                    "kW": 1000.,"kN":1000.,
+                    "":1.}
         unit = unit
-        try: 
+#        try: 
+        if True:
             converted = factors[unit] * float(value)
-        except:
+        else:
+#        except:
             converted = float(value)
             if not self.warned:
                 print "Unit mismatch. Could not find ", unit     
