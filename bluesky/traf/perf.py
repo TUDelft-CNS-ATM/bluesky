@@ -40,7 +40,7 @@ class CoeffBS:
         else:
             converted = float(value)
             if not self.warned:
-                print "Unit mismatch. Could not find ", unit     
+                print "traf/perf.py convert function: Unit mismatch. Could not find ", unit     
                 self.warned = True
 
         return converted 
@@ -262,8 +262,8 @@ class CoeffBS:
         # parse engine files
         path = os.path.dirname(__file__) + '/../../data/coefficients/BS_engines/'
         files = os.listdir(path)
-        for file in files:
-            endoc = ElementTree.parse(path + file)
+        for filename in files:
+            endoc = ElementTree.parse(path + filename)
             self.enlist.append(endoc.find('engines/engine').text)
 
             # thrust
@@ -312,7 +312,7 @@ class Perf():
         # assign needed data from CTraffic
         self.traf = traf
 
-        self.warned = False        # Flag: Did we warn for default perf parameters yet?
+        self.warned  = False        # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
         # create empty database
@@ -320,6 +320,7 @@ class Perf():
 
         # prepare for coefficient readin
         coeffBS.coeff()
+
         return
 
     def reset(self):

@@ -173,9 +173,9 @@ class Coefficients:
         # read OPF-File
         for f in self.files:
             if ".OPF" in f:
-                OPFread = open(self.path + f,'r')
+                OPFfile = open(self.path + f,'r')
                 # Read-in of OPFfiles
-                OPFin = OPFread.read()
+                OPFin = OPFfile.read()
                 # information is given in colums
                 OPFin = OPFin.split(' ')
 
@@ -226,9 +226,11 @@ class Coefficients:
 
                     # convert all values to floats
                     while j in range(len(OPFin)):
+
                         try:
                             OPFin[j] = float(OPFin[j])
                             break
+
                         except ValueError:
                             OPFin.pop(j)
 
@@ -330,13 +332,14 @@ class Coefficients:
                 self. ldl.append(OPFout[66])
                 self.ws.append(OPFout[67])
                 self.len.append(OPFout[68])         
-                OPFread.close()   
+
+                OPFfile.close()   
 
             # Airline Procedure Files
             elif ".APF" in f:
-                APFread = open(self.path + f,'r')          
+                APFfile = open(self.path + f,'r')          
             
-                for line in APFread.readlines():
+                for line in APFfile.readlines():
                     if not line.startswith("CC") and not line.strip() =="":
                         # whitespaces for splitting the columns
                         content = line.split()
@@ -359,7 +362,7 @@ class Coefficients:
                                 self.macr.append(float(content[9]))
                                 self.mades.append(float(content[10]))
                                 self.casdes.append(float(content[11]))
-                APFread.close()      
+                APFfile.close()      
 
         self.macl = np.array(self.macl)/100
         self.macr = np.array(self.macr)/100
@@ -529,9 +532,9 @@ class PerfBADA():
 
         # general        
         # designate aircraft to its aircraft type
-        try:
+        if actype in coeff.atype:
             self.coeffidx = coeff.atype.index(actype)
-        except:
+        else:
             self.coeffidx = 0
             if not self.warned:
                   print "Aircraft is using default B747-400 performance."
