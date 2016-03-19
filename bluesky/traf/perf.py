@@ -395,12 +395,11 @@ class Perf():
     def create(self, actype):
         """Create new aircraft"""
         # note: coefficients are initialized in SI units
-        try:
+        if actype in coeffBS.atype:
             # aircraft
             self.coeffidx = coeffBS.atype.index(actype)
-#            print actype
             # engine
-        except:
+        else:
             self.coeffidx = 0
             if not self.warned:
                   print "aircraft is using default aircraft performance (Boeing 747-400)."
@@ -447,9 +446,9 @@ class Perf():
 
         # turboprops
         if coeffBS.etype[self.coeffidx] ==2:
-            try:
+            if coeffBS.engines[self.coeffidx][0] in coeffBS.propenlist:
                 self.propengidx = coeffBS.propenlist.index(coeffBS.engines[self.coeffidx][0])
-            except:
+            else:
                 self.propengidx = 0
                 if not self.warned2:
                     print "prop aircraft is using standard engine. Please check valid engine types per aircraft type"
@@ -475,9 +474,9 @@ class Perf():
 
         else:      # so coeffBS.etype[self.coeffidx] ==1:
 
-            try:
+            if coeffBS.engines[self.coeffidx][0] in coeffBS.jetenlist:
                 self.jetengidx = coeffBS.jetenlist.index(coeffBS.engines[self.coeffidx][0])
-            except:
+            else:
                 self.jetengidx = 0
                 if not self.warned2:
                     print " jet aircraft is using standard engine. Please check valid engine types per aircraft type"
