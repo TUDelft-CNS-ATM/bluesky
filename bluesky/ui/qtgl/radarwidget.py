@@ -112,7 +112,7 @@ class RadarWidget(QGLWidget):
         self.naircraft      = 0
         self.nwaypoints     = 0
         self.nairports      = 0
-        self.route_acidx    = -1
+        self.route_acid     = ""
         self.ssd_ownship    = np.array([], dtype=np.uint16)
         self.apt_inrange    = np.array([])
         self.ssd_all        = False
@@ -529,8 +529,7 @@ class RadarWidget(QGLWidget):
         self.event(PanZoomEvent(zoom=zoom, origin=origin))
 
     def update_route_data(self, data):
-        self.route_acidx      = data.acidx
-        if self.route_acidx >= 0:
+        if data.acid != "":
             nsegments = len(data.lat)
             self.route.set_vertex_count(nsegments)
             routedata       = np.empty(2 * nsegments, dtype=np.float32)
@@ -588,8 +587,11 @@ class RadarWidget(QGLWidget):
             update_buffer(self.aclblbuf, np.array(rawlabel, dtype=np.string_))
 
             # If there is a visible route, update the start position
-            if self.route_acidx >= 0:
-                update_buffer(self.routebuf, np.array([data.lat[self.route_acidx], data.lon[self.route_acidx]], dtype=np.float32))
+            if self.route_acid != "":
+                if self.route_acid in data.id:
+                    idx = data.id.index(self.route_acid)           
+                    update_buffer(self.routebuf, np.array([data.lat[idx], data.lon[idx]],  \
+                                    dtype=np.float32))
 
     def show_ssd(self, arg):
         if arg == 'ALL':

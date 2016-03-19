@@ -133,16 +133,22 @@ class ScreenIO(QObject):
 
     def showroute(self, acid):
         data       = RouteDataEvent()
-        data.acidx = self.sim.traf.id2idx(acid)
-        if data.acidx >= 0:
-            route = self.sim.traf.route[data.acidx]
+        data.acid = acid
+        idx   = self.sim.traf.id2idx(acid)
+        if idx >= 0:
+            route = self.sim.traf.route[idx]
+            
             n_segments     = len(route.wplat) + 1
             data.lat       = np.empty(n_segments, dtype=np.float32)
-            data.lat[0]    = self.sim.traf.lat[data.acidx]
-            data.lat[1:]   = route.wplat
             data.lon       = np.empty(n_segments, dtype=np.float32)
-            data.lon[0]    = self.sim.traf.lon[data.acidx]
+
+            # First point is a/c position
+            data.lon[0]    = self.sim.traf.lon[idx]
+            data.lat[0]    = self.sim.traf.lat[idx]
+
+            data.lat[1:]   = route.wplat
             data.lon[1:]   = route.wplon
+
             data.wptlabels = np.array(route.wpname)
 
         qapp.postEvent(qapp.instance(), data) # Send route data to GUI
