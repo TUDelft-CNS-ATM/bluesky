@@ -397,9 +397,11 @@ class Traffic:
     def delete(self, acid):
         """Delete an aircraft"""
 
-        try:  # prevent error due to not found
-            idx = self.id.index(acid)
-        except:
+        # Look up index of aircraft
+        idx = self.id2idx(acid)
+        
+        # Do nothing if not found
+        if idx<0:
             return False
 
         del self.id[idx]

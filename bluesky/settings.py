@@ -83,13 +83,15 @@ if not os.path.isfile(configfile):
     print
     print 'If it will not run, use the BlueSky-pygame,py version'
     print
-    manual_input = (raw_input('Do you want to want to define your own settings? (yes/[no]): ').lower().find('y') >= 0)
+    manual_input = (raw_input('Do you want to want to define your own settings? (yes/[no]): ') \
+                    .lower().find('y') >= 0)
     print
     lines = ''
-    with open(os.path.dirname(__file__) + '/settings.py') as fin:
+
+    with open(os.path.dirname(__file__).replace("\\","/") + '/settings.py') as fin:
         line = fin.readline().strip('\n')
         while line[:5] != '# END':
-            if manual_input:
+            if manual_input in ["yes","y"]:
                 if len(line) > 0 and line[0] != '#' and line.find('=') >= 0:
                     # Get input from user
                     c = line.split('=')
@@ -104,7 +106,7 @@ if not os.path.isfile(configfile):
                 elif line[:2] == '# ':
                     # Variable info: also print
                     print line.strip('# ')
-
+            
             lines += line + '\n'
             line = fin.readline().strip('\n')
 
