@@ -3,12 +3,20 @@ try:
 except ImportError:
     from PyQt4.QtCore import QEvent
 
-PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
-ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
-DisplayShapeEventType, SimQuitEventType, AMANEventType = range(1000, 1010)
+SimStateEventType, PanZoomEventType, ACDataEventType, SimInfoEventType, \
+StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
+DisplayShapeEventType, SimQuitEventType, AMANEventType = range(1000, 1011)
 
 """ Definition of data content to be transferred between GUI and Sim tasks, 
     these defintions are used on both sides of the communication """
+
+class SimStateEvent(QEvent):
+    init, op, hold, end = range(4)
+
+    def __init__(self, state):
+        super(SimStateEvent, self).__init__(SimStateEventType)
+        self.state = state
+
 
 class DisplayFlagEvent(QEvent):
     def __init__(self, switch='', argument=''):

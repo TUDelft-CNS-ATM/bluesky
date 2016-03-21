@@ -13,11 +13,11 @@ import OpenGL.GL as gl
 from ctypes import c_float, c_int, Structure
 
 # Local imports
-from ...tools.aero import ft, nm, kts
-from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
-from uievents import PanZoomEvent, PanZoomEventType
-from loaddata import load_airport_data
 from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
+from ...tools.aero import ft, nm, kts
+from ...sim.qtgl import PanZoomEvent, PanZoomEventType
+from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
+from loaddata import load_airport_data
 
 
 # Static defines

@@ -32,7 +32,7 @@ class Simulation(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, gui, navdb):
+    def __init__(self, navdb):
         super(Simulation, self).__init__()
         print 'Initializing multi-threaded simulation'
 
@@ -67,12 +67,16 @@ class Simulation(QObject):
         #self.beastfeed.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
 
+    def eventTarget(self):
+        return self.screenio
+
     def doWork(self):
         # Start the telnet input server for stack commands
         self.telnet_in.start()
 
         self.syst = int(time.time() * 1000.0)
         self.fixdt = self.simdt
+        self.screenio.sendState()
 
         while not self.mode == Simulation.end:
             # Timing bookkeeping

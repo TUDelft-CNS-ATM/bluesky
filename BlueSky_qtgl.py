@@ -3,7 +3,7 @@ settings.gui = 'qtgl'
 
 from bluesky.traf import Navdatabase
 from bluesky.ui.qtgl import Gui
-from bluesky.sim.qtgl import Simulation, Thread
+from bluesky.sim.qtgl import SimulationManager
 
 
 # =============================================================================
@@ -13,26 +13,18 @@ def MainLoop():
     # =============================================================================
     # Create gui and simulation objects
     # =============================================================================
-    navdb = Navdatabase('global') # Read database from specified folder
-    gui   = Gui(navdb)
-    sim   = Simulation(gui,navdb)
+    navdb     = Navdatabase('global')  # Read database from specified folder
+    gui       = Gui(navdb)
+    manager   = SimulationManager(navdb)
 
-    # Create a simulation thread, and start it at the highest priority
-    simthread = Thread(sim)
-    simthread.start(Thread.HighestPriority)
-
-    # Set sim.screenio as an event target for the gui, 
-    # so that the gui can send events to the sim object
-    gui.setSimEventTarget(sim.screenio)
+    # Create the main simulation thread
+    manager.addNode()
 
     # Start the gui
     gui.start()
 
     # Stopping simulation thread
-    print 'Stopping Threads'
-    sim.stop()
-    simthread.quit()
-    simthread.wait()
+    manager.quit()
 
     return gui
 
