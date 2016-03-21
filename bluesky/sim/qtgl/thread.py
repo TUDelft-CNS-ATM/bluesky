@@ -15,3 +15,4 @@ class Thread(QThread):
     def start(self, prio):
         super(Thread, self).start()
         self.setPriority(prio)
+
