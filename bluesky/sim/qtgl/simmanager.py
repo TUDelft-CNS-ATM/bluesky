@@ -22,7 +22,7 @@ class SimulationManager(ThreadManager):
         worker = Simulation(self.navdb)
         self.startThread(worker)
 
-    def quit(self):
+    def stop(self):
         print 'Stopping Threads...'
         # Tell each thread to quit
         for n in range(len(self.nodes)):
