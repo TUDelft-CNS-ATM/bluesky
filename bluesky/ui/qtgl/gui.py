@@ -37,6 +37,7 @@ import platform
 
 is_osx = platform.system() == 'Darwin'
 
+
 # Create custom system-wide exception handler. For now it replicates python's default traceback message.
 # This was added to counter a new PyQt5.5 feature where unhandled exceptions would result in a qFatal
 # with a very uninformative message
@@ -158,11 +159,16 @@ class Gui(QApplication):
     def start(self):
         self.win.show()
         # Start the telnet input server for stack commands
-        self.telnet_in.start()
+        self.telnet_in.open()
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
         self.exec_()
+
+    def stop(self):
+        self.closeAllWindows()
+        print 'Stopping telnet server.'
+        self.telnet_in.close()
 
     def notify(self, receiver, event):
         # Keep track of event processing
