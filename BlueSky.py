@@ -1,11 +1,13 @@
-from bluesky.settings import gui
-if gui == 'pygame':
+import bluesky.settings as settings
+settings.init()
+
+if settings.gui == 'pygame':
     import BlueSky_pygame as bs
-elif gui == 'qtgl':
+elif settings.gui == 'qtgl':
     import BlueSky_qtgl as bs
 else:
     import sys
-    print 'Unknown gui type:', gui
+    print 'Unknown gui type:', settings.gui
     sys.exit(0)
 
 bs.MainLoop()
