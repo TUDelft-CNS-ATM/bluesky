@@ -221,8 +221,8 @@ class ScreenIO(QObject):
 
             # compute the x and y coordinates of the circle
             angles = np.linspace(0.0, 2.0*np.pi, numPoints)   # ,endpoint=True) # [rad]
-            xCircle = x0+((radiusM*coslatinv)*np.cos(angles)) # (radiusM*coslatinv) -> use the flat Earth correction to adjust the radius of the Earth at the desired latitude
-            yCircle = y0+radiusM*np.sin(angles)
+            xCircle = x0+((radiusM*coslatinv)*np.cos(angles)) # [m] use the flat Earth correction to adjust the radius of the experiment area at the desired latitude
+            yCircle = y0+radiusM*np.sin(angles)               # [m]
 
             # convert back to degrees
             latCircle = (yCircle/radiusEarth)*(360.0/(2*np.pi))  # [deg]
