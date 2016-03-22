@@ -14,8 +14,8 @@ def MainLoop():
     # Create gui and simulation objects
     # =============================================================================
     navdb     = Navdatabase('global')  # Read database from specified folder
-    gui       = Gui(navdb)
     manager   = SimulationManager(navdb)
+    gui       = Gui(navdb)
 
     # Create the main simulation thread
     manager.addNode()

@@ -32,6 +32,7 @@ from radarwidget import RadarWidget
 from nd import ND
 import autocomplete as ac
 from ...tools.misc import cmdsplit
+from ...tools.network import StackTelnetServer
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -91,6 +92,7 @@ class Gui(QApplication):
 
     def __init__(self, navdb):
         super(Gui, self).__init__([])
+        self.telnet_in       = StackTelnetServer(self)
         self.acdata          = ACDataEvent()
         self.navdb           = navdb
         self.radarwidget     = []
@@ -155,6 +157,8 @@ class Gui(QApplication):
 
     def start(self):
         self.win.show()
+        # Start the telnet input server for stack commands
+        self.telnet_in.start()
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
@@ -164,17 +168,8 @@ class Gui(QApplication):
         # Keep track of event processing
         event_processed = False
 
-        # Events from the simulation thread
+        # Events from the simulation threads
         if receiver is self:
-            if event.type() == SimStateEventType:
-                if event.state == event.init:
-                    print 'here'
-                    self.win.addNodeToMenu(manager.instance().getSenderID())
-                elif event.state == event.end:
-                    pass
-                    # self.closeAllWindows()
-                return True
-
             if event.type() == PanZoomEventType:
                 if event.zoom is not None:
                     event.origin = (self.radarwidget.width / 2, self.radarwidget.height / 2)

@@ -176,7 +176,7 @@ class ScreenIO(QObject):
         return ''
 
     def sendState(self):
-        qapp.postEvent(qapp.instance(), SimStateEvent(self.sim.mode))
+        qapp.postEvent(manager.instance(), SimStateEvent(self.sim.mode))
 
     def postQuit(self):
         qapp.postEvent(qapp.instance(), SimQuitEvent())
