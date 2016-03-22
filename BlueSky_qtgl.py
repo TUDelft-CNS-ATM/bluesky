@@ -26,12 +26,12 @@ def MainLoop():
     # Stopping simulation thread
     manager.quit()
 
-    return gui
+    return gui, manager.getSimObjectList()
 
 
 if __name__ == "__main__":
     # Run mainloop if BlueSky-qtgl is called directly
-    gui = MainLoop()
+    gui, sim = MainLoop()
 
     # =============================================================================
     # Clean up before exit. Comment this out when debugging for checking variables

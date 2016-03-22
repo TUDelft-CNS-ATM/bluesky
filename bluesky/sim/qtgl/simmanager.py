@@ -34,6 +34,12 @@ class SimulationManager(ThreadManager):
             node.wait()
         print 'Done'
 
+    def getSimObjectList(self):
+        ret = []
+        for node in self.nodes:
+            ret.append(node.worker)
+        return ret
+
     def getActiveSimTarget(self):
         return self.active_node.worker.eventTarget()
 

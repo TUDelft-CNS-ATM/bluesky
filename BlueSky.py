@@ -10,4 +10,4 @@ else:
     print 'Unknown gui type:', settings.gui
     sys.exit(0)
 
-bs.MainLoop()
+gui, sim = bs.MainLoop()
