@@ -21,17 +21,18 @@ import traceback
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
 from aman import AMANDisplay
-from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, \
+from ...sim.qtgl import ThreadManager as manager
+from ...sim.qtgl import SimStateEvent, PanZoomEvent, ACDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
                      DisplayShapeEventType, SimQuitEventType, \
-                     AMANEventType
+                     AMANEventType, SimStateEventType
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete as ac
 from ...tools.misc import cmdsplit
-
+from ...tools.network import StackTelnetServer
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -91,6 +92,7 @@ class Gui(QApplication):
 
     def __init__(self, navdb):
         super(Gui, self).__init__([])
+        self.telnet_in       = StackTelnetServer(self)
         self.acdata          = ACDataEvent()
         self.navdb           = navdb
         self.radarwidget     = []
@@ -100,7 +102,6 @@ class Gui(QApplication):
         self.command_mem     = ''
         self.command_line    = ''
         self.prev_cmdline    = ''
-        self.simevent_target = 0
         self.mousedragged    = False
         self.mousepos        = (0, 0)
         self.prevmousepos    = (0, 0)
@@ -108,7 +109,8 @@ class Gui(QApplication):
         self.simt            = 0.0
 
         # Register our custom pan/zoom event
-        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,
+        for etype in [SimStateEventType, PanZoomEventType,
+                      ACDataEventType, SimInfoEventType,
                       StackTextEventType, ShowDialogEventType,
                       DisplayFlagEventType, RouteDataEventType,
                       DisplayShapeEventType, SimQuitEventType,
@@ -153,11 +155,10 @@ class Gui(QApplication):
         timer.timeout.connect(self.nd.updateGL)
         timer.start(50)
 
-    def setSimEventTarget(self, obj):
-        self.simevent_target = obj
-
     def start(self):
         self.win.show()
+        # Start the telnet input server for stack commands
+        self.telnet_in.start()
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
@@ -167,7 +168,7 @@ class Gui(QApplication):
         # Keep track of event processing
         event_processed = False
 
-        # Events from the simulation thread
+        # Events from the simulation threads
         if receiver is self:
             if event.type() == PanZoomEventType:
                 if event.zoom is not None:
@@ -348,7 +349,7 @@ class Gui(QApplication):
             # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
-                self.postEvent(self.simevent_target, PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
+                self.postEvent(manager.instance().getActiveSimTarget(), PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
                                                                     zoom=self.radarwidget.zoom, absolute=True))
 
             # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
@@ -462,7 +463,7 @@ class Gui(QApplication):
         return True
 
     def stack(self, text):
-        self.postEvent(self.simevent_target, StackTextEvent(text))
+        self.postEvent(manager.instance().getActiveSimTarget(), StackTextEvent(text))
         # Echo back to command window
         self.display_stack(text)
 

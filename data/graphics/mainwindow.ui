@@ -54,7 +54,7 @@
       <item>
        <widget class="QToolButton" name="simnodes">
         <property name="text">
-         <string>Node 1</string>
+         <string>Node 0</string>
         </property>
         <property name="popupMode">
          <enum>QToolButton::InstantPopup</enum>
@@ -1088,6 +1088,76 @@ p, li { white-space: pre-wrap; }
     </layout>
    </widget>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>848</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="action_Open"/>
+    <addaction name="action_Save"/>
+   </widget>
+   <widget class="QMenu" name="menu_View">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="action_Reset_view"/>
+   </widget>
+   <widget class="QMenu" name="menuConnections">
+    <property name="title">
+     <string>Connections</string>
+    </property>
+    <addaction name="actionConnect_to_ADS_B_server"/>
+    <addaction name="actionEnable_output_to_UDP"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout_BlueSky"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menu_View"/>
+   <addaction name="menuConnections"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <action name="action_Open">
+   <property name="text">
+    <string>&amp;Open</string>
+   </property>
+  </action>
+  <action name="action_Save">
+   <property name="text">
+    <string>&amp;Save</string>
+   </property>
+  </action>
+  <action name="action_Reset_view">
+   <property name="text">
+    <string>&amp;Reset view</string>
+   </property>
+  </action>
+  <action name="actionConnect_to_ADS_B_server">
+   <property name="text">
+    <string>Connect to ADS-B server</string>
+   </property>
+  </action>
+  <action name="actionEnable_output_to_UDP">
+   <property name="text">
+    <string>Enable output to UDP</string>
+   </property>
+  </action>
+  <action name="actionAbout_BlueSky">
+   <property name="text">
+    <string>About BlueSky</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

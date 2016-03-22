@@ -11,7 +11,7 @@ in gui.py zie je hoe ik hem ontvang.
 Als je een heel ander soort data wil versturen dan kan je een nieuw event 
 object aanmaken, dit vereist een aantal stappen:
 
-in ui/qtgl/uievents.py:
+in sim/qtgl/simevents.py:
 - maak een EventType enumerated variabele erbij, die staan bovenaan 
 de file op regel 6
 - maak je event class: een nieuwe class die derived van QEvent. Het 

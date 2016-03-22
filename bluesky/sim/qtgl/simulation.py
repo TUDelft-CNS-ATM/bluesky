@@ -10,7 +10,6 @@ import time
 from screenio import ScreenIO
 from ...traf import Traffic
 from ...stack import Commandstack
-from ...tools.network import StackTelnetServer
 # from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
@@ -32,7 +31,7 @@ class Simulation(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, gui, navdb):
+    def __init__(self, navdb):
         super(Simulation, self).__init__()
         print 'Initializing multi-threaded simulation'
 
@@ -54,7 +53,6 @@ class Simulation(QObject):
         self.screenio    = ScreenIO(self)
         self.traf        = Traffic(navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
-        self.telnet_in   = StackTelnetServer(self.stack)
         self.navdb       = navdb
         # Metrics
         self.metric      = None
@@ -63,16 +61,16 @@ class Simulation(QObject):
 
     def moveToThread(self, target_thread):
         self.screenio.moveToThread(target_thread)
-        self.telnet_in.moveToThread(target_thread)
-        #self.beastfeed.moveToThread(target_thread)
+        self.beastfeed.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
 
-    def doWork(self):
-        # Start the telnet input server for stack commands
-        self.telnet_in.start()
+    def eventTarget(self):
+        return self.screenio
 
+    def doWork(self):
         self.syst = int(time.time() * 1000.0)
         self.fixdt = self.simdt
+        self.screenio.sendState()
 
         while not self.mode == Simulation.end:
             # Timing bookkeeping
