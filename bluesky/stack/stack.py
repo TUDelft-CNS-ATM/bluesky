@@ -1099,14 +1099,14 @@ class Commandstack:
                         # Deleting traffic flying out of experiment area
                         traf.area = "Circle"
                         traf.swarea = True
-                        traf.radius = radius
+                        traf.arearadius = radius
                         traf.arealat0 = lat0 # center of circle sent to traf
                         traf.arealon0 = lon0
                         
                         if numargs == 5:
-                            traf.areafloor = float(cmdargs[5]) * ft
+                            traf.areafloor = float(cmdargs[5]) * ft # [m]
                         else:
-                            traf.areafloor = -9999999.
+                            traf.areafloor = -9999999. # [m]
                             
                         # draw the circular experiment area on the radar gui  
                         scr.redrawradbg = True                        

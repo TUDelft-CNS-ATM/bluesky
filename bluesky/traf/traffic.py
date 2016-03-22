@@ -220,7 +220,7 @@ class Traffic:
         self.areafloor = -999999.0  # [m] Delete when descending through this h
         self.areadt    = 5.0  # [s] frequency of area check (simtime)
         self.areat0    = -100.  # last time checked
-        self.radius    = 100.0 # [NM] radius of experiment area if it is a circle
+        self.arearadius    = 100.0 # [NM] radius of experiment area if it is a circle
 
         self.inside = []
         self.fir_circle_point = (0.0, 0.0)
@@ -908,7 +908,7 @@ class Traffic:
 
                     # delete aircraft if it is too far from the center of the circular area, or if has decended below the minimum altitude
                     distance = kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i])  # [NM]
-                    inside = distance < self.radius and self.alt[i] >= self.areafloor
+                    inside = distance < self.arearadius and self.alt[i] >= self.areafloor
 
                 # Compare with previous: when leaving area: delete command
                 if self.inside[i] and not inside:
