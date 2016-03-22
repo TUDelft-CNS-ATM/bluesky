@@ -35,6 +35,8 @@ class SimulationManager(ThreadManager):
         print 'Done'
 
     def getSimObjectList(self):
+        if len(self.nodes) == 1:
+            return self.nodes[0].worker
         ret = []
         for node in self.nodes:
             ret.append(node.worker)
