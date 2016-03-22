@@ -4,6 +4,11 @@ from ...traf import Traffic
 from ...stack import Commandstack
 from ...traf.metric import Metric
 
+from ...tools.network import StackTelnetServer
+from ... import settings
+from ...tools.datafeed import Modesbeast
+
+
 class Simulation:
     """ 
     Simulation class definition : simulation control (time, mode etc.) class
@@ -52,6 +57,9 @@ class Simulation:
         # Stack ties it together
         self.stack = Commandstack(self, self.traf, gui.scr)
 
+        self.beastfeed   = Modesbeast(self.stack, self.traf)
+        self.telnet_in   = StackTelnetServer(self.stack)
+
         return
 
     def update(self, scr):
@@ -92,6 +100,9 @@ class Simulation:
                     del self.dts[0]
 
             self.stack.checkfile(self.simt)
+
+            # Update the Mode-S beast parsing
+            self.beastfeed.update()
 
         # Always process stack
         self.stack.process(self, self.traf, scr)
@@ -137,5 +148,13 @@ class Simulation:
 
     def reset(self):
         self.simt = 0.0
-        self.mode = Simulation.init
+        self.mode = self.init
         self.traf.reset(self.navdb)
+
+    def datafeed(self, flag):
+        if flag == "ON":
+            self.beastfeed.connectToHost(settings.modeS_host,
+                                         settings.modeS_port)
+        if flag == "OFF":
+            self.beastfeed.disconnectFromHost()
+

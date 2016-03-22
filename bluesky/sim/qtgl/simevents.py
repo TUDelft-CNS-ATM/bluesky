@@ -3,9 +3,19 @@ try:
 except ImportError:
     from PyQt4.QtCore import QEvent
 
-PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
-ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
-DisplayShapeEventType = range(1000, 1008)
+SimStateEventType, PanZoomEventType, ACDataEventType, SimInfoEventType, \
+StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
+DisplayShapeEventType, SimQuitEventType, AMANEventType = range(1000, 1011)
+
+""" Definition of data content to be transferred between GUI and Sim tasks, 
+    these defintions are used on both sides of the communication """
+
+class SimStateEvent(QEvent):
+    init, op, hold, end = range(4)
+
+    def __init__(self, state):
+        super(SimStateEvent, self).__init__(SimStateEventType)
+        self.state = state
 
 
 class DisplayFlagEvent(QEvent):
@@ -13,7 +23,7 @@ class DisplayFlagEvent(QEvent):
         super(DisplayFlagEvent, self).__init__(DisplayFlagEventType)
         self.switch = switch
         self.argument = argument
-
+        
 
 class SimInfoEvent(QEvent):
     def __init__(self, sys_freq, simdt, simt, n_ac, mode):
@@ -41,9 +51,8 @@ class ShowDialogEvent(QEvent):
 
 
 class RouteDataEvent(QEvent):
-    lat = lon = []
-    acidx = 0
-
+    lat = lon = wptlabels = []
+    acid = ""
     def __init__(self):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
 
@@ -65,6 +74,13 @@ class ACDataEvent(QEvent):
         super(ACDataEvent, self).__init__(ACDataEventType)
 
 
+class AMANEvent(QEvent):
+    ids = iafs = eats = etas = delays = rwys = spdratios = []
+
+    def __init__(self):
+        super(AMANEvent, self).__init__(AMANEventType)
+
+
 class PanZoomEvent(QEvent):
     def __init__(self, pan=None, zoom=None, origin=None, absolute=False):
         super(PanZoomEvent, self).__init__(PanZoomEventType)
@@ -72,3 +88,8 @@ class PanZoomEvent(QEvent):
         self.origin   = origin
         self.zoom     = zoom
         self.absolute = absolute
+
+
+class SimQuitEvent(QEvent):
+    def __init__(self):
+        super(SimQuitEvent, self).__init__(SimQuitEventType)

@@ -1,16 +1,17 @@
 import time
 import aero
-from network import TcpClient
 import adsb_decoder as decoder
+from network import TcpClient
 
 
 class Modesbeast(TcpClient):
-    def __init__(self, sim):
+    def __init__(self, stack, traf):
         super(Modesbeast, self).__init__()
-        self.sim    = sim
+        self.stack = stack
+        self.traf = traf
         self.acpool = {}
         self.buffer = ''
-        #self.connectToHost('131.180.117.39', 30334)
+        self.default_ac_mdl = "B738"
 
     def parse_data(self, data):
         self.buffer += data
@@ -31,8 +32,7 @@ class Modesbeast(TcpClient):
 
             for msg, ts in messages:
                 self.read_message(msg, ts)
-
-        print str(data).strip()
+        return
 
     def read_mode_s(self, data):
         '''
@@ -112,9 +112,10 @@ class Modesbeast(TcpClient):
                 self.update_cprpos(addr, oe, ts, alt, cprlat, cprlon)
             elif tc == 19:        # airbone velocity frame
                 sh = decoder.get_speed_heading(msg)
-                if sh:
-                    dataset = {'addr': addr, 'speed': sh[0], 'heading': sh[1]}
-                    #self.update_spd_hdg(dataset)
+                if len(sh) == 2:
+                    spd = sh[0]
+                    hdg = sh[1]
+                    self.update_spd_hdg(addr, spd, hdg)
         return
 
     def update_cprpos(self, addr, oe, ts, alt, cprlat, cprlon):
@@ -153,6 +154,9 @@ class Modesbeast(TcpClient):
         return
 
     def update_callsign(self, addr, callsign):
+        if addr not in self.acpool:
+            self.acpool[addr] = {}
+
         self.acpool[addr]['callsign'] = callsign
         return
 
@@ -181,24 +185,24 @@ class Modesbeast(TcpClient):
             if set(params).issubset(d):
                 acid = d['callsign']
                 # check is aircraft is already beening displayed
-                if(self.sim.traf.id2idx(acid) < 0):
+                if(self.traf.id2idx(acid) < 0):
                     mdl = self.default_ac_mdl
                     v = aero.tas2cas(d['speed'], d['alt'] * aero.ft)
                     cmdstr = 'CRE %s, %s, %f, %f, %f, %d, %d' % \
                         (acid, mdl, d['lat'], d['lon'],
                             d['heading'], d['alt'], v)
-                    self.sim.stack.stack(cmdstr)
+                    self.stack.stack(cmdstr)
                 else:
                     cmdstr = 'MOVE %s, %f, %f, %d' % \
                         (acid, d['lat'], d['lon'], d['alt'])
-                    self.sim.stack.stack(cmdstr)
+                    self.stack.stack(cmdstr)
 
                     cmdstr = 'HDG %s, %f' % (acid,  d['heading'])
-                    self.sim.stack.stack(cmdstr)
+                    self.stack.stack(cmdstr)
 
                     v_cas = aero.tas2cas(d['speed'], d['alt'] * aero.ft)
                     cmdstr = 'SPD %s, %f' % (acid,  v_cas)
-                    self.sim.stack.stack(cmdstr)
+                    self.stack.stack(cmdstr)
         return
 
     def remove_outdated_ac(self):
@@ -210,11 +214,21 @@ class Modesbeast(TcpClient):
                     del self.acpool[addr]
                     # remove from sim traffic
                     if 'callsign' in ac:
-                        self.sim.stack.stack('DEL %s' % ac['callsign'])
+                        self.stack.stack('DEL %s' % ac['callsign'])
+        return
+
+    def debug(self):
+        count = 0
+        for addr, ac in self.acpool.iteritems():
+            print addr,
+            count += 1
+        print ""
+        print "total count: %d" % count
         return
 
     def update(self):
-        if self.connected:
+        if self.is_connected:
+            # self.debug()
             self.remove_outdated_ac()
             self.update_all_ac_postition()
             self.stack_all_commands()

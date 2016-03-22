@@ -14,6 +14,9 @@ perf_path = 'data/coefficients/BS_aircraft'
 # Indicate the path for the BADA aircraft performance data (leave empty if BADA is not available)
 perf_path_bada = 'data/coefficients/BADA'
 
+# Indicate the location of the airport database
+airport_file = 'data/global/airports.dat'
+
 # Indicate the start location of the radar screen (e.g. [lat, lon], or airport ICAO code)
 start_location = 'EHAM'
 
@@ -49,6 +52,17 @@ wpt_size = 10
 # Radarscreen aircraft symbol size in pixels
 ac_size = 16
 
+#=========================================================================
+#=  Configure the following to stream raw data from a mode-s / ADS-B
+#=  TCP server.
+#=========================================================================
+
+# Mode-S / ADS-B server hostname / ip
+modeS_host = ''
+
+# Mode-S /ADS-B server port
+modeS_port = 0
+
 # END OF SETTINGS
 
 # Import config settings from settings.cfg if this exists, if it doesn't create an initial config file
@@ -67,13 +81,17 @@ if not os.path.isfile(configfile):
     print 'You can specify your own settings or use the default.'
     print 'Leave empty to use the default settings.'
     print
-    manual_input = (raw_input('Do you want to want to define your own settings? (yes/[no]): ').lower().find('y') >= 0)
+    print 'If it will not run, use the BlueSky-pygame,py version'
+    print
+    manual_input = (raw_input('Do you want to want to define your own settings? (yes/[no]): ') \
+                    .lower().find('y') >= 0)
     print
     lines = ''
-    with open(os.path.dirname(__file__) + '/settings.py') as fin:
+
+    with open(os.path.dirname(__file__).replace("\\","/") + '/settings.py') as fin:
         line = fin.readline().strip('\n')
         while line[:5] != '# END':
-            if manual_input:
+            if manual_input in ["yes","y"]:
                 if len(line) > 0 and line[0] != '#' and line.find('=') >= 0:
                     # Get input from user
                     c = line.split('=')
@@ -88,7 +106,7 @@ if not os.path.isfile(configfile):
                 elif line[:2] == '# ':
                     # Variable info: also print
                     print line.strip('# ')
-
+            
             lines += line + '\n'
             line = fin.readline().strip('\n')
 

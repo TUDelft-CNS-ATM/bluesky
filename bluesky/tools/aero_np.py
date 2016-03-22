@@ -1,4 +1,4 @@
-# Vectorizes versions of aero conversion routines
+# Vectorized versions of aero conversion routines
 from math import *
 import numpy as np
 
@@ -124,7 +124,7 @@ def vmach2cas(M,h):
     cas = vtas2cas(tas,h)
     return cas
 
-def cas2mach(cas,h):
+def vcas2mach(cas,h):
     tas = vcas2tas(cas,h)
     M = vtas2mach(tas,h)
     return M
@@ -194,8 +194,10 @@ def qdrdist_vector(lat1,lon1,lat2,lon2):
     a = 6378137.0 
 
 
-    r = np.where(np.invert(condition),r,(np.divide(np.multiply(0.5,((np.multiply(abs(lat1),(rwgs84_vector(lat1)+a))).T + np.multiply(abs(lat2),(rwgs84_vector(lat2)+a)))), \
-            (abs(lat1)).T+(abs(lat2)))))  #different hemisphere
+    r = np.where(np.invert(condition),r,(np.divide(np.multiply\
+      (0.5,((np.multiply(abs(lat1),(rwgs84_vector(lat1)+a))).T  \
+         + np.multiply(abs(lat2),(rwgs84_vector(lat2)+a)))), \
+            (abs(lat1)).T+(abs(lat2)+(lat1==0.)*0.000001))))  #different hemisphere
     
     
     diff_lat = lat2-lat1.T

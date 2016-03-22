@@ -1,0 +1,39 @@
+<!-- JT15D-4, created by Isabel Metz on 1 April 2015-->
+
+<!--accepted units
+force: N, kN
+fuel flow: kg/s and kg/m
+specific fuel consumption: mug/J, mg/J
+-->
+
+<engine_file>
+
+    <engines>
+        <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <engine>JT15D-4</engine> <!-- TU Delft -->
+        <Thr unit ="N">11143</Thr> <!-- TU Delft-->
+        <BPR>2.5</BPR> <!--TU Delft-->
+        <BPR_cat>1</BPR_cat> <!-- required. >5 = high, 0=high, 1=low, 2 = pure turbojet-->
+    </engines>
+
+
+    <ff> <!-- per engine! -->
+        <ff_to unit = "kg/s">0.1697</ff_to> <!--ICAO database-->
+        <ff_cl unit = "kg/s">0.143</ff_cl> <!--ICAO database-->
+        <ff_cr unit = "kg/s">0.059</ff_cr> <!--ICAO database-->
+        <ff_ap unit = "kg/s">0.059</ff_ap> <!--ICAO database-->
+        <ff_id unit = "kg/s">0.0261</ff_id> <!--ICAO database-->
+    </ff>
+
+
+</engine_file>
+
+
+
+<!-- References -->
+
+<!-- "ICAO database" refers to the ICAO Aircraft Engine Emission Databank, version 01/2015, retreived 3 February 2015 
+from http://easa.europa.eu/document-library/icao-aircraft-engine-emissions-databank -->
+
+<!-- "TU Delft" refers to: T.J. Mulder, M.M. Heiligers, D.M. van Paasen (2011). 
+      Manual for the AE2104P Performance Test Flight with the Cessna Citation II PH-LAB  -->

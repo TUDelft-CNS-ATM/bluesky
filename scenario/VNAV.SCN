@@ -1,0 +1,13 @@
+# Test VNAV mode
+
+ 0:00:00.00>Cre KL204,B744,43.4297,5.2227,0.,1000,400
+ 0:00:00.00>Pan KL204;--
+
+ 0:00:00.00>Orig KL204,LFML
+ 0:00:00.00>Dest KL204,EHAM
+
+ 0:00:00.00>Addwpt KL204 TRO,FL200
+ 0:00:00.00>Addwpt KL204 NIK,FL100
+
+ 0:00:00.00>KL204 VNAV on     # Switch VNAV on (LNAV is already on due to ADDWPT)
+# 0:00:00.00>FF

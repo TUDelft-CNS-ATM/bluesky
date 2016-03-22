@@ -192,3 +192,7 @@ def txt2lon(lontxt):
     else:
         lon = float(txt)
     return lon
+
+def deg180(dangle):
+    """ Convert any difference in angles to interval [ -180,180 ) """
+    return (dangle+180.)%360.-180.

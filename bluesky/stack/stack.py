@@ -5,9 +5,12 @@ import os
 import sys
 
 from ..tools.aero import kts, ft, fpm, nm, lbs,\
-    qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach, eas2tas, cas2mach, density
+                         qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach,\
+                         eas2tas, cas2mach, density
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
+
+import pdb
 
 class Commandstack:
     """
@@ -15,7 +18,6 @@ class Commandstack:
 
     Methods:
         Commandstack()          :  constructor
-
         stack(cmdline)          : add a command to the command stack
         openfile(scenname)      : start playing a scenario file scenname.SCN
                                   from scenario folder
@@ -32,24 +34,49 @@ class Commandstack:
     def __init__(self, sim, traf, scr):
 
         #Command dictionary: command, helptext, arglist, function to call
-        #----------------------------------------------------------------------
-        self.cmddict = {"CRE": [ "CRE acid,type,lat,lon,hdg,alt,spd",
-                                      "txt,txt,lat,lon,hdg,alt,spd",
-                                      traf.create],
-                        "HDG": [ "HDG acid,hdg[deg,True]",
-                                       "acid,float",traf.selhdg],
-                        "FF":  [ "FF [tend]",
-                                    "time",sim.fastforward]
-                       }
+        #--------------------------------------------------------------------
+        self.cmddict = {
+            "CRE": [
+                "CRE acid,type,lat,lon,hdg,alt,spd",
+                "txt,txt,lat,lon,hdg,alt,spd",
+                traf.create
+            ],
+            "HDG": [
+                "HDG acid,hdg [deg,True]",
+                "acid,float",
+                traf.selhdg
+            ],
+            "SPD": [
+                "SPD acid,spd [CAS-kts/Mach]",
+                "acid,spd",
+                traf.selspd
+            ],
+            "FF":  [
+                "FF [tend]",
+                "time",
+                sim.fastforward
+            ],
+            "SYMBOL":  [
+                "SYMBOL",
+                "",
+                scr.symbol
+            ],
+            "DATAFEED":  [
+                "DATAFEED [ON/OFF]",
+                "txt",
+                sim.datafeed
+            ]
+        }
 
-        #----------------------------------------------------------------------
+        #--------------------------------------------------------------------
         # Command synonym dictionary
-        self.cmdsynon = {"CREATE": "CRE",
-                         "TURN": "HDG",
-                         "DTLOOK": "ASA_DTLOOK",
-                         "FWD": "FF"
-                         }
-        #----------------------------------------------------------------------
+        self.cmdsynon = {
+            "CREATE": "CRE",
+            "TURN": "HDG",
+            "DTLOOK": "ASA_DTLOOK",
+            "FWD": "FF"
+        }
+        #--------------------------------------------------------------------
 
         self.cmdstack  = []
         self.scenlines = []
@@ -58,24 +85,6 @@ class Commandstack:
         self.scentime = []
         self.scencmd = []
 
-        # An advanced way to add your own commands: add your entry to the dictionary.
-        # The dictionary should be formed as {"Key":module'}.
-
-        # "Key" is a FOUR-symbol reference that is used at the start of the command.
-        # 'module' is the name of the .py-file in which the commands are located (without .py).
-
-        # Make sure that the module has a function "process" with
-        # arguments (command, number of args, array of args, sim, traf, scr, cmd)
-
-        self.extracmdmodules={"SYN_": 'synthetic', "ASA_":'asascmd', "LOG_":'log'}
-
-# Import modules from the list
-        self.extracmdrefs={}
-        sys.path.append('bluesky/stack/')
-        for key in self.extracmdmodules:
-            obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
-            self.extracmdrefs[key]=obj
-        
         # Display Help text on start of program
         self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")
         self.stack("ECHO Or select IC to Open a scenario file.")
@@ -84,9 +93,37 @@ class Commandstack:
         self.stack('PAN ' + settings.start_location)
         self.stack("ZOOM 0.4")
 
+        # ------------------ [start] Deprecated -------------------
+        # An alternative way to add your own commands: 
+        # add your entry to the dictionary.
+        # The dictionary should be formed as {"Key":module'}.
+
+        # "Key" is a FOUR-symbol reference used at the start of command.
+        # 'module' is the name of the .py-file in which the 
+        # commands are located (without .py).
+
+        # Make sure that the module has a function "process" with
+        # arguments:
+        #   command, number of args, array of args, sim, traf, scr, cmd
+
+        self.extracmdmodules = {
+            "SYN_": 'synthetic', 
+            "ASA_":'asascmd', 
+            "LOG_":'log'
+        }
+
+        # Import modules from the list
+        self.extracmdrefs={}
+        sys.path.append('bluesky/stack/')
+        for key in self.extracmdmodules:
+            obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
+            self.extracmdrefs[key]=obj
+        # ------------------ [end] Deprecated -------------------
+        
         return
 
-    def stack(self, cmdline):  # Stack one or more commands separated by ";"
+    def stack(self, cmdline):  
+        # Stack one or more commands separated by ";"
         cline = cmdline.strip()  # remove leading & trailing spaces
         if cline.count(";") == 0:
             self.cmdstack.append(cline)
@@ -251,8 +288,8 @@ class Commandstack:
         """process and empty command stack"""
         # Process stack of commands
         for line in self.cmdstack:
-
-#Debug            print "CMD:",line
+            # Debug
+            # print "CMD:",line
 
             cmdline = line.upper()  # Save original lower case in variable line
 
@@ -291,7 +328,7 @@ class Commandstack:
                 #**********************************************************************
 
                 #----------------------------------------------------------------------
-                # First check command synonymes list, then dictionary
+                # First check command synonymes list, then in dictionary
                 #----------------------------------------------------------------------
                 if cmd in self.cmdsynon.keys():
                     cmd = self.cmdsynon[cmd]
@@ -304,7 +341,7 @@ class Commandstack:
                     # Process arg list
                     arglist = []
                     idx    = -1 # Reference aircraft
-                    refalt= 0. # Reference altitude
+                    refalt = 0. # Reference altitude
                     reflat = scr.ctrlat # Reference latitude
                     reflon = scr.ctrlon # Reference longitude
 #                    try:
@@ -319,8 +356,8 @@ class Commandstack:
                             elif argtype == "acid": # aircraft id => parse index
 
                                 idx = traf.id2idx(cmdargs[i])
-                                if idx<0:
-                                    scr.echo(cmd+":"+acid+" not found")
+                                if idx < 0:
+                                    scr.echo(cmd + ":" + cmdargs[i] + " not found")
                                     synerr = True
                                     break
                                 else:
@@ -354,11 +391,11 @@ class Commandstack:
                                 except:
                                    synerr = True
  
-                            elif argtype == "spd":
+                            elif argtype == "spd": # CAS[kts] Mach
                                 spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
-                                arglist.append(spd)  # speed CAS[kts] or Mach (float)
+                                arglist.append(spd) # speed CAS[kts] or Mach (float) 
 
-                            elif argtype == "alt":
+                            elif argtype == "alt": #alt: FL250 or 25000 [ft]
                                 arglist.append(ft * txt2alt(cmdargs[i]))  # alt in m
 
                             elif argtype == "hdg":
@@ -385,25 +422,28 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
-                    try:
-                        results = function(*arglist) # * = unpack list to call arguments
-                    except:
-                        synerr = True
-
+#                    try:
+                    results = function(*arglist) # * = unpack list to call arguments
+#                    except:
+#                        synerr = True
                     txt = helptext
                     if not synerr:
                         if type(results)==bool:
                             synerr = not results
+                            if synerr:
+                                if numargs<=0 or cmdargs[i]=="?":
+                                    scr.echo(helptext)
+                                else:
+                                    scr.echo("Syntax error: " + helptext)
                         elif type(results)==list:
                             if len(results)>=1:
                                 synerr = not results[0]
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
-                    if synerr:# synerr:                    
-                         scr.echo(helptext)
+                    else:  # synerr:                    
+                         scr.echo("Syntax error: "+helptext)
 
-                    synerr= False  # suppress further error messages
 
                 #----------------------------------------------------------------------
                 # QUIT/STOP/END/Q: stop program
@@ -427,49 +467,6 @@ class Commandstack:
                     scr.echo("DATAFEED")
                     scr.echo(" ")
                     scr.echo("See InFo subfolder for more info.")
-
-
-                #----------------------------------------------------------------------
-                # CRE: CREate command: Create an aircraft
-                #----------------------------------------------------------------------
-                elif cmd[:3] == "CRE":
-                    if numargs <= 1:
-                        scr.echo("CRE acid,type,lat,lon,hdg,alt,spd")
-                        continue  # next command
-                    elif numargs >= 2:
-                        acid = cmdargs[1].upper()  # arguments are strings
-                        actype = cmdargs[2]  # arguments are strings
-                        if traf.id.count(acid) > 0:
-                            scr.echo("CRE error: " + acid + " already exists.")
-                            continue
-                    
-                    # Decode with check
-                    try:
-                        aclat = float(cmdargs[3])  # deg
-                        aclon = float(cmdargs[4])  # deg
-                        achdg = float(cmdargs[5])  # deg
-                        acalt = txt2alt(cmdargs[6]) * ft  # m
-
-                        if acalt <= -900:
-                            synerr = True
-                            acalt = 0.
-
-                        # Speed
-                        acspd = txt2spd(cmdargs[7], acalt)  # kts/M => m/s
-                        if acspd < 0.:
-                            synerr = True
-                    except:
-                        synerr = True
-
-                    if not synerr:
-                        traf.create_ac(acid, actype, aclat, aclon, achdg, acalt, acspd)
-                        i = traf.id2idx(acid)
-                        traf.crzalt[i] = acalt  # Use CRE-alt as default crzalt
-                    else:
-                        print "Syntax error in command"
-                        scr.echo("Syntax error in command")
-                        scr.echo("CRE acid,type,lat,lon,hdg,alt,spd")
-                        continue
 
                 #----------------------------------------------------------------------
                 # POS command: traffic info; ("KL204", "POS KL204" or "KL204 ?")
@@ -613,48 +610,6 @@ class Commandstack:
                         synerr = True
 
                 #----------------------------------------------------------------------
-                # HDG heading [deg,true] heading autpilot command
-                #----------------------------------------------------------------------
-                elif cmd == "HDG":
-                    if numargs < 2:
-                        scr.echo("HDG acid,hdg[deg,True]")
-                    elif numargs == 2:
-                        acid = cmdargs[1].upper()
-                        idx = traf.id.index(acid)
-                        if idx >= 0:
-                            traf.ahdg[idx] = float(cmdargs[2])
-                            traf.swlnav[idx] = False
-                        else:
-                            scr.echo(cmd + ": " + acid + " not found.")
-                    else:
-                        synerr = True
-
-                #----------------------------------------------------------------------
-                # SPD speed [kts, CAS] Speed autopilot command
-                # TODO: add Mach, and note how currently EAS is stored not CAS!
-                #----------------------------------------------------------------------
-                elif cmd == "SPD":
-                    if numargs < 2:
-                        scr.echo("SPD acid,spd[kts,EAS]")
-                    elif numargs == 2:
-                        acid = cmdargs[1].upper()
-                        idx = traf.id2idx(acid)
-                        if idx >= 0:
-                            # cascmd = float(cmdargs[2])*kts
-                            # tascmd = cas2tas(cascmd,traf.alt[idx])
-                            # eascmd = tas2eas(tascmd,traf.alt[idx])
-
-                            eascmd = float(cmdargs[2]) * kts
-                            traf.aspd[idx] = eascmd
-                            traf.ama[idx] = cas2mach(eascmd, traf.alt[idx])
-                            traf.swvnav[idx] = False  # switch off VNAV
-
-                        else:
-                            scr.echo(cmd + ": " + acid + " not found.")
-                    else:
-                        synerr = True
-              
-                #----------------------------------------------------------------------
                 # reset acceleration back to nominal value 
                 #      of 1 kt/s^2 respectively 0.514444 m/s^2
                 #----------------------------------------------------------------------
@@ -705,13 +660,35 @@ class Commandstack:
                                 scr.echo("ORIG "+acid+": "+traf.orig[idx])                            
                             
                         elif idx >= 0 and numargs>=2:
+                            name = cmdargs[2]
+ 
+                           # Check for lat/lon type
+                            if numargs>=3:
+                                chkdig = cmdargs[2].replace("-","")     \
+                                       .replace("+","").replace(".","") \
+                                       .replace("N","").replace("S","") \
+                                       .replace("E","").replace("W","") \
+                                       .replace("'","").replace('"',"") 
+
+                                if chkdig.isdigit():
+          
+                                        name    = traf.id[idx]+cmd # use for wptname
+                                        if cmd=="DEST":
+                                            wptype  = traf.route[idx].dest
+                                        else:
+                                            wptype  = traf.route[idx].orig
+                                           
+                                        lat     = txt2lat(cmdargs[2])
+                                        lon     = txt2lon(cmdargs[3])
+ 
+                              
                             # Destination is default waypoint
                             if cmd == "DEST":
-                                traf.dest[idx] = cmdargs[2].upper().strip()
+                                traf.dest[idx] = name.upper().strip()
                                 iwp = traf.route[idx].addwpt(traf,idx,traf.dest[idx],
-                                                               traf.route[idx].dest,
-                                                               traf.lat[idx], traf.lon[idx],
-                                                               0.0, traf.cas[idx])
+                                                             traf.route[idx].dest,
+                                                             traf.lat[idx], traf.lon[idx],
+                                                             0.0, traf.cas[idx])
                                 # If only waypoint: activate
                                 if (iwp == 0) or (traf.orig[idx]!="" and traf.route[idx].nwp==2):
                                      traf.actwplat[idx] = traf.route[idx].wplat[iwp]
@@ -728,7 +705,7 @@ class Commandstack:
 
                             # Origin: bookkeeping only for now
                             else:
-                                traf.orig[idx] = cmdargs[2]
+                                traf.orig[idx] = name.upper().strip()
                                 iwp = traf.route[idx].addwpt(traf,idx,traf.orig[idx],traf.route[idx].orig,
                                                  traf.lat[idx], traf.lon[idx],
                                                           0.0, traf.cas[idx])
@@ -1032,21 +1009,31 @@ class Commandstack:
                 #               AREA FIR fir radius [lowalt]
                 #----------------------------------------------------------------------
                 elif cmd == "AREA":
+                    
+                    # debugger
+#                    pdb.set_trace()                    
+                    
                     if numargs == 0:
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
                         scr.echo("AREA fir,radius[,lowalt]")
+                        scr.echo("or")
+                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
                     elif numargs == 1 and cmdargs[1] != "OFF" and cmdargs[1] != "FIR":
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
                         scr.echo("AREA fir,radius[,lowalt]")
+                        scr.echo("or")
+                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
+                        
                     elif numargs == 1:
                         if cmdargs[1] == "OFF":
                             if traf.swarea:
                                 traf.swarea = False
                                 scr.redrawradbg = True
                                 traf.area = ""
-                                scr.objappend(2, "AREA", None)
+                                scr.objappend(2, "AREA", None) # delete square areas
+                                scr.objappend(3, "AREA", None) # delete circle areas
                         if cmdargs[1] == "FIR":
                             scr.echo("Specify FIR")
 
@@ -1100,11 +1087,42 @@ class Commandstack:
                         traf.swarea = True
                         scr.drawradbg()
                         traf.inside = traf.ntraf * [False]
+                    
+                    # circle code
+                    elif (numargs > 2 and cmdargs[1] == "CIRCLE"):
+                        
+                        # draw circular experiment area
+                        lat0 = np.float(cmdargs[2])   # Latitude of circle center [deg]
+                        lon0 = np.float(cmdargs[3])   # Longitude of circle center [deg]
+                        radius = np.float(cmdargs[4]) # Radius of circle Center [NM]                      
+                                               
+                        # Deleting traffic flying out of experiment area
+                        traf.area = "Circle"
+                        traf.swarea = True
+                        traf.radius = radius
+                        traf.arealat0 = lat0 # center of circle sent to traf
+                        traf.arealon0 = lon0
+                        
+                        if numargs == 5:
+                            traf.areafloor = float(cmdargs[5]) * ft
+                        else:
+                            traf.areafloor = -9999999.
+                            
+                        # draw the circular experiment area on the radar gui  
+                        scr.redrawradbg = True                        
+                        scr.objappend(3, "AREA", [lat0,lon0,radius])
+                        
+                        # Avoid mass delete due to redefinition of area
+                        traf.inside = traf.ntraf * [False]
+                        
+                     
                     else:
                         scr.echo("AREA command unknown")
                         scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
                         scr.echo("or")
                         scr.echo("AREA fir,radius[,lowalt]")
+                        scr.echo("or")
+                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
 
                 #----------------------------------------------------------------------
                 # TAXI command: TAXI ON/OFF : if off, 
@@ -1251,7 +1269,7 @@ class Commandstack:
                                     acspd = txt2spd(cmdargs[4],h)
 
                                 # Create a/c
-                                traf.create_ac(acid, actype, aclat, aclon, achdg, \
+                                traf.create(acid, actype, aclat, aclon, achdg, \
                                             acalt, acspd)
                         except:
                             scr.echo('Syntax error')
@@ -1299,9 +1317,18 @@ class Commandstack:
                         idx = traf.id2idx(cmdargs[1])
 
                         if idx<0:
-                            scr.echo(acid+"not found")
+                            if cmdargs[1]=="*":  # all aircraft
+                               if cmdargs[2].upper() == "ON":
+                                   traf.swlnav = np.array(traf.ntraf*[True])
+                               elif cmdargs[2].upper() == "OFF":
+                                   traf.swlnav = np.array(traf.ntraf*[False])
+                               else:
+                                   synerr = True
+                            else:
+                                scr.echo(cmdargs[1]+"not found")
  
                         elif numargs ==1:
+                            acid = traf.id[idx]
                             if traf.swlnav[idx] == "ON":
                                 scr.echo(acid+": LNAV ON")
                             else:
@@ -1309,7 +1336,14 @@ class Commandstack:
 
                         else:
                             if cmdargs[2].upper() == "ON":
-                                traf.swlnav[idx] = True
+                                if traf.route[idx].nwp > 0: # If there are any waypoints defined
+                                    traf.swlnav[idx] = True
+    
+                                    iwp = traf.route[idx].findact(traf,idx)
+                                    traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                                else:
+                                    scr.echo("LNAV "+acid+": no waypoints or destination specified")
+
                             elif cmdargs[2].upper() == "OFF":
                                 traf.swlnav[idx] = False
 
@@ -1322,20 +1356,40 @@ class Commandstack:
                     else:
                         idx = traf.id2idx(cmdargs[1])
                         if idx<0:
-                            scr.echo(acid+"not found")
+                            if cmdargs[1]=="*":  # all aircraft
+                               if cmdargs[2].upper() == "ON": # Only when LNAV is on!
+                                   traf.swvnav = np.array(traf.ntraf*[True])*traf.swlnav
+                               elif cmdargs[2].upper() == "OFF":
+                                   traf.swvnav = np.array(traf.ntraf*[False])
+                               else:
+                                   synerr = True
+                            else:
+                                scr.echo(cmdargs[1]+"not found")
 
                         elif numargs ==1:
+
+                            acid = traf.id[idx]
                             if traf.swvnav[idx] == "ON":
-                                scr.echo(acid+": VNAV ON")
+                               scr.echo(acid+": VNAV ON")
                             else:
                                 scr.echo(acid+": VNAV OFF")
 
                         else:
+                            acid = traf.id[idx]
                             if cmdargs[2].upper() == "ON":
-                                traf.swvnav[idx] = True
+                                if not traf.swlnav[idx]:   
+                                    scr.echo(acid+": VNAV ON requires LNAV to be ON")
+                                else:
+                                    traf.swvnav[idx] = True
+                                    # Activate AP setting by pressing Direct again
+                                    if traf.route[idx].nwp>0: 
+                                        traf.route[idx].direct( traf , idx,  \
+                                           traf.route[idx].wpname[traf.route[idx].iactwp])
+
                             elif cmdargs[2].upper() == "OFF":
                                 traf.swvnav[idx] = False
-
+                            else:
+                                synerr = True
 
                 #----------------------------------------------------------------------
                 # ASAS ON/OFF  : switch ASAS on/off
@@ -1362,6 +1416,7 @@ class Commandstack:
                     
                     else:
                         acid = cmdargs[1]     # call sign
+                           
                         i = traf.id2idx(cmdargs) # Get index of this a/c
                         if traf.id2idx(cmdargs[1])<0:
                             scr.echo("ADDWPT: Aircraft "+cmdargs[1]+" not found.")
@@ -1373,59 +1428,79 @@ class Commandstack:
                             alt = -999
                             spd = -999
                             afterwp = ""
-                            try:
+                            
+                            # Check for fly-by/fly-over switch per aircraft route
+                            wpid = cmdargs[2]                            
+                            if wpid=="FLYBY" or wpid=="FLY-BY":
+                                traf.route[i].swflyby = True
+                            elif wpid=="FLYOVER" or wpid=="FLY-OVER":
+                                traf.route[i].swflyby = False
+                            else:
 
-                                # Get waypoint data
-                                # Is arg 2 a number? => lat,lon else waypoint name
-                                chkdig = cmdargs[2].replace("-","")  \
-                                   .replace("+","").replace(".","")\
-                                   .replace("N","").replace("S","")\
-                                   .replace("E","").replace("W","")\
-                                   .replace("'","").replace('"',"")  
-                                if numargs>=3 and chkdig.isdigit():
-      
-                                    name    = traf.id[i] # use for wptname
-                                    wptype  = rte.wplatlon
-                                    lat     = txt2lat(cmdargs[2])
-                                    lon     = txt2lon(cmdargs[3])
-                                    if numargs>=4 and cmdargs[4]!="":
-                                        alt = txt2alt(cmdargs[4])*ft
-                                    if numargs>=5 and cmdargs[5]!="":
-                                        spd = txt2spd(cmdargs[5],max(alt,traf.alt[i]))
-                                    if numargs>=6:
-                                        afterwp = cmdargs[6]
-                                    wpok    = True
+                                if True: #try:
+    
+                                    # Get waypoint data
+                                    # Is arg 2 a number? => lat,lon else waypoint name
+                                    chkdig = cmdargs[2].replace("-","")  \
+                                       .replace("+","").replace(".","")\
+                                       .replace("N","").replace("S","")\
+                                       .replace("E","").replace("W","")\
+                                       .replace("'","").replace('"',"")
 
-                                # Is arg navaid/airport/waypoint name?
-                                elif numargs>=2:
-                                    name    = cmdargs[2]  # search this wpname closest to
-                                    wptype  = rte.wpnav
-                                    lat     = traf.lat[i]  # a/c position as reference lat,lon 
-                                    lon     = traf.lon[i]
-                                    if numargs>=3 and cmdargs[3]!="":
-                                        alt = txt2alt(cmdargs[3])*ft
-                                    if numargs>=4 and cmdargs[4]!="":
-                                        spd = txt2spd(cmdargs[4],max(alt,traf.alt[i]))
-                                    if numargs>=5:
-                                        afterwp = cmdargs[5]
-                                    wpok    = True
+                                    if numargs>=3 and chkdig.isdigit():
+          
+                                        name    = traf.id[i] # use for wptname
+                                        wptype  = rte.wplatlon
+                                        lat     = txt2lat(cmdargs[2])
+                                        lon     = txt2lon(cmdargs[3])
+                                        if numargs>=4 and cmdargs[4]!="":
+                                            alt = txt2alt(cmdargs[4])*ft
+                                        if numargs>=5 and cmdargs[5]!="":
+                                            spd = txt2spd(cmdargs[5],max(alt,traf.alt[i]))
+                                        if numargs>=6:
+                                            afterwp = cmdargs[6]
+                                            if rte.wpname.count(afterwp)==0:
+                                                scr.echo("Waypoint "+afterwp+" not found. "+
+                                                "Waypoint added at end of route.")
+                                                afterwp = ""
+                                        
+                                        wpok    = True
 
-                                # Add the wpt to route
-                                if wpok: 
-                                    wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
-                                    norig = int(traf.orig[i]!="")
-                                    ndest = int(traf.dest[i]!="")
+                                    # Is arg navaid/airport/waypoint name?
+                                    elif numargs>=2:
+                                        name    = cmdargs[2]  # search this wpname closest to
+                                        wptype  = rte.wpnav
+                                        lat     = traf.lat[i]  # a/c position as reference lat,lon 
+                                        lon     = traf.lon[i]
+                                        if numargs>=3 and cmdargs[3]!="":
+                                            alt = txt2alt(cmdargs[3])*ft
+                                        if numargs>=4 and cmdargs[4]!="":
+                                            spd = txt2spd(cmdargs[4],max(alt,traf.alt[i]))
+                                        if numargs>=5:
+                                            afterwp = cmdargs[5]
+                                            if rte.wpname.count(afterwp)==0:
+                                                scr.echo("Waypoint ",afterwp," not found."+
+                                                "waypoint added at end of route.")
+                                                afterwp =""
 
-                                    if rte.nwp-norig-ndest==1: # first waypoint: make active
-                                       rte.direct(traf,i,name)
-                                       traf.swlnav[i] = True
-
-                                else:
-                                    scr.echo(trafid[i]+": waypoint not added")
-                                    synerr = True
-                            except:
-                                scr.echo(trafid[i]+": waypoint not added")
-                                synerr = True
+                                        wpok    = True
+    
+                                    # Add the wpt to route
+                                    if wpok: 
+                                        wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
+                                        norig = int(traf.orig[i]!="")
+                                        ndest = int(traf.dest[i]!="")
+    
+                                        if rte.nwp-norig-ndest==1: # first waypoint: make active
+                                           rte.direct(traf,i,rte.wpname[norig]) #0 if no rig
+                                           traf.swlnav[i] = True
+    
+                                    else:
+                                        scr.echo(traf.id[i]+": waypoint not added")
+                                        synerr = True
+                                #except:
+                                 #   scr.echo(traf.id[i]+": waypoint not added")
+                                 #   synerr = True
                                 
                 #----------------------------------------------------------------------
                 # DELWPT   : DELWPT acid,WPname
@@ -1629,38 +1704,6 @@ class Commandstack:
 
                     else:
                         synerr = True
-
-                #------------------------------------------------------------------
-                # DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER
-                # DATAFEED ON/OFF, DATAFEED DEMO, DATAFEED LOG ON/OFF"
-                #------------------------------------------------------------------
-                elif cmd[:8] == "DATAFEED":
-                    if numargs == 3 and cmdargs[1].upper() == "CONNECT":
-                        scr.echo("Connecting to tcp server...")
-                        serverip = cmdargs[2]
-                        port = int(cmdargs[3]) if cmdargs[3].isdigit() else False
-                        if not port:
-                            scr.echo("PORT_NUMBER must be valid number")
-                        else:
-                            self.tmx.df.connect(serverip, port)
-                    elif numargs == 1 and cmdargs[1].upper() == "ON":
-                        self.tmx.df.start()
-                    elif numargs == 1 and cmdargs[1].upper() == "OFF":
-                        self.tmx.df.stop()
-                    elif numargs == 1 and cmdargs[1].upper() == "DEMO":
-                        scr.echo("Use demo server [IP 131.180.117.39, Port 10001]")
-                        self.tmx.df.connect('131.180.117.39', 10001)
-                    elif numargs == 1 and cmdargs[1].upper() == "LOG":
-                        self.tmx.df.set_console_print(True)
-                    elif numargs == 2 and cmdargs[1].upper() == "LOG" \
-                        and cmdargs[2].upper() == "ON":
-                        self.tmx.df.set_console_print(True)
-                    elif numargs == 2 and cmdargs[1].upper() == "LOG" \
-                        and cmdargs[2].upper() == "OFF":
-                        self.tmx.df.set_console_print(False)
-                    else:
-                        scr.echo("Usage: DATAFEED CONNECT SERVER_IP_ADDR PORT_NUMBER, " +
-                            " DATAFEED ON/OFF, DATAFEED DEMO, DATAFEED LOG ON/OFF")
 
                 #------------------------------------------------------------------
                 # DUMPRTE acid: Dump the route to the route-file for debugging

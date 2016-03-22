@@ -2,11 +2,11 @@ import numpy as np
 from math import *
 
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
-     mach2tas, cas2tas, Rearth
+                         mach2cas, cas2tas, cas2mach, Rearth
 
-from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, cas2mach, \
-    vmach2tas, qdrdist
-from ..tools.misc import degto180
+from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach,\
+                            vmach2tas, qdrdist
+from ..tools.misc import degto180, kwikdist
 from ..tools.datalog import Datalog
 
 from route import Route
@@ -22,8 +22,8 @@ try:
     elif settings.performance_model == 'bada':
         from perfbada import PerfBADA as Perf
 
-except ImportError as e:
-    print e.args[0]
+except ImportError as err:
+    print err.args[0]
     print 'Falling back to BlueSky performance model'
     from perf import Perf
 
@@ -34,11 +34,21 @@ class Traffic:
 
     Methods:
         Traffic()            :  constructor
+        reset()              :  Reset traffic database w.r.t a/c data
 
         create(acid,actype,aclat,aclon,achdg,acalt,acspd) : create aircraft
         delete(acid)         : delete an aircraft from traffic data
+        deletall()           : delete all traffic
         update(sim)          : do a numerical integration step
-        trafperf ()          : calculate aircraft performance parameters
+        id2idx(name)         : return index in traffic database of given call sign
+        selhdg(i,hdg)        : set autopilot heading and activate heading select mode 
+        selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode 
+
+        engchange(i,engtype) : change engine type of an aircraft
+
+        changeTrailColor(color,idx)     : change colour of trail of aircraft idx
+ 
+        setNoise(A)          : Add turbulence
 
     Members: see create
 
@@ -85,7 +95,7 @@ class Traffic:
         self.trk    = np.array([])  # track angle [deg]
         self.tas    = np.array([])  # true airspeed [m/s]
         self.gs     = np.array([])  # ground speed [m/s]
-        self.cas    = np.array([])  # callibrated airspeed [m/s]
+        self.cas    = np.array([])  # calibrated airspeed [m/s]
         self.M      = np.array([])  # mach number
         self.alt    = np.array([])  # altitude [m]
         self.fll    = np.array([])  # flight level [ft/100]
@@ -102,6 +112,9 @@ class Traffic:
         self.bank   = np.array([])  # nominal bank angle, [radian]
         self.bphase = np.array([])  # standard bank angles per phase
         self.hdgsel = np.array([])  # determines whether aircraft is turning
+
+        # Help variables to save computation time
+        self.coslat = np.array([])  # Cosine of latitude for flat-earth aproximations
 
         # Crossover altitude
         self.abco   = np.array([])
@@ -134,9 +147,13 @@ class Traffic:
         self.actwpalt  = np.array([])  # Active WP altitude to arrive at
         self.actwpspd  = np.array([])  # Active WP speed
         self.actwpturn = np.array([])  # Distance when to turn to next waypoint
+        self.actwpflyby = np.array([])  # Distance when to turn to next waypoint
+      
 
-        # VNAV cruise level
-        self.crzalt = np.array([])    # Cruise altitude[m]
+        # VNAV variablescruise level
+        self.crzalt  = np.array([])    # Cruise altitude[m]
+        self.dist2vs = np.array([])    # Distance to start V/S of VANAV
+        self.actwpvs = np.array([])    # Actual V/S to use
 
         # Route info
         self.route = []
@@ -198,11 +215,12 @@ class Traffic:
         self.swarea    = False
         self.arealat0  = 0.0  # [deg] lower latitude defining area
         self.arealat1  = 0.0  # [deg] upper latitude defining area
-        self.arealat0  = 0.0  # [deg] lower longitude defining area
-        self.arealat1  = 0.0  # [deg] upper longitude defining area
+        self.arealon0  = 0.0  # [deg] lower longitude defining area
+        self.arealon1  = 0.0  # [deg] upper longitude defining area
         self.areafloor = -999999.0  # [m] Delete when descending through this h
         self.areadt    = 5.0  # [s] frequency of area check (simtime)
         self.areat0    = -100.  # last time checked
+        self.radius    = 100.0 # [NM] radius of experiment area if it is a circle
 
         self.inside = []
         self.fir_circle_point = (0.0, 0.0)
@@ -305,6 +323,9 @@ class Traffic:
         self.lalt = np.append(self.lalt, 0.0)
         self.lvs = np.append(self.lvs, 0.0)
 
+        # Help variables to save computation time
+        self.coslat = np.append(self.coslat,cos(radians(aclat)))  # Cosine of latitude for flat-earth aproximations
+
         # Traffic navigation information
         self.dest.append("")
         self.orig.append("")
@@ -318,9 +339,12 @@ class Traffic:
         self.actwpalt  = np.append(self.actwpalt, 0.0)   # Active WP altitude
         self.actwpspd  = np.append(self.actwpspd, -999.)   # Active WP speed
         self.actwpturn = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
+        self.actwpflyby = np.append(self.actwpflyby, 1.0)   # Flyby/fly-over switch
 
         # VNAV cruise level
         self.crzalt = np.append(self.crzalt,-999.) # Cruise altitude[m] <0=None
+        self.dist2vs = np.append(self.dist2vs,-999.)  # Distance to start V/S of VANAV
+        self.actwpvs = np.append(self.actwpvs,0.0)    # Actual V/S to use then
 
         # Route info
         self.route.append(Route(self.navdb))  # create empty route connected with nav databse
@@ -373,9 +397,11 @@ class Traffic:
     def delete(self, acid):
         """Delete an aircraft"""
 
-        try:  # prevent error due to not found
-            idx = self.id.index(acid)
-        except:
+        # Look up index of aircraft
+        idx = self.id2idx(acid)
+        
+        # Do nothing if not found
+        if idx<0:
             return False
 
         del self.id[idx]
@@ -426,6 +452,9 @@ class Traffic:
         self.lalt   = np.delete(self.lalt, idx)
         self.lvs    = np.delete(self.lvs, idx)
 
+        # Help variables to save computation time
+        self.coslat = np.delete(self.coslat,idx)  # Cosine of latitude for flat-earth aproximations
+
         # Traffic navigation variables
         del self.dest[idx]
         del self.orig[idx]
@@ -438,9 +467,14 @@ class Traffic:
         self.actwpalt  = np.delete(self.actwpalt,  idx)
         self.actwpspd  = np.delete(self.actwpspd,  idx)
         self.actwpturn = np.delete(self.actwpturn, idx)
+        self.actwpflyby = np.delete(self.actwpflyby, idx)
+
 
         # VNAV cruise level
-        self.crzalt    = np.delete(self.crzalt,    idx)
+        self.crzalt    = np.delete(self.crzalt,  idx)
+        self.dist2vs   = np.delete(self.dist2vs, idx)    # Distance to start V/S of VANAV
+        self.actwpvs   = np.delete(self.actwpvs, idx)    # Actual V/S to use
+
 
         # Route info
         del self.route[idx]
@@ -499,16 +533,6 @@ class Traffic:
         return
 
     def update(self, simt, simdt):
-#        print
-#        print "t = ",simt
-#        print        
-#        print "TAS=",self.tas #TAS
-#        print "APTAS=",self.aptas # TAS
-#        print "aspd=",self.aspd #CAS
-
-#        i = self.id2idx("TP233")
-#        if i>=0:
-#           print "LNAV TP233:",self.swlnav[i]
         # Update only necessary if there is traffic
         if self.ntraf == 0:
             return
@@ -589,107 +613,142 @@ class Traffic:
             self.t0fms = simt
             
             # FMS LNAV mode:
-
-            qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm]
+            qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm])
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distance
-
             iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
             
-            # Shift for aircraft i where necessary
-
+            # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
 
-            # Get next wp (lnavon = False if no more waypoints)
-
-                lat, lon, alt, spd, xtoalt, toalt, lnavon =  \
+                # Get next wp (lnavon = False if no more waypoints)
+                lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
-            # End of route/no more waypoints: switch off LNAV
-
+                # End of route/no more waypoints: switch off LNAV
                 if not lnavon:
                     self.swlnav[i] = False # Drop LNAV at end of route
 
-            # In case of no LNAV, do not allow VNAV mode on it sown
-
+                # In case of no LNAV, do not allow VNAV mode on it sown
                 if not self.swlnav[i]:
                     self.swvnav[i] = False
                     
-                self.actwplat[i] = lat
-                self.actwplon[i] = lon
+                self.actwplat[i]   = lat
+                self.actwplon[i]   = lon
+                self.actwpflyby[i] = int(flyby) # 1.0 in case of fly by, els fly over
 
                 # User entered altitude
 
                 if alt >= 0.:
                     self.actwpalt[i] = alt
                     
-                # VNAV calculated altitude is available and active
-                
-                if toalt  >= 0. and self.swvnav[i]:
-                    # Descent VNAV mode (T/D logic)
-                    
-                    if self.alt[i]>toalt+10.*ft:       # Descent part is in this range of waypoints:
+                # VNAV=-ALT mode
+                # calculated altitude is available and active
+                if toalt  >= 0. and self.swvnav[i]: # somewhere there is an altitude constraint ahead
 
+                    # Descent VNAV mode (T/D logic)
+                    if self.alt[i] > toalt+10.*ft:       
+
+                        #Steepness dh/dx in [m/m], for now 1:3 rule of thumb
+                        steepness = 3000.*ft/(10.*nm)
+                        
+                        #Calculate max allowed altitude at next wp (above toalt)
+                        self.actwpalt[i] = toalt + xtoalt*steepness
+
+                        # Dist to waypoint where descent should start
+                        self.dist2vs[i] = (self.alt[i]-self.actwpalt[i])/steepness
+ 
                         # Flat earth distance to next wp
                         dy = (lat-self.lat[i])
-                        dx = (lon-self.lon[i])*cos(radians(lat))
-                        dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
-              
-                        steepness = 3000.*ft/(10.*nm) # 1:3 rule of thumb for now
-                        maxaltwp  = toalt + xtoalt*steepness    # max allowed altitude at next wp
-                        self.actwpalt[i] = min(self.alt[i],maxaltwp) #To descend now or descend later?
+                        dx = (lon-self.lon[i])*self.coslat[i]
+                        legdist = 60.*nm*sqrt(dx*dx+dy*dy)
 
-                        if maxaltwp<self.alt[i]: # if descent is necessary with maximum steepness
 
+                        #If descent is urgent, descent with maximum steepness
+                        if legdist < self.dist2vs[i]:
                             self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
 
-                            t2go         = max(0.1,dist2wp)/max(0.01,self.gs[i])
-                            self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
+                            t2go         = max(0.1,legdist)/max(0.01,self.gs[i])
+                            self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
+                                              
+                        else: 
+
+                            # normal case: still time till descent starts
                        
-                           
-                        else:
-                            print "else 1"
-                            pass # TBD
+                            # Calculate V/s using steepness, 
+                            # protect against zero/invalid ground speed value
+                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
+                                            (self.gs[i]<0.2*self.tas[i])*self.tas[i])
 
                     # Climb VNAV mode: climb as soon as possible (T/C logic)                        
-
                     elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
 
-                        # Flat earth distance to next wp
+                        self.actwpalt[i] = toalt
+                        self.aalt[i]     = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+                        self.dist2vs[i]  = 9999.
 
-                        dy = (lat-self.lat[i])
-                        dx = (lon-self.lon[i])*cos(radians(lat))
-                        dist2wp = 60.*nm*sqrt(dx*dx+dy*dy)
-
-
-                        self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
-
-                        t2go         = max(0.1,dist2wp)/max(0.01,self.gs[i])
-                        self.avs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
-                       
-                       
-                if spd>0. and swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
-                    if spd<2.0:
-                       self.actwpspd[i] = mach2tas(spd,self.alt[i])                            
-                    else:    
-                       self.actwpspd[i] = cas2tas(spd,self.alt[i])
+                    # Level leg: never start V/S
+                    else:
+                        self.dist2vs[i] = -999.
+                        
+                #No altirude defined: never start V/S
                 else:
-                    self.actwpspd[i] = -999.
+                    self.dist2vs[i] = -999.
+               
+                # VNAV spd mode: use speed of this waypoint as commaded speed
+                # while passing waypoint and save next speed for passing next wp
+                if self.swvnav[i] and self.actwpspd[i]>0.0: # check mode and value
+
+                    # Select CAS or Mach command by checking value of actwpspd
+                    if self.actwpspd[i]<2.0: # Mach command
+
+                       self.aspd[i] = mach2cas(self.actwpspd[i],self.alt[i])
+                       self.ama[i]  = self.actwpspd[i]                            
+
+                    else:    # CAS command
+                       self.aspd[i] = self.actwpspd[i]
+                       self.ama[i]  = cas2tas(spd,self.alt[i])
+                    
+                
+                if spd>0. and self.swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
+                   self.actwpspd[i] = spd                           
+                else:
+                   self.actwpspd[i] = -999.
 
                 # Calculate distance before waypoint where to start the turn
                 # Turn radius:      R = V2 tan phi / g
                 # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
-                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] default bank angle per flight phase
-#                    print turnrad
+                # using default bank angle per flight phase
+                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] 
+
                 dy = (self.actwplat[i]-self.lat[i])
-                dx = (self.actwplon[i]-self.lon[i])*cos(radians(self.lat[i]))
+                dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
                 qdr[i] = degrees(atan2(dx,dy))                    
-                self.actwpturn[i] = max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]- \
+
+                self.actwpturn[i] = self.actwpflyby[i]*                     \
+                     max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
-                
+
+            # End of Waypoint switching loop
+            
+            # Do VNAV start of descent check
+            dy = (self.actwplat-self.lat)
+            dx = (self.actwplon-self.lon)*self.coslat
+            dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
+            steepness = 3000.*ft/(10.*nm)
+
+            # VNAV AP LOGIC
+            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
+                                     (self.actwpalt>self.alt))            
+
+            self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
+            self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
+
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
 
+        #-------------END of FMS update -------------------
+      
         # NOISE: Turbulence
         if self.turbulence:
             timescale=np.sqrt(simdt)
@@ -719,7 +778,8 @@ class Traffic:
 
 
         # ASAS AP switches
-        #--------- Select Autopilot settings to follow: destination or ASAS ----------
+
+        #--------- Input to Autopilot settings to follow: destination or ASAS ----------
 
         # desired autopilot settings due to ASAS
         self.deshdg = self.asasactive*self.asashdg + (1-self.asasactive)*self.ahdg
@@ -730,14 +790,19 @@ class Traffic:
         # check for the flight envelope
         self.perf.limits()
 
-        # update autopilot settings with values within the flight envelope
-        # speed
+        # Update autopilot settings with values within the flight envelope
+
+        # Autopilot selected speed setting [m/s]
+        # To do: add const Mach const CAS mode
         self.aspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*self.lspd
-        # altitude
+
+        # Autopilot selected altitude [m]
         self.aalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
-        # hdg
+
+        # Autopilot selected heading
         self.ahdg = self.deshdg
-        # vs
+
+        # Autopilot selected vertical speed (V/S)
         self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
 
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
@@ -745,7 +810,8 @@ class Traffic:
         #ama is fixed when above crossover
         check = self.abco*(self.ama == 0.)
         swma = np.where(check==True)
-        self.ama[swma] = cas2mach(self.aspd[swma], self.alt[swma])
+        self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
+
         # ama is deleted when below crossover
         check2 = self.belco*(self.ama!=0.)
         swma2 = np.where(check2==True)
@@ -755,18 +821,16 @@ class Traffic:
 
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
         # for information:    
-        self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
-                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
+
+# no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
+#                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
+
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
+
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
                                           simdt) + (1. - swspdsel) * self.aptas
-                                          
-        # print "DELSPD", self.delspd/simdt, "AX", self.ax, "SELECTED", ax
-        # without that part: non-accelerating ac would have TAS = 0            
-        # print "1-sw", (1. - swspdsel) * self.aptas
-        # print "NEW TAS", self.tas
 
         # Speed conversions
         self.cas = vtas2cas(self.tas, self.alt)
@@ -782,7 +846,6 @@ class Traffic:
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
         swaltsel = np.abs(self.aalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
-#        print swaltsel
 
         self.vs = swaltsel*np.sign(self.aalt-self.alt)*       \
                     ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
@@ -794,7 +857,6 @@ class Traffic:
         # HDG HOLD/SEL mode: ahdg = ap selected heading
         delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  # [deg]
 
-        # print delhdg
         # omega = np.degrees(g0 * np.tan(self.aphi) / \
         # np.maximum(self.tas, self.eps))
 
@@ -812,9 +874,11 @@ class Traffic:
         self.lat = self.lat + np.degrees(ds * np.cos(np.radians(self.trk)+turblat) \
                                          / Rearth)
 
-        self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
-                                         / np.cos(np.radians(self.lat)) / Rearth)
+        self.coslat = np.cos(np.deg2rad(self.lat))
 
+        self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
+                                         / self.coslat / Rearth)
+    
         # Update trails when switched on
         if self.swtrails:
             self.trails.update(simt, self.lat, self.lon,
@@ -839,28 +903,14 @@ class Traffic:
                              self.arealon0 <= self.lon[i] <= self.arealon1 and \
                              self.alt[i] >= self.areafloor and \
                              (self.alt[i] >= 1500 or self.swtaxi)
+
                 elif self.area == "Circle":
-                    pass
-                    # Average of lat
-                    latavg = (radians(self.lat[i]) + radians(self.fir_circle_point[0])) / 2
-                    cosdlat = (cos(latavg))
 
-                    # Distance x to centroid
-                    dx = (self.lon[i] - self.fir_circle_point[1]) * cosdlat * 60
-                    dx2 = dx * dx
-
-                    # Distance y to centroid
-                    dy = self.lat[i] - self.fir_circle_point[0]
-                    dy2 = dy * dy * 3600
-
-                    # Radius squared
-                    r2 = self.fir_circle_radius * self.fir_circle_radius
-
-                    # Inside if smaller
-                    inside = (dx2 + dy2) < r2
+                    # delete aircraft if it is too far from the center of the circular area, or if has decended below the minimum altitude
+                    distance = kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i])  # [NM]
+                    inside = distance < self.radius and self.alt[i] >= self.areafloor
 
                 # Compare with previous: when leaving area: delete command
-
                 if self.inside[i] and not inside:
                     self.delete(self.id[i])
 
@@ -880,11 +930,7 @@ class Traffic:
 
     def changeTrailColor(self, color, idx):
         """Change color of aircraft trail"""
-        # print color
-        # print idx
-        # print "     " + str(self.trails.colorsOfAC[idx])
         self.trailcol[idx] = self.trails.colorList[color]
-        # print "     " + str(self.trails.colorsOfAC[idx])
         return
 
     def setNoise(self, A):
@@ -904,10 +950,9 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-
     def selhdg(self, idx=None, hdg=None):  # HDG command
 
-        # Select heading command: HDG acid, hdg
+        """ Select heading command: HDG acid, hdg """
 
         if None in [idx,hdg]:
             return False  # Not engouh arguments: Error/Display helptext
@@ -916,4 +961,22 @@ class Traffic:
         self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
+        return True
+
+    def selspd(self, idx=None, spd=None):  # SPD command
+
+        """ Select speed command: SPD acid, spd (= CASkts/Mach) """
+        if idx<0 or None in [idx,spd] :
+            return False  # Not engouh arguments: Error/Display helptext
+
+        # When >=2.0 it is probably CASkts else it is Mach
+        if spd >= 2.0:
+            self.aspd[idx] = spd * kts # CAS m/s
+            self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
+        else:
+            self.aspd[idx] = mach2cas(spd) # Convert Mach to CAS m/s
+            self.ama[idx]  = spd
+        # Switch off VNAV: SPD command overrides
+        self.swvnav[idx] = False  
+
         return True

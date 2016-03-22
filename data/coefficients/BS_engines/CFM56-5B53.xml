@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<engine_file>
+  <!--generated from the ICAO Aircraft Engine Emissions Databank-->
+  <engines>
+    <eng_type>1</eng_type>
+    <engine>CFM56-5B5/3</engine>
+    <ICAOengine>CFM56-5B5/3</ICAOengine>
+    <BPR>6.0</BPR>
+    <BPR_cat>0</BPR_cat>
+    <Thr unit="kN">97.9</Thr>
+  </engines>
+  <ff>
+    <ff_to unit="kg/s">0.894</ff_to>
+    <ff_cl unit="kg/s">0.743</ff_cl>
+    <ff_cr unit="kg/s">0.264</ff_cr>
+    <ff_ap unit="kg/s">0.264</ff_ap>
+    <ff_id unit="kg/s">0.092</ff_id>
+  </ff>
+</engine_file>

@@ -20,24 +20,29 @@ import traceback
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
-from uievents import PanZoomEvent, ACDataEvent, StackTextEvent, PanZoomEventType, ACDataEventType, SimInfoEventType,  \
-                     StackTextEventType, ShowDialogEventType, DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType
+from aman import AMANDisplay
+from ...sim.qtgl import ThreadManager as manager
+from ...sim.qtgl import SimStateEvent, PanZoomEvent, ACDataEvent, StackTextEvent, \
+                     PanZoomEventType, ACDataEventType, SimInfoEventType,  \
+                     StackTextEventType, ShowDialogEventType, \
+                     DisplayFlagEventType, RouteDataEventType, \
+                     DisplayShapeEventType, SimQuitEventType, \
+                     AMANEventType, SimStateEventType
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete as ac
 from ...tools.misc import cmdsplit
-
+from ...tools.network import StackTelnetServer
 import platform
 
 is_osx = platform.system() == 'Darwin'
-
 
 # Create custom system-wide exception handler. For now it replicates python's default traceback message.
 # This was added to counter a new PyQt5.5 feature where unhandled exceptions would result in a qFatal
 # with a very uninformative message
 def exception_handler(exc_type, exc_value, exc_traceback):
     traceback.print_exception(exc_type, exc_value, exc_traceback)
-    exit()
+    sys.exit()
 
 sys.excepthook = exception_handler
 
@@ -69,7 +74,7 @@ usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'LNAV': 'acid,ON/OFF',
                 'VNAV': 'acid,ON/OFF',
                 'ASAS': 'acid,ON/OFF',
-                'ADDWPT': 'acid,wpname/latlon,[alt],[spd],[afterwp]',
+                'ADDWPT': 'acid,wpname/latlon/fly-by/fly-over,[alt],[spd],[afterwp]',
                 'DELWPT': 'acid,wpname',
                 'DIRECT': 'acid,wpname',
                 'LISTRTE': 'acid,[pagenr]',
@@ -78,7 +83,7 @@ usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'NOISE': 'ON/OFF',
                 'LINE': 'color,lat1,lon1,lat2,lon2',
                 'ENG': 'acid',
-                'DATAFEED': 'CONNECT,address,port'
+                'DATAFEED': 'ON/OFF'
                 }
 
 
@@ -87,6 +92,7 @@ class Gui(QApplication):
 
     def __init__(self, navdb):
         super(Gui, self).__init__([])
+        self.telnet_in       = StackTelnetServer(self)
         self.acdata          = ACDataEvent()
         self.navdb           = navdb
         self.radarwidget     = []
@@ -96,16 +102,19 @@ class Gui(QApplication):
         self.command_mem     = ''
         self.command_line    = ''
         self.prev_cmdline    = ''
-        self.simevent_target = 0
+        self.mousedragged    = False
         self.mousepos        = (0, 0)
         self.prevmousepos    = (0, 0)
         self.panzoomchanged  = False
+        self.simt            = 0.0
 
         # Register our custom pan/zoom event
-        for etype in [PanZoomEventType, ACDataEventType, SimInfoEventType,
+        for etype in [SimStateEventType, PanZoomEventType,
+                      ACDataEventType, SimInfoEventType,
                       StackTextEventType, ShowDialogEventType,
                       DisplayFlagEventType, RouteDataEventType,
-                      DisplayShapeEventType]:
+                      DisplayShapeEventType, SimQuitEventType,
+                      AMANEventType]:
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -133,8 +142,9 @@ class Gui(QApplication):
 
         # Create the main window and related widgets
         self.radarwidget = RadarWidget(navdb)
-        self.win = MainWindow(self, self.radarwidget)
-        self.nd  = ND(shareWidget=self.radarwidget)
+        self.win  = MainWindow(self, self.radarwidget)
+        self.nd   = ND(shareWidget=self.radarwidget)
+        # self.aman = AMANDisplay()
 
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION == 5:
@@ -145,11 +155,10 @@ class Gui(QApplication):
         timer.timeout.connect(self.nd.updateGL)
         timer.start(50)
 
-    def setSimEventTarget(self, obj):
-        self.simevent_target = obj
-
     def start(self):
         self.win.show()
+        # Start the telnet input server for stack commands
+        self.telnet_in.start()
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
@@ -159,7 +168,7 @@ class Gui(QApplication):
         # Keep track of event processing
         event_processed = False
 
-        # Events from the simulation thread
+        # Events from the simulation threads
         if receiver is self:
             if event.type() == PanZoomEventType:
                 if event.zoom is not None:
@@ -192,8 +201,16 @@ class Gui(QApplication):
                 self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
-                self.win.siminfoLabel.setText('<b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>sim_t</b> = %.1f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
-                    % (event.sys_freq, event.simdt, event.simt, event.n_ac, self.modes[event.mode]))
+                self.simt = event.simt
+                hours     = np.floor(event.simt / 3600)
+                minutes   = np.floor((event.simt - 3600 * hours) / 60)
+                seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
+                self.win.siminfoLabel.setText('<b>sim_t</b> = %02d:%02d:%02d, <b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
+                    % (hours, minutes, seconds, event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
+                return True
+
+            elif event.type() == SimQuitEventType:
+                self.closeAllWindows()
                 return True
 
             elif event.type() == StackTextEventType:
@@ -239,7 +256,15 @@ class Gui(QApplication):
                 elif event.switch == "SSD":
                     self.radarwidget.show_ssd(event.argument)
 
+                elif event.switch == "SYM":
+                    # For now only toggle PZ
+                    self.radarwidget.show_pz = not self.radarwidget.show_pz
+
                 return True
+
+            elif event.type() == AMANEventType:
+                # self.aman.update(self.simt, event)
+                pass
 
         # Mouse/trackpad event handling for the Radar widget
         if receiver is self.radarwidget and self.radarwidget.initialized:
@@ -271,45 +296,51 @@ class Gui(QApplication):
 
             # For touchpad, pinch gesture is used for zoom
             elif event.type() == QEvent.Gesture:
-                zoom   = 1.0
+                zoom   = None
                 pan    = None
                 dlat   = 0.0
                 dlon   = 0.0
                 for g in event.gestures():
                     if g.gestureType() == Qt.PinchGesture:
+                        if zoom is None:
+                            zoom = 1.0
                         zoom  *= g.scaleFactor()
                         if is_osx:
                             zoom /= g.lastScaleFactor()
                     elif g.gestureType() == Qt.PanGesture:
-                        dlat += 0.005 * g.delta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
-                        dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
-                        pan = (dlat, dlon)
-                panzoom = PanZoomEvent(pan, zoom, self.mousepos)
+                        if abs(g.delta().y() + g.delta().x()) > 1e-1:
+                            dlat += 0.005 * g.delta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
+                            dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
+                            pan = (dlat, dlon)
+                if pan is not None or zoom is not None:
+                    panzoom = PanZoomEvent(pan, zoom, self.mousepos)
 
-            elif event.type() == QEvent.MouseButtonPress:
-                event_processed = True
+            elif event.type() == QEvent.MouseButtonPress and event.button() & Qt.LeftButton:
+                event_processed   = True
+                self.mousedragged = False
                 # For mice we pan with control/command and mouse movement. Mouse button press marks the beginning of a pan
-                if event.button() & Qt.RightButton:
-                    self.prevmousepos = (event.x(), event.y())
+                self.prevmousepos = (event.x(), event.y())
 
-                else:
-                    lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                    tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb)
-                    if len(todisplay) > 0:
-                        if '\n' in todisplay:
-                            self.command_line = ''
-                            # Clear any shape command preview on the radar display
-                            self.radarwidget.previewpoly(None)
-                        else:
-                            self.command_line += todisplay
-                        if len(tostack) > 0:
-                            self.command_history.append(tostack)
-                            self.stack(tostack)
+            elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton and not self.mousedragged:
+                event_processed = True
+                lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
+                tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb)
+                if len(todisplay) > 0:
+                    if '\n' in todisplay:
+                        self.command_line = ''
+                        # Clear any shape command preview on the radar display
+                        self.radarwidget.previewpoly(None)
+                    else:
+                        self.command_line += todisplay
+                    if len(tostack) > 0:
+                        self.command_history.append(tostack)
+                        self.stack(tostack)
 
             elif event.type() == QEvent.MouseMove:
-                event_processed = True
+                event_processed   = True
+                self.mousedragged = True
                 self.mousepos = (event.x(), event.y())
-                if event.buttons() & Qt.RightButton:
+                if event.buttons() & Qt.LeftButton:
                     dlat = 0.003 * (event.y() - self.prevmousepos[1]) / (self.radarwidget.zoom * self.radarwidget.ar)
                     dlon = 0.003 * (self.prevmousepos[0] - event.x()) / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                     self.prevmousepos = (event.x(), event.y())
@@ -318,7 +349,7 @@ class Gui(QApplication):
             # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
-                self.postEvent(self.simevent_target, PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
+                self.postEvent(manager.instance().getActiveSimTarget(), PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
                                                                     zoom=self.radarwidget.zoom, absolute=True))
 
             # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
@@ -340,9 +371,20 @@ class Gui(QApplication):
                     return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(0.0, -dlon)))
                 elif event.key() == Qt.Key_Right:
                     return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(0.0, dlon)))
-
+            
+            elif event.key() == Qt.Key_Escape:
+                    self.stack("QUIT")  # Rather like this, so sim.stop is executed
+#                    self.closeAllWindows() # But now in a brute way
+                    
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]
+
+            elif event.key() == Qt.Key_F11:  # F11 = Toggle Full Screen mode
+                if not self.win.isFullScreen():
+                    self.win.showFullScreen()
+                else:
+                    self.win.showNormal()
+
 
             if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
                 if len(self.command_line) > 0:
@@ -421,7 +463,7 @@ class Gui(QApplication):
         return True
 
     def stack(self, text):
-        self.postEvent(self.simevent_target, StackTextEvent(text))
+        self.postEvent(manager.instance().getActiveSimTarget(), StackTextEvent(text))
         # Echo back to command window
         self.display_stack(text)
 

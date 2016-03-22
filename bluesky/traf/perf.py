@@ -26,19 +26,23 @@ class CoeffBS:
         return
 
     def convert(self, value, unit):
-        factors = {'kg': 1., 't':1000, 'lbs': lbs, 'N': 1., 'W': 1, \
-                    'm':1.,'km': 1000, 'inch': inch,'ft': ft, \
-                    'sqm': 1., 'sqft': sqft, 'sqin': 0.00064516 ,\
-                    'm/s': 1., 'km/h': 0.27778, 'kts': kts, 'fpm': fpm, \
-                    "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 }
-        unit = unit
-        try: 
+        factors = {'kg': 1., 't':1000., 'lbs': lbs, 'N': 1., 'W': 1, \
+                    'm':1.,'km': 1000., 'inch': inch,'ft': ft, \
+                    'sqm': 1., 'sqft': sqft, 'sqin': 0.0254*0.0254 ,\
+                    'm/s': 1., 'km/h': 1./3.6, 'kts': kts, 'fpm': fpm, \
+                    "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 ,
+                    "kW": 1000.,"kN":1000.,
+                    "":1.}
+ 
+        if unit in factors:
             converted = factors[unit] * float(value)
-        except:
+
+        else:
             converted = float(value)
             if not self.warned:
-                print "Unit mismatch. Could not find ", unit     
+                print "traf/perf.py convert function: Unit mismatch. Could not find ", unit     
                 self.warned = True
+
         return converted 
         
 
@@ -258,8 +262,8 @@ class CoeffBS:
         # parse engine files
         path = os.path.dirname(__file__) + '/../../data/coefficients/BS_engines/'
         files = os.listdir(path)
-        for file in files:
-            endoc = ElementTree.parse(path + file)
+        for filename in files:
+            endoc = ElementTree.parse(path + filename)
             self.enlist.append(endoc.find('engines/engine').text)
 
             # thrust
@@ -308,7 +312,7 @@ class Perf():
         # assign needed data from CTraffic
         self.traf = traf
 
-        self.warned = False        # Flag: Did we warn for default perf parameters yet?
+        self.warned  = False        # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
         # create empty database
@@ -316,6 +320,7 @@ class Perf():
 
         # prepare for coefficient readin
         coeffBS.coeff()
+
         return
 
     def reset(self):
@@ -391,12 +396,11 @@ class Perf():
     def create(self, actype):
         """Create new aircraft"""
         # note: coefficients are initialized in SI units
-        try:
+        if actype in coeffBS.atype:
             # aircraft
             self.coeffidx = coeffBS.atype.index(actype)
-#            print actype
             # engine
-        except:
+        else:
             self.coeffidx = 0
             if not self.warned:
                   print "aircraft is using default aircraft performance (Boeing 747-400)."
@@ -443,9 +447,9 @@ class Perf():
 
         # turboprops
         if coeffBS.etype[self.coeffidx] ==2:
-            try:
+            if coeffBS.engines[self.coeffidx][0] in coeffBS.propenlist:
                 self.propengidx = coeffBS.propenlist.index(coeffBS.engines[self.coeffidx][0])
-            except:
+            else:
                 self.propengidx = 0
                 if not self.warned2:
                     print "prop aircraft is using standard engine. Please check valid engine types per aircraft type"
@@ -471,9 +475,9 @@ class Perf():
 
         else:      # so coeffBS.etype[self.coeffidx] ==1:
 
-            try:
+            if coeffBS.engines[self.coeffidx][0] in coeffBS.jetenlist:
                 self.jetengidx = coeffBS.jetenlist.index(coeffBS.engines[self.coeffidx][0])
-            except:
+            else:
                 self.jetengidx = 0
                 if not self.warned2:
                     print " jet aircraft is using standard engine. Please check valid engine types per aircraft type"

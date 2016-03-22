@@ -1,0 +1,46 @@
+(Sorry, some Dutch notes for internal use now)
+
+Wat betreft de SYMBOL flag, ik heb het er even in gezet, zie de laatste 
+commit. Als je op github naar die commit kijkt kan je zien hoe het 
+werkt. Voor display flags had ik al een event object gemaakt, die heb ik 
+nu ook gebruikt voor symbol(). 
+
+in screenio.py zie je hoe ik hem verstuur
+in gui.py zie je hoe ik hem ontvang.
+
+Als je een heel ander soort data wil versturen dan kan je een nieuw event 
+object aanmaken, dit vereist een aantal stappen:
+
+in sim/qtgl/simevents.py:
+- maak een EventType enumerated variabele erbij, die staan bovenaan 
+de file op regel 6
+- maak je event class: een nieuwe class die derived van QEvent. Het 
+enige belangrijke is dat je de QEvent constructor aanroept met de enum 
+die je in de vorige stap hebt gemaakt.
+
+in ui/qtgl/gui.py:
+- Laat qt weten dat je nog een event type hebt aangemaakt door je enum 
+uit stap 1 door te geven. Dit staat op regel 106-112
+- Het ontvangen van events gebeurt aan de gui kant in de notify functie. 
+De custom events tussen de threads staan aan het begin, onder ‘if 
+receiver is self’. Je detecteert je eigen event op basis van de event 
+type.
+
+in sim/qtgl/screenio.py:
+- gebruik qapp.postEvent, met als target qapp.instance(). Dan zorg je 
+dat het event richting de main thread (de gui) gaat.
+
+Als je van de gui naar de sim thread wil dan zijn de laatste twee stappen 
+anders:
+
+in sim/qtgl/screenio.py:
+- events worden ontvangen in event(), onderaan screenio.py. 
+Verder werkt het hetzelfde als in gui. 
+
+in ui/qtgl/gui.py:
+- events versturen gaat hier ook gewoon met postEvent. Als target 
+gebruik je gui.simevent_target.
+
+
+Zo. Nu weer aan de VENI.
+

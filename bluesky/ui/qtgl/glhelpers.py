@@ -149,7 +149,7 @@ class RenderObject(object):
     def set_first_vertex(self, vertex):
         self.first_vertex = vertex
 
-    def bind_attrib(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT):
+    def bind_attrib(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT, stride=0, offset=None):
         if RenderObject.bound_vao is not self.vao_id:
             gl.glBindVertexArray(self.vao_id)
             RenderObject.bound_vao = self.vao_id
@@ -170,7 +170,7 @@ class RenderObject(object):
 
         # Assign this buffer to one of the attributes in the shader
         gl.glEnableVertexAttribArray(attrib_id)
-        gl.glVertexAttribPointer(attrib_id, size, datatype, False, 0, None)
+        gl.glVertexAttribPointer(attrib_id, size, datatype, False, stride, offset)
         # For instanced data, indicate per how many instances we move a step in the buffer (1=per instance)
         if instance_divisor > 0:
             gl.glVertexAttribDivisor(attrib_id, instance_divisor)
@@ -306,6 +306,13 @@ class Font(object):
         # We're done, close the painter, and return the texture ID, char width and char height
         painter.end()
 
+    @staticmethod
+    def char(x, y, w, h, c=32):
+        # Two triangles per character
+        vertices  = [(x, y + h), (x, y), (x + w, y + h), (x + w, y + h), (x, y), (x + w, y)]
+        texcoords = [(0, 0, c), (0, 1, c), (1, 0, c), (1, 0, c), (0, 1, c), (1, 1, c)]
+        return vertices, texcoords
+
     def prepare_text_string(self, text_string, char_size=16.0, text_color=(0.0, 1.0, 0.0), vertex_offset=(0.0, 0.0)):
         ret = RenderObject(gl.GL_TRIANGLES, vertex_count=6 * len(text_string))
 
@@ -313,35 +320,34 @@ class Font(object):
         w, h = char_size, char_size * self.char_ar
         x, y = vertex_offset
         for i in range(len(text_string)):
-            c = ord(text_string[i])
-            # Two triangles per character
-            texcoords += [(0, 0, c), (0, 1, c), (1, 0, c), (1, 0, c), (0, 1, c), (1, 1, c)]
-            vertices  += [(x + i * w, y + h), (x + i * w, y), (x + (i + 1) * w, y + h),
-                          (x + (i + 1) * w, y + h), (x + i * w, y), (x + (i + 1) * w, y)]
+            v, t = self.char(x + i * w, y, w, h, ord(text_string[i]))
+            vertices  += v
+            texcoords += t
 
         ret.bind_attrib(self.attrib_vertex, 2, np.array(vertices, dtype=np.float32))
         ret.bind_attrib(self.attrib_texcoords, 3, np.array(texcoords, dtype=np.float32))
         ret.bind_attrib(self.attrib_color, 3, np.array(text_color, dtype=np.float32), instance_divisor=1)
 
-        ret.char_size = char_size
+        ret.char_size  = char_size
         ret.block_size = (len(text_string), 1)
-
         return ret
 
-    def prepare_text_instanced(self, text_array, origin_lat, origin_lon, textblock_size, text_color=None, char_size=16.0, vertex_offset=(0.0, 0.0)):
-        ret = RenderObject(gl.GL_TRIANGLES, vertex_count=6)
-
-        w, h = char_size, char_size * self.char_ar
-        x, y = vertex_offset
-        texcoords = [(0, 0, 32), (0, 1, 32), (1, 0, 32), (1, 0, 32), (0, 1, 32), (1, 1, 32)]
-        vertices  = [(x, y + h), (x, y), (x + w, y + h), (x + w, y + h), (x, y), (x + w, y)]
+    def prepare_text_instanced(self, text_array, textblock_size, origin_lat=None, origin_lon=None, text_color=None, char_size=16.0, vertex_offset=(0.0, 0.0)):
+        ret       = RenderObject(gl.GL_TRIANGLES, vertex_count=6)
+        w, h      = char_size, char_size * self.char_ar
+        x, y      = vertex_offset
+        v, t      = self.char(x, y, w, h)
+        vertices  = v
+        texcoords = t
         ret.bind_attrib(self.attrib_vertex, 2, np.array(vertices, dtype=np.float32))
         ret.bind_attrib(self.attrib_texcoords, 3, np.array(texcoords, dtype=np.float32))
 
         ret.bind_attrib(self.attrib_texdepth, 1, text_array, instance_divisor=1, datatype=gl.GL_UNSIGNED_BYTE)
         divisor = textblock_size[0] * textblock_size[1]
-        ret.bind_attrib(self.attrib_lat, 1, origin_lat, instance_divisor=divisor)
-        ret.bind_attrib(self.attrib_lon, 1, origin_lon, instance_divisor=divisor)
+        if origin_lat is not None:
+            ret.bind_attrib(self.attrib_lat, 1, origin_lat, instance_divisor=divisor)
+        if origin_lon is not None:
+            ret.bind_attrib(self.attrib_lon, 1, origin_lon, instance_divisor=divisor)
 
         if text_color is not None:
             ret.bind_attrib(self.attrib_color, 3, text_color, instance_divisor=divisor)

@@ -1113,3 +1113,8 @@ class Screen:
 
     def show_file_dialog(self):
         return opendialog()
+        
+    def symbol(self):
+        print "Hello"
+        self.swsep = not self.swsep
+        return True
