@@ -1,5 +1,5 @@
 from bluesky import settings
-settings.gui = 'pygame'
+settings.init('pygame')
 
 from bluesky.traf import Navdatabase
 from bluesky.ui.pygame import Gui

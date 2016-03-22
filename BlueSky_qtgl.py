@@ -1,5 +1,5 @@
 from bluesky import settings
-settings.gui = 'qtgl'
+settings.init('qtgl')
 
 from bluesky.traf import Navdatabase
 from bluesky.ui.qtgl import Gui
