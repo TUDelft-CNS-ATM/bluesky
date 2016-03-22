@@ -22,7 +22,7 @@ class SimulationManager(ThreadManager):
         worker = Simulation(self.navdb)
         self.startThread(worker)
 
-    def quit(self):
+    def stop(self):
         print 'Stopping Threads...'
         # Tell each thread to quit
         for n in range(len(self.nodes)):
@@ -33,6 +33,14 @@ class SimulationManager(ThreadManager):
         for node in self.nodes:
             node.wait()
         print 'Done'
+
+    def getSimObjectList(self):
+        if len(self.nodes) == 1:
+            return self.nodes[0].worker
+        ret = []
+        for node in self.nodes:
+            ret.append(node.worker)
+        return ret
 
     def getActiveSimTarget(self):
         return self.active_node.worker.eventTarget()

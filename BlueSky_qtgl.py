@@ -1,10 +1,10 @@
 from bluesky import settings
+
 settings.init('qtgl')
 
 from bluesky.traf import Navdatabase
 from bluesky.ui.qtgl import Gui
 from bluesky.sim.qtgl import SimulationManager
-
 
 # =============================================================================
 # Start the mainloop (and possible other threads)
@@ -24,19 +24,21 @@ def MainLoop():
     gui.start()
 
     # Stopping simulation thread
-    manager.quit()
+    manager.stop()
 
-    return gui
-
+    return gui, manager.getSimObjectList()
 
 if __name__ == "__main__":
     # Run mainloop if BlueSky-qtgl is called directly
-    gui = MainLoop()
+    gui, sim = MainLoop()
 
     # =============================================================================
     # Clean up before exit. Comment this out when debugging for checking variables
     # in the shell.
     # =============================================================================
+    gui.exit()
     del gui
     #-debug del sim
     print 'BlueSky normal end.'
+
+
