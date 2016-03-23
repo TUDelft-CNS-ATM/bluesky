@@ -142,8 +142,9 @@ class Commandstack:
         if scenname.lower().find(".scn") < 0:
             scenname = scenname + ".scn"
 
+
         # If it is with a path don't touch it, else add path
-        if scenname.find("/") < 0:
+        if scenname.find("/") < 0 and scenname.find( "\\")< 0:
             scenfile = settings.scenario_path
             if scenfile[-1] is not '/':
                 scenfile += '/'
@@ -159,6 +160,9 @@ class Commandstack:
         self.scencmd = []
 
         if os.path.exists(scenfile):
+            if scenname.find("\\"):
+                scenname = scenname.replace("\\","/")
+
             fscen = open(scenfile, 'r')
             self.scenlines = fscen.readlines()
             fscen.close()
@@ -196,7 +200,7 @@ class Commandstack:
                 except:
                     print "except this:", line
                     pass  # nice try, we will just ignore this syntax error
-
+                
         else:
             print"Error: cannot find file:", scenfile
 
@@ -347,7 +351,6 @@ class Commandstack:
 #                    try:
                     if True:
                         for i in range(1,1+min(numtypes,numargs)):
-
                             argtype = argtypes[i-1].strip()
 
                             if cmdargs[i]=="":  # Empty arg => parse None
@@ -435,7 +438,8 @@ class Commandstack:
                                     scr.echo(helptext)
                                 else:
                                     scr.echo("Syntax error: " + helptext)
-                        elif type(results)==list:
+                                synerr =  False # Prevent further nagging    
+                        elif type(results)==list or type(results)==tuple:
                             if len(results)>=1:
                                 synerr = not results[0]
                             
