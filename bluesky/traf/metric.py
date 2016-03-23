@@ -806,7 +806,7 @@ class metric_HB():
         ac_totalscore =  sum(ac_score.itervalues())
 
         self.complexity[self.step][0] = ac_totalscore #/ self.ntraf
-        self.complexity[self.step][1] = ac_totalscore / self.ntraf
+        self.complexity[self.step][1] = ac_totalscore / max(1,self.ntraf)
         
         print "Complexity per Aircraft: " + str(self.complexity[self.step][1])
         return
@@ -1340,8 +1340,8 @@ class Metric():
         
         self.name = ("CoCa-Metric","HB-Metric","Delete AC")
         self.metric_number = -1
-        self.fir_circle_point = 0
-        self.fir_circle_radius = 0
+        self.fir_circle_point = [0.,0.]
+        self.fir_circle_radius = 0.
         self.fir_number = 0
         self.metricstime = 0
         self.tbegin = 0
