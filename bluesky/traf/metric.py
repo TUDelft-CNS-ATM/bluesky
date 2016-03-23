@@ -561,7 +561,9 @@ class metric_HB():
         # CIRCLE AREA (FIR Circle)
         for i in range(0,sim.traf.ntraf):
             
-            dist = latlondist(sim.metric.fir_circle_point[0],sim.metric.fir_circle_point[1],sim.traf.lat[i],sim.traf.lon[i])
+            dist = latlondist(sim.metric.fir_circle_point[0],\
+                              sim.metric.fir_circle_point[1],\
+                              sim.traf.lat[i],sim.traf.lon[i])
             
             if  dist/nm < sim.metric.fir_circle_radius:
                 traf_selected_lat = np.append(traf_selected_lat,sim.traf.lat[i])
