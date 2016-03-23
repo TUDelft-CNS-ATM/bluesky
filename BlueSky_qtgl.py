@@ -23,7 +23,7 @@ def MainLoop():
     # Start the gui
     gui.start()
 
-    # Stopping simulation thread
+    # Stop simulation threads
     manager.stop()
 
     return gui, manager.getSimObjectList()
@@ -36,7 +36,6 @@ if __name__ == "__main__":
     # Clean up before exit. Comment this out when debugging for checking variables
     # in the shell.
     # =============================================================================
-    gui.exit()
     del gui
     #-debug del sim
     print 'BlueSky normal end.'

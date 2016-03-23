@@ -64,11 +64,14 @@ if gui == 'qtgl':
             self.client = TcpClient(self.server.nextPendingConnection())
             self.client.parse_data = self.parse_data
 
-        def start(self):
-            if self.server.listen(QHostAddress.Any, 8888):
+        def open(self, port=8888):
+            if self.server.listen(QHostAddress.Any, port):
                 print "Tcp server started"
             else:
                 print "Error starting Tcp server"
+
+        def close(self):
+            self.server.close()
 
         def parse_data(self, data):
             print 'Server: ', str(data).strip()
