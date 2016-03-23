@@ -149,7 +149,7 @@ class Commandstack:
             scenname = scenname + ".scn"
 
         # If it is with a path don't touch it, else add path
-        if scenname.find("/") < 0:
+        if scenname.find("/") < 0 and scenname.find( "\\") < 0:
             scenfile = settings.scenario_path
             if scenfile[-1] is not '/':
                 scenfile += '/'
@@ -191,6 +191,7 @@ class Commandstack:
             # old scenario commands are cleared.
             self.scentime = []
             self.scencmd  = []
+
         for line in scenlines:
             # lstrip = line.strip()
             # Try reading timestamp and command
@@ -365,7 +366,6 @@ class Commandstack:
 #                    try:
                     if True:
                         for i in range(1,1+min(numtypes,numargs)):
-
                             argtype = argtypes[i-1].strip()
 
                             if cmdargs[i]=="":  # Empty arg => parse None
@@ -446,19 +446,25 @@ class Commandstack:
 #                        synerr = True
                     txt = helptext
                     if not synerr:
-                        if type(results)==bool:
+
+                        if type(results)==bool: # Only flag is returned
                             synerr = not results
                             if synerr:
                                 if numargs<=0 or cmdargs[i]=="?":
                                     scr.echo(helptext)
                                 else:
                                     scr.echo("Syntax error: " + helptext)
-                        elif type(results)==list:
+                                synerr =  False # Prevent further nagging
+                                
+                        elif type(results)==list or type(results)==tuple:
+                            # Maybe there is also an error message returned?
                             if len(results)>=1:
                                 synerr = not results[0]
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
+                                synerr = False
+
                     else:  # synerr:                    
                          scr.echo("Syntax error: "+helptext)
 
