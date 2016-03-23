@@ -210,20 +210,23 @@ class ScreenIO(QObject):
             lat0 = data_in[0]       # latitude of the center of the circle [deg]
             lon0 = data_in[1]       # longitude of the center of the circle [deg]
             radius = data_in[2]     # radius of circle [NM]
+            
+            # Compute flat Earth correction at the center of the experiment circle
             coslatinv = 1.0 / np.cos(np.deg2rad(lat0))
+            
             # convert inputs to meters
             x0 = lon0*((2.0*np.pi)/360.0)*radiusEarth
             y0 = lat0*((2.0*np.pi)/360.0)*radiusEarth
             radiusM = radius*1852.0
 
             # compute the x and y coordinates of the circle
-            angles = np.linspace(0.0, 2.0*np.pi, numPoints)  # ,endpoint=True) # [rad]
-            xCircle = x0+radiusM*np.cos(angles)
-            yCircle = y0+radiusM*np.sin(angles)
+            angles = np.linspace(0.0, 2.0*np.pi, numPoints)   # ,endpoint=True) # [rad]
+            xCircle = x0+((radiusM*coslatinv)*np.cos(angles)) # [m] use the flat Earth correction to adjust the radius of the experiment area at the desired latitude
+            yCircle = y0+radiusM*np.sin(angles)               # [m]
 
             # convert back to degrees
             latCircle = (yCircle/radiusEarth)*(360.0/(2*np.pi))  # [deg]
-            lonCircle = (xCircle/radiusEarth)*(360.0/(2*np.pi))*coslatinv  # [deg]
+            lonCircle = (xCircle/radiusEarth)*(360.0/(2*np.pi))  # [deg]
 
             # make the data array in the format needed to plot circle
             data = np.empty((latCircle.size + lonCircle.size), dtype=np.float32)  # Create empty array
