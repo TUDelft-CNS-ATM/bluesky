@@ -431,20 +431,25 @@ class Commandstack:
 #                        synerr = True
                     txt = helptext
                     if not synerr:
-                        if type(results)==bool:
+
+                        if type(results)==bool: # Only flag is returned
                             synerr = not results
                             if synerr:
                                 if numargs<=0 or cmdargs[i]=="?":
                                     scr.echo(helptext)
                                 else:
                                     scr.echo("Syntax error: " + helptext)
-                                synerr =  False # Prevent further nagging    
+                                synerr =  False # Prevent further nagging
+                                
                         elif type(results)==list or type(results)==tuple:
+                            # Maybe there is also an error message returned?
                             if len(results)>=1:
                                 synerr = not results[0]
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
+                                synerr = False
+
                     else:  # synerr:                    
                          scr.echo("Syntax error: "+helptext)
 
