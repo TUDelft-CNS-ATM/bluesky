@@ -17,8 +17,8 @@ from simevents import SimStateEvent, ACDataEvent, RouteDataEvent, PanZoomEvent, 
                         StackTextEventType, PanZoomEventType, DisplayShapeEvent, SimQuitEvent, AMANEvent
 
 
-class EventIO(QObject):
-    """Class within sim task which sends/receives data to/from GUI and manager tasks"""
+class ScreenIO(QObject):
+    """Class within sim task which sends/receives data to/from GUI task"""
 
     # =========================================================================
     # Settings
@@ -75,7 +75,7 @@ class EventIO(QObject):
     # Functions
     # =========================================================================
     def __init__(self, sim):
-        super(EventIO, self).__init__()
+        super(ScreenIO, self).__init__()
 
         # Keep track of the important parameters of the screen state
         # (We receive these through events from the gui)
@@ -103,7 +103,7 @@ class EventIO(QObject):
     def moveToThread(self, target_thread):
         self.siminfo_timer.moveToThread(target_thread)
         self.acupdate_timer.moveToThread(target_thread)
-        super(EventIO, self).moveToThread(target_thread)
+        super(ScreenIO, self).moveToThread(target_thread)
 
     def echo(self, text):
         if manager.currentThreadIsActive():
