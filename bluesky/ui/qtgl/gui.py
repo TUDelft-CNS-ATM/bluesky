@@ -394,7 +394,7 @@ class Gui(QApplication):
                     self.stack(self.command_line)
                     self.command_line = ''
                     # Reset the autocomplete history
-                    ac.reset()
+                    autocomplete.reset()
                     # Clear any shape command preview on the radar display
                     self.radarwidget.previewpoly(None)
 
