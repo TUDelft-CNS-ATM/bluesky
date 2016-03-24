@@ -43,7 +43,7 @@ class SimulationManager(ThreadManager):
         return ret
 
     def getActiveSimTarget(self):
-        return self.active_node.worker.eventTarget()
+        return self.active_node.worker
 
     def event(self, event):
         if event.type() == SimStateEventType:

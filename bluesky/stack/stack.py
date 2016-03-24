@@ -41,30 +41,34 @@ class Commandstack:
                 "txt,txt,lat,lon,hdg,alt,spd",
                 traf.create
             ],
-            "HDG": [
-                "HDG acid,hdg [deg,True]",
-                "acid,float",
-                traf.selhdg
-            ],
-            "SPD": [
-                "SPD acid,spd [CAS-kts/Mach]",
-                "acid,spd",
-                traf.selspd
+            "DATAFEED":  [
+                "DATAFEED [ON/OFF]",
+                "txt",
+                sim.datafeed
             ],
             "FF":  [
                 "FF [tend]",
                 "time",
                 sim.fastforward
             ],
+            "HDG": [
+                "HDG acid,hdg [deg,True]",
+                "acid,float",
+                traf.selhdg
+            ],
+            "PCALL": [
+                "PCALL filename [REL/ABS]",
+                "txt,txt",
+                self.pcall],
+            "SPD": [
+                "SPD acid,spd [CAS-kts/Mach]",
+                "acid,spd",
+                traf.selspd
+            ],
             "SYMBOL":  [
                 "SYMBOL",
                 "",
                 scr.symbol
-            ],
-            "DATAFEED":  [
-                "DATAFEED [ON/OFF]",
-                "txt",
-                sim.datafeed
             ]
         }
 
@@ -79,7 +83,6 @@ class Commandstack:
         #--------------------------------------------------------------------
 
         self.cmdstack  = []
-        self.scenlines = []
         self.scentime  = []
         self.scenfile  = ""
         self.scentime = []
@@ -119,10 +122,10 @@ class Commandstack:
             obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
             self.extracmdrefs[key]=obj
         # ------------------ [end] Deprecated -------------------
-        
+
         return
 
-    def stack(self, cmdline):  
+    def stack(self, cmdline):
         # Stack one or more commands separated by ";"
         cline = cmdline.strip()  # remove leading & trailing spaces
         if cline.count(";") == 0:
@@ -134,16 +137,19 @@ class Commandstack:
 
         return
 
-    def openfile(self, scenname):
+    def openfile(self, scenname, t_offset=0.0, mergeWithExisting=False):
+        # If no scenlines target is given read the file to our own stack buffer
+        # For instance PCALL gives an alternate buffer.
+
         # No filename: empty start
-        self.scenlines = []
+        scenlines = []
 
         # Add .scn extension if necessary
         if scenname.lower().find(".scn") < 0:
             scenname = scenname + ".scn"
 
         # If it is with a path don't touch it, else add path
-        if scenname.find("/") < 0:
+        if scenname.find("/") < 0 and scenname.find( "\\") < 0:
             scenfile = settings.scenario_path
             if scenfile[-1] is not '/':
                 scenfile += '/'
@@ -154,53 +160,66 @@ class Commandstack:
         print "Reading scenario file: ", scenfile
         print
 
-        # Read lines into buffer
-        self.scentime = []
-        self.scencmd = []
-
-        if os.path.exists(scenfile):
-            fscen = open(scenfile, 'r')
-            self.scenlines = fscen.readlines()
-            fscen.close()
-            i = 0
-            while i < len(self.scenlines):
-                if len(self.scenlines[i].strip()) <= 12 or \
-                                self.scenlines[i][0] == "#":
-
-                    del self.scenlines[i]
-                else:
-                    i = i + 1
-
-            # Optional?
-            # scenlines.sort()
-
-            # Set timer until what is read
-            # tstamp = self.scenlines[0][:11]    # format - hh:mm:ss.hh
-            # ihr = int(tstamp[:2])
-            # imin = int(tstamp[3:5])
-            # isec = float(tstamp[6:8]+"."+tstamp[9:11])
-
-            # Split scenario file line in times and commands
-            for line in self.scenlines:
-                # lstrip = line.strip()
-                # Try reading timestamp and command
-                try:
-                    icmdline = line.index('>')
-                    tstamp = line[:icmdline]
-                    ttxt = tstamp.strip().split(':')
-                    ihr = int(ttxt[0])
-                    imin = int(ttxt[1])
-                    xsec = float(ttxt[2])
-                    self.scentime.append(ihr * 3600. + imin * 60. + xsec)
-                    self.scencmd.append(line[icmdline + 1:-1])
-                except:
-                    print "except this:", line
-                    pass  # nice try, we will just ignore this syntax error
-
-        else:
+        if not os.path.exists(scenfile):
             print"Error: cannot find file:", scenfile
+            return
 
-        return
+        # Read lines into buffer
+        fscen = open(scenfile, 'r')
+        scenlines = fscen.readlines()
+        fscen.close()
+        i = 0
+        while i < len(scenlines):
+            if len(scenlines[i].strip()) <= 12 or scenlines[i][0] == "#":
+                del scenlines[i]
+            else:
+                i = i + 1
+
+        # Optional?
+        # scenlines.sort()
+
+        # Set timer until what is read
+        # tstamp = scenlines[0][:11]    # format - hh:mm:ss.hh
+        # ihr = int(tstamp[:2])
+        # imin = int(tstamp[3:5])
+        # isec = float(tstamp[6:8]+"."+tstamp[9:11])
+
+        # Split scenario file line in times and commands
+        if not mergeWithExisting:
+            # When a scenario file is read with PCALL the resulting commands
+            # need to be merged with the existing commands. Otherwise the
+            # old scenario commands are cleared.
+            self.scentime = []
+            self.scencmd  = []
+
+        for line in scenlines:
+            # lstrip = line.strip()
+            # Try reading timestamp and command
+            try:
+                icmdline = line.index('>')
+                tstamp = line[:icmdline]
+                ttxt = tstamp.strip().split(':')
+                ihr = int(ttxt[0])
+                imin = int(ttxt[1])
+                xsec = float(ttxt[2])
+                self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
+                self.scencmd.append(line[icmdline + 1:-1])
+            except:
+                print "except this:", line
+                pass  # nice try, we will just ignore this syntax error
+
+        if mergeWithExisting:
+            # If we are merging we need to sort the resulting command list
+            self.scentime, self.scencmd = [list(x) for x in zip(*sorted(
+                zip(self.scentime, self.scencmd), key=lambda pair: pair[0]))]
+
+    def pcall(self, filename, absrel='ABS'):
+        # If timestamps in file should be interpreted as relative we need to add
+        # the current simtime to every timestamp
+        t_offset = self.sim.simt if absrel == 'REL' else 0.0
+
+        # Load the scenario file, and merge with existing command list
+        self.openfile(filename, t_offset, True)
 
     def checkfile(self, simt):
         # Empty command buffer when it's time
@@ -347,7 +366,6 @@ class Commandstack:
 #                    try:
                     if True:
                         for i in range(1,1+min(numtypes,numargs)):
-
                             argtype = argtypes[i-1].strip()
 
                             if cmdargs[i]=="":  # Empty arg => parse None
@@ -428,19 +446,25 @@ class Commandstack:
 #                        synerr = True
                     txt = helptext
                     if not synerr:
-                        if type(results)==bool:
+
+                        if type(results)==bool: # Only flag is returned
                             synerr = not results
                             if synerr:
                                 if numargs<=0 or cmdargs[i]=="?":
                                     scr.echo(helptext)
                                 else:
                                     scr.echo("Syntax error: " + helptext)
-                        elif type(results)==list:
+                                synerr =  False # Prevent further nagging
+                                
+                        elif type(results)==list or type(results)==tuple:
+                            # Maybe there is also an error message returned?
                             if len(results)>=1:
                                 synerr = not results[0]
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
+                                synerr = False
+
                     else:  # synerr:                    
                          scr.echo("Syntax error: "+helptext)
 
@@ -956,32 +980,28 @@ class Commandstack:
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
                 #----------------------------------------------------------------------
                 elif cmd[:6] == "METRIC":
-                    if numargs < 1:
-                        if sim.metric is None:
-                            scr.echo("METRICS module disabled")
-                            break
+                    if sim.metric is None:
+                        scr.echo("METRICS module disabled")
+
+                    elif numargs < 1:
+                        if sim.metric.metric_number < 0:
+                            scr.echo("No metric active, to configure run:")
+                            scr.echo("METRICS OFF/0/1/2 [dt]")
                         else:
-                            if sim.metric.metric_number < 0:
-                                scr.echo("No metric active, to configure run:")
-                                scr.echo("METRICS OFF/0/1/2 [dt]")
-                            else:
-                                scr.echo("")
-                                scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
-                                    sim.metric.metric_number])
-                                scr.echo("Current dt: " + str(sim.metric.dt) + " s")
+                            scr.echo("")
+                            scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                sim.metric.metric_number])
+                            scr.echo("Current dt: " + str(sim.metric.dt) + " s")
 
                     elif cmdargs[1] == "OFF":  # arguments are strings
                         sim.metric.metric_number = -1
                         scr.echo("Metric is off")
 
                     else:
-                        if sim.metric is None:
-                            scr.echo("METRICS module disabled")
-                            break
-                        elif not cmdargs[1][1:].isdigit():
-#                            print cmdargs[1][1:].isdigit()
+                        if not cmdargs[1][1:].isdigit():
+                            # print cmdargs[1][1:].isdigit()
                             scr.echo("Command argument invalid")
-#                            return
+                            return
                         sim.metric.metric_number = int(cmdargs[1]) - 1
                         if sim.metric.metric_number < 0:
                             scr.echo("Metric is off")
@@ -1002,7 +1022,6 @@ class Commandstack:
                                 scr.echo("First define AREA FIR")
                         else:
                             scr.echo("No such metric")
-
 
                 #----------------------------------------------------------------------
                 # AREA command: AREA lat0,lon0,lat1,lon1[,lowalt]

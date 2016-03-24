@@ -257,7 +257,7 @@ class Traffic:
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
-            return False  # already exists do nothing
+            return False,acid+" already exists." # already exists do nothing
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1

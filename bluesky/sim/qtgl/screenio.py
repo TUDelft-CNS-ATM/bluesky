@@ -14,7 +14,7 @@ import time
 from thread import ThreadManager as manager
 from simevents import SimStateEvent, ACDataEvent, RouteDataEvent, PanZoomEvent, \
                         SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
-                        StackTextEventType, PanZoomEventType, DisplayShapeEvent, SimQuitEvent, AMANEvent
+                        PanZoomEventType, DisplayShapeEvent, SimQuitEvent, AMANEvent
 
 
 class ScreenIO(QObject):
@@ -230,12 +230,10 @@ class ScreenIO(QObject):
         qapp.postEvent(qapp.instance(), DisplayShapeEvent(objname, data))
 
     def event(self, event):
-        if event.type() == StackTextEventType:
-            self.sim.stack.stack(event.text)
-
-        elif event.type() == PanZoomEventType:
+        if event.type() == PanZoomEventType:
             self.ctrlat  = event.pan[0]
             self.ctrlon  = event.pan[1]
             self.scrzoom = event.zoom
+            return True
 
-        return True
+        return False
