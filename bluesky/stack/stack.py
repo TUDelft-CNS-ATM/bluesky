@@ -980,32 +980,28 @@ class Commandstack:
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
                 #----------------------------------------------------------------------
                 elif cmd[:6] == "METRIC":
-                    if numargs < 1:
-                        if sim.metric is None:
-                            scr.echo("METRICS module disabled")
-                            break
+                    if sim.metric is None:
+                        scr.echo("METRICS module disabled")
+
+                    elif numargs < 1:
+                        if sim.metric.metric_number < 0:
+                            scr.echo("No metric active, to configure run:")
+                            scr.echo("METRICS OFF/0/1/2 [dt]")
                         else:
-                            if sim.metric.metric_number < 0:
-                                scr.echo("No metric active, to configure run:")
-                                scr.echo("METRICS OFF/0/1/2 [dt]")
-                            else:
-                                scr.echo("")
-                                scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
-                                    sim.metric.metric_number])
-                                scr.echo("Current dt: " + str(sim.metric.dt) + " s")
+                            scr.echo("")
+                            scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                sim.metric.metric_number])
+                            scr.echo("Current dt: " + str(sim.metric.dt) + " s")
 
                     elif cmdargs[1] == "OFF":  # arguments are strings
                         sim.metric.metric_number = -1
                         scr.echo("Metric is off")
 
                     else:
-                        if sim.metric is None:
-                            scr.echo("METRICS module disabled")
-                            break
-                        elif not cmdargs[1][1:].isdigit():
-#                            print cmdargs[1][1:].isdigit()
+                        if not cmdargs[1][1:].isdigit():
+                            # print cmdargs[1][1:].isdigit()
                             scr.echo("Command argument invalid")
-#                            return
+                            return
                         sim.metric.metric_number = int(cmdargs[1]) - 1
                         if sim.metric.metric_number < 0:
                             scr.echo("Metric is off")
@@ -1026,7 +1022,6 @@ class Commandstack:
                                 scr.echo("First define AREA FIR")
                         else:
                             scr.echo("No such metric")
-
 
                 #----------------------------------------------------------------------
                 # AREA command: AREA lat0,lon0,lat1,lon1[,lowalt]
