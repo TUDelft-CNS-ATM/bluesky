@@ -7,7 +7,7 @@ except ImportError:
 import time
 
 # Local imports
-from screenio import ScreenIO
+from eventio import EventIO
 from ...traf import Traffic
 from ...stack import Commandstack
 # from ...traf import Metric
@@ -50,9 +50,9 @@ class Simulation(QObject):
         self.ffstop      = None
 
         # Simulation objects
-        self.screenio    = ScreenIO(self)
+        self.eventio     = EventIO(self)
         self.traf        = Traffic(navdb)
-        self.stack       = Commandstack(self, self.traf, self.screenio)
+        self.stack       = Commandstack(self, self.traf, self.eventio)
         self.navdb       = navdb
         # Metrics
         self.metric      = None
@@ -60,17 +60,17 @@ class Simulation(QObject):
         self.beastfeed     = Modesbeast(self.stack, self.traf)
 
     def moveToThread(self, target_thread):
-        self.screenio.moveToThread(target_thread)
+        self.eventio.moveToThread(target_thread)
         self.beastfeed.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
 
     def eventTarget(self):
-        return self.screenio
+        return self.eventio
 
     def doWork(self):
         self.syst = int(time.time() * 1000.0)
         self.fixdt = self.simdt
-        self.screenio.sendState()
+        self.eventio.sendState()
 
         while not self.mode == Simulation.end:
             # Timing bookkeeping
@@ -87,7 +87,7 @@ class Simulation(QObject):
                 self.stack.checkfile(self.simt)
 
             # Always update stack
-            self.stack.process(self, self.traf, self.screenio)
+            self.stack.process(self, self.traf, self.eventio)
 
             if self.mode == Simulation.op:
                 self.traf.update(self.simt, self.simdt)
@@ -114,7 +114,7 @@ class Simulation(QObject):
 
     def stop(self):
         self.mode = Simulation.end
-        self.screenio.postQuit()
+        self.eventio.postQuit()
 
     def start(self):
         if self.ffmode:
