@@ -180,7 +180,7 @@ class Gui(QApplication):
                                  2.0 * event.pan[1] / (self.radarwidget.zoom * self.radarwidget.flat_earth))
 
                 # send the pan/zoom event to the radarwidget
-                receiver = self.radarwidget
+                self.radarwidget.event(event)
 
             elif event.type() == ACDataEventType:
                 self.acdata = event
@@ -215,8 +215,11 @@ class Gui(QApplication):
                 return True
 
             elif event.type() == StackTextEventType:
-                self.display_stack(event.text)
-                return True
+                event_processed = True
+                if event.disptext:
+                    self.display_stack(event.disptext)
+                if event.cmdtext:
+                    self.command_line = event.cmdtext
 
             elif event.type() == ShowDialogEventType:
                 if event.dialog_type == event.filedialog_type:
@@ -268,7 +271,7 @@ class Gui(QApplication):
                 pass
 
         # Mouse/trackpad event handling for the Radar widget
-        if receiver is self.radarwidget and self.radarwidget.initialized:
+        elif receiver is self.radarwidget and self.radarwidget.initialized:
             panzoom = None
             if event.type() == QEvent.Wheel:
                 # For mice we zoom with control/command and the scrolwheel
@@ -466,7 +469,7 @@ class Gui(QApplication):
         return True
 
     def stack(self, text):
-        self.postEvent(manager.instance().getActiveSimTarget(), StackTextEvent(text))
+        self.postEvent(manager.instance().getActiveSimTarget(), StackTextEvent(cmdtext=text))
         # Echo back to command window
         self.display_stack(text)
 

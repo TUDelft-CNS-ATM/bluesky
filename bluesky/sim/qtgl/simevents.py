@@ -46,9 +46,10 @@ class SimInfoEvent(QEvent):
 
 
 class StackTextEvent(QEvent):
-    def __init__(self, text):
+    def __init__(self, disptext='', cmdtext=''):
         super(StackTextEvent, self).__init__(StackTextEventType)
-        self.text = text
+        self.disptext = disptext
+        self.cmdtext = cmdtext
 
 
 class ShowDialogEvent(QEvent):

@@ -107,7 +107,11 @@ class ScreenIO(QObject):
 
     def echo(self, text):
         if manager.currentThreadIsActive():
-            qapp.postEvent(qapp.instance(), StackTextEvent(text))
+            qapp.postEvent(qapp.instance(), StackTextEvent(disptext=text))
+
+    def cmdline(self, text):
+        if manager.currentThreadIsActive():
+            qapp.postEvent(qapp.instance(), StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
