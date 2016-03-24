@@ -565,8 +565,8 @@ class Route():
             return 0
 
         # Find closest    
-        wplat  = array(self.actwplat)
-        wplon  = array(self.actwplon)
+        wplat  = array(traf.actwplat)
+        wplon  = array(traf.actwplon)
         dy = wplat - traf.lat[i] 
         dx = (wplon - traf.lon[i]) * traf.coslat[i]
         dist2 = dx*dx + dy*dy            
