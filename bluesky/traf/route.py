@@ -570,7 +570,7 @@ class Route():
         dy = wplat - traf.lat[i] 
         dx = (wplon - traf.lon[i]) * traf.coslat[i]
         dist2 = dx*dx + dy*dy            
-        iwpnear = np.argmin(dist2)
+        iwpnear = argmin(dist2)
         
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
