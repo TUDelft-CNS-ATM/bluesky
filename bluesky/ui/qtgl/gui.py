@@ -20,14 +20,14 @@ import traceback
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
-from aman import AMANDisplay
+# from aman import AMANDisplay
 from ...sim.qtgl import ThreadManager as manager
-from ...sim.qtgl import SimStateEvent, PanZoomEvent, ACDataEvent, StackTextEvent, \
+from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
                      DisplayShapeEventType, SimQuitEventType, \
-                     AMANEventType, SimStateEventType
+                     AMANEventType, NUMEVENTS
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete as ac
@@ -110,12 +110,7 @@ class Gui(QApplication):
         self.simt            = 0.0
 
         # Register our custom pan/zoom event
-        for etype in [SimStateEventType, PanZoomEventType,
-                      ACDataEventType, SimInfoEventType,
-                      StackTextEventType, ShowDialogEventType,
-                      DisplayFlagEventType, RouteDataEventType,
-                      DisplayShapeEventType, SimQuitEventType,
-                      AMANEventType]:
+        for etype in range(1000, 1000+NUMEVENTS):
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -398,6 +393,8 @@ class Gui(QApplication):
                     self.command_history.append(self.command_line)
                     self.stack(self.command_line)
                     self.command_line = ''
+                    # Reset the autocomplete history
+                    ac.reset()
                     # Clear any shape command preview on the radar display
                     self.radarwidget.previewpoly(None)
 
