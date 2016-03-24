@@ -30,7 +30,7 @@ from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
                      AMANEventType, NUMEVENTS
 from radarwidget import RadarWidget
 from nd import ND
-import autocomplete as ac
+import autocomplete
 from ...tools.misc import cmdsplit
 from ...tools.network import StackTelnetServer
 import platform
@@ -415,7 +415,7 @@ class Gui(QApplication):
 
             elif event.key() == Qt.Key_Tab:
                 if len(self.command_line) > 0:
-                    newcmd, displaytext = ac.complete(self.command_line)
+                    newcmd, displaytext = autocomplete.complete(self.command_line)
                     self.command_line   = newcmd
                     if len(displaytext) > 0:
                         self.display_stack(displaytext)
