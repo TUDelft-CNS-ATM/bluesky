@@ -4,7 +4,6 @@ from ...settings import scenario_path
 
 previous_g = ''
 
-
 # Case insensitive file search
 def iglob(pattern):
     def either(c):
@@ -13,6 +12,7 @@ def iglob(pattern):
 
 
 def complete(cmd):
+    """ Command line IC + filename completion function """
     lcmd = cmd.split()
     newcmd = cmd
     displaytext = ''
