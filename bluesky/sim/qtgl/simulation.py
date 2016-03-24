@@ -8,6 +8,7 @@ import time
 
 # Local imports
 from screenio import ScreenIO
+from simevents import StackTextEventType
 from ...traf import Traffic
 from ...stack import Commandstack
 # from ...traf import Metric
@@ -63,9 +64,6 @@ class Simulation(QObject):
         self.screenio.moveToThread(target_thread)
         self.beastfeed.moveToThread(target_thread)
         super(Simulation, self).moveToThread(target_thread)
-
-    def eventTarget(self):
-        return self.screenio
 
     def doWork(self):
         self.syst = int(time.time() * 1000.0)
@@ -143,3 +141,16 @@ class Simulation(QObject):
                                          settings.modeS_port)
         if flag == "OFF":
             self.beastfeed.disconnectFromHost()
+
+    def event(self, event):
+        # Keep track of event processing
+        event_processed = False
+
+        if event.type() == StackTextEventType:
+            self.stack.stack(event.text)
+            event_processed = True
+
+        else:
+            event_processed = self.screenio.event(event)
+
+        return event_processed
