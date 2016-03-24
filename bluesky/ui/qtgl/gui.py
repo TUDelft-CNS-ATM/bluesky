@@ -475,7 +475,6 @@ class Gui(QApplication):
 
     def display_stack(self, text):
         self.win.stackText.setTextColor(QColor(0, 255, 0))
-        print "display_stack:", text
         self.win.stackText.insertHtml('<br>' + text)
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
