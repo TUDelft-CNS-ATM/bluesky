@@ -1,6 +1,7 @@
 from bluesky import settings
 
-settings.init('qtgl')
+if __name__== "__main__":
+    settings.init('qtgl')
 
 from bluesky.traf import Navdatabase
 from bluesky.ui.qtgl import Gui
