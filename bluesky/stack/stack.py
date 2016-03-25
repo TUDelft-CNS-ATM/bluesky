@@ -1355,26 +1355,26 @@ class Commandstack:
                                    synerr = True
                             else:
                                 scr.echo(cmdargs[1]+"not found")
- 
-                        elif numargs ==1:
-                            acid = traf.id[idx]
-                            if traf.swlnav[idx] == "ON":
-                                scr.echo(acid+": LNAV ON")
-                            else:
-                                scr.echo(acid+": LNAV OFF")
-
                         else:
-                            if cmdargs[2].upper() == "ON":
-                                if traf.route[idx].nwp > 0: # If there are any waypoints defined
-                                    traf.swlnav[idx] = True
-    
-                                    iwp = traf.route[idx].findact(traf,idx)
-                                    traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                            acid = traf.id[idx]
+                            if numargs ==1:
+                                if traf.swlnav[idx] == "ON":
+                                    scr.echo(acid+": LNAV ON")
                                 else:
-                                    scr.echo("LNAV "+acid+": no waypoints or destination specified")
+                                    scr.echo(acid+": LNAV OFF")
 
-                            elif cmdargs[2].upper() == "OFF":
-                                traf.swlnav[idx] = False
+                            else:
+                                if cmdargs[2].upper() == "ON":
+                                    if traf.route[idx].nwp > 0: # If there are any waypoints defined
+                                        traf.swlnav[idx] = True
+        
+                                        iwp = traf.route[idx].findact(traf,idx)
+                                        traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                                    else:
+                                        scr.echo("LNAV "+acid+": no waypoints or destination specified")
+    
+                                elif cmdargs[2].upper() == "OFF":
+                                    traf.swlnav[idx] = False
 
                 #----------------------------------------------------------------------
                 # VNAV acid ON/OFF  Switch VNAV (SPD+ALT FMS navigation)  on/off

@@ -228,7 +228,8 @@ class Route():
             self.calcfp()
         
         # Update autopilot settings
-        self.direct(traf,iac,self.wpname[self.iactwp])                        
+        if wpok and self.iactwp>=0:
+            self.direct(traf,iac,self.wpname[self.iactwp])                        
           
         return idx
 
