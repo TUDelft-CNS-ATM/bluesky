@@ -19,7 +19,7 @@ class Thread(QThread):
 
     def quit(self):
         # Stop work in the thread
-        self.worker.stop()
+        self.worker.quit()
 
         # Quit the thread
         super(Thread, self).quit()
@@ -41,6 +41,7 @@ class ThreadManager(QObject):
         super(ThreadManager, self).__init__(parent)
         self.nodes       = []
         self.active_node = None
+        self.max_nnodes = 2  # QThread.idealThreadCount()
 
         if ThreadManager.tm_instance is not None:
             print 'Warning: a ThreadManager already exists!'
@@ -59,6 +60,7 @@ class ThreadManager(QObject):
             self.active_node = self.nodes[nodeid]
 
     def startThread(self, worker_object, prio=Thread.HighestPriority):
+        print 'Starting thread', len(self.nodes)
         newnode = Thread(worker_object)
         self.nodes.append(newnode)
         newnode.start(prio)

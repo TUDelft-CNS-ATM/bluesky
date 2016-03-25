@@ -179,13 +179,6 @@ class ScreenIO(QObject):
             qapp.postEvent(qapp.instance(), ShowDialogEvent())
         return ''
 
-    def sendState(self):
-        qapp.postEvent(manager.instance(), SimStateEvent(self.sim.mode))
-
-    def postQuit(self):
-        qapp.postEvent(qapp.instance(), SimQuitEvent())
-        return ''
-
     def feature(self, switch, argument=''):
         if manager.currentThreadIsActive():
             qapp.postEvent(qapp.instance(), DisplayFlagEvent(switch, argument))
