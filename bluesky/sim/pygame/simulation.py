@@ -121,6 +121,14 @@ class Simulation:
 
         return
 
+    def setScenName(self, name):
+        return
+        
+    def batch(self, filename):
+       return False,"Batch comand not available in Pygame version,"+\
+                 "use Qt-version for batch simulations"
+
+
     def pause(self):  # Hold mode
         self.mode = self.hold
         self.syst0 = self.syst-self.simt

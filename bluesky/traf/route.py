@@ -228,7 +228,7 @@ class Route():
             self.calcfp()
         
         # Update autopilot settings
-        if wpok and self.iactwp>=0:
+        if wpok and self.iactwp>=0 and self.iactwp<self.nwp:
             self.direct(traf,iac,self.wpname[self.iactwp])                        
           
         return idx
@@ -334,10 +334,10 @@ class Route():
         
         # Look up waypoint        
         idx = -1
-        i = self.nwp
-        while idx==-1 and i>0:
+        i = len(self.wpname)
+        while idx ==-1 and i>1:
             i = i-1
-            if self.wpname[i].upper()==delwpname.upper():
+            if self.wpname[i].upper() == delwpname.upper():
                 idx = i
 
         # Delete waypoint        
@@ -349,6 +349,8 @@ class Route():
             del self.wpalt[idx]
             del self.wpspd[idx]
             del self.wptype[idx]
+            if self.iactwp > idx:
+                self.iactwp = max(0,self.iactwp-1)
 
         return idx
 
