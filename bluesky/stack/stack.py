@@ -212,20 +212,20 @@ class Commandstack:
             self.scencmd  = []
 
         for line in scenlines:
-            # lstrip = line.strip()
-            # Try reading timestamp and command
-            try:
-                icmdline = line.index('>')
-                tstamp = line[:icmdline]
-                ttxt = tstamp.strip().split(':')
-                ihr = int(ttxt[0])
-                imin = int(ttxt[1])
-                xsec = float(ttxt[2])
-                self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
-                self.scencmd.append(line[icmdline + 1:-1])
-            except:
-                print "except this:", line
-                pass  # nice try, we will just ignore this syntax error
+            if line.strip()[0]!="#":            
+                # Try reading timestamp and command
+                try:
+                    icmdline = line.index('>')
+                    tstamp = line[:icmdline]
+                    ttxt = tstamp.strip().split(':')
+                    ihr = int(ttxt[0])
+                    imin = int(ttxt[1])
+                    xsec = float(ttxt[2])
+                    self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
+                    self.scencmd.append(line[icmdline + 1:-1])
+                except:
+                    print "except this:",line
+                    pass  # nice try, we will just ignore this syntax error
 
         if mergeWithExisting:
             # If we are merging we need to sort the resulting command list
