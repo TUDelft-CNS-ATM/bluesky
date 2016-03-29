@@ -107,7 +107,11 @@ class ScreenIO(QObject):
 
     def echo(self, text):
         if manager.currentThreadIsActive():
-            qapp.postEvent(qapp.instance(), StackTextEvent(text))
+            qapp.postEvent(qapp.instance(), StackTextEvent(disptext=text))
+
+    def cmdline(self, text):
+        if manager.currentThreadIsActive():
+            qapp.postEvent(qapp.instance(), StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
@@ -173,13 +177,6 @@ class ScreenIO(QObject):
     def show_file_dialog(self):
         if manager.currentThreadIsActive():
             qapp.postEvent(qapp.instance(), ShowDialogEvent())
-        return ''
-
-    def sendState(self):
-        qapp.postEvent(manager.instance(), SimStateEvent(self.sim.mode))
-
-    def postQuit(self):
-        qapp.postEvent(qapp.instance(), SimQuitEvent())
         return ''
 
     def feature(self, switch, argument=''):

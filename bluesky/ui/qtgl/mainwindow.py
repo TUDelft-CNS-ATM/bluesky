@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         manager.instance().nodes_changed.connect(self.nodesChanged)
 
     def closeEvent(self, event):
-        self.app.stop()
+        manager.instance().quit()
 
     @pyqtSlot(int)
     def nodesChanged(self, nodeid):

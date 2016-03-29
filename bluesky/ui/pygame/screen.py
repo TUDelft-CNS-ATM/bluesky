@@ -263,6 +263,8 @@ class Screen:
         self.editwin.echo(msg)
         return
 
+    def cmdline(self, text):
+        self.editwin.insert(text)
 
     def update(self, sim, traf):
         """Draw a new frame"""

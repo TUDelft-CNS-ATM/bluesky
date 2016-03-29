@@ -228,7 +228,8 @@ class Route():
             self.calcfp()
         
         # Update autopilot settings
-        self.direct(traf,iac,self.wpname[self.iactwp])                        
+        if wpok and self.iactwp>=0 and self.iactwp<self.nwp:
+            self.direct(traf,iac,self.wpname[self.iactwp])                        
           
         return idx
 
@@ -333,10 +334,10 @@ class Route():
         
         # Look up waypoint        
         idx = -1
-        i = self.nwp
-        while idx==-1 and i>0:
+        i = len(self.wpname)
+        while idx ==-1 and i>1:
             i = i-1
-            if self.wpname[i].upper()==delwpname.upper():
+            if self.wpname[i].upper() == delwpname.upper():
                 idx = i
 
         # Delete waypoint        
@@ -348,6 +349,8 @@ class Route():
             del self.wpalt[idx]
             del self.wpspd[idx]
             del self.wptype[idx]
+            if self.iactwp > idx:
+                self.iactwp = max(0,self.iactwp-1)
 
         return idx
 
@@ -565,12 +568,12 @@ class Route():
             return 0
 
         # Find closest    
-        wplat  = array(self.actwplat)
-        wplon  = array(self.actwplon)
+        wplat  = array(traf.actwplat)
+        wplon  = array(traf.actwplon)
         dy = wplat - traf.lat[i] 
         dx = (wplon - traf.lon[i]) * traf.coslat[i]
         dist2 = dx*dx + dy*dy            
-        iwpnear = np.argmin(dist2)
+        iwpnear = argmin(dist2)
         
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:

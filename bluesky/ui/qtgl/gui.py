@@ -20,17 +20,17 @@ import traceback
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
-from aman import AMANDisplay
+# from aman import AMANDisplay
 from ...sim.qtgl import ThreadManager as manager
-from ...sim.qtgl import SimStateEvent, PanZoomEvent, ACDataEvent, StackTextEvent, \
+from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
                      DisplayShapeEventType, SimQuitEventType, \
-                     AMANEventType, SimStateEventType
+                     AMANEventType, NUMEVENTS
 from radarwidget import RadarWidget
 from nd import ND
-import autocomplete as ac
+import autocomplete
 from ...tools.misc import cmdsplit
 from ...tools.network import StackTelnetServer
 import platform
@@ -110,12 +110,7 @@ class Gui(QApplication):
         self.simt            = 0.0
 
         # Register our custom pan/zoom event
-        for etype in [SimStateEventType, PanZoomEventType,
-                      ACDataEventType, SimInfoEventType,
-                      StackTextEventType, ShowDialogEventType,
-                      DisplayFlagEventType, RouteDataEventType,
-                      DisplayShapeEventType, SimQuitEventType,
-                      AMANEventType]:
+        for etype in range(1000, 1000+NUMEVENTS):
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -185,7 +180,7 @@ class Gui(QApplication):
                                  2.0 * event.pan[1] / (self.radarwidget.zoom * self.radarwidget.flat_earth))
 
                 # send the pan/zoom event to the radarwidget
-                receiver = self.radarwidget
+                self.radarwidget.event(event)
 
             elif event.type() == ACDataEventType:
                 self.acdata = event
@@ -220,8 +215,11 @@ class Gui(QApplication):
                 return True
 
             elif event.type() == StackTextEventType:
-                self.display_stack(event.text)
-                return True
+                event_processed = True
+                if event.disptext:
+                    self.display_stack(event.disptext)
+                if event.cmdtext:
+                    self.command_line = event.cmdtext
 
             elif event.type() == ShowDialogEventType:
                 if event.dialog_type == event.filedialog_type:
@@ -273,7 +271,7 @@ class Gui(QApplication):
                 pass
 
         # Mouse/trackpad event handling for the Radar widget
-        if receiver is self.radarwidget and self.radarwidget.initialized:
+        elif receiver is self.radarwidget and self.radarwidget.initialized:
             panzoom = None
             if event.type() == QEvent.Wheel:
                 # For mice we zoom with control/command and the scrolwheel
@@ -398,6 +396,8 @@ class Gui(QApplication):
                     self.command_history.append(self.command_line)
                     self.stack(self.command_line)
                     self.command_line = ''
+                    # Reset the autocomplete history
+                    autocomplete.reset()
                     # Clear any shape command preview on the radar display
                     self.radarwidget.previewpoly(None)
 
@@ -418,7 +418,7 @@ class Gui(QApplication):
 
             elif event.key() == Qt.Key_Tab:
                 if len(self.command_line) > 0:
-                    newcmd, displaytext = ac.complete(self.command_line)
+                    newcmd, displaytext = autocomplete.complete(self.command_line)
                     self.command_line   = newcmd
                     if len(displaytext) > 0:
                         self.display_stack(displaytext)
@@ -469,7 +469,7 @@ class Gui(QApplication):
         return True
 
     def stack(self, text):
-        self.postEvent(manager.instance().getActiveSimTarget(), StackTextEvent(text))
+        self.postEvent(manager.instance().getActiveSimTarget(), StackTextEvent(cmdtext=text))
         # Echo back to command window
         self.display_stack(text)
 

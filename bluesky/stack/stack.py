@@ -36,6 +36,10 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #--------------------------------------------------------------------
         self.cmddict = {
+            "BATCH": [
+                "BATCH filename",
+                "txt",
+                sim.batch],
             "CRE": [
                 "CRE acid,type,lat,lon,hdg,alt,spd",
                 "txt,txt,lat,lon,hdg,alt,spd",
@@ -59,11 +63,22 @@ class Commandstack:
             "PCALL": [
                 "PCALL filename [REL/ABS]",
                 "txt,txt",
-                self.pcall],
+                self.pcall
+            ],
+            "SCEN": [
+                "SCEN scenname",
+                "txt",
+                sim.setScenName
+            ],
             "SPD": [
                 "SPD acid,spd [CAS-kts/Mach]",
                 "acid,spd",
                 traf.selspd
+            ],
+            "STOP": [
+                "STOP",
+                "",
+                sim.stop
             ],
             "SYMBOL":  [
                 "SYMBOL",
@@ -76,9 +91,13 @@ class Commandstack:
         # Command synonym dictionary
         self.cmdsynon = {
             "CREATE": "CRE",
-            "TURN": "HDG",
             "DTLOOK": "ASA_DTLOOK",
-            "FWD": "FF"
+            "END": "STOP",
+            "EXIT": "STOP",
+            "FWD": "FF",
+            "Q": "STOP",
+            "QUIT": "STOP",
+            "TURN": "HDG"
         }
         #--------------------------------------------------------------------
 
@@ -193,20 +212,20 @@ class Commandstack:
             self.scencmd  = []
 
         for line in scenlines:
-            # lstrip = line.strip()
-            # Try reading timestamp and command
-            try:
-                icmdline = line.index('>')
-                tstamp = line[:icmdline]
-                ttxt = tstamp.strip().split(':')
-                ihr = int(ttxt[0])
-                imin = int(ttxt[1])
-                xsec = float(ttxt[2])
-                self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
-                self.scencmd.append(line[icmdline + 1:-1])
-            except:
-                print "except this:", line
-                pass  # nice try, we will just ignore this syntax error
+            if line.strip()[0]!="#":            
+                # Try reading timestamp and command
+                try:
+                    icmdline = line.index('>')
+                    tstamp = line[:icmdline]
+                    ttxt = tstamp.strip().split(':')
+                    ihr = int(ttxt[0])
+                    imin = int(ttxt[1])
+                    xsec = float(ttxt[2])
+                    self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
+                    self.scencmd.append(line[icmdline + 1:-1])
+                except:
+                    print "except this:",line
+                    pass  # nice try, we will just ignore this syntax error
 
         if mergeWithExisting:
             # If we are merging we need to sort the resulting command list
@@ -467,15 +486,6 @@ class Commandstack:
 
                     else:  # synerr:                    
                          scr.echo("Syntax error: "+helptext)
-
-
-                #----------------------------------------------------------------------
-                # QUIT/STOP/END/Q: stop program
-                #----------------------------------------------------------------------
-                elif cmd == "QUIT" or cmd == "STOP" or cmd == "END" \
-                        or cmd == "EXIT" or cmd[0] == "Q":
-
-                    sim.stop()
 
                 #----------------------------------------------------------------------
                 # HELP/?: HELP command
@@ -1345,26 +1355,26 @@ class Commandstack:
                                    synerr = True
                             else:
                                 scr.echo(cmdargs[1]+"not found")
- 
-                        elif numargs ==1:
-                            acid = traf.id[idx]
-                            if traf.swlnav[idx] == "ON":
-                                scr.echo(acid+": LNAV ON")
-                            else:
-                                scr.echo(acid+": LNAV OFF")
-
                         else:
-                            if cmdargs[2].upper() == "ON":
-                                if traf.route[idx].nwp > 0: # If there are any waypoints defined
-                                    traf.swlnav[idx] = True
-    
-                                    iwp = traf.route[idx].findact(traf,idx)
-                                    traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                            acid = traf.id[idx]
+                            if numargs ==1:
+                                if traf.swlnav[idx] == "ON":
+                                    scr.echo(acid+": LNAV ON")
                                 else:
-                                    scr.echo("LNAV "+acid+": no waypoints or destination specified")
+                                    scr.echo(acid+": LNAV OFF")
 
-                            elif cmdargs[2].upper() == "OFF":
-                                traf.swlnav[idx] = False
+                            else:
+                                if cmdargs[2].upper() == "ON":
+                                    if traf.route[idx].nwp > 0: # If there are any waypoints defined
+                                        traf.swlnav[idx] = True
+        
+                                        iwp = traf.route[idx].findact(traf,idx)
+                                        traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                                    else:
+                                        scr.echo("LNAV "+acid+": no waypoints or destination specified")
+    
+                                elif cmdargs[2].upper() == "OFF":
+                                    traf.swlnav[idx] = False
 
                 #----------------------------------------------------------------------
                 # VNAV acid ON/OFF  Switch VNAV (SPD+ALT FMS navigation)  on/off
@@ -1601,7 +1611,7 @@ class Commandstack:
                             if not synerr:
                                 traf.route[i].listrte(scr,ipage)
                                 if ipage+1<npages:
-                                    scr.editwin.insert("LISTRTE "+acid+","+str(ipage+1))
+                                    scr.cmdline("LISTRTE "+acid+","+str(ipage+1))
 
                 #----------------------------------------------------------------------
                 # ECHO: show messages in Edit window
