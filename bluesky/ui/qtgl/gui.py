@@ -22,11 +22,12 @@ from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
-                     DisplayShapeEventType, SimQuitEventType, \
+                     DisplayShapeEventType, \
                      AMANEventType, NUMEVENTS
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete
+from ...settings import telnet_port
 from ...tools.misc import cmdsplit
 from ...tools.network import StackTelnetServer
 import platform
@@ -141,7 +142,7 @@ class Gui(QApplication):
     def start(self):
         self.win.show()
         # Start the telnet input server for stack commands
-        self.telnet_in.open()
+        self.telnet_in.listen(port=telnet_port)
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
