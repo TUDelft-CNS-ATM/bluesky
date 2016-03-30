@@ -1,4 +1,3 @@
 from simulation import Simulation
-from thread import Thread, ThreadManager
-from simmanager import SimulationManager
+from mainmanager import MainManager
 from simevents import *

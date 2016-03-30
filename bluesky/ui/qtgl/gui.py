@@ -13,15 +13,11 @@ except ImportError:
     print('Using Qt4 for windows and widgets')
 import numpy as np
 
-import sys
-import traceback
-
-
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
 # from aman import AMANDisplay
-from ...sim.qtgl import ThreadManager as manager
+from ...sim.qtgl import MainManager as manager
 from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
@@ -37,15 +33,6 @@ import platform
 
 is_osx = platform.system() == 'Darwin'
 
-
-# Create custom system-wide exception handler. For now it replicates python's default traceback message.
-# This was added to counter a new PyQt5.5 feature where unhandled exceptions would result in a qFatal
-# with a very uninformative message
-def exception_handler(exc_type, exc_value, exc_traceback):
-    traceback.print_exception(exc_type, exc_value, exc_traceback)
-    sys.exit()
-
-sys.excepthook = exception_handler
 
 usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'POS' : 'acid',
@@ -146,10 +133,10 @@ class Gui(QApplication):
         if QT_VERSION == 5:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-        timer = QTimer(self)
-        timer.timeout.connect(self.radarwidget.updateGL)
-        timer.timeout.connect(self.nd.updateGL)
-        timer.start(50)
+        gltimer = QTimer(self)
+        gltimer.timeout.connect(self.radarwidget.updateGL)
+        gltimer.timeout.connect(self.nd.updateGL)
+        gltimer.start(50)
 
     def start(self):
         self.win.show()
@@ -208,10 +195,6 @@ class Gui(QApplication):
                 seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
                 self.win.siminfoLabel.setText('<b>sim_t</b> = %02d:%02d:%02d, <b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
                     % (hours, minutes, seconds, event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
-                return True
-
-            elif event.type() == SimQuitEventType:
-                self.closeAllWindows()
                 return True
 
             elif event.type() == StackTextEventType:
@@ -353,13 +336,13 @@ class Gui(QApplication):
             # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
-                self.postEvent(manager.instance().getActiveSimTarget(), PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
-                                                                    zoom=self.radarwidget.zoom, absolute=True))
+                self.sendEvent(manager.instance, PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
+                                                                  zoom=self.radarwidget.zoom, absolute=True))
 
             # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
             if panzoom is not None:
                 self.panzoomchanged = True
-                return super(Gui, self).notify(self.radarwidget, panzoom)
+                return self.radarwidget.event(panzoom)
 
         # Other events
         if event.type() == QEvent.KeyPress:
@@ -368,18 +351,17 @@ class Gui(QApplication):
                 dlat = 1.0  / (self.radarwidget.zoom * self.radarwidget.ar)
                 dlon = 1.0  / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                 if event.key() == Qt.Key_Up:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(dlat, 0.0)))
+                    return self.radarwidget.event(PanZoomEvent(pan=(dlat, 0.0)))
                 elif event.key() == Qt.Key_Down:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(-dlat, 0.0)))
+                    return self.radarwidget.event(PanZoomEvent(pan=(-dlat, 0.0)))
                 elif event.key() == Qt.Key_Left:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(0.0, -dlon)))
+                    return self.radarwidget.event(PanZoomEvent(pan=(0.0, -dlon)))
                 elif event.key() == Qt.Key_Right:
-                    return super(Gui, self).notify(self.radarwidget, PanZoomEvent(pan=(0.0, dlon)))
-            
+                    return self.radarwidget.event(PanZoomEvent(pan=(0.0, dlon)))
+
             elif event.key() == Qt.Key_Escape:
-                    self.stack("QUIT")  # Rather like this, so sim.stop is executed
-#                    self.closeAllWindows() # But now in a brute way
-                    
+                    manager.instance.quit()
+
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]
 
@@ -388,7 +370,6 @@ class Gui(QApplication):
                     self.win.showFullScreen()
                 else:
                     self.win.showNormal()
-
 
             if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
                 if len(self.command_line) > 0:
@@ -469,7 +450,7 @@ class Gui(QApplication):
         return True
 
     def stack(self, text):
-        self.postEvent(manager.instance().getActiveSimTarget(), StackTextEvent(cmdtext=text))
+        self.sendEvent(manager.instance, StackTextEvent(cmdtext=text))
         # Echo back to command window
         self.display_stack(text)
 

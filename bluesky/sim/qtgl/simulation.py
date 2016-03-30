@@ -1,16 +1,14 @@
 try:
     # Try Qt5 first
-    from PyQt5.QtCore import QThread, QObject, QCoreApplication as qapp
+    from PyQt5.QtCore import QThread, QObject
 except ImportError:
     # Else PyQt4 imports
-    from PyQt4.QtCore import QThread, QObject, QCoreApplication as qapp
+    from PyQt4.QtCore import QThread, QObject
 import time
-from copy import deepcopy
 
 # Local imports
 from screenio import ScreenIO
-from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEvent
-from thread import ThreadManager as manager
+from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEvent, SimQuitEventType
 from ...traf import Traffic
 from ...stack import Commandstack
 # from ...traf import Metric
@@ -34,9 +32,9 @@ class Simulation(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, navdb):
+    def __init__(self, manager, navdb):
         super(Simulation, self).__init__()
-
+        self.manager     = manager
         self.running     = True
         self.mode        = Simulation.init
         self.samplecount = 0
@@ -53,7 +51,7 @@ class Simulation(QObject):
         self.ffstop      = None
 
         # Simulation objects
-        self.screenio    = ScreenIO(self)
+        self.screenio    = ScreenIO(self, manager)
         self.traf        = Traffic(navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
         self.navdb       = navdb
@@ -61,11 +59,6 @@ class Simulation(QObject):
         self.metric      = None
         # self.metric      = Metric()
         self.beastfeed     = Modesbeast(self.stack, self.traf)
-
-    def moveToThread(self, target_thread):
-        self.screenio.moveToThread(target_thread)
-        self.beastfeed.moveToThread(target_thread)
-        super(Simulation, self).moveToThread(target_thread)
 
     def doWork(self):
         self.syst = int(time.time() * 1000.0)
@@ -100,7 +93,7 @@ class Simulation(QObject):
                 self.simt += self.simdt
 
             # Process Qt events
-            qapp.processEvents()
+            self.manager.processEvents()
 
             # When running at a fixed rate, increment system time with sysdt and calculate remainder to sleep
             if not self.ffmode:
@@ -130,9 +123,6 @@ class Simulation(QObject):
         self.mode   = self.init
         self.traf.reset(self.navdb)
 
-    def quit(self):
-        self.running = False
-
     def fastforward(self, nsec=None):
         self.ffmode = True
         if nsec is not None:
@@ -151,13 +141,12 @@ class Simulation(QObject):
         self.screenio.echo('Starting scenario' + name)
 
     def sendState(self):
-        qapp.postEvent(manager.instance(), SimStateEvent(self.mode))
+        self.manager.sendEvent(SimStateEvent(self.mode))
 
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
         self.stack.openfile(filename)
-        qapp.postEvent(manager.instance(),
-            BatchEvent(deepcopy(self.stack.scentime), deepcopy(self.stack.scencmd)))
+        self.manager.sendEvent(BatchEvent(self.stack.scentime, self.stack.scencmd))
         self.stack.scentime = []
         self.stack.scencmd  = []
 
@@ -175,9 +164,9 @@ class Simulation(QObject):
             self.stack.scentime = event.scentime
             self.stack.scencmd  = event.scencmd
             event_processed     = True
-            for t in event.scencmd:
-                print t
-
+        elif event.type() == SimQuitEventType:
+            # BlueSky is quitting
+            self.running = False
         else:
             # This is either an unknown event or a gui event.
             event_processed = self.screenio.event(event)

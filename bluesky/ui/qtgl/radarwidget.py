@@ -549,11 +549,11 @@ class RadarWidget(QGLWidget):
         self.naircraft = len(data.lat)
         if self.naircraft > 0:
             # Update data in GPU buffers
-            update_buffer(self.aclatbuf, data.lat)
-            update_buffer(self.aclonbuf, data.lon)
-            update_buffer(self.achdgbuf, data.trk)
-            update_buffer(self.acaltbuf, data.alt)
-            update_buffer(self.actasbuf, data.tas)
+            update_buffer(self.aclatbuf, np.array(data.lat, dtype=np.float32))
+            update_buffer(self.aclonbuf, np.array(data.lon, dtype=np.float32))
+            update_buffer(self.achdgbuf, np.array(data.trk, dtype=np.float32))
+            update_buffer(self.acaltbuf, np.array(data.alt, dtype=np.float32))
+            update_buffer(self.actasbuf, np.array(data.tas, dtype=np.float32))
 
             # CPA lines to indicate conflicts
             ncpalines = len(data.confcpalat)

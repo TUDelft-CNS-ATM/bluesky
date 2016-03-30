@@ -8,19 +8,19 @@ if settings.gui == 'pygame':
     gui, sim = bs.CreateMainObj()
 
     # Main loop
-    sim = bs.MainLoop(gui,sim)
+    sim = bs.MainLoop(gui, sim)
 
 
 elif settings.gui == 'qtgl':
     import BlueSky_qtgl as bs
 
     # Initialisation
-    gui, manager, sim = bs.CreateMainObj()
+    gui, manager = bs.CreateMainObj()
 
     # Main loop
-    sim = bs.MainLoop(gui,manager)
+    bs.MainLoop(gui, manager)
 
-    
+
 else:
     import sys
     print 'Unknown gui type:', settings.gui
