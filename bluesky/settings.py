@@ -23,9 +23,6 @@ start_location = 'EHAM'
 # Simulation timestep [seconds]
 simdt = 0.05
 
-# Simulation thread update rate [Hz]
-sim_update_rate = 20
-
 #=============================================================================
 #=   QTGL Gui specific settings below
 #=   Pygame Gui options in /data/graphics/scr_cfg.dat

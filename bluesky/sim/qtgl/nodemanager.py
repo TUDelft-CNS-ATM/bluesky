@@ -3,8 +3,6 @@ try:
 except ImportError:
     from PyQt4.QtCore import QObject, QEvent
 
-import psutil
-
 # Local imports
 from simulation import Simulation
 from timer import Timer
@@ -14,8 +12,6 @@ from timer import Timer
 
 
 def runNode(connection, navdb, nodeid, active_node):
-    proc = psutil.Process()
-    proc.cpu_affinity(nodeid)
     manager     = NodeManager(connection, nodeid, active_node)
     manager.sim = Simulation(manager, navdb)
     manager.sim.doWork()

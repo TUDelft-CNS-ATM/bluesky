@@ -17,15 +17,6 @@ from ...tools.datafeed import Modesbeast
 
 
 class Simulation(QObject):
-    # =========================================================================
-    # Settings
-    # =========================================================================
-    # Simulation timestep [seconds]
-    simdt = settings.simdt
-
-    # Simulation loop update rate [Hz]
-    sys_rate = settings.sim_update_rate
-
     # simulation modes
     init, op, hold, end = range(4)
 
@@ -38,13 +29,21 @@ class Simulation(QObject):
         self.running     = True
         self.mode        = Simulation.init
         self.samplecount = 0
-        self.sysdt       = 1000 / self.sys_rate
 
         # Set starting system time [milliseconds]
         self.syst        = 0.0
 
         # Starting simulation time [seconds]
         self.simt        = 0.0
+
+        # Simulation timestep [seconds]
+        self.simdt       = settings.simdt
+
+        # Simulation timestep multiplier: run sim at n x speed
+        self.dtmult      = 1.0
+
+        # System timestep [milliseconds]
+        self.sysdt       = int(self.simdt / self.dtmult * 1000)
 
         # Flag indicating running at fixed rate or fast time
         self.ffmode      = False
@@ -123,6 +122,25 @@ class Simulation(QObject):
         self.mode   = self.init
         self.traf.reset(self.navdb)
 
+    def quit(self):
+        self.running = False
+
+    def setDt(self, dt):
+        self.simdt = abs(dt)
+        self.sysdt = int(self.simdt / self.dtmult * 1000)
+
+    def setDtMultiplier(self, mult=None):
+        if mult is not None:
+            self.dtmult = mult
+            self.sysdt = int(self.simdt / self.dtmult * 1000)
+
+    def setFixdt(self, flag=None, nsec=None):
+        if flag is not None:
+            if flag:
+                self.fastforward(nsec)
+            else:
+                self.start()
+
     def fastforward(self, nsec=None):
         self.ffmode = True
         if nsec is not None:
@@ -130,12 +148,13 @@ class Simulation(QObject):
         else:
             self.ffstop = None
 
-    def datafeed(self, flag):
-        if flag == "ON":
-            self.beastfeed.connectToHost(settings.modeS_host,
-                                         settings.modeS_port)
-        if flag == "OFF":
-            self.beastfeed.disconnectFromHost()
+    def datafeed(self, flag=None):
+        if flag is not None:
+            if flag:
+                self.beastfeed.connectToHost(settings.modeS_host,
+                                             settings.modeS_port)
+            else:
+                self.beastfeed.disconnectFromHost()
 
     def setScenName(self, name):
         self.screenio.echo('Starting scenario' + name)

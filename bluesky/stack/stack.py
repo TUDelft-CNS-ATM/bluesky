@@ -47,13 +47,28 @@ class Commandstack:
             ],
             "DATAFEED":  [
                 "DATAFEED [ON/OFF]",
-                "txt",
+                "onoff",
                 sim.datafeed
+            ],
+            "DT": [
+                "DT dt",
+                "float",
+                sim.setDt
+            ],
+            "DTMULT": [
+                "DTMULT multiplier",
+                "float",
+                sim.setDtMultiplier
             ],
             "FF":  [
                 "FF [tend]",
                 "time",
                 sim.fastforward
+            ],
+            "FIXDT": [
+                "FIXDT ON/OFF [tend]",
+                "onoff,time",
+                sim.setFixdt
             ],
             "HDG": [
                 "HDG acid,hdg [deg,True]",
@@ -943,48 +958,6 @@ class Commandstack:
                         errcode = self.saveic(cmdargs[1], sim, traf)
                         if errcode == -1:
                             scr.echo("SAVEIC: Error writing file")
-
-                #----------------------------------------------------------------------
-                # DT: set value of DT for FIXDT mode
-                #----------------------------------------------------------------------
-                elif cmd == "DT":
-                    if numargs < 1:
-                        scr.echo("DT [dt] sets DT for fixdt mode")
-                        scr.echo("Current dt = " + str(sim.fixdt))
-                    else:
-                        dt_ = float(cmdargs[1])
-                        sim.fixdt = abs(dt_)
-
-                #----------------------------------------------------------------------
-                # FIXDT: switch FIXDT mode on/off
-                #----------------------------------------------------------------------
-                elif cmd == "FIXDT":
-                    if numargs < 1:
-                        scr.echo("FIXDT ON/OFF [,howmanyseconds]")
-                        scr.echo("Current dt = " + str(sim.fixdt))
-                        if sim.ffmode:
-                            scr.echo("FIXDT mode is ON")
-                            if sim.ffstop > 0.:
-                                t_ = sim.ffstop - sim.simt
-                                scr.echo("for " + str(t_) + " more seconds")
-                        else:
-                            scr.echo("FIXDT mode is OFF")
-                    else:
-                        if cmdargs[1].upper() == "ON":
-                            sim.ffmode = True
-                            if numargs >= 2:
-                                try:
-                                    tstop_ = float(cmdargs[2])
-                                    sim.ffstop = abs(tstop_) + sim.simt
-                                except:
-                                    sim.ffstop = -1.
-                                    synerr = True  # syntax is not ok
-                            else:
-                                sim.ffmode = True
-                                sim.ffstop = -1
-
-                        elif cmdargs[1].upper()[:2] == "OF":
-                            sim.ffmode = False
 
                 #----------------------------------------------------------------------
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
