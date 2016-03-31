@@ -3,6 +3,8 @@ try:
 except ImportError:
     from PyQt4.QtCore import QObject, QEvent
 
+from multiprocessing.connection import Client
+
 # Local imports
 from simulation import Simulation
 from timer import Timer
@@ -11,7 +13,8 @@ from timer import Timer
 # faulthandler.enable()
 
 
-def runNode(connection, navdb, nodeid, active_node):
+def runNode(navdb, nodeid, active_node):
+    connection  = Client(('localhost', 6000), authkey='bluesky')
     manager     = NodeManager(connection, nodeid, active_node)
     manager.sim = Simulation(manager, navdb)
     manager.sim.doWork()

@@ -3,11 +3,14 @@ try:
 except ImportError:
     from PyQt4.QtCore import QObject, QEvent, QTimer, pyqtSignal, QCoreApplication as qapp
 
-import multiprocessing as mp
-
 # Local imports
 from nodemanager import runNode
 from simevents import SimStateEventType, SimQuitEventType, BatchEventType, BatchEvent, StackTextEvent, SimQuitEvent
+
+import select
+from multiprocessing import Value, Process
+from multiprocessing.connection import Listener
+Listener.fileno = lambda self: self._listener._socket.fileno()
 
 
 class MainManager(QObject):
@@ -18,23 +21,37 @@ class MainManager(QObject):
     def __init__(self, navdb):
         super(MainManager, self).__init__()
         print 'Initializing multi-process simulation'
-        # mp.set_start_method('spawn')
         MainManager.instance = self
         self.navdb           = navdb
         self.scentime        = []
         self.scencmd         = []
         self.nodes           = []
-        self.activenode      = mp.Value('i', 0)
+        self.connections     = []
+        self.activenode      = Value('i', 0)
         self.sender_id       = -1
+        self.listener        = Listener(('localhost', 6000), authkey='bluesky')
 
     def receiveFromNodes(self):
-        for self.sender_id in range(len(self.nodes)):
-            pipe = self.nodes[self.sender_id][1]
+        # First look for new connections
+        r, w, e = select.select((self.listener, ), (), (), 0)
+        if self.listener in r:
+            print "Accepting..."
+            conn = self.listener.accept()
+            self.connections.append(conn)
+
+        # Then process any data in the active connections
+        for self.sender_id in range(len(self.connections)):
+            conn = self.connections[self.sender_id]
+            if conn is None:
+                continue
             # Check for incoming events with poll
-            while pipe.poll():
-                # Receive events that are waiting in the pipe
-                (event, eventtype) = pipe.recv()
-                # Data over pipes is pickled/unpickled, this causes problems with
+            while conn.poll():
+                # Receive events that are waiting in the conn
+                try:
+                    (event, eventtype) = conn.recv()
+                except:
+                    continue
+                # Data over connections is pickled/unpickled, this causes problems with
                 # inherited classes. Solution is to call the ancestor's init
                 QEvent.__init__(event, eventtype)
 
@@ -53,7 +70,7 @@ class MainManager(QObject):
                             start = scenidx[0]
                             end   = scenidx[1]
                             # Send a new scenario to the finished sim process
-                            pipe.send(BatchEvent(self.scentime[start:end], self.scencmd[start:end]))
+                            conn.send(BatchEvent(self.scentime[start:end], self.scencmd[start:end]))
 
                 elif event.type() == BatchEventType:
                     self.scentime = event.scentime
@@ -73,7 +90,7 @@ class MainManager(QObject):
                         for s in range(min(reqd_nnodes, len(self.nodes))):
                             start = scenidx[s]
                             end   = len(self.scentime) if s+1 == len(scenidx) else scenidx[s+1]
-                            self.nodes[s][1].send(BatchEvent(self.scentime[start:end], self.scencmd[start:end]))
+                            self.connections[s].send(BatchEvent(self.scentime[start:end], self.scencmd[start:end]))
 
                         # Delete the scenarios that were sent in the initial batch
                         del self.scentime[0:end]
@@ -87,10 +104,9 @@ class MainManager(QObject):
         self.sender_id = -1
 
     def addNode(self):
-        parent_conn, child_conn = mp.Pipe()
         new_nodeid = len(self.nodes)
-        p = mp.Process(target=runNode, args=(child_conn, self.navdb, new_nodeid, self.activenode))
-        self.nodes.append((p, parent_conn))
+        p = Process(target=runNode, args=(self.navdb, new_nodeid, self.activenode))
+        self.nodes.append(p)
         self.activenode.value = new_nodeid
         p.start()
 
@@ -110,13 +126,13 @@ class MainManager(QObject):
         print 'Stopping simulation processes...'
         # Tell each process to quit
         quitevent = (SimQuitEvent(), SimQuitEventType)
-        for n in range(len(self.nodes)):
+        for n in range(len(self.connections)):
             print 'Stopping node %d:' % n,
-            self.nodes[n][1].send(quitevent)
+            self.connections[n].send(quitevent)
 
         # Wait for all threads to finish
         for node in self.nodes:
-            node[0].join()
+            node.join()
         print 'Done'
         print 'Closing Gui'
         qapp.quit()
@@ -124,5 +140,5 @@ class MainManager(QObject):
     def event(self, event):
         # Only send custom events to the active node
         if event.type() >= 1000:
-            self.nodes[self.activenode.value][1].send((event, int(event.type())))
+            self.connections[self.activenode.value].send((event, int(event.type())))
         return True
