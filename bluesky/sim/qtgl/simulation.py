@@ -9,7 +9,7 @@ import time
 # Local imports
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEvent, SimQuitEventType
-from ...traf import Traffic
+from ...traf import Traffic, Navdatabase
 from ...stack import Commandstack
 # from ...traf import Metric
 from ... import settings
@@ -23,7 +23,7 @@ class Simulation(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, manager, navdb):
+    def __init__(self, manager):
         super(Simulation, self).__init__()
         self.manager     = manager
         self.running     = True
@@ -50,10 +50,10 @@ class Simulation(QObject):
         self.ffstop      = None
 
         # Simulation objects
+        self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self, manager)
-        self.traf        = Traffic(navdb)
+        self.traf        = Traffic(self.navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
-        self.navdb       = navdb
         # Metrics
         self.metric      = None
         # self.metric      = Metric()

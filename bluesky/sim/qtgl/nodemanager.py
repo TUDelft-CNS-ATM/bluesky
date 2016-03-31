@@ -8,27 +8,27 @@ from multiprocessing.connection import Client
 # Local imports
 from simulation import Simulation
 from timer import Timer
-
+from simevents import SetNodeIdType, SetActiveNodeType
 # import faulthandler
 # faulthandler.enable()
 
 
-def runNode(navdb, nodeid, active_node):
+def runNode():
     connection  = Client(('localhost', 6000), authkey='bluesky')
-    manager     = NodeManager(connection, nodeid, active_node)
-    manager.sim = Simulation(manager, navdb)
+    manager     = NodeManager(connection)
+    manager.sim = Simulation(manager)
     manager.sim.doWork()
     manager.close()
 
 
 class NodeManager(QObject):
-    def __init__(self, connection, nodeid, active_node):
+    def __init__(self, connection):
         super(NodeManager, self).__init__()
         self.connection      = connection
         self.sim             = None
         self.timers          = []
-        self.nodeid          = nodeid
-        self.active_node     = active_node
+        self.nodeid          = -1
+        self.active          = False
 
     def close(self):
         self.connection.close()
@@ -36,18 +36,27 @@ class NodeManager(QObject):
     def processEvents(self):
         # Process incoming data, and send to sim
         while self.connection.poll():
-            (event, eventtype) = self.connection.recv()
-            # Data over pipes is pickled/unpickled, this causes problems with
-            # inherited classes. Solution is to call the ancestor's init
-            QEvent.__init__(event, eventtype)
-            self.sim.event(event)
+            (eventtype, event) = self.connection.recv()
+            if eventtype == SetNodeIdType:
+                self.nodeid = event
+            elif eventtype == SetActiveNodeType:
+                self.active = event
+            else:
+                # Data over pipes is pickled/unpickled, this causes problems with
+                # inherited classes. Solution is to call the ancestor's init
+                QEvent.__init__(event, eventtype)
+                self.sim.event(event)
 
         # Process timers
         Timer.updateTimers()
 
     def sendEvent(self, event):
         # Send event to the main process
-        self.connection.send((event, int(event.type())))
+        self.connection.send((int(event.type()), event))
 
     def isActive(self):
-        return (self.nodeid == self.active_node.value)
+        return self.active
+
+
+if __name__ == '__main__':
+    runNode()

@@ -3,8 +3,8 @@ try:
 except ImportError:
     from PyQt4.QtCore import QEvent
 
-NUMEVENTS = 12
-SimStateEventType, BatchEventType, PanZoomEventType, ACDataEventType, \
+NUMEVENTS = 14
+SetNodeIdType, SetActiveNodeType, SimStateEventType, BatchEventType, PanZoomEventType, ACDataEventType, \
     SimInfoEventType, StackTextEventType, ShowDialogEventType, \
     DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType, \
     SimQuitEventType, AMANEventType = range(1000, 1000 + NUMEVENTS)

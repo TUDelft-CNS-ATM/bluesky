@@ -1,14 +1,25 @@
+import sys
+import traceback
 from bluesky import settings
 
 if __name__ == "__main__":
     settings.init('qtgl')
 
-from bluesky.traf import Navdatabase
-from bluesky.ui.qtgl import Gui
-from bluesky.sim.qtgl import MainManager
+# This file can be used to start the gui mainloop or a single node simulation loop
+node_only = ('--node' in sys.argv)
 
-import sys
-import traceback
+if node_only:
+    from bluesky.sim.qtgl.nodemanager import runNode
+else:
+    from bluesky.traf import Navdatabase
+    from bluesky.ui.qtgl import Gui
+    from bluesky.sim.qtgl import MainManager
+
+
+# Global navdb, gui, and sim objects for easy access in interactive python shell
+navdb   = None
+gui     = None
+manager = None
 
 
 # Create custom system-wide exception handler. For now it replicates python's default traceback message.
@@ -24,32 +35,28 @@ sys.excepthook = exception_handler
 # =============================================================================
 # Start the mainloop (and possible other threads)
 # =============================================================================
-def CreateMainObj():
-    # =============================================================================
-    # Create gui and simulation objects
-    # =============================================================================
-    navdb     = Navdatabase('global')  # Read database from specified folder
-    manager   = MainManager(navdb)
-    gui       = Gui(navdb)
+def MainLoop():
+    if node_only:
+        runNode()
 
-    # Create the main simulation thread
-    manager.addNode()
-    return gui, manager
+    else:
+        # =============================================================================
+        # Create gui and simulation objects
+        # =============================================================================
+        global navdb, manager, gui
+        navdb     = Navdatabase('global')  # Read database from specified folder
+        manager   = MainManager(navdb)
+        gui       = Gui(navdb)
 
+        # Start the node manager
+        manager.start()
 
-def MainLoop(gui, manager):
-
-    # Start the node manager
-    manager.start()
-
-    # Start the gui
-    gui.start()
+        # Start the gui
+        gui.start()
 
 if __name__ == "__main__":
     # Run mainloop if BlueSky-qtgl is called directly
-    gui, manager = CreateMainObj()
-
-    MainLoop(gui, manager)
+    MainLoop()
 
     # =============================================================================
     # Clean up before exit. Comment this out when debugging for checking variables
