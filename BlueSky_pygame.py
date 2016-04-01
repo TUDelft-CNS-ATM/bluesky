@@ -2,7 +2,7 @@ from bluesky import settings
 if __name__ == "__main__":
     settings.init('pygame')
 
-from bluesky.traf import Navdatabase
+from bluesky.navdb import Navdatabase
 from bluesky.ui.pygame import Gui
 from bluesky.sim.pygame import Simulation
 

@@ -11,7 +11,7 @@ node_only = ('--node' in sys.argv)
 if node_only:
     from bluesky.sim.qtgl.nodemanager import runNode
 else:
-    from bluesky.traf import Navdatabase
+    from bluesky.navdb import Navdatabase
     from bluesky.ui.qtgl import Gui
     from bluesky.sim.qtgl import MainManager
 
@@ -45,7 +45,7 @@ def MainLoop():
         # =============================================================================
         global navdb, manager, gui
         navdb     = Navdatabase('global')  # Read database from specified folder
-        manager   = MainManager(navdb)
+        manager   = MainManager()
         gui       = Gui(navdb)
 
         # Start the node manager

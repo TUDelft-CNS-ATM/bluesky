@@ -6,7 +6,6 @@ except ImportError:
         QCoreApplication as qapp
 
 # Local imports
-from nodemanager import runNode
 from simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
     BatchEvent, StackTextEvent, SimQuitEvent, SetNodeIdType, SetActiveNodeType
 
@@ -22,11 +21,10 @@ class MainManager(QObject):
     # Signals
     nodes_changed = pyqtSignal(int)
 
-    def __init__(self, navdb):
+    def __init__(self):
         super(MainManager, self).__init__()
         print 'Initializing multi-process simulation'
         MainManager.instance = self
-        self.navdb           = navdb
         self.scentime        = []
         self.scencmd         = []
         self.nodes           = []
@@ -39,7 +37,7 @@ class MainManager(QObject):
         # First look for new connections
         r, w, e = select.select((self.listener, ), (), (), 0)
         if self.listener in r:
-            print "Accepting..."
+            print "Received connection request from new node"
             conn = self.listener.accept()
             # Send the node information about its nodeid
             nodeid = len(self.connections)
@@ -112,6 +110,8 @@ class MainManager(QObject):
         self.sender_id = -1
 
     def addNode(self):
+        if len(self.connections) > 0:
+            self.connections[self.activenode].send((SetActiveNodeType, False))
         p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
         self.nodes.append(p)
 
@@ -120,7 +120,7 @@ class MainManager(QObject):
             if not nodeid == self.activenode:
                 self.connections[self.activenode].send((SetActiveNodeType, False))
                 self.activenode = nodeid
-            self.connections[self.activenode].send((SetActiveNodeType, True))
+                self.connections[self.activenode].send((SetActiveNodeType, True))
 
     def getSenderID(self):
         return self.sender_id

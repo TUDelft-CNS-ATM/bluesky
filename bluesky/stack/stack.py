@@ -10,7 +10,8 @@ from ..tools.aero import kts, ft, fpm, nm, lbs,\
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
-import pdb
+# import pdb
+
 
 class Commandstack:
     """

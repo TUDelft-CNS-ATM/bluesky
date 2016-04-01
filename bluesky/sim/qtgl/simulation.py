@@ -9,7 +9,8 @@ import time
 # Local imports
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEvent, SimQuitEventType
-from ...traf import Traffic, Navdatabase
+from ...traf import Traffic
+from ...navdb import Navdatabase
 from ...stack import Commandstack
 # from ...traf import Metric
 from ... import settings

@@ -17,7 +17,7 @@ from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, fon
 from ...tools.aero import ft, nm, kts
 from ...sim.qtgl import PanZoomEvent, PanZoomEventType
 from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
-from loaddata import load_airport_data
+from ...tools.loaddata import load_aptsurface, load_coastlines
 
 
 # Static defines
@@ -131,7 +131,7 @@ class RadarWidget(QGLWidget):
 
         # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, \
-            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_airport_data()
+            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
 
     def create_objects(self):
         if not self.isValid():
@@ -182,7 +182,7 @@ class RadarWidget(QGLWidget):
 
         # ------- Coastlines -----------------------------
         self.coastlines = RenderObject(gl.GL_LINES)
-        coastvertices, coastindices = load_vertex_data()
+        coastvertices, coastindices = load_coastlines()
         self.coastlines.bind_attrib(ATTRIB_VERTEX, 2, coastvertices)
         self.coastlines.bind_attrib(ATTRIB_COLOR, 3, np.array(lightblue2, dtype=np.float32), instance_divisor=1)
         self.vcount_coast = len(coastvertices)
@@ -738,78 +738,3 @@ class RadarWidget(QGLWidget):
 
         else:
             return super(RadarWidget, self).event(event)
-
-
-def load_rwy_data():
-    # total number of runways
-    nrwy_tot = 15019
-    vertices = np.zeros(nrwy_tot * 12, dtype=np.float32)
-
-    with open("data/global/apt.dat", 'r') as f:
-        n_rwys = 0
-        for line in f:
-            line = line.strip()
-            if line[:4] == '100 ':
-                # This line holds a runway
-                l = line.split()
-                width = float(l[1])
-                # Only asphalt and concrete runways
-                if int(l[2]) > 2:
-                    continue
-                n_rwys += 1
-                # rwy_lbl = (l[8], l[17])
-                lat0 = float(l[9])
-                lon0 = float(l[10])
-                lat1 = float(l[18])
-                lon1 = float(l[19])
-                flat_earth = cos(0.5 * radians(lat0 + lat1))
-                lx = lat1 - lat0
-                ly = (lon1 - lon0) * flat_earth
-                l  = sqrt(lx * lx + ly * ly)
-                wx =  ly / l * 0.5 * width
-                wy = -lx / l * 0.5 * width
-                dlat = degrees(wx * REARTH_INV)
-                dlon = degrees(wy * REARTH_INV / flat_earth)
-                #d_inv = 1.0 / sqrt(dlat * dlat + dlon * dlon)
-                #dlat = degrees(dlat * 0.5 * width * REARTH_INV * d_inv)
-                #dlon = degrees(dlon * 0.5 * width * REARTH_INV * d_inv)
-                vertices[(n_rwys - 1) * 12:n_rwys * 12] = [
-                            lat0 + dlat, lon0 + dlon,
-                            lat0 - dlat, lon0 - dlon,
-                            lat1 + dlat, lon1 + dlon,
-                            lat0 - dlat, lon0 - dlon,
-                            lat1 + dlat, lon1 + dlon,
-                            lat1 - dlat, lon1 - dlon]
-        print '%d runways read' % n_rwys
-
-    return vertices
-
-
-def load_vertex_data():
-    """Load static data: coaslines, waypoint and airport database.
-    """
-    # -------------------------COASTLINE DATA----------------------------------
-    # Init geo (coastline)  data and convert pen up/pen down format of
-    # coastlines to numpy arrays with lat/lon
-    coast = []
-    clat = clon = 0.0
-    with open("data/global/coastlines.dat", 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not (line == "" or line[0] == '#'):
-                arg = line.split()
-                if len(arg) == 3:
-                    lat, lon = float(arg[1]), float(arg[2])
-                    if arg[0] == 'D':
-                        coast.append([clat, clon, lat, lon])
-                    clat, clon = lat, lon
-    # Sort the line segments by longitude of the first vertex
-    coastvertices = np.array(
-        sorted(coast, key=lambda a_entry: a_entry[1]), dtype=np.float32)
-    coastindices = np.zeros(361)
-    coastlon = coastvertices[:, 1]
-    for i in range(0, 360):
-        coastindices[i] = np.searchsorted(coastlon, i - 180) * 2
-    coastvertices.resize((coastvertices.size/2, 2))
-    del coast
-    return coastvertices, coastindices

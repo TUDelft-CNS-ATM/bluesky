@@ -28,7 +28,7 @@ class NodeManager(QObject):
         self.sim             = None
         self.timers          = []
         self.nodeid          = -1
-        self.active          = False
+        self.active          = True
 
     def close(self):
         self.connection.close()
