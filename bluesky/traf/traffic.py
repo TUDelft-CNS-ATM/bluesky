@@ -290,7 +290,7 @@ class Traffic:
         self.M     = np.append(self.M, tas2mach(acspd, acalt))
 
         # AC is initialized with neutral max bank angle
-        self.bank = np.append(self.bank, 25.)
+        self.bank = np.append(self.bank, radians(25.))
         if self.ntraf < 2:
             self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
         self.hdgsel = np.append(self.hdgsel, False)
@@ -312,7 +312,7 @@ class Traffic:
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
         self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
         self.aspd = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
-        self.aptas = np.append(self.aptas, cas2tas(self.aspd[-1], self.alt[-1])) # [m/s]
+        self.aptas = np.append(self.aptas, acspd) # [m/s]
         self.ama  = np.append(self.ama, 0.) # selected spd above crossover (Mach) [-]
         self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
         self.afll = np.append(self.afll, (acalt/100)) # selected fl[ft/100]
@@ -540,7 +540,7 @@ class Traffic:
         self.dts.append(simdt)
 
         #---------------- Atmosphere ----------------
-        self.Temp, self.rho, self.p = vatmos(self.alt)
+        self.p, self.rho, self.Temp = vatmos(self.alt)
 
         #-------------- Performance limits autopilot settings --------------
         # Check difference with AP settings for trafperf and autopilot
