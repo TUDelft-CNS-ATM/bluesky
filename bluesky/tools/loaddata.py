@@ -3,9 +3,14 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+from ..settings import data_path, gui
 
-from load_visuals_txt import load_coastline_txt, load_aptsurface_txt
-from ..settings import data_path
+from load_navdata_txt import load_navdata_txt
+from load_visuals_txt import load_coastline_txt
+if gui == 'qtgl':
+    from load_visuals_txt import load_aptsurface_txt
+
+
 cachedir = data_path + '/cache'
 
 if not os.path.exists(cachedir):
@@ -47,3 +52,18 @@ def load_aptsurface():
             apt_indices   = pickle.load(f)
     return vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, \
         apt_ctr_lon, apt_indices
+
+
+def load_navdata():
+    if not os.path.isfile(cachedir + '/navdata.p'):
+        wptdata, aptdata, firdata = load_navdata_txt()
+        with open(cachedir + '/navdata.p', 'wb') as f:
+            pickle.dump(wptdata, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(aptdata, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(firdata, f, pickle.HIGHEST_PROTOCOL)
+    else:
+        with open(cachedir + '/navdata.p', 'rb') as f:
+            wptdata = pickle.load(f)
+            aptdata = pickle.load(f)
+            firdata = pickle.load(f)
+    return wptdata, aptdata, firdata
