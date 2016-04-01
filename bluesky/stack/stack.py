@@ -84,7 +84,7 @@ class Commandstack:
             "SCEN": [
                 "SCEN scenname",
                 "txt",
-                sim.setScenName
+                sim.scenarioInit
             ],
             "SPD": [
                 "SPD acid,spd [CAS-kts/Mach]",
@@ -934,8 +934,6 @@ class Commandstack:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
                     sim.reset()
-                    traf.deleteall()
-                        
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run

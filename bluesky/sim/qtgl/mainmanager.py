@@ -13,6 +13,7 @@ import select
 import sys
 from subprocess import Popen
 from multiprocessing.connection import Listener
+from multiprocessing import cpu_count
 Listener.fileno = lambda self: self._listener._socket.fileno()
 
 
@@ -27,8 +28,9 @@ class MainManager(QObject):
         MainManager.instance = self
         self.scentime        = []
         self.scencmd         = []
-        self.nodes           = []
         self.connections     = []
+        self.nodes           = []
+        self.max_nnodes      = cpu_count()
         self.activenode      = 0
         self.sender_id       = -1
         self.listener        = Listener(('localhost', 6000), authkey='bluesky')
@@ -65,7 +67,11 @@ class MainManager(QObject):
                 if event.type() == SimStateEventType:
                     if event.state == event.init:
                         self.nodes_changed.emit(self.sender_id)
-                    elif event.state == event.end:
+                        # Set received state to end to enable sending of new batch scenario
+                        if len(self.nodes) > 1:
+                            event.state = event.end
+
+                    if event.state == event.end:
                         if len(self.scencmd) == 0:
                             if len(self.nodes) == 1:
                                 self.quit()
@@ -77,6 +83,10 @@ class MainManager(QObject):
                             end   = scenidx[1]
                             # Send a new scenario to the finished sim process
                             conn.send((BatchEventType, BatchEvent(self.scentime[start:end], self.scencmd[start:end])))
+
+                            # Delete the scenarios that were sent in the initial batch
+                            del self.scentime[0:end]
+                            del self.scencmd[0:end]
 
                 elif event.type() == BatchEventType:
                     self.scentime = event.scentime
@@ -92,15 +102,7 @@ class MainManager(QObject):
                         if reqd_nnodes > len(self.nodes):
                             for n in range(len(self.nodes), reqd_nnodes):
                                 self.addNode()
-                        # Distribute initial batch of tasks over the available nodes
-                        for s in range(min(reqd_nnodes, len(self.nodes))):
-                            start = scenidx[s]
-                            end   = len(self.scentime) if s+1 == len(scenidx) else scenidx[s+1]
-                            self.connections[s].send((BatchEventType, BatchEvent(self.scentime[start:end], self.scencmd[start:end])))
 
-                        # Delete the scenarios that were sent in the initial batch
-                        del self.scentime[0:end]
-                        del self.scencmd[0:end]
                 else:
                     # The event is meant for the gui
                     qapp.sendEvent(qapp.instance(), event)

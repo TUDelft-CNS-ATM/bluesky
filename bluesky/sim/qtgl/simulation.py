@@ -157,7 +157,8 @@ class Simulation(QObject):
             else:
                 self.beastfeed.disconnectFromHost()
 
-    def setScenName(self, name):
+    def scenarioInit(self, name):
+        self.reset()
         self.screenio.echo('Starting scenario' + name)
 
     def sendState(self):
@@ -169,6 +170,8 @@ class Simulation(QObject):
         self.manager.sendEvent(BatchEvent(self.stack.scentime, self.stack.scencmd))
         self.stack.scentime = []
         self.stack.scencmd  = []
+        self.mode = Simulation.init
+        self.sendState()
 
     def event(self, event):
         # Keep track of event processing
