@@ -49,9 +49,9 @@ def create_empty_buffer(size, target=gl.GL_ARRAY_BUFFER, usage=gl.GL_STATIC_DRAW
     return buf_id
 
 
-def update_buffer(buf_id, data, target=gl.GL_ARRAY_BUFFER):
+def update_buffer(buf_id, data, offset=0, target=gl.GL_ARRAY_BUFFER):
     gl.glBindBuffer(target, buf_id)
-    gl.glBufferSubData(target, 0, data.nbytes, data)
+    gl.glBufferSubData(target, offset, data.nbytes, data)
 
 
 class UniformBuffer(object):

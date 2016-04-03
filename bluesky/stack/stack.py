@@ -10,7 +10,8 @@ from ..tools.aero import kts, ft, fpm, nm, lbs,\
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
-import pdb
+# import pdb
+
 
 class Commandstack:
     """
@@ -36,6 +37,10 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #--------------------------------------------------------------------
         self.cmddict = {
+            "ADDNODES": [
+                "ADDNODES number",
+                "int",
+                sim.addNodes],
             "BATCH": [
                 "BATCH filename",
                 "txt",
@@ -83,7 +88,7 @@ class Commandstack:
             "SCEN": [
                 "SCEN scenname",
                 "txt",
-                sim.setScenName
+                sim.scenarioInit
             ],
             "SPD": [
                 "SPD acid,spd [CAS-kts/Mach]",
@@ -933,8 +938,6 @@ class Commandstack:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
                     sim.reset()
-                    traf.deleteall()
-                        
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run

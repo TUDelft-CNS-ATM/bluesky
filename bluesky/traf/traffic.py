@@ -522,16 +522,6 @@ class Traffic:
         self.eps = np.delete(self.eps, idx)
         return True
 
-    def deleteall(self):
-        """Clear traffic buffer"""
-        ndel = self.ntraf
-        for i in range(ndel):
-            self.delete(self.id[-1])
-        self.ntraf = 0
-        self.dbconf.reset()
-        self.perf.reset()
-        return
-
     def update(self, simt, simdt):
         # Update only necessary if there is traffic
         if self.ntraf == 0:
