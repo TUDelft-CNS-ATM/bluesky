@@ -164,6 +164,9 @@ class Simulation(QObject):
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.mode))
 
+    def addNodes(self, count):
+        self.manager.addNodes(count)
+
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
         self.stack.openfile(filename)

@@ -37,6 +37,10 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #--------------------------------------------------------------------
         self.cmddict = {
+            "ADDNODES": [
+                "ADDNODES number",
+                "int",
+                sim.addNodes],
             "BATCH": [
                 "BATCH filename",
                 "txt",

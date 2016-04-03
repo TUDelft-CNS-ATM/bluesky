@@ -8,7 +8,7 @@ from multiprocessing.connection import Client
 # Local imports
 from simulation import Simulation
 from timer import Timer
-from simevents import SetNodeIdType, SetActiveNodeType
+from simevents import SetNodeIdType, SetActiveNodeType, AddNodeType
 # import faulthandler
 # faulthandler.enable()
 
@@ -53,6 +53,9 @@ class NodeManager(QObject):
     def sendEvent(self, event):
         # Send event to the main process
         self.connection.send((int(event.type()), event))
+
+    def addNodes(self, count):
+        self.connection.send((AddNodeType, count))
 
     def isActive(self):
         return self.active
