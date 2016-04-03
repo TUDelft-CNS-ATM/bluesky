@@ -7,7 +7,8 @@ except ImportError:
 
 # Local imports
 from simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
-    BatchEvent, StackTextEvent, SimQuitEvent, SetNodeIdType, SetActiveNodeType
+    BatchEvent, StackTextEvent, SimQuitEvent, SetNodeIdType, \
+    SetActiveNodeType, AddNodeType
 
 import select
 import sys
@@ -18,9 +19,10 @@ Listener.fileno = lambda self: self._listener._socket.fileno()
 
 
 class MainManager(QObject):
-    instance      = None
+    instance           = None
     # Signals
-    nodes_changed = pyqtSignal(int)
+    nodes_changed      = pyqtSignal(int)
+    activenode_changed = pyqtSignal(int)
 
     def __init__(self):
         super(MainManager, self).__init__()
@@ -45,6 +47,7 @@ class MainManager(QObject):
             nodeid = len(self.connections)
             conn.send((SetNodeIdType, nodeid))
             self.connections.append(conn)
+            self.nodes_changed.emit(nodeid)
             self.setActiveNode(nodeid)
 
         # Then process any data in the active connections
@@ -59,6 +62,12 @@ class MainManager(QObject):
                     (eventtype, event) = conn.recv()
                 except:
                     continue
+
+                if eventtype == AddNodeType:
+                    # This event only consists of an int: the number of nodes to add
+                    for i in range(event):
+                        self.addNode()
+                    continue
                 # Data over connections is pickled/unpickled, this causes problems with
                 # inherited classes. Solution is to call the ancestor's init
                 QEvent.__init__(event, eventtype)
@@ -66,7 +75,6 @@ class MainManager(QObject):
                 # First check if this event is meant for the manager
                 if event.type() == SimStateEventType:
                     if event.state == event.init:
-                        self.nodes_changed.emit(self.sender_id)
                         # Set received state to end to enable sending of new batch scenario
                         if len(self.nodes) > 1:
                             event.state = event.end
@@ -119,6 +127,7 @@ class MainManager(QObject):
 
     def setActiveNode(self, nodeid):
         if nodeid < len(self.connections):
+            self.activenode_changed.emit(nodeid)
             if not nodeid == self.activenode:
                 self.connections[self.activenode].send((SetActiveNodeType, False))
                 self.activenode = nodeid
