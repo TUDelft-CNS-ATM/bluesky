@@ -378,8 +378,8 @@ class Commandstack:
             synerr = False
 
             # Catch general errors
-            #try:
-            if True:  # optional to switch error protection off
+            try:
+#            if True:  # optional to switch error protection off
 
                 #**********************************************************************
                 #=====================  Start of command branches =====================
@@ -470,11 +470,11 @@ class Commandstack:
                                 else:
                                     arglist.append(float(cmdargs[i]))
 
-#                    except:
-#                        synerr = False
-#                        scr.echo("Syntax error in processing arguments")
-#                        scr.echo(cmdline)
-#                        scr.echo(helptext)
+                    except:
+                        synerr = False
+                        scr.echo("Syntax error in processing arguments")
+                        scr.echo(cmdline)
+                        scr.echo(helptext)
 
                     # Call function return flag,text
                     # flag: indicates sucess
