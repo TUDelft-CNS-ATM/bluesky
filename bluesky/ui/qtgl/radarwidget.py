@@ -639,7 +639,7 @@ class RadarWidget(QGLWidget):
         if name in nact.polynames:
             # We're either updating a polygon, or deleting it. In both cases
             # we remove the current one.
-            nact.polydata = np.delete(nact.polydata, range(nact.polynames[name]))
+            nact.polydata = np.delete(nact.polydata, range(*nact.polynames[name]))
             del nact.polynames[name]
 
         if data_in is not None:

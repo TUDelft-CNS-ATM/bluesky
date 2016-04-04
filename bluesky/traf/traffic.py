@@ -875,7 +875,7 @@ class Traffic:
         else:
             self.lastlat = self.lat
             self.lastlon = self.lon
-            self.lasttim = simt
+            self.lasttim[:] = simt
 
         # ----------------AREA check----------------
         # Update area once per areadt seconds:
