@@ -378,8 +378,8 @@ class Commandstack:
             synerr = False
 
             # Catch general errors
-            try:
-#            if True:  # optional to switch error protection off
+#            try:
+            if True:  # optional to switch error protection off
 
                 #**********************************************************************
                 #=====================  Start of command branches =====================
@@ -402,8 +402,8 @@ class Commandstack:
                     refalt = 0. # Reference altitude
                     reflat = scr.ctrlat # Reference latitude
                     reflon = scr.ctrlon # Reference longitude
-#                    try:
-                    if True:
+                    try:
+#                    if True:
                         for i in range(1,1+min(numtypes,numargs)):
                             argtype = argtypes[i-1].strip()
 
