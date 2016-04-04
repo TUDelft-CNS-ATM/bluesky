@@ -35,7 +35,8 @@ import platform
 is_osx = platform.system() == 'Darwin'
 
 
-usage_hints = { 'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
+usage_hints = { 'BATCH': 'filename',
+                'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
                 'POS' : 'acid',
                 'SSD' : 'acid/ALL/OFF',
                 'MOVE': 'acid,lat,lon,[alt],[hdg],[spd],[vspd]',

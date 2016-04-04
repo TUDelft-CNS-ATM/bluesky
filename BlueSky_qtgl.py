@@ -54,14 +54,14 @@ def MainLoop():
         # Start the gui
         gui.start()
 
+        # =============================================================================
+        # Clean up before exit. Comment this out when debugging for checking variables
+        # in the shell.
+        # =============================================================================
+        del gui
+
 if __name__ == "__main__":
     # Run mainloop if BlueSky-qtgl is called directly
     MainLoop()
 
-    # =============================================================================
-    # Clean up before exit. Comment this out when debugging for checking variables
-    # in the shell.
-    # =============================================================================
-    del gui
-    #-debug del sim
     print 'BlueSky normal end.'

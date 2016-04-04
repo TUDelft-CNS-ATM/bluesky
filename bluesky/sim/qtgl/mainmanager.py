@@ -24,6 +24,10 @@ class MainManager(QObject):
     nodes_changed      = pyqtSignal(int)
     activenode_changed = pyqtSignal(int)
 
+    @classmethod
+    def sender(cls):
+        return cls.instance.sender_id
+
     def __init__(self):
         super(MainManager, self).__init__()
         print 'Initializing multi-process simulation'
@@ -83,6 +87,7 @@ class MainManager(QObject):
                         if len(self.scencmd) == 0:
                             if len(self.nodes) == 1:
                                 self.quit()
+                                qapp.quit()
                         else:
                             # Find the scenario starts
                             scenidx  = [i for i in range(len(self.scencmd)) if self.scencmd[i][:4] == 'SCEN']
@@ -133,9 +138,6 @@ class MainManager(QObject):
                 self.activenode = nodeid
                 self.connections[self.activenode].send((SetActiveNodeType, True))
 
-    def getSenderID(self):
-        return self.sender_id
-
     def start(self):
         timer           = QTimer(self)
         timer.timeout.connect(self.receiveFromNodes)
@@ -148,16 +150,16 @@ class MainManager(QObject):
         print 'Stopping simulation processes...'
         # Tell each process to quit
         quitevent = (SimQuitEventType, SimQuitEvent())
+        print 'Stopping nodes:',
         for n in range(len(self.connections)):
-            print 'Stopping node %d:' % n,
+            print '%d,' % n,
             self.connections[n].send(quitevent)
 
         # Wait for all threads to finish
-        # for node in self.nodes:
-        #     node.wait()
-        print 'Done'
-        print 'Closing Gui'
-        qapp.quit()
+        for node in self.nodes:
+            if node.poll():
+                node.terminate()
+        print 'Done.'
 
     def event(self, event):
         # Only send custom events to the active node

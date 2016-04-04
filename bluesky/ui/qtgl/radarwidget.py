@@ -635,7 +635,7 @@ class RadarWidget(QGLWidget):
                 self.ssd_ownship = np.append(self.ssd_ownship, arg)
 
     def updatePolygon(self, name, data_in):
-        nact = self.nodedata[self.actnodeid]
+        nact = self.nodedata[manager.sender()]
         if name in nact.polynames:
             # We're either updating a polygon, or deleting it. In both cases
             # we remove the current one.
