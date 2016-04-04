@@ -268,8 +268,6 @@ class Traffic:
         else:
             acspd = cas2tas(casmach * kts, acalt)
 
-
-
         # Process input
         self.id.append(acid.upper())
         self.type.append(actype)
@@ -277,7 +275,7 @@ class Traffic:
         self.lon   = np.append(self.lon, aclon)
         self.trk   = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
         self.alt   = np.append(self.alt, acalt)
-        self.fll   = np.append(self.fll, (acalt)/100)
+        self.fll   = np.append(self.fll, (acalt)/(100 * ft))
         self.vs    = np.append(self.vs, 0.)
         c_temp, c_rho, c_p = vatmos(acalt)
         self.p     = np.append(self.p, c_p)
@@ -868,7 +866,7 @@ class Traffic:
 
         self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
                                          / self.coslat / Rearth)
-    
+
         # Update trails when switched on
         if self.swtrails:
             self.trails.update(simt, self.lat, self.lon,
@@ -877,7 +875,7 @@ class Traffic:
         else:
             self.lastlat = self.lat
             self.lastlon = self.lon
-            self.lattime = simt
+            self.lasttim = simt
 
         # ----------------AREA check----------------
         # Update area once per areadt seconds:
