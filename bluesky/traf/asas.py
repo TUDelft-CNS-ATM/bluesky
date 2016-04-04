@@ -111,8 +111,7 @@ class Dbconf():
 # Convert results from mat-> array
         self.qdr      = np.array(qdlst[0])  # degrees
         I             = np.eye(self.traf.ntraf) # Identity matric of order ntraf
-        self.dist     = np.array(qdlst[1])*nm + \
-                    1e9*I # meters i to j
+        self.dist     = np.array(qdlst[1])*nm + 1e9*I # meters i to j
                     
 # Transmission noise
         if self.traf.ADSBtransnoise:
@@ -179,11 +178,14 @@ class Dbconf():
             adsbalt+=alterror        
         
         self.dalt      = alt - adsbalt.T
-        vs=self.traf.vs
-        avs=self.traf.adsbvs
-        vs=vs.reshape(1,len(vs))
-        avs=avs.reshape(1,len(avs))
-        dvs       = vs-avs.T
+
+        vs  = self.traf.vs
+        vs  = vs.reshape(1,len(vs))
+
+        avs = self.traf.adsbvs
+        avs = avs.reshape(1,len(avs))
+
+        dvs = vs-avs.T
 
 # Check for passing through each others zone       
         dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
@@ -245,7 +247,7 @@ class Dbconf():
             rng = self.tcpa[i,j]*self.traf.gs[i]/nm
             lato,lono = qdrpos(self.traf.lat[i],self.traf.lon[i], \
                                                         self.traf.trk[i],rng)
-            alto=self.traf.alt[i]+self.tcpa[i,j]*self.traf.vs[i]
+            alto = self.traf.alt[i]+self.tcpa[i,j]*self.traf.vs[i]
                                             
             rng = self.tcpa[i,j]*self.traf.adsbgs[j]/nm
             lati,loni = qdrpos(self.traf.adsblat[j],self.traf.adsblon[j], \
@@ -259,17 +261,18 @@ class Dbconf():
             self.lonintcpa.append(loni)
             self.altintcpa.append(alti)
             
-            dx=(self.traf.lat[i]-self.traf.lat[j])*111319.
-            dy=(self.traf.lon[i]-self.traf.lon[j])*111319.
+            dx = (self.traf.lat[i]-self.traf.lat[j])*111319.
+            dy = (self.traf.lon[i]-self.traf.lon[j])*111319.
             
-            hdist2=dx**2+dy**2
-            hLOS=hdist2<self.R**2
-            vdist=abs(self.traf.alt[i]-self.traf.alt[j])
-            vLOS=vdist<self.dh
+            hdist2 = dx**2+dy**2
+            hLOS  = hdist2<self.R**2
+            vdist = abs(self.traf.alt[i]-self.traf.alt[j])
+            vLOS  = vdist<self.dh
             
             LOS = self.checkLOS(hLOS,vLOS,i,j)
             
 # Add to Conflict and LOSlist, to count total conflicts and LOS
+
             # NB: if only one A/C detects a conflict, it is also added to these lists
             combi=str(self.traf.id[i])+" "+str(self.traf.id[j])
             combi2=str(self.traf.id[j])+" "+str(self.traf.id[i])
@@ -279,25 +282,31 @@ class Dbconf():
             
             if combi not in self.conflist_all and combi2 not in self.conflist_all:
                 self.conflist_all.append(combi)
+
             if combi not in self.conflist_exp and combi2 not in self.conflist_exp and experimenttime:
                 self.conflist_exp.append(combi)
+
             if combi not in self.conflist_now and combi2 not in self.conflist_now:
                 self.conflist_now.append(combi)
+
             if LOS:
                 if combi not in self.LOSlist_all and combi2 not in self.LOSlist_all:
                     self.LOSlist_all.append(combi)
                     self.LOSmaxsev.append(0.)
                     self.LOShmaxsev.append(0.)
                     self.LOSvmaxsev.append(0.)
+
                 if combi not in self.LOSlist_exp and combi2 not in self.LOSlist_exp and experimenttime:
                     self.LOSlist_exp.append(combi)
+
                 if combi not in self.LOSlist_now and combi2 not in self.LOSlist_now:
                     self.LOSlist_now.append(combi)
                     
                 #Now, we measure intrusion and store it if it is the most severe
                 Ih = 1.0 - np.sqrt(hdist2)/self.R
                 Iv = 1.0 - vdist/self.dh
-                severity=min(Ih,Iv)
+                severity = min(Ih,Iv)
+
                 try:  # Only continue if combi is found in LOSlist (and not combi2)
                     idx = self.LOSlist_all.index(combi)
                 except:
@@ -323,7 +332,7 @@ class Dbconf():
 
 # ================ Conflict Resolution ========================================
 
-        # Eby method for conflict resolution        
+    # Eby method for conflict resolution        
     def resolve(self):
         if self.swasas:
             self.CRmethod.resolve(self)
@@ -332,6 +341,8 @@ class Dbconf():
         
 # Decide for each aircraft whether the ASAS should be followed or not
     def APorASAS(self):
+
+# Only use when ASAS is on
         if not self.swasas:
             return
             
@@ -341,45 +352,51 @@ class Dbconf():
 
 # Look at all conflicts, also the ones that are solved but CPA is yet to come
         for conflict in self.conflist_all: 
-            id1,id2=self.ConflictToIndices(conflict)
+            id1,id2 = self.ConflictToIndices(conflict)
             if id1 != "Fail":
                 pastCPA=self.ConflictIsPastCPA(self.traf,id1,id2)
                 
                 if not pastCPA:
+
 # Indicate that the A/C must follow their ASAS
-                    self.traf.asasactive[id1]=True 
-                    self.traf.asasactive[id2]=True
-                    self.traf.inconflict[id1]=True
-                    self.traf.inconflict[id2]=True
-        
+                    self.traf.asasactive[id1] = True 
+                    self.traf.inconflict[id1] = True
+
+                    self.traf.asasactive[id2] = True
+                    self.traf.inconflict[id2] = True
+
+        return
 
 #========================= Check if past CPA ==================================
         
     def ConflictIsPastCPA(self, traf, id1, id2):
-        d=np.array([traf.lon[id2]-traf.lon[id1],traf.lat[id2]-traf.lat[id1],traf.alt[id2]-traf.alt[id1]])
+
+        d = np.array([traf.lon[id2]-traf.lon[id1],traf.lat[id2]-traf.lat[id1],traf.alt[id2]-traf.alt[id1]])
 
         # find track in degrees
-        t1=np.radians(traf.trk[id1])
-        t2=np.radians(traf.trk[id2])
+        t1 = np.radians(traf.trk[id1])
+        t2 = np.radians(traf.trk[id2])
         
         # write velocities as vectors and find relative velocity vector              
-        v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
-        v2=np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
-        v=np.array(v2-v1) 
+        v1 = np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
+        v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
+        v  = np.array(v2-v1) 
         
-        pastCPA=np.dot(d,v)>0
-           
+        pastCPA = np.dot(d,v)>0
+
         return pastCPA
 
 #====================== Give A/C indices of conflict pair =====================
         
     def ConflictToIndices(self,conflict):
         ac1,ac2 = conflict.split(" ")
+
         try:
             id1=self.traf.id.index(ac1)
             id2=self.traf.id.index(ac2)
         except:
             return "Fail","Fail"
+
         return id1,id2
 
 #========== Method for cleaning up aircraft outside test region ===============

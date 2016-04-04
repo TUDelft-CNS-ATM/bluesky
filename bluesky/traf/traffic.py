@@ -348,8 +348,11 @@ class Traffic:
         self.route.append(Route(self.navdb))  # create empty route connected with nav databse
 
         eas = tas2eas(acspd, acalt)
+
         # ASAS info: no conflict => -1
         self.iconf.append(-1)  # index in 'conflicting' aircraft database
+
+        # ASAS output commanded values
         self.asasactive = np.append(self.asasactive, False)
         self.asashdg = np.append(self.asashdg, achdg)
         self.asasspd = np.append(self.asasspd, eas)
@@ -477,7 +480,7 @@ class Traffic:
         # Route info
         del self.route[idx]
 
-        # ASAS info
+        # ASAS output commanded values
         del self.iconf[idx]
         self.asasactive = np.delete(self.asasactive, idx)
         self.asashdg    = np.delete(self.asashdg, idx)
