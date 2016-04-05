@@ -536,6 +536,8 @@ class Traffic:
         # Update only necessary if there is traffic
         if self.ntraf == 0:
             return
+        
+        
 
         self.dts.append(simdt)
 
@@ -599,6 +601,11 @@ class Traffic:
             self.dbconf.detect()
             self.dbconf.conflictlist(simt)
             self.dbconf.APorASAS()
+            
+#            if np.count_nonzero(self.asasactive)>0:
+#                import pdb
+#                pdb.set_trace()
+                
             self.dbconf.resolve()
 
             # Reset label because of colour change
@@ -845,7 +852,7 @@ class Traffic:
 
         # update altitude
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
-        swaltsel = np.abs(self.aalt-self.alt) >      \
+        swaltsel = np.abs(self.desalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
 
         self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \

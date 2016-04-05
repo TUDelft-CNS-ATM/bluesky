@@ -41,7 +41,7 @@ class Dbconf():
         self.swasas      = True   # [-] whether to perform CD&R
         self.dtlookahead = tlook  # [s] lookahead time
         
-        mar              = 1.05   # [-] Safety margin for evasion
+        mar              = 1.15   # [-] Safety margin for evasion
         self.R           = R      # [m] Horizontal separation minimum
         self.dh          = dh     # [m] Vertical separation minimum
         self.Rm          = R*mar  # [m] Horizontal separation minimum + margin
