@@ -71,10 +71,10 @@ def resolve(dbconf):
     dbconf.traf.asasspd = neweascapped
     dbconf.traf.asasvsp = newv[2,:]
     
-    # the vairable condition contains the indices in tinconf that are less than
-    # tlook*1.2 so that asasalt is only updated if tinconf is less thantlook*1.2
-    # as tinconf has by default a really large value which causes asasalt to 
-    # jump to really high value
+    # To update asasalt, tinconf is used. tinconf is a really big value if there is 
+	# no conflict. If there is a conflict, tinconf will be between 0 and the lookahead
+	# time. Therefore, asasalt should only be updated for those aircraft that have a 
+	# tinconf that is between 0 and the lookahead time. This is what the following code does: 
     condition = dbconf.tinconf.min(axis=1)<dbconf.dtlookahead*1.2 # dtlookahead == tlook
     asasalttemp = dbconf.traf.asasvsp * dbconf.tinconf.min(axis=1) \
                           + dbconf.traf.alt
@@ -116,34 +116,38 @@ def MVP(dbconf, id1, id2):
     dcpa = d+v*tcpa
     dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
     dabsV = dcpa[2]
-    
-    if dabsH <= 10.:
-        dabsH = 10.
-    if dabsV <= 10.:
-        dabsV = 10.
-    
-    # compute horizontal and vertical intrusions
+	
+	# compute horizontal and vertical intrusions
     iH = dbconf.Rm-dabsH
     iV = dbconf.dhm-dabsV
+    
+	# exception handlers for head-on conflicts 
+    # this is done to prevent division by zero in the next step
+    if dabsH <= 10:
+        dabsH = 10
+    if dabsV <= 10:
+        dabsV = 10   
       
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
-#    dvH = (iH*dcpa[:2])/(dabsH*dbconf.tinconf[id1,id2])
-#    dvV = iV*dcpa[2]/(dabsV*dbconf.tinconf[id1,id2])
     dv1 = (iH*np.sin(qdr)*dcpa[0])/(dbconf.tinconf[id1,id2]*dabsH)
     dv2 = (iH*np.cos(qdr)*dcpa[1])/(dbconf.tinconf[id1,id2]*dabsH)
     dv3 = (iV*dcpa[2])/(dbconf.tinconf[id1,id2]*dabsV)
       
-    # combine the vertical components 
-    dv =np.array([dv1,dv2,dv3])
-#  
+    # combine the dv components 
+    dv = np.array([dv1,dv2,dv3])
     
     #Extra factor necessary! ==================================================
-    # The conflict can still be solved by only horizontal
+    # Intruder outside ownship IPZ
     if dbconf.Rm<dist and dabsH<dist:
         erratum=np.cos(np.arcsin(dbconf.Rm/dist)-np.arcsin(dabsH/dist))
-        dv_plus=dv/erratum
-    # Loss of horizontal separation
+        dv_plus1 = dv[0]/erratum
+		dv_plus2 = dv[1]/erratum
+		# combine dv_plus components. Note: erratum only applies to horizontal dv components
+		dv_plus = np.array([dv_plus1,dv_plus2,dv[2]])
+		
+    # Intruder inside ownship IPZ
     else: 
         dv_plus=dv
         
     return dv_plus
+	

@@ -51,8 +51,8 @@ class Dbconf():
         
         self.deletenames =[]      # List of aircraft outside test region
         
-        self.vmin        =100     # [m/s] Minimum ASAS velocity
-        self.vmax        =500     # [m/s] Maximum ASAS velocity
+        self.vmin        =100.     # [m/s] Minimum ASAS velocity
+        self.vmax        =500.     # [m/s] Maximum ASAS velocity
                 
         self.reset()              # Reset database
         self.SetCRmethod("DoNothing")
