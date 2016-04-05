@@ -49,18 +49,18 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     #create a perpendicular conflict between two aircraft
     elif command == "SIMPLE":
         scr.isoalt=0
-        traf.deleteall()
-        traf.create("OWNSHIP", "GENERIC", -.5, 0, 0, 5000, 200)
-        traf.create("INTRUDER", "GENERIC", 0, .5, 270, 5000, 200)
+        traf.reset(sim.navdb)
+        traf.create("OWNSHIP", "GENERIC", -.5, 0, 0, 5000*ft, 200)
+        traf.create("INTRUDER", "GENERIC", 0, .5, 270, 5000*ft, 200)
         
     #create a perpendicular conflict with slight deviations to aircraft speeds and places
     elif command == "SIMPLED":
         scr.isoalt=0
-        traf.deleteall()
+        traf.reset(sim.navdb)
         ds=random.uniform(0.92,1.08)
         dd=random.uniform(0.92,1.08)
-        traf.create("OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000, 200*ds)
-        traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000, 200/ds)   
+        traf.create("OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000*ft, 200*ds)
+        traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000*ft, 200/ds)
      
     
     # used for testing the differential game resolution method
@@ -69,7 +69,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo("5 ARGUMENTS REQUIRED")
         else:
             scr.isoalt=0
-            traf.deleteall()
+            traf.reset(sim.navdb)
             x=  traf.dbconf.xw[int(float(cmdargs[1]))]/111319.
             y=  traf.dbconf.yw[int(float(cmdargs[2]))]/111319.
             v_o=traf.dbconf.v_o[int(float(cmdargs[3]))]
@@ -85,10 +85,10 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo(callsign+"SUPER <NUMBER OF A/C>")
         else:
             scr.isoalt=0
-            traf.deleteall()
+            traf.reset(sim.navdb)
             numac=int(float(cmdargs[1]))
             distance=0.50 #this is in degrees lat/lon, for now
-            alt=20000 #ft
+            alt=20000*ft #ft
             spd=200 #kts
             for i in range(numac):
                 angle=2*np.pi/numac*i
@@ -105,15 +105,15 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo(callsign+"SPHERE <NUMBER OF A/C PER LAYER>")
         else:
             scr.isoalt=1./200
-            traf.deleteall()
+            traf.reset(sim.navdb)
             numac=int(float(cmdargs[1]))
             distance=0.5 #this is in degrees lat/lon, for now
             distancenm=distance*111319./1852
-            alt=20000 #ft
+            alt=20000 *ft#ft
             spd=150 #kts
             vs=4 #m/s          
             timetoimpact=distancenm/spd*3600 #seconds
-            altdifference=vs*timetoimpact # m
+            altdifference=vs*timetoimpact *ft # m
             midalt=alt
             lowalt=alt-altdifference
             highalt=alt+altdifference
@@ -159,7 +159,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         else:
             size=int(float(cmdargs[1]))
             scr.isoalt=0
-            traf.deleteall()
+            traf.reset(sim.navdb)
             mperdeg=111319.
             hsep=traf.dbconf.R # [m] horizontal separation minimum
             hseplat=hsep/mperdeg
@@ -184,7 +184,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     # create a conflict with several aircraft flying in a floor formation    
     elif command == "FLOOR":
         scr.isoalt=1./50
-        traf.deleteall()
+        traf.reset(sim.navdb)
         mperdeg=111319.
         altdif=3000 # ft
         hsep=traf.dbconf.R # [m] horizontal separation minimum

@@ -771,7 +771,8 @@ class Traffic:
         # ASAS AP switches
 
         #--------- Input to Autopilot settings to follow: destination or ASAS ----------
-
+        #import pdb
+        #pdb.set_trace()
         # desired autopilot settings due to ASAS
         self.deshdg = self.asasactive*self.asashdg + (1-self.asasactive)*self.ahdg
         self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aspd
@@ -785,23 +786,23 @@ class Traffic:
 
         # Autopilot selected speed setting [m/s]
         # To do: add const Mach const CAS mode
-        self.aspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*self.lspd
+        self.desspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*self.lspd
 
         # Autopilot selected altitude [m]
-        self.aalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
+        self.desalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
 
         # Autopilot selected heading
-        self.ahdg = self.deshdg
+        self.deshdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
-        self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
+        self.desvs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
 
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         #climb/descend above crossover: Ma = const, else CAS = const  
         #ama is fixed when above crossover
         check = self.abco*(self.ama == 0.)
         swma = np.where(check==True)
-        self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
+        self.ama[swma] = vcas2mach(self.desspd[swma], self.alt[swma])
 
         # ama is deleted when below crossover
         check2 = self.belco*(self.ama!=0.)
@@ -838,15 +839,15 @@ class Traffic:
         swaltsel = np.abs(self.aalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
 
-        self.vs = swaltsel*np.sign(self.aalt-self.alt)*       \
+        self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
                     ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
-                      self.swvnav*np.abs(self.avs)         )
+                      self.swvnav*np.abs(self.desvs)         )
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
-                   (1. - swaltsel) * self.aalt + turbalt
+                   (1. - swaltsel) * self.desalt + turbalt
 
         # HDG HOLD/SEL mode: ahdg = ap selected heading
-        delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  # [deg]
+        delhdg = (self.deshdg - self.trk + 180.) % 360 - 180.  # [deg]
 
         # omega = np.degrees(g0 * np.tan(self.aphi) / \
         # np.maximum(self.tas, self.eps))
