@@ -71,23 +71,16 @@ def resolve(dbconf):
     dbconf.traf.asasspd = neweascapped
     dbconf.traf.asasvsp = newv[2,:]
     
-#    import pdb
-#    pdb.set_trace()
-   
-    condition = dbconf.tinconf.min(axis=1)<350.0
+    # the vairable condition contains the indices in tinconf that are less than
+    # tlook*1.2 so that asasalt is only updated if tinconf is less thantlook*1.2
+    # as tinconf has by default a really large value which causes asasalt to 
+    # jump to really high value
+    condition = dbconf.tinconf.min(axis=1)<dbconf.dtlookahead*1.2 # dtlookahead == tlook
     asasalttemp = dbconf.traf.asasvsp * dbconf.tinconf.min(axis=1) \
                           + dbconf.traf.alt
     dbconf.traf.asasalt[condition] = asasalttemp[condition]
-    
-    
-##    tinasasupdate = np.where(dbconf.tinconf.min(axis=1)<600.0)[0]
-#    asasalttemp = dbconf.traf.asasvsp * dbconf.tinconf.min(axis=1) \
-#                          + dbconf.traf.alt
-#                          
-#    for i in range(len(dbconf.tinconf)):
-#        if dbconf.tinconf.min(axis=1)[i] < 350.0:            
-#            dbconf.traf.asasalt[i] = asasalttemp[i]                        
-    
+
+
 #=================================== Modified Voltage Potential ===============
         
     # Resolution: MVP method 
@@ -117,31 +110,37 @@ def MVP(dbconf, id1, id2):
     v=np.array(v2-v1) 
     
     # Find tcpa
-    t=dbconf.tcpa[id1,id2]
+    tcpa=dbconf.tcpa[id1,id2]
     
-    #find drel and absolute distance at tstar
-    drel=d+v*t
-    dabs=np.linalg.norm(drel)
-
-    #exception: if the two aircraft are on exact collision course 
-    #(passing eachother within 10 meter), change drelstar
-    exactcourse = 10. #10 meter
-    dif=exactcourse-dabs
-    if dif>0.:
-        vperp=np.array([-v[1],v[0],0.]) #rotate velocity 90 degrees in horizontal plane
-        drel+=dif*vperp/np.linalg.norm(vperp) #normalize to 10 m and add to drelstar
-        dabs=np.linalg.norm(drel)
-        
-    #intrusion at tstar
-    i=dbconf.Rm-dabs
+    #find horizontal and vertical distances at the tcpa
+    dcpa = d+v*tcpa
+    dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
+    dabsV = dcpa[2]
     
-    # desired change in the plane's speed vector:
-    dv=i*drel/(dabs*t)
+    if dabsH <= 10.:
+        dabsH = 10.
+    if dabsV <= 10.:
+        dabsV = 10.
+    
+    # compute horizontal and vertical intrusions
+    iH = dbconf.Rm-dabsH
+    iV = dbconf.dhm-dabsV
+      
+    # compute the horizontal vertical components of the change in the velocity to resolve conflict
+#    dvH = (iH*dcpa[:2])/(dabsH*dbconf.tinconf[id1,id2])
+#    dvV = iV*dcpa[2]/(dabsV*dbconf.tinconf[id1,id2])
+    dv1 = (iH*np.sin(qdr)*dcpa[0])/(dbconf.tinconf[id1,id2]*dabsH)
+    dv2 = (iH*np.cos(qdr)*dcpa[1])/(dbconf.tinconf[id1,id2]*dabsH)
+    dv3 = (iV*dcpa[2])/(dbconf.tinconf[id1,id2]*dabsV)
+      
+    # combine the vertical components 
+    dv =np.array([dv1,dv2,dv3])
+#  
     
     #Extra factor necessary! ==================================================
     # The conflict can still be solved by only horizontal
-    if dbconf.Rm<dist and dabs<dist:
-        erratum=np.cos(np.arcsin(dbconf.Rm/dist)-np.arcsin(dabs/dist))
+    if dbconf.Rm<dist and dabsH<dist:
+        erratum=np.cos(np.arcsin(dbconf.Rm/dist)-np.arcsin(dabsH/dist))
         dv_plus=dv/erratum
     # Loss of horizontal separation
     else: 
