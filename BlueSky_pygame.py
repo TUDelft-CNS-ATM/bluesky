@@ -40,18 +40,15 @@ def MainLoop():
     # After the simulation is done, close the gui
     sim.stop()
     gui.close()
-
-    return
-
-if __name__ == '__main__':
-    # Run mainloop if BlueSky_pygame is called directly
-    MainLoop()
-
     # =============================================================================
     # Clean up before exit. Comment this out when debugging for checking variables
     # in the shell.
     # =============================================================================
     del gui
     #-debug del sim
+    print 'BlueSky normal end.'
+    return
 
-print 'BlueSky normal end.'
+if __name__ == '__main__':
+    # Run mainloop if BlueSky_pygame is called directly
+    MainLoop()

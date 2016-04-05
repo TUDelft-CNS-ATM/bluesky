@@ -59,9 +59,8 @@ def MainLoop():
         # in the shell.
         # =============================================================================
         del gui
+        print 'BlueSky normal end.'
 
 if __name__ == "__main__":
     # Run mainloop if BlueSky-qtgl is called directly
     MainLoop()
-
-    print 'BlueSky normal end.'

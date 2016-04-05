@@ -19,6 +19,7 @@ def runNode():
     manager.sim = Simulation(manager)
     manager.sim.doWork()
     manager.close()
+    print 'Node', manager.nodeid, 'stopped.'
 
 
 class NodeManager(QObject):

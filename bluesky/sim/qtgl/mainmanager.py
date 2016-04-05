@@ -150,15 +150,16 @@ class MainManager(QObject):
         print 'Stopping simulation processes...'
         # Tell each process to quit
         quitevent = (SimQuitEventType, SimQuitEvent())
-        print 'Stopping nodes:',
+        print 'Stopping nodes:'
         for n in range(len(self.connections)):
-            print '%d,' % n,
             self.connections[n].send(quitevent)
 
-        # Wait for all threads to finish
-        for node in self.nodes:
-            if node.poll():
-                node.terminate()
+        # Wait for all nodes to finish
+        for n in self.nodes:
+            n.wait()
+
+        for n in range(len(self.connections)):
+            self.connections[n].close()
         print 'Done.'
 
     def event(self, event):
