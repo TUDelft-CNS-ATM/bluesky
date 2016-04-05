@@ -1,10 +1,10 @@
 import time
 import aero
 import adsb_decoder as decoder
-from network import TcpClient
+from network import TcpSocket
 
 
-class Modesbeast(TcpClient):
+class Modesbeast(TcpSocket):
     def __init__(self, stack, traf):
         super(Modesbeast, self).__init__()
         self.stack = stack
@@ -13,7 +13,7 @@ class Modesbeast(TcpClient):
         self.buffer = ''
         self.default_ac_mdl = "B738"
 
-    def parse_data(self, data):
+    def processData(self, data):
         self.buffer += data
 
         if len(self.buffer) > 2048:
@@ -227,7 +227,7 @@ class Modesbeast(TcpClient):
         return
 
     def update(self):
-        if self.is_connected:
+        if self.isConnected():
             # self.debug()
             self.remove_outdated_ac()
             self.update_all_ac_postition()

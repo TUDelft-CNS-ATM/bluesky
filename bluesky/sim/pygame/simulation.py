@@ -84,7 +84,7 @@ class Simulation:
                     extra = self.dt-1.0
                     self.simt = self.simt - extra
                     self.syst0 = self.syst-self.simt
- 
+
             # Fast forward: fixed dt until ffstop time, goto pause
             else:
                 self.dt = self.fixdt
@@ -94,7 +94,7 @@ class Simulation:
                     self.ffmode = False
                     self.mode = self.hold
 
-            # For measuring game loop frequency                 
+            # For measuring game loop frequency
             self.dts.append(self.dt)
             if len(self.dts)>20:
                     del self.dts[0]
@@ -121,12 +121,16 @@ class Simulation:
 
         return
 
-    def setScenName(self, name):
+    def scenarioInit(self, name):
+        self.reset()
         return
 
     def batch(self, filename):
         return False, "Batch comand not available in Pygame version," + \
                  "use Qt-version for batch simulations"
+
+    def addNodes(self, count):
+        return
 
     def pause(self):  # Hold mode
         self.mode = self.hold
@@ -177,4 +181,3 @@ class Simulation:
                                          settings.modeS_port)
         else:
             self.beastfeed.disconnectFromHost()
-
