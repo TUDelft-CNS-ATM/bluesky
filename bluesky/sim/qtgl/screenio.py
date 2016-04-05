@@ -28,48 +28,6 @@ class ScreenIO(QObject):
     acupdate_rate = 5
 
     # =========================================================================
-    # Slots
-    # =========================================================================
-    @pyqtSlot()
-    def send_siminfo(self):
-        if self.manager.isActive():
-            t  = time.time()
-            dt = t - self.prevtime
-            self.manager.sendEvent(SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
-            self.prevtime  = t
-            self.prevcount = self.sim.samplecount
-
-    @pyqtSlot()
-    def send_aircraft_data(self):
-        if self.manager.isActive():
-            data            = ACDataEvent()
-            data.id         = self.sim.traf.id
-            data.lat        = self.sim.traf.lat
-            data.lon        = self.sim.traf.lon
-            data.alt        = self.sim.traf.alt
-            data.tas        = self.sim.traf.tas
-            data.cas        = self.sim.traf.cas
-            data.iconf      = self.sim.traf.iconf
-            data.confcpalat = self.sim.traf.dbconf.latowncpa
-            data.confcpalon = self.sim.traf.dbconf.lonowncpa
-            data.trk        = self.sim.traf.trk
-            self.manager.sendEvent(data)
-
-    @pyqtSlot()
-    def send_aman_data(self):
-        if self.manager.isActive():
-            # data            = AMANEvent()
-            # data.ids        = self.sim.traf.AMAN.
-            # data.iafs       = self.sim.traf.AMAN.
-            # data.eats       = self.sim.traf.AMAN.
-            # data.etas       = self.sim.traf.AMAN.
-            # data.delays     = self.sim.traf.AMAN.
-            # data.rwys       = self.sim.traf.AMAN.
-            # data.spdratios  = self.sim.traf.AMAN. 
-            # self.manager.sendEvent(data)
-            pass
-
-    # =========================================================================
     # Functions
     # =========================================================================
     def __init__(self, sim, manager):
@@ -81,6 +39,8 @@ class ScreenIO(QObject):
         self.ctrlon  = 0.0
         self.scrzoom = 1.0
 
+        self.route_acid = None
+
         # Keep reference to parent simulation object for access to simulation data
         self.sim     = sim
         self.manager = manager
@@ -90,14 +50,15 @@ class ScreenIO(QObject):
         self.prevcount = 0
 
         # Output event timers
-        self.siminfo_timer = Timer()
-        self.siminfo_timer.timeout.connect(self.send_siminfo)
-        self.siminfo_timer.timeout.connect(self.send_aman_data)
-        self.siminfo_timer.start(1000/self.siminfo_rate)
+        self.slow_timer = Timer()
+        self.slow_timer.timeout.connect(self.send_siminfo)
+        self.slow_timer.timeout.connect(self.send_aman_data)
+        self.slow_timer.timeout.connect(self.send_route_data)
+        self.slow_timer.start(1000/self.siminfo_rate)
 
-        self.acupdate_timer = Timer()
-        self.acupdate_timer.timeout.connect(self.send_aircraft_data)
-        self.acupdate_timer.start(1000/self.acupdate_rate)
+        self.fast_timer = Timer()
+        self.fast_timer.timeout.connect(self.send_aircraft_data)
+        self.fast_timer.start(1000/self.acupdate_rate)
 
     def echo(self, text):
         if self.manager.isActive():
@@ -137,27 +98,7 @@ class ScreenIO(QObject):
             self.manager.sendEvent(PanZoomEvent(pan=pan, absolute=absolute))
 
     def showroute(self, acid):
-        if self.manager.isActive():
-            data       = RouteDataEvent()
-            data.acid = acid
-            idx   = self.sim.traf.id2idx(acid)
-            if idx >= 0:
-                route = self.sim.traf.route[idx]
-
-                n_segments     = len(route.wplat) + 1
-                data.lat       = np.empty(n_segments, dtype=np.float32)
-                data.lon       = np.empty(n_segments, dtype=np.float32)
-
-                # First point is a/c position
-                data.lon[0]    = self.sim.traf.lon[idx]
-                data.lat[0]    = self.sim.traf.lat[idx]
-
-                data.lat[1:]   = route.wplat
-                data.lon[1:]   = route.wplon
-
-                data.wptlabels = np.array(route.wpname)
-
-            self.manager.sendEvent(data)  # Send route data to GUI
+        self.route_acid = acid
 
     def showssd(self, param):
         if self.manager.isActive():
@@ -228,3 +169,69 @@ class ScreenIO(QObject):
             return True
 
         return False
+
+    # =========================================================================
+    # Slots
+    # =========================================================================
+    @pyqtSlot()
+    def send_siminfo(self):
+        if self.manager.isActive():
+            t  = time.time()
+            dt = t - self.prevtime
+            self.manager.sendEvent(SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
+            self.prevtime  = t
+            self.prevcount = self.sim.samplecount
+
+    @pyqtSlot()
+    def send_aircraft_data(self):
+        if self.manager.isActive():
+            data            = ACDataEvent()
+            data.id         = self.sim.traf.id
+            data.lat        = self.sim.traf.lat
+            data.lon        = self.sim.traf.lon
+            data.alt        = self.sim.traf.alt
+            data.tas        = self.sim.traf.tas
+            data.cas        = self.sim.traf.cas
+            data.iconf      = self.sim.traf.iconf
+            data.confcpalat = self.sim.traf.dbconf.latowncpa
+            data.confcpalon = self.sim.traf.dbconf.lonowncpa
+            data.trk        = self.sim.traf.trk
+            self.manager.sendEvent(data)
+
+    @pyqtSlot()
+    def send_route_data(self):
+        if self.manager.isActive() and self.route_acid is not None:
+            data               = RouteDataEvent()
+            data.acid          = self.route_acid
+            idx   = self.sim.traf.id2idx(self.route_acid)
+            if idx >= 0:
+                route          = self.sim.traf.route[idx]
+                data.iactwp    = route.iactwp
+
+                # We also need the corresponding aircraft position
+                data.aclat     = self.sim.traf.lat[idx]
+                data.aclon     = self.sim.traf.lon[idx]
+
+                data.lat       = route.wplat
+                data.lon       = route.wplon
+
+                data.wptlabels = route.wpname
+
+            self.manager.sendEvent(data)  # Send route data to GUI
+            # Empty route acid string means no longer send route data
+            if len(self.route_acid) == 0:
+                self.route_acid = None
+
+    @pyqtSlot()
+    def send_aman_data(self):
+        if self.manager.isActive():
+            # data            = AMANEvent()
+            # data.ids        = self.sim.traf.AMAN.
+            # data.iafs       = self.sim.traf.AMAN.
+            # data.eats       = self.sim.traf.AMAN.
+            # data.etas       = self.sim.traf.AMAN.
+            # data.delays     = self.sim.traf.AMAN.
+            # data.rwys       = self.sim.traf.AMAN.
+            # data.spdratios  = self.sim.traf.AMAN. 
+            # self.manager.sendEvent(data)
+            pass

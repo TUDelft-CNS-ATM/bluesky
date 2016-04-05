@@ -4,17 +4,24 @@ from ..tools.misc import degto180
 
 
 class Route():
-    """ 
+    """
     Route class definition   : Route data for an aircraft (basic FMS functionality)
 
     addwpt(name,wptype,lat,lon,alt) : Add waypoint (closest to la/lon whene from navdb
 
     For lat/lon waypoints: use call sign as wpname, number will be added
-        
+
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self,navdb):
+    # Waypoint types:
+    wplatlon = 0   # lat/lon waypoint
+    wpnav    = 1   # VOR/nav database waypoint
+    orig     = 2   # Origin airport
+    dest     = 3   # Destination airport
+    calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
+
+    def __init__(self, navdb):
         # Add pointer to self navdb object
         self.navdb  = navdb
         self.nwp    = 0
@@ -23,22 +30,15 @@ class Route():
         self.wpname = []
         self.wptype = []
         self.wplat  = []
-        self.wplon  = [] 
-        self.wpalt  = [] # [m] negative value means not specified
-        self.wpspd  = [] # [m/s] negative value means not specified
-        self.wpflyby = [] # Flyby (True)/flyover(False) switch
+        self.wplon  = []
+        self.wpalt  = []    # [m] negative value means not specified
+        self.wpspd  = []    # [m/s] negative value means not specified
+        self.wpflyby = []   # Flyby (True)/flyover(False) switch
 
         # Current actual waypoint
         self.iactwp = -1
 
-        # Waypoint types:
-        self.wplatlon = 0   # lat/lon waypoint        
-        self.wpnav    = 1   # VOR/nav database waypoint
-        self.orig     = 2   # Origin airport
-        self.dest     = 3   # Destination airport
-        self.calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
-
-        self.swflyby = True # Default waypoints are flyby waypoint
+        self.swflyby  = True  # Default waypoints are flyby waypoint
 
         return
 
@@ -583,9 +583,3 @@ class Route():
                 iwpnear= iwpnear+1
         
         return iwpnear
-        
-            
-            
-                     
-            
-            

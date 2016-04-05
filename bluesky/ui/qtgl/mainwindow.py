@@ -75,7 +75,6 @@ class MainWindow(QMainWindow):
         manager.instance.activenode_changed.connect(self.actnodeChanged)
 
     def closeEvent(self, event):
-        print 'here'
         manager.instance.quit()
 
     @pyqtSlot(int)

@@ -62,7 +62,8 @@ class ShowDialogEvent(QEvent):
 
 
 class RouteDataEvent(QEvent):
-    lat = lon = wptlabels = []
+    aclat = aclon = lat = lon = wptlabels = []
+    iactwp = -1
     acid = ""
     def __init__(self):
         super(RouteDataEvent, self).__init__(RouteDataEventType)

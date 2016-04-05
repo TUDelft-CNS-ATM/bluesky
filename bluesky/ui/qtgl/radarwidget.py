@@ -281,7 +281,7 @@ class RadarWidget(QGLWidget):
         self.cpalines.bind_attrib(ATTRIB_COLOR, 3, np.array(amber, dtype=np.float32), instance_divisor=1)
 
         # ------- Aircraft Route -------------------------
-        self.route = RenderObject(gl.GL_LINE_STRIP)
+        self.route = RenderObject(gl.GL_LINES)
         self.route.bind_attrib(ATTRIB_VERTEX, 2, self.routebuf)
         self.route.bind_attrib(ATTRIB_COLOR, 3, np.array(magenta, dtype=np.float32), instance_divisor=1)
         self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (12, 1), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
@@ -513,7 +513,7 @@ class RadarWidget(QGLWidget):
                 gl.glVertexAttrib3f(ATTRIB_COLOR, *magenta)
                 self.font.set_char_size(self.routelbl.char_size)
                 self.font.set_block_size(self.routelbl.block_size)
-                self.routelbl.draw(n_instances=self.route.vertex_count-1)
+                self.routelbl.draw()
 
             if self.naircraft > 0 and self.show_traf and self.show_lbl:
                 self.font.set_char_size(self.aclabels.char_size)
@@ -556,15 +556,23 @@ class RadarWidget(QGLWidget):
         self.event(PanZoomEvent(zoom=zoom, origin=origin))
 
     def update_route_data(self, data):
+        self.route_acid = data.acid
         if data.acid != "":
             nsegments = len(data.lat)
-            self.route.set_vertex_count(nsegments)
-            routedata       = np.empty(2 * nsegments, dtype=np.float32)
-            routedata[::2]  = data.lat
-            routedata[1::2] = data.lon
+            self.routelbl.n_instances = nsegments
+            self.route.set_vertex_count(2 * nsegments)
+            routedata = np.empty(4 * nsegments, dtype=np.float32)
+            routedata[0:4] = [data.aclat, data.aclon,
+                data.lat[data.iactwp], data.lon[data.iactwp]]
+
+            routedata[4::4] = data.lat[:-1]
+            routedata[5::4] = data.lon[:-1]
+            routedata[6::4] = data.lat[1:]
+            routedata[7::4] = data.lon[1:]
+
             update_buffer(self.routebuf, routedata)
-            update_buffer(self.routewplatbuf, data.lat[1:])
-            update_buffer(self.routewplonbuf, data.lon[1:])
+            update_buffer(self.routewplatbuf, np.array(data.lat, dtype=np.float32))
+            update_buffer(self.routewplonbuf, np.array(data.lon, dtype=np.float32))
             wptlabels = []
             for wp in data.wptlabels:
                 wptlabels += wp[:12].ljust(12)
