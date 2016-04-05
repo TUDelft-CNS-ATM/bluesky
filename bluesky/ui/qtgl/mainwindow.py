@@ -9,7 +9,8 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from ...sim.qtgl import PanZoomEvent, MainManager as manager
+from ...sim.qtgl import ThreadManager as manager
+from ...sim.qtgl import PanZoomEvent
 
 
 class Splash(QSplashScreen):
@@ -70,23 +71,20 @@ class MainWindow(QMainWindow):
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
+
         # Connect to manager's nodelist changed signal
-        manager.instance.nodes_changed.connect(self.nodesChanged)
-        manager.instance.activenode_changed.connect(self.actnodeChanged)
+        manager.instance().nodes_changed.connect(self.nodesChanged)
 
     def closeEvent(self, event):
-        print 'here'
-        manager.instance.quit()
-
-    @pyqtSlot(int)
-    def actnodeChanged(self, nodeid):
-        self.simnodes.setText('Node %d' % nodeid)
+        manager.instance().quit()
 
     @pyqtSlot(int)
     def nodesChanged(self, nodeid):
         if nodeid >= 0:
-            node = QAction('Node %d' % nodeid, self)
+            nodetxt = 'Node %d' % nodeid
+            node = QAction(nodetxt, self)
             self.simnodemenu.insertAction(self.simnodemenu.actions()[-2], node)
+            self.simnodes.setText(nodetxt)
 
     @pyqtSlot()
     def buttonClicked(self):
@@ -130,7 +128,8 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QAction)
     def nodeMenuEvent(self, action):
         if action is self.simnodemenu.actions()[-1]:
-            manager.instance.addNode()
+            manager.instance().addNode()
         else:
             idx = self.simnodemenu.actions().index(action)
-            manager.instance.setActiveNode(idx)
+            manager.instance().setActiveNode(idx)
+            self.simnodes.setText(action.text())

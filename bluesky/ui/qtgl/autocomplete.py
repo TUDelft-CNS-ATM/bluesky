@@ -23,7 +23,7 @@ def complete(cmd):
     newcmd = cmd
     displaytext = ''
 
-    if lcmd[0] == 'IC' or lcmd[0] == 'BATCH':
+    if lcmd[0] == 'IC':
         global previous_g
         g = scenario_path
         striplen = len(g)
@@ -36,7 +36,7 @@ def complete(cmd):
 
         if len(files) > 0:
             if len(files) == 1:
-                newcmd = lcmd[0] + ' ' + files[0][striplen:]
+                newcmd = 'IC ' + files[0][striplen:]
             elif g == previous_g:
                 for f in files:
                     displaytext += f[striplen:] + '  '
@@ -48,6 +48,6 @@ def complete(cmd):
                     g += files[0][idx].upper()
                     idx += 1
 
-                newcmd = lcmd[0] + ' ' + g[striplen:]
+                newcmd = 'IC ' + g[striplen:]
 
     return newcmd, displaytext

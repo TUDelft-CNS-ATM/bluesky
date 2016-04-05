@@ -2,25 +2,23 @@ from bluesky import settings
 if __name__ == "__main__":
     settings.init('pygame')
 
-from bluesky.navdb import Navdatabase
+from bluesky.traf import Navdatabase
 from bluesky.ui.pygame import Gui
 from bluesky.sim.pygame import Simulation
 
 
-# Global navdb, gui, and sim objects for easy access in interactive python shell
-navdb = None
-gui   = None
-sim   = None
-
-
-def MainLoop():
+def CreateMainObj():
     # =============================================================================
     # Create gui and simulation objects
     # =============================================================================
-    global navdb, gui, sim
-    navdb = Navdatabase('global')   # Read database from specified folder
+    navdb = Navdatabase('global')   # Read database from specified folder 
     gui   = Gui(navdb)
-    sim   = Simulation(gui, navdb)
+    sim   = Simulation(gui,navdb)
+
+    return gui,sim
+
+
+def MainLoop(gui,sim):
 
     # =============================================================================
     # Start the mainloop (and possible other threads)
@@ -41,11 +39,13 @@ def MainLoop():
     sim.stop()
     gui.close()
 
-    return
+    return 
 
 if __name__ == '__main__':
-    # Run mainloop if BlueSky_pygame is called directly
-    MainLoop()
+    # Run mainloop if BlueSky-qtgl is called directly
+    gui, sim = CreateMainObj()
+    
+    MainLoop(gui,sim)
 
     # =============================================================================
     # Clean up before exit. Comment this out when debugging for checking variables

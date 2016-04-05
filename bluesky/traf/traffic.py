@@ -268,6 +268,8 @@ class Traffic:
         else:
             acspd = cas2tas(casmach * kts, acalt)
 
+
+
         # Process input
         self.id.append(acid.upper())
         self.type.append(actype)
@@ -275,7 +277,7 @@ class Traffic:
         self.lon   = np.append(self.lon, aclon)
         self.trk   = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
         self.alt   = np.append(self.alt, acalt)
-        self.fll   = np.append(self.fll, (acalt)/(100 * ft))
+        self.fll   = np.append(self.fll, (acalt)/100)
         self.vs    = np.append(self.vs, 0.)
         c_temp, c_rho, c_p = vatmos(acalt)
         self.p     = np.append(self.p, c_p)
@@ -348,11 +350,8 @@ class Traffic:
         self.route.append(Route(self.navdb))  # create empty route connected with nav databse
 
         eas = tas2eas(acspd, acalt)
-
         # ASAS info: no conflict => -1
         self.iconf.append(-1)  # index in 'conflicting' aircraft database
-
-        # ASAS output commanded values
         self.asasactive = np.append(self.asasactive, False)
         self.asashdg = np.append(self.asashdg, achdg)
         self.asasspd = np.append(self.asasspd, eas)
@@ -480,7 +479,7 @@ class Traffic:
         # Route info
         del self.route[idx]
 
-        # ASAS output commanded values
+        # ASAS info
         del self.iconf[idx]
         self.asasactive = np.delete(self.asasactive, idx)
         self.asashdg    = np.delete(self.asashdg, idx)
@@ -522,6 +521,16 @@ class Traffic:
 
         self.eps = np.delete(self.eps, idx)
         return True
+
+    def deleteall(self):
+        """Clear traffic buffer"""
+        ndel = self.ntraf
+        for i in range(ndel):
+            self.delete(self.id[-1])
+        self.ntraf = 0
+        self.dbconf.reset()
+        self.perf.reset()
+        return
 
     def update(self, simt, simdt):
         # Update only necessary if there is traffic
@@ -870,7 +879,7 @@ class Traffic:
 
         self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
                                          / self.coslat / Rearth)
-
+    
         # Update trails when switched on
         if self.swtrails:
             self.trails.update(simt, self.lat, self.lon,
@@ -879,7 +888,7 @@ class Traffic:
         else:
             self.lastlat = self.lat
             self.lastlon = self.lon
-            self.lasttim[:] = simt
+            self.lattime = simt
 
         # ----------------AREA check----------------
         # Update area once per areadt seconds:

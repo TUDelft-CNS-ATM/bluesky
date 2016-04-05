@@ -58,6 +58,9 @@ docs/_build/
 # PyBuilder
 target/
 
+<<<<<<< HEAD
 data/cache
 
+=======
+>>>>>>> parent of cf3c3d9... Merge remote-tracking branch 'ProfHoekstra/master'
 data/global/apt.p

@@ -5,20 +5,17 @@ gui = 'qtgl'
 # Select the performance model. options: 'bluesky', 'bada'
 performance_model = 'bluesky'
 
-# Indicate the datafile path
-data_path = 'data'
-
 # Indicate the scenario path
 scenario_path = 'scenario'
 
 # Indicate the path for the aircraft performance data
-perf_path = data_path + '/coefficients/BS_aircraft'
+perf_path = 'data/coefficients/BS_aircraft'
 
 # Indicate the path for the BADA aircraft performance data (leave empty if BADA is not available)
-perf_path_bada = data_path + '/coefficients/BADA'
+perf_path_bada = 'data/coefficients/BADA'
 
 # Indicate the location of the airport database
-airport_file = data_path + '/global/airports.dat'
+airport_file = 'data/global/airports.dat'
 
 # Indicate the start location of the radar screen (e.g. [lat, lon], or airport ICAO code)
 start_location = 'EHAM'
@@ -51,11 +48,6 @@ wpt_size = 10
 
 # Radarscreen aircraft symbol size in pixels
 ac_size = 16
-
-#=========================================================================
-#=  Settings for the BlueSky telnet server
-#=========================================================================
-telnet_port = 8888
 
 #=========================================================================
 #=  Configure the following to stream raw data from a mode-s / ADS-B

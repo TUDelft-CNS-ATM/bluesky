@@ -1,18 +1,20 @@
 try:
     # Try Qt5 first
-    from PyQt5.QtCore import QObject, pyqtSlot
+    from PyQt5.QtCore import QObject, QTimer, pyqtSlot
+    from PyQt5.QtCore import QCoreApplication as qapp
 except ImportError:
     # Else fall back to Qt4
-    from PyQt4.QtCore import QObject, pyqtSlot
+    from PyQt4.QtCore import QObject, QTimer, pyqtSlot
+    from PyQt4.QtCore import QCoreApplication as qapp
 
 import numpy as np
 import time
 
 # Local imports
-from timer import Timer
-from simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
+from thread import ThreadManager as manager
+from simevents import SimStateEvent, ACDataEvent, RouteDataEvent, PanZoomEvent, \
                         SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
-                        PanZoomEventType, DisplayShapeEvent
+                        PanZoomEventType, DisplayShapeEvent, SimQuitEvent, AMANEvent
 
 
 class ScreenIO(QObject):
@@ -32,32 +34,32 @@ class ScreenIO(QObject):
     # =========================================================================
     @pyqtSlot()
     def send_siminfo(self):
-        if self.manager.isActive():
+        if manager.currentThreadIsActive():
             t  = time.time()
             dt = t - self.prevtime
-            self.manager.sendEvent(SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
+            qapp.postEvent(qapp.instance(), SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
             self.prevtime  = t
             self.prevcount = self.sim.samplecount
 
     @pyqtSlot()
     def send_aircraft_data(self):
-        if self.manager.isActive():
+        if manager.currentThreadIsActive():
             data            = ACDataEvent()
-            data.id         = self.sim.traf.id
-            data.lat        = self.sim.traf.lat
-            data.lon        = self.sim.traf.lon
-            data.alt        = self.sim.traf.alt
-            data.tas        = self.sim.traf.tas
-            data.cas        = self.sim.traf.cas
-            data.iconf      = self.sim.traf.iconf
-            data.confcpalat = self.sim.traf.dbconf.latowncpa
-            data.confcpalon = self.sim.traf.dbconf.lonowncpa
-            data.trk        = self.sim.traf.trk
-            self.manager.sendEvent(data)
+            data.id         = list(self.sim.traf.id)
+            data.lat        = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
+            data.lon        = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
+            data.alt        = np.array(self.sim.traf.alt, dtype=np.float32, copy=True)
+            data.tas        = np.array(self.sim.traf.tas, dtype=np.float32, copy=True)
+            data.cas        = np.array(self.sim.traf.cas, dtype=np.float32, copy=True)
+            data.iconf      = np.array(self.sim.traf.iconf, copy=True)
+            data.confcpalat = np.array(self.sim.traf.dbconf.latowncpa, copy=True)
+            data.confcpalon = np.array(self.sim.traf.dbconf.lonowncpa, copy=True)
+            data.trk        = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
+            qapp.postEvent(qapp.instance(), data)
 
     @pyqtSlot()
     def send_aman_data(self):
-        if self.manager.isActive():
+        if manager.currentThreadIsActive():
             # data            = AMANEvent()
             # data.ids        = self.sim.traf.AMAN.
             # data.iafs       = self.sim.traf.AMAN.
@@ -66,13 +68,13 @@ class ScreenIO(QObject):
             # data.delays     = self.sim.traf.AMAN.
             # data.rwys       = self.sim.traf.AMAN.
             # data.spdratios  = self.sim.traf.AMAN. 
-            # self.manager.sendEvent(data)
+            # qapp.postEvent(qapp.instance(), data)
             pass
 
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, sim, manager):
+    def __init__(self, sim):
         super(ScreenIO, self).__init__()
 
         # Keep track of the important parameters of the screen state
@@ -82,30 +84,34 @@ class ScreenIO(QObject):
         self.scrzoom = 1.0
 
         # Keep reference to parent simulation object for access to simulation data
-        self.sim     = sim
-        self.manager = manager
+        self.sim = sim
 
         # Timing bookkeeping counters
         self.prevtime = 0.0
         self.prevcount = 0
 
         # Output event timers
-        self.siminfo_timer = Timer()
+        self.siminfo_timer = QTimer()
         self.siminfo_timer.timeout.connect(self.send_siminfo)
         self.siminfo_timer.timeout.connect(self.send_aman_data)
         self.siminfo_timer.start(1000/self.siminfo_rate)
 
-        self.acupdate_timer = Timer()
+        self.acupdate_timer = QTimer()
         self.acupdate_timer.timeout.connect(self.send_aircraft_data)
         self.acupdate_timer.start(1000/self.acupdate_rate)
 
+    def moveToThread(self, target_thread):
+        self.siminfo_timer.moveToThread(target_thread)
+        self.acupdate_timer.moveToThread(target_thread)
+        super(ScreenIO, self).moveToThread(target_thread)
+
     def echo(self, text):
-        if self.manager.isActive():
-            self.manager.sendEvent(StackTextEvent(disptext=text))
+        if manager.currentThreadIsActive():
+            qapp.postEvent(qapp.instance(), StackTextEvent(disptext=text))
 
     def cmdline(self, text):
-        if self.manager.isActive():
-            self.manager.sendEvent(StackTextEvent(cmdtext=text))
+        if manager.currentThreadIsActive():
+            qapp.postEvent(qapp.instance(), StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
@@ -115,29 +121,29 @@ class ScreenIO(QObject):
         return lat0, lat1, lon0, lon1
 
     def zoom(self, zoomfac, absolute=False):
-        if self.manager.isActive():
+        if manager.currentThreadIsActive():
             if absolute:
                 self.scrzoom = zoomfac
             else:
                 self.scrzoom *= zoomfac
-            self.manager.sendEvent(PanZoomEvent(zoom=zoomfac, absolute=absolute))
+            qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
 
     def symbol(self):
-        if self.manager.isActive():
-            self.manager.sendEvent(DisplayFlagEvent('SYM'))
+        if manager.currentThreadIsActive():
+            qapp.postEvent(qapp.instance(), DisplayFlagEvent('SYM'))
 
     def pan(self, pan, absolute=False):
-        if self.manager.isActive():
+        if manager.currentThreadIsActive():
             if absolute:
                 self.ctrlat = pan[0]
                 self.ctrlon = pan[1]
             else:
                 self.ctrlat += pan[0]
                 self.ctrlon += pan[1]
-            self.manager.sendEvent(PanZoomEvent(pan=pan, absolute=absolute))
+            qapp.postEvent(qapp.instance(), PanZoomEvent(pan=pan, absolute=absolute))
 
     def showroute(self, acid):
-        if self.manager.isActive():
+        if manager.currentThreadIsActive():
             data       = RouteDataEvent()
             data.acid = acid
             idx   = self.sim.traf.id2idx(acid)
@@ -157,25 +163,25 @@ class ScreenIO(QObject):
 
                 data.wptlabels = np.array(route.wpname)
 
-            self.manager.sendEvent(data)  # Send route data to GUI
+            qapp.postEvent(qapp.instance(), data)  # Send route data to GUI
 
     def showssd(self, param):
-        if self.manager.isActive():
+        if manager.currentThreadIsActive():
             if param == 'ALL' or param == 'OFF':
-                self.manager.sendEvent(DisplayFlagEvent('SSD', param))
+                qapp.postEvent(qapp.instance(), DisplayFlagEvent('SSD', param))
             else:
                 idx = self.sim.traf.id2idx(param)
                 if idx >= 0:
-                    self.manager.sendEvent(DisplayFlagEvent('SSD', idx))
+                    qapp.postEvent(qapp.instance(), DisplayFlagEvent('SSD', idx))
 
     def show_file_dialog(self):
-        if self.manager.isActive():
-            self.manager.sendEvent(ShowDialogEvent())
+        if manager.currentThreadIsActive():
+            qapp.postEvent(qapp.instance(), ShowDialogEvent())
         return ''
 
     def feature(self, switch, argument=''):
-        if self.manager.isActive():
-            self.manager.sendEvent(DisplayFlagEvent(switch, argument))
+        if manager.currentThreadIsActive():
+            qapp.postEvent(qapp.instance(), DisplayFlagEvent(switch, argument))
 
     def objappend(self, objtype, objname, data_in):
         if data_in is None:
@@ -218,7 +224,7 @@ class ScreenIO(QObject):
             data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
             data[1::2] = lonCircle
 
-        self.manager.sendEvent(DisplayShapeEvent(objname, data))
+        qapp.postEvent(qapp.instance(), DisplayShapeEvent(objname, data))
 
     def event(self, event):
         if event.type() == PanZoomEventType:
