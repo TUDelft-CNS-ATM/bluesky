@@ -474,10 +474,10 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
-#                    try:
-                    results = function(*arglist) # * = unpack list to call arguments
-#                    except:
-#                        synerr = True
+                    try:
+                        results = function(*arglist) # * = unpack list to call arguments
+                    except:
+                        synerr = True
                     txt = helptext
                     if not synerr:
 

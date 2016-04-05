@@ -70,8 +70,23 @@ def resolve(dbconf):
     dbconf.traf.asashdg = newtrack
     dbconf.traf.asasspd = neweascapped
     dbconf.traf.asasvsp = newv[2,:]
-    dbconf.traf.asasalt = np.sign(dbconf.traf.asasvsp) * dbconf.tinconf.min(axis=1) \
+    
+#    import pdb
+#    pdb.set_trace()
+   
+    condition = dbconf.tinconf.min(axis=1)<350.0
+    asasalttemp = dbconf.traf.asasvsp * dbconf.tinconf.min(axis=1) \
                           + dbconf.traf.alt
+    dbconf.traf.asasalt[condition] = asasalttemp[condition]
+    
+    
+##    tinasasupdate = np.where(dbconf.tinconf.min(axis=1)<600.0)[0]
+#    asasalttemp = dbconf.traf.asasvsp * dbconf.tinconf.min(axis=1) \
+#                          + dbconf.traf.alt
+#                          
+#    for i in range(len(dbconf.tinconf)):
+#        if dbconf.tinconf.min(axis=1)[i] < 350.0:            
+#            dbconf.traf.asasalt[i] = asasalttemp[i]                        
     
 #=================================== Modified Voltage Potential ===============
         
