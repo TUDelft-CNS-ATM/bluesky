@@ -579,7 +579,7 @@ class Route():
         if iwpnear+1<self.nwp:
             qdr = arctan2(dx[iwpnear],dy[iwpnear])
             delhdg = abs(degto180(traf.trk[i]-qdr))
-            if delhdg>90.:
+            if delhdg>25.:
                 iwpnear= iwpnear+1
         
         return iwpnear
