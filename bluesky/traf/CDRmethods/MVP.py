@@ -66,10 +66,13 @@ def resolve(dbconf):
     # Cap the velocity
     neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
     
+    # Cap the vertical speed
+    vscapped = np.maximum(-dbconf.vsmax,np.minimum(dbconf.vsmax,newv[2,:]))
+    
     # now assign in the traf class
     dbconf.traf.asashdg = newtrack
     dbconf.traf.asasspd = veas2tas(neweascapped,dbconf.traf.alt)
-    dbconf.traf.asasvsp = newv[2,:]
+    dbconf.traf.asasvsp = vscapped
     
     # To update asasalt, tinconf is used. tinconf is a really big value if there is 
 	# no conflict. If there is a conflict, tinconf will be between 0 and the lookahead

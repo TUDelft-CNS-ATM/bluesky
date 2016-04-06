@@ -28,6 +28,7 @@ Date        : October 2014
 import numpy as np
 import sys, os
 from ..tools.aero_np import qdrdist_vector,nm,qdrpos
+from ..tools.aero import ft
 
 # Find a way to import the required Conflict Resolution Class
 sys.path.append('bluesky/traf/CDRmethods/')
@@ -53,6 +54,7 @@ class Dbconf():
         
         self.vmin        =100.     # [m/s] Minimum ASAS velocity
         self.vmax        =500.     # [m/s] Maximum ASAS velocity
+        self.vsmax       = np.abs(1500./60.*ft) # [m/s] Max/Min vertical speed
                 
         self.reset()              # Reset database
         self.SetCRmethod("DoNothing")
@@ -366,9 +368,11 @@ class Dbconf():
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
                     iwpid1 = self.traf.route[id1].findact(self.traf,id1)
-                    self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
+                    if iwpid1 != -1: # To avoid problems if there are no waypoints
+                        self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
                     iwpid2 = self.traf.route[id2].findact(self.traf,id2)
-                    self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
+                    if iwpid2 != -1: # To avoid problems if there are no waypoints
+                        self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
                     self.conflist_all.remove(conflict)
             
         return
