@@ -5,7 +5,7 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas
+from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas,veas2tas
 
 def start(dbconf):
     dbconf.CRname="MVP"
@@ -133,7 +133,7 @@ def MVP(dbconf, id1, id2):
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
     dv1 = (iH*dcpa[0])/(dbconf.tcpa[id1,id2]*dabsH)
     dv2 = (iH*dcpa[1])/(dbconf.tcpa[id1,id2]*dabsH)
-    dv3 = (iV*dcpa[2])/(dbconf.tinconf[id1,id2]*dabsV)
+    dv3 = (iV*dcpa[2])/(dbconf.tcpa[id1,id2]*dabsV)
       
     # combine the dv components 
     dv = np.array([dv1,dv2,dv3])

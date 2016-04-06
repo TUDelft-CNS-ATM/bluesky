@@ -791,7 +791,7 @@ class Traffic:
         #pdb.set_trace()
         # desired autopilot settings due to ASAS
         self.deshdg = self.asasactive*self.asashdg + (1-self.asasactive)*self.ahdg
-        self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aspd
+        self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aptas
         self.desalt = self.asasactive*self.asasalt + (1-self.asasactive)*self.aalt
         self.desvs  = self.asasactive*self.asasvsp + (1-self.asasactive)*self.avs
 
@@ -833,7 +833,7 @@ class Traffic:
 # no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
 #                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
 
-        self.delspd = self.aptas - self.tas 
+        self.delspd = self.desspd - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
 
