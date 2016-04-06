@@ -47,12 +47,16 @@ def resolve(dbconf):
             
     # now we have the change in speed vector for each aircraft.
     dv = np.transpose(dv)
-    
+
     # the old speed vector, cartesian coordinates
     trkrad = np.radians(dbconf.traf.trk)
     v = np.array([np.sin(trkrad)*dbconf.traf.tas,\
         np.cos(trkrad)*dbconf.traf.tas,\
         dbconf.traf.vs])
+
+    # TO DO: BUILD SWITCHES FOR PRIORITIES
+    # Cruising - climbing/descending
+    # Cruising - Cruising (bonus: prevents vertical resolutions)
     
     # the new speed vector
     newv = dv+v
@@ -61,13 +65,12 @@ def resolve(dbconf):
     newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
     newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
     neweas   = vtas2eas(newgs,dbconf.traf.alt)
-     
     
     # Cap the velocity
     neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
     
     # Cap the vertical speed
-    vscapped = np.maximum(-dbconf.vsmax,np.minimum(dbconf.vsmax,newv[2,:]))
+    vscapped = np.maximum(dbconf.vsmin,np.minimum(dbconf.vsmax,newv[2,:]))
     
     # now assign in the traf class
     dbconf.traf.asashdg = newtrack

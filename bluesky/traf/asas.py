@@ -54,8 +54,9 @@ class Dbconf():
         
         self.vmin        =100.     # [m/s] Minimum ASAS velocity
         self.vmax        =500.     # [m/s] Maximum ASAS velocity
-        self.vsmax       = np.abs(1500./60.*ft) # [m/s] Max/Min vertical speed
-                
+        self.vsmax       = 2500./60.*ft # [m/s] Max vertical speed
+        self.vsmin       = -2500./60.*ft # [m/s] Min vertical speed
+
         self.reset()              # Reset database
         self.SetCRmethod("DoNothing")
         return
