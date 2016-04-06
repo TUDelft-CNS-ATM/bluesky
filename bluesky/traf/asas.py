@@ -357,14 +357,20 @@ class Dbconf():
                 pastCPA=self.ConflictIsPastCPA(self.traf,id1,id2)
                 
                 if not pastCPA:
-
-# Indicate that the A/C must follow their ASAS
+                    # Indicate that the A/C must follow their ASAS
                     self.traf.asasactive[id1] = True 
                     self.traf.inconflict[id1] = True
 
                     self.traf.asasactive[id2] = True
                     self.traf.inconflict[id2] = True
-
+                else:
+                    # Find the next active waypoint and delete the conflict from conflist_all
+                    iwpid1 = self.traf.route[id1].findact(self.traf,id1)
+                    self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
+                    iwpid2 = self.traf.route[id2].findact(self.traf,id2)
+                    self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
+                    self.conflist_all.remove(conflict)
+            
         return
 
 #========================= Check if past CPA ==================================

@@ -579,6 +579,8 @@ class Route():
         if iwpnear+1<self.nwp:
             qdr = arctan2(dx[iwpnear],dy[iwpnear])
             delhdg = abs(degto180(traf.trk[i]-qdr))
+            # If the bearing to the active waypoint is larger
+            # than 25 degrees, choose the next waypoint
             if delhdg>25.:
                 iwpnear= iwpnear+1
         
