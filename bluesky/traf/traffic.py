@@ -802,7 +802,8 @@ class Traffic:
 
         # Autopilot selected speed setting [m/s]
         # To do: add const Mach const CAS mode
-#self.desspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*vcas2tas(self.lspd,self.alt)
+        self.desspd = ((self.desspd<vcas2tas(self.lspd,self.alt)) + ( self.lspd == 0.0 ))*self.desspd + (self.desspd>vcas2tas(self.lspd,self.alt))*vcas2tas(self.lspd,self.alt)
+
 
         # Autopilot selected altitude [m]
         self.desalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
