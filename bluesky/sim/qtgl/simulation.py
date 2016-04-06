@@ -164,7 +164,9 @@ class Simulation(QObject):
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.mode))
 
-    def addNodes(self, count):
+    def addNodes(self, count=None):
+        if not count:
+            return False
         self.manager.addNodes(count)
 
     def batch(self, filename):
