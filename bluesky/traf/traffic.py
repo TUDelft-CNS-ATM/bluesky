@@ -551,7 +551,7 @@ class Traffic:
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         # aptas hast to be calculated before delspd
         self.aptas = vcas2tas(self.aspd, self.alt)*self.belco + vmach2tas(self.ama, self.alt)*self.abco  
-        self.delspd = self.aptas - self.tas 
+        #self.delspd = self.aptas - self.tas
    
 
         ###############################################################################
@@ -802,7 +802,7 @@ class Traffic:
 
         # Autopilot selected speed setting [m/s]
         # To do: add const Mach const CAS mode
-        self.desspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*self.lspd
+#self.desspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*vcas2tas(self.lspd,self.alt)
 
         # Autopilot selected altitude [m]
         self.desalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
@@ -838,7 +838,7 @@ class Traffic:
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
 
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
-                                          simdt) + (1. - swspdsel) * self.aptas
+                                          simdt) + (1. - swspdsel) * self.tas
 
         # Speed conversions
         self.cas = vtas2cas(self.tas, self.alt)

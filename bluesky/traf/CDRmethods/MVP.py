@@ -68,7 +68,7 @@ def resolve(dbconf):
     
     # now assign in the traf class
     dbconf.traf.asashdg = newtrack
-    dbconf.traf.asasspd = neweascapped
+    dbconf.traf.asasspd = veas2tas(neweascapped,dbconf.traf.alt)
     dbconf.traf.asasvsp = newv[2,:]
     
     # To update asasalt, tinconf is used. tinconf is a really big value if there is 
