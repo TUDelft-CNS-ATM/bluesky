@@ -123,27 +123,29 @@ def MVP(dbconf, id1, id2):
     
 	# exception handlers for head-on conflicts 
     # this is done to prevent division by zero in the next step
-    if dabsH <= 10:
-        dabsH = 10
-    if dabsV <= 10:
-        dabsV = 10   
-      
+    if dabsH <= 10.:
+        dabsH = 10.
+        dcpa[0] = 10.
+        dcpa[1] = 10.
+    if dabsV <= 10.:
+        dabsV = 10.
+    
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
-    dv1 = (iH*np.sin(qdr)*dcpa[0])/(dbconf.tinconf[id1,id2]*dabsH)
-    dv2 = (iH*np.cos(qdr)*dcpa[1])/(dbconf.tinconf[id1,id2]*dabsH)
+    dv1 = (iH*dcpa[0])/(dbconf.tcpa[id1,id2]*dabsH)
+    dv2 = (iH*dcpa[1])/(dbconf.tcpa[id1,id2]*dabsH)
     dv3 = (iV*dcpa[2])/(dbconf.tinconf[id1,id2]*dabsV)
       
     # combine the dv components 
     dv = np.array([dv1,dv2,dv3])
-    
+
     #Extra factor necessary! ==================================================
     # Intruder outside ownship IPZ
     if dbconf.Rm<dist and dabsH<dist:
         erratum=np.cos(np.arcsin(dbconf.Rm/dist)-np.arcsin(dabsH/dist))
         dv_plus1 = dv[0]/erratum
-		dv_plus2 = dv[1]/erratum
+        dv_plus2 = dv[1]/erratum
 		# combine dv_plus components. Note: erratum only applies to horizontal dv components
-		dv_plus = np.array([dv_plus1,dv_plus2,dv[2]])
+        dv_plus = np.array([dv_plus1,dv_plus2,dv[2]])
 		
     # Intruder inside ownship IPZ
     else: 
