@@ -10,6 +10,7 @@ from ..tools.misc import degto180, kwikdist
 from ..tools.datalog import Datalog
 
 from route import Route
+from flst import FLST
 from params import Trails
 from adsbmodel import ADSBModel
 from asas import Dbconf
@@ -77,6 +78,8 @@ class Traffic:
 
         # Create datalog instance
         self.log = Datalog()
+        
+        self.flst = FLST(self)
 
         # Traffic list & arrays definition
 
@@ -392,6 +395,12 @@ class Traffic:
         
         self.eps = np.append(self.eps, 0.01)
 
+        # Flight Statistics data
+        self.flst.distance_2D    = np.append(self.flst.distance_2D,0.)
+        self.flst.distance_3D    = np.append(self.flst.distance_3D,0.)
+        self.flst.flightime      = np.append(self.flst.flightime,0.)
+        self.flst.work           = np.append(self.flst.work,0.)
+        
         return True
 
     def delete(self, acid):
@@ -520,6 +529,13 @@ class Traffic:
         self.ntraf = self.ntraf - 1
 
         self.eps = np.delete(self.eps, idx)
+        
+        # Flight Statistics data
+        self.flst.distance_2D    = np.delete(self.flst.distance_2D,idx)
+        self.flst.distance_3D    = np.delete(self.flst.distance_3D,idx)
+        self.flst.flightime      = np.delete(self.flst.flightime,idx)
+        self.flst.work           = np.delete(self.flst.work,idx)
+        
         return True
 
     def deleteall(self):
@@ -894,7 +910,10 @@ class Traffic:
             self.lastlat = self.lat
             self.lastlon = self.lon
             self.lattime = simt
-
+        
+        # Update Flight Statistics
+        self.flst.update(simdt)
+        
         # ----------------AREA check----------------
         # Update area once per areadt seconds:
         if self.swarea and abs(simt - self.areat0) > self.areadt:
