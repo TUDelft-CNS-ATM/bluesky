@@ -167,12 +167,7 @@ class Simulation(QObject):
         self.screenio.echo('Starting scenario' + name)
 
     def sendState(self):
-        self.manager.sendEvent(SimStateEvent(self.mode))
-
-    def addNodes(self, count=None):
-        if not count:
-            return False
-        self.manager.addNodes(count)
+        qapp.postEvent(manager.instance(), SimStateEvent(self.mode))
 
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack

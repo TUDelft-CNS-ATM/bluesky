@@ -149,7 +149,7 @@ class RenderObject(object):
     def set_first_vertex(self, vertex):
         self.first_vertex = vertex
 
-    def bind_attrib(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT, stride=0, offset=None, normalize=False):
+    def bind_attrib(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT, stride=0, offset=None):
         if RenderObject.bound_vao is not self.vao_id:
             gl.glBindVertexArray(self.vao_id)
             RenderObject.bound_vao = self.vao_id
@@ -170,7 +170,7 @@ class RenderObject(object):
 
         # Assign this buffer to one of the attributes in the shader
         gl.glEnableVertexAttribArray(attrib_id)
-        gl.glVertexAttribPointer(attrib_id, size, datatype, normalize, stride, offset)
+        gl.glVertexAttribPointer(attrib_id, size, datatype, False, stride, offset)
         # For instanced data, indicate per how many instances we move a step in the buffer (1=per instance)
         if instance_divisor > 0:
             gl.glVertexAttribDivisor(attrib_id, instance_divisor)
@@ -326,7 +326,7 @@ class Font(object):
 
         ret.bind_attrib(self.attrib_vertex, 2, np.array(vertices, dtype=np.float32))
         ret.bind_attrib(self.attrib_texcoords, 3, np.array(texcoords, dtype=np.float32))
-        ret.bind_attrib(self.attrib_color, 3, np.array(text_color, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        ret.bind_attrib(self.attrib_color, 3, np.array(text_color, dtype=np.float32), instance_divisor=1)
 
         ret.char_size  = char_size
         ret.block_size = (len(text_string), 1)
@@ -350,7 +350,7 @@ class Font(object):
             ret.bind_attrib(self.attrib_lon, 1, origin_lon, instance_divisor=divisor)
 
         if text_color is not None:
-            ret.bind_attrib(self.attrib_color, 3, text_color, datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=divisor)
+            ret.bind_attrib(self.attrib_color, 3, text_color, instance_divisor=divisor)
 
         ret.block_size = textblock_size
         ret.char_size = char_size

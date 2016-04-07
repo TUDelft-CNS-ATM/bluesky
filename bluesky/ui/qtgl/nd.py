@@ -17,12 +17,8 @@ from glhelpers import BlueSkyProgram, RenderObject, UniformBuffer
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = range(4)
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
 
-white                = (255, 255, 255)
-black                = (0,   0,   0)
-yellow               = (255, 255, 0)
-green                = (0,   255, 0)
-lightblue2           = (148, 178, 235)
-lightblue3           = (220, 250, 255)
+lightblue2           = (0.58, 0.7, 0.92)
+lightblue3           = (0.86, 0.98, 1.0)
 
 
 class ndUBO(UniformBuffer):
@@ -89,7 +85,7 @@ class ND(QGLWidget):
         edge[0:120:2] = 1.4 * np.sin(np.radians(np.arange(-60, 60, 2)))
         edge[1:120:2] = 1.4 * np.cos(np.radians(np.arange(-60, 60, 2)))
         self.edge.bind_attrib(ATTRIB_VERTEX, 2, edge)
-        self.edge.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.edge.bind_attrib(ATTRIB_COLOR, 3, np.array((1.0, 1.0, 1.0), dtype=np.float32), instance_divisor=1)
         self.arcs = RenderObject(gl.GL_LINES)
         arcs = []
         for i in range(1, 4):
@@ -101,7 +97,7 @@ class ND(QGLWidget):
                     arcs.append(float(i) * 0.35 * cos(radians(angle + 2)))
 
         self.arcs.bind_attrib(ATTRIB_VERTEX, 2, np.array(arcs, dtype=np.float32))
-        self.arcs.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.arcs.bind_attrib(ATTRIB_COLOR, 3, np.array((1.0, 1.0, 1.0), dtype=np.float32), instance_divisor=1)
         self.arcs.set_vertex_count(len(arcs))
 
         self.mask = RenderObject(gl.GL_TRIANGLE_STRIP, vertex_count=120)
@@ -112,7 +108,7 @@ class ND(QGLWidget):
             mask.append(1.4*sin(radians(angle)))
             mask.append(1.4*cos(radians(angle)))
         self.mask.bind_attrib(ATTRIB_VERTEX, 2, np.array(mask, dtype=np.float32))
-        self.mask.bind_attrib(ATTRIB_COLOR, 3, np.array(black, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.mask.bind_attrib(ATTRIB_COLOR, 3, np.array((0.0, 0.0, 0.0), dtype=np.float32), instance_divisor=1)
 
         self.ticks = RenderObject(gl.GL_LINES, vertex_count=144)
         ticks = np.zeros(288, dtype=np.float32)
@@ -121,7 +117,7 @@ class ND(QGLWidget):
             ticks[4*i  :4*i+2] = (1.4 * sin(radians(i * 5)), 1.4 * cos(radians(i * 5)))
             ticks[4*i+2:4*i+4] = (ticktop * sin(radians(i * 5)), ticktop * cos(radians(i * 5)))
         self.ticks.bind_attrib(ATTRIB_VERTEX, 2, ticks)
-        self.ticks.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ticks.bind_attrib(ATTRIB_COLOR, 3, np.array((1.0, 1.0, 1.0), dtype=np.float32), instance_divisor=1)
 
         self.ticklbls = RenderObject(gl.GL_TRIANGLES, vertex_count=12 * 36)
         ticklbls = np.zeros(24 * 36, dtype=np.float32)
@@ -147,14 +143,14 @@ class ND(QGLWidget):
 
         self.ticklbls.bind_attrib(ATTRIB_VERTEX, 2, ticklbls)
         self.ticklbls.bind_attrib(ATTRIB_TEXCOORDS, 3, texcoords)
-        self.ticklbls.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ticklbls.bind_attrib(ATTRIB_COLOR, 3, np.array((1.0, 1.0, 1.0), dtype=np.float32), instance_divisor=1)
 
         self.ownship = RenderObject(gl.GL_LINES, vertex_count=6)
         self.ownship.bind_attrib(ATTRIB_VERTEX, 2, np.array([0.0, 0.0, 0.0, -0.12, 0.065, -0.03, -0.065, -0.03, 0.022, -0.1, -0.022, -0.1], dtype=np.float32))
-        self.ownship.bind_attrib(ATTRIB_COLOR, 3, np.array(yellow, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ownship.bind_attrib(ATTRIB_COLOR, 3, np.array((1.0, 1.0, 0.0), dtype=np.float32), instance_divisor=1)
 
-        self.spdlabel_text = self.font.prepare_text_string('GS    TAS', 0.05, white, (-0.98, 1.6))
-        self.spdlabel_val  = self.font.prepare_text_string('  000    000', 0.05, green, (-0.97, 1.6))
+        self.spdlabel_text = self.font.prepare_text_string('GS    TAS', 0.05, (1.0, 1.0, 1.0), (-0.98, 1.6))
+        self.spdlabel_val  = self.font.prepare_text_string('  000    000', 0.05, (0.0, 1.0, 0.0), (-0.97, 1.6))
 
         self.waypoints = RenderObject.copy(self.shareWidget.waypoints)
         self.wptlabels = RenderObject.copy(self.shareWidget.wptlabels)
@@ -233,10 +229,10 @@ class ND(QGLWidget):
 
         self.globaldata.set_vertex_modifiers(VERTEX_IS_SCREEN, False)
         self.waypoints.bind()
-        gl.glVertexAttrib4Nub(ATTRIB_COLOR, *(lightblue2 + (255,)))
+        gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue2)
         self.waypoints.draw()
         self.airports.bind()
-        gl.glVertexAttrib4Nub(ATTRIB_COLOR, *(lightblue2 + (255,)))
+        gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue2)
         self.airports.draw()
 
         self.text_shader.use()
@@ -244,13 +240,13 @@ class ND(QGLWidget):
         self.font.set_char_size(self.wptlabels.char_size)
         self.font.set_block_size(self.wptlabels.block_size)
         self.wptlabels.bind()
-        gl.glVertexAttrib4Nub(ATTRIB_COLOR, *(lightblue3 + (255,)))
+        gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue3)
         self.wptlabels.draw(n_instances=self.waypoints.n_instances)
 
         self.font.set_char_size(self.aptlabels.char_size)
         self.font.set_block_size(self.aptlabels.block_size)
         self.aptlabels.bind()
-        gl.glVertexAttrib4Nub(ATTRIB_COLOR, *(lightblue3 + (255,)))
+        gl.glVertexAttrib3f(ATTRIB_COLOR, *lightblue3)
         self.aptlabels.draw(n_instances=self.airports.n_instances)
 
         self.font.set_char_size(self.aclabels.char_size)
