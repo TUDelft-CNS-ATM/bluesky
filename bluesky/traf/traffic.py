@@ -277,7 +277,7 @@ class Traffic:
         self.lon   = np.append(self.lon, aclon)
         self.trk   = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
         self.alt   = np.append(self.alt, acalt)
-        self.fll   = np.append(self.fll, (acalt)/100)
+        self.fll   = np.append(self.fll, (acalt)/(100*ft))
         self.vs    = np.append(self.vs, 0.)
         c_temp, c_rho, c_p = vatmos(acalt)
         self.p     = np.append(self.p, c_p)
@@ -315,7 +315,7 @@ class Traffic:
         self.aptas = np.append(self.aptas, acspd) # [m/s]
         self.ama  = np.append(self.ama, 0.) # selected spd above crossover (Mach) [-]
         self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
-        self.afll = np.append(self.afll, (acalt/100)) # selected fl[ft/100]
+        self.afll = np.append(self.afll, (acalt/(100*ft))) # selected fl[ft/100]
         self.avs = np.append(self.avs, 0.)  # selected vertical speed [m/s]
         
         # limit settings: initialize with 0
@@ -600,12 +600,7 @@ class Traffic:
             # Call with traffic database and sim data
             self.dbconf.detect()
             self.dbconf.conflictlist(simt)
-            self.dbconf.APorASAS()
-            
-#            if np.count_nonzero(self.asasactive)>0:
-#                import pdb
-#                pdb.set_trace()
-                
+            self.dbconf.APorASAS()                
             self.dbconf.resolve()
 
             # Reset label because of colour change
@@ -786,9 +781,7 @@ class Traffic:
 
         # ASAS AP switches
 
-        #--------- Input to Autopilot settings to follow: destination or ASAS ----------
-        #import pdb
-        #pdb.set_trace()
+        #--------- Input to Autopilot settings to follow: destination or ASAS ----------          
         # desired autopilot settings due to ASAS
         self.deshdg = self.asasactive*self.asashdg + (1-self.asasactive)*self.ahdg
         self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aptas
@@ -855,10 +848,14 @@ class Traffic:
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
         swaltsel = np.abs(self.desalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
-
+                  
+        # if asas is not active AND VNAV is not active, then it shouls use the standard climb rate. 
+        # if asas is active AND VNAV is not active it should listen to the asasvs which is desvs
+        # if asas AND VNAV is active then use desvs                  
         self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
-                    ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
-                      self.swvnav*np.abs(self.desvs)         )
+                    ( (1-self.swvnav)*(self.asasactive*np.abs(self.desvs)+(1-self.asasactive)*np.abs(1500./60.*ft)) +    \
+                      self.swvnav*np.abs(self.desvs))
+        
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
                    (1. - swaltsel) * self.desalt + turbalt

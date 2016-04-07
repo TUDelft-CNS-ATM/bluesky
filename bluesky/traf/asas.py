@@ -56,6 +56,11 @@ class Dbconf():
         self.vmax        =500.     # [m/s] Maximum ASAS velocity
         self.vsmax       = 2500./60.*ft # [m/s] Max vertical speed
         self.vsmin       = -2500./60.*ft # [m/s] Min vertical speed
+        
+        self.swresodir   = 'COMB'  # desired directions of resolution methods: 
+                                   # combined (COMB), horizontal only (HORIZ), vertical only (VERT)
+        
+        self.swprio      = False   # If true, then cruising aircraft have priority and will not resolve
 
         self.reset()              # Reset database
         self.SetCRmethod("DoNothing")
@@ -65,6 +70,9 @@ class Dbconf():
         self.CRname ="Undefined"
         self.CRmethod    = __import__(method)
         self.CRmethod.start(self)
+        
+    def SetResoDirection(self,direction):
+        self.swresodir = direction
 
 # Reset conflict database
 
@@ -393,7 +401,12 @@ class Dbconf():
         v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
         v  = np.array(v2-v1) 
         
-        pastCPA = np.dot(d,v)>0
+        # for vertical resolution, the conflict has past CPA if the horizontal
+        # velocities of the two aircraft are not pointing at each other
+        if self.swresodir == "VERT":
+            pastCPA = np.dot(d[:2],v[:2])>0
+        else:           
+            pastCPA = np.dot(d,v)>0
 
         return pastCPA
 

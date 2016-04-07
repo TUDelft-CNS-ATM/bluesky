@@ -28,9 +28,17 @@ def resolve(dbconf):
             if id1 != "Fail" and id2!= "Fail":
 
                 dv_eby = MVP(dbconf,id1,id2)
+                
+                 # if swprio is on, and there is crusing aircraft in the conflict, then the crusing aircraft does nothing
+                if dbconf.swprio: 
+                    if dbconf.traf.vs[id1]<0.1 and dbconf.traf.vs[id2]>=0.1:
+                        dv[id2] = dv[id2] + dv_eby
+                    elif dbconf.traf.vs[id1]>=0.1 and dbconf.traf.vs[id2]<0.1:
+                        dv[id1] = dv[id1] + dv_eby                        
+                else:
 
-                dv[id1] = dv[id1] - dv_eby
-                dv[id2] = dv[id2] + dv_eby
+                    dv[id1] = dv[id1] - dv_eby
+                    dv[id2] = dv[id2] + dv_eby
                                         
     else:
 
@@ -53,11 +61,14 @@ def resolve(dbconf):
     v = np.array([np.sin(trkrad)*dbconf.traf.tas,\
         np.cos(trkrad)*dbconf.traf.tas,\
         dbconf.traf.vs])
-
-    # TO DO: BUILD SWITCHES FOR PRIORITIES
-    # Cruising - climbing/descending
-    # Cruising - Cruising (bonus: prevents vertical resolutions)
     
+    # Restrict resolution direction based on swresodir
+    if dbconf.swresodir == "HORIZ":
+        dv[2,:] = 0.
+    elif dbconf.swresodir == "VERT":
+        dv[0,:] = 0.
+        dv[1,:] = 0.  
+        
     # the new speed vector
     newv = dv+v
 
@@ -127,7 +138,7 @@ def MVP(dbconf, id1, id2):
     iH = dbconf.Rm-dabsH
     iV = dbconf.dhm-dabsV
     
-	# exception handlers for head-on conflicts 
+    # exception handlers for head-on conflicts 
     # this is done to prevent division by zero in the next step
     if dabsH <= 10.:
         dabsH = 10.
@@ -135,6 +146,8 @@ def MVP(dbconf, id1, id2):
         dcpa[1] = 10.
     if dabsV <= 10.:
         dabsV = 10.
+        if dbconf.swresodir == "VERT":
+            dcpa[2] = 10.
     
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
     dv1 = (iH*dcpa[0])/(dbconf.tcpa[id1,id2]*dabsH)
@@ -142,7 +155,7 @@ def MVP(dbconf, id1, id2):
     dv3 = (iV*dcpa[2])/(dbconf.tcpa[id1,id2]*dabsV)
       
     # combine the dv components 
-    dv = np.array([dv1,dv2,dv3])
+    dv = np.array([dv1,dv2,dv3])    
 
     #Extra factor necessary! ==================================================
     # Intruder outside ownship IPZ

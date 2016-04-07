@@ -96,6 +96,26 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
             scr.echo("CURRENT DTNOLOOK: "+str(traf.dtasas)+" SEC")
         else:
             traf.dtasas=float(commandargs[1])
+    
+    elif command == "DIR":
+        if numargs ==0:
+            scr.echo("DIR direction(COMB or HORIZ or VERT)")
+            scr.echo("CURRENT DIR: " + traf.dbconf.swresodir )
+        elif commandargs[1] == "COMB" or commandargs[1] == "HORIZ" or commandargs[1] == "VERT":
+            traf.dbconf.SetResoDirection(commandargs[1])
+        else:
+            scr.echo("DIR is unknown. Try again!")
+            
+    elif command == "PRIO":
+        if numargs ==0:
+            scr.echo("PRIO [ON/OFF]")
+            scr.echo("CURRENT PRIO: " + traf.dbconf.swprio )
+        elif commandargs[1] == "ON": 
+            traf.dbconf.swprio = True
+        elif commandargs[1] == "OFF" or commandargs[1] == "OF": 
+            traf.dbconf.swprio = False
+        else:
+            scr.echo("PRIO is unknown. Try again!")        
 
     else:
         scr.echo("Unknown command: " + callsign + command)
