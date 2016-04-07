@@ -18,6 +18,7 @@
 import os
 from misc import tim2txt
 from time import strftime,gmtime,localtime
+from ..tools.aero import ft
 
 
 #-----------------------------------------------------------------
@@ -27,6 +28,8 @@ class Datalog():
         # Create a buffer and save filename
         #self.fname = os.path.dirname(__file__) + "/../../data/output/" \
         #    + strftime("%Y-%m-%d-%H-%M-%S-BlueSky.sky", gmtime())
+        
+        self.traf = traf
         
         # LOG types:
         self.sky    = 0   # Traffic Data
@@ -202,4 +205,43 @@ class Datalog():
             f.close()
             self.buffer_inst = []
         return
+
+    def skysave(self,traf,simt):
+        if self.swsky:
+            if self.t0sky+self.dtsky<simt or simt<self.t0sky:
+                self.t0sky = simt
+                self.write(0,simt,'%s,%s,%s' \
+                               % (self.traf.ntraf,len(self.traf.dbconf.conflist_now),len(self.traf.dbconf.LOSlist_now)))
+        return
+
+    def snapsave(self,traf,simt):
+        if self.swsnap:
+            if self.t0snap+self.dtsnap<simt or simt<self.t0snap:
+                self.t0snap = simt
+                i = 0
+                while (i < self.traf.ntraf):
+                    if self.traf.alt[i] > 5000*ft:
+                        self.write(3,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s' % (self.traf.id[i],self.traf.type[i],self.traf.lat[i], \
+                                                                              self.traf.lon[i],self.traf.alt[i],self.traf.tas[i], \
+                                                                              self.traf.gs[i],self.traf.vs[i],self.traf.trk[i]))
+                    i = i + 1
+        return
+
+    def clearbuffer(self,simt):
+        # Write the saved buffer to the data files and clear the buffer, every dtwritelog seconds
+        # -> Used to avoid any memory problems due to an overload of logging data
+        if self.t0writelog+self.dtwritelog<simt or simt<self.t0writelog:
+            self.t0writelog = simt
+            if self.swsky:
+                self.save(0)
+            if self.swcfl:
+                self.save(1)
+            if self.swint:
+                self.save(2)
+            if self.swsnap:
+                self.save(3)
+            if self.swflst:
+                self.save(4)
+        return
+
 

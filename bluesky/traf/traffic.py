@@ -944,6 +944,14 @@ class Traffic:
 
                 # Compare with previous: when leaving area: delete command
                 if self.inside[i] and not inside:
+                    # If FLST logging is ON, log the flight statistics data of the aircraft before deleting it
+                    if self.log.swflst:
+                        self.log.write(4,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' % \
+                                       (self.id[i],self.orig[i],self.dest[i],self.type[i], \
+                                        self.flst.distance_2D[i],self.flst.distance_3D[i], \
+                                        self.flst.flightime[i],self.flst.work[i], \
+                                        self.lat[i],self.lon[i],self.alt[i]))
+
                     self.delete(self.id[i])
 
                 else:
@@ -951,6 +959,17 @@ class Traffic:
                     self.inside[i] = inside
                     i = i + 1
 
+        # ------------- DATALOG -------------
+        # Logging: SKY data of all aircraft, every dtsky seconds
+        self.log.skysave(self,simt)
+    
+        # Logging: SNAP data of all aircraft, every dtsnap seconds
+        self.log.snapsave(self,simt)
+        
+        # Write the logged data to the files and clear the buffer, every dtwritelog seconds
+        # -> Used to avoid any memory problems due to an overload of logging data
+        self.log.clearbuffer(simt)
+        
         return
 
     def id2idx(self, acid):
