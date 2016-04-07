@@ -616,6 +616,7 @@ class Traffic:
 
             # Call with traffic database and sim data
             self.dbconf.detect()
+            self.dbconf.conflictfilter()
             self.dbconf.conflictlist(simt)
             self.dbconf.APorASAS()                
             self.dbconf.resolve()

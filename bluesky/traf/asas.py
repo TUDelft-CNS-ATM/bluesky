@@ -216,7 +216,16 @@ class Dbconf():
                        *(1.-I)
                            
         return
+    
+    # ==================== Conflict Filter (User specific) ======================
+    def conflictfilter(self):
+        ## Filter for conflicts: no conflicts are detected for aircraft with an altitude less than 1000 ft
+        idx_conffilter                 = np.where(self.traf.alt<(1000*ft))[0]  # Search for the indices of aircraft within the altitude restriction
+        self.swconfl[idx_conffilter,:] = 0.                                    # Make the rows of the 'restricted' aircraft zero
+        self.swconfl[:,idx_conffilter] = 0.                                    # Make the columns of the 'restricted' aircraft zero
         
+        return
+
     def conflictlist(self, simt):
         if len(self.swconfl) == 0:
             return
