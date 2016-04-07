@@ -77,8 +77,9 @@ class Traffic:
         self.ntraf = 0
 
         # Create datalog instance
-        self.log = Datalog()
+        self.log = Datalog(self)
         
+        # Create flight statistics instance
         self.flst = FLST(self)
 
         # Traffic list & arrays definition
@@ -865,13 +866,19 @@ class Traffic:
         swaltsel = np.abs(self.desalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
                   
-        # if asas is not active AND VNAV is not active, then it shouls use the standard climb rate. 
-        # if asas is active AND VNAV is not active it should listen to the asasvs which is desvs
-        # if asas AND VNAV is active then use desvs                  
-        self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
+
+        if self.dbconf.swresodir == "VERT":
+            # if asas is not active AND VNAV is not active, then it shouls use the standard climb rate.
+            # if asas is active AND VNAV is not active it should listen to the asasvs which is desvs
+            # if asas AND VNAV is active then use desvs
+            self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
                     ( (1-self.swvnav)*(self.asasactive*np.abs(self.desvs)+(1-self.asasactive)*np.abs(1500./60.*ft)) +    \
                       self.swvnav*np.abs(self.desvs))
-        
+        else:
+            # Normal vertical speed selection
+            self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
+                    ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
+                        self.swvnav*np.abs(self.desvs))
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
                    (1. - swaltsel) * self.desalt + turbalt

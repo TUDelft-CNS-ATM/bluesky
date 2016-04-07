@@ -1742,6 +1742,89 @@ class Commandstack:
                         f.close()
 
                 #------------------------------------------------------------------
+                # DATALOG [ON/OFF]: Start the logging of traffic data
+                #------------------------------------------------------------------
+                elif cmd[:7] == "DATALOG":
+                    if numargs == 0:
+                        scr.echo("DATALOG ON/OFF")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.log.swsky = True
+                            traf.log.writesettings(self.scenfile,0)
+                        elif arg1[:2] == "OF":
+                            traf.log.save(0)
+                            traf.log.swsky = False
+                    else:
+                        scr.echo("Syntax error in command")
+                #------------------------------------------------------------------
+                # CFLLOG [ON/OFF]: Start the logging of conflict data
+                #------------------------------------------------------------------
+                elif cmd[:6] == "CFLLOG":
+                    if numargs == 0:
+                        scr.echo("CFLLOG ON/OFF")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.log.swcfl = True
+                            traf.log.writesettings(self.scenfile,1)
+                        elif arg1[:2] == "OF":
+                            traf.log.save(1)
+                            traf.log.swcfl = False
+                    else:
+                        scr.echo("Syntax error in command")
+                
+                #------------------------------------------------------------------
+                # INTLOG [ON/OFF]: Start the logging of intrusion data
+                #------------------------------------------------------------------
+                elif cmd[:6] == "INTLOG":
+                    if numargs == 0:
+                        scr.echo("INTLOG ON/OFF")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.log.swint = True
+                            traf.log.writesettings(self.scenfile,2)
+                        elif arg1[:2] == "OF":
+                            traf.log.save(2)
+                            traf.log.swint = False
+                    else:
+                        scr.echo("Syntax error in command")
+
+                #------------------------------------------------------------------
+                # SNAPLOG [ON/OFF]: Start the logging of SNAP data
+                #------------------------------------------------------------------
+                elif cmd[:7] == "SNAPLOG":
+                    if numargs == 0:
+                        scr.echo("SNAPLOG ON/OFF")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.log.swsnap = True
+                            traf.log.writesettings(self.scenfile,3)
+                        elif arg1[:2] == "OF":
+                            traf.log.save(3)
+                            traf.log.swsnap = False
+                    else:
+                        scr.echo("Syntax error in command")
+                
+                #------------------------------------------------------------------
+                # FLSTLOG [ON/OFF]: Start the logging of flight statistics data
+                #------------------------------------------------------------------
+                elif cmd[:7] == "FLSTLOG":
+                    if numargs == 0:
+                        scr.echo("FLSTLOG ON/OFF")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.log.swflst = True
+                            traf.log.writesettings(self.scenfile,4)
+                        elif arg1[:2] == "OF":
+                            traf.log.save(4)
+                            traf.log.swflst = False
+                    else:
+                        scr.echo("Syntax error in command")
+                #------------------------------------------------------------------
                 # !!! This is a template, please make a copy and keep it !!!
                 # Insert new command here: first three chars should be unique
                 #------------------------------------------------------------------
