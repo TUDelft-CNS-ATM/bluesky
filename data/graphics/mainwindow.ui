@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>901</width>
+    <width>911</width>
     <height>635</height>
    </rect>
   </property>
@@ -1056,7 +1056,7 @@ p, li { white-space: pre-wrap; }
        </property>
        <property name="font">
         <font>
-         <pointsize>14</pointsize>
+         <pointsize>13</pointsize>
          <weight>75</weight>
          <bold>true</bold>
         </font>
@@ -1076,31 +1076,31 @@ p, li { white-space: pre-wrap; }
       </widget>
      </item>
      <item>
-      <widget class="QTreeWidget" name="nodetree">
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>133</height>
-        </size>
-       </property>
-       <property name="frameShape">
-        <enum>QFrame::Box</enum>
-       </property>
-       <property name="frameShadow">
-        <enum>QFrame::Plain</enum>
-       </property>
-       <property name="indentation">
-        <number>8</number>
-       </property>
-       <attribute name="headerVisible">
-        <bool>false</bool>
-       </attribute>
-       <column>
-        <property name="text">
-         <string notr="true">1</string>
+       <widget class="QTreeWidget" name="nodetree">
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>133</height>
+         </size>
         </property>
-       </column>
-      </widget>
+        <property name="frameShape">
+         <enum>QFrame::Box</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <property name="indentation">
+         <number>8</number>
+        </property>
+        <attribute name="headerVisible">
+         <bool>false</bool>
+        </attribute>
+        <column>
+         <property name="text">
+          <string notr="true">1</string>
+         </property>
+        </column>
+       </widget>
      </item>
     </layout>
    </widget>
@@ -1110,7 +1110,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>901</width>
+     <width>911</width>
      <height>22</height>
     </rect>
    </property>

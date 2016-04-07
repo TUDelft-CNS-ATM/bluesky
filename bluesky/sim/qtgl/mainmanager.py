@@ -39,9 +39,14 @@ class MainManager(QObject):
         self.max_nnodes      = cpu_count()
         self.activenode      = 0
         self.sender_id       = -1
+        self.stopping        = False
         self.listener        = Listener(('localhost', 6000), authkey='bluesky')
 
     def receiveFromNodes(self):
+        # Only look for incoming data if we're not quitting
+        if self.stopping:
+            return
+
         # First look for new connections
         r, w, e = select.select((self.listener, ), (), (), 0)
         if self.listener in r:
@@ -148,6 +153,7 @@ class MainManager(QObject):
 
     def quit(self):
         print 'Stopping simulation processes...'
+        self.stopping = True
         # Tell each process to quit
         quitevent = (SimQuitEventType, SimQuitEvent())
         print 'Stopping nodes:'
