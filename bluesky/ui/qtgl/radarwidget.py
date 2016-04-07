@@ -557,8 +557,9 @@ class RadarWidget(QGLWidget):
 
     def update_route_data(self, data):
         self.route_acid = data.acid
-        if data.acid != "":
+        if data.acid != "" and len(data.lat) > 0:
             nsegments = len(data.lat)
+            data.iactwp = max(0, data.iactwp)
             self.routelbl.n_instances = nsegments
             self.route.set_vertex_count(2 * nsegments)
             routedata = np.empty(4 * nsegments, dtype=np.float32)
