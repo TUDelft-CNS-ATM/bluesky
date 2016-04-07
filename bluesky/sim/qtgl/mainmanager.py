@@ -92,7 +92,7 @@ class MainManager(QObject):
                         if len(self.scencmd) == 0:
                             if len(self.nodes) == 1:
                                 self.quit()
-                                qapp.quit()
+
                         else:
                             # Find the scenario starts
                             scenidx  = [i for i in range(len(self.scencmd)) if self.scencmd[i][:4] == 'SCEN']
@@ -167,6 +167,9 @@ class MainManager(QObject):
         for n in range(len(self.connections)):
             self.connections[n].close()
         print 'Done.'
+
+        # Quit the main loop
+        qapp.quit()
 
     def event(self, event):
         # Only send custom events to the active node

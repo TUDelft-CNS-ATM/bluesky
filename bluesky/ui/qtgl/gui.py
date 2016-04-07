@@ -339,7 +339,7 @@ class Gui(QApplication):
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
                 self.sendEvent(manager.instance, PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
-                                                                  zoom=self.radarwidget.zoom, absolute=True))
+                                                                zoom=self.radarwidget.zoom, absolute=True))
 
             # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
             if panzoom is not None:
