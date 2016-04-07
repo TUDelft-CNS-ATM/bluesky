@@ -4,8 +4,9 @@ try:
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem
     from PyQt5 import uic
 except ImportError:
-    from PyQt4.QtCore import Qt, pyqtSlot, QItemSelectionModel
-    from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, QTreeWidgetItem
+    from PyQt4.QtCore import Qt, pyqtSlot
+    from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
+         QItemSelectionModel, QTreeWidgetItem
     from PyQt4 import uic
 
 # Local imports
