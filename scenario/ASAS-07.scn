@@ -1,5 +1,5 @@
 # Test file: ASAS + VNAV + LNAV + trajectory recovery
-# Cruise - cruise conflict
+# climb - climb conflict
 
 00:00:00.00>AREA 4.16 4.16 -4.16 -4.16 5000
 00:00:00.00>ASA_ASAS ON
