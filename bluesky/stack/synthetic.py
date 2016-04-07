@@ -60,13 +60,8 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         ds=random.uniform(0.92,1.08)
         dd=random.uniform(0.92,1.08)
         traf.create("OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000*ft, 200*ds)
-<<<<<<< HEAD
         traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000*ft, 200/ds)
 
-=======
-        traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000*ft, 200/ds)   
-     
->>>>>>> ProfHoekstra/master
     
     # used for testing the differential game resolution method
     elif command == "DIFG":
@@ -201,11 +196,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         traf.aalt[idx]=(20000-altdif)*ft
         for i in range(20):
             acid="OTH"+str(i)
-<<<<<<< HEAD
             traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,200)
-=======
-            traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,200)            
->>>>>>> ProfHoekstra/master
         if savescenarios:
             fname="floor"
             cmd.saveic(fname,sim,traf)            
