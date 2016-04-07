@@ -154,6 +154,7 @@ if gui == 'qtgl':
         pb.show()
 
         REARTH_INV    = 1.56961231e-7
+        rwythresholds = dict()
         runways       = []
         asphalt       = PolygonSet()
         concrete      = PolygonSet()
@@ -288,4 +289,4 @@ if gui == 'qtgl':
         pb.close()
 
         # return the data
-        return vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, apt_ctr_lon, apt_indices
+        return vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds

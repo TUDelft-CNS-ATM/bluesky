@@ -48,7 +48,7 @@ class Navdatabase:
             self.wpseg.append(361*[[]])
             self.apseg.append(361*[[]])
 
-        wptdata, aptdata, firdata = load_navdata()
+        wptdata, aptdata, firdata, rwythresholds = load_navdata()
         self.wpid      = wptdata['wpid']  # identifier (string)
         self.wplat     = wptdata['wplat']  # latitude [deg]
         self.wplon     = wptdata['wplon']  # longitude [deg]
@@ -70,6 +70,8 @@ class Navdatabase:
         self.firlon0   = firdata['firlon0']
         self.firlat1   = firdata['firlat1']
         self.firlon1   = firdata['firlon1']
+
+        self.rwythresholds = rwythresholds
 
     def getwpidx(self,txt,lat=999999.,lon=999999):
         """Get waypoint index to access data"""
