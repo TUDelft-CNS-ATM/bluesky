@@ -145,8 +145,8 @@ class RadarWidget(QGLWidget):
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
 
-    @pyqtSlot(int)
-    def nodesChanged(self, nodeid):
+    @pyqtSlot(str, int)
+    def nodesChanged(self, address, nodeid):
         # For each node we have to keep data such as the visible polygons, etc.
         self.nodedata.append(nodeData())
 

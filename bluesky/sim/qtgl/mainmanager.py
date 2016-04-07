@@ -21,7 +21,7 @@ Listener.fileno = lambda self: self._listener._socket.fileno()
 class MainManager(QObject):
     instance           = None
     # Signals
-    nodes_changed      = pyqtSignal(int)
+    nodes_changed      = pyqtSignal(str, int)
     activenode_changed = pyqtSignal(int)
 
     @classmethod
@@ -45,13 +45,13 @@ class MainManager(QObject):
         # First look for new connections
         r, w, e = select.select((self.listener, ), (), (), 0)
         if self.listener in r:
-            print "Received connection request from new node"
             conn = self.listener.accept()
+            address = self.listener.last_accepted[0]
             # Send the node information about its nodeid
             nodeid = len(self.connections)
             conn.send((SetNodeIdType, nodeid))
             self.connections.append(conn)
-            self.nodes_changed.emit(nodeid)
+            self.nodes_changed.emit(address, nodeid)
             self.setActiveNode(nodeid)
 
         # Then process any data in the active connections
