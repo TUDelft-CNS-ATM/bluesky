@@ -29,7 +29,10 @@ MAX_POLYGON_SEGMENTS = 100
 REARTH_INV           = 1.56961231e-7
 
 # Colors
+<<<<<<< HEAD
 
+=======
+>>>>>>> ProfHoekstra/master
 red                   = (255, 0,   0)
 green                 = (0,   255, 0)
 blue                  = (0,   0,   255)

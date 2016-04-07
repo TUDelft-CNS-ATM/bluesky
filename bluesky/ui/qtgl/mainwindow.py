@@ -79,6 +79,17 @@ class MainWindow(QMainWindow):
         self.host1.setText(0, 'This computer')
         self.host1.setExpanded(True)
 
+        self.nodetree.setVisible(False)
+        self.nodetree.setIndentation(8)
+        self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
+        self.nodetree.itemClicked.connect(self.nodetreeClicked)
+        self.host1 = QTreeWidgetItem(self.nodetree)
+        f = self.host1.font(0)
+        f.setBold(True)
+        self.host1.setFont(0, f)
+        self.host1.setText(0, 'This computer')
+        self.host1.setExpanded(True)
+
     def closeEvent(self, event):
         manager.instance.quit()
 
