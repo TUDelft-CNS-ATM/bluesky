@@ -1,23 +1,25 @@
 try:
-    from PyQt5.QtCore import Qt, pyqtSlot, QRect
+    from PyQt5.QtCore import Qt, pyqtSlot
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QMenuBar, QMenu, QSplashScreen, QLabel, QWidget, QFrame
+    from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QSplashScreen
     from PyQt5 import uic
 except ImportError:
-    from PyQt4.QtCore import Qt, pyqtSlot, QRect
-    from PyQt4.QtGui import QPixmap, QMainWindow, QMenuBar, QMenu, QIcon, QSplashScreen, QLabel, QWidget, QFrame
+    from PyQt4.QtCore import Qt, pyqtSlot
+    from PyQt4.QtGui import QPixmap, QMainWindow, QMenu, QAction, QIcon, QSplashScreen
     from PyQt4 import uic
 
 # Local imports
-from uievents import PanZoomEvent
+from ...sim.qtgl import PanZoomEvent, MainManager as manager
 
 
 class Splash(QSplashScreen):
+    """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
         super(Splash, self).__init__(QPixmap('data/graphics/splash.gif'), Qt.WindowStaysOnTopHint)
 
 
 class MainWindow(QMainWindow):
+    """ Qt window process: from .ui file read UI window-definitionof main window """
 
     def __init__(self, app, radarwidget):
         super(MainWindow, self).__init__()
@@ -45,17 +47,6 @@ class MainWindow(QMainWindow):
                     self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked],
                     self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked]}
 
-        self.simnodemenu = QMenu()
-        node = self.simnodemenu.addAction('Node 1')
-        node.setCheckable(True)
-        node.setChecked(True)
-        self.simnodemenu.addSeparator()
-        addaction = self.simnodemenu.addAction('Add node')
-        f = addaction.font()
-        f.setBold(True)
-        addaction.setFont(f)
-        addaction.setEnabled(False)
-        self.simnodes.setMenu(self.simnodemenu)
         for b in buttons.iteritems():
             # Set icon
             if not b[1][0] is None:
@@ -67,38 +58,34 @@ class MainWindow(QMainWindow):
             # Connect clicked signal
             b[0].clicked.connect(b[1][2])
 
-        self.menubar = QMenuBar(self)
-
-        # File menu
-        self.fileMenu = self.menubar.addMenu('&File')
-        self.open_action = self.fileMenu.addAction('&Open')
-        self.open_action.triggered.connect(self.app.show_file_dialog)
-        self.save_action = self.fileMenu.addAction('&Save')
-
-        # View Menu
-        self.viewMenu = self.menubar.addMenu('&View')
-        self.resetview_action = self.viewMenu.addAction('&Reset view')
-
-        # Analysis and metrics menu
-        self.analysisMenu = self.menubar.addMenu('&Analysis')
-        # self.SD_action = self.analysisMenu.addAction('Static Density')
-        # self.DD_action = self.analysisMenu.addAction('Dynamic Density')
-        # self.SSD_action = self.analysisMenu.addAction('SSD Metric')
-        # self.lyu_action = self.analysisMenu.addAction('Lyapunov analysis')
-
-        # Connections menu
-        self.connectionsMenu = self.menubar.addMenu('Connections')
-        self.connectionsMenu.addAction('Connect to ADS-B server')
-        self.connectionsMenu.addAction('Enable output to UDP')
-
-        self.setMenuBar(self.menubar)
+        self.simnodemenu = QMenu()
+        self.simnodemenu.triggered.connect(self.nodeMenuEvent)
+        self.simnodemenu.addSeparator()
+        addaction = self.simnodemenu.addAction('Add node')
+        f = addaction.font()
+        f.setBold(True)
+        addaction.setFont(f)
+        self.simnodes.setMenu(self.simnodemenu)
 
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
+        # Connect to manager's nodelist changed signal
+        manager.instance.nodes_changed.connect(self.nodesChanged)
+        manager.instance.activenode_changed.connect(self.actnodeChanged)
 
     def closeEvent(self, event):
-        self.app.closeAllWindows()
+        manager.instance.quit()
+
+    @pyqtSlot(int)
+    def actnodeChanged(self, nodeid):
+        self.simnodes.setText('Node %d' % nodeid)
+
+    @pyqtSlot(int)
+    def nodesChanged(self, nodeid):
+        if nodeid >= 0:
+            node = QAction('Node %d' % nodeid, self)
+            self.simnodemenu.insertAction(self.simnodemenu.actions()[-2], node)
 
     @pyqtSlot()
     def buttonClicked(self):
@@ -139,3 +126,10 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
 
+    @pyqtSlot(QAction)
+    def nodeMenuEvent(self, action):
+        if action is self.simnodemenu.actions()[-1]:
+            manager.instance.addNode()
+        else:
+            idx = self.simnodemenu.actions().index(action)
+            manager.instance.setActiveNode(idx)

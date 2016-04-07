@@ -80,7 +80,6 @@ def radarclick(cmdline, lat, lon, traf, navdb):
             # do nothing, return empty strings
             lookup = False
             return "", ""
-
         # For valid value, insert relevant dat on edit line
         if lookup:
             if len(cmdline) > 0 and cmdline[-1] != ' ':
@@ -90,12 +89,15 @@ def radarclick(cmdline, lat, lon, traf, navdb):
             clickargs = lookup.lower().split(",")
             totargs   = len(clickargs)
             curarg    = numargs
-            # Exception case: if the last item of the clickargs list is "..." then the one-but-last can be repeatedly added (e.g., the definition of a polygon)
+            # Exception case: if the last item of the clickargs list is "..."
+            # then the one-but-last can be repeatedly added 
+            # (e.g. for the definition of a polygon)
+
             if clickargs[-1] == "...":
                 totargs = 999
                 curarg  = min(curarg, len(clickargs) - 2)
 
-            if curarg <= totargs:
+            if curarg < totargs:
                 clicktype = clickargs[curarg]
 
                 if clicktype == "acid":

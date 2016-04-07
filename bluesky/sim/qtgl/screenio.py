@@ -1,22 +1,23 @@
 try:
     # Try Qt5 first
-    from PyQt5.QtCore import QObject, QTimer, pyqtSlot
-    from PyQt5.QtCore import QCoreApplication as qapp
+    from PyQt5.QtCore import QObject, pyqtSlot
 except ImportError:
     # Else fall back to Qt4
-    from PyQt4.QtCore import QObject, QTimer, pyqtSlot
-    from PyQt4.QtCore import QCoreApplication as qapp
+    from PyQt4.QtCore import QObject, pyqtSlot
 
 import numpy as np
 import time
 
 # Local imports
-from ...ui.qtgl import ACDataEvent, RouteDataEvent, PanZoomEvent, SimInfoEvent, StackTextEvent, \
-                       ShowDialogEvent, DisplayFlagEvent, StackTextEventType, PanZoomEventType, \
-                       DisplayShapeEvent, SimQuitEvent, AMANEvent
+from timer import Timer
+from simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
+                        SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
+                        PanZoomEventType, DisplayShapeEvent
 
 
 class ScreenIO(QObject):
+    """Class within sim task which sends/receives data to/from GUI task"""
+
     # =========================================================================
     # Settings
     # =========================================================================
@@ -27,48 +28,9 @@ class ScreenIO(QObject):
     acupdate_rate = 5
 
     # =========================================================================
-    # Slots
-    # =========================================================================
-    @pyqtSlot()
-    def send_siminfo(self):
-        t  = time.time()
-        dt = t - self.prevtime
-        qapp.postEvent(qapp.instance(), SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
-        self.prevtime  = t
-        self.prevcount = self.sim.samplecount
-
-    @pyqtSlot()
-    def send_aircraft_data(self):
-        data            = ACDataEvent()
-        data.id         = list(self.sim.traf.id)
-        data.lat        = np.array(self.sim.traf.lat, dtype=np.float32, copy=True)
-        data.lon        = np.array(self.sim.traf.lon, dtype=np.float32, copy=True)
-        data.alt        = np.array(self.sim.traf.alt, dtype=np.float32, copy=True)
-        data.tas        = np.array(self.sim.traf.tas, dtype=np.float32, copy=True)
-        data.cas        = np.array(self.sim.traf.cas, dtype=np.float32, copy=True)
-        data.iconf      = np.array(self.sim.traf.iconf, copy=True)
-        data.confcpalat = np.array(self.sim.traf.dbconf.latowncpa, copy=True)
-        data.confcpalon = np.array(self.sim.traf.dbconf.lonowncpa, copy=True)
-        data.trk        = np.array(self.sim.traf.trk, dtype=np.float32, copy=True)
-        qapp.postEvent(qapp.instance(), data)
-
-    @pyqtSlot()
-    def send_aman_data(self):
-        # data            = AMANEvent()
-        # data.ids        = self.sim.traf.AMAN.
-        # data.iafs       = self.sim.traf.AMAN.
-        # data.eats       = self.sim.traf.AMAN.
-        # data.etas       = self.sim.traf.AMAN.
-        # data.delays     = self.sim.traf.AMAN.
-        # data.rwys       = self.sim.traf.AMAN.
-        # data.spdratios  = self.sim.traf.AMAN. 
-        # qapp.postEvent(qapp.instance(), data)
-        pass
-
-    # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, sim):
+    def __init__(self, sim, manager):
         super(ScreenIO, self).__init__()
 
         # Keep track of the important parameters of the screen state
@@ -77,30 +39,34 @@ class ScreenIO(QObject):
         self.ctrlon  = 0.0
         self.scrzoom = 1.0
 
+        self.route_acid = None
+
         # Keep reference to parent simulation object for access to simulation data
-        self.sim = sim
+        self.sim     = sim
+        self.manager = manager
 
         # Timing bookkeeping counters
         self.prevtime = 0.0
         self.prevcount = 0
 
         # Output event timers
-        self.siminfo_timer = QTimer()
-        self.siminfo_timer.timeout.connect(self.send_siminfo)
-        self.siminfo_timer.timeout.connect(self.send_aman_data)
-        self.siminfo_timer.start(1000/self.siminfo_rate)
+        self.slow_timer = Timer()
+        self.slow_timer.timeout.connect(self.send_siminfo)
+        self.slow_timer.timeout.connect(self.send_aman_data)
+        self.slow_timer.timeout.connect(self.send_route_data)
+        self.slow_timer.start(1000/self.siminfo_rate)
 
-        self.acupdate_timer = QTimer()
-        self.acupdate_timer.timeout.connect(self.send_aircraft_data)
-        self.acupdate_timer.start(1000/self.acupdate_rate)
-
-    def moveToThread(self, target_thread):
-        self.siminfo_timer.moveToThread(target_thread)
-        self.acupdate_timer.moveToThread(target_thread)
-        super(ScreenIO, self).moveToThread(target_thread)
+        self.fast_timer = Timer()
+        self.fast_timer.timeout.connect(self.send_aircraft_data)
+        self.fast_timer.start(1000/self.acupdate_rate)
 
     def echo(self, text):
-        qapp.postEvent(qapp.instance(), StackTextEvent(text))
+        if self.manager.isActive():
+            self.manager.sendEvent(StackTextEvent(disptext=text))
+
+    def cmdline(self, text):
+        if self.manager.isActive():
+            self.manager.sendEvent(StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
@@ -110,59 +76,47 @@ class ScreenIO(QObject):
         return lat0, lat1, lon0, lon1
 
     def zoom(self, zoomfac, absolute=False):
-        if absolute:
-            self.scrzoom = zoomfac
-        else:
-            self.scrzoom *= zoomfac
-        qapp.postEvent(qapp.instance(), PanZoomEvent(zoom=zoomfac, absolute=absolute))
+        if self.manager.isActive():
+            if absolute:
+                self.scrzoom = zoomfac
+            else:
+                self.scrzoom *= zoomfac
+            self.manager.sendEvent(PanZoomEvent(zoom=zoomfac, absolute=absolute))
 
     def symbol(self):
-        qapp.postEvent(qapp.instance(), DisplayFlagEvent('SYM'))
-        return
+        if self.manager.isActive():
+            self.manager.sendEvent(DisplayFlagEvent('SYM'))
 
     def pan(self, pan, absolute=False):
-        if absolute:
-            self.ctrlat = pan[0]
-            self.ctrlon = pan[1]
-        else:
-            self.ctrlat += pan[0]
-            self.ctrlon += pan[1]
-        qapp.postEvent(qapp.instance(), PanZoomEvent(pan=pan, absolute=absolute))
+        if self.manager.isActive():
+            if absolute:
+                self.ctrlat = pan[0]
+                self.ctrlon = pan[1]
+            else:
+                self.ctrlat += pan[0]
+                self.ctrlon += pan[1]
+            self.manager.sendEvent(PanZoomEvent(pan=pan, absolute=absolute))
 
     def showroute(self, acid):
-        data       = RouteDataEvent()
-        data.acidx = self.sim.traf.id2idx(acid)
-        if data.acidx >= 0:
-            route = self.sim.traf.route[data.acidx]
-            n_segments     = len(route.wplat) + 1
-            data.lat       = np.empty(n_segments, dtype=np.float32)
-            data.lat[0]    = self.sim.traf.lat[data.acidx]
-            data.lat[1:]   = route.wplat
-            data.lon       = np.empty(n_segments, dtype=np.float32)
-            data.lon[0]    = self.sim.traf.lon[data.acidx]
-            data.lon[1:]   = route.wplon
-            data.wptlabels = np.array(route.wpname)
-
-        qapp.postEvent(qapp.instance(), data)
+        self.route_acid = acid
 
     def showssd(self, param):
-        if param == 'ALL' or param == 'OFF':
-            qapp.postEvent(qapp.instance(), DisplayFlagEvent('SSD', param))
-        else:
-            idx = self.sim.traf.id2idx(param)
-            if idx >= 0:
-                qapp.postEvent(qapp.instance(), DisplayFlagEvent('SSD', idx))
+        if self.manager.isActive():
+            if param == 'ALL' or param == 'OFF':
+                self.manager.sendEvent(DisplayFlagEvent('SSD', param))
+            else:
+                idx = self.sim.traf.id2idx(param)
+                if idx >= 0:
+                    self.manager.sendEvent(DisplayFlagEvent('SSD', idx))
 
     def show_file_dialog(self):
-        qapp.postEvent(qapp.instance(), ShowDialogEvent())
-        return ''
-
-    def postQuit(self):
-        qapp.postEvent(qapp.instance(), SimQuitEvent())
+        if self.manager.isActive():
+            self.manager.sendEvent(ShowDialogEvent())
         return ''
 
     def feature(self, switch, argument=''):
-        qapp.postEvent(qapp.instance(), DisplayFlagEvent(switch, argument))
+        if self.manager.isActive():
+            self.manager.sendEvent(DisplayFlagEvent(switch, argument))
 
     def objappend(self, objtype, objname, data_in):
         if data_in is None:
@@ -180,17 +134,104 @@ class ScreenIO(QObject):
 
         elif objtype == 3:
             # CIRCLE
-            pass
+            # parameters
+            Rearth = 6371000.0             # radius of the Earth [m]
+            numPoints = 72                 # number of straight line segments that make up the circrle
 
-        qapp.postEvent(qapp.instance(), DisplayShapeEvent(objname, data))
+            # Inputs
+            lat0 = data_in[0]              # latitude of the center of the circle [deg]
+            lon0 = data_in[1]              # longitude of the center of the circle [deg]
+            Rcircle = data_in[2] * 1852.0  # radius of circle [NM]
+
+            # Compute flat Earth correction at the center of the experiment circle
+            coslatinv = 1.0 / np.cos(np.deg2rad(lat0))
+
+            # compute the x and y coordinates of the circle
+            angles   = np.linspace(0.0, 2.0*np.pi, numPoints)   # ,endpoint=True) # [rad]
+
+            # Calculate the circle coordinates in lat/lon degrees.
+            # Use flat-earth approximation to convert from cartesian to lat/lon.
+            latCircle = lat0 + np.rad2deg(Rcircle * np.sin(angles) / Rearth)  # [deg]
+            lonCircle = lon0 + np.rad2deg(Rcircle * np.cos(angles) * coslatinv / Rearth)  # [deg]
+
+            # make the data array in the format needed to plot circle
+            data = np.empty(2 * numPoints, dtype=np.float32)  # Create empty array
+            data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
+            data[1::2] = lonCircle
+
+        self.manager.sendEvent(DisplayShapeEvent(objname, data))
 
     def event(self, event):
-        if event.type() == StackTextEventType:
-            self.sim.stack.stack(event.text)
-
-        elif event.type() == PanZoomEventType:
+        if event.type() == PanZoomEventType:
             self.ctrlat  = event.pan[0]
             self.ctrlon  = event.pan[1]
             self.scrzoom = event.zoom
+            return True
 
-        return True
+        return False
+
+    # =========================================================================
+    # Slots
+    # =========================================================================
+    @pyqtSlot()
+    def send_siminfo(self):
+        if self.manager.isActive():
+            t  = time.time()
+            dt = t - self.prevtime
+            self.manager.sendEvent(SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
+            self.prevtime  = t
+            self.prevcount = self.sim.samplecount
+
+    @pyqtSlot()
+    def send_aircraft_data(self):
+        if self.manager.isActive():
+            data            = ACDataEvent()
+            data.id         = self.sim.traf.id
+            data.lat        = self.sim.traf.lat
+            data.lon        = self.sim.traf.lon
+            data.alt        = self.sim.traf.alt
+            data.tas        = self.sim.traf.tas
+            data.cas        = self.sim.traf.cas
+            data.iconf      = self.sim.traf.iconf
+            data.confcpalat = self.sim.traf.dbconf.latowncpa
+            data.confcpalon = self.sim.traf.dbconf.lonowncpa
+            data.trk        = self.sim.traf.trk
+            self.manager.sendEvent(data)
+
+    @pyqtSlot()
+    def send_route_data(self):
+        if self.manager.isActive() and self.route_acid is not None:
+            data               = RouteDataEvent()
+            data.acid          = self.route_acid
+            idx   = self.sim.traf.id2idx(self.route_acid)
+            if idx >= 0:
+                route          = self.sim.traf.route[idx]
+                data.iactwp    = route.iactwp
+
+                # We also need the corresponding aircraft position
+                data.aclat     = self.sim.traf.lat[idx]
+                data.aclon     = self.sim.traf.lon[idx]
+
+                data.lat       = route.wplat
+                data.lon       = route.wplon
+
+                data.wptlabels = route.wpname
+
+            self.manager.sendEvent(data)  # Send route data to GUI
+            # Empty route acid string means no longer send route data
+            if len(self.route_acid) == 0:
+                self.route_acid = None
+
+    @pyqtSlot()
+    def send_aman_data(self):
+        if self.manager.isActive():
+            # data            = AMANEvent()
+            # data.ids        = self.sim.traf.AMAN.
+            # data.iafs       = self.sim.traf.AMAN.
+            # data.eats       = self.sim.traf.AMAN.
+            # data.etas       = self.sim.traf.AMAN.
+            # data.delays     = self.sim.traf.AMAN.
+            # data.rwys       = self.sim.traf.AMAN.
+            # data.spdratios  = self.sim.traf.AMAN. 
+            # self.manager.sendEvent(data)
+            pass

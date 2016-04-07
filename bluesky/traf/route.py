@@ -4,17 +4,24 @@ from ..tools.misc import degto180
 
 
 class Route():
-    """ 
+    """
     Route class definition   : Route data for an aircraft (basic FMS functionality)
 
     addwpt(name,wptype,lat,lon,alt) : Add waypoint (closest to la/lon whene from navdb
 
     For lat/lon waypoints: use call sign as wpname, number will be added
-        
+
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self,navdb):
+    # Waypoint types:
+    wplatlon = 0   # lat/lon waypoint
+    wpnav    = 1   # VOR/nav database waypoint
+    orig     = 2   # Origin airport
+    dest     = 3   # Destination airport
+    calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
+
+    def __init__(self, navdb):
         # Add pointer to self navdb object
         self.navdb  = navdb
         self.nwp    = 0
@@ -23,22 +30,15 @@ class Route():
         self.wpname = []
         self.wptype = []
         self.wplat  = []
-        self.wplon  = [] 
-        self.wpalt  = [] # [m] negative value means not specified
-        self.wpspd  = [] # [m/s] negative value means not specified
-        self.wpflyby = [] # Flyby (True)/flyover(False) switch
+        self.wplon  = []
+        self.wpalt  = []    # [m] negative value means not specified
+        self.wpspd  = []    # [m/s] negative value means not specified
+        self.wpflyby = []   # Flyby (True)/flyover(False) switch
 
         # Current actual waypoint
         self.iactwp = -1
 
-        # Waypoint types:
-        self.wplatlon = 0   # lat/lon waypoint        
-        self.wpnav    = 1   # VOR/nav database waypoint
-        self.orig     = 2   # Origin airport
-        self.dest     = 3   # Destination airport
-        self.calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
-
-        self.swflyby = True # Default waypoints are flyby waypoint
+        self.swflyby  = True  # Default waypoints are flyby waypoint
 
         return
 
@@ -228,7 +228,8 @@ class Route():
             self.calcfp()
         
         # Update autopilot settings
-        self.direct(traf,iac,self.wpname[self.iactwp])                        
+        if wpok and self.iactwp>=0 and self.iactwp<self.nwp:
+            self.direct(traf,iac,self.wpname[self.iactwp])                        
           
         return idx
 
@@ -333,10 +334,10 @@ class Route():
         
         # Look up waypoint        
         idx = -1
-        i = self.nwp
-        while idx==-1 and i>0:
+        i = len(self.wpname)
+        while idx ==-1 and i>1:
             i = i-1
-            if self.wpname[i].upper()==delwpname.upper():
+            if self.wpname[i].upper() == delwpname.upper():
                 idx = i
 
         # Delete waypoint        
@@ -348,6 +349,8 @@ class Route():
             del self.wpalt[idx]
             del self.wpspd[idx]
             del self.wptype[idx]
+            if self.iactwp > idx:
+                self.iactwp = max(0,self.iactwp-1)
 
         return idx
 
@@ -565,12 +568,12 @@ class Route():
             return 0
 
         # Find closest    
-        wplat  = array(self.actwplat)
-        wplon  = array(self.actwplon)
+        wplat  = array(traf.actwplat)
+        wplon  = array(traf.actwplon)
         dy = wplat - traf.lat[i] 
         dx = (wplon - traf.lon[i]) * traf.coslat[i]
         dist2 = dx*dx + dy*dy            
-        iwpnear = np.argmin(dist2)
+        iwpnear = argmin(dist2)
         
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
@@ -580,9 +583,3 @@ class Route():
                 iwpnear= iwpnear+1
         
         return iwpnear
-        
-            
-            
-                     
-            
-            

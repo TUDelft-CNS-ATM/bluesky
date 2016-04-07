@@ -1,3 +1,3 @@
-from mainloop import MainLoop
 from simulation import Simulation
-from thread import Thread
+from mainmanager import MainManager
+from simevents import *

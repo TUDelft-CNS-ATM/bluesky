@@ -26,19 +26,23 @@ class CoeffBS:
         return
 
     def convert(self, value, unit):
-        factors = {'kg': 1., 't':1000, 'lbs': lbs, 'N': 1., 'W': 1, \
-                    'm':1.,'km': 1000, 'inch': inch,'ft': ft, \
-                    'sqm': 1., 'sqft': sqft, 'sqin': 0.00064516 ,\
-                    'm/s': 1., 'km/h': 0.27778, 'kts': kts, 'fpm': fpm, \
-                    "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 }
-        unit = unit
-        try: 
+        factors = {'kg': 1., 't':1000., 'lbs': lbs, 'N': 1., 'W': 1, \
+                    'm':1.,'km': 1000., 'inch': inch,'ft': ft, \
+                    'sqm': 1., 'sqft': sqft, 'sqin': 0.0254*0.0254 ,\
+                    'm/s': 1., 'km/h': 1./3.6, 'kts': kts, 'fpm': fpm, \
+                    "kg/s": 1., "kg/m": 1./60., 'mug/J': 0.000001, 'mg/J': 0.001 ,
+                    "kW": 1000.,"kN":1000.,
+                    "":1.}
+ 
+        if unit in factors:
             converted = factors[unit] * float(value)
-        except:
+
+        else:
             converted = float(value)
             if not self.warned:
-                print "Unit mismatch. Could not find ", unit     
+                print "traf/perf.py convert function: Unit mismatch. Could not find ", unit     
                 self.warned = True
+
         return converted 
         
 
@@ -258,8 +262,8 @@ class CoeffBS:
         # parse engine files
         path = os.path.dirname(__file__) + '/../../data/coefficients/BS_engines/'
         files = os.listdir(path)
-        for file in files:
-            endoc = ElementTree.parse(path + file)
+        for filename in files:
+            endoc = ElementTree.parse(path + filename)
             self.enlist.append(endoc.find('engines/engine').text)
 
             # thrust
@@ -304,18 +308,19 @@ coeffBS = CoeffBS()
 
 
 class Perf():
+    warned  = False        # Flag: Did we warn for default perf parameters yet?
+    warned2 = False    # Flag: Use of piston engine aircraft?
+
     def __init__(self, traf):
         # assign needed data from CTraffic
         self.traf = traf
-
-        self.warned = False        # Flag: Did we warn for default perf parameters yet?
-        self.warned2 = False    # Flag: Use of piston engine aircraft?
 
         # create empty database
         self.reset()
 
         # prepare for coefficient readin
         coeffBS.coeff()
+
         return
 
     def reset(self):
@@ -391,16 +396,15 @@ class Perf():
     def create(self, actype):
         """Create new aircraft"""
         # note: coefficients are initialized in SI units
-        try:
+        if actype in coeffBS.atype:
             # aircraft
             self.coeffidx = coeffBS.atype.index(actype)
-#            print actype
             # engine
-        except:
+        else:
             self.coeffidx = 0
-            if not self.warned:
+            if not Perf.warned:
                   print "aircraft is using default aircraft performance (Boeing 747-400)."
-            self.warned = True
+            Perf.warned = True
         self.coeffidxlist = np.append(self.coeffidxlist, self.coeffidx)
         self.mass = np.append(self.mass, coeffBS.MTOW[self.coeffidx]) # aircraft weight
         self.Sref = np.append(self.Sref, coeffBS.Sref[self.coeffidx]) # wing surface reference area
@@ -443,14 +447,14 @@ class Perf():
 
         # turboprops
         if coeffBS.etype[self.coeffidx] ==2:
-            try:
+            if coeffBS.engines[self.coeffidx][0] in coeffBS.propenlist:
                 self.propengidx = coeffBS.propenlist.index(coeffBS.engines[self.coeffidx][0])
-            except:
+            else:
                 self.propengidx = 0
-                if not self.warned2:
+                if not Perf.warned2:
                     print "prop aircraft is using standard engine. Please check valid engine types per aircraft type"
-                    self.warned2 = True
-                    
+                    Perf.warned2 = True
+
             self.P = np.append(self.P, coeffBS.P[self.propengidx]*coeffBS.n_eng[self.coeffidx])                     
             self.PSFC_TO = np.append(self.PSFC_TO, coeffBS.PSFC_TO[self.propengidx]) 
             self.PSFC_CR = np.append(self.PSFC_CR, coeffBS.PSFC_CR[self.propengidx])
@@ -471,9 +475,9 @@ class Perf():
 
         else:      # so coeffBS.etype[self.coeffidx] ==1:
 
-            try:
+            if coeffBS.engines[self.coeffidx][0] in coeffBS.jetenlist:
                 self.jetengidx = coeffBS.jetenlist.index(coeffBS.engines[self.coeffidx][0])
-            except:
+            else:
                 self.jetengidx = 0
                 if not self.warned2:
                     print " jet aircraft is using standard engine. Please check valid engine types per aircraft type"

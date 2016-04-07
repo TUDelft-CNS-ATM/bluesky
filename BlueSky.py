@@ -1,25 +1,15 @@
-from bluesky.traf import Navdatabase
-from bluesky.ui import Gui
-from bluesky.sim import Simulation, MainLoop
+import bluesky.settings as settings
+settings.init()
 
+if settings.gui == 'pygame':
+    import BlueSky_pygame as bs
+elif settings.gui == 'qtgl':
+    import BlueSky_qtgl as bs
+else:
+    import sys
+    print 'Unknown gui type:', settings.gui
+    sys.exit(0)
 
-# =============================================================================
-# Create gui and simulation objects
-# =============================================================================
-navdb = Navdatabase('global')
-gui   = Gui(navdb)
-sim   = Simulation(gui, navdb)
-
-# =============================================================================
-# Start the mainloop (and possible other threads)
-# =============================================================================
-MainLoop(gui, sim)
-
-# =============================================================================
-# Clean up before exit. Comment this out when debugging for checking variables
-# in the shell.
-# =============================================================================
-del gui
-#--debug---del sim
-
-print 'BlueSky normal end.'
+# Start the main loop. When debugging in python interactive mode,
+# relevant objects are available in bs namespace (e.g., bs.gui, bs.sim)
+bs.MainLoop()

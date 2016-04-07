@@ -3,9 +3,29 @@ try:
 except ImportError:
     from PyQt4.QtCore import QEvent
 
-PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType,  \
-ShowDialogEventType, DisplayFlagEventType, RouteDataEventType,  \
-DisplayShapeEventType, SimQuitEventType, AMANEventType = range(1000, 1010)
+NUMEVENTS = 15
+SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, PanZoomEventType, ACDataEventType, \
+    SimInfoEventType, StackTextEventType, ShowDialogEventType, \
+    DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType, \
+    SimQuitEventType, AMANEventType = range(1000, 1000 + NUMEVENTS)
+
+""" Definition of data content to be transferred between GUI and Sim tasks,
+    these defintions are used on both sides of the communication """
+
+
+class SimStateEvent(QEvent):
+    init, op, hold, end = range(4)
+
+    def __init__(self, state):
+        super(SimStateEvent, self).__init__(SimStateEventType)
+        self.state = state
+
+
+class BatchEvent(QEvent):
+    def __init__(self, scentime, scencmd):
+        super(BatchEvent, self).__init__(BatchEventType)
+        self.scentime = scentime
+        self.scencmd  = scencmd
 
 
 class DisplayFlagEvent(QEvent):
@@ -13,7 +33,7 @@ class DisplayFlagEvent(QEvent):
         super(DisplayFlagEvent, self).__init__(DisplayFlagEventType)
         self.switch = switch
         self.argument = argument
-        
+
 
 class SimInfoEvent(QEvent):
     def __init__(self, sys_freq, simdt, simt, n_ac, mode):
@@ -26,9 +46,10 @@ class SimInfoEvent(QEvent):
 
 
 class StackTextEvent(QEvent):
-    def __init__(self, text):
+    def __init__(self, disptext='', cmdtext=''):
         super(StackTextEvent, self).__init__(StackTextEventType)
-        self.text = text
+        self.disptext = disptext
+        self.cmdtext = cmdtext
 
 
 class ShowDialogEvent(QEvent):
@@ -41,9 +62,9 @@ class ShowDialogEvent(QEvent):
 
 
 class RouteDataEvent(QEvent):
-    lat = lon = wptlabels = []
-    acidx = 0
-
+    aclat = aclon = lat = lon = wptlabels = []
+    iactwp = -1
+    acid = ""
     def __init__(self):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
 

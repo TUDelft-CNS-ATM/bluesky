@@ -5,23 +5,26 @@ gui = 'qtgl'
 # Select the performance model. options: 'bluesky', 'bada'
 performance_model = 'bluesky'
 
+# Indicate the datafile path
+data_path = 'data'
+
 # Indicate the scenario path
 scenario_path = 'scenario'
 
 # Indicate the path for the aircraft performance data
-perf_path = 'data/coefficients/BS_aircraft'
+perf_path = data_path + '/coefficients/BS_aircraft'
 
 # Indicate the path for the BADA aircraft performance data (leave empty if BADA is not available)
-perf_path_bada = 'data/coefficients/BADA'
+perf_path_bada = data_path + '/coefficients/BADA'
+
+# Indicate the location of the airport database
+airport_file = data_path + '/global/airports.dat'
 
 # Indicate the start location of the radar screen (e.g. [lat, lon], or airport ICAO code)
 start_location = 'EHAM'
 
 # Simulation timestep [seconds]
 simdt = 0.05
-
-# Simulation thread update rate [Hz]
-sim_update_rate = 20
 
 #=============================================================================
 #=   QTGL Gui specific settings below
@@ -50,6 +53,11 @@ wpt_size = 10
 ac_size = 16
 
 #=========================================================================
+#=  Settings for the BlueSky telnet server
+#=========================================================================
+telnet_port = 8888
+
+#=========================================================================
 #=  Configure the following to stream raw data from a mode-s / ADS-B
 #=  TCP server.
 #=========================================================================
@@ -63,58 +71,49 @@ modeS_port = 0
 # END OF SETTINGS
 
 # Import config settings from settings.cfg if this exists, if it doesn't create an initial config file
-import os, sys
-configfile = 'settings.cfg'
-for i in range(len(sys.argv)):
-    if sys.argv[i] == '--config-file':
-        configfile = sys.argv[i+1]
-        break
+def init(gui='ask'):
+    import os, sys
+    configfile = 'settings.cfg'
+    for i in range(len(sys.argv)):
+        if sys.argv[i] == '--config-file':
+            configfile = sys.argv[i+1]
+            break
 
-if not os.path.isfile(configfile):
-    print
-    print 'No config file settings.cfg found in your BlueSky starting directory!'
-    print
-    print 'This config file contains several default settings related to the simulation loop and the graphics'
-    print 'You can specify your own settings or use the default.'
-    print 'Leave empty to use the default settings.'
-    print
-    print 'If it will not run, use the BlueSky-pygame,py version'
-    print
-    manual_input = (raw_input('Do you want to want to define your own settings? (yes/[no]): ').lower().find('y') >= 0)
-    print
-    lines = ''
-    with open(os.path.dirname(__file__) + '/settings.py') as fin:
-        line = fin.readline().strip('\n')
-        while line[:5] != '# END':
-            if manual_input:
-                if len(line) > 0 and line[0] != '#' and line.find('=') >= 0:
-                    # Get input from user
-                    c = line.split('=')
-                    ans = raw_input('[' + c[1].strip(' \'') + ']: ')
-                    if len(ans) > 0:
-                        line = c[0] + ' = '
-                        if c[1].find('\'') >= 0:
-                            ans = '\'' + ans + '\''
-                        line += ans
-                    print
+    if not os.path.isfile(configfile):
+        print
+        print 'No config file settings.cfg found in your BlueSky starting directory!'
+        print
+        print 'This config file contains several default settings related to the simulation loop and the graphics.'
+        print 'A default version will be generated, which you can change if necessary before the next time you run BlueSky.'
+        print
+        if gui == 'ask':
+            print 'BlueSky has several user interfaces to choose from. Please select which one to start by default.'
+            print 'You can always change this behavior by changing the settings.cfg file.'
+            print
+            print '1. QtGL:    This is the most current interface of BlueSky, but requires a graphics card that supports at least OpenGL 3.3.'
+            print '2. Pygame:  Use this version if your pc doesn\'t support OpenGL 3.3.'
+            print '3. Console: Run a console-only version of BlueSky. This is useful if you want to do batch simulations on a remote server.'
+            print
+            ans = input('Default UI version: ')
+            if ans == 1:
+                gui = 'qtgl'
+            elif ans == 2:
+                gui = 'pygame'
+            elif ans == 3:
+                gui = 'console'
+        lines = ''
 
-                elif line[:2] == '# ':
-                    # Variable info: also print
-                    print line.strip('# ')
-
-            lines += line + '\n'
+        with open(os.path.dirname(__file__).replace("\\", "/") + '/settings.py') as fin:
             line = fin.readline().strip('\n')
+            while line[:5] != '# END':
+                lines += line + '\n'
+                line = fin.readline().strip('\n')
 
-    with open(configfile, 'w') as fout:
-        fout.write(lines)
-else:
-    print 'Reading config from settings.cfg'
+        with open(configfile, 'w') as fout:
+            fout.write(lines)
+    else:
+        print 'Reading config from settings.cfg'
 
-execfile(configfile)
-
-#if len(sys.argv) > 1:
-#    args = str.join(',', sys.argv[1:])
-#    if args.find('pygame'):
-#        gui = 'pygame'
-#    elif args.find('qtgl'):
-#        gui = 'qtgl'
+    execfile(configfile, globals())
+    if not gui == 'ask':
+        globals()['gui'] = gui

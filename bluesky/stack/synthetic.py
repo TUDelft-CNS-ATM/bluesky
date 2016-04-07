@@ -32,12 +32,15 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         scr.swsep = True        #show circles of seperation between ac
         scr.swspd = True        #show speed vectors of aircraft
         scr.zoom(0.4, True)     #set zoom level to the standard distance
-        #cmd.scenlines=[]       #skip the rest of the scenario
+        cmd.scenlines=[]        #skip the rest of the scenario
+        cmd.scencmd=[]          #skip the rest of the scenario
+        cmd.scentime=[]         #skip the rest of the scenario
         #cmd.scenlines.append("00:00:00.00>"+callsign+"TESTCIRCLE")
         #cmd.scenlines.append("00:00:00.00>DT 1")
         #cmd.scenlines.append("00:00:00.00>FIXDT ON")
-        
         sim.mode=sim.init
+        sim.reset()
+        
     # display help    
     elif command == "HELP":
         scr.echo("This is the synthetic traffic scenario module")
@@ -46,18 +49,18 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     #create a perpendicular conflict between two aircraft
     elif command == "SIMPLE":
         scr.isoalt=0
-        traf.deleteall()
-        traf.create(["OWN", "GENERIC", -.5, 0, 0, 5000, 200])
-        traf.create(["OTH", "GENERIC", 0, .5, 270, 5000, 200])
+        traf.reset(sim.navdb)
+        traf.create("OWNSHIP", "GENERIC", -.5, 0, 0, 5000*ft, 200)
+        traf.create("INTRUDER", "GENERIC", 0, .5, 270, 5000*ft, 200)
         
     #create a perpendicular conflict with slight deviations to aircraft speeds and places
     elif command == "SIMPLED":
         scr.isoalt=0
-        traf.deleteall()
+        traf.reset(sim.navdb)
         ds=random.uniform(0.92,1.08)
         dd=random.uniform(0.92,1.08)
-        traf.create(["OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000, 200*ds])
-        traf.create(["INTRUDER", "GENERIC", 0, .5/dd, 270, 20000, 200/ds])   
+        traf.create("OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000*ft, 200*ds)
+        traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000*ft, 200/ds)   
      
     
     # used for testing the differential game resolution method
@@ -66,14 +69,14 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo("5 ARGUMENTS REQUIRED")
         else:
             scr.isoalt=0
-            traf.deleteall()
+            traf.reset(sim.navdb)
             x=  traf.dbconf.xw[int(float(cmdargs[1]))]/111319.
             y=  traf.dbconf.yw[int(float(cmdargs[2]))]/111319.
             v_o=traf.dbconf.v_o[int(float(cmdargs[3]))]
             v_w=traf.dbconf.v_w[int(float(cmdargs[4]))]
             phi=np.degrees(traf.dbconf.phi[int(float(cmdargs[5]))])
-            traf.create(["OWN", "GENERIC", 0, 0, 0, 5000, v_o])
-            traf.create(["WRN", "GENERIC", y, x, phi, 5000, v_w])
+            traf.create("OWN", "GENERIC", 0, 0, 0, 5000*ft, v_o)
+            traf.create("WRN", "GENERIC", y, x, phi, 5000*ft, v_w)
     
     
     # create a superconflict of x aircraft in a circle towards the center
@@ -82,15 +85,15 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo(callsign+"SUPER <NUMBER OF A/C>")
         else:
             scr.isoalt=0
-            traf.deleteall()
+            traf.reset(sim.navdb)
             numac=int(float(cmdargs[1]))
             distance=0.50 #this is in degrees lat/lon, for now
-            alt=20000 #meters
+            alt=20000*ft #ft
             spd=200 #kts
             for i in range(numac):
                 angle=2*np.pi/numac*i
                 acid="SUP"+str(i)
-                traf.create([acid,"SUPER",distance*-np.cos(angle),distance*np.sin(angle),360-360/numac*i,alt,spd])
+                traf.create(acid,"SUPER",distance*-np.cos(angle),distance*np.sin(angle),360-360/numac*i,alt,spd)
             if savescenarios:
                 fname="super"+str(numac)
                 cmd.saveic(fname,sim,traf)
@@ -102,11 +105,11 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo(callsign+"SPHERE <NUMBER OF A/C PER LAYER>")
         else:
             scr.isoalt=1./200
-            traf.deleteall()
+            traf.reset(sim.navdb)
             numac=int(float(cmdargs[1]))
             distance=0.5 #this is in degrees lat/lon, for now
             distancenm=distance*111319./1852
-            alt=20000 #meters
+            alt=20000 #ft
             spd=150 #kts
             vs=4 #m/s          
             timetoimpact=distancenm/spd*3600 #seconds
@@ -127,11 +130,11 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                 track=np.degrees(-angle)
                 
                 acidl="SPH"+str(i)+"LOW"
-                traf.create([acidl,"SUPER",lat,lon,track,lowalt,lospd])    
+                traf.create(acidl,"SUPER",lat,lon,track,lowalt*ft,lospd)    
                 acidm="SPH"+str(i)+"MID"
-                traf.create([acidm,"SUPER",lat,lon,track,midalt,mispd])    
+                traf.create(acidm,"SUPER",lat,lon,track,midalt*ft,mispd)    
                 acidh="SPH"+str(i)+"HIG"
-                traf.create([acidh,"SUPER",lat,lon,track,highalt,hispd])    
+                traf.create(acidh,"SUPER",lat,lon,track,highalt*ft,hispd)    
                 
                 idxl = traf.id.index(acidl)
                 idxh = traf.id.index(acidh)
@@ -156,7 +159,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         else:
             size=int(float(cmdargs[1]))
             scr.isoalt=0
-            traf.deleteall()
+            traf.reset(sim.navdb)
             mperdeg=111319.
             hsep=traf.dbconf.R # [m] horizontal separation minimum
             hseplat=hsep/mperdeg
@@ -166,13 +169,13 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             extradist=(vel*1.1)*5*60/mperdeg #degrees latlon flown in 5 minutes
             for i in range(size):
                 acidn="NORTH"+str(i)
-                traf.create([acidn,"MATRIX",hseplat*(size-1.)/2+extradist,(i-(size-1.)/2)*hseplat,180,20000,vel])
+                traf.create(acidn,"MATRIX",hseplat*(size-1.)/2+extradist,(i-(size-1.)/2)*hseplat,180,20000*ft,vel)
                 acids="SOUTH"+str(i)
-                traf.create([acids,"MATRIX",-hseplat*(size-1.)/2-extradist,(i-(size-1.)/2)*hseplat,0,20000,vel])
+                traf.create(acids,"MATRIX",-hseplat*(size-1.)/2-extradist,(i-(size-1.)/2)*hseplat,0,20000*ft,vel)
                 acide="EAST"+str(i)
-                traf.create([acide,"MATRIX",(i-(size-1.)/2)*hseplat,hseplat*(size-1.)/2+extradist,270,20000,vel])
+                traf.create(acide,"MATRIX",(i-(size-1.)/2)*hseplat,hseplat*(size-1.)/2+extradist,270,20000*ft,vel)
                 acidw="WEST"+str(i)
-                traf.create([acidw,"MATRIX",(i-(size-1.)/2)*hseplat,-hseplat*(size-1.)/2-extradist,90,20000,vel])
+                traf.create(acidw,"MATRIX",(i-(size-1.)/2)*hseplat,-hseplat*(size-1.)/2-extradist,90,20000*ft,vel)
                 
             if savescenarios:
                 fname="matrix"+str(size)
@@ -181,19 +184,19 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     # create a conflict with several aircraft flying in a floor formation    
     elif command == "FLOOR":
         scr.isoalt=1./50
-        traf.deleteall()
+        traf.reset(sim.navdb)
         mperdeg=111319.
-        altdif=3000 # meters
+        altdif=3000 # ft
         hsep=traf.dbconf.R # [m] horizontal separation minimum
         floorsep=1.1 #factor of extra spacing in the floor
         hseplat=hsep/mperdeg*floorsep
-        traf.create(["OWNSHIP","FLOOR",-1,0,90, 20000+altdif, 200])
+        traf.create("OWNSHIP","FLOOR",-1,0,90, (20000+altdif)*ft, 200)
         idx = traf.id.index("OWNSHIP")
         traf.avs[idx]=-10
         traf.aalt[idx]=20000-altdif
         for i in range(20):
             acid="OTH"+str(i)
-            traf.create([acid,"FLOOR",-1,(i-10)*hseplat,90,20000,200])            
+            traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,200)            
         if savescenarios:
             fname="floor"
             cmd.saveic(fname,sim,traf)            
@@ -205,14 +208,14 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         else:
             numac=int(float(cmdargs[1]))
             scr.isoalt=0
-            traf.deleteall()
+            traf.reset(sim.navdb)
             mperdeg=111319.
             vsteps=50 #[m/s]
             for v in range(vsteps,vsteps*(numac+1),vsteps): #m/s
                 acid="OT"+str(v)
                 distancetofly=v*5*60 #m
                 degtofly=distancetofly/mperdeg
-                traf.create([acid,"OT",0,-degtofly,90,20000,v])
+                traf.create(acid,"OT",0,-degtofly,90,20000*ft,v)
             if savescenarios:
                 fname="takeover"+str(numac)
                 cmd.saveic(fname,sim,traf)
@@ -220,16 +223,16 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     # create a conflict with several aircraft flying in a wall formation    
     elif command == "WALL":
         scr.isoalt=0
-        traf.deleteall()
+        traf.reset(sim.navdb)
         mperdeg=111319.
         distance=0.6 # in degrees lat/lon, for now
         hsep=traf.dbconf.R # [m] horizontal separation minimum
         hseplat=hsep/mperdeg
         wallsep=1.1 #factor of extra space in the wall
-        traf.create(["OWNSHIP","WALL",0,-distance,90, 20000, 200])
+        traf.create("OWNSHIP","WALL",0,-distance,90, 20000*ft, 200)
         for i in range(20):
             acid="OTHER"+str(i)
-            traf.create([acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000,200])
+            traf.create(acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000*ft,200)
         if savescenarios:
             fname="wall"
             cmd.saveic(fname,sim,traf)
@@ -241,7 +244,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo(commandhelp)
         else:
             try:
-                traf.deleteall() # start fresh
+                traf.reset(sim.navdb) # start fresh
                 synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
                 if synerror:
                     raise Exception()
@@ -261,8 +264,8 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                 for i in range(int(cmdargs[1])): # Create a/c
                     aclat = aclat+i*latsep*alternate
                     aclon = aclon-i*lonsep*alternate
-                    traf.create(["ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt, acspd])
-                    traf.create(["ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt, acspd])
+                    traf.create("ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt*ft, acspd)
+                    traf.create("ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt*ft, acspd)
                     alternate = alternate * -1   
                     
                 scr.pan([0,0],True)
@@ -280,7 +283,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.echo(commandhelp)
         else:
             try:
-                traf.deleteall() # start fresh
+                traf.reset(sim.navdb) # start fresh
                 synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
                 if synerror:
                     raise Exception() 
@@ -296,14 +299,14 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                 latsep = abs(hseplat*np.cos(np.deg2rad(ang))) #[deg]
                 lonsep = abs(hseplat*np.sin(np.deg2rad(ang)))
 
-                traf.create(["ANG0", actype, aclat, aclon, 180+ang, acalt, acspd])
-                traf.create(["ANG1", actype, aclat, -aclon, 180-ang, acalt, acspd])  
+                traf.create("ANG0", actype, aclat, aclon, 180+ang, acalt*ft, acspd)
+                traf.create("ANG1", actype, aclat, -aclon, 180-ang, acalt*ft, acspd)  
                 
                 for i in range(1,int(cmdargs[1])): # Create a/c
                     aclat = aclat+latsep
                     aclon = aclon+lonsep
-                    traf.create(["ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt, acspd])
-                    traf.create(["ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt, acspd])  
+                    traf.create("ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt*ft, acspd)
+                    traf.create("ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt*ft, acspd)  
 
                 scr.pan([0,0],True)
             except Exception:
@@ -311,35 +314,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             except:
                 scr.echo('Syntax error')
                 scr.echo(commandhelp)      
-                
-
-#    elif command == "TESTCIRCLE":
-#        scr.swtestarea = True   #show circles in testing area
-#        scr.redrawradbg=True    #draw the background again
-#        traf.dbconf=CASAScircle.Dbconf(traf,300., 5.*nm, 1000.*ft)
-#                                #change the ASAS system with one that incorporates
-#                                #the circular testing area
-
-    # Toggle the display of certain elements in screen
-    elif command == "DISP":
-        if numargs == 0:
-            scr.echo(callsign+"DISP <SEP/SPD/TEST>")
-        else:
-            sw = cmdargs[1]
-            
-            #show separation circles between aircraft of 2.5 nm radius
-            if sw == "SEP":
-                scr.swsep = not scr.swsep
-            elif sw == "SPD":
-                scr.swspd = not scr.swspd
-            elif sw == "TEST":
-                scr.swtestarea = not scr.swtestarea
-            
-            #unknown command
-            else:
-                scr.echo(callsign+"DISP <SEP/SPD/TEST>")
-
-    
+                   
     #give up
     else:
         scr.echo("Unknown command: " + callsign + command)
