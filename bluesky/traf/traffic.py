@@ -636,9 +636,7 @@ class Traffic:
             qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm])
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distance
-            #iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
-            iwpclose = np.where(self.swlnav*(dist < 10.))[0]
-
+            iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
 
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
@@ -741,11 +739,7 @@ class Traffic:
                 # Turn radius:      R = V2 tan phi / g
                 # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                 # using default bank angle per flight phase
-#                if self.route[0].iactwp >= 20:
-#                    import pdb
-#                    pdb.set_trace()
-
-                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] 
+                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm]
 
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
