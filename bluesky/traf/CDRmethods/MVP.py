@@ -65,15 +65,18 @@ def resolve(dbconf):
     # Restrict resolution direction based on swresodir
     if dbconf.swresodir == "HORIZ":
         dv[2,:] = 0.
-    elif dbconf.swresodir == "VERT":
-        dv[0,:] = 0.
-        dv[1,:] = 0.  
-        
+#    elif dbconf.swresodir == "VERT":
+#        dv[0,:] = 0.
+#        dv[1,:] = 0.  
+
     # the new speed vector
     newv = dv+v
 
     # the new speed vector in polar coordinates
-    newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
+    if dbconf.swresodir == "VERT":
+        newtrack = (np.arctan2(v[0,:],v[1,:])*180/np.pi) %360
+    else:
+        newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
     newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
     neweas   = vtas2eas(newgs,dbconf.traf.alt)
     

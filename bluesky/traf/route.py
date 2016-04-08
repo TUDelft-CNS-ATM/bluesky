@@ -526,7 +526,7 @@ class Route():
         # Calculate lateral leg data
         # LNAV: Calculate leg distances and directions
 
-        for i in range(0,self.nwp-2):
+        for i in range(0,self.nwp-1):
              qdr,dist = qdrdist(self.wplat[i]  ,self.wplon[i], \
                                 self.wplat[i+1],self.wplon[i+1])
              self.wpdirfrom[i] = qdr
