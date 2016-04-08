@@ -636,8 +636,8 @@ class Traffic:
             qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm])
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distance
-            iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
-            #iwpclose = np.where(self.swlnav*(dist < 10.))[0]
+            #iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
+            iwpclose = np.where(self.swlnav*(dist < 10.))[0]
 
 
             # Shift waypoints for aircraft i where necessary

@@ -34,7 +34,10 @@ def resolve(dbconf):
                     if dbconf.traf.vs[id1]<0.1 and dbconf.traf.vs[id2]>=0.1:
                         dv[id2] = dv[id2] + dv_eby
                     elif dbconf.traf.vs[id1]>=0.1 and dbconf.traf.vs[id2]<0.1:
-                        dv[id1] = dv[id1] + dv_eby                        
+                        dv[id1] = dv[id1] + dv_eby
+                    else:
+                        dv[id1] = dv[id1] - dv_eby
+                        dv[id2] = dv[id2] + dv_eby
                 else:
 
                     dv[id1] = dv[id1] - dv_eby
