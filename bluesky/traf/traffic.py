@@ -553,9 +553,7 @@ class Traffic:
         # Update only necessary if there is traffic
         if self.ntraf == 0:
             return
-        
-        #print self.route[0].iactwp ,self.route[0].wpname[self.route[0].iactwp],self.route[0].wpalt[self.route[0].iactwp]
-        #print 'self.actwpturn',self.actwpturn
+
         self.dts.append(simdt)
 
         #---------------- Atmosphere ----------------
@@ -637,7 +635,7 @@ class Traffic:
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distance
             iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
-
+            
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
                 
@@ -736,19 +734,19 @@ class Traffic:
                    self.actwpspd[i] = -999.
 
                 # Calculate distance before waypoint where to start the turn
-                # Turn radius:      R = V2 tan phi / g
+                # Turn radius:      R = V^2 / tan phi / g
                 # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                 # using default bank angle per flight phase
                 turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm]
 
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
-                qdr[i] = degrees(atan2(dx,dy))                    
+                qdr[i] = degrees(atan2(dx,dy))     
 
-                self.actwpturn[i] = self.actwpflyby[i]*                     \
-                     max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
-                     self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]
-
+                self.actwpturn[i] = self.actwpflyby[i]*np.max(10.,\
+                                    abs(turnrad*tan(radians(0.5*degto180(qdr[i]\
+                                    -self.route[i].wpdirfrom[self.route[i].iactwp]))))) 
+ 
             # End of Waypoint switching loop
             
             # Do VNAV start of descent check
