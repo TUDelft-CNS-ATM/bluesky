@@ -1,12 +1,12 @@
 try:
     from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem
+    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QToolButton
     from PyQt5 import uic
 except ImportError:
     from PyQt4.QtCore import Qt, pyqtSlot
     from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
-         QItemSelectionModel, QTreeWidgetItem
+        QItemSelectionModel, QTreeWidgetItem, QToolButton
     from PyQt4 import uic
 
 # Local imports
@@ -69,7 +69,9 @@ class MainWindow(QMainWindow):
 
         self.nodetree.setVisible(False)
         self.nodetree.setIndentation(8)
+        self.nodetree.setColumnCount(2)
         self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
+        self.nodetree.header().resizeSection(0, 150)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
         self.host1 = QTreeWidgetItem(self.nodetree)
         f = self.host1.font(0)
@@ -78,8 +80,17 @@ class MainWindow(QMainWindow):
         self.host1.setText(0, 'This computer')
         self.host1.setExpanded(True)
 
+        btn = QToolButton(self.nodetree)
+        btn.setText('Add node')
+        btn.setFixedSize(50, 16)
+        # btn.setFlat(True)
+        # btn.setIcon(QIcon('data/graphics/icons/addnode_i.svg'))
+        # btn.setIconSize(QSize(40, 12))
+        btn.clicked.connect(manager.instance.addNode)
+        self.nodetree.setItemWidget(self.host1, 1, btn)
+
     def closeEvent(self, event):
-        manager.instance.quit()
+        self.app.quit()
 
     @pyqtSlot(int)
     def actnodeChanged(self, nodeid):

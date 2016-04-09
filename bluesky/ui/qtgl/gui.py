@@ -27,9 +27,7 @@ from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete
-from ...settings import telnet_port
 from ...tools.misc import cmdsplit
-from ...tools.network import StackTelnetServer
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -82,7 +80,6 @@ class Gui(QApplication):
 
     def __init__(self, navdb):
         super(Gui, self).__init__([])
-        self.telnet_in       = StackTelnetServer(self)
         self.acdata          = ACDataEvent()
         self.navdb           = navdb
         self.radarwidget     = []
@@ -142,17 +139,13 @@ class Gui(QApplication):
 
     def start(self):
         self.win.show()
-        # Start the telnet input server for stack commands
-        self.telnet_in.listen(port=telnet_port)
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
         self.exec_()
 
-    def stop(self):
+    def quit(self):
         self.closeAllWindows()
-        print 'Stopping telnet server.'
-        self.telnet_in.close()
 
     def notify(self, receiver, event):
         # Keep track of event processing
@@ -362,7 +355,7 @@ class Gui(QApplication):
                     return self.radarwidget.event(PanZoomEvent(pan=(0.0, dlon)))
 
             elif event.key() == Qt.Key_Escape:
-                    manager.instance.quit()
+                    self.quit()
 
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]

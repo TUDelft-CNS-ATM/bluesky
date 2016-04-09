@@ -62,8 +62,9 @@ class MainManager(QObject):
         # Then process any data in the active connections
         for self.sender_id in range(len(self.connections)):
             conn = self.connections[self.sender_id]
-            if conn is None:
+            if conn is None or conn.closed:
                 continue
+
             # Check for incoming events with poll
             while conn.poll():
                 # Receive events that are waiting in the conn
@@ -91,7 +92,8 @@ class MainManager(QObject):
                     if event.state == event.end:
                         if len(self.scencmd) == 0:
                             if len(self.nodes) == 1:
-                                self.quit()
+                                # Quit the main loop. Afterwards, manager will also quit
+                                qapp.instance().quit()
 
                         else:
                             # Find the scenario starts
@@ -151,7 +153,7 @@ class MainManager(QObject):
         # Start the first simulation node on start
         self.addNode()
 
-    def quit(self):
+    def stop(self):
         print 'Stopping simulation processes...'
         self.stopping = True
         # Tell each process to quit
@@ -167,9 +169,6 @@ class MainManager(QObject):
         for n in range(len(self.connections)):
             self.connections[n].close()
         print 'Done.'
-
-        # Quit the main loop
-        qapp.quit()
 
     def event(self, event):
         # Only send custom events to the active node
