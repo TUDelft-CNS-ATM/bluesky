@@ -1,16 +1,16 @@
 try:
-    from PyQt5.QtCore import Qt, pyqtSlot
+    from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QSplashScreen
+    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem
     from PyQt5 import uic
 except ImportError:
     from PyQt4.QtCore import Qt, pyqtSlot
-    from PyQt4.QtGui import QPixmap, QMainWindow, QMenu, QAction, QIcon, QSplashScreen
+    from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
+         QItemSelectionModel, QTreeWidgetItem
     from PyQt4 import uic
 
 # Local imports
-from ...sim.qtgl import ThreadManager as manager
-from ...sim.qtgl import PanZoomEvent
+from ...sim.qtgl import PanZoomEvent, MainManager as manager
 
 
 class Splash(QSplashScreen):
@@ -46,7 +46,8 @@ class MainWindow(QMainWindow):
                     self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked],
                     self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked],
                     self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked],
-                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked]}
+                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked],
+                    self.shownodes :  ['nodes.svg', 'Show/hide node list', self.buttonClicked]}
 
         for b in buttons.iteritems():
             # Set icon
@@ -59,35 +60,54 @@ class MainWindow(QMainWindow):
             # Connect clicked signal
             b[0].clicked.connect(b[1][2])
 
-        self.simnodemenu = QMenu()
-        self.simnodemenu.triggered.connect(self.nodeMenuEvent)
-        self.simnodemenu.addSeparator()
-        addaction = self.simnodemenu.addAction('Add node')
-        f = addaction.font()
-        f.setBold(True)
-        addaction.setFont(f)
-        self.simnodes.setMenu(self.simnodemenu)
-
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
-
         # Connect to manager's nodelist changed signal
-        manager.instance().nodes_changed.connect(self.nodesChanged)
+        manager.instance.nodes_changed.connect(self.nodesChanged)
+        manager.instance.activenode_changed.connect(self.actnodeChanged)
+
+        self.nodetree.setVisible(False)
+        self.nodetree.setIndentation(8)
+        self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
+        self.nodetree.itemClicked.connect(self.nodetreeClicked)
+        self.host1 = QTreeWidgetItem(self.nodetree)
+        f = self.host1.font(0)
+        f.setBold(True)
+        self.host1.setFont(0, f)
+        self.host1.setText(0, 'This computer')
+        self.host1.setExpanded(True)
 
     def closeEvent(self, event):
-        manager.instance().quit()
+        manager.instance.quit()
 
     @pyqtSlot(int)
-    def nodesChanged(self, nodeid):
+    def actnodeChanged(self, nodeid):
+        self.nodelabel.setText('<b>Node</b> %d' % nodeid)
+        self.nodetree.setCurrentItem(self.host1.child(nodeid), 0, QItemSelectionModel.ClearAndSelect)
+
+    @pyqtSlot(str, int)
+    def nodesChanged(self, address, nodeid):
         if nodeid >= 0:
-            nodetxt = 'Node %d' % nodeid
-            node = QAction(nodetxt, self)
-            self.simnodemenu.insertAction(self.simnodemenu.actions()[-2], node)
-            self.simnodes.setText(nodetxt)
+            node = QTreeWidgetItem(self.host1)
+            node.setText(0, 'Node %d' % nodeid)
+
+    @pyqtSlot(QTreeWidgetItem, int)
+    def nodetreeClicked(self, item, column):
+        if item is self.host1:
+            item.setSelected(False)
+            item.child(0).setSelected(True)
+            nodeid = 0
+        else:
+            nodeid = item.parent().indexOfChild(item)
+        manager.instance.setActiveNode(nodeid)
 
     @pyqtSlot()
     def buttonClicked(self):
+        if self.sender() == self.shownodes:
+            vis = not self.nodetree.isVisible()
+            self.nodetree.setVisible(vis)
+            self.shownodes.setText('>' if vis else '<')
         if self.sender() == self.zoomin:
             self.app.notify(self.app, PanZoomEvent(zoom=1.4142135623730951))
         elif self.sender() == self.zoomout:
@@ -124,12 +144,3 @@ class MainWindow(QMainWindow):
             self.radarwidget.show_lbl = not self.radarwidget.show_lbl
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
-
-    @pyqtSlot(QAction)
-    def nodeMenuEvent(self, action):
-        if action is self.simnodemenu.actions()[-1]:
-            manager.instance().addNode()
-        else:
-            idx = self.simnodemenu.actions().index(action)
-            manager.instance().setActiveNode(idx)
-            self.simnodes.setText(action.text())

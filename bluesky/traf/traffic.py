@@ -352,10 +352,13 @@ class Traffic:
 
         # Route info
         self.route.append(Route(self.navdb))  # create empty route connected with nav databse
-
+		
         eas = tas2eas(acspd, acalt)
+
         # ASAS info: no conflict => -1
         self.iconf.append(-1)  # index in 'conflicting' aircraft database
+
+        # ASAS output commanded values
         self.asasactive = np.append(self.asasactive, False)
         self.asashdg = np.append(self.asashdg, achdg)
         self.asasspd = np.append(self.asasspd, eas)
@@ -741,7 +744,8 @@ class Traffic:
 
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
-                qdr[i] = degrees(atan2(dx,dy))
+                qdr[i] = degrees(atan2(dx,dy))     
+
                 self.actwpturn[i] = self.actwpflyby[i]*np.max(10.,\
                                     abs(turnrad*tan(radians(0.5*degto180(qdr[i]\
                                     -self.route[i].wpdirfrom[self.route[i].iactwp]))))) 

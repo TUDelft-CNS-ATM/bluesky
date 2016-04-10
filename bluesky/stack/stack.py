@@ -10,7 +10,8 @@ from ..tools.aero import kts, ft, fpm, nm, lbs,\
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
-import pdb
+# import pdb
+
 
 class Commandstack:
     """
@@ -36,6 +37,10 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #--------------------------------------------------------------------
         self.cmddict = {
+            "ADDNODES": [
+                "ADDNODES number",
+                "int",
+                sim.addNodes],
             "BATCH": [
                 "BATCH filename",
                 "txt",
@@ -83,7 +88,7 @@ class Commandstack:
             "SCEN": [
                 "SCEN scenname",
                 "txt",
-                sim.setScenName
+                sim.scenarioInit
             ],
             "SPD": [
                 "SPD acid,spd [CAS-kts/Mach]",
@@ -373,7 +378,7 @@ class Commandstack:
             synerr = False
 
             # Catch general errors
-            #try:
+#            try:
             if True:  # optional to switch error protection off
 
                 #**********************************************************************
@@ -397,8 +402,8 @@ class Commandstack:
                     refalt = 0. # Reference altitude
                     reflat = scr.ctrlat # Reference latitude
                     reflon = scr.ctrlon # Reference longitude
-#                    try:
-                    if True:
+                    try:
+#                    if True:
                         for i in range(1,1+min(numtypes,numargs)):
                             argtype = argtypes[i-1].strip()
 
@@ -465,19 +470,19 @@ class Commandstack:
                                 else:
                                     arglist.append(float(cmdargs[i]))
 
-#                    except:
-#                        synerr = False
-#                        scr.echo("Syntax error in processing arguments")
-#                        scr.echo(cmdline)
-#                        scr.echo(helptext)
+                    except:
+                        synerr = False
+                        scr.echo("Syntax error in processing arguments")
+                        scr.echo(cmdline)
+                        scr.echo(helptext)
 
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
-                    try:
-                        results = function(*arglist) # * = unpack list to call arguments
-                    except:
-                        synerr = True
+#                    try:
+                    results = function(*arglist) # * = unpack list to call arguments
+#                    except:
+#                        synerr = True
                     txt = helptext
                     if not synerr:
 
@@ -933,8 +938,6 @@ class Commandstack:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
                     sim.reset()
-                    traf.deleteall()
-                        
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run
@@ -1740,8 +1743,8 @@ class Commandstack:
                         # End of data
                         f.write("----\n")
                         f.close()
-
-                #------------------------------------------------------------------
+						
+				#------------------------------------------------------------------
                 # DATALOG [ON/OFF]: Start the logging of traffic data
                 #------------------------------------------------------------------
                 elif cmd[:7] == "DATALOG":
@@ -1824,6 +1827,17 @@ class Commandstack:
                             traf.log.swflst = False
                     else:
                         scr.echo("Syntax error in command")
+                #------------------------------------------------------------------
+                # !!! This is a template, please make a copy and keep it !!!
+                # Insert new command here: first three chars should be unique
+                #------------------------------------------------------------------
+                elif cmd[:3] == "XXX":
+                    if numargs == 0:
+                        scr.echo("cmd arg1, arg2")
+                    else:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        arg2 = cmdargs[2]  # arguments are strings
+
                 #------------------------------------------------------------------
                 # !!! This is a template, please make a copy and keep it !!!
                 # Insert new command here: first three chars should be unique
