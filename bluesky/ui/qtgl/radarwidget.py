@@ -123,7 +123,7 @@ class RadarWidget(QGLWidget):
         self.apt_inrange    = np.array([])
         self.ssd_all        = False
         self.navdb          = navdb
-        self.actnodeid      = 0
+        self.iactconn       = 0
         self.nodedata       = list()
 
         # Display flags
@@ -146,14 +146,14 @@ class RadarWidget(QGLWidget):
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
 
     @pyqtSlot(str, int)
-    def nodesChanged(self, address, nodeid):
+    def nodesChanged(self, address, nodeid, connidx):
         # For each node we have to keep data such as the visible polygons, etc.
         self.nodedata.append(nodeData())
 
     @pyqtSlot(int)
-    def actnodeChanged(self, nodeid):
-        self.actnodeid = nodeid
-        nact = self.nodedata[nodeid]
+    def actnodeChanged(self, nodeid, connidx):
+        self.iactconn = connidx
+        nact = self.nodedata[connidx]
         if len(nact.polydata) > 0:
             update_buffer(self.allpolysbuf, nact.polydata)
         self.allpolys.set_vertex_count(len(nact.polydata) / 2)
@@ -644,7 +644,7 @@ class RadarWidget(QGLWidget):
                 self.ssd_ownship = np.append(self.ssd_ownship, arg)
 
     def updatePolygon(self, name, data_in):
-        nact = self.nodedata[manager.sender()]
+        nact = self.nodedata[manager.sender()[0]]
         if name in nact.polynames:
             # We're either updating a polygon, or deleting it. In both cases
             # we remove the current one.

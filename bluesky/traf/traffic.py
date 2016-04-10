@@ -1027,7 +1027,7 @@ class Traffic:
             self.aspd[idx] = spd * kts # CAS m/s
             self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
         else:
-            self.aspd[idx] = mach2cas(spd, self.alt[idx]) # Convert Mach to CAS m/s
+            self.aspd[idx] = mach2cas(spd, self.alt[idx])  # Convert Mach to CAS m/s
             self.ama[idx]  = spd
         # Switch off VNAV: SPD command overrides
         self.swvnav[idx] = False  

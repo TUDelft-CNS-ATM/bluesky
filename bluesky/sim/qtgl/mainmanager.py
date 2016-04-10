@@ -21,8 +21,8 @@ Listener.fileno = lambda self: self._listener._socket.fileno()
 class MainManager(QObject):
     instance           = None
     # Signals
-    nodes_changed      = pyqtSignal(str, int)
-    activenode_changed = pyqtSignal(int)
+    nodes_changed      = pyqtSignal(str, tuple, int)
+    activenode_changed = pyqtSignal(tuple, int)
 
     @classmethod
     def sender(cls):
@@ -35,7 +35,8 @@ class MainManager(QObject):
         self.scentime        = []
         self.scencmd         = []
         self.connections     = []
-        self.nodes           = []
+        self.localnodes      = []
+        self.hosts           = dict()
         self.max_nnodes      = cpu_count()
         self.activenode      = 0
         self.sender_id       = -1
@@ -52,25 +53,35 @@ class MainManager(QObject):
         if self.listener in r:
             conn = self.listener.accept()
             address = self.listener.last_accepted[0]
+            if address in self.hosts:
+                nodeid = self.hosts[address]
+            else:
+                nodeid = (len(self.hosts), 0)
+            # Store host number and its number of nodes
+            self.hosts[address] = (nodeid[0], nodeid[1] + 1)
             # Send the node information about its nodeid
-            nodeid = len(self.connections)
+            connidx = len(self.connections)
             conn.send((SetNodeIdType, nodeid))
-            self.connections.append(conn)
-            self.nodes_changed.emit(address, nodeid)
-            self.setActiveNode(nodeid)
+            self.connections.append((conn, nodeid))
+            self.nodes_changed.emit(address, nodeid, connidx)
+            self.setActiveNode(connidx)
 
         # Then process any data in the active connections
-        for self.sender_id in range(len(self.connections)):
-            conn = self.connections[self.sender_id]
-            if conn is None:
+        for connidx in range(len(self.connections)):
+            conn = self.connections[connidx]
+            if conn[0] is None or conn[0].closed:
                 continue
+
             # Check for incoming events with poll
-            while conn.poll():
+            while conn[0].poll():
                 # Receive events that are waiting in the conn
                 try:
-                    (eventtype, event) = conn.recv()
+                    (eventtype, event) = conn[0].recv()
                 except:
                     continue
+
+                # Sender id is connection index and node id
+                self.sender_id = (connidx, conn[1])
 
                 if eventtype == AddNodeType:
                     # This event only consists of an int: the number of nodes to add
@@ -85,13 +96,14 @@ class MainManager(QObject):
                 if event.type() == SimStateEventType:
                     if event.state == event.init:
                         # Set received state to end to enable sending of new batch scenario
-                        if len(self.nodes) > 1:
+                        if len(self.localnodes) > 1:
                             event.state = event.end
 
                     if event.state == event.end:
                         if len(self.scencmd) == 0:
-                            if len(self.nodes) == 1:
-                                self.quit()
+                            if len(self.localnodes) == 1:
+                                # Quit the main loop. Afterwards, manager will also quit
+                                qapp.instance().quit()
 
                         else:
                             # Find the scenario starts
@@ -100,7 +112,7 @@ class MainManager(QObject):
                             start = scenidx[0]
                             end   = scenidx[1]
                             # Send a new scenario to the finished sim process
-                            conn.send((BatchEventType, BatchEvent(self.scentime[start:end], self.scencmd[start:end])))
+                            conn[0].send((BatchEventType, BatchEvent(self.scentime[start:end], self.scencmd[start:end])))
 
                             # Delete the scenarios that were sent in the initial batch
                             del self.scentime[0:end]
@@ -117,8 +129,8 @@ class MainManager(QObject):
                     else:
                         # Determine and start the required number of nodes
                         reqd_nnodes = min(len(scenidx), self.max_nnodes)
-                        if reqd_nnodes > len(self.nodes):
-                            for n in range(len(self.nodes), reqd_nnodes):
+                        if reqd_nnodes > len(self.localnodes):
+                            for n in range(len(self.localnodes), reqd_nnodes):
                                 self.addNode()
 
                 else:
@@ -131,17 +143,17 @@ class MainManager(QObject):
 
     def addNode(self):
         if len(self.connections) > 0:
-            self.connections[self.activenode].send((SetActiveNodeType, False))
+            self.connections[self.activenode][0].send((SetActiveNodeType, False))
         p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
-        self.nodes.append(p)
+        self.localnodes.append(p)
 
-    def setActiveNode(self, nodeid):
-        if nodeid < len(self.connections):
-            self.activenode_changed.emit(nodeid)
-            if not nodeid == self.activenode:
-                self.connections[self.activenode].send((SetActiveNodeType, False))
-                self.activenode = nodeid
-                self.connections[self.activenode].send((SetActiveNodeType, True))
+    def setActiveNode(self, connidx):
+        if connidx < len(self.connections):
+            self.activenode_changed.emit(self.connections[connidx][1], connidx)
+            if not connidx == self.activenode:
+                self.connections[self.activenode][0].send((SetActiveNodeType, False))
+                self.activenode = connidx
+                self.connections[self.activenode][0].send((SetActiveNodeType, True))
 
     def start(self):
         timer           = QTimer(self)
@@ -151,21 +163,21 @@ class MainManager(QObject):
         # Start the first simulation node on start
         self.addNode()
 
-    def quit(self):
+    def stop(self):
         print 'Stopping simulation processes...'
         self.stopping = True
         # Tell each process to quit
         quitevent = (SimQuitEventType, SimQuitEvent())
         print 'Stopping nodes:'
         for n in range(len(self.connections)):
-            self.connections[n].send(quitevent)
+            self.connections[n][0].send(quitevent)
 
         # Wait for all nodes to finish
-        for n in self.nodes:
+        for n in self.localnodes:
             n.wait()
 
         for n in range(len(self.connections)):
-            self.connections[n].close()
+            self.connections[n][0].close()
         print 'Done.'
 
         # Quit the main loop
@@ -174,5 +186,5 @@ class MainManager(QObject):
     def event(self, event):
         # Only send custom events to the active node
         if event.type() >= 1000:
-            self.connections[self.activenode].send((int(event.type()), event))
+            self.connections[self.activenode][0].send((int(event.type()), event))
         return True
