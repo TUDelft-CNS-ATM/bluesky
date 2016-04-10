@@ -428,14 +428,10 @@ class Dbconf():
         v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
         v  = np.array(v2-v1) 
         
-        # for vertical resolution, the conflict has past CPA if the horizontal
+        # the conflict has past CPA if the horizontal
         # velocities of the two aircraft are not pointing at each other
-        pastCPA = np.dot(d[:2],v[:2])>0
-#        if self.swresodir == "VERT":
-#            pastCPA = np.dot(d[:2],v[:2])>0
-#        else:           
-#            pastCPA = np.dot(d,v)>0
-#
+        pastCPA = np.dot(d[:2],v[:2])>00
+
         return pastCPA
 
 #====================== Give A/C indices of conflict pair =====================

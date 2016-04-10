@@ -78,80 +78,80 @@ class Datalog():
             self.fname = os.path.dirname(__file__) + "/../../data/output/" + strftime(self.scenfile)
         # Create the .sky file and write the simulation settings to the sky log file
         if buffertype == self.sky:
-            f = open('%s.%s' % (self.fname, 'sky'),"wr" )
-            f.write('==============================='+chr(13)+chr(10))
-            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+chr(13)+chr(10))
-            f.write('Scenario: '+ str(self.scenfile) +chr(13)+chr(10))
-            f.write('SKY DATA' +chr(13)+chr(10))
-            f.write('==============================='+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
-            f.write('time, simulation time, ntraf, nconf, nLoS'+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
+            f = open('%s.%s' % (self.fname, 'sky'),"w" )
+            f.write('==============================='+'\n')
+            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
+            f.write('Scenario: '+ str(self.scenfile) +'\n')
+            f.write('SKY DATA' +'\n')
+            f.write('==============================='+'\n')
+            f.write('\n')
+            f.write('time, simulation time, ntraf, nconf, nLoS'+'\n')
+            f.write('\n')
             f.close()
         
         # Create the .cfl file an write the simulation settings to the cfl file
         elif buffertype == self.cfl:
-            f = open('%s.%s' % (self.fname, 'cfl'),"wr" )
-            f.write('==============================='+chr(13)+chr(10))
-            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+chr(13)+chr(10))
-            f.write('Scenario: '+ str(self.scenfile) +chr(13)+chr(10))
-            f.write('CONFLICT DATA' +chr(13)+chr(10))
-            f.write('==============================='+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
-            f.write('time, simulation time, id1,id2,tcpa,tinconf,toutconf,lat1,lon1,trk1,alt1,tas1,gs1,vs1,type1,lat2,lon2,trk2,tas2,alt2,vs2,type2'+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
+            f = open('%s.%s' % (self.fname, 'cfl'),"w" )
+            f.write('==============================='+'\n')
+            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
+            f.write('Scenario: '+ str(self.scenfile) +'\n')
+            f.write('CONFLICT DATA' +'\n')
+            f.write('==============================='+'\n')
+            f.write('\n')
+            f.write('time, simulation time, id1,id2,tcpa,tinconf,toutconf,lat1,lon1,trk1,alt1,tas1,gs1,vs1,type1,lat2,lon2,trk2,tas2,alt2,vs2,type2'+'\n')
+            f.write('\n')
             f.close()
         
         # Create the .int file and write the simulation settings to the int file
         elif buffertype == self.int:
-            f = open('%s.%s' % (self.fname, 'int'),"wr" )
-            f.write('==============================='+chr(13)+chr(10))
-            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+chr(13)+chr(10))
-            f.write('Scenario: '+ str(self.scenfile) +chr(13)+chr(10))
-            f.write('INTRUSION DATA' +chr(13)+chr(10))
-            f.write('==============================='+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
-            f.write('time, simulation time, id1,id2,tinint,toutint,lat1,lon1,trk1,tas1,alt1,vs1,type1,lat2,lon2,trk2,tas2,alt2,vs2,type2'+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
+            f = open('%s.%s' % (self.fname, 'int'),"w" )
+            f.write('==============================='+'\n')
+            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
+            f.write('Scenario: '+ str(self.scenfile) +'\n')
+            f.write('INTRUSION DATA' +'\n')
+            f.write('==============================='+'\n')
+            f.write('\n')
+            f.write('time, simulation time, id1,id2,tinint,toutint,lat1,lon1,trk1,tas1,alt1,vs1,type1,lat2,lon2,trk2,tas2,alt2,vs2,type2'+'\n')
+            f.write('\n')
             f.close()
         
         # Create the .snap file and write the simulation settings to the snap file
         elif buffertype == self.snap:
-            f = open('%s.%s' % (self.fname, 'snap'),"wr" )
-            f.write('==============================='+chr(13)+chr(10))
-            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+chr(13)+chr(10))
-            f.write('Scenario: '+ str(self.scenfile) +chr(13)+chr(10))
-            f.write('SNAP DATA' +chr(13)+chr(10))
-            f.write('==============================='+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
-            f.write('time, simulation time, id,type,lat,lon,alt,tas,gs,vs,trk'+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
+            f = open('%s.%s' % (self.fname, 'snap'),"w" )
+            f.write('==============================='+'\n')
+            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
+            f.write('Scenario: '+ str(self.scenfile) +'\n')
+            f.write('SNAP DATA' +'\n')
+            f.write('==============================='+'\n')
+            f.write('\n')
+            f.write('time, simulation time, id,type,lat,lon,alt,tas,gs,vs,trk'+'\n')
+            f.write('\n')
             f.close()
         
         # Create the .flst file and write the simulation settings to the flst file
         elif buffertype == self.flst:
-            f = open('%s.%s' % (self.fname, 'flst'),"wr" )
-            f.write('==============================='+chr(13)+chr(10))
-            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+chr(13)+chr(10))
-            f.write('Scenario: '+ str(self.scenfile) +chr(13)+chr(10))
-            f.write('FLIGHT STATISTICS DATA' +chr(13)+chr(10))
-            f.write('==============================='+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
-            f.write('time, simulation time, id,orig,dest,type,distance-2D,distance-3D,flighttime,work,del-lat,del-lon,del-alt'+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
+            f = open('%s.%s' % (self.fname, 'flst'),"w" )
+            f.write('==============================='+'\n')
+            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
+            f.write('Scenario: '+ str(self.scenfile) +'\n')
+            f.write('FLIGHT STATISTICS DATA' +'\n')
+            f.write('==============================='+'\n')
+            f.write('\n')
+            f.write('time, simulation time, id,orig,dest,type,distance-2D,distance-3D,flighttime,work,del-lat,del-lon,del-alt'+'\n')
+            f.write('\n')
             f.close()
         
         # Create the .inst file an write the simulation settings to the inst file
         elif buffertype == self.inst:
-            f = open('%s.%s' % (self.fname, 'inst'),"wr" )
-            f.write('==============================='+chr(13)+chr(10))
-            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+chr(13)+chr(10))
-            f.write('Scenario: '+ str(self.scenfile) +chr(13)+chr(10))
-            f.write('INSTANTANEOUS CONFLICT DATA' +chr(13)+chr(10))
-            f.write('==============================='+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
-            f.write('time, simulation time, id1,id2,tcpa_lat1,tcpa_lon1,tcpa_alt1,trk1,vs1,type1,tcpa_lat2,tcpa_lon2,tcpa_alt2,trk2,vs2,type2'+chr(13)+chr(10))
-            f.write(chr(13)+chr(10))
+            f = open('%s.%s' % (self.fname, 'inst'),"w" )
+            f.write('==============================='+'\n')
+            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
+            f.write('Scenario: '+ str(self.scenfile) +'\n')
+            f.write('INSTANTANEOUS CONFLICT DATA' +'\n')
+            f.write('==============================='+'\n')
+            f.write('\n')
+            f.write('time, simulation time, id1,id2,tcpa_lat1,tcpa_lon1,tcpa_alt1,trk1,vs1,type1,tcpa_lat2,tcpa_lon2,tcpa_alt2,trk2,vs2,type2'+'\n')
+            f.write('\n')
             f.close()
         
         return
@@ -159,17 +159,17 @@ class Datalog():
     def write(self,buffertype,t,txt):
         # Add text to buffer with timestamp t
         if buffertype == self.sky:
-            self.buffer_sky.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+chr(13)+chr(10))
+            self.buffer_sky.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         elif buffertype == self.cfl:
-            self.buffer_cfl.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+chr(13)+chr(10))
+            self.buffer_cfl.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         elif buffertype == self.int:
-            self.buffer_int.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+chr(13)+chr(10))
+            self.buffer_int.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         elif buffertype == self.snap:
-            self.buffer_snap.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+chr(13)+chr(10))
+            self.buffer_snap.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         elif buffertype == self.flst:
-            self.buffer_flst.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+chr(13)+chr(10))
+            self.buffer_flst.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         elif buffertype == self.inst:
-            self.buffer_inst.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+chr(13)+chr(10))
+            self.buffer_inst.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         return
     
     def save(self,buffertype):

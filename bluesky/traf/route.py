@@ -272,10 +272,10 @@ class Route():
                                  traf.actwplat[i], traf.actwplon[i])
 
            turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) /g0 /nm # default bank angle 25 deg
-
-                                       
-           traf.actwpturn[i] = max(10.,abs(turnrad*tan(radians(0.5*degto180(qdr-    \
-                               self.wpdirfrom[self.iactwp])))))  # [nm]
+           
+           # changed to the eqaution in traf, and then it works
+           traf.actwpturn[i] = max(10.,abs(turnrad*tan(radians(0.5*degto180(qdr \
+                               -self.wpdirfrom[self.iactwp]))))) 
                
            return True,vnavok
         else:
