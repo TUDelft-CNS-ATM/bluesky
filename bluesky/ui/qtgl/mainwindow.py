@@ -73,45 +73,53 @@ class MainWindow(QMainWindow):
         self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 150)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
-        self.host1 = QTreeWidgetItem(self.nodetree)
-        f = self.host1.font(0)
-        f.setBold(True)
-        self.host1.setFont(0, f)
-        self.host1.setText(0, 'This computer')
-        self.host1.setExpanded(True)
-
-        btn = QToolButton(self.nodetree)
-        btn.setText('Add node')
-        btn.setFixedSize(50, 16)
-        # btn.setFlat(True)
-        # btn.setIcon(QIcon('data/graphics/icons/addnode_i.svg'))
-        # btn.setIconSize(QSize(40, 12))
-        btn.clicked.connect(manager.instance.addNode)
-        self.nodetree.setItemWidget(self.host1, 1, btn)
+        self.hosts = list()
 
     def closeEvent(self, event):
         self.app.quit()
 
     @pyqtSlot(int)
-    def actnodeChanged(self, nodeid):
-        self.nodelabel.setText('<b>Node</b> %d' % nodeid)
-        self.nodetree.setCurrentItem(self.host1.child(nodeid), 0, QItemSelectionModel.ClearAndSelect)
+    def actnodeChanged(self, nodeid, connidx):
+        self.nodelabel.setText('<b>Node</b> %d:%d' % nodeid)
+        self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
 
     @pyqtSlot(str, int)
-    def nodesChanged(self, address, nodeid):
-        if nodeid >= 0:
-            node = QTreeWidgetItem(self.host1)
-            node.setText(0, 'Node %d' % nodeid)
+    def nodesChanged(self, address, nodeid, connidx):
+        if nodeid[0] < len(self.hosts):
+            host = self.hosts[nodeid[0]]
+        else:
+            host = QTreeWidgetItem(self.nodetree)
+            hostname = address
+            if address in ['127.0.0.1', 'localhost']:
+                hostname = 'This computer'
+            f = host.font(0)
+            f.setBold(True)
+            host.setFont(0, f)
+            host.setText(0, hostname)
+            host.setExpanded(True)
+            btn = QToolButton(self.nodetree)
+            btn.setText('Add node')
+            btn.setFixedSize(50, 16)
+            # btn.setFlat(True)
+            # btn.setIcon(QIcon('data/graphics/icons/addnode_i.svg'))
+            # btn.setIconSize(QSize(40, 12))
+            btn.clicked.connect(manager.instance.addNode)
+            self.nodetree.setItemWidget(host, 1, btn)
+            self.hosts.append(host)
+
+        node = QTreeWidgetItem(host)
+        node.setText(0, 'Node %d' % nodeid[1])
+        node.connidx = connidx
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
-        if item is self.host1:
+        if item in self.hosts:
             item.setSelected(False)
             item.child(0).setSelected(True)
-            nodeid = 0
+            connidx = item.child(0).connidx
         else:
-            nodeid = item.parent().indexOfChild(item)
-        manager.instance.setActiveNode(nodeid)
+            connidx = item.connidx
+        manager.instance.setActiveNode(connidx)
 
     @pyqtSlot()
     def buttonClicked(self):
