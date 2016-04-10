@@ -430,11 +430,12 @@ class Dbconf():
         
         # for vertical resolution, the conflict has past CPA if the horizontal
         # velocities of the two aircraft are not pointing at each other
-        if self.swresodir == "VERT":
-            pastCPA = np.dot(d[:2],v[:2])>0
-        else:           
-            pastCPA = np.dot(d,v)>0
-
+        pastCPA = np.dot(d[:2],v[:2])>0
+#        if self.swresodir == "VERT":
+#            pastCPA = np.dot(d[:2],v[:2])>0
+#        else:           
+#            pastCPA = np.dot(d,v)>0
+#
         return pastCPA
 
 #====================== Give A/C indices of conflict pair =====================
