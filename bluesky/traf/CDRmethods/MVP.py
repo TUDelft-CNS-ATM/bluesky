@@ -6,6 +6,7 @@ Created on Tue Mar 03 16:50:19 2015
 """
 import numpy as np
 from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas,veas2tas
+from aero import ft
 
 def start(dbconf):
     dbconf.CRname="MVP"
@@ -159,8 +160,17 @@ def MVP(dbconf, id1, id2):
     dv1 = (iH*dcpa[0])/(dbconf.tcpa[id1,id2]*dabsH)
     dv2 = (iH*dcpa[1])/(dbconf.tcpa[id1,id2]*dabsH)
     dv3 = (iV*dcpa[2])/(dbconf.tcpa[id1,id2]*dabsV)
-      
-    # combine the dv components 
+
+    # It is necessary to cap dv3 to allow implict coordination of aircraft
+    # otherwise vertical conflict is solved in 1 timestep, leading to a vertical
+    # separation that is too high. If vertical dynamics are included to aircraft
+    # model in traffic.py, the below lines should be deleted
+    if dbconf.swresodir != "VERT":
+        mindv3 = -200./60.*ft # ~ 1.016 [m/s]
+        maxdv3 = 200./60.*ft
+        dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
+    
+    # combine the dv components
     dv = np.array([dv1,dv2,dv3])    
 
     #Extra factor necessary! ==================================================
