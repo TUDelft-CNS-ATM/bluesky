@@ -403,10 +403,10 @@ class Dbconf():
                     self.traf.inconflict[id2] = True
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
-                    iwpid1 = self.traf.route[id1].findact(self.traf,id1)
+                    iwpid1 = self.traf.route[id1].findact2(self.traf,id1)
                     if iwpid1 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
-                    iwpid2 = self.traf.route[id2].findact(self.traf,id2)
+                    iwpid2 = self.traf.route[id2].findact2(self.traf,id2)
                     if iwpid2 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
                     self.conflist_all.remove(conflict)
@@ -430,7 +430,7 @@ class Dbconf():
         
         # the conflict has past CPA if the horizontal
         # velocities of the two aircraft are not pointing at each other
-        pastCPA = np.dot(d[:2],v[:2])>00
+        pastCPA = np.dot(d[:2],v[:2])>0.0
 
         return pastCPA
 

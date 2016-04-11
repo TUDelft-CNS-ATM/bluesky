@@ -585,8 +585,38 @@ class Route():
         
         return iwpnear
         
-            
-            
-                     
+    def findact2(self,traf,i):
+        """ Find best default active waypoint"""
+        
+        # Check for easy answers first
+        if self.nwp<=0:
+            return -1
+
+        elif self.nwp == 1:
+            return 0
+        
+        # Find closest
+        wplat  = array(self.wplat)
+        wplon  = array(self.wplon)
+        dy = wplat - traf.lat[i]
+        dx = (wplon - traf.lon[i]) * traf.coslat[i]
+        dist2 = dx*dx + dy*dy
+        iwpnear = argmin(dist2)
+        
+        #Unless behind us, next waypoint?
+        if self.wptype[iwpnear]!= 3:
+            qdr = rad2deg(arctan2(dx,dy))
+            delhdg = abs(qdr-self.wpdirfrom[self.iactwp])
+            # If the bearing to the active waypoint is larger
+            # than 25 degrees, choose the next waypoint
+            # A counter is used to limit the number of waypoints that can be skipped
+            counter = 0
+            while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5 :
+                iwpnear = iwpnear+1
+                counter = counter +1
+        
+        return iwpnear
+
+
             
             
