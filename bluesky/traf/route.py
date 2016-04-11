@@ -603,8 +603,10 @@ class Route():
         dist2 = dx*dx + dy*dy
         iwpnear = argmin(dist2)
         
-        #Unless behind us, next waypoint?
-        if self.wptype[iwpnear]!= 3:
+        # If the wp[iwpnear] is not the destination AND
+        # if the direction of route doesn't change too much,
+        # Then use the trajectory recovery logic
+        if self.wptype[iwpnear]!= 3 and abs((self.wpdirfrom[self.iactwp]/self.wpdirfrom[self.iactwp-1])-1) < 0.2 :
             qdr = rad2deg(arctan2(dx,dy))
             delhdg = abs(qdr-self.wpdirfrom[self.iactwp])
             # If the bearing to the active waypoint is larger
