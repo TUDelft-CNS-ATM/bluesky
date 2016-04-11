@@ -305,14 +305,14 @@ class Dbconf():
             if combi not in self.conflist_all and combi2 not in self.conflist_all:
                 self.conflist_all.append(combi)
                 if self.traf.log.swcfl:
-                    self.traf.log.write(1,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                    self.traf.log.write(1,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
                                         % (self.traf.id[i],self.traf.id[j],self.tcpa[i][j],self.tinconf[i][j],self.toutconf[i][j], \
-                                           self.latowncpa[idx],self.lonowncpa[idx],self.altowncpa[idx],\
-                                           self.latintcpa[idx],self.lonintcpa[idx],self.altintcpa[idx], \
+                                           self.latowncpa[idx],self.lonowncpa[idx],self.altowncpa[idx],self.traf.asasactive[i],\
+                                           self.latintcpa[idx],self.lonintcpa[idx],self.altintcpa[idx],self.traf.asasactive[j],\
                                            self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
                                            self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
-                                           self.traf.lat[j],self.traf.lon[j],self.traf.trk[j], \
-                                           self.traf.tas[j],self.traf.alt[j],self.traf.vs[j],self.traf.type[j]))
+                                           self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+                                           self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
             if combi not in self.conflist_exp and combi2 not in self.conflist_exp and experimenttime:
                 self.conflist_exp.append(combi)
 
@@ -326,13 +326,13 @@ class Dbconf():
                     self.LOShmaxsev.append(0.)
                     self.LOSvmaxsev.append(0.)
                     if self.traf.log.swint:
-                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
                                             % (self.traf.id[i],self.traf.id[j], \
                                                self.tinconf[i][j],self.toutconf[i][j], \
-                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i], \
-                                               self.traf.tas[i],self.traf.alt[i],self.traf.vs[i],self.traf.type[i], \
-                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j], \
-                                               self.traf.tas[j],self.traf.alt[j],self.traf.vs[j],self.traf.type[j]))
+                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+                                               self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+                                               self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
             
                 if combi not in self.LOSlist_exp and combi2 not in self.LOSlist_exp and experimenttime:
                     self.LOSlist_exp.append(combi)

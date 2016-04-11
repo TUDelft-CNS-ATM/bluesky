@@ -70,6 +70,9 @@ class Datalog():
     
     def writesettings(self,scenfile,buffertype):
         self.scenfile = scenfile
+        # If scenfile includes the .scn extension, remove it
+        if self.scenfile.lower().find(".scn") > 0:
+            self.scenfile = self.scenfile[:-4]
         # Define fname if empty
         if self.scenfile == '':
             self.fname = os.path.dirname(__file__) + "/../../data/output/" \
@@ -85,7 +88,7 @@ class Datalog():
             f.write('SKY DATA' +'\n')
             f.write('==============================='+'\n')
             f.write('\n')
-            f.write('time, simulation time, ntraf, nconf, nLoS'+'\n')
+            f.write('time [hh:mm:ss], simulation time [hh:mm:ss.ss], ntraf [-], nconf [-], nLoS [-]'+'\n')
             f.write('\n')
             f.close()
         
@@ -98,7 +101,7 @@ class Datalog():
             f.write('CONFLICT DATA' +'\n')
             f.write('==============================='+'\n')
             f.write('\n')
-            f.write('time, simulation time, id1,id2,tcpa,tinconf,toutconf,lat1,lon1,trk1,alt1,tas1,gs1,vs1,type1,lat2,lon2,trk2,tas2,alt2,vs2,type2'+'\n')
+            f.write('time [hh:mm:ss], simulation time [hh:mm:ss:ss], id1 [-],id2 [-],tcpa [s],tinconf [s],toutconf [s],lat1 [decimal degrees],lon1 [decimal degrees],trk1 [deg],alt1 [m],tas1 [m/s],gs1 [m/s],vs1 [m/s],type1 [-],lat2 [decimal degrees],lon2 [decimal degrees],trk2 [deg],tas2 [m/s],[m/s],gs2 [m/s],vs2 [m/s],type2 [-]'+'\n')
             f.write('\n')
             f.close()
         
@@ -111,7 +114,7 @@ class Datalog():
             f.write('INTRUSION DATA' +'\n')
             f.write('==============================='+'\n')
             f.write('\n')
-            f.write('time, simulation time, id1,id2,tinint,toutint,lat1,lon1,trk1,tas1,alt1,vs1,type1,lat2,lon2,trk2,tas2,alt2,vs2,type2'+'\n')
+            f.write('time [hh:mm:ss], simulation time [hh:mm:ss:ss], id1 [-],id2 [-], tinconf [s],toutconf [s],lat1 [decimal degrees],lon1 [decimal degrees],trk1 [deg],alt1 [m],tas1 [m/s],gs1 [m/s],vs1 [m/s],type1 [-],lat2 [decimal degrees],lon2 [decimal degrees],trk2 [deg],tas2 [m/s],[m/s],gs2 [m/s],vs2 [m/s],type2 [-]'+'\n')
             f.write('\n')
             f.close()
         
@@ -124,7 +127,7 @@ class Datalog():
             f.write('SNAP DATA' +'\n')
             f.write('==============================='+'\n')
             f.write('\n')
-            f.write('time, simulation time, id,type,lat,lon,alt,tas,gs,vs,trk'+'\n')
+            f.write('time [hh:mm:ss], simulation time [hh:mm:ss.ss], id [-],type [-],lat [decimal degrees],lon [decimal degrees],alt [m],tas [m/s],gs [m/s],vs [m/s],trk [deg]'+'\n')
             f.write('\n')
             f.close()
         
@@ -137,7 +140,7 @@ class Datalog():
             f.write('FLIGHT STATISTICS DATA' +'\n')
             f.write('==============================='+'\n')
             f.write('\n')
-            f.write('time, simulation time, id,orig,dest,type,distance-2D,distance-3D,flighttime,work,del-lat,del-lon,del-alt'+'\n')
+            f.write('time [hh:mm:ss], simulation time [hh:mm:ss.ss], id [-],orig [-],dest [-],type [-],distance-2D [m],distance-3D [m],flighttime [s],work [GJ],del-lat [decimal degrees],del-lon [decimal degrees],del-alt [m]'+'\n')
             f.write('\n')
             f.close()
         

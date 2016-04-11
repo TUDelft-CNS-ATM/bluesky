@@ -745,10 +745,10 @@ class Traffic:
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
                 qdr[i] = degrees(atan2(dx,dy))     
-
-                self.actwpturn[i] = self.actwpflyby[i]*np.max(10.,\
+                
+                self.actwpturn[i] = self.actwpflyby[i]*np.max((10.,\
                                     abs(turnrad*tan(radians(0.5*degto180(qdr[i]\
-                                    -self.route[i].wpdirfrom[self.route[i].iactwp]))))) 
+                                    -self.route[i].wpdirfrom[self.route[i].iactwp]))))))
  
             # End of Waypoint switching loop
             
