@@ -38,7 +38,7 @@ if gui == 'qtgl':
         from PyQt4.QtGui import QApplication, QProgressDialog
     import OpenGL.GLU as glu
     import numpy as np
-    from math import cos, radians, degrees, sqrt
+    from math import cos, radians, degrees, sqrt, atan2,  sin, asin
     from zipfile import ZipFile
 
     tess = glu.gluNewTess()
@@ -194,6 +194,11 @@ if gui == 'qtgl':
                     apt_ctr_lat.append(0.0)
                     apt_ctr_lon.append(0.0)
                     continue
+                
+                # save ICAO code
+                if elems[0] == '1':
+                    apt = str(elems[4])
+                    continue
 
                 # 100: LAND RUNWAY
                 if elems[0] == '100':
@@ -201,11 +206,15 @@ if gui == 'qtgl':
                     # Only asphalt and concrete runways
                     if int(elems[2]) > 2:
                         continue
-                    # rwy_lbl = (elems[8], elems[17])
+                    # rwy_lbl = (elems[8], elems[17])                      
+                        
                     lat0 = float(elems[9])
                     lon0 = float(elems[10])
+                    offset0 = float(elems[11])
+                    
                     lat1 = float(elems[18])
                     lon1 = float(elems[19])
+                    offset1 = float(elems[20])
                     flat_earth = cos(0.5 * radians(lat0 + lat1))
                     lx = lat1 - lat0
                     ly = (lon1 - lon0) * flat_earth
@@ -220,6 +229,22 @@ if gui == 'qtgl':
                                     lat0 - dlat, lon0 - dlon,
                                     lat1 + dlat, lon1 + dlon,
                                     lat1 - dlat, lon1 - dlon])
+                                    
+                    # fill database with threshold-relevant parameters
+                    # opposite runways are on the same line. RWY1: 8-11, RWY2: 17-20
+                    ### CAREFUL: First lat0 and lon0 , then lat1 and lat1, offset=[11]
+                    # first for RWY I (positions 8-11)
+                    # return value of threshold is (lat,lon, bearing)
+                    rwyinfo = {str(elems[8]): thresholds(radians(lat0),radians(lon0), radians(lat1),radians(lon1), offset0)} 
+                    
+                    rwythresholds[apt].update(rwyinfo)
+ 
+                    # then for RWY II (positions 17-20)
+                    # CAREFUL: First lat1 and lat1 , then lat0 and lon0, offset=[20]
+                    # return value of threshold is (lat,lon,bearing)
+                    rwyinfo = {str(elems[17]): thresholds(radians(lat1),radians(lon1), radians(lat0),radians(lon0), offset1)} 
+                    rwythresholds[apt].update(rwyinfo)
+                    
                     continue
 
                 # 110: TAXIWAY/PAVEMENT: Start of polygon contour
@@ -272,6 +297,8 @@ if gui == 'qtgl':
                 else:
                     cur_poly.end()
 
+        # calculate the location of the runway thresholds
+
         # Clean up:
         cur_poly.end()
         apt_indices[-1][1] = asphalt.bufsize()  / 2 - apt_indices[-1][0]
@@ -290,3 +317,33 @@ if gui == 'qtgl':
 
         # return the data
         return vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds
+
+
+
+#phi equals latitude, lambda equals longitude
+def thresholds(phi1, lambda1, phi2, lambda2, offset):
+
+
+    # Earth radius [m]
+    radius = 6371000
+    d = offset/radius
+    deltal = lambda2-lambda1
+
+
+# calculate runway bearing
+
+    theta = atan2(sin(deltal)*cos(phi2), (cos(phi1)*sin(phi2)-
+            sin(phi1)*cos(phi2)*cos(deltal)))
+    
+    # normalize to 0-360 degrees
+    theta = radians((degrees(theta)+360)%360)
+    
+
+    # calculate threshold point
+    phithres = asin(sin(phi1)*cos(d) + cos(phi1)*sin(d)*cos(theta))
+    
+    lambdathres = lambda1 + atan2(sin(theta)*sin(d)*cos(phi1),
+                  cos(d) - sin(phi1)*sin(phithres))
+
+
+    return (degrees(phithres), degrees(lambdathres), degrees(theta))
