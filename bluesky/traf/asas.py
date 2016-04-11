@@ -307,8 +307,8 @@ class Dbconf():
                 if self.traf.log.swcfl:
                     self.traf.log.write(1,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
                                         % (self.traf.id[i],self.traf.id[j],self.tcpa[i][j],self.tinconf[i][j],self.toutconf[i][j], \
-                                           self.latowncpa[idx],self.lonowncpa[idx],self.altowncpa[idx],self.traf.asasactive[i],\
-                                           self.latintcpa[idx],self.lonintcpa[idx],self.altintcpa[idx],self.traf.asasactive[j],\
+                                           self.latowncpa[idx],self.lonowncpa[idx],self.altowncpa[idx],self.traf.inconflict[i],\
+                                           self.latintcpa[idx],self.lonintcpa[idx],self.altintcpa[idx],self.traf.inconflict[j],\
                                            self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
                                            self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
                                            self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
@@ -409,7 +409,7 @@ class Dbconf():
                     iwpid2 = self.traf.route[id2].findact2(self.traf,id2)
                     if iwpid2 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
-                    self.conflist_all.remove(conflict)
+                        #self.conflist_all.remove(conflict)
             
         return
 
