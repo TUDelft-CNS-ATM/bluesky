@@ -9,6 +9,7 @@ class Gui:
         splash.show()
         self.keyb = Keyboard()                                # processes input from keyboard & mouse
         self.scr  = Screen()                                  # screen output object
+        self.scr.updateNavBuffers(navdb)
 
     def update(self, sim):
         self.keyb.update(sim, sim.stack, self.scr, sim.traf)  # Check for keys & mouse

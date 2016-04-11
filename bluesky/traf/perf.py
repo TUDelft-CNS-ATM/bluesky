@@ -308,12 +308,12 @@ coeffBS = CoeffBS()
 
 
 class Perf():
+    warned  = False        # Flag: Did we warn for default perf parameters yet?
+    warned2 = False    # Flag: Use of piston engine aircraft?
+
     def __init__(self, traf):
         # assign needed data from CTraffic
         self.traf = traf
-
-        self.warned  = False        # Flag: Did we warn for default perf parameters yet?
-        self.warned2 = False    # Flag: Use of piston engine aircraft?
 
         # create empty database
         self.reset()
@@ -402,9 +402,9 @@ class Perf():
             # engine
         else:
             self.coeffidx = 0
-            if not self.warned:
+            if not Perf.warned:
                   print "aircraft is using default aircraft performance (Boeing 747-400)."
-            self.warned = True
+            Perf.warned = True
         self.coeffidxlist = np.append(self.coeffidxlist, self.coeffidx)
         self.mass = np.append(self.mass, coeffBS.MTOW[self.coeffidx]) # aircraft weight
         self.Sref = np.append(self.Sref, coeffBS.Sref[self.coeffidx]) # wing surface reference area
@@ -451,10 +451,10 @@ class Perf():
                 self.propengidx = coeffBS.propenlist.index(coeffBS.engines[self.coeffidx][0])
             else:
                 self.propengidx = 0
-                if not self.warned2:
+                if not Perf.warned2:
                     print "prop aircraft is using standard engine. Please check valid engine types per aircraft type"
-                    self.warned2 = True
-                    
+                    Perf.warned2 = True
+
             self.P = np.append(self.P, coeffBS.P[self.propengidx]*coeffBS.n_eng[self.coeffidx])                     
             self.PSFC_TO = np.append(self.PSFC_TO, coeffBS.PSFC_TO[self.propengidx]) 
             self.PSFC_CR = np.append(self.PSFC_CR, coeffBS.PSFC_CR[self.propengidx])

@@ -15,59 +15,79 @@ def resolve(dbconf):
         return
         
     # required change in velocity
-    dv=np.zeros((dbconf.traf.ntraf,3)) 
+    dv = np.zeros((dbconf.traf.ntraf,3)) 
         
     #if possible, solve conflicts once and copy results for symmetrical conflicts,
     #if that is not possible, solve each conflict twice, once for each A/C
     if not dbconf.traf.ADSBtrunc and not dbconf.traf.ADSBtransnoise:
+
         for conflict in dbconf.conflist_now:
-            id1,id2=dbconf.ConflictToIndices(conflict)
+
+            id1,id2 = dbconf.ConflictToIndices(conflict)
+
             if id1 != "Fail" and id2!= "Fail":
-                dv_eby=MVP(dbconf,id1,id2)
-                dv[id1]-=dv_eby
-                dv[id2]+=dv_eby
+
+                dv_eby = MVP(dbconf,id1,id2)
+
+                dv[id1] = dv[id1] - dv_eby
+                dv[id2] = dv[id2] + dv_eby
+                                        
     else:
+
         for i in range(dbconf.nconf):
-            ac1=dbconf.idown[i]
-            ac2=dbconf.idoth[i]
-            id1=dbconf.traf.id.index(ac1)
-            id2=dbconf.traf.id.index(ac2)
-            dv_eby=MVP(dbconf,id1,id2)
-            dv[id1]-=dv_eby
+
+            ac1 = dbconf.idown[i]
+            ac2 = dbconf.idoth[i]
+
+            id1 = dbconf.traf.id.index(ac1)
+            id2 = dbconf.traf.id.index(ac2)
+
+            dv_eby = MVP(dbconf,id1,id2)
+            dv[id1]= dv[id1] - dv_eby
             
     # now we have the change in speed vector for each aircraft.
-    dv=np.transpose(dv)
+    dv = np.transpose(dv)
+    
     # the old speed vector, cartesian coordinates
-    trkrad=np.radians(dbconf.traf.trk)
-    v=np.array([np.sin(trkrad)*dbconf.traf.tas,\
+    trkrad = np.radians(dbconf.traf.trk)
+    v = np.array([np.sin(trkrad)*dbconf.traf.tas,\
         np.cos(trkrad)*dbconf.traf.tas,\
         dbconf.traf.vs])
+    
     # the new speed vector
-    newv=dv+v
+    newv = dv+v
+
     # the new speed vector in polar coordinates
-    newtrack=(np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
-    newgs=np.sqrt(newv[0,:]**2+newv[1,:]**2)
-    neweas=vtas2eas(newgs,dbconf.traf.alt)
+    newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
+    newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
+    neweas   = vtas2eas(newgs,dbconf.traf.alt)
+     
     
     # Cap the velocity
     neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
     
     # now assign in the traf class
-    dbconf.traf.asashdg=newtrack
-    dbconf.traf.asasspd=neweascapped
-    dbconf.traf.asasvsp=newv[2,:]
-    dbconf.traf.asasalt=np.sign(dbconf.traf.asasvsp)*1e5
+    dbconf.traf.asashdg = newtrack
+    dbconf.traf.asasspd = neweascapped
+    dbconf.traf.asasvsp = newv[2,:]
+    dbconf.traf.asasalt = np.sign(dbconf.traf.asasvsp) * dbconf.tinconf.min(axis=1) \
+                          + dbconf.traf.alt
     
 #=================================== Modified Voltage Potential ===============
         
     # Resolution: MVP method 
+
 def MVP(dbconf, id1, id2):
+    """Modified Voltage Potential resolution method:
+      calculate change in speed"""
     traf=dbconf.traf
     dist=dbconf.dist[id1,id2]
     qdr=dbconf.qdr[id1,id2]
+    
     # from degrees to radians
     qdr=np.radians(qdr)
-    # relative position vector
+   
+   # relative position vector
     d=np.array([np.sin(qdr)*dist, \
         np.cos(qdr)*dist, \
         traf.alt[id2]-traf.alt[id1] ])
@@ -90,10 +110,10 @@ def MVP(dbconf, id1, id2):
 
     #exception: if the two aircraft are on exact collision course 
     #(passing eachother within 10 meter), change drelstar
-    exactcourse=10 #10 meter
+    exactcourse = 10. #10 meter
     dif=exactcourse-dabs
-    if dif>0:
-        vperp=np.array([-v[1],v[0],0]) #rotate velocity 90 degrees in horizontal plane
+    if dif>0.:
+        vperp=np.array([-v[1],v[0],0.]) #rotate velocity 90 degrees in horizontal plane
         drel+=dif*vperp/np.linalg.norm(vperp) #normalize to 10 m and add to drelstar
         dabs=np.linalg.norm(drel)
         

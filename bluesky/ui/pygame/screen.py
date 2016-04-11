@@ -250,23 +250,36 @@ class Screen:
         self.acidrte = ""
         self.rtewpid = []
         self.rtewplabel = []
-        
-        
+
         # User defined background objects: 0 = None, 1 = line
         self.objtype    = []
-        self.objcolor   = []        
+        self.objcolor   = []
         self.objdata    = []
 
+        # Wpt and apt drawing logic memory
+        self.wpswbmp = []              # switch indicating whether label bmp is present
+        self.wplabel = []              # List to store bitmaps of label
+        self.apswbmp = []              # switch indicating whether label bmp is present
+        self.aplabel = []              # List to store bitmaps of label
+
         return
+
+    def updateNavBuffers(self, navdb):
+        self.wpswbmp = len(navdb.wplat) * [False]
+        self.wplabel = len(navdb.wplat) * [0]
+
+        self.apswbmp = len(navdb.aplat) * [False]
+        self.aplabel = len(navdb.aplat) * [0]
 
     def echo(self, msg):
         self.editwin.echo(msg)
         return
 
+    def cmdline(self, text):
+        self.editwin.insert(text)
 
     def update(self, sim, traf):
         """Draw a new frame"""
-
         # Navdisp mode: get center:
         if self.swnavdisp:
             i = traf.id2idx(self.ndacid)
@@ -447,19 +460,19 @@ class Screen:
                         self.radbmp.blit(self.wptsymbol, wptrect)
 
                         # If waypoint label bitmap does not yet exist, make it
-                        if not traf.navdb.wpswbmp[i]:
-                            traf.navdb.wplabel[i] = pg.Surface((50, 30), 0, self.win)
-                            self.fontnav.printat(traf.navdb.wplabel[i], 0, 0, \
+                        if not self.wpswbmp[i]:
+                            self.wplabel[i] = pg.Surface((50, 30), 0, self.win)
+                            self.fontnav.printat(self.wplabel[i], 0, 0, \
                                                  traf.navdb.wpid[i])
-                            traf.navdb.wpswbmp[i] = True
+                            self.wpswbmp[i] = True
 
                         # In any case, blit it
                         xtxt = wptrect.right + 2
                         ytxt = wptrect.top
-                        self.radbmp.blit(traf.navdb.wplabel[i], (xtxt, ytxt), \
+                        self.radbmp.blit(self.wplabel[i], (xtxt, ytxt), \
                                          None, pg.BLEND_ADD)
 
-                        if not traf.navdb.wpswbmp[i]:
+                        if not self.wpswbmp[i]:
                             xtxt = wptrect.right + 2
                             ytxt = wptrect.top
 
@@ -480,16 +493,16 @@ class Screen:
                     self.radbmp.blit(self.aptsymbol, aptrect)
 
                     # If airport label bitmap does not yet exist, make it
-                    if not traf.navdb.apswbmp[i]:
-                        traf.navdb.aplabel[i] = pg.Surface((50, 30), 0, self.win)
-                        self.fontnav.printat(traf.navdb.aplabel[i], 0, 0, \
+                    if not self.apswbmp[i]:
+                        self.aplabel[i] = pg.Surface((50, 30), 0, self.win)
+                        self.fontnav.printat(self.aplabel[i], 0, 0, \
                                              traf.navdb.apid[i])
-                        traf.navdb.apswbmp[i] = True
+                        self.apswbmp[i] = True
 
                     # In either case, blit it
                     xtxt = aptrect.right + 2
                     ytxt = aptrect.top
-                    self.radbmp.blit(traf.navdb.aplabel[i], (xtxt, ytxt), \
+                    self.radbmp.blit(self.aplabel[i], (xtxt, ytxt), \
                                      None, pg.BLEND_ADD)
 
                     # self.fontnav.printat(self.radbmp,xtxt,ytxt, \

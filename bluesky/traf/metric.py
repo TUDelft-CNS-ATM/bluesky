@@ -561,7 +561,9 @@ class metric_HB():
         # CIRCLE AREA (FIR Circle)
         for i in range(0,sim.traf.ntraf):
             
-            dist = latlondist(sim.metric.fir_circle_point[0],sim.metric.fir_circle_point[1],sim.traf.lat[i],sim.traf.lon[i])
+            dist = latlondist(sim.metric.fir_circle_point[0],\
+                              sim.metric.fir_circle_point[1],\
+                              sim.traf.lat[i],sim.traf.lon[i])
             
             if  dist/nm < sim.metric.fir_circle_radius:
                 traf_selected_lat = np.append(traf_selected_lat,sim.traf.lat[i])
@@ -804,7 +806,7 @@ class metric_HB():
         ac_totalscore =  sum(ac_score.itervalues())
 
         self.complexity[self.step][0] = ac_totalscore #/ self.ntraf
-        self.complexity[self.step][1] = ac_totalscore / self.ntraf
+        self.complexity[self.step][1] = ac_totalscore / max(1,self.ntraf)
         
         print "Complexity per Aircraft: " + str(self.complexity[self.step][1])
         return
@@ -1338,8 +1340,8 @@ class Metric():
         
         self.name = ("CoCa-Metric","HB-Metric","Delete AC")
         self.metric_number = -1
-        self.fir_circle_point = 0
-        self.fir_circle_radius = 0
+        self.fir_circle_point = [0.,0.]
+        self.fir_circle_radius = 0.
         self.fir_number = 0
         self.metricstime = 0
         self.tbegin = 0

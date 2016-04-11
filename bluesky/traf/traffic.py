@@ -220,7 +220,7 @@ class Traffic:
         self.areafloor = -999999.0  # [m] Delete when descending through this h
         self.areadt    = 5.0  # [s] frequency of area check (simtime)
         self.areat0    = -100.  # last time checked
-        self.radius    = 100.0 # [NM] radius of experiment area if it is a circle
+        self.arearadius    = 100.0 # [NM] radius of experiment area if it is a circle
 
         self.inside = []
         self.fir_circle_point = (0.0, 0.0)
@@ -257,7 +257,7 @@ class Traffic:
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
-            return False  # already exists do nothing
+            return False,acid+" already exists." # already exists do nothing
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
@@ -268,8 +268,6 @@ class Traffic:
         else:
             acspd = cas2tas(casmach * kts, acalt)
 
-
-
         # Process input
         self.id.append(acid.upper())
         self.type.append(actype)
@@ -277,7 +275,7 @@ class Traffic:
         self.lon   = np.append(self.lon, aclon)
         self.trk   = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
         self.alt   = np.append(self.alt, acalt)
-        self.fll   = np.append(self.fll, (acalt)/100)
+        self.fll   = np.append(self.fll, (acalt)/(100 * ft))
         self.vs    = np.append(self.vs, 0.)
         c_temp, c_rho, c_p = vatmos(acalt)
         self.p     = np.append(self.p, c_p)
@@ -290,7 +288,7 @@ class Traffic:
         self.M     = np.append(self.M, tas2mach(acspd, acalt))
 
         # AC is initialized with neutral max bank angle
-        self.bank = np.append(self.bank, 25.)
+        self.bank = np.append(self.bank, radians(25.))
         if self.ntraf < 2:
             self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
         self.hdgsel = np.append(self.hdgsel, False)
@@ -312,7 +310,7 @@ class Traffic:
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
         self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
         self.aspd = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
-        self.aptas = np.append(self.aptas, cas2tas(self.aspd[-1], self.alt[-1])) # [m/s]
+        self.aptas = np.append(self.aptas, acspd) # [m/s]
         self.ama  = np.append(self.ama, 0.) # selected spd above crossover (Mach) [-]
         self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
         self.afll = np.append(self.afll, (acalt/100)) # selected fl[ft/100]
@@ -350,8 +348,11 @@ class Traffic:
         self.route.append(Route(self.navdb))  # create empty route connected with nav databse
 
         eas = tas2eas(acspd, acalt)
+
         # ASAS info: no conflict => -1
         self.iconf.append(-1)  # index in 'conflicting' aircraft database
+
+        # ASAS output commanded values
         self.asasactive = np.append(self.asasactive, False)
         self.asashdg = np.append(self.asashdg, achdg)
         self.asasspd = np.append(self.asasspd, eas)
@@ -479,7 +480,7 @@ class Traffic:
         # Route info
         del self.route[idx]
 
-        # ASAS info
+        # ASAS output commanded values
         del self.iconf[idx]
         self.asasactive = np.delete(self.asasactive, idx)
         self.asashdg    = np.delete(self.asashdg, idx)
@@ -522,16 +523,6 @@ class Traffic:
         self.eps = np.delete(self.eps, idx)
         return True
 
-    def deleteall(self):
-        """Clear traffic buffer"""
-        ndel = self.ntraf
-        for i in range(ndel):
-            self.delete(self.id[-1])
-        self.ntraf = 0
-        self.dbconf.reset()
-        self.perf.reset()
-        return
-
     def update(self, simt, simdt):
         # Update only necessary if there is traffic
         if self.ntraf == 0:
@@ -540,7 +531,7 @@ class Traffic:
         self.dts.append(simdt)
 
         #---------------- Atmosphere ----------------
-        self.Temp, self.rho, self.p = vatmos(self.alt)
+        self.p, self.rho, self.Temp = vatmos(self.alt)
 
         #-------------- Performance limits autopilot settings --------------
         # Check difference with AP settings for trafperf and autopilot
@@ -878,7 +869,7 @@ class Traffic:
 
         self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
                                          / self.coslat / Rearth)
-    
+
         # Update trails when switched on
         if self.swtrails:
             self.trails.update(simt, self.lat, self.lon,
@@ -887,7 +878,7 @@ class Traffic:
         else:
             self.lastlat = self.lat
             self.lastlon = self.lon
-            self.lattime = simt
+            self.lasttim[:] = simt
 
         # ----------------AREA check----------------
         # Update area once per areadt seconds:
@@ -908,7 +899,7 @@ class Traffic:
 
                     # delete aircraft if it is too far from the center of the circular area, or if has decended below the minimum altitude
                     distance = kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i])  # [NM]
-                    inside = distance < self.radius and self.alt[i] >= self.areafloor
+                    inside = distance < self.arearadius and self.alt[i] >= self.areafloor
 
                 # Compare with previous: when leaving area: delete command
                 if self.inside[i] and not inside:
@@ -974,7 +965,7 @@ class Traffic:
             self.aspd[idx] = spd * kts # CAS m/s
             self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
         else:
-            self.aspd[idx] = mach2cas(spd) # Convert Mach to CAS m/s
+            self.aspd[idx] = mach2cas(spd, self.alt[idx])  # Convert Mach to CAS m/s
             self.ama[idx]  = spd
         # Switch off VNAV: SPD command overrides
         self.swvnav[idx] = False  

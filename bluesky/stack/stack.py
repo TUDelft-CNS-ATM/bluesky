@@ -10,7 +10,8 @@ from ..tools.aero import kts, ft, fpm, nm, lbs,\
 from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
-import pdb
+# import pdb
+
 
 class Commandstack:
     """
@@ -36,35 +37,73 @@ class Commandstack:
         #Command dictionary: command, helptext, arglist, function to call
         #--------------------------------------------------------------------
         self.cmddict = {
+            "ADDNODES": [
+                "ADDNODES number",
+                "int",
+                sim.addNodes],
+            "BATCH": [
+                "BATCH filename",
+                "txt",
+                sim.batch],
             "CRE": [
                 "CRE acid,type,lat,lon,hdg,alt,spd",
                 "txt,txt,lat,lon,hdg,alt,spd",
                 traf.create
             ],
-            "HDG": [
-                "HDG acid,hdg [deg,True]",
-                "acid,float",
-                traf.selhdg
+            "DATAFEED":  [
+                "DATAFEED [ON/OFF]",
+                "onoff",
+                sim.datafeed
             ],
-            "SPD": [
-                "SPD acid,spd [CAS-kts/Mach]",
-                "acid,spd",
-                traf.selspd
+            "DT": [
+                "DT dt",
+                "float",
+                sim.setDt
+            ],
+            "DTMULT": [
+                "DTMULT multiplier",
+                "float",
+                sim.setDtMultiplier
             ],
             "FF":  [
                 "FF [tend]",
                 "time",
                 sim.fastforward
             ],
+            "FIXDT": [
+                "FIXDT ON/OFF [tend]",
+                "onoff,time",
+                sim.setFixdt
+            ],
+            "HDG": [
+                "HDG acid,hdg [deg,True]",
+                "acid,float",
+                traf.selhdg
+            ],
+            "PCALL": [
+                "PCALL filename [REL/ABS]",
+                "txt,txt",
+                self.pcall
+            ],
+            "SCEN": [
+                "SCEN scenname",
+                "txt",
+                sim.scenarioInit
+            ],
+            "SPD": [
+                "SPD acid,spd [CAS-kts/Mach]",
+                "acid,spd",
+                traf.selspd
+            ],
+            "STOP": [
+                "STOP",
+                "",
+                sim.stop
+            ],
             "SYMBOL":  [
                 "SYMBOL",
                 "",
                 scr.symbol
-            ],
-            "DATAFEED":  [
-                "DATAFEED [ON/OFF]",
-                "txt",
-                sim.datafeed
             ]
         }
 
@@ -72,14 +111,17 @@ class Commandstack:
         # Command synonym dictionary
         self.cmdsynon = {
             "CREATE": "CRE",
-            "TURN": "HDG",
             "DTLOOK": "ASA_DTLOOK",
-            "FWD": "FF"
+            "END": "STOP",
+            "EXIT": "STOP",
+            "FWD": "FF",
+            "Q": "STOP",
+            "QUIT": "STOP",
+            "TURN": "HDG"
         }
         #--------------------------------------------------------------------
 
         self.cmdstack  = []
-        self.scenlines = []
         self.scentime  = []
         self.scenfile  = ""
         self.scentime = []
@@ -119,10 +161,10 @@ class Commandstack:
             obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
             self.extracmdrefs[key]=obj
         # ------------------ [end] Deprecated -------------------
-        
+
         return
 
-    def stack(self, cmdline):  
+    def stack(self, cmdline):
         # Stack one or more commands separated by ";"
         cline = cmdline.strip()  # remove leading & trailing spaces
         if cline.count(";") == 0:
@@ -134,16 +176,19 @@ class Commandstack:
 
         return
 
-    def openfile(self, scenname):
+    def openfile(self, scenname, t_offset=0.0, mergeWithExisting=False):
+        # If no scenlines target is given read the file to our own stack buffer
+        # For instance PCALL gives an alternate buffer.
+
         # No filename: empty start
-        self.scenlines = []
+        scenlines = []
 
         # Add .scn extension if necessary
         if scenname.lower().find(".scn") < 0:
             scenname = scenname + ".scn"
 
         # If it is with a path don't touch it, else add path
-        if scenname.find("/") < 0:
+        if scenname.find("/") < 0 and scenname.find( "\\") < 0:
             scenfile = settings.scenario_path
             if scenfile[-1] is not '/':
                 scenfile += '/'
@@ -154,35 +199,40 @@ class Commandstack:
         print "Reading scenario file: ", scenfile
         print
 
+        if not os.path.exists(scenfile):
+            print"Error: cannot find file:", scenfile
+            return
+
         # Read lines into buffer
-        self.scentime = []
-        self.scencmd = []
+        fscen = open(scenfile, 'r')
+        scenlines = fscen.readlines()
+        fscen.close()
+        i = 0
+        while i < len(scenlines):
+            if len(scenlines[i].strip()) <= 12 or scenlines[i][0] == "#":
+                del scenlines[i]
+            else:
+                i = i + 1
 
-        if os.path.exists(scenfile):
-            fscen = open(scenfile, 'r')
-            self.scenlines = fscen.readlines()
-            fscen.close()
-            i = 0
-            while i < len(self.scenlines):
-                if len(self.scenlines[i].strip()) <= 12 or \
-                                self.scenlines[i][0] == "#":
+        # Optional?
+        # scenlines.sort()
 
-                    del self.scenlines[i]
-                else:
-                    i = i + 1
+        # Set timer until what is read
+        # tstamp = scenlines[0][:11]    # format - hh:mm:ss.hh
+        # ihr = int(tstamp[:2])
+        # imin = int(tstamp[3:5])
+        # isec = float(tstamp[6:8]+"."+tstamp[9:11])
 
-            # Optional?
-            # scenlines.sort()
+        # Split scenario file line in times and commands
+        if not mergeWithExisting:
+            # When a scenario file is read with PCALL the resulting commands
+            # need to be merged with the existing commands. Otherwise the
+            # old scenario commands are cleared.
+            self.scentime = []
+            self.scencmd  = []
 
-            # Set timer until what is read
-            # tstamp = self.scenlines[0][:11]    # format - hh:mm:ss.hh
-            # ihr = int(tstamp[:2])
-            # imin = int(tstamp[3:5])
-            # isec = float(tstamp[6:8]+"."+tstamp[9:11])
-
-            # Split scenario file line in times and commands
-            for line in self.scenlines:
-                # lstrip = line.strip()
+        for line in scenlines:
+            if line.strip()[0]!="#":            
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
@@ -191,16 +241,24 @@ class Commandstack:
                     ihr = int(ttxt[0])
                     imin = int(ttxt[1])
                     xsec = float(ttxt[2])
-                    self.scentime.append(ihr * 3600. + imin * 60. + xsec)
+                    self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
                     self.scencmd.append(line[icmdline + 1:-1])
                 except:
-                    print "except this:", line
+                    print "except this:",line
                     pass  # nice try, we will just ignore this syntax error
 
-        else:
-            print"Error: cannot find file:", scenfile
+        if mergeWithExisting:
+            # If we are merging we need to sort the resulting command list
+            self.scentime, self.scencmd = [list(x) for x in zip(*sorted(
+                zip(self.scentime, self.scencmd), key=lambda pair: pair[0]))]
 
-        return
+    def pcall(self, filename, absrel='ABS'):
+        # If timestamps in file should be interpreted as relative we need to add
+        # the current simtime to every timestamp
+        t_offset = self.sim.simt if absrel == 'REL' else 0.0
+
+        # Load the scenario file, and merge with existing command list
+        self.openfile(filename, t_offset, True)
 
     def checkfile(self, simt):
         # Empty command buffer when it's time
@@ -320,7 +378,7 @@ class Commandstack:
             synerr = False
 
             # Catch general errors
-            #try:
+#            try:
             if True:  # optional to switch error protection off
 
                 #**********************************************************************
@@ -344,10 +402,9 @@ class Commandstack:
                     refalt = 0. # Reference altitude
                     reflat = scr.ctrlat # Reference latitude
                     reflon = scr.ctrlon # Reference longitude
-#                    try:
-                    if True:
+                    try:
+#                    if True:
                         for i in range(1,1+min(numtypes,numargs)):
-
                             argtype = argtypes[i-1].strip()
 
                             if cmdargs[i]=="":  # Empty arg => parse None
@@ -413,11 +470,11 @@ class Commandstack:
                                 else:
                                     arglist.append(float(cmdargs[i]))
 
-#                    except:
-#                        synerr = False
-#                        scr.echo("Syntax error in processing arguments")
-#                        scr.echo(cmdline)
-#                        scr.echo(helptext)
+                    except:
+                        synerr = False
+                        scr.echo("Syntax error in processing arguments")
+                        scr.echo(cmdline)
+                        scr.echo(helptext)
 
                     # Call function return flag,text
                     # flag: indicates sucess
@@ -428,30 +485,27 @@ class Commandstack:
 #                        synerr = True
                     txt = helptext
                     if not synerr:
-                        if type(results)==bool:
+
+                        if type(results)==bool: # Only flag is returned
                             synerr = not results
                             if synerr:
                                 if numargs<=0 or cmdargs[i]=="?":
                                     scr.echo(helptext)
                                 else:
                                     scr.echo("Syntax error: " + helptext)
-                        elif type(results)==list:
+                                synerr =  False # Prevent further nagging
+                                
+                        elif type(results)==list or type(results)==tuple:
+                            # Maybe there is also an error message returned?
                             if len(results)>=1:
                                 synerr = not results[0]
                             
                             if len(results)>=2:
                                 scr.echo(cmd+":"+results[1])
+                                synerr = False
+
                     else:  # synerr:                    
                          scr.echo("Syntax error: "+helptext)
-
-
-                #----------------------------------------------------------------------
-                # QUIT/STOP/END/Q: stop program
-                #----------------------------------------------------------------------
-                elif cmd == "QUIT" or cmd == "STOP" or cmd == "END" \
-                        or cmd == "EXIT" or cmd[0] == "Q":
-
-                    sim.stop()
 
                 #----------------------------------------------------------------------
                 # HELP/?: HELP command
@@ -884,8 +938,6 @@ class Commandstack:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
                     sim.reset()
-                    traf.deleteall()
-                        
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run
@@ -911,77 +963,31 @@ class Commandstack:
                             scr.echo("SAVEIC: Error writing file")
 
                 #----------------------------------------------------------------------
-                # DT: set value of DT for FIXDT mode
-                #----------------------------------------------------------------------
-                elif cmd == "DT":
-                    if numargs < 1:
-                        scr.echo("DT [dt] sets DT for fixdt mode")
-                        scr.echo("Current dt = " + str(sim.fixdt))
-                    else:
-                        dt_ = float(cmdargs[1])
-                        sim.fixdt = abs(dt_)
-
-                #----------------------------------------------------------------------
-                # FIXDT: switch FIXDT mode on/off
-                #----------------------------------------------------------------------
-                elif cmd == "FIXDT":
-                    if numargs < 1:
-                        scr.echo("FIXDT ON/OFF [,howmanyseconds]")
-                        scr.echo("Current dt = " + str(sim.fixdt))
-                        if sim.ffmode:
-                            scr.echo("FIXDT mode is ON")
-                            if sim.ffstop > 0.:
-                                t_ = sim.ffstop - sim.simt
-                                scr.echo("for " + str(t_) + " more seconds")
-                        else:
-                            scr.echo("FIXDT mode is OFF")
-                    else:
-                        if cmdargs[1].upper() == "ON":
-                            sim.ffmode = True
-                            if numargs >= 2:
-                                try:
-                                    tstop_ = float(cmdargs[2])
-                                    sim.ffstop = abs(tstop_) + sim.simt
-                                except:
-                                    sim.ffstop = -1.
-                                    synerr = True  # syntax is not ok
-                            else:
-                                sim.ffmode = True
-                                sim.ffstop = -1
-
-                        elif cmdargs[1].upper()[:2] == "OF":
-                            sim.ffmode = False
-
-                #----------------------------------------------------------------------
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
                 #----------------------------------------------------------------------
                 elif cmd[:6] == "METRIC":
-                    if numargs < 1:
-                        if sim.metric is None:
-                            scr.echo("METRICS module disabled")
-                            break
+                    if sim.metric is None:
+                        scr.echo("METRICS module disabled")
+
+                    elif numargs < 1:
+                        if sim.metric.metric_number < 0:
+                            scr.echo("No metric active, to configure run:")
+                            scr.echo("METRICS OFF/0/1/2 [dt]")
                         else:
-                            if sim.metric.metric_number < 0:
-                                scr.echo("No metric active, to configure run:")
-                                scr.echo("METRICS OFF/0/1/2 [dt]")
-                            else:
-                                scr.echo("")
-                                scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
-                                    sim.metric.metric_number])
-                                scr.echo("Current dt: " + str(sim.metric.dt) + " s")
+                            scr.echo("")
+                            scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
+                                sim.metric.metric_number])
+                            scr.echo("Current dt: " + str(sim.metric.dt) + " s")
 
                     elif cmdargs[1] == "OFF":  # arguments are strings
                         sim.metric.metric_number = -1
                         scr.echo("Metric is off")
 
                     else:
-                        if sim.metric is None:
-                            scr.echo("METRICS module disabled")
-                            break
-                        elif not cmdargs[1][1:].isdigit():
-#                            print cmdargs[1][1:].isdigit()
+                        if not cmdargs[1][1:].isdigit():
+                            # print cmdargs[1][1:].isdigit()
                             scr.echo("Command argument invalid")
-#                            return
+                            return
                         sim.metric.metric_number = int(cmdargs[1]) - 1
                         if sim.metric.metric_number < 0:
                             scr.echo("Metric is off")
@@ -1002,7 +1008,6 @@ class Commandstack:
                                 scr.echo("First define AREA FIR")
                         else:
                             scr.echo("No such metric")
-
 
                 #----------------------------------------------------------------------
                 # AREA command: AREA lat0,lon0,lat1,lon1[,lowalt]
@@ -1099,14 +1104,14 @@ class Commandstack:
                         # Deleting traffic flying out of experiment area
                         traf.area = "Circle"
                         traf.swarea = True
-                        traf.radius = radius
+                        traf.arearadius = radius
                         traf.arealat0 = lat0 # center of circle sent to traf
                         traf.arealon0 = lon0
                         
                         if numargs == 5:
-                            traf.areafloor = float(cmdargs[5]) * ft
+                            traf.areafloor = float(cmdargs[5]) * ft # [m]
                         else:
-                            traf.areafloor = -9999999.
+                            traf.areafloor = -9999999. # [m]
                             
                         # draw the circular experiment area on the radar gui  
                         scr.redrawradbg = True                        
@@ -1326,26 +1331,26 @@ class Commandstack:
                                    synerr = True
                             else:
                                 scr.echo(cmdargs[1]+"not found")
- 
-                        elif numargs ==1:
-                            acid = traf.id[idx]
-                            if traf.swlnav[idx] == "ON":
-                                scr.echo(acid+": LNAV ON")
-                            else:
-                                scr.echo(acid+": LNAV OFF")
-
                         else:
-                            if cmdargs[2].upper() == "ON":
-                                if traf.route[idx].nwp > 0: # If there are any waypoints defined
-                                    traf.swlnav[idx] = True
-    
-                                    iwp = traf.route[idx].findact(traf,idx)
-                                    traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                            acid = traf.id[idx]
+                            if numargs ==1:
+                                if traf.swlnav[idx] == "ON":
+                                    scr.echo(acid+": LNAV ON")
                                 else:
-                                    scr.echo("LNAV "+acid+": no waypoints or destination specified")
+                                    scr.echo(acid+": LNAV OFF")
 
-                            elif cmdargs[2].upper() == "OFF":
-                                traf.swlnav[idx] = False
+                            else:
+                                if cmdargs[2].upper() == "ON":
+                                    if traf.route[idx].nwp > 0: # If there are any waypoints defined
+                                        traf.swlnav[idx] = True
+        
+                                        iwp = traf.route[idx].findact(traf,idx)
+                                        traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
+                                    else:
+                                        scr.echo("LNAV "+acid+": no waypoints or destination specified")
+    
+                                elif cmdargs[2].upper() == "OFF":
+                                    traf.swlnav[idx] = False
 
                 #----------------------------------------------------------------------
                 # VNAV acid ON/OFF  Switch VNAV (SPD+ALT FMS navigation)  on/off
@@ -1582,7 +1587,7 @@ class Commandstack:
                             if not synerr:
                                 traf.route[i].listrte(scr,ipage)
                                 if ipage+1<npages:
-                                    scr.editwin.insert("LISTRTE "+acid+","+str(ipage+1))
+                                    scr.cmdline("LISTRTE "+acid+","+str(ipage+1))
 
                 #----------------------------------------------------------------------
                 # ECHO: show messages in Edit window
