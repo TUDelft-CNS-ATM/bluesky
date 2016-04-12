@@ -44,7 +44,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     # display help    
     elif command == "HELP":
         scr.echo("This is the synthetic traffic scenario module")
-        scr.echo("Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER, SPHERE, MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN")
+        scr.echo("Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER, SPHERE, MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, NEARMISS")
     
     #create a perpendicular conflict between two aircraft
     elif command == "SIMPLE":
