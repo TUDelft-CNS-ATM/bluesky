@@ -2,7 +2,7 @@ import sys
 sys.path.append('bluesky/tools/')
 import random
 import numpy as np
-from aero import ft, eas2tas, qdrpos
+from aero import ft, eas2tas, nm
 from misc import txt2alt, txt2spd
 '''
     Original version by Jerom Maas, fall 2014
@@ -44,7 +44,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     # display help    
     elif command == "HELP":
         scr.echo("This is the synthetic traffic scenario module")
-        scr.echo("Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER, SPHERE, MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP")
+        scr.echo("Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER, SPHERE, MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN")
     
     #create a perpendicular conflict between two aircraft
     elif command == "SIMPLE":
@@ -245,10 +245,9 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         else:
             try:
                 traf.reset(sim.navdb) # start fresh
-                synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
-                if synerror:
-                    raise Exception()
-                    
+                ang = float(cmdargs[2])/2  
+                acalt,acspd,actype,startdistance = argparse.optional(cmdargs[1:]) # process arguments
+                            
                 mperdeg=111319.
                 hsep=traf.dbconf.R # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
@@ -269,13 +268,10 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                     alternate = alternate * -1   
                     
                 scr.pan([0,0],True)
-            except Exception:
-                scr.echo('Syntax error: unknown argument flag')
             except:
                 scr.echo('Syntax error')
                 scr.echo(commandhelp) 
-                
-
+                    
     # create a conflict with several aircraft flying in two columns angled towards each other
     elif command == "COLUMN":
         commandhelp = "SYN_COLUMN n angle [-r=radius in NM] [-a=alt in ft] [-s=speed EAS in kts] [-t=actype]"
@@ -284,65 +280,78 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         else:
             try:
                 traf.reset(sim.navdb) # start fresh
-                synerror,acalt,acspd,actype,startdistance,ang = angledtraffic.arguments(numargs,cmdargs[1:]) # process arguments
-                if synerror:
-                    raise Exception() 
-
+                ang = float(cmdargs[2])/2     
+                acalt,acspd,actype,startdistance = argparse.optional(cmdargs[1:])# process arguments 
+                
                 mperdeg=111319.
                 hsep=traf.dbconf.R # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
                 matsep=1.1 #factor of extra space in the formation
-                hseplat=hseplat*matsep
-                       
+                hseplat=hseplat*matsep               
+                
                 aclat = startdistance * np.cos(np.deg2rad(ang)) #[deg]
                 aclon = startdistance * np.sin(np.deg2rad(ang))
-                latsep = abs(hseplat*np.cos(np.deg2rad(ang))) #[deg]
-                lonsep = abs(hseplat*np.sin(np.deg2rad(ang)))
-
+                latsep = abs(hseplat*matsep*np.cos(np.deg2rad(ang))) #[deg]
+                lonsep = abs(hseplat*matsep*np.sin(np.deg2rad(ang)))
+    
                 traf.create("ANG0", actype, aclat, aclon, 180+ang, acalt*ft, acspd)
                 traf.create("ANG1", actype, aclat, -aclon, 180-ang, acalt*ft, acspd)  
-                
+            
                 for i in range(1,int(cmdargs[1])): # Create a/c
                     aclat = aclat+latsep
                     aclon = aclon+lonsep
                     traf.create("ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt*ft, acspd)
                     traf.create("ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt*ft, acspd)  
-
+    
                 scr.pan([0,0],True)
-            except Exception:
-                scr.echo('Syntax error: unknown argument flag')
             except:
                 scr.echo('Syntax error')
-                scr.echo(commandhelp)      
-                   
+                scr.echo(commandhelp)    
+
+    # create a conflict with two aircraft flying head on but with a distance between their tracks    
+    elif command == "NEARMISS":
+        commandhelp = "SYN_NEARMISS [-r=cpa distance in NM]  [-a=alt in ft] [-s=speed EAS in kts] [-t=actype]"
+        if numargs == 0:
+            scr.echo(commandhelp)
+        try:
+            traf.reset(sim.navdb) # start fresh
+            acalt,acspd,actype,gc = argparse.optional(cmdargs[1:]) # process arguments
+            aclat = gc/2. # [deg] set to half cpa distance
+            aclon = gc*5. # [deg] set to 5 * cpa distance
+    
+            traf.create("NEM0", actype, aclat, aclon, -90, acalt*ft, acspd)
+            traf.create("NEM1", actype, -aclat, -aclon, 90, acalt*ft, acspd)  
+                    
+            scr.pan([0,0],True)
+        except:
+            scr.echo('Syntax error')
+            scr.echo(commandhelp)   
+  
     #give up
     else:
         scr.echo("Unknown command: " + callsign + command)
-#    pass
 
-class angledtraffic():
-    
+
+class argparse():
     @staticmethod        
-    def arguments(numargs, cmdargs): 
-        syntaxerror = False        
-        # tunables:
+    def optional(cmdargs): 
+        mperdeg=111319.
+        # defaults:
         acalt = float(10000) # default
         acspd = float(300) # default
         actype = "B747" # default
-        startdistance = 1 # default
+        greatcircle = 10*nm/mperdeg # default
         
-        ang = float(cmdargs[1])/2    
-        
-        if numargs>2:   #process optional arguments
-            for i in range(2 ,numargs): # loop over arguments (TODO: put arguments in np array)
-                if cmdargs[i].upper().startswith("-R"): #radius
-                    startdistance = qdrpos(0,0,90,float(cmdargs[i][3:]))[2] #input in nm
-                elif cmdargs[i].upper().startswith("-A"): #altitude
-                    acalt = txt2alt(cmdargs[i][3:])*ft
-                elif cmdargs[i].upper().startswith("-S"): #speed
-                    acspd = txt2spd(cmdargs[i][3:],acalt)
-                elif cmdargs[i].upper().startswith("-T"): #ac type
-                    actype = cmdargs[i][3:].upper()
-                else:
-                    syntaxerror = True
-        return syntaxerror,acalt,acspd,actype,startdistance,ang
+        for i in range(0 , len(cmdargs)): # loop over arguments (TODO: put arguments in np array)
+            if cmdargs[i].upper().startswith("-R"): #distance input in nm output in deg
+                try:
+                    greatcircle = float(cmdargs[i][3:])*nm/mperdeg 
+                except ValueError:
+                    print("Syntax error: Non-numerical input")
+            elif cmdargs[i].upper().startswith("-A"): #altitude
+                acalt = txt2alt(cmdargs[i][3:])*ft
+            elif cmdargs[i].upper().startswith("-S"): #speed
+                acspd = txt2spd(cmdargs[i][3:],acalt)
+            elif cmdargs[i].upper().startswith("-T"): #ac type
+                actype = cmdargs[i][3:].upper()
+        return acalt,acspd,actype,greatcircle
