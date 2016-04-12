@@ -155,6 +155,7 @@ if gui == 'qtgl':
 
         REARTH_INV    = 1.56961231e-7
         rwythresholds = dict()
+        curthresholds = None
         runways       = []
         asphalt       = PolygonSet()
         concrete      = PolygonSet()
@@ -193,11 +194,10 @@ if gui == 'qtgl':
                     apt_indices.append([asphalt.bufsize() / 2, 0, concrete.bufsize() / 2, 0])
                     apt_ctr_lat.append(0.0)
                     apt_ctr_lon.append(0.0)
-                    continue
-                
-                # save ICAO code
-                if elems[0] == '1':
-                    apt = str(elems[4])
+
+                    # Add airport to runway threshold database
+                    curthresholds = dict()
+                    rwythresholds[elems[4]] = curthresholds
                     continue
 
                 # 100: LAND RUNWAY
@@ -235,16 +235,12 @@ if gui == 'qtgl':
                     ### CAREFUL: First lat0 and lon0 , then lat1 and lat1, offset=[11]
                     # first for RWY I (positions 8-11)
                     # return value of threshold is (lat,lon, bearing)
-                    rwyinfo = {str(elems[8]): thresholds(radians(lat0),radians(lon0), radians(lat1),radians(lon1), offset0)} 
-                    
-                    rwythresholds[apt].update(rwyinfo)
- 
+                    curthresholds[elems[8]] = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0)
+
                     # then for RWY II (positions 17-20)
                     # CAREFUL: First lat1 and lat1 , then lat0 and lon0, offset=[20]
                     # return value of threshold is (lat,lon,bearing)
-                    rwyinfo = {str(elems[17]): thresholds(radians(lat1),radians(lon1), radians(lat0),radians(lon0), offset1)} 
-                    rwythresholds[apt].update(rwyinfo)
-                    
+                    curthresholds[elems[17]] = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1)
                     continue
 
                 # 110: TAXIWAY/PAVEMENT: Start of polygon contour
