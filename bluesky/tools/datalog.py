@@ -114,7 +114,7 @@ class Datalog():
             f.write('INTRUSION DATA' +'\n')
             f.write('==============================='+'\n')
             f.write('\n')
-            f.write('time [hh:mm:ss], simulation time [hh:mm:ss:ss], id1 [-],id2 [-], tinconf [s],toutconf [s],lat1 [decimal degrees],lon1 [decimal degrees],trk1 [deg],alt1 [m],tas1 [m/s],gs1 [m/s],vs1 [m/s],type1 [-],lat2 [decimal degrees],lon2 [decimal degrees],trk2 [deg],tas2 [m/s],[m/s],gs2 [m/s],vs2 [m/s],type2 [-]'+'\n')
+            f.write('time [hh:mm:ss], simulation time [hh:mm:ss:ss], id1 [-],id2 [-], tinconf [s], toutconf [s], self.LOShmaxsev [-], self.LOSvmaxsev [-],lat1 [decimal degrees],lon1 [decimal degrees],trk1 [deg],alt1 [m],tas1 [m/s],gs1 [m/s],vs1 [m/s],type1 [-],lat2 [decimal degrees],lon2 [decimal degrees],trk2 [deg],tas2 [m/s],[m/s],gs2 [m/s],vs2 [m/s],type2 [-]'+'\n')
             f.write('\n')
             f.close()
         

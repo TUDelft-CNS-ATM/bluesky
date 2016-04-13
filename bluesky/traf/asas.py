@@ -325,15 +325,15 @@ class Dbconf():
                     self.LOSmaxsev.append(0.)
                     self.LOShmaxsev.append(0.)
                     self.LOSvmaxsev.append(0.)
-                    if self.traf.log.swint:
-                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
-                                            % (self.traf.id[i],self.traf.id[j], \
-                                               self.tinconf[i][j],self.toutconf[i][j], \
-                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
-                                               self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
-                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
-                                               self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
-            
+#                    if self.traf.log.swint:
+#                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+#                                            % (self.traf.id[i],self.traf.id[j], \
+#                                               self.tinconf[i][j],self.toutconf[i][j], \
+#                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+#                                               self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+#                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+#                                               self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+
                 if combi not in self.LOSlist_exp and combi2 not in self.LOSlist_exp and experimenttime:
                     self.LOSlist_exp.append(combi)
 
@@ -355,6 +355,15 @@ class Dbconf():
                         self.LOSmaxsev[idx]  = severity
                         self.LOShmaxsev[idx] = Ih
                         self.LOSvmaxsev[idx] = Iv
+                    else:
+                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                            % (self.traf.id[i],self.traf.id[j], \
+                                               self.LOShmaxsev[idx], self.LOSvmaxsev[idx], self.tinconf[i][j],self.toutconf[i][j], \
+                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+                                               self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+                                               self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+                                                
 
         self.nconf = len(self.idown)
 
