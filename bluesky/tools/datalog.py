@@ -2,7 +2,7 @@
 Datalog class definition : Data logging class
 
 Methods:
-    Datalog(filename)  :  constructor
+    Datalog(filename)  : constructor
 
     write(txt)         : add a line to the datalogging buffer
     save()             : save data to file
