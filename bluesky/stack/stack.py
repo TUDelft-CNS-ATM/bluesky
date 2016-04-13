@@ -1,6 +1,6 @@
 from math import *
 import numpy as np
-from random import random, randint
+from random import random, randint, seed
 import os
 import sys
 
@@ -90,6 +90,10 @@ class Commandstack:
                 "txt",
                 sim.scenarioInit
             ],
+            "SEED": [
+                "SEED value",
+                "int",
+                self.setSeed],
             "SPD": [
                 "SPD acid,spd [CAS-kts/Mach]",
                 "acid,spd",
@@ -163,6 +167,11 @@ class Commandstack:
         # ------------------ [end] Deprecated -------------------
 
         return
+
+    def setSeed(self, value):
+        print 'Setting random seed to', value
+        seed(value)
+        np.random.seed(value)
 
     def stack(self, cmdline):
         # Stack one or more commands separated by ";"

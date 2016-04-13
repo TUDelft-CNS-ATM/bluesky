@@ -137,7 +137,7 @@ class MainManager(QObject):
                     # The event is meant for the gui
                     qapp.sendEvent(qapp.instance(), event)
 
-        # To avoid giving wrong information with getSenderID() when it is called outside
+        # To avoid giving wrong information with sender() when it is called outside
         # of this function, set sender_id to -1
         self.sender_id = -1
 
