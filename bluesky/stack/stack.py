@@ -80,15 +80,16 @@ class Commandstack:
                 "acid,float",
                 traf.selhdg
             ],
+            "LOG": [
+                "LOG acid/area/*,dt",
+                "txt,float",
+                sim.datalog.start
+            ],
             "PCALL": [
                 "PCALL filename [REL/ABS]",
                 "txt,txt",
                 self.pcall
             ],
-            "RESET": [
-                "RESET",
-                "",
-                sim.reset],
             "SCEN": [
                 "SCEN scenname",
                 "txt",
@@ -158,8 +159,7 @@ class Commandstack:
 
         self.extracmdmodules = {
             "SYN_": 'synthetic', 
-            "ASA_":'asascmd', 
-            "LOG_":'log'
+            "ASA_":'asascmd'
         }
 
         # Import modules from the list
@@ -173,12 +173,9 @@ class Commandstack:
         return
 
     def setSeed(self, value):
+        print 'Setting random seed to', value
         seed(value)
         np.random.seed(value)
-
-    def reset(self):
-        self.scentime = []
-        self.scencmd  = []
 
     def stack(self, cmdline):
         # Stack one or more commands separated by ";"
