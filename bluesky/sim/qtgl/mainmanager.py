@@ -18,6 +18,15 @@ from multiprocessing import cpu_count
 Listener.fileno = lambda self: self._listener._socket.fileno()
 
 
+def split_scenarios(scentime, scencmd):
+    start = 0
+    for i in xrange(1, len(scencmd)):
+        if scencmd[i][:4] == 'SCEN':
+            scenname = scencmd[start].split()[1].strip()
+            yield (scenname, scentime[start:i], scencmd[start:i])
+            start = i
+
+
 class MainManager(QObject):
     instance           = None
     # Signals
@@ -32,14 +41,13 @@ class MainManager(QObject):
         super(MainManager, self).__init__()
         print 'Initializing multi-process simulation'
         MainManager.instance = self
-        self.scentime        = []
-        self.scencmd         = []
+        self.scenarios       = []
         self.connections     = []
         self.localnodes      = []
         self.hosts           = dict()
         self.max_nnodes      = cpu_count()
         self.activenode      = 0
-        self.sender_id       = -1
+        self.sender_id       = None
         self.stopping        = False
         self.listener        = Listener(('localhost', 6000), authkey='bluesky')
 
@@ -62,7 +70,7 @@ class MainManager(QObject):
             # Send the node information about its nodeid
             connidx = len(self.connections)
             conn.send((SetNodeIdType, nodeid))
-            self.connections.append((conn, nodeid))
+            self.connections.append([conn, nodeid, 0])
             self.nodes_changed.emit(address, nodeid, connidx)
             self.setActiveNode(connidx)
 
@@ -94,58 +102,55 @@ class MainManager(QObject):
 
                 # First check if this event is meant for the manager
                 if event.type() == SimStateEventType:
-                    if event.state == event.init:
-                        # Set received state to end to enable sending of new batch scenario
-                        if len(self.localnodes) > 1:
-                            event.state = event.end
-
+                    # Save the state together with the connection object
+                    conn[2] = event.state
                     if event.state == event.end:
-                        if len(self.scencmd) == 0:
-                            if len(self.localnodes) == 1:
-                                # Quit the main loop. Afterwards, manager will also quit
-                                qapp.instance().quit()
+                        # Quit the main loop. Afterwards, manager will also quit
+                        qapp.instance().quit()
 
-                        else:
-                            # Find the scenario starts
-                            scenidx  = [i for i in range(len(self.scencmd)) if self.scencmd[i][:4] == 'SCEN']
-                            scenidx.append(len(self.scencmd))
-                            start = scenidx[0]
-                            end   = scenidx[1]
-                            # Send a new scenario to the finished sim process
-                            conn[0].send((BatchEventType, BatchEvent(self.scentime[start:end], self.scencmd[start:end])))
-
-                            # Delete the scenarios that were sent in the initial batch
-                            del self.scentime[0:end]
-                            del self.scencmd[0:end]
+                    elif event.state == event.init or event.state == event.hold:
+                        if len(self.scenarios) > 0:
+                            self.sendScenario(conn)
 
                 elif event.type() == BatchEventType:
-                    self.scentime = event.scentime
-                    self.scencmd  = event.scencmd
-                    # Find the scenario starts
-                    scenidx  = [i for i in range(len(self.scencmd)) if self.scencmd[i][:4] == 'SCEN']
+                    self.scenarios = [scen for scen in split_scenarios(event.scentime, event.scencmd)]
                     # Check if the batch list contains scenarios
-                    if len(scenidx) == 0:
+                    if len(self.scenarios) == 0:
                         qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='No scenarios defined in batch file!'))
+
                     else:
-                        # Determine and start the required number of nodes
-                        reqd_nnodes = min(len(scenidx), self.max_nnodes)
-                        if reqd_nnodes > len(self.localnodes):
-                            for n in range(len(self.localnodes), reqd_nnodes):
-                                self.addNode()
+                        qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='Found %d scenarios in batch' % len(self.scenarios)))
+                        # Available nodes (nodes that are in init or hold mode):
+                        av_nodes = [n for n in range(len(self.connections)) if self.connections[n][2] in [0, 2]]
+                        for i in range(min(len(av_nodes), len(self.scenarios))):
+                            self.sendScenario(self.connections[i])
+                        # If there are still scenarios left, determine and start the required number of local nodes
+                        reqd_nnodes = min(len(self.scenarios), max(0, self.max_nnodes - len(self.localnodes)))
+                        for n in range(reqd_nnodes):
+                            self.addNode()
 
                 else:
                     # The event is meant for the gui
                     qapp.sendEvent(qapp.instance(), event)
 
-        # To avoid giving wrong information with getSenderID() when it is called outside
-        # of this function, set sender_id to -1
-        self.sender_id = -1
+        # To avoid giving wrong information with sender() when it is called outside
+        # of this function, set sender_id to None
+        self.sender_id = None
 
     def addNode(self):
         if len(self.connections) > 0:
             self.connections[self.activenode][0].send((SetActiveNodeType, False))
         p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
         self.localnodes.append(p)
+
+    def sendScenario(self, conn):
+        # Send a new scenario to the target sim process
+        scen = self.scenarios[0]
+        qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='Starting scenario ' + scen[0] + ' on node (%d, %d)' % conn[1]))
+        conn[0].send((BatchEventType, BatchEvent(scen[1], scen[2])))
+
+        # Delete the scenario from the list
+        del self.scenarios[0]
 
     def setActiveNode(self, connidx):
         if connidx < len(self.connections):
