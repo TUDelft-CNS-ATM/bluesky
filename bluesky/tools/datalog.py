@@ -12,7 +12,6 @@ Date        : October 2013
 
 Modifation  :   - added start method including command processing
                 - added CSV-style saving
-                - added data to save
 By          : P. Danneels
 Date        : April 2016
 
