@@ -542,16 +542,6 @@ class Traffic:
         
         return True
 
-    def deleteall(self):
-        """Clear traffic buffer"""
-        ndel = self.ntraf
-        for i in range(ndel):
-            self.delete(self.id[-1])
-        self.ntraf = 0
-        self.dbconf.reset()
-        self.perf.reset()
-        return
-
     def update(self, simt, simdt):
         # Update only necessary if there is traffic
         if self.ntraf == 0:
@@ -806,6 +796,12 @@ class Traffic:
         self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aptas
         self.desalt = self.asasactive*self.asasalt + (1-self.asasactive)*self.aalt
         self.desvs  = self.asasactive*self.asasvsp + (1-self.asasactive)*self.avs
+        if self.dbconf.swresodir == "HORIZ":
+            self.desalt = self.aalt
+        
+#        if simt > 1470.:
+#            import pdb
+#            pdb.set_trace()
 
         # check for the flight envelope
         self.perf.limits()

@@ -156,8 +156,8 @@ class Dbconf():
         vrel = np.sqrt(dv2)
         
         self.tcpa = -(self.du*self.dx + self.dv*self.dy) / dv2   + 1e9*I
-
-# Calculate CPA positions
+        
+       # Calculate CPA positions
         xcpa = self.tcpa*self.du
         ycpa = self.tcpa*self.dv
 
@@ -391,7 +391,8 @@ class Dbconf():
 # Look at all conflicts, also the ones that are solved but CPA is yet to come
         for conflict in self.conflist_all: 
             id1,id2 = self.ConflictToIndices(conflict)
-            if id1 != "Fail":
+            
+            if id1 != "Fail" and id2 != "Fail":
                 pastCPA=self.ConflictIsPastCPA(self.traf,id1,id2)
                 
                 if not pastCPA:
@@ -400,7 +401,29 @@ class Dbconf():
                     self.traf.inconflict[id1] = True
 
                     self.traf.asasactive[id2] = True
-                    self.traf.inconflict[id2] = True
+                    self.traf.inconflict[id2] = True                   
+                    
+                    # if the next waypoint is the destination airport, and the 
+                    # distance to the destination airport is less than dist2vs, don't detect conflicts anymore. 
+                    # Do this only if the lnav is on
+                    # This is to ensure that last minute conflicts don't deviate aircraft from their destinations too much.
+                    if self.traf.swlnav[id1] == True:
+                        dy = (self.traf.actwplat[id1]-self.traf.lat[id1])
+                        dx = (self.traf.actwplon[id1]-self.traf.lon[id1])*self.traf.coslat[id1]
+                        dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
+                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3 and dist2wp<self.traf.dist2vs[id1]:
+                            self.traf.asasactive[id1] = False    
+                            iwpid1 = self.traf.route[id1].findact2(self.traf,id1)                        
+
+                    # same as above for id2   
+                    if self.traf.swlnav[id2] == True:                     
+                        dy = (self.traf.actwplat[id2]-self.traf.lat[id2])
+                        dx = (self.traf.actwplon[id2]-self.traf.lon[id2])*self.traf.coslat[id2]
+                        dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)                        
+                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3 and dist2wp<self.traf.dist2vs[id2]:
+                            self.traf.asasactive[id2] = False
+                            iwpid2 = self.traf.route[id2].findact2(self.traf,id2)                        
+                        
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
                     iwpid1 = self.traf.route[id1].findact2(self.traf,id1)
@@ -409,7 +432,27 @@ class Dbconf():
                     iwpid2 = self.traf.route[id2].findact2(self.traf,id2)
                     if iwpid2 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
-                        #self.conflist_all.remove(conflict)
+                    
+                    # if conflict is solved, remove it from the conflist_all to pre
+                    self.conflist_all.remove(conflict)
+                    
+            elif id1 == "Fail" and id2!= "Fail":
+                 iwpid2 = self.traf.route[id2].findact2(self.traf,id2)
+                 if iwpid2 != -1: # To avoid problems if there are no waypoints
+                     self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
+                 self.conflist_all.remove(conflict)
+            
+            elif id2 == "Fail" and id1 != "Fail":
+                iwpid1 = self.traf.route[id1].findact2(self.traf,id1)
+                if iwpid1 != -1: # To avoid problems if there are no waypoints
+                    self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
+                self.conflist_all.remove(conflict)
+            
+            # if both are fail, then remove the conflict from the conflist_all
+            else:
+                self.conflist_all.remove(conflict)
+                     
+                
             
         return
 

@@ -320,6 +320,10 @@ class Route():
         if self.iactwp+1<self.nwp:
             self.iactwp = self.iactwp + 1
             lnavon = True
+        # if the last waypoint is an airport, keep lnav on to keep vnav on
+        # this is need to ensure that aircraft descend to their destinations
+        elif self.wptype[self.iactwp] == 3:
+            lnavon = True
         else:
             lnavon = False
 
@@ -557,7 +561,7 @@ class Route():
         return        
 
     def findact(self,traf,i):
-        """ Find best default active waypoint"""
+        """ Find best default active waypoint. This function is called during route creation"""
 
         # Check for easy answers first
         if self.nwp<=0:
@@ -586,7 +590,7 @@ class Route():
         return iwpnear
         
     def findact2(self,traf,i):
-        """ Find best default active waypoint"""
+        """ Find best default active waypoint. This is function is called if conflict is past CPA"""
         
         # Check for easy answers first
         if self.nwp<=0:
@@ -616,6 +620,13 @@ class Route():
             while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5 :
                 iwpnear = iwpnear+1
                 counter = counter +1
+        
+        # if the last waypoint is an airport, then start descending by activating VNAV logic
+        else: 
+#            steepness = -3000.*ft/(10.*nm)
+#            self.traf.avs[i] = steepness*self.traf.gs[i]
+        
+            self.traf.dist2vs[i] = 1e9
         
         return iwpnear
 

@@ -30,13 +30,24 @@ def resolve(dbconf):
 
                 dv_eby = MVP(dbconf,id1,id2)
                 
-                 # if swprio is on, and there is crusing aircraft in the conflict, then the crusing aircraft does nothing
+                # if swprio is on, and there is crusing aircraft in the conflict, 
+                #  then the crusing aircraft does nothing and climbing/descending solves horizontally onlly
                 if dbconf.swprio: 
                     if dbconf.traf.vs[id1]<0.1 and dbconf.traf.vs[id2]>=0.1:
-                        dv[id2] = dv[id2] + dv_eby
+                        dv[id2] = dv[id2] + dv_eby   
+                        dv[id2][2] = 0.0
+                            
                     elif dbconf.traf.vs[id1]>=0.1 and dbconf.traf.vs[id2]<0.1:
                         dv[id1] = dv[id1] + dv_eby
-                    else:
+                        dv[id1][2] = 0.0
+                        
+                    elif dbconf.traf.vs[id1]<0.1 and dbconf.traf.vs[id2]<0.1: # both are crusing, don't climb/descend
+                        dv[id1] = dv[id1] - dv_eby
+                        dv[id2] = dv[id2] + dv_eby
+                        dv[id1][2] = 0.0
+                        dv[id2][2] = 0.0 
+                        
+                    else: # both are climbing/descending, then use combined
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
                 else:
@@ -156,21 +167,27 @@ def MVP(dbconf, id1, id2):
         if dbconf.swresodir == "VERT":
             dcpa[2] = 10.
     
+    # If tcpa is very far away, then this is a shallow conflict angle. Set tcpa to 
+    # a lower value to force a quicker solution
+    tcpa = dbconf.tcpa[id1,id2]
+    if tcpa > dbconf.dtlookahead*1.2:
+        tcpa = dbconf.dtlookahead*1.2
+        
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
-    dv1 = (iH*dcpa[0])/(dbconf.tcpa[id1,id2]*dabsH)
-    dv2 = (iH*dcpa[1])/(dbconf.tcpa[id1,id2]*dabsH)
-    dv3 = (iV*dcpa[2])/(dbconf.tcpa[id1,id2]*dabsV)
-
+    dv1 = (iH*dcpa[0])/(tcpa*dabsH)
+    dv2 = (iH*dcpa[1])/(tcpa*dabsH)
+    dv3 = (iV*dcpa[2])/(tcpa*dabsV)
+    
     # It is necessary to cap dv3 to allow implict coordination of aircraft
-    # otherwise vertical conflict is solved in 1 timestep, leading to a vertical
-    # separation that is too high. If vertical dynamics are included to aircraft
+    # otherwise vertical conflict is solved in 1 timestep, leading to a vertical 
+    # separation that is too high. If vertical dynamics are included to aircraft 
     # model in traffic.py, the below lines should be deleted
     if dbconf.swresodir != "VERT":
         mindv3 = -200./60.*ft # ~ 1.016 [m/s]
         maxdv3 = 200./60.*ft
         dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
     
-    # combine the dv components
+    # combine the dv components 
     dv = np.array([dv1,dv2,dv3])    
 
     #Extra factor necessary! ==================================================
