@@ -617,7 +617,7 @@ class Route():
             # than 25 degrees, choose the next waypoint
             # A counter is used to limit the number of waypoints that can be skipped
             counter = 0
-            while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5 :
+            while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5 and dist2[iwpnear] < 25*nm:
                 iwpnear = iwpnear+1
                 counter = counter +1
         

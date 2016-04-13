@@ -669,27 +669,27 @@ class Traffic:
                         # Dist to waypoint where descent should start
                         self.dist2vs[i] = (self.alt[i]-self.actwpalt[i])/steepness
  
-                        # Flat earth distance to next wp
-                        dy = (lat-self.lat[i])
-                        dx = (lon-self.lon[i])*self.coslat[i]
-                        legdist = 60.*nm*sqrt(dx*dx+dy*dy)
+#                        # Flat earth distance to next wp
+#                        dy = (lat-self.lat[i])
+#                        dx = (lon-self.lon[i])*self.coslat[i]
+#                        legdist = 60.*nm*sqrt(dx*dx+dy*dy)
+#
 
+#                        #If descent is urgent, descent with maximum steepness
+#                        if legdist < self.dist2vs[i]:
+#                            self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+#
+#                            t2go         = max(0.1,legdist)/max(0.01,self.gs[i])
+#                            self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
 
-                        #If descent is urgent, descent with maximum steepness
-                        if legdist < self.dist2vs[i]:
-                            self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
-
-                            t2go         = max(0.1,legdist)/max(0.01,self.gs[i])
-                            self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
-                                              
-                        else: 
-
-                            # normal case: still time till descent starts
-                       
-                            # Calculate V/s using steepness, 
-                            # protect against zero/invalid ground speed value
-                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
-                                            (self.gs[i]<0.2*self.tas[i])*self.tas[i])
+#                        else: 
+#
+#                            # normal case: still time till descent starts
+#                       
+#                            # Calculate V/s using steepness, 
+#                            # protect against zero/invalid ground speed value
+#                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
+#                                            (self.gs[i]<0.2*self.tas[i])*self.tas[i])
 
                     # Climb VNAV mode: climb as soon as possible (T/C logic)                        
                     elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
@@ -798,10 +798,6 @@ class Traffic:
         self.desvs  = self.asasactive*self.asasvsp + (1-self.asasactive)*self.avs
         if self.dbconf.swresodir == "HORIZ":
             self.desalt = self.aalt
-        
-#        if simt > 1470.:
-#            import pdb
-#            pdb.set_trace()
 
         # check for the flight envelope
         self.perf.limits()
