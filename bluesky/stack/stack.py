@@ -177,10 +177,9 @@ class Commandstack:
         return
 
     def setSeed(self, value):
-        print 'Setting random seed to', value
         seed(value)
         np.random.seed(value)
-    
+
     def reset(self):
         self.scentime = []
         self.scencmd  = []
