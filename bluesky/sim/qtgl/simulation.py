@@ -65,7 +65,7 @@ class Simulation(QObject):
         self.syst = int(time.time() * 1000.0)
         self.fixdt = self.simdt
 
-        while not self.state == Simulation.end:
+        while self.running:
             # Timing bookkeeping
             self.samplecount += 1
 
@@ -96,8 +96,8 @@ class Simulation(QObject):
             # Process Qt events
             self.manager.processEvents()
 
-            # When running at a fixed rate, increment system time with sysdt and calculate remainder to sleep
-            if not self.ffmode:
+            # When running at a fixed rate, or when in hold/init, increment system time with sysdt and calculate remainder to sleep
+            if not self.ffmode or not self.state == Simulation.op:
                 self.syst += self.sysdt
                 remainder = self.syst - int(1000.0 * time.time())
 
@@ -129,6 +129,9 @@ class Simulation(QObject):
         self.ffmode = False
         self.traf.reset(self.navdb)
         self.stack.reset()
+
+    def quit(self):
+        self.running = False
 
     def setDt(self, dt):
         self.simdt = abs(dt)
@@ -196,7 +199,7 @@ class Simulation(QObject):
             event_processed     = True
         elif event.type() == SimQuitEventType:
             # BlueSky is quitting
-            self.state = Simulation.end
+            self.quit()
         else:
             # This is either an unknown event or a gui event.
             event_processed = self.screenio.event(event)

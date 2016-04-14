@@ -932,6 +932,7 @@ class Commandstack:
                 # IC IC: same file
                 #----------------------------------------------------------------------
                 elif cmd == "IC":
+                    sim.reset()
                     # If no arg is given: check
                     if numargs >= 1:
                         # Use lower case line for filename and allow space in path
@@ -953,7 +954,6 @@ class Commandstack:
                         if len(filename) > 0:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
-                    sim.reset()
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run
