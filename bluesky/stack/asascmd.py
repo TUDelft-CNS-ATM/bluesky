@@ -42,6 +42,8 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
                 traf.dbconf.SetCRmethod("Difgame")
             elif commandargs[1]=="EBY":
                 traf.dbconf.SetCRmethod("Eby")
+            elif commandargs[1]=="MVP_LAY":
+                traf.dbconf.SetCRmethod("MVP_LAY")
             else:
                 scr.echo("RESO TYPE UNKNOWN")
 

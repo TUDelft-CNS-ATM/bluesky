@@ -5,11 +5,12 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
+from math import *
 from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas,veas2tas
-from aero import ft
+from aero import ft, qdrdist
 
 def start(dbconf):
-    dbconf.CRname="MVP"
+    dbconf.CRname="MVP_LAY"
 
 def resolve(dbconf):
     if not dbconf.swasas:
@@ -30,29 +31,86 @@ def resolve(dbconf):
 
                 dv_eby = MVP(dbconf,id1,id2)
                 
-                # if swprio is on, and there is crusing aircraft in the conflict, 
-                #  then the crusing aircraft does nothing and climbing/descending solves horizontally onlly
-                if dbconf.swprio: 
-                    if abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])>=0.1: # id2 is climbing/descending
-                        dv[id2] = dv[id2] - np.sign(dbconf.traf.vs[id2])*abs(dv_eby)
+                # Distance calculation
+                
+                qdrid1, distid1, hdgroute1 = dbconf.traf.route[id1].finddist(dbconf.traf,id1) # deg, nm, deg
+                qdrid2, distid2, hdgroute2 = dbconf.traf.route[id2].finddist(dbconf.traf,id2) # deg, nm, deg
+                if qdrid1 < 0:
+                    qdrid1 = qdrid1 +360.
+                if qdrid2 < 0:
+                    qdrid2 = qdrid2 +360.
+                if hdgroute1 < 0:
+                    hdgroute1 = hdgroute1 +360.
+                if hdgroute2 < 0:
+                    hdgroute2 = hdgroute2 +360.
+                distid1 = distid1 * np.sin(radians(abs(qdrid1 - hdgroute1)))
+                distid2 = distid2 * np.sin(radians(abs(qdrid2 - hdgroute2)))
+                
+                if distid1 < 5. and distid2 <5.:
+                    # if swprio is on, and there is crusing aircraft in the conflict,
+                    #  then the crusing aircraft does nothing and climbing/descending solves horizontally onlly
+                    if dbconf.swprio:
+                        if abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])>=0.1: # id2 is climbing/descending
+                            dv[id2] = dv[id2] - np.sign(dbconf.traf.vs[id2])*abs(dv_eby)
                     
-                    elif abs(dbconf.traf.vs[id1])>=0.1 and abs(dbconf.traf.vs[id2])<0.1: # id1 is climbing/descending
-                        dv[id1] = dv[id1] - np.sign(dbconf.traf.vs[id1])*abs(dv_eby)
+                        elif abs(dbconf.traf.vs[id1])>=0.1 and abs(dbconf.traf.vs[id2])<0.1: # id1 is climbing/descending
+                            dv[id1] = dv[id1] - np.sign(dbconf.traf.vs[id1])*abs(dv_eby)
                     
-                    elif abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])<0.1: # both are crusing, don't climb/descend
-                        dv[id1] = dv[id1] - dv_eby
-                        dv[id2] = dv[id2] + dv_eby
-                        dv[id1][2] = 0.0
-                        dv[id2][2] = 0.0 
+                        elif abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])<0.1: # both are crusing, don't climb/descend
+                            dv[id1] = dv[id1] - dv_eby
+                            dv[id2] = dv[id2] + dv_eby
+                            dv[id1][2] = 0.0
+                            dv[id2][2] = 0.0
                         
-                    else: # both are climbing/descending, then use combined
+                        else: # both are climbing/descending, then use combined
+                            dv[id1] = dv[id1] - dv_eby
+                            dv[id2] = dv[id2] + dv_eby
+                    else:
+
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
+                # Force the most deviating aircraft to its original route
                 else:
+                    dv_eby = abs(dv_eby)
+#                    import pdb
+#                    pdb.set_trace()
+                    if distid1 >= distid2:
+                        trkrad = np.radians(dbconf.traf.trk[id1])
+                        v = np.array([np.sin(trkrad)*dbconf.traf.tas[id1],\
+                                      np.cos(trkrad)*dbconf.traf.tas[id1],\
+                                      dbconf.traf.vs[id1]])
+                        newvid1a = v - dv_eby
+                        newvid1b = v + dv_eby
+                        newtrackid1a = (np.arctan2(newvid1a[0],newvid1a[1])*180/np.pi) %360
+                        newtrackid1b = (np.arctan2(newvid1b[0],newvid1b[1])*180/np.pi) %360
+                        delid1a = abs(hdgroute1-newtrackid1a)
+                        delid1b = abs(hdgroute1-newtrackid1b)
+                        if delid1a <= delid1b:
+                            dbconf.traf.asasactive[id1] = False #dv[id1] = dv[id1] - dv_eby
+                            dv[id2] = dv[id2] + dv_eby
+                        else:
+                            dbconf.traf.asasactive[id1] = False # dv[id1] = dv[id1] + dv_eby
+                            dv[id2] = dv[id2] - dv_eby
+                        dbconf.traf.route[id1].findact2(dbconf.traf,id1)
+                    else:
+                        trkrad = np.radians(dbconf.traf.trk[id2])
+                        v = np.array([np.sin(trkrad)*dbconf.traf.tas[id2],\
+                                      np.cos(trkrad)*dbconf.traf.tas[id2],\
+                                      dbconf.traf.vs[id2]])
+                        newvid2a = v - dv_eby
+                        newvid2b = v + dv_eby
+                        newtrackid2a = (np.arctan2(newvid2a[0],newvid2a[1])*180/np.pi) %360
+                        newtrackid2b = (np.arctan2(newvid2b[0],newvid2b[1])*180/np.pi) %360
+                        delid2a = abs(hdgroute2-newtrackid2a)
+                        delid2b = abs(hdgroute2-newtrackid2b)
+                        if delid2a <= delid2b:
+                            dv[id1] = dv[id1] + dv_eby
+                            dbconf.traf.asasactive[id2] = False # dv[id2] = dv[id2] - dv_eby
+                        else:
+                            dv[id1] = dv[id1] - dv_eby
+                            dbconf.traf.asasactive[id2] = False # dv[id2] = dv[id2] + dv_eby
+                        dbconf.traf.route[id2].findact2(dbconf.traf,id2)
 
-                    dv[id1] = dv[id1] - dv_eby
-                    dv[id2] = dv[id2] + dv_eby
-                                        
     else:
 
         for i in range(dbconf.nconf):
@@ -180,9 +238,10 @@ def MVP(dbconf, id1, id2):
     # otherwise vertical conflict is solved in 1 timestep, leading to a vertical 
     # separation that is too high. If vertical dynamics are included to aircraft 
     # model in traffic.py, the below lines should be deleted
-#    mindv3 = -200./60.*ft # ~ 1.016 [m/s]
-#    maxdv3 = 200./60.*ft
-#    dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
+    if dbconf.swresodir == "VERT":
+        mindv3 = -200./60.*ft
+        maxdv3 = 200/60.*ft
+        dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
 
     # combine the dv components 
     dv = np.array([dv1,dv2,dv3])    

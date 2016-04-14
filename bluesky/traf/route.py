@@ -1,4 +1,5 @@
 from numpy import *
+from math import *
 from ..tools.aero import ft, kts, g0, qdrdist, nm, cas2tas, mach2tas
 from ..tools.misc import degto180
 
@@ -320,10 +321,6 @@ class Route():
         if self.iactwp+1<self.nwp:
             self.iactwp = self.iactwp + 1
             lnavon = True
-        # if the last waypoint is an airport, keep lnav on to keep vnav on
-        # this is need to ensure that aircraft descend to their destinations
-        elif self.wptype[self.iactwp] == 3:
-            lnavon = True
         else:
             lnavon = False
 
@@ -606,6 +603,18 @@ class Route():
         dx = (wplon - traf.lon[i]) * traf.coslat[i]
         dist2 = dx*dx + dy*dy
         iwpnear = argmin(dist2)
+#        import pdb
+#        pdb.set_trace()
+        a, b = qdrdist(traf.lat[i], traf.lon[i], self.wplat[iwpnear], self.wplon[iwpnear])
+        if a < 360:
+            a = a + 360.
+        hdgroute = self.wpdirfrom[iwpnear]
+        if hdgroute < 0:
+            hdgroute = hdgroute + 360.
+        b = b * sin(radians(abs(a - hdgroute)))
+        if  b > 20.:
+            self.traf.log.write(5,0,'%s' % \
+                               (self.traf.id[i]))
         
         # If the wp[iwpnear] is not the destination AND
         # if the direction of route doesn't change too much,
@@ -617,7 +626,7 @@ class Route():
             # than 25 degrees, choose the next waypoint
             # A counter is used to limit the number of waypoints that can be skipped
             counter = 0
-            while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5 and dist2[iwpnear] < 15*nm:
+            while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5:# and dist2[iwpnear] < 15*nm:
                 iwpnear = iwpnear+1
                 counter = counter +1
         
@@ -631,5 +640,24 @@ class Route():
         return iwpnear
 
 
-            
-            
+    def finddist(self,traf,i):
+        """ Find distacnce and qdr to route"""
+        
+        # Find closest
+        wplat  = array(self.wplat)
+        wplon  = array(self.wplon)
+        dy = wplat - traf.lat[i]
+        dx = (wplon - traf.lon[i]) * traf.coslat[i]
+        dist2 = dx*dx + dy*dy
+        iwpnear = argmin(dist2)
+        #        import pdb
+        #        pdb.set_trace()
+        qdr, dist = qdrdist(traf.lat[i], traf.lon[i], self.wplat[iwpnear], self.wplon[iwpnear])
+
+        return qdr, dist, self.wpdirfrom[iwpnear]
+
+
+
+
+
+

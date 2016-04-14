@@ -5,11 +5,12 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
+from math import *
 from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas,veas2tas
-from aero import ft
+from aero import ft, qdrdist
 
 def start(dbconf):
-    dbconf.CRname="MVP"
+    dbconf.CRname="MVP_LAY2"
 
 def resolve(dbconf):
     if not dbconf.swasas:
@@ -30,29 +31,50 @@ def resolve(dbconf):
 
                 dv_eby = MVP(dbconf,id1,id2)
                 
-                # if swprio is on, and there is crusing aircraft in the conflict, 
-                #  then the crusing aircraft does nothing and climbing/descending solves horizontally onlly
-                if dbconf.swprio: 
-                    if abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])>=0.1: # id2 is climbing/descending
-                        dv[id2] = dv[id2] - np.sign(dbconf.traf.vs[id2])*abs(dv_eby)
+                # Distance calculation
+                
+                qdrid1, distid1, hdgroute1 = dbconf.traf.route[id1].finddist(dbconf.traf,id1) # deg, nm, deg
+                qdrid2, distid2, hdgroute2 = dbconf.traf.route[id2].finddist(dbconf.traf,id2) # deg, nm, deg
+                if hdgroute1 < 0:
+                    hdgroute1 = hdgroute1 +360.
+                if hdgroute2 < 0:
+                    hdgroute2 = hdgroute2 +360.
+                distid1 = distid1 * np.sin(radians(abs(qdrid1 - hdgroute1)))
+                distid2 = distid2 * np.sin(radians(abs(qdrid2 - hdgroute2)))
+                
+                if distid1 < 10. and distid2 <10.:
+                    # if swprio is on, and there is crusing aircraft in the conflict,
+                    #  then the crusing aircraft does nothing and climbing/descending solves horizontally onlly
+                    if dbconf.swprio:
+                        if abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])>=0.1: # id2 is climbing/descending
+                            dv[id2] = dv[id2] - np.sign(dbconf.traf.vs[id2])*abs(dv_eby)
                     
-                    elif abs(dbconf.traf.vs[id1])>=0.1 and abs(dbconf.traf.vs[id2])<0.1: # id1 is climbing/descending
-                        dv[id1] = dv[id1] - np.sign(dbconf.traf.vs[id1])*abs(dv_eby)
+                        elif abs(dbconf.traf.vs[id1])>=0.1 and abs(dbconf.traf.vs[id2])<0.1: # id1 is climbing/descending
+                            dv[id1] = dv[id1] - np.sign(dbconf.traf.vs[id1])*abs(dv_eby)
                     
-                    elif abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])<0.1: # both are crusing, don't climb/descend
-                        dv[id1] = dv[id1] - dv_eby
-                        dv[id2] = dv[id2] + dv_eby
-                        dv[id1][2] = 0.0
-                        dv[id2][2] = 0.0 
+                        elif abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])<0.1: # both are crusing, don't climb/descend
+                            dv[id1] = dv[id1] - dv_eby
+                            dv[id2] = dv[id2] + dv_eby
+                            dv[id1][2] = 0.0
+                            dv[id2][2] = 0.0
                         
-                    else: # both are climbing/descending, then use combined
+                        else: # both are climbing/descending, then use combined
+                            dv[id1] = dv[id1] - dv_eby
+                            dv[id2] = dv[id2] + dv_eby
+                    else:
+
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
+                # Force the most deviating aircraft to its original route, by making it think it has no conflict
                 else:
-
-                    dv[id1] = dv[id1] - dv_eby
-                    dv[id2] = dv[id2] + dv_eby
-                                        
+#                    import pdb
+#                    pdb.set_trace()
+                    if distid1 >= distid2:
+                        dbconf.traf.asasactive[id1] = False #dv[id1] = dv[id1] - dv_eby
+                        dv[id2] = dv[id2] + 1.2* dv_eby
+                    else:
+                        dv[id1] = dv[id1] + 1.2* dv_eby
+                        dbconf.traf.asasactive[id2] = False #dv[id2] = dv[id2] - dv_eby
     else:
 
         for i in range(dbconf.nconf):

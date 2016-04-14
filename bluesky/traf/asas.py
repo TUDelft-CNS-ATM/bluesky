@@ -218,7 +218,7 @@ class Dbconf():
         return
     
     # ==================== Conflict Filter (User specific) ======================
-    def conflictfilter(self):
+    def conflictfilter(self, simt):
         if not self.swasas:
             return
         ## Filter for conflicts: no conflicts are detected for aircraft with an altitude less than 1000 ft
@@ -226,6 +226,15 @@ class Dbconf():
         self.swconfl[idx_conffilter,:] = 0.                                    # Make the rows of the 'restricted' aircraft zero
         self.swconfl[:,idx_conffilter] = 0.                                    # Make the columns of the 'restricted' aircraft zero
         
+        ## Filter for conflicts: for 50.00 < simt < 55, if tcpa is smaller than 3 minutes, ignore conflict
+        if simt < 55. * 60.:
+            tcpa_filter = self.tcpa
+            tcpa_filter[self.tcpa < 180.] = 0.
+            tcpa_filter[self.tcpa >=180.] = 1.
+            self.swconfl = np.multiply(self.swconfl,tcpa_filter)
+        
+        ## Filter out conflicts in the past
+        self.swconfl[self.tcpa<0] = 0.
         return
 
     def conflictlist(self, simt):

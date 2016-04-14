@@ -607,7 +607,7 @@ class Traffic:
 
             # Call with traffic database and sim data
             self.dbconf.detect()
-            self.dbconf.conflictfilter()
+            self.dbconf.conflictfilter(simt)
             self.dbconf.conflictlist(simt)
             self.dbconf.APorASAS()                
             self.dbconf.resolve()
@@ -635,6 +635,14 @@ class Traffic:
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
+                # If the last waypoint is the destination, overwrite lnav,vnav and asas settings
+                # -> Start descending asap in a straight line
+                if self.route[i].wptype[self.route[i].iactwp] == 3:
+                    steepness = 5000.*ft/(10.*nm)
+                    self.avs[i] = steepness*self.gs[i]
+                    self.asasvsp[i] = self.avs[i]
+                    self.aalt[i] = 0.
+                    self.asasalt[i] = 0.
 
                 # End of route/no more waypoints: switch off LNAV
                 if not lnavon:

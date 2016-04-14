@@ -48,7 +48,7 @@ class Datalog():
         self.swint      = False # Intrusion data logging
         self.swsnap     = False # SNAP data logging
         self.swflst     = False # Flight Statistics logging
-        self.swinst     = False # Instantaneous conflicts logging
+        self.swinst     = True # Instantaneous conflicts logging
         self.t0sky      = -999  # Last time SNAP was called
         self.dtsky      = 30.00 # Interval for snap
         self.t0snap     = -999  # Last time SNAP was called
@@ -245,6 +245,8 @@ class Datalog():
                 self.save(3)
             if self.swflst:
                 self.save(4)
+            if self.swinst:
+                self.save(5)
         return
 
 
