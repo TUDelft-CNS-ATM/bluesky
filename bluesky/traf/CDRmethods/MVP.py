@@ -141,7 +141,6 @@ def MVP(dbconf, id1, id2):
     v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
     v2=np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
     v=np.array(v2-v1) 
-    
     # Find tcpa
     tcpa=dbconf.tcpa[id1,id2]
     
@@ -154,7 +153,11 @@ def MVP(dbconf, id1, id2):
     iH = dbconf.Rm-dabsH
     iV = dbconf.dhm-dabsV
     
-    # exception handlers for head-on conflicts 
+    # If intrusion, full intrusion to force movement
+    if d[0] < dbconf.Rm or d[1] < dbconf.Rm :
+        iH = dbconf.Rm
+    
+    # exception handlers for head-on conflicts
     # this is done to prevent division by zero in the next step
     if dabsH <= 10.:
         dabsH = 10.
@@ -164,25 +167,20 @@ def MVP(dbconf, id1, id2):
         dabsV = 10.
         if dbconf.swresodir == "VERT":
             dcpa[2] = 10.
-    
-    # If tcpa is very far away, then this is a shallow conflict angle. Set tcpa to 
-    # a lower value to force a quicker solution
-    tcpa = dbconf.tcpa[id1,id2]
-    if tcpa > dbconf.dtlookahead*1.2:
-        tcpa = dbconf.dtlookahead/5.
 
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
-    dv1 = (iH*dcpa[0])/(tcpa*dabsH)
-    dv2 = (iH*dcpa[1])/(tcpa*dabsH)
-    dv3 = (iV*dcpa[2])/(tcpa*dabsV)
-    
+    dv1 = (iH*dcpa[0])/(dbconf.tinconf[id1,id2]*dabsH)
+    dv2 = (iH*dcpa[1])/(dbconf.tinconf[id1,id2]*dabsH)
+    dv3 = (iV*dcpa[2])/(dbconf.tinconf[id1,id2]*dabsV)
+
     # It is necessary to cap dv3 to allow implict coordination of aircraft
     # otherwise vertical conflict is solved in 1 timestep, leading to a vertical 
     # separation that is too high. If vertical dynamics are included to aircraft 
     # model in traffic.py, the below lines should be deleted
-#    mindv3 = -200./60.*ft # ~ 1.016 [m/s]
-#    maxdv3 = 200./60.*ft
-#    dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
+    if dbconf.swresodir != "VERT":
+        mindv3 = -200./60.*ft # ~ 1.016 [m/s]
+        maxdv3 = 200./60.*ft
+        dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
 
     # combine the dv components 
     dv = np.array([dv1,dv2,dv3])    

@@ -176,7 +176,7 @@ class RadarWidget(QGLWidget):
         # Load and bind world texture
         max_texture_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
         print 'Maximum supported texture size: %d' % max_texture_size
-        for i in [16384, 8192, 4096]:
+        for i in [8192, 4096]:
             if max_texture_size >= i:
                 fname = 'data/graphics/world.%dx%d.dds' % (i, i / 2)
                 print 'Loading texture ' + fname

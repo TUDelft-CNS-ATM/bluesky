@@ -233,9 +233,9 @@ class Dbconf():
             tcpa_filter[self.tcpa >=180.] = 1.
             self.swconfl = np.multiply(self.swconfl,tcpa_filter)
         
-        ## Filter out conflicts in the past 
-        self.swconfl[self.tcpa<0] = 0.
-        
+#        ## Filter out conflicts in the past 
+#        self.swconfl[self.tcpa<0] = 0.
+
         return
 
     def conflictlist(self, simt):
@@ -423,26 +423,18 @@ class Dbconf():
                     self.traf.inconflict[id2] = True                   
                     
                     # if the next waypoint is the destination airport, and the 
-                    # distance to the destination airport is less than dist2vs, don't detect conflicts anymore. 
+                    # aircraft is descending, don't detect conflicts anymore. 
                     # Do this only if the lnav is on
                     # This is to ensure that last minute conflicts don't deviate aircraft from their destinations too much.
                     if self.traf.swlnav[id1] == True:
-                        dy = (self.traf.actwplat[id1]-self.traf.lat[id1])
-                        dx = (self.traf.actwplon[id1]-self.traf.lon[id1])*self.traf.coslat[id1]
-                        dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
-                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3 and dist2wp<self.traf.dist2vs[id1]:
+                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3 and self.traf.vs[id1] < -0.1:
                             self.traf.asasactive[id1] = False    
-                            self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[self.traf.route[id1].iactwp])                        
 
                     # same as above for id2   
                     if self.traf.swlnav[id2] == True:                     
-                        dy = (self.traf.actwplat[id2]-self.traf.lat[id2])
-                        dx = (self.traf.actwplon[id2]-self.traf.lon[id2])*self.traf.coslat[id2]
-                        dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)                        
-                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3 and dist2wp<self.traf.dist2vs[id2]:
+                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3 and self.traf.vs[id2] < -0.1:
                             self.traf.asasactive[id2] = False
-                            self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[self.traf.route[id2].iactwp])                        
-                        
+
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
                     iwpid1 = self.traf.route[id1].findact2(self.traf,id1)
@@ -493,6 +485,19 @@ class Dbconf():
         # the conflict has past CPA if the horizontal
         # velocities of the two aircraft are not pointing at each other
         pastCPA = np.dot(d[:2],v[:2])>0.0
+        
+        dx = (self.traf.lat[id1]-self.traf.lat[id2])*111319.
+        dy = (self.traf.lon[id1]-self.traf.lon[id2])*111319.
+        
+        # If horizontal already realised, asume complete LOS to solve conflict
+        hdist2 = dx**2+dy**2
+        hLOS  = hdist2<self.R**2
+        vdist = abs(self.traf.alt[id1]-self.traf.alt[id2])
+        vLOS  = True # Assume a vLOS to trick checklos function
+        LOS = self.checkLOS(hLOS,vLOS,id1,id2)
+        
+        if LOS:
+            pastCPA = False
 
         return pastCPA
 

@@ -612,7 +612,7 @@ class Route():
         if hdgroute < 0:
             hdgroute = hdgroute + 360.
         b = b * sin(radians(abs(a - hdgroute)))
-        if  b > 20.:
+        if  b > 30.:
             self.traf.log.write(5,0,'%s' % \
                                (self.traf.id[i]))
         
@@ -639,22 +639,6 @@ class Route():
         
         return iwpnear
 
-
-    def finddist(self,traf,i):
-        """ Find distacnce and qdr to route"""
-        
-        # Find closest
-        wplat  = array(self.wplat)
-        wplon  = array(self.wplon)
-        dy = wplat - traf.lat[i]
-        dx = (wplon - traf.lon[i]) * traf.coslat[i]
-        dist2 = dx*dx + dy*dy
-        iwpnear = argmin(dist2)
-        #        import pdb
-        #        pdb.set_trace()
-        qdr, dist = qdrdist(traf.lat[i], traf.lon[i], self.wplat[iwpnear], self.wplon[iwpnear])
-
-        return qdr, dist, self.wpdirfrom[iwpnear]
 
 
 
