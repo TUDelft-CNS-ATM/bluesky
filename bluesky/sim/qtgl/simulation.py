@@ -51,6 +51,9 @@ class Simulation(QObject):
         self.ffmode      = False
         self.ffstop      = None
 
+        # If available, name of the currently running scenario
+        self.scenname    = 'Untitled'
+
         # Simulation objects
         self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self, manager)
@@ -74,7 +77,7 @@ class Simulation(QObject):
 
             # TODO: what to do with init
             if self.state == Simulation.init:
-                if self.traf.ntraf > 0:
+                if self.traf.ntraf > 0 or len(self.stack.scencmd) > 0:
                     self.start()
 
             if self.state == Simulation.op:
@@ -124,9 +127,10 @@ class Simulation(QObject):
         self.state   = Simulation.hold
 
     def reset(self):
-        self.simt   = 0.0
-        self.state   = Simulation.init
-        self.ffmode = False
+        self.simt     = 0.0
+        self.state    = Simulation.init
+        self.ffmode   = False
+        self.scenname = 'Untitled'
         self.traf.reset(self.navdb)
         self.stack.reset()
 
@@ -166,6 +170,7 @@ class Simulation(QObject):
 
     def scenarioInit(self, name):
         self.screenio.echo('Starting scenario ' + name)
+        self.scenname = name
 
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.state))

@@ -37,6 +37,10 @@ class MainManager(QObject):
     def sender(cls):
         return cls.instance.sender_id
 
+    @classmethod
+    def actnode(cls):
+        return cls.instance.activenode
+
     def __init__(self):
         super(MainManager, self).__init__()
         print 'Initializing multi-process simulation'

@@ -184,12 +184,15 @@ class Gui(QApplication):
                 self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
-                self.simt = event.simt
                 hours     = np.floor(event.simt / 3600)
                 minutes   = np.floor((event.simt - 3600 * hours) / 60)
                 seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
-                self.win.siminfoLabel.setText('<b>sim_t</b> = %02d:%02d:%02d, <b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
-                    % (hours, minutes, seconds, event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
+                time = '%02d:%02d:%02d' % (hours, minutes, seconds)
+                self.win.setNodeInfo(manager.sender()[0], time, event.scenname)
+                if manager.sender()[0] == manager.actnode():
+                    self.simt = event.simt
+                    self.win.siminfoLabel.setText('<b>T</b> = ' + time + ', <b>Speed</b> = %.1fx, <b>Dt</b> = %.2f, <b># aircraft</b> = %d, <b>mode</b> = %s'
+                        % (event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
                 return True
 
             elif event.type() == StackTextEventType:
