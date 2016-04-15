@@ -178,7 +178,7 @@ class ScreenIO(QObject):
         if self.manager.isActive():
             t  = time.time()
             dt = t - self.prevtime
-            self.manager.sendEvent(SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.mode))
+            self.manager.sendEvent(SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.state))
             self.prevtime  = t
             self.prevcount = self.sim.samplecount
 

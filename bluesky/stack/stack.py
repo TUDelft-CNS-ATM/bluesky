@@ -85,6 +85,10 @@ class Commandstack:
                 "txt,txt",
                 self.pcall
             ],
+            "RESET": [
+                "RESET",
+                "",
+                sim.reset],
             "SCEN": [
                 "SCEN scenname",
                 "txt",
@@ -169,9 +173,12 @@ class Commandstack:
         return
 
     def setSeed(self, value):
-        print 'Setting random seed to', value
         seed(value)
         np.random.seed(value)
+
+    def reset(self):
+        self.scentime = []
+        self.scencmd  = []
 
     def stack(self, cmdline):
         # Stack one or more commands separated by ";"
@@ -925,6 +932,7 @@ class Commandstack:
                 # IC IC: same file
                 #----------------------------------------------------------------------
                 elif cmd == "IC":
+                    sim.reset()
                     # If no arg is given: check
                     if numargs >= 1:
                         # Use lower case line for filename and allow space in path
@@ -946,7 +954,6 @@ class Commandstack:
                         if len(filename) > 0:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
-                    sim.reset()
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run
