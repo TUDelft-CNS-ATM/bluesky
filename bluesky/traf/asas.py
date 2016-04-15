@@ -233,8 +233,9 @@ class Dbconf():
             tcpa_filter[self.tcpa >=180.] = 1.
             self.swconfl = np.multiply(self.swconfl,tcpa_filter)
         
-        ## Filter out conflicts in the past
+        ## Filter out conflicts in the past 
         self.swconfl[self.tcpa<0] = 0.
+        
         return
 
     def conflictlist(self, simt):
@@ -431,7 +432,7 @@ class Dbconf():
                         dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
                         if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3 and dist2wp<self.traf.dist2vs[id1]:
                             self.traf.asasactive[id1] = False    
-                            iwpid1 = self.traf.route[id1].findact2(self.traf,id1)                        
+                            self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[self.traf.route[id1].iactwp])                        
 
                     # same as above for id2   
                     if self.traf.swlnav[id2] == True:                     
@@ -440,7 +441,7 @@ class Dbconf():
                         dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)                        
                         if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3 and dist2wp<self.traf.dist2vs[id2]:
                             self.traf.asasactive[id2] = False
-                            iwpid2 = self.traf.route[id2].findact2(self.traf,id2)                        
+                            self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[self.traf.route[id2].iactwp])                        
                         
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all

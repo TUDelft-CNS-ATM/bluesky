@@ -78,7 +78,7 @@ class Datalog():
             self.fname = os.path.dirname(__file__) + "/../../data/output/" \
             + strftime("%Y-%m-%d-%H-%M-%S-BlueSky", localtime())
         else:
-            self.fname = os.path.dirname(__file__) + "/../../data/output/" + strftime(self.scenfile)
+            self.fname = os.path.dirname(__file__) + "/../../data/output/" + strftime(self.scenfile) + strftime("-%Y%m%d%H%M%S", localtime())
         # Create the .sky file and write the simulation settings to the sky log file
         if buffertype == self.sky:
             f = open('%s.%s' % (self.fname, 'sky'),"w" )
