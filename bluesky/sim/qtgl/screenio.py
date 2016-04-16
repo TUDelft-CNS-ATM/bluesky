@@ -198,6 +198,15 @@ class ScreenIO(QObject):
             data.confcpalat = self.sim.traf.dbconf.latowncpa
             data.confcpalon = self.sim.traf.dbconf.lonowncpa
             data.trk        = self.sim.traf.trk
+
+            # Conflict statistics
+            data.nconf_tot  = len(self.sim.traf.dbconf.conflist_all)
+            data.nlos_tot   = len(self.sim.traf.dbconf.LOSlist_all)
+            data.nconf_exp  = len(self.sim.traf.dbconf.conflist_exp)
+            data.nlos_exp   = len(self.sim.traf.dbconf.LOSlist_exp)
+            data.nconf_cur  = len(self.sim.traf.dbconf.conflist_now)
+            data.nlos_cur   = len(self.sim.traf.dbconf.LOSlist_now)
+
             self.manager.sendEvent(data)
 
     @pyqtSlot()

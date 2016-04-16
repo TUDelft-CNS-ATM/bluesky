@@ -66,6 +66,7 @@ class RouteDataEvent(QEvent):
     aclat = aclon = lat = lon = wptlabels = []
     iactwp = -1
     acid = ""
+
     def __init__(self):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
 
@@ -82,6 +83,7 @@ class DisplayShapeEvent(QEvent):
 
 class ACDataEvent(QEvent):
     lat = lon = alt = tas = trk = iconf = confcpalat = confcpalon = id = []
+    nconf_tot = nlos_tot  = nconf_exp = nlos_exp  = nconf_cur = nlos_cur = 0
 
     def __init__(self):
         super(ACDataEvent, self).__init__(ACDataEventType)
