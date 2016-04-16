@@ -1845,7 +1845,7 @@ class Commandstack:
                         scr.echo("Syntax error in command")
     
                 #------------------------------------------------------------------
-                # FLSTLOG [ON/OFF]: Start the logging of flight statistics data
+                # LAYERS CONCEPT[ON/OFF/CONCEPT]: If the Layers concept is on, re-routing is allowed when the aircarft violates the layer rule
                 #------------------------------------------------------------------
                 elif cmd[:7] == "LAYER":
                     if numargs == 0:
