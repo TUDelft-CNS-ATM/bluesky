@@ -513,10 +513,6 @@ class Dbconf():
             return "Fail","Fail"
 
         return id1,id2
-
-#========== Method for cleaning up aircraft outside test region ===============
-    def cleanup(self,traf):
-        pass
     
     def checkLOS(self,HLOS,VLOS,i,j):
         return HLOS & VLOS

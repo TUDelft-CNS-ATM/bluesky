@@ -1843,6 +1843,23 @@ class Commandstack:
                             traf.log.swflst = False
                     else:
                         scr.echo("Syntax error in command")
+    
+                #------------------------------------------------------------------
+                # FLSTLOG [ON/OFF]: Start the logging of flight statistics data
+                #------------------------------------------------------------------
+                elif cmd[:7] == "LAYER":
+                    if numargs == 0:
+                        scr.echo("FLSTLOG ON/OFF/CONCEPT")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.swlayer = True
+                        elif arg1[:2] == "OF":
+                            traf.swlayer = False
+                        elif arg1 == "45" or arg1 == "90" or arg1 == "180" or arg1 == "360":
+                            traf.layerconcept = arg1
+                    else:
+                        scr.echo("Syntax error in command")
                 #------------------------------------------------------------------
                 # !!! This is a template, please make a copy and keep it !!!
                 # Insert new command here: first three chars should be unique

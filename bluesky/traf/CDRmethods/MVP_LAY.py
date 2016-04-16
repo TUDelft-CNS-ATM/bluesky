@@ -179,9 +179,9 @@ def MVP(dbconf, id1, id2):
             dcpa[2] = 10.
 
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
-    dv1 = (iH*dcpa[0])/(tcpa*dabsH)
-    dv2 = (iH*dcpa[1])/(tcpa*dabsH)
-    dv3 = (iV*dcpa[2])/(tcpa*dabsV)
+    dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)
+    dv2 = (iH*dcpa[1])/(abs(tcpa)*dabsH)
+    dv3 = (iV*dcpa[2])/(abs(tcpa)*dabsV)
 
     # It is necessary to cap dv3 to allow implict coordination of aircraft
     # otherwise vertical conflict is solved in 1 timestep, leading to a vertical 

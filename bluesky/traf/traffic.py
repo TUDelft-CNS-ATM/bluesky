@@ -200,6 +200,10 @@ class Traffic:
 
         self.t0asas = -999.  # last time ASAS was called
         self.dtasas = 1.00  # interval for ASAS
+        
+        # Layers settings
+        self.swlayer = False
+        self.layerconcept = ''
 
         # Flight performance scheduling
         self.perfdt = 0.1           # [s] update interval of performance limits
