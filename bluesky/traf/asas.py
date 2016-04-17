@@ -61,6 +61,7 @@ class Dbconf():
                                    # combined (COMB), horizontal only (HORIZ), vertical only (VERT)
         
         self.swprio      = False   # If true, then cruising aircraft have priority and will not resolve
+        self.swdelay     = False   # If true, conflicts with a tcpa less than 180 seconds are not detected
 
         self.reset()              # Reset database
         self.SetCRmethod("DoNothing")
@@ -226,15 +227,13 @@ class Dbconf():
         self.swconfl[idx_conffilter,:] = 0.                                    # Make the rows of the 'restricted' aircraft zero
         self.swconfl[:,idx_conffilter] = 0.                                    # Make the columns of the 'restricted' aircraft zero
         
-        ## Filter for conflicts: for 50.00 < simt < 55, if tcpa is smaller than 3 minutes, ignore conflict
-        if simt < 55. * 60.:
+        ## Filter for conflicts: if swdelay is True and if tcpa is smaller than 3 minutes, ignore conflict
+        if self.swdelay:
             tcpa_filter = self.tcpa
             tcpa_filter[self.tcpa < 180.] = 0.
             tcpa_filter[self.tcpa >=180.] = 1.
             self.swconfl = np.multiply(self.swconfl,tcpa_filter)
         
-#        ## Filter out conflicts in the past 
-#        self.swconfl[self.tcpa<0] = 0.
 
         return
 
@@ -498,6 +497,10 @@ class Dbconf():
         
         if LOS:
             pastCPA = False
+        
+        # If both aircraft leveled off, check vertical separation
+        if abs(traf.vs[id1]) < 0.1 and abs(traf.vs[id2]) < 0.1 and abs(traf.alt[id1]-traf.alt[id2]) > 1000*ft:
+            pastCPA = True
 
         return pastCPA
 
