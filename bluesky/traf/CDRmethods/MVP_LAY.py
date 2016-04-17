@@ -39,17 +39,16 @@ def resolve(dbconf):
                         dv[id1] = dv[id1] - dv_eby
                         dv[id1][2] = 0.0
                     # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft two solves conflict horizontally
-                    elif dbconf.traf.vs[id1]>=0.1 and dbconf.traf.alt[id1] < dbconf.traf.aalt[id1]:
+                    elif abs(dbconf.traf.vs[id2])<0.1 and dbconf.traf.alt[id1] < dbconf.traf.aalt[id1]:
                         dv[id2] = dv[id2] + dv_eby
                         dv[id2][2] = 0.0
                     # If aircraft 1 is cruising, and aircraft 2 is descending -> aircraft 2 solves conflict vertically
-                    elif abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2]<= -0.1:
+                    elif abs(dbconf.traf.vs[id1])<0.1 and  dbconf.traf.alt[id2] > dbconf.traf.aalt[id2]:
                         dv[id2] = dv[id2] - abs(dv_eby)
                         dv[id2][0] = 0.0
                         dv[id2][1] = 0.0
-                    
                     # If aircraft 2 is cruising, and aircraft 1 is descending -> aircraft 1 solves conflict vertically
-                    elif abs(dbconf.traf.vs[id2])<0.1 and dbconf.traf.vs[id1]<= -0.1:
+                    elif abs(dbconf.traf.vs[id2])<0.1 and dbconf.traf.alt[id1] > dbconf.traf.aalt[id1]:
                         dv[id1] = dv[id1] - abs(dv_eby)
                         dv[id1][0] = 0.0
                         dv[id1][1] = 0.0
