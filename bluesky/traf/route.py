@@ -612,7 +612,7 @@ class Route():
         if hdgroute < 0:
             hdgroute = hdgroute + 360.
         disttoroute = disttoclosestwp * sin(radians(abs(qdrtoclosestwp - hdgroute)))
-        if  disttoroute > 10.:
+        if  disttoroute > 20.:
             henk = True
 
         # If the wp[iwpnear] is not the destination AND
