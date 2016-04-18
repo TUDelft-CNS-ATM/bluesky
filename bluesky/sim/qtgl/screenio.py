@@ -203,7 +203,7 @@ class ScreenIO(QObject):
             data.nconf_tot  = len(self.sim.traf.dbconf.conflist_all)
             data.nlos_tot   = len(self.sim.traf.dbconf.LOSlist_all)
             data.nconf_exp  = len(self.sim.traf.dbconf.conflist_exp)
-            data.nlos_exp   = len(self.sim.traf.dbconf.LOSlist_exp)
+            data.nlos_logged   = len(self.sim.traf.dbconf.LOSlist_logged)
             data.nconf_cur  = len(self.sim.traf.dbconf.conflist_now)
             data.nlos_cur   = len(self.sim.traf.dbconf.LOSlist_now)
 

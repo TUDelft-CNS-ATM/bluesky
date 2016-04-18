@@ -604,7 +604,6 @@ class Route():
         dist2 = dx*dx + dy*dy
         iwpnear = argmin(dist2)
         
-        henk = False
         qdrtoclosestwp, disttoclosestwp = qdrdist(traf.lat[i], traf.lon[i], self.wplat[iwpnear], self.wplon[iwpnear])
         if qdrtoclosestwp < 360:
             qdrtoclosestwp = qdrtoclosestwp + 360.
@@ -612,8 +611,6 @@ class Route():
         if hdgroute < 0:
             hdgroute = hdgroute + 360.
         disttoroute = disttoclosestwp * sin(radians(abs(qdrtoclosestwp - hdgroute)))
-        if  disttoroute > 20.:
-            henk = True
 
         # If the wp[iwpnear] is not the destination AND
         # if the direction of route doesn't change too much,
@@ -628,29 +625,23 @@ class Route():
             while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5:# and dist2[iwpnear] < 15*nm:
                 iwpnear = iwpnear+1
                 counter = counter +1
-            if henk == True:
-                import pdb
-                pdb.set_trace()
-            if self.traf.swlayer == True and henk == True and self.wptype[iwpnear]!= 3 and self.traf.layerconcept != '':
+            if self.traf.swlayer == True and disttoroute > 20. and self.wptype[iwpnear]!= 3 and self.traf.layerconcept != '':
                 dirtowp , disttowp = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[iwpnear], self.wplon[iwpnear])
                 layalt = self.CheckLayer(i, dirtowp)
-                if abs(self.traf.aalt[i] - layalt) > 100*ft:
+                if abs(self.traf.aalt[i] - layalt) > 100*ft or self.traf.layerconcept == '360':
+                    self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s' % \
+                                                (traf.id[i],traf.orig[i],traf.dest[i], \
+                                                 traf.lat[i],traf.lon[i],traf.alt[i]))
                     dirtodest , disttodest = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[-1], self.wplon[-1])
                     layalt = self.CheckLayer(i, dirtodest)
                     self.reroute(i,dirtodest,disttodest,layalt)
                     iwpnear = 0
-        # if the last waypoint is an airport, then start descending by activating VNAV logic
-        else: 
-#            steepness = -3000.*ft/(10.*nm)
-#            self.traf.avs[i] = steepness*self.traf.gs[i]
-        
+        else: # if the last waypoint is an airport, then start descending by activating VNAV logic
             self.traf.dist2vs[i] = 1e9
-        
+
         return iwpnear
 
     def CheckLayer(self, i, qdr):
-        import pdb
-        pdb.set_trace()
         layers = [1524.0, 1859.28, 2194.56, 2529.84, 2865.12, 3200.4, 3535.68, 3870.96]
         if self.traf.layerconcept == '360':
             return self.traf.aalt[i]
@@ -713,8 +704,6 @@ class Route():
                 return layers[7]
 
     def reroute(self,i,dirtodest , disttodest,layalt):
-        import pdb
-        pdb.set_trace()
         # Reset waypoint data
         self.wpname = []
         self.wptype = []
@@ -727,23 +716,19 @@ class Route():
         # Current actual waypoint
         self.iactwp = -1
         
-        self.addwpt(self.traf,i,self.traf.dest[i],self.dest,self.traf.lat[i], self.traf.lon[i],0.0, self.traf.cas[i])
+        # Add the destination to the route
+        self.addwpt(self.traf,i,self.traf.dest[i],self.dest,self.traf.lat[i], self.traf.lon[i],0.0, -999)
+        
         # Calculate new waypoints
         waypoint_spacing = 10.
         tod = 40.
-        #lat_toc = self.traf.lat[i]*60 + toc_tod*cos(qdr/180*np.pi)
-        #lon_toc = lon_begin*60 + toc_tod*sin(qdr/180*np.pi)
         num_waypoints = int((disttodest-1.*tod)/waypoint_spacing)
         for k in range(num_waypoints):
             lat = self.traf.lat[i] + (waypoint_spacing*k*cos(dirtodest/180*pi))/60.
             lon = self.traf.lon[i] + (waypoint_spacing*k*sin(dirtodest/180*pi))/60.
-            name    = self.traf.id[i] # use for wptname
+            name    = self.traf.id[i] # used for wptname
             wptype  = self.wplatlon
-            if k == 1:
-                spd = 500
-            else:
-                spd = -999
-            self.addwpt(self.traf,i,name,wptype,lat,lon,layalt,-999.,"")
+            self.addwpt(self.traf,i,name,wptype,lat,lon,layalt,-999,"")
         return
 
 

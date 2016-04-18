@@ -1848,7 +1848,44 @@ class Commandstack:
                         scr.echo("FLSTLOG %s" % arg1)
                     else:
                         scr.echo("Syntax error in command")
-    
+ 
+                #------------------------------------------------------------------
+                # INSTLOG [ON/OFF]: Start the logging of instantaneous conflicts
+                #------------------------------------------------------------------
+                elif cmd[:7] == "INSTLOG":
+                    if numargs == 0:
+                        scr.echo("INSTLOG ON/OFF")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.log.swinst = True
+                            traf.log.writesettings(self.scenfile,5)
+                        elif arg1[:2] == "OF":
+                            traf.log.save(5)
+                            traf.log.swinst = False
+                        scr.echo("INSTLOG %s" % arg1)
+                    else:
+                        scr.echo("Syntax error in command")
+
+                #------------------------------------------------------------------
+                # TRAJLOG [ON/OFF]: Start the logging of aircraft that deviate a lot from their route
+                #------------------------------------------------------------------
+                elif cmd[:7] == "TRAJLOG":
+                    if numargs == 0:
+                        scr.echo("TRAJLOG ON/OFF")
+                    elif numargs == 1:
+                        arg1 = cmdargs[1]  # arguments are strings
+                        if arg1 == "ON":
+                            traf.log.swtraj = True
+                            traf.log.writesettings(self.scenfile,6)
+                        elif arg1[:2] == "OF":
+                            traf.log.save(6)
+                            traf.log.swtraj = False
+                        scr.echo("TRAJLOG %s" % arg1)
+                    else:
+                        scr.echo("Syntax error in command")
+            
+            
                 #------------------------------------------------------------------
                 # LAYERS CONCEPT[ON/OFF/CONCEPT]: If the Layers concept is on, re-routing is allowed when the aircarft violates the layer rule
                 #------------------------------------------------------------------
