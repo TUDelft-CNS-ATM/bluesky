@@ -1774,6 +1774,7 @@ class Commandstack:
                         elif arg1[:2] == "OF":
                             traf.log.save(0)
                             traf.log.swsky = False
+                        scr.echo("DATALOG %s" % arg1)
                     else:
                         scr.echo("Syntax error in command")
                 #------------------------------------------------------------------
@@ -1790,6 +1791,7 @@ class Commandstack:
                         elif arg1[:2] == "OF":
                             traf.log.save(1)
                             traf.log.swcfl = False
+                        scr.echo("CFLLOG %s" % arg1)
                     else:
                         scr.echo("Syntax error in command")
                 
@@ -1807,6 +1809,7 @@ class Commandstack:
                         elif arg1[:2] == "OF":
                             traf.log.save(2)
                             traf.log.swint = False
+                        scr.echo("INTLOG %s" % arg1)
                     else:
                         scr.echo("Syntax error in command")
 
@@ -1824,6 +1827,7 @@ class Commandstack:
                         elif arg1[:2] == "OF":
                             traf.log.save(3)
                             traf.log.swsnap = False
+                        scr.echo("SNAPLOG %s" % arg1)
                     else:
                         scr.echo("Syntax error in command")
                 
@@ -1841,23 +1845,28 @@ class Commandstack:
                         elif arg1[:2] == "OF":
                             traf.log.save(4)
                             traf.log.swflst = False
+                        scr.echo("FLSTLOG %s" % arg1)
                     else:
                         scr.echo("Syntax error in command")
     
                 #------------------------------------------------------------------
                 # LAYERS CONCEPT[ON/OFF/CONCEPT]: If the Layers concept is on, re-routing is allowed when the aircarft violates the layer rule
                 #------------------------------------------------------------------
-                elif cmd[:7] == "LAYER":
+                elif cmd[:5] == "LAYER":
                     if numargs == 0:
-                        scr.echo("FLSTLOG ON/OFF/CONCEPT")
+                        scr.echo("LAYER ON/OFF/CONCEPT")
+                        scr.echo("CURRENT SETTINGS: LAYER %s %s" % (traf.swlayer, traf.layerconcept))
                     elif numargs == 1:
                         arg1 = cmdargs[1]  # arguments are strings
                         if arg1 == "ON":
                             traf.swlayer = True
+                            scr.echo("LAYER ON")
                         elif arg1[:2] == "OF":
                             traf.swlayer = False
+                            scr.echo("LAYER OFF")
                         elif arg1 == "45" or arg1 == "90" or arg1 == "180" or arg1 == "360":
                             traf.layerconcept = arg1
+                            scr.echo("LAYER CONCEPT: %s" % arg1 )
                     else:
                         scr.echo("Syntax error in command")
                 #------------------------------------------------------------------
