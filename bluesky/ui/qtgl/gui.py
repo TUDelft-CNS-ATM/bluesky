@@ -27,9 +27,7 @@ from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete
-from ...settings import telnet_port
 from ...tools.misc import cmdsplit
-from ...tools.network import StackTelnetServer
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -80,11 +78,10 @@ usage_hints = { 'BATCH': 'filename',
 class Gui(QApplication):
     modes = ['Init', 'Operate', 'Hold', 'End']
 
-    def __init__(self, navdb):
+    def __init__(self):
         super(Gui, self).__init__([])
-        self.telnet_in       = StackTelnetServer(self)
         self.acdata          = ACDataEvent()
-        self.navdb           = navdb
+        self.navdb           = None
         self.radarwidget     = []
         self.command_history = []
         self.cmdargs         = []
@@ -107,9 +104,6 @@ class Gui(QApplication):
         self.splash = Splash()
         self.splash.show()
 
-        self.splash.showMessage('Constructing main window')
-        self.processEvents()
-
         # Install error message handler
         handler = QErrorMessage.qtHandler()
         handler.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -125,34 +119,34 @@ class Gui(QApplication):
             QGLFormat.setDefaultFormat(f)
             print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
 
-        # Create the main window and related widgets
-        self.radarwidget = RadarWidget(navdb)
-        self.win  = MainWindow(self, self.radarwidget)
-        self.nd   = ND(shareWidget=self.radarwidget)
-        # self.aman = AMANDisplay()
-
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION == 5:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-        gltimer = QTimer(self)
+    def init(self, navdb):
+        self.splash.showMessage('Constructing main window')
+        self.processEvents()
+        # Create the main window and related widgets
+        self.navdb       = navdb
+        self.radarwidget = RadarWidget(navdb)
+        self.win         = MainWindow(self, self.radarwidget)
+        self.nd          = ND(shareWidget=self.radarwidget)
+        # self.aman = AMANDisplay()
+
+        gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
     def start(self):
         self.win.show()
-        # Start the telnet input server for stack commands
-        self.telnet_in.listen(port=telnet_port)
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
         self.exec_()
 
-    def stop(self):
+    def quit(self):
         self.closeAllWindows()
-        print 'Stopping telnet server.'
-        self.telnet_in.close()
 
     def notify(self, receiver, event):
         # Keep track of event processing
@@ -191,12 +185,15 @@ class Gui(QApplication):
                 self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
-                self.simt = event.simt
                 hours     = np.floor(event.simt / 3600)
                 minutes   = np.floor((event.simt - 3600 * hours) / 60)
                 seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
-                self.win.siminfoLabel.setText('<b>sim_t</b> = %02d:%02d:%02d, <b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
-                    % (hours, minutes, seconds, event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
+                time = '%02d:%02d:%02d' % (hours, minutes, seconds)
+                self.win.setNodeInfo(manager.sender()[0], time, event.scenname)
+                if manager.sender()[0] == manager.actnode():
+                    self.simt = event.simt
+                    self.win.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
+                        % (time, event.simdt, event.sys_freq, self.modes[event.mode], event.n_ac, self.acdata.nconf_cur, self.acdata.nconf_tot, self.acdata.nlos_cur, self.acdata.nlos_tot))
                 return True
 
             elif event.type() == StackTextEventType:
@@ -339,7 +336,7 @@ class Gui(QApplication):
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
                 self.sendEvent(manager.instance, PanZoomEvent(  pan=(self.radarwidget.panlat, self.radarwidget.panlon),
-                                                                  zoom=self.radarwidget.zoom, absolute=True))
+                                                                zoom=self.radarwidget.zoom, absolute=True))
 
             # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
             if panzoom is not None:
@@ -362,7 +359,7 @@ class Gui(QApplication):
                     return self.radarwidget.event(PanZoomEvent(pan=(0.0, dlon)))
 
             elif event.key() == Qt.Key_Escape:
-                    manager.instance.quit()
+                    self.quit()
 
             elif event.key() == Qt.Key_Backspace:
                 self.command_line = self.command_line[:-1]

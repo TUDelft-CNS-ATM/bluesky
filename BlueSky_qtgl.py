@@ -14,6 +14,7 @@ else:
     from bluesky.navdb import Navdatabase
     from bluesky.ui.qtgl import Gui
     from bluesky.sim.qtgl import MainManager
+    from bluesky.tools.network import StackTelnetServer
 
 
 # Global navdb, gui, and sim objects for easy access in interactive python shell
@@ -44,15 +45,28 @@ def MainLoop():
         # Create gui and simulation objects
         # =============================================================================
         global navdb, manager, gui
-        navdb     = Navdatabase('global')  # Read database from specified folder
         manager   = MainManager()
-        gui       = Gui(navdb)
+        gui       = Gui()
+        navdb     = Navdatabase('global')  # Read database from specified folder
+        telnet_in = StackTelnetServer(gui)
+
+        # Initialize the gui (loading graphics data, etc.)
+        gui.init(navdb)
 
         # Start the node manager
         manager.start()
 
+        # Start the telnet input server for stack commands
+        telnet_in.listen(port=settings.telnet_port)
+
         # Start the gui
         gui.start()
+
+        print 'Stopping telnet server.'
+        telnet_in.close()
+
+        # Close the manager, stop all nodes
+        manager.stop()
 
         # =============================================================================
         # Clean up before exit. Comment this out when debugging for checking variables

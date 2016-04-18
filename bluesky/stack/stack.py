@@ -1,6 +1,6 @@
 from math import *
 import numpy as np
-from random import random, randint
+from random import random, randint, seed
 import os
 import sys
 
@@ -85,11 +85,19 @@ class Commandstack:
                 "txt,txt",
                 self.pcall
             ],
+            "RESET": [
+                "RESET",
+                "",
+                sim.reset],
             "SCEN": [
                 "SCEN scenname",
                 "txt",
                 sim.scenarioInit
             ],
+            "SEED": [
+                "SEED value",
+                "int",
+                self.setSeed],
             "SPD": [
                 "SPD acid,spd [CAS-kts/Mach]",
                 "acid,spd",
@@ -163,6 +171,14 @@ class Commandstack:
         # ------------------ [end] Deprecated -------------------
 
         return
+
+    def setSeed(self, value):
+        seed(value)
+        np.random.seed(value)
+
+    def reset(self):
+        self.scentime = []
+        self.scencmd  = []
 
     def stack(self, cmdline):
         # Stack one or more commands separated by ";"
@@ -916,6 +932,7 @@ class Commandstack:
                 # IC IC: same file
                 #----------------------------------------------------------------------
                 elif cmd == "IC":
+                    sim.reset()
                     # If no arg is given: check
                     if numargs >= 1:
                         # Use lower case line for filename and allow space in path
@@ -937,7 +954,6 @@ class Commandstack:
                         if len(filename) > 0:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
-                    sim.reset()
 
                 #----------------------------------------------------------------------
                 # OP: Continue to run

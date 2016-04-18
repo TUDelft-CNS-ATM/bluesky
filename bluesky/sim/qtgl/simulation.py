@@ -28,7 +28,8 @@ class Simulation(QObject):
         super(Simulation, self).__init__()
         self.manager     = manager
         self.running     = True
-        self.mode        = Simulation.init
+        self.state       = Simulation.init
+        self.prevstate   = None
         self.samplecount = 0
 
         # Set starting system time [milliseconds]
@@ -50,6 +51,9 @@ class Simulation(QObject):
         self.ffmode      = False
         self.ffstop      = None
 
+        # If available, name of the currently running scenario
+        self.scenname    = 'Untitled'
+
         # Simulation objects
         self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self, manager)
@@ -63,7 +67,6 @@ class Simulation(QObject):
     def doWork(self):
         self.syst = int(time.time() * 1000.0)
         self.fixdt = self.simdt
-        self.sendState()
 
         while self.running:
             # Timing bookkeeping
@@ -73,16 +76,17 @@ class Simulation(QObject):
             self.beastfeed.update()
 
             # TODO: what to do with init
-            if self.mode == Simulation.init:
-                self.mode = Simulation.op
+            if self.state == Simulation.init:
+                if self.traf.ntraf > 0 or len(self.stack.scencmd) > 0:
+                    self.start()
 
-            if self.mode == Simulation.op:
+            if self.state == Simulation.op:
                 self.stack.checkfile(self.simt)
 
             # Always update stack
             self.stack.process(self, self.traf, self.screenio)
 
-            if self.mode == Simulation.op:
+            if self.state == Simulation.op:
                 self.traf.update(self.simt, self.simdt)
 
                 # Update metrics
@@ -95,8 +99,8 @@ class Simulation(QObject):
             # Process Qt events
             self.manager.processEvents()
 
-            # When running at a fixed rate, increment system time with sysdt and calculate remainder to sleep
-            if not self.ffmode:
+            # When running at a fixed rate, or when in hold/init, increment system time with sysdt and calculate remainder to sleep
+            if not self.ffmode or not self.state == Simulation.op:
                 self.syst += self.sysdt
                 remainder = self.syst - int(1000.0 * time.time())
 
@@ -105,23 +109,30 @@ class Simulation(QObject):
             elif self.ffstop is not None and self.simt >= self.ffstop:
                 self.start()
 
+            # Inform main of our state change
+            if not self.state == self.prevstate:
+                self.sendState()
+                self.prevstate = self.state
+
     def stop(self):
-        self.mode = Simulation.end
-        self.sendState()
+        self.state   = Simulation.end
 
     def start(self):
         if self.ffmode:
             self.syst = int(time.time() * 1000.0)
         self.ffmode = False
-        self.mode   = self.op
+        self.state   = Simulation.op
 
     def pause(self):
-        self.mode   = self.hold
+        self.state   = Simulation.hold
 
     def reset(self):
-        self.simt   = 0.0
-        self.mode   = self.init
+        self.simt     = 0.0
+        self.state    = Simulation.init
+        self.ffmode   = False
+        self.scenname = 'Untitled'
         self.traf.reset(self.navdb)
+        self.stack.reset()
 
     def quit(self):
         self.running = False
@@ -158,11 +169,11 @@ class Simulation(QObject):
                 self.beastfeed.disconnectFromHost()
 
     def scenarioInit(self, name):
-        self.reset()
-        self.screenio.echo('Starting scenario' + name)
+        self.screenio.echo('Starting scenario ' + name)
+        self.scenname = name
 
     def sendState(self):
-        self.manager.sendEvent(SimStateEvent(self.mode))
+        self.manager.sendEvent(SimStateEvent(self.state))
 
     def addNodes(self, count=None):
         if not count:
@@ -173,10 +184,7 @@ class Simulation(QObject):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
         self.stack.openfile(filename)
         self.manager.sendEvent(BatchEvent(self.stack.scentime, self.stack.scencmd))
-        self.stack.scentime = []
-        self.stack.scencmd  = []
-        self.mode = Simulation.init
-        self.sendState()
+        self.reset()
 
     def event(self, event):
         # Keep track of event processing
@@ -189,12 +197,14 @@ class Simulation(QObject):
 
         elif event.type() == BatchEventType:
             # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
+            self.reset()
             self.stack.scentime = event.scentime
             self.stack.scencmd  = event.scencmd
+            self.start()
             event_processed     = True
         elif event.type() == SimQuitEventType:
             # BlueSky is quitting
-            self.running = False
+            self.quit()
         else:
             # This is either an unknown event or a gui event.
             event_processed = self.screenio.event(event)
