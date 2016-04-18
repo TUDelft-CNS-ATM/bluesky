@@ -35,6 +35,7 @@ class Commandstack:
     def __init__(self, sim, traf, scr):
 
         #Command dictionary: command, helptext, arglist, function to call
+        # Enclose optional arguments with []
         #--------------------------------------------------------------------
         self.cmddict = {
             "ADDNODES": [
@@ -52,7 +53,7 @@ class Commandstack:
             ],
             "DATAFEED":  [
                 "DATAFEED [ON/OFF]",
-                "onoff",
+                "[onoff]",
                 sim.datafeed
             ],
             "DT": [
@@ -67,22 +68,22 @@ class Commandstack:
             ],
             "FF":  [
                 "FF [tend]",
-                "time",
+                "[time]",
                 sim.fastforward
             ],
             "FIXDT": [
                 "FIXDT ON/OFF [tend]",
-                "onoff,time",
+                "onoff,[time]",
                 sim.setFixdt
             ],
             "HDG": [
-                "HDG acid,hdg [deg,True]",
+                "HDG acid,hdg (deg,True)",
                 "acid,float",
                 traf.selhdg
             ],
             "PCALL": [
                 "PCALL filename [REL/ABS]",
-                "txt,txt",
+                "txt,[txt]",
                 self.pcall
             ],
             "RESET": [
@@ -99,7 +100,7 @@ class Commandstack:
                 "int",
                 self.setSeed],
             "SPD": [
-                "SPD acid,spd [CAS-kts/Mach]",
+                "SPD acid,spd (CAS-kts/Mach)",
                 "acid,spd",
                 traf.selspd
             ],
@@ -193,10 +194,6 @@ class Commandstack:
         return
 
     def openfile(self, scenname, t_offset=0.0, mergeWithExisting=False):
-        # If no scenlines target is given read the file to our own stack buffer
-        # For instance PCALL gives an alternate buffer.
-
-        # No filename: empty start
         scenlines = []
 
         # Add .scn extension if necessary
@@ -248,7 +245,7 @@ class Commandstack:
             self.scencmd  = []
 
         for line in scenlines:
-            if line.strip()[0]!="#":            
+            if line.strip()[0] != "#":
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
@@ -260,7 +257,7 @@ class Commandstack:
                     self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
                     self.scencmd.append(line[icmdline + 1:-1])
                 except:
-                    print "except this:",line
+                    print "except this:", line
                     pass  # nice try, we will just ignore this syntax error
 
         if mergeWithExisting:
@@ -406,12 +403,25 @@ class Commandstack:
                 #----------------------------------------------------------------------
                 if cmd in self.cmdsynon.keys():
                     cmd = self.cmdsynon[cmd]
-                
+
                 if cmd in self.cmddict.keys():
-                    helptext,argtypelist,function = self.cmddict[cmd]
-                    argtypes = argtypelist.split(",")
-                    numtypes = len(argtypes) 
-                    
+                    helptext, argtypelist, function = self.cmddict[cmd]
+                    argvsopt = argtypelist.split('[')
+                    argtypes = argvsopt[0].strip(',').split(",")
+
+                    # Check if at least the number of mandatory arguments is given.
+                    if numargs < len(argtypes) and not argtypes == ['']:
+                        print numargs, len(argtypes)
+                        scr.echo("Syntax error: Too few arguments")
+                        scr.echo(cmdline)
+                        scr.echo(helptext)
+                        continue
+
+                    # Add optional argument types if they are given
+                    if len(argvsopt) == 2:
+                        argtypes += argvsopt[1].strip(']').split(',')
+                    numtypes = len(argtypes)
+
                     # Process arg list
                     arglist = []
                     idx    = -1 # Reference aircraft
@@ -419,7 +429,6 @@ class Commandstack:
                     reflat = scr.ctrlat # Reference latitude
                     reflon = scr.ctrlon # Reference longitude
                     try:
-#                    if True:
                         for i in range(1,1+min(numtypes,numargs)):
                             argtype = argtypes[i-1].strip()
 
@@ -456,14 +465,14 @@ class Commandstack:
                                     arglist.append(float(reflat))
                                 except:
                                     synerr = True
-                                    
+
                             elif argtype == "lon":
                                 try:
-                                   reflon = txt2lon(cmdargs[i])
-                                   arglist.append(float(reflon))
+                                    reflon = txt2lon(cmdargs[i])
+                                    arglist.append(float(reflon))
                                 except:
-                                   synerr = True
- 
+                                    synerr = True
+
                             elif argtype == "spd": # CAS[kts] Mach
                                 spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
                                 arglist.append(spd) # speed CAS[kts] or Mach (float) 
@@ -536,7 +545,7 @@ class Commandstack:
                     scr.echo("POS ZOOM PAN SWRAD AREA")
                     scr.echo("DATAFEED")
                     scr.echo(" ")
-                    scr.echo("See InFo subfolder for more info.")
+                    scr.echo("See Info subfolder for more info.")
 
                 #----------------------------------------------------------------------
                 # POS command: traffic info; ("KL204", "POS KL204" or "KL204 ?")

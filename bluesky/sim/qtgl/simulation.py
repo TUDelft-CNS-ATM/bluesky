@@ -141,17 +141,15 @@ class Simulation(QObject):
         self.simdt = abs(dt)
         self.sysdt = int(self.simdt / self.dtmult * 1000)
 
-    def setDtMultiplier(self, mult=None):
-        if mult is not None:
-            self.dtmult = mult
-            self.sysdt = int(self.simdt / self.dtmult * 1000)
+    def setDtMultiplier(self, mult):
+        self.dtmult = mult
+        self.sysdt = int(self.simdt / self.dtmult * 1000)
 
-    def setFixdt(self, flag=None, nsec=None):
-        if flag is not None:
-            if flag:
-                self.fastforward(nsec)
-            else:
-                self.start()
+    def setFixdt(self, flag, nsec=None):
+        if flag:
+            self.fastforward(nsec)
+        else:
+            self.start()
 
     def fastforward(self, nsec=None):
         self.ffmode = True
@@ -161,12 +159,15 @@ class Simulation(QObject):
             self.ffstop = None
 
     def datafeed(self, flag=None):
-        if flag is not None:
-            if flag:
-                self.beastfeed.connectToHost(settings.modeS_host,
-                                             settings.modeS_port)
-            else:
-                self.beastfeed.disconnectFromHost()
+        if flag is None:
+            msg = 'DATAFEED is'
+            msg += 'connected' if self.beastfeed.isConnected() else 'not connected'
+            self.screenio.echo(msg)
+        elif flag:
+            self.beastfeed.connectToHost(settings.modeS_host,
+                                         settings.modeS_port)
+        else:
+            self.beastfeed.disconnectFromHost()
 
     def scenarioInit(self, name):
         self.screenio.echo('Starting scenario ' + name)
@@ -175,9 +176,7 @@ class Simulation(QObject):
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.state))
 
-    def addNodes(self, count=None):
-        if not count:
-            return False
+    def addNodes(self, count):
         self.manager.addNodes(count)
 
     def batch(self, filename):
