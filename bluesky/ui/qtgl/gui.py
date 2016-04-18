@@ -191,8 +191,8 @@ class Gui(QApplication):
                 self.win.setNodeInfo(manager.sender()[0], time, event.scenname)
                 if manager.sender()[0] == manager.actnode():
                     self.simt = event.simt
-                    self.win.siminfoLabel.setText('<b>T</b> = ' + time + ', <b>Speed</b> = %.1fx, <b>Dt</b> = %.2f, <b># aircraft</b> = %d, <b>mode</b> = %s'
-                        % (event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
+                    self.win.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
+                        % (time, event.simdt, event.sys_freq, self.modes[event.mode], event.n_ac, self.acdata.nconf_cur, self.acdata.nconf_tot, self.acdata.nlos_cur, self.acdata.nlos_tot))
                 return True
 
             elif event.type() == StackTextEventType:
