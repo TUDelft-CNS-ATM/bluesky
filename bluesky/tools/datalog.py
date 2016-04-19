@@ -38,8 +38,7 @@ class Datalog():
         self.snap   = 3   # Snapshot Data
         self.flst   = 4   # Flight Statistics Data
         self.inst   = 5   # Instantaneous number of conflicts (including position data, can be used in post-processing)
-        self.traj   = 6   # Logging of aircraft that deviate a lot from their route
-
+        
         self.reset()
         
     def reset(self):
@@ -49,8 +48,7 @@ class Datalog():
         self.swint      = False # Intrusion data logging
         self.swsnap     = False # SNAP data logging
         self.swflst     = False # Flight Statistics logging
-        self.swinst     = False # Instantaneous conflicts logging
-        self.swtraj     = False # Large deviation from route logging
+        self.swinst     = True # Instantaneous conflicts logging
         self.t0sky      = -999  # Last time SNAP was called
         self.dtsky      = 30.00 # Interval for snap
         self.t0snap     = -999  # Last time SNAP was called
@@ -65,7 +63,6 @@ class Datalog():
         self.buffer_snap    = []
         self.buffer_flst    = []
         self.buffer_inst    = []
-        self.buffer_traj    = []
         
         # Filename
         self.fname          = []
@@ -156,20 +153,7 @@ class Datalog():
             f.write('INSTANTANEOUS CONFLICT DATA' +'\n')
             f.write('==============================='+'\n')
             f.write('\n')
-            f.write('time [hh:mm:ss], simulation time [hh:mm:ss:ss], id1 [-],id2 [-],tcpa [s],tinconf [s],toutconf [s],tcpa_lat1 [decimal degrees], tcpa_lon1 [decimal degrees], tcpa_alt1 [decimal degrees], in_conflict1 [-], tcpa_lat2 [decimal degrees], tcpa_lon2 [decimal degrees], tcpa_alt2 [decimal degrees], in_conflict2 [-], lat1 [decimal degrees],lon1 [decimal degrees],trk1 [deg],alt1 [m],tas1 [m/s],gs1 [m/s],vs1 [m/s],type1 [-],lat2 [decimal degrees],lon2 [decimal degrees],trk2 [deg],tas2 [m/s],[m/s],gs2 [m/s],vs2 [m/s],type2 [-]'+'\n')
-            f.write('\n')
-            f.close()
-        
-        # Create the .flst file and write the simulation settings to the flst file
-        elif buffertype == self.traj:
-            f = open('%s.%s' % (self.fname, 'traj'),"w" )
-            f.write('==============================='+'\n')
-            f.write('New run at: '+strftime("%Y-%m-%d %H:%M:%S", localtime())+'\n')
-            f.write('Scenario: '+ str(self.scenfile) +'\n')
-            f.write('TRAJECTORY - REROUTING DATA' +'\n')
-            f.write('==============================='+'\n')
-            f.write('\n')
-            f.write('time [hh:mm:ss], 0000 , id [-],orig [-],dest [-],lat [decimal degrees],lon [decimal degrees],alt [m]'+'\n')
+            f.write('time, simulation time, id1,id2,tcpa_lat1,tcpa_lon1,tcpa_alt1,trk1,vs1,type1,tcpa_lat2,tcpa_lon2,tcpa_alt2,trk2,vs2,type2'+'\n')
             f.write('\n')
             f.close()
         
@@ -189,8 +173,6 @@ class Datalog():
             self.buffer_flst.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         elif buffertype == self.inst:
             self.buffer_inst.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
-        elif buffertype == self.traj:
-            self.buffer_traj.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         return
     
     def save(self,buffertype):
@@ -225,11 +207,6 @@ class Datalog():
             f.writelines(self.buffer_inst)
             f.close()
             self.buffer_inst = []
-        elif buffertype == self.traj:
-            f = open('%s.%s' % (self.fname, 'traj'),"a" )
-            f.writelines(self.buffer_traj)
-            f.close()
-            self.buffer_traj = []
         return
 
     def skysave(self,traf,simt):
@@ -251,19 +228,7 @@ class Datalog():
                                                                               self.traf.lon[i],self.traf.alt[i],self.traf.tas[i], \
                                                                               self.traf.gs[i],self.traf.vs[i],self.traf.trk[i]))
                     i = i + 1
-            
-                for idx in range(self.traf.dbconf.nconf):
-                    i = self.traf.dbconf.iown[idx]
-                    j = self.traf.dbconf.ioth[idx]
-                    self.traf.log.write(5,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
-                                        % (self.traf.id[i],self.traf.id[j],self.traf.dbconf.tcpa[i][j],self.traf.dbconf.tinconf[i][j],self.traf.dbconf.toutconf[i][j], \
-                                           self.traf.dbconf.latowncpa[idx],self.traf.dbconf.lonowncpa[idx],self.traf.dbconf.altowncpa[idx],self.traf.inconflict[i],\
-                                           self.traf.dbconf.latintcpa[idx],self.traf.dbconf.lonintcpa[idx],self.traf.dbconf.altintcpa[idx],self.traf.inconflict[j],\
-                                           self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
-                                           self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
-                                           self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
-                                           self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
-                return
+        return
 
     def clearbuffer(self,simt):
         # Write the saved buffer to the data files and clear the buffer, every dtwritelog seconds
@@ -282,8 +247,6 @@ class Datalog():
                 self.save(4)
             if self.swinst:
                 self.save(5)
-            if self.swtraj:
-                self.save(6)
         return
 
 

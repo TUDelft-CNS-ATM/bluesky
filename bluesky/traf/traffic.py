@@ -613,7 +613,7 @@ class Traffic:
             self.dbconf.detect()
             self.dbconf.conflictfilter(simt)
             self.dbconf.conflictlist(simt)
-            self.dbconf.APorASAS(simt)
+            self.dbconf.APorASAS()                
             self.dbconf.resolve()
 
             # Reset label because of colour change
@@ -635,101 +635,122 @@ class Traffic:
             
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
-                # If the last waypoint is already the destination, overwrite lnav,vnav and asas settings
+                
+                # Get next wp (lnavon = False if no more waypoints)
+                lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
+                       self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
+                # If the last waypoint is the destination, overwrite lnav,vnav and asas settings
                 # -> Start descending asap in a straight line
                 if self.route[i].wptype[self.route[i].iactwp] == 3:
-                    steepness = 3000.*ft/(10.*nm)
+                    steepness = 5000.*ft/(10.*nm)
                     self.avs[i] = steepness*self.gs[i]
                     self.asasvsp[i] = self.avs[i]
                     self.aalt[i] = 0.
                     self.asasalt[i] = 0.
-                
-                else:
-                    # Get next wp (lnavon = False if no more waypoints)
-                    lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
-                           self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
-                    # End of route/no more waypoints: switch off LNAV
-                    if not lnavon:
-                        self.swlnav[i] = False # Drop LNAV at end of route
+                # End of route/no more waypoints: switch off LNAV
+                if not lnavon:
+                    self.swlnav[i] = False # Drop LNAV at end of route
 
-                    # In case of no LNAV, do not allow VNAV mode on it sown
-                    if not self.swlnav[i]:
-                        self.swvnav[i] = False
+                # In case of no LNAV, do not allow VNAV mode on it sown
+                if not self.swlnav[i]:
+                    self.swvnav[i] = False
+                    
+                self.actwplat[i]   = lat
+                self.actwplon[i]   = lon
+                self.actwpflyby[i] = int(flyby) # 1.0 in case of fly by, els fly over
+
+                # User entered altitude
+
+                if alt >= 0.:
+                    self.actwpalt[i] = alt
+                    
+                # VNAV=-ALT mode
+                # calculated altitude is available and active
+                if toalt  >= 0. and self.swvnav[i]: # somewhere there is an altitude constraint ahead
+
+                    # Descent VNAV mode (T/D logic)
+                    if self.alt[i] > toalt+10.*ft:       
+
+                        #Steepness dh/dx in [m/m], for now 1:3 rule of thumb
+                        steepness = 3000.*ft/(10.*nm)
                         
-                    self.actwplat[i]   = lat
-                    self.actwplon[i]   = lon
-                    self.actwpflyby[i] = int(flyby) # 1.0 in case of fly by, els fly over
+                        #Calculate max allowed altitude at next wp (above toalt)
+                        self.actwpalt[i] = toalt + xtoalt*steepness
 
-                    # User entered altitude
+                        # Dist to waypoint where descent should start
+                        self.dist2vs[i] = (self.alt[i]-self.actwpalt[i])/steepness
+ 
+#                        # Flat earth distance to next wp
+#                        dy = (lat-self.lat[i])
+#                        dx = (lon-self.lon[i])*self.coslat[i]
+#                        legdist = 60.*nm*sqrt(dx*dx+dy*dy)
+#
 
-                    if alt >= 0.:
-                        self.actwpalt[i] = alt
-                        
-                    # VNAV=-ALT mode
-                    # calculated altitude is available and active
-                    if toalt  >= 0. and self.swvnav[i]: # somewhere there is an altitude constraint ahead
+#                        #If descent is urgent, descent with maximum steepness
+#                        if legdist < self.dist2vs[i]:
+#                            self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+#
+#                            t2go         = max(0.1,legdist)/max(0.01,self.gs[i])
+#                            self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
 
-                        # Descent VNAV mode (T/D logic)
-                        if self.alt[i] > toalt+10.*ft:       
+#                        else: 
+#
+#                            # normal case: still time till descent starts
+#                       
+#                            # Calculate V/s using steepness, 
+#                            # protect against zero/invalid ground speed value
+#                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
+#                                            (self.gs[i]<0.2*self.tas[i])*self.tas[i])
 
-                            #Steepness dh/dx in [m/m], for now 1:3 rule of thumb
-                            steepness = 3000.*ft/(10.*nm)
-                            
-                            #Calculate max allowed altitude at next wp (above toalt)
-                            self.actwpalt[i] = toalt + xtoalt*steepness
+                    # Climb VNAV mode: climb as soon as possible (T/C logic)                        
+                    elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
 
-                            # Dist to waypoint where descent should start
-                            self.dist2vs[i] = (self.alt[i]-self.actwpalt[i])/steepness
+                        self.actwpalt[i] = toalt
+                        self.aalt[i]     = self.actwpalt[i] # dial in altitude of next waypoint as calculated
+                        self.dist2vs[i]  = 9999.
 
-                        # Climb VNAV mode: climb as soon as possible (T/C logic)                        
-                        elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
-
-                            self.actwpalt[i] = toalt
-                            self.aalt[i]     = self.actwpalt[i] # dial in altitude of next waypoint as calculated
-                            self.dist2vs[i]  = 9999.
-
-                        # Level leg: never start V/S
-                        else:
-                            self.dist2vs[i] = -999.
-                            
-                    #No altirude defined: never start V/S
+                    # Level leg: never start V/S
                     else:
                         self.dist2vs[i] = -999.
-                   
-                    # VNAV spd mode: use speed of this waypoint as commaded speed
-                    # while passing waypoint and save next speed for passing next wp
-                    if self.swvnav[i] and self.actwpspd[i]>0.0: # check mode and value
-
-                        # Select CAS or Mach command by checking value of actwpspd
-                        if self.actwpspd[i]<2.0: # Mach command
-
-                           self.aspd[i] = mach2cas(self.actwpspd[i],self.alt[i])
-                           self.ama[i]  = self.actwpspd[i]                            
-
-                        else:    # CAS command
-                           self.aspd[i] = self.actwpspd[i]
-                           self.ama[i]  = cas2tas(spd,self.alt[i])
                         
-                    
-                    if spd>0. and self.swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
-                       self.actwpspd[i] = spd                           
-                    else:
-                       self.actwpspd[i] = -999.
+                #No altirude defined: never start V/S
+                else:
+                    self.dist2vs[i] = -999.
+               
+                # VNAV spd mode: use speed of this waypoint as commaded speed
+                # while passing waypoint and save next speed for passing next wp
+                if self.swvnav[i] and self.actwpspd[i]>0.0: # check mode and value
 
-                    # Calculate distance before waypoint where to start the turn
-                    # Turn radius:      R = V^2 / tan phi / g
-                    # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
-                    # using default bank angle per flight phase
-                    turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm]
+                    # Select CAS or Mach command by checking value of actwpspd
+                    if self.actwpspd[i]<2.0: # Mach command
 
-                    dy = (self.actwplat[i]-self.lat[i])
-                    dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
-                    qdr[i] = degrees(atan2(dx,dy))     
+                       self.aspd[i] = mach2cas(self.actwpspd[i],self.alt[i])
+                       self.ama[i]  = self.actwpspd[i]                            
+
+                    else:    # CAS command
+                       self.aspd[i] = self.actwpspd[i]
+                       self.ama[i]  = cas2tas(spd,self.alt[i])
                     
-                    self.actwpturn[i] = self.actwpflyby[i]*np.max((10.,\
-                                        abs(turnrad*tan(radians(0.5*degto180(qdr[i]\
-                                        -self.route[i].wpdirfrom[self.route[i].iactwp]))))))
+                
+                if spd>0. and self.swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
+                   self.actwpspd[i] = spd                           
+                else:
+                   self.actwpspd[i] = -999.
+
+                # Calculate distance before waypoint where to start the turn
+                # Turn radius:      R = V^2 / tan phi / g
+                # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
+                # using default bank angle per flight phase
+                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm]
+
+                dy = (self.actwplat[i]-self.lat[i])
+                dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
+                qdr[i] = degrees(atan2(dx,dy))     
+                
+                self.actwpturn[i] = self.actwpflyby[i]*np.max((10.,\
+                                    abs(turnrad*tan(radians(0.5*degto180(qdr[i]\
+                                    -self.route[i].wpdirfrom[self.route[i].iactwp]))))))
  
             # End of Waypoint switching loop
             
@@ -919,7 +940,7 @@ class Traffic:
                     inside = self.arealat0 <= self.lat[i] <= self.arealat1 and \
                              self.arealon0 <= self.lon[i] <= self.arealon1 and \
                              self.alt[i] >= self.areafloor and \
-                             (self.alt[i] >= 1500*ft or self.swtaxi)
+                             (self.alt[i] >= 1500 or self.swtaxi)
 
                 elif self.area == "Circle":
 

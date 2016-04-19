@@ -34,9 +34,6 @@ def resolve(dbconf):
                 # If the priority switch is ON (always ON for layers), it has a different meaning for Layers than for Full Mix
                 # For layers -> Climbing has highest priority
                 if dbconf.swprio:
-#                    if dbconf.traf.id[id1] == 'AC0430' and dbconf.traf.id[id2] == 'AC0469':
-#                        import pdb
-#                        pdb.set_trace()
                     # If aircraft 1 is cruising, and aircraft 2 is climbing -> aircraft one solves conflict horizontally
                     if abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.alt[id2] < dbconf.traf.aalt[id2]:
                         dv[id1] = dv[id1] - dv_eby
@@ -47,23 +44,15 @@ def resolve(dbconf):
                         dv[id2][2] = 0.0
                     # If aircraft 1 is cruising, and aircraft 2 is descending -> aircraft 2 solves conflict vertically
                     elif abs(dbconf.traf.vs[id1])<0.1 and  dbconf.traf.alt[id2] > dbconf.traf.aalt[id2]:
-#                        dv[id1] = dv[id1] - dv_eby
-                        dv[id2] = dv[id2] + dv_eby
-#                        dv[id1][2] = 0.0
-#                        dv[id2][0] = 0.0
-#                        dv[id2][1] = 0.0
+                        dv[id2] = dv[id2] - abs(dv_eby)
+                        dv[id2][0] = 0.0
+                        dv[id2][1] = 0.0
                     # If aircraft 2 is cruising, and aircraft 1 is descending -> aircraft 1 solves conflict vertically
                     elif abs(dbconf.traf.vs[id2])<0.1 and dbconf.traf.alt[id1] > dbconf.traf.aalt[id1]:
-                        dv[id1] = dv[id1] - dv_eby
-#                        dv[id2] = dv[id2] + dv_eby
-#                        dv[id1][0] = 0.0
-#                        dv[id1][1] = 0.0
-#                        dv[id2][2] = 0.0
-                    # C/D - C/D
-                    elif dbconf.traf.alt[id1] > dbconf.traf.aalt[id1] and dbconf.traf.alt[id2] > dbconf.traf.aalt[id2]:
-                        dv[id1] = dv[id1] - dv_eby
-                        dv[id2] = dv[id2] + dv_eby
-                    # cruising - cruising-> solved horizontally
+                        dv[id1] = dv[id1] - abs(dv_eby)
+                        dv[id1][0] = 0.0
+                        dv[id1][1] = 0.0
+                    # cruising - cruising, C/D - C/D -> solved horizontally
                     else:
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
@@ -98,6 +87,9 @@ def resolve(dbconf):
     # Restrict resolution direction based on swresodir
     if dbconf.swresodir == "HORIZ":
         dv[2,:] = 0.
+#    elif dbconf.swresodir == "VERT":
+#        dv[0,:] = 0.
+#        dv[1,:] = 0.  
 
     # the new speed vector
     newv = dv+v
@@ -130,7 +122,7 @@ def resolve(dbconf):
                           + dbconf.traf.alt
     # Condition2 ensures that aircraft do not overshoot their layer altitude
     # This is not being used for Full Mix MVP
-    condition2 = dbconf.traf.avs > 0.1
+    condition2 = dbconf.traf.alt < dbconf.traf.aalt
     dbconf.traf.asasalt[condition] = asasalttemp[condition]
     dbconf.traf.asasalt[condition2] = dbconf.traf.aalt[condition2]
 
@@ -164,11 +156,7 @@ def MVP(dbconf, id1, id2):
     
     # Find tcpa
     tcpa=dbconf.tcpa[id1,id2]
-    # To fix descending - cruising conflicts
-    if dbconf.traf.alt[id1] > dbconf.traf.aalt[id1] or dbconf.traf.alt[id2] > dbconf.traf.aalt[id2]:
-        tcpa=dbconf.tinconf[id1,id2]
-
-
+    
     #find horizontal and vertical distances at the tcpa
     dcpa = d+v*tcpa
     dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])

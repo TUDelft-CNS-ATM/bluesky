@@ -169,7 +169,7 @@ def MVP(dbconf, id1, id2):
             dcpa[2] = 10.
 
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
-    dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)  # abs(tcpa) since tinconf can be positive, while tcpa can be be negative. A negative tcpa would direct dv in the wrong direction.
+dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)  # abs(tcpa) since tinconf can be positive, while tcpa can be be negative. A negative tcpa would direct dv in the wrong direction.
     dv2 = (iH*dcpa[1])/(abs(tcpa)*dabsH)
     dv3 = (iV*dcpa[2])/(abs(tcpa)*dabsV)
 
