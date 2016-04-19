@@ -54,7 +54,7 @@ class Dbconf():
         
         self.vmin        =100.     # [m/s] Minimum ASAS velocity
         self.vmax        =500.     # [m/s] Maximum ASAS velocity
-        self.vsmax       = 3000./60.*ft # [m/s] Max vertical speed
+        self.vsmax       = 3000./60.*ft# [m/s] Max vertical speed
         self.vsmin       = -3000./60.*ft # [m/s] Min vertical speed
         
         self.swresodir   = 'COMB'  # desired directions of resolution methods: 
@@ -94,7 +94,7 @@ class Dbconf():
         self.conflist_all= [] #Create a list of all Conflicts       
         self.LOSlist_all = [] #Create a list of all Losses Of Separation
         self.conflist_exp= [] #Create a list of all Conflicts in experiment time
-        self.LOSlist_exp = [] #Create a list of all Losses Of Separation in experiment time
+        self.LOSlist_logged = [] #Create a list of all Losses Of Separation that are logged
         self.conflist_now= [] #Create a list of current Conflicts       
         self.LOSlist_now = [] #Create a list of current Losses Of Separation
         
@@ -227,14 +227,13 @@ class Dbconf():
         self.swconfl[idx_conffilter,:] = 0.                                    # Make the rows of the 'restricted' aircraft zero
         self.swconfl[:,idx_conffilter] = 0.                                    # Make the columns of the 'restricted' aircraft zero
         
-        ## Filter for conflicts: if swdelay is True and if tcpa is smaller than 3 minutes, ignore conflict
+        ## Filter for conflicts: if swdelay is True and if tcpa is smaller than 2 minutes, ignore conflict
         if self.swdelay:
             tcpa_filter = self.tcpa
-            tcpa_filter[self.tcpa < 180.] = 0.
-            tcpa_filter[self.tcpa >=180.] = 1.
+            tcpa_filter[self.tcpa < 120.] = 0.
+            tcpa_filter[self.tcpa >= 120.] = 1.
             self.swconfl = np.multiply(self.swconfl,tcpa_filter)
         
-
         return
 
     def conflictlist(self, simt):
@@ -308,9 +307,6 @@ class Dbconf():
             combi=str(self.traf.id[i])+" "+str(self.traf.id[j])
             combi2=str(self.traf.id[j])+" "+str(self.traf.id[i])
             
-            experimenttime = simt>2100 and simt<5700 # These parameters may be 
-            #changed to count only conflicts within a given expirement time window
-            
             if combi not in self.conflist_all and combi2 not in self.conflist_all:
                 self.conflist_all.append(combi)
                 if self.traf.log.swcfl:
@@ -322,8 +318,6 @@ class Dbconf():
                                            self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
                                            self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
                                            self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
-            if combi not in self.conflist_exp and combi2 not in self.conflist_exp and experimenttime:
-                self.conflist_exp.append(combi)
 
             if combi not in self.conflist_now and combi2 not in self.conflist_now:
                 self.conflist_now.append(combi)
@@ -334,17 +328,6 @@ class Dbconf():
                     self.LOSmaxsev.append(0.)
                     self.LOShmaxsev.append(0.)
                     self.LOSvmaxsev.append(0.)
-#                    if self.traf.log.swint:
-#                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
-#                                            % (self.traf.id[i],self.traf.id[j], \
-#                                               self.tinconf[i][j],self.toutconf[i][j], \
-#                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
-#                                               self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
-#                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
-#                                               self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
-
-                if combi not in self.LOSlist_exp and combi2 not in self.LOSlist_exp and experimenttime:
-                    self.LOSlist_exp.append(combi)
 
                 if combi not in self.LOSlist_now and combi2 not in self.LOSlist_now:
                     self.LOSlist_now.append(combi)
@@ -365,14 +348,16 @@ class Dbconf():
                         self.LOShmaxsev[idx] = Ih
                         self.LOSvmaxsev[idx] = Iv
                     else:
-                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
-                                            % (self.traf.id[i],self.traf.id[j], \
-                                               self.LOShmaxsev[idx], self.LOSvmaxsev[idx], self.tinconf[i][j],self.toutconf[i][j], \
-                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
-                                               self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
-                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
-                                               self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
-                                                
+                        if combi not in self.LOSlist_logged and self.traf.log.swint:
+                            self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                                    % (self.traf.id[i],self.traf.id[j], \
+                                                       self.LOShmaxsev[idx], self.LOSvmaxsev[idx], self.tinconf[i][j],self.toutconf[i][j], \
+                                                       self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+                                                       self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+                                                       self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+                                                       self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+                            self.LOSlist_logged.append(combi)
+
 
         self.nconf = len(self.idown)
 
@@ -396,7 +381,7 @@ class Dbconf():
 #============================= Trajectory Recovery ============================
         
 # Decide for each aircraft whether the ASAS should be followed or not
-    def APorASAS(self):
+    def APorASAS(self,simt):
 
 # Only use when ASAS is on
         if not self.swasas:
@@ -426,13 +411,14 @@ class Dbconf():
                     # Do this only if the lnav is on
                     # This is to ensure that last minute conflicts don't deviate aircraft from their destinations too much.
                     if self.traf.swlnav[id1] == True:
-                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3 and self.traf.vs[id1] < -0.1:
-                            self.traf.asasactive[id1] = False    
+                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3:# and self.traf.vs[id1] < -0.1:
+                            self.traf.asasactive[id1] = False
 
                     # same as above for id2   
                     if self.traf.swlnav[id2] == True:                     
-                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3 and self.traf.vs[id2] < -0.1:
+                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3:# and self.traf.vs[id2] < -0.1:
                             self.traf.asasactive[id2] = False
+
 
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
@@ -443,13 +429,16 @@ class Dbconf():
                     if iwpid2 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
                     
-                    # if conflict is solved, remove it from the conflist_all to pre
+                    # if conflict is solved, remove it from the conflist_all
                     self.conflist_all.remove(conflict)
-                    
+
+    
             elif id1 == "Fail" and id2!= "Fail":
                  iwpid2 = self.traf.route[id2].findact2(self.traf,id2)
                  if iwpid2 != -1: # To avoid problems if there are no waypoints
                      self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
+                 if conflict in self.LOSlist_all:
+                     self.LogLOS(simt, conflict, id1,id2)
                  self.conflist_all.remove(conflict)
             
             elif id2 == "Fail" and id1 != "Fail":
@@ -470,32 +459,27 @@ class Dbconf():
         
     def ConflictIsPastCPA(self, traf, id1, id2):
 
-        d = np.array([traf.lon[id2]-traf.lon[id1],traf.lat[id2]-traf.lat[id1],traf.alt[id2]-traf.alt[id1]])
+        d = np.array([traf.lon[id2]-traf.lon[id1],traf.lat[id2]-traf.lat[id1]])
 
         # find track in degrees
         t1 = np.radians(traf.trk[id1])
         t2 = np.radians(traf.trk[id2])
         
         # write velocities as vectors and find relative velocity vector              
-        v1 = np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
-        v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
+        v1 = np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1]])
+        v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2]])
         v  = np.array(v2-v1) 
         
         # the conflict has past CPA if the horizontal
         # velocities of the two aircraft are not pointing at each other
-        pastCPA = np.dot(d[:2],v[:2])>0.0
+        pastCPA = np.dot(d,v)>0.
         
+        # In case of hLOS, pastCPA stays False to avoid intrusion with negatice tcpa
         dx = (self.traf.lat[id1]-self.traf.lat[id2])*111319.
         dy = (self.traf.lon[id1]-self.traf.lon[id2])*111319.
-        
-        # If horizontal already realised, asume complete LOS to solve conflict
         hdist2 = dx**2+dy**2
         hLOS  = hdist2<self.R**2
-        vdist = abs(self.traf.alt[id1]-self.traf.alt[id2])
-        vLOS  = True # Assume a vLOS to trick checklos function
-        LOS = self.checkLOS(hLOS,vLOS,id1,id2)
-        
-        if LOS:
+        if hLOS:
             pastCPA = False
         
         # If both aircraft leveled off, check vertical separation
@@ -519,3 +503,96 @@ class Dbconf():
     
     def checkLOS(self,HLOS,VLOS,i,j):
         return HLOS & VLOS
+
+    def detect_intent(self,i):
+        if not self.swasas:
+            return False
+        
+        if self.traf.alt[i] < 1000*ft:
+            return False
+        
+        qdlst = qdrdist_vector(self.traf.lat[i],self.traf.lon[i],\
+                    self.traf.lat,self.traf.lon)
+        self.qdr      = np.array(qdlst[0])
+        self.dist     = np.array(qdlst[1])*nm
+
+        qdrrad  = np.radians(self.qdr)
+        self.dx      = self.dist * np.sin(qdrrad) # is pos j rel to i
+        self.dy      = self.dist * np.cos(qdrrad) # is pos j rel to i
+        
+        trkrad = np.radians(self.traf.trk)
+        self.u      = self.traf.gs*np.sin(trkrad)  # m/s
+        self.v      = self.traf.gs*np.cos(trkrad)  # m/s
+        
+        self.du = self.u - self.u[i]  # Speed du[i,j] is perceived eastern speed of i to j
+        self.dv = self.v - self.v[i]  # Speed dv[i,j] is perceived northern speed of i to j
+        
+        dv2  = self.du*self.du+self.dv*self.dv
+        dv2  = np.where(np.abs(dv2)<1e-6,1e-6,dv2) # limit lower absolute value
+        
+        vrel = np.sqrt(dv2)
+        
+        self.tcpa = (-(self.du*self.dx + self.dv*self.dy) / dv2)[0]
+        
+        # Calculate CPA positions
+        xcpa = self.tcpa*self.du
+        ycpa = self.tcpa*self.dv
+        
+        # Calculate distance^2 at CPA (minimum distance^2)
+        dcpa2 = self.dist*self.dist-self.tcpa*self.tcpa*dv2
+        
+        # Check for horizontal conflict
+        R2        = self.R*self.R
+        self.swhorconf = dcpa2<R2 # conflict or not
+        
+        # Calculate times of entering and leaving horizontal conflict
+        dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) # half the distance travelled inzide zone
+        dtinhor   = dxinhor/vrel
+        
+        tinhor    = np.where(self.swhorconf,self.tcpa - dtinhor,1e8) # Set very large if no conf
+        
+        touthor   = np.where(self.swhorconf,self.tcpa + dtinhor,-1e8) # set very large if no conf
+        #        swhorconf = swhorconf*(touthor>0)*(tinhor<self.dtlook)
+        
+        # Vertical conflict -----------------------------------------------------------
+        
+        # Vertical crossing of disk (-dh,+dh)
+        
+        alt       = self.traf.alt
+        
+        self.dalt      = alt -alt[i]
+        
+        vs  = self.traf.vs
+        
+        dvs = vs - np.sign(self.traf.aalt[i]-self.traf.alt[i])*self.traf.avs[i]
+        
+        # Check for passing through each others zone
+        dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
+        tcrosshi  = (self.dalt + self.dh)/-dvs
+        tcrosslo  = (self.dalt - self.dh)/-dvs
+        
+        tinver    = np.minimum(tcrosshi,tcrosslo)
+        toutver   = np.maximum(tcrosshi,tcrosslo)
+        
+        # Combine vertical and horizontal conflict-------------------------------------
+        self.tinconf = np.maximum(tinver,tinhor)
+        
+        self.toutconf = np.minimum(toutver,touthor)
+        
+        self.swconfl = self.swhorconf*(self.tinconf<=self.toutconf)*    \
+            (self.toutconf>0.)*(self.tinconf<60.)#self.dtlookaheadPASAS)
+        self.swconfl = self.swconfl[0]
+        self.swconfl[i] = False
+
+        if self.swconfl.any():
+            import pdb
+            pdb.set_trace()
+            return True
+        else:
+            return False
+
+
+
+
+
+

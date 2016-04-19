@@ -613,7 +613,7 @@ class Traffic:
             self.dbconf.detect()
             self.dbconf.conflictfilter(simt)
             self.dbconf.conflictlist(simt)
-            self.dbconf.APorASAS()                
+            self.dbconf.APorASAS(simt)
             self.dbconf.resolve()
 
             # Reset label because of colour change
