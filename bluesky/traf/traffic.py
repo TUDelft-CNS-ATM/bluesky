@@ -550,7 +550,7 @@ class Traffic:
         # Update only necessary if there is traffic
         if self.ntraf == 0:
             return
-        
+
         self.dts.append(simdt)
 
         #---------------- Atmosphere ----------------
@@ -637,16 +637,13 @@ class Traffic:
             for i in iwpclose:
                 # If the last waypoint is already the destination, overwrite lnav,vnav and asas settings
                 # -> Start descending asap in a straight line
-                if self.id[i] == 'AC0003':
-                    import pdb
-#                    pdb.set_trace()
-#                if self.route[i].wptype[self.route[i].iactwp] == 3:
-#                    steepness = 3000.*ft/(10.*nm)
-#                    self.avs[i] = steepness*self.gs[i]
-#                    self.asasvsp[i] = self.avs[i]
-#                    self.aalt[i] = 0.
-#                    self.asasalt[i] = 0.
-
+                if self.route[i].wptype[self.route[i].iactwp] == 3:
+                    steepness = 3000.*ft/(10.*nm)
+                    self.avs[i] = steepness*self.gs[i]
+                    self.asasvsp[i] = self.avs[i]
+                    self.aalt[i] = 0.
+                    self.asasalt[i] = 0.
+                
                 else:
                     # Get next wp (lnavon = False if no more waypoints)
                     lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
@@ -744,17 +741,10 @@ class Traffic:
 
             # VNAV AP LOGIC
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
-                                     (self.actwpalt>self.alt))
+                                     (self.actwpalt>self.alt))            
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
-            
-#            ivnavtodest =  np.where(np.logical_and(dist2wp<self.dist2vs,abs(self.vs) < 0.1, self.asasactive == 0.))[0]
-#            for i in ivnavtodest:
-#                cfl = self.dbconf.detect_intent(i)
-#                if cfl == True:
-#                    self.avs[i] =  self.vs[i]
-#                    self.aalt[i] = self.alt[i]
 
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
