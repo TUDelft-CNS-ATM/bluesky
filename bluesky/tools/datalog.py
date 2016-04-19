@@ -252,17 +252,17 @@ class Datalog():
                                                                               self.traf.gs[i],self.traf.vs[i],self.traf.trk[i]))
                     i = i + 1
             
-                for idx in range(self.traf.dbconf.nconf):
-                    i = self.traf.dbconf.iown[idx]
-                    j = self.traf.dbconf.ioth[idx]
-                    self.traf.log.write(5,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
-                                        % (self.traf.id[i],self.traf.id[j],self.traf.dbconf.tcpa[i][j],self.traf.dbconf.tinconf[i][j],self.traf.dbconf.toutconf[i][j], \
-                                           self.traf.dbconf.latowncpa[idx],self.traf.dbconf.lonowncpa[idx],self.traf.dbconf.altowncpa[idx],self.traf.inconflict[i],\
-                                           self.traf.dbconf.latintcpa[idx],self.traf.dbconf.lonintcpa[idx],self.traf.dbconf.altintcpa[idx],self.traf.inconflict[j],\
-                                           self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
-                                           self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
-                                           self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
-                                           self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+#                for idx in range(self.traf.dbconf.nconf):
+#                    i = self.traf.dbconf.iown[idx]
+#                    j = self.traf.dbconf.ioth[idx]
+#                    self.write(5,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+#                                        % (self.traf.id[i],self.traf.id[j],self.traf.dbconf.tcpa[i][j],self.traf.dbconf.tinconf[i][j],self.traf.dbconf.toutconf[i][j], \
+#                                           self.traf.dbconf.latowncpa[idx],self.traf.dbconf.lonowncpa[idx],self.traf.dbconf.altowncpa[idx],self.traf.inconflict[i], \
+#                                           self.traf.dbconf.latintcpa[idx],self.traf.dbconf.lonintcpa[idx],self.traf.dbconf.altintcpa[idx],self.traf.inconflict[j], \
+#                                           self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+#                                           self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+#                                           self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+#                                           self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
                 return
 
     def clearbuffer(self,simt):

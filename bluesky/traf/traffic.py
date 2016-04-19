@@ -64,7 +64,8 @@ class Traffic:
     def reset(self, navdb):
         self.dts = []
         self.ntraf = 0
-
+        
+        self.henk = False
         #  model-specific parameters.
         # Default: BlueSky internal performance model.
         # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
@@ -145,6 +146,7 @@ class Traffic:
         # LNAV route navigation
         self.swlnav = np.array([])  # Lateral (HDG) based on nav?
         self.swvnav = np.array([])  # Vertical/longitudinal (ALT+SPD) based on nav info
+        self.swvnavoverrule = np.array([]) # VNAV overrule SWITCH
 
         self.actwplat  = np.array([])  # Active WP latitude
         self.actwplon  = np.array([])  # Active WP longitude
@@ -196,7 +198,7 @@ class Traffic:
 
         # Scheduling of FMS and ASAS
         self.t0fms = -999.  # last time fms was called
-        self.dtfms = 1.01  # interval for fms
+        self.dtfms = 1.00  # interval for fms
 
         self.t0asas = -999.  # last time ASAS was called
         self.dtasas = 1.00  # interval for ASAS
@@ -341,6 +343,7 @@ class Traffic:
         # LNAV route navigation
         self.swlnav = np.append(self.swlnav, False)  # Lateral (HDG) based on nav
         self.swvnav = np.append(self.swvnav, False)  # Vertical/longitudinal (ALT+SPD) based on nav info
+        self.swvnavoverrule = np.append(self.swvnavoverrule, 0.) # VNAV overrule SWITCH
 
         self.actwplat  = np.append(self.actwplat, 89.99)  # Active WP latitude
         self.actwplon  = np.append(self.actwplon, 0.0)   # Active WP longitude
@@ -478,6 +481,7 @@ class Traffic:
 
         self.swlnav = np.delete(self.swlnav, idx)
         self.swvnav = np.delete(self.swvnav, idx)
+        self.swvnavoverrule = np.delete(self.swvnavoverrule, idx)
 
         self.actwplat  = np.delete(self.actwplat,  idx)
         self.actwplon  = np.delete(self.actwplon,  idx)
@@ -635,27 +639,30 @@ class Traffic:
             
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
-                
+#                if self.route[i].wptype[self.route[i].iactwp] == 3 and dist[i] < 20.*nm:
+#                    self.swvnavoverrule[i] = 1
+
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
                 # If the last waypoint is the destination, overwrite lnav,vnav and asas settings
                 # -> Start descending asap in a straight line
-                if self.route[i].wptype[self.route[i].iactwp] == 3:
-                    steepness = 5000.*ft/(10.*nm)
-                    self.avs[i] = steepness*self.gs[i]
-                    self.asasvsp[i] = self.avs[i]
-                    self.aalt[i] = 0.
-                    self.asasalt[i] = 0.
+#                if self.swvnavoverrule[i] == 1.:
+#                    steepness = 5000.*ft/(10.*nm)
+#                    self.avs[i] = steepness*self.gs[i]
+#                    self.asasvsp[i] = self.avs[i]
+#                    self.aalt[i] = 0.
+#                    self.asasalt[i] = 0.
 
                 # End of route/no more waypoints: switch off LNAV
                 if not lnavon:
                     self.swlnav[i] = False # Drop LNAV at end of route
-
-                # In case of no LNAV, do not allow VNAV mode on it sown
+#
+#                # In case of no LNAV, do not allow VNAV mode on it sown
                 if not self.swlnav[i]:
+                    self.actwpalt[i] = 0.
                     self.swvnav[i] = False
-                    
+
                 self.actwplat[i]   = lat
                 self.actwplon[i]   = lon
                 self.actwpflyby[i] = int(flyby) # 1.0 in case of fly by, els fly over
@@ -753,7 +760,7 @@ class Traffic:
                                     -self.route[i].wpdirfrom[self.route[i].iactwp]))))))
  
             # End of Waypoint switching loop
-            
+
             # Do VNAV start of descent check
             dy = (self.actwplat-self.lat)
             dx = (self.actwplon-self.lon)*self.coslat
@@ -761,14 +768,39 @@ class Traffic:
             steepness = 3000.*ft/(10.*nm)
 
             # VNAV AP LOGIC
-            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
-                                     (self.actwpalt>self.alt))            
+#            if simt > 45 and self.henk == False:
+#                import pdb
+#                pdb.set_trace()
+            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<(self.dist2vs)) + \
+                                     (self.actwpalt>self.alt))+(1-self.swlnav)
+            if self.dbconf.swasas:
+                icflvnav = np.where((dist2wp<self.dist2vs) & (self.vs == 0.))[0]
+                for i in icflvnav:
+                    newavs = steepness*self.gs[i]
+                    cfl = self.dbconf.conflictprobe(i,newavs)
+                    if cfl:
+                        self.swvnavvs[i] = 0.0
+                if simt > 27.*60. and self.henk == False:
+                    import pdb
+                    pdb.set_trace()
+                icflvnav2 = np.where((self.swlnav == 0.))[0]
+                for i in icflvnav2:
+                     newavs = steepness*self.gs[i]
+                     cfl = self.dbconf.conflictprobe(i,newavs)
+                     if cfl:
+                         self.swvnavvs[i] = 0.0
+#                        self.swvnavoverrule[i] = 0.0
+#                    else:
+#                        self.swvnavoverrule[i] = 1.0
 
+        
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
-
+            
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
+        
+        
 
         #-------------END of FMS update -------------------
       
@@ -883,7 +915,7 @@ class Traffic:
         else:
             # Normal vertical speed selection
             self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
-                    ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
+                    ( (1-self.swvnav)*(3000.*ft/(10.*nm)*self.gs) +    \
                         self.swvnav*np.abs(self.desvs))
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
@@ -940,7 +972,7 @@ class Traffic:
                     inside = self.arealat0 <= self.lat[i] <= self.arealat1 and \
                              self.arealon0 <= self.lon[i] <= self.arealon1 and \
                              self.alt[i] >= self.areafloor and \
-                             (self.alt[i] >= 1500 or self.swtaxi)
+                             (self.alt[i] >= 1500*ft or self.swtaxi)
 
                 elif self.area == "Circle":
 

@@ -406,18 +406,18 @@ class Dbconf():
                     self.traf.asasactive[id2] = True
                     self.traf.inconflict[id2] = True                   
                     
-                    # if the next waypoint is the destination airport, and the 
-                    # aircraft is descending, don't detect conflicts anymore. 
-                    # Do this only if the lnav is on
-                    # This is to ensure that last minute conflicts don't deviate aircraft from their destinations too much.
-                    if self.traf.swlnav[id1] == True:
-                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3:# and self.traf.vs[id1] < -0.1:
-                            self.traf.asasactive[id1] = False
-
-                    # same as above for id2   
-                    if self.traf.swlnav[id2] == True:                     
-                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3:# and self.traf.vs[id2] < -0.1:
-                            self.traf.asasactive[id2] = False
+#                    # if the next waypoint is the destination airport, and the 
+#                    # aircraft is descending, don't detect conflicts anymore. 
+#                    # Do this only if the lnav is on
+#                    # This is to ensure that last minute conflicts don't deviate aircraft from their destinations too much.
+#                    if self.traf.swlnav[id1] == True:
+#                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3:# and self.traf.vs[id1] < -0.1:
+#                            self.traf.asasactive[id1] = False
+#
+#                    # same as above for id2   
+#                    if self.traf.swlnav[id2] == True:                     
+#                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3:# and self.traf.vs[id2] < -0.1:
+#                            self.traf.asasactive[id2] = False
 
 
                 else:
@@ -481,6 +481,8 @@ class Dbconf():
         hLOS  = hdist2<self.R**2
         if hLOS:
             pastCPA = False
+        if (abs(traf.trk[id1] - traf.trk[id2]) < 30.) &  (hdist2<self.Rm**2):
+            pastCPA = False
         
         # If both aircraft leveled off, check vertical separation
         if abs(traf.vs[id1]) < 0.1 and abs(traf.vs[id2]) < 0.1 and abs(traf.alt[id1]-traf.alt[id2]) > 1000*ft:
@@ -504,7 +506,7 @@ class Dbconf():
     def checkLOS(self,HLOS,VLOS,i,j):
         return HLOS & VLOS
 
-    def detect_intent(self,i):
+    def conflictprobe(self,i,newavs):
         if not self.swasas:
             return False
         
@@ -564,7 +566,7 @@ class Dbconf():
         
         vs  = self.traf.vs
         
-        dvs = vs - np.sign(self.traf.aalt[i]-self.traf.alt[i])*self.traf.avs[i]
+        dvs = vs + newavs
         
         # Check for passing through each others zone
         dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
@@ -585,8 +587,6 @@ class Dbconf():
         self.swconfl[i] = False
 
         if self.swconfl.any():
-            import pdb
-            pdb.set_trace()
             return True
         else:
             return False

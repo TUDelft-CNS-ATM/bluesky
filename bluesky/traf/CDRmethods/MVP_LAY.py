@@ -30,9 +30,9 @@ def resolve(dbconf):
             if id1 != "Fail" and id2!= "Fail":
 
                 dv_eby = MVP(dbconf,id1,id2)
-                if dbconf.traf.id[id1] == 'AC0078' or dbconf.traf.id[id2] == 'AC0078':
-                    import pdb
-                    pdb.set_trace()
+#                if dbconf.traf.id[id1] == 'AC0058' or dbconf.traf.id[id2] == 'AC0058':
+#                    import pdb
+#                    pdb.set_trace()
                 # If the priority switch is ON (always ON for layers), it has a different meaning for Layers than for Full Mix
                 # For layers -> Climbing has highest priority
                 if dbconf.swprio:
@@ -62,6 +62,8 @@ def resolve(dbconf):
                     elif dbconf.traf.alt[id1] > dbconf.traf.aalt[id1] and dbconf.traf.alt[id2] > dbconf.traf.aalt[id2]:
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
+                        dv[id1][2] = 0.0
+                        dv[id2][2] = 0.0
                     # cruising - cruising-> solved horizontally
                     else:
                         dv[id1] = dv[id1] - dv_eby
@@ -132,7 +134,7 @@ def resolve(dbconf):
                           + dbconf.traf.alt
     # Condition2 ensures that aircraft do not overshoot their layer altitude
     # This is not being used for Full Mix MVP
-    condition2 = dbconf.traf.alt < dbconf.traf.aalt
+    condition2 = dbconf.traf.alt != dbconf.traf.aalt
     dbconf.traf.asasalt[condition] = asasalttemp[condition]
     dbconf.traf.asasalt[condition2] = dbconf.traf.aalt[condition2]
 
@@ -143,10 +145,12 @@ def resolve(dbconf):
 def MVP(dbconf, id1, id2):
     """Modified Voltage Potential resolution method:
       calculate change in speed"""
+    
+
     traf=dbconf.traf
     dist=dbconf.dist[id1,id2]
     qdr=dbconf.qdr[id1,id2]
-    
+
     # from degrees to radians
     qdr=np.radians(qdr)
    
@@ -216,6 +220,6 @@ def MVP(dbconf, id1, id2):
     # Intruder inside ownship IPZ
     else: 
         dv_plus=dv
-        
+    
     return dv_plus
 	
