@@ -54,8 +54,8 @@ class Dbconf():
         
         self.vmin        =100.     # [m/s] Minimum ASAS velocity
         self.vmax        =500.     # [m/s] Maximum ASAS velocity
-        self.vsmax       = 20 # [m/s] Max vertical speed
-        self.vsmin       = -20 # [m/s] Min vertical speed
+        self.vsmax       = 3000./60.*ft# [m/s] Max vertical speed
+        self.vsmin       = -3000./60.*ft # [m/s] Min vertical speed
         
         self.swresodir   = 'COMB'  # desired directions of resolution methods: 
                                    # combined (COMB), horizontal only (HORIZ), vertical only (VERT)
@@ -411,12 +411,12 @@ class Dbconf():
                     # Do this only if the lnav is on
                     # This is to ensure that last minute conflicts don't deviate aircraft from their destinations too much.
                     if self.traf.swlnav[id1] == True:
-                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3 and self.traf.vs[id1] < -0.1:
+                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3:# and self.traf.vs[id1] < -0.1:
                             self.traf.asasactive[id1] = False
 
                     # same as above for id2   
                     if self.traf.swlnav[id2] == True:                     
-                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3 and self.traf.vs[id2] < -0.1:
+                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3:# and self.traf.vs[id2] < -0.1:
                             self.traf.asasactive[id2] = False
 
 
@@ -503,6 +503,96 @@ class Dbconf():
     
     def checkLOS(self,HLOS,VLOS,i,j):
         return HLOS & VLOS
+
+    def detect_intent(self,i):
+        if not self.swasas:
+            return False
+        
+        if self.traf.alt[i] < 1000*ft:
+            return False
+        
+        qdlst = qdrdist_vector(self.traf.lat[i],self.traf.lon[i],\
+                    self.traf.lat,self.traf.lon)
+        self.qdr      = np.array(qdlst[0])
+        self.dist     = np.array(qdlst[1])*nm
+
+        qdrrad  = np.radians(self.qdr)
+        self.dx      = self.dist * np.sin(qdrrad) # is pos j rel to i
+        self.dy      = self.dist * np.cos(qdrrad) # is pos j rel to i
+        
+        trkrad = np.radians(self.traf.trk)
+        self.u      = self.traf.gs*np.sin(trkrad)  # m/s
+        self.v      = self.traf.gs*np.cos(trkrad)  # m/s
+        
+        self.du = self.u - self.u[i]  # Speed du[i,j] is perceived eastern speed of i to j
+        self.dv = self.v - self.v[i]  # Speed dv[i,j] is perceived northern speed of i to j
+        
+        dv2  = self.du*self.du+self.dv*self.dv
+        dv2  = np.where(np.abs(dv2)<1e-6,1e-6,dv2) # limit lower absolute value
+        
+        vrel = np.sqrt(dv2)
+        
+        self.tcpa = (-(self.du*self.dx + self.dv*self.dy) / dv2)[0]
+        
+        # Calculate CPA positions
+        xcpa = self.tcpa*self.du
+        ycpa = self.tcpa*self.dv
+        
+        # Calculate distance^2 at CPA (minimum distance^2)
+        dcpa2 = self.dist*self.dist-self.tcpa*self.tcpa*dv2
+        
+        # Check for horizontal conflict
+        R2        = self.R*self.R
+        self.swhorconf = dcpa2<R2 # conflict or not
+        
+        # Calculate times of entering and leaving horizontal conflict
+        dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) # half the distance travelled inzide zone
+        dtinhor   = dxinhor/vrel
+        
+        tinhor    = np.where(self.swhorconf,self.tcpa - dtinhor,1e8) # Set very large if no conf
+        
+        touthor   = np.where(self.swhorconf,self.tcpa + dtinhor,-1e8) # set very large if no conf
+        #        swhorconf = swhorconf*(touthor>0)*(tinhor<self.dtlook)
+        
+        # Vertical conflict -----------------------------------------------------------
+        
+        # Vertical crossing of disk (-dh,+dh)
+        
+        alt       = self.traf.alt
+        
+        self.dalt      = alt -alt[i]
+        
+        vs  = self.traf.vs
+        
+        dvs = vs - np.sign(self.traf.aalt[i]-self.traf.alt[i])*self.traf.avs[i]
+        
+        # Check for passing through each others zone
+        dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
+        tcrosshi  = (self.dalt + self.dh)/-dvs
+        tcrosslo  = (self.dalt - self.dh)/-dvs
+        
+        tinver    = np.minimum(tcrosshi,tcrosslo)
+        toutver   = np.maximum(tcrosshi,tcrosslo)
+        
+        # Combine vertical and horizontal conflict-------------------------------------
+        self.tinconf = np.maximum(tinver,tinhor)
+        
+        self.toutconf = np.minimum(toutver,touthor)
+        
+        self.swconfl = self.swhorconf*(self.tinconf<=self.toutconf)*    \
+            (self.toutconf>0.)*(self.tinconf<60.)#self.dtlookaheadPASAS)
+        self.swconfl = self.swconfl[0]
+        self.swconfl[i] = False
+
+        if self.swconfl.any():
+            import pdb
+            pdb.set_trace()
+            return True
+        else:
+            return False
+
+
+
 
 
 

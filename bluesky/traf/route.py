@@ -642,7 +642,7 @@ class Route():
         return iwpnear
 
     def CheckLayer(self, i, qdr):
-        layers = [1524.0, 1859.28, 2194.56, 2529.84, 2865.12, 3200.4, 3535.68, 3870.96]
+        layers = [5100.0*ft, 6100.0*ft, 7200.0*ft, 8300.0*ft, 9400.0*ft, 10500.0*ft, 11600.0*ft, 12700.0*ft]
         if self.traf.layerconcept == '360':
             return self.traf.aalt[i]
         elif self.traf.layerconcept == '180':
