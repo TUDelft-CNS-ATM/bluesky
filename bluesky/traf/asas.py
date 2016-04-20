@@ -41,6 +41,7 @@ class Dbconf():
     def __init__(self,traf,tlook, R, dh):
         self.swasas      = True   # [-] whether to perform CD&R
         self.dtlookahead = tlook  # [s] lookahead time
+        self.dtlookahead_conflictprobe = 60. # [s] Look-ahead time for the conflict probe function
         
         mar              = 1.15   # [-] Safety margin for evasion
         self.R           = R      # [m] Horizontal separation minimum
@@ -236,6 +237,7 @@ class Dbconf():
         
         return
 
+    # ==================== Conflict Listing ======================
     def conflictlist(self, simt):
         if len(self.swconfl) == 0:
             return
@@ -255,7 +257,7 @@ class Dbconf():
         self.lonintcpa = []
         self.altintcpa = []
 
-# Store result
+        # Store result
         self.traf.iconf = self.traf.ntraf*[-1]
         self.idown = []
         self.idoth = []
@@ -301,7 +303,7 @@ class Dbconf():
             
             LOS = self.checkLOS(hLOS,vLOS,i,j)
             
-# Add to Conflict and LOSlist, to count total conflicts and LOS
+            # Add to Conflict and LOSlist, to count total conflicts and LOS
 
             # NB: if only one A/C detects a conflict, it is also added to these lists
             combi=str(self.traf.id[i])+" "+str(self.traf.id[j])
@@ -309,6 +311,7 @@ class Dbconf():
             
             if combi not in self.conflist_all and combi2 not in self.conflist_all:
                 self.conflist_all.append(combi)
+                # If the conflict is added to conflist_all and the logging switch is on, write conflict to buffer
                 if self.traf.log.swcfl:
                     self.traf.log.write(1,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
                                         % (self.traf.id[i],self.traf.id[j],self.tcpa[i][j],self.tinconf[i][j],self.toutconf[i][j], \
@@ -361,7 +364,7 @@ class Dbconf():
 
         self.nconf = len(self.idown)
 
-# Convert to numpy arrays for vectorisation
+        # Convert to numpy arrays for vectorisation
         self.latowncpa = np.array(self.latowncpa)
         self.lonowncpa = np.array(self.lonowncpa)
         self.altowncpa = np.array(self.altowncpa)
@@ -380,18 +383,18 @@ class Dbconf():
 
 #============================= Trajectory Recovery ============================
         
-# Decide for each aircraft whether the ASAS should be followed or not
+    # Decide for each aircraft whether the ASAS should be followed or not
     def APorASAS(self,simt):
 
 # Only use when ASAS is on
         if not self.swasas:
             return
             
-# Indicate for all A/C that they should follow their Autopilot
+        # Indicate for all A/C that they should follow their Autopilot
         self.traf.asasactive.fill(False) 
         self.traf.inconflict.fill(False)
 
-# Look at all conflicts, also the ones that are solved but CPA is yet to come
+        # Look at all conflicts, also the ones that are solved but CPA is yet to come
         for conflict in self.conflist_all: 
             id1,id2 = self.ConflictToIndices(conflict)
             
@@ -404,21 +407,7 @@ class Dbconf():
                     self.traf.inconflict[id1] = True
 
                     self.traf.asasactive[id2] = True
-                    self.traf.inconflict[id2] = True                   
-                    
-#                    # if the next waypoint is the destination airport, and the 
-#                    # aircraft is descending, don't detect conflicts anymore. 
-#                    # Do this only if the lnav is on
-#                    # This is to ensure that last minute conflicts don't deviate aircraft from their destinations too much.
-#                    if self.traf.swlnav[id1] == True:
-#                        if self.traf.route[id1].wptype[self.traf.route[id1].iactwp] == 3:# and self.traf.vs[id1] < -0.1:
-#                            self.traf.asasactive[id1] = False
-#
-#                    # same as above for id2   
-#                    if self.traf.swlnav[id2] == True:                     
-#                        if self.traf.route[id2].wptype[self.traf.route[id2].iactwp] == 3:# and self.traf.vs[id2] < -0.1:
-#                            self.traf.asasactive[id2] = False
-
+                    self.traf.inconflict[id2] = True
 
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
@@ -510,9 +499,11 @@ class Dbconf():
         return HLOS & VLOS
 
     def conflictprobe(self,i,newavs):
+        # If not swasas, don't perform a conflict check
         if not self.swasas:
             return False
-        
+    
+        # Filter: If the aircraft is below 1000 ft, no conflicts are detected
         if self.traf.alt[i] < 1000*ft:
             return False
         
@@ -557,18 +548,14 @@ class Dbconf():
         tinhor    = np.where(self.swhorconf,self.tcpa - dtinhor,1e8) # Set very large if no conf
         
         touthor   = np.where(self.swhorconf,self.tcpa + dtinhor,-1e8) # set very large if no conf
-        #        swhorconf = swhorconf*(touthor>0)*(tinhor<self.dtlook)
         
         # Vertical conflict -----------------------------------------------------------
         
         # Vertical crossing of disk (-dh,+dh)
         
         alt       = self.traf.alt
-        
         self.dalt      = alt -alt[i]
-        
         vs  = self.traf.vs
-        
         dvs = vs + newavs
         
         # Check for passing through each others zone
@@ -585,8 +572,10 @@ class Dbconf():
         self.toutconf = np.minimum(toutver,touthor)
         
         self.swconfl = self.swhorconf*(self.tinconf<=self.toutconf)*    \
-            (self.toutconf>0.)*(self.tinconf<60.)#self.dtlookaheadPASAS)
+            (self.toutconf>0.)*(self.tinconf<self.dtlookahead_conflictprobe)
         self.swconfl = self.swconfl[0]
+        
+        # A conflict with yourself is set to False
         self.swconfl[i] = False
 
         if self.swconfl.any():
