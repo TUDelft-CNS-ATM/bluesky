@@ -479,12 +479,15 @@ class Dbconf():
         dy = (self.traf.lon[id1]-self.traf.lon[id2])*111319.
         hdist2 = dx**2+dy**2
         hLOS  = hdist2<self.R**2
+        
+        # If two aircraft solved the conflict vertically, pastCPA is false as long as there is HLOS, to avoid that the aircraft recover their route too fast, into an intrusion with negative tcpa
         if hLOS:
             pastCPA = False
+        # If two aircraft have a conflict with small delta hdg, pastCPA is only past CPA when the distance is more than Rm. This is to avoid that these conflicts become a 'traffic light' conflict resulting in intrusion
         if (abs(traf.trk[id1] - traf.trk[id2]) < 30.) &  (hdist2<self.Rm**2):
             pastCPA = False
         
-        # If both aircraft leveled off, check vertical separation
+        # If both aircraft leveled off, check vertical separation. If both aircraft are seperated enough, we are pastCPA to recover route
         if abs(traf.vs[id1]) < 0.1 and abs(traf.vs[id2]) < 0.1 and abs(traf.alt[id1]-traf.alt[id2]) > 1000*ft:
             pastCPA = True
 

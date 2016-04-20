@@ -146,7 +146,6 @@ class Traffic:
         # LNAV route navigation
         self.swlnav = np.array([])  # Lateral (HDG) based on nav?
         self.swvnav = np.array([])  # Vertical/longitudinal (ALT+SPD) based on nav info
-        self.swvnavoverrule = np.array([]) # VNAV overrule SWITCH
 
         self.actwplat  = np.array([])  # Active WP latitude
         self.actwplon  = np.array([])  # Active WP longitude
@@ -343,7 +342,6 @@ class Traffic:
         # LNAV route navigation
         self.swlnav = np.append(self.swlnav, False)  # Lateral (HDG) based on nav
         self.swvnav = np.append(self.swvnav, False)  # Vertical/longitudinal (ALT+SPD) based on nav info
-        self.swvnavoverrule = np.append(self.swvnavoverrule, 0.) # VNAV overrule SWITCH
 
         self.actwplat  = np.append(self.actwplat, 89.99)  # Active WP latitude
         self.actwplon  = np.append(self.actwplon, 0.0)   # Active WP longitude
@@ -481,7 +479,6 @@ class Traffic:
 
         self.swlnav = np.delete(self.swlnav, idx)
         self.swvnav = np.delete(self.swvnav, idx)
-        self.swvnavoverrule = np.delete(self.swvnavoverrule, idx)
 
         self.actwplat  = np.delete(self.actwplat,  idx)
         self.actwplon  = np.delete(self.actwplon,  idx)
@@ -738,26 +735,33 @@ class Traffic:
 #            if simt > 45 and self.henk == False:
 #                import pdb
 #                pdb.set_trace()
+
+            # Switch for which aircaft have to follow VNAV
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<(self.dist2vs)) + \
                                      (self.actwpalt>self.alt))+(1-self.swlnav)
             if self.dbconf.swasas:
+                # Find the aircarft that should start descending and store their index in icflvnav
                 icflvnav = np.where((dist2wp<self.dist2vs) & (self.vs == 0.))[0]
                 for i in icflvnav:
+                    # newavs: calculate the future state to be used in the conflict probe
                     newavs = steepness*self.gs[i]
+                    # Using the future state, check wether this state will result in a short-term-conflict or not
                     cfl = self.dbconf.conflictprobe(i,newavs)
+                    # If it results in a short-term-conflict, postpone the VNAV by setting the swvnavvs to 0.0
                     if cfl:
                         self.swvnavvs[i] = 0.0
-                if simt > 27.*60. and self.henk == False:
-                    import pdb
-                    pdb.set_trace()
+                # Find the aircarft that selected the waypoint after their destination, and therefore lnav is False
                 icflvnav2 = np.where((self.swlnav == 0.))[0]
                 for i in icflvnav2:
-                     newavs = steepness*self.gs[i]
-                     cfl = self.dbconf.conflictprobe(i,newavs)
-                     if cfl:
-                         self.swvnavvs[i] = 0.0
-
-        
+                    # newavs: calculate the future state to be used in the conflict probe
+                    newavs = steepness*self.gs[i]
+                    # Using the future state, check wether this state will result in a short-term-conflict or not
+                    cfl = self.dbconf.conflictprobe(i,newavs)
+                    # If it results in a short-term-conflict, postpone the VNAV by setting the swvnavvs to 0.0
+                    if cfl:
+                        self.swvnavvs[i] = 0.0
+            
+            # Set autopilot settings for Vertical Speed and Altitude using the swvnavvs switch
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
             
