@@ -639,20 +639,10 @@ class Traffic:
             
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
-#                if self.route[i].wptype[self.route[i].iactwp] == 3 and dist[i] < 20.*nm:
-#                    self.swvnavoverrule[i] = 1
 
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
-                # If the last waypoint is the destination, overwrite lnav,vnav and asas settings
-                # -> Start descending asap in a straight line
-#                if self.swvnavoverrule[i] == 1.:
-#                    steepness = 5000.*ft/(10.*nm)
-#                    self.avs[i] = steepness*self.gs[i]
-#                    self.asasvsp[i] = self.avs[i]
-#                    self.aalt[i] = 0.
-#                    self.asasalt[i] = 0.
 
                 # End of route/no more waypoints: switch off LNAV
                 if not lnavon:
@@ -660,7 +650,6 @@ class Traffic:
 #
 #                # In case of no LNAV, do not allow VNAV mode on it sown
                 if not self.swlnav[i]:
-                    self.actwpalt[i] = 0.
                     self.swvnav[i] = False
 
                 self.actwplat[i]   = lat
@@ -687,28 +676,6 @@ class Traffic:
 
                         # Dist to waypoint where descent should start
                         self.dist2vs[i] = (self.alt[i]-self.actwpalt[i])/steepness
- 
-#                        # Flat earth distance to next wp
-#                        dy = (lat-self.lat[i])
-#                        dx = (lon-self.lon[i])*self.coslat[i]
-#                        legdist = 60.*nm*sqrt(dx*dx+dy*dy)
-#
-
-#                        #If descent is urgent, descent with maximum steepness
-#                        if legdist < self.dist2vs[i]:
-#                            self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
-#
-#                            t2go         = max(0.1,legdist)/max(0.01,self.gs[i])
-#                            self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
-
-#                        else: 
-#
-#                            # normal case: still time till descent starts
-#                       
-#                            # Calculate V/s using steepness, 
-#                            # protect against zero/invalid ground speed value
-#                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
-#                                            (self.gs[i]<0.2*self.tas[i])*self.tas[i])
 
                     # Climb VNAV mode: climb as soon as possible (T/C logic)                        
                     elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
@@ -789,9 +756,6 @@ class Traffic:
                      cfl = self.dbconf.conflictprobe(i,newavs)
                      if cfl:
                          self.swvnavvs[i] = 0.0
-#                        self.swvnavoverrule[i] = 0.0
-#                    else:
-#                        self.swvnavoverrule[i] = 1.0
 
         
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
