@@ -455,7 +455,8 @@ class Gui(QApplication):
 
     def display_stack(self, text):
         self.win.stackText.setTextColor(QColor(0, 255, 0))
-        self.win.stackText.insertHtml('<br>' + text)
+        # self.win.stackText.insertHtml('<br>' + text)
+        self.win.stackText.append(text)
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
     def show_file_dialog(self):
