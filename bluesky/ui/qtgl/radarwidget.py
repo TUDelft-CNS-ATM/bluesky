@@ -627,9 +627,9 @@ class RadarWidget(QGLWidget):
             # If there is a visible route, update the start position
             if self.route_acid != "":
                 if self.route_acid in data.id:
-                    idx = data.id.index(self.route_acid)           
-                    update_buffer(self.routebuf, np.array([data.lat[idx], data.lon[idx]],  \
-                                    dtype=np.float32))
+                    idx = data.id.index(self.route_acid)
+                    update_buffer(self.routebuf,
+                                  np.array([data.lat[idx], data.lon[idx]], dtype=np.float32))
 
     def show_ssd(self, arg):
         if arg == 'ALL':

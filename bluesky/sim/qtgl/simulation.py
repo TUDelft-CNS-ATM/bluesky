@@ -51,6 +51,9 @@ class Simulation(QObject):
         self.ffmode      = False
         self.ffstop      = None
 
+        # If available, name of the currently running scenario
+        self.scenname    = 'Untitled'
+
         # Simulation objects
         self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self, manager)
@@ -65,7 +68,7 @@ class Simulation(QObject):
         self.syst = int(time.time() * 1000.0)
         self.fixdt = self.simdt
 
-        while not self.state == Simulation.end:
+        while self.running:
             # Timing bookkeeping
             self.samplecount += 1
 
@@ -74,7 +77,7 @@ class Simulation(QObject):
 
             # TODO: what to do with init
             if self.state == Simulation.init:
-                if self.traf.ntraf > 0:
+                if self.traf.ntraf > 0 or len(self.stack.scencmd) > 0:
                     self.start()
 
             if self.state == Simulation.op:
@@ -96,8 +99,8 @@ class Simulation(QObject):
             # Process Qt events
             self.manager.processEvents()
 
-            # When running at a fixed rate, increment system time with sysdt and calculate remainder to sleep
-            if not self.ffmode:
+            # When running at a fixed rate, or when in hold/init, increment system time with sysdt and calculate remainder to sleep
+            if not self.ffmode or not self.state == Simulation.op:
                 self.syst += self.sysdt
                 remainder = self.syst - int(1000.0 * time.time())
 
@@ -124,27 +127,29 @@ class Simulation(QObject):
         self.state   = Simulation.hold
 
     def reset(self):
-        self.simt   = 0.0
-        self.state   = Simulation.init
-        self.ffmode = False
+        self.simt     = 0.0
+        self.state    = Simulation.init
+        self.ffmode   = False
+        self.scenname = 'Untitled'
         self.traf.reset(self.navdb)
         self.stack.reset()
+
+    def quit(self):
+        self.running = False
 
     def setDt(self, dt):
         self.simdt = abs(dt)
         self.sysdt = int(self.simdt / self.dtmult * 1000)
 
-    def setDtMultiplier(self, mult=None):
-        if mult is not None:
-            self.dtmult = mult
-            self.sysdt = int(self.simdt / self.dtmult * 1000)
+    def setDtMultiplier(self, mult):
+        self.dtmult = mult
+        self.sysdt = int(self.simdt / self.dtmult * 1000)
 
-    def setFixdt(self, flag=None, nsec=None):
-        if flag is not None:
-            if flag:
-                self.fastforward(nsec)
-            else:
-                self.start()
+    def setFixdt(self, flag, nsec=None):
+        if flag:
+            self.fastforward(nsec)
+        else:
+            self.start()
 
     def fastforward(self, nsec=None):
         self.ffmode = True
@@ -154,22 +159,24 @@ class Simulation(QObject):
             self.ffstop = None
 
     def datafeed(self, flag=None):
-        if flag is not None:
-            if flag:
-                self.beastfeed.connectToHost(settings.modeS_host,
-                                             settings.modeS_port)
-            else:
-                self.beastfeed.disconnectFromHost()
+        if flag is None:
+            msg = 'DATAFEED is'
+            msg += 'connected' if self.beastfeed.isConnected() else 'not connected'
+            self.screenio.echo(msg)
+        elif flag:
+            self.beastfeed.connectToHost(settings.modeS_host,
+                                         settings.modeS_port)
+        else:
+            self.beastfeed.disconnectFromHost()
 
     def scenarioInit(self, name):
         self.screenio.echo('Starting scenario ' + name)
+        self.scenname = name
 
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.state))
 
-    def addNodes(self, count=None):
-        if not count:
-            return False
+    def addNodes(self, count):
         self.manager.addNodes(count)
 
     def batch(self, filename):
@@ -196,7 +203,7 @@ class Simulation(QObject):
             event_processed     = True
         elif event.type() == SimQuitEventType:
             # BlueSky is quitting
-            self.state = Simulation.end
+            self.quit()
         else:
             # This is either an unknown event or a gui event.
             event_processed = self.screenio.event(event)
