@@ -361,6 +361,11 @@ class Dbconf():
                                                        self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
                             self.LOSlist_logged.append(combi)
 
+#        for idx in range(len(self.LOSlist_all)):
+#            if self.LOSlist_all(combi) not in self.LOSlist_now:
+#                if self.LOSlist_all(combi) not in self.LOSlist_logged:
+#                    import pdb
+#                    pdb.set_trace()
 
         self.nconf = len(self.idown)
 
@@ -411,10 +416,10 @@ class Dbconf():
 
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
-                    iwpid1 = self.traf.route[id1].findact2(self.traf,id1)
+                    iwpid1 = self.traf.route[id1].findact3(self.traf,id1)
                     if iwpid1 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
-                    iwpid2 = self.traf.route[id2].findact2(self.traf,id2)
+                    iwpid2 = self.traf.route[id2].findact3(self.traf,id2)
                     if iwpid2 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
                     
@@ -423,7 +428,7 @@ class Dbconf():
 
     
             elif id1 == "Fail" and id2!= "Fail":
-                 iwpid2 = self.traf.route[id2].findact2(self.traf,id2)
+                 iwpid2 = self.traf.route[id2].findact3(self.traf,id2)
                  if iwpid2 != -1: # To avoid problems if there are no waypoints
                      self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
                  if conflict in self.LOSlist_all:
@@ -431,7 +436,7 @@ class Dbconf():
                  self.conflist_all.remove(conflict)
             
             elif id2 == "Fail" and id1 != "Fail":
-                iwpid1 = self.traf.route[id1].findact2(self.traf,id1)
+                iwpid1 = self.traf.route[id1].findact3(self.traf,id1)
                 if iwpid1 != -1: # To avoid problems if there are no waypoints
                     self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
                 self.conflist_all.remove(conflict)
@@ -475,7 +480,7 @@ class Dbconf():
         # If two aircraft have a conflict with small delta hdg, pastCPA is only past CPA when the distance is more than Rm. This is to avoid that these conflicts become a 'traffic light' conflict resulting in intrusion
         if (abs(traf.trk[id1] - traf.trk[id2]) < 30.) &  (hdist2<self.Rm**2):
             pastCPA = False
-        
+
         # If both aircraft leveled off, check vertical separation. If both aircraft are seperated enough, we are pastCPA to recover route
         if abs(traf.vs[id1]) < 0.1 and abs(traf.vs[id2]) < 0.1 and abs(traf.alt[id1]-traf.alt[id2]) > 1000*ft:
             pastCPA = True
@@ -498,7 +503,7 @@ class Dbconf():
     def checkLOS(self,HLOS,VLOS,i,j):
         return HLOS & VLOS
 
-    def conflictprobe(self,i,newavs):
+    def conflictprobe(self,i,vs,newavs):
         # If not swasas, don't perform a conflict check
         if not self.swasas:
             return False
@@ -509,76 +514,79 @@ class Dbconf():
         
         qdlst = qdrdist_vector(self.traf.lat[i],self.traf.lon[i],\
                     self.traf.lat,self.traf.lon)
-        self.qdr      = np.array(qdlst[0])
-        self.dist     = np.array(qdlst[1])*nm
+        qdr      = np.array(qdlst[0])
+        dist     = np.array(qdlst[1])*nm
 
-        qdrrad  = np.radians(self.qdr)
-        self.dx      = self.dist * np.sin(qdrrad) # is pos j rel to i
-        self.dy      = self.dist * np.cos(qdrrad) # is pos j rel to i
+        qdrrad  = np.radians(qdr)
+        dx      = dist * np.sin(qdrrad) # is pos j rel to i
+        dy      = dist * np.cos(qdrrad) # is pos j rel to i
         
         trkrad = np.radians(self.traf.trk)
-        self.u      = self.traf.gs*np.sin(trkrad)  # m/s
-        self.v      = self.traf.gs*np.cos(trkrad)  # m/s
+        u      = self.traf.gs*np.sin(trkrad)  # m/s
+        v      = self.traf.gs*np.cos(trkrad)  # m/s
         
-        self.du = self.u - self.u[i]  # Speed du[i,j] is perceived eastern speed of i to j
-        self.dv = self.v - self.v[i]  # Speed dv[i,j] is perceived northern speed of i to j
+        du = u - u[i]  # Speed du[i,j] is perceived eastern speed of i to j
+        dv = v - v[i]  # Speed dv[i,j] is perceived northern speed of i to j
         
-        dv2  = self.du*self.du+self.dv*self.dv
+        dv2  = du*du+dv*dv
         dv2  = np.where(np.abs(dv2)<1e-6,1e-6,dv2) # limit lower absolute value
         
         vrel = np.sqrt(dv2)
         
-        self.tcpa = (-(self.du*self.dx + self.dv*self.dy) / dv2)[0]
+        tcpa = (-(du*dx + dv*dy) / dv2)[0]
         
         # Calculate CPA positions
-        xcpa = self.tcpa*self.du
-        ycpa = self.tcpa*self.dv
+        xcpa = tcpa*du
+        ycpa = tcpa*dv
         
         # Calculate distance^2 at CPA (minimum distance^2)
-        dcpa2 = self.dist*self.dist-self.tcpa*self.tcpa*dv2
+        dcpa2 = dist*dist-tcpa*tcpa*dv2
         
         # Check for horizontal conflict
-        R2        = self.R*self.R
-        self.swhorconf = dcpa2<R2 # conflict or not
+        R2        = self.Rm*self.Rm
+        swhorconf = dcpa2<R2 # conflict or not
         
         # Calculate times of entering and leaving horizontal conflict
         dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) # half the distance travelled inzide zone
         dtinhor   = dxinhor/vrel
         
-        tinhor    = np.where(self.swhorconf,self.tcpa - dtinhor,1e8) # Set very large if no conf
+        tinhor    = np.where(swhorconf,tcpa - dtinhor,1e8) # Set very large if no conf
         
-        touthor   = np.where(self.swhorconf,self.tcpa + dtinhor,-1e8) # set very large if no conf
+        touthor   = np.where(swhorconf,tcpa + dtinhor,-1e8) # set very large if no conf
         
         # Vertical conflict -----------------------------------------------------------
         
         # Vertical crossing of disk (-dh,+dh)
         
         alt       = self.traf.alt
-        self.dalt      = alt -alt[i]
-        vs  = self.traf.vs
-        dvs = vs + newavs
+        dalt = alt - alt[i]
+        dvs = vs - newavs
         
         # Check for passing through each others zone
         dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
-        tcrosshi  = (self.dalt + self.dh)/-dvs
-        tcrosslo  = (self.dalt - self.dh)/-dvs
+        tcrosshi  = (dalt + self.dh)/-dvs
+        tcrosslo  = (dalt - self.dh)/-dvs
         
         tinver    = np.minimum(tcrosshi,tcrosslo)
         toutver   = np.maximum(tcrosshi,tcrosslo)
         
         # Combine vertical and horizontal conflict-------------------------------------
-        self.tinconf = np.maximum(tinver,tinhor)
+        tinconf = np.maximum(tinver,tinhor)[0]
         
-        self.toutconf = np.minimum(toutver,touthor)
+        toutconf = np.minimum(toutver,touthor)[0]
         
-        self.swconfl = self.swhorconf*(self.tinconf<=self.toutconf)*    \
-            (self.toutconf>0.)*(self.tinconf<self.dtlookahead_conflictprobe)
-        self.swconfl = self.swconfl[0]
+        swconfl = swhorconf*(tinconf<=toutconf)*    \
+            (toutconf>0.)*(tinconf<self.dtlookahead_conflictprobe)
+        swconfl = swconfl[0]
         
         # A conflict with yourself is set to False
-        self.swconfl[i] = False
+        swconfl[i] = False
 
-        if self.swconfl.any():
+        if swconfl.any():
+            idx = np.where(swconfl == True)
+#            if self.traf.henk == False:
+#                import pdb
+#                pdb.set_trace()
             return True
         else:
             return False

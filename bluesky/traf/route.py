@@ -640,9 +640,35 @@ class Route():
             self.traf.dist2vs[i] = 1e9
 
         return iwpnear
-
+    # -------------------------- NEWEST ATTEMPT BY MARTIJN ---------------------------
+    def findact3(self,traf,i):
+        """ Find best default active waypoint. This is function is called if conflict is past CPA"""
+        
+        # Check for easy answers first
+        if self.nwp<=0:
+            return -1
+        
+        elif self.nwp == 1:
+            return 0
+        
+        # If the wp[iwpnear] is not the destination: check for layer altitude
+        if self.traf.swlayer == True and self.traf.layerconcept != '':
+            dirtodest , disttodest = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[-1], self.wplon[-1])
+            if abs(dirtodest - self.wpdirfrom[self.iactwp]) < 5.:
+                return self.iactwp
+#            if self.traf.henk == False:
+#                import pdb
+#                pdb.set_trace()
+            layalt = self.CheckLayer(i, dirtodest)
+            if abs(self.traf.aalt[i] - layalt) > 100*ft:
+                self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s%s' % \
+                                        (traf.id[i],traf.orig[i],traf.dest[i], \
+                                         traf.lat[i],traf.lon[i],traf.alt[i],layalt))
+                self.traf.aalt[i] = layalt
+        return self.iactwp
+                                                 
     def CheckLayer(self, i, qdr):
-        layers = [5100.0*ft, 6100.0*ft, 7200.0*ft, 8300.0*ft, 9400.0*ft, 10500.0*ft, 11600.0*ft, 12700.0*ft]
+        layers = [5000.0*ft, 6100.0*ft, 7200.0*ft, 8300.0*ft, 9400.0*ft, 10500.0*ft, 11600.0*ft, 12700.0*ft]
         if self.traf.layerconcept == '360':
             return self.traf.aalt[i]
         elif self.traf.layerconcept == '180':
