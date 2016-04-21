@@ -35,12 +35,18 @@ class Commandstack:
     def __init__(self, sim, traf, scr):
 
         #Command dictionary: command, helptext, arglist, function to call
+        # Enclose optional arguments with []
         #--------------------------------------------------------------------
         self.cmddict = {
             "ADDNODES": [
                 "ADDNODES number",
                 "int",
                 sim.addNodes],
+            "ALT": [
+                "ALT acid, alt, [vspd]",
+                "acid,alt,[vspd]",
+                traf.selalt
+            ],
             "BATCH": [
                 "BATCH filename",
                 "txt",
@@ -52,7 +58,7 @@ class Commandstack:
             ],
             "DATAFEED":  [
                 "DATAFEED [ON/OFF]",
-                "onoff",
+                "[onoff]",
                 sim.datafeed
             ],
             "DT": [
@@ -67,22 +73,41 @@ class Commandstack:
             ],
             "FF":  [
                 "FF [tend]",
-                "time",
+                "[time]",
                 sim.fastforward
             ],
             "FIXDT": [
                 "FIXDT ON/OFF [tend]",
-                "onoff,time",
+                "onoff,[time]",
                 sim.setFixdt
             ],
             "HDG": [
-                "HDG acid,hdg [deg,True]",
+                "HDG acid,hdg (deg,True)",
                 "acid,float",
                 traf.selhdg
             ],
+            "HOLD": [
+                "HOLD",
+                "",
+                sim.pause
+            ],
+            "MOVE": [
+                "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
+                "acid,lat,lon,[alt,hdg,spd,vspd]",
+                traf.move
+            ],
+            "NOM": [
+                "NOM acid",
+                "acid",
+                traf.nom],
+            "OP": [
+                "OP",
+                "",
+                sim.start
+            ],
             "PCALL": [
                 "PCALL filename [REL/ABS]",
-                "txt,txt",
+                "txt,[txt]",
                 self.pcall
             ],
             "RESET": [
@@ -99,9 +124,14 @@ class Commandstack:
                 "int",
                 self.setSeed],
             "SPD": [
-                "SPD acid,spd [CAS-kts/Mach]",
+                "SPD acid,spd (CAS-kts/Mach)",
                 "acid,spd",
                 traf.selspd
+            ],
+            "SSD": [
+                "SSD acid/ALL/OFF",
+                "txt",
+                scr.showssd
             ],
             "STOP": [
                 "STOP",
@@ -112,19 +142,27 @@ class Commandstack:
                 "SYMBOL",
                 "",
                 scr.symbol
-            ]
+            ],
+            "VS": [
+                "VS acid,vspd (ft/min)",
+                "acid,vspd",
+                traf.selvspd]
         }
 
         #--------------------------------------------------------------------
         # Command synonym dictionary
         self.cmdsynon = {
+            "CONTINUE": "OP",
             "CREATE": "CRE",
             "DTLOOK": "ASA_DTLOOK",
             "END": "STOP",
             "EXIT": "STOP",
             "FWD": "FF",
+            "PAUSE": "HOLD",
             "Q": "STOP",
             "QUIT": "STOP",
+            "RUN": "OP",
+            "START": "OP",
             "TURN": "HDG"
         }
         #--------------------------------------------------------------------
@@ -193,10 +231,6 @@ class Commandstack:
         return
 
     def openfile(self, scenname, t_offset=0.0, mergeWithExisting=False):
-        # If no scenlines target is given read the file to our own stack buffer
-        # For instance PCALL gives an alternate buffer.
-
-        # No filename: empty start
         scenlines = []
 
         # Add .scn extension if necessary
@@ -248,7 +282,7 @@ class Commandstack:
             self.scencmd  = []
 
         for line in scenlines:
-            if line.strip()[0]!="#":            
+            if line.strip()[0] != "#":
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
@@ -260,7 +294,7 @@ class Commandstack:
                     self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
                     self.scencmd.append(line[icmdline + 1:-1])
                 except:
-                    print "except this:",line
+                    print "except this:", line
                     pass  # nice try, we will just ignore this syntax error
 
         if mergeWithExisting:
@@ -406,27 +440,39 @@ class Commandstack:
                 #----------------------------------------------------------------------
                 if cmd in self.cmdsynon.keys():
                     cmd = self.cmdsynon[cmd]
-                
+
                 if cmd in self.cmddict.keys():
-                    helptext,argtypelist,function = self.cmddict[cmd]
-                    argtypes = argtypelist.split(",")
-                    numtypes = len(argtypes) 
-                    
+                    helptext, argtypelist, function = self.cmddict[cmd]
+                    argvsopt = argtypelist.split('[')
+                    argtypes = argvsopt[0].strip(',').split(",")
+
+                    # Check if at least the number of mandatory arguments is given.
+                    if numargs < len(argtypes) and not argtypes == ['']:
+                        print numargs, len(argtypes)
+                        scr.echo("Syntax error: Too few arguments")
+                        scr.echo(cmdline)
+                        scr.echo(helptext)
+                        continue
+
+                    # Add optional argument types if they are given
+                    if len(argvsopt) == 2:
+                        argtypes += argvsopt[1].strip(']').split(',')
+                    numtypes = len(argtypes)
+
                     # Process arg list
                     arglist = []
-                    idx    = -1 # Reference aircraft
-                    refalt = 0. # Reference altitude
-                    reflat = scr.ctrlat # Reference latitude
-                    reflon = scr.ctrlon # Reference longitude
+                    idx     = -1          # Reference aircraft
+                    refalt  = 0.          # Reference altitude
+                    reflat  = scr.ctrlat  # Reference latitude
+                    reflon  = scr.ctrlon  # Reference longitude
                     try:
-#                    if True:
-                        for i in range(1,1+min(numtypes,numargs)):
+                        for i in range(1, 1 + min(numtypes, numargs)):
                             argtype = argtypes[i-1].strip()
 
-                            if cmdargs[i]=="":  # Empty arg => parse None
+                            if cmdargs[i] == "":  # Empty arg => parse None
                                 arglist.append(None)
 
-                            elif argtype == "acid": # aircraft id => parse index
+                            elif argtype == "acid":  # aircraft id => parse index
 
                                 idx = traf.id2idx(cmdargs[i])
                                 if idx < 0:
@@ -439,15 +485,15 @@ class Commandstack:
                             elif argtype == "txt":  # simple text
                                 arglist.append(cmdargs[i])
 
-                            elif argtype == "float": # float number
+                            elif argtype == "float":  # float number
                                 arglist.append(float(cmdargs[i]))
 
                             elif argtype == "int":   # integer
                                 arglist.append(int(cmdargs[i]))  # switch
 
-                            elif argtype == "onoff" or argtype=="bool":
-                                sw = (cmdargs[i] == "ON" or cmdargs[i]=="1" or \
-                                                      cmdargs[i]=="TRUE")
+                            elif argtype == "onoff" or argtype == "bool":
+                                sw = (cmdargs[i] == "ON" or
+                                      cmdargs[i] == "1" or cmdargs[i] == "TRUE")
                                 arglist.append(sw)
 
                             elif argtype == "lat":
@@ -456,19 +502,24 @@ class Commandstack:
                                     arglist.append(float(reflat))
                                 except:
                                     synerr = True
-                                    
+
                             elif argtype == "lon":
                                 try:
-                                   reflon = txt2lon(cmdargs[i])
-                                   arglist.append(float(reflon))
+                                    reflon = txt2lon(cmdargs[i])
+                                    arglist.append(float(reflon))
                                 except:
-                                   synerr = True
- 
-                            elif argtype == "spd": # CAS[kts] Mach
-                                spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
-                                arglist.append(spd) # speed CAS[kts] or Mach (float) 
+                                    synerr = True
 
-                            elif argtype == "alt": #alt: FL250 or 25000 [ft]
+                            elif argtype == "spd":  # CAS[kts] Mach
+                                spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
+                                if not 0.1 < spd < 1.0:
+                                    spd *= kts
+                                arglist.append(spd)  # speed CAS[m/s] or Mach (float)
+
+                            elif argtype == "vspd":
+                                arglist.append(fpm * float(cmdargs[i]))
+
+                            elif argtype == "alt":  # alt: FL250 or 25000 [ft]
                                 arglist.append(ft * txt2alt(cmdargs[i]))  # alt in m
 
                             elif argtype == "hdg":
@@ -478,7 +529,7 @@ class Commandstack:
 
                             elif argtype == "time":
                                 ttxt = cmdargs[i].strip().split(':')
-                                if len(ttxt)>=3:
+                                if len(ttxt) >= 3:
                                     ihr  = int(ttxt[0])
                                     imin = int(ttxt[1])
                                     xsec = float(ttxt[2])
@@ -496,39 +547,39 @@ class Commandstack:
                     # flag: indicates sucess
                     # text: optional error message
 #                    try:
-                    results = function(*arglist) # * = unpack list to call arguments
+                    results = function(*arglist)  # * = unpack list to call arguments
 #                    except:
 #                        synerr = True
                     txt = helptext
                     if not synerr:
 
-                        if type(results)==bool: # Only flag is returned
+                        if type(results) == bool:  # Only flag is returned
                             synerr = not results
                             if synerr:
-                                if numargs<=0 or cmdargs[i]=="?":
+                                if numargs <= 0 or cmdargs[i] == "?":
                                     scr.echo(helptext)
                                 else:
                                     scr.echo("Syntax error: " + helptext)
-                                synerr =  False # Prevent further nagging
-                                
-                        elif type(results)==list or type(results)==tuple:
+                                synerr =  False  # Prevent further nagging
+
+                        elif type(results) == list or type(results) == tuple:
                             # Maybe there is also an error message returned?
-                            if len(results)>=1:
+                            if len(results) >= 1:
                                 synerr = not results[0]
-                            
-                            if len(results)>=2:
+
+                            if len(results) >= 2:
                                 scr.echo(cmd+":"+results[1])
                                 synerr = False
 
-                    else:  # synerr:                    
-                         scr.echo("Syntax error: "+helptext)
+                    else:  # synerr:
+                        scr.echo("Syntax error: " + helptext)
 
                 #----------------------------------------------------------------------
                 # HELP/?: HELP command
                 #----------------------------------------------------------------------
-                elif cmd[:4] == "HELP" or cmd=="?" and numargs==0:
-                    scr.echo("To get help on a command,"+\
-                             " enter it without arguments."+\
+                elif cmd[:4] == "HELP" or cmd == "?" and numargs == 0:
+                    scr.echo("To get help on a command," +
+                             " enter it without arguments." +
                              "Some basic commands are given below:")
                     scr.echo(" ")
                     scr.echo("CRE HDG SPD ALT DEL OP HOLD QUIT DEST ORIG")
@@ -536,12 +587,12 @@ class Commandstack:
                     scr.echo("POS ZOOM PAN SWRAD AREA")
                     scr.echo("DATAFEED")
                     scr.echo(" ")
-                    scr.echo("See InFo subfolder for more info.")
+                    scr.echo("See Info subfolder for more info.")
 
                 #----------------------------------------------------------------------
                 # POS command: traffic info; ("KL204", "POS KL204" or "KL204 ?")
                 #----------------------------------------------------------------------
-                elif cmd == "POS" or cmd=="?":
+                elif cmd == "POS" or cmd == "?":
                     if numargs >= 1:
                         acid = cmdargs[1]
 
@@ -584,54 +635,6 @@ class Commandstack:
                          synerr = True
 
                 #----------------------------------------------------------------------
-                # MOVE command: Move aircraft: MOVE acid, lat,lon[,alt,hdg,spd,vspd]
-                #----------------------------------------------------------------------
-                elif cmd == "MOVE":
-                    if numargs >= 1:
-                        acid = cmdargs[1]
-
-                        # Does aircraft exist?
-                        idx = traf.id2idx(acid)
-                        if idx < 0:
-                            scr.echo("MOVE: " + acid + " not found.")
-                            idx = -1
-
-                        # Move aircraft for which there are data
-                        if idx >= 0:
-
-                            if numargs >= 3:  # Position lat,lon
-                                if cmdargs[2] != "":
-                                    lat = float(cmdargs[2])
-                                    traf.lat[idx] = lat
-                                if cmdargs[3] != "":
-                                    lon = float(cmdargs[3])
-                                    traf.lon[idx] = lon
-
-                            if numargs >= 4 and cmdargs[4] != "":  # altitude
-                                alt = txt2alt(cmdargs[4])
-                                traf.alt[idx] = alt * ft
-                                traf.aalt[idx] = alt * ft
-
-                            if numargs >= 5 and cmdargs[5] != "":  # heading(track)
-                                traf.trk[idx] = float(cmdargs[5])
-                                traf.ahdg[idx] = traf.trk[idx]
-
-                            if numargs >= 6 and cmdargs[6] != "":  # speed
-                                acspd = txt2spd(cmdargs[6], traf.alt[idx])
-
-                                if acspd > 0.:
-                                    traf.tas[idx] = acspd
-                                    traf.aspd[idx] = tas2eas(traf.tas[idx], traf.alt[idx])
-                                else:
-                                    synerr = True
-
-                            if numargs >= 7 and cmdargs[7] != "":  # vertical speed
-                                traf.vs[idx] = float(cmdargs[7]) * fpm
-
-                    else:
-                        scr.echo("MOVE acid,lat,lon,[alt,hdg,spd,vspd]")
-
-                #----------------------------------------------------------------------
                 # DEL: Delete command: delete an aircraft
                 #----------------------------------------------------------------------
                 elif cmd == "DEL":
@@ -642,77 +645,6 @@ class Commandstack:
                             success = traf.delete(cmdargs[1].upper())
                             if not success:
                                 scr.echo("DEL: " + cmdargs[1] + " not found.")
-
-                #----------------------------------------------------------------------
-                # ALT command: altitude [ft/FLnnn], [VS [fpm]]
-                # altitude autopilot command
-                #----------------------------------------------------------------------
-                elif cmd == "ALT":
-                    if numargs < 2:
-                        scr.echo("ALT acid,alt[ft]/FLnnn")
-                    elif numargs >= 2:
-                        acid = cmdargs[1].upper()
-                        idx = traf.id2idx(acid)
-                        if idx >= 0:
-                            try:
-                                # update flight level as well as altitude
-                                traf.aalt[idx] = txt2alt(cmdargs[2]) * ft
-                                traf.afll[idx] = (traf.aalt[idx])/(100*ft)
-                                traf.swvnav[idx] = False
-
-                                delalt = traf.aalt[idx] - traf.alt[idx]
-
-                                # Check for VS with opposite sign => use default vs by setting autopilot vs to zero
-                                if traf.avs[idx] * delalt < 0. and abs(traf.avs[idx]) > 0.01:
-                                    traf.avs[idx] = 0.
-
-                                # Check for optional VS argument
-                                if numargs == 3:
-                                    traf.avs[idx] = float(cmdargs[3]) * fpm
-
-                            except:
-                                synerr = True
-
-                        else:
-                            scr.echo(cmd + ": " + acid + " not found.")
-
-                    else:
-                        synerr = True
-
-                #----------------------------------------------------------------------
-                # reset acceleration back to nominal value 
-                #      of 1 kt/s^2 respectively 0.514444 m/s^2
-                #----------------------------------------------------------------------
-                elif cmd == "NOM":
-                    if numargs < 1:
-                        scr.echo("NOM acid, NOM")
-                    elif numargs == 1:
-                        acid = cmdargs[1].upper()
-                        idx = traf.id2idx(acid)
-                        if idx >= 0:
-                            traf.ax[idx] = kts
-                        else:
-                            scr.echo(cmd + ": " + acid + " not found.")
-                    else:
-                        synerr = True                
-
-                #----------------------------------------------------------------------
-                # VS vertspeed [ft/min] Vertical speed autopilot command
-                #----------------------------------------------------------------------
-                elif cmd == "VS":
-                    if numargs < 2:
-                        scr.echo("VS acid,vspd [ft/min]")
-                    elif numargs == 2:
-                        acid = cmdargs[1]
-                        idx = traf.id2idx(acid)
-                        if idx >= 0:
-                            traf.avs[idx] = float(cmdargs[2]) * fpm
-                            # traf.vs[idx]=float(cmdargs[2]) * fpm
-                            traf.swvnav[idx] = False
-                        else:
-                            scr.echo(cmd + ": " + acid + " not found.")
-                    else:
-                        synerr = True
 
                 #----------------------------------------------------------------------
                 # DEST/ORIG: Destination/Origin command: set destination/origin airport
@@ -932,6 +864,7 @@ class Commandstack:
                 # IC IC: same file
                 #----------------------------------------------------------------------
                 elif cmd == "IC":
+                    sim.reset()
                     # If no arg is given: check
                     if numargs >= 1:
                         # Use lower case line for filename and allow space in path
@@ -953,19 +886,6 @@ class Commandstack:
                         if len(filename) > 0:
                             self.scenfile = filename
                             self.openfile(self.scenfile)
-                    sim.reset()
-
-                #----------------------------------------------------------------------
-                # OP: Continue to run
-                #----------------------------------------------------------------------
-                elif cmd == "OP" or cmd == "START" or cmd == "CONTINUE" or cmd == "RUN":
-                    sim.start()
-
-                #----------------------------------------------------------------------
-                # HOLD/PAUSE: HOLD/PAUSE mode
-                #----------------------------------------------------------------------
-                elif cmd == "HOLD" or cmd == "PAUSE":
-                    sim.pause()
 
                 #----------------------------------------------------------------------
                 # SAVE/SAVEIC Save current traffic situation as IC scn file
@@ -1694,12 +1614,6 @@ class Commandstack:
                         if numargs == 5:
                                 data = [float(cmdargs[2]), float(cmdargs[3]), float(cmdargs[4]), float(cmdargs[5])]
                                 scr.objappend(1, cmdargs[1], data)
-
-                elif cmd[:3] == "SSD":
-                    if numargs == 0:
-                        scr.echo("SSD acid/ALL/OFF")
-                    else:
-                        scr.showssd(cmdargs[1])
 
                 #------------------------------------------------------------------
                 # ENG [acid] Change aircraft's engine

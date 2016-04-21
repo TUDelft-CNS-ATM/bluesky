@@ -22,7 +22,7 @@ class ScreenIO(QObject):
     # Settings
     # =========================================================================
     # Update rate of simulation info messages [Hz]
-    siminfo_rate = 2
+    siminfo_rate = 1
 
     # Update rate of aircraft update messages [Hz]
     acupdate_rate = 5
@@ -175,12 +175,14 @@ class ScreenIO(QObject):
     # =========================================================================
     @pyqtSlot()
     def send_siminfo(self):
-        if self.manager.isActive():
-            t  = time.time()
-            dt = t - self.prevtime
-            self.manager.sendEvent(SimInfoEvent((self.sim.samplecount - self.prevcount) / dt, self.sim.simdt, self.sim.simt, self.sim.traf.ntraf, self.sim.state))
-            self.prevtime  = t
-            self.prevcount = self.sim.samplecount
+        # if self.manager.isActive():
+        t  = time.time()
+        dt = t - self.prevtime
+        speed = (self.sim.samplecount - self.prevcount) / dt * self.sim.simdt
+        self.manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
+            self.sim.traf.ntraf, self.sim.state, self.sim.scenname))
+        self.prevtime  = t
+        self.prevcount = self.sim.samplecount
 
     @pyqtSlot()
     def send_aircraft_data(self):
@@ -196,6 +198,15 @@ class ScreenIO(QObject):
             data.confcpalat = self.sim.traf.dbconf.latowncpa
             data.confcpalon = self.sim.traf.dbconf.lonowncpa
             data.trk        = self.sim.traf.trk
+
+            # Conflict statistics
+            data.nconf_tot  = len(self.sim.traf.dbconf.conflist_all)
+            data.nlos_tot   = len(self.sim.traf.dbconf.LOSlist_all)
+            data.nconf_exp  = len(self.sim.traf.dbconf.conflist_exp)
+            data.nlos_exp   = len(self.sim.traf.dbconf.LOSlist_exp)
+            data.nconf_cur  = len(self.sim.traf.dbconf.conflist_now)
+            data.nlos_cur   = len(self.sim.traf.dbconf.LOSlist_now)
+
             self.manager.sendEvent(data)
 
     @pyqtSlot()
