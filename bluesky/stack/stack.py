@@ -101,6 +101,11 @@ class Commandstack:
                 "",
                 sim.pause
             ],
+            "LOG": [
+                "LOG acid/area/*,dt",
+                "txt,float",
+                sim.datalog.start
+            ],
             "MCRE": [
                 "MCRE n, [type/*, alt/*, spd/*, dest/*]",
                 "int,[txt,alt,spd,txt]",
@@ -223,7 +228,7 @@ class Commandstack:
         self.extracmdmodules = {
             "SYN_": 'synthetic', 
             "ASA_":'asascmd', 
-            "LOG_":'log'
+           # "LOG_":'log' # Old logging module
         }
 
         # Import modules from the list
