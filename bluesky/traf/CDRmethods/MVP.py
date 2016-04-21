@@ -32,20 +32,20 @@ def resolve(dbconf):
                 
                 # if swprio is on, and there is crusing aircraft in the conflict, 
                 #  then the crusing aircraft does nothing and climbing/descending solves horizontally onlly
-                if dbconf.swprio: 
-                    if abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])>=0.1: # id2 is climbing/descending
-                        dv[id2] = dv[id2] - np.sign(dbconf.traf.vs[id2])*abs(dv_eby)
-                    
-                    elif abs(dbconf.traf.vs[id1])>=0.1 and abs(dbconf.traf.vs[id2])<0.1: # id1 is climbing/descending
-                        dv[id1] = dv[id1] - np.sign(dbconf.traf.vs[id1])*abs(dv_eby)
-                    
-                    elif abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2])<0.1: # both are crusing, don't climb/descend
+                if dbconf.swprio:
+                    # If aircraft 1 is cruising, and aircraft 2 is climbing -> aircraft one solves conflict
+                    if abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2] > 0.1:
                         dv[id1] = dv[id1] - dv_eby
+                    # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft two solves conflict
+                    elif abs(dbconf.traf.vs[id2])<0.1 and dbconf.traf.vs[id1] > 0.1:
                         dv[id2] = dv[id2] + dv_eby
-                        dv[id1][2] = 0.0
-                        dv[id2][2] = 0.0 
-                        
-                    else: # both are climbing/descending, then use combined
+                    # If aircraft 1 is cruising, and aircraft 2 is descending -> aircraft 1 solves conflict horizontally
+                    elif abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2] < -0.1:
+                        dv[id1] = dv[id1] - dv_eby
+                    # If aircraft 2 is cruising, and aircraft 1 is descending -> aircraft2 solves conflict
+                    elif abs(dbconf.traf.vs[id2])<0.1 and  dbconf.traf.vs[id2] < -0.1:
+                        dv[id2] = dv[id2] + dv_eby
+                    else: # both are climbing/descending/cruising, then use combined
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
                 else:

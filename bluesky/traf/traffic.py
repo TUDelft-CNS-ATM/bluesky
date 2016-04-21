@@ -1,6 +1,5 @@
 import numpy as np
 from math import *
-import time
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth
 
@@ -633,7 +632,7 @@ class Traffic:
             qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm])
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distance
-            iwpclose = np.where(self.swlnav*(dist < 10.))[0]
+            iwpclose = np.where(self.swlnav*(dist < 3.5))[0]
             
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
@@ -738,14 +737,13 @@ class Traffic:
 #                pdb.set_trace()
 
             # Switch for which aircaft have to follow VNAV
-            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<(self.dist2vs)) + \
+            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
                                      (self.actwpalt>self.alt))+(1-self.swlnav)
-            start = time.time()
             if self.dbconf.swasas:
                 # Find the aircarft that should start descending and store their index in icflvnav
 #                icflvnav = np.where((dist2wp<self.dist2vs) +\
 #                                    (self.actwpalt>self.alt) + (self.vs == 0.))[0]
-                icflvnav = np.where((self.swvnavvs) + (self.vs == 0.))[0]
+                icflvnav = np.where((self.swvnavvs == 1.) & (self.vs == 0.))[0]
                 for i in icflvnav:
 #                    if self.henk == False and self.id[i] == 'AC0132':
 #                        import pdb
@@ -767,12 +765,7 @@ class Traffic:
 #                    # If it results in a short-term-conflict, postpone the VNAV by setting the swvnavvs to 0.0
 #                    if cfl:
 #                        self.swvnavvs[i] = 0.0
-            end = time.time()
-            print end - start
             
-            if self.henk == False and simt > 60.*10.:
-                import pdb
-                pdb.set_trace()
             # Set autopilot settings for Vertical Speed and Altitude using the swvnavvs switch
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt

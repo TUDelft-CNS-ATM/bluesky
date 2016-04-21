@@ -593,7 +593,9 @@ class Dbconf():
         
         horizontalcfl = swhorconf * (tinhor<=touthor)*  (touthor>0.)*(tinhor<self.dtlookahead)
         idx_hor = np.where(horizontalcfl == True)[1]
+
         # Vertical crossing of disk (-dh,+dh)
+
         I             = np.eye(self.traf.ntraf) # Identity matric of order ntraf
 
         alt       = self.traf.alt.reshape((1,self.traf.ntraf))
@@ -624,7 +626,6 @@ class Dbconf():
 
         verticalcfl = (tinver<=toutver)*  (toutver>0.)*(tinver<self.dtlookahead)
         idx_ver = np.where(verticalcfl == True)
-
         for k in idx_hor:
             if verticalcfl[k][i] == True and k != i:
                 return True
