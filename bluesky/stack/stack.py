@@ -228,7 +228,7 @@ class Commandstack:
         self.extracmdmodules = {
             "SYN_": 'synthetic', 
             "ASA_":'asascmd', 
-            "LOG_":'log'
+           # "LOG_":'log' # Old logging module
         }
 
         # Import modules from the list
