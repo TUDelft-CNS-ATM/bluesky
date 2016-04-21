@@ -39,7 +39,7 @@ usage_hints = { 'BATCH': 'filename',
                 'SSD' : 'acid/ALL/OFF',
                 'MOVE': 'acid,lat,lon,[alt],[hdg],[spd],[vspd]',
                 'DEL': 'acid',
-                'ALT': 'acid,alt,[vspd]',
+                'ALT': 'acid,alt',
                 'HDG': 'acid,hdg',
                 'SPD': 'acid,spd',
                 'NOM': 'acid',
@@ -78,10 +78,10 @@ usage_hints = { 'BATCH': 'filename',
 class Gui(QApplication):
     modes = ['Init', 'Operate', 'Hold', 'End']
 
-    def __init__(self):
+    def __init__(self, navdb):
         super(Gui, self).__init__([])
         self.acdata          = ACDataEvent()
-        self.navdb           = None
+        self.navdb           = navdb
         self.radarwidget     = []
         self.command_history = []
         self.cmdargs         = []
@@ -104,6 +104,9 @@ class Gui(QApplication):
         self.splash = Splash()
         self.splash.show()
 
+        self.splash.showMessage('Constructing main window')
+        self.processEvents()
+
         # Install error message handler
         handler = QErrorMessage.qtHandler()
         handler.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -119,21 +122,17 @@ class Gui(QApplication):
             QGLFormat.setDefaultFormat(f)
             print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
 
+        # Create the main window and related widgets
+        self.radarwidget = RadarWidget(navdb)
+        self.win  = MainWindow(self, self.radarwidget)
+        self.nd   = ND(shareWidget=self.radarwidget)
+        # self.aman = AMANDisplay()
+
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION == 5:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-    def init(self, navdb):
-        self.splash.showMessage('Constructing main window')
-        self.processEvents()
-        # Create the main window and related widgets
-        self.navdb       = navdb
-        self.radarwidget = RadarWidget(navdb)
-        self.win         = MainWindow(self, self.radarwidget)
-        self.nd          = ND(shareWidget=self.radarwidget)
-        # self.aman = AMANDisplay()
-
-        gltimer          = QTimer(self)
+        gltimer = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
@@ -185,15 +184,12 @@ class Gui(QApplication):
                 self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
+                self.simt = event.simt
                 hours     = np.floor(event.simt / 3600)
                 minutes   = np.floor((event.simt - 3600 * hours) / 60)
                 seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
-                time = '%02d:%02d:%02d' % (hours, minutes, seconds)
-                self.win.setNodeInfo(manager.sender()[0], time, event.scenname)
-                if manager.sender()[0] == manager.actnode():
-                    self.simt = event.simt
-                    self.win.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                        % (time, event.simdt, event.sys_freq, self.modes[event.mode], event.n_ac, self.acdata.nconf_cur, self.acdata.nconf_tot, self.acdata.nlos_cur, self.acdata.nlos_tot))
+                self.win.siminfoLabel.setText('<b>sim_t</b> = %02d:%02d:%02d, <b>F</b> = %.2f Hz, <b>sim_dt</b> = %.2f, <b>n_aircraft</b> = %d, <b>mode</b> = %s'
+                    % (hours, minutes, seconds, event.sys_freq, event.simdt, event.n_ac, self.modes[event.mode]))
                 return True
 
             elif event.type() == StackTextEventType:
