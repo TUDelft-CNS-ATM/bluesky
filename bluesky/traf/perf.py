@@ -700,8 +700,6 @@ class Perf():
 
         return
 
-
-
     def limits(self):
         """Flight envelope"""
 
@@ -726,12 +724,15 @@ class Perf():
 
         return
 
-    def engchange(self, acid, engid):
+    def engchange(self, idx, engid=None):
         """change of engines - for jet aircraft only!"""
-        idx = self.traf.id.index(acid)
+        if not engid:
+            disptxt = "available engine types:\n" + '\n'.join(self.traf.engines[idx]) + \
+                      "\nChange engine with ENG acid engine_id"
+            return False, disptxt
+        engidx = self.traf.engines[idx].index(engid)
+        self.jetengidx = coeffBS.jetenlist.index(coeffBS.engines[idx][engidx])
 
-        self.jetengidx = coeffBS.jetenlist.index(coeffBS.engines[idx][engid])
-  
         # exchange engine parameters
 
         self.rThr[idx]   = coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[idx] # rated thrust (all engines)

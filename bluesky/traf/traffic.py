@@ -1,6 +1,6 @@
 import numpy as np
 from math import *
-
+from random import random, randint
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth
 
@@ -245,15 +245,27 @@ class Traffic:
 
         return
 
-    def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
+    def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
+        """ Create multiple random aircraft in a specified area """
+        idbase = chr(randint(65, 90)) + chr(randint(65, 90))
+        if actype is None:
+            actype = 'B744'
 
-        if None in [acid,actype,aclat,aclon,achdg,acalt,casmach]:
-            return False
+        for i in xrange(count):
+            acid  = idbase + '%05d' % i
+            aclat = random() * (area[1] - area[0]) + area[0]
+            aclon = random() * (area[3] - area[2]) + area[2]
+            achdg = float(randint(1, 360))
+            acalt = (randint(2000, 39000) * ft) if alt is None else alt
+            acspd = (randint(250, 450) * kts) if spd is None else spd
 
+            self.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
+
+    def create(self, acid, actype, aclat, aclon, achdg, acalt, casmach):
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
-            return False,acid+" already exists." # already exists do nothing
+            return False, acid + " already exists."  # already exists do nothing
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
@@ -262,7 +274,7 @@ class Traffic:
         if 0.1 < casmach < 1.0 :
             acspd = mach2tas(casmach, acalt)
         else:
-            acspd = cas2tas(casmach * kts, acalt)
+            acspd = cas2tas(casmach, acalt)
 
         # Process input
         self.id.append(acid.upper())
@@ -920,9 +932,12 @@ class Traffic:
         self.trailcol[idx] = self.trails.colorList[color]
         return
 
-    def setNoise(self, A):
+    def setNoise(self, noiseflag=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
-        self.noise              = A
+        if noiseflag is None:
+            return False, "Noise is currently " + ("on" if noiseflag else "off")
+
+        self.noise              = noiseflag
         self.trunctime          = 1                   # seconds
         self.transerror         = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
         self.standardturbulence = [0, 0.1, 0.1]       # m/s standard turbulence  (nonnegative)
@@ -937,33 +952,75 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-    def selhdg(self, idx=None, hdg=None):  # HDG command
-
+    def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
-
-        if None in [idx,hdg]:
-            return False  # Not engouh arguments: Error/Display helptext
-
         # Give autopilot commands
         self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
         return True
 
-    def selspd(self, idx=None, spd=None):  # SPD command
-
-        """ Select speed command: SPD acid, spd (= CASkts/Mach) """
-        if idx<0 or None in [idx,spd] :
-            return False  # Not engouh arguments: Error/Display helptext
-
-        # When >=2.0 it is probably CASkts else it is Mach
-        if spd >= 2.0:
-            self.aspd[idx] = spd * kts # CAS m/s
-            self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
+    def selspd(self, idx, casmach):  # SPD command
+        """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
+        # When >=1.0 it is probably CASkts else it is Mach
+        if 0.1 < casmach < 1.0:
+            self.aspd[idx] = mach2cas(casmach, self.alt[idx])  # Convert Mach to CAS m/s
+            self.ama[idx]  = casmach
         else:
-            self.aspd[idx] = mach2cas(spd, self.alt[idx])  # Convert Mach to CAS m/s
-            self.ama[idx]  = spd
+            self.aspd[idx] = casmach  # CAS m/s
+            self.ama[idx]  = cas2mach(casmach, self.alt[idx])
         # Switch off VNAV: SPD command overrides
-        self.swvnav[idx] = False  
+        self.swvnav[idx]   = False
 
         return True
+
+    def move(self, idx, lat, lon, alt=None, hdg=None, casmach=None, vspd=None):
+        self.lat[idx]      = lat
+        self.lon[idx]      = lon
+
+        if alt:
+            self.alt[idx]  = alt
+            self.aalt[idx] = alt
+
+        if hdg:
+            self.trk[idx]  = hdg
+            self.ahdg[idx] = hdg
+
+        if casmach:
+            # Convert speed
+            if 0.1 < casmach < 1.0:
+                self.tas[idx]  = mach2tas(casmach, alt)
+                self.aspd[idx] = mach2cas(casmach, alt)
+            else:
+                self.tas[idx]  = cas2tas(casmach, alt)
+                self.aspd[idx] = casmach
+
+        if vspd:
+            self.vs[idx]       = vspd
+            self.swvnav[idx]   = False
+
+    def selalt(self, idx, alt, vspd=None):
+        """ Select altitude command: ALT acid, alt, [vspd] """
+        self.aalt[idx]    = alt
+        self.afll[idx]    = alt / (100. * ft)
+        self.swvnav[idx]  = False
+
+        # Check for optional VS argument
+        if vspd:
+            self.avs[idx] = vspd
+        else:
+            delalt        = alt - self.alt[idx]
+            # Check for VS with opposite sign => use default vs
+            # by setting autopilot vs to zero
+            if self.avs[idx] * delalt < 0. and abs(self.avs[idx]) > 0.01:
+                self.avs[idx] = 0.
+
+    def selvspd(self, idx, vspd):
+        """ Vertical speed autopilot command: VS acid vspd """
+        self.avs[idx] = vspd
+        # self.vs[idx] = vspd
+        self.swvnav[idx] = False
+
+    def nom(self, idx):
+        """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
+        self.ax[idx] = kts

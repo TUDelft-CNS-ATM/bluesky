@@ -272,8 +272,13 @@ class Screen:
         self.aplabel = len(navdb.aplat) * [0]
 
     def echo(self, msg):
-        self.editwin.echo(msg)
+        msgs = msg.split('\n')
+        for m in msgs:
+            self.editwin.echo(m)
         return
+
+    def showssd(self, param):
+        return False,"SSD visualization only available in QtGL GUI"
 
     def cmdline(self, text):
         self.editwin.insert(text)

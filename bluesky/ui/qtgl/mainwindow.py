@@ -1,12 +1,12 @@
 try:
-    from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel
+    from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel, QSize
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QToolButton
+    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QPushButton
     from PyQt5 import uic
 except ImportError:
-    from PyQt4.QtCore import Qt, pyqtSlot
+    from PyQt4.QtCore import Qt, pyqtSlot, QSize    
     from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
-        QItemSelectionModel, QTreeWidgetItem, QToolButton
+        QItemSelectionModel, QTreeWidgetItem, QPushButton
     from PyQt4 import uic
 
 # Local imports
@@ -68,12 +68,14 @@ class MainWindow(QMainWindow):
         manager.instance.activenode_changed.connect(self.actnodeChanged)
 
         self.nodetree.setVisible(False)
-        self.nodetree.setIndentation(8)
+        self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
+        self.nodetree.setStyleSheet('padding:0px')
         self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
-        self.nodetree.header().resizeSection(0, 150)
+        self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
         self.hosts = list()
+        self.nodes = list()
 
     def closeEvent(self, event):
         self.app.quit()
@@ -94,22 +96,34 @@ class MainWindow(QMainWindow):
                 hostname = 'This computer'
             f = host.font(0)
             f.setBold(True)
-            host.setFont(0, f)
-            host.setText(0, hostname)
+            # host.setFont(0, f)
+            # host.setText(0, hostname)
             host.setExpanded(True)
-            btn = QToolButton(self.nodetree)
-            btn.setText('Add node')
-            btn.setFixedSize(50, 16)
-            # btn.setFlat(True)
-            # btn.setIcon(QIcon('data/graphics/icons/addnode_i.svg'))
-            # btn.setIconSize(QSize(40, 12))
+            btn = QPushButton(self.nodetree)
+            # btn.setFont(0, f)
+            btn.setText(hostname)
+            btn.setFlat(True)
+            btn.setStyleSheet('font-weight:bold')
+
+            btn.setIcon(QIcon('data/graphics/icons/addnode.svg'))
+            btn.setIconSize(QSize(24, 16))
+            btn.setLayoutDirection(Qt.RightToLeft)
+            btn.setMaximumHeight(16)
             btn.clicked.connect(manager.instance.addNode)
-            self.nodetree.setItemWidget(host, 1, btn)
+            self.nodetree.setItemWidget(host, 0, btn)
             self.hosts.append(host)
 
         node = QTreeWidgetItem(host)
-        node.setText(0, 'Node %d' % nodeid[1])
+        node.setText(0, '%d:%d <init>' % nodeid)
+        node.setText(1, '00:00:00')
         node.connidx = connidx
+        node.nodeid  = nodeid
+        self.nodes.append(node)
+
+    def setNodeInfo(self, connidx, time, scenname):
+        node = self.nodes[connidx]
+        node.setText(0, '%d:%d <'  % node.nodeid + scenname + '>')
+        node.setText(1, time)
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
