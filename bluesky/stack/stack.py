@@ -71,6 +71,11 @@ class Commandstack:
                 "float",
                 sim.setDtMultiplier
             ],
+            "ENG": [
+                "ENG acid,[engine_id]",
+                "acid,[txt]",
+                traf.perf.engchange
+            ],
             "FF":  [
                 "FF [tend]",
                 "[time]",
@@ -86,15 +91,35 @@ class Commandstack:
                 "acid,float",
                 traf.selhdg
             ],
+            "HELP": [
+                "HELP [command]",
+                "[txt]",
+                lambda *args: scr.echo(self.help(*args))
+            ],
             "HOLD": [
                 "HOLD",
                 "",
                 sim.pause
             ],
+            "MCRE": [
+                "MCRE n, [type/*, alt/*, spd/*, dest/*]",
+                "int,[txt,alt,spd,txt]",
+                lambda *args: traf.mcreate(*args, area=scr.getviewlatlon())
+            ],
             "MOVE": [
                 "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
                 "acid,lat,lon,[alt,hdg,spd,vspd]",
                 traf.move
+            ],
+            "ND": [
+                "ND acid",
+                "txt",
+                lambda acid: scr.feature("ND", acid)
+            ],
+            "NOISE": [
+                "NOISE [ON/OFF]",
+                "[onoff]",
+                traf.setNoise
             ],
             "NOM": [
                 "NOM acid",
@@ -163,7 +188,8 @@ class Commandstack:
             "QUIT": "STOP",
             "RUN": "OP",
             "START": "OP",
-            "TURN": "HDG"
+            "TURN": "HDG",
+            "?": "HELP"
         }
         #--------------------------------------------------------------------
 
@@ -174,8 +200,8 @@ class Commandstack:
         self.scencmd = []
 
         # Display Help text on start of program
-        self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.")
-        self.stack("ECHO Or select IC to Open a scenario file.")
+        self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n" +
+            "Or select IC to Open a scenario file.")
 
         # Pan to initial location
         self.stack('PAN ' + settings.start_location)
@@ -209,6 +235,23 @@ class Commandstack:
         # ------------------ [end] Deprecated -------------------
 
         return
+
+    def help(self, cmd=None):
+        if cmd is None:
+            text = "To get help on a command, enter it without arguments.\n" + \
+                   "Some basic commands are given below:\n\n"
+            text2 = ""
+            for key in self.cmddict:
+                text2 += (key + " ")
+                if len(text2) >= 40:
+                    text += (text2 + "\n")
+                    text2 = ""
+            text += (text2 + "\nSee Info subfolder for more info.")
+            return text
+        elif cmd in self.cmddict:
+            return self.cmddict[cmd][0]
+        else:
+            return "HELP: Unknown command: " + cmd
 
     def setSeed(self, value):
         seed(value)
@@ -445,9 +488,11 @@ class Commandstack:
                     helptext, argtypelist, function = self.cmddict[cmd]
                     argvsopt = argtypelist.split('[')
                     argtypes = argvsopt[0].strip(',').split(",")
+                    if argtypes == ['']:
+                        argtypes = []
 
                     # Check if at least the number of mandatory arguments is given.
-                    if numargs < len(argtypes) and not argtypes == ['']:
+                    if numargs < len(argtypes):
                         print numargs, len(argtypes)
                         scr.echo("Syntax error: Too few arguments")
                         scr.echo(cmdline)
@@ -469,7 +514,7 @@ class Commandstack:
                         for i in range(1, 1 + min(numtypes, numargs)):
                             argtype = argtypes[i-1].strip()
 
-                            if cmdargs[i] == "":  # Empty arg => parse None
+                            if cmdargs[i] == "" or cmdargs[i] == "*":  # Empty arg or wildcard => parse None
                                 arglist.append(None)
 
                             elif argtype == "acid":  # aircraft id => parse index
@@ -573,21 +618,6 @@ class Commandstack:
 
                     else:  # synerr:
                         scr.echo("Syntax error: " + helptext)
-
-                #----------------------------------------------------------------------
-                # HELP/?: HELP command
-                #----------------------------------------------------------------------
-                elif cmd[:4] == "HELP" or cmd == "?" and numargs == 0:
-                    scr.echo("To get help on a command," +
-                             " enter it without arguments." +
-                             "Some basic commands are given below:")
-                    scr.echo(" ")
-                    scr.echo("CRE HDG SPD ALT DEL OP HOLD QUIT DEST ORIG")
-                    scr.echo("MCRE ADDWPT DELWPT LISTRTE LNAV VNAV")
-                    scr.echo("POS ZOOM PAN SWRAD AREA")
-                    scr.echo("DATAFEED")
-                    scr.echo(" ")
-                    scr.echo("See Info subfolder for more info.")
 
                 #----------------------------------------------------------------------
                 # POS command: traffic info; ("KL204", "POS KL204" or "KL204 ?")
@@ -823,40 +853,6 @@ class Commandstack:
                         if not (np.isnan(lat) or np.isnan(lon)):
                             scr.pan((lat, lon), absolute=True)
 
-                #----------------------------------------------------------------------
-                # NAVDISP/ND  acid:  Activate Navdisplay mode
-                #----------------------------------------------------------------------
-                elif cmd == "ND" or cmd == "NAVDISP":
-
-                    if numargs < 1:  # Help text
-                        scr.echo(cmd + ' acid')
-                    elif cmdargs[1] in traf.id:
-                        scr.feature("ND", cmdargs[1])
-                    else:
-                        scr.echo(cmd + ': Aircraft with id=' + cmdargs[1] + ' not found.')
-#                        if scr.swnavdisp:
-#                            scr.echo("Ownship is" + scr.ndacid)
-#                        else:
-#                            scr.echo("NAVDISP is off")
-#
-#                    # Or switch off
-#                    elif cmdargs[1] == "OFF":
-#                        scr.swnavdisp = False
-#                        scr.redrawradbg = True
-#                        scr.geosel = ()
-#                        scr.firsel = ()
-#
-#                    # Follow aircraft
-#                    else:
-#                        i = traf.id2idx(cmdargs[1])
-#                        if i >= 0:
-#                            scr.ndacid = cmdargs[1]
-#                            scr.swnavdisp = True
-#                            scr.redrawradbg = True
-#                            scr.geosel = ()
-#                            scr.firsel = ()
-#                        else:
-#                            scr.echo("NAVDISP: " + cmdargs[1] + " not found.")
 #
 
                 #----------------------------------------------------------------------
@@ -1165,56 +1161,6 @@ class Commandstack:
                         else:
                             scr.echo('Syntax error')
                             scr.echo("TRAILS ON/OFF")
-
-                #----------------------------------------------------------------------
-                # MCRE n, type/*, alt/*, spd/*, dest/* :Multiple create
-                #----------------------------------------------------------------------
-                elif cmd[:4] == "MCRE":
-                    if numargs == 0:
-                        scr.echo("Multiple CREate:")
-                        scr.echo("MCRE n, type/*, alt/*, spd/*, dest/*")
-                    else:
-                        # Currently only n,*,*,*,* supported (or MCRE n)
-                        try:
-                            n = int(cmdargs[1])
-
-                            if numargs >= 3 and cmdargs[3] != "*":
-                                    acalt = txt2alt(cmdargs[3])*ft
-
-                            if numargs<2:
-                                actype = "*"
-                            else:
-                                actype = cmdargs[2].upper()
-                    
-                            for i in range(n):
-                                acid = "TUD" + str(randint(100, 99999))
-                                if actype=="*":
-                                    actype = "B744"  # for now
-                                
-                                # Lat/lon.hdg always random on-screen
-                                scrlat0,scrlat1,scrlon0,scrlon1 =          \
-                                                 scr.getviewlatlon()
-                                                 
-                                aclat = random() * (scrlat1 - scrlat0) + scrlat0
-                                aclon = random() * (scrlon1 - scrlon0) + scrlon0
-                                achdg = float(randint(1, 360))
-
-                                # Random altitude
-                                if numargs <3 or cmdargs[3]=="*":
-                                    acalt = float(randint(2000, 39000)) * ft
-
-                                # Speed
-                                if numargs<4 or cmdargs[4]=="*":
-                                    acspd = float(randint(250, 450))
-                                else:
-                                    acspd = txt2spd(cmdargs[4],h)
-
-                                # Create a/c
-                                traf.create(acid, actype, aclat, aclon, achdg, \
-                                            acalt, acspd)
-                        except:
-                            scr.echo('Syntax error')
-                            scr.echo("MCRE n, type/*, alt/*, spd/*, dest/*")
 
                 #----------------------------------------------------------------------
                 # DIST lat1,lon1,lat2,lon2 : 
@@ -1565,27 +1511,6 @@ class Commandstack:
                             scr.echo('Syntax error')
                             scr.echo("ADSBCOVERAGE ON/OFF")
 
-                #----------------------------------------------------------------------
-                # NOISE on/off: switch Noise on or off
-                #----------------------------------------------------------------------
-                elif cmd == "NOISE":
-                    if numargs == 0:
-                        scr.echo("NOISE ON/OFF")
-                        if traf.noise:
-                            scr.echo("Noise is currently ON")
-                        else:
-                            scr.echo("Noise is currently OFF")
-                    else:
-                        if cmdargs[1] == "ON":
-                            traf.setNoise(True)
-
-                        elif cmdargs[1] == "OFF" or cmdargs[1] == "OF":
-                            traf.setNoise(False)
-
-                        else:
-                            scr.echo('Syntax error')
-                            scr.echo("NOISE ON/OFF")
-
                 elif cmd == "BOX":
                     if numargs == 0:
                         scr.echo(cmd + " name,lat1,lon1,lat2,lon2")
@@ -1614,31 +1539,6 @@ class Commandstack:
                         if numargs == 5:
                                 data = [float(cmdargs[2]), float(cmdargs[3]), float(cmdargs[4]), float(cmdargs[5])]
                                 scr.objappend(1, cmdargs[1], data)
-
-                #------------------------------------------------------------------
-                # ENG [acid] Change aircraft's engine
-                # available for the internal performance model
-                #-------------------------------------------------------------------
-                elif cmd == "ENG":
-                    if numargs < 1:
-                        scr.echo("ENG acid")
-                    elif numargs == 1:
-                        acid = cmdargs[1].upper()
-                        idx = traf.id.index(acid)
-                        scr.echo("available engine types:")
-                        for i in xrange (len(traf.engines[idx])):
-                            scr.echo(traf.engines[idx][i])
-                            i = i+1
-                        scr.echo("Change engine with 'ENG' + [acid] + [id]")
-                    elif numargs == 2:
-                        acid = cmdargs[1].upper()
-                        engid = int(cmdargs[2]) - 1
-                        traf.engchange(acid, engid)
-
-                        # self.engchange(acid, engid)
-
-                    else:
-                        synerr = True
 
                 #------------------------------------------------------------------
                 # DUMPRTE acid: Dump the route to the route-file for debugging

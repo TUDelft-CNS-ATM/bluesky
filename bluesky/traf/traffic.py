@@ -1,6 +1,6 @@
 import numpy as np
 from math import *
-
+from random import random, randint
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth
 
@@ -249,11 +249,27 @@ class Traffic:
 
         return
 
+    def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
+        """ Create multiple random aircraft in a specified area """
+        idbase = chr(randint(65, 90)) + chr(randint(65, 90))
+        if actype is None:
+            actype = 'B744'
+
+        for i in xrange(count):
+            acid  = idbase + '%05d' % i
+            aclat = random() * (area[1] - area[0]) + area[0]
+            aclon = random() * (area[3] - area[2]) + area[2]
+            achdg = float(randint(1, 360))
+            acalt = (randint(2000, 39000) * ft) if alt is None else alt
+            acspd = (randint(250, 450) * kts) if spd is None else spd
+
+            self.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
+
     def create(self, acid, actype, aclat, aclon, achdg, acalt, casmach):
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
-            return False,acid+" already exists." # already exists do nothing
+            return False, acid + " already exists."  # already exists do nothing
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
@@ -920,9 +936,12 @@ class Traffic:
         self.trailcol[idx] = self.trails.colorList[color]
         return
 
-    def setNoise(self, A):
+    def setNoise(self, noiseflag=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
-        self.noise              = A
+        if noiseflag is None:
+            return False, "Noise is currently " + ("on" if noiseflag else "off")
+
+        self.noise              = noiseflag
         self.trunctime          = 1                   # seconds
         self.transerror         = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
         self.standardturbulence = [0, 0.1, 0.1]       # m/s standard turbulence  (nonnegative)
