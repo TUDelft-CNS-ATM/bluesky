@@ -15,6 +15,7 @@ from ...stack import Commandstack
 # from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
+from ...tools.datalog import Datalog
 
 
 class Simulation(QObject):
@@ -53,6 +54,9 @@ class Simulation(QObject):
 
         # If available, name of the currently running scenario
         self.scenname    = 'Untitled'
+        
+        # Create datalog instance
+        self.datalog = Datalog(self, gui.scr)
 
         # Simulation objects
         self.navdb       = Navdatabase('global')
@@ -92,6 +96,10 @@ class Simulation(QObject):
                 # Update metrics
                 if self.metric is not None:
                     self.metric.update(self, self.traf)
+                    
+                # Update log
+                if self.datalog is not None:
+                    self.datalog.update(self)
 
                 # Update time for the next timestep
                 self.simt += self.simdt
@@ -116,7 +124,8 @@ class Simulation(QObject):
 
     def stop(self):
         self.state   = Simulation.end
-
+        self.datalog.save()
+        
     def start(self):
         if self.ffmode:
             self.syst = int(time.time() * 1000.0)
