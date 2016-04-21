@@ -42,7 +42,7 @@ class Simulation:
         self.dts = []
 
         # Create datalog instance
-        self.datalog = Datalog(self, gui.scr)
+        self.datalog = Datalog(self)
 
         # Fixed dt mode for fast forward
         self.ffmode = False  # Default FF off

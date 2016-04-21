@@ -444,6 +444,11 @@ class Commandstack:
         """process and empty command stack"""
         # Process stack of commands
         for line in self.cmdstack:
+            # Empty line: next command
+            line = line.strip()
+            if len(line) == 0:
+                continue
+
             # Debug
             # print "CMD:",line
 
@@ -451,25 +456,20 @@ class Commandstack:
 
             cmdargs = cmdsplit(cmdline)
 
-            # Empty line: next command
-            if len(cmdargs) == 0 or cmdline.strip() == "":
-                continue
-
             cmd = cmdargs[0]
 
             numargs = len(cmdargs) - 1
 
             # First check for alternate syntax: acid cmd args 2-3
-            if cmd != "" and traf.id.count(cmd) > 0:
+            if traf.id.count(cmd) > 0:
                 if numargs >= 1:
                     acid = cmd
                     cmd = cmdargs[1]
                     cmdargs[1] = acid
                     cmdargs[0] = cmd
                 else:
-                    cmdargs.append(cmdargs[0])
-                    cmdargs[0] = 'POS'
-                    cmd = 'POS'
+                    cmdargs = ['POS', cmd]
+                    cmd     = 'POS'
                     numargs = 1
 
             # Assume syntax is ok (default)

@@ -54,9 +54,9 @@ class Simulation(QObject):
 
         # If available, name of the currently running scenario
         self.scenname    = 'Untitled'
-        
+
         # Create datalog instance
-        self.datalog = Datalog(self, gui.scr)
+        self.datalog = Datalog(self)
 
         # Simulation objects
         self.navdb       = Navdatabase('global')
