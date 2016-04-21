@@ -98,6 +98,11 @@ class Commandstack:
                 "",
                 sim.pause
             ],
+            "LOG": [
+                "LOG acid/area/*,dt",
+                "txt,float",
+                sim.datalog.start
+            ],
             "MCRE": [
                 "MCRE n, [type/*, alt/*, spd/*, dest/*]",
                 "int,[txt,alt,spd,txt]",
