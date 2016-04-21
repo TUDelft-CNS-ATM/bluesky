@@ -249,7 +249,11 @@ class Traffic:
 
         return
 
-    def create(self, acid, actype, aclat, aclon, achdg, acalt, casmach):
+    def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
+
+        if None in [acid,actype,aclat,aclon,achdg,acalt,casmach]:
+            return False
+
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
@@ -262,7 +266,7 @@ class Traffic:
         if 0.1 < casmach < 1.0 :
             acspd = mach2tas(casmach, acalt)
         else:
-            acspd = cas2tas(casmach, acalt)
+            acspd = cas2tas(casmach * kts, acalt)
 
         # Process input
         self.id.append(acid.upper())
@@ -937,75 +941,33 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-    def selhdg(self, idx, hdg):  # HDG command
+    def selhdg(self, idx=None, hdg=None):  # HDG command
+
         """ Select heading command: HDG acid, hdg """
+
+        if None in [idx,hdg]:
+            return False  # Not engouh arguments: Error/Display helptext
+
         # Give autopilot commands
         self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
         return True
 
-    def selspd(self, idx, casmach):  # SPD command
-        """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
-        # When >=1.0 it is probably CASkts else it is Mach
-        if 0.1 < casmach < 1.0:
-            self.aspd[idx] = mach2cas(casmach, self.alt[idx])  # Convert Mach to CAS m/s
-            self.ama[idx]  = casmach
+    def selspd(self, idx=None, spd=None):  # SPD command
+
+        """ Select speed command: SPD acid, spd (= CASkts/Mach) """
+        if idx<0 or None in [idx,spd] :
+            return False  # Not engouh arguments: Error/Display helptext
+
+        # When >=2.0 it is probably CASkts else it is Mach
+        if spd >= 2.0:
+            self.aspd[idx] = spd * kts # CAS m/s
+            self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
         else:
-            self.aspd[idx] = casmach  # CAS m/s
-            self.ama[idx]  = cas2mach(casmach, self.alt[idx])
+            self.aspd[idx] = mach2cas(spd, self.alt[idx])  # Convert Mach to CAS m/s
+            self.ama[idx]  = spd
         # Switch off VNAV: SPD command overrides
-        self.swvnav[idx]   = False
+        self.swvnav[idx] = False  
 
         return True
-
-    def move(self, idx, lat, lon, alt=None, hdg=None, casmach=None, vspd=None):
-        self.lat[idx]      = lat
-        self.lon[idx]      = lon
-
-        if alt:
-            self.alt[idx]  = alt
-            self.aalt[idx] = alt
-
-        if hdg:
-            self.trk[idx]  = hdg
-            self.ahdg[idx] = hdg
-
-        if casmach:
-            # Convert speed
-            if 0.1 < casmach < 1.0:
-                self.tas[idx]  = mach2tas(casmach, alt)
-                self.aspd[idx] = mach2cas(casmach, alt)
-            else:
-                self.tas[idx]  = cas2tas(casmach, alt)
-                self.aspd[idx] = casmach
-
-        if vspd:
-            self.vs[idx]       = vspd
-            self.swvnav[idx]   = False
-
-    def selalt(self, idx, alt, vspd=None):
-        """ Select altitude command: ALT acid, alt, [vspd] """
-        self.aalt[idx]    = alt
-        self.afll[idx]    = alt / (100. * ft)
-        self.swvnav[idx]  = False
-
-        # Check for optional VS argument
-        if vspd:
-            self.avs[idx] = vspd
-        else:
-            delalt        = alt - self.alt[idx]
-            # Check for VS with opposite sign => use default vs
-            # by setting autopilot vs to zero
-            if self.avs[idx] * delalt < 0. and abs(self.avs[idx]) > 0.01:
-                self.avs[idx] = 0.
-
-    def selvspd(self, idx, vspd):
-        """ Vertical speed autopilot command: VS acid vspd """
-        self.avs[idx] = vspd
-        # self.vs[idx] = vspd
-        self.swvnav[idx] = False
-
-    def nom(self, idx):
-        """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
-        self.ax[idx] = kts

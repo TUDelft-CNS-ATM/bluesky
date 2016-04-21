@@ -34,36 +34,8 @@ if gui == 'qtgl':
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QApplication, QProgressDialog
     except ImportError:
-        try:
-            from PyQt4.QtCore import Qt
-            from PyQt4.QtGui import QApplication, QProgressDialog
-        except ImportError:
-            class QApplication:
-                @classmethod
-                def instance():
-                    return None
-
-    class ProgressBar():
-        def __init__(self, text):
-            if QApplication.instance() is None:
-                self.dialog = None
-                print text
-            else:
-                self.dialog = QProgressDialog(text, 'Cancel', 0, 100)
-                self.dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
-                self.dialog.show()
-
-        def update(self, value):
-            if self.dialog:
-                self.dialog.setValue(value)
-                QApplication.processEvents()
-            else:
-                print 'Progress: %.2f%% done' % value
-
-        def close(self):
-            if self.dialog:
-                self.dialog.close()
-
+        from PyQt4.QtCore import Qt
+        from PyQt4.QtGui import QApplication, QProgressDialog
     import OpenGL.GLU as glu
     import numpy as np
     from math import cos, radians, degrees, sqrt
@@ -177,7 +149,9 @@ if gui == 'qtgl':
 
     def load_aptsurface_txt():
         """ Read airport data from navigation database files"""
-        pb = ProgressBar('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.')
+        pb = QProgressDialog('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.', 'Cancel', 0, 100)
+        pb.setWindowFlags(Qt.WindowStaysOnTopHint)
+        pb.show()
 
         REARTH_INV    = 1.56961231e-7
         runways       = []
@@ -199,7 +173,8 @@ if gui == 'qtgl':
                 # Check how far we are
                 count += 1
                 if count % 1000 == 0:
-                    pb.update((bytecount / fsize * 100.0))
+                    pb.setValue((bytecount / fsize * 100.0))
+                    QApplication.processEvents()
 
                 elems = line.strip().split()
                 if len(elems) == 0:
