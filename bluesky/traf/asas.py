@@ -360,13 +360,49 @@ class Dbconf():
                                                        self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
                                                        self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
                             self.LOSlist_logged.append(combi)
+        
+        # If an LOS did never decrease in severity (for example, it only occured 1 simdt),
+        # it is logged when it is in LOSlist_all and not in the LOSlist_now and LOSlist_logged
+        for idx in range(len(self.LOSlist_all)):
+            if self.LOSlist_all[idx] not in self.LOSlist_logged:
+                if self.LOSlist_all[idx] not in self.LOSlist_now:
+                    ac1,ac2 = self.LOSlist_all[idx].split(" ")
+                    i,j = self.ConflictToIndices(self.LOSlist_all[idx])
+                    if i != "Fail" and j != "Fail":
+                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                        % (self.traf.id[i],self.traf.id[j], \
+                                           self.LOShmaxsev[idx], self.LOSvmaxsev[idx], self.tinconf[i][j],self.toutconf[i][j], \
+                                           self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+                                           self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+                                           self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+                                           self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+                    elif i != "Fail" and j == "Fail":
+                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                            % (self.traf.id[i],ac2, \
+                                               self.LOShmaxsev[idx], self.LOSvmaxsev[idx], "Fail","Fail", \
+                                               self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+                                               self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+                                               "Fail","Fail","Fail","Fail", \
+                                               "Fail","Fail","Fail","Fail"))
+                    elif i == "Fail" and j != "Fail":
+                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                            % (ac1,self.traf.id[j], \
+                                               self.LOShmaxsev[idx], self.LOSvmaxsev[idx],"Fail","Fail", \
+                                               "Fail","Fail","Fail","Fail", \
+                                               "Fail","Fail","Fail","Fail", \
+                                               self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+                                               self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+                    else:
+                        self.traf.log.write(2,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                            % (ac1,ac2, \
+                                               self.LOShmaxsev[idx], self.LOSvmaxsev[idx],"Fail","Fail", \
+                                               "Fail","Fail","Fail","Fail", \
+                                               "Fail","Fail","Fail","Fail", \
+                                               "Fail","Fail","Fail","Fail", \
+                                               "Fail","Fail","Fail","Fail"))
+                    self.LOSlist_logged.append(self.LOSlist_all[idx])
 
-#        for idx in range(len(self.LOSlist_all)):
-#            if self.LOSlist_all(combi) not in self.LOSlist_now:
-#                if self.LOSlist_all(combi) not in self.LOSlist_logged:
-#                    import pdb
-#                    pdb.set_trace()
-
+        # Define the total number of active conflicts
         self.nconf = len(self.idown)
 
         # Convert to numpy arrays for vectorisation
@@ -512,7 +548,7 @@ class Dbconf():
         if self.traf.alt[i] < 1000*ft:
             return False
         
-        qdlst = qdrdist_vector(self.traf.lat[i],self.traf.lon[i],\
+        qdlst = qdrdist_vector(self.traf.lat[i],self.traf.lon[i], \
                     self.traf.lat,self.traf.lon)
         qdr      = np.array(qdlst[0])
         dist     = np.array(qdlst[1])*nm
@@ -543,8 +579,9 @@ class Dbconf():
         dcpa2 = dist*dist-tcpa*tcpa*dv2
         
         # Check for horizontal conflict
-        R2        = self.Rm*self.Rm
+        R2        = self.R*self.R
         swhorconf = dcpa2<R2 # conflict or not
+        swhorconf = swhorconf[0]
         
         # Calculate times of entering and leaving horizontal conflict
         dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) # half the distance travelled inzide zone
@@ -554,45 +591,43 @@ class Dbconf():
         
         touthor   = np.where(swhorconf,tcpa + dtinhor,-1e8) # set very large if no conf
         
-        # Vertical conflict -----------------------------------------------------------
-        
+        horizontalcfl = swhorconf * (tinhor<=touthor)*  (touthor>0.)*(tinhor<self.dtlookahead)
+        idx_hor = np.where(horizontalcfl == True)[1]
         # Vertical crossing of disk (-dh,+dh)
+        I             = np.eye(self.traf.ntraf) # Identity matric of order ntraf
+
+        alt       = self.traf.alt.reshape((1,self.traf.ntraf))
+        adsbalt   = self.traf.adsbalt.reshape((1,self.traf.ntraf))
+        if self.traf.ADSBtransnoise:
+            # error in the determined altitude of other a/c
+            alterror=np.random.normal(0,self.traf.transerror[2],adsbalt.shape) #degrees
+            adsbalt+=alterror
+    
+        self.dalt      = alt - adsbalt.T
+
+        newvs = vs - 0.0
+        newvs[i] = newavs
+        newvs  = newvs.reshape(1,len(newvs))
+
+        avs = self.traf.adsbvs
+        avs = avs.reshape(1,len(avs))
         
-        alt       = self.traf.alt
-        dalt = alt - alt[i]
-        dvs = vs - newavs
+        dvs = newvs-avs.T
         
         # Check for passing through each others zone
         dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
-        tcrosshi  = (dalt + self.dh)/-dvs
-        tcrosslo  = (dalt - self.dh)/-dvs
+        tcrosshi  = (self.dalt + self.dh)/-dvs
+        tcrosslo  = (self.dalt - self.dh)/-dvs
         
         tinver    = np.minimum(tcrosshi,tcrosslo)
         toutver   = np.maximum(tcrosshi,tcrosslo)
-        
-        # Combine vertical and horizontal conflict-------------------------------------
-        tinconf = np.maximum(tinver,tinhor)[0]
-        
-        toutconf = np.minimum(toutver,touthor)[0]
-        
-        swconfl = swhorconf*(tinconf<=toutconf)*    \
-            (toutconf>0.)*(tinconf<self.dtlookahead_conflictprobe)
-        swconfl = swconfl[0]
-        
-        # A conflict with yourself is set to False
-        swconfl[i] = False
 
-        if swconfl.any():
-            idx = np.where(swconfl == True)
-#            if self.traf.henk == False:
-#                import pdb
-#                pdb.set_trace()
-            return True
-        else:
-            return False
+        verticalcfl = (tinver<=toutver)*  (toutver>0.)*(tinver<self.dtlookahead)
+        idx_ver = np.where(verticalcfl == True)
 
+        for k in idx_hor:
+            if verticalcfl[k][i] == True and k != i:
+                return True
 
-
-
-
+        return False
 

@@ -661,9 +661,13 @@ class Route():
 #                pdb.set_trace()
             layalt = self.CheckLayer(i, dirtodest)
             if abs(self.traf.aalt[i] - layalt) > 100*ft:
+#                if self.traf.henk == False:
+#                    import pdb
+#                    pdb.set_trace()
                 self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s%s' % \
                                         (traf.id[i],traf.orig[i],traf.dest[i], \
                                          traf.lat[i],traf.lon[i],traf.alt[i],layalt))
+                self.addwpt(self.traf,i,self.traf.id[i],self.wplatlon,self.traf.lat[i],self.traf.lon[i],layalt,500,"")
                 self.traf.aalt[i] = layalt
         return self.iactwp
                                                  

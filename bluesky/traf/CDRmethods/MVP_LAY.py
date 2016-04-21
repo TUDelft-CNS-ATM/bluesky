@@ -30,9 +30,9 @@ def resolve(dbconf):
             if id1 != "Fail" and id2!= "Fail":
 
                 dv_eby = MVP(dbconf,id1,id2)
-                if dbconf.traf.id[id1] == 'AC0036' or dbconf.traf.id[id2] == 'AC0036':
-                    import pdb
-                    pdb.set_trace()
+#                if dbconf.traf.id[id1] == 'AC0036' or dbconf.traf.id[id2] == 'AC0036':
+#                    import pdb
+#                    pdb.set_trace()
                 # If the priority switch is ON (always ON for layers), it has a different meaning for Layers than for Full Mix
                 # For layers -> Climbing has highest priority
                 if dbconf.swprio:
