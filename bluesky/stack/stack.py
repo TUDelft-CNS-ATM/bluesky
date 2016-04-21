@@ -16,7 +16,7 @@ from .. import settings
 class Commandstack:
     """
     Commandstack class definition : command stack & processing class
-    
+
     Methods:
         Commandstack()          :  constructor
         stack(cmdline)          : add a command to the command stack
@@ -24,12 +24,12 @@ class Commandstack:
                                   from scenario folder
         savefile(scenname,traf) : save current traffic situation as
                                   scenario file scenname.SCN
-                                  
         checkfile(t)            : check whether commands need to be
                                   processed from scenario file
+
         process(sim, traf, scr) : central command processing method
                                   (with long elif tree with all commands)
-                                  
+
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
     def __init__(self, sim, traf, scr):
@@ -1620,4 +1620,3 @@ class Commandstack:
         # End of for-loop of cmdstack
         self.cmdstack = []
         return
-      
