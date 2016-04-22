@@ -64,8 +64,6 @@ class Traffic:
         self.dts = []
         self.ntraf = 0
         
-        self.henk = False
-        self.timer = []
         #  model-specific parameters.
         # Default: BlueSky internal performance model.
         # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
@@ -644,7 +642,7 @@ class Traffic:
                 # End of route/no more waypoints: switch off LNAV
                 if not lnavon:
                     self.swlnav[i] = False # Drop LNAV at end of route
-#
+
 #                # In case of no LNAV, do not allow VNAV mode on it sown
                 if not self.swlnav[i]:
                     self.swvnav[i] = False
@@ -737,9 +735,7 @@ class Traffic:
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
                                      (self.actwpalt>self.alt))+(1-self.swlnav)
             if self.dbconf.swasas and self.dbconf.swpasas:
-                # Find the aircarft that should start descending and store their index in icflvnav
-#                icflvnav = np.where((dist2wp<self.dist2vs) +\
-#                                    (self.actwpalt>self.alt) + (self.vs == 0.))[0]
+                # Find the aircraft that should start descending and store their index in icflvnav
                 icflvnav = np.where((self.swvnavvs == 1.) & (self.vs == 0.))[0]
                 for i in icflvnav:
                     # newavs: calculate the future state to be used in the conflict probe
@@ -836,8 +832,8 @@ class Traffic:
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
         # for information:    
 
-# no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
-#                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
+        # no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
+        #                 np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
 
         self.delspd = self.desspd - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s

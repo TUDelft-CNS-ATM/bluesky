@@ -10,7 +10,7 @@
     Created by  : Jacco M. Hoekstra (TU Delft)
     Date        : October 2013
     
-    Modifation  : Added the logging funcitonality for SKY/CFL/INT/SNAP/FLST
+    Modifation  : Added the logging funcitonality for SKY/CFL/INT/SNAP/FLST/INST/TRAJ
     By          : M.A.P. Tra
     Date        : February 2016
     
@@ -74,6 +74,7 @@ class Datalog():
         self.scenfile       = []
     
     def writesettings(self,scenfile,buffertype):
+        """ funcitons used to write the simulation settings to the textfile """
         self.scenfile = scenfile
         # If scenfile includes the .scn extension, remove it
         if self.scenfile.lower().find(".scn") > 0:
@@ -178,7 +179,7 @@ class Datalog():
         return
 
     def write(self,buffertype,t,txt):
-        # Add text to buffer with timestamp t
+        """ Add text to buffer with timestamp t """
         if buffertype == self.sky:
             self.buffer_sky.append(strftime("%H:%M:%S", localtime()) + ", " + tim2txt(t)+", "+txt+'\n')
         elif buffertype == self.cfl:
@@ -196,7 +197,7 @@ class Datalog():
         return
     
     def save(self,buffertype):
-        # Write the results to a text file
+        """ Write the results from the buffer to a text file """
         if buffertype == self.sky:
             f = open('%s.%s' % (self.fname, 'sky'),"a" )
             f.writelines(self.buffer_sky)
@@ -235,6 +236,7 @@ class Datalog():
         return
 
     def skysave(self,traf,simt):
+        """ Used to save a short overview of the traffic situation: ntraf, nconf, nlos"""
         if self.swsky:
             if self.t0sky+self.dtsky<simt or simt<self.t0sky:
                 self.t0sky = simt
@@ -243,6 +245,7 @@ class Datalog():
         return
 
     def snapsave(self,traf,simt):
+        """ Used to save SNAP data of all traffic in the experiment area"""
         if self.swsnap:
             if self.t0snap+self.dtsnap<simt or simt<self.t0snap:
                 self.t0snap = simt
@@ -255,6 +258,7 @@ class Datalog():
                     i = i + 1
 
     def instsave(self,traf,simt):
+        """ Used to save instantaneous conflict data, every dtinst seconds"""
         if self.swinst:
             if self.t0inst+self.dtinst<simt or simt<self.t0inst:
                 self.t0inst = simt

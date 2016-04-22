@@ -30,11 +30,8 @@ def resolve(dbconf):
             if id1 != "Fail" and id2!= "Fail":
 
                 dv_eby = MVP(dbconf,id1,id2)
-#                if dbconf.traf.id[id1] == 'AC0036' or dbconf.traf.id[id2] == 'AC0036':
-#                    import pdb
-#                    pdb.set_trace()
                 # If the priority switch is ON (always ON for layers), it has a different meaning for Layers than for Full Mix
-                # For layers -> Climbing has highest priority
+                # For layers -> Climbing and descending have highest priority
                 if dbconf.swprio:
                     # If aircraft 1 is cruising, and aircraft 2 is climbing -> aircraft one solves conflict horizontally
                     if abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2] > 0.1:#dbconf.traf.alt[id2] < dbconf.traf.aalt[id2]:
@@ -52,12 +49,6 @@ def resolve(dbconf):
                     elif abs(dbconf.traf.vs[id2])<0.1 and  dbconf.traf.vs[id2] < -0.1: #dbconf.traf.alt[id1] > dbconf.traf.aalt[id1]:
                         dv[id2] = dv[id2] + dv_eby
                         dv[id2][2] = 0.0
-#                    # C/D - C/D
-#                    elif dbconf.traf.alt[id1] > dbconf.traf.aalt[id1] and dbconf.traf.alt[id2] > dbconf.traf.aalt[id2]:
-#                        dv[id1] = dv[id1] - dv_eby
-#                        dv[id2] = dv[id2] + dv_eby
-#                        dv[id1][2] = 0.0
-#                        dv[id2][2] = 0.0
                     # cruising - cruising, C/D - C/D -> solved horizontally
                     else:
                         dv[id1] = dv[id1] - dv_eby
@@ -93,9 +84,6 @@ def resolve(dbconf):
     # Restrict resolution direction based on swresodir
     if dbconf.swresodir == "HORIZ":
         dv[2,:] = 0.
-#    elif dbconf.swresodir == "VERT":
-#        dv[0,:] = 0.
-#        dv[1,:] = 0.  
 
     # the new speed vector
     newv = dv+v
@@ -189,15 +177,6 @@ def MVP(dbconf, id1, id2):
     dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)
     dv2 = (iH*dcpa[1])/(abs(tcpa)*dabsH)
     dv3 = (iV*dcpa[2])/(abs(tcpa)*dabsV)
-
-    # It is necessary to cap dv3 to allow implict coordination of aircraft
-    # otherwise vertical conflict is solved in 1 timestep, leading to a vertical 
-    # separation that is too high. If vertical dynamics are included to aircraft 
-    # model in traffic.py, the below lines should be deleted
-#    if dbconf.swresodir != "VERT":
-#        mindv3 = -200./60.*ft
-#        maxdv3 = 200/60.*ft
-#        dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
 
     # combine the dv components 
     dv = np.array([dv1,dv2,dv3])    
