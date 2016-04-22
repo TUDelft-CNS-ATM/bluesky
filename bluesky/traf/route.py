@@ -256,6 +256,10 @@ class Route():
                         traf.actwpalt[i] = self.wpalt[wpidx]#self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
                         delalt = traf.alt[i] - traf.actwpalt[i]                        
                         traf.dist2vs[i] = delalt/steepness
+                        dirtowp , disttowp = qdrdist(self.traf.lat[i], self.traf.lon[i], traf.actwplat[i], traf.actwplon[i])
+                        # To avoid that dist2vs is smaller than the condition for selecting the next waypoint in traffic -> iwpclose
+                        if traf.dist2vs[i] < 11.:
+                            traf.dist2vs[i] = disttowp
                         
                # Set target speed for autopilot
                spd = self.wpspd[wpidx]
