@@ -745,26 +745,13 @@ class Traffic:
 #                                    (self.actwpalt>self.alt) + (self.vs == 0.))[0]
                 icflvnav = np.where((self.swvnavvs == 1.) & (self.vs == 0.))[0]
                 for i in icflvnav:
-#                    if self.henk == False and self.id[i] == 'AC0132':
-#                        import pdb
-#                        pdb.set_trace()
                     # newavs: calculate the future state to be used in the conflict probe
                     newavs = np.sign(self.actwpalt[i]-self.alt[i]) * (3000.*ft/(10.*nm)*self.gs[i])
                     # Using the future state, check wether this state will result in a short-term-conflict or not
-                    cfl = self.dbconf.conflictprobe(i,self.vs,newavs)
+                    cfl = self.dbconf.conflictprobe(simt,i,self.vs,newavs)
                     # If it results in a short-term-conflict, postpone the VNAV by setting the swvnavvs to 0.0
                     if cfl:
                         self.swvnavvs[i] = 0.0
-#                # Find the aircarft that selected the waypoint after their destination, and therefore lnav is False
-#                icflvnav2 = np.where((self.swlnav == 0.))[0]
-#                for i in icflvnav2:
-#                    # newavs: calculate the future state to be used in the conflict probe
-#                    newavs = np.sign(self.actwpalt[i]-self.alt[i]) * (3000.*ft/(10.*nm)*self.gs[i])
-#                    # Using the future state, check wether this state will result in a short-term-conflict or not
-#                    cfl = self.dbconf.conflictprobe(i,self.vs,newavs)
-#                    # If it results in a short-term-conflict, postpone the VNAV by setting the swvnavvs to 0.0
-#                    if cfl:
-#                        self.swvnavvs[i] = 0.0
             
             # Set autopilot settings for Vertical Speed and Altitude using the swvnavvs switch
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
@@ -876,25 +863,6 @@ class Traffic:
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
         swaltsel = np.abs(self.desalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
-                  
-#        if self.dbconf.swasas:
-#            # Find the aircarft that should start descending or climbing and store their index in icflvnav
-#            icflvnav = np.where((swaltsel) & (self.vs == 0.))[0]
-#            for i in icflvnav:
-#                if self.henk == False and self.id[i] == 'AC0132':
-#                    import pdb
-#                    pdb.set_trace()
-#                # newavs: calculate the future state to be used in the conflict probe
-#                newavs = np.sign(self.aalt[i]-self.alt[i]) * (3000.*ft/(10.*nm)*self.gs[i])
-#                # Using the future state, check wether this state will result in a short-term-conflict or not
-#                cfl = self.dbconf.conflictprobe(i,self.vs,newavs)
-#                # If it results in a short-term-conflict, postpone the VNAV by setting the swvnavvs to 0.0
-#                if cfl:
-##                    if self.henk == False:
-##                        import pdb
-##                        pdb.set_trace()
-#                    self.desalt[i] = self.alt[i]
-#                    self.desvs[i] = self.vs[i]
 
         if self.dbconf.swresodir == "VERT":
             # if asas is not active AND VNAV is not active, then it shouls use the standard climb rate.
@@ -910,7 +878,7 @@ class Traffic:
                         self.swvnav*np.abs(self.desvs))
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
-                   (1. - swaltsel) * self.alt + turbalt
+                   (1. - swaltsel) * self.desalt + turbalt
 
         # HDG HOLD/SEL mode: ahdg = ap selected heading
         delhdg = (self.deshdg - self.trk + 180.) % 360 - 180.  # [deg]

@@ -200,7 +200,7 @@ class ScreenIO(QObject):
             data.trk        = self.sim.traf.trk
 
             # Conflict statistics
-            data.nconf_tot  = len(self.sim.traf.dbconf.conflist_all)
+            data.nconf_tot  = len(self.sim.traf.dbconf.conflist_exp)
             data.nlos_tot   = len(self.sim.traf.dbconf.LOSlist_all)
             data.nconf_exp  = len(self.sim.traf.dbconf.conflist_exp)
             data.nlos_exp   = len(self.sim.traf.dbconf.LOSlist_logged)

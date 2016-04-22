@@ -585,62 +585,7 @@ class Route():
                 iwpnear= iwpnear+1
         
         return iwpnear
-        
-    def findact2(self,traf,i):
-        """ Find best default active waypoint. This is function is called if conflict is past CPA"""
-        
-        # Check for easy answers first
-        if self.nwp<=0:
-            return -1
-
-        elif self.nwp == 1:
-            return 0
-        
-        # Find closest
-        wplat  = array(self.wplat)
-        wplon  = array(self.wplon)
-        dy = wplat - traf.lat[i]
-        dx = (wplon - traf.lon[i]) * traf.coslat[i]
-        dist2 = dx*dx + dy*dy
-        iwpnear = argmin(dist2)
-        
-        qdrtoclosestwp, disttoclosestwp = qdrdist(traf.lat[i], traf.lon[i], self.wplat[iwpnear], self.wplon[iwpnear])
-        if qdrtoclosestwp < 360:
-            qdrtoclosestwp = qdrtoclosestwp + 360.
-        hdgroute = self.wpdirfrom[iwpnear]
-        if hdgroute < 0:
-            hdgroute = hdgroute + 360.
-        disttoroute = disttoclosestwp * sin(radians(abs(qdrtoclosestwp - hdgroute)))
-
-        # If the wp[iwpnear] is not the destination AND
-        # if the direction of route doesn't change too much,
-        # Then use the trajectory recovery logic
-        if self.wptype[iwpnear]!= 3: # and abs((self.wpdirfrom[self.iactwp]/self.wpdirfrom[self.iactwp-1])-1) < 0.2 :
-            qdr = rad2deg(arctan2(dx,dy))
-            delhdg = abs(qdr-self.wpdirfrom[self.iactwp])
-            # If the bearing to the active waypoint is larger
-            # than 25 degrees, choose the next waypoint
-            # A counter is used to limit the number of waypoints that can be skipped
-            counter = 0
-            while delhdg[iwpnear] > 22.5 and self.wptype[iwpnear]!= 3 and counter < 5:# and dist2[iwpnear] < 15*nm:
-                iwpnear = iwpnear+1
-                counter = counter +1
-            if self.traf.swlayer == True and disttoroute > 20. and self.wptype[iwpnear]!= 3 and self.traf.layerconcept != '':
-                dirtowp , disttowp = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[iwpnear], self.wplon[iwpnear])
-                layalt = self.CheckLayer(i, dirtowp)
-                if abs(self.traf.aalt[i] - layalt) > 100*ft or self.traf.layerconcept == '360':
-                    self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s' % \
-                                                (traf.id[i],traf.orig[i],traf.dest[i], \
-                                                 traf.lat[i],traf.lon[i],traf.alt[i]))
-                    dirtodest , disttodest = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[-1], self.wplon[-1])
-                    layalt = self.CheckLayer(i, dirtodest)
-                    self.reroute(i,dirtodest,disttodest,layalt)
-                    iwpnear = 0
-        else: # if the last waypoint is an airport, then start descending by activating VNAV logic
-            self.traf.dist2vs[i] = 1e9
-
-        return iwpnear
-    # -------------------------- NEWEST ATTEMPT BY MARTIJN ---------------------------
+    
     def findact3(self,traf,i):
         """ Find best default active waypoint. This is function is called if conflict is past CPA"""
         
@@ -651,7 +596,7 @@ class Route():
         elif self.nwp == 1:
             return 0
         
-        elif self.swlnav[i] == False:
+        elif self.traf.swlnav[i] == False:
             return self.iactwp
         
         # If the wp[iwpnear] is not the destination: check for layer altitude
@@ -659,21 +604,15 @@ class Route():
             dirtodest , disttodest = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[-1], self.wplon[-1])
             if abs(dirtodest - self.wpdirfrom[self.iactwp]) < 5. or abs(dirtodest - self.wpdirfrom[self.iactwp]) > 355.:
                 return self.iactwp
-#            if self.traf.henk == False:
-#                import pdb
-#                pdb.set_trace()
             layalt = self.CheckLayer(i, dirtodest)
             if abs(self.traf.aalt[i] - layalt) > 100*ft:
-                if self.traf.henk == False:
-                    import pdb
-                    pdb.set_trace()
+
                 self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s%s' % \
                                         (traf.id[i],traf.orig[i],traf.dest[i], \
                                          traf.lat[i],traf.lon[i],traf.alt[i],layalt))
-                lat = self.traf.lat[i] + (12*cos(dirtodest/180*pi))/60.
-                lon = self.traf.lon[i] + (12*sin(dirtodest/180*pi))/60.
+                lat = self.traf.lat[i] + (10*cos(dirtodest/180*pi))/60.
+                lon = self.traf.lon[i] + (10*sin(dirtodest/180*pi))/60.
                 spd = tas2cas(500.,(layalt*ft))
-                print layalt
                 self.addwpt(self.traf,i,self.traf.id[i],self.wplatlon,lat,lon,layalt,spd,"")
                 self.iactwp = self.nwp - 2
         return self.iactwp

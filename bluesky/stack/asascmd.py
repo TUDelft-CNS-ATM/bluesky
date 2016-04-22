@@ -119,17 +119,17 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         else:
             scr.echo("PRIO is unknown. Try again!")        
 
-    elif command == "DELAY":
+    elif command == "PASAS":
         if numargs ==0:
-            scr.echo("DELAY [ON/OFF]")
+            scr.echo("PASAS [ON/OFF]")
         elif commandargs[1] == "ON":
-            traf.dbconf.swdelay = True
-            scr.echo("DELAY ON")
+            traf.dbconf.swpasas = True
+            scr.echo("PASAS ON")
         elif commandargs[1] == "OFF" or commandargs[1] == "OF":
-            traf.dbconf.swdelay = False
-            scr.echo("DELAY OFF")
+            traf.dbconf.swpasas = False
+            scr.echo("PASAS OFF")
         else:
-            scr.echo("PRIO is unknown. Try again!")
+            scr.echo("PASAS is unknown. Try again!")
     else:
         scr.echo("Unknown command: " + callsign + command)
 

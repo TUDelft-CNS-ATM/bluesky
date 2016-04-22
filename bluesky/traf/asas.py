@@ -40,6 +40,7 @@ class Dbconf():
 
     def __init__(self,traf,tlook, R, dh):
         self.swasas      = True   # [-] whether to perform CD&R
+        self.swpasas     = False  # [-] whether to wait with VNAV or not
         self.dtlookahead = tlook  # [s] lookahead time
         self.dtlookahead_conflictprobe = 60. # [s] Look-ahead time for the conflict probe function
         
@@ -98,6 +99,7 @@ class Dbconf():
         self.LOSlist_logged = [] #Create a list of all Losses Of Separation that are logged
         self.conflist_now= [] #Create a list of current Conflicts       
         self.LOSlist_now = [] #Create a list of current Losses Of Separation
+        self.conflist_cflprobe = [] # Create a list of all conflicts detected using conflict_probe
         
         # For keeping track of locations with most severe intrusions
         self.LOSmaxsev=[] 
@@ -311,6 +313,7 @@ class Dbconf():
             
             if combi not in self.conflist_all and combi2 not in self.conflist_all:
                 self.conflist_all.append(combi)
+                self.conflist_exp.append(combi)
                 # If the conflict is added to conflist_all and the logging switch is on, write conflict to buffer
                 if self.traf.log.swcfl:
                     self.traf.log.write(1,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
@@ -539,7 +542,7 @@ class Dbconf():
     def checkLOS(self,HLOS,VLOS,i,j):
         return HLOS & VLOS
 
-    def conflictprobe(self,i,vs,newavs):
+    def conflictprobe(self,simt,i,vs,newavs):
         # If not swasas, don't perform a conflict check
         if not self.swasas:
             return False
@@ -547,7 +550,7 @@ class Dbconf():
         # Filter: If the aircraft is below 1000 ft, no conflicts are detected
         if self.traf.alt[i] < 1000*ft:
             return False
-        
+
         qdlst = qdrdist_vector(self.traf.lat[i],self.traf.lon[i], \
                     self.traf.lat,self.traf.lon)
         qdr      = np.array(qdlst[0])
@@ -628,6 +631,27 @@ class Dbconf():
         idx_ver = np.where(verticalcfl == True)
         for k in idx_hor:
             if verticalcfl[k][i] == True and k != i:
+                combi=str(self.traf.id[i])+" "+str(self.traf.id[k])
+                if combi not in self.conflist_cflprobe:
+                    tinconf = np.maximum(tinver[k][i],tinhor[0][k])
+                    toutconf = np.minimum(toutver[k][i],touthor[0][k])
+                    rng = tcpa[k]*self.traf.gs[i]/nm
+                    lato,lono = qdrpos(self.traf.lat[i],self.traf.lon[i], \
+                                       self.traf.trk[i],rng)
+                    alto = self.traf.alt[k]+tcpa[k]*newavs
+                    rng = tcpa[k]*self.traf.gs[k]/nm
+                    lati,loni = qdrpos(self.traf.lat[k],self.traf.lon[k], \
+                               self.traf.trk[k],rng)
+                    alti= self.traf.alt[k] + tcpa[k] * vs[k]
+                    self.traf.log.write(1,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                    % (self.traf.id[i],self.traf.id[k],tcpa[k],tinconf,toutconf, \
+                                       lato,lono,alto,self.traf.inconflict[i],\
+                                       lati,loni,alti,self.traf.inconflict[k],\
+                                       self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+                                       self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+                                       self.traf.lat[k],self.traf.lon[k],self.traf.trk[k],self.traf.alt[k], \
+                                       self.traf.tas[k],self.traf.gs[k],self.traf.vs[k],self.traf.type[k]))
+                    self.conflist_cflprobe.append(combi)
                 return True
 
         return False
