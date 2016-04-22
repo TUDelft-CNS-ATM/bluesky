@@ -40,13 +40,13 @@ class Traffic:
         deletall()           : delete all traffic
         update(sim)          : do a numerical integration step
         id2idx(name)         : return index in traffic database of given call sign
-        selhdg(i,hdg)        : set autopilot heading and activate heading select mode 
-        selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode 
+        selhdg(i,hdg)        : set autopilot heading and activate heading select mode
+        selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode
 
         engchange(i,engtype) : change engine type of an aircraft
 
         changeTrailColor(color,idx)     : change colour of trail of aircraft idx
- 
+
         setNoise(A)          : Add turbulence
 
     Members: see create
@@ -935,7 +935,7 @@ class Traffic:
     def setNoise(self, noiseflag=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
         if noiseflag is None:
-            return False, "Noise is currently " + ("on" if noiseflag else "off")
+            return True, "Noise is currently " + ("on" if noiseflag else "off")
 
         self.noise              = noiseflag
         self.trunctime          = 1                   # seconds
@@ -1024,3 +1024,89 @@ class Traffic:
     def nom(self, idx):
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
         self.ax[idx] = kts
+
+    def setLNAV(self, idx, flag=None):
+        """ Set LNAV on or off for a specific or for all aircraft """
+        if idx is None:
+            # All aircraft are targeted
+            self.swlnav = np.array(self.ntraf*[flag])
+
+        elif flag is None:
+            return True, (self.id[idx] + ": LNAV is " + "ON" if self.swlnav[idx] else "OFF")
+
+        elif flag:
+            route = self.route[idx]
+            if route.nwp > 0:
+                self.swlnav[idx] = True
+                route.direct(self, idx, route.wpname[route.findact(self, idx)])
+            else:
+                return False, ("LNAV " + self.id[idx] + ": no waypoints or destination specified")
+        else:
+            self.swlnav[idx] = False
+
+    def setVNAV(self, idx, flag=None):
+        """ Set VNAV on or off for a specific or for all aircraft """
+        if idx is None:
+            # All aircraft are targeted
+            self.swvnav = np.array(self.ntraf*[flag])
+
+        elif flag is None:
+            return True, (self.id[idx] + ": VNAV is " + "ON" if self.swvnav[idx] else "OFF")
+
+        elif flag:
+            if not self.swlnav[idx]:
+                return False, (self.id[idx] + ": VNAV ON requires LNAV to be ON")
+
+            route = self.route[idx]
+            if route.nwp > 0:
+                self.swvnav[idx] = True
+                route.direct(self, idx, route.wpname[route.findact(self, idx)])
+            else:
+                return False, ("VNAV " + self.id[idx] + ": no waypoints or destination specified")
+        else:
+            self.swvnav[idx] = False
+
+    def setDestOrig(self, cmd, idx, *args):
+        if len(args) == 0:
+            if cmd == 'DEST':
+                return True, ('DEST ' + self.id[idx] + ': ' + self.dest[idx])
+            else:
+                return True, ('ORIG ' + self.id[idx] + ': ' + self.orig[idx])
+
+        route = self.route[idx]
+        if len(args) == 1:
+            name = args[0]
+            apidx = self.navdb.getapidx(name)
+            if apidx < 0:
+                return False, (cmd + ": Airport " + name + " not found.")
+            lat = self.navdb.aplat[apidx]
+            lon = self.navdb.aplon[apidx]
+        else:
+            name = self.id[idx] + cmd
+            lat, lon = args
+
+        if cmd == "DEST":
+            self.dest[idx] = name
+            iwp = route.addwpt(self, idx, self.dest[idx], route.dest,
+                               lat, lon, 0.0, self.cas[idx])
+            # If only waypoint: activate
+            if (iwp == 0) or (self.orig[idx] != "" and route.nwp == 2):
+                self.actwplat[idx] = route.wplat[iwp]
+                self.actwplon[idx] = route.wplon[iwp]
+                self.actwpalt[idx] = route.wpalt[iwp]
+                self.actwpspd[idx] = route.wpspd[iwp]
+
+                self.swlnav[idx] = True
+                route.iactwp = iwp
+
+            # If not found, say so
+            elif iwp < 0:
+                return False, (self.dest[idx] + " not found.")
+
+        # Origin: bookkeeping only for now
+        else:
+            self.orig[idx] = name
+            iwp = route.addwpt(self, idx, self.orig[idx], route.orig,
+                               self.lat[idx], self.lon[idx], 0.0, self.cas[idx])
+            if iwp < 0:
+                return False, (self.orig[idx] + " not found.")

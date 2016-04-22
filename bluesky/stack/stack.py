@@ -36,6 +36,7 @@ class Commandstack:
 
         #Command dictionary: command, helptext, arglist, function to call
         # Enclose optional arguments with []
+        # Separate argument type variants with /
         #--------------------------------------------------------------------
         self.cmddict = {
             "ADDNODES": [
@@ -53,13 +54,18 @@ class Commandstack:
                 sim.batch],
             "CRE": [
                 "CRE acid,type,lat,lon,hdg,alt,spd",
-                "txt,txt,lat,lon,hdg,alt,spd",
+                "txt,txt,latlon,hdg,alt,spd",
                 traf.create
             ],
             "DATAFEED":  [
                 "DATAFEED [ON/OFF]",
                 "[onoff]",
                 sim.datafeed
+            ],
+            "DEST": [
+                "DEST acid, latlon/airport",
+                "acid,latlon/txt",
+                lambda *args: traf.setDestOrig("DEST", *args)
             ],
             "DT": [
                 "DT dt",
@@ -111,6 +117,11 @@ class Commandstack:
                 "txt",
                 scr.cmdline
             ],
+            "LNAV": [
+                "LNAV acid,[ON/OFF]",
+                "acid,[onoff]",
+                traf.setLNAV
+            ],
             "LOG": [
                 "LOG acid/area/*,dt",
                 "txt,float",
@@ -123,7 +134,7 @@ class Commandstack:
             ],
             "MOVE": [
                 "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
-                "acid,lat,lon,[alt,hdg,spd,vspd]",
+                "acid,latlon,[alt,hdg,spd,vspd]",
                 traf.move
             ],
             "ND": [
@@ -144,6 +155,11 @@ class Commandstack:
                 "OP",
                 "",
                 sim.start
+            ],
+            "ORIG": [
+                "ORIG acid, latlon/airport",
+                "acid,latlon/txt",
+                lambda *args: traf.setDestOrig("ORIG", *args)
             ],
             "PCALL": [
                 "PCALL filename [REL/ABS]",
@@ -182,6 +198,11 @@ class Commandstack:
                 "SYMBOL",
                 "",
                 scr.symbol
+            ],
+            "VNAV": [
+                "VNAV acid,[ON/OFF]",
+                "acid,[onoff]",
+                traf.setVNAV
             ],
             "VS": [
                 "VS acid,vspd (ft/min)",
@@ -500,7 +521,6 @@ class Commandstack:
                     # Add optional argument types if they are given
                     if len(argvsopt) == 2:
                         argtypes += argvsopt[1].strip(']').split(',')
-                    numtypes = len(argtypes)
 
                     # Process arg list
                     # Special case: single text argument: this can also be a string, so pass the original
@@ -508,87 +528,23 @@ class Commandstack:
                         arglist = [line[len(cmd) + 1:]]
                     else:
                         arglist = []
-                        idx     = -1          # Reference aircraft
-                        refalt  = 0.          # Reference altitude
-                        reflat  = scr.ctrlat  # Reference latitude
-                        reflon  = scr.ctrlon  # Reference longitude
-                        try:
-                            for i in range(min(numtypes, numargs)):
-                                argtype = argtypes[i].strip()
-
-                                if args[i] == "" or args[i] == "*":  # Empty arg or wildcard => parse None
-                                    arglist.append(None)
-
-                                elif argtype == "acid":  # aircraft id => parse index
-
-                                    idx = traf.id2idx(args[i])
-                                    if idx < 0:
-                                        scr.echo(cmd + ":" + args[i] + " not found")
-                                        synerr = True
-                                        break
+                        curtype = curarg = 0
+                        for curtype in range(min(len(argtypes), len(args))):
+                            argtype    = argtypes[curtype].strip().split('/')
+                            for i in range(len(argtype)):
+                                try:
+                                    parsed_arg = self.argparse(argtype[i], curarg, args, traf, scr)
+                                    arglist += parsed_arg
+                                    curarg  += len(parsed_arg)
+                                except:
+                                    if i < len(argtype) - 1:
+                                        # We have alternative argument formats that we can try
+                                        continue
                                     else:
-                                        arglist.append(idx)
-
-                                elif argtype == "txt":  # simple text
-                                    arglist.append(args[i])
-
-                                elif argtype == "float":  # float number
-                                    arglist.append(float(args[i]))
-
-                                elif argtype == "int":   # integer
-                                    arglist.append(int(args[i]))  # switch
-
-                                elif argtype == "onoff" or argtype == "bool":
-                                    sw = (args[i] == "ON" or
-                                          args[i] == "1" or args[i] == "TRUE")
-                                    arglist.append(sw)
-
-                                elif argtype == "lat":
-                                    try:
-                                        reflat = txt2lat(args[i])
-                                        arglist.append(float(reflat))
-                                    except:
                                         synerr = True
-
-                                elif argtype == "lon":
-                                    try:
-                                        reflon = txt2lon(args[i])
-                                        arglist.append(float(reflon))
-                                    except:
-                                        synerr = True
-
-                                elif argtype == "spd":  # CAS[kts] Mach
-                                    spd = float(args[i].upper().replace("M", ".").replace("..", "."))
-                                    if not 0.1 < spd < 1.0:
-                                        spd *= kts
-                                    arglist.append(spd)  # speed CAS[m/s] or Mach (float)
-
-                                elif argtype == "vspd":
-                                    arglist.append(fpm * float(args[i]))
-
-                                elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-                                    arglist.append(ft * txt2alt(args[i]))  # alt in m
-
-                                elif argtype == "hdg":
-                                    # TODO: for now no difference between magnetic/true heading
-                                    hdg = float(args[i].upper().replace('T', '').replace('M', ''))
-                                    arglist.append(hdg)
-
-                                elif argtype == "time":
-                                    ttxt = args[i].strip().split(':')
-                                    if len(ttxt) >= 3:
-                                        ihr  = int(ttxt[0])
-                                        imin = int(ttxt[1])
-                                        xsec = float(ttxt[2])
-                                        arglist.append(ihr * 3600. + imin * 60. + xsec)
-                                    else:
-                                        arglist.append(float(args[i]))
-
-                        except:
-                            synerr = False
-                            scr.echo("Syntax error in processing arguments")
-                            scr.echo(line)
-                            scr.echo(helptext)
+                                        scr.echo("Syntax error in processing arguments")
+                                        scr.echo(line)
+                                        scr.echo(helptext)
 
                     # Call function return flag,text
                     # flag: indicates sucess
@@ -603,7 +559,7 @@ class Commandstack:
                         if type(results) == bool:  # Only flag is returned
                             synerr = not results
                             if synerr:
-                                if numargs <= 0 or args[i] == "?":
+                                if numargs <= 0 or args[curarg] == "?":
                                     scr.echo(helptext)
                                 else:
                                     scr.echo("Syntax error: " + helptext)
@@ -677,90 +633,6 @@ class Commandstack:
                             success = traf.delete(args[0].upper())
                             if not success:
                                 scr.echo("DEL: " + args[0] + " not found.")
-
-                #----------------------------------------------------------------------
-                # DEST/ORIG: Destination/Origin command: set destination/origin airport
-                #----------------------------------------------------------------------
-                elif cmd == "DEST" or cmd == "ORIG":
-                    if numargs==0:
-                        scr.echo(cmd+" acid, airport")
-                    elif numargs >=1:
-                        acid = args[0]
-                        idx = traf.id2idx(acid)
-                        if idx>=0 and numargs==1:
-                            if cmd=="DEST":
-                                scr.echo("DEST "+acid+": "+traf.dest[idx])                            
-                            else:
-                                scr.echo("ORIG "+acid+": "+traf.orig[idx])                            
-                            
-                        elif idx >= 0 and numargs>=2:
-                            name = args[1]
- 
-                           # Check for lat/lon type
-                            if numargs>=3:
-                                chkdig = args[1].replace("-","")     \
-                                       .replace("+","").replace(".","") \
-                                       .replace("N","").replace("S","") \
-                                       .replace("E","").replace("W","") \
-                                       .replace("'","").replace('"',"") 
-
-                                if chkdig.isdigit():
-          
-                                        name    = traf.id[idx]+cmd # use for wptname
-                                        if cmd=="DEST":
-                                            wptype  = traf.route[idx].dest
-                                        else:
-                                            wptype  = traf.route[idx].orig
-                                           
-                                        lat     = txt2lat(args[1])
-                                        lon     = txt2lon(args[2])
- 
-                              
-                            # Destination is default waypoint
-                            if cmd == "DEST":
-                                traf.dest[idx] = name.upper().strip()
-                                iwp = traf.route[idx].addwpt(traf,idx,traf.dest[idx],
-                                                             traf.route[idx].dest,
-                                                             traf.lat[idx], traf.lon[idx],
-                                                             0.0, traf.cas[idx])
-                                # If only waypoint: activate
-                                if (iwp == 0) or (traf.orig[idx]!="" and traf.route[idx].nwp==2):
-                                     traf.actwplat[idx] = traf.route[idx].wplat[iwp]
-                                     traf.actwplon[idx] = traf.route[idx].wplon[iwp]
-                                     traf.actwpalt[idx] = traf.route[idx].wpalt[iwp]
-                                     traf.actwpspd[idx] = traf.route[idx].wpspd[iwp]
-
-                                     traf.swlnav[idx] = True
-                                     traf.route[idx].iactwp = iwp
-
-                                # If not found, say so
-                                elif iwp < 0:
-                                     scr.echo(traf.dest[idx] + " not found.")
-
-                            # Origin: bookkeeping only for now
-                            else:
-                                traf.orig[idx] = name.upper().strip()
-                                iwp = traf.route[idx].addwpt(traf,idx,traf.orig[idx],traf.route[idx].orig,
-                                                 traf.lat[idx], traf.lon[idx],
-                                                          0.0, traf.cas[idx])
-                                if iwp < 0:
-                                     scr.echo(traf.orig[idx] + " not found.")
-                        # Give destination and origin
-                        elif idx >=0 and numargs==1:
-                            txt = ""
-                            if traf.orig[idx]!="":
-                                txt = txt + " from "+traf.orig[idx]
-                            if traf.dest[idx]!="":
-                                txt = txt + " to "+traf.dest[idx]
-                            if len(txt)>0:
-                                scr.echo(traf.id[idx]+txt)
-                            else:
-                                scr.echo(traf.id[idx]+": orig and dest not defined.")
-
-                        else:
-                            scr.echo(cmd + ": aircraft " + acid + " not found.")
-                    else:
-                        synerr = True
 
                 #----------------------------------------------------------------------
                 # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -1182,7 +1054,7 @@ class Commandstack:
                                  " nm   QDR = " + str(round(qdr,2)) + " deg")
                         except:
                             scr.echo("DIST: Syntax error")
-                
+
                 #----------------------------------------------------------------------
                 # CALC  expression
                 #----------------------------------------------------------------------
@@ -1195,90 +1067,6 @@ class Commandstack:
                             scr.echo("Ans = " + str(x))
                         except:
                             scr.echo("CALC: Syntax error")
-
-                #----------------------------------------------------------------------
-                # LNAV acid ON/OFF   Switch LNAV (HDG FMS navigation) on/off
-                #----------------------------------------------------------------------
-                elif cmd == "LNAV":
-                    if numargs == 0:
-                        scr.echo("LNAV acid, ON/OFF")
-                    else:
-                        idx = traf.id2idx(args[0])
-
-                        if idx<0:
-                            if args[0]=="*":  # all aircraft
-                               if args[1].upper() == "ON":
-                                   traf.swlnav = np.array(traf.ntraf*[True])
-                               elif args[1].upper() == "OFF":
-                                   traf.swlnav = np.array(traf.ntraf*[False])
-                               else:
-                                   synerr = True
-                            else:
-                                scr.echo(args[0]+"not found")
-                        else:
-                            acid = traf.id[idx]
-                            if numargs ==1:
-                                if traf.swlnav[idx] == "ON":
-                                    scr.echo(acid+": LNAV ON")
-                                else:
-                                    scr.echo(acid+": LNAV OFF")
-
-                            else:
-                                if args[1] == "ON":
-                                    if traf.route[idx].nwp > 0: # If there are any waypoints defined
-                                        traf.swlnav[idx] = True
-        
-                                        iwp = traf.route[idx].findact(traf,idx)
-                                        traf.route[idx].direct(traf, idx, traf.route[idx].wpname[iwp])
-                                    else:
-                                        scr.echo("LNAV "+acid+": no waypoints or destination specified")
-    
-                                elif args[1] == "OFF":
-                                    traf.swlnav[idx] = False
-
-                #----------------------------------------------------------------------
-                # VNAV acid ON/OFF  Switch VNAV (SPD+ALT FMS navigation)  on/off
-                #----------------------------------------------------------------------
-                elif cmd == "VNAV":
-                    if numargs == 0:
-                        scr.echo("VNAV acid, ON/OFF")
-                    else:
-                        idx = traf.id2idx(args[0])
-                        if idx<0:
-                            if args[0]=="*":  # all aircraft
-                               if args[1] == "ON": # Only when LNAV is on!
-                                   traf.swvnav = np.array(traf.ntraf*[True])*traf.swlnav
-                               elif args[1] == "OFF":
-                                   traf.swvnav = np.array(traf.ntraf*[False])
-                               else:
-                                   synerr = True
-                            else:
-                                scr.echo(args[0]+"not found")
-
-                        elif numargs ==1:
-
-                            acid = traf.id[idx]
-                            if traf.swvnav[idx] == "ON":
-                               scr.echo(acid+": VNAV ON")
-                            else:
-                                scr.echo(acid+": VNAV OFF")
-
-                        else:
-                            acid = traf.id[idx]
-                            if args[1] == "ON":
-                                if not traf.swlnav[idx]:   
-                                    scr.echo(acid+": VNAV ON requires LNAV to be ON")
-                                else:
-                                    traf.swvnav[idx] = True
-                                    # Activate AP setting by pressing Direct again
-                                    if traf.route[idx].nwp>0: 
-                                        traf.route[idx].direct( traf , idx,  \
-                                           traf.route[idx].wpname[traf.route[idx].iactwp])
-
-                            elif args[1] == "OFF":
-                                traf.swvnav[idx] = False
-                            else:
-                                synerr = True
 
                 #----------------------------------------------------------------------
                 # ASAS ON/OFF  : switch ASAS on/off
@@ -1594,7 +1382,66 @@ class Commandstack:
                     scr.echo("Syntax error in command:" + cmd)
                     scr.echo(line)
 
-
         # End of for-loop of cmdstack
         self.cmdstack = []
         return
+
+    def argparse(self, argtype, argidx, args, traf, scr):
+        parsed_args = []
+
+        if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
+            parsed_args.append(None)
+
+        elif argtype == "acid":  # aircraft id => parse index
+            idx = traf.id2idx(args[argidx])
+            if idx < 0:
+                scr.echo(cmd + ":" + args[idx] + " not found")
+            else:
+                parsed_args.append(idx)
+
+        elif argtype == "txt":  # simple text
+            parsed_args.append(args[argidx])
+
+        elif argtype == "float":  # float number
+            parsed_args.append(float(args[argidx]))
+
+        elif argtype == "int":   # integer
+            parsed_args.append(int(args[argidx]))
+
+        elif argtype == "onoff" or argtype == "bool":
+            sw = (args[argidx] == "ON" or
+                  args[argidx] == "1" or args[argidx] == "TRUE")
+            parsed_args.append(sw)
+
+        elif argtype == "latlon":
+            parsed_args.append(txt2lat(args[argidx]))
+            parsed_args.append(txt2lon(args[argidx + 1]))
+
+        elif argtype == "spd":  # CAS[kts] Mach
+            spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
+            if not 0.1 < spd < 1.0:
+                spd *= kts
+            parsed_args.append(spd)  # speed CAS[m/s] or Mach (float)
+
+        elif argtype == "vspd":
+            parsed_args.append(fpm * float(args[argidx]))
+
+        elif argtype == "alt":  # alt: FL250 or 25000 [ft]
+            parsed_args.append(ft * txt2alt(args[argidx]))  # alt in m
+
+        elif argtype == "hdg":
+            # TODO: for now no difference between magnetic/true heading
+            hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
+            parsed_args.append(hdg)
+
+        elif argtype == "time":
+            ttxt = args[argidx].strip().split(':')
+            if len(ttxt) >= 3:
+                ihr  = int(ttxt[0])
+                imin = int(ttxt[1])
+                xsec = float(ttxt[2])
+                parsed_args.append(ihr * 3600. + imin * 60. + xsec)
+            else:
+                parsed_args.append(float(args[argidx]))
+
+        return parsed_args
