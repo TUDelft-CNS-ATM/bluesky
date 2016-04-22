@@ -36,7 +36,7 @@ sys.path.append('bluesky/traf/CDRmethods/')
 
 class Dbconf():
 
-# Constructor of conflict database, call with SI units (meters and seconds)
+    # Constructor of conflict database, call with SI units (meters and seconds)
 
     def __init__(self,traf,tlook, R, dh):
         self.swasas      = True   # [-] whether to perform CD&R
@@ -77,7 +77,7 @@ class Dbconf():
     def SetResoDirection(self,direction):
         self.swresodir = direction
 
-# Reset conflict database
+    # Reset conflict database
 
     def reset(self):
         self.conf        = []     # Start with emtpy database: no conflicts
@@ -115,20 +115,20 @@ class Dbconf():
         if not self.swasas:
             return
 
-#        t0_ = time.clock()     # Timing of ASAS calculation
+        #        t0_ = time.clock()     # Timing of ASAS calculation
 
-# Horizontal conflict ---------------------------------------------------------
+        # Horizontal conflict ---------------------------------------------------------
 
-# qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
+        # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
         qdlst = qdrdist_vector(np.mat(self.traf.lat),np.mat(self.traf.lon),\
                                   np.mat(self.traf.adsblat),np.mat(self.traf.adsblon))
 
-# Convert results from mat-> array
+        # Convert results from mat-> array
         self.qdr      = np.array(qdlst[0])  # degrees
         I             = np.eye(self.traf.ntraf) # Identity matric of order ntraf
         self.dist     = np.array(qdlst[1])*nm + 1e9*I # meters i to j
                     
-# Transmission noise
+        # Transmission noise
         if self.traf.ADSBtransnoise:
             # error in the determined bearing between two a/c
             bearingerror=np.random.normal(0,self.traf.transerror[0],self.qdr.shape) #degrees
@@ -137,7 +137,7 @@ class Dbconf():
             disterror=np.random.normal(0,self.traf.transerror[1],self.dist.shape) #meters
             self.dist+=disterror
 
-# Calculate horizontal closest point of approach (CPA)        
+        # Calculate horizontal closest point of approach (CPA)
         qdrrad  = np.radians(self.qdr)
         self.dx      = self.dist * np.sin(qdrrad) # is pos j rel to i
         self.dy      = self.dist * np.cos(qdrrad) # is pos j rel to i
@@ -165,25 +165,25 @@ class Dbconf():
         xcpa = self.tcpa*self.du
         ycpa = self.tcpa*self.dv
 
-# Calculate distance^2 at CPA (minimum distance^2)
+        # Calculate distance^2 at CPA (minimum distance^2)
         dcpa2 = self.dist*self.dist-self.tcpa*self.tcpa*dv2
 
-# Check for horizontal conflict
+        # Check for horizontal conflict
         R2        = self.R*self.R
         self.swhorconf = dcpa2<R2 # conflict or not
         
-# Calculate times of entering and leaving horizontal conflict        
+        # Calculate times of entering and leaving horizontal conflict
         dxinhor   = np.sqrt(np.maximum(0.,R2-dcpa2)) # half the distance travelled inzide zone
         dtinhor   = dxinhor/vrel
 
         tinhor    = np.where(self.swhorconf,self.tcpa - dtinhor,1e8) # Set very large if no conf
         
         touthor   = np.where(self.swhorconf,self.tcpa + dtinhor,-1e8) # set very large if no conf
-#        swhorconf = swhorconf*(touthor>0)*(tinhor<self.dtlook)
+        #        swhorconf = swhorconf*(touthor>0)*(tinhor<self.dtlook)
        
-# Vertical conflict -----------------------------------------------------------
+       # Vertical conflict -----------------------------------------------------------
 
-# Vertical crossing of disk (-dh,+dh)
+        # Vertical crossing of disk (-dh,+dh)
 
         alt       = self.traf.alt.reshape((1,self.traf.ntraf))
         adsbalt   = self.traf.adsbalt.reshape((1,self.traf.ntraf))
@@ -202,7 +202,7 @@ class Dbconf():
 
         dvs = vs-avs.T
 
-# Check for passing through each others zone       
+        # Check for passing through each others zone
         dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
         tcrosshi  = (self.dalt + self.dh)/-dvs
         tcrosslo  = (self.dalt - self.dh)/-dvs
@@ -210,7 +210,7 @@ class Dbconf():
         tinver    = np.minimum(tcrosshi,tcrosslo)
         toutver   = np.maximum(tcrosshi,tcrosslo)
         
-# Combine vertical and horizontal conflict-------------------------------------
+        # Combine vertical and horizontal conflict-------------------------------------
         self.tinconf = np.maximum(tinver,tinhor)
         
         self.toutconf = np.minimum(toutver,touthor)
@@ -221,7 +221,7 @@ class Dbconf():
                            
         return
     
-    # ==================== Conflict Filter (User specific) ======================
+# ==================== Conflict Filter (User specific) ======================
     def conflictfilter(self, simt):
         if not self.swasas:
             return
@@ -230,16 +230,9 @@ class Dbconf():
         self.swconfl[idx_conffilter,:] = 0.                                    # Make the rows of the 'restricted' aircraft zero
         self.swconfl[:,idx_conffilter] = 0.                                    # Make the columns of the 'restricted' aircraft zero
         
-        ## Filter for conflicts: if swdelay is True and if tcpa is smaller than 2 minutes, ignore conflict
-        if self.swdelay:
-            tcpa_filter = self.tcpa
-            tcpa_filter[self.tcpa < 120.] = 0.
-            tcpa_filter[self.tcpa >= 120.] = 1.
-            self.swconfl = np.multiply(self.swconfl,tcpa_filter)
-        
         return
 
-    # ==================== Conflict Listing ======================
+# ==================== Conflict Listing ======================
     def conflictlist(self, simt):
         if len(self.swconfl) == 0:
             return
@@ -430,7 +423,7 @@ class Dbconf():
     # Decide for each aircraft whether the ASAS should be followed or not
     def APorASAS(self,simt):
 
-# Only use when ASAS is on
+        # Only use when ASAS is on
         if not self.swasas:
             return
             
@@ -442,9 +435,11 @@ class Dbconf():
         for conflict in self.conflist_all: 
             id1,id2 = self.ConflictToIndices(conflict)
             
+            # If both aircraft still exist in the simulation (e.g. are not deleted)
             if id1 != "Fail" and id2 != "Fail":
                 pastCPA=self.ConflictIsPastCPA(self.traf,id1,id2)
                 
+                # If the conflict is not past the closest-point-of-approach (CPA), follow ASAS
                 if not pastCPA:
                     # Indicate that the A/C must follow their ASAS
                     self.traf.asasactive[id1] = True 
@@ -452,35 +447,39 @@ class Dbconf():
 
                     self.traf.asasactive[id2] = True
                     self.traf.inconflict[id2] = True
-
+            
+                # If the conflict is past the closest-point-of-approach (CPA),
+                # find the right waypoint/altitude using trajectory_recovery(),
+                # And using direct() activate this waypoint
                 else:
                     # Find the next active waypoint and delete the conflict from conflist_all
-                    iwpid1 = self.traf.route[id1].findact3(self.traf,id1)
+                    iwpid1 = self.traf.route[id1].trajectory_recovery(self.traf,id1)
                     if iwpid1 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
-                    iwpid2 = self.traf.route[id2].findact3(self.traf,id2)
+                    iwpid2 = self.traf.route[id2].trajectory_recovery(self.traf,id2)
                     if iwpid2 != -1: # To avoid problems if there are no waypoints
                         self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
                     
                     # if conflict is solved, remove it from the conflist_all
                     self.conflist_all.remove(conflict)
 
-    
+            # If aircraft id1 cannot be found in traffic, start trajectory recovery for aircraft id2
+            # And remove the conflict from the conflict_all list
             elif id1 == "Fail" and id2!= "Fail":
-                 iwpid2 = self.traf.route[id2].findact3(self.traf,id2)
+                 iwpid2 = self.traf.route[id2].trajectory_recovery(self.traf,id2)
                  if iwpid2 != -1: # To avoid problems if there are no waypoints
                      self.traf.route[id2].direct(self.traf, id2, self.traf.route[id2].wpname[iwpid2])
-                 if conflict in self.LOSlist_all:
-                     self.LogLOS(simt, conflict, id1,id2)
                  self.conflist_all.remove(conflict)
-            
+
+            # If aircraft id2 cannot be found in traffic, start trajectory recovery for aircraft id1
+            # And remove the conflict from the conflict_all list
             elif id2 == "Fail" and id1 != "Fail":
-                iwpid1 = self.traf.route[id1].findact3(self.traf,id1)
+                iwpid1 = self.traf.route[id1].trajectory_recovery(self.traf,id1)
                 if iwpid1 != -1: # To avoid problems if there are no waypoints
                     self.traf.route[id1].direct(self.traf, id1, self.traf.route[id1].wpname[iwpid1])
                 self.conflist_all.remove(conflict)
             
-            # if both are fail, then remove the conflict from the conflist_all
+            # if both are fail, then remove the conflict from the conflist_all list
             else:
                 self.conflist_all.remove(conflict)
                      
@@ -513,14 +512,17 @@ class Dbconf():
         hdist2 = dx**2+dy**2
         hLOS  = hdist2<self.R**2
         
-        # If two aircraft solved the conflict vertically, pastCPA is false as long as there is HLOS, to avoid that the aircraft recover their route too fast, into an intrusion with negative tcpa
+        # If two aircraft solved the conflict vertically, pastCPA is false as long as there is HLOS,
+        # to avoid that the aircraft recover their route too fast, into an intrusion with negative tcpa
         if hLOS:
             pastCPA = False
-        # If two aircraft have a conflict with small delta hdg, pastCPA is only past CPA when the distance is more than Rm. This is to avoid that these conflicts become a 'traffic light' conflict resulting in intrusion
+        # If two aircraft have a conflict with small delta hdg, pastCPA is only past CPA when the distance is more than Rm.
+        # This is to avoid that these conflicts become a 'traffic light' conflict resulting in intrusion
         if (abs(traf.trk[id1] - traf.trk[id2]) < 30.) &  (hdist2<self.Rm**2):
             pastCPA = False
 
-        # If both aircraft leveled off, check vertical separation. If both aircraft are seperated enough, we are pastCPA to recover route
+        # If both aircraft leveled off, check vertical separation.
+        # If both aircraft are seperated enough, we are pastCPA to recover route
         if abs(traf.vs[id1]) < 0.1 and abs(traf.vs[id2]) < 0.1 and abs(traf.alt[id1]-traf.alt[id2]) > 1000*ft:
             pastCPA = True
 
@@ -538,11 +540,18 @@ class Dbconf():
             return "Fail","Fail"
 
         return id1,id2
+
+#====================== Check for Loss of Separation =====================
     
     def checkLOS(self,HLOS,VLOS,i,j):
         return HLOS & VLOS
 
+#====================== Conflict Probe: check for neccesity of preventiVe ASAS maneuver=====================
+
     def conflictprobe(self,simt,i,vs,newavs):
+        """ Preventive ASAS detection funtion: based on future state of aircraft i. 
+            If aircraft i has a conflict within dtlookahead_conflictprobe, postpone the VNAV maneuver"""
+        
         # If not swasas, don't perform a conflict check
         if not self.swasas:
             return False
@@ -550,22 +559,25 @@ class Dbconf():
         # Filter: If the aircraft is below 1000 ft, no conflicts are detected
         if self.traf.alt[i] < 1000*ft:
             return False
-
+        
+        #### Horizontal crossing of disk (R) ####
+                
+        # Calculate the distance and heading between aircraft i and all the others
         qdlst = qdrdist_vector(self.traf.lat[i],self.traf.lon[i], \
                     self.traf.lat,self.traf.lon)
         qdr      = np.array(qdlst[0])
         dist     = np.array(qdlst[1])*nm
 
         qdrrad  = np.radians(qdr)
-        dx      = dist * np.sin(qdrrad) # is pos j rel to i
-        dy      = dist * np.cos(qdrrad) # is pos j rel to i
+        dx      = dist * np.sin(qdrrad) # is positions relative to i
+        dy      = dist * np.cos(qdrrad) # is positions relative to i
         
         trkrad = np.radians(self.traf.trk)
         u      = self.traf.gs*np.sin(trkrad)  # m/s
         v      = self.traf.gs*np.cos(trkrad)  # m/s
         
-        du = u - u[i]  # Speed du[i,j] is perceived eastern speed of i to j
-        dv = v - v[i]  # Speed dv[i,j] is perceived northern speed of i to j
+        du = u - u[i]  # Speed du is perceived eastern speed of all aricraft relative to i
+        dv = v - v[i]  # Speed dv is perceived eastern speed of all aricraft relative to i
         
         dv2  = du*du+dv*dv
         dv2  = np.where(np.abs(dv2)<1e-6,1e-6,dv2) # limit lower absolute value
@@ -594,10 +606,12 @@ class Dbconf():
         
         touthor   = np.where(swhorconf,tcpa + dtinhor,-1e8) # set very large if no conf
         
-        horizontalcfl = swhorconf * (tinhor<=touthor)*  (touthor>0.)*(tinhor<self.dtlookahead)
+        # Check for horizontal conflicts, using dtlookahead_conflictprobe
+        # Store the indices of conflicting aircraft in idx_hor
+        horizontalcfl = swhorconf * (tinhor<=touthor)*  (touthor>0.)*(tinhor<self.dtlookahead_conflictprobe)
         idx_hor = np.where(horizontalcfl == True)[1]
 
-        # Vertical crossing of disk (-dh,+dh)
+        #### Vertical crossing of disk (-dh,+dh) ####
 
         I             = np.eye(self.traf.ntraf) # Identity matric of order ntraf
 
@@ -608,7 +622,7 @@ class Dbconf():
             alterror=np.random.normal(0,self.traf.transerror[2],adsbalt.shape) #degrees
             adsbalt+=alterror
     
-        self.dalt      = alt - adsbalt.T
+        dalt      = alt - adsbalt.T
 
         newvs = vs - 0.0
         newvs[i] = newavs
@@ -621,16 +635,21 @@ class Dbconf():
         
         # Check for passing through each others zone
         dvs       = np.where(np.abs(dvs)<1e-6,1e-6,dvs) # prevent division by zero
-        tcrosshi  = (self.dalt + self.dh)/-dvs
-        tcrosslo  = (self.dalt - self.dh)/-dvs
+        tcrosshi  = (dalt + self.dh)/-dvs
+        tcrosslo  = (dalt - self.dh)/-dvs
         
         tinver    = np.minimum(tcrosshi,tcrosslo)
         toutver   = np.maximum(tcrosshi,tcrosslo)
-
-        verticalcfl = (tinver<=toutver)*  (toutver>0.)*(tinver<self.dtlookahead)
-        idx_ver = np.where(verticalcfl == True)
+        
+        # Check for vertical conflicts, using dtlookahead_conflictprobe
+        verticalcfl = (tinver<=toutver)*  (toutver>0.)*(tinver<self.dtlookahead_conflictprobe)
+        
+        # For all aircraft in horizontal conflict, check the vertical conflict
         for k in idx_hor:
             if verticalcfl[k][i] == True and k != i:
+                # If aicraft i has a conflict within dtlookahead_conflictprobe,
+                # log the conflict (if not in self.conflist_cflprobe to avoid multiple loggings of same conflict),
+                # and return a True value
                 combi=str(self.traf.id[i])+" "+str(self.traf.id[k])
                 if combi not in self.conflist_cflprobe:
                     tinconf = np.maximum(tinver[k][i],tinhor[0][k])
@@ -653,6 +672,7 @@ class Dbconf():
                                        self.traf.tas[k],self.traf.gs[k],self.traf.vs[k],self.traf.type[k]))
                     self.conflist_cflprobe.append(combi)
                 return True
-
+    
+        # If no conflict detected, return False and start VNAV maneuver
         return False
 

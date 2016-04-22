@@ -55,6 +55,8 @@ class Datalog():
         self.dtsky      = 30.00 # Interval for snap
         self.t0snap     = -999  # Last time SNAP was called
         self.dtsnap     = 30.00 # Interval for snap
+        self.t0inst     = -999  # Last time INST was called
+        self.dtinst     = 30.00 # Interval for inst
         self.t0writelog = -999  # Last time Writelog was called
         self.dtwritelog = 300.00 # Interval fot writing data and clear buffer
         
@@ -251,18 +253,25 @@ class Datalog():
                                                                               self.traf.lon[i],self.traf.alt[i],self.traf.tas[i], \
                                                                               self.traf.gs[i],self.traf.vs[i],self.traf.trk[i]))
                     i = i + 1
-            
-#                for idx in range(self.traf.dbconf.nconf):
-#                    i = self.traf.dbconf.iown[idx]
-#                    j = self.traf.dbconf.ioth[idx]
-#                    self.write(5,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
-#                                        % (self.traf.id[i],self.traf.id[j],self.traf.dbconf.tcpa[i][j],self.traf.dbconf.tinconf[i][j],self.traf.dbconf.toutconf[i][j], \
-#                                           self.traf.dbconf.latowncpa[idx],self.traf.dbconf.lonowncpa[idx],self.traf.dbconf.altowncpa[idx],self.traf.inconflict[i], \
-#                                           self.traf.dbconf.latintcpa[idx],self.traf.dbconf.lonintcpa[idx],self.traf.dbconf.altintcpa[idx],self.traf.inconflict[j], \
-#                                           self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
-#                                           self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
-#                                           self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
-#                                           self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+
+    def instsave(self,traf,simt):
+        if self.swinst:
+            if self.t0inst+self.dtinst<simt or simt<self.t0inst:
+                self.t0inst = simt
+                k = 0
+                while (k < self.traf.dbconf.nconf):
+                    i = self.traf.dbconf.iown[k]
+                    j = self.traf.dbconf.ioth[k]
+                    self.write(5,simt,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' \
+                                                                       % (self.traf.id[i],self.traf.id[j],self.traf.dbconf.tcpa[i][j],self.traf.dbconf.tinconf[i][j],self.traf.dbconf.toutconf[i][j], \
+                                                                          self.traf.dbconf.latowncpa[k],self.traf.dbconf.lonowncpa[k],self.traf.dbconf.altowncpa[k],self.traf.inconflict[i], \
+                                                                          self.traf.dbconf.latintcpa[k],self.traf.dbconf.lonintcpa[k],self.traf.dbconf.altintcpa[k],self.traf.inconflict[j], \
+                                                                          self.traf.lat[i],self.traf.lon[i],self.traf.trk[i],self.traf.alt[i], \
+                                                                          self.traf.tas[i],self.traf.gs[i],self.traf.vs[i],self.traf.type[i], \
+                                                                          self.traf.lat[j],self.traf.lon[j],self.traf.trk[j],self.traf.alt[j], \
+                                                                          self.traf.tas[j],self.traf.gs[j],self.traf.vs[j],self.traf.type[j]))
+                    k = k + 1
+
                 return
 
     def clearbuffer(self,simt):

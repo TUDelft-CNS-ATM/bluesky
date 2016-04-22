@@ -732,14 +732,11 @@ class Traffic:
             steepness = 3000.*ft/(10.*nm)
 
             # VNAV AP LOGIC
-#            if simt > 45 and self.henk == False:
-#                import pdb
-#                pdb.set_trace()
 
             # Switch for which aircaft have to follow VNAV
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
                                      (self.actwpalt>self.alt))+(1-self.swlnav)
-            if self.dbconf.swasas:
+            if self.dbconf.swasas and self.dbconf.swpasas:
                 # Find the aircarft that should start descending and store their index in icflvnav
 #                icflvnav = np.where((dist2wp<self.dist2vs) +\
 #                                    (self.actwpalt>self.alt) + (self.vs == 0.))[0]
@@ -962,7 +959,10 @@ class Traffic:
     
         # Logging: SNAP data of all aircraft, every dtsnap seconds
         self.log.snapsave(self,simt)
-        
+
+        # Logging: INST data of all aircraft, every dtinst seconds
+        self.log.instsave(self,simt)
+    
         # Write the logged data to the files and clear the buffer, every dtwritelog seconds
         # -> Used to avoid any memory problems due to an overload of logging data
         self.log.clearbuffer(simt)

@@ -586,8 +586,8 @@ class Route():
         
         return iwpnear
     
-    def findact3(self,traf,i):
-        """ Find best default active waypoint. This is function is called if conflict is past CPA"""
+    def trajectory_recovery(self,traf,i):
+        """ After performing an ASAS maneuver, recover your trajecotry. This function is called if conflict is past CPA"""
         
         # Check for easy answers first
         if self.nwp<=0:
@@ -599,12 +599,15 @@ class Route():
         elif self.traf.swlnav[i] == False:
             return self.iactwp
         
-        # If the wp[iwpnear] is not the destination: check for layer altitude
+        # If swlayer is True, check for an off-set between your current altitude and the layer altitude corresponding to your current heading-to-destination
         if self.traf.swlayer == True and self.traf.layerconcept != '':
             dirtodest , disttodest = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[-1], self.wplon[-1])
+            # If you deviated less than 5 degrees from your original heading, don't change uor altitude
             if abs(dirtodest - self.wpdirfrom[self.iactwp]) < 5. or abs(dirtodest - self.wpdirfrom[self.iactwp]) > 355.:
                 return self.iactwp
+            # Using CheckLayer(), check which altitude corresponds to the layer concept in combination with your heading-to-destination
             layalt = self.CheckLayer(i, dirtodest)
+            # If you are in the wrong layer, create one waypoint to set the new altitude
             if abs(self.traf.aalt[i] - layalt) > 100*ft:
 
                 self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s%s' % \
@@ -615,51 +618,58 @@ class Route():
                 spd = tas2cas(500.,(layalt*ft))
                 self.addwpt(self.traf,i,self.traf.id[i],self.wplatlon,lat,lon,layalt,spd,"")
                 self.iactwp = self.nwp - 2
+            
         return self.iactwp
                                                  
     def CheckLayer(self, i, qdr):
+        """ Find best default active waypoint. This is function is called in Trajectory_recovery()"""
+        
+        # Define layer altitudes (in ft)
         layers = [5000.0*ft, 6100.0*ft, 7200.0*ft, 8300.0*ft, 9400.0*ft, 10500.0*ft, 11600.0*ft, 12700.0*ft]
+        # Check which layer concept is active: 360/180/80/45
+        # And when multiple sets of layers are present, look within the same set for the correct layer
+        # Return the layer altitude that corresponds to the direction to the destination and the layer set
         if self.traf.layerconcept == '360':
             return self.traf.aalt[i]
         elif self.traf.layerconcept == '180':
             if qdr <  0.:
-                if self.traf.aalt[i] < 6600*ft:#- layers[0] < 1200.*ft:
+                if self.traf.aalt[i] < 6600*ft:
                     return layers[0]
-                elif self.traf.aalt[i] < 8800*ft:#- layers[2] < 1200.*ft:
+                elif self.traf.aalt[i] < 8800*ft:
                     return layers[2]
-                elif self.traf.aalt[i] < 11000*ft:# layers[4] < 1200*ft:
+                elif self.traf.aalt[i] < 11000*ft:
                     return layers[4]
-                else:# self.traf.aalt[i] - layers[6] < 1200*ft:
+                else:
                     return layers[6]
             elif qdr >= 0.:
-                if self.traf.aalt[i] < 6600*ft:#- layers[1] < 1200*ft:
+                if self.traf.aalt[i] < 6600*ft:
                     return layers[1]
-                elif self.traf.aalt[i] < 8800*ft:#- layers[3] < 1200*ft:
+                elif self.traf.aalt[i] < 8800*ft:
                     return layers[3]
-                elif self.traf.aalt[i] < 11000*ft:#- layers[5] < 1200*ft:
+                elif self.traf.aalt[i] < 11000*ft:
                     return layers[5]
-                else:# self.traf.aalt[i] - layers[7] < 1200*ft:
+                else:
                     return layers[7]
         elif self.traf.layerconcept == '90':
             if qdr  < -90.:
-                if self.traf.aalt[i] < 8800*ft: #- layers[0] < 4500.*ft:
+                if self.traf.aalt[i] < 8800*ft:
                     return layers[0]
-                else: # self.traf.aalt[i] - layers[4] < 4500.*ft:
+                else:
                     return layers[4]
             elif qdr >= -90. and qdr < 0.:
-                if self.traf.aalt[i] < 8800*ft: # - layers[1] < 4500.*ft:
+                if self.traf.aalt[i] < 8800*ft:
                     return layers[1]
-                else: # self.traf.aalt[i] - layers[5] < 4500.*ft:
+                else:
                     return layers[5]
             elif qdr >= 0. and qdr < 90.:
-                if self.traf.aalt[i] < 8800*ft: #- layers[2] < 4500.*ft:
+                if self.traf.aalt[i] < 8800*ft:
                     return layers[2]
-                else:## self.traf.aalt[i] - layers[6] < 4500.*ft:
+                else:
                     return layers[6]
             elif qdr >= 90.:
-                if self.traf.aalt[i] < 8800*ft: #- layers[3] < 4500.*ft:
+                if self.traf.aalt[i] < 8800*ft:
                     return layers[3]
-                else:# self.traf.aalt[i] - layers[7] < 4500.*ft:
+                else:
                     return layers[7]
         elif self.traf.layerconcept == '45':
             if qdr >= -180 and qdr < -135.:
@@ -678,37 +688,3 @@ class Route():
                 return layers[6]
             elif qdr >= 135.:
                 return layers[7]
-
-    def reroute(self,i,dirtodest , disttodest,layalt):
-        # Reset waypoint data
-        self.wpname = []
-        self.wptype = []
-        self.wplat  = []
-        self.wplon  = []
-        self.wpalt  = [] # [m] negative value means not specified
-        self.wpspd  = [] # [m/s] negative value means not specified
-        self.wpflyby = [] # Flyby (True)/flyover(False) switch
-        
-        # Current actual waypoint
-        self.iactwp = -1
-        
-        # Add the destination to the route
-        self.addwpt(self.traf,i,self.traf.dest[i],self.dest,self.traf.lat[i], self.traf.lon[i],0.0, -999)
-        
-        # Calculate new waypoints
-        waypoint_spacing = 10.
-        tod = 40.
-        num_waypoints = int((disttodest-1.*tod)/waypoint_spacing)
-        for k in range(num_waypoints):
-            lat = self.traf.lat[i] + (waypoint_spacing*k*cos(dirtodest/180*pi))/60.
-            lon = self.traf.lon[i] + (waypoint_spacing*k*sin(dirtodest/180*pi))/60.
-            name    = self.traf.id[i] # used for wptname
-            wptype  = self.wplatlon
-            self.addwpt(self.traf,i,name,wptype,lat,lon,layalt,-999,"")
-        return
-
-
-
-
-
-
