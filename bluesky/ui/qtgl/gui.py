@@ -84,7 +84,8 @@ class Gui(QApplication):
         self.navdb           = None
         self.radarwidget     = []
         self.command_history = []
-        self.cmdargs         = []
+        self.cmd             = ''
+        self.args            = []
         self.history_pos     = 0
         self.command_mem     = ''
         self.command_line    = ''
@@ -412,35 +413,34 @@ class Gui(QApplication):
 
         # Otherwise, final processing of the command line and accept the event.
         if self.command_line != self.prev_cmdline:
-            self.cmdargs = cmdsplit(self.command_line)
+            self.cmd, self.args = cmdsplit(self.command_line)
 
             hint = ''
-            if len(self.cmdargs) > 0:
-                if self.cmdargs[0] in usage_hints:
-                    hint = usage_hints[self.cmdargs[0]]
-                    if len(self.cmdargs) > 1:
-                        hintargs = hint.split(',')
-                        hint = ' ' + str.join(',', hintargs[len(self.cmdargs)-1:])
+            if self.cmd in usage_hints:
+                hint = usage_hints[self.cmd]
+                if len(self.args) > 0:
+                    hintargs = hint.split(',')
+                    hint = ' ' + str.join(',', hintargs[len(self.args):])
 
             self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa">' + hint + '</font>')
             self.prev_cmdline = self.command_line
 
-        if self.mousepos != self.prevmousepos and len(self.cmdargs) >= 3:
+        if self.mousepos != self.prevmousepos and len(self.args) >= 2:
             self.prevmousepos = self.mousepos
             try:
-                if self.cmdargs[0] == 'AREA':
+                if self.cmd == 'AREA':
                     data = np.zeros(4, dtype=np.float32)
                     data[0:2] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
-                    data[2] = float(self.cmdargs[1])
-                    data[3] = float(self.cmdargs[2])
-                    self.radarwidget.previewpoly(self.cmdargs[0], data)
-                elif self.cmdargs[0] in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+                    data[2] = float(self.args[0])
+                    data[3] = float(self.args[1])
+                    self.radarwidget.previewpoly(self.cmd, data)
+                elif self.cmd in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
                     data = np.zeros(len(self.cmdargs), dtype=np.float32)
                     data[0:2] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
-                    for i in range(2, len(self.cmdargs), 2):
-                        data[i]     = float(self.cmdargs[i])
-                        data[i + 1] = float(self.cmdargs[i+1])
-                    self.radarwidget.previewpoly(self.cmdargs[0], data)
+                    for i in range(1, len(self.args), 2):
+                        data[i]     = float(self.args[i])
+                        data[i + 1] = float(self.args[i+1])
+                    self.radarwidget.previewpoly(self.cmd, data)
 
             except ValueError:
                 pass

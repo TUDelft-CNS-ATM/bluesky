@@ -4,8 +4,11 @@ from math import cos, atan2, radians, degrees
 
 def radarclick(cmdline, lat, lon, traf, navdb):
     """Process lat,lon as clicked in radar window"""
-    tostack   = ''
-    todisplay = ''
+    if len(cmdline) == 0:
+        return "", ""
+
+    tostack   = ""
+    todisplay = ""
 
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
@@ -40,37 +43,19 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "CIRCLE": "-,latlon,-,dist"
                 }
 
-    cmdargs = cmdsplit(cmdline)
-    numargs = len(cmdargs) - 1
-
-    # Save command
-    if numargs >= 0:
-        cmd = cmdargs[0]
-    else:
-        # avoid negative nr of args when there is no cmd
-        cmd = ""
-        numargs = 0
-
-    # Check for syntax of acid first in command line:
-    # (as "HDG acid,hdg"  and "acid HDG hdg" are both a correct syntax
-    if numargs >= 1:
-        if cmd != "" and traf.id.count(cmd) > 0:
-            acid = cmd
-            cmd = cmdargs[1]
-            cmdargs[1] = acid
-
-        if numargs >= 1:
-            acid = cmdargs[1]
+    # Split command line into command and arguments, pass traf ids to check for
+    # switched acid and command
+    cmd, args = cmdsplit(cmdline, traf.id)
+    numargs   = len(args)
 
     # -------- Process click --------
     # Double click on aircraft = POS command
-    if cmd != "" and numargs == 0 and traf.id.count(cmdargs[0]) > 0:
-        todisplay = '\n'                 # Clear the current command
-        tostack = "POS " + cmdargs[0]  # And send a pos command to the stack
+    if numargs == 0 and traf.id.count(cmd) > 0:
+        todisplay = "\n"          # Clear the current command
+        tostack   = "POS " + cmd  # And send a pos command to the stack
 
-    # Insert: nearestaircraft id
+    # Insert: nearest aircraft id
     else:
-
         # Try to find command in clickcmd dictionary
         try:
             lookup = clickcmd[cmd]
@@ -78,19 +63,19 @@ def radarclick(cmdline, lat, lon, traf, navdb):
         except KeyError:
             # When command was not found in dictionary:
             # do nothing, return empty strings
-            lookup = False
             return "", ""
+
         # For valid value, insert relevant dat on edit line
         if lookup:
-            if len(cmdline) > 0 and cmdline[-1] != ' ':
-                todisplay = ' '
+            if cmdline[-1] != " ":
+                todisplay = " "
 
             # Determine argument click type
             clickargs = lookup.lower().split(",")
             totargs   = len(clickargs)
             curarg    = numargs
             # Exception case: if the last item of the clickargs list is "..."
-            # then the one-but-last can be repeatedly added 
+            # then the one-but-last can be repeatedly added
             # (e.g. for the definition of a polygon)
 
             if clickargs[-1] == "...":
@@ -109,7 +94,7 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                     todisplay += str(round(lat, 6)) + "," + str(round(lon, 6)) + " "
 
                 elif clicktype == "dist":
-                    latref, lonref = float(cmdargs[2]), float(cmdargs[3])
+                    latref, lonref = float(args[1]), float(args[2])
                     todisplay += str(round(kwikdist(latref, lonref, lat, lon), 6))
 
                 elif clicktype == "apt":
@@ -121,21 +106,21 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                     # Read start position from command line
                     if cmd == "CRE":
                         try:
-                            reflat = float(cmdargs[3])
-                            reflon = float(cmdargs[4])
+                            reflat = float(args[2])
+                            reflon = float(args[3])
                             synerr = False
                         except:
                             synerr = True
                     elif cmd == "MOVE":
                         try:
-                            reflat = float(cmdargs[2])
-                            reflon = float(cmdargs[3])
+                            reflat = float(args[1])
+                            reflon = float(args[2])
                             synerr = False
                         except:
                             synerr = True
                     else:
-                        if traf.id.count(acid) > 0:
-                            idx = traf.id.index(acid)
+                        if traf.id.count(args[0]) > 0:
+                            idx    = traf.id.index(args[0])
                             reflat = traf.lat[idx]
                             reflon = traf.lon[idx]
                             synerr = False
