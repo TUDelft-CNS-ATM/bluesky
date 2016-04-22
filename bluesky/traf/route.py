@@ -258,8 +258,8 @@ class Route():
                         traf.dist2vs[i] = delalt/steepness
                         dirtowp , disttowp = qdrdist(self.traf.lat[i], self.traf.lon[i], traf.actwplat[i], traf.actwplon[i])
                         # To avoid that dist2vs is smaller than the condition for selecting the next waypoint in traffic -> iwpclose
-                        if traf.dist2vs[i] < 11.:
-                            traf.dist2vs[i] = disttowp
+                        if traf.dist2vs[i] < (11.*nm):
+                            traf.dist2vs[i] = disttowp*nm
                         
                # Set target speed for autopilot
                spd = self.wpspd[wpidx]
@@ -613,13 +613,12 @@ class Route():
             layalt = self.CheckLayer(i, dirtodest)
             # If you are in the wrong layer, create one waypoint to set the new altitude
             if abs(self.traf.aalt[i] - layalt) > 100*ft:
-
                 self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s%s' % \
                                         (traf.id[i],traf.orig[i],traf.dest[i], \
                                          traf.lat[i],traf.lon[i],traf.alt[i],layalt))
                 lat = self.traf.lat[i] + (10*cos(dirtodest/180*pi))/60.
                 lon = self.traf.lon[i] + (10*sin(dirtodest/180*pi))/60.
-                spd = tas2cas(500.,(layalt*ft))
+                spd = tas2cas(500.,layalt)
                 self.addwpt(self.traf,i,self.traf.id[i],self.wplatlon,lat,lon,layalt,spd,"")
                 self.iactwp = self.nwp - 2
             
