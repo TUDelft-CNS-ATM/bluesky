@@ -78,10 +78,10 @@ usage_hints = { 'BATCH': 'filename',
 class Gui(QApplication):
     modes = ['Init', 'Operate', 'Hold', 'End']
 
-    def __init__(self, navdb):
+    def __init__(self):
         super(Gui, self).__init__([])
         self.acdata          = ACDataEvent()
-        self.navdb           = navdb
+        self.navdb           = None
         self.radarwidget     = []
         self.command_history = []
         self.cmdargs         = []
@@ -104,9 +104,6 @@ class Gui(QApplication):
         self.splash = Splash()
         self.splash.show()
 
-        self.splash.showMessage('Constructing main window')
-        self.processEvents()
-
         # Install error message handler
         handler = QErrorMessage.qtHandler()
         handler.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -122,17 +119,21 @@ class Gui(QApplication):
             QGLFormat.setDefaultFormat(f)
             print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
 
-        # Create the main window and related widgets
-        self.radarwidget = RadarWidget(navdb)
-        self.win  = MainWindow(self, self.radarwidget)
-        self.nd   = ND(shareWidget=self.radarwidget)
-        # self.aman = AMANDisplay()
-
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION == 5:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-        gltimer = QTimer(self)
+    def init(self, navdb):
+        self.splash.showMessage('Constructing main window')
+        self.processEvents()
+        # Create the main window and related widgets
+        self.navdb       = navdb
+        self.radarwidget = RadarWidget(navdb)
+        self.win         = MainWindow(self, self.radarwidget)
+        self.nd          = ND(shareWidget=self.radarwidget)
+        # self.aman = AMANDisplay()
+
+        gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)

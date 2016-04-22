@@ -45,10 +45,13 @@ def MainLoop():
         # Create gui and simulation objects
         # =============================================================================
         global navdb, manager, gui
-        navdb     = Navdatabase('global')  # Read database from specified folder
         manager   = MainManager()
-        gui       = Gui(navdb)
+        gui       = Gui()
+        navdb     = Navdatabase('global')  # Read database from specified folder
         telnet_in = StackTelnetServer(gui)
+
+        # Initialize the gui (loading graphics data, etc.)
+        gui.init(navdb)
 
         # Start the node manager
         manager.start()

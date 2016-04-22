@@ -256,11 +256,7 @@ class Traffic:
 
         return
 
-    def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
-
-        if None in [acid,actype,aclat,aclon,achdg,acalt,casmach]:
-            return False
-
+    def create(self, acid, actype, aclat, aclon, achdg, acalt, casmach):
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
@@ -994,12 +990,10 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-    def selhdg(self, idx=None, hdg=None):  # HDG command
-
+    def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
-
-        if None in [idx,hdg]:
-            return False  # Not engouh arguments: Error/Display helptext
+        if idx < 0:
+            return False  # Aircraft not found
 
         # Give autopilot commands
         self.ahdg[idx]   = float(hdg)
@@ -1007,20 +1001,19 @@ class Traffic:
         # Everything went ok!
         return True
 
-    def selspd(self, idx=None, spd=None):  # SPD command
-
+    def selspd(self, idx, spd):  # SPD command
         """ Select speed command: SPD acid, spd (= CASkts/Mach) """
-        if idx<0 or None in [idx,spd] :
-            return False  # Not engouh arguments: Error/Display helptext
+        if idx < 0:
+            return False  # Aircraft not found
 
         # When >=2.0 it is probably CASkts else it is Mach
         if spd >= 2.0:
-            self.aspd[idx] = spd * kts # CAS m/s
+            self.aspd[idx] = spd * kts  # CAS m/s
             self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
         else:
             self.aspd[idx] = mach2cas(spd, self.alt[idx])  # Convert Mach to CAS m/s
             self.ama[idx]  = spd
         # Switch off VNAV: SPD command overrides
-        self.swvnav[idx] = False  
+        self.swvnav[idx] = False
 
         return True
