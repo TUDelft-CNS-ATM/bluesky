@@ -329,30 +329,32 @@ class Route():
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp]
 
-    def delwpt(self,delwpname):
+    def delwpt(self, delwpname):
         """Delete waypoint"""
-        
-        # Look up waypoint        
+
+        # Look up waypoint
         idx = -1
         i = len(self.wpname)
-        while idx ==-1 and i>1:
+        while idx == -1 and i > 1:
             i = i-1
             if self.wpname[i].upper() == delwpname.upper():
                 idx = i
 
-        # Delete waypoint        
-        if idx>=0:
-            self.nwp = self.nwp-1
-            del self.wpname[idx]
-            del self.wplat[idx]
-            del self.wplon[idx]
-            del self.wpalt[idx]
-            del self.wpspd[idx]
-            del self.wptype[idx]
-            if self.iactwp > idx:
-                self.iactwp = max(0,self.iactwp-1)
+        # Delete waypoint
+        if idx == -1:
+            return False, "Waypoint " + delwpname + " not found"
 
-        return idx
+        self.nwp = self.nwp-1
+        del self.wpname[idx]
+        del self.wplat[idx]
+        del self.wplon[idx]
+        del self.wpalt[idx]
+        del self.wpspd[idx]
+        del self.wptype[idx]
+        if self.iactwp > idx:
+            self.iactwp = max(0, self.iactwp - 1)
+
+        return True
 
     def newcalcfp(self):
         """Do flight plan calculations"""
@@ -583,3 +585,23 @@ class Route():
                 iwpnear= iwpnear+1
         
         return iwpnear
+
+    def dumpRoute(self, traf, idx):
+        acid = traf.id[idx]
+        # Open file in append mode, write header
+        with open("./data/output/routelog.txt", "a") as f:
+            f.write("\nRoute "+acid+":\n")
+            f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
+            f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
+
+            # write flight plan VNAV data (Lateral is visible on screen)
+            for j in range(self.nwp):
+                f.write( str(( j, self.wpname[j], self.wptype[j],
+                      round(self.wplat[j], 4), round(self.wplon[j], 4),
+                      int(0.5+self.wpalt[j]/ft), int(0.5+self.wpspd[j]/kts),
+                      int(0.5+self.wptoalt[j]/ft), round(self.wpxtoalt[j]/nm, 3)
+                      )) + "\n")
+
+            # End of data
+            f.write("----\n")
+            f.close()

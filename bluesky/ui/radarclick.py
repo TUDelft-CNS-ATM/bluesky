@@ -4,9 +4,6 @@ from math import cos, atan2, radians, degrees
 
 def radarclick(cmdline, lat, lon, traf, navdb):
     """Process lat,lon as clicked in radar window"""
-    if len(cmdline) == 0:
-        return "", ""
-
     tostack   = ""
     todisplay = ""
 
@@ -35,7 +32,7 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "PAN": "latlon",
                 "MOVE": "acid,latlon,-,-,hdg",
                 "DIST": "latlon,-,latlon",
-                "LINE": "latlon,-,latlon",
+                "LINE": "-,latlon,-,latlon",
                 "AREA": "latlon,-,latlon",
                 "BOX": "-,latlon,-,latlon",
                 "POLY": "-,latlon,...",
@@ -67,7 +64,7 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
         # For valid value, insert relevant dat on edit line
         if lookup:
-            if cmdline[-1] != " ":
+            if len(cmdline) > 0 and cmdline[-1] != " ":
                 todisplay = " "
 
             # Determine argument click type

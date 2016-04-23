@@ -1025,6 +1025,10 @@ class Traffic:
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
         self.ax[idx] = kts
 
+    def setTaxi(self, flag):
+        """ Set taxi delete flag: OFF auto deletes traffic below 1500 ft """
+        self.swtaxi = flag
+
     def setLNAV(self, idx, flag=None):
         """ Set LNAV on or off for a specific or for all aircraft """
         if idx is None:

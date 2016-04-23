@@ -69,7 +69,7 @@ usage_hints = { 'BATCH': 'filename',
                 'ND': 'acid',
                 'NAVDISP': 'acid',
                 'NOISE': 'ON/OFF',
-                'LINE': 'color,lat1,lon1,lat2,lon2',
+                'LINE': 'name,lat1,lon1,lat2,lon2',
                 'ENG': 'acid',
                 'DATAFEED': 'ON/OFF'
                 }
@@ -435,14 +435,14 @@ class Gui(QApplication):
                     data[3] = float(self.args[1])
                     self.radarwidget.previewpoly(self.cmd, data)
                 elif self.cmd in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
-                    data = np.zeros(len(self.cmdargs), dtype=np.float32)
-                    data[0:2] = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
+                    data = np.zeros(len(self.args) + 1, dtype=np.float32)
                     for i in range(1, len(self.args), 2):
-                        data[i]     = float(self.args[i])
-                        data[i + 1] = float(self.args[i+1])
+                        data[i-1] = float(self.args[i])
+                        data[i]   = float(self.args[i+1])
+                    data[-2:]     = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
                     self.radarwidget.previewpoly(self.cmd, data)
 
-            except ValueError:
+            except:
                 pass
 
         event.accept()

@@ -48,10 +48,25 @@ class Commandstack:
                 "acid,alt,[vspd]",
                 traf.selalt
             ],
+            "ASAS": [
+                "ASAS ON/OFF",
+                "[onoff]",
+                traf.dbconf.toggle
+            ],
             "BATCH": [
                 "BATCH filename",
                 "txt",
                 sim.batch],
+            "BOX": [
+                "BOX name,lat,lon,lat,lon",
+                "txt,latlon,latlon",
+                lambda name, *coords: scr.objappend(2, name, coords)
+            ],
+            "CIRCLE": [
+                "CIRCLE name,lat,lon,radius",
+                "txt,latlon,float",
+                lambda name, *coords: scr.objappend(3, name, coords)
+            ],
             "CRE": [
                 "CRE acid,type,lat,lon,hdg,alt,spd",
                 "txt,txt,latlon,hdg,alt,spd",
@@ -61,6 +76,11 @@ class Commandstack:
                 "DATAFEED [ON/OFF]",
                 "[onoff]",
                 sim.datafeed
+            ],
+            "DELWPT": [
+                "DELWPT acid,wpname",
+                "acid,txt",
+                lambda idx, wpname: traf.route[idx].delwpt(wpname)
             ],
             "DEST": [
                 "DEST acid, latlon/airport",
@@ -76,6 +96,11 @@ class Commandstack:
                 "DTMULT multiplier",
                 "float",
                 sim.setDtMultiplier
+            ],
+            "DUMPRTE": [
+                "DUMPRTE acid",
+                "acid",
+                lambda idx: traf.route[idx].dumpRoute(traf, idx)
             ],
             "ECHO": [
                 "ECHO txt",
@@ -112,10 +137,20 @@ class Commandstack:
                 "",
                 sim.pause
             ],
+            "IC": [
+                "IC [IC/filename]",
+                "[txt]",
+                lambda *args: self.ic(scr, *args)
+            ],
             "INSEDIT": [
                 "INSEDIT txt",
                 "txt",
                 scr.cmdline
+            ],
+            "LINE": [
+                "LINE name,lat,lon,lat,lon",
+                "txt,latlon,latlon",
+                lambda name, *coords: scr.objappend(1, name, coords)
             ],
             "LNAV": [
                 "LNAV acid,[ON/OFF]",
@@ -164,12 +199,22 @@ class Commandstack:
             "PCALL": [
                 "PCALL filename [REL/ABS]",
                 "txt,[txt]",
-                self.pcall
+                lambda *args: self.openfile(*args, mergeWithExisting=True)
+            ],
+            "POLY": [
+                "POLY name,lat,lon,lat,lon, ...",
+                "txt,latlon,...",
+                lambda name, *coords: scr.objappend(4, name, coords)
             ],
             "RESET": [
                 "RESET",
                 "",
                 sim.reset],
+            "SAVEIC": [
+                "SAVEIC filename",
+                "txt",
+                lambda fname: self.saveic(fname, sim, traf)
+            ],
             "SCEN": [
                 "SCEN scenname",
                 "txt",
@@ -198,6 +243,11 @@ class Commandstack:
                 "SYMBOL",
                 "",
                 scr.symbol
+            ],
+            "TAXI": [
+                "TAXI ON/OFF : OFF auto deletes traffic below 1500 ft",
+                "onoff",
+                traf.setTaxi
             ],
             "VNAV": [
                 "VNAV acid,[ON/OFF]",
@@ -272,14 +322,14 @@ class Commandstack:
 
         return
 
-    def help(self, cmd=None):
-        if cmd is None:
+    def help(self, cmd=''):
+        if len(cmd) == 0:
             text = "To get help on a command, enter it without arguments.\n" + \
                    "Some basic commands are given below:\n\n"
             text2 = ""
             for key in self.cmddict:
                 text2 += (key + " ")
-                if len(text2) >= 40:
+                if len(text2) >= 60:
                     text += (text2 + "\n")
                     text2 = ""
             text += (text2 + "\nSee Info subfolder for more info.")
@@ -304,8 +354,10 @@ class Commandstack:
             for line in cmdline.split(';'):
                 self.cmdstack.append(line)
 
-    def openfile(self, scenname, t_offset=0.0, mergeWithExisting=False):
-        scenlines = []
+    def openfile(self, scenname, absrel='ABS', mergeWithExisting=False):
+        # If timestamps in file should be interpreted as relative we need to add
+        # the current simtime to every timestamp
+        t_offset = self.sim.simt if absrel == 'REL' else 0.0
 
         # Add .scn extension if necessary
         if scenname.lower().find(".scn") < 0:
@@ -320,32 +372,8 @@ class Commandstack:
         else:
             scenfile = scenname
 
-        print "Reading scenario file: ", scenfile
-        print
-
         if not os.path.exists(scenfile):
-            print"Error: cannot find file:", scenfile
-            return
-
-        # Read lines into buffer
-        fscen = open(scenfile, 'r')
-        scenlines = fscen.readlines()
-        fscen.close()
-        i = 0
-        while i < len(scenlines):
-            if len(scenlines[i].strip()) <= 12 or scenlines[i][0] == "#":
-                del scenlines[i]
-            else:
-                i = i + 1
-
-        # Optional?
-        # scenlines.sort()
-
-        # Set timer until what is read
-        # tstamp = scenlines[0][:11]    # format - hh:mm:ss.hh
-        # ihr = int(tstamp[:2])
-        # imin = int(tstamp[3:5])
-        # isec = float(tstamp[6:8]+"."+tstamp[9:11])
+            return False, "Error: cannot find file: " + scenfile
 
         # Split scenario file line in times and commands
         if not mergeWithExisting:
@@ -355,34 +383,43 @@ class Commandstack:
             self.scentime = []
             self.scencmd  = []
 
-        for line in scenlines:
-            if line.strip()[0] != "#":
-                # Try reading timestamp and command
-                try:
-                    icmdline = line.index('>')
-                    tstamp = line[:icmdline]
-                    ttxt = tstamp.strip().split(':')
-                    ihr = int(ttxt[0])
-                    imin = int(ttxt[1])
-                    xsec = float(ttxt[2])
-                    self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
-                    self.scencmd.append(line[icmdline + 1:-1])
-                except:
-                    print "except this:", line
-                    pass  # nice try, we will just ignore this syntax error
+        with open(scenfile, 'r') as fscen:
+            for line in fscen:
+                if len(line.strip()) > 12 and line[0] != "#":
+                    # Try reading timestamp and command
+                    try:
+                        icmdline = line.index('>')
+                        tstamp = line[:icmdline]
+                        ttxt = tstamp.strip().split(':')
+                        ihr = int(ttxt[0])
+                        imin = int(ttxt[1])
+                        xsec = float(ttxt[2])
+                        self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
+                        self.scencmd.append(line[icmdline + 1:-1])
+                    except:
+                        print "except this:", line
+                        pass  # nice try, we will just ignore this syntax error
 
         if mergeWithExisting:
             # If we are merging we need to sort the resulting command list
             self.scentime, self.scencmd = [list(x) for x in zip(*sorted(
                 zip(self.scentime, self.scencmd), key=lambda pair: pair[0]))]
 
-    def pcall(self, filename, absrel='ABS'):
-        # If timestamps in file should be interpreted as relative we need to add
-        # the current simtime to every timestamp
-        t_offset = self.sim.simt if absrel == 'REL' else 0.0
+        return True
 
-        # Load the scenario file, and merge with existing command list
-        self.openfile(filename, t_offset, True)
+    def ic(self, scr, filename=''):
+        if filename == '':
+            filename = scr.show_file_dialog()
+        elif filename == "IC":
+            filename = self.scenfile
+
+        if len(filename) > 0:
+            result = self.openfile(filename)
+            if type(result) is bool:
+                self.scenfile = filename
+                return True, "Opened " + filename
+            else:
+                return result
 
     def checkfile(self, simt):
         # Empty command buffer when it's time
@@ -394,7 +431,6 @@ class Commandstack:
         return
 
     def saveic(self, fname, sim, traf):
-
         # Add extension .scn if not already present
         if fname.find(".scn") < 0 and fname.find(".SCN"):
             fname = fname + ".scn"
@@ -406,7 +442,7 @@ class Commandstack:
         try:
             f = open(scenfile, "w")
         except:
-            return -1
+            return False, "Error writing to file"
 
         # Write files
         timtxt = "00:00:00.00>"
@@ -464,7 +500,7 @@ class Commandstack:
 
         # Saveic: should close
         f.close()
-        return 0
+        return True
 
     def process(self, sim, traf, scr):
         """process and empty command stack"""
@@ -529,7 +565,9 @@ class Commandstack:
                     else:
                         arglist = []
                         curtype = curarg = 0
-                        for curtype in range(min(len(argtypes), len(args))):
+                        while curtype < len(argtypes) and curarg < len(args):
+                            if argtypes[curtype] == '...':
+                                curtype -= 1
                             argtype    = argtypes[curtype].strip().split('/')
                             for i in range(len(argtype)):
                                 try:
@@ -545,6 +583,7 @@ class Commandstack:
                                         scr.echo("Syntax error in processing arguments")
                                         scr.echo(line)
                                         scr.echo(helptext)
+                            curtype += 1
 
                     # Call function return flag,text
                     # flag: indicates sucess
@@ -727,47 +766,6 @@ class Commandstack:
                         if not (np.isnan(lat) or np.isnan(lon)):
                             scr.pan((lat, lon), absolute=True)
 
-#
-
-                #----------------------------------------------------------------------
-                # IC scenfile: command: restart with new filename (.scn will be added if necessary)
-                # IC IC: same file
-                #----------------------------------------------------------------------
-                elif cmd == "IC":
-                    sim.reset()
-                    # If no arg is given: check
-                    if numargs >= 1:
-                        # Use lower case line for filename and allow space in path
-                        filename = line.strip()[3:].strip()
-                        if filename.upper() == "IC":  # same file
-                            filename = self.scenfile
-
-                        if filename.strip() != "":
-                            scr.echo("Opening " + filename + " ...")
-
-                        # Open file in ./scenario subfolder
-
-                        self.scenfile = filename
-                        self.openfile(self.scenfile)
-
-                    else:
-
-                        filename = scr.show_file_dialog()
-                        if len(filename) > 0:
-                            self.scenfile = filename
-                            self.openfile(self.scenfile)
-
-                #----------------------------------------------------------------------
-                # SAVE/SAVEIC Save current traffic situation as IC scn file
-                #----------------------------------------------------------------------
-                elif cmd == "SAVEIC":
-                    if numargs <= 0:
-                        scr.echo("SAVEIC needs filename")
-                    else:
-                        errcode = self.saveic(args[0], sim, traf)
-                        if errcode == -1:
-                            scr.echo("SAVEIC: Error writing file")
-
                 #----------------------------------------------------------------------
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
                 #----------------------------------------------------------------------
@@ -936,17 +934,6 @@ class Commandstack:
                         scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
 
                 #----------------------------------------------------------------------
-                # TAXI command: TAXI ON/OFF : if off, 
-                #   autodelete descending aircraft below 1500 ft
-                #----------------------------------------------------------------------
-                elif cmd == "TAXI":
-                    if numargs == 0:
-                        scr.echo("TAXI ON/OFF : OFF auto deletes traffic below 1500 ft")
-                    else:
-                        arg1 = args[0].upper()  # arguments are strings
-                        traf.swtaxi = (arg1[:2] == "ON")
-
-                #----------------------------------------------------------------------
                 # SWRAD command: display switches of radar display
                 # SWRAD GEO / GRID / APT / VOR / WPT / LABEL (toggle on/off or cycle)
                 # (for WPT,APT,LABEL value is optional)
@@ -1069,20 +1056,6 @@ class Commandstack:
                             scr.echo("CALC: Syntax error")
 
                 #----------------------------------------------------------------------
-                # ASAS ON/OFF  : switch ASAS on/off
-                #----------------------------------------------------------------------
-                elif cmd == "ASAS":
-                    if numargs == 0:
-                        scr.echo("ASAS ON/OFF")
-                        if traf.dbconf.swasas:
-                            scr.echo("ASAS is currently ON")
-                        else:
-                            scr.echo("ASAS is currently OFF")
-                    else:
-                        arg1 = args[0]  # arguments are strings
-                        traf.dbconf.swasas = (arg1.upper() =="ON")
-                            
-                #----------------------------------------------------------------------
                 # ADDWPT   : ADDWPT acid,(WPname / lat,lon),[alt],[spd],[afterwp]
                 #----------------------------------------------------------------------
                 elif cmd == "ADDWPT":
@@ -1178,29 +1151,6 @@ class Commandstack:
                                 #except:
                                  #   scr.echo(traf.id[i]+": waypoint not added")
                                  #   synerr = True
-                                
-                #----------------------------------------------------------------------
-                # DELWPT   : DELWPT acid,WPname
-                #----------------------------------------------------------------------
-                elif cmd == "DELWPT":
-
-                    # Help text             
-                    if numargs <= 1:
-                        scr.echo( \
-                        "DELWPT acid, wpname")
-
-                    # Delete waypoint
-                    else:
-                        acid = args[0]     # call sign
-                        i = traf.id2idx(acid) # Get index of this a/c
-                        if i < 0:
-                            scr.echo("DELWPT: Aircraft "+ acid +" not found.")
-                        else:
-                            rte = traf.route[i]   # Get pointer to route object
-                        idx = rte.delwpt(args[1])
-                        if idx==-1:
-                            scr.echo("DELWPT: Waypoint "+args[1]+ \
-                                           " not found in route of "+acid+".")
 
                 #----------------------------------------------------------------------
                 # DIRECT [TO] wpname: set active waypoint
@@ -1282,69 +1232,6 @@ class Commandstack:
                         else:
                             scr.echo('Syntax error')
                             scr.echo("ADSBCOVERAGE ON/OFF")
-
-                elif cmd == "BOX":
-                    if numargs == 0:
-                        scr.echo(cmd + " name,lat1,lon1,lat2,lon2")
-                    data = []
-                    for i in args[1:]:
-                        data.append(float(i))
-                    scr.objappend(2, args[0], data)
-                elif cmd[:4] == "POLY":
-                    if numargs == 0:
-                        scr.echo(cmd + " name,lat1,lon1,lat2,lon2,...")
-                    data = []
-                    for i in args[1:]:
-                        data.append(float(i))
-                    scr.objappend(4, args[0], data)
-                elif cmd == "CIRCLE":
-                    pass
-                #------------------------------------------------------------------
-                # LINE color,lat1,lon1,lat2,lon2 command: draw a line
-                #------------------------------------------------------------------
-                elif cmd[:4] == "LINE":
-
-                    if numargs == 0:
-                        scr.echo("LINE name,lat1,lon1,lat2,lon2")
-                        scr.echo("color=red,green,cyan.. (8 basic colours)")
-                    else:
-                        if numargs == 5:
-                                data = [float(args[1]), float(args[2]), float(args[3]), float(args[4])]
-                                scr.objappend(1, args[0], data)
-
-                #------------------------------------------------------------------
-                # DUMPRTE acid: Dump the route to the route-file for debugging
-                # 
-                #------------------------------------------------------------------
-                elif cmd[:7] == "DUMPRTE":
-                    if numargs == 0:
-                        scr.echo("DUMPRTE acid")
-                    else:
-                        acid = args[0]
-                        i = traf.id2idx(acid)
-                        
-                        # Open file in append mode, write header
-                        f = open("./data/output/routelog.txt","a")
-                        f.write("\nRoute "+acid+":\n")
-                        f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
-                        f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
-
-                        # write flight plan VNAV data (Lateral is visible on screen)
-                        for j in range(traf.route[i].nwp):
-                            f.write( str(( j, \
-                                  traf.route[i].wpname[j],  \
-                                  traf.route[i].wptype[j],  \
-                                  round(traf.route[i].wplat[j],4),   \
-                                  round(traf.route[i].wplon[j],4),   \
-                                  int(0.5+traf.route[i].wpalt[j]/ft),   \
-                                  int(0.5+traf.route[i].wpspd[j]/kts),   \
-                                  int(0.5+traf.route[i].wptoalt[j]/ft),   \
-                                  round(traf.route[i].wpxtoalt[j]/nm,3) \
-                                  )) + "\n")
-
-                        # End of data
-                        f.write("----\n")
-                        f.close()
 
                 #------------------------------------------------------------------
                 # !!! This is a template, please make a copy and keep it !!!
