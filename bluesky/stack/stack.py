@@ -46,6 +46,11 @@ class Commandstack:
             "ADDWPT": [
                 "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
                 "acid,latlon/txt,[alt,spd,txt]",
+                # lambda: short-hand for using function output as argument, equivalent with:
+                #
+                # def fun(idx, args):
+                #     return traf.route[idx].addwptStack(traf, idx, *args)
+                # fun(idx,*args)
                 lambda idx, *args: traf.route[idx].addwptStack(traf, idx, *args)
             ],
             "ALT": [
@@ -82,6 +87,12 @@ class Commandstack:
                 "[onoff]",
                 sim.datafeed
             ],
+            "DEL": [
+                "DEL acid/shape",
+                "acid/txt",
+                lambda a: scr.objappend(0, a, None) \
+                              if type(a) == str else traf.delete(a)
+                ],
             "DELWPT": [
                 "DELWPT acid,wpname",
                 "acid,txt",
@@ -90,7 +101,7 @@ class Commandstack:
             "DEST": [
                 "DEST acid, latlon/airport",
                 "acid,latlon/txt",
-                lambda *args: traf.setDestOrig("DEST", *args)
+                lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
             ],
             "DIRECT": [
                 "DIRECT acid wpname",
@@ -290,6 +301,7 @@ class Commandstack:
         self.cmdsynon = {
             "CONTINUE": "OP",
             "CREATE": "CRE",
+            "DELETE":"DEL",
             "DIRECTTO": "DIRECT",
             "DIRTO": "DIRECT",
             "DISP": "SWRAD",
@@ -599,11 +611,14 @@ class Commandstack:
                             argtype    = argtypes[curtype].strip().split('/')
                             for i in range(len(argtype)):
                                 try:
+#                                if True:
                                     parsed_arg = self.argparse(argtype[i], curarg, args, traf, scr)
                                     arglist += parsed_arg
                                     curarg  += len(parsed_arg)
+#                                else:
                                 except:
-                                    if i < len(argtype) - 1:
+                                    # not yet last type possible here?
+                                    if i < len(argtype) - 1: 
                                         # We have alternative argument formats that we can try
                                         continue
                                     else:
@@ -617,7 +632,8 @@ class Commandstack:
                     # flag: indicates sucess
                     # text: optional error message
 #                    try:
-                    results = function(*arglist)  # * = unpack list to call arguments
+                    if not synerr:
+                        results = function(*arglist)  # * = unpack list to call arguments
 #                    except:
 #                        synerr = True
                     txt = helptext
@@ -1080,6 +1096,7 @@ class Commandstack:
             idx = traf.id2idx(args[argidx])
             if idx < 0:
                 scr.echo(cmd + ":" + args[idx] + " not found")
+                raise IndexError
             else:
                 parsed_args.append(idx)
 
