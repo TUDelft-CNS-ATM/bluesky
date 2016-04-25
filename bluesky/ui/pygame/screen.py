@@ -1068,7 +1068,7 @@ class Screen:
         self.objcolor.append(blue)
         self.objdata.append(data)
 
-        self.redrawradbg = True # redraw background
+        self.redrawradbg = True  # redraw background
 
         return
 
@@ -1077,15 +1077,20 @@ class Screen:
         self.objtype     = []
         self.objcolor    = []
         self.objdata     = []
-        self.redrawradbg = True # redraw background
+        self.redrawradbg = True  # redraw background
         return
-        
-    def showroute(self,acid): # Toggle show route for an aircraft id
-        if self.acidrte==acid:
-           self.acidrte = "" # Click twice on same: route disappear
+
+    def showroute(self, acid):  # Toggle show route for an aircraft id
+        if self.acidrte == acid:
+            self.acidrte = ""  # Click twice on same: route disappear
         else:
-           self.acidrte = acid # Show this route
+            self.acidrte = acid  # Show this route
         return
+
+    def showacinfo(self, acid, infotext):
+        self.echo(infotext)
+        self.showroute(acid)
+        return True
 
     def getviewlatlon(self): # Return current viewing area in lat, lon
         return self.lat0, self.lat1, self.lon0, self.lon1  

@@ -1108,3 +1108,27 @@ class Traffic:
                                self.lat[idx], self.lon[idx], 0.0, self.cas[idx])
             if iwp < 0:
                 return False, (self.orig[idx] + " not found.")
+
+    def acinfo(self, acid):
+        idx      = self.id.index(acid)
+        actype   = self.type[idx]
+        lat, lon = self.lat[idx], self.lon[idx]
+        alt, hdg = self.alt[idx], self.trk[idx]
+        cas      = tas2cas(self.tas[idx], self.alt[idx]) / kts
+        tas      = self.tas[idx] / kts
+        route    = self.route[idx]
+        line  = "Info on %s %s index = %d\n" % (acid, actype, idx) \
+              + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
+              + "Alt = %d ft, Hdg = %d\n" % (alt, hdg)
+        if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
+            if self.swvnav[idx]:
+                line += "VNAV, "
+            line += "LNAV to " + route.wpname[route.iactwp] + "\n"
+        if self.orig[idx] != "" or self.dest[idx] != "":
+            line += "Flying"
+            if self.orig[idx] != "":
+                line += " from " + self.orig[idx]
+            if self.dest[idx] != "":
+                line += " to " + self.dest[idx]
+
+        return line

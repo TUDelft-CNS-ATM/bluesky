@@ -99,6 +99,12 @@ class ScreenIO(QObject):
 
     def showroute(self, acid):
         self.route_acid = acid
+        return True
+
+    def showacinfo(self, acid, infotext):
+        self.echo(infotext)
+        self.showroute(acid)
+        return True
 
     def showssd(self, param):
         if self.manager.isActive():

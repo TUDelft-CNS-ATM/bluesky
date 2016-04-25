@@ -237,6 +237,11 @@ class Commandstack:
                 "txt,latlon,...",
                 lambda name, *coords: scr.objappend(4, name, coords)
             ],
+            "POS": [
+                "POS acid",
+                "txt",
+                lambda acid: scr.showacinfo(acid, traf.acinfo(acid))
+            ],
             "RESET": [
                 "RESET",
                 "",
@@ -293,7 +298,13 @@ class Commandstack:
             "VS": [
                 "VS acid,vspd (ft/min)",
                 "acid,vspd",
-                traf.selvspd]
+                traf.selvspd],
+            "ZOOM": [
+                "ZOOM IN/OUT or factor",
+                "float/txt",
+                lambda a: scr.zoom(1.4142135623730951) if a == "IN" else \
+                          scr.zoom(0.7071067811865475) if a == "OUT" else \
+                          scr.zoom(a, True)]
         }
 
         #--------------------------------------------------------------------
@@ -301,7 +312,7 @@ class Commandstack:
         self.cmdsynon = {
             "CONTINUE": "OP",
             "CREATE": "CRE",
-            "DELETE":"DEL",
+            "DELETE": "DEL",
             "DIRECTTO": "DIRECT",
             "DIRTO": "DIRECT",
             "DISP": "SWRAD",
@@ -365,7 +376,7 @@ class Commandstack:
     def help(self, cmd=''):
         if len(cmd) == 0:
             text = "To get help on a command, enter it without arguments.\n" + \
-                   "Some basic commands are given below:\n\n"
+                   "The BlueSky commands are:\n\n"
             text2 = ""
             for key in self.cmddict:
                 text2 += (key + " ")
@@ -655,79 +666,13 @@ class Commandstack:
                         scr.echo("Syntax error: " + helptext)
 
                 #----------------------------------------------------------------------
-                # POS command: traffic info; ("KL204", "POS KL204" or "KL204 ?")
-                #----------------------------------------------------------------------
-                elif cmd == "POS" or cmd == "?":
-                    if numargs >= 1:
-                        acid = args[0]
-
-                        # Does aircraft exist?
-                        idx = traf.id2idx(acid)
-                        if idx < 0:
-                            scr.echo("POS: " + acid + " not found.")
-
-                        # print info on aircraft if found
-                        else:
-                            scr.echo("Info on " + acid + " " + traf.type[idx]+\
-                                                          "   index = " + str(idx))
-                            taskts = int(round(traf.tas[idx]/kts))                              
-                            caskts = int(round(tas2cas(traf.tas[idx],traf.alt[idx])/kts))                              
-                            scr.echo("Pos = " + str(traf.lat[idx])+" , "+str(traf.lon[idx]))
-                            scr.echo(str(caskts)+" kts (TAS: "+str(taskts)+" kts) at " \
-                                     + str(int(traf.alt[idx] / ft)) + " ft")
-                            scr.echo("Hdg = " + str(int(traf.trk[idx])))
-                            if traf.swvnav[idx]:
-                                vnavtxt = "VNAV "
-                            else:
-                                vnavtxt = ""
-                            if traf.swlnav[idx] and traf.route[idx].nwp>0 and  \
-                               traf.route[idx].iactwp>=0:
-                                 scr.echo(vnavtxt + "LNAV to "+   \
-                                  traf.route[idx].wpname[traf.route[idx].iactwp])
-                            
-                            txt = "Flying"
-                            if traf.orig[idx]!="":
-                                txt = txt + " from "+traf.orig[idx]
-                            if traf.dest[idx]!="":
-                                txt = txt + " to "+traf.dest[idx]
-                            if len(txt)>0:
-                                scr.echo(txt)
-
-                        # Show route for this aircraft (toggle switch)
-                        scr.showroute(acid)
-
-                    else:
-                         synerr = True
-
-                #----------------------------------------------------------------------
                 # ZOOM command (or use ++++  or --  to zoom in or out)
                 #----------------------------------------------------------------------
-                elif cmd[:4] == "ZOOM" or cmd[0] == "+" or cmd[0] == "=" or cmd[0] == "-":
-                    if cmd[0] != "Z":
-                        nplus = cmd.count("+") + cmd.count("=")  #= equals + (same key)
-                        nmin = cmd.count("-")
-                        zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
-                        scr.zoom(zoomfac)
-                    else:
-                        synerr = not(len(args) == 1)
-                        if not synerr:
-                            if args[0] == "IN":
-                                scr.zoom(1.4142135623730951)  # sqrt(2.)
-
-                            elif args[0] == "OUT":
-                                scr.zoom(0.70710678118654746)  #1./sqrt(2.)
-                            else:
-                                try:
-                                    zoomfac = float(args[0])
-                                    scr.zoom(zoomfac, True)
-                                except:
-                                    synerr = True
-
-                        if synerr:
-                            print "Syntax error in command"
-                            scr.echo("Syntax error in command")
-                            scr.echo("ZOOM IN/OUT")
-                            continue  # Skip default syntyax message
+                elif cmd[0] in ["+", "=", "-"]:
+                    nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
+                    nmin = cmd.count("-")
+                    zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
+                    scr.zoom(zoomfac)
 
                 #----------------------------------------------------------------------
                 # PAN command
