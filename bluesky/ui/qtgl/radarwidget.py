@@ -191,7 +191,7 @@ class RadarWidget(QGLWidget):
         self.actasbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.accolorbuf    = create_empty_buffer(MAX_NAIRCRAFT * 3, usage=gl.GL_STREAM_DRAW)
         self.aclblbuf      = create_empty_buffer(MAX_NAIRCRAFT * 24, usage=gl.GL_STREAM_DRAW)
-        self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
+        self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 16, usage=gl.GL_STREAM_DRAW)
         self.polyprevbuf   = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
