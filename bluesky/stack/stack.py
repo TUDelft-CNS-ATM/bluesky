@@ -89,9 +89,9 @@ class Commandstack:
             ],
             "DEL": [
                 "DEL acid/shape",
-                "acid/txt",
-                lambda a: scr.objappend(0, a, None) \
-                              if type(a) == str else traf.delete(a)
+                "txt",
+                lambda a: traf.delete(a) if traf.id.count(a) > 0 \
+                     else scr.objappend(0, a, None)
                 ],
             "DELWPT": [
                 "DELWPT acid,wpname",
@@ -611,14 +611,13 @@ class Commandstack:
                             argtype    = argtypes[curtype].strip().split('/')
                             for i in range(len(argtype)):
                                 try:
-#                                if True:
                                     parsed_arg = self.argparse(argtype[i], curarg, args, traf, scr)
                                     arglist += parsed_arg
                                     curarg  += len(parsed_arg)
-#                                else:
+                                    break
                                 except:
                                     # not yet last type possible here?
-                                    if i < len(argtype) - 1: 
+                                    if i < len(argtype) - 1:
                                         # We have alternative argument formats that we can try
                                         continue
                                     else:
@@ -631,13 +630,8 @@ class Commandstack:
                     # Call function return flag,text
                     # flag: indicates sucess
                     # text: optional error message
-#                    try:
                     if not synerr:
                         results = function(*arglist)  # * = unpack list to call arguments
-#                    except:
-#                        synerr = True
-                    txt = helptext
-                    if not synerr:
 
                         if type(results) == bool:  # Only flag is returned
                             synerr = not results
@@ -704,18 +698,6 @@ class Commandstack:
 
                     else:
                          synerr = True
-
-                #----------------------------------------------------------------------
-                # DEL: Delete command: delete an aircraft
-                #----------------------------------------------------------------------
-                elif cmd == "DEL":
-                    if numargs == 1:
-                        if args[0] == "LINE" or args[0] == "LINES":
-                            scr.objdel()  # delete raw objects
-                        else:
-                            success = traf.delete(args[0].upper())
-                            if not success:
-                                scr.echo("DEL: " + args[0] + " not found.")
 
                 #----------------------------------------------------------------------
                 # ZOOM command (or use ++++  or --  to zoom in or out)
