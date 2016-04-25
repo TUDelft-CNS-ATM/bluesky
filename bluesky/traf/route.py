@@ -42,6 +42,44 @@ class Route():
 
         return
 
+    def addwptFromStack(self, traf, idx, *args):
+        "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"
+        if len(args) == 1:
+            self.swflyby = (args[0][-2:] == "BY")
+            return True
+
+        elif type(args[0]) is str:
+            name     = args[0]
+            lat      = traf.lat[idx]
+            lon      = traf.lon[idx]
+            wptype   = self.wpnav
+            args     = args[1:]
+        else:
+            name     = traf.id[idx]
+            lat, lon = args[0:2]
+            wptype   = self.wplatlon
+            args     = args[2:]
+
+        alt = -999. if len(args) < 1 else args[0]
+        spd = -999. if len(args) < 2 else args[1]
+        afterwp = "" if len(args) < 3 else args[2]
+        wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
+        if wpidx < 0:
+            return False, "Waypoint not added."
+
+        norig = int(traf.orig[i] != "")
+        ndest = int(traf.dest[i] != "")
+
+        if self.nwp - norig - ndest == 1:  # first waypoint: make active
+            self.direct(traf, idx, self.wpname[norig])  # 0 if no orig
+            traf.swlnav[i] = True
+
+        if afterwp and self.wpname.count(args[2]) == 0:
+            return True, "Waypoint " + afterwp + " not found" + \
+                "waypoint added at end of route"
+        else:
+            return True
+
     def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
         self.traf = traf  # Traffic object
@@ -63,7 +101,7 @@ class Route():
                  wpok = (i >= 0)
                  if wpok:
                     wplat = self.navdb.aplat[i]
-                    wplon = self.navdb.aplon[i]            
+                    wplon = self.navdb.aplon[i]
             else:                                 # lat/lon type
                  wplat = lat
                  wplon = lon
@@ -147,7 +185,7 @@ class Route():
                 newname = name.strip().upper()+"000"
                 i     = 0
                 while self.wpname.count(newname)>0:
-                    i = i + 1               
+                    i = i + 1
                     newname = newname[:-3]+str(i).zfill(3)
                 wplat = lat
                 wplon = lon
@@ -156,10 +194,10 @@ class Route():
             # Else make data complete with nav database and closest to given lat,lon
             else:
                 newname = name.upper()
-                
+
                 i = self.navdb.getwpidx(name.upper().strip(),lat,lon)
                 wpok = (i >= 0)
-    
+
                 if wpok:
 
                      newname = name.upper()
@@ -220,101 +258,103 @@ class Route():
 
         if not wpok:
             idx = -1
-            if len(self.wplat)==1:
+            if len(self.wplat) == 1:
                 self.iactwp = 0
-        
+
         # Update waypoints
         if not (wptype == self.calcwp):
             self.calcfp()
-        
+
         # Update autopilot settings
-        if wpok and self.iactwp>=0 and self.iactwp<self.nwp:
-            self.direct(traf,iac,self.wpname[self.iactwp])                        
-          
+        if wpok and self.iactwp >= 0 and self.iactwp < self.nwp:
+            self.direct(traf, iac, self.wpname[self.iactwp])
+
         return idx
 
-    def direct(self,traf,i,wpnam):
+    def direct(self, traf, i, wpnam):
         """Set active point to a waypoint by name"""
-        
         name = wpnam.upper().strip()
-        if name != "" and self.wpname.count(name)>0:
-           wpidx = self.wpname.index(name)
-           self.iactwp = wpidx
-           traf.actwplat[i] = self.wplat[wpidx]
-           traf.actwplon[i] = self.wplon[wpidx]
+        if name != "" and self.wpname.count(name) > 0:
+            wpidx = self.wpname.index(name)
+            self.iactwp = wpidx
+            traf.actwplat[i] = self.wplat[wpidx]
+            traf.actwplon[i] = self.wplon[wpidx]
 
-           if traf.swvnav[i]:
-               # Set target altitude for autopilot
-               if self.wpalt[wpidx]>0:
-                    
-                    if traf.alt[i]<self.wptoalt[i]-10.*ft:                    
+            if traf.swvnav[i]:
+                # Set target altitude for autopilot
+                if self.wpalt[wpidx] > 0:
+
+                    if traf.alt[i] < self.wptoalt[i]-10.*ft:
                         traf.actwpalt[i] = self.wptoalt[wpidx]
                         traf.dist2vs[i] = 9999.
                     else:
                         steepness = 3000.*ft/(10.*nm)
                         traf.actwpalt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-                        delalt = traf.alt[i] - traf.actwpalt[i]                        
+                        delalt = traf.alt[i] - traf.actwpalt[i]
                         traf.dist2vs[i] = steepness*delalt
-                        
-               # Set target speed for autopilot
-               spd = self.wpspd[wpidx]
-               if spd>0:
-                    if spd<2.0:
-                       traf.aspd[i] = mach2cas(spd,traf.alt[i])                            
-                    else:    
-                       traf.aspd[i] = cas2tas(spd,traf.alt[i])
 
-               vnavok =  True
-           else:
-               vnavok = False
+                # Set target speed for autopilot
+                spd = self.wpspd[wpidx]
+                if spd > 0:
+                    if spd < 2.0:
+                        traf.aspd[i] = mach2cas(spd, traf.alt[i])
+                    else:
+                        traf.aspd[i] = cas2tas(spd, traf.alt[i])
 
-           qdr, dist = qdrdist(traf.lat[i], traf.lon[i], \
-                                 traf.actwplat[i], traf.actwplon[i])
+            qdr, dist = qdrdist(traf.lat[i], traf.lon[i],
+                                traf.actwplat[i], traf.actwplon[i])
 
-           turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) /g0 /nm # default bank angle 25 deg
+            turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
 
-                                       
-           traf.actwpturn[i] = turnrad*abs(tan(0.5*radians(max(5.,abs(degto180(qdr - \
-                        self.wpdirfrom[self.iactwp]))))))                    
+            traf.actwpturn[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
+                        self.wpdirfrom[self.iactwp]))))))
 
-               
-           return True,vnavok
+            traf.swlnav[i] = True
+            return True
         else:
-           return False,False
+            return False, "Waypoint " + wpnam + " not found"
 
-    def listrte(self,scr,ipage):
+    def listrte(self, scr, ipage=0):
         """LISTRTE command: output route to screen"""
-        for i in range(ipage*7,ipage*7+7):
-            if 0 <= i <self.nwp:
+        if self.nwp <= 0:
+            return False, "Aircraft has no route."
+
+        for i in range(ipage * 7, ipage * 7 + 7):
+            if 0 <= i < self.nwp:
                 # Name
-                if i==self.iactwp:
-                    txt = "*"+self.wpname[i]+" / "
+                if i == self.iactwp:
+                    txt = "*" + self.wpname[i] + " / "
                 else:
-                    txt = " "+self.wpname[i]+" / "
+                    txt = " " + self.wpname[i] + " / "
 
                 # Altitude
-                if self.wpalt[i]<0:
+                if self.wpalt[i] < 0:
                     txt = txt+"----- / "
-                elif self.wpalt[i]>4500*ft:
+                elif self.wpalt[i] > 4500 * ft:
                     FL = int(round((self.wpalt[i]/(100.*ft))))
                     txt = txt+"FL"+str(FL)+" / "
                 else:
-                    txt = txt+str(int(round(self.wpalt[i]/ft)))+" / "
+                    txt = txt+str(int(round(self.wpalt[i] / ft))) + " / "
 
                 # Speed
-                if self.wpspd[i]<0:
+                if self.wpspd[i] < 0:
                     txt = txt+"---"
                 else:
-                    txt = txt+str(int(round(self.wpspd[i]/kts)))
+                    txt = txt+str(int(round(self.wpspd[i] / kts)))
 
                 # Type
-                if self.wptype[i]==self.orig:
-                    txt = txt+ "[orig]"
-                elif self.wptype[i]==self.dest:
-                    txt = txt+ "[dest]"
+                if self.wptype[i] == self.orig:
+                    txt = txt + "[orig]"
+                elif self.wptype[i] == self.dest:
+                    txt = txt + "[dest]"
 
-                # Display message                
+                # Display message
                 scr.echo(txt)
+
+        # Add command for next page to screen command line
+        npages = int((self.nwp + 6) / 7)
+        if ipage + 1 < npages:
+            scr.cmdline("LISTRTE "+acid+","+str(ipage+1))
 
     def getnextwp(self):
         """Go to next waypoint and return data"""

@@ -235,9 +235,6 @@ class Traffic:
         self.trails   = Trails()
         self.swtrails = False  # Default switched off
 
-        # ADS-B Coverage area
-        self.swAdsbCoverage = False
-
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
 
@@ -384,9 +381,6 @@ class Traffic:
         self.lastlon = np.append(self.lastlon, aclon)
         self.lasttim = np.append(self.lasttim, 0.0)
 
-        # ADS-B Coverage area
-        self.swAdsbCoverage = False
-        
         # Transmitted data to other aircraft due to truncated effect
         self.adsbtime=np.append(self.adsbtime,np.random.rand(self.trunctime))
         self.adsblat=np.append(self.adsblat,aclat)
@@ -396,9 +390,9 @@ class Traffic:
         self.adsbtas=np.append(self.adsbtas,acspd)
         self.adsbgs=np.append(self.adsbgs,acspd)
         self.adsbvs=np.append(self.adsbvs,0.)
-        
+
         self.inconflict=np.append(self.inconflict,False)        
-        
+
         self.eps = np.append(self.eps, 0.01)
 
         return True

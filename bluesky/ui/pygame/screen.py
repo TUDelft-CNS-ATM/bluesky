@@ -89,6 +89,9 @@ class Screen:
         # Isometric display parameter
         self.isoalt = 0.  # how many meters one pixel is high
 
+        # Display ADS-B range flag
+        self.swAdsbCoverage = False
+
         # Update rate radar:
         self.radardt = 0.10  # 10x per sec 0.25  # 4x per second max
         self.radt0 = -999.  # last time drawn
@@ -556,7 +559,7 @@ class Screen:
                                    (x0[i], y0[i]), (x1[i], y1[i]))
 
             #---------- Draw ADSB Coverage Area
-            if traf.swAdsbCoverage:
+            if self.swAdsbCoverage:
                 # These points are based on the positions of the antennas with range = 200km
                 adsbCoverageLat = [53.7863,53.5362,52.8604,51.9538,51.2285,50.8249,50.7382,
                                    50.9701,51.6096,52.498,53.4047,53.6402]
@@ -1059,20 +1062,22 @@ class Screen:
 
     def objappend(self,itype,name,data):
         """Add user defined objects"""
+        if data is None:
+            return self.objdel()
         self.objtype.append(itype)
         self.objcolor.append(blue)
         self.objdata.append(data)
-        
+
         self.redrawradbg = True # redraw background
 
         return
-        
 
     def objdel(self):
         """Add user defined objects"""
-        self.objtype  = []
-        self.objcolor = []
-        self.objdata  = []
+        self.objtype     = []
+        self.objcolor    = []
+        self.objdata     = []
+        self.redrawradbg = True # redraw background
         return
         
     def showroute(self,acid): # Toggle show route for an aircraft id
@@ -1118,6 +1123,9 @@ class Screen:
         elif sw == "SAT":
             self.swsat = not self.swsat
 
+        elif sw[:4] == "ADSB":
+            self.swAdsbCoverage = not self.swAdsbCoverage
+
         # Traffic labels: cycle nr of lines 0,1,2,3
         elif sw[:3] == "LAB":  # Nr lines in label
             self.swlabel = (self.swlabel + 1) % 4
@@ -1125,8 +1133,10 @@ class Screen:
                 self.swlabel = int(arg)
 
         else:
+            self.redrawradbg = False
             return False # switch not found
- 
+
+        self.redrawradbg = True
         return True # Success
 
     def show_file_dialog(self):

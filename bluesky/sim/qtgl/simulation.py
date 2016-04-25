@@ -96,7 +96,7 @@ class Simulation(QObject):
                 # Update metrics
                 if self.metric is not None:
                     self.metric.update(self, self.traf)
-                    
+
                 # Update log
                 if self.datalog is not None:
                     self.datalog.update(self)
@@ -125,7 +125,7 @@ class Simulation(QObject):
     def stop(self):
         self.state   = Simulation.end
         self.datalog.save()
-        
+
     def start(self):
         if self.ffmode:
             self.syst = int(time.time() * 1000.0)

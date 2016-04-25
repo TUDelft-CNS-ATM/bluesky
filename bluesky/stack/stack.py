@@ -43,6 +43,11 @@ class Commandstack:
                 "ADDNODES number",
                 "int",
                 sim.addNodes],
+            "ADDWPT": [
+                "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
+                "acid,latlon/txt,[alt,spd,txt]",
+                lambda idx, *args: traf.route[idx].addwptStack(traf, idx, *args)
+            ],
             "ALT": [
                 "ALT acid, alt, [vspd]",
                 "acid,alt,[vspd]",
@@ -86,6 +91,16 @@ class Commandstack:
                 "DEST acid, latlon/airport",
                 "acid,latlon/txt",
                 lambda *args: traf.setDestOrig("DEST", *args)
+            ],
+            "DIRECT": [
+                "DIRECT acid wpname",
+                "acid,txt",
+                lambda idx, wpname: traf.route[idx].direct(traf, idx, wpname)
+            ],
+            "DIST": [
+                "DIST lat0, lon0, lat1, lon1",
+                "latlon,latlon",
+                lambda *args: scr.echo("Dist = %.3f nm, QDR = %.2f deg" % qdrdist(*args))
             ],
             "DT": [
                 "DT dt",
@@ -151,6 +166,11 @@ class Commandstack:
                 "LINE name,lat,lon,lat,lon",
                 "txt,latlon,latlon",
                 lambda name, *coords: scr.objappend(1, name, coords)
+            ],
+            "LISTRTE": [
+                "LISTRTE acid, [pagenr]",
+                "acid,[int]",
+                lambda idx, *args: traf.route[idx].listrte(scr, *args)
             ],
             "LNAV": [
                 "LNAV acid,[ON/OFF]",
@@ -239,6 +259,11 @@ class Commandstack:
                 "",
                 sim.stop
             ],
+            "SWRAD": [
+                "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]",
+                "txt,[float]",
+                scr.feature
+            ],
             "SYMBOL":  [
                 "SYMBOL",
                 "",
@@ -265,6 +290,9 @@ class Commandstack:
         self.cmdsynon = {
             "CONTINUE": "OP",
             "CREATE": "CRE",
+            "DIRECTTO": "DIRECT",
+            "DIRTO": "DIRECT",
+            "DISP": "SWRAD",
             "DTLOOK": "ASA_DTLOOK",
             "END": "STOP",
             "EXIT": "STOP",
@@ -934,40 +962,6 @@ class Commandstack:
                         scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
 
                 #----------------------------------------------------------------------
-                # SWRAD command: display switches of radar display
-                # SWRAD GEO / GRID / APT / VOR / WPT / LABEL (toggle on/off or cycle)
-                # (for WPT,APT,LABEL value is optional)
-                #----------------------------------------------------------------------
-                elif cmd == "SWRAD" or cmd[:4] == "DISP":
-                    if numargs == 0:
-                        scr.echo("SWRAD GEO / GRID / APT / VOR / " + \
-                                 "WPT / LABEL / TRAIL [dt] / [value]")
-                    else:
-                        sw = args[0] # Which switch
-
-                        if numargs==2:
-                            arg = args[1] # optional argument
-                        else:
-                            arg = ""
-
-                        # FIR boundaries
-                        if sw == "TRAIL" or sw == "TRAILS":
-
-                            traf.swtrails = not traf.swtrails
-                            if numargs == 2:
-                                try:
-                                    trdt = float(args[1])
-                                    traf.trails.dt = trdt
-                                except:
-                                    scr.echo("TRAIL ON dt")
-
-                        elif scr.feature(sw,arg): # Toggle screen feature                        
-                              scr.drawradbg() # When success: Force redraw radar background
-
-                        else:
-                            scr.redrawradbg = False # Switch not found
-
-                #----------------------------------------------------------------------
                 # TRAILS ON/OFF
                 #----------------------------------------------------------------------
                 elif cmd[:5] == "TRAIL":
@@ -1009,7 +1003,7 @@ class Commandstack:
                                 if idx < 0:
                                     scr.echo("TRAILS: " + acid + " not found.")
                                     idx = -1
-                                
+
                                 # Does the color exist?
                                 if color not in ("BLUE", "RED", "YELLOW"):
                                     scr.echo("Color not found, use BLUE, RED or YELLOW")
@@ -1024,25 +1018,6 @@ class Commandstack:
                             scr.echo("TRAILS ON/OFF")
 
                 #----------------------------------------------------------------------
-                # DIST lat1,lon1,lat2,lon2 : 
-                #   calculate distance and direction from one pos to 2nd
-                #----------------------------------------------------------------------
-                elif cmd[:4] == "DIST":
-                    if numargs == 0:
-                        scr.echo("DIST lat1,lon1,lat2,lon2")
-                    else:
-                        try:
-                            lat0 = float(args[0])  # lat 1st pos
-                            lon0 = float(args[1])  # lon 1st pos
-                            lat1 = float(args[2])  # lat 2nd pos
-                            lon1 = float(args[3])  # lon 2nd pos
-                            qdr, d = qdrdist(lat0, lon0, lat1, lon1)
-                            scr.echo("Dist = " + str(round(d,3)) + \
-                                 " nm   QDR = " + str(round(qdr,2)) + " deg")
-                        except:
-                            scr.echo("DIST: Syntax error")
-
-                #----------------------------------------------------------------------
                 # CALC  expression
                 #----------------------------------------------------------------------
                 elif cmd[:4] == "CALC":
@@ -1054,184 +1029,6 @@ class Commandstack:
                             scr.echo("Ans = " + str(x))
                         except:
                             scr.echo("CALC: Syntax error")
-
-                #----------------------------------------------------------------------
-                # ADDWPT   : ADDWPT acid,(WPname / lat,lon),[alt],[spd],[afterwp]
-                #----------------------------------------------------------------------
-                elif cmd == "ADDWPT":
-             
-                    if numargs <= 1:
-                        scr.echo( \
-                        "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]")
-                    
-                    else:
-                        acid = args[0]     # call sign
-                           
-                        i = traf.id2idx(acid) # Get index of this a/c
-                        if i < 0:
-                            scr.echo("ADDWPT: Aircraft "+ acid +" not found.")
-                        else:
-                            rte = traf.route[i]   # Get pointer to route object
-
-                            # Default values
-                            wpok =  False
-                            alt = -999
-                            spd = -999
-                            afterwp = ""
-                            
-                            # Check for fly-by/fly-over switch per aircraft route
-                            wpid = args[1]                            
-                            if wpid=="FLYBY" or wpid=="FLY-BY":
-                                traf.route[i].swflyby = True
-                            elif wpid=="FLYOVER" or wpid=="FLY-OVER":
-                                traf.route[i].swflyby = False
-                            else:
-
-                                if True: #try:
-    
-                                    # Get waypoint data
-                                    # Is arg 2 a number? => lat,lon else waypoint name
-                                    chkdig = args[1].replace("-","")  \
-                                       .replace("+","").replace(".","")\
-                                       .replace("N","").replace("S","")\
-                                       .replace("E","").replace("W","")\
-                                       .replace("'","").replace('"',"")
-
-                                    if numargs>=3 and chkdig.isdigit():
-          
-                                        name    = traf.id[i] # use for wptname
-                                        wptype  = rte.wplatlon
-                                        lat     = txt2lat(args[1])
-                                        lon     = txt2lon(args[2])
-                                        if numargs>=4 and args[3]!="":
-                                            alt = txt2alt(args[3])*ft
-                                        if numargs>=5 and args[4]!="":
-                                            spd = txt2spd(args[4],max(alt,traf.alt[i]))
-                                        if numargs>=6:
-                                            afterwp = args[5]
-                                            if rte.wpname.count(afterwp)==0:
-                                                scr.echo("Waypoint "+afterwp+" not found. "+
-                                                "Waypoint added at end of route.")
-                                                afterwp = ""
-                                        
-                                        wpok    = True
-
-                                    # Is arg navaid/airport/waypoint name?
-                                    elif numargs>=2:
-                                        name    = args[1]  # search this wpname closest to
-                                        wptype  = rte.wpnav
-                                        lat     = traf.lat[i]  # a/c position as reference lat,lon 
-                                        lon     = traf.lon[i]
-                                        if numargs>=3 and args[2]!="":
-                                            alt = txt2alt(args[2])*ft
-                                        if numargs>=4 and args[3]!="":
-                                            spd = txt2spd(args[3],max(alt,traf.alt[i]))
-                                        if numargs>=5:
-                                            afterwp = args[4]
-                                            if rte.wpname.count(afterwp)==0:
-                                                scr.echo("Waypoint ",afterwp," not found."+
-                                                "waypoint added at end of route.")
-                                                afterwp =""
-
-                                        wpok    = True
-    
-                                    # Add the wpt to route
-                                    if wpok: 
-                                        wpidx = rte.addwpt(traf,i,name,wptype,lat,lon,alt,spd,afterwp)
-                                        norig = int(traf.orig[i]!="")
-                                        ndest = int(traf.dest[i]!="")
-    
-                                        if rte.nwp-norig-ndest==1: # first waypoint: make active
-                                           rte.direct(traf,i,rte.wpname[norig]) #0 if no rig
-                                           traf.swlnav[i] = True
-    
-                                    else:
-                                        scr.echo(traf.id[i]+": waypoint not added")
-                                        synerr = True
-                                #except:
-                                 #   scr.echo(traf.id[i]+": waypoint not added")
-                                 #   synerr = True
-
-                #----------------------------------------------------------------------
-                # DIRECT [TO] wpname: set active waypoint
-                #----------------------------------------------------------------------
-                elif cmd == "DIRECT":
-
-                    # remove optional 'TO'                   
-                    if numargs>=1 and args[0] == "TO":
-                        del args[0]
-                        numargs= numargs-1
-
-                    # Check aircraft id, call route.direct function           
-                    if numargs <= 1:
-                        scr.echo("DIRECT acid, wpname")
-                    else:
-                        acid = args[0]           # call sign
-                        i = traf.id2idx(args[0])    # Get index of this a/c
-                        if i<0:
-                            scr.echo("DIRECT: Aircraft "+args[0]+" not found.")
-
-                        else:
-                            # Go direct, check success
-                           swok,vnavok = traf.route[i].direct(traf,i,args[1])
-                           if swok:
-                               traf.swlnav[i] = True
-                               traf.swvnav[i] = vnavok
-                           else:
-                               scr.echo(acid+": DIRECT waypoint"+args[1] \
-                                                 +" not found.")
-
-                #----------------------------------------------------------------------
-                #  LISTRTE acid, [pagenr]v   (7 wpts per page)
-                #----------------------------------------------------------------------
-                elif cmd == "LISTRTE":
-                    if numargs < 1:
-                        scr.echo("LISTRTE acid [pagenr]")
-                    else:
-                        acid = args[0]           # call sign
-                        i = traf.id2idx(args[0])    # Get index of this a/c
-                        if i<0:
-                            scr.echo("LISTRTE: Aircraft "+args[0]+" not found.")
-
-                        elif traf.route[i].nwp<=0 :
-                            scr.echo("LISTRTE: Aircraft "+args[0]+" has no route.")
-                        else:
-                            nwp    = traf.route[i].nwp
-                            npages = int((nwp+6)/7)
-                            if numargs==1:
-                                ipage = 0
-                            else:
-                                try:
-                                    ipage = int(args[1])
-                                except:
-                                    synerr = True
-                            
-                            if not synerr:
-                                traf.route[i].listrte(scr,ipage)
-                                if ipage+1<npages:
-                                    scr.cmdline("LISTRTE "+acid+","+str(ipage+1))
-
-                #----------------------------------------------------------------------
-                # ADSBCOVERAGE: Draw the coverage area of the To70 ADS-B antennas
-                #----------------------------------------------------------------------
-                elif cmd == "ADSBCOVERAGE":
-                    if numargs == 0:
-                        scr.echo("ADSBCOVERAGE ON/OFF")
-                        if traf.swAdsbCoverage:
-                            scr.echo("ADSB Coverage Area is currently ON")
-                        else:
-                            scr.echo("ADSB Coverage Area is currently OFF")
-                    else:
-                        if args[0] == "ON":
-                            traf.swAdsbCoverage = True
-
-
-                        elif args[0] == "OFF" or args[0] == "OF":
-                            traf.swAdsbCoverage = False
-
-                        else:
-                            scr.echo('Syntax error')
-                            scr.echo("ADSBCOVERAGE ON/OFF")
 
                 #------------------------------------------------------------------
                 # !!! This is a template, please make a copy and keep it !!!
@@ -1255,7 +1052,7 @@ class Commandstack:
                 # Command not found
                 #-------------------------------------------------------------------
                 else:
-                    if numargs==0:
+                    if numargs == 0:
                         scr.echo("Unknown command or aircraft: " + cmd)
                     else:
                         scr.echo("Unknown command: " + cmd)
