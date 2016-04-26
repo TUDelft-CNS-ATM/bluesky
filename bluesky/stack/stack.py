@@ -72,6 +72,11 @@ class Commandstack:
                 "txt,latlon,latlon",
                 lambda name, *coords: scr.objappend(2, name, coords)
             ],
+            "CALC": [
+                "CALC expression",
+                "txt",
+                lambda expr: scr.echo("Ans = " + str(eval(expr)))
+            ],
             "CIRCLE": [
                 "CIRCLE name,lat,lon,radius",
                 "txt,latlon,float",
@@ -289,6 +294,11 @@ class Commandstack:
                 "TAXI ON/OFF : OFF auto deletes traffic below 1500 ft",
                 "onoff",
                 traf.setTaxi
+            ],
+            "TRAIL": [
+                "TRAIL ON/OFF, [dt] OR TRAIL acid color",
+                "acid/bool,[float/txt]",
+                traf.setTrails
             ],
             "VNAV": [
                 "VNAV acid,[ON/OFF]",
@@ -903,75 +913,6 @@ class Commandstack:
                         scr.echo("AREA fir,radius[,lowalt]")
                         scr.echo("or")
                         scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
-
-                #----------------------------------------------------------------------
-                # TRAILS ON/OFF
-                #----------------------------------------------------------------------
-                elif cmd[:5] == "TRAIL":
-                    if numargs == 0:
-                        scr.echo("TRAIL ON/OFF [dt]/TRAIL acid color")
-                        if traf.swtrails:
-                            scr.echo("Trails are currently ON")
-                            scr.echo("Trails dt=" + str(traf.trails.dt))
-                        else:
-                            scr.echo("Trails are currently OFF")
-                    else:
-                        if args[0] == "ON":
-                            traf.swtrails = True
-                            if numargs == 2:
-                                try:
-                                    trdt = float(args[1])
-                                    traf.trails.dt = trdt
-                                except:
-                                    scr.echo("TRAIL ON dt")
-
-                        elif args[0] == "OFF" or args[0] == "OF":
-                            traf.swtrails = False
-                            traf.trails.clear()
-
-                        elif len(args[0]) != 0:
-                            correctCommand = True
-                            # Check if a color was selected
-                            if len(args) == 1:
-                                scr.echo('Syntax error')
-                                scr.echo("TRAIL acid color")
-                                correctCommand = False
-
-                            if correctCommand:
-                                acid = args[0]
-                                color = args[1]
-
-                                # Does aircraft exist?
-                                idx = traf.id2idx(acid)
-                                if idx < 0:
-                                    scr.echo("TRAILS: " + acid + " not found.")
-                                    idx = -1
-
-                                # Does the color exist?
-                                if color not in ("BLUE", "RED", "YELLOW"):
-                                    scr.echo("Color not found, use BLUE, RED or YELLOW")
-                                    idx = -1
-
-                                # Change trail color of aircraft for which there are data
-                                if idx >= 0:
-                                    traf.changeTrailColor(color, idx)
-                                    # scr.echo("TRAIL color of " + acid + " switched to: " + color)
-                        else:
-                            scr.echo('Syntax error')
-                            scr.echo("TRAILS ON/OFF")
-
-                #----------------------------------------------------------------------
-                # CALC  expression
-                #----------------------------------------------------------------------
-                elif cmd[:4] == "CALC":
-                    if numargs == 0:
-                        scr.echo("CALC expression")
-                    else:
-                        try:
-                            x = eval(line[5:])  # lower for units!
-                            scr.echo("Ans = " + str(x))
-                        except:
-                            scr.echo("CALC: Syntax error")
 
                 #------------------------------------------------------------------
                 # !!! This is a template, please make a copy and keep it !!!

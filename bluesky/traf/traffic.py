@@ -921,6 +921,21 @@ class Traffic:
         except:
             return -1
 
+    def setTrails(self, *args):
+        """ Set trails on/off, or change trail color of aircraft """
+        if type(args[0]) == bool:
+            # Set trails on/off
+            self.swtrails = args[0]
+            if len(args) > 1:
+                self.trails.dt = args[1]
+            if not self.swtrails:
+                self.trails.clear()
+        else:
+            # Change trail color
+            if len(args) < 2 or args[2] not in ["BLUE", "RED", "YELLOW"]:
+                return False, "Set aircraft trail color with: TRAIL acid BLUE/RED/YELLOW"
+            self.changeTrailColor(args[1], args[0])
+
     def changeTrailColor(self, color, idx):
         """Change color of aircraft trail"""
         self.trailcol[idx] = self.trails.colorList[color]
