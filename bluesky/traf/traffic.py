@@ -1147,3 +1147,76 @@ class Traffic:
                 line += " to " + self.dest[idx]
 
         return line
+
+    def area(self, scr, metric, *args):
+        if args[0] == 'OFF':
+            self.swarea = False
+            self.area   = ""
+            scr.objappend(2, "AREA", None)  # delete square areas
+            scr.objappend(3, "AREA", None)  # delete circle areas
+            return True
+
+        if type(args[0]) == float and len(args) >= 4:
+            # This is a square area
+            self.arealat0 = min(args[0], args[2])
+            self.arealat1 = max(args[0], args[2])
+            self.arealon0 = min(args[1], args[3])
+            self.arealon1 = max(args[1], args[3])
+
+            if numargs == 5:
+                self.areafloor = args[4] * ft
+            else:
+                self.areafloor = -9999999.
+
+            self.area = "Square"
+            self.swarea = True
+            scr.objappend(2, "AREA", [args[0], args[1], args[2], args[3]])
+
+            # Avoid mass delete due to redefinition of area
+            self.inside = self.ntraf * [False]
+            return True
+        elif args[0] == "FIR" and len(args) <= 3:
+            for i in range(0, len(self.navdb.fir)):
+                if args[1] == self.navdb.fir[i][0]:
+                    break
+            if args[1] != self.navdb.fir[i][0]:
+                return False, "Unknown FIR, try again"
+
+            metric.fir_number        = i
+            metric.fir_circle_point  = metric.metric_Area.FIR_circle(self.navdb, metric.fir_number)
+            metric.fir_circle_radius = float(args[1])
+
+            if len(args) == 3:
+                self.areafloor = args[2] * ft
+            else:
+                self.areafloor = -9999999.
+
+            self.area   = "Circle"
+            self.swarea = True
+            self.inside = self.ntraf * [False]
+            scr.objappend(3, "AREA", [metric.fir_circle_point[0] , metric.fir_circle_point[1], metric.fir_circle_radius])
+            return True
+        elif args[0] == "CIRCLE" and len(args) in [4, 5]:
+            # draw circular experiment area
+            self.arealat0 = args[1]    # Latitude of circle center [deg]
+            self.arealon0 = args[2]    # Longitude of circle center [deg]
+            self.arearadius = args[3]  # Radius of circle Center [NM]
+
+            # Deleting traffic flying out of experiment area
+            self.area = "Circle"
+            self.swarea = True
+
+            if len(args) == 5:
+                self.areafloor = args[4] * ft  # [m]
+            else:
+                self.areafloor = -9999999.  # [m]
+
+            # draw the circular experiment area on the radar gui
+            scr.objappend(3, "AREA", [self.arealat0, self.arealon0, radius])
+
+            # Avoid mass delete due to redefinition of area
+            self.inside = self.ntraf * [False]
+
+            return True
+
+        return False

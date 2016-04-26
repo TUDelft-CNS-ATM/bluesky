@@ -1355,6 +1355,29 @@ class Metric():
 
         return
 
+    def toggle(self, traf, flag, dt=None):
+        """ Toggle metrics module from stack """
+        if type(flag) == bool and not flag:
+            # Can toggle metrics off with 'OFF'
+            self.metric_number = -1
+        else:
+            # Otherwise select a metric to run
+            if flag <= 0:
+                return True, "Metrics OFF"
+
+            if flag > len(self.name):
+                return False, "No such metric"
+
+            if not traf.area == "Circle":
+                return False, "First define AREA for metric"
+
+            if dt:
+                self.dt = dt
+
+            self.metric_number = flag - 1
+
+            return True, "Activated %s (%d), dt=%.2f" % (self.name[self.metric_number], flag, self.dt)
+
     def write(self,t,line):
         """
         Write: can be called from anywhere traf.metric.write( txt )

@@ -12,7 +12,7 @@ from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEv
 from ...traf import Traffic
 from ...navdb import Navdatabase
 from ...stack import Commandstack
-# from ...traf import Metric
+from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
 from ...tools.datalog import Datalog
@@ -64,9 +64,8 @@ class Simulation(QObject):
         self.traf        = Traffic(self.navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
         # Metrics
-        self.metric      = None
-        # self.metric      = Metric()
-        self.beastfeed     = Modesbeast(self.stack, self.traf)
+        self.metric      = Metric()
+        self.beastfeed   = Modesbeast(self.stack, self.traf)
 
     def doWork(self):
         self.syst = int(time.time() * 1000.0)
@@ -94,8 +93,7 @@ class Simulation(QObject):
                 self.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-                if self.metric is not None:
-                    self.metric.update(self, self.traf)
+                self.metric.update(self, self)
 
                 # Update log
                 if self.datalog is not None:

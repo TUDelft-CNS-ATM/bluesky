@@ -58,6 +58,11 @@ class Commandstack:
                 "acid,alt,[vspd]",
                 traf.selalt
             ],
+            "AREA": [
+                "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
+                "float,txt,[float,float,float]",
+                lambda *args: traf.area(scr, sim.metric, *args)
+            ],
             "ASAS": [
                 "ASAS ON/OFF",
                 "[onoff]",
@@ -202,6 +207,11 @@ class Commandstack:
                 "MCRE n, [type/*, alt/*, spd/*, dest/*]",
                 "int,[txt,alt,spd,txt]",
                 lambda *args: traf.mcreate(*args, area=scr.getviewlatlon())
+            ],
+            "METRIC": [
+                "METRIC OFF/0/1/2, [dt]",
+                "onoff/int,[float]",
+                lambda *args: sim.metric.toggle(traf, *args)
             ],
             "MOVE": [
                 "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
@@ -688,184 +698,6 @@ class Commandstack:
                     nmin = cmd.count("-")
                     zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
                     scr.zoom(zoomfac)
-
-                #----------------------------------------------------------------------
-                # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
-                #----------------------------------------------------------------------
-                elif cmd[:6] == "METRIC":
-                    if sim.metric is None:
-                        scr.echo("METRICS module disabled")
-
-                    elif numargs < 1:
-                        if sim.metric.metric_number < 0:
-                            scr.echo("No metric active, to configure run:")
-                            scr.echo("METRICS OFF/0/1/2 [dt]")
-                        else:
-                            scr.echo("")
-                            scr.echo("Active: " + "(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
-                                sim.metric.metric_number])
-                            scr.echo("Current dt: " + str(sim.metric.dt) + " s")
-
-                    elif args[0] == "OFF":  # arguments are strings
-                        sim.metric.metric_number = -1
-                        scr.echo("Metric is off")
-
-                    else:
-                        if not args[0][1:].isdigit():
-                            # print args[0][1:].isdigit()
-                            scr.echo("Command argument invalid")
-                            return
-                        sim.metric.metric_number = int(args[0]) - 1
-                        if sim.metric.metric_number < 0:
-                            scr.echo("Metric is off")
-                        elif sim.metric.metric_number <= len(sim.metric.name):
-                            if traf.area == "Circle":
-                                scr.echo("(" + str(sim.metric.metric_number + 1) + ") " + sim.metric.name[
-                                    sim.metric.metric_number] + " activated")
-                                try:
-                                    metric_dt = float(args[1])
-                                    if metric_dt > 0:
-                                        sim.metric.dt = metric_dt
-                                        scr.echo("with dt = " + str(metric_dt))
-                                    else:
-                                        scr.echo("No valid dt")
-                                except:
-                                    scr.echo("with dt = " + str(sim.metric.dt))
-                            else:
-                                scr.echo("First define AREA FIR")
-                        else:
-                            scr.echo("No such metric")
-
-                #----------------------------------------------------------------------
-                # AREA command: AREA lat0,lon0,lat1,lon1[,lowalt]
-                #               AREA FIR fir radius [lowalt]
-                #----------------------------------------------------------------------
-                elif cmd == "AREA":
-                    
-                    # debugger
-#                    pdb.set_trace()                    
-                    
-                    if numargs == 0:
-                        scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
-                        scr.echo("or")
-                        scr.echo("AREA fir,radius[,lowalt]")
-                        scr.echo("or")
-                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
-                    elif numargs == 1 and args[0] != "OFF" and args[0] != "FIR":
-                        scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
-                        scr.echo("or")
-                        scr.echo("AREA fir,radius[,lowalt]")
-                        scr.echo("or")
-                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
-                        
-                    elif numargs == 1:
-                        if args[0] == "OFF":
-                            if traf.swarea:
-                                traf.swarea = False
-                                scr.redrawradbg = True
-                                traf.area = ""
-                                scr.objappend(2, "AREA", None) # delete square areas
-                                scr.objappend(3, "AREA", None) # delete circle areas
-                        if args[0] == "FIR":
-                            scr.echo("Specify FIR")
-
-                    elif numargs > 1 and args[0][0].isdigit():
-
-                        lat0 = float(args[0])  # [deg]
-                        lon0 = float(args[1])  # [deg]
-                        lat1 = float(args[2])  # [deg]
-                        lon1 = float(args[3])  # [deg]
-
-                        traf.arealat0 = min(lat0, lat1)
-                        traf.arealat1 = max(lat0, lat1)
-                        traf.arealon0 = min(lon0, lon1)
-                        traf.arealon1 = max(lon0, lon1)
-
-                        if numargs == 5:
-                            traf.areafloor = float(args[4]) * ft
-                        else:
-                            traf.areafloor = -9999999.
-
-                        traf.area = "Square"
-                        traf.swarea = True
-                        scr.redrawradbg = True
-                        scr.objappend(2, "AREA", [lat0, lon0, lat1, lon1])
-
-                        # Avoid mass delete due to redefinition of area
-                        traf.inside = traf.ntraf * [False]
-
-                    elif numargs > 2 and args[0] == "FIR":
-
-                        for i in range(0, len(traf.navdb.fir)):
-                            if args[1] == traf.navdb.fir[i][0]:
-                                break
-                        if args[1] != traf.navdb.fir[i][0]:
-                            scr.echo("Unknown FIR, try again")
-                        if sim.metric is not None:
-                            sim.metric.fir_number = i
-                            sim.metric.fir_circle_point = sim.metric.metric_Area.FIR_circle(traf.navdb, sim.metric.fir_number)
-                            sim.metric.fir_circle_radius = float(args[2])
-                        else:
-                            scr.echo("warning: FIR not loaded into METRICS module because not active")
-
-                        if numargs == 4:
-                            traf.areafloor = float(args[3]) * ft
-                        else:
-                            traf.areafloor = -9999999.
-                        if numargs > 4:
-                            scr.echo("AREA command unknown")
-
-                        traf.area = "Circle"
-                        traf.swarea = True
-                        scr.drawradbg()
-                        traf.inside = traf.ntraf * [False]
-                    
-                    # circle code
-                    elif (numargs > 2 and args[0] == "CIRCLE"):
-                        
-                        # draw circular experiment area
-                        lat0 = np.float(args[1])   # Latitude of circle center [deg]
-                        lon0 = np.float(args[2])   # Longitude of circle center [deg]
-                        radius = np.float(args[3]) # Radius of circle Center [NM]                      
-                                               
-                        # Deleting traffic flying out of experiment area
-                        traf.area = "Circle"
-                        traf.swarea = True
-                        traf.arearadius = radius
-                        traf.arealat0 = lat0 # center of circle sent to traf
-                        traf.arealon0 = lon0
-                        
-                        if numargs == 5:
-                            traf.areafloor = float(args[4]) * ft # [m]
-                        else:
-                            traf.areafloor = -9999999. # [m]
-                            
-                        # draw the circular experiment area on the radar gui  
-                        scr.redrawradbg = True                        
-                        scr.objappend(3, "AREA", [lat0,lon0,radius])
-                        
-                        # Avoid mass delete due to redefinition of area
-                        traf.inside = traf.ntraf * [False]
-                        
-                     
-                    else:
-                        scr.echo("AREA command unknown")
-                        scr.echo("AREA lat0,lon0,lat1,lon1[,lowalt]")
-                        scr.echo("or")
-                        scr.echo("AREA fir,radius[,lowalt]")
-                        scr.echo("or")
-                        scr.echo("AREA circle,lat0,lon0,radius[,lowalt] ")
-
-                #------------------------------------------------------------------
-                # !!! This is a template, please make a copy and keep it !!!
-                # Insert new command here: first three chars should be unique
-                #------------------------------------------------------------------
-                elif cmd[:3] == "XXX":
-                    if numargs == 0:
-                        scr.echo("cmd arg1, arg2")
-                    else:
-                        arg1 = args[0]  # arguments are strings
-                        arg2 = args[1]  # arguments are strings
 
                 #-------------------------------------------------------------------
                 # Reference to other command files
