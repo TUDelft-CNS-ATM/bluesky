@@ -232,6 +232,11 @@ class Commandstack:
                 "acid,latlon/txt",
                 lambda *args: traf.setDestOrig("ORIG", *args)
             ],
+            "PAN": [
+                "PAN latlon/acid/airport/waypoint",
+                "latlon/txt",
+                lambda *args: scr.panStack(traf, *args)
+            ],
             "PCALL": [
                 "PCALL filename [REL/ABS]",
                 "txt,[txt]",
@@ -683,69 +688,6 @@ class Commandstack:
                     nmin = cmd.count("-")
                     zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
                     scr.zoom(zoomfac)
-
-                #----------------------------------------------------------------------
-                # PAN command
-                #----------------------------------------------------------------------
-                elif cmd[:4] == "PAN":
-
-                    if not (numargs == 1 or numargs == 2):
-                        if numargs>0:
-                            scr.echo("Syntax error in command")
-                        scr.echo("PAN LEFT/RIGHT/UP/DOWN/acid/airport/navid")
-                        continue
-
-                    # LEFT/RIGHT/UP/DOWN
-                    elif numargs == 1:
-                        if args[0] == "LEFT":
-                            scr.pan((0.0, -0.5)) # move half screen left
-                            continue
-                        elif args[0] == "RIGHT":
-                            scr.pan((0.0, 0.5)) # move half screen right
-                            continue
-
-                        elif args[0] == "UP":
-                            scr.pan((0.5, 0.0))  # move half screen up
-                            continue
-
-                        elif args[0] == "DOWN":
-                            scr.pan((-0.5, 0.0)) # move half screen down
-                            continue
-                        else:
-                            # Try aicraft id, waypoint of airport
-                            i = traf.id2idx(args[0])
-                            if i >= 0:
-                                lat = traf.lat[i]
-                                lon = traf.lon[i]
-                                if (np.isnan(lat) or np.isnan(lon)):
-                                    continue
-                            else:
-                                i = traf.navdb.getwpidx(args[0], 0.0, 0.0)  # TODO: get current pan from display?
-                                if i >= 0:
-                                    lat = traf.navdb.wplat[i]
-                                    lon = traf.navdb.wplon[i]
-                                    if (np.isnan(lat) or np.isnan(lon)):
-                                        continue
-                                else:
-                                    i = traf.navdb.getapidx(args[0])
-                                    if i >= 0:
-                                        lat = traf.navdb.aplat[i]
-                                        lon = traf.navdb.aplon[i]
-                                        if (np.isnan(lat) or np.isnan(lon)):
-                                            continue
-                                    else:
-                                        synerr= True
-                                        scr.echo(args[0] + " not found.")
-                            if not synerr and (not (np.isnan(lat) or np.isnan(lon))):
-                                scr.pan((lat, lon), absolute=True)
-
-                    # PAN to lat,lon position
-                    elif numargs == 2:
-                        lat = float(args[0])
-                        lon = float(args[1])
-
-                        if not (np.isnan(lat) or np.isnan(lon)):
-                            scr.pan((lat, lon), absolute=True)
 
                 #----------------------------------------------------------------------
                 # METRICS command: METRICS/METRICS OFF/0/1/2 [dt]  analyze traffic complexity metrics
