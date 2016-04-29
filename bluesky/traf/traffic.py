@@ -1148,7 +1148,7 @@ class Traffic:
 
         return line
 
-    def area(self, scr, metric, *args):
+    def setArea(self, scr, metric, *args):
         if args[0] == 'OFF':
             self.swarea = False
             self.area   = ""
@@ -1163,7 +1163,7 @@ class Traffic:
             self.arealon0 = min(args[1], args[3])
             self.arealon1 = max(args[1], args[3])
 
-            if numargs == 5:
+            if len(args) == 5:
                 self.areafloor = args[4] * ft
             else:
                 self.areafloor = -9999999.

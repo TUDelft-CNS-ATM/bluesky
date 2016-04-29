@@ -933,47 +933,22 @@ class Screen:
 
         return
 
-    def panStack(self, traf, *args):
-        if len(args) == 2:
-            # Args are lat/lon coordinates
-            return self.pan(args, absolute=True)
-        if args[0] == "LEFT":
-            return self.pan((0.0, -0.5))  # move half screen left
-        if args[0] == "RIGHT":
-            return self.pan((0.0, 0.5))   # move half screen right
-        if args[0] == "UP":
-            return self.pan((0.5, 0.0))   # move half screen up
-        if args[0] == "DOWN":
-            return self.pan((-0.5, 0.0))  # move half screen down
-
-        # Try aicraft id, waypoint of airport
-        i = traf.id2idx(args[0])
-        if i >= 0:
-            return self.pan((traf.lat[i], traf.lon[i]), absolute=True)
-
-        # Try airport id
-        i = traf.navdb.getapidx(args[0])
-        if i >= 0:
-            return self.pan((traf.navdb.aplat[i], traf.navdb.aplon[i]), absolute=True)
-
-        # Try waypoint id
-        i = traf.navdb.getwpidx(args[0], 0.0, 0.0)  # TODO: get current pan from display?
-        if i >= 0:
-            return self.pan((traf.navdb.wplat[i], traf.navdb.wplon[i]), absolute=True)
-
-    def pan(self, (xlat, xlon), absolute=False):
+    def pan(self, *args):
         """Pan function:
-               absolute: lat,lon; 
-               relative: screen width factor,screen height factor"""
-        if absolute:
-            lat,lon = xlat,xlon
-
-        # relative        
+               absolute: lat,lon;
+               relative: UP/DOWN/LEFT/RIGHT"""
+        lat, lon = self.ctrlat, self.ctrlon
+        if args[0] == "LEFT":
+            lon = self.ctrlon - 0.5 * (self.lon1 - self.lon0)
+        elif args[0] == "RIGHT":
+            lon = self.ctrlon + 0.5 * (self.lon1 - self.lon0)
+        elif args[0] == "UP":
+            lat = self.ctrlat + 0.5 * (self.lat1 - self.lat0)
+        elif args[0] == "DOWN":
+            lat = self.ctrlat - 0.5 * self.lat1 - self.lat0
         else:
-            latsize = self.lat1 - self.lat0
-            lonsize = self.lon1 - self.lon0
-            lat,lon = self.ctrlat + xlat*latsize, self.ctrlon + xlon*lonsize
-            
+            lat, lon = args
+
         # Maintain size
         dellat2 = (self.lat1 - self.lat0) * 0.5
 

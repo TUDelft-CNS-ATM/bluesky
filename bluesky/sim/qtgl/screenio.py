@@ -75,55 +75,32 @@ class ScreenIO(QObject):
         lon1 = self.ctrlon + 1.0 / self.scrzoom
         return lat0, lat1, lon0, lon1
 
-    def zoom(self, zoomfac, absolute=False):
+    def zoom(self, zoom, absolute=True):
         if self.manager.isActive():
             if absolute:
-                self.scrzoom = zoomfac
+                self.scrzoom = zoom
             else:
-                self.scrzoom *= zoomfac
-            self.manager.sendEvent(PanZoomEvent(zoom=zoomfac, absolute=absolute))
+                self.scrzoom *= zoom
+            self.manager.sendEvent(PanZoomEvent(zoom=zoom, absolute=absolute))
 
     def symbol(self):
         if self.manager.isActive():
             self.manager.sendEvent(DisplayFlagEvent('SYM'))
 
-    def panStack(self, traf, *args):
-        if len(args) == 2:
-            # Args are lat/lon coordinates
-            return self.pan(args, absolute=True)
-        if args[0] == "LEFT":
-            return self.pan((0.0, -0.5))  # move half screen left
-        if args[0] == "RIGHT":
-            return self.pan((0.0, 0.5))   # move half screen right
-        if args[0] == "UP":
-            return self.pan((0.5, 0.0))   # move half screen up
-        if args[0] == "DOWN":
-            return self.pan((-0.5, 0.0))  # move half screen down
-
-        # Try aicraft id, waypoint of airport
-        i = traf.id2idx(args[0])
-        if i >= 0:
-            return self.pan((traf.lat[i], traf.lon[i]), absolute=True)
-
-        # Try airport id
-        i = traf.navdb.getapidx(args[0])
-        if i >= 0:
-            return self.pan((traf.navdb.aplat[i], traf.navdb.aplon[i]), absolute=True)
-
-        # Try waypoint id
-        i = traf.navdb.getwpidx(args[0], 0.0, 0.0)  # TODO: get current pan from display?
-        if i >= 0:
-            return self.pan((traf.navdb.wplat[i], traf.navdb.wplon[i]), absolute=True)
-
-    def pan(self, pan, absolute=False):
+    def pan(self, *args):
         if self.manager.isActive():
-            if absolute:
-                self.ctrlat = pan[0]
-                self.ctrlon = pan[1]
+            if args[0] == "LEFT":
+                self.ctrlon -= 0.5
+            elif args[0] == "RIGHT":
+                self.ctrlon += 0.5
+            elif args[0] == "UP":
+                self.ctrlat += 0.5
+            elif args[0] == "DOWN":
+                self.ctrlat -= 0.5
             else:
-                self.ctrlat += pan[0]
-                self.ctrlon += pan[1]
-            self.manager.sendEvent(PanZoomEvent(pan=pan, absolute=absolute))
+                self.ctrlat, self.ctrlon = args
+
+            self.manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
     def showroute(self, acid):
         self.route_acid = acid

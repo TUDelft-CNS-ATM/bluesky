@@ -93,7 +93,7 @@ class Simulation(QObject):
                 self.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-                self.metric.update(self, self)
+                self.metric.update(self)
 
                 # Update log
                 if self.datalog is not None:

@@ -1,13 +1,11 @@
 from math import *
 import numpy as np
-from random import random, randint, seed
+from random import seed
 import os
 import sys
 
-from ..tools.aero import kts, ft, fpm, nm, lbs,\
-                         qdrdist, cas2tas, mach2tas, tas2cas, tas2eas, tas2mach,\
-                         eas2tas, cas2mach, density
-from ..tools.misc import txt2alt, txt2spd, col2rgb, cmdsplit,  txt2lat, txt2lon
+from ..tools.aero import kts, ft, fpm, qdrdist, tas2cas, density
+from ..tools.misc import txt2alt, cmdsplit,  txt2lat, txt2lon
 from .. import settings
 
 # import pdb
@@ -61,7 +59,7 @@ class Commandstack:
             "AREA": [
                 "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
                 "float,txt,[float,float,float]",
-                lambda *args: traf.area(scr, sim.metric, *args)
+                lambda *args: traf.setArea(scr, sim.metric, *args)
             ],
             "ASAS": [
                 "ASAS ON/OFF",
@@ -244,8 +242,8 @@ class Commandstack:
             ],
             "PAN": [
                 "PAN latlon/acid/airport/waypoint",
-                "latlon/txt",
-                lambda *args: scr.panStack(traf, *args)
+                "pos/txt",
+                scr.pan
             ],
             "PCALL": [
                 "PCALL filename [REL/ABS]",
@@ -356,10 +354,9 @@ class Commandstack:
         #--------------------------------------------------------------------
 
         self.cmdstack  = []
-        self.scentime  = []
         self.scenfile  = ""
-        self.scentime = []
-        self.scencmd = []
+        self.scentime  = []
+        self.scencmd   = []
 
         # Display Help text on start of program
         self.stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n" +
@@ -370,12 +367,12 @@ class Commandstack:
         self.stack("ZOOM 0.4")
 
         # ------------------ [start] Deprecated -------------------
-        # An alternative way to add your own commands: 
+        # An alternative way to add your own commands:
         # add your entry to the dictionary.
         # The dictionary should be formed as {"Key":module'}.
 
         # "Key" is a FOUR-symbol reference used at the start of command.
-        # 'module' is the name of the .py-file in which the 
+        # 'module' is the name of the .py-file in which the
         # commands are located (without .py).
 
         # Make sure that the module has a function "process" with
@@ -383,13 +380,13 @@ class Commandstack:
         #   command, number of args, array of args, sim, traf, scr, cmd
 
         self.extracmdmodules = {
-            "SYN_": 'synthetic', 
-            "ASA_":'asascmd', 
+            "SYN_": 'synthetic',
+            "ASA_": 'asascmd',
            # "LOG_":'log' # Old logging module
         }
 
         # Import modules from the list
-        self.extracmdrefs={}
+        self.extracmdrefs = {}
         sys.path.append('bluesky/stack/')
         for key in self.extracmdmodules:
             obj=__import__(self.extracmdmodules[key],globals(),locals(),[],0)
@@ -444,7 +441,7 @@ class Commandstack:
             scenfile = settings.scenario_path
             if scenfile[-1] is not '/':
                 scenfile += '/'
-            scenfile += scenname.lower()
+            scenfile += scenname
         else:
             scenfile = scenname
 
@@ -467,10 +464,10 @@ class Commandstack:
                         icmdline = line.index('>')
                         tstamp = line[:icmdline]
                         ttxt = tstamp.strip().split(':')
-                        ihr = int(ttxt[0])
-                        imin = int(ttxt[1])
+                        ihr = int(ttxt[0]) * 3600.0
+                        imin = int(ttxt[1]) * 60.0
                         xsec = float(ttxt[2])
-                        self.scentime.append(ihr * 3600. + imin * 60. + xsec + t_offset)
+                        self.scentime.append(ihr + imin + xsec + t_offset)
                         self.scencmd.append(line[icmdline + 1:-1])
                     except:
                         print "except this:", line
@@ -508,12 +505,12 @@ class Commandstack:
 
     def saveic(self, fname, sim, traf):
         # Add extension .scn if not already present
-        if fname.find(".scn") < 0 and fname.find(".SCN"):
+        if fname.lower().find(".scn") < 0:
             fname = fname + ".scn"
 
         # If it is with path don't touch it, else add path
         if fname.find("/") < 0:
-            scenfile = "./scenario/" + fname.lower()
+            scenfile = "./scenario/" + fname
 
         try:
             f = open(scenfile, "w")
@@ -601,190 +598,190 @@ class Commandstack:
             # Assume syntax is ok (default)
             synerr = False
 
-            # Catch general errors
-#            try:
-            if True:  # optional to switch error protection off
+            #**********************************************************************
+            #=====================  Start of command branches =====================
+            #**********************************************************************
 
-                #**********************************************************************
-                #=====================  Start of command branches =====================
-                #**********************************************************************
+            #----------------------------------------------------------------------
+            # First check command synonymes list, then in dictionary
+            #----------------------------------------------------------------------
+            if cmd in self.cmdsynon.keys():
+                cmd = self.cmdsynon[cmd]
 
-                #----------------------------------------------------------------------
-                # First check command synonymes list, then in dictionary
-                #----------------------------------------------------------------------
-                if cmd in self.cmdsynon.keys():
-                    cmd = self.cmdsynon[cmd]
+            if cmd in self.cmddict.keys():
+                helptext, argtypelist, function = self.cmddict[cmd]
+                argvsopt = argtypelist.split('[')
+                argtypes = argvsopt[0].strip(',').split(",")
+                if argtypes == ['']:
+                    argtypes = []
 
-                if cmd in self.cmddict.keys():
-                    helptext, argtypelist, function = self.cmddict[cmd]
-                    argvsopt = argtypelist.split('[')
-                    argtypes = argvsopt[0].strip(',').split(",")
-                    if argtypes == ['']:
-                        argtypes = []
-
-                    # Check if at least the number of mandatory arguments is given.
-                    if numargs < len(argtypes):
-                        print numargs, len(argtypes)
-                        scr.echo("Syntax error: Too few arguments")
-                        scr.echo(line)
-                        scr.echo(helptext)
-                        continue
-
-                    # Add optional argument types if they are given
-                    if len(argvsopt) == 2:
-                        argtypes += argvsopt[1].strip(']').split(',')
-
-                    # Process arg list
-                    # Special case: single text argument: this can also be a string, so pass the original
-                    if argtypes == ['txt']:
-                        arglist = [line[len(cmd) + 1:]]
-                    else:
-                        arglist = []
-                        curtype = curarg = 0
-                        while curtype < len(argtypes) and curarg < len(args):
-                            if argtypes[curtype] == '...':
-                                curtype -= 1
-                            argtype    = argtypes[curtype].strip().split('/')
-                            for i in range(len(argtype)):
-                                try:
-                                    parsed_arg = self.argparse(argtype[i], curarg, args, traf, scr)
-                                    arglist += parsed_arg
-                                    curarg  += len(parsed_arg)
-                                    break
-                                except:
-                                    # not yet last type possible here?
-                                    if i < len(argtype) - 1:
-                                        # We have alternative argument formats that we can try
-                                        continue
-                                    else:
-                                        synerr = True
-                                        scr.echo("Syntax error in processing arguments")
-                                        scr.echo(line)
-                                        scr.echo(helptext)
-                            curtype += 1
-
-                    # Call function return flag,text
-                    # flag: indicates sucess
-                    # text: optional error message
-                    if not synerr:
-                        results = function(*arglist)  # * = unpack list to call arguments
-
-                        if type(results) == bool:  # Only flag is returned
-                            synerr = not results
-                            if synerr:
-                                if numargs <= 0 or args[curarg] == "?":
-                                    scr.echo(helptext)
-                                else:
-                                    scr.echo("Syntax error: " + helptext)
-                                synerr =  False  # Prevent further nagging
-
-                        elif type(results) == list or type(results) == tuple:
-                            # Maybe there is also an error message returned?
-                            if len(results) >= 1:
-                                synerr = not results[0]
-
-                            if len(results) >= 2:
-                                scr.echo(cmd+":"+results[1])
-                                synerr = False
-
-                    else:  # synerr:
-                        scr.echo("Syntax error: " + helptext)
-
-                #----------------------------------------------------------------------
-                # ZOOM command (or use ++++  or --  to zoom in or out)
-                #----------------------------------------------------------------------
-                elif cmd[0] in ["+", "=", "-"]:
-                    nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
-                    nmin = cmd.count("-")
-                    zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
-                    scr.zoom(zoomfac)
-
-                #-------------------------------------------------------------------
-                # Reference to other command files
-                # Check external references
-                #-------------------------------------------------------------------
-                elif cmd[:4] in self.extracmdrefs:
-                    self.extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
-
-                #-------------------------------------------------------------------
-                # Command not found
-                #-------------------------------------------------------------------
-                else:
-                    if numargs == 0:
-                        scr.echo("Unknown command or aircraft: " + cmd)
-                    else:
-                        scr.echo("Unknown command: " + cmd)
-
-                #**********************************************************************
-                #======================  End of command branches ======================
-                #**********************************************************************
-
-                # Syntax not ok, => Default syntax error message:
-                if synerr:
-                    scr.echo("Syntax error in command:" + cmd)
+                # Check if at least the number of mandatory arguments is given.
+                if numargs < len(argtypes):
+                    print numargs, len(argtypes)
+                    scr.echo("Syntax error: Too few arguments")
                     scr.echo(line)
+                    scr.echo(helptext)
+                    continue
+
+                # Add optional argument types if they are given
+                if len(argvsopt) == 2:
+                    argtypes += argvsopt[1].strip(']').split(',')
+
+                # Process arg list
+                # Special case: single text argument: this can also be a string, so pass the original
+                if argtypes == ['txt']:
+                    arglist = [line[len(cmd) + 1:]]
+                else:
+                    arglist = []
+                    curtype = curarg = 0
+                    while curtype < len(argtypes) and curarg < len(args):
+                        if argtypes[curtype] == '...':
+                            curtype -= 1
+                        argtype    = argtypes[curtype].strip().split('/')
+                        for i in range(len(argtype)):
+                            try:
+                                parsed_arg, argstep = self.argparse(argtype[i], curarg, args, traf, scr)
+                                arglist += parsed_arg
+                                curarg  += argstep
+                                break
+                            except:
+                                # not yet last type possible here?
+                                if i < len(argtype) - 1:
+                                    # We have alternative argument formats that we can try
+                                    continue
+                                else:
+                                    synerr = True
+                                    scr.echo("Syntax error in processing arguments")
+                                    scr.echo(line)
+                                    scr.echo(helptext)
+                        curtype += 1
+
+                # Call function return flag,text
+                # flag: indicates sucess
+                # text: optional error message
+                if not synerr:
+                    results = function(*arglist)  # * = unpack list to call arguments
+
+                    if type(results) == bool:  # Only flag is returned
+                        synerr = not results
+                        if synerr:
+                            if numargs <= 0 or args[curarg] == "?":
+                                scr.echo(helptext)
+                            else:
+                                scr.echo("Syntax error: " + helptext)
+                            synerr =  False  # Prevent further nagging
+
+                    elif type(results) == list or type(results) == tuple:
+                        # Maybe there is also an error message returned?
+                        if len(results) >= 1:
+                            synerr = not results[0]
+
+                        if len(results) >= 2:
+                            scr.echo(cmd+":"+results[1])
+                            synerr = False
+
+                else:  # synerr:
+                    scr.echo("Syntax error: " + helptext)
+
+            #----------------------------------------------------------------------
+            # ZOOM command (or use ++++  or --  to zoom in or out)
+            #----------------------------------------------------------------------
+            elif cmd[0] in ["+", "=", "-"]:
+                nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
+                nmin = cmd.count("-")
+                zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
+                scr.zoom(zoomfac)
+
+            #-------------------------------------------------------------------
+            # Reference to other command files
+            # Check external references
+            #-------------------------------------------------------------------
+            elif cmd[:4] in self.extracmdrefs:
+                self.extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
+
+            #-------------------------------------------------------------------
+            # Command not found
+            #-------------------------------------------------------------------
+            else:
+                if numargs == 0:
+                    scr.echo("Unknown command or aircraft: " + cmd)
+                else:
+                    scr.echo("Unknown command: " + cmd)
+
+            #**********************************************************************
+            #======================  End of command branches ======================
+            #**********************************************************************
 
         # End of for-loop of cmdstack
         self.cmdstack = []
         return
 
     def argparse(self, argtype, argidx, args, traf, scr):
-        parsed_args = []
-
+        """ Parse one or more arguments. returns the parse results
+            and the number of arguments parsed. """
         if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
-            parsed_args.append(None)
+            return [None], 1
 
-        elif argtype == "acid":  # aircraft id => parse index
+        if argtype == "acid":  # aircraft id => parse index
             idx = traf.id2idx(args[argidx])
             if idx < 0:
                 scr.echo(cmd + ":" + args[idx] + " not found")
                 raise IndexError
             else:
-                parsed_args.append(idx)
+                return [idx], 1
 
-        elif argtype == "txt":  # simple text
-            parsed_args.append(args[argidx])
+        if argtype == "txt":  # simple text
+            return [args[argidx]], 1
 
-        elif argtype == "float":  # float number
-            parsed_args.append(float(args[argidx]))
+        if argtype == "float":  # float number
+            return [float(args[argidx])], 1
 
-        elif argtype == "int":   # integer
-            parsed_args.append(int(args[argidx]))
+        if argtype == "int":   # integer
+            return [int(args[argidx])], 1
 
-        elif argtype == "onoff" or argtype == "bool":
+        if argtype == "onoff" or argtype == "bool":
             sw = (args[argidx] == "ON" or
                   args[argidx] == "1" or args[argidx] == "TRUE")
-            parsed_args.append(sw)
+            return [sw], 1
 
-        elif argtype == "latlon":
-            parsed_args.append(txt2lat(args[argidx]))
-            parsed_args.append(txt2lon(args[argidx + 1]))
+        if argtype == "pos":
+            idx = traf.id2idx(args[argidx])
+            if idx >= 0:
+                return [traf.lat[idx], traf.lon[idx]], 1
+            idx = traf.navdb.getapidx(args[argidx])
+            if idx >= 0:
+                return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], 1
+            idx = traf.navdb.getwpidx(args[argidx])
+            if idx >= 0:
+                return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], 1
+            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2
 
-        elif argtype == "spd":  # CAS[kts] Mach
+        if argtype == "latlon":
+            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2
+
+        if argtype == "spd":  # CAS[kts] Mach
             spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
             if not 0.1 < spd < 1.0:
                 spd *= kts
-            parsed_args.append(spd)  # speed CAS[m/s] or Mach (float)
+            return [spd], 1  # speed CAS[m/s] or Mach (float)
 
-        elif argtype == "vspd":
-            parsed_args.append(fpm * float(args[argidx]))
+        if argtype == "vspd":
+            return [fpm * float(args[argidx])], 1
 
-        elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-            parsed_args.append(ft * txt2alt(args[argidx]))  # alt in m
+        if argtype == "alt":  # alt: FL250 or 25000 [ft]
+            return [ft * txt2alt(args[argidx])], 1  # alt in m
 
-        elif argtype == "hdg":
+        if argtype == "hdg":
             # TODO: for now no difference between magnetic/true heading
             hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
-            parsed_args.append(hdg)
+            return [hdg], 1
 
-        elif argtype == "time":
+        if argtype == "time":
             ttxt = args[argidx].strip().split(':')
             if len(ttxt) >= 3:
-                ihr  = int(ttxt[0])
-                imin = int(ttxt[1])
+                ihr  = int(ttxt[0]) * 3600.0
+                imin = int(ttxt[1]) * 60.0
                 xsec = float(ttxt[2])
-                parsed_args.append(ihr * 3600. + imin * 60. + xsec)
+                return [ihr + imin + xsec], 1
             else:
-                parsed_args.append(float(args[argidx]))
-
-        return parsed_args
+                return [float(args[argidx])], 1
