@@ -15,6 +15,9 @@ from adsbmodel import ADSBModel
 from asas import Dbconf
 from .. import settings
 
+
+
+
 try:
     if settings.performance_model == 'bluesky':
         from perf import Perf
@@ -55,9 +58,10 @@ class Traffic:
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self, navdb):
+    def __init__(self, navdb, scr):
 
         self.reset(navdb)
+        self.scr = scr
         return
 
     def reset(self, navdb):
@@ -210,6 +214,7 @@ class Traffic:
 
         # Import navigation data base
         self.navdb  = navdb
+        self.rwythr = self.navdb.rwythresholds
 
         # Traffic area: delete traffic when it leaves this area (so not when outside)
         self.swarea    = False
@@ -250,7 +255,7 @@ class Traffic:
         return
 
     def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
-
+        
         if None in [acid,actype,aclat,aclon,achdg,acalt,casmach]:
             return False
 
@@ -271,8 +276,22 @@ class Traffic:
         # Process input
         self.id.append(acid.upper())
         self.type.append(actype)
+        if type(aclat) == str:
+            try:
+                atussenlat=aclat
+                aclat = self.rwythr[aclat][aclon][0]
+                aclon = self.rwythr[atussenlat][aclon][1]
+            except:
+                # default value
+                self.scr.echo("Syntax error: Invalid airport-runway combination")
+                self.scr.echo("Aircraft created at EHAM Runway 18L")
+                aclat = self.rwythr['EHAM']['18L'][0]
+                aclon = self.rwythr['EHAM']['18L'][1]             
+            
         self.lat   = np.append(self.lat, aclat)
-        self.lon   = np.append(self.lon, aclon)
+        self.lon   = np.append(self.lon, aclon)      
+        
+        
         self.trk   = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
         self.alt   = np.append(self.alt, acalt)
         self.fll   = np.append(self.fll, (acalt)/(100 * ft))

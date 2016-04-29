@@ -33,12 +33,13 @@ def load_coastlines():
 
 def load_aptsurface():
     if not os.path.isfile(cachedir + '/aptsurface.p'):
-        vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, apt_ctr_lon, \
+        vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, \
             apt_indices, rwythresholds = load_aptsurface_txt()
         with open(cachedir + '/aptsurface.p', 'wb') as f:
             pickle.dump(vbuf_asphalt, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(vbuf_concrete, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(vbuf_runways , f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(vbuf_rwythr , f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(apt_ctr_lat  , f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(apt_ctr_lon  , f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(apt_indices  , f, pickle.HIGHEST_PROTOCOL)
@@ -49,10 +50,11 @@ def load_aptsurface():
             vbuf_asphalt  = pickle.load(f)
             vbuf_concrete = pickle.load(f)
             vbuf_runways  = pickle.load(f)
+            vbuf_rwythr  = pickle.load(f)
             apt_ctr_lat   = pickle.load(f)
             apt_ctr_lon   = pickle.load(f)
             apt_indices   = pickle.load(f)
-    return vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, \
+    return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr,apt_ctr_lat, \
         apt_ctr_lon, apt_indices
 
 

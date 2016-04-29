@@ -57,7 +57,7 @@ class Simulation(QObject):
         # Simulation objects
         self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self, manager)
-        self.traf        = Traffic(self.navdb)
+        self.traf        = Traffic(self.navdb, self.screenio)
         self.stack       = Commandstack(self, self.traf, self.screenio)
         # Metrics
         self.metric      = None

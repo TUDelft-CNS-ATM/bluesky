@@ -422,11 +422,13 @@ class Commandstack:
 #                    if True:
                         for i in range(1,1+min(numtypes,numargs)):
                             argtype = argtypes[i-1].strip()
+                          
 
                             if cmdargs[i]=="":  # Empty arg => parse None
                                 arglist.append(None)
 
                             elif argtype == "acid": # aircraft id => parse index
+
 
                                 idx = traf.id2idx(cmdargs[i])
                                 if idx < 0:
@@ -455,14 +457,19 @@ class Commandstack:
                                     reflat = txt2lat(cmdargs[i])
                                     arglist.append(float(reflat))
                                 except:
-                                    synerr = True
+                                    #synerr = True
+                                    arglist.append(cmdargs[i])
                                     
                             elif argtype == "lon":
-                                try:
-                                   reflon = txt2lon(cmdargs[i])
-                                   arglist.append(float(reflon))
-                                except:
-                                   synerr = True
+                                if type(cmdargs[i-1]) ==str:
+                                    arglist.append(cmdargs[i])
+                                else:
+                                    try:
+                                       reflon = txt2lon(cmdargs[i])
+                                       arglist.append(float(reflon))
+                                    except:
+                                       synerr = True
+                                       arglist.append(cmdargs[i])
  
                             elif argtype == "spd": # CAS[kts] Mach
                                 spd = float(cmdargs[i].upper().replace("M", ".").replace("..", "."))
