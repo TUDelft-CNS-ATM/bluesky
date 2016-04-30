@@ -745,15 +745,24 @@ class Commandstack:
             return [sw], 1
 
         if argtype == "pos":
+            # Arg is an existing aircraft?
             idx = traf.id2idx(args[argidx])
             if idx >= 0:
                 return [traf.lat[idx], traf.lon[idx]], 1
+            # Arg is an airport?
             idx = traf.navdb.getapidx(args[argidx])
             if idx >= 0:
+                # Next arg is a runway?
+                if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
+                        args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
+                    return traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]], 2
+                # If no runway return airport center
                 return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], 1
+            # Arg is a waypoint?
             idx = traf.navdb.getwpidx(args[argidx])
             if idx >= 0:
                 return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], 1
+            # Arg, next arg are a lat/lon combination
             return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2
 
         if argtype == "latlon":
