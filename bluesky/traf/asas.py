@@ -63,8 +63,12 @@ class Dbconf():
         self.CRmethod    = __import__(method)
         self.CRmethod.start(self)
 
-# Reset conflict database
+    def toggle(self, flag=None):
+        if flag is None:
+            return True, "ASAS is currently " + ("ON" if self.swasas else "OFF")
+        self.swasas = flag
 
+    # Reset conflict database
     def reset(self):
         self.conf        = []     # Start with emtpy database: no conflicts
         self.nconf       = 0      # Number of detected conflicts

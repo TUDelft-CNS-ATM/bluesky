@@ -1,22 +1,18 @@
 import numpy as np
 from math import *
-
+from random import random, randint
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth
 
 from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach,\
                             vmach2tas, qdrdist
 from ..tools.misc import degto180, kwikdist
-from ..tools.datalog import Datalog
 
 from route import Route
 from params import Trails
 from adsbmodel import ADSBModel
 from asas import Dbconf
 from .. import settings
-
-
-
 
 try:
     if settings.performance_model == 'bluesky':
@@ -44,13 +40,13 @@ class Traffic:
         deletall()           : delete all traffic
         update(sim)          : do a numerical integration step
         id2idx(name)         : return index in traffic database of given call sign
-        selhdg(i,hdg)        : set autopilot heading and activate heading select mode 
-        selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode 
+        selhdg(i,hdg)        : set autopilot heading and activate heading select mode
+        selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode
 
         engchange(i,engtype) : change engine type of an aircraft
 
         changeTrailColor(color,idx)     : change colour of trail of aircraft idx
- 
+
         setNoise(A)          : Add turbulence
 
     Members: see create
@@ -58,10 +54,9 @@ class Traffic:
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self, navdb, scr):
+    def __init__(self, navdb):
 
         self.reset(navdb)
-        self.scr = scr
         return
 
     def reset(self, navdb):
@@ -78,9 +73,6 @@ class Traffic:
         self.dts = []
 
         self.ntraf = 0
-
-        # Create datalog instance
-        self.log = Datalog()
 
         # Traffic list & arrays definition
 
@@ -214,7 +206,6 @@ class Traffic:
 
         # Import navigation data base
         self.navdb  = navdb
-        self.rwythr = self.navdb.rwythresholds
 
         # Traffic area: delete traffic when it leaves this area (so not when outside)
         self.swarea    = False
@@ -244,9 +235,6 @@ class Traffic:
         self.trails   = Trails()
         self.swtrails = False  # Default switched off
 
-        # ADS-B Coverage area
-        self.swAdsbCoverage = False
-
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
 
@@ -254,15 +242,27 @@ class Traffic:
 
         return
 
-    def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
-        
-        if None in [acid,actype,aclat,aclon,achdg,acalt,casmach]:
-            return False
+    def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
+        """ Create multiple random aircraft in a specified area """
+        idbase = chr(randint(65, 90)) + chr(randint(65, 90))
+        if actype is None:
+            actype = 'B744'
 
+        for i in xrange(count):
+            acid  = idbase + '%05d' % i
+            aclat = random() * (area[1] - area[0]) + area[0]
+            aclon = random() * (area[3] - area[2]) + area[2]
+            achdg = float(randint(1, 360))
+            acalt = (randint(2000, 39000) * ft) if alt is None else alt
+            acspd = (randint(250, 450) * kts) if spd is None else spd
+
+            self.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
+
+    def create(self, acid, actype, aclat, aclon, achdg, acalt, casmach):
         """Create an aircraft"""
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
-            return False,acid+" already exists." # already exists do nothing
+            return False, acid + " already exists."  # already exists do nothing
 
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
@@ -271,27 +271,13 @@ class Traffic:
         if 0.1 < casmach < 1.0 :
             acspd = mach2tas(casmach, acalt)
         else:
-            acspd = cas2tas(casmach * kts, acalt)
+            acspd = cas2tas(casmach, acalt)
 
         # Process input
         self.id.append(acid.upper())
         self.type.append(actype)
-        if type(aclat) == str:
-            try:
-                atussenlat=aclat
-                aclat = self.rwythr[aclat][aclon][0]
-                aclon = self.rwythr[atussenlat][aclon][1]
-            except:
-                # default value
-                self.scr.echo("Syntax error: Invalid airport-runway combination")
-                self.scr.echo("Aircraft created at EHAM Runway 18L")
-                aclat = self.rwythr['EHAM']['18L'][0]
-                aclon = self.rwythr['EHAM']['18L'][1]             
-            
         self.lat   = np.append(self.lat, aclat)
-        self.lon   = np.append(self.lon, aclon)      
-        
-        
+        self.lon   = np.append(self.lon, aclon)
         self.trk   = np.append(self.trk, achdg)  # TBD: add conversion hdg => trk
         self.alt   = np.append(self.alt, acalt)
         self.fll   = np.append(self.fll, (acalt)/(100 * ft))
@@ -395,9 +381,6 @@ class Traffic:
         self.lastlon = np.append(self.lastlon, aclon)
         self.lasttim = np.append(self.lasttim, 0.0)
 
-        # ADS-B Coverage area
-        self.swAdsbCoverage = False
-        
         # Transmitted data to other aircraft due to truncated effect
         self.adsbtime=np.append(self.adsbtime,np.random.rand(self.trunctime))
         self.adsblat=np.append(self.adsblat,aclat)
@@ -407,9 +390,9 @@ class Traffic:
         self.adsbtas=np.append(self.adsbtas,acspd)
         self.adsbgs=np.append(self.adsbgs,acspd)
         self.adsbvs=np.append(self.adsbvs,0.)
-        
+
         self.inconflict=np.append(self.inconflict,False)        
-        
+
         self.eps = np.append(self.eps, 0.01)
 
         return True
@@ -938,14 +921,32 @@ class Traffic:
         except:
             return -1
 
+    def setTrails(self, *args):
+        """ Set trails on/off, or change trail color of aircraft """
+        if type(args[0]) == bool:
+            # Set trails on/off
+            self.swtrails = args[0]
+            if len(args) > 1:
+                self.trails.dt = args[1]
+            if not self.swtrails:
+                self.trails.clear()
+        else:
+            # Change trail color
+            if len(args) < 2 or args[2] not in ["BLUE", "RED", "YELLOW"]:
+                return False, "Set aircraft trail color with: TRAIL acid BLUE/RED/YELLOW"
+            self.changeTrailColor(args[1], args[0])
+
     def changeTrailColor(self, color, idx):
         """Change color of aircraft trail"""
         self.trailcol[idx] = self.trails.colorList[color]
         return
 
-    def setNoise(self, A):
+    def setNoise(self, noiseflag=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
-        self.noise              = A
+        if noiseflag is None:
+            return True, "Noise is currently " + ("on" if noiseflag else "off")
+
+        self.noise              = noiseflag
         self.trunctime          = 1                   # seconds
         self.transerror         = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
         self.standardturbulence = [0, 0.1, 0.1]       # m/s standard turbulence  (nonnegative)
@@ -960,33 +961,262 @@ class Traffic:
         self.perf.engchange(acid, engid)
         return
 
-    def selhdg(self, idx=None, hdg=None):  # HDG command
-
+    def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
-
-        if None in [idx,hdg]:
-            return False  # Not engouh arguments: Error/Display helptext
-
         # Give autopilot commands
         self.ahdg[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
         return True
 
-    def selspd(self, idx=None, spd=None):  # SPD command
-
-        """ Select speed command: SPD acid, spd (= CASkts/Mach) """
-        if idx<0 or None in [idx,spd] :
-            return False  # Not engouh arguments: Error/Display helptext
-
-        # When >=2.0 it is probably CASkts else it is Mach
-        if spd >= 2.0:
-            self.aspd[idx] = spd * kts # CAS m/s
-            self.ama[idx]  = cas2mach(spd*kts, self.alt[idx])
+    def selspd(self, idx, casmach):  # SPD command
+        """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
+        # When >=1.0 it is probably CASkts else it is Mach
+        if 0.1 < casmach < 1.0:
+            self.aspd[idx] = mach2cas(casmach, self.alt[idx])  # Convert Mach to CAS m/s
+            self.ama[idx]  = casmach
         else:
-            self.aspd[idx] = mach2cas(spd, self.alt[idx])  # Convert Mach to CAS m/s
-            self.ama[idx]  = spd
+            self.aspd[idx] = casmach  # CAS m/s
+            self.ama[idx]  = cas2mach(casmach, self.alt[idx])
         # Switch off VNAV: SPD command overrides
-        self.swvnav[idx] = False  
+        self.swvnav[idx]   = False
 
         return True
+
+    def move(self, idx, lat, lon, alt=None, hdg=None, casmach=None, vspd=None):
+        self.lat[idx]      = lat
+        self.lon[idx]      = lon
+
+        if alt:
+            self.alt[idx]  = alt
+            self.aalt[idx] = alt
+
+        if hdg:
+            self.trk[idx]  = hdg
+            self.ahdg[idx] = hdg
+
+        if casmach:
+            # Convert speed
+            if 0.1 < casmach < 1.0:
+                self.tas[idx]  = mach2tas(casmach, alt)
+                self.aspd[idx] = mach2cas(casmach, alt)
+            else:
+                self.tas[idx]  = cas2tas(casmach, alt)
+                self.aspd[idx] = casmach
+
+        if vspd:
+            self.vs[idx]       = vspd
+            self.swvnav[idx]   = False
+
+    def selalt(self, idx, alt, vspd=None):
+        """ Select altitude command: ALT acid, alt, [vspd] """
+        self.aalt[idx]    = alt
+        self.afll[idx]    = alt / (100. * ft)
+        self.swvnav[idx]  = False
+
+        # Check for optional VS argument
+        if vspd:
+            self.avs[idx] = vspd
+        else:
+            delalt        = alt - self.alt[idx]
+            # Check for VS with opposite sign => use default vs
+            # by setting autopilot vs to zero
+            if self.avs[idx] * delalt < 0. and abs(self.avs[idx]) > 0.01:
+                self.avs[idx] = 0.
+
+    def selvspd(self, idx, vspd):
+        """ Vertical speed autopilot command: VS acid vspd """
+        self.avs[idx] = vspd
+        # self.vs[idx] = vspd
+        self.swvnav[idx] = False
+
+    def nom(self, idx):
+        """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
+        self.ax[idx] = kts
+
+    def setTaxi(self, flag):
+        """ Set taxi delete flag: OFF auto deletes traffic below 1500 ft """
+        self.swtaxi = flag
+
+    def setLNAV(self, idx, flag=None):
+        """ Set LNAV on or off for a specific or for all aircraft """
+        if idx is None:
+            # All aircraft are targeted
+            self.swlnav = np.array(self.ntraf*[flag])
+
+        elif flag is None:
+            return True, (self.id[idx] + ": LNAV is " + "ON" if self.swlnav[idx] else "OFF")
+
+        elif flag:
+            route = self.route[idx]
+            if route.nwp > 0:
+                self.swlnav[idx] = True
+                route.direct(self, idx, route.wpname[route.findact(self, idx)])
+            else:
+                return False, ("LNAV " + self.id[idx] + ": no waypoints or destination specified")
+        else:
+            self.swlnav[idx] = False
+
+    def setVNAV(self, idx, flag=None):
+        """ Set VNAV on or off for a specific or for all aircraft """
+        if idx is None:
+            # All aircraft are targeted
+            self.swvnav = np.array(self.ntraf*[flag])
+
+        elif flag is None:
+            return True, (self.id[idx] + ": VNAV is " + "ON" if self.swvnav[idx] else "OFF")
+
+        elif flag:
+            if not self.swlnav[idx]:
+                return False, (self.id[idx] + ": VNAV ON requires LNAV to be ON")
+
+            route = self.route[idx]
+            if route.nwp > 0:
+                self.swvnav[idx] = True
+                route.direct(self, idx, route.wpname[route.findact(self, idx)])
+            else:
+                return False, ("VNAV " + self.id[idx] + ": no waypoints or destination specified")
+        else:
+            self.swvnav[idx] = False
+
+    def setDestOrig(self, cmd, idx, *args):
+        if len(args) == 0:
+            if cmd == 'DEST':
+                return True, ('DEST ' + self.id[idx] + ': ' + self.dest[idx])
+            else:
+                return True, ('ORIG ' + self.id[idx] + ': ' + self.orig[idx])
+
+        route = self.route[idx]
+        if len(args) == 1:
+            name = args[0]
+            apidx = self.navdb.getapidx(name)
+            if apidx < 0:
+                return False, (cmd + ": Airport " + name + " not found.")
+            lat = self.navdb.aplat[apidx]
+            lon = self.navdb.aplon[apidx]
+        else:
+            name = self.id[idx] + cmd
+            lat, lon = args
+
+        if cmd == "DEST":
+            self.dest[idx] = name
+            iwp = route.addwpt(self, idx, self.dest[idx], route.dest,
+                               lat, lon, 0.0, self.cas[idx])
+            # If only waypoint: activate
+            if (iwp == 0) or (self.orig[idx] != "" and route.nwp == 2):
+                self.actwplat[idx] = route.wplat[iwp]
+                self.actwplon[idx] = route.wplon[iwp]
+                self.actwpalt[idx] = route.wpalt[iwp]
+                self.actwpspd[idx] = route.wpspd[iwp]
+
+                self.swlnav[idx] = True
+                route.iactwp = iwp
+
+            # If not found, say so
+            elif iwp < 0:
+                return False, (self.dest[idx] + " not found.")
+
+        # Origin: bookkeeping only for now
+        else:
+            self.orig[idx] = name
+            iwp = route.addwpt(self, idx, self.orig[idx], route.orig,
+                               self.lat[idx], self.lon[idx], 0.0, self.cas[idx])
+            if iwp < 0:
+                return False, (self.orig[idx] + " not found.")
+
+    def acinfo(self, acid):
+        idx      = self.id.index(acid)
+        actype   = self.type[idx]
+        lat, lon = self.lat[idx], self.lon[idx]
+        alt, hdg = self.alt[idx], self.trk[idx]
+        cas      = tas2cas(self.tas[idx], self.alt[idx]) / kts
+        tas      = self.tas[idx] / kts
+        route    = self.route[idx]
+        line  = "Info on %s %s index = %d\n" % (acid, actype, idx) \
+              + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
+              + "Alt = %d ft, Hdg = %d\n" % (alt, hdg)
+        if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
+            if self.swvnav[idx]:
+                line += "VNAV, "
+            line += "LNAV to " + route.wpname[route.iactwp] + "\n"
+        if self.orig[idx] != "" or self.dest[idx] != "":
+            line += "Flying"
+            if self.orig[idx] != "":
+                line += " from " + self.orig[idx]
+            if self.dest[idx] != "":
+                line += " to " + self.dest[idx]
+
+        return line
+
+    def setArea(self, scr, metric, *args):
+        if args[0] == 'OFF':
+            self.swarea = False
+            self.area   = ""
+            scr.objappend(2, "AREA", None)  # delete square areas
+            scr.objappend(3, "AREA", None)  # delete circle areas
+            return True
+
+        if type(args[0]) == float and len(args) >= 4:
+            # This is a square area
+            self.arealat0 = min(args[0], args[2])
+            self.arealat1 = max(args[0], args[2])
+            self.arealon0 = min(args[1], args[3])
+            self.arealon1 = max(args[1], args[3])
+
+            if len(args) == 5:
+                self.areafloor = args[4] * ft
+            else:
+                self.areafloor = -9999999.
+
+            self.area = "Square"
+            self.swarea = True
+            scr.objappend(2, "AREA", [args[0], args[1], args[2], args[3]])
+
+            # Avoid mass delete due to redefinition of area
+            self.inside = self.ntraf * [False]
+            return True
+        elif args[0] == "FIR" and len(args) <= 3:
+            for i in range(0, len(self.navdb.fir)):
+                if args[1] == self.navdb.fir[i][0]:
+                    break
+            if args[1] != self.navdb.fir[i][0]:
+                return False, "Unknown FIR, try again"
+
+            metric.fir_number        = i
+            metric.fir_circle_point  = metric.metric_Area.FIR_circle(self.navdb, metric.fir_number)
+            metric.fir_circle_radius = float(args[1])
+
+            if len(args) == 3:
+                self.areafloor = args[2] * ft
+            else:
+                self.areafloor = -9999999.
+
+            self.area   = "Circle"
+            self.swarea = True
+            self.inside = self.ntraf * [False]
+            scr.objappend(3, "AREA", [metric.fir_circle_point[0] , metric.fir_circle_point[1], metric.fir_circle_radius])
+            return True
+        elif args[0] == "CIRCLE" and len(args) in [4, 5]:
+            # draw circular experiment area
+            self.arealat0 = args[1]    # Latitude of circle center [deg]
+            self.arealon0 = args[2]    # Longitude of circle center [deg]
+            self.arearadius = args[3]  # Radius of circle Center [NM]
+
+            # Deleting traffic flying out of experiment area
+            self.area = "Circle"
+            self.swarea = True
+
+            if len(args) == 5:
+                self.areafloor = args[4] * ft  # [m]
+            else:
+                self.areafloor = -9999999.  # [m]
+
+            # draw the circular experiment area on the radar gui
+            scr.objappend(3, "AREA", [self.arealat0, self.arealon0, radius])
+
+            # Avoid mass delete due to redefinition of area
+            self.inside = self.ntraf * [False]
+
+            return True
+
+        return False

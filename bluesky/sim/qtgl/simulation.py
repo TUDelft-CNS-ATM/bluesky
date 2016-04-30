@@ -12,9 +12,10 @@ from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEv
 from ...traf import Traffic
 from ...navdb import Navdatabase
 from ...stack import Commandstack
-# from ...traf import Metric
+from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
+from ...tools.datalog import Datalog
 
 
 class Simulation(QObject):
@@ -54,15 +55,17 @@ class Simulation(QObject):
         # If available, name of the currently running scenario
         self.scenname    = 'Untitled'
 
+        # Create datalog instance
+        self.datalog = Datalog(self)
+
         # Simulation objects
         self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self, manager)
-        self.traf        = Traffic(self.navdb, self.screenio)
+        self.traf        = Traffic(self.navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
         # Metrics
-        self.metric      = None
-        # self.metric      = Metric()
-        self.beastfeed     = Modesbeast(self.stack, self.traf)
+        self.metric      = Metric()
+        self.beastfeed   = Modesbeast(self.stack, self.traf)
 
     def doWork(self):
         self.syst = int(time.time() * 1000.0)
@@ -90,8 +93,11 @@ class Simulation(QObject):
                 self.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-                if self.metric is not None:
-                    self.metric.update(self, self.traf)
+                self.metric.update(self)
+
+                # Update log
+                if self.datalog is not None:
+                    self.datalog.update(self)
 
                 # Update time for the next timestep
                 self.simt += self.simdt
@@ -116,6 +122,7 @@ class Simulation(QObject):
 
     def stop(self):
         self.state   = Simulation.end
+        self.datalog.save()
 
     def start(self):
         if self.ffmode:
@@ -141,17 +148,15 @@ class Simulation(QObject):
         self.simdt = abs(dt)
         self.sysdt = int(self.simdt / self.dtmult * 1000)
 
-    def setDtMultiplier(self, mult=None):
-        if mult is not None:
-            self.dtmult = mult
-            self.sysdt = int(self.simdt / self.dtmult * 1000)
+    def setDtMultiplier(self, mult):
+        self.dtmult = mult
+        self.sysdt = int(self.simdt / self.dtmult * 1000)
 
-    def setFixdt(self, flag=None, nsec=None):
-        if flag is not None:
-            if flag:
-                self.fastforward(nsec)
-            else:
-                self.start()
+    def setFixdt(self, flag, nsec=None):
+        if flag:
+            self.fastforward(nsec)
+        else:
+            self.start()
 
     def fastforward(self, nsec=None):
         self.ffmode = True
@@ -161,12 +166,15 @@ class Simulation(QObject):
             self.ffstop = None
 
     def datafeed(self, flag=None):
-        if flag is not None:
-            if flag:
-                self.beastfeed.connectToHost(settings.modeS_host,
-                                             settings.modeS_port)
-            else:
-                self.beastfeed.disconnectFromHost()
+        if flag is None:
+            msg = 'DATAFEED is'
+            msg += 'connected' if self.beastfeed.isConnected() else 'not connected'
+            self.screenio.echo(msg)
+        elif flag:
+            self.beastfeed.connectToHost(settings.modeS_host,
+                                         settings.modeS_port)
+        else:
+            self.beastfeed.disconnectFromHost()
 
     def scenarioInit(self, name):
         self.screenio.echo('Starting scenario ' + name)
@@ -175,9 +183,7 @@ class Simulation(QObject):
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.state))
 
-    def addNodes(self, count=None):
-        if not count:
-            return False
+    def addNodes(self, count):
         self.manager.addNodes(count)
 
     def batch(self, filename):

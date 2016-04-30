@@ -75,30 +75,41 @@ class ScreenIO(QObject):
         lon1 = self.ctrlon + 1.0 / self.scrzoom
         return lat0, lat1, lon0, lon1
 
-    def zoom(self, zoomfac, absolute=False):
+    def zoom(self, zoom, absolute=True):
         if self.manager.isActive():
             if absolute:
-                self.scrzoom = zoomfac
+                self.scrzoom = zoom
             else:
-                self.scrzoom *= zoomfac
-            self.manager.sendEvent(PanZoomEvent(zoom=zoomfac, absolute=absolute))
+                self.scrzoom *= zoom
+            self.manager.sendEvent(PanZoomEvent(zoom=zoom, absolute=absolute))
 
     def symbol(self):
         if self.manager.isActive():
             self.manager.sendEvent(DisplayFlagEvent('SYM'))
 
-    def pan(self, pan, absolute=False):
+    def pan(self, *args):
         if self.manager.isActive():
-            if absolute:
-                self.ctrlat = pan[0]
-                self.ctrlon = pan[1]
+            if args[0] == "LEFT":
+                self.ctrlon -= 0.5
+            elif args[0] == "RIGHT":
+                self.ctrlon += 0.5
+            elif args[0] == "UP":
+                self.ctrlat += 0.5
+            elif args[0] == "DOWN":
+                self.ctrlat -= 0.5
             else:
-                self.ctrlat += pan[0]
-                self.ctrlon += pan[1]
-            self.manager.sendEvent(PanZoomEvent(pan=pan, absolute=absolute))
+                self.ctrlat, self.ctrlon = args
+
+            self.manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
     def showroute(self, acid):
         self.route_acid = acid
+        return True
+
+    def showacinfo(self, acid, infotext):
+        self.echo(infotext)
+        self.showroute(acid)
+        return True
 
     def showssd(self, param):
         if self.manager.isActive():

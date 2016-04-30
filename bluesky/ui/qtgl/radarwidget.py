@@ -192,7 +192,7 @@ class RadarWidget(QGLWidget):
         self.actasbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.accolorbuf    = create_empty_buffer(MAX_NAIRCRAFT * 3, usage=gl.GL_STREAM_DRAW)
         self.aclblbuf      = create_empty_buffer(MAX_NAIRCRAFT * 24, usage=gl.GL_STREAM_DRAW)
-        self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 8, usage=gl.GL_STREAM_DRAW)
+        self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 16, usage=gl.GL_STREAM_DRAW)
         self.polyprevbuf   = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
@@ -636,9 +636,9 @@ class RadarWidget(QGLWidget):
             # If there is a visible route, update the start position
             if self.route_acid != "":
                 if self.route_acid in data.id:
-                    idx = data.id.index(self.route_acid)           
-                    update_buffer(self.routebuf, np.array([data.lat[idx], data.lon[idx]],  \
-                                    dtype=np.float32))
+                    idx = data.id.index(self.route_acid)
+                    update_buffer(self.routebuf,
+                                  np.array([data.lat[idx], data.lon[idx]], dtype=np.float32))
 
     def show_ssd(self, arg):
         if arg == 'ALL':

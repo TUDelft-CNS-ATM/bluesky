@@ -42,7 +42,7 @@ class Simulation:
         self.dts = []
 
         # Create datalog instance
-        self.datalog = Datalog()
+        self.datalog = Datalog(self)
 
         # Fixed dt mode for fast forward
         self.ffmode = False  # Default FF off
@@ -110,9 +110,12 @@ class Simulation:
         if self.mode == Simulation.op:
             self.traf.update(self.simt, self.dt)
 
-            # Update metrics, check if metrics instance is present
-            if self.metric is not None:
-                self.metric.update(self)
+            # Update metrics
+            self.metric.update(self)
+            
+            # Update log
+            if self.datalog is not None:
+                self.datalog.update(self)
 
         # HOLD/Pause mode
         else:

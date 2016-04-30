@@ -406,6 +406,8 @@ class PerfBADA():
         self.log = Datalog()
         return
 
+    def engchange(self, acid, engid=None):
+        return False, "BADA performance model doesn't allow changing engine type"
 
     def reset(self):
         """RESET DATABASE"""
