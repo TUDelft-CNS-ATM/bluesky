@@ -87,7 +87,7 @@ class Commandstack:
             ],
             "CRE": [
                 "CRE acid,type,lat,lon,hdg,alt,spd",
-                "txt,txt,latlon,hdg,alt,spd",
+                "txt,txt,pos,hdg,alt,spd",
                 traf.create
             ],
             "DATAFEED":  [
@@ -755,7 +755,8 @@ class Commandstack:
                 # Next arg is a runway?
                 if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
                         args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
-                    return traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]], 2
+                    return traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2], 2
+
                 # If no runway return airport center
                 return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], 1
             # Arg is a waypoint?

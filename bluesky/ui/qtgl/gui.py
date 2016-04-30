@@ -133,6 +133,7 @@ class Gui(QApplication):
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
         # self.aman = AMANDisplay()
+        
 
         gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
