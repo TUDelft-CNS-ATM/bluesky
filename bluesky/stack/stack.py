@@ -756,6 +756,7 @@ class Commandstack:
                 if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
                         args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
                     return traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2], 2
+
                 # If no runway return airport center
                 return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], 1
             # Arg is a waypoint?
