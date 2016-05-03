@@ -5,10 +5,8 @@ import os
 import sys
 
 from ..tools.aero import kts, ft, fpm, qdrdist, tas2cas, density
-from ..tools.misc import txt2alt, cmdsplit,  txt2lat, txt2lon
+from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
-
-# import pdb
 
 
 class Commandstack:
@@ -688,9 +686,8 @@ class Commandstack:
             #----------------------------------------------------------------------
             elif cmd[0] in ["+", "=", "-"]:
                 nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
-                nmin = cmd.count("-")
-                zoomfac = sqrt(2) ** nplus / (sqrt(2) ** nmin)
-                scr.zoom(zoomfac)
+                nmin  = cmd.count("-")
+                scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
 
             #-------------------------------------------------------------------
             # Reference to other command files
