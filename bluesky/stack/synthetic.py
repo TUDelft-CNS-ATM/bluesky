@@ -92,8 +92,9 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             spd=200 #kts
             for i in range(numac):
                 angle=2*np.pi/numac*i
-                acid="SUP"+str(i)
-                traf.create(acid,"SUPER",distance*-np.cos(angle),distance*np.sin(angle),360-360/numac*i,alt,spd)
+                acid = "SUP" + str(i)
+                traf.create(acid, "SUPER", distance * -np.cos(angle),
+                    distance * np.sin(angle), 360.0 - 360.0 / numac * i, alt, spd)
             if savescenarios:
                 fname="super"+str(numac)
                 cmd.saveic(fname,sim,traf)
