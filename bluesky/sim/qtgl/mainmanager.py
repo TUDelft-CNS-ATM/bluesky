@@ -20,8 +20,8 @@ Listener.fileno = lambda self: self._listener._socket.fileno()
 
 def split_scenarios(scentime, scencmd):
     start = 0
-    for i in xrange(1, len(scencmd)):
-        if scencmd[i][:4] == 'SCEN':
+    for i in xrange(1, len(scencmd) + 1):
+        if i == len(scencmd) or scencmd[i][:4] == 'SCEN':
             scenname = scencmd[start].split()[1].strip()
             yield (scenname, scentime[start:i], scencmd[start:i])
             start = i
