@@ -29,16 +29,17 @@ from aero_np import vmach2cas, vcas2mach
 #------------------------------------------------------------------------------
 
 
-def phases(alt, gs, delalt, cas, vmto, vmic, vmap, vmcr,vmld, bank,bphase,hdgsel, bada):
+def phases(alt, gs, delalt, cas, delspd, vmto, vmic, vmap, vmcr,vmld, bank,bphase,hdgsel, bada):
 
 # flight phases: TO (1), IC (2), CR (3), AP(4), LD(5), GD (6)
 #--> no holding phase yet
 #-------------------------------------------------
-# phase TO[1]: alt<400 and vs>0
+# phase TO[1]: alt<400 and vs>0 and accelerating
     Talt = np.array(alt<(400.*ft))
     Tspd = np.array(gs>(30*kts))
+    Tacc = np.array(delspd>=0.)*1.0
     Tvs = np.array(delalt>=0.)*1.0
-    to = np.logical_and.reduce([Tspd, Talt, Tvs])*1
+    to = np.logical_and.reduce([Tspd, Tacc, Talt, Tvs])*1
     
 #-------------------------------------------------
 # phase IC[2]: 400<alt<2000, vs>0
@@ -96,8 +97,9 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap, vmcr,vmld, bank,bphase,hdgsel
         Lspd = np.array((cas<(vmap+10.*kts)) & (gs >=(30*kts)))
     else:
         Lspd = np.array (gs >=(30*kts))
+    Lacc = np.array(delspd <= 0.)
     Lvs = np.array(delalt<=0.)
-    ld = np.logical_and.reduce([Lalt, Lspd ,Lvs])*5
+    ld = np.logical_and.reduce([Lalt, Lspd, Lacc, Lvs])*5
     
 #-------------------------------------------------           
 # phase GND: alt < 0.001ft
@@ -207,7 +209,7 @@ def vmin(vmto, vmic, vmcr, vmap, vmld, phase):
 #
 #------------------------------------------------------------------------------
     
-def limits(desspd, lspd, vmin, vmo, mmo, M, ama, alt, hmaxact, desalt, lalt, maxthr, Thr, lvs, D, tas, mass, ESF):
+def limits(desspd, lspd, gs, to_spd, vmin, vmo, mmo, M, ama, alt, hmaxact, desalt, lalt, maxthr, Thr, lvs, D, tas, mass, ESF):
 
  
 # minimum speed 
@@ -265,8 +267,20 @@ def limits(desspd, lspd, vmin, vmo, mmo, M, ama, alt, hmaxact, desalt, lalt, max
     thrcomp = np.greater(maxthr, Thr)*1
     if (thrcomp.all() ==0):
         Thr = (thrcomp ==0)*(maxthr-1) + (thrcomp!=0)*Thr 
-        lvs = (thrcomp==0)*(((Thr-D)*tas) /(mass*g0))*ESF + (thrcomp==0)*0.0
-  
+        lvs = (thrcomp==0)*(((Thr-D)*tas) /(mass*g0))*ESF + (thrcomp!=0)*1000000
+        
 
+# aircraft can only take-off as soon as their speed is above v_rotate
+# True means that current speed is below rotation speed
+    v_rotcomp = np.less(gs, to_spd)*1
+    if (v_rotcomp.any() == 1):
+        lvs = (v_rotcomp==1)*0.0 + (v_rotcomp!=1)*1000000     
+        
+# remove non-needed altitude limit 
+    lv = np.array(abs(to_spd - gs) < 0.1)
+   # print "TOSPD", to_spd, "GSPD", gs, "LVS", lvs
+    if (lv.any()==1):
+        lvs = (lv==1)*1000000 
+     #   print "REMOOOOOOVE"
    
     return lspd, lalt, lvs, ama

@@ -755,6 +755,9 @@ class Commandstack:
                 # Next arg is a runway?
                 if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
                         args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
+                    # heading should correspond to runway heading 
+                    args[argidx + 2] = str( traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][2])
+
                     return traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2], 2
 
                 # If no runway return airport center

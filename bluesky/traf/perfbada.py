@@ -523,6 +523,7 @@ class PerfBADA():
         self.ldl = np.array([]) #landing length[m]
         self.ws  = np.array([]) # wingspan [m]
         self.len = np.array([]) # aircraft length[m] 
+        self.gr_acc = np.array([]) # ground acceleration [m/s^2]
 
         return
        
@@ -678,7 +679,8 @@ class PerfBADA():
         self.tol = np.append(self.tol, coeff.tol[self.coeffidx])
         self.ldl = np.append(self.ldl, coeff.ldl[self.coeffidx])
         self.ws = np.append(self.ws, coeff.ws[self.coeffidx])
-        self.len = np.append(self.len, coeff.len[self.coeffidx])         
+        self.len = np.append(self.len, coeff.len[self.coeffidx])  
+        self.gr_acc = np.append(self.gr_acc, 0.6096) # value from BADA.gpf file
         return
 
 
@@ -804,6 +806,7 @@ class PerfBADA():
         self.ldl = np.delete(self.ldl, idx)
         self.ws  = np.delete(self.ws, idx)
         self.len = np.delete(self.len, idx)
+        self.gr_acc = np.delete(self.gr_acc, idx)
         
         return
 
@@ -813,7 +816,7 @@ class PerfBADA():
         # flight phase
         self.phase, self.bank = \
         phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
-        self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
+        self.traf.cas, self.traf.delspd, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
         self.traf.hdgsel, self.traf.bada)
 
         # AERODYNAMICS
@@ -1070,12 +1073,21 @@ class PerfBADA():
         
         # forwarding to tools
         self.traf.lspd, self.traf.lalt, self.traf.lvs, self.traf.ama = \
-        limits(self.traf.desspd, self.traf.lspd, self.vmin, self.vmo, self.mmo,\
+        limits(self.traf.desspd, self.traf.lspd, self.traf.gs, self.vmto,self.vmin, self.vmo, self.mmo,\
         self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, self.traf.desalt, self.traf.lalt,\
         self.maxthr, self.Thr,self.traf.lvs,  self.D, self.traf.tas, self.mass, self.ESF)        
         
         return
 
+    def acceleration(self, simdt):
+        # define acceleration: aircraft taxiing and taking off use ground acceleration,
+        # others standard acceleration
+        ax = ((self.phase==2) + (self.phase==3) + (self.phase==4) + (self.phase==5) ) \
+            *np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
+            ((self.phase==1) + (self.phase==6))*np.minimum(abs(self.traf.delspd \
+            / max(1e-8,simdt)), self.gr_acc)
+
+        return ax
         #------------------------------------------------------------------------------
         #DEBUGGING
 

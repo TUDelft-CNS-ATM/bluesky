@@ -64,13 +64,12 @@ class CoeffBS:
         self.MTOW      = [] # maximum takeoff weight
        
         # speeds
-        self.to_spd    = [] # nominal takeoff speed
-        self.ld_spd    = [] # nominal landing speed
         self.max_spd   = [] # maximum CAS
         self.cr_Ma     = [] # nominal cruise Mach at 35000 ft
         self.cr_spd    = [] # cruise speed
         self.max_Ma    = [] # maximum Mach
-        
+        self.gr_acc    = [] # ground acceleration
+
         # limits
         self.vmto   = [] # minimum speed during takeoff
         self.vmld   = [] # minimum speed during landing
@@ -111,7 +110,7 @@ class CoeffBS:
             #actype = doc.find('ac_type')
             self.atype.append(acdoc.find('ac_type').text)
 
-            # engine 
+            # engine  - jet or prop
             self.etype.append(int(acdoc.find('engine/eng_type').text))     
 
             # store jet and turboprop aircraft in seperate lists for accessing specific engine data
@@ -125,7 +124,7 @@ class CoeffBS:
 
             engine = []
             for eng in acdoc.findall('engine/eng'):
-                engine.append(eng.text)
+                engine.append(eng.text) 
 
             # weights
             MTOW = self.convert(acdoc.find('weights/MTOW').text, acdoc.find('weights/MTOW').attrib['unit'])             
@@ -162,9 +161,29 @@ class CoeffBS:
             else: 
                 self.cr_spd.append(self.convert(acdoc.find('speeds/cr_spd').text, acdoc.find('speeds/cr_spd').attrib['unit']))
 
+            # ground acceleration
+            # values are based on statistical ADS-B evaluations
+            # turboprops: 2.12 m/s^2
+            if int(acdoc.find('engine/eng_type').text) == 2:
+                self.gr_acc.append(2.12)
+            
+            # turbofans
+            else:
+                
+                # turbofans with two engines: 1.94 m/^2
+                if float(acdoc.find('engine/num_eng').text) == 2. :
+                    self.gr_acc.append(1.94)
+                # turbofans with four engines: 1.68 m/s^2
+                #  assumption: aircraft with three engines have the same value    
+                else :
+                    self.gr_acc.append(1.68)
+
+
+
             # limits
             # min takeoff speed
             tospd = acdoc.find('speeds/to_spd')
+            # no take-off speed given: calculate via cl_max
             if float (tospd.text) == 0.:
                 clmax_to = float(acdoc.find('aerodynamics/clmax_to').text)
                 self.vmto.append (sqrt((2*g0)/(S_ref*clmax_to))) # influence of current weight and density follows in CTraffic
@@ -333,12 +352,11 @@ class Perf():
         self.Sref = np.array ([])               
         
         # speeds         
-        self.to_spd =np.array ([]) # nominal takeoff speed
-        self.ld_spd    = np.array([]) # nominal landing speed
-        
+
         # reference velocities
         self.refma= np.array ([]) # reference Mach
-        self.refcas= np.array ([]) # reference CAS        
+        self.refcas= np.array ([]) # reference CAS  
+        self.gr_acc = np.array([]) # ground acceleration
         
         # limits
         self.vm_to = np.array([]) # min takeoff spd (w/o mass, density)
@@ -411,12 +429,10 @@ class Perf():
         self.etype = np.append(self.etype, coeffBS.etype[self.coeffidx]) # engine type of current aircraft
         self.traf.engines.append(coeffBS.engines[self.coeffidx]) # avaliable engine type per aircraft type   
 
-        # speeds         
-        # self.to_spd    = np.append(self.to_spd, coeffBS.to_spd[self.coeffidx]) # nominal takeoff speed
-        # self.ld_spd    = np.append(self.ld_spd, coeffBS.ld_spd[self.coeffidx]) # nominal landing speed            
-
+        # speeds             
         self.refma  = np.append(self.refma, coeffBS.cr_Ma[self.coeffidx]) # nominal cruise Mach at 35000 ft
         self.refcas = np.append(self.refcas, vtas2cas(coeffBS.cr_spd[self.coeffidx], 35000*ft)) # nominal cruise CAS
+        self.gr_acc = np.append(self.gr_acc, coeffBS.gr_acc[self.coeffidx]) # ground acceleration
 
         # limits   
         self.vm_to = np.append(self.vm_to, coeffBS.vmto[self.coeffidx])
@@ -512,11 +528,11 @@ class Perf():
         self.etype = np.delete(self.etype, idx)  # engine type of current aircraft
 
         # limits
-        # self.to_spd    = np.append(self.to_spd, coeffBS.to_spd[self.coeffidx]) # nominal takeoff speed
-        # self.ld_spd    = np.append(self.ld_spd, coeffBS.ld_spd[self.coeffidx]) # nominal landing speed
         self.vmo     = np.delete(self.vmo, idx)  # maximum CAS
         self.mmo     = np.delete(self.mmo, idx)  # maximum Mach
 
+        # vm_to excludes (squrt(m/rho) )
+        # vmto includes weight and altitude influence
         self.vm_to   = np.delete(self.vm_to, idx)
         self.vm_ld   = np.delete(self.vm_ld, idx)
         self.vmto    = np.delete(self.vmto, idx)
@@ -531,6 +547,7 @@ class Perf():
         # reference speeds
         self.refma   = np.delete(self.refma, idx)   # nominal cruise Mach at 35000 ft
         self.refcas  = np.delete(self.refcas, idx)  # nominal cruise CAS
+        self.gr_acc = np.delete(self.gr_acc, idx)   # ground acceleration
 
         # aerodynamics
         self.CD0     = np.delete(self.CD0, idx)      # parasite drag coefficient
@@ -571,7 +588,7 @@ class Perf():
         # allocate aircraft to their flight phase
         self.phase, self.bank = \
         phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
-        self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
+        self.traf.cas, self.traf.delspd, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
         self.traf.hdgsel,swbada)
 
         # AERODYNAMICS
@@ -718,12 +735,23 @@ class Perf():
 
         # forwarding to tools
         self.traf.lspd, self.traf.lalt, self.traf.lvs, self.traf.ama = \
-        limits(self.traf.desspd, self.traf.lspd, self.vmin, self.vmo, self.mmo,\
+        limits(self.traf.desspd, self.traf.lspd, self.traf.gs,self.vmto, self.vmin, self.vmo, self.mmo,\
         self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, self.traf.desalt, self.traf.lalt,\
         self.maxthr, self.Thr,self.traf.lvs, self.D, self.traf.tas, self.mass, self.ESF)        
 
         return
 
+    def acceleration(self, simdt):
+        # define acceleration: aircraft taxiing and taking off use ground acceleration,
+        # others standard acceleration
+        ax = ((self.phase==2) + (self.phase==3) + (self.phase==4) + (self.phase==5) ) \
+            *np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
+            ((self.phase==1) + (self.phase==6))*np.minimum(abs(self.traf.delspd \
+            / max(1e-8,simdt)), self.gr_acc)
+
+        return ax
+    
+        
     def engchange(self, idx, engid=None):
         """change of engines - for jet aircraft only!"""
         if not engid:
@@ -746,3 +774,4 @@ class Perf():
         self.ffid[idx]   = coeffBS.ffid[self.jetengidx]*coeffBS.n_eng[idx]
         self.ffap[idx]   = coeffBS.ffap[self.jetengidx]*coeffBS.n_eng[idx]         
         return
+        

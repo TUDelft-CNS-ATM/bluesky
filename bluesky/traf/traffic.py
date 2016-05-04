@@ -104,7 +104,7 @@ class Traffic:
         # Traffic performance data
         self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
         self.aphi   = np.array([])  # [rad] bank angle setting of autopilot
-        self.ax     = np.array([])  # [m/s2] absolute value of longitudinal accelleration
+        self.ax     = np.array([])  # [m/s2] absolute value of longitudinal acceleration
         self.bank   = np.array([])  # nominal bank angle, [radian]
         self.bphase = np.array([])  # standard bank angles per phase
         self.hdgsel = np.array([])  # determines whether aircraft is turning
@@ -303,7 +303,8 @@ class Traffic:
         #(temporarily default values)
         self.avsdef = np.append(self.avsdef, 1500. * fpm)  # default vertical speed of autopilot
         self.aphi   = np.append(self.aphi, radians(25.))  # bank angle setting of autopilot
-        self.ax     = np.append(self.ax, kts)  # absolute value of longitudinal accelleration
+        self.ax     = np.append(self.ax, kts)  # absolute value of longitudinal acceleration
+                                                # ground acceleration is higher - see class perf
 
         # Crossover altitude
         self.abco   = np.append(self.abco, 0)
@@ -622,7 +623,7 @@ class Traffic:
                 if not lnavon:
                     self.swlnav[i] = False # Drop LNAV at end of route
 
-                # In case of no LNAV, do not allow VNAV mode on it sown
+                # In case of no LNAV, do not allow VNAV mode on its own
                 if not self.swlnav[i]:
                     self.swvnav[i] = False
                     
@@ -734,7 +735,13 @@ class Traffic:
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
                                      (self.actwpalt>self.alt))            
 
-            self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
+            self.avs = steepness*self.gs
+            #
+            # when using the line below, the flight envelope protection is 
+            # switched off in case of swnavvs == False 
+            # 
+            #
+            #self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
 
             # Set headings based on swlnav
@@ -796,7 +803,9 @@ class Traffic:
         self.ahdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
-        self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
+        # 100000 is the test value, where no limit is active
+        self.avs = (self.lvs==1000000)*self.desvs + (self.lvs!=1000000)*self.lvs
+        #print "AVS", self.avs, "DESVS",self.desvs, "LVS", self.lvs   
 
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         #climb/descend above crossover: Ma = const, else CAS = const  
@@ -820,7 +829,10 @@ class Traffic:
 
         self.delspd = self.aptas - self.tas 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
-        ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
+        
+        # acceleration: ground /standard acceleration depending on flight phase
+        ax = self.perf.acceleration(simdt)
+        
 
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
                                           simdt) + (1. - swspdsel) * self.aptas
@@ -840,9 +852,16 @@ class Traffic:
         swaltsel = np.abs(self.aalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
 
-        self.vs = swaltsel*np.sign(self.aalt-self.alt)*       \
-                    ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
-                      self.swvnav*np.abs(self.avs)         )
+            #
+            # when using the full line, the flight envelope protection is 
+            # switched off in case of swnavvs == False
+            #
+
+        self.vs = swaltsel*np.sign(self.aalt-self.alt)*  np.abs(self.avs)    # \
+                   # ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
+                    #  self.swvnav*np.abs(self.avs)         )
+        #print self.swvnav
+        
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
                    (1. - swaltsel) * self.aalt + turbalt
