@@ -325,7 +325,8 @@ class Traffic:
         # limit settings: initialize with 0
         self.lspd = np.append(self.lspd, 0.0)
         self.lalt = np.append(self.lalt, 0.0)
-        self.lvs = np.append(self.lvs, 0.0)
+        # control value for lvs is 1000000, as 0 is required for aircraft taking off
+        self.lvs = np.append(self.lvs, 1000000)
 
         # Help variables to save computation time
         self.coslat = np.append(self.coslat,cos(radians(aclat)))  # Cosine of latitude for flat-earth aproximations
@@ -735,13 +736,14 @@ class Traffic:
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
                                      (self.actwpalt>self.alt))            
 
-            self.avs = steepness*self.gs
             #
             # when using the line below, the flight envelope protection is 
             # switched off in case of swnavvs == False 
-            # 
+            # hence, simplified version is active at the moment
             #
+            self.avs = steepness*self.gs
             #self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
+                        
             self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
 
             # Set headings based on swlnav
@@ -855,12 +857,11 @@ class Traffic:
             #
             # when using the full line, the flight envelope protection is 
             # switched off in case of swnavvs == False
-            #
+            # hence simplified version is active at the moment
 
-        self.vs = swaltsel*np.sign(self.aalt-self.alt)*  np.abs(self.avs)    # \
-                   # ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
+        self.vs = swaltsel*np.sign(self.aalt-self.alt)*  np.abs(self.avs)  # \
+                   # *( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
                     #  self.swvnav*np.abs(self.avs)         )
-        #print self.swvnav
         
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
