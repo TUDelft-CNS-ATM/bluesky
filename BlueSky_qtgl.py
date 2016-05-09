@@ -5,7 +5,7 @@ from bluesky import settings
 if __name__ == "__main__":
     settings.init('qtgl')
 
-# This file can be used to start the gui mainloop or a single node simulation loop
+# This file is used to start the gui mainloop or a single node simulation loop
 node_only = ('--node' in sys.argv)
 
 if node_only:
@@ -23,9 +23,10 @@ gui     = None
 manager = None
 
 
-# Create custom system-wide exception handler. For now it replicates python's default traceback message.
-# This was added to counter a new PyQt5.5 feature where unhandled exceptions would result in a qFatal
-# with a very uninformative message
+# Create custom system-wide exception handler. For now it replicates python's
+# default traceback message. This was added to counter a new PyQt5.5 feature
+# where unhandled exceptions would result in a qFatal with a very uninformative
+# message.
 def exception_handler(exc_type, exc_value, exc_traceback):
     traceback.print_exception(exc_type, exc_value, exc_traceback)
     sys.exit()
@@ -41,9 +42,9 @@ def MainLoop():
         runNode()
 
     else:
-        # =============================================================================
+        # ======================================================================
         # Create gui and simulation objects
-        # =============================================================================
+        # ======================================================================
         global navdb, manager, gui
         manager   = MainManager()
         gui       = Gui()
@@ -68,10 +69,10 @@ def MainLoop():
         # Close the manager, stop all nodes
         manager.stop()
 
-        # =============================================================================
-        # Clean up before exit. Comment this out when debugging for checking variables
-        # in the shell.
-        # =============================================================================
+        # ======================================================================
+        # Clean up before exit. Comment this out when debugging for checking
+        # variables in the shell.
+        # ======================================================================
         del gui
         print 'BlueSky normal end.'
 
