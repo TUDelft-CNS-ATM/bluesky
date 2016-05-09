@@ -188,7 +188,9 @@ class ScreenIO(QObject):
     def send_siminfo(self):
         # if self.manager.isActive():
         t  = time.time()
-        dt = t - self.prevtime
+        dt = t - self.prevtime        
+        if dt < 0.001: # prevent errors
+            dt = 0.001
         speed = (self.sim.samplecount - self.prevcount) / dt * self.sim.simdt
         self.manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
             self.sim.traf.ntraf, self.sim.state, self.sim.scenname))
@@ -211,10 +213,10 @@ class ScreenIO(QObject):
             data.trk        = self.sim.traf.trk
 
             # Conflict statistics
-            data.nconf_tot  = len(self.sim.traf.dbconf.conflist_all)
+            data.nconf_tot  = len(self.sim.traf.dbconf.conflist_exp)
             data.nlos_tot   = len(self.sim.traf.dbconf.LOSlist_all)
             data.nconf_exp  = len(self.sim.traf.dbconf.conflist_exp)
-            data.nlos_exp   = len(self.sim.traf.dbconf.LOSlist_exp)
+            data.nlos_exp   = len(self.sim.traf.dbconf.LOSlist_logged)
             data.nconf_cur  = len(self.sim.traf.dbconf.conflist_now)
             data.nlos_cur   = len(self.sim.traf.dbconf.LOSlist_now)
 

@@ -33,28 +33,24 @@ def load_coastlines():
 
 def load_aptsurface():
     if not os.path.isfile(cachedir + '/aptsurface.p'):
-        vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, \
-            apt_indices, rwythresholds = load_aptsurface_txt()
+        vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, apt_ctr_lon, \
+            apt_indices = load_aptsurface_txt()
         with open(cachedir + '/aptsurface.p', 'wb') as f:
             pickle.dump(vbuf_asphalt, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(vbuf_concrete, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(vbuf_runways , f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(vbuf_rwythr , f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(apt_ctr_lat  , f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(apt_ctr_lon  , f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(apt_indices  , f, pickle.HIGHEST_PROTOCOL)
-        with open(cachedir + '/rwythresholds.p', 'wb') as f:
-            pickle.dump(rwythresholds,  f, pickle.HIGHEST_PROTOCOL)
     else:
         with open(cachedir + '/aptsurface.p', 'rb') as f:
             vbuf_asphalt  = pickle.load(f)
             vbuf_concrete = pickle.load(f)
             vbuf_runways  = pickle.load(f)
-            vbuf_rwythr  = pickle.load(f)
             apt_ctr_lat   = pickle.load(f)
             apt_ctr_lon   = pickle.load(f)
             apt_indices   = pickle.load(f)
-    return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr,apt_ctr_lat, \
+    return vbuf_asphalt, vbuf_concrete, vbuf_runways, apt_ctr_lat, \
         apt_ctr_lon, apt_indices
 
 
@@ -70,8 +66,4 @@ def load_navdata():
             wptdata = pickle.load(f)
             aptdata = pickle.load(f)
             firdata = pickle.load(f)
-    if not os.path.isfile(cachedir + '/rwythresholds.p'):
-        load_aptsurface()
-    with open(cachedir + '/rwythresholds.p', 'rb') as f:
-        rwythresholds = pickle.load(f)
-    return wptdata, aptdata, firdata, rwythresholds
+    return wptdata, aptdata, firdata

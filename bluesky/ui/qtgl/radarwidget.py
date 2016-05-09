@@ -21,7 +21,7 @@ from ...tools.loaddata import load_aptsurface, load_coastlines
 
 # Static defines
 MAX_NAIRCRAFT         = 10000
-MAX_NCONFLICTS        = 10000
+MAX_NCONFLICTS        = 20000
 MAX_ROUTE_LENGTH      = 100
 MAX_POLYPREV_SEGMENTS = 100
 MAX_ALLPOLYS_SEGMENTS = 2000
@@ -40,7 +40,6 @@ cyan                  = (0,   255, 255)
 amber                 = (255, 160, 0)
 magenta               = (255, 0,   255)
 grey                  = (100, 100, 100)
-white                 = (255, 255, 255)
 lightgrey             = (160, 160, 160)
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
@@ -143,7 +142,7 @@ class RadarWidget(QGLWidget):
         manager.instance.activenode_changed.connect(self.actnodeChanged)
 
         # Load vertex data
-        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
+        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
 
     @pyqtSlot(str, int)
@@ -177,7 +176,7 @@ class RadarWidget(QGLWidget):
         # Load and bind world texture
         max_texture_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
         print 'Maximum supported texture size: %d' % max_texture_size
-        for i in [16384, 8192, 4096]:
+        for i in [8192, 4096]:
             if max_texture_size >= i:
                 fname = 'data/graphics/world.%dx%d.dds' % (i, i / 2)
                 print 'Loading texture ' + fname
@@ -221,13 +220,6 @@ class RadarWidget(QGLWidget):
         self.runways.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_runways)
         self.runways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
         self.runways.set_vertex_count(len(self.vbuf_runways)/2)
-        
-        #---------Runway Thresholds-----------------------
-        self.thresholds = RenderObject(gl.GL_TRIANGLES)
-        self.thresholds.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_rwythr)
-        self.thresholds.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.thresholds.set_vertex_count(len(self.vbuf_rwythr)/2)
-
 
         # ------- Taxiways -------------------------------
         self.taxiways = RenderObject(gl.GL_TRIANGLES)
@@ -267,7 +259,7 @@ class RadarWidget(QGLWidget):
         # ------- Circle ---------------------------------
         # Create a new VAO (Vertex Array Object) and bind it
         self.protectedzone = RenderObject(gl.GL_LINE_LOOP, vertex_count=self.vcount_circle)
-        circlevertices = np.transpose(np.array((5.0*nm*np.cos(np.linspace(0.0, 2.0*np.pi, self.vcount_circle)), 5.0*nm*np.sin(np.linspace(0.0, 2.0*np.pi, self.vcount_circle))), dtype=np.float32))
+        circlevertices = np.transpose(np.array((2.5*nm*np.cos(np.linspace(0.0, 2.0*np.pi, self.vcount_circle)), 2.5*nm*np.sin(np.linspace(0.0, 2.0*np.pi, self.vcount_circle))), dtype=np.float32))
         self.protectedzone.bind_attrib(ATTRIB_VERTEX, 2, circlevertices)
         self.protectedzone.bind_attrib(ATTRIB_LAT, 1, self.aclatbuf, instance_divisor=1)
         self.protectedzone.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
@@ -345,7 +337,7 @@ class RadarWidget(QGLWidget):
         self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
         # Clean up memory
-        del self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr
+        del self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways
 
         self.initialized = True
 
@@ -454,9 +446,8 @@ class RadarWidget(QGLWidget):
         if self.show_traf:
             self.cpalines.draw()
 
-        # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------        
+        # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------
         self.runways.draw()
-        self.thresholds.draw() 
         if self.zoom >= 1.0:
             for idx in self.apt_inrange:
                 self.taxiways.draw(first_vertex=idx[0], vertex_count=idx[1])
@@ -636,9 +627,9 @@ class RadarWidget(QGLWidget):
             # If there is a visible route, update the start position
             if self.route_acid != "":
                 if self.route_acid in data.id:
-                    idx = data.id.index(self.route_acid)
-                    update_buffer(self.routebuf,
-                                  np.array([data.lat[idx], data.lon[idx]], dtype=np.float32))
+                    idx = data.id.index(self.route_acid)           
+                    update_buffer(self.routebuf, np.array([data.lat[idx], data.lon[idx]],  \
+                                    dtype=np.float32))
 
     def show_ssd(self, arg):
         if arg == 'ALL':

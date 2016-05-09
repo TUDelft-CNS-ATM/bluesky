@@ -1,5 +1,6 @@
 from numpy import *
-from ..tools.aero import ft, kts, g0, qdrdist, nm, cas2tas, mach2tas
+from math import *
+from ..tools.aero import ft, kts, g0, qdrdist, nm, cas2tas, mach2tas, tas2cas
 from ..tools.misc import degto180
 
 
@@ -142,7 +143,7 @@ class Route():
 
         elif wptype == self.dest:
 
-            if not (name == traf.id[iac]+"DEST"):   # published identifier
+            if not (name == traf.id[iac] + "DEST"):   # published identifier
                 i = self.navdb.getapidx(name.upper().strip())
                 wpok = (i >= 0)
                 if wpok:
@@ -175,7 +176,7 @@ class Route():
                 self.wpspd.append(spd)
                 self.wpflyby.append(self.swflyby)
                 self.nwp = len(self.wpname)
-                idx = self.nwp
+                idx = self.nwp-1
 
                 # When only waypoint: adjust pointer to point to destination
                 if self.iactwp < 0 and self.nwp == 1:
@@ -245,7 +246,7 @@ class Route():
                     self.wpalt[-2]  = alt
                     self.wpspd[-2]  = spd
                     self.wptype[-2] = wptype
-                    idx = self.nwp-1
+                    idx = self.nwp-2
 
                 # Or simply append
                 else:
@@ -289,30 +290,35 @@ class Route():
                 # Set target altitude for autopilot
                 if self.wpalt[wpidx] > 0:
 
-                    if traf.alt[i] < self.wptoalt[i]-10.*ft:
+                    if traf.alt[i] < self.wptoalt[wpidx]-10.*ft:
                         traf.actwpalt[i] = self.wptoalt[wpidx]
                         traf.dist2vs[i] = 9999.
                     else:
                         steepness = 3000.*ft/(10.*nm)
-                        traf.actwpalt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-                        delalt = traf.alt[i] - traf.actwpalt[i]
-                        traf.dist2vs[i] = steepness*delalt
+                        traf.actwpalt[i] = self.wpalt[wpidx]#self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
+                        delalt = traf.alt[i] - traf.actwpalt[i]                        
+                        traf.dist2vs[i] = delalt/steepness
+                        dirtowp , disttowp = qdrdist(self.traf.lat[i], self.traf.lon[i], traf.actwplat[i], traf.actwplon[i])
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
-                if spd > 0:
-                    if spd < 2.0:
+                if spd>0:
+                    if spd<2.0:
                         traf.aspd[i] = mach2cas(spd, traf.alt[i])
                     else:
                         traf.aspd[i] = cas2tas(spd, traf.alt[i])
 
-            qdr, dist = qdrdist(traf.lat[i], traf.lon[i],
-                                traf.actwplat[i], traf.actwplon[i])
+                vnavok =  True
+            else:
+                vnavok = False
 
-            turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
+            qdr, dist = qdrdist(traf.lat[i], traf.lon[i], \
+                                 traf.actwplat[i], traf.actwplon[i])
 
-            traf.actwpturn[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
-                        self.wpdirfrom[self.iactwp]))))))
+            turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) /g0 /nm # default bank angle 25 deg
+           
+            traf.actwpturn[i] = max(10.,abs(turnrad*tan(radians(0.5*degto180(qdr \
+                               -self.wpdirfrom[self.iactwp])))))
 
             traf.swlnav[i] = True
             return True
@@ -573,7 +579,7 @@ class Route():
         # Calculate lateral leg data
         # LNAV: Calculate leg distances and directions
 
-        for i in range(0,self.nwp-2):
+        for i in range(0,self.nwp-1):
              qdr,dist = qdrdist(self.wplat[i]  ,self.wplon[i], \
                                 self.wplat[i+1],self.wplon[i+1])
              self.wpdirfrom[i] = qdr
@@ -605,7 +611,7 @@ class Route():
         return        
 
     def findact(self,traf,i):
-        """ Find best default active waypoint"""
+        """ Find best default active waypoint. This function is called during route creation"""
 
         # Check for easy answers first
         if self.nwp<=0:
@@ -615,8 +621,8 @@ class Route():
             return 0
 
         # Find closest    
-        wplat  = array(traf.actwplat)
-        wplon  = array(traf.actwplon)
+        wplat  = array(self.wplat)
+        wplon  = array(self.wplon)
         dy = wplat - traf.lat[i] 
         dx = (wplon - traf.lon[i]) * traf.coslat[i]
         dist2 = dx*dx + dy*dy            
@@ -626,27 +632,115 @@ class Route():
         if iwpnear+1<self.nwp:
             qdr = arctan2(dx[iwpnear],dy[iwpnear])
             delhdg = abs(degto180(traf.trk[i]-qdr))
-            if delhdg>90.:
+            # If the bearing to the active waypoint is larger
+            # than 25 degrees, choose the next waypoint
+            if delhdg>25.:
                 iwpnear= iwpnear+1
         
         return iwpnear
-
-    def dumpRoute(self, traf, idx):
-        acid = traf.id[idx]
-        # Open file in append mode, write header
-        with open("./data/output/routelog.txt", "a") as f:
-            f.write("\nRoute "+acid+":\n")
-            f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
-            f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
-
-            # write flight plan VNAV data (Lateral is visible on screen)
-            for j in range(self.nwp):
-                f.write( str(( j, self.wpname[j], self.wptype[j],
-                      round(self.wplat[j], 4), round(self.wplon[j], 4),
-                      int(0.5+self.wpalt[j]/ft), int(0.5+self.wpspd[j]/kts),
-                      int(0.5+self.wptoalt[j]/ft), round(self.wpxtoalt[j]/nm, 3)
-                      )) + "\n")
-
-            # End of data
-            f.write("----\n")
-            f.close()
+    
+    def trajectory_recovery(self,traf,i):
+        """ After performing an ASAS maneuver, recover your trajecotry. This function is called if conflict is past CPA"""
+        
+        # Check for easy answers first
+        if self.nwp<=0:
+            return -1
+        
+        elif self.nwp == 1:
+            return 0
+        
+        elif self.traf.swlnav[i] == False:
+            return self.iactwp
+        
+        # If swlayer is True, check for an off-set between your current altitude and the layer altitude corresponding to your current heading-to-destination
+        if self.traf.swlayer == True and self.traf.layerconcept != '':
+            dirtodest , disttodest = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[-1], self.wplon[-1])
+            # If you deviated less than 5 degrees from your original heading, don't change uor altitude
+            if abs(dirtodest - self.wpdirfrom[self.iactwp]) < 5. or abs(dirtodest - self.wpdirfrom[self.iactwp]) > 355.:
+                return self.iactwp
+            # Using CheckLayer(), check which altitude corresponds to the layer concept in combination with your heading-to-destination
+            layalt = self.CheckLayer(i, dirtodest)
+            # If you are in the wrong layer, create one waypoint to set the new altitude
+            if abs(self.traf.aalt[i] - layalt) > 100*ft:
+                self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s%s' % \
+                                        (traf.id[i],traf.orig[i],traf.dest[i], \
+                                         traf.lat[i],traf.lon[i],traf.alt[i],layalt))
+                lat = self.traf.lat[i] + (10*cos(dirtodest/180*pi))/60.
+                lon = self.traf.lon[i] + (10*sin(dirtodest/180*pi))/60.
+                spd = tas2cas(500.,layalt)
+                self.addwpt(self.traf,i,self.traf.id[i],self.wplatlon,lat,lon,layalt,spd,"")
+                self.iactwp = self.nwp - 2
+        else:
+            if self.traf.asasalt[i] != self.traf.aalt[i]:
+                self.traf.aalt[i] = self.traf.alt[i]
+        
+            
+        return self.iactwp
+                                                 
+    def CheckLayer(self, i, qdr):
+        """ Find best default active waypoint. This is function is called in Trajectory_recovery()"""
+        
+        # Define layer altitudes (in ft)
+        layers = [5000.0*ft, 6100.0*ft, 7200.0*ft, 8300.0*ft, 9400.0*ft, 10500.0*ft, 11600.0*ft, 12700.0*ft]
+        # Check which layer concept is active: 360/180/80/45
+        # And when multiple sets of layers are present, look within the same set for the correct layer
+        # Return the layer altitude that corresponds to the direction to the destination and the layer set
+        if self.traf.layerconcept == '360':
+            return self.traf.aalt[i]
+        elif self.traf.layerconcept == '180':
+            if qdr <  0.:
+                if self.traf.aalt[i] < 6600*ft:
+                    return layers[0]
+                elif self.traf.aalt[i] < 8800*ft:
+                    return layers[2]
+                elif self.traf.aalt[i] < 11000*ft:
+                    return layers[4]
+                else:
+                    return layers[6]
+            elif qdr >= 0.:
+                if self.traf.aalt[i] < 6600*ft:
+                    return layers[1]
+                elif self.traf.aalt[i] < 8800*ft:
+                    return layers[3]
+                elif self.traf.aalt[i] < 11000*ft:
+                    return layers[5]
+                else:
+                    return layers[7]
+        elif self.traf.layerconcept == '90':
+            if qdr  < -90.:
+                if self.traf.aalt[i] < 8800*ft:
+                    return layers[0]
+                else:
+                    return layers[4]
+            elif qdr >= -90. and qdr < 0.:
+                if self.traf.aalt[i] < 8800*ft:
+                    return layers[1]
+                else:
+                    return layers[5]
+            elif qdr >= 0. and qdr < 90.:
+                if self.traf.aalt[i] < 8800*ft:
+                    return layers[2]
+                else:
+                    return layers[6]
+            elif qdr >= 90.:
+                if self.traf.aalt[i] < 8800*ft:
+                    return layers[3]
+                else:
+                    return layers[7]
+        elif self.traf.layerconcept == '45':
+            if qdr >= -180 and qdr < -135.:
+                return layers[0]
+            elif qdr >= -135 and qdr < -90:
+                return layers[1]
+            elif qdr >= -90 and qdr < -45:
+                return layers[2]
+            elif qdr >= -45 and qdr < 0:
+                return layers[3]
+            elif qdr >= 0. and qdr < 45.:
+                return layers[4]
+            elif qdr >= 45. and qdr < 90.:
+                return layers[5]
+            elif qdr >= 90. and qdr < 135.:
+                return layers[6]
+            elif qdr >= 135.:
+                return layers[7]

@@ -50,8 +50,8 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
     elif command == "SIMPLE":
         scr.isoalt=0
         traf.reset(sim.navdb)
-        traf.create("OWNSHIP", "GENERIC", -.5, 0, 0, 5000*ft, 200)
-        traf.create("INTRUDER", "GENERIC", 0, .5, 270, 5000*ft, 200)
+        traf.create("OWNSHIP", "GENERIC", -.5, 0, 0, 5000*ft, 350)
+        traf.create("INTRUDER", "GENERIC", 0, .5, 270, 5000*ft, 400)
         
     #create a perpendicular conflict with slight deviations to aircraft speeds and places
     elif command == "SIMPLED":
@@ -59,8 +59,8 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         traf.reset(sim.navdb)
         ds=random.uniform(0.92,1.08)
         dd=random.uniform(0.92,1.08)
-        traf.create("OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000*ft, 200*ds)
-        traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000*ft, 200/ds)   
+        traf.create("OWNSHIP", "GENERIC", -.5*dd, 0, 0, 20000*ft, 350*ds)
+        traf.create("INTRUDER", "GENERIC", 0, .5/dd, 270, 20000*ft, 350/ds)   
      
     
     # used for testing the differential game resolution method
@@ -89,12 +89,11 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             numac=int(float(cmdargs[1]))
             distance=0.50 #this is in degrees lat/lon, for now
             alt=20000*ft #ft
-            spd=200 #kts
+            spd=350 #kts
             for i in range(numac):
                 angle=2*np.pi/numac*i
-                acid = "SUP" + str(i)
-                traf.create(acid, "SUPER", distance * -np.cos(angle),
-                    distance * np.sin(angle), 360.0 - 360.0 / numac * i, alt, spd)
+                acid="SUP"+str(i)
+                traf.create(acid,"SUPER",distance*-np.cos(angle),distance*np.sin(angle),360-360/numac*i,alt,spd)
             if savescenarios:
                 fname="super"+str(numac)
                 cmd.saveic(fname,sim,traf)
@@ -111,7 +110,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             distance=0.5 #this is in degrees lat/lon, for now
             distancenm=distance*111319./1852
             alt=20000 #ft
-            spd=150 #kts
+            spd=350 #kts
             vs=4 #m/s          
             timetoimpact=distancenm/spd*3600 #seconds
             altdifference=vs*timetoimpact # m
@@ -166,7 +165,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             hseplat=hsep/mperdeg
             matsep=1.1 #factor of extra space in the matrix
             hseplat=hseplat*matsep
-            vel=200 #m/s
+            vel=350. #kts
             extradist=(vel*1.1)*5*60/mperdeg #degrees latlon flown in 5 minutes
             for i in range(size):
                 acidn="NORTH"+str(i)
@@ -191,13 +190,13 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         hsep=traf.dbconf.R # [m] horizontal separation minimum
         floorsep=1.1 #factor of extra spacing in the floor
         hseplat=hsep/mperdeg*floorsep
-        traf.create("OWNSHIP","FLOOR",-1,0,90, (20000+altdif)*ft, 200)
+        traf.create("OWNSHIP","FLOOR",-1,0,90, (20000+altdif)*ft, 350.)
         idx = traf.id.index("OWNSHIP")
         traf.avs[idx]=-10
-        traf.aalt[idx]=20000-altdif
+        traf.aalt[idx]=(20000-altdif)*ft
         for i in range(20):
             acid="OTH"+str(i)
-            traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,200)            
+            traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,350.)            
         if savescenarios:
             fname="floor"
             cmd.saveic(fname,sim,traf)            
@@ -211,7 +210,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.isoalt=0
             traf.reset(sim.navdb)
             mperdeg=111319.
-            vsteps=50 #[m/s]
+            vsteps=250 #kts
             for v in range(vsteps,vsteps*(numac+1),vsteps): #m/s
                 acid="OT"+str(v)
                 distancetofly=v*5*60 #m
@@ -230,10 +229,10 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         hsep=traf.dbconf.R # [m] horizontal separation minimum
         hseplat=hsep/mperdeg
         wallsep=1.1 #factor of extra space in the wall
-        traf.create("OWNSHIP","WALL",0,-distance,90, 20000*ft, 200)
+        traf.create("OWNSHIP","WALL",0,-distance,90, 20000*ft, 350.0)
         for i in range(20):
             acid="OTHER"+str(i)
-            traf.create(acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000*ft,200)
+            traf.create(acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000*ft,350.0)
         if savescenarios:
             fname="wall"
             cmd.saveic(fname,sim,traf)

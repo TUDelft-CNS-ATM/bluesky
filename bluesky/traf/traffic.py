@@ -188,10 +188,14 @@ class Traffic:
 
         # Scheduling of FMS and ASAS
         self.t0fms = -999.  # last time fms was called
-        self.dtfms = 1.01  # interval for fms
+        self.dtfms = 1.00  # interval for fms
 
         self.t0asas = -999.  # last time ASAS was called
         self.dtasas = 1.00  # interval for ASAS
+        
+        # Layers settings
+        self.swlayer = False
+        self.layerconcept = ''
 
         # Flight performance scheduling
         self.perfdt = 0.1           # [s] update interval of performance limits
@@ -221,6 +225,9 @@ class Traffic:
         self.inside = []
         self.fir_circle_point = (0.0, 0.0)
         self.fir_circle_radius = 1.0
+        
+        # VNAV logic for approaching airports (and force decent)
+        self.swdecent = False # If True: when lnav is False due to lack of waypoints,vnav is false but overruled by this switch. Result is that aircraft with lnav/vnav False start to descent
 
         # Taxi switch
         self.swtaxi = False  # Default OFF: delete traffic below 1500 ft
@@ -271,7 +278,7 @@ class Traffic:
         if 0.1 < casmach < 1.0 :
             acspd = mach2tas(casmach, acalt)
         else:
-            acspd = cas2tas(casmach, acalt)
+            acspd = cas2tas(casmach * kts, acalt)
 
         # Process input
         self.id.append(acid.upper())
@@ -318,7 +325,7 @@ class Traffic:
         self.aptas = np.append(self.aptas, acspd) # [m/s]
         self.ama  = np.append(self.ama, 0.) # selected spd above crossover (Mach) [-]
         self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
-        self.afll = np.append(self.afll, (acalt/100)) # selected fl[ft/100]
+        self.afll = np.append(self.afll, (acalt/(100 * ft))) # selected fl[ft/100]
         self.avs = np.append(self.avs, 0.)  # selected vertical speed [m/s]
         
         # limit settings: initialize with 0
@@ -472,12 +479,10 @@ class Traffic:
         self.actwpturn = np.delete(self.actwpturn, idx)
         self.actwpflyby = np.delete(self.actwpflyby, idx)
 
-
         # VNAV cruise level
         self.crzalt    = np.delete(self.crzalt,  idx)
         self.dist2vs   = np.delete(self.dist2vs, idx)    # Distance to start V/S of VANAV
         self.actwpvs   = np.delete(self.actwpvs, idx)    # Actual V/S to use
-
 
         # Route info
         del self.route[idx]
@@ -541,9 +546,7 @@ class Traffic:
         
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         # aptas hast to be calculated before delspd
-        self.aptas = vcas2tas(self.aspd, self.alt)*self.belco + vmach2tas(self.ama, self.alt)*self.abco  
-        self.delspd = self.aptas - self.tas 
-   
+        self.aptas = vcas2tas(self.aspd, self.alt)*self.belco + vmach2tas(self.ama, self.alt)*self.abco
 
         ###############################################################################
         # Debugging: add 10000 random aircraft
@@ -590,6 +593,7 @@ class Traffic:
 
             # Call with traffic database and sim data
             self.dbconf.detect()
+            self.dbconf.conflictfilter()
             self.dbconf.conflictlist(simt)
             self.dbconf.APorASAS()
             self.dbconf.resolve()
@@ -625,7 +629,7 @@ class Traffic:
                 # In case of no LNAV, do not allow VNAV mode on it sown
                 if not self.swlnav[i]:
                     self.swvnav[i] = False
-                    
+
                 self.actwplat[i]   = lat
                 self.actwplon[i]   = lon
                 self.actwpflyby[i] = int(flyby) # 1.0 in case of fly by, els fly over
@@ -650,28 +654,6 @@ class Traffic:
 
                         # Dist to waypoint where descent should start
                         self.dist2vs[i] = (self.alt[i]-self.actwpalt[i])/steepness
- 
-                        # Flat earth distance to next wp
-                        dy = (lat-self.lat[i])
-                        dx = (lon-self.lon[i])*self.coslat[i]
-                        legdist = 60.*nm*sqrt(dx*dx+dy*dy)
-
-
-                        #If descent is urgent, descent with maximum steepness
-                        if legdist < self.dist2vs[i]:
-                            self.aalt[i] = self.actwpalt[i] # dial in altitude of next waypoint as calculated
-
-                            t2go         = max(0.1,legdist)/max(0.01,self.gs[i])
-                            self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i])/t2go
-                                              
-                        else: 
-
-                            # normal case: still time till descent starts
-                       
-                            # Calculate V/s using steepness, 
-                            # protect against zero/invalid ground speed value
-                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
-                                            (self.gs[i]<0.2*self.tas[i])*self.tas[i])
 
                     # Climb VNAV mode: climb as soon as possible (T/C logic)                        
                     elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
@@ -709,21 +691,21 @@ class Traffic:
                    self.actwpspd[i] = -999.
 
                 # Calculate distance before waypoint where to start the turn
-                # Turn radius:      R = V2 tan phi / g
+                # Turn radius:      R = V^2 / tan phi / g
                 # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                 # using default bank angle per flight phase
-                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] 
+                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm]
 
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
-                qdr[i] = degrees(atan2(dx,dy))                    
-
-                self.actwpturn[i] = self.actwpflyby[i]*                     \
-                     max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
-                     self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
-
+                qdr[i] = degrees(atan2(dx,dy))     
+                
+                self.actwpturn[i] = self.actwpflyby[i]*np.max((10.,\
+                                    abs(turnrad*tan(radians(0.5*degto180(qdr[i]\
+                                    -self.route[i].wpdirfrom[self.route[i].iactwp]))))))
+ 
             # End of Waypoint switching loop
-            
+
             # Do VNAV start of descent check
             dy = (self.actwplat-self.lat)
             dx = (self.actwplon-self.lon)*self.coslat
@@ -731,9 +713,23 @@ class Traffic:
             steepness = 3000.*ft/(10.*nm)
 
             # VNAV AP LOGIC
-            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
-                                     (self.actwpalt>self.alt))            
 
+            # Switch for which aircaft have to follow VNAV
+            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
+                                     (self.actwpalt>self.alt))+self.swdecent*(1-self.swlnav)
+            if self.dbconf.swasas and self.dbconf.swpasas:
+                # Find the aircraft that should start descending and store their index in icflvnav
+                icflvnav = np.where((self.swvnavvs == 1.) & (self.vs == 0.))[0]
+                for i in icflvnav:
+                    # newavs: calculate the future state to be used in the conflict probe
+                    newavs = np.sign(self.actwpalt[i]-self.alt[i]) * (3000.*ft/(10.*nm)*self.gs[i])
+                    # Using the future state, check wether this state will result in a short-term-conflict or not
+                    cfl = self.dbconf.conflictprobe(simt,i,self.vs,newavs)
+                    # If it results in a short-term-conflict, postpone the VNAV by setting the swvnavvs to 0.0
+                    if cfl:
+                        self.swvnavvs[i] = 0.0
+            
+            # Set autopilot settings for Vertical Speed and Altitude using the swvnavvs switch
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
 
@@ -772,13 +768,14 @@ class Traffic:
 
         # ASAS AP switches
 
-        #--------- Input to Autopilot settings to follow: destination or ASAS ----------
-
+        #--------- Input to Autopilot settings to follow: destination or ASAS ----------          
         # desired autopilot settings due to ASAS
         self.deshdg = self.asasactive*self.asashdg + (1-self.asasactive)*self.ahdg
-        self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aspd
+        self.desspd = self.asasactive*self.asasspd + (1-self.asasactive)*self.aptas
         self.desalt = self.asasactive*self.asasalt + (1-self.asasactive)*self.aalt
         self.desvs  = self.asasactive*self.asasvsp + (1-self.asasactive)*self.avs
+        if self.dbconf.swresodir == "HORIZ":
+            self.desalt = self.aalt
 
         # check for the flight envelope
         self.perf.limits()
@@ -787,23 +784,23 @@ class Traffic:
 
         # Autopilot selected speed setting [m/s]
         # To do: add const Mach const CAS mode
-        self.aspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*self.lspd
+        self.desspd = ((self.desspd<vcas2tas(self.lspd,self.alt)) + ( self.lspd == 0.0 ))*self.desspd + (self.desspd>vcas2tas(self.lspd,self.alt))*vcas2tas(self.lspd,self.alt)
 
         # Autopilot selected altitude [m]
-        self.aalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
+        self.desalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
 
         # Autopilot selected heading
-        self.ahdg = self.deshdg
+        self.deshdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
-        self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
+        self.desvs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
 
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         #climb/descend above crossover: Ma = const, else CAS = const  
         #ama is fixed when above crossover
         check = self.abco*(self.ama == 0.)
         swma = np.where(check==True)
-        self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
+        self.ama[swma] = vcas2mach(self.desspd[swma], self.alt[swma])
 
         # ama is deleted when below crossover
         check2 = self.belco*(self.ama!=0.)
@@ -815,15 +812,15 @@ class Traffic:
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
         # for information:    
 
-# no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
-#                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
+        # no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
+        #                 np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
 
-        self.delspd = self.aptas - self.tas 
+        self.delspd = self.desspd - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
 
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
-                                          simdt) + (1. - swspdsel) * self.aptas
+                                          simdt) + (1. - swspdsel) * self.tas
 
         # Speed conversions
         self.cas = vtas2cas(self.tas, self.alt)
@@ -837,18 +834,27 @@ class Traffic:
 
         # update altitude
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
-        swaltsel = np.abs(self.aalt-self.alt) >      \
+        swaltsel = np.abs(self.desalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
 
-        self.vs = swaltsel*np.sign(self.aalt-self.alt)*       \
-                    ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
-                      self.swvnav*np.abs(self.avs)         )
+        if self.dbconf.swresodir == "VERT":
+            # if asas is not active AND VNAV is not active, then it shouls use the standard climb rate.
+            # if asas is active AND VNAV is not active it should listen to the asasvs which is desvs
+            # if asas AND VNAV is active then use desvs
+            self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
+                    ( (1-self.swvnav)*(self.asasactive*np.abs(self.desvs)+(1-self.asasactive)*np.abs(1500./60.*ft)) +    \
+                      self.swvnav*np.abs(self.desvs))
+        else:
+            # Normal vertical speed selection
+            self.vs = swaltsel*np.sign(self.desalt-self.alt)*       \
+                    ( (1-self.swvnav)*(3000.*ft/(10.*nm)*self.gs) +    \
+                        self.swvnav*np.abs(self.desvs))
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
-                   (1. - swaltsel) * self.aalt + turbalt
+                   (1. - swaltsel) * self.desalt + turbalt
 
         # HDG HOLD/SEL mode: ahdg = ap selected heading
-        delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  # [deg]
+        delhdg = (self.deshdg - self.trk + 180.) % 360 - 180.  # [deg]
 
         # omega = np.degrees(g0 * np.tan(self.aphi) / \
         # np.maximum(self.tas, self.eps))
@@ -895,7 +901,7 @@ class Traffic:
                     inside = self.arealat0 <= self.lat[i] <= self.arealat1 and \
                              self.arealon0 <= self.lon[i] <= self.arealon1 and \
                              self.alt[i] >= self.areafloor and \
-                             (self.alt[i] >= 1500 or self.swtaxi)
+                             (self.alt[i] >= 1500*ft or self.swtaxi)
 
                 elif self.area == "Circle":
 
