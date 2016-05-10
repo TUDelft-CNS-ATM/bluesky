@@ -1,14 +1,3 @@
-import numpy as np
-from math import *
-
-from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2cas,  \
-     cas2tas, temp, density, Rearth
-
-from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach, \
-    vmach2tas, qdrdist
-from ..tools.misc import degto180
-from ..tools.datalog import Datalog
-
 class ADSBModel():
     """
     Traffic class definition    : Traffic data
@@ -27,10 +16,7 @@ class ADSBModel():
     """
 
     def __init__(self, traf):
-        
-        self.traf = traf        
-        
+        self.traf = traf
+
     def update(self):
         return
-        
- 

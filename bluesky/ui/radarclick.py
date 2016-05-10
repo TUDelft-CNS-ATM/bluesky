@@ -1,4 +1,5 @@
-from ..tools import kwikdist, findnearest, cmdsplit
+from ..tools.misc import findnearest, cmdsplit
+from ..tools.geo import kwikdist
 from math import cos, atan2, radians, degrees
 
 

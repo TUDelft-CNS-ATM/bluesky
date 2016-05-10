@@ -4,7 +4,8 @@ from random import seed
 import os
 import sys
 
-from ..tools.aero import kts, ft, fpm, qdrdist, tas2cas, density
+from ..tools.aero import kts, ft, fpm, tas2cas, density
+from ..tools.geo import qdrdist
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 
@@ -761,7 +762,7 @@ class Commandstack:
             if idx >= 0:
                 return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], 1
             # Arg, next arg are a lat/lon combination
-            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2
+            return [txt2lat(args[argidx]), txt2lon(args[argidx+1])], 2
 
         if argtype == "latlon":
             return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2

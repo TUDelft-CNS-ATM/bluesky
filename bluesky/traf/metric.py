@@ -1,5 +1,5 @@
 import os
-from time import time,gmtime,strftime
+from time import time, gmtime, strftime
 import numpy as np
 import matplotlib.pyplot as plt
 from math import degrees
@@ -8,7 +8,7 @@ from collections import defaultdict
 import itertools as IT
 from ..tools.misc import tim2txt
 from ..tools.aero import *
-from ..tools.aero_np import qdrdist_vector
+from ..tools.geo import qdrdist_vector, qdrpos
 
 """
     This module seems to work as follows:
