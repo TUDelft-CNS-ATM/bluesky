@@ -1,11 +1,8 @@
 from math import *
-import os
 import numpy as np
 
 from ..tools.loaddata import load_navdata
-from ..tools.aero import ft
-from ..tools.qdr import kwikdist
-from ..settings import airport_file
+from ..tools.geo import kwikdist
 
 
 class Navdatabase:

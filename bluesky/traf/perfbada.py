@@ -8,12 +8,12 @@ import numpy as np
 from math import *
 from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 
-from ..tools.performance import esf, phases, limits, vmin
+from performance import esf, phases, limits, vmin
 from ..tools.datalog import Datalog
 
 
 class Coefficients:
-    """ 
+    """
     Coefficient class definition : get aircraft-specific coefficients from database
 
     Methods:

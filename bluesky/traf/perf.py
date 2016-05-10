@@ -2,10 +2,10 @@ import os
 import numpy as np
 from xml.etree import ElementTree
 from math import *
-from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, kts, lbs, inch, sqft, fpm
-from ..tools.aero_np import vtas2cas
+from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
+    kts, lbs, inch, sqft, fpm, vtas2cas
 
-from ..tools.performance import esf, phases, limits
+from performance import esf, phases, limits
 
 
 class CoeffBS:

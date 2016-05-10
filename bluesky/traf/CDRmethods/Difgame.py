@@ -7,10 +7,9 @@ Created on Wed Mar 04 14:27:44 2015
 
 import numpy as np
 import Difgamelearnerfunctions as dg
-from aero import nm, kts
-from aero_np import vtas2eas, qdrdist_vector
+from aero import nm, kts, vtas2eas
 import os
-import types
+
 
 def start(dbconf):
     dbconf.CRname="Difgame"

@@ -12,7 +12,7 @@ Created by  : Jacco M. Hoekstra
 
 from numpy import *
 from time import strftime, gmtime
-from aero import cas2tas, mach2tas, kts, nm
+from aero import cas2tas, mach2tas, kts
 
 
 def txt2alt(txt):
@@ -64,41 +64,6 @@ def txt2spd(txt, h):
         return -1.
 
     return acspd
-
-
-def kwikdist(lata, lona, latb, lonb):
-    """
-    Convert text to altitude: 4500 = 4500 ft,
-    Return altitude in meters
-    Quick and dirty dist [nm] inreturn
-    """
-
-    re = 6371000.  # readius earth [m]
-    dlat = array(radians(latb - lata))
-    dlon = array(radians(lonb - lona))
-    cavelat = array(cos(radians(lata + latb) / 2.))
-
-    dangle = sqrt(dlat * dlat + dlon * dlon * cavelat * cavelat)
-    dist = re * dangle / nm
-
-    return mat(dist)
-
-
-def kwikqdrdist(lata, lona, latb, lonb):
-    """Gives quick and dirty qdr[deg] and dist [nm]
-       (note: does not work well close to poles)"""
-
-    re = 6371000.  # radius earth [m]
-    dlat = array(radians(latb - lata))
-    dlon = array(radians(degto180(lonb - lona)))
-    cavelat = array(cos(radians(lata + latb) / 2.))
-
-    dangle = sqrt(dlat * dlat + dlon * dlon * cavelat * cavelat)
-    dist = re * dangle
-
-    qdr = degrees(arctan2(dlon * cavelat, dlat)) % 360.
-
-    return mat(qdr), mat(dist)
 
 
 def col2rgb(txt):
@@ -185,23 +150,27 @@ def txt2lat(lattxt):
 
 def txt2lon(lontxt):
     """txt2lat: input txt: N52'14'13.5 or N52"""
-    txt = lontxt.replace("E", "").replace("W", "-")  # East positive, West negative
-    neg = txt.count("-") > 0
-    if txt.count("'") > 0 or txt.count('"') > 0:
-        txt = txt.replace('"', "'")  # replace " by '
-        degs = txt.split("'")
-        div = 1
-        lon = 0
-        if neg:
-            f = -1.
-        else:
-            f = 1.
-        for deg in degs:
-            lon = lon + f * abs(float(deg)) / float(div)
+    # It should first be checked if lontxt is a regular float, to avoid removing
+    # the 'e' in a scientific-notation number.
+    try:
+        lon = float(lontxt)
+    except ValueError:
+        txt = lontxt.replace("E", "").replace("W", "-")  # East positive, West negative
+        neg = txt.count("-") > 0
+        if txt.count("'") > 0 or txt.count('"') > 0:
+            txt = txt.replace('"', "'")  # replace " by '
+            degs = txt.split("'")
+            div = 1
+            lon = 0
+            if neg:
+                f = -1.
+            else:
+                f = 1.
+            for deg in degs:
+                lon = lon + f * abs(float(deg)) / float(div)
 
-            div = div * 60
-    else:
-        lon = float(txt)
+                div = div * 60
+
     return lon
 
 

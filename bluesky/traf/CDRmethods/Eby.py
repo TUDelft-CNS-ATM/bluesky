@@ -5,7 +5,7 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas
+from aero import vtas2eas
 
 def start(dbconf):
     dbconf.CRname="Eby"

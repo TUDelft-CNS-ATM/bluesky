@@ -1,6 +1,11 @@
 from numpy import *
+<<<<<<< HEAD
 from math import *
 from ..tools.aero import ft, kts, g0, qdrdist, nm, cas2tas, mach2tas, tas2cas
+=======
+from ..tools.aero import ft, kts, g0, nm, cas2tas
+from ..tools.geo import qdrdist
+>>>>>>> ProfHoekstra/master
 from ..tools.misc import degto180
 
 

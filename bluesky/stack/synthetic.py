@@ -2,12 +2,12 @@ import sys
 sys.path.append('bluesky/tools/')
 import random
 import numpy as np
-from aero import ft, eas2tas, qdrpos
+from aero import ft, eas2tas
+from geo import qdrpos
 from misc import txt2alt, txt2spd
 '''
     Original version by Jerom Maas, fall 2014
     Adapted and expanded by Pieter Danneels, fall 2015
-    
 '''
 
 savescenarios=False #whether to save a scenario as .scn file after generation via commands
