@@ -185,23 +185,27 @@ def txt2lat(lattxt):
 
 def txt2lon(lontxt):
     """txt2lat: input txt: N52'14'13.5 or N52"""
-    txt = lontxt.replace("E", "").replace("W", "-")  # East positive, West negative
-    neg = txt.count("-") > 0
-    if txt.count("'") > 0 or txt.count('"') > 0:
-        txt = txt.replace('"', "'")  # replace " by '
-        degs = txt.split("'")
-        div = 1
-        lon = 0
-        if neg:
-            f = -1.
-        else:
-            f = 1.
-        for deg in degs:
-            lon = lon + f * abs(float(deg)) / float(div)
-
-            div = div * 60
-    else:
+    # It should first be checked if lontxt is a regular float, to avoid removing
+    # the 'e' in a scientific-notation number.
+    try:
         lon = float(txt)
+    except ValueError:
+        txt = lontxt.replace("E", "").replace("W", "-")  # East positive, West negative
+        neg = txt.count("-") > 0
+        if txt.count("'") > 0 or txt.count('"') > 0:
+            txt = txt.replace('"', "'")  # replace " by '
+            degs = txt.split("'")
+            div = 1
+            lon = 0
+            if neg:
+                f = -1.
+            else:
+                f = 1.
+            for deg in degs:
+                lon = lon + f * abs(float(deg)) / float(div)
+
+                div = div * 60
+
     return lon
 
 
