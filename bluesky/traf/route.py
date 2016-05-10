@@ -1,5 +1,6 @@
 from numpy import *
-from ..tools.aero import ft, kts, g0, qdrdist, nm, cas2tas, mach2tas
+from ..tools.aero import ft, kts, g0, nm, cas2tas
+from ..tools.geo import qdrdist
 from ..tools.misc import degto180
 
 

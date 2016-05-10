@@ -2,11 +2,10 @@ import numpy as np
 from math import *
 from random import random, randint
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
-                         mach2cas, cas2tas, cas2mach, Rearth
-
-from ..tools.aero_np import vatmos, vcas2tas, vtas2cas,  vtas2mach, vcas2mach,\
-                            vmach2tas, qdrdist
-from ..tools.misc import degto180, kwikdist
+                         mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
+                         vcas2tas, vtas2cas,  vtas2mach, vcas2mach, vmach2tas
+from ..tools.geo import qdrdist, kwikdist
+from ..tools.misc import degto180
 
 from route import Route
 from params import Trails
@@ -557,12 +556,12 @@ class Traffic:
         #                   self.create(acid,'B747',aclat,aclon,achdg,acalt,350.)
         #
         #################################################################################
-        
+
         #-------------------- ADSB update: --------------------
 
         self.adsbtime = self.adsbtime + simdt
         if self.ADSBtrunc:
-            ADSB_update = np.where(self.adsbtime>self.trunctime)
+            ADSB_update = np.where(self.adsbtime > self.trunctime)
         else:
             ADSB_update = range(self.ntraf)
 
@@ -577,11 +576,11 @@ class Traffic:
             self.adsbvs[i]   = self.vs[i]
 
         # New version ADSB Model
-        self.adsb.update()        
+        self.adsb.update()
 
         #------------------- ASAS update: ---------------------
         # Scheduling: when dt has passed or restart:
-        if self.t0asas+self.dtasas<simt or simt<self.t0asas \
+        if self.t0asas + self.dtasas < simt or simt < self.t0asas \
             and self.dbconf.swasas:
             self.t0asas = simt
 
