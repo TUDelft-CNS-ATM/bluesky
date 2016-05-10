@@ -6,7 +6,8 @@ import datetime, os
 
 import numpy as np
 
-from ...tools.aero_np import ft, kts, nm, latlondist, qdrdist, qdrpos
+from ...tools.aero import ft, kts, nm
+from ...tools.geo import latlondist, qdrdist, qdrpos
 from ...tools.misc import tim2txt
 import splash
 from fastfont import Fastfont

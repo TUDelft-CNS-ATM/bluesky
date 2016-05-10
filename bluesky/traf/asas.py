@@ -1,6 +1,6 @@
-""" 
+"""
 ASAS classes
-   
+
 Created by  : Jacco M. Hoekstra (TU Delft)
 Date        : November 2013
 
@@ -16,7 +16,7 @@ Date        : October 2014
 # Inputs:
 #    lat [deg]  = array with traffic latitude
 #    lon [deg]  = array with traffic longitude
-#    alt [m]    = array with traffic altitude 
+#    alt [m]    = array with traffic altitude
 #    trk [deg]  = array with traffic track angle
 #    gs  [m/s]  = array with ground speed [m/s]
 #    vs  [m/s]  = array with vertical speed [m/s]
@@ -24,10 +24,10 @@ Date        : October 2014
 # Outputs:
 #    swconfl = 2D array with True/False for conflict
 #    dtconfl = time to conflict
- 
 import numpy as np
-import sys, os
-from ..tools.aero_np import qdrdist_vector,nm,qdrpos
+import sys
+from ..tools.aero import nm
+from ..tools.geo import qdrdist_vector, qdrpos
 
 # Find a way to import the required Conflict Resolution Class
 sys.path.append('bluesky/traf/CDRmethods/')
@@ -35,32 +35,31 @@ sys.path.append('bluesky/traf/CDRmethods/')
 
 class Dbconf():
 
-# Constructor of conflict database, call with SI units (meters and seconds)
+    # Constructor of conflict database, call with SI units (meters and seconds)
+    def __init__(self, traf, tlook, R, dh):
+        self.swasas      = True      # [-] whether to perform CD&R
+        self.dtlookahead = tlook     # [s] lookahead time
 
-    def __init__(self,traf,tlook, R, dh):
-        self.swasas      = True   # [-] whether to perform CD&R
-        self.dtlookahead = tlook  # [s] lookahead time
-        
-        mar              = 1.05   # [-] Safety margin for evasion
-        self.R           = R      # [m] Horizontal separation minimum
-        self.dh          = dh     # [m] Vertical separation minimum
-        self.Rm          = R*mar  # [m] Horizontal separation minimum + margin
-        self.dhm         = dh*mar # [m] Vertical separation minimum + margin
-        
-        self.traf        = traf   # Traffic database object
-        
-        self.deletenames =[]      # List of aircraft outside test region
-        
-        self.vmin        =100     # [m/s] Minimum ASAS velocity
-        self.vmax        =180     # [m/s] Maximum ASAS velocity
-                
-        self.reset()              # Reset database
+        mar              = 1.05      # [-] Safety margin for evasion
+        self.R           = R         # [m] Horizontal separation minimum
+        self.dh          = dh        # [m] Vertical separation minimum
+        self.Rm          = R * mar   # [m] Horizontal separation minimum + margin
+        self.dhm         = dh * mar  # [m] Vertical separation minimum + margin
+
+        self.traf        = traf      # Traffic database object
+
+        self.deletenames = []        # List of aircraft outside test region
+
+        self.vmin        = 100.0     # [m/s] Minimum ASAS velocity
+        self.vmax        = 180.0     # [m/s] Maximum ASAS velocity
+
+        self.reset()                 # Reset database
         self.SetCRmethod("DoNothing")
         return
-        
-    def SetCRmethod(self,method):
-        self.CRname ="Undefined"
-        self.CRmethod    = __import__(method)
+
+    def SetCRmethod(self, method):
+        self.CRname   = "Undefined"
+        self.CRmethod = __import__(method)
         self.CRmethod.start(self)
 
     def toggle(self, flag=None):
@@ -70,37 +69,34 @@ class Dbconf():
 
     # Reset conflict database
     def reset(self):
-        self.conf        = []     # Start with emtpy database: no conflicts
-        self.nconf       = 0      # Number of detected conflicts
-        self.swconfl     = np.array([])
-        self.latowncpa = np.array([])
-        self.lonowncpa = np.array([])
-        self.altowncpa = np.array([])
-        self.latintcpa = np.array([])
-        self.lonintcpa = np.array([])
-        self.altintcpa = np.array([])
+        self.conf         = []     # Start with emtpy database: no conflicts
+        self.nconf        = 0      # Number of detected conflicts
+        self.swconfl      = np.array([])
+        self.latowncpa    = np.array([])
+        self.lonowncpa    = np.array([])
+        self.altowncpa    = np.array([])
+        self.latintcpa    = np.array([])
+        self.lonintcpa    = np.array([])
+        self.altintcpa    = np.array([])
 
-        self.idown     = []
-        self.idoth     = []
+        self.idown        = []
+        self.idoth        = []
 
-        self.conflist_all= [] #Create a list of all Conflicts       
-        self.LOSlist_all = [] #Create a list of all Losses Of Separation
-        self.conflist_exp= [] #Create a list of all Conflicts in experiment time
-        self.LOSlist_exp = [] #Create a list of all Losses Of Separation in experiment time
-        self.conflist_now= [] #Create a list of current Conflicts       
-        self.LOSlist_now = [] #Create a list of current Losses Of Separation
-        
+        self.conflist_all = []  # List of all Conflicts
+        self.LOSlist_all  = []  # List of all Losses Of Separation
+        self.conflist_exp = []  # List of all Conflicts in experiment time
+        self.LOSlist_exp  = []  # List of all Losses Of Separation in experiment time
+        self.conflist_now = []  # List of current Conflicts
+        self.LOSlist_now  = []  # List of current Losses Of Separation
+
         # For keeping track of locations with most severe intrusions
-        self.LOSmaxsev=[] 
-        self.LOShmaxsev=[]
-        self.LOSvmaxsev=[]
-        
-        return
-
+        self.LOSmaxsev    = []
+        self.LOShmaxsev   = []
+        self.LOSvmaxsev   = []
 
 # ==================== Conflict Detection based on state ======================
 
-    def detect(self):   
+    def detect(self):
         if not self.swasas:
             return
 
