@@ -5,7 +5,10 @@ import os
 import sys
 
 from ..tools.aero import kts, ft, fpm, tas2cas, density
-from ..tools.geo import qdrdist
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 
@@ -118,7 +121,7 @@ class Commandstack:
             "DIST": [
                 "DIST lat0, lon0, lat1, lon1",
                 "latlon,latlon",
-                lambda *args: scr.echo("Dist = %.3f nm, QDR = %.2f deg" % qdrdist(*args))
+                lambda *args: scr.echo("Dist = %.3f nm, QDR = %.2f deg" % geo.qdrdist(*args))
             ],
             "DT": [
                 "DT dt",

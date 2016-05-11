@@ -8,7 +8,10 @@ from collections import defaultdict
 import itertools as IT
 from ..tools.misc import tim2txt
 from ..tools.aero import *
-from ..tools.geo import qdrdist_vector, qdrpos
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 
 """
     This module seems to work as follows:
@@ -79,17 +82,17 @@ class metric_Area():
             
                 if i == 1:
                     
-                    lat,lon = qdrpos(lat,lon,self.bearingE,self.distance)
+                    lat,lon = geo.qdrpos(lat,lon,self.bearingE,self.distance)
                     lat = degrees(lat)
                     lon = degrees(lon)
                     londiviser = (lon - lon_0) / self.ncells
                 else:
-                    lat,lon = qdrpos(lat,lon,self.bearingE,self.distance)
+                    lat,lon = geo.qdrpos(lat,lon,self.bearingE,self.distance)
                     lat = degrees(lat)
                     lon = lon_0 + londiviser * j
             
             lat_0 = lat_00            
-            lat,lon = qdrpos(lat_0,lon_0,self.bearingS,self.distance*i)
+            lat,lon = geo.qdrpos(lat_0,lon_0,self.bearingS,self.distance*i)
             lat = degrees(lat)
             lon = degrees(lon)
             lat_0 = lat
@@ -593,7 +596,7 @@ class metric_HB():
         traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf = self.selectTraffic(sim)
  
 
-        [self.rel_trk, self.pos] = qdrdist_vector(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
+        [self.rel_trk, self.pos] = geo.qdrdist_vector(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
         # self.lat = np.append(self.lat,traf.lat)
         # self.lon = np.append(self.lon,traf.lon)
         self.id = sim.traf.id
@@ -708,7 +711,7 @@ class metric_HB():
         
         Hb = Ha
         
-        [H0,S0] = qdrdist_vector(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
+        [H0,S0] = geo.qdrdist_vector(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
         S0 = np.where(S0 > 0, S0, np.nan)
         
         S0 = self.apply_before_filter(S0,Va)
@@ -1185,7 +1188,7 @@ class metric_HB():
 
         R = self.dist_range
 
-        [H0,S0] = qdrdist_vector(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
+        [H0,S0] = geo.qdrdist_vector(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
 
         S0 = self.apply_before_filter(S0,Va)
 

@@ -2,7 +2,10 @@ from math import *
 import numpy as np
 
 from ..tools.loaddata import load_navdata
-from ..tools.geo import kwikdist
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 
 
 class Navdatabase:
@@ -97,9 +100,9 @@ class Navdatabase:
                 return idx[0]
             else:
                 imin = idx[0]
-                dmin = kwikdist(lat,lon,self.wplat[imin],self.wplon[imin])                
+                dmin = geo.kwikdist(lat,lon,self.wplat[imin],self.wplon[imin])                
                 for i in idx[1:]:
-                    d = kwikdist(lat,lon,self.wplat[i],self.wplon[i])
+                    d = geo.kwikdist(lat,lon,self.wplat[i],self.wplon[i])
                     if d<dmin:
                         imin = i
                         dmin = d
