@@ -170,7 +170,7 @@ class Commandstack:
             "IC": [
                 "IC [IC/filename]",
                 "[txt]",
-                lambda *args: self.ic(scr, *args)
+                lambda *args: self.ic(scr, sim, *args)
             ],
             "INSEDIT": [
                 "INSEDIT txt",
@@ -477,13 +477,14 @@ class Commandstack:
 
         return True
 
-    def ic(self, scr, filename=''):
+    def ic(self, scr, sim, filename=''):
         if filename == '':
             filename = scr.show_file_dialog()
         elif filename == "IC":
             filename = self.scenfile
 
         if len(filename) > 0:
+            sim.reset()
             result = self.openfile(filename)
             if type(result) is bool:
                 self.scenfile = filename
