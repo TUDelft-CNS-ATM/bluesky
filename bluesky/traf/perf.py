@@ -661,11 +661,13 @@ class Perf():
 
 
         # THRUST
+        # EXPLANATION FOR UNCOMMENTING THIS PART: 
+        # Vertical speed should be an input for the performance part, not an output!
         # determine vertical speed
-        swvs = (np.abs(self.traf.desvs) > self.traf.eps)
-        vspd = swvs * self.traf.desvs + (1. - swvs) * self.traf.avsdef * np.sign(self.traf.delalt)
-        swaltsel = np.abs(self.traf.delalt) > np.abs(2. * self.traf.perfdt * np.abs(vspd))
-        self.traf.vs = swaltsel * vspd  
+        #swvs = (np.abs(self.traf.desvs) > self.traf.eps)
+        #vspd = swvs * self.traf.desvs + (1. - swvs) * self.traf.avsdef * np.sign(self.traf.delalt)
+        #swaltsel = np.abs(self.traf.delalt) > np.abs(2. * self.traf.perfdt * np.abs(vspd))
+        #self.traf.vs = swaltsel * vspd  
 
         self.Thr = (((self.traf.vs*self.mass*g0)/(self.ESF*np.maximum(self.traf.eps, self.traf.tas))) + self.D) 
 
