@@ -1,6 +1,9 @@
 from numpy import *
 from ..tools.aero import ft, kts, g0, nm, cas2tas
-from ..tools.geo import qdrdist
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 from ..tools.misc import degto180
 
 
@@ -307,13 +310,11 @@ class Route():
                         traf.aspd[i] = mach2cas(spd, traf.alt[i])
                     else:
                         traf.aspd[i] = cas2tas(spd, traf.alt[i])
-
                 vnavok =  True
             else:
                 vnavok = False
-
-            qdr, dist = qdrdist(traf.lat[i], traf.lon[i], \
-                                 traf.actwplat[i], traf.actwplon[i])
+            qdr, dist = geo.qdrdist(traf.lat[i], traf.lon[i],
+                                traf.actwplat[i], traf.actwplon[i])
 
             turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) /g0 /nm # default bank angle 25 deg
            
@@ -434,7 +435,7 @@ class Route():
         nwp = len(wpname)
         dist2go = [0.0]
         for i in range(nwp-2,-1,-1):
-            qdr,dist = qdrdist(self.wplat[i],self.wplon[i],    \
+            qdr,dist = geo.qdrdist(self.wplat[i],self.wplon[i],    \
                         self.wplat[i+1],self.wplon[i+1])
             dist2go = [dist2go[i+1]+dist]+dist2go
 
@@ -580,7 +581,7 @@ class Route():
         # LNAV: Calculate leg distances and directions
 
         for i in range(0,self.nwp-1):
-             qdr,dist = qdrdist(self.wplat[i]  ,self.wplon[i], \
+             qdr,dist = geo.qdrdist(self.wplat[i]  ,self.wplon[i], \
                                 self.wplat[i+1],self.wplon[i+1])
              self.wpdirfrom[i] = qdr
              self.wpdistto[i+1]  = dist #[nm]  distto is in nautical miles

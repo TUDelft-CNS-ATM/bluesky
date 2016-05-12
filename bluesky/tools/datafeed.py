@@ -2,6 +2,7 @@ import time
 import aero
 import adsb_decoder as decoder
 from network import TcpSocket
+from .. import settings
 
 
 class Modesbeast(TcpSocket):
@@ -12,6 +13,14 @@ class Modesbeast(TcpSocket):
         self.acpool = {}
         self.buffer = ''
         self.default_ac_mdl = "B738"
+        self.add_stack_commands()
+
+    def add_stack_commands(self):
+        cmddict = {"DATAFEED": [
+                   "DATAFEED [ON/OFF]",
+                   "[onoff]",
+                   self.toggle]}
+        self.stack.append_commands(cmddict)
 
     def processData(self, data):
         self.buffer += data
@@ -232,3 +241,15 @@ class Modesbeast(TcpSocket):
             self.remove_outdated_ac()
             self.update_all_ac_postition()
             self.stack_all_commands()
+
+    def toggle(self, flag=None):
+        if flag is None:
+            msg = 'Connected' if self.isConnected() else 'Not connected'
+            return True, msg
+        elif flag:
+            self.connectToHost(settings.modeS_host,
+                               settings.modeS_port)
+        else:
+            self.disconnectFromHost()
+
+        return True

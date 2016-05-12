@@ -63,8 +63,9 @@ class Simulation(QObject):
         self.screenio    = ScreenIO(self, manager)
         self.traf        = Traffic(self.navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
-        # Metrics
-#        self.metric      = Metric()
+
+        # Additional modules
+        self.metric      = Metric()
         self.beastfeed   = Modesbeast(self.stack, self.traf)
 
     def doWork(self):
@@ -78,7 +79,7 @@ class Simulation(QObject):
             # Update the Mode-S beast parsing
             self.beastfeed.update()
 
-            # TODO: what to do with init
+            # Simulation starts as soon as there is traffic, or pending commands
             if self.state == Simulation.init:
                 if self.traf.ntraf > 0 or len(self.stack.scencmd) > 0:
                     self.start()
@@ -164,17 +165,6 @@ class Simulation(QObject):
             self.ffstop = self.simt + nsec
         else:
             self.ffstop = None
-
-    def datafeed(self, flag=None):
-        if flag is None:
-            msg = 'DATAFEED is'
-            msg += 'connected' if self.beastfeed.isConnected() else 'not connected'
-            self.screenio.echo(msg)
-        elif flag:
-            self.beastfeed.connectToHost(settings.modeS_host,
-                                         settings.modeS_port)
-        else:
-            self.beastfeed.disconnectFromHost()
 
     def scenarioInit(self, name):
         self.screenio.echo('Starting scenario ' + name)

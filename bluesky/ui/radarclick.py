@@ -1,5 +1,8 @@
 from ..tools.misc import findnearest, cmdsplit
-from ..tools.geo import kwikdist
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 from math import cos, atan2, radians, degrees
 
 
@@ -21,7 +24,7 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "LISTRTE": "acid,-",
                 "ADDWPT": "acid,latlon,-,-,-",
                 "ASAS": "acid,-",
-                "DEl": "acid,-",
+                "DEL": "acid,-",
                 "LNAV": "acid,-",
                 "VNAV": "acid,-",
                 "VS": "acid,-",
@@ -93,7 +96,7 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
                 elif clicktype == "dist":
                     latref, lonref = float(args[1]), float(args[2])
-                    todisplay += str(round(kwikdist(latref, lonref, lat, lon), 6))
+                    todisplay += str(round(geo.kwikdist(latref, lonref, lat, lon), 6))
 
                 elif clicktype == "apt":
                     idx = findnearest(lat, lon, navdb.aplat, navdb.aplon)
