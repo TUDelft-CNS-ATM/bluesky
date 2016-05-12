@@ -28,7 +28,6 @@ class Commandstack:
                                   processed from scenario file
 
         process(sim, traf, scr) : central command processing method
-                                  (with long elif tree with all commands)
 
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
@@ -91,11 +90,6 @@ class Commandstack:
                 "CRE acid,type,lat,lon,hdg,alt,spd",
                 "txt,txt,pos,hdg,alt,spd",
                 traf.create
-            ],
-            "DATAFEED":  [
-                "DATAFEED [ON/OFF]",
-                "[onoff]",
-                sim.datafeed
             ],
             "DEL": [
                 "DEL acid/shape",
@@ -383,8 +377,7 @@ class Commandstack:
 
         self.extracmdmodules = {
             "SYN_": 'synthetic',
-            "ASA_": 'asascmd',
-           # "LOG_":'log' # Old logging module
+            "ASA_": 'asascmd'
         }
 
         # Import modules from the list
@@ -395,7 +388,9 @@ class Commandstack:
             self.extracmdrefs[key]=obj
         # ------------------ [end] Deprecated -------------------
 
-        return
+    def append_commands(self, cmddict):
+        """ Append additional functions to the stack command dictionary """
+        self.cmddict.update(cmddict)
 
     def help(self, cmd=''):
         if len(cmd) == 0:
