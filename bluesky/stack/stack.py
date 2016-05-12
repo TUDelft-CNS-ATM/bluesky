@@ -71,6 +71,11 @@ class Commandstack:
                 "BATCH filename",
                 "txt",
                 sim.batch],
+            "BENCHMARK": [
+                "BENCHMARK [scenfile,time]",
+                "[txt,time]",
+                sim.benchmark
+            ],
             "BOX": [
                 "BOX name,lat,lon,lat,lon",
                 "txt,latlon,latlon",

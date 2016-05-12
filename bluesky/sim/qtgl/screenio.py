@@ -35,19 +35,20 @@ class ScreenIO(QObject):
 
         # Keep track of the important parameters of the screen state
         # (We receive these through events from the gui)
-        self.ctrlat  = 0.0
-        self.ctrlon  = 0.0
-        self.scrzoom = 1.0
+        self.ctrlat      = 0.0
+        self.ctrlon      = 0.0
+        self.scrzoom     = 1.0
 
-        self.route_acid = None
+        self.route_acid  = None
 
         # Keep reference to parent simulation object for access to simulation data
-        self.sim     = sim
-        self.manager = manager
+        self.sim         = sim
+        self.manager     = manager
 
         # Timing bookkeeping counters
-        self.prevtime = 0.0
-        self.prevcount = 0
+        self.prevtime    = 0.0
+        self.samplecount = 0
+        self.prevcount   = 0
 
         # Output event timers
         self.slow_timer = Timer()
@@ -59,6 +60,15 @@ class ScreenIO(QObject):
         self.fast_timer = Timer()
         self.fast_timer.timeout.connect(self.send_aircraft_data)
         self.fast_timer.start(1000/self.acupdate_rate)
+
+    def update(self):
+        if self.sim.state == self.sim.op:
+            self.samplecount += 1
+
+    def reset(self):
+        self.samplecount = 0
+        self.prevcount   = 0
+        self.prevtime    = 0.0
 
     def echo(self, text):
         if self.manager.isActive():
@@ -189,11 +199,11 @@ class ScreenIO(QObject):
         # if self.manager.isActive():
         t  = time.time()
         dt = t - self.prevtime
-        speed = (self.sim.samplecount - self.prevcount) / dt * self.sim.simdt
+        speed = (self.samplecount - self.prevcount) / dt * self.sim.simdt
         self.manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
             self.sim.traf.ntraf, self.sim.state, self.sim.scenname))
         self.prevtime  = t
-        self.prevcount = self.sim.samplecount
+        self.prevcount = self.samplecount
 
     @pyqtSlot()
     def send_aircraft_data(self):

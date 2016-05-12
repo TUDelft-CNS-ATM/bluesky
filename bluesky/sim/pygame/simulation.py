@@ -127,6 +127,9 @@ class Simulation:
         self.reset()
         return
 
+    def benchmark(self, fname='IC', tend=60.0):
+        return False, "Benchmark command not available in Pygame version."
+
     def batch(self, filename):
         return False, "Batch comand not available in Pygame version," + \
                  "use Qt-version for batch simulations"
