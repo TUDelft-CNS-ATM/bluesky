@@ -276,10 +276,10 @@ def qdrpos(latd1, lond1, qdr, dist):
     lon1 = np.radians(lond1)
 
     # Calculate new position
-    lat2 = np.asin(np.sin(lat1)*np.cos(dist/R) +
+    lat2 = np.arcsin(np.sin(lat1)*np.cos(dist/R) +
               np.cos(lat1)*np.sin(dist/R)*np.cos(np.radians(qdr)))
 
-    lon2 = lon1 + np.atan2(np.sin(np.radians(qdr))*np.sin(dist/R)*np.cos(lat1),
+    lon2 = lon1 + np.arctan2(np.sin(np.radians(qdr))*np.sin(dist/R)*np.cos(lat1),
                      np.cos(dist/R) - np.sin(lat1)*np.sin(lat2))
     return np.degrees(lat2), np.degrees(lon2)
 
