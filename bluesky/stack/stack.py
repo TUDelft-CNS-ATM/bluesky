@@ -264,6 +264,16 @@ class Commandstack:
                 "RESET",
                 "",
                 sim.reset],
+                
+            # idea: input is e.g. RUNWAYS EHAM
+                # output is scr.echo with list of all runways of the airport inserted above
+                # unfortunately and obviously I do something wrong with the syntax
+            "RUNWAYS": [
+                "RUNWAYS ICAO",
+                "txt",   
+                lambda ICAO: traf.navdb.listrwys(ICAO)
+
+                ],
             "SAVEIC": [
                 "SAVEIC filename",
                 "txt",
@@ -771,7 +781,7 @@ class Commandstack:
 
         if argtype == "latlon":
             return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2
-
+            
         if argtype == "spd":  # CAS[kts] Mach
             spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
             if not 0.1 < spd < 1.0:
