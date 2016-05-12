@@ -12,7 +12,7 @@ from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEv
 from ...traf import Traffic
 from ...navdb import Navdatabase
 from ...stack import Commandstack
-#from ...traf import Metric
+from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
 from ...tools.datalog import Datalog
@@ -94,7 +94,7 @@ class Simulation(QObject):
                 self.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-#                self.metric.update(self)
+                self.metric.update(self)
 
                 # Update log
                 if self.datalog is not None:

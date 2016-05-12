@@ -1,2 +1,2 @@
 from traffic import Traffic
-#from metric import Metric
+from metric import Metric
