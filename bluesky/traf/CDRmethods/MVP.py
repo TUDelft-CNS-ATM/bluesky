@@ -29,28 +29,12 @@ def resolve(dbconf):
                 dv_eby = MVP(dbconf,id1,id2)
                 # if swprio is on, the following priority rules are used:
                 if dbconf.swprio:
-                    # If aircraft 1 is cruising, and aircraft 2 is climbing -> aircraft one solves conflict
-                    if abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2] > 0.1:
-                        dv[id1] = dv[id1] - dv_eby
-                        dv[id1][2] = 0.0
-                    # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft two solves conflict
-                    elif abs(dbconf.traf.vs[id2])<0.1 and dbconf.traf.vs[id1] > 0.1:
+                    # If aircraft 1 is cruising, and aircraft 2 is climbing/descending -> aircraft 2 solves conflict
+                    if abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2]) > 0.1:
                         dv[id2] = dv[id2] + dv_eby
-                        dv[id2][2] = 0.0
-                    # If aircraft 1 is cruising, and aircraft 2 is descending -> aircraft 1 solves conflict horizontally
-                    elif abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2] < -0.1:
+                    # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft 1 solves conflict
+                    elif abs(dbconf.traf.vs[id2])<0.1 and abs(dbconf.traf.vs[id1]) > 0.1:
                         dv[id1] = dv[id1] - dv_eby
-                        dv[id1][2] = 0.0
-                    # If aircraft 2 is cruising, and aircraft 1 is descending -> aircraft2 solves conflict
-                    elif abs(dbconf.traf.vs[id2])<0.1 and  dbconf.traf.vs[id2] < -0.1:
-                        dv[id2] = dv[id2] + dv_eby
-                        dv[id2][2] = 0.0
-                    # If both aircraft are climbing into the experiment area at 5000 ft, they solve the conflict horizontally
-                    elif dbconf.traf.vs[id1] > 0.1 and dbconf.traf.vs[id2] > 0.1 and (dbconf.traf.alt[id1] < 5000*ft or dbconf.traf.alt[id2] < 5000*ft):
-                        dv[id1] = dv[id1] - dv_eby
-                        dv[id2] = dv[id2] + dv_eby
-                        dv[id1][2] = 0.0
-                        dv[id2][2] = 0.0
                     else: # both are climbing/descending/cruising, then use combined
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
@@ -114,7 +98,6 @@ def resolve(dbconf):
     asasalttemp = dbconf.traf.asasvsp * dbconf.tinconf.min(axis=1) \
                           + dbconf.traf.alt
     # Condition2 ensures that aircraft do not overshoot their layer altitude
-    # This is not being used for Full Mix MVP
     condition2 = dbconf.traf.alt != dbconf.traf.aalt
     dbconf.traf.asasalt[condition] = asasalttemp[condition]
     dbconf.traf.asasalt[condition2] = dbconf.traf.aalt[condition2]
