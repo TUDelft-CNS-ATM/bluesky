@@ -99,7 +99,7 @@ static PyObject* qdrdist(PyObject* self, PyObject* args)
     return Py_BuildValue("dd", RAD2DEG * _qdr(ll1, ll2), M2NM * _dist(ll1, ll2));
 };
 
-static PyObject* qdrdist_vector(PyObject* self, PyObject* args)
+static PyObject* qdrdist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -220,7 +220,7 @@ static PyObject* latlondist(PyObject* self, PyObject* args)
     return Py_BuildValue("d", M2NM * _dist(ll1, ll2));
 };
 
-static PyObject* latlondist_vector(PyObject* self, PyObject* args)
+static PyObject* latlondist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -439,7 +439,7 @@ static PyObject* kwikdist(PyObject* self, PyObject* args)
                         DEG2RAD * PyFloat_AsDouble(arg4))));
 };
 
-static PyObject* kwikdist_vector(PyObject* self, PyObject* args)
+static PyObject* kwikdist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -571,7 +571,7 @@ static PyObject* kwikqdrdist(PyObject* self, PyObject* args)
     return Py_BuildValue("dd", RAD2DEG * _kwikqdr(in), M2NM * _kwikdist(in));
 };
 
-static PyObject* kwikqdrdist_vector(PyObject* self, PyObject* args)
+static PyObject* kwikqdrdist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -655,17 +655,17 @@ static PyObject* kwikqdrdist_vector(PyObject* self, PyObject* args)
 
 static struct PyMethodDef methods[] = {
     {"rwgs84", rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec."},
-    {"rwgs84_vector", rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec (for vectors)."},
+    {"rwgs84_matrix", rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec (for vectors)."},
     {"qdrdist", qdrdist, METH_VARARGS, "Calculate bearing and distance between lat1+lon1 and lat2+lon2"},
-    {"qdrdist_vector", qdrdist_vector, METH_VARARGS, "Calculate bearing and distance matrices between vectors lat1+lon1/lat2+lon2"},
+    {"qdrdist_matrix", qdrdist_matrix, METH_VARARGS, "Calculate bearing and distance matrices between vectors lat1+lon1/lat2+lon2"},
     {"latlondist", latlondist, METH_VARARGS, "Calculate distance between lat1+lon1 and lat2+lon2"},
-    {"latlondist_vector", latlondist_vector, METH_VARARGS, "Calculate distance matrix between vectors lat1+lon1/lat2+lon2"},
+    {"latlondist_matrix", latlondist_matrix, METH_VARARGS, "Calculate distance matrix between vectors lat1+lon1/lat2+lon2"},
     {"wgsg", wgsg, METH_VARARGS, "Gravity acceleration at a given latitude according to WGS'84"},
     {"qdrpos", qdrpos, METH_VARARGS, "Calculate position from reference position, bearing and distance"},
     {"kwikdist", kwikdist, METH_VARARGS, "Quick and dirty dist [nm]"},
-    {"kwikdist_vector", kwikdist_vector, METH_VARARGS, "Quick and dirty dist [nm] (for vectors)"},
+    {"kwikdist_matrix", kwikdist_matrix, METH_VARARGS, "Quick and dirty dist [nm] (for vectors)"},
     {"kwikqdrdist", kwikqdrdist, METH_VARARGS, "Quick and dirty dist [nm] and bearing [deg]"},
-    {"kwikqdrdist_vector", kwikqdrdist_vector, METH_VARARGS, "Quick and dirty dist [nm] and bearing [deg] (for vectors)"},
+    {"kwikqdrdist_matrix", kwikqdrdist_matrix, METH_VARARGS, "Quick and dirty dist [nm] and bearing [deg] (for vectors)"},
     {NULL, NULL, 0, NULL}
 };
 

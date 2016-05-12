@@ -21,7 +21,7 @@ except ImportError:
     Apparently the creation of this module also called into life the concept of a research area.
     A research area is something which is not specific to the metrics module and could be used by different modules.
     However, the area command in the stack module saves data in the metric instance.
-    If the area function and metric module are to be seperatly used, then they should be untangled.	
+    If the area function and metric module are to be seperatly used, then they should be untangled.
 
     Classes:
     Metric, metric_Area, metric_CoCa, metric_HB
@@ -31,29 +31,24 @@ except ImportError:
         metric_Area: -
         metric_CoCa: regions
         metric_HB: area
-    
+
     Called from:
         metric_Area: Metric
         metric_CoCa: Metric
         metric_HB: Metric
-        
+
     Passed as argument to:
         metric_Area: metric_CoCa, metric_HB (only the .cellArea instance)
         metric_CoCa: -
         metric_HB: -
-                
+
     Structure:
         metric object created with Metric class constructor
         metric.metric object is of the form (metric_CoCa, metric_HB)
-            So the metric instance has two sub instances, 
+            So the metric instance has two sub instances,
             one of type metric_CoCa and one of type metric_HB
-    
-""" 
-    
-    
-
-class metric_Area():    
-
+"""
+class metric_Area():
     def __init__(self):
         self.lat = 55.5
         self.lon = 1.7
@@ -596,7 +591,7 @@ class metric_HB():
         traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf = self.selectTraffic(sim)
  
 
-        [self.rel_trk, self.pos] = geo.qdrdist_vector(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
+        [self.rel_trk, self.pos] = geo.qdrdist_matrix(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
         # self.lat = np.append(self.lat,traf.lat)
         # self.lon = np.append(self.lon,traf.lon)
         self.id = sim.traf.id
@@ -627,7 +622,7 @@ class metric_HB():
         return        
     
 
-    def rel_vectors(self):
+    def rel_matrixs(self):
         self.alt_dif = self.alt-self.alt.T
         # speeds
         hdgx = np.cos(np.radians(90-self.trk))
@@ -711,7 +706,7 @@ class metric_HB():
         
         Hb = Ha
         
-        [H0,S0] = geo.qdrdist_vector(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
+        [H0,S0] = geo.qdrdist_matrix(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
         S0 = np.where(S0 > 0, S0, np.nan)
         
         S0 = self.apply_before_filter(S0,Va)
@@ -1188,7 +1183,7 @@ class metric_HB():
 
         R = self.dist_range
 
-        [H0,S0] = geo.qdrdist_vector(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
+        [H0,S0] = geo.qdrdist_matrix(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
 
         S0 = self.apply_before_filter(S0,Va)
 

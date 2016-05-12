@@ -27,7 +27,7 @@ def rwgs84(latd):
 #------------------------------------------------------------
 
 
-def rwgs84_vector(latd):
+def rwgs84_matrix(latd):
     """ Calculate the earths radius with WGS'84 geoid definition
         In:  lat [deg] (Vector of latitudes)
         Out: R   [m]   (Vector of radii) """
@@ -105,7 +105,7 @@ def qdrdist(latd1, lond1, latd2, lond2):
     return qdr, d/nm
 
 
-def qdrdist_vector(lat1, lon1, lat2, lon2):
+def qdrdist_matrix(lat1, lon1, lat2, lon2):
     """ Calculate bearing and distance vectors, using WGS'84
         In:
             latd1,lond1 en latd2, lond2 [deg] :positions 1 & 2 (vectors)
@@ -116,13 +116,13 @@ def qdrdist_vector(lat1, lon1, lat2, lon2):
     condition = prodla < 0
 
     r = np.zeros(prodla.shape)
-    r = np.where(condition, r, rwgs84_vector(lat1.T + lat2))
+    r = np.where(condition, r, rwgs84_matrix(lat1.T + lat2))
 
     a = 6378137.0
 
     r = np.where(np.invert(condition), r, (np.divide(np.multiply
-      (0.5, ((np.multiply(abs(lat1), (rwgs84_vector(lat1)+a))).T +
-         np.multiply(abs(lat2), (rwgs84_vector(lat2)+a)))),
+      (0.5, ((np.multiply(abs(lat1), (rwgs84_matrix(lat1)+a))).T +
+         np.multiply(abs(lat2), (rwgs84_matrix(lat2)+a)))),
             (abs(lat1)).T+(abs(lat2)+(lat1 == 0.)*0.000001))))  # different hemisphere
 
     diff_lat = lat2-lat1.T
@@ -207,7 +207,7 @@ def latlondist(latd1, lond1, latd2, lond2):
     return d
 
 
-def latlondist_vector(lat1, lon1, lat2, lon2):
+def latlondist_matrix(lat1, lon1, lat2, lon2):
     """ Calculates distance using haversine formulae and avaerage r from wgs'84
         Input:
               two lat/lon position vectors in degrees
@@ -217,12 +217,12 @@ def latlondist_vector(lat1, lon1, lat2, lon2):
     condition = prodla < 0
 
     r = np.zeros(len(prodla))
-    r = np.where(condition, r, rwgs84_vector(lat1.T+lat2))
+    r = np.where(condition, r, rwgs84_matrix(lat1.T+lat2))
 
     a = 6378137.0
     r = np.where(np.invert(condition), r, (np.divide(np.multiply(0.5,
-        ((np.multiply(abs(lat1), (rwgs84_vector(lat1)+a))).T +
-            np.multiply(abs(lat2), (rwgs84_vector(lat2)+a)))),
+        ((np.multiply(abs(lat1), (rwgs84_matrix(lat1)+a))).T +
+            np.multiply(abs(lat2), (rwgs84_matrix(lat2)+a)))),
             (abs(lat1)).T+(abs(lat2)))))  # different hemisphere
 
     diff_lat = lat2-lat1.T
@@ -304,7 +304,7 @@ def kwikdist(lata, lona, latb, lonb):
     return dist
 
 
-def kwikdist_vector(lata, lona, latb, lonb):
+def kwikdist_matrix(lata, lona, latb, lonb):
     """
     Quick and dirty dist [nm]
     In:
@@ -343,7 +343,7 @@ def kwikqdrdist(lata, lona, latb, lonb):
     return qdr, dist
 
 
-def kwikqdrdist_vector(lata, lona, latb, lonb):
+def kwikqdrdist_matrix(lata, lona, latb, lonb):
     """Gives quick and dirty qdr[deg] and dist [nm] matrices
        from lat/lon vectors. (note: does not work well close to poles)"""
 

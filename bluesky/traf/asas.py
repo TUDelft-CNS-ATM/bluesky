@@ -108,7 +108,7 @@ class Dbconf():
 # Horizontal conflict ---------------------------------------------------------
 
 # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
-        qdlst = geo.qdrdist_vector(np.mat(self.traf.lat),np.mat(self.traf.lon),\
+        qdlst = geo.qdrdist_matrix(np.mat(self.traf.lat),np.mat(self.traf.lon),\
                                   np.mat(self.traf.adsblat),np.mat(self.traf.adsblon))
 
 # Convert results from mat-> array
