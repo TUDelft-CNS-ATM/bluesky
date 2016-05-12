@@ -1225,3 +1225,17 @@ class Traffic:
             return True
 
         return False
+
+    def setLayer(self, arg=None):
+        if arg == "ON":
+            self.swlayer = True
+            self.layerconcept = '90'
+            return True, ("LAYER " + str(self.swlayer) + " " + self.layerconcept )
+        elif arg == "OFF":
+            self.swlayer = False
+            return True, ("LAYER " + str(self.swlayer) )
+        elif arg == "45" or arg == "90" or arg == "180" or arg == "360":
+            self.swlayer = True
+            self.layerconcept = arg
+            return True, ("LAYER " + str(self.swlayer) + " " + self.layerconcept )
+        return False

@@ -5,13 +5,7 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-<<<<<<< HEAD
-from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas,veas2tas
-from aero import ft
-=======
-from aero import vtas2eas
-
->>>>>>> ProfHoekstra/master
+from aero import vtas2eas, ft, veas2tas
 
 def start(dbconf):
     dbconf.CRname="MVP"

@@ -25,15 +25,9 @@ Date        : October 2014
 #    swconfl = 2D array with True/False for conflict
 #    dtconfl = time to conflict
 import numpy as np
-<<<<<<< HEAD
-import sys, os
-from ..tools.aero_np import qdrdist_vector,nm,qdrpos
-from ..tools.aero import ft
-=======
 import sys
-from ..tools.aero import nm
+from ..tools.aero import nm, ft
 from ..tools.geo import qdrdist_vector, qdrpos
->>>>>>> ProfHoekstra/master
 
 # Find a way to import the required Conflict Resolution Class
 sys.path.append('bluesky/traf/CDRmethods/')
@@ -42,41 +36,12 @@ sys.path.append('bluesky/traf/CDRmethods/')
 class Dbconf():
 
     # Constructor of conflict database, call with SI units (meters and seconds)
-<<<<<<< HEAD
-
-    def __init__(self,traf,tlook, R, dh):
-        self.swasas      = True   # [-] whether to perform CD&R
-        self.swpasas     = False  # [-] whether to wait with VNAV or not
-        self.dtlookahead = tlook  # [s] lookahead time
-        self.dtlookahead_conflictprobe = 60. # [s] Look-ahead time for the conflict probe function
-        
-        mar              = 1.15   # [-] Safety margin for evasion
-        self.R           = R      # [m] Horizontal separation minimum
-        self.dh          = dh     # [m] Vertical separation minimum
-        self.Rm          = R*mar  # [m] Horizontal separation minimum + margin
-        self.dhm         = dh*mar # [m] Vertical separation minimum + margin
-        
-        self.traf        = traf   # Traffic database object
-        
-        self.deletenames =[]      # List of aircraft outside test region
-        
-        self.vmin        =100.     # [m/s] Minimum ASAS velocity
-        self.vmax        =500.     # [m/s] Maximum ASAS velocity
-        self.vsmax       = 3000./60.*ft# [m/s] Max vertical speed
-        self.vsmin       = -3000./60.*ft # [m/s] Min vertical speed
-        
-        self.swresodir   = 'COMB'  # desired directions of resolution methods: 
-                                   # combined (COMB), horizontal only (HORIZ), vertical only (VERT)
-        
-        self.swprio      = False   # If true, then cruising aircraft have priority and will not resolve
-        self.swdelay     = False   # If true, conflicts with a tcpa less than 180 seconds are not detected
-
-        self.reset()              # Reset database
-=======
     def __init__(self, traf, tlook, R, dh):
         self.swasas      = True      # [-] whether to perform CD&R
+        self.swpasas     = False  # [-] whether to wait with VNAV or not
         self.dtlookahead = tlook     # [s] lookahead time
-
+        self.dtlookahead_conflictprobe = 60. # [s] Look-ahead time for the conflict probe function
+        
         mar              = 1.05      # [-] Safety margin for evasion
         self.R           = R         # [m] Horizontal separation minimum
         self.dh          = dh        # [m] Vertical separation minimum
@@ -89,9 +54,14 @@ class Dbconf():
 
         self.vmin        = 100.0     # [m/s] Minimum ASAS velocity
         self.vmax        = 180.0     # [m/s] Maximum ASAS velocity
+        self.vsmax       = 3000./60.*ft# [m/s] Max vertical speed
+        self.vsmin       = -3000./60.*ft # [m/s] Min vertical speed
 
+        self.swresodir   = 'COMB'    # desired directions of resolution methods:
+                                     # combined (COMB), horizontal only (HORIZ), vertical only (VERT)
+
+        self.swprio      = False     # If true, then cruising aircraft have priority and will not resolve
         self.reset()                 # Reset database
->>>>>>> ProfHoekstra/master
         self.SetCRmethod("DoNothing")
         return
 
@@ -111,35 +81,6 @@ class Dbconf():
     # Reset conflict database
 
     def reset(self):
-<<<<<<< HEAD
-        self.conf        = []     # Start with emtpy database: no conflicts
-        self.nconf       = 0      # Number of detected conflicts
-        self.swconfl     = np.array([])
-        self.latowncpa = np.array([])
-        self.lonowncpa = np.array([])
-        self.altowncpa = np.array([])
-        self.latintcpa = np.array([])
-        self.lonintcpa = np.array([])
-        self.altintcpa = np.array([])
-
-        self.idown     = []
-        self.idoth     = []
-
-        self.conflist_all= [] #Create a list of all Conflicts       
-        self.LOSlist_all = [] #Create a list of all Losses Of Separation
-        self.conflist_exp= [] #Create a list of all Conflicts in experiment time
-        self.LOSlist_logged = [] #Create a list of all Losses Of Separation that are logged
-        self.conflist_now= [] #Create a list of current Conflicts       
-        self.LOSlist_now = [] #Create a list of current Losses Of Separation
-        self.conflist_cflprobe = [] # Create a list of all conflicts detected using conflict_probe
-        
-        # For keeping track of locations with most severe intrusions
-        self.LOSmaxsev=[] 
-        self.LOShmaxsev=[]
-        self.LOSvmaxsev=[]
-        
-        return
-=======
         self.conf         = []     # Start with emtpy database: no conflicts
         self.nconf        = 0      # Number of detected conflicts
         self.swconfl      = np.array([])
@@ -156,10 +97,9 @@ class Dbconf():
         self.conflist_all = []  # List of all Conflicts
         self.LOSlist_all  = []  # List of all Losses Of Separation
         self.conflist_exp = []  # List of all Conflicts in experiment time
-        self.LOSlist_exp  = []  # List of all Losses Of Separation in experiment time
+        self.LOSlist_logged  = []  # List of all Losses Of Separation in experiment time
         self.conflist_now = []  # List of current Conflicts
         self.LOSlist_now  = []  # List of current Losses Of Separation
->>>>>>> ProfHoekstra/master
 
         # For keeping track of locations with most severe intrusions
         self.LOSmaxsev    = []

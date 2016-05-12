@@ -1,11 +1,6 @@
 from numpy import *
-<<<<<<< HEAD
-from math import *
-from ..tools.aero import ft, kts, g0, qdrdist, nm, cas2tas, mach2tas, tas2cas
-=======
 from ..tools.aero import ft, kts, g0, nm, cas2tas
 from ..tools.geo import qdrdist
->>>>>>> ProfHoekstra/master
 from ..tools.misc import degto180
 
 
@@ -648,41 +643,45 @@ class Route():
         """ After performing an ASAS maneuver, recover your trajecotry. This function is called if conflict is past CPA"""
         
         # Check for easy answers first
-        if self.nwp<=0:
+        if traf.swlnav[i] == False:
+            return self.iactwp
+        
+        elif traf.swvnav[i] == False:
+            return self.iactwp
+        
+        elif self.nwp<=0:
+            if traf.swlayer == True and traf.layerconcept != '':
+                traf.aalt[i] = self.CheckLayer(traf.aalt[i], traf.ahdg[i], traf.layerconcept)
             return -1
         
-        elif self.nwp == 1:
-            return 0
-        
-        elif self.traf.swlnav[i] == False:
+        elif self.nwp == 1 and self.wptype[0] == 2:
+            if traf.swlayer == True and traf.layerconcept != '':
+                traf.aalt[i] = self.CheckLayer(traf.aalt[i], traf.ahdg[i], traf.layerconcept)
             return self.iactwp
         
         # If swlayer is True, check for an off-set between your current altitude and the layer altitude corresponding to your current heading-to-destination
-        if self.traf.swlayer == True and self.traf.layerconcept != '':
-            dirtodest , disttodest = qdrdist(self.traf.lat[i], self.traf.lon[i], self.wplat[-1], self.wplon[-1])
+        if traf.swlayer == True and traf.layerconcept != '':
+            dirtodest , disttodest = qdrdist(traf.lat[i], traf.lon[i], self.wplat[-1], self.wplon[-1])
             # If you deviated less than 5 degrees from your original heading, don't change uor altitude
             if abs(dirtodest - self.wpdirfrom[self.iactwp]) < 5. or abs(dirtodest - self.wpdirfrom[self.iactwp]) > 355.:
                 return self.iactwp
             # Using CheckLayer(), check which altitude corresponds to the layer concept in combination with your heading-to-destination
-            layalt = self.CheckLayer(i, dirtodest)
+            layalt = self.CheckLayer(traf.aalt[i], dirtodest, traf.layerconcept)
             # If you are in the wrong layer, create one waypoint to set the new altitude
-            if abs(self.traf.aalt[i] - layalt) > 100*ft:
-                self.traf.log.write(6,0000,'%s,%s,%s,%s,%s,%s%s' % \
-                                        (traf.id[i],traf.orig[i],traf.dest[i], \
-                                         traf.lat[i],traf.lon[i],traf.alt[i],layalt))
-                lat = self.traf.lat[i] + (10*cos(dirtodest/180*pi))/60.
-                lon = self.traf.lon[i] + (10*sin(dirtodest/180*pi))/60.
+            if abs(traf.aalt[i] - layalt) > 100*ft:
+                lat = traf.lat[i] + (10*cos(dirtodest/180*pi))/60.
+                lon = traf.lon[i] + (10*sin(dirtodest/180*pi))/60.
                 spd = tas2cas(500.,layalt)
-                self.addwpt(self.traf,i,self.traf.id[i],self.wplatlon,lat,lon,layalt,spd,"")
+                self.addwpt(traf,i,traf.id[i],self.wplatlon,lat,lon,layalt,spd,"")
                 self.iactwp = self.nwp - 2
         else:
-            if self.traf.asasalt[i] != self.traf.aalt[i]:
-                self.traf.aalt[i] = self.traf.alt[i]
+            if traf.asasalt[i] != traf.aalt[i]:
+                traf.aalt[i] = traf.alt[i]
         
             
         return self.iactwp
                                                  
-    def CheckLayer(self, i, qdr):
+    def CheckLayer(self, aalt, qdr, concept):
         """ Find best default active waypoint. This is function is called in Trajectory_recovery()"""
         
         # Define layer altitudes (in ft)
@@ -690,49 +689,49 @@ class Route():
         # Check which layer concept is active: 360/180/80/45
         # And when multiple sets of layers are present, look within the same set for the correct layer
         # Return the layer altitude that corresponds to the direction to the destination and the layer set
-        if self.traf.layerconcept == '360':
-            return self.traf.aalt[i]
-        elif self.traf.layerconcept == '180':
+        if concept == '360':
+            return aalt
+        elif concept == '180':
             if qdr <  0.:
-                if self.traf.aalt[i] < 6600*ft:
+                if aalt < 6600*ft:
                     return layers[0]
-                elif self.traf.aalt[i] < 8800*ft:
+                elif aalt < 8800*ft:
                     return layers[2]
-                elif self.traf.aalt[i] < 11000*ft:
+                elif aalt < 11000*ft:
                     return layers[4]
                 else:
                     return layers[6]
             elif qdr >= 0.:
-                if self.traf.aalt[i] < 6600*ft:
+                if aalt < 6600*ft:
                     return layers[1]
-                elif self.traf.aalt[i] < 8800*ft:
+                elif aalt < 8800*ft:
                     return layers[3]
-                elif self.traf.aalt[i] < 11000*ft:
+                elif aalt < 11000*ft:
                     return layers[5]
                 else:
                     return layers[7]
-        elif self.traf.layerconcept == '90':
+        elif concept == '90':
             if qdr  < -90.:
-                if self.traf.aalt[i] < 8800*ft:
+                if aalt < 8800*ft:
                     return layers[0]
                 else:
                     return layers[4]
             elif qdr >= -90. and qdr < 0.:
-                if self.traf.aalt[i] < 8800*ft:
+                if aalt < 8800*ft:
                     return layers[1]
                 else:
                     return layers[5]
             elif qdr >= 0. and qdr < 90.:
-                if self.traf.aalt[i] < 8800*ft:
+                if aalt < 8800*ft:
                     return layers[2]
                 else:
                     return layers[6]
             elif qdr >= 90.:
-                if self.traf.aalt[i] < 8800*ft:
+                if aalt < 8800*ft:
                     return layers[3]
                 else:
                     return layers[7]
-        elif self.traf.layerconcept == '45':
+        elif concept == '45':
             if qdr >= -180 and qdr < -135.:
                 return layers[0]
             elif qdr >= -135 and qdr < -90:
