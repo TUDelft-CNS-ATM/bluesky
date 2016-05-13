@@ -4,7 +4,10 @@ from random import random, randint
 from ..tools.aero import fpm, kts, ft, nm, g0,  tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
                          vcas2tas, vtas2cas,  vtas2mach, vcas2mach, vmach2tas
-from ..tools.geo import qdrdist, kwikdist
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 from ..tools.misc import degto180
 
 from route import Route
@@ -605,7 +608,7 @@ class Traffic:
             self.t0fms = simt
             
             # FMS LNAV mode:
-            qdr, dist = qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm])
+            qdr, dist = geo.qdrdist(self.lat, self.lon, self.actwplat, self.actwplon) #[deg][nm])
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distance
             iwpclose = np.where(self.swlnav*(dist < self.actwpturn))[0]
@@ -899,7 +902,7 @@ class Traffic:
                 elif self.area == "Circle":
 
                     # delete aircraft if it is too far from the center of the circular area, or if has decended below the minimum altitude
-                    distance = kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i])  # [NM]
+                    distance = geo.kwikdist(self.arealat0, self.arealon0, self.lat[i], self.lon[i])  # [NM]
                     inside = distance < self.arearadius and self.alt[i] >= self.areafloor
 
                 # Compare with previous: when leaving area: delete command

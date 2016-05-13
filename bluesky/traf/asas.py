@@ -27,7 +27,10 @@ Date        : October 2014
 import numpy as np
 import sys
 from ..tools.aero import nm
-from ..tools.geo import qdrdist_vector, qdrpos
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 
 # Find a way to import the required Conflict Resolution Class
 sys.path.append('bluesky/traf/CDRmethods/')
@@ -105,7 +108,7 @@ class Dbconf():
 # Horizontal conflict ---------------------------------------------------------
 
 # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
-        qdlst = qdrdist_vector(np.mat(self.traf.lat),np.mat(self.traf.lon),\
+        qdlst = geo.qdrdist_matrix(np.mat(self.traf.lat),np.mat(self.traf.lon),\
                                   np.mat(self.traf.adsblat),np.mat(self.traf.adsblon))
 
 # Convert results from mat-> array
@@ -245,12 +248,12 @@ class Dbconf():
             
             self.traf.iconf[i] = idx
             rng = self.tcpa[i,j]*self.traf.gs[i]/nm
-            lato,lono = qdrpos(self.traf.lat[i],self.traf.lon[i], \
+            lato,lono = geo.qdrpos(self.traf.lat[i],self.traf.lon[i], \
                                                         self.traf.trk[i],rng)
             alto = self.traf.alt[i]+self.tcpa[i,j]*self.traf.vs[i]
                                             
             rng = self.tcpa[i,j]*self.traf.adsbgs[j]/nm
-            lati,loni = qdrpos(self.traf.adsblat[j],self.traf.adsblon[j], \
+            lati,loni = geo.qdrpos(self.traf.adsblat[j],self.traf.adsblon[j], \
                                                        self.traf.adsbtrk[j],rng)
             alti=self.traf.adsbalt[j]+self.tcpa[i,j]*self.traf.adsbvs[j]
             

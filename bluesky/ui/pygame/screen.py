@@ -7,7 +7,10 @@ import datetime, os
 import numpy as np
 
 from ...tools.aero import ft, kts, nm
-from ...tools.geo import latlondist, qdrdist, qdrpos
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 from ...tools.misc import tim2txt
 import splash
 from fastfont import Fastfont
@@ -532,7 +535,7 @@ class Screen:
 
                 #FIR CIRCLE
                 if traf.area == "Circle":
-                    lat2_circle, lon2_circle = qdrpos(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1],
+                    lat2_circle, lon2_circle = geo.qdrpos(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1],
                                                       180, sim.metric.fir_circle_radius)
 
                     x_circle, y_circle = self.ll2xy(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1])
@@ -838,7 +841,7 @@ class Screen:
             y = self.height * (self.lat1 - lat) / (self.lat1 - self.lat0)
         else:
             # NAVDISP mode:
-            qdr, dist = qdrdist(self.ndlat, self.ndlon, lat, lon)
+            qdr, dist = geo.qdrdist(self.ndlat, self.ndlon, lat, lon)
             alpha = np.radians(qdr - self.ndcrs)
             base = 30. * (self.lat1 - self.lat0)
             x = dist * np.sin(alpha) / base * self.height + self.width / 2
@@ -881,7 +884,7 @@ class Screen:
         # Else NAVDISP mode
         else:
             base = 30. * (self.lat1 - self.lat0)
-            dist = latlondist(self.ndlat, self.ndlon, lat, lon) / nm
+            dist = geo.latlondist(self.ndlat, self.ndlon, lat, lon) / nm
             sw = dist < base
 
         return sw

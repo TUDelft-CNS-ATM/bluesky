@@ -3,7 +3,10 @@ sys.path.append('bluesky/tools/')
 import random
 import numpy as np
 from aero import ft, eas2tas
-from geo import qdrpos
+try:
+    import cgeo as geo
+except ImportError:
+    import geo
 from misc import txt2alt, txt2spd
 '''
     Original version by Jerom Maas, fall 2014
@@ -337,7 +340,7 @@ class angledtraffic():
         if numargs>2:   #process optional arguments
             for i in range(2 ,numargs): # loop over arguments (TODO: put arguments in np array)
                 if cmdargs[i].upper().startswith("-R"): #radius
-                    startdistance = qdrpos(0,0,90,float(cmdargs[i][3:]))[2] #input in nm
+                    startdistance = geo.qdrpos(0,0,90,float(cmdargs[i][3:]))[2] #input in nm
                 elif cmdargs[i].upper().startswith("-A"): #altitude
                     acalt = txt2alt(cmdargs[i][3:])*ft
                 elif cmdargs[i].upper().startswith("-S"): #speed

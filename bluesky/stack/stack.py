@@ -5,7 +5,10 @@ import os
 import sys
 
 from ..tools.aero import kts, ft, fpm, tas2cas, density
-from ..tools.geo import qdrdist
+try:
+    from ..tools import cgeo as geo
+except ImportError:
+    from ..tools import geo
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 
@@ -25,7 +28,6 @@ class Commandstack:
                                   processed from scenario file
 
         process(sim, traf, scr) : central command processing method
-                                  (with long elif tree with all commands)
 
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
@@ -69,6 +71,11 @@ class Commandstack:
                 "BATCH filename",
                 "txt",
                 sim.batch],
+            "BENCHMARK": [
+                "BENCHMARK [scenfile,time]",
+                "[txt,time]",
+                sim.benchmark
+            ],
             "BOX": [
                 "BOX name,lat,lon,lat,lon",
                 "txt,latlon,latlon",
@@ -88,11 +95,6 @@ class Commandstack:
                 "CRE acid,type,lat,lon,hdg,alt,spd",
                 "txt,txt,pos,hdg,alt,spd",
                 traf.create
-            ],
-            "DATAFEED":  [
-                "DATAFEED [ON/OFF]",
-                "[onoff]",
-                sim.datafeed
             ],
             "DEL": [
                 "DEL acid/shape",
@@ -118,7 +120,7 @@ class Commandstack:
             "DIST": [
                 "DIST lat0, lon0, lat1, lon1",
                 "latlon,latlon",
-                lambda *args: scr.echo("QDR = %.2f deg, DIST = %.3f nmi" % qdrdist(*args))
+                lambda *args: scr.echo("Dist = %.3f nm, QDR = %.2f deg" % geo.qdrdist(*args))
             ],
             "DT": [
                 "DT dt",
@@ -173,7 +175,7 @@ class Commandstack:
             "IC": [
                 "IC [IC/filename]",
                 "[txt]",
-                lambda *args: self.ic(scr, *args)
+                lambda *args: self.ic(scr, sim, *args)
             ],
             "INSEDIT": [
                 "INSEDIT txt",
@@ -380,8 +382,7 @@ class Commandstack:
 
         self.extracmdmodules = {
             "SYN_": 'synthetic',
-            "ASA_": 'asascmd',
-           # "LOG_":'log' # Old logging module
+            "ASA_": 'asascmd'
         }
 
         # Import modules from the list
@@ -392,7 +393,9 @@ class Commandstack:
             self.extracmdrefs[key]=obj
         # ------------------ [end] Deprecated -------------------
 
-        return
+    def append_commands(self, cmddict):
+        """ Append additional functions to the stack command dictionary """
+        self.cmddict.update(cmddict)
 
     def help(self, cmd=''):
         if len(cmd) == 0:
@@ -479,13 +482,14 @@ class Commandstack:
 
         return True
 
-    def ic(self, scr, filename=''):
+    def ic(self, scr, sim, filename=''):
         if filename == '':
             filename = scr.show_file_dialog()
         elif filename == "IC":
             filename = self.scenfile
 
         if len(filename) > 0:
+            sim.reset()
             result = self.openfile(filename)
             if type(result) is bool:
                 self.scenfile = filename

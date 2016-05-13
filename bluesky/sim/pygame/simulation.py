@@ -10,7 +10,7 @@ from ...tools.datafeed import Modesbeast
 
 
 class Simulation:
-    """ 
+    """
     Simulation class definition : simulation control (time, mode etc.) class
 
     Methods:
@@ -53,10 +53,9 @@ class Simulation:
         self.traf  = Traffic(navdb)
         self.navdb = navdb
         self.metric = Metric()
-
-        # Stack ties it together
         self.stack = Commandstack(self, self.traf, gui.scr)
 
+        # Additional modules
         self.beastfeed   = Modesbeast(self.stack, self.traf)
         self.telnet_in   = StackTelnetServer(self.stack)
 
@@ -80,7 +79,7 @@ class Simulation:
 
                 # Protect against incidental dt's larger than 1 second,
                 # due to window moving, switch to/from full screen, etc.
-                if self.dt>1.0:
+                if self.dt > 1.0:
                     extra = self.dt-1.0
                     self.simt = self.simt - extra
                     self.syst0 = self.syst-self.simt
@@ -90,13 +89,13 @@ class Simulation:
                 self.dt = self.fixdt
                 self.simt = self.simt+self.fixdt
                 self.syst0 = self.syst - self.simt
-                if self.ffstop > 0. and self.simt>=self.ffstop:
+                if self.ffstop > 0. and self.simt >= self.ffstop:
                     self.ffmode = False
                     self.mode = self.hold
 
             # For measuring game loop frequency
             self.dts.append(self.dt)
-            if len(self.dts)>20:
+            if len(self.dts) > 20:
                     del self.dts[0]
 
             self.stack.checkfile(self.simt)
@@ -112,7 +111,7 @@ class Simulation:
 
             # Update metrics
             self.metric.update(self)
-            
+
             # Update log
             if self.datalog is not None:
                 self.datalog.update(self)
@@ -127,6 +126,9 @@ class Simulation:
     def scenarioInit(self, name):
         self.reset()
         return
+
+    def benchmark(self, fname='IC', tend=60.0):
+        return False, "Benchmark command not available in Pygame version."
 
     def batch(self, filename):
         return False, "Batch comand not available in Pygame version," + \
@@ -177,10 +179,3 @@ class Simulation:
         self.simt = 0.0
         self.mode = self.init
         self.traf.reset(self.navdb)
-
-    def datafeed(self, flag):
-        if flag:
-            self.beastfeed.connectToHost(settings.modeS_host,
-                                         settings.modeS_port)
-        else:
-            self.beastfeed.disconnectFromHost()
