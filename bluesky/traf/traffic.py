@@ -1136,7 +1136,7 @@ class Traffic:
         idx      = self.id.index(acid)
         actype   = self.type[idx]
         lat, lon = self.lat[idx], self.lon[idx]
-        alt, hdg = self.alt[idx], self.trk[idx]
+        alt, hdg = self.alt[idx]/ft, self.trk[idx]
         cas      = tas2cas(self.tas[idx], self.alt[idx]) / kts
         tas      = self.tas[idx] / kts
         route    = self.route[idx]

@@ -31,10 +31,13 @@ class Simulation(QObject):
         self.running     = True
         self.state       = Simulation.init
         self.prevstate   = None
-        self.samplecount = 0
 
         # Set starting system time [milliseconds]
         self.syst        = 0.0
+
+        # Benchmark time and timespan [seconds]
+        self.bencht      = 0.0
+        self.benchdt     = -1.0
 
         # Starting simulation time [seconds]
         self.simt        = 0.0
@@ -69,12 +72,12 @@ class Simulation(QObject):
         self.beastfeed   = Modesbeast(self.stack, self.traf)
 
     def doWork(self):
-        self.syst = int(time.time() * 1000.0)
+        self.syst  = int(time.time() * 1000.0)
         self.fixdt = self.simdt
 
         while self.running:
-            # Timing bookkeeping
-            self.samplecount += 1
+            # Update screen logic
+            self.screenio.update()
 
             # Update the Mode-S beast parsing
             self.beastfeed.update()
@@ -83,6 +86,9 @@ class Simulation(QObject):
             if self.state == Simulation.init:
                 if self.traf.ntraf > 0 or len(self.stack.scencmd) > 0:
                     self.start()
+                    if self.benchdt > 0.0:
+                        self.fastforward(self.benchdt)
+                        self.bencht = time.time()
 
             if self.state == Simulation.op:
                 self.stack.checkfile(self.simt)
@@ -97,8 +103,7 @@ class Simulation(QObject):
                 self.metric.update(self)
 
                 # Update log
-                if self.datalog is not None:
-                    self.datalog.update(self)
+                self.datalog.update(self)
 
                 # Update time for the next timestep
                 self.simt += self.simdt
@@ -114,7 +119,12 @@ class Simulation(QObject):
                 if remainder > 0:
                     QThread.msleep(remainder)
             elif self.ffstop is not None and self.simt >= self.ffstop:
-                self.start()
+                if self.benchdt > 0.0:
+                    self.screenio.echo('Benchmark complete: %d samples in %.3f seconds.' % (self.screenio.samplecount, time.time() - self.bencht))
+                    self.benchdt = -1.0
+                    self.pause()
+                else:
+                    self.start()
 
             # Inform main of our state change
             if not self.state == self.prevstate:
@@ -128,7 +138,7 @@ class Simulation(QObject):
     def start(self):
         if self.ffmode:
             self.syst = int(time.time() * 1000.0)
-        self.ffmode = False
+        self.ffmode  = False
         self.state   = Simulation.op
 
     def pause(self):
@@ -141,6 +151,7 @@ class Simulation(QObject):
         self.scenname = 'Untitled'
         self.traf.reset(self.navdb)
         self.stack.reset()
+        self.screenio.reset()
 
     def quit(self):
         self.running = False
@@ -165,6 +176,11 @@ class Simulation(QObject):
             self.ffstop = self.simt + nsec
         else:
             self.ffstop = None
+
+    def benchmark(self, fname='IC', dt=300.0):
+        self.stack.ic(self.screenio, self, fname)
+        self.bencht  = 0.0  # Start time will be set at next sim cycle
+        self.benchdt = dt
 
     def scenarioInit(self, name):
         self.screenio.echo('Starting scenario ' + name)

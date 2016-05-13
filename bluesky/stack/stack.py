@@ -70,6 +70,11 @@ class Commandstack:
                 "BATCH filename",
                 "txt",
                 sim.batch],
+            "BENCHMARK": [
+                "BENCHMARK [scenfile,time]",
+                "[txt,time]",
+                sim.benchmark
+            ],
             "BOX": [
                 "BOX name,lat,lon,lat,lon",
                 "txt,latlon,latlon",
@@ -114,7 +119,7 @@ class Commandstack:
             "DIST": [
                 "DIST lat0, lon0, lat1, lon1",
                 "latlon,latlon",
-                lambda *args: scr.echo("Dist = %.3f nm, QDR = %.2f deg" % geo.qdrdist(*args))
+                lambda *args: scr.echo("QDR = %.2f deg, Dist = %.3f nm" % geo.qdrdist(*args))
             ],
             "DT": [
                 "DT dt",

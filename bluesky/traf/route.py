@@ -260,7 +260,7 @@ class Route():
                     self.wpspd.append(spd)
                     self.wptype.append(wptype)
                     self.wpflyby.append(self.swflyby)
-                    idx = self.nwp
+                    idx = self.nwp 
 
         # Update pointers and report whether we are ok
 
