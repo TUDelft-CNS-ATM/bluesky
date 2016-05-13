@@ -1,5 +1,5 @@
 from numpy import *
-from ..tools.aero import ft, kts, g0, nm, cas2tas
+from ..tools.aero import ft, kts, g0, nm, cas2tas, tas2cas
 try:
     from ..tools import cgeo as geo
 except ImportError:
@@ -260,7 +260,7 @@ class Route():
                     self.wpspd.append(spd)
                     self.wptype.append(wptype)
                     self.wpflyby.append(self.swflyby)
-                    idx = self.nwp-1
+                    idx = self.nwp
 
         # Update pointers and report whether we are ok
 
@@ -301,7 +301,7 @@ class Route():
                         traf.actwpalt[i] = self.wpalt[wpidx]#self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
                         delalt = traf.alt[i] - traf.actwpalt[i]                        
                         traf.dist2vs[i] = delalt/steepness
-                        dirtowp , disttowp = qdrdist(self.traf.lat[i], self.traf.lon[i], traf.actwplat[i], traf.actwplon[i])
+                        dirtowp , disttowp = geo.qdrdist(self.traf.lat[i], self.traf.lon[i], traf.actwplat[i], traf.actwplon[i])
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
@@ -642,7 +642,7 @@ class Route():
     
     def trajectory_recovery(self,traf,i):
         """ After performing an ASAS maneuver, recover your trajecotry. This function is called if conflict is past CPA"""
-        
+
         # Check for easy answers first
         # If LNAV is not active, no navigation possible (this is automatically the case when nwp = 0)
         if traf.swlnav[i] == False:
@@ -660,8 +660,8 @@ class Route():
         
         # If swlayer is True, check for an off-set between your current altitude and the layer altitude corresponding to your current heading-to-destination
         if traf.swlayer == True and traf.layerconcept != '':
-            dirtodest , disttodest = qdrdist(traf.lat[i], traf.lon[i], self.wplat[-1], self.wplon[-1])
-            # If you deviated less than 5 degrees from your original heading, don't change uor altitude
+            dirtodest , disttodest = geo.qdrdist(traf.lat[i], traf.lon[i], self.wplat[-1], self.wplon[-1])
+            # If you deviated less than 5 degrees from your original heading, don't change our altitude
             if abs(dirtodest - self.wpdirfrom[self.iactwp]) < 5. or abs(dirtodest - self.wpdirfrom[self.iactwp]) > 355.:
                 return self.iactwp
             # Using CheckLayer(), check which altitude corresponds to the layer concept in combination with your heading-to-destination
