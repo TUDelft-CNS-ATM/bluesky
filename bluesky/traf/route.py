@@ -644,17 +644,15 @@ class Route():
         """ After performing an ASAS maneuver, recover your trajecotry. This function is called if conflict is past CPA"""
         
         # Check for easy answers first
+        # If LNAV is not active, no navigation possible (this is automatically the case when nwp = 0)
         if traf.swlnav[i] == False:
             return self.iactwp
         
+        # If VNAV is not active, no vertical navigation needed
         elif traf.swvnav[i] == False:
             return self.iactwp
         
-        elif self.nwp<=0:
-            if traf.swlayer == True and traf.layerconcept != '':
-                traf.aalt[i] = self.CheckLayer(traf.aalt[i], traf.ahdg[i], traf.layerconcept)
-            return -1
-        
+        # When there is only a destination defined, change the autopilot setting directly according to the Layers concept
         elif self.nwp == 1 and self.wptype[0] == 2:
             if traf.swlayer == True and traf.layerconcept != '':
                 traf.aalt[i] = self.CheckLayer(traf.aalt[i], traf.ahdg[i], traf.layerconcept)
