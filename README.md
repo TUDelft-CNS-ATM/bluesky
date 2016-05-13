@@ -6,11 +6,11 @@ The goal of BlueSky is to provide everybody who wants to visualize, analyze or s
 traffic with a tool to do so without any restrictions, licenses or limitations. It can be copied, 
 modified, cited, etc. without any limitations.
 
-Please send suggestions, proposed changes or contributions through GitHub, preferably after 
+Please send suggestions, proposed changes or contributions through GitHub, preferrably after 
 debugging it and optimising it for run-time performance.
 
 ## BlueSky Wiki
-Installation and user guides are accessible at:
+Installation and user guides are accessiable at:  
 https://github.com/ProfHoekstra/bluesky/wiki
 
 ##Some features of BlueSky:
@@ -19,7 +19,7 @@ Python 2.x (using numpy and either pygame or Qt+OpenGL for visualisation) with s
 - Contains open source data on navaids, performance data of aircraft and geography
 - Global coverage navaid and airport data
 - Contains simulations of aircraft performance, flight management system (LNAV, VNAV under construction), 
-autopilot, conflict detection and resolution and airborne separation assurance systems
+autopilot, conflict detection and resolutions and airborne separation assurance systems
 - Compatible with BADA 3.x data
 - Compatible wth NLR Traffic Manager TMX as used by NLR and NASA LaRC
 - Traffic is controlled via user inputs in a console window or by playing scenario files (.SCN) 

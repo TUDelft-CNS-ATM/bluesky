@@ -5,10 +5,12 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from aero import vtas2eas, ft, veas2tas
+from math import *
+from aero_np import qdrdist_vector,nm,qdrpos,vtas2eas,veas2tas
+from aero import ft, qdrdist
 
 def start(dbconf):
-    dbconf.CRname="MVP"
+    dbconf.CRname="MVP_LAY"
 
 def resolve(dbconf):
     if not dbconf.swasas:
@@ -26,22 +28,37 @@ def resolve(dbconf):
             id1,id2 = dbconf.ConflictToIndices(conflict)
 
             if id1 != "Fail" and id2!= "Fail":
+
                 dv_eby = MVP(dbconf,id1,id2)
-                # if swprio is on, the following priority rules are used:
+                # If the priority switch is ON (always ON for layers), it has a different meaning for Layers than for Full Mix
+                # For layers -> Climbing and descending have highest priority
                 if dbconf.swprio:
-                    # If aircraft 1 is cruising, and aircraft 2 is climbing/descending -> aircraft 2 solves conflict
-                    if abs(dbconf.traf.vs[id1])<0.1 and abs(dbconf.traf.vs[id2]) > 0.1:
-                        dv[id2] = dv[id2] + dv_eby
-                    # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft 1 solves conflict
-                    elif abs(dbconf.traf.vs[id2])<0.1 and abs(dbconf.traf.vs[id1]) > 0.1:
+                    # If aircraft 1 is cruising, and aircraft 2 is climbing -> aircraft one solves conflict horizontally
+                    if abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2] > 0.1:#dbconf.traf.alt[id2] < dbconf.traf.aalt[id2]:
                         dv[id1] = dv[id1] - dv_eby
-                    else: # both are climbing/descending/cruising, then use combined
+                        dv[id1][2] = 0.0
+                    # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft two solves conflict horizontally
+                    elif abs(dbconf.traf.vs[id2])<0.1 and dbconf.traf.vs[id1] > 0.1:#dbconf.traf.alt[id1] < dbconf.traf.aalt[id1]:
+                        dv[id2] = dv[id2] + dv_eby
+                        dv[id2][2] = 0.0
+                    # If aircraft 1 is cruising, and aircraft 2 is descending -> aircraft 1 solves conflict horizontally
+                    elif abs(dbconf.traf.vs[id1])<0.1 and dbconf.traf.vs[id2] < -0.1:#dbconf.traf.alt[id2] > dbconf.traf.aalt[id2]:
+                        dv[id1] = dv[id1] - dv_eby
+                        dv[id1][2] = 0.0
+                    # If aircraft 2 is cruising, and aircraft 1 is descending -> aircraft2 solves conflict horizontally
+                    elif abs(dbconf.traf.vs[id2])<0.1 and  dbconf.traf.vs[id2] < -0.1: #dbconf.traf.alt[id1] > dbconf.traf.aalt[id1]:
+                        dv[id2] = dv[id2] + dv_eby
+                        dv[id2][2] = 0.0
+                    # cruising - cruising, C/D - C/D -> solved horizontally
+                    else:
                         dv[id1] = dv[id1] - dv_eby
                         dv[id2] = dv[id2] + dv_eby
+                        dv[id1][2] = 0.0
+                        dv[id2][2] = 0.0
                 else:
                     dv[id1] = dv[id1] - dv_eby
                     dv[id2] = dv[id2] + dv_eby
-                                        
+
     else:
 
         for i in range(dbconf.nconf):
@@ -98,10 +115,10 @@ def resolve(dbconf):
     asasalttemp = dbconf.traf.asasvsp * dbconf.tinconf.min(axis=1) \
                           + dbconf.traf.alt
     # Condition2 ensures that aircraft do not overshoot their layer altitude
+    # This is not being used for Full Mix MVP
     condition2 = dbconf.traf.alt != dbconf.traf.aalt
     dbconf.traf.asasalt[condition] = asasalttemp[condition]
     dbconf.traf.asasalt[condition2] = dbconf.traf.aalt[condition2]
-
 
 #=================================== Modified Voltage Potential ===============
         
@@ -110,10 +127,12 @@ def resolve(dbconf):
 def MVP(dbconf, id1, id2):
     """Modified Voltage Potential resolution method:
       calculate change in speed"""
+    
+
     traf=dbconf.traf
     dist=dbconf.dist[id1,id2]
     qdr=dbconf.qdr[id1,id2]
-    
+
     # from degrees to radians
     qdr=np.radians(qdr)
    
@@ -130,6 +149,7 @@ def MVP(dbconf, id1, id2):
     v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
     v2=np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
     v=np.array(v2-v1) 
+    
     # Find tcpa
     tcpa=dbconf.tcpa[id1,id2]
     
@@ -141,10 +161,6 @@ def MVP(dbconf, id1, id2):
 	# compute horizontal and vertical intrusions
     iH = dbconf.Rm-dabsH
     iV = dbconf.dhm-dabsV
-    
-    # If intrusion, full intrusion to force movement
-    if d[0] < dbconf.Rm or d[1] < dbconf.Rm :
-        iH = dbconf.Rm
     
     # exception handlers for head-on conflicts
     # this is done to prevent division by zero in the next step
@@ -158,18 +174,9 @@ def MVP(dbconf, id1, id2):
             dcpa[2] = 10.
 
     # compute the horizontal vertical components of the change in the velocity to resolve conflict
-    dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)  # abs(tcpa) since tinconf can be positive, while tcpa can be be negative. A negative tcpa would direct dv in the wrong direction.
+    dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)
     dv2 = (iH*dcpa[1])/(abs(tcpa)*dabsH)
     dv3 = (iV*dcpa[2])/(abs(tcpa)*dabsV)
-
-    # It is necessary to cap dv3 to allow implict coordination of aircraft
-    # otherwise vertical conflict is solved in 1 timestep, leading to a vertical 
-    # separation that is too high. If vertical dynamics are included to aircraft 
-    # model in traffic.py, the below lines should be deleted
-    if dbconf.swresodir != "VERT":
-        mindv3 = -200./60.*ft # ~ 1.016 [m/s]
-        maxdv3 = 200./60.*ft
-        dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
 
     # combine the dv components 
     dv = np.array([dv1,dv2,dv3])    
@@ -186,6 +193,6 @@ def MVP(dbconf, id1, id2):
     # Intruder inside ownship IPZ
     else: 
         dv_plus=dv
-        
+    
     return dv_plus
 	

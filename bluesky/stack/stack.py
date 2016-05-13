@@ -12,7 +12,6 @@ except ImportError:
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 
-
 class Commandstack:
     """
     Commandstack class definition : command stack & processing class
@@ -322,7 +321,13 @@ class Commandstack:
             "VS": [
                 "VS acid,vspd (ft/min)",
                 "acid,vspd",
-                traf.selvspd],
+                traf.selvspd
+            ],
+            "LAYER": [
+                "LAYER ON/OFF/360/180/90/45",
+                "txt",
+                traf.setLayer
+            ],
             "ZOOM": [
                 "ZOOM IN/OUT or factor",
                 "float/txt",

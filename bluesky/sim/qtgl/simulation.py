@@ -66,6 +66,7 @@ class Simulation(QObject):
         self.screenio    = ScreenIO(self, manager)
         self.traf        = Traffic(self.navdb)
         self.stack       = Commandstack(self, self.traf, self.screenio)
+
         # Additional modules
         self.metric      = Metric()
         self.beastfeed   = Modesbeast(self.stack, self.traf)
