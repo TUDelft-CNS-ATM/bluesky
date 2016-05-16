@@ -1214,7 +1214,7 @@ class Traffic:
                 self.areafloor = -9999999.  # [m]
 
             # draw the circular experiment area on the radar gui
-            scr.objappend(3, "AREA", [self.arealat0, self.arealon0, radius])
+            scr.objappend(3, "AREA", [self.arealat0, self.arealon0, self.arearadius])
 
             # Avoid mass delete due to redefinition of area
             self.inside = self.ntraf * [False]
