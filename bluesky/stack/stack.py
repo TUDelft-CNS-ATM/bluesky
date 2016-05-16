@@ -59,7 +59,7 @@ class Commandstack:
             ],
             "AREA": [
                 "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
-                "float,txt,[float,float,float]",
+                "float/txt,float,[float,float,float]",
                 lambda *args: traf.setArea(scr, sim.metric, *args)
             ],
             "ASAS": [
