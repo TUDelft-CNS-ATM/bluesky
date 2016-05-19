@@ -30,7 +30,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         scr.wpsw=0              #don't draw waypoints
         scr.swfir=False         #don't show FIRs
         scr.swgrid=True         #do show a grid
-        scr.pan([0,0],True)     #focus the map at the prime meridian and equator
+        scr.pan(0, 0)           #focus the map at the prime meridian and equator
         scr.redrawradbg=True    #draw the background again
         scr.swsep = True        #show circles of seperation between ac
         scr.swspd = True        #show speed vectors of aircraft
