@@ -59,7 +59,7 @@ class Commandstack:
             ],
             "AREA": [
                 "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
-                "float,txt,[float,float,float]",
+                "float/txt,float,[float,float,float]",
                 lambda *args: traf.setArea(scr, sim.metric, *args)
             ],
             "ASAS": [
@@ -120,7 +120,7 @@ class Commandstack:
             "DIST": [
                 "DIST lat0, lon0, lat1, lon1",
                 "latlon,latlon",
-                lambda *args: scr.echo("Dist = %.3f nm, QDR = %.2f deg" % geo.qdrdist(*args))
+                lambda *args: scr.echo("QDR = %.2f deg, Dist = %.3f nm" % geo.qdrdist(*args))
             ],
             "DT": [
                 "DT dt",

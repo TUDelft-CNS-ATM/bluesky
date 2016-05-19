@@ -2,7 +2,7 @@
 appendAirports.py
 
 This script creates a new airports.dat file that appends all the data from 
-the default airports.dat file and the user defined airports.dat files. 
+the default airports.dat file and the user defined airport files. 
 
 If the variable interactive is True, then the script asks the user which files
 he/she would like to append to the default airports.dat file. If the variable 
@@ -29,15 +29,13 @@ print "Running appendAirports.py"
 #%% Initialize Variables
 interactive = False # True-> use prompts to ask user for the files to append
 
-#%% Find all airports .dat files
+#%% Find all .dat files
 
 # find all the dat files
-datFiles = [g for g in os.listdir(".") if g.count(".dat")>0]  
+datFiles = [g for g in os.listdir(".") if g.count("airport")>0 and g.count(".dat")>0]  
 
 # remove the default BlueSky dat files from the datFiles list
 datFiles.remove('airports.dat')
-datFiles.remove('coastlines.dat')
-datFiles.remove('waypoints.dat')
 
 #%% Get data from user defined airport .dat files
 
@@ -53,7 +51,7 @@ if interactive:
         if len(datFiles)>0:
             print
             print
-            print "Select the desired airport file to append to default airports .dat file:"
+            print "Select the desired airport file to append to default airports.dat file:"
             for i in range(len(datFiles)):
                 print i+1,". ",datFiles[i]
             print "-1 .  Quit"
@@ -93,7 +91,7 @@ else:
         # combine the lines in the current dat file to userAirports list
         userAirports = userAirports + lines               
   
-# remove any empty rows in usedAirports. Uncomment line 15 to make this work. 
+# remove any empty rows in usedAirports.  
 userAirports = filter(lambda x: not re.match(r'^\s*$', x), userAirports)       
     
 #%% Read in the default airports file 
@@ -102,7 +100,7 @@ f = open('airports.dat','r')
 airports = f.readlines()
 f.close()    
 
-# remove any empty rows in usedAirports. Uncomment line 15 to make this work. 
+# remove any empty rows in usedAirports. 
 airports = filter(lambda x: not re.match(r'^\s*$', x), airports)  
 
 #%% Combine all dat files and re-write to airports.dat
