@@ -128,7 +128,7 @@ class Route():
                     self.wpname = [name.upper()] + self.wpname
                     self.wptype = [wptype] + self.wptype
                     self.wplat  = [wplat]  + self.wplat
-                    self.wplon  = [wplon]  + self.wplon
+                    self.wplon  = [wplon]  + self.wplon 
                     self.wpalt  = [alt]  + self.wpalt
                     self.wpspd  = [spd]  + self.wpspd
                     self.wpflyby = [self.swflyby] + self.wpflyby
@@ -172,7 +172,7 @@ class Route():
                 self.wplat.append(wplat)
                 self.wplon.append(wplon)
                 self.wpalt.append(max(0., alt))  # Use h=0 as default value
-                self.wpspd.append(spd)
+                self.wpspd.append(spd)              
                 self.wpflyby.append(self.swflyby)
                 self.nwp = len(self.wpname)
                 idx = self.nwp
@@ -303,8 +303,8 @@ class Route():
                 if spd > 0:
                     if spd < 2.0:
                         traf.aspd[i] = mach2cas(spd, traf.alt[i])
-                    else:
-                        traf.aspd[i] = cas2tas(spd, traf.alt[i])
+                    else: traf.aspd[i] = spd
+                        
 
             qdr, dist = qdrdist(traf.lat[i], traf.lon[i],
                                 traf.actwplat[i], traf.actwplon[i])
