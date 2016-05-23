@@ -146,7 +146,7 @@ class Route():
 
         elif wptype == self.dest:
 
-            if not (name == traf.id[iac]+"DEST"):   # published identifier
+            if not (name == traf.id[iac] + "DEST"):   # published identifier
                 i = self.navdb.getapidx(name.upper().strip())
                 wpok = (i >= 0)
                 if wpok:
@@ -167,7 +167,7 @@ class Route():
                 self.wpspd[-1]  = spd
                 self.wpflyby[-1] = self.swflyby
                 self.nwp = len(self.wpname)
-                idx = self.nwp-1
+                idx = self.nwp - 1
 
             # Or append to route
             elif wpok:
@@ -179,7 +179,7 @@ class Route():
                 self.wpspd.append(spd)
                 self.wpflyby.append(self.swflyby)
                 self.nwp = len(self.wpname)
-                idx = self.nwp
+                idx = self.nwp - 1
 
                 # When only waypoint: adjust pointer to point to destination
                 if self.iactwp < 0 and self.nwp == 1:
@@ -195,7 +195,7 @@ class Route():
                 i     = 0
                 while self.wpname.count(newname) > 0:
                     i = i + 1
-                    newname = newname[:-3]+str(i).zfill(3)
+                    newname = newname[:-3] + str(i).zfill(3)
                 wplat = lat
                 wplon = lon
                 wpok  = True
@@ -213,20 +213,20 @@ class Route():
                     wplon = self.navdb.wplon[i]
 
             # Check if afterwp is specified and found:
-            aftwp = afterwp.upper().strip() # Remove space, upper case
-            if wpok and afterwp != "" and self.wpname.count(aftwp)>0:
-                 wpidx = self.wpname.index(aftwp)+1
-                 self.wpname.insert(wpidx,newname)
-                 self.wplat.insert(wpidx,wplat)
-                 self.wplon.insert(wpidx,wplon)
-                 self.wpalt.insert(wpidx,alt)
-                 self.wpspd.insert(wpidx,spd)
-                 self.wptype.insert(wpidx,wptype)
-                 self.wpflyby.insert(wpidx,self.swflyby)
-                 if self.iactwp>=wpidx:
-                     self.iactwp = self.iactwp + 1
+            aftwp = afterwp.upper().strip()  # Remove space, upper case
+            if wpok and afterwp != "" and self.wpname.count(aftwp) > 0:
+                wpidx = self.wpname.index(aftwp) + 1
+                self.wpname.insert(wpidx, newname)
+                self.wplat.insert(wpidx, wplat)
+                self.wplon.insert(wpidx, wplon)
+                self.wpalt.insert(wpidx, alt)
+                self.wpspd.insert(wpidx, spd)
+                self.wptype.insert(wpidx, wptype)
+                self.wpflyby.insert(wpidx, self.swflyby)
+                if self.iactwp >= wpidx:
+                    self.iactwp = self.iactwp + 1
 
-                 idx = wpidx
+                idx = wpidx
 
             # No afterwp: append, just before dest if there is a dest
             elif wpok:
@@ -244,28 +244,27 @@ class Route():
                     self.wpflyby.append(self.wpflyby[-1])
 
                     self.wpname[-2] = newname
-                    self.wplat[-2]  = (wplat+90.)%180.-90.
-                    self.wplon[-2]  = (wplon+180.)%360.-180.
+                    self.wplat[-2]  = (wplat + 90.) % 180. - 90.
+                    self.wplon[-2]  = (wplon + 180.) % 360. - 180.
                     self.wpalt[-2]  = alt
                     self.wpspd[-2]  = spd
                     self.wptype[-2] = wptype
-                    idx = self.nwp-1
+                    idx = self.nwp - 1
 
                 # Or simply append
                 else:
                     self.wpname.append(newname)
-                    self.wplat.append((wplat+90.)%180.-90.)
-                    self.wplon.append((wplon+180.)%360.-180.)
+                    self.wplat.append((wplat + 90.) % 180. - 90.)
+                    self.wplon.append((wplon + 180.) % 360. - 180.)
                     self.wpalt.append(alt)
                     self.wpspd.append(spd)
                     self.wptype.append(wptype)
                     self.wpflyby.append(self.swflyby)
-                    idx = self.nwp 
+                    idx = self.nwp - 1
 
         # Update pointers and report whether we are ok
 
         if not wpok:
-            print 'here', name
             idx = -1
             if len(self.wplat) == 1:
                 self.iactwp = 0
