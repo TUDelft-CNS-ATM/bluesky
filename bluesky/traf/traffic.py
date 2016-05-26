@@ -690,7 +690,7 @@ class Traffic:
                 else:
                     self.dist2vs[i] = -999.
                
-                # VNAV spd mode: use speed of this waypoint as commaded speed
+                # VNAV spd mode: use speed of this waypoint as commanded speed
                 # while passing waypoint and save next speed for passing next wp
                 if self.swvnav[i] and self.actwpspd[i]>0.0: # check mode and value
 
@@ -732,7 +732,9 @@ class Traffic:
             dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
             steepness = 3000.*ft/(10.*nm)
 
-            # VNAV AP LOGIC
+            # VNAV AP LOGIC: descend as late as possible, climb as soon as possible
+            # First term: descend when distance to next wp is descent distance
+            # Second term: climb when still below altitude of next waypoint
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
                                      (self.actwpalt>self.alt))            
 
