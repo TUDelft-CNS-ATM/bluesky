@@ -8,9 +8,9 @@ import numpy as np
 
 from ...tools.aero import ft, kts, nm
 try:
-    from ..tools import cgeo as geo
+    from ...tools import cgeo as geo
 except ImportError:
-    from ..tools import geo
+    from ...tools import geo
 from ...tools.misc import tim2txt
 import splash
 from fastfont import Fastfont
@@ -1155,6 +1155,5 @@ class Screen:
         return opendialog()
         
     def symbol(self):
-        print "Hello"
         self.swsep = not self.swsep
         return True
