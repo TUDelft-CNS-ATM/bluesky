@@ -631,6 +631,7 @@ class Commandstack:
                     argtypes += argvsopt[1].strip(']').split(',')
 
                 # Process arg list
+                optargs = {}
                 # Special case: single text argument: this can also be a string, so pass the original
                 if argtypes == ['txt']:
                     arglist = [line[len(cmd) + 1:]]
@@ -643,8 +644,13 @@ class Commandstack:
                         argtype    = argtypes[curtype].strip().split('/')
                         for i in range(len(argtype)):
                             try:
-                                parsed_arg, argstep = self.argparse(argtype[i], curarg, args, traf, scr)
-                                arglist += parsed_arg
+                                argtypei = argtype[i]
+                                parsed_arg, opt_arg, argstep = self.argparse(argtypei, curarg, args, traf, scr)
+                                if parsed_arg[0] is None and argtypei in optargs:
+                                    arglist += optargs[argtypei]
+                                else:
+                                    arglist += parsed_arg
+                                optargs.update(opt_arg)
                                 curarg  += argstep
                                 break
                             except:
@@ -680,7 +686,7 @@ class Commandstack:
                             synerr = not results[0]
 
                         if len(results) >= 2:
-                            scr.echo(cmd+":"+results[1])
+                            scr.echo(cmd + ":" + results[1])
                             synerr = False
 
                 else:  # synerr:
@@ -719,10 +725,14 @@ class Commandstack:
         return
 
     def argparse(self, argtype, argidx, args, traf, scr):
-        """ Parse one or more arguments. returns the parse results
-            and the number of arguments parsed. """
+        """ Parse one or more arguments.
+
+            Returns:
+            - A list with the parse results
+            - The number of arguments parsed
+            - A dict with additional optional parsed arguments. """
         if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
-            return [None], 1
+            return [None], {}, 1
 
         if argtype == "acid":  # aircraft id => parse index
             idx = traf.id2idx(args[argidx])
@@ -730,63 +740,65 @@ class Commandstack:
                 scr.echo(cmd + ":" + args[idx] + " not found")
                 raise IndexError
             else:
-                return [idx], 1
+                return [idx], {}, 1
 
         if argtype == "txt":  # simple text
-            return [args[argidx]], 1
+            return [args[argidx]], {}, 1
 
         if argtype == "float":  # float number
-            return [float(args[argidx])], 1
+            return [float(args[argidx])], {}, 1
 
         if argtype == "int":   # integer
-            return [int(args[argidx])], 1
+            return [int(args[argidx])], {}, 1
 
         if argtype == "onoff" or argtype == "bool":
             sw = (args[argidx] == "ON" or
                   args[argidx] == "1" or args[argidx] == "TRUE")
-            return [sw], 1
+            return [sw], {}, 1
 
         if argtype == "pos":
             # Arg is an existing aircraft?
             idx = traf.id2idx(args[argidx])
             if idx >= 0:
-                return [traf.lat[idx], traf.lon[idx]], 1
+                return [traf.lat[idx], traf.lon[idx]], {}, 1
             # Arg is an airport?
             idx = traf.navdb.getapidx(args[argidx])
             if idx >= 0:
                 # Next arg is a runway?
                 if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
                         args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
-                    return traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2], 2
+                    arglist = traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2]
+                    optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][2]]}
+                    return arglist, optargs, 2
 
                 # If no runway return airport center
-                return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], 1
+                return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], {}, 1
             # Arg is a waypoint?
             idx = traf.navdb.getwpidx(args[argidx])
             if idx >= 0:
-                return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], 1
+                return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], {}, 1
             # Arg, next arg are a lat/lon combination
-            return [txt2lat(args[argidx]), txt2lon(args[argidx+1])], 2
+            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], {}, 2
 
         if argtype == "latlon":
-            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2
+            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], {}, 2
 
         if argtype == "spd":  # CAS[kts] Mach
             spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
             if not 0.1 < spd < 1.0:
                 spd *= kts
-            return [spd], 1  # speed CAS[m/s] or Mach (float)
+            return [spd], {}, 1  # speed CAS[m/s] or Mach (float)
 
         if argtype == "vspd":
-            return [fpm * float(args[argidx])], 1
+            return [fpm * float(args[argidx])], {}, 1
 
         if argtype == "alt":  # alt: FL250 or 25000 [ft]
-            return [ft * txt2alt(args[argidx])], 1  # alt in m
+            return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
 
         if argtype == "hdg":
             # TODO: for now no difference between magnetic/true heading
             hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
-            return [hdg], 1
+            return [hdg], {}, 1
 
         if argtype == "time":
             ttxt = args[argidx].strip().split(':')
@@ -794,6 +806,6 @@ class Commandstack:
                 ihr  = int(ttxt[0]) * 3600.0
                 imin = int(ttxt[1]) * 60.0
                 xsec = float(ttxt[2])
-                return [ihr + imin + xsec], 1
+                return [ihr + imin + xsec], {}, 1
             else:
-                return [float(args[argidx])], 1
+                return [float(args[argidx])], {}, 1
