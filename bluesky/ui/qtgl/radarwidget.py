@@ -220,26 +220,25 @@ class RadarWidget(QGLWidget):
         self.runways = RenderObject(gl.GL_TRIANGLES)
         self.runways.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_runways)
         self.runways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.runways.set_vertex_count(len(self.vbuf_runways)/2)
-        
+        self.runways.set_vertex_count(len(self.vbuf_runways) / 2)
+
         #---------Runway Thresholds-----------------------
         self.thresholds = RenderObject(gl.GL_TRIANGLES)
         self.thresholds.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_rwythr)
         self.thresholds.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.thresholds.set_vertex_count(len(self.vbuf_rwythr)/2)
-
+        self.thresholds.set_vertex_count(len(self.vbuf_rwythr) / 2)
 
         # ------- Taxiways -------------------------------
         self.taxiways = RenderObject(gl.GL_TRIANGLES)
         self.taxiways.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_asphalt)
         self.taxiways.bind_attrib(ATTRIB_COLOR, 3, np.array(grey, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.taxiways.set_vertex_count(len(self.vbuf_asphalt)/2)
+        self.taxiways.set_vertex_count(len(self.vbuf_asphalt) / 2)
 
         # ------- Pavement -------------------------------
         self.pavement = RenderObject(gl.GL_TRIANGLES)
         self.pavement.bind_attrib(ATTRIB_VERTEX, 2, self.vbuf_concrete)
         self.pavement.bind_attrib(ATTRIB_COLOR, 3, np.array(lightgrey, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.pavement.set_vertex_count(len(self.vbuf_concrete)/2)
+        self.pavement.set_vertex_count(len(self.vbuf_concrete) / 2)
 
         # Polygon preview object
         self.polyprev = RenderObject(gl.GL_LINE_LOOP)
@@ -267,7 +266,7 @@ class RadarWidget(QGLWidget):
         # ------- Circle ---------------------------------
         # Create a new VAO (Vertex Array Object) and bind it
         self.protectedzone = RenderObject(gl.GL_LINE_LOOP, vertex_count=self.vcount_circle)
-        circlevertices = np.transpose(np.array((5.0*nm*np.cos(np.linspace(0.0, 2.0*np.pi, self.vcount_circle)), 5.0*nm*np.sin(np.linspace(0.0, 2.0*np.pi, self.vcount_circle))), dtype=np.float32))
+        circlevertices = np.transpose(np.array((5.0 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle)), 5.0 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle))), dtype=np.float32))
         self.protectedzone.bind_attrib(ATTRIB_VERTEX, 2, circlevertices)
         self.protectedzone.bind_attrib(ATTRIB_LAT, 1, self.aclatbuf, instance_divisor=1)
         self.protectedzone.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
