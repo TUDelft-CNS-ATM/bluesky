@@ -8,7 +8,7 @@
 #define M2NM 0.0005399568034557236
 #define NM2M 1852.0
 
-static PyObject* rwgs84(PyObject* self, PyObject* args)
+static PyObject* cgeo_rwgs84(PyObject* self, PyObject* args)
 {
     PyObject *arg1 = NULL;
     double lat;
@@ -29,7 +29,7 @@ static PyObject* rwgs84(PyObject* self, PyObject* args)
 
         while (--size >= 0) {
             lat = DEG2RAD * *pLatd;
-            *pR = _rwgs84(sin(lat), cos(lat));
+            *pR = rwgs84(sin(lat), cos(lat));
             ++pLatd; ++pR;
         }
 
@@ -38,11 +38,11 @@ static PyObject* rwgs84(PyObject* self, PyObject* args)
     } else {
         // arg is a scalar
         lat = DEG2RAD * PyFloat_AsDouble(arg1);
-        return Py_BuildValue("d", _rwgs84(sin(lat), cos(lat)));
+        return Py_BuildValue("d", rwgs84(sin(lat), cos(lat)));
     }
 };
 
-static PyObject* qdrdist(PyObject* self, PyObject* args)
+static PyObject* cgeo_qdrdist(PyObject* self, PyObject* args)
 {
     PyObject *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
@@ -59,10 +59,10 @@ static PyObject* qdrdist(PyObject* self, PyObject* args)
         npy_intp size = PyArray_SIZE(arr1);
 
         // Create return vectors
-        PyObject* qdr = PyArray_SimpleNew(1, &size, NPY_DOUBLE);
-        PyObject* dst = PyArray_SimpleNew(1, &size, NPY_DOUBLE);
-        double *pqdr = (double*)PyArray_DATA((PyArrayObject*)qdr);
-        double *pdst = (double*)PyArray_DATA((PyArrayObject*)dst);
+        PyObject* vqdr = PyArray_SimpleNew(1, &size, NPY_DOUBLE);
+        PyObject* vdst = PyArray_SimpleNew(1, &size, NPY_DOUBLE);
+        double *pqdr = (double*)PyArray_DATA((PyArrayObject*)vqdr);
+        double *pdst = (double*)PyArray_DATA((PyArrayObject*)vdst);
 
         // Check if lat2/lon2 are also arrays
         if (PyArray_Check(arg3) && PyArray_Check(arg4)) {
@@ -73,8 +73,8 @@ static PyObject* qdrdist(PyObject* self, PyObject* args)
             while (--size >= 0) {
                 ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
                 ll2.init(DEG2RAD * *plat2, DEG2RAD * *plon2);
-                *pqdr = RAD2DEG * _qdr(ll1, ll2);
-                *pdst = M2NM * _dist(ll1, ll2);
+                *pqdr = RAD2DEG * qdr(ll1, ll2);
+                *pdst = M2NM * dist(ll1, ll2);
                 ++plat1; ++plon1; ++plat2; ++plon2; ++pqdr; ++pdst;
             }
             Py_DECREF(arr3);
@@ -84,22 +84,22 @@ static PyObject* qdrdist(PyObject* self, PyObject* args)
             ll2.init(DEG2RAD * PyFloat_AsDouble(arg3), DEG2RAD * PyFloat_AsDouble(arg4));
             while (--size >= 0) {
                 ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
-                *pqdr = RAD2DEG * _qdr(ll1, ll2);
-                *pdst = M2NM * _dist(ll1, ll2);
+                *pqdr = RAD2DEG * qdr(ll1, ll2);
+                *pdst = M2NM * dist(ll1, ll2);
                 ++plat1; ++plon1; ++pqdr; ++pdst;
             }
         }
         Py_DECREF(arr1);
         Py_DECREF(arr2);
-        return Py_BuildValue("NN", qdr, dst);
+        return Py_BuildValue("NN", vqdr, vdst);
     }
     // Arguments should be all scalars
     ll1.init(DEG2RAD * PyFloat_AsDouble(arg1), DEG2RAD * PyFloat_AsDouble(arg2));
     ll2.init(DEG2RAD * PyFloat_AsDouble(arg3), DEG2RAD * PyFloat_AsDouble(arg4));
-    return Py_BuildValue("dd", RAD2DEG * _qdr(ll1, ll2), M2NM * _dist(ll1, ll2));
+    return Py_BuildValue("dd", RAD2DEG * qdr(ll1, ll2), M2NM * dist(ll1, ll2));
 };
 
-static PyObject* qdrdist_matrix(PyObject* self, PyObject* args)
+static PyObject* cgeo_qdrdist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -133,13 +133,13 @@ static PyObject* qdrdist_matrix(PyObject* self, PyObject* args)
 
     // Create output matrices
     npy_intp shape[] = {size, size};
-    PyObject* qdr = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
-    PyObject* dst = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
+    PyObject* vqdr = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
+    PyObject* vdst = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
 
     // Nested loop to calculate qdr and dist matrices
     i = 0;
-    double *pqdr = (double*)PyArray_DATA((PyArrayObject*)qdr);
-    double *pdst = (double*)PyArray_DATA((PyArrayObject*)dst);
+    double *pqdr = (double*)PyArray_DATA((PyArrayObject*)vqdr);
+    double *pdst = (double*)PyArray_DATA((PyArrayObject*)vdst);
 
     qdr_d_in ll1;
     while (i < size) {
@@ -150,8 +150,8 @@ static PyObject* qdrdist_matrix(PyObject* self, PyObject* args)
                 *pqdr = 0.0;
                 *pdst = 0.0;
             } else {
-                *pqdr = RAD2DEG * _qdr(ll1, *pll2);
-                *pdst = M2NM * _dist(ll1, *pll2);
+                *pqdr = RAD2DEG * qdr(ll1, *pll2);
+                *pdst = M2NM * dist(ll1, *pll2);
             }
             ++j; ++pll2; ++pqdr; ++pdst;
         }
@@ -164,10 +164,10 @@ static PyObject* qdrdist_matrix(PyObject* self, PyObject* args)
     Py_XDECREF(lat2);// Py_XDECREF checks for NULL
     Py_XDECREF(lon2);
 
-    return Py_BuildValue("NN", qdr, dst);
+    return Py_BuildValue("NN", vqdr, vdst);
 };
 
-static PyObject* latlondist(PyObject* self, PyObject* args)
+static PyObject* cgeo_latlondist(PyObject* self, PyObject* args)
 {
     PyObject *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
@@ -196,7 +196,7 @@ static PyObject* latlondist(PyObject* self, PyObject* args)
             while (--size >= 0) {
                 ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
                 ll2.init(DEG2RAD * *plat2, DEG2RAD * *plon2);
-                *pdst = M2NM * _dist(ll1, ll2);
+                *pdst = M2NM * dist(ll1, ll2);
                 ++plat1; ++plon1; ++plat2; ++plon2; ++pdst;
             }
             Py_DECREF(arr3);
@@ -206,7 +206,7 @@ static PyObject* latlondist(PyObject* self, PyObject* args)
             ll2.init(DEG2RAD * PyFloat_AsDouble(arg3), DEG2RAD * PyFloat_AsDouble(arg4));
             while (--size >= 0) {
                 ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
-                *pdst = M2NM * _dist(ll1, ll2);
+                *pdst = M2NM * dist(ll1, ll2);
                 ++plat1; ++plon1; ++pdst;
             }
         }
@@ -217,10 +217,10 @@ static PyObject* latlondist(PyObject* self, PyObject* args)
     // Arguments should be all scalars
     ll1.init(DEG2RAD * PyFloat_AsDouble(arg1), DEG2RAD * PyFloat_AsDouble(arg2));
     ll2.init(DEG2RAD * PyFloat_AsDouble(arg3), DEG2RAD * PyFloat_AsDouble(arg4));
-    return Py_BuildValue("d", M2NM * _dist(ll1, ll2));
+    return Py_BuildValue("d", M2NM * dist(ll1, ll2));
 };
 
-static PyObject* latlondist_matrix(PyObject* self, PyObject* args)
+static PyObject* cgeo_latlondist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -270,7 +270,7 @@ static PyObject* latlondist_matrix(PyObject* self, PyObject* args)
                 if (i == j) {
                     *pdst = 0.0;
                 } else {
-                    *pdst = *pdst_T = M2NM * _dist(*pll1, *pll2);
+                    *pdst = *pdst_T = M2NM * dist(*pll1, *pll2);
                 }
                 ++j; ++pll2; ++pdst;
                 pdst_T += size;
@@ -290,7 +290,7 @@ static PyObject* latlondist_matrix(PyObject* self, PyObject* args)
                 if (i == j) {
                     *pdst = 0.0;
                 } else {
-                    *pdst = M2NM * _dist(ll1, *pll2);
+                    *pdst = M2NM * dist(ll1, *pll2);
                 }
                 ++j; ++pll2; ++pdst;
             }
@@ -306,7 +306,7 @@ static PyObject* latlondist_matrix(PyObject* self, PyObject* args)
     return Py_BuildValue("N", dst);
 };
 
-static PyObject* wgsg(PyObject* self, PyObject* args)
+static PyObject* cgeo_wgsg(PyObject* self, PyObject* args)
 {
     PyObject *arg1 = NULL;
     if (!PyArg_ParseTuple(args, "O", &arg1))
@@ -323,7 +323,7 @@ static PyObject* wgsg(PyObject* self, PyObject* args)
         double* pg      = (double*)PyArray_DATA((PyArrayObject*)g);
 
         while (--size >= 0) {
-            *pg = _wgsg(DEG2RAD * *pLatd);
+            *pg = wgsg(DEG2RAD * *pLatd);
             ++pLatd; ++pg;
         }
 
@@ -331,11 +331,11 @@ static PyObject* wgsg(PyObject* self, PyObject* args)
         return g;
     } else {
         // arg is a scalar
-        return Py_BuildValue("d", _wgsg(DEG2RAD * PyFloat_AsDouble(arg1)));
+        return Py_BuildValue("d", wgsg(DEG2RAD * PyFloat_AsDouble(arg1)));
     }
 };
 
-static PyObject* qdrpos(PyObject* self, PyObject* args)
+static PyObject* cgeo_qdrpos(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
@@ -365,7 +365,7 @@ static PyObject* qdrpos(PyObject* self, PyObject* args)
         // Calculate the output vectors
         pos newpos;
         while (--size >= 0) {
-            newpos = _qdrpos(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *pqdr, NM2M * *pdst);
+            newpos = qdrpos(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *pqdr, NM2M * *pdst);
             *plat2 = RAD2DEG * newpos.lat;
             *plon2 = RAD2DEG * newpos.lon;
             ++plat1; ++plon1; ++pdst; ++pqdr; ++plat2; ++plon2;
@@ -379,13 +379,13 @@ static PyObject* qdrpos(PyObject* self, PyObject* args)
         return Py_BuildValue("NN", lat2, lon2);
     } else {
         // Args should be scalars
-        pos newpos = _qdrpos(DEG2RAD * PyFloat_AsDouble(arg1), DEG2RAD * PyFloat_AsDouble(arg2),
+        pos newpos = qdrpos(DEG2RAD * PyFloat_AsDouble(arg1), DEG2RAD * PyFloat_AsDouble(arg2),
                              DEG2RAD * PyFloat_AsDouble(arg3), NM2M    * PyFloat_AsDouble(arg4));
         return Py_BuildValue("dd", RAD2DEG * newpos.lat, RAD2DEG * newpos.lon);
     }
 };
 
-static PyObject* kwikdist(PyObject* self, PyObject* args)
+static PyObject* cgeo_kwikdist(PyObject* self, PyObject* args)
 {
     PyObject *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
@@ -410,7 +410,7 @@ static PyObject* kwikdist(PyObject* self, PyObject* args)
             double *plat2 = (double*)PyArray_DATA(arr3),
                    *plon2 = (double*)PyArray_DATA(arr4);
             while (--size >= 0) {
-                *pdst = M2NM * _kwikdist(kwik_in(
+                *pdst = M2NM * kwikdist(kwik_in(
                     DEG2RAD * *plat1, DEG2RAD * *plon1,
                     DEG2RAD * *plat2, DEG2RAD * *plon2));
                 ++plat1; ++plon1; ++plat2; ++plon2; ++pdst;
@@ -422,7 +422,7 @@ static PyObject* kwikdist(PyObject* self, PyObject* args)
             double lat2 = DEG2RAD * PyFloat_AsDouble(arg3),
                    lon2 = DEG2RAD * PyFloat_AsDouble(arg4);
             while (--size >= 0) {
-                *pdst = *pdst = M2NM * _kwikdist(kwik_in(
+                *pdst = *pdst = M2NM * kwikdist(kwik_in(
                     DEG2RAD * *plat1, DEG2RAD * *plon1, lat2, lon2));
                 ++plat1; ++plon1; ++pdst;
             }
@@ -432,14 +432,14 @@ static PyObject* kwikdist(PyObject* self, PyObject* args)
         return dst;
     }
     // Arguments should be all scalars
-    return Py_BuildValue("d", M2NM * _kwikdist(
+    return Py_BuildValue("d", M2NM * kwikdist(
                 kwik_in(DEG2RAD * PyFloat_AsDouble(arg1),
                         DEG2RAD * PyFloat_AsDouble(arg2),
                         DEG2RAD * PyFloat_AsDouble(arg3),
                         DEG2RAD * PyFloat_AsDouble(arg4))));
 };
 
-static PyObject* kwikdist_matrix(PyObject* self, PyObject* args)
+static PyObject* cgeo_kwikdist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -476,7 +476,7 @@ static PyObject* kwikdist_matrix(PyObject* self, PyObject* args)
                 if (i == j) {
                     *pdst = 0.0;
                 } else {
-                    *pdst = *pdst_T = M2NM * _kwikdist(
+                    *pdst = *pdst_T = M2NM * kwikdist(
                         kwik_in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2));
                 }
                 ++j; ++plat2; ++plon2; ++pdst;
@@ -495,7 +495,7 @@ static PyObject* kwikdist_matrix(PyObject* self, PyObject* args)
                 if (i == j) {
                     *pdst = 0.0;
                 } else {
-                    *pdst = M2NM * _kwikdist(
+                    *pdst = M2NM * kwikdist(
                         kwik_in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2));
                 }
                 ++j; ++plat2; ++plon2; ++pdst;
@@ -514,7 +514,7 @@ static PyObject* kwikdist_matrix(PyObject* self, PyObject* args)
     return Py_BuildValue("N", dst);
 };
 
-static PyObject* kwikqdrdist(PyObject* self, PyObject* args)
+static PyObject* cgeo_kwikqdrdist(PyObject* self, PyObject* args)
 {
     PyObject *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
@@ -542,8 +542,8 @@ static PyObject* kwikqdrdist(PyObject* self, PyObject* args)
                    *plon2 = (double*)PyArray_DATA(arr4);
             while (--size >= 0) {
                 kwik_in in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2);
-                *pqdr = RAD2DEG * _kwikqdr(in);
-                *pdst = M2NM * _kwikdist(in);
+                *pqdr = RAD2DEG * kwikqdr(in);
+                *pdst = M2NM * kwikdist(in);
                 ++plat1; ++plon1; ++plat2; ++plon2; ++pqdr; ++pdst;
             }
             Py_DECREF(arr3);
@@ -554,8 +554,8 @@ static PyObject* kwikqdrdist(PyObject* self, PyObject* args)
                    lon2 = DEG2RAD * PyFloat_AsDouble(arg4);
             while (--size >= 0) {
                 kwik_in in(DEG2RAD * *plat1, DEG2RAD * *plon1, lat2, lon2);
-                *pqdr = RAD2DEG * _kwikqdr(in);
-                *pdst = M2NM * _kwikdist(in);
+                *pqdr = RAD2DEG * kwikqdr(in);
+                *pdst = M2NM * kwikdist(in);
                 ++plat1; ++plon1; ++pqdr; ++pdst;
             }
         }
@@ -568,10 +568,10 @@ static PyObject* kwikqdrdist(PyObject* self, PyObject* args)
                DEG2RAD * PyFloat_AsDouble(arg2),
                DEG2RAD * PyFloat_AsDouble(arg3),
                DEG2RAD * PyFloat_AsDouble(arg4));
-    return Py_BuildValue("dd", RAD2DEG * _kwikqdr(in), M2NM * _kwikdist(in));
+    return Py_BuildValue("dd", RAD2DEG * kwikqdr(in), M2NM * kwikdist(in));
 };
 
-static PyObject* kwikqdrdist_matrix(PyObject* self, PyObject* args)
+static PyObject* cgeo_kwikqdrdist_matrix(PyObject* self, PyObject* args)
 {
     PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
     PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
@@ -613,8 +613,8 @@ static PyObject* kwikqdrdist_matrix(PyObject* self, PyObject* args)
                     *pdst = 0.0;
                 } else {
                     kwik_in in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2);
-                    *pqdr = *pqdr_T = RAD2DEG * _kwikqdr(in);
-                    *pdst = *pdst_T = M2NM * _kwikdist(in);
+                    *pqdr = *pqdr_T = RAD2DEG * kwikqdr(in);
+                    *pdst = *pdst_T = M2NM * kwikdist(in);
                 }
                 ++j; ++plat2; ++plon2; ++pqdr; ++pdst;
                 pqdr_T += size; pdst_T += size;
@@ -634,8 +634,8 @@ static PyObject* kwikqdrdist_matrix(PyObject* self, PyObject* args)
                     *pdst = 0.0;
                 } else {
                     kwik_in in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2);
-                    *pqdr = RAD2DEG * _kwikqdr(in);
-                    *pdst = M2NM * _kwikdist(in);
+                    *pqdr = RAD2DEG * kwikqdr(in);
+                    *pdst = M2NM * kwikdist(in);
                 }
                 ++j; ++plat2; ++plon2; ++pqdr; ++pdst;
             }
@@ -654,18 +654,18 @@ static PyObject* kwikqdrdist_matrix(PyObject* self, PyObject* args)
 };
 
 static struct PyMethodDef methods[] = {
-    {"rwgs84", rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec."},
-    {"rwgs84_matrix", rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec (for vectors)."},
-    {"qdrdist", qdrdist, METH_VARARGS, "Calculate bearing and distance between lat1+lon1 and lat2+lon2"},
-    {"qdrdist_matrix", qdrdist_matrix, METH_VARARGS, "Calculate bearing and distance matrices between vectors lat1+lon1/lat2+lon2"},
-    {"latlondist", latlondist, METH_VARARGS, "Calculate distance between lat1+lon1 and lat2+lon2"},
-    {"latlondist_matrix", latlondist_matrix, METH_VARARGS, "Calculate distance matrix between vectors lat1+lon1/lat2+lon2"},
-    {"wgsg", wgsg, METH_VARARGS, "Gravity acceleration at a given latitude according to WGS'84"},
-    {"qdrpos", qdrpos, METH_VARARGS, "Calculate position from reference position, bearing and distance"},
-    {"kwikdist", kwikdist, METH_VARARGS, "Quick and dirty dist [nm]"},
-    {"kwikdist_matrix", kwikdist_matrix, METH_VARARGS, "Quick and dirty dist [nm] (for vectors)"},
-    {"kwikqdrdist", kwikqdrdist, METH_VARARGS, "Quick and dirty dist [nm] and bearing [deg]"},
-    {"kwikqdrdist_matrix", kwikqdrdist_matrix, METH_VARARGS, "Quick and dirty dist [nm] and bearing [deg] (for vectors)"},
+    {"rwgs84", cgeo_rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec."},
+    {"rwgs84_matrix", cgeo_rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec (for vectors)."},
+    {"qdrdist", cgeo_qdrdist, METH_VARARGS, "Calculate bearing and distance between lat1+lon1 and lat2+lon2"},
+    {"qdrdist_matrix", cgeo_qdrdist_matrix, METH_VARARGS, "Calculate bearing and distance matrices between vectors lat1+lon1/lat2+lon2"},
+    {"latlondist", cgeo_latlondist, METH_VARARGS, "Calculate distance between lat1+lon1 and lat2+lon2"},
+    {"latlondist_matrix", cgeo_latlondist_matrix, METH_VARARGS, "Calculate distance matrix between vectors lat1+lon1/lat2+lon2"},
+    {"wgsg", cgeo_wgsg, METH_VARARGS, "Gravity acceleration at a given latitude according to WGS'84"},
+    {"qdrpos", cgeo_qdrpos, METH_VARARGS, "Calculate position from reference position, bearing and distance"},
+    {"kwikdist", cgeo_kwikdist, METH_VARARGS, "Quick and dirty dist [nm]"},
+    {"kwikdist_matrix", cgeo_kwikdist_matrix, METH_VARARGS, "Quick and dirty dist [nm] (for vectors)"},
+    {"kwikqdrdist", cgeo_kwikqdrdist, METH_VARARGS, "Quick and dirty dist [nm] and bearing [deg]"},
+    {"kwikqdrdist_matrix", cgeo_kwikqdrdist_matrix, METH_VARARGS, "Quick and dirty dist [nm] and bearing [deg] (for vectors)"},
     {NULL, NULL, 0, NULL}
 };
 
