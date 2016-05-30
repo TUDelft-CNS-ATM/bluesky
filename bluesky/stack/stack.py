@@ -65,7 +65,7 @@ class Commandstack:
             "ASAS": [
                 "ASAS ON/OFF",
                 "[onoff]",
-                traf.dbconf.toggle
+                traf.asas.toggle
             ],
             "BATCH": [
                 "BATCH filename",

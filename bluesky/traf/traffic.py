@@ -13,7 +13,7 @@ from ..tools.misc import degto180
 from route import Route
 from params import Trails
 from adsbmodel import ADSBModel
-from asas import Dbconf
+from asas import ASAS
 from .. import settings
 
 try:
@@ -182,8 +182,8 @@ class Traffic:
         # ADS-B transmission-receiver model
         self.adsb = ADSBModel(self)
 
-        # ASAS objects: Conflict Database
-        self.dbconf = Dbconf(300., 5. * nm, 1000. * ft)  # hard coded values to be replaced
+        # ASAS object
+        self.asas = ASAS(300., 5. * nm, 1000. * ft)  # hard coded values to be replaced
 
         # Import navigation data base
         self.navdb  = navdb
@@ -364,7 +364,7 @@ class Traffic:
 
         self.eps        = np.append(self.eps, 0.01)
 
-        self.dbconf.create(achdg, eas, acalt)
+        self.asas.create(achdg, eas, acalt)
 
         return True
 
@@ -483,7 +483,7 @@ class Traffic:
 
         self.eps = np.delete(self.eps, idx)
 
-        self.dbconf.delete(idx)
+        self.asas.delete(idx)
         return True
 
     def update(self, simt, simdt):
@@ -540,11 +540,11 @@ class Traffic:
         #------------------- ASAS update: ---------------------
         # Reset label because of colour change
         # Save old result
-        iconf0 = np.array(self.dbconf.iconf)
+        iconf0 = np.array(self.asas.iconf)
 
-        self.dbconf.update(self, simt)
+        self.asas.update(self, simt)
 
-        chnged = np.where(iconf0 != np.array(self.dbconf.iconf))[0]
+        chnged = np.where(iconf0 != np.array(self.asas.iconf))[0]
         for i in chnged:
             self.label[i] = [" ", " ", "", " "]
 
@@ -722,10 +722,10 @@ class Traffic:
         #--------- Input to Autopilot settings to follow: destination or ASAS ----------
 
         # desired autopilot settings due to ASAS
-        self.deshdg = self.dbconf.asasactive*self.dbconf.asashdg + (1-self.dbconf.asasactive)*self.ahdg
-        self.desspd = self.dbconf.asasactive*self.dbconf.asasspd + (1-self.dbconf.asasactive)*self.aspd
-        self.desalt = self.dbconf.asasactive*self.dbconf.asasalt + (1-self.dbconf.asasactive)*self.aalt
-        self.desvs  = self.dbconf.asasactive*self.dbconf.asasvsp + (1-self.dbconf.asasactive)*self.avs
+        self.deshdg = self.asas.asasactive*self.asas.asashdg + (1-self.asas.asasactive)*self.ahdg
+        self.desspd = self.asas.asasactive*self.asas.asasspd + (1-self.asas.asasactive)*self.aspd
+        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.aalt
+        self.desvs  = self.asas.asasactive*self.asas.asasvsp + (1-self.asas.asasactive)*self.avs
 
         # check for the flight envelope
         self.perf.limits()

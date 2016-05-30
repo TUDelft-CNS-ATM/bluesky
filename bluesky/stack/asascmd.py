@@ -20,74 +20,74 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
     if command == "ASAS":
         if numargs == 0:
             scr.echo("ASAS ON/OFF")
-            if traf.dbconf.swasas:
+            if traf.asas.swasas:
                 scr.echo("ASAS is currently ON")
             else:
                 scr.echo("ASAS is currently OFF")
         else:
             arg1 = commandargs[1]  # arguments are strings
-            traf.dbconf.swasas = (arg1.upper() =="ON")
+            traf.asas.swasas = (arg1.upper() =="ON")
     
     elif command == "RESO":
         if numargs== 0:
             scr.echo("RESO TYPE")
         else:
             if commandargs[1]=="OFF":
-                traf.dbconf.SetCRmethod("DoNothing")
+                traf.asas.SetCRmethod("DoNothing")
             elif commandargs[1]=="MVP":
-                traf.dbconf.SetCRmethod("MVP")
+                traf.asas.SetCRmethod("MVP")
             elif commandargs[1]=="SWARM":
-                traf.dbconf.SetCRmethod("Swarm")
+                traf.asas.SetCRmethod("Swarm")
             elif commandargs[1]=="DIFGAME":
-                traf.dbconf.SetCRmethod("Difgame")
+                traf.asas.SetCRmethod("Difgame")
             elif commandargs[1]=="EBY":
-                traf.dbconf.SetCRmethod("Eby")
+                traf.asas.SetCRmethod("Eby")
             else:
                 scr.echo("RESO TYPE UNKNOWN")
 
     elif command == "ZONER":
         if numargs ==0:
             scr.echo("ZONER <DIST> (NM)")
-            scr.echo("CURRENT ZONER: "+str(traf.dbconf.R/nm)+" NM")
+            scr.echo("CURRENT ZONER: "+str(traf.asas.R/nm)+" NM")
         else:
-            traf.dbconf.R=float(commandargs[1])*nm
-            traf.dbconf.Rm=np.maximum(traf.dbconf.R,traf.dbconf.Rm)
+            traf.asas.R=float(commandargs[1])*nm
+            traf.asas.Rm=np.maximum(traf.asas.R,traf.asas.Rm)
 
     elif command == "ZONEDH":
         if numargs ==0:
             scr.echo("ZONEDH <DIST> (FT)")
-            scr.echo("CURRENT ZONEDH: "+str(traf.dbconf.dh/ft)+" FT")
+            scr.echo("CURRENT ZONEDH: "+str(traf.asas.dh/ft)+" FT")
         else:
-            traf.dbconf.dh=float(commandargs[1])*ft
-            traf.dbconf.dhm=np.maximum(traf.dbconf.dh,traf.dbconf.dhm)
+            traf.asas.dh=float(commandargs[1])*ft
+            traf.asas.dhm=np.maximum(traf.asas.dh,traf.asas.dhm)
 
     elif command == "RSZONER":
         if numargs ==0:
             scr.echo("RSZONER <DIST> (NM)")
-            scr.echo("CURRENT RSZONER: "+str(traf.dbconf.Rm/nm)+" NM")
+            scr.echo("CURRENT RSZONER: "+str(traf.asas.Rm/nm)+" NM")
         else:
-            if float(commandargs[1])*nm<traf.dbconf.R:
+            if float(commandargs[1])*nm<traf.asas.R:
                 scr.echo("RSZONER MAY NOT BE SMALLER THAN ZONER")
             else:
-                traf.dbconf.Rm=float(commandargs[1])*nm
+                traf.asas.Rm=float(commandargs[1])*nm
 
     elif command == "RSZONEDH":
         if numargs ==0:
             scr.echo("RSZONEDH <DIST> (FT)")
-            scr.echo("CURRENT RSZONEDH: "+str(traf.dbconf.dhm/ft)+" FT")
+            scr.echo("CURRENT RSZONEDH: "+str(traf.asas.dhm/ft)+" FT")
         else:
-            if float(commandargs[1])*ft<traf.dbconf.dh:
+            if float(commandargs[1])*ft<traf.asas.dh:
                 scr.echo("RSZONEDH MAY NOT BE SMALLER THAN ZONEDH")
             else:
-                traf.dbconf.dhm=float(commandargs[1])*ft
+                traf.asas.dhm=float(commandargs[1])*ft
 
     elif command == "DTLOOK":
         if numargs ==0:
             scr.echo("DTLOOK <TIME>")
-            scr.echo("CURRENT DTLOOK: "+str(traf.dbconf.dtlookahead)+" SEC")
+            scr.echo("CURRENT DTLOOK: "+str(traf.asas.dtlookahead)+" SEC")
         else:
             print commandargs
-            traf.dbconf.dtlookahead=float(commandargs[1])
+            traf.asas.dtlookahead=float(commandargs[1])
             
 
     elif command == "DTNOLOOK":
