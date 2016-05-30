@@ -355,10 +355,10 @@ class RadarWidget(QGLWidget):
         gl_version = float(gl.glGetString(gl.GL_VERSION)[:3])
         if gl_version < 3.3:
             print('OpenGL context created with GL version %.1f' % gl_version)
-            qCritical('Your system reports that it supports OpenGL up to version %.1f. The minimum requirement for BlueSky is OpenGL 3.3. \
-                Generally, AMD/ATI/nVidia cards from 2008 and newer support OpenGL 3.3, and Intel integrated graphics from the Haswell \
-                generation and newer. If you think your graphics system should be able to support GL>=3.3 please open an issue report \
-                on the BlueSky Github page (https://github.com/ProfHoekstra/bluesky/issues)' % gl_version)
+            qCritical("""Your system reports that it supports OpenGL up to version %.1f. The minimum requirement for BlueSky is OpenGL 3.3.
+                Generally, AMD/ATI/nVidia cards from 2008 and newer support OpenGL 3.3, and Intel integrated graphics from the Haswell
+                generation and newer. If you think your graphics system should be able to support GL>=3.3 please open an issue report
+                on the BlueSky Github page (https://github.com/ProfHoekstra/bluesky/issues)""" % gl_version)
             return
 
         # background color
@@ -428,7 +428,7 @@ class RadarWidget(QGLWidget):
                 self.coastlines.draw(first_vertex=0, vertex_count=self.vcount_coast)
             else:
                 self.coastlines.bind()
-                wrapindex = np.uint32(self.coastindices[int(self.wraplon)+180])
+                wrapindex = np.uint32(self.coastindices[int(self.wraplon) + 180])
                 if self.wrapdir == 1:
                     gl.glVertexAttrib1f(ATTRIB_LON, 360.0)
                     self.coastlines.draw(first_vertex=0, vertex_count=wrapindex)
@@ -449,13 +449,11 @@ class RadarWidget(QGLWidget):
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
         if self.show_traf:
             self.route.draw()
-
-        if self.show_traf:
             self.cpalines.draw()
 
-        # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------        
+        # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------
         self.runways.draw()
-        self.thresholds.draw() 
+        self.thresholds.draw()
         if self.zoom >= 1.0:
             for idx in self.apt_inrange:
                 self.taxiways.draw(first_vertex=idx[0], vertex_count=idx[1])
@@ -603,6 +601,7 @@ class RadarWidget(QGLWidget):
 
             # CPA lines to indicate conflicts
             ncpalines = len(data.confcpalat)
+
             cpalines  = np.zeros(4 * ncpalines, dtype=np.float32)
             self.cpalines.set_vertex_count(2 * ncpalines)
 

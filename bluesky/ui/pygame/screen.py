@@ -641,7 +641,7 @@ class Screen:
                 # Normal symbol if no conflict else amber
                 toosmall=self.lat1-self.lat0>6 #don't draw circles if zoomed out too much
 
-                if traf.iconf[i]<0:
+                if traf.dbconf.iconf[i]<0:
                     self.win.blit(self.acsymbol[isymb], pos)
                     if self.swsep and not toosmall:
                         pg.draw.circle(self.win,green,(int(trafx[i]),int(trafy[i])),pixelrad,1)
@@ -677,7 +677,7 @@ class Screen:
                 if not label[:3] == traf.label[i][:3]:
                     traf.label[i] = []
                     labelbmp = pg.Surface((100, 60), 0, self.win)
-                    if traf.iconf[i]<0:
+                    if traf.dbconf.iconf[i]<0:
                         acfont = self.fontrad
                     else:
                         acfont = self.fontamb

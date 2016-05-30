@@ -5,33 +5,34 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from aero import vtas2eas
+from ...tools.aero import vtas2eas
+
 
 def start(dbconf):
     dbconf.CRname="Eby"
 
-def resolve(dbconf):
+def resolve(dbconf, traf):
     if not dbconf.swasas:
         return
-        
+
     # required change in velocity
-    dv=np.zeros((dbconf.traf.ntraf,3)) 
-        
+    dv=np.zeros((traf.ntraf, 3))
+
     #if possible, solve conflicts once and copy results for symmetrical conflicts,
     #if that is not possible, solve each conflict twice, once for each A/C
-    if not dbconf.traf.ADSBtrunc and not dbconf.traf.ADSBtransnoise:
+    if not traf.ADSBtrunc and not traf.ADSBtransnoise:
         for conflict in dbconf.conflist_now:
             id1,id2=dbconf.ConflictToIndices(conflict)
             if id1 != "Fail" and id2!= "Fail":
-                dv_eby=Eby_straight(dbconf,id1,id2)
+                dv_eby=Eby_straight(traf, dbconf,id1,id2)
                 dv[id1]-=dv_eby
                 dv[id2]+=dv_eby
     else:
         for i in range(dbconf.nconf):
             ac1=dbconf.idown[i]
             ac2=dbconf.idoth[i]
-            id1=dbconf.traf.id.index(ac1)
-            id2=dbconf.traf.id.index(ac2)
+            id1=traf.id.index(ac1)
+            id2=traf.id.index(ac2)
             dv_eby=Eby_straight(dbconf,id1,id2)
             dv[id1]-=dv_eby
                 
@@ -39,32 +40,32 @@ def resolve(dbconf):
     # now we have the change in speed vector for each aircraft.
     dv=np.transpose(dv)
     # the old speed vector, cartesian coordinates
-    trkrad=np.radians(dbconf.traf.trk)
-    v=np.array([np.sin(trkrad)*dbconf.traf.tas,\
-        np.cos(trkrad)*dbconf.traf.tas,\
-        dbconf.traf.vs])
+    trkrad=np.radians(traf.trk)
+    v=np.array([np.sin(trkrad)*traf.tas,\
+        np.cos(trkrad)*traf.tas,\
+        traf.vs])
     # the new speed vector
     newv=dv+v
 
     # the new speed vector in polar coordinates
     newtrack=(np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
     newgs=np.sqrt(newv[0,:]**2+newv[1,:]**2)
-    neweas=vtas2eas(newgs,dbconf.traf.alt)
+    neweas=vtas2eas(newgs,traf.alt)
     
     # Cap the velocity
     neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
     
     # now assign in the traf class
-    dbconf.traf.asashdg=newtrack
-    dbconf.traf.asasspd=neweascapped
-    dbconf.traf.asasvsp=newv[2,:]
-    dbconf.traf.asasalt=np.sign(dbconf.traf.asasvsp)*1e5
+    dbconf.asashdg=newtrack
+    dbconf.asasspd=neweascapped
+    dbconf.asasvsp=newv[2,:]
+    dbconf.asasalt=np.sign(dbconf.asasvsp)*1e5
     
 #=================================== Eby Method ===============================
         
     # Resolution: Eby method assuming aircraft move straight forward, solving algebraically, only horizontally
-def Eby_straight(dbconf, id1, id2):
-    traf=dbconf.traf
+def Eby_straight(traf, dbconf, id1, id2):
+    traf=traf
     dist=dbconf.dist[id1,id2]
     qdr=dbconf.qdr[id1,id2]
     # from degrees to radians

@@ -55,11 +55,11 @@ class ScreenIO(QObject):
         self.slow_timer.timeout.connect(self.send_siminfo)
         self.slow_timer.timeout.connect(self.send_aman_data)
         self.slow_timer.timeout.connect(self.send_route_data)
-        self.slow_timer.start(1000/self.siminfo_rate)
+        self.slow_timer.start(1000 / self.siminfo_rate)
 
         self.fast_timer = Timer()
         self.fast_timer.timeout.connect(self.send_aircraft_data)
-        self.fast_timer.start(1000/self.acupdate_rate)
+        self.fast_timer.start(1000 / self.acupdate_rate)
 
     def update(self):
         if self.sim.state == self.sim.op:
@@ -168,7 +168,7 @@ class ScreenIO(QObject):
             coslatinv = 1.0 / np.cos(np.deg2rad(lat0))
 
             # compute the x and y coordinates of the circle
-            angles   = np.linspace(0.0, 2.0*np.pi, numPoints)   # ,endpoint=True) # [rad]
+            angles    = np.linspace(0.0, 2.0 * np.pi, numPoints)   # ,endpoint=True) # [rad]
 
             # Calculate the circle coordinates in lat/lon degrees.
             # Use flat-earth approximation to convert from cartesian to lat/lon.
@@ -215,7 +215,7 @@ class ScreenIO(QObject):
             data.alt        = self.sim.traf.alt
             data.tas        = self.sim.traf.tas
             data.cas        = self.sim.traf.cas
-            data.iconf      = self.sim.traf.iconf
+            data.iconf      = self.sim.traf.dbconf.iconf
             data.confcpalat = self.sim.traf.dbconf.latowncpa
             data.confcpalon = self.sim.traf.dbconf.lonowncpa
             data.trk        = self.sim.traf.trk
