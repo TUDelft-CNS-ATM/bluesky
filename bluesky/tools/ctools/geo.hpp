@@ -62,7 +62,7 @@ inline double wgsg(const double& lat)
 }
 
 struct pos {double lat, lon;};
-inline pos qdrpos(const double& lat1, const double& lon1, const double& dist, const double& qdr)
+inline pos qdrpos(const double& lat1, const double& lon1, const double& qdr, const double& dist)
 {
     // Calculate new position
     double sinlat = sin(lat1),
@@ -78,7 +78,7 @@ inline pos qdrpos(const double& lat1, const double& lon1, const double& dist, co
     return newpos;
 }
 
-inline pos kwikpos(const double& lat1, const double& lon1, const double& dist, const double& qdr)
+inline pos kwikpos(const double& lat1, const double& lon1, const double& qdr, const double& dist)
 {
     pos newpos;
     newpos.lat = lat1 + cos(qdr) * dist / re;
