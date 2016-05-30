@@ -21,6 +21,14 @@ class ASAS():
     # Dictionary of CR methods
     CRmethods = {"OFF": DoNothing, "MVP": MVP, "EBY": Eby, "SWARM": Swarm}
 
+    @classmethod
+    def addCDMethod(asas, name, module):
+        asas.CDmethods[name] = module
+
+    @classmethod
+    def addCRMethod(asas, name, module):
+        asas.CRmethods[name] = module
+
     # Constructor of conflict database, call with SI units (meters and seconds)
     def __init__(self, tlook, R, dh):
         self.t0asas      = -999.          # last time ASAS was called
