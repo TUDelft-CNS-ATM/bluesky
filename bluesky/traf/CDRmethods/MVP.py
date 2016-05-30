@@ -9,7 +9,7 @@ from ...tools.aero import vtas2eas
 
 
 def start(dbconf):
-    dbconf.CRname="MVP"
+    pass
 
 def resolve(dbconf, traf):
     if not dbconf.swasas:

@@ -86,6 +86,11 @@ class Commandstack:
                 "txt",
                 lambda expr: scr.echo("Ans = " + str(eval(expr)))
             ],
+            "CDMETHOD": [
+                "CDMETHOD [method]",
+                "[txt]",
+                traf.asas.SetCDmethod
+            ],
             "CIRCLE": [
                 "CIRCLE name,lat,lon,radius",
                 "txt,latlon,float",
@@ -100,8 +105,8 @@ class Commandstack:
                 "DEL acid/shape",
                 "txt",
                 lambda a: traf.delete(a) if traf.id.count(a) > 0 \
-                     else scr.objappend(0, a, None)
-                ],
+                else scr.objappend(0, a, None)
+            ],
             "DELWPT": [
                 "DELWPT acid,wpname",
                 "acid,txt",
@@ -127,10 +132,20 @@ class Commandstack:
                 "float",
                 sim.setDt
             ],
+            "DTLOOK": [
+                "DTLOOK [time]",
+                "[float]",
+                traf.asas.SetDtLook
+            ],
             "DTMULT": [
                 "DTMULT multiplier",
                 "float",
                 sim.setDtMultiplier
+            ],
+            "DTNOLOOK": [
+                "DTNOLOOK [time]",
+                "[float]",
+                traf.asas.SetDtNoLook
             ],
             "DUMPRTE": [
                 "DUMPRTE acid",
@@ -147,7 +162,7 @@ class Commandstack:
                 "acid,[txt]",
                 traf.perf.engchange
             ],
-            "FF":  [
+            "FF": [
                 "FF [tend]",
                 "[time]",
                 sim.fastforward
@@ -265,6 +280,21 @@ class Commandstack:
                 "RESET",
                 "",
                 sim.reset],
+            "RESO": [
+                "RESO [method]",
+                "[txt]",
+                traf.asas.SetCRmethod
+            ],
+            "RSZONEDH": [
+                "RSZONEDH [height]",
+                "[float]",
+                traf.asas.SetPZHm
+            ],
+            "RSZONER": [
+                "RSZONER [radius]",
+                "[float]",
+                traf.asas.SetPZRm
+            ],
             "SAVEIC": [
                 "SAVEIC filename",
                 "txt",
@@ -299,7 +329,7 @@ class Commandstack:
                 "txt,[float]",
                 scr.feature
             ],
-            "SYMBOL":  [
+            "SYMBOL": [
                 "SYMBOL",
                 "",
                 scr.symbol
@@ -323,6 +353,16 @@ class Commandstack:
                 "VS acid,vspd (ft/min)",
                 "acid,vspd",
                 traf.selvspd],
+            "ZONEDH": [
+                "ZONEDH [height]",
+                "[float]",
+                traf.asas.SetPZH
+            ],
+            "ZONER": [
+                "ZONER [radius]",
+                "[float]",
+                traf.asas.SetPZR
+            ],
             "ZOOM": [
                 "ZOOM IN/OUT or factor",
                 "float/txt",
@@ -340,7 +380,6 @@ class Commandstack:
             "DIRECTTO": "DIRECT",
             "DIRTO": "DIRECT",
             "DISP": "SWRAD",
-            "DTLOOK": "ASA_DTLOOK",
             "END": "STOP",
             "EXIT": "STOP",
             "FWD": "FF",
@@ -381,8 +420,7 @@ class Commandstack:
         #   command, number of args, array of args, sim, traf, scr, cmd
 
         self.extracmdmodules = {
-            "SYN_": 'synthetic',
-            "ASA_": 'asascmd'
+            "SYN_": 'synthetic'
         }
 
         # Import modules from the list

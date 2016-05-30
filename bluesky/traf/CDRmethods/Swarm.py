@@ -11,8 +11,7 @@ import MVP
 
 
 def start(dbconf):
-    dbconf.CRname="Swarm"
-    dbconf.Rswarm= 7.5*nm #[m]
+    dbconf.Rswarm = 7.5*nm #[m]
     dbconf.dhswarm = 1500*ft  #[m]
     
     dbconf.Swarmweights=np.array([10,3,1])

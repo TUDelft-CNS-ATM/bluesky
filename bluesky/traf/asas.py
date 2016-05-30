@@ -1,4 +1,5 @@
 import numpy as np
+from ..tools.aero import ft, nm
 
 # Import default CD methods
 try:
@@ -18,7 +19,7 @@ class ASAS():
     CDmethods = {"StateBased": StateBasedCD}
 
     # Dictionary of CR methods
-    CRmethods = {"NoCR": DoNothing, "MVP": MVP, "Eby": Eby, "Swarm": Swarm}
+    CRmethods = {"OFF": DoNothing, "MVP": MVP, "Eby": Eby, "Swarm": Swarm}
 
     # Constructor of conflict database, call with SI units (meters and seconds)
     def __init__(self, tlook, R, dh):
@@ -28,39 +29,92 @@ class ASAS():
         self.swasas = True      # [-] whether to perform CD&R
         self.dtlookahead = tlook     # [s] lookahead time
 
-        mar = 1.05      # [-] Safety margin for evasion
+        self.mar = 1.05      # [-] Safety margin for evasion
         self.R = R         # [m] Horizontal separation minimum
         self.dh = dh        # [m] Vertical separation minimum
-        self.Rm = R * mar   # [m] Horizontal separation minimum + margin
-        self.dhm = dh * mar  # [m] Vertical separation minimum + margin
+        self.Rm = R * self.mar   # [m] Horizontal separation minimum + margin
+        self.dhm = dh * self.mar  # [m] Vertical separation minimum + margin
 
         self.vmin = 100.0     # [m/s] Minimum ASAS velocity
         self.vmax = 180.0     # [m/s] Maximum ASAS velocity
 
         self.reset()                 # Reset database
 
-        self.cd = ASAS.CDmethods["StateBased"]
-        self.cr = ASAS.CRmethods["NoCR"]
+        self.cd_name = "StateBased"
+        self.cr_name = "OFF"
 
-        return
-
-    def SetCDmethod(self, method):
-        if method not in ASAS.CDmethods:
-            return False, (method + " doesn't exist.")
-
-        self.cd = ASAS.CDmethods[method]
-
-    def SetCRmethod(self, method):
-        if method not in ASAS.CRmethods:
-            return False, (method + " doesn't exist.")
-
-        self.cr = ASAS.CRmethods[method]
-        self.cr.start(self)
+        self.cd = ASAS.CDmethods[self.cd_name]
+        self.cr = ASAS.CRmethods[self.cr_name]
 
     def toggle(self, flag=None):
         if flag is None:
             return True, "ASAS is currently " + ("ON" if self.swasas else "OFF")
         self.swasas = flag
+
+    def SetCDmethod(self, method=""):
+        if method is "":
+            return True, ("Current CD method: " + self.cd_name +
+                        "\nAvailable CD methods: " + str.join(", ", ASAS.CDmethods.keys()))
+        if method not in ASAS.CDmethods:
+            return False, (method + " doesn't exist.\nAvailable CD methods: " + str.join(", ", ASAS.CDmethods.keys()))
+
+        self.cd_name = method
+        self.cd = ASAS.CDmethods[method]
+
+    def SetCRmethod(self, method=""):
+        if method is "":
+            return True, ("Current CR method: " + self.cr_name +
+                        "\nAvailable CR methods: " + str.join(", ", ASAS.CRmethods.keys()))
+        if method not in ASAS.CRmethods:
+            return False, (method + " doesn't exist.\nAvailable CR methods: " + str.join(", ", ASAS.CRmethods.keys()))
+
+        self.cr_name = method
+        self.cr = ASAS.CRmethods[method]
+        self.cr.start(self)
+
+    def SetPZR(self, value=None):
+        if value is None:
+            return True, ("ZONER [radius (nm)]\nCurrent PZ radius: %.2f NM" % self.R / nm)
+
+        self.R  = value * nm
+        self.Rm = np.maximum(self.mar * self.R, self.Rm)
+
+    def SetPZH(self, value=None):
+        if value is None:
+            return True, ("ZONEDH [height (ft)]\nCurrent PZ height: %.2f ft" % self.dh / ft)
+
+        self.dh  = value * ft
+        self.dhm = np.maximum(self.mar * self.dh, self.dhm)
+
+    def SetPZRm(self, value=None):
+        if value is None:
+            return True, ("RSZONER [radius (nm)]\nCurrent PZ radius margin: %.2f NM" % self.Rm / nm)
+
+        if value < self.R / nm:
+            return False, "PZ radius margin may not be smaller than PZ radius"
+
+        self.Rm  = value * nm
+
+    def SetPZHm(self, value=None):
+        if value is None:
+            return True, ("RSZONEDH [height (ft)]\nCurrent PZ height margin: %.2f ft" % self.dhm / ft)
+
+        if value < self.dh / ft:
+            return False, "PZ height margin may not be smaller than PZ height"
+
+        self.dhm  = value * ft
+
+    def SetDtLook(self, value=None):
+        if value is None:
+            return True, ("DTLOOK [time]\nCurrent value: %.1f sec" % self.dtlookahead)
+
+        self.dtlookahead = value
+
+    def SetDtNoLook(self, value=None):
+        if value is None:
+            return True, ("DTNOLOOK [time]\nCurrent value: %.1f sec" % self.dtasas)
+
+        self.dtasas = value
 
     # Reset conflict database
     def reset(self):

@@ -12,7 +12,6 @@ import os
 
 
 def start(dbconf):
-    dbconf.CRname="Difgame"
     filepath=os.path.abspath("Difgame.py")
     fpath=filepath[:-10]+"\CDRmethods\DifgameActions.npy"
     dbconf.Controls = np.load(fpath)
