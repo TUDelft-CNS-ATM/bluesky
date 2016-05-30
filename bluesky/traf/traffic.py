@@ -296,10 +296,10 @@ class Traffic:
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
         self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
         self.aspd = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
-        self.aptas = np.append(self.aptas, acspd) # [m/s]
-        self.ama  = np.append(self.ama, 0.) # selected spd above crossover (Mach) [-]
+        self.aptas = np.append(self.aptas, acspd)  # [m/s]
+        self.ama  = np.append(self.ama, 0.)  # selected spd above crossover (Mach) [-]
         self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
-        self.afll = np.append(self.afll, (acalt/100)) # selected fl[ft/100]
+        self.afll = np.append(self.afll, (acalt / 100))  # selected fl[ft/100]
         self.avs = np.append(self.avs, 0.)  # selected vertical speed [m/s]
 
         # limit settings: initialize with 0

@@ -237,3 +237,37 @@ def detect(dbconf, traf, simt):
     dbconf.latintcpa = np.array(dbconf.latintcpa)
     dbconf.lonintcpa = np.array(dbconf.latintcpa)
     dbconf.altintcpa = np.array(dbconf.altintcpa)
+
+    # Calculate whether ASAS or A/P commands should be followed
+    APorASAS(dbconf, traf)
+
+
+def APorASAS(dbconf, traf):
+    """ Decide for each aircraft in the conflict list whether the ASAS
+        should be followed or not, based on if the aircraft pairs passed
+        their CPA. """
+    dbconf.asasactive.fill(False)
+    dbconf.inconflict.fill(False)
+
+    # Look at all conflicts, also the ones that are solved but CPA is yet to come
+    for conflict in dbconf.conflist_all:
+        ac1, ac2 = conflict.split(" ")
+        id1, id2 = traf.id2idx(ac1), traf.id2idx(ac2)
+        if id1 >= 0 and id2 >= 0:
+            # Check if conflict is past CPA
+            d = np.array([traf.lon[id2] - traf.lon[id1], traf.lat[id2] - traf.lat[id1]])
+
+            t1 = np.radians(traf.trk[id1])
+            t2 = np.radians(traf.trk[id2])
+
+            # write velocities as vectors and find relative velocity vector
+            v1 = np.array([np.sin(t1) * traf.tas[id1], np.cos(t1) * traf.tas[id1]])
+            v2 = np.array([np.sin(t2) * traf.tas[id2], np.cos(t2) * traf.tas[id2]])
+
+            if np.dot(d, v2 - v1) < 0:
+                # Aircraft haven't passed their CPA: must follow their ASAS
+                dbconf.asasactive[id1] = True
+                dbconf.inconflict[id1] = True
+
+                dbconf.asasactive[id2] = True
+                dbconf.inconflict[id2] = True

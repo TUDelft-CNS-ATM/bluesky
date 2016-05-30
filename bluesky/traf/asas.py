@@ -16,35 +16,34 @@ class ASAS():
         Maintains a confict database, and links to external CD and CR methods."""
 
     # Dictionary of CD methods
-    CDmethods = {"StateBased": StateBasedCD}
+    CDmethods = {"STATEBASED": StateBasedCD}
 
     # Dictionary of CR methods
-    CRmethods = {"OFF": DoNothing, "MVP": MVP, "Eby": Eby, "Swarm": Swarm}
+    CRmethods = {"OFF": DoNothing, "MVP": MVP, "EBY": Eby, "SWARM": Swarm}
 
     # Constructor of conflict database, call with SI units (meters and seconds)
     def __init__(self, tlook, R, dh):
-        self.t0asas = -999.  # last time ASAS was called
-        self.dtasas = 1.00  # interval for ASAS
+        self.t0asas      = -999.          # last time ASAS was called
+        self.dtasas      = 1.00           # interval for ASAS
+        self.swasas      = True           # [-] whether to perform CD&R
+        self.dtlookahead = tlook          # [s] lookahead time
 
-        self.swasas = True      # [-] whether to perform CD&R
-        self.dtlookahead = tlook     # [s] lookahead time
+        self.mar         = 1.05           # [-] Safety margin for evasion
+        self.R           = R              # [m] Horizontal separation minimum
+        self.dh          = dh             # [m] Vertical separation minimum
+        self.Rm          = R * self.mar   # [m] Horizontal separation minimum + margin
+        self.dhm         = dh * self.mar  # [m] Vertical separation minimum + margin
 
-        self.mar = 1.05      # [-] Safety margin for evasion
-        self.R = R         # [m] Horizontal separation minimum
-        self.dh = dh        # [m] Vertical separation minimum
-        self.Rm = R * self.mar   # [m] Horizontal separation minimum + margin
-        self.dhm = dh * self.mar  # [m] Vertical separation minimum + margin
+        self.vmin        = 100.0          # [m/s] Minimum ASAS velocity
+        self.vmax        = 180.0          # [m/s] Maximum ASAS velocity
 
-        self.vmin = 100.0     # [m/s] Minimum ASAS velocity
-        self.vmax = 180.0     # [m/s] Maximum ASAS velocity
+        self.cd_name     = "STATEBASED"
+        self.cr_name     = "OFF"
+        self.cd          = ASAS.CDmethods[self.cd_name]
+        self.cr          = ASAS.CRmethods[self.cr_name]
 
-        self.reset()                 # Reset database
-
-        self.cd_name = "StateBased"
-        self.cr_name = "OFF"
-
-        self.cd = ASAS.CDmethods[self.cd_name]
-        self.cr = ASAS.CRmethods[self.cr_name]
+        # Reset database
+        self.reset()
 
     def toggle(self, flag=None):
         if flag is None:
@@ -118,40 +117,40 @@ class ASAS():
 
     # Reset conflict database
     def reset(self):
-        self.conf      = []      # Start with emtpy database: no conflicts
-        self.nconf     = 0       # Number of detected conflicts
-        self.swconfl   = np.array([])
-        self.latowncpa = np.array([])
-        self.lonowncpa = np.array([])
-        self.altowncpa = np.array([])
-        self.latintcpa = np.array([])
-        self.lonintcpa = np.array([])
-        self.altintcpa = np.array([])
+        self.conf         = []      # Start with emtpy database: no conflicts
+        self.nconf        = 0       # Number of detected conflicts
+        self.swconfl      = np.array([])
+        self.latowncpa    = np.array([])
+        self.lonowncpa    = np.array([])
+        self.altowncpa    = np.array([])
+        self.latintcpa    = np.array([])
+        self.lonintcpa    = np.array([])
+        self.altintcpa    = np.array([])
 
-        self.idown = []
-        self.idoth = []
+        self.idown        = []
+        self.idoth        = []
 
         self.conflist_all = []  # List of all Conflicts
-        self.LOSlist_all = []  # List of all Losses Of Separation
+        self.LOSlist_all  = []  # List of all Losses Of Separation
         self.conflist_exp = []  # List of all Conflicts in experiment time
-        self.LOSlist_exp = []  # List of all Losses Of Separation in experiment time
+        self.LOSlist_exp  = []  # List of all Losses Of Separation in experiment time
         self.conflist_now = []  # List of current Conflicts
-        self.LOSlist_now = []  # List of current Losses Of Separation
+        self.LOSlist_now  = []  # List of current Losses Of Separation
 
         # For keeping track of locations with most severe intrusions
-        self.LOSmaxsev = []
-        self.LOShmaxsev = []
-        self.LOSvmaxsev = []
+        self.LOSmaxsev    = []
+        self.LOShmaxsev   = []
+        self.LOSvmaxsev   = []
 
         # ASAS info per aircraft:
-        self.iconf      = []            # index in 'conflicting' aircraft database
-        self.asasactive = np.array([])  # whether the autopilot follows ASAS or not
-        self.asashdg    = np.array([])  # heading provided by the ASAS [deg]
-        self.asasspd    = np.array([])  # speed provided by the ASAS (eas) [m/s]
-        self.asasalt    = np.array([])  # speed alt by the ASAS [m]
-        self.asasvsp    = np.array([])  # speed vspeed by the ASAS [m/s]
+        self.iconf        = []            # index in 'conflicting' aircraft database
+        self.asasactive   = np.array([])  # whether the autopilot follows ASAS or not
+        self.asashdg      = np.array([])  # heading provided by the ASAS [deg]
+        self.asasspd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
+        self.asasalt      = np.array([])  # speed alt by the ASAS [m]
+        self.asasvsp      = np.array([])  # speed vspeed by the ASAS [m/s]
 
-        self.inconflict = np.array([], dtype=bool)
+        self.inconflict   = np.array([], dtype=bool)
 
     def create(self, hdg, spd, alt):
         # ASAS info: no conflict => -1
@@ -179,60 +178,6 @@ class ASAS():
         if self.swasas and self.t0asas + self.dtasas < simt or simt < self.t0asas:
             self.t0asas = simt
 
-            # Call with traffic database and sim data
+            # Conflict detection and resolution
             self.cd.detect(self, traf, simt)
-            self.APorASAS(traf)
             self.cr.resolve(self, traf)
-
-    #============================= Trajectory Recovery ============================
-
-    # Decide for each aircraft whether the ASAS should be followed or not
-    def APorASAS(self, traf):
-        # Indicate for all A/C that they should follow their Autopilot
-        self.asasactive.fill(False)
-        self.inconflict.fill(False)
-
-        # Look at all conflicts, also the ones that are solved but CPA is yet to come
-        for conflict in self.conflist_all:
-            id1, id2 = self.ConflictToIndices(traf, conflict)
-            if id1 != "Fail":
-                pastCPA = self.ConflictIsPastCPA(traf, id1, id2)
-
-                if not pastCPA:
-
-                    # Indicate that the A/C must follow their ASAS
-                    self.asasactive[id1] = True
-                    self.inconflict[id1] = True
-
-                    self.asasactive[id2] = True
-                    self.inconflict[id2] = True
-
-    #========================= Check if past CPA ==================================
-    def ConflictIsPastCPA(self, traf, id1, id2):
-
-        d = np.array([traf.lon[id2] - traf.lon[id1], traf.lat[id2] - traf.lat[id1], traf.alt[id2] - traf.alt[id1]])
-
-        # find track in degrees
-        t1 = np.radians(traf.trk[id1])
-        t2 = np.radians(traf.trk[id2])
-
-        # write velocities as vectors and find relative velocity vector
-        v1 = np.array([np.sin(t1) * traf.tas[id1], np.cos(t1) * traf.tas[id1], traf.vs[id1]])
-        v2 = np.array([np.sin(t2) * traf.tas[id2], np.cos(t2) * traf.tas[id2], traf.vs[id2]])
-        v = np.array(v2 - v1)
-
-        pastCPA = np.dot(d, v) > 0
-
-        return pastCPA
-
-    #====================== Give A/C indices of conflict pair =====================
-    def ConflictToIndices(self, traf, conflict):
-        ac1, ac2 = conflict.split(" ")
-
-        try:
-            id1 = traf.id.index(ac1)
-            id2 = traf.id.index(ac2)
-        except:
-            return "Fail", "Fail"
-
-        return id1, id2
