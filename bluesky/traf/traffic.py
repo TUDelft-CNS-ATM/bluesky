@@ -578,12 +578,12 @@ class Traffic:
                 self.actwplon[i]   = lon
                 self.actwpflyby[i] = int(flyby)  # 1.0 in case of fly by, els fly over
 
-                # User entered altitude
+                # User has entered an altitude for this waypoint
 
                 if alt >= 0.:
                     self.actwpalt[i] = alt
 
-                # VNAV=-ALT mode
+                # VNAV = FMS ALT/SPD mode
                 # calculated altitude is available and active
                 if toalt  >= 0. and self.swvnav[i]:  # somewhere there is an altitude constraint ahead
 
@@ -667,7 +667,9 @@ class Traffic:
                      max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
 
-            # End of Waypoint switching loop
+            #=============== End of Waypoint switching loop ===================
+            
+            # VNAV Guidance
             
             # Do VNAV start of descent check
             dy = (self.actwplat-self.lat)
@@ -707,7 +709,7 @@ class Traffic:
             #vertical direction
             turbalt=np.random.normal(0,turb[2]*timescale,self.ntraf) #[m]
             
-            #latitudinal, longitudinal direction
+            #lateral, longitudinal direction
             turblat=np.cos(trkrad)*turbhf-np.sin(trkrad)*turbhw #[m]
             turblon=np.sin(trkrad)*turbhf+np.cos(trkrad)*turbhw #[m]
 
@@ -745,16 +747,15 @@ class Traffic:
         # Autopilot selected vertical speed (V/S)
         self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
 
+        # To be discussed: Following change in VNAV mode only?
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         #climb/descend above crossover: Ma = const, else CAS = const  
         #ama is fixed when above crossover
-        check = self.abco*(self.ama == 0.)
-        swma = np.where(check==True)
+        swma = np.where(self.abco*(self.ama == 0.)) # Above cross-over
         self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
 
         # ama is deleted when below crossover
-        check2 = self.belco*(self.ama!=0.)
-        swma2 = np.where(check2==True)
+        swma2 = np.where(self.belco*(self.ama!=0.)) # below corss-over
         self.ama[swma2] = 0. 
 
         #---------- Basic Autopilot  modes ----------
@@ -782,7 +783,7 @@ class Traffic:
             self.perft0 = simt
             self.perf.perf()
 
-        # update altitude
+        # Update aircraft altitude
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
         swaltsel = np.abs(self.aalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
@@ -811,13 +812,15 @@ class Traffic:
         #--------- Kinematics: update lat,lon,alt ----------
         ds = simdt * self.gs
 
-        self.lat = self.lat + np.degrees(ds * np.cos(np.radians(self.trk)+turblat) \
+        self.lat = self.lat +        \
+                   np.degrees((ds * np.cos(np.radians(self.trk)) + turblat) \
                                          / Rearth)
 
         self.coslat = np.cos(np.deg2rad(self.lat))
 
-        self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
-                                         / self.coslat / Rearth)
+        self.lon = self.lon +        \
+                   np.degrees((ds * np.sin(np.radians(self.trk)) + turblon) \
+                                         / self.coslat / Rearth) 
 
         # Update trails when switched on
         if self.swtrails:
@@ -890,10 +893,11 @@ class Traffic:
 
     def setNoise(self, noiseflag=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
-        if noiseflag is None:
-            return True, "Noise is currently " + ("on" if noiseflag else "off")
 
-        self.noise              = noiseflag
+        if noiseflag is None:
+            return True, "Noise is currently " + ("on" if self.noise else "off")
+        
+        self.noise              = noiseflag           # Noise/turbulence switch
         self.trunctime          = 1                   # seconds
         self.transerror         = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
         self.standardturbulence = [0, 0.1, 0.1]       # m/s standard turbulence  (nonnegative)
@@ -902,6 +906,8 @@ class Traffic:
         self.turbulence     = self.noise
         self.ADSBtransnoise = self.noise
         self.ADSBtrunc      = self.noise
+
+        return True
 
     def engchange(self, acid, engid):
         """Change of engines"""
