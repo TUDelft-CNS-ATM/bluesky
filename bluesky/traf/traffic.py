@@ -116,14 +116,14 @@ class Traffic:
         self.aspd   = []  # selected spd(CAS) [m/s]
         self.aptas  = []  # just for initializing
         self.ama    = []  # selected spd above crossover altitude (Mach) [-]
-        self.aalt   = []  # selected alt[m]
-        self.afll   = []  # selected fl [ft/100]
+        self.apalt  = []  # selected alt[m]
+        self.apfll  = []  # selected fl [ft/100]
         self.avs    = []  # selected vertical speed [m/s]
 
         # limit settings
-        self.lspd   = []  # limit speed
-        self.lalt   = []  # limit altitude
-        self.lvs    = []  # limit vertical speed due to thrust limitation
+        self.limspd   = []  # limit speed
+        self.limalt   = []  # limit altitude
+        self.limvs    = []  # limit vertical speed due to thrust limitation
 
         # Traffic navigation information
         self.orig   = []  # Four letter code of origin airport
@@ -294,18 +294,18 @@ class Traffic:
         self.perf.create(actype)
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
-        self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
-        self.aspd = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
+        self.ahdg  = np.append(self.ahdg, achdg)  # selected heading [deg]
+        self.aspd  = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
         self.aptas = np.append(self.aptas, acspd)  # [m/s]
-        self.ama  = np.append(self.ama, 0.)  # selected spd above crossover (Mach) [-]
-        self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
-        self.afll = np.append(self.afll, (acalt / 100))  # selected fl[ft/100]
-        self.avs = np.append(self.avs, 0.)  # selected vertical speed [m/s]
+        self.ama   = np.append(self.ama, 0.)  # selected spd above crossover (Mach) [-]
+        self.apalt = np.append(self.apalt, acalt)  # selected alt[m]
+        self.apfll = np.append(self.apfll, (acalt / 100))  # selected fl[ft/100]
+        self.avs   = np.append(self.avs, 0.)  # selected vertical speed [m/s]
 
         # limit settings: initialize with 0
-        self.lspd = np.append(self.lspd, 0.0)
-        self.lalt = np.append(self.lalt, 0.0)
-        self.lvs = np.append(self.lvs, 0.0)
+        self.limspd = np.append(self.limspd, 0.0)
+        self.limalt = np.append(self.limalt, 0.0)
+        self.limvs  = np.append(self.limvs, 0.0)
 
         # Help variables to save computation time
         self.coslat = np.append(self.coslat, cos(radians(aclat)))  # Cosine of latitude for flat-earth aproximations
@@ -318,11 +318,11 @@ class Traffic:
         self.swlnav = np.append(self.swlnav, False)  # Lateral (HDG) based on nav
         self.swvnav = np.append(self.swvnav, False)  # Vertical/longitudinal (ALT+SPD) based on nav info
 
-        self.actwplat  = np.append(self.actwplat, 89.99)  # Active WP latitude
-        self.actwplon  = np.append(self.actwplon, 0.0)   # Active WP longitude
-        self.actwpalt  = np.append(self.actwpalt, 0.0)   # Active WP altitude
-        self.actwpspd  = np.append(self.actwpspd, -999.)   # Active WP speed
-        self.actwpturn = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
+        self.actwplat   = np.append(self.actwplat, 89.99)  # Active WP latitude
+        self.actwplon   = np.append(self.actwplon, 0.0)   # Active WP longitude
+        self.actwpalt   = np.append(self.actwpalt, 0.0)   # Active WP altitude
+        self.actwpspd   = np.append(self.actwpspd, -999.)   # Active WP speed
+        self.actwpturn  = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
         self.actwpflyby = np.append(self.actwpflyby, 1.0)   # Flyby/fly-over switch
 
         # VNAV cruise level
@@ -417,14 +417,14 @@ class Traffic:
         self.aspd   = np.delete(self.aspd, idx)
         self.ama    = np.delete(self.ama, idx)
         self.aptas  = np.delete(self.aptas, idx)
-        self.aalt   = np.delete(self.aalt, idx)
-        self.afll   = np.delete(self.afll, idx)
+        self.apalt  = np.delete(self.apalt, idx)
+        self.apfll  = np.delete(self.apfll, idx)
         self.avs    = np.delete(self.avs, idx)
 
         # limit settings
-        self.lspd   = np.delete(self.lspd, idx)
-        self.lalt   = np.delete(self.lalt, idx)
-        self.lvs    = np.delete(self.lvs, idx)
+        self.limspd   = np.delete(self.limspd, idx)
+        self.limalt   = np.delete(self.limalt, idx)
+        self.limvs    = np.delete(self.limvs, idx)
 
         # Help variables to save computation time
         self.coslat = np.delete(self.coslat, idx)  # Cosine of latitude for flat-earth aproximations
@@ -493,15 +493,6 @@ class Traffic:
 
         #---------------- Atmosphere ----------------
         self.p, self.rho, self.Temp = vatmos(self.alt)
-
-        #-------------- Performance limits autopilot settings --------------
-        # Check difference with AP settings for trafperf and autopilot
-        self.delalt = self.aalt - self.alt  # [m]
-
-        # below crossover altitude: CAS=const, above crossover altitude: MA = const
-        # aptas hast to be calculated before delspd
-        self.aptas = vcas2tas(self.aspd, self.alt) * self.belco + vmach2tas(self.ama, self.alt) * self.abco
-        self.delspd = self.aptas - self.tas
 
         ###############################################################################
         # Debugging: add 10000 random aircraft
@@ -578,12 +569,12 @@ class Traffic:
                 self.actwplon[i]   = lon
                 self.actwpflyby[i] = int(flyby)  # 1.0 in case of fly by, els fly over
 
-                # User entered altitude
+                # User has entered an altitude for this waypoint
 
                 if alt >= 0.:
                     self.actwpalt[i] = alt
 
-                # VNAV=-ALT mode
+                # VNAV = FMS ALT/SPD mode
                 # calculated altitude is available and active
                 if toalt  >= 0. and self.swvnav[i]:  # somewhere there is an altitude constraint ahead
 
@@ -606,7 +597,7 @@ class Traffic:
 
                         # If descent is urgent, descent with maximum steepness
                         if legdist < self.dist2vs[i]:
-                            self.aalt[i] = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
+                            self.apalt[i] = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
 
                             t2go         = max(0.1, legdist) / max(0.01, self.gs[i])
                             self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i]) / t2go
@@ -623,7 +614,7 @@ class Traffic:
                     elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
 
                         self.actwpalt[i] = toalt
-                        self.aalt[i]     = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
+                        self.apalt[i]    = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
                         self.dist2vs[i]  = 9999.
 
                     # Level leg: never start V/S
@@ -667,7 +658,9 @@ class Traffic:
                      max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
 
-            # End of Waypoint switching loop
+            #=============== End of Waypoint switching loop ===================
+            
+            # VNAV Guidance
             
             # Do VNAV start of descent check
             dy = (self.actwplat-self.lat)
@@ -682,7 +675,7 @@ class Traffic:
                                      (self.actwpalt>self.alt))            
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
-            self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
+            self.aalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
 
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
@@ -707,7 +700,7 @@ class Traffic:
             #vertical direction
             turbalt=np.random.normal(0,turb[2]*timescale,self.ntraf) #[m]
             
-            #latitudinal, longitudinal direction
+            #lateral, longitudinal direction
             turblat=np.cos(trkrad)*turbhf-np.sin(trkrad)*turbhw #[m]
             turblon=np.sin(trkrad)*turbhf+np.cos(trkrad)*turbhw #[m]
 
@@ -724,8 +717,19 @@ class Traffic:
         # desired autopilot settings due to ASAS
         self.deshdg = self.asas.asasactive*self.asas.asashdg + (1-self.asas.asasactive)*self.ahdg
         self.desspd = self.asas.asasactive*self.asas.asasspd + (1-self.asas.asasactive)*self.aspd
-        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.aalt
+        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.apalt
         self.desvs  = self.asas.asasactive*self.asas.asasvsp + (1-self.asas.asasactive)*self.avs
+
+ #-------------- Performance limits autopilot settings --------------
+        # Check difference with AP settings for trafperf and autopilot
+        self.delalt = self.desalt - self.alt  # [m]
+
+        # below crossover altitude: CAS=const, above crossover altitude: Mach = const
+        # aptas has to be calculated before delspd
+        self.aptas = vcas2tas(self.desspd, self.alt) * self.belco   +   \
+                     vmach2tas(self.ama, self.alt) * self.abco
+        self.delspd = self.desspd - self.tas
+
 
         # check for the flight envelope
         self.perf.limits()
@@ -734,27 +738,26 @@ class Traffic:
 
         # Autopilot selected speed setting [m/s]
         # To do: add const Mach const CAS mode
-        self.aspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*self.lspd
+        self.aspd = (self.limspd ==0)*self.desspd + (self.limspd!=0)*self.limspd
 
-        # Autopilot selected altitude [m]
-        self.aalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
+        # Autopilot selected altitude [m] limited when necessary
+        self.aalt = (self.limalt ==0)*self.desalt + (self.limalt!=0)*self.limalt
 
         # Autopilot selected heading
         self.ahdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
-        self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
+        self.avs = (self.limvs==0)*self.desvs + (self.limvs!=0)*self.limvs
 
+        # To be discussed: Following change in VNAV mode only?
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         #climb/descend above crossover: Ma = const, else CAS = const  
         #ama is fixed when above crossover
-        check = self.abco*(self.ama == 0.)
-        swma = np.where(check==True)
+        swma = np.where(self.abco*(self.ama == 0.)) # Above cross-over
         self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
 
         # ama is deleted when below crossover
-        check2 = self.belco*(self.ama!=0.)
-        swma2 = np.where(check2==True)
+        swma2 = np.where(self.belco*(self.ama!=0.)) # below corss-over
         self.ama[swma2] = 0. 
 
         #---------- Basic Autopilot  modes ----------
@@ -782,7 +785,7 @@ class Traffic:
             self.perft0 = simt
             self.perf.perf()
 
-        # update altitude
+        # Update aircraft altitude
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
         swaltsel = np.abs(self.aalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
@@ -811,13 +814,15 @@ class Traffic:
         #--------- Kinematics: update lat,lon,alt ----------
         ds = simdt * self.gs
 
-        self.lat = self.lat + np.degrees(ds * np.cos(np.radians(self.trk)+turblat) \
+        self.lat = self.lat +        \
+                   np.degrees((ds * np.cos(np.radians(self.trk)) + turblat) \
                                          / Rearth)
 
         self.coslat = np.cos(np.deg2rad(self.lat))
 
-        self.lon = self.lon + np.degrees(ds * np.sin(np.radians(self.trk)+turblon) \
-                                         / self.coslat / Rearth)
+        self.lon = self.lon +        \
+                   np.degrees((ds * np.sin(np.radians(self.trk)) + turblon) \
+                                         / self.coslat / Rearth) 
 
         # Update trails when switched on
         if self.swtrails:
@@ -890,10 +895,11 @@ class Traffic:
 
     def setNoise(self, noiseflag=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
-        if noiseflag is None:
-            return True, "Noise is currently " + ("on" if noiseflag else "off")
 
-        self.noise              = noiseflag
+        if noiseflag is None:
+            return True, "Noise is currently " + ("on" if self.noise else "off")
+        
+        self.noise              = noiseflag           # Noise/turbulence switch
         self.trunctime          = 1                   # seconds
         self.transerror         = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
         self.standardturbulence = [0, 0.1, 0.1]       # m/s standard turbulence  (nonnegative)
@@ -902,6 +908,8 @@ class Traffic:
         self.turbulence     = self.noise
         self.ADSBtransnoise = self.noise
         self.ADSBtrunc      = self.noise
+
+        return True
 
     def engchange(self, acid, engid):
         """Change of engines"""
@@ -957,9 +965,9 @@ class Traffic:
 
     def selalt(self, idx, alt, vspd=None):
         """ Select altitude command: ALT acid, alt, [vspd] """
-        self.aalt[idx]    = alt
-        self.afll[idx]    = alt / (100. * ft)
-        self.swvnav[idx]  = False
+        self.apalt[idx]    = alt
+        self.apfll[idx]    = alt / (100. * ft)
+        self.swvnav[idx]   = False
 
         # Check for optional VS argument
         if vspd:
