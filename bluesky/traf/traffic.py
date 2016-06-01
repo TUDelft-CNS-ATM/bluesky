@@ -116,8 +116,8 @@ class Traffic:
         self.aspd   = []  # selected spd(CAS) [m/s]
         self.aptas  = []  # just for initializing
         self.ama    = []  # selected spd above crossover altitude (Mach) [-]
-        self.aalt   = []  # selected alt[m]
-        self.afll   = []  # selected fl [ft/100]
+        self.apalt  = []  # selected alt[m]
+        self.apfll  = []  # selected fl [ft/100]
         self.avs    = []  # selected vertical speed [m/s]
 
         # limit settings
@@ -294,18 +294,18 @@ class Traffic:
         self.perf.create(actype)
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
-        self.ahdg = np.append(self.ahdg, achdg)  # selected heading [deg]
-        self.aspd = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
+        self.ahdg  = np.append(self.ahdg, achdg)  # selected heading [deg]
+        self.aspd  = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
         self.aptas = np.append(self.aptas, acspd)  # [m/s]
-        self.ama  = np.append(self.ama, 0.)  # selected spd above crossover (Mach) [-]
-        self.aalt = np.append(self.aalt, acalt)  # selected alt[m]
-        self.afll = np.append(self.afll, (acalt / 100))  # selected fl[ft/100]
-        self.avs = np.append(self.avs, 0.)  # selected vertical speed [m/s]
+        self.ama   = np.append(self.ama, 0.)  # selected spd above crossover (Mach) [-]
+        self.apalt = np.append(self.apalt, acalt)  # selected alt[m]
+        self.apfll = np.append(self.apfll, (acalt / 100))  # selected fl[ft/100]
+        self.avs   = np.append(self.avs, 0.)  # selected vertical speed [m/s]
 
         # limit settings: initialize with 0
         self.limspd = np.append(self.limspd, 0.0)
         self.limalt = np.append(self.limalt, 0.0)
-        self.limvs = np.append(self.limvs, 0.0)
+        self.limvs  = np.append(self.limvs, 0.0)
 
         # Help variables to save computation time
         self.coslat = np.append(self.coslat, cos(radians(aclat)))  # Cosine of latitude for flat-earth aproximations
@@ -318,11 +318,11 @@ class Traffic:
         self.swlnav = np.append(self.swlnav, False)  # Lateral (HDG) based on nav
         self.swvnav = np.append(self.swvnav, False)  # Vertical/longitudinal (ALT+SPD) based on nav info
 
-        self.actwplat  = np.append(self.actwplat, 89.99)  # Active WP latitude
-        self.actwplon  = np.append(self.actwplon, 0.0)   # Active WP longitude
-        self.actwpalt  = np.append(self.actwpalt, 0.0)   # Active WP altitude
-        self.actwpspd  = np.append(self.actwpspd, -999.)   # Active WP speed
-        self.actwpturn = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
+        self.actwplat   = np.append(self.actwplat, 89.99)  # Active WP latitude
+        self.actwplon   = np.append(self.actwplon, 0.0)   # Active WP longitude
+        self.actwpalt   = np.append(self.actwpalt, 0.0)   # Active WP altitude
+        self.actwpspd   = np.append(self.actwpspd, -999.)   # Active WP speed
+        self.actwpturn  = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
         self.actwpflyby = np.append(self.actwpflyby, 1.0)   # Flyby/fly-over switch
 
         # VNAV cruise level
@@ -417,8 +417,8 @@ class Traffic:
         self.aspd   = np.delete(self.aspd, idx)
         self.ama    = np.delete(self.ama, idx)
         self.aptas  = np.delete(self.aptas, idx)
-        self.aalt   = np.delete(self.aalt, idx)
-        self.afll   = np.delete(self.afll, idx)
+        self.apalt  = np.delete(self.apalt, idx)
+        self.apfll  = np.delete(self.apfll, idx)
         self.avs    = np.delete(self.avs, idx)
 
         # limit settings
@@ -493,15 +493,6 @@ class Traffic:
 
         #---------------- Atmosphere ----------------
         self.p, self.rho, self.Temp = vatmos(self.alt)
-
-        #-------------- Performance limits autopilot settings --------------
-        # Check difference with AP settings for trafperf and autopilot
-        self.delalt = self.aalt - self.alt  # [m]
-
-        # below crossover altitude: CAS=const, above crossover altitude: Mach = const
-        # aptas has to be calculated before delspd
-        self.aptas = vcas2tas(self.aspd, self.alt) * self.belco + vmach2tas(self.ama, self.alt) * self.abco
-        self.delspd = self.aptas - self.tas
 
         ###############################################################################
         # Debugging: add 10000 random aircraft
@@ -606,7 +597,7 @@ class Traffic:
 
                         # If descent is urgent, descent with maximum steepness
                         if legdist < self.dist2vs[i]:
-                            self.aalt[i] = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
+                            self.apalt[i] = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
 
                             t2go         = max(0.1, legdist) / max(0.01, self.gs[i])
                             self.actwpvs[i]  = (self.actwpalt[i] - self.alt[i]) / t2go
@@ -623,7 +614,7 @@ class Traffic:
                     elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
 
                         self.actwpalt[i] = toalt
-                        self.aalt[i]     = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
+                        self.apalt[i]    = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
                         self.dist2vs[i]  = 9999.
 
                     # Level leg: never start V/S
@@ -684,7 +675,7 @@ class Traffic:
                                      (self.actwpalt>self.alt))            
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
-            self.aalt = (1-self.swvnavvs)*self.aalt + self.swvnavvs*self.actwpalt
+            self.aalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
 
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
@@ -726,8 +717,19 @@ class Traffic:
         # desired autopilot settings due to ASAS
         self.deshdg = self.asas.asasactive*self.asas.asashdg + (1-self.asas.asasactive)*self.ahdg
         self.desspd = self.asas.asasactive*self.asas.asasspd + (1-self.asas.asasactive)*self.aspd
-        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.aalt
+        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.apalt
         self.desvs  = self.asas.asasactive*self.asas.asasvsp + (1-self.asas.asasactive)*self.avs
+
+ #-------------- Performance limits autopilot settings --------------
+        # Check difference with AP settings for trafperf and autopilot
+        self.delalt = self.desalt - self.alt  # [m]
+
+        # below crossover altitude: CAS=const, above crossover altitude: Mach = const
+        # aptas has to be calculated before delspd
+        self.aptas = vcas2tas(self.desspd, self.alt) * self.belco   +   \
+                     vmach2tas(self.ama, self.alt) * self.abco
+        self.delspd = self.desspd - self.tas
+
 
         # check for the flight envelope
         self.perf.limits()
@@ -738,7 +740,7 @@ class Traffic:
         # To do: add const Mach const CAS mode
         self.aspd = (self.limspd ==0)*self.desspd + (self.limspd!=0)*self.limspd
 
-        # Autopilot selected altitude [m]
+        # Autopilot selected altitude [m] limited when necessary
         self.aalt = (self.limalt ==0)*self.desalt + (self.limalt!=0)*self.limalt
 
         # Autopilot selected heading
@@ -963,9 +965,9 @@ class Traffic:
 
     def selalt(self, idx, alt, vspd=None):
         """ Select altitude command: ALT acid, alt, [vspd] """
-        self.aalt[idx]    = alt
-        self.afll[idx]    = alt / (100. * ft)
-        self.swvnav[idx]  = False
+        self.apalt[idx]    = alt
+        self.apfll[idx]    = alt / (100. * ft)
+        self.swvnav[idx]   = False
 
         # Check for optional VS argument
         if vspd:
