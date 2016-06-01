@@ -121,9 +121,9 @@ class Traffic:
         self.avs    = []  # selected vertical speed [m/s]
 
         # limit settings
-        self.lspd   = []  # limit speed
-        self.lalt   = []  # limit altitude
-        self.lvs    = []  # limit vertical speed due to thrust limitation
+        self.limspd   = []  # limit speed
+        self.limalt   = []  # limit altitude
+        self.limvs    = []  # limit vertical speed due to thrust limitation
 
         # Traffic navigation information
         self.orig   = []  # Four letter code of origin airport
@@ -303,9 +303,9 @@ class Traffic:
         self.avs = np.append(self.avs, 0.)  # selected vertical speed [m/s]
 
         # limit settings: initialize with 0
-        self.lspd = np.append(self.lspd, 0.0)
-        self.lalt = np.append(self.lalt, 0.0)
-        self.lvs = np.append(self.lvs, 0.0)
+        self.limspd = np.append(self.limspd, 0.0)
+        self.limalt = np.append(self.limalt, 0.0)
+        self.limvs = np.append(self.limvs, 0.0)
 
         # Help variables to save computation time
         self.coslat = np.append(self.coslat, cos(radians(aclat)))  # Cosine of latitude for flat-earth aproximations
@@ -422,9 +422,9 @@ class Traffic:
         self.avs    = np.delete(self.avs, idx)
 
         # limit settings
-        self.lspd   = np.delete(self.lspd, idx)
-        self.lalt   = np.delete(self.lalt, idx)
-        self.lvs    = np.delete(self.lvs, idx)
+        self.limspd   = np.delete(self.limspd, idx)
+        self.limalt   = np.delete(self.limalt, idx)
+        self.limvs    = np.delete(self.limvs, idx)
 
         # Help variables to save computation time
         self.coslat = np.delete(self.coslat, idx)  # Cosine of latitude for flat-earth aproximations
@@ -498,8 +498,8 @@ class Traffic:
         # Check difference with AP settings for trafperf and autopilot
         self.delalt = self.aalt - self.alt  # [m]
 
-        # below crossover altitude: CAS=const, above crossover altitude: MA = const
-        # aptas hast to be calculated before delspd
+        # below crossover altitude: CAS=const, above crossover altitude: Mach = const
+        # aptas has to be calculated before delspd
         self.aptas = vcas2tas(self.aspd, self.alt) * self.belco + vmach2tas(self.ama, self.alt) * self.abco
         self.delspd = self.aptas - self.tas
 
@@ -736,16 +736,16 @@ class Traffic:
 
         # Autopilot selected speed setting [m/s]
         # To do: add const Mach const CAS mode
-        self.aspd = (self.lspd ==0)*self.desspd + (self.lspd!=0)*self.lspd
+        self.aspd = (self.limspd ==0)*self.desspd + (self.limspd!=0)*self.limspd
 
         # Autopilot selected altitude [m]
-        self.aalt = (self.lalt ==0)*self.desalt + (self.lalt!=0)*self.lalt
+        self.aalt = (self.limalt ==0)*self.desalt + (self.limalt!=0)*self.limalt
 
         # Autopilot selected heading
         self.ahdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
-        self.avs = (self.lvs==0)*self.desvs + (self.lvs!=0)*self.lvs
+        self.avs = (self.limvs==0)*self.desvs + (self.limvs!=0)*self.limvs
 
         # To be discussed: Following change in VNAV mode only?
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
