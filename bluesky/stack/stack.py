@@ -69,7 +69,7 @@ class Commandstack:
             ],
             "BATCH": [
                 "BATCH filename",
-                "txt",
+                "string",
                 sim.batch],
             "BENCHMARK": [
                 "BENCHMARK [scenfile,time]",
@@ -83,7 +83,7 @@ class Commandstack:
             ],
             "CALC": [
                 "CALC expression",
-                "txt",
+                "string",
                 lambda expr: scr.echo("Ans = " + str(eval(expr)))
             ],
             "CDMETHOD": [
@@ -154,7 +154,7 @@ class Commandstack:
             ],
             "ECHO": [
                 "ECHO txt",
-                "txt",
+                "string",
                 scr.echo
             ],
             "ENG": [
@@ -194,7 +194,7 @@ class Commandstack:
             ],
             "INSEDIT": [
                 "INSEDIT txt",
-                "txt",
+                "string",
                 scr.cmdline
             ],
             "LINE": [
@@ -297,12 +297,12 @@ class Commandstack:
             ],
             "SAVEIC": [
                 "SAVEIC filename",
-                "txt",
+                "string",
                 lambda fname: self.saveic(fname, sim, traf)
             ],
             "SCEN": [
                 "SCEN scenname",
-                "txt",
+                "string",
                 sim.scenarioInit
             ],
             "SEED": [
@@ -629,7 +629,6 @@ class Commandstack:
             # switched acid and command
             cmd, args = cmdsplit(line.upper(), traf.id)
             numargs   = len(args)
-
             # Check if this is a POS command with only an aircraft id
             if numargs == 0 and traf.id.count(cmd) > 0:
                 args    = [cmd]
@@ -670,8 +669,9 @@ class Commandstack:
 
                 # Process arg list
                 optargs = {}
-                # Special case: single text argument: this can also be a string, so pass the original
-                if argtypes == ['txt']:
+                # Special case: single text string argument: case sensitive,
+                # possibly with spaces/newlines pass the original
+                if argtypes == ['string']:
                     arglist = [line[len(cmd) + 1:]]
                 else:
                     arglist = []
