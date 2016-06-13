@@ -541,6 +541,9 @@ class RadarWidget(QGLWidget):
 
     def resizeGL(self, width, height):
         """Called upon window resizing: reinitialize the viewport."""
+        if not self.initialized:
+            return
+
         # update the window size
         # Qt5 supports getting the device pixel ratio, which can be > 1 for HiDPI displays such as Mac Retina screens
         pixel_ratio = 1
