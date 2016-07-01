@@ -669,6 +669,9 @@ static struct PyMethodDef methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+#ifndef PyMODINIT_FUNC  /* declarations for DLL import/export */
+#define PyMODINIT_FUNC void
+#endif
 PyMODINIT_FUNC initcgeo()
 {
     Py_InitModule("cgeo", methods);
