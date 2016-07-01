@@ -531,15 +531,18 @@ class Traffic:
         #------------------- ASAS update: ---------------------
         # Reset label because of colour change
         # Save old result
-        # iconf0 = np.array(self.asas.iconf)
+        
+        iconf0 = np.array(self.asas.iconf)
 
         self.asas.update(self, simt)
 
         # TODO: this doesn't work anymore when asas.iconf is a list of lists
         # chnged = np.where(iconf0 != np.array(self.asas.iconf))[0]
-        # for i in chnged:
-        #     self.label[i] = [" ", " ", "", " "]
-
+        if settings.gui=="pygame":        
+            for i in range(self.ntraf):
+                if np.any(iconf0[i] != self.asas.iconf[i]):
+                    self.label[i] = [" ", " ", "", " "]
+    
         #-----------------  FMS GUIDANCE & NAVIGATION  ------------------
         # Scheduling: when dt has passed or restart:
         if self.t0fms + self.dtfms < simt or simt < self.t0fms:
