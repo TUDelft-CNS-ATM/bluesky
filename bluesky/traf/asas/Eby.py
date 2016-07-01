@@ -11,32 +11,33 @@ from ...tools.aero import vtas2eas
 def start(dbconf):
     pass
 
+
 def resolve(dbconf, traf):
     if not dbconf.swasas:
         return
 
     # required change in velocity
-    dv=np.zeros((traf.ntraf, 3))
+    dv = np.zeros((traf.ntraf, 3))
 
     #if possible, solve conflicts once and copy results for symmetrical conflicts,
     #if that is not possible, solve each conflict twice, once for each A/C
     if not traf.ADSBtrunc and not traf.ADSBtransnoise:
         for conflict in dbconf.conflist_now:
-            id1,id2=dbconf.ConflictToIndices(conflict)
-            if id1 != "Fail" and id2!= "Fail":
-                dv_eby=Eby_straight(traf, dbconf,id1,id2)
-                dv[id1]-=dv_eby
-                dv[id2]+=dv_eby
+            id1, id2 = dbconf.ConflictToIndices(conflict)
+            if id1 != "Fail" and id2 != "Fail":
+                dv_eby = Eby_straight(traf, dbconf, id1, id2)
+                dv[id1] -= dv_eby
+                dv[id2] += dv_eby
     else:
         for i in range(dbconf.nconf):
-            ac1=dbconf.idown[i]
-            ac2=dbconf.idoth[i]
-            id1=traf.id.index(ac1)
-            id2=traf.id.index(ac2)
-            dv_eby=Eby_straight(dbconf,id1,id2)
-            dv[id1]-=dv_eby
-                
-            
+            confpair = dbconf.confpairs[i]
+            ac1      = confpair[0]
+            ac2      = confpair[1]
+            id1      = traf.id.index(ac1)
+            id2      = traf.id.index(ac2)
+            dv_eby   = Eby_straight(dbconf, id1, id2)
+            dv[id1] -= dv_eby
+
     # now we have the change in speed vector for each aircraft.
     dv=np.transpose(dv)
     # the old speed vector, cartesian coordinates

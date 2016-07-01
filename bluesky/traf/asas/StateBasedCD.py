@@ -21,8 +21,8 @@ def detect(dbconf, traf, simt):
                                np.mat(traf.adsblat), np.mat(traf.adsblon))
 
     # Convert results from mat-> array
-    dbconf.qdr = np.array(qdlst[0])  # degrees
-    I = np.eye(traf.ntraf)  # Identity matric of order ntraf
+    dbconf.qdr  = np.array(qdlst[0])  # degrees
+    I           = np.eye(traf.ntraf)  # Identity matric of order ntraf
     dbconf.dist = np.array(qdlst[1]) * nm + 1e9 * I  # meters i to j
 
     # Transmission noise
@@ -35,11 +35,11 @@ def detect(dbconf, traf, simt):
         dbconf.dist += disterror
 
     # Calculate horizontal closest point of approach (CPA)
-    qdrrad = np.radians(dbconf.qdr)
+    qdrrad    = np.radians(dbconf.qdr)
     dbconf.dx = dbconf.dist * np.sin(qdrrad)  # is pos j rel to i
     dbconf.dy = dbconf.dist * np.cos(qdrrad)  # is pos j rel to i
 
-    trkrad = np.radians(traf.trk)
+    trkrad   = np.radians(traf.trk)
     dbconf.u = traf.gs * np.sin(trkrad).reshape((1, len(trkrad)))  # m/s
     dbconf.v = traf.gs * np.cos(trkrad).reshape((1, len(trkrad)))  # m/s
 
@@ -48,34 +48,34 @@ def detect(dbconf, traf, simt):
     adsbu = traf.adsbgs * np.sin(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
     adsbv = traf.adsbgs * np.cos(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
 
-    dbconf.du = dbconf.u - adsbu.T  # Speed du[i,j] is perceived eastern speed of i to j
-    dbconf.dv = dbconf.v - adsbv.T  # Speed dv[i,j] is perceived northern speed of i to j
+    du = dbconf.u - adsbu.T  # Speed du[i,j] is perceived eastern speed of i to j
+    dv = dbconf.v - adsbv.T  # Speed dv[i,j] is perceived northern speed of i to j
 
-    dv2 = dbconf.du * dbconf.du + dbconf.dv * dbconf.dv
+    dv2 = du * du + dv * dv
     dv2 = np.where(np.abs(dv2) < 1e-6, 1e-6, dv2)  # limit lower absolute value
 
     vrel = np.sqrt(dv2)
 
-    dbconf.tcpa = -(dbconf.du * dbconf.dx + dbconf.dv * dbconf.dy) / dv2 + 1e9 * I
+    dbconf.tcpa = -(du * dbconf.dx + dv * dbconf.dy) / dv2 + 1e9 * I
 
     # Calculate CPA positions
-    # xcpa = dbconf.tcpa * dbconf.du
-    # ycpa = dbconf.tcpa * dbconf.dv
+    # xcpa = dbconf.tcpa * du
+    # ycpa = dbconf.tcpa * dv
 
     # Calculate distance^2 at CPA (minimum distance^2)
     dcpa2 = dbconf.dist * dbconf.dist - dbconf.tcpa * dbconf.tcpa * dv2
 
     # Check for horizontal conflict
     R2 = dbconf.R * dbconf.R
-    dbconf.swhorconf = dcpa2 < R2  # conflict or not
+    swhorconf = dcpa2 < R2  # conflict or not
 
     # Calculate times of entering and leaving horizontal conflict
     dxinhor = np.sqrt(np.maximum(0., R2 - dcpa2))  # half the distance travelled inzide zone
     dtinhor = dxinhor / vrel
 
-    tinhor = np.where(dbconf.swhorconf, dbconf.tcpa - dtinhor, 1e8)  # Set very large if no conf
+    tinhor = np.where(swhorconf, dbconf.tcpa - dtinhor, 1e8)  # Set very large if no conf
 
-    touthor = np.where(dbconf.swhorconf, dbconf.tcpa + dtinhor, -1e8)  # set very large if no conf
+    touthor = np.where(swhorconf, dbconf.tcpa + dtinhor, -1e8)  # set very large if no conf
     # swhorconf = swhorconf*(touthor>0)*(tinhor<dbconf.dtlook)
 
     # Vertical conflict -----------------------------------------------------------
@@ -111,75 +111,50 @@ def detect(dbconf, traf, simt):
 
     dbconf.toutconf = np.minimum(toutver, touthor)
 
-    dbconf.swconfl = dbconf.swhorconf * (dbconf.tinconf <= dbconf.toutconf) * \
+    swconfl = swhorconf * (dbconf.tinconf <= dbconf.toutconf) * \
         (dbconf.toutconf > 0.) * (dbconf.tinconf < dbconf.dtlookahead) \
         * (1. - I)
 
     # ----------------------------------------------------------------------
     # Update conflict lists
     # ----------------------------------------------------------------------
-    if len(dbconf.swconfl) == 0:
+    if len(swconfl) == 0:
         return
     # Calculate CPA positions of traffic in lat/lon?
 
     # Select conflicting pairs: each a/c gets their own record
-    dbconf.confidxs = np.where(dbconf.swconfl)
-
-    dbconf.nconf = len(dbconf.confidxs[0])
-    dbconf.iown = dbconf.confidxs[0]
-    dbconf.ioth = dbconf.confidxs[1]
-
-    dbconf.latowncpa = []
-    dbconf.lonowncpa = []
-    dbconf.altowncpa = []
-    dbconf.latintcpa = []
-    dbconf.lonintcpa = []
-    dbconf.altintcpa = []
+    confidxs            = np.where(swconfl)
+    iown                = confidxs[0]
+    ioth                = confidxs[1]
 
     # Store result
-    dbconf.iconf = traf.ntraf * [-1]
-    dbconf.idown = []
-    dbconf.idoth = []
-
-    dbconf.LOSlist_now = []
-    dbconf.conflist_now = []
+    dbconf.nconf        = len(confidxs[0])
 
     for idx in range(dbconf.nconf):
-        i = dbconf.iown[idx]
-        j = dbconf.ioth[idx]
+        i = iown[idx]
+        j = ioth[idx]
         if i == j:
             continue
 
-        dbconf.idown.append(traf.id[i])
-        dbconf.idoth.append(traf.id[j])
+        dbconf.iconf[i].append(idx)
+        dbconf.confpairs.append((traf.id[i], traf.id[j]))
 
-        dbconf.iconf[i] = idx
-        rng = dbconf.tcpa[i, j] * traf.gs[i] / nm
-        lato, lono = geo.qdrpos(traf.lat[i], traf.lon[i],
-                                traf.trk[i], rng)
-        alto = traf.alt[i] + dbconf.tcpa[i, j] * traf.vs[i]
-
-        rng = dbconf.tcpa[i, j] * traf.adsbgs[j] / nm
-        lati, loni = geo.qdrpos(traf.adsblat[j], traf.adsblon[j],
-                                traf.adsbtrk[j], rng)
-        alti = traf.adsbalt[j] + dbconf.tcpa[i, j] * traf.adsbvs[j]
+        rng        = dbconf.tcpa[i, j] * traf.gs[i] / nm
+        lato, lono = geo.qdrpos(traf.lat[i], traf.lon[i], traf.trk[i], rng)
+        alto       = traf.alt[i] + dbconf.tcpa[i, j] * traf.vs[i]
 
         dbconf.latowncpa.append(lato)
         dbconf.lonowncpa.append(lono)
         dbconf.altowncpa.append(alto)
-        dbconf.latintcpa.append(lati)
-        dbconf.lonintcpa.append(loni)
-        dbconf.altintcpa.append(alti)
 
         dx = (traf.lat[i] - traf.lat[j]) * 111319.
         dy = (traf.lon[i] - traf.lon[j]) * 111319.
 
         hdist2 = dx**2 + dy**2
-        hLOS = hdist2 < dbconf.R**2
-        vdist = abs(traf.alt[i] - traf.alt[j])
-        vLOS = vdist < dbconf.dh
-
-        LOS = (hLOS & vLOS)
+        hLOS   = hdist2 < dbconf.R**2
+        vdist  = abs(traf.alt[i] - traf.alt[j])
+        vLOS   = vdist < dbconf.dh
+        LOS    = (hLOS & vLOS)
 
         # Add to Conflict and LOSlist, to count total conflicts and LOS
 
@@ -224,19 +199,14 @@ def detect(dbconf, traf, simt):
 
             if idx >= 0:
                 if severity > dbconf.LOSmaxsev[idx]:
-                    dbconf.LOSmaxsev[idx] = severity
+                    dbconf.LOSmaxsev[idx]  = severity
                     dbconf.LOShmaxsev[idx] = Ih
                     dbconf.LOSvmaxsev[idx] = Iv
-
-    dbconf.nconf = len(dbconf.idown)
 
     # Convert to numpy arrays for vectorisation
     dbconf.latowncpa = np.array(dbconf.latowncpa)
     dbconf.lonowncpa = np.array(dbconf.lonowncpa)
     dbconf.altowncpa = np.array(dbconf.altowncpa)
-    dbconf.latintcpa = np.array(dbconf.latintcpa)
-    dbconf.lonintcpa = np.array(dbconf.latintcpa)
-    dbconf.altintcpa = np.array(dbconf.altintcpa)
 
     # Calculate whether ASAS or A/P commands should be followed
     APorASAS(dbconf, traf)
@@ -247,7 +217,6 @@ def APorASAS(dbconf, traf):
         should be followed or not, based on if the aircraft pairs passed
         their CPA. """
     dbconf.asasactive.fill(False)
-    dbconf.inconflict.fill(False)
 
     # Look at all conflicts, also the ones that are solved but CPA is yet to come
     for conflict in dbconf.conflist_all:
@@ -267,7 +236,4 @@ def APorASAS(dbconf, traf):
             if np.dot(d, v2 - v1) < 0:
                 # Aircraft haven't passed their CPA: must follow their ASAS
                 dbconf.asasactive[id1] = True
-                dbconf.inconflict[id1] = True
-
                 dbconf.asasactive[id2] = True
-                dbconf.inconflict[id2] = True

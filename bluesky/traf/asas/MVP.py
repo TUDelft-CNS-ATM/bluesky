@@ -36,25 +36,23 @@ def resolve(dbconf, traf):
     else:
 
         for i in range(dbconf.nconf):
+            confpair = dbconf.confpairs[i]
+            ac1      = confpair[0]
+            ac2      = confpair[1]
+            id1      = traf.id.index(ac1)
+            id2      = traf.id.index(ac2)
+            dv_eby   = MVP(dbconf, id1, id2)
+            dv[id1]  = dv[id1] - dv_eby
 
-            ac1 = dbconf.idown[i]
-            ac2 = dbconf.idoth[i]
-
-            id1 = traf.id.index(ac1)
-            id2 = traf.id.index(ac2)
-
-            dv_eby = MVP(dbconf,id1,id2)
-            dv[id1]= dv[id1] - dv_eby
-            
     # now we have the change in speed vector for each aircraft.
     dv = np.transpose(dv)
-    
+
     # the old speed vector, cartesian coordinates
     trkrad = np.radians(traf.trk)
     v = np.array([np.sin(trkrad)*traf.tas,\
         np.cos(trkrad)*traf.tas,\
         traf.vs])
-    
+
     # the new speed vector
     newv = dv+v
 

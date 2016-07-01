@@ -1,14 +1,17 @@
 import numpy as np
-from ..tools.aero import ft, nm
+from ...tools.aero import ft, nm
 
 # Import default CD methods
 try:
-    from CDRmethods import cStateBasedCD as StateBasedCD
+    import cStateBasedCD as StateBasedCD
 except:
-    from CDRmethods import StateBasedCD
+    import StateBasedCD
 
 # Import default CR methods
-from CDRmethods import DoNothing, Eby, MVP, Swarm
+import DoNothing
+import Eby
+import MVP
+import Swarm
 
 
 class ASAS():
@@ -125,18 +128,11 @@ class ASAS():
 
     # Reset conflict database
     def reset(self):
-        self.conf         = []      # Start with emtpy database: no conflicts
+        self.confpairs    = []      # Start with emtpy database: no conflicts
         self.nconf        = 0       # Number of detected conflicts
-        self.swconfl      = np.array([])
         self.latowncpa    = np.array([])
         self.lonowncpa    = np.array([])
         self.altowncpa    = np.array([])
-        self.latintcpa    = np.array([])
-        self.lonintcpa    = np.array([])
-        self.altintcpa    = np.array([])
-
-        self.idown        = []
-        self.idoth        = []
 
         self.conflist_all = []  # List of all Conflicts
         self.LOSlist_all  = []  # List of all Losses Of Separation
@@ -152,17 +148,15 @@ class ASAS():
 
         # ASAS info per aircraft:
         self.iconf        = []            # index in 'conflicting' aircraft database
-        self.asasactive   = np.array([])  # whether the autopilot follows ASAS or not
+        self.asasactive   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
         self.asashdg      = np.array([])  # heading provided by the ASAS [deg]
         self.asasspd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
         self.asasalt      = np.array([])  # speed alt by the ASAS [m]
         self.asasvsp      = np.array([])  # speed vspeed by the ASAS [m/s]
 
-        self.inconflict   = np.array([], dtype=bool)
-
     def create(self, hdg, spd, alt):
-        # ASAS info: no conflict => -1
-        self.iconf.append(-1)  # index in 'conflicting' aircraft database
+        # ASAS info: no conflict => empty list
+        self.iconf.append([])  # List of indices in 'conflicting' aircraft database
 
         # ASAS output commanded values
         self.asasactive = np.append(self.asasactive, False)
@@ -170,7 +164,6 @@ class ASAS():
         self.asasspd    = np.append(self.asasspd, spd)
         self.asasalt    = np.append(self.asasalt, alt)
         self.asasvsp    = np.append(self.asasvsp, 0.)
-        self.inconflict = np.append(self.inconflict, False)
 
     def delete(self, idx):
         del self.iconf[idx]
@@ -179,12 +172,22 @@ class ASAS():
         self.asasspd    = np.delete(self.asasspd, idx)
         self.asasalt    = np.delete(self.asasalt, idx)
         self.asasvsp    = np.delete(self.asasvsp, idx)
-        self.inconflict = np.delete(self.inconflict, idx)
 
     def update(self, traf, simt):
         # Scheduling: when dt has passed or restart:
         if self.swasas and self.t0asas + self.dtasas < simt or simt < self.t0asas:
-            self.t0asas = simt
+            self.t0asas       = simt
+
+            # Reset lists before new CD
+            self.iconf        = [[] for ac in range(traf.ntraf)]
+            self.nconf        = 0
+            self.confpairs    = []
+            self.latowncpa    = []
+            self.lonowncpa    = []
+            self.altowncpa    = []
+
+            self.LOSlist_now  = []
+            self.conflist_now = []
 
             # Conflict detection and resolution
             self.cd.detect(self, traf, simt)
