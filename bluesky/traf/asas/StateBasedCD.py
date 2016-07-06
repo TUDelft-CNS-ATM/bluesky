@@ -14,6 +14,18 @@ except ImportError:
 def detect(dbconf, traf, simt):
     if not dbconf.swasas:
         return
+
+    # Reset lists before new CD
+    dbconf.iconf        = [[] for ac in range(traf.ntraf)]
+    dbconf.nconf        = 0
+    dbconf.confpairs    = []
+    dbconf.latowncpa    = []
+    dbconf.lonowncpa    = []
+    dbconf.altowncpa    = []
+
+    dbconf.LOSlist_now  = []
+    dbconf.conflist_now = []
+    
     # Horizontal conflict ---------------------------------------------------------
 
     # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates

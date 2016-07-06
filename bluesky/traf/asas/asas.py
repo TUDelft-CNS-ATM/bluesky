@@ -3,7 +3,7 @@ from ...tools.aero import ft, nm
 
 # Import default CD methods
 try:
-    import cStateBasedCD as StateBasedCD
+    import casas as StateBasedCD
 except:
     import StateBasedCD
 
@@ -177,17 +177,6 @@ class ASAS():
         # Scheduling: when dt has passed or restart:
         if self.swasas and self.t0asas + self.dtasas < simt or simt < self.t0asas:
             self.t0asas       = simt
-
-            # Reset lists before new CD
-            self.iconf        = [[] for ac in range(traf.ntraf)]
-            self.nconf        = 0
-            self.confpairs    = []
-            self.latowncpa    = []
-            self.lonowncpa    = []
-            self.altowncpa    = []
-
-            self.LOSlist_now  = []
-            self.conflist_now = []
 
             # Conflict detection and resolution
             self.cd.detect(self, traf, simt)
