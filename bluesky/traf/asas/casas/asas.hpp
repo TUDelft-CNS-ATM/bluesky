@@ -2,6 +2,7 @@
 #include <pyhelpers.hpp>
 #include <geo.hpp>
 #include <iostream>
+#include <cmath>
 
 struct Dbconf {
     PyObject* self;
@@ -38,16 +39,24 @@ inline bool detect_hor(const Dbconf& params, conflict& conf,
                        const qdr_d_in& ll1, const double& gs1, const double& trk1,
                        const qdr_d_in& ll2, const double& gs2, const double& trk2)
 {
-    double d         = dist(ll1, ll2),
-           q         = qdr(ll1, ll2);
-    double dx        = d * sin(q),
-           dy        = d * cos(q),
-           u1        = gs1 * sin(trk1),
+    double u1        = gs1 * sin(trk1),
            v1        = gs1 * cos(trk1),
            u2        = gs2 * sin(trk2),
            v2        = gs2 * cos(trk2);
     double du        = u1 - u2,
            dv        = v1 - v2;
+
+   // First a coarse flat-earth check to skip the most unlikely candidates for a conflict
+   if (std::max((fabs(ll2.lon - ll1.lon) * std::min(ll1.coslat, ll2.coslat) * re - params.R) / fabs(du),
+                 (fabs(ll2.lat - ll1.lat) * re - params.R) / fabs(dv))
+        > 1.05 * params.dtlookahead)
+     return false;
+
+    double d         = dist(ll1, ll2),
+           q         = qdr(ll1, ll2);
+    double dx        = d * sin(q),
+           dy        = d * cos(q);
+           
 
     double vreldotdx = du * dx + dv * dy;
     conf.LOS         = d < params.R;

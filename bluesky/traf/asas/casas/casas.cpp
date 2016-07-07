@@ -45,9 +45,6 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                     // Vectical detection first
                     dalt = *alt1.ptr - *alt2.ptr;
                     dvs  = *vs1.ptr  - *vs2.ptr;
-                    // std::cout << PyString_AsString(acid[i]) << " " << *alt1.ptr / FT2M << " " << *vs1.ptr / FPM2MS << " " << *lat1.ptr << " " << *lon1.ptr << " "
-                    //           << PyString_AsString(acid[j]) << " " << *alt2.ptr / FT2M << " " << *vs2.ptr / FPM2MS << " " << *lat2.ptr << " " << *lon2.ptr
-                    //           << std::endl;
                     if (detect_ver(dbconf, confver, dalt, dvs)) {
                         // Horizontal detection
                         ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
