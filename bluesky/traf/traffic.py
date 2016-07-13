@@ -57,6 +57,10 @@ class Traffic:
     """
 
     def __init__(self, navdb):
+        # ASAS object
+        self.asas = ASAS()
+
+        # All traffic data is initialized in the reset function
         self.reset(navdb)
 
     def reset(self, navdb):
@@ -182,9 +186,6 @@ class Traffic:
         # ADS-B transmission-receiver model
         self.adsb = ADSBModel(self)
 
-        # ASAS object
-        self.asas = ASAS(300., 5. * nm, 1000. * ft)  # hard coded values to be replaced
-
         # Import navigation data base
         self.navdb  = navdb
 
@@ -221,7 +222,7 @@ class Traffic:
 
         self.eps = np.array([])
 
-        return
+        self.asas.reset()
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
         """ Create multiple random aircraft in a specified area """
