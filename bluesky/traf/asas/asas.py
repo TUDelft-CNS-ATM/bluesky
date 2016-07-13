@@ -5,7 +5,10 @@ from ...tools.aero import ft, nm
 # Import default CD methods
 try:
     import casas as StateBasedCD
-except:
+except ImportError:
+    StateBasedCD = False
+
+if not settings.prefer_compiled or not StateBasedCD:
     import StateBasedCD
 
 # Import default CR methods

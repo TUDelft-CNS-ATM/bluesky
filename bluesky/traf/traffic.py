@@ -1,13 +1,10 @@
 import numpy as np
 from math import *
 from random import random, randint
+from ..tools import geo
 from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
                          vcas2tas, vtas2cas, vtas2mach, vcas2mach, vmach2tas
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from ..tools.misc import degto180
 
 from route import Route

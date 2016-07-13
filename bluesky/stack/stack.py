@@ -4,11 +4,8 @@ from random import seed
 import os
 import sys
 
+from ..tools import geo
 from ..tools.aero import kts, ft, fpm, tas2cas, density
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 

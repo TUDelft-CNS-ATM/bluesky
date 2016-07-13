@@ -1,9 +1,6 @@
 from numpy import *
+from ..tools import geo
 from ..tools.aero import ft, kts, g0, nm, cas2tas
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from ..tools.misc import degto180
 
 

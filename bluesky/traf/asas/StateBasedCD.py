@@ -4,11 +4,8 @@ State-based conflict detection
 
 """
 import numpy as np
+from ...tools import geo
 from ...tools.aero import nm
-try:
-    from ...tools import cgeo as geo
-except ImportError:
-    from ...tools import geo
 
 
 def detect(dbconf, traf, simt):
@@ -25,7 +22,7 @@ def detect(dbconf, traf, simt):
 
     dbconf.LOSlist_now  = []
     dbconf.conflist_now = []
-    
+
     # Horizontal conflict ---------------------------------------------------------
 
     # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates

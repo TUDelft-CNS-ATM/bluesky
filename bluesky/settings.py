@@ -26,6 +26,9 @@ start_location = 'EHAM'
 # Simulation timestep [seconds]
 simdt = 0.05
 
+# Prefer compiled BlueSky modules (cgeo, casas)
+prefer_compiled = True
+
 #=========================================================================
 #=  ASAS default settings
 #=========================================================================
