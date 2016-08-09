@@ -153,3 +153,7 @@ class Navdatabase:
     def getapinside(self,lat0,lat1,lon0,lon1):
         """Get airport indicex inside box"""
         return self.getinside(self.aplat,self.aplon,lat0,lat1,lon0,lon1)        
+        
+    # returns all runways of given airport  
+    def listrwys(self,ICAO):
+        return True, str(self.rwythresholds[ICAO].keys())

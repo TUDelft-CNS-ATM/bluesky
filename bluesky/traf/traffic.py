@@ -1,13 +1,10 @@
 import numpy as np
 from math import *
 from random import random, randint
+from ..tools import geo
 from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
                          vcas2tas, vtas2cas, vtas2mach, vcas2mach, vmach2tas
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from ..tools.misc import degto180
 
 from route import Route
@@ -32,11 +29,9 @@ except ImportError as err:
 class Traffic:
     """
     Traffic class definition    : Traffic data
-
     Methods:
         Traffic()            :  constructor
         reset()              :  Reset traffic database w.r.t a/c data
-
         create(acid,actype,aclat,aclon,achdg,acalt,acspd) : create aircraft
         delete(acid)         : delete an aircraft from traffic data
         deletall()           : delete all traffic
@@ -44,19 +39,18 @@ class Traffic:
         id2idx(name)         : return index in traffic database of given call sign
         selhdg(i,hdg)        : set autopilot heading and activate heading select mode
         selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode
-
         engchange(i,engtype) : change engine type of an aircraft
-
         changeTrailColor(color,idx)     : change colour of trail of aircraft idx
-
         setNoise(A)          : Add turbulence
-
     Members: see create
-
     Created by  : Jacco M. Hoekstra
     """
 
     def __init__(self, navdb):
+        # ASAS object
+        self.asas = ASAS()
+
+        # All traffic data is initialized in the reset function
         self.reset(navdb)
 
     def reset(self, navdb):
@@ -182,9 +176,6 @@ class Traffic:
         # ADS-B transmission-receiver model
         self.adsb = ADSBModel(self)
 
-        # ASAS object
-        self.asas = ASAS(300., 5. * nm, 1000. * ft)  # hard coded values to be replaced
-
         # Import navigation data base
         self.navdb  = navdb
 
@@ -221,7 +212,7 @@ class Traffic:
 
         self.eps = np.array([])
 
-        return
+        self.asas.reset()
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
         """ Create multiple random aircraft in a specified area """
@@ -888,7 +879,7 @@ class Traffic:
                 self.trails.clear()
         else:
             # Change trail color
-            if len(args) < 2 or args[2] not in ["BLUE", "RED", "YELLOW"]:
+            if len(args) < 2 or args[1] not in ["BLUE", "RED", "YELLOW"]:
                 return False, "Set aircraft trail color with: TRAIL acid BLUE/RED/YELLOW"
             self.changeTrailColor(args[1], args[0])
 
@@ -1178,4 +1169,4 @@ class Traffic:
 
             return True
 
-        return False
+return False

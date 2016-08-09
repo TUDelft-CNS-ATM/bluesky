@@ -4,11 +4,8 @@ from random import seed
 import os
 import sys
 
+from ..tools import geo
 from ..tools.aero import kts, ft, fpm, tas2cas, density
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 
@@ -114,7 +111,7 @@ class Commandstack:
             ],
             "DEST": [
                 "DEST acid, latlon/airport",
-                "acid,latlon/txt",
+                "acid,latlon/pos",
                 lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
             ],
             "DIRECT": [
@@ -253,7 +250,7 @@ class Commandstack:
             ],
             "ORIG": [
                 "ORIG acid, latlon/airport",
-                "acid,latlon/txt",
+                "acid,latlon/pos",
                 lambda *args: traf.setDestOrig("ORIG", *args)
             ],
             "PAN": [
@@ -295,6 +292,12 @@ class Commandstack:
                 "[float]",
                 traf.asas.SetPZRm
             ],
+            "RUNWAYS": [
+                "RUNWAYS ICAO",
+                "txt",   
+                lambda ICAO: traf.navdb.listrwys(ICAO)
+                ],            
+            
             "SAVEIC": [
                 "SAVEIC filename",
                 "string",
