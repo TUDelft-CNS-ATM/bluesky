@@ -3,10 +3,7 @@ sys.path.append('bluesky/tools/')
 import random
 import numpy as np
 from aero import ft, eas2tas
-try:
-    import cgeo as geo
-except ImportError:
-    import geo
+import geo
 from misc import txt2alt, txt2spd
 '''
     Original version by Jerom Maas, fall 2014
@@ -30,7 +27,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         scr.wpsw=0              #don't draw waypoints
         scr.swfir=False         #don't show FIRs
         scr.swgrid=True         #do show a grid
-        scr.pan([0,0],True)     #focus the map at the prime meridian and equator
+        scr.pan(0, 0)           #focus the map at the prime meridian and equator
         scr.redrawradbg=True    #draw the background again
         scr.swsep = True        #show circles of seperation between ac
         scr.swspd = True        #show speed vectors of aircraft
@@ -73,11 +70,11 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         else:
             scr.isoalt=0
             traf.reset(sim.navdb)
-            x=  traf.dbconf.xw[int(float(cmdargs[1]))]/111319.
-            y=  traf.dbconf.yw[int(float(cmdargs[2]))]/111319.
-            v_o=traf.dbconf.v_o[int(float(cmdargs[3]))]
-            v_w=traf.dbconf.v_w[int(float(cmdargs[4]))]
-            phi=np.degrees(traf.dbconf.phi[int(float(cmdargs[5]))])
+            x=  traf.asas.xw[int(float(cmdargs[1]))]/111319.
+            y=  traf.asas.yw[int(float(cmdargs[2]))]/111319.
+            v_o=traf.asas.v_o[int(float(cmdargs[3]))]
+            v_w=traf.asas.v_w[int(float(cmdargs[4]))]
+            phi=np.degrees(traf.asas.phi[int(float(cmdargs[5]))])
             traf.create("OWN", "GENERIC", 0, 0, 0, 5000*ft, v_o)
             traf.create("WRN", "GENERIC", y, x, phi, 5000*ft, v_w)
     
@@ -165,7 +162,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
             scr.isoalt=0
             traf.reset(sim.navdb)
             mperdeg=111319.
-            hsep=traf.dbconf.R # [m] horizontal separation minimum
+            hsep=traf.asas.R # [m] horizontal separation minimum
             hseplat=hsep/mperdeg
             matsep=1.1 #factor of extra space in the matrix
             hseplat=hseplat*matsep
@@ -191,7 +188,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         traf.reset(sim.navdb)
         mperdeg=111319.
         altdif=3000 # ft
-        hsep=traf.dbconf.R # [m] horizontal separation minimum
+        hsep=traf.asas.R # [m] horizontal separation minimum
         floorsep=1.1 #factor of extra spacing in the floor
         hseplat=hsep/mperdeg*floorsep
         traf.create("OWNSHIP","FLOOR",-1,0,90, (20000+altdif)*ft, 200)
@@ -230,7 +227,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
         traf.reset(sim.navdb)
         mperdeg=111319.
         distance=0.6 # in degrees lat/lon, for now
-        hsep=traf.dbconf.R # [m] horizontal separation minimum
+        hsep=traf.asas.R # [m] horizontal separation minimum
         hseplat=hsep/mperdeg
         wallsep=1.1 #factor of extra space in the wall
         traf.create("OWNSHIP","WALL",0,-distance,90, 20000*ft, 200)
@@ -254,7 +251,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                     raise Exception()
                     
                 mperdeg=111319.
-                hsep=traf.dbconf.R # [m] horizontal separation minimum
+                hsep=traf.asas.R # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
                 matsep=1.1 #factor of extra space in the formation
                 hseplat=hseplat*matsep
@@ -293,7 +290,7 @@ def process(command, numargs, cmdargs, sim, traf, scr, cmd):
                     raise Exception() 
 
                 mperdeg=111319.
-                hsep=traf.dbconf.R # [m] horizontal separation minimum
+                hsep=traf.asas.R # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
                 matsep=1.1 #factor of extra space in the formation
                 hseplat=hseplat*matsep

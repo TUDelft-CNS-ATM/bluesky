@@ -1,8 +1,5 @@
+from ..tools import geo
 from ..tools.misc import findnearest, cmdsplit
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from math import cos, atan2, radians, degrees
 
 

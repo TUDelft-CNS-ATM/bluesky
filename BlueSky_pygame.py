@@ -1,5 +1,7 @@
 from bluesky import settings
 if __name__ == "__main__":
+    print "   *****   BlueSky Open ATM simulator *****"
+    print "Distributed under GNU General Public License v3"
     settings.init('pygame')
 
 from bluesky.navdb import Navdatabase

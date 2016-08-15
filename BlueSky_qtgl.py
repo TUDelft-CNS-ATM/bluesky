@@ -4,7 +4,7 @@ from bluesky import settings
 
 if __name__ == "__main__":
     settings.init('qtgl')
-
+ 
 # This file is used to start the gui mainloop or a single node simulation loop
 node_only = ('--node' in sys.argv)
 
@@ -15,13 +15,15 @@ else:
     from bluesky.ui.qtgl import Gui
     from bluesky.sim.qtgl import MainManager
     from bluesky.tools.network import StackTelnetServer
+    if __name__ == "__main__":
+        print "   *****   BlueSky Open ATM simulator *****"
+        print "Distributed under GNU General Public License v3"
 
 
 # Global navdb, gui, and sim objects for easy access in interactive python shell
 navdb   = None
 gui     = None
 manager = None
-
 
 # Create custom system-wide exception handler. For now it replicates python's
 # default traceback message. This was added to counter a new PyQt5.5 feature

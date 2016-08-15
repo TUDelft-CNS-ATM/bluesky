@@ -2,10 +2,7 @@ from math import *
 import numpy as np
 
 from ..tools.loaddata import load_navdata
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
+from ..tools import geo
 
 
 class Navdatabase:
@@ -38,15 +35,15 @@ class Navdatabase:
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
 
-    def __init__(self,subfolder):
+    def __init__(self, subfolder):
         """read data from subfolder"""
 
         # Create empty segment indexing lists
         self.wpseg = []
         self.apseg = []
-        for lat in range(-90,91):
-            self.wpseg.append(361*[[]])
-            self.apseg.append(361*[[]])
+        for lat in range(-90, 91):
+            self.wpseg.append(361 * [[]])
+            self.apseg.append(361 * [[]])
 
         wptdata, aptdata, firdata, rwythresholds = load_navdata()
         self.wpid      = wptdata['wpid']  # identifier (string)
@@ -153,3 +150,7 @@ class Navdatabase:
     def getapinside(self,lat0,lat1,lon0,lon1):
         """Get airport indicex inside box"""
         return self.getinside(self.aplat,self.aplon,lat0,lat1,lon0,lon1)        
+        
+    # returns all runways of given airport  
+    def listrwys(self,ICAO):
+        return True, str(self.rwythresholds[ICAO].keys())

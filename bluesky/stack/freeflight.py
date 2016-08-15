@@ -131,7 +131,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         else:
             scr.isoalt=0
             traf.deleteall()
-            traf.dbconf=CASASfunnel.Dbconf(traf,300., 5.*nm, 1000.*ft)
+            traf.asas=CASASfunnel.Dbconf(traf,300., 5.*nm, 1000.*ft)
             size=float(commandargs[1])
             mperdeg=111319.
             distance=0.90 #this is in degrees lat/lon, for now
@@ -143,7 +143,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
                 acid="SUP"+str(i)
                 traf.create(acid,"SUPER",distance*-np.cos(angle),distance*-np.sin(angle),90,alt,spd)             
                 
-            separation=traf.dbconf.R*1.01 #[m] the factor 1.01 is so that the funnel doesn't collide with itself
+            separation=traf.asas.R*1.01 #[m] the factor 1.01 is so that the funnel doesn't collide with itself
             sepdeg=separation/np.sqrt(2.)/mperdeg #[deg]
             
             for row in range(1):
@@ -170,7 +170,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
             scr.isoalt=0
             traf.deleteall()
             mperdeg=111319.
-            hsep=traf.dbconf.R # [m] horizontal separation minimum
+            hsep=traf.asas.R # [m] horizontal separation minimum
             hseplat=hsep/mperdeg
             matsep=1.1 #factor of extra space in the matrix
             hseplat=hseplat*matsep
@@ -196,7 +196,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         traf.deleteall()
         mperdeg=111319.
         altdif=3000 # meters
-        hsep=traf.dbconf.R # [m] horizontal separation minimum
+        hsep=traf.asas.R # [m] horizontal separation minimum
         floorsep=1.1 #factor of extra spacing in the floor
         hseplat=hsep/mperdeg*floorsep
         traf.create("OWNSHIP","FLOOR",-1,0,90, 20000+altdif, 200)
@@ -235,7 +235,7 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
         traf.deleteall()
         mperdeg=111319.
         distance=0.6 # in degrees lat/lon, for now
-        hsep=traf.dbconf.R # [m] horizontal separation minimum
+        hsep=traf.asas.R # [m] horizontal separation minimum
         hseplat=hsep/mperdeg
         wallsep=1.1 #factor of extra space in the wall
         traf.create("OWNSHIP","WALL",0,-distance,90, 20000, 200)
@@ -250,11 +250,11 @@ def process(command, numargs, commandargs, sim, traf, scr, cmd):
     elif command == "TESTCIRCLE":
         scr.swtestarea = True   #show circles in testing area
         scr.redrawradbg=True    #draw the background again
-        traf.dbconf=CASAScircle.Dbconf(traf,300., 5.*nm, 1000.*ft)
+        traf.asas=CASAScircle.Dbconf(traf,300., 5.*nm, 1000.*ft)
                                 #change the ASAS system with one that incorporates
                                 #the circular testing area
-        traf.dbconf.Rtest=50*nm #Testing area radius
-        traf.dbconf.Rinit=65*nm #Initialization area radius        
+        traf.asas.Rtest=50*nm #Testing area radius
+        traf.asas.Rinit=65*nm #Initialization area radius        
 
     # Toggle the display of certain elements in screen
     elif command == "DISP":

@@ -6,12 +6,10 @@ from math import degrees
 import collections
 from collections import defaultdict
 import itertools as IT
+from ..tools import geo
 from ..tools.misc import tim2txt
 from ..tools.aero import *
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
+
 
 """
     This module seems to work as follows:

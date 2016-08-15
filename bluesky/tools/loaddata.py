@@ -54,8 +54,8 @@ def load_aptsurface():
             apt_ctr_lat   = pickle.load(f)
             apt_ctr_lon   = pickle.load(f)
             apt_indices   = pickle.load(f)
-    return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr,apt_ctr_lat, \
-        apt_ctr_lon, apt_indices
+    return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \
+        apt_ctr_lat, apt_ctr_lon, apt_indices
 
 
 def load_navdata():
@@ -70,6 +70,11 @@ def load_navdata():
             wptdata = pickle.load(f)
             aptdata = pickle.load(f)
             firdata = pickle.load(f)
+
+    if not gui == 'qtgl':
+        # Threshold data is not available for the PyGame version of BlueSky
+        return wptdata, aptdata, firdata, []
+
     if not os.path.isfile(cachedir + '/rwythresholds.p'):
         load_aptsurface()
     with open(cachedir + '/rwythresholds.p', 'rb') as f:

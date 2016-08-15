@@ -4,11 +4,8 @@ from random import seed
 import os
 import sys
 
+from ..tools import geo
 from ..tools.aero import kts, ft, fpm, tas2cas, density
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 
@@ -65,11 +62,11 @@ class Commandstack:
             "ASAS": [
                 "ASAS ON/OFF",
                 "[onoff]",
-                traf.dbconf.toggle
+                traf.asas.toggle
             ],
             "BATCH": [
                 "BATCH filename",
-                "txt",
+                "string",
                 sim.batch],
             "BENCHMARK": [
                 "BENCHMARK [scenfile,time]",
@@ -83,8 +80,13 @@ class Commandstack:
             ],
             "CALC": [
                 "CALC expression",
-                "txt",
+                "string",
                 lambda expr: scr.echo("Ans = " + str(eval(expr)))
+            ],
+            "CDMETHOD": [
+                "CDMETHOD [method]",
+                "[txt]",
+                traf.asas.SetCDmethod
             ],
             "CIRCLE": [
                 "CIRCLE name,lat,lon,radius",
@@ -100,8 +102,8 @@ class Commandstack:
                 "DEL acid/shape",
                 "txt",
                 lambda a: traf.delete(a) if traf.id.count(a) > 0 \
-                     else scr.objappend(0, a, None)
-                ],
+                else scr.objappend(0, a, None)
+            ],
             "DELWPT": [
                 "DELWPT acid,wpname",
                 "acid,txt",
@@ -109,7 +111,7 @@ class Commandstack:
             ],
             "DEST": [
                 "DEST acid, latlon/airport",
-                "acid,latlon/txt",
+                "acid,latlon/pos",
                 lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
             ],
             "DIRECT": [
@@ -127,10 +129,20 @@ class Commandstack:
                 "float",
                 sim.setDt
             ],
+            "DTLOOK": [
+                "DTLOOK [time]",
+                "[float]",
+                traf.asas.SetDtLook
+            ],
             "DTMULT": [
                 "DTMULT multiplier",
                 "float",
                 sim.setDtMultiplier
+            ],
+            "DTNOLOOK": [
+                "DTNOLOOK [time]",
+                "[float]",
+                traf.asas.SetDtNoLook
             ],
             "DUMPRTE": [
                 "DUMPRTE acid",
@@ -139,7 +151,7 @@ class Commandstack:
             ],
             "ECHO": [
                 "ECHO txt",
-                "txt",
+                "string",
                 scr.echo
             ],
             "ENG": [
@@ -147,7 +159,7 @@ class Commandstack:
                 "acid,[txt]",
                 traf.perf.engchange
             ],
-            "FF":  [
+            "FF": [
                 "FF [tend]",
                 "[time]",
                 sim.fastforward
@@ -179,7 +191,7 @@ class Commandstack:
             ],
             "INSEDIT": [
                 "INSEDIT txt",
-                "txt",
+                "string",
                 scr.cmdline
             ],
             "LINE": [
@@ -238,7 +250,7 @@ class Commandstack:
             ],
             "ORIG": [
                 "ORIG acid, latlon/airport",
-                "acid,latlon/txt",
+                "acid,latlon/pos",
                 lambda *args: traf.setDestOrig("ORIG", *args)
             ],
             "PAN": [
@@ -265,14 +277,35 @@ class Commandstack:
                 "RESET",
                 "",
                 sim.reset],
+            "RESO": [
+                "RESO [method]",
+                "[txt]",
+                traf.asas.SetCRmethod
+            ],
+            "RSZONEDH": [
+                "RSZONEDH [height]",
+                "[float]",
+                traf.asas.SetPZHm
+            ],
+            "RSZONER": [
+                "RSZONER [radius]",
+                "[float]",
+                traf.asas.SetPZRm
+            ],
+            "RUNWAYS": [
+                "RUNWAYS ICAO",
+                "txt",   
+                lambda ICAO: traf.navdb.listrwys(ICAO)
+                ],            
+            
             "SAVEIC": [
                 "SAVEIC filename",
-                "txt",
+                "string",
                 lambda fname: self.saveic(fname, sim, traf)
             ],
             "SCEN": [
                 "SCEN scenname",
-                "txt",
+                "string",
                 sim.scenarioInit
             ],
             "SEED": [
@@ -299,7 +332,7 @@ class Commandstack:
                 "txt,[float]",
                 scr.feature
             ],
-            "SYMBOL":  [
+            "SYMBOL": [
                 "SYMBOL",
                 "",
                 scr.symbol
@@ -323,6 +356,16 @@ class Commandstack:
                 "VS acid,vspd (ft/min)",
                 "acid,vspd",
                 traf.selvspd],
+            "ZONEDH": [
+                "ZONEDH [height]",
+                "[float]",
+                traf.asas.SetPZH
+            ],
+            "ZONER": [
+                "ZONER [radius]",
+                "[float]",
+                traf.asas.SetPZR
+            ],
             "ZOOM": [
                 "ZOOM IN/OUT or factor",
                 "float/txt",
@@ -340,7 +383,6 @@ class Commandstack:
             "DIRECTTO": "DIRECT",
             "DIRTO": "DIRECT",
             "DISP": "SWRAD",
-            "DTLOOK": "ASA_DTLOOK",
             "END": "STOP",
             "EXIT": "STOP",
             "FWD": "FF",
@@ -381,8 +423,7 @@ class Commandstack:
         #   command, number of args, array of args, sim, traf, scr, cmd
 
         self.extracmdmodules = {
-            "SYN_": 'synthetic',
-            "ASA_": 'asascmd'
+            "SYN_": 'synthetic'
         }
 
         # Import modules from the list
@@ -591,7 +632,6 @@ class Commandstack:
             # switched acid and command
             cmd, args = cmdsplit(line.upper(), traf.id)
             numargs   = len(args)
-
             # Check if this is a POS command with only an aircraft id
             if numargs == 0 and traf.id.count(cmd) > 0:
                 args    = [cmd]
@@ -631,8 +671,10 @@ class Commandstack:
                     argtypes += argvsopt[1].strip(']').split(',')
 
                 # Process arg list
-                # Special case: single text argument: this can also be a string, so pass the original
-                if argtypes == ['txt']:
+                optargs = {}
+                # Special case: single text string argument: case sensitive,
+                # possibly with spaces/newlines pass the original
+                if argtypes == ['string']:
                     arglist = [line[len(cmd) + 1:]]
                 else:
                     arglist = []
@@ -643,8 +685,13 @@ class Commandstack:
                         argtype    = argtypes[curtype].strip().split('/')
                         for i in range(len(argtype)):
                             try:
-                                parsed_arg, argstep = self.argparse(argtype[i], curarg, args, traf, scr)
-                                arglist += parsed_arg
+                                argtypei = argtype[i]
+                                parsed_arg, opt_arg, argstep = self.argparse(argtypei, curarg, args, traf, scr)
+                                if parsed_arg[0] is None and argtypei in optargs:
+                                    arglist += optargs[argtypei]
+                                else:
+                                    arglist += parsed_arg
+                                optargs.update(opt_arg)
                                 curarg  += argstep
                                 break
                             except:
@@ -680,7 +727,7 @@ class Commandstack:
                             synerr = not results[0]
 
                         if len(results) >= 2:
-                            scr.echo(cmd+":"+results[1])
+                            scr.echo(cmd + ":" + results[1])
                             synerr = False
 
                 else:  # synerr:
@@ -719,10 +766,14 @@ class Commandstack:
         return
 
     def argparse(self, argtype, argidx, args, traf, scr):
-        """ Parse one or more arguments. returns the parse results
-            and the number of arguments parsed. """
+        """ Parse one or more arguments.
+
+            Returns:
+            - A list with the parse results
+            - The number of arguments parsed
+            - A dict with additional optional parsed arguments. """
         if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
-            return [None], 1
+            return [None], {}, 1
 
         if argtype == "acid":  # aircraft id => parse index
             idx = traf.id2idx(args[argidx])
@@ -730,63 +781,65 @@ class Commandstack:
                 scr.echo(cmd + ":" + args[idx] + " not found")
                 raise IndexError
             else:
-                return [idx], 1
+                return [idx], {}, 1
 
         if argtype == "txt":  # simple text
-            return [args[argidx]], 1
+            return [args[argidx]], {}, 1
 
         if argtype == "float":  # float number
-            return [float(args[argidx])], 1
+            return [float(args[argidx])], {}, 1
 
         if argtype == "int":   # integer
-            return [int(args[argidx])], 1
+            return [int(args[argidx])], {}, 1
 
         if argtype == "onoff" or argtype == "bool":
             sw = (args[argidx] == "ON" or
                   args[argidx] == "1" or args[argidx] == "TRUE")
-            return [sw], 1
+            return [sw], {}, 1
 
         if argtype == "pos":
             # Arg is an existing aircraft?
             idx = traf.id2idx(args[argidx])
             if idx >= 0:
-                return [traf.lat[idx], traf.lon[idx]], 1
+                return [traf.lat[idx], traf.lon[idx]], {}, 1
             # Arg is an airport?
             idx = traf.navdb.getapidx(args[argidx])
             if idx >= 0:
                 # Next arg is a runway?
                 if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
                         args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
-                    return traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2], 2
+                    arglist = traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2]
+                    optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][2]]}
+                    return arglist, optargs, 2
 
                 # If no runway return airport center
-                return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], 1
+                return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], {}, 1
             # Arg is a waypoint?
             idx = traf.navdb.getwpidx(args[argidx])
             if idx >= 0:
-                return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], 1
+                return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], {}, 1
             # Arg, next arg are a lat/lon combination
-            return [txt2lat(args[argidx]), txt2lon(args[argidx+1])], 2
+            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], {}, 2
 
         if argtype == "latlon":
-            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], 2
+            return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], {}, 2
 
         if argtype == "spd":  # CAS[kts] Mach
             spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
             if not 0.1 < spd < 1.0:
                 spd *= kts
-            return [spd], 1  # speed CAS[m/s] or Mach (float)
+            return [spd], {}, 1  # speed CAS[m/s] or Mach (float)
 
         if argtype == "vspd":
-            return [fpm * float(args[argidx])], 1
+            return [fpm * float(args[argidx])], {}, 1
 
         if argtype == "alt":  # alt: FL250 or 25000 [ft]
-            return [ft * txt2alt(args[argidx])], 1  # alt in m
+            return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
 
         if argtype == "hdg":
             # TODO: for now no difference between magnetic/true heading
             hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
-            return [hdg], 1
+            return [hdg], {}, 1
 
         if argtype == "time":
             ttxt = args[argidx].strip().split(':')
@@ -794,6 +847,6 @@ class Commandstack:
                 ihr  = int(ttxt[0]) * 3600.0
                 imin = int(ttxt[1]) * 60.0
                 xsec = float(ttxt[2])
-                return [ihr + imin + xsec], 1
+                return [ihr + imin + xsec], {}, 1
             else:
-                return [float(args[argidx])], 1
+                return [float(args[argidx])], {}, 1

@@ -6,7 +6,7 @@ Created on Wed Mar 04 14:27:44 2015
 """
 
 def start(dbconf):
-    dbconf.CRname="NoResolution"
+    pass
 
-def resolve(dbconf):
-    dbconf.traf.asasactive.fill(False)
+def resolve(dbconf, traf):
+    pass

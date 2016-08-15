@@ -6,11 +6,8 @@ import datetime, os
 
 import numpy as np
 
+from ...tools import geo
 from ...tools.aero import ft, kts, nm
-try:
-    from ..tools import cgeo as geo
-except ImportError:
-    from ..tools import geo
 from ...tools.misc import tim2txt
 import splash
 from fastfont import Fastfont
@@ -620,7 +617,7 @@ class Screen:
                 ltx, lty = self.ll2xy(traf.lastlat, traf.lastlon)
 
             # Find pixel size of horizontal separation on screen
-            pixelrad=self.dtopix_eq(traf.dbconf.R/2)
+            pixelrad=self.dtopix_eq(traf.asas.R/2)
 
             # Loop through all traffic indices which we found on screen
             for i in trafsel:
@@ -641,7 +638,7 @@ class Screen:
                 # Normal symbol if no conflict else amber
                 toosmall=self.lat1-self.lat0>6 #don't draw circles if zoomed out too much
 
-                if traf.iconf[i]<0:
+                if len(traf.asas.iconf[i]) == 0:
                     self.win.blit(self.acsymbol[isymb], pos)
                     if self.swsep and not toosmall:
                         pg.draw.circle(self.win,green,(int(trafx[i]),int(trafy[i])),pixelrad,1)
@@ -677,7 +674,7 @@ class Screen:
                 if not label[:3] == traf.label[i][:3]:
                     traf.label[i] = []
                     labelbmp = pg.Surface((100, 60), 0, self.win)
-                    if traf.iconf[i]<0:
+                    if len(traf.asas.iconf[i]) == 0:
                         acfont = self.fontrad
                     else:
                         acfont = self.fontamb
@@ -717,12 +714,12 @@ class Screen:
 
 
             # Draw conflicts: line from a/c to closest point of approach
-            if traf.dbconf.nconf>0:
-                xc,yc = self.ll2xy(traf.dbconf.latowncpa,traf.dbconf.lonowncpa)
-                yc    = yc - traf.dbconf.altowncpa*self.isoalt
+            if traf.asas.nconf>0:
+                xc,yc = self.ll2xy(traf.asas.latowncpa,traf.asas.lonowncpa)
+                yc    = yc - traf.asas.altowncpa*self.isoalt
 
-                for j in range(traf.dbconf.nconf):
-                    i = traf.id2idx(traf.dbconf.idown[j])
+                for j in range(traf.asas.nconf):
+                    i = traf.id2idx(traf.asas.confpairs[j][0])
                     if i>=0 and i<traf.ntraf and (i in trafsel):
                         pg.draw.line(self.win,amber,(xc[j],yc[j]),(trafx[i],trafy[i]))             
                 
@@ -805,13 +802,13 @@ class Screen:
                                  "Freq=" + str(int(len(sim.dts) / max(0.001, sum(sim.dts)))))
                                  
             self.fontsys.printat(self.win, 10+240, 2, \
-                                 "#LOS      = " + str(len(traf.dbconf.LOSlist_now)))
+                                 "#LOS      = " + str(len(traf.asas.LOSlist_now)))
             self.fontsys.printat(self.win, 10+240, 18, \
-                                 "Total LOS = " + str(len(traf.dbconf.LOSlist_all)))
+                                 "Total LOS = " + str(len(traf.asas.LOSlist_all)))
             self.fontsys.printat(self.win, 10+240, 34, \
-                                 "#Con      = " + str(len(traf.dbconf.conflist_now)))
+                                 "#Con      = " + str(len(traf.asas.conflist_now)))
             self.fontsys.printat(self.win, 10+240, 50, \
-                                 "Total Con = " + str(len(traf.dbconf.conflist_all)))                                 
+                                 "Total Con = " + str(len(traf.asas.conflist_all)))                                 
 
             # Frame ready, flip to screen
             pg.display.flip()
@@ -1155,6 +1152,5 @@ class Screen:
         return opendialog()
         
     def symbol(self):
-        print "Hello"
         self.swsep = not self.swsep
         return True

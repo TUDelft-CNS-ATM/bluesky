@@ -26,6 +26,28 @@ start_location = 'EHAM'
 # Simulation timestep [seconds]
 simdt = 0.05
 
+# Prefer compiled BlueSky modules (cgeo, casas)
+prefer_compiled = True
+
+#=========================================================================
+#=  ASAS default settings
+#=========================================================================
+
+# ASAS lookahead time [sec]
+asas_dtlookahead = 300.0
+
+# ASAS update interval [sec]
+asas_dt = 1.0
+
+# ASAS horizontal PZ margin [nm]
+asas_pzr = 5.0
+
+# ASAS vertical PZ margin [ft]
+asas_pzh = 1000.0
+
+# ASAS safety margin [-]
+asas_mar = 1.05
+
 #=============================================================================
 #=   QTGL Gui specific settings below
 #=   Pygame Gui options in /data/graphics/scr_cfg.dat

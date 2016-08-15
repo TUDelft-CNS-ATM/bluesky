@@ -717,10 +717,10 @@ class Perf():
                     (self.phase==5)*self.vmld + (self.phase==6)*-10.0
 
         # forwarding to tools
-        self.traf.lspd, self.traf.lalt, self.traf.lvs, self.traf.ama = \
-        limits(self.traf.desspd, self.traf.lspd, self.vmin, self.vmo, self.mmo,\
-        self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, self.traf.desalt, self.traf.lalt,\
-        self.maxthr, self.Thr,self.traf.lvs, self.D, self.traf.tas, self.mass, self.ESF)        
+        self.traf.limspd, self.traf.limalt, self.traf.limvs, self.traf.ama = \
+        limits(self.traf.desspd, self.traf.limspd, self.vmin, self.vmo, self.mmo,\
+        self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, self.traf.desalt, self.traf.limalt,\
+        self.maxthr, self.Thr,self.traf.limvs, self.D, self.traf.tas, self.mass, self.ESF)        
 
         return
 

@@ -1,5 +1,7 @@
 # BlueSky - The Open Air Traffic Simulator
 
+BlueSky is distributed under the GNU General Public License v3.
+
 BlueSky is meant as a tool to perform research on Air Traffic Management and Air Traffic Flows.
 
 The goal of BlueSky is to provide everybody who wants to visualize, analyze or simulate air 
