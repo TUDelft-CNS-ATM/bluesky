@@ -1169,4 +1169,4 @@ class Traffic:
 
             return True
 
-return False
+        return False
