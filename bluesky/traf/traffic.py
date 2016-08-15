@@ -29,11 +29,9 @@ except ImportError as err:
 class Traffic:
     """
     Traffic class definition    : Traffic data
-
     Methods:
         Traffic()            :  constructor
         reset()              :  Reset traffic database w.r.t a/c data
-
         create(acid,actype,aclat,aclon,achdg,acalt,acspd) : create aircraft
         delete(acid)         : delete an aircraft from traffic data
         deletall()           : delete all traffic
@@ -41,15 +39,10 @@ class Traffic:
         id2idx(name)         : return index in traffic database of given call sign
         selhdg(i,hdg)        : set autopilot heading and activate heading select mode
         selspd(i,spd)        : set autopilot CAS/Mach and activate heading select mode
-
         engchange(i,engtype) : change engine type of an aircraft
-
         changeTrailColor(color,idx)     : change colour of trail of aircraft idx
-
         setNoise(A)          : Add turbulence
-
     Members: see create
-
     Created by  : Jacco M. Hoekstra
     """
 
@@ -886,7 +879,7 @@ class Traffic:
                 self.trails.clear()
         else:
             # Change trail color
-            if len(args) < 2 or args[2] not in ["BLUE", "RED", "YELLOW"]:
+            if len(args) < 2 or args[1] not in ["BLUE", "RED", "YELLOW"]:
                 return False, "Set aircraft trail color with: TRAIL acid BLUE/RED/YELLOW"
             self.changeTrailColor(args[1], args[0])
 
@@ -1176,4 +1169,4 @@ class Traffic:
 
             return True
 
-        return False
+return False

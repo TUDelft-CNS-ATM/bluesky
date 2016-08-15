@@ -111,7 +111,7 @@ class Commandstack:
             ],
             "DEST": [
                 "DEST acid, latlon/airport",
-                "acid,latlon/txt",
+                "acid,latlon/pos",
                 lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
             ],
             "DIRECT": [
@@ -250,7 +250,7 @@ class Commandstack:
             ],
             "ORIG": [
                 "ORIG acid, latlon/airport",
-                "acid,latlon/txt",
+                "acid,latlon/pos",
                 lambda *args: traf.setDestOrig("ORIG", *args)
             ],
             "PAN": [
@@ -292,6 +292,12 @@ class Commandstack:
                 "[float]",
                 traf.asas.SetPZRm
             ],
+            "RUNWAYS": [
+                "RUNWAYS ICAO",
+                "txt",   
+                lambda ICAO: traf.navdb.listrwys(ICAO)
+                ],            
+            
             "SAVEIC": [
                 "SAVEIC filename",
                 "string",
