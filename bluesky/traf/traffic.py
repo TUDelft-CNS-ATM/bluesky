@@ -522,18 +522,18 @@ class Traffic:
         #------------------- ASAS update: ---------------------
         # Reset label because of colour change
         # Save old result
-        
+
         iconf0 = np.array(self.asas.iconf)
 
         self.asas.update(self, simt)
 
         # TODO: this doesn't work anymore when asas.iconf is a list of lists
         # chnged = np.where(iconf0 != np.array(self.asas.iconf))[0]
-        if settings.gui=="pygame":        
+        if settings.gui=="pygame":
             for i in range(self.ntraf):
                 if np.any(iconf0[i] != self.asas.iconf[i]):
                     self.label[i] = [" ", " ", "", " "]
-    
+
         #-----------------  FMS GUIDANCE & NAVIGATION  ------------------
         # Scheduling: when dt has passed or restart:
         if self.t0fms + self.dtfms < simt or simt < self.t0fms:
@@ -643,7 +643,7 @@ class Traffic:
                 # Turn radius:      R = V2 tan phi / g
                 # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
                 # using default bank angle per flight phase
-                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm] 
+                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm]
 
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
@@ -651,12 +651,12 @@ class Traffic:
 
                 self.actwpturn[i] = self.actwpflyby[i]*                     \
                      max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
-                     self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]                
+                     self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]
 
             #=============== End of Waypoint switching loop ===================
-            
+
             # VNAV Guidance
-            
+
             # Do VNAV start of descent check
             dy = (self.actwplat-self.lat)
             dx = (self.actwplon-self.lon)*self.coslat
@@ -667,7 +667,7 @@ class Traffic:
             # First term: descend when distance to next wp is descent distance
             # Second term: climb when still below altitude of next waypoint
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
-                                     (self.actwpalt>self.alt))            
+                                     (self.actwpalt>self.alt))
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.aalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
@@ -676,25 +676,25 @@ class Traffic:
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
 
         #-------------END of FMS update -------------------
-      
+
         # NOISE: Turbulence
         if self.turbulence:
             timescale=np.sqrt(simdt)
             trkrad=np.radians(self.trk)
-            
+
             #write turbulences in array
             turb=np.array(self.standardturbulence)
             turb=np.where(turb>1e-6,turb,1e-6)
-            
+
             #horizontal flight direction
             turbhf=np.random.normal(0,turb[0]*timescale,self.ntraf) #[m]
-            
+
             #horizontal wing direction
             turbhw=np.random.normal(0,turb[1]*timescale,self.ntraf) #[m]
-            
+
             #vertical direction
             turbalt=np.random.normal(0,turb[2]*timescale,self.ntraf) #[m]
-            
+
             #lateral, longitudinal direction
             turblat=np.cos(trkrad)*turbhf-np.sin(trkrad)*turbhw #[m]
             turblon=np.sin(trkrad)*turbhf+np.cos(trkrad)*turbhw #[m]
@@ -746,24 +746,24 @@ class Traffic:
 
         # To be discussed: Following change in VNAV mode only?
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
-        #climb/descend above crossover: Ma = const, else CAS = const  
+        #climb/descend above crossover: Ma = const, else CAS = const
         #ama is fixed when above crossover
         swma = np.where(self.abco*(self.ama == 0.)) # Above cross-over
         self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
 
         # ama is deleted when below crossover
         swma2 = np.where(self.belco*(self.ama!=0.)) # below corss-over
-        self.ama[swma2] = 0. 
+        self.ama[swma2] = 0.
 
         #---------- Basic Autopilot  modes ----------
 
         # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
-        # for information:    
+        # for information:
 
 # no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
 #                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
 
-        self.delspd = self.aptas - self.tas 
+        self.delspd = self.aptas - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
 
@@ -817,7 +817,7 @@ class Traffic:
 
         self.lon = self.lon +        \
                    np.degrees((ds * np.sin(np.radians(self.trk)) + turblon) \
-                                         / self.coslat / Rearth) 
+                                         / self.coslat / Rearth)
 
         # Update trails when switched on
         if self.swtrails:
@@ -893,7 +893,7 @@ class Traffic:
 
         if noiseflag is None:
             return True, "Noise is currently " + ("on" if self.noise else "off")
-        
+
         self.noise              = noiseflag           # Noise/turbulence switch
         self.trunctime          = 1                   # seconds
         self.transerror         = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
@@ -1169,4 +1169,4 @@ class Traffic:
 
             return True
 
-return False
+        return False
