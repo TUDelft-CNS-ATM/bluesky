@@ -1169,8 +1169,4 @@ class Traffic:
 
             return True
 
-<<<<<<< HEAD
         return False
-=======
-        return False
->>>>>>> refs/remotes/ProfHoekstra/master
