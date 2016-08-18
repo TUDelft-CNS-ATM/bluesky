@@ -266,7 +266,7 @@ class RadarWidget(QGLWidget):
         # ------- Circle ---------------------------------
         # Create a new VAO (Vertex Array Object) and bind it
         self.protectedzone = RenderObject(gl.GL_LINE_LOOP, vertex_count=self.vcount_circle)
-        circlevertices = np.transpose(np.array((5.0 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle)), 5.0 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle))), dtype=np.float32))
+        circlevertices = np.transpose(np.array((2.5 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle)), 2.5 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle))), dtype=np.float32))
         self.protectedzone.bind_attrib(ATTRIB_VERTEX, 2, circlevertices)
         self.protectedzone.bind_attrib(ATTRIB_LAT, 1, self.aclatbuf, instance_divisor=1)
         self.protectedzone.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
