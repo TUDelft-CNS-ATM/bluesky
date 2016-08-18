@@ -5,128 +5,167 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from ...tools.aero import vtas2eas
+from ...tools.aero import vtas2eas, ft, veas2tas
 
 
 def start(dbconf):
     pass
 
 def resolve(dbconf, traf):
+    """ Resolve all current conflicts """
+    
+    # Check if ASAS is ON first!    
     if not dbconf.swasas:
         return
 
-    # required change in velocity
+    # Initialize an array to store the resolution velocity vector for all A/C
     dv = np.zeros((traf.ntraf,3)) 
 
-    #if possible, solve conflicts once and copy results for symmetrical conflicts,
-    #if that is not possible, solve each conflict twice, once for each A/C
+    # If possible, solve conflicts once and copy results for symmetrical conflicts
+    # If that is not possible, solve each conflict twice, once for each A/C
     if not traf.ADSBtrunc and not traf.ADSBtransnoise:
-
         for conflict in dbconf.conflist_now:
-
-            id1,id2 = dbconf.ConflictToIndices(conflict)
-
-            if id1 != "Fail" and id2!= "Fail":
-
-                dv_eby = MVP(dbconf,id1,id2)
-
-                dv[id1] = dv[id1] - dv_eby
-                dv[id2] = dv[id2] + dv_eby
-                                        
+            
+            # Determine ac indexes from callsigns
+            ac1, ac2 = conflict.split(" ")
+            id1, id2 = traf.id2idx(ac1), traf.id2idx(ac2)
+            
+            # If A/C indexes are found, then apply MVP on this conflict pair
+            # Then use the MVP computed resolution to subtract and add dv_mvp 
+            #     to id1 and id2, respectively
+            if id1 > -1 and id2 > -1:
+                dv_mvp = MVP(traf, dbconf, id1, id2)
+                dv[id1] = dv[id1] - dv_mvp
+                dv[id2] = dv[id2] + dv_mvp                                        
     else:
-
         for i in range(dbconf.nconf):
             confpair = dbconf.confpairs[i]
             ac1      = confpair[0]
             ac2      = confpair[1]
             id1      = traf.id.index(ac1)
             id2      = traf.id.index(ac2)
-            dv_eby   = MVP(dbconf, id1, id2)
-            dv[id1]  = dv[id1] - dv_eby
+            if id1 >-1 and id2 > -1:
+                dv_mvp   = MVP(traf, dbconf, id1, id2)
+                dv[id1]  = dv[id1] - dv_mvp
 
-    # now we have the change in speed vector for each aircraft.
+    # Now we have the resolution velocity vector for all A/C, cartesian coordinates
     dv = np.transpose(dv)
 
-    # the old speed vector, cartesian coordinates
+    # The old speed vector, cartesian coordinates
     trkrad = np.radians(traf.trk)
-    v = np.array([np.sin(trkrad)*traf.tas,\
-        np.cos(trkrad)*traf.tas,\
-        traf.vs])
+    v      = np.array([np.sin(trkrad)*traf.tas,\
+                       np.cos(trkrad)*traf.tas,\
+                       traf.vs])
 
-    # the new speed vector
+    # The new speed vector, cartesian coordinates
     newv = dv+v
 
-    # the new speed vector in polar coordinates
+    # The new speed vector, polar coordinates
     newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
     newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
     neweas   = vtas2eas(newgs,traf.alt)
      
-    
     # Cap the velocity
-    neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
+    neweascapped = np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
     
-    # now assign in the traf class
+    # Cap the vertical speed
+    vscapped = np.maximum(dbconf.vsmin,np.minimum(dbconf.vsmax,newv[2,:]))
+    
+    # Now assign resolutions to variables in the ASAS class
     dbconf.asashdg = newtrack
-    dbconf.asasspd = neweascapped
-    dbconf.asasvsp = newv[2,:]
-    dbconf.asasalt = np.sign(dbconf.asasvsp) * dbconf.tinconf.min(axis=1) \
-                          + traf.alt
+    dbconf.asasspd = veas2tas(neweascapped,traf.alt)
+    dbconf.asasvsp = vscapped
     
+    # To update asasalt, tinconf is used. tinconf is a really big value if there is 
+    # no conflict. If there is a conflict, tinconf will be between 0 and the lookahead
+    # time. Therefore, asasalt should only be updated for those aircraft that have a 
+    # tinconf that is between 0 and the lookahead time (i.e., for the ones that are 
+    # in conflict). This is what the following code does:
+    altCondition = dbconf.tinconf.min(axis=1) < dbconf.dtlookahead*1.2 
+    asasalttemp  = dbconf.asasvsp*dbconf.tinconf.min(axis=1) + traf.alt
+    dbconf.asasalt[altCondition] = asasalttemp[altCondition]
+    
+           
 #=================================== Modified Voltage Potential ===============
-        
-    # Resolution: MVP method 
+           
 
 def MVP(traf, dbconf, id1, id2):
-    """Modified Voltage Potential resolution method:
-      calculate change in speed"""
-    dist=dbconf.dist[id1,id2]
-    qdr=dbconf.qdr[id1,id2]
+    """Modified Voltage Potential (MVP) resolution method"""
     
-    # from degrees to radians
-    qdr=np.radians(qdr)
+    # Get distance and qdr between id1 and id2
+    dist = dbconf.dist[id1,id2]
+    qdr  = dbconf.qdr[id1,id2]
+    
+    # Convert qdr from degrees to radians
+    qdr = np.radians(qdr)
    
-   # relative position vector
-    d=np.array([np.sin(qdr)*dist, \
-        np.cos(qdr)*dist, \
-        traf.alt[id2]-traf.alt[id1] ])
+    # Relative position vector between id1 and id2
+    drel = np.array([np.sin(qdr)*dist, \
+                np.cos(qdr)*dist, \
+                traf.alt[id2]-traf.alt[id1]])
 
-    # find track in radians
-    t1=np.radians(traf.trk[id1])
-    t2=np.radians(traf.trk[id2])
+    # Find track of id1 and id2 in radians
+    t1 = np.radians(traf.trk[id1])
+    t2 = np.radians(traf.trk[id2])
         
-    # write velocities as vectors and find relative velocity vector              
-    v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
-    v2=np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
-    v=np.array(v2-v1) 
+    # Write velocities as vectors and find relative velocity vector              
+    v1 = np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
+    v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
+    vrel = np.array(v2-v1) 
     
-    # Find tcpa
-    t=dbconf.tcpa[id1,id2]
+    # Find tcpa (or should it be tinconf, since tinconf decided whether its a conflict?)
+    tcpa = dbconf.tcpa[id1,id2] # dbconf.tinconf[id1,id2]
     
-    #find drel and absolute distance at tstar
-    drel=d+v*t
-    dabs=np.linalg.norm(drel)
+    # Find horizontal and vertical distances at the tcpa
+    dcpa  = drel + vrel*tcpa
+    dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
+    dabsV = dcpa[2]
+	
+    # Compute horizontal and vertical intrusions
+    iH = dbconf.Rm - dabsH
+    iV = dbconf.dhm - dabsV
+    
+    # If id1 and id2 are in intrusion, assume full intrusion to force max movement
+    if drel[0] < dbconf.Rm or drel[1] < dbconf.Rm:
+        iH = dbconf.Rm
+    if drel[2] < dbconf.dhm:
+        iV = dbconf.dhm
+    
+    # Exception handlers for head-on conflicts
+    # This is done to prevent division by zero in the next step
+    if dabsH <= 10.:
+        dabsH = 10.
+        dcpa[0] = 10.
+        dcpa[1] = 10.
+    if dabsV <= 10.:
+        dabsV = 10.        
 
-    #exception: if the two aircraft are on exact collision course 
-    #(passing eachother within 10 meter), change drelstar
-    exactcourse = 10. #10 meter
-    dif=exactcourse-dabs
-    if dif>0.:
-        vperp=np.array([-v[1],v[0],0.]) #rotate velocity 90 degrees in horizontal plane
-        drel+=dif*vperp/np.linalg.norm(vperp) #normalize to 10 m and add to drelstar
-        dabs=np.linalg.norm(drel)
-        
-    #intrusion at tstar
-    i=dbconf.Rm-dabs
-    
-    # desired change in the plane's speed vector:
-    dv=i*drel/(dabs*t)
-    
+    # Compute the resolution velocity vector in all three directions
+    dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)  # abs(tcpa) since tinconf can be positive, while tcpa can be be negative (i.e.,conflcit is behind the two aircraft). A negative tcpa would direct dv in the wrong direction.
+    dv2 = (iH*dcpa[1])/(abs(tcpa)*dabsH)
+    dv3 = (iV*dcpa[2])/(abs(tcpa)*dabsV)
+
+    # It is necessary to cap dv3 to prevent that a vertical conflict 
+    # is solved in 1 timestep, leading to a vertical separation that is too 
+    # high (high vs assumed in traf). 
+    # If vertical dynamics are included to aircraft  model in traffic.py, the 
+    # below lines should be deleted    
+    mindv3 = -200./60.*ft # ~ 1.016 [m/s]
+    maxdv3 = 200./60.*ft
+    dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
+
+    # combine the dv components 
+    dv = np.array([dv1,dv2,dv3])    
+
     #Extra factor necessary! ==================================================
-    # The conflict can still be solved by only horizontal
-    if dbconf.Rm<dist and dabs<dist:
-        erratum=np.cos(np.arcsin(dbconf.Rm/dist)-np.arcsin(dabs/dist))
-        dv_plus=dv/erratum
-    # Loss of horizontal separation
+    # Intruder outside ownship IPZ
+    if dbconf.Rm<dist and dabsH<dist:
+        erratum=np.cos(np.arcsin(dbconf.Rm/dist)-np.arcsin(dabsH/dist))
+        dv_plus1 = dv[0]/erratum
+        dv_plus2 = dv[1]/erratum
+	   # combine dv_plus components. Note: erratum only applies to horizontal dv components
+        dv_plus = np.array([dv_plus1,dv_plus2,dv[2]])		
+    # Intruder inside ownship IPZ
     else: 
         dv_plus=dv
         
