@@ -319,7 +319,7 @@ class Route():
         else:
             return False, "Waypoint " + wpnam + " not found"
 
-    def listrte(self, scr, ipage=0):
+    def listrte(self, scr, idx, traf, ipage=0):
         """LISTRTE command: output route to screen"""
         if self.nwp <= 0:
             return False, "Aircraft has no route."
@@ -359,7 +359,7 @@ class Route():
         # Add command for next page to screen command line
         npages = int((self.nwp + 6) / 7)
         if ipage + 1 < npages:
-            scr.cmdline("LISTRTE "+acid+","+str(ipage+1))
+            scr.cmdline("LISTRTE "+traf.id[idx]+","+str(ipage+1))
 
     def getnextwp(self):
         """Go to next waypoint and return data"""

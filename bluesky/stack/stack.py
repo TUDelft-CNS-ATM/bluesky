@@ -202,7 +202,7 @@ class Commandstack:
             "LISTRTE": [
                 "LISTRTE acid, [pagenr]",
                 "acid,[int]",
-                lambda idx, *args: traf.route[idx].listrte(scr, *args)
+                lambda idx, *args: traf.route[idx].listrte(scr, idx, traf, *args)
             ],
             "LNAV": [
                 "LNAV acid,[ON/OFF]",

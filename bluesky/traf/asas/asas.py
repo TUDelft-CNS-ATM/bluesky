@@ -50,13 +50,17 @@ class ASAS():
         self.dtasas       = settings.asas_dt           # interval for ASAS
         self.dtlookahead  = settings.asas_dtlookahead  # [s] lookahead time
         self.mar          = settings.asas_mar          # [-] Safety margin for evasion
-        self.R            = settings.asas_pzr * nm     # [m] Horizontal separation minimum
-        self.dh           = settings.asas_pzh * ft     # [m] Vertical separation minimum
+        self.R            = settings.asas_pzr * nm     # [m] Horizontal separation minimum for detection
+        self.dh           = settings.asas_pzh * ft     # [m] Vertical separation minimum for detection
+        self.Rm           = self.R * self.mar          # [m] Horizontal separation minimum for resolution 
+        self.dhm          = self.dh * self.mar         # [m] Vertical separation minimum for resolution 
         self.swasas       = True                       # [-] whether to perform CD&R
         self.tasas        = 0.0                        # Next time ASAS should be called
 
-        self.vmin         = 100.0                      # [m/s] Minimum ASAS velocity
-        self.vmax         = 180.0                      # [m/s] Maximum ASAS velocity
+        self.vmin         = 100.0                      # [m/s] Minimum ASAS velocity (194 kts)
+        self.vmax         = 275.0                      # [m/s] Maximum ASAS velocity (535 kts)
+        self.vsmin        = -3000./60.*ft              # [m/s] Minimum ASAS vertical speed        
+        self.vsmax        = 3000./60.*ft               # [m/s] Maximum ASAS vertical speed        
 
         self.confpairs    = []                         # Start with emtpy database: no conflicts
         self.nconf        = 0                          # Number of detected conflicts
