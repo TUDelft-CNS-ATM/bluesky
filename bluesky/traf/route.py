@@ -1,6 +1,6 @@
 from numpy import *
 from ..tools import geo
-from ..tools.aero import ft, kts, g0, nm, cas2tas
+from ..tools.aero import ft, kts, g0, nm, cas2tas, mach2cas
 from ..tools.misc import degto180
 
 
@@ -246,7 +246,7 @@ class Route():
                     self.wpalt[-2]  = alt
                     self.wpspd[-2]  = spd
                     self.wptype[-2] = wptype
-                    idx = self.nwp - 1
+                    idx = self.nwp - 2
 
                 # Or simply append
                 else:
@@ -257,7 +257,7 @@ class Route():
                     self.wpspd.append(spd)
                     self.wptype.append(wptype)
                     self.wpflyby.append(self.swflyby)
-                    idx = self.nwp - 1
+                    idx = self.nwp 
 
         # Update pointers and report whether we are ok
 
@@ -304,7 +304,7 @@ class Route():
                     if spd < 2.0:
                         traf.aspd[i] = mach2cas(spd, traf.alt[i])
                     else:
-                        traf.aspd[i] = cas2tas(spd, traf.alt[i])
+                        traf.aspd[i] = cas2tas(spd, traf.alt[i]) # or is '= spd'
 
             qdr, dist = geo.qdrdist(traf.lat[i], traf.lon[i],
                                 traf.actwplat[i], traf.actwplon[i])
@@ -605,7 +605,8 @@ class Route():
         return        
 
     def findact(self,traf,i):
-        """ Find best default active waypoint"""
+        """ Find best default active waypoint. 
+        This function is called during route creation"""
 
         # Check for easy answers first
         if self.nwp<=0:
@@ -615,8 +616,8 @@ class Route():
             return 0
 
         # Find closest    
-        wplat  = array(traf.actwplat)
-        wplon  = array(traf.actwplon)
+        wplat  = array(self.wplat)
+        wplon  = array(self.wplon)
         dy = wplat - traf.lat[i] 
         dx = (wplon - traf.lon[i]) * traf.coslat[i]
         dist2 = dx*dx + dy*dy            
@@ -625,8 +626,10 @@ class Route():
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
             qdr = arctan2(dx[iwpnear],dy[iwpnear])
-            delhdg = abs(degto180(traf.trk[i]-qdr))
-            if delhdg>90.:
+            delhdg = abs(degto180(traf.trk[i]-qdr))            
+            # If the bearing to the active waypoint is larger
+            # than 25 degrees, choose the next waypoint
+            if delhdg>25.:
                 iwpnear= iwpnear+1
         
         return iwpnear

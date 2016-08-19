@@ -167,6 +167,12 @@ class Traffic:
         # Scheduling of FMS and ASAS
         self.t0fms = -999.  # last time fms was called
         self.dtfms = 1.01  # interval for fms
+        
+        # VNAV logic for approaching airports (and force decent)
+        # When lnav is False due to lack of waypoints,then vnav becomes false. 
+        # But this reseting of VNAV overruled by this switch, if this switch = True. 
+        # The result is that aircraft with lnav/vnav False start to descent
+        self.swdecent = True
 
         # Flight performance scheduling
         self.perfdt = 0.1           # [s] update interval of performance limits
@@ -650,7 +656,7 @@ class Traffic:
                 qdr[i] = degrees(atan2(dx,dy))
 
                 self.actwpturn[i] = self.actwpflyby[i]*                     \
-                     max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
+                     max(10.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]
 
             #=============== End of Waypoint switching loop ===================
@@ -667,7 +673,7 @@ class Traffic:
             # First term: descend when distance to next wp is descent distance
             # Second term: climb when still below altitude of next waypoint
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
-                                     (self.actwpalt>self.alt))
+                                     (self.actwpalt>self.alt))+self.swdecent*(1-self.swlnav)                                     
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.apalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
