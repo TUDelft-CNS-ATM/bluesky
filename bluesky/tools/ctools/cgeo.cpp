@@ -3,6 +3,7 @@
 #include "numpy/arrayobject.h"
 #include "geo.hpp"
 #include <iostream>
+#include <vector>
 #define DEG2RAD 0.017453292519943295
 #define RAD2DEG 57.29577951308232
 #define M2NM 0.0005399568034557236
@@ -124,8 +125,8 @@ static PyObject* cgeo_qdrdist_matrix(PyObject* self, PyObject* args)
     int i = 0, j = 0;
 
     // Create ll2 data for efficient nested loop
-    qdr_d_in ll2[size];
-    qdr_d_in* pll2 = ll2;
+    std::vector<qdr_d_in> ll2(size);
+    std::vector<qdr_d_in>::iterator pll2 = ll2.begin();
     while (i < size) {
         pll2->init(DEG2RAD * *plat2, DEG2RAD * *plon2);
         ++i; ++plat2; ++plon2; ++pll2;
@@ -144,7 +145,7 @@ static PyObject* cgeo_qdrdist_matrix(PyObject* self, PyObject* args)
     qdr_d_in ll1;
     while (i < size) {
         ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
-        pll2 = ll2;
+        pll2 = ll2.begin();
         while (j < size) {
             if (i == j) {
                 *pqdr = 0.0;
@@ -247,8 +248,8 @@ static PyObject* cgeo_latlondist_matrix(PyObject* self, PyObject* args)
     int i = 0, j = 0;
 
     // Create ll2 data for efficient nested loop
-    qdr_d_in ll2[size];
-    qdr_d_in* pll2 = ll2;
+    std::vector<qdr_d_in> ll2(size);
+    std::vector<qdr_d_in>::iterator pll2 = ll2.begin();
     while (i < size) {
         pll2->init(DEG2RAD * *plat2, DEG2RAD * *plon2);
         ++i; ++plat2; ++plon2; ++pll2;
@@ -263,8 +264,8 @@ static PyObject* cgeo_latlondist_matrix(PyObject* self, PyObject* args)
     double *pdst = (double*)PyArray_DATA((PyArrayObject*)dst);
     if (equal_latlon_arrays) {
         double *pdst_T = pdst;
-        qdr_d_in *pll1 = ll2;
-        pll2 = ll2;
+        std::vector<qdr_d_in>::iterator pll1 = ll2.begin();
+        pll2 = ll2.begin();
         while (i < size) {
             while (j < size) {
                 if (i == j) {
@@ -279,13 +280,13 @@ static PyObject* cgeo_latlondist_matrix(PyObject* self, PyObject* args)
             pdst += i;
             pdst_T = pdst;
             j = i;
-            pll2 = ll2 + j;
+            pll2 = ll2.begin() + j;
         }
     } else {
         qdr_d_in ll1;
         while (i < size) {
             ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
-            pll2 = ll2;
+            pll2 = ll2.begin();
             while (j < size) {
                 if (i == j) {
                     *pdst = 0.0;
