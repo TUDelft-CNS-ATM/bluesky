@@ -705,44 +705,33 @@ class Traffic:
             turblon=np.zeros(self.ntraf) #[m]
 
 
-        # ASAS AP switches
-
-        #--------- Input to Autopilot settings to follow: destination or ASAS ----------
-
-        # desired autopilot settings due to ASAS
+        #--------- Input to Autopilot settings to follow: destination or ASAS ----------   
+                
+        # Below crossover altitude: CAS=const, above crossover altitude: MA = const
+        self.aptas = vcas2tas(self.aspd, self.alt)*self.belco + vmach2tas(self.ama, self.alt)*self.abco
+               
+        # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on. 
         self.deshdg = self.asas.asasactive*self.asas.asashdg + (1-self.asas.asasactive)*self.ahdg
-        self.desspd = self.asas.asasactive*self.asas.asasspd + (1-self.asas.asasactive)*self.aspd
-        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.apalt
+        self.desspd = self.asas.asasactive*self.asas.asasspd + (1-self.asas.asasactive)*self.aptas
+        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.aalt
         self.desvs  = self.asas.asasactive*self.asas.asasvsp + (1-self.asas.asasactive)*self.avs
 
- #-------------- Performance limits autopilot settings --------------
-        # Check difference with AP settings for trafperf and autopilot
-        self.delalt = self.desalt - self.alt  # [m]
-
-        # below crossover altitude: CAS=const, above crossover altitude: Mach = const
-        # aptas has to be calculated before delspd
-        self.aptas = vcas2tas(self.desspd, self.alt) * self.belco   +   \
-                     vmach2tas(self.ama, self.alt) * self.abco
-        self.delspd = self.desspd - self.tas
-
-
         # check for the flight envelope
+        self.delalt = self.aalt - self.alt  # [m]
         self.perf.limits()
 
-        # Update autopilot settings with values within the flight envelope
-
-        # Autopilot selected speed setting [m/s]
+        # Update desired sates with values within the flight envelope
         # To do: add const Mach const CAS mode
-        self.aspd = (self.limspd ==0)*self.desspd + (self.limspd!=0)*self.limspd
+        self.desspd = ((self.desspd<vcas2tas(self.limspd,self.alt)) + ( self.limspd == 0.0 ))*self.desspd + (self.desspd>vcas2tas(self.limspd,self.alt))*vcas2tas(self.limspd,self.alt)
 
-        # Autopilot selected altitude [m] limited when necessary
-        self.aalt = (self.limalt ==0)*self.desalt + (self.limalt!=0)*self.limalt
+        # Autopilot selected altitude [m]
+        self.desalt = (self.limalt ==0)*self.desalt + (self.limalt!=0)*self.limalt
 
         # Autopilot selected heading
-        self.ahdg = self.deshdg
+        self.deshdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
-        self.avs = (self.limvs==0)*self.desvs + (self.limvs!=0)*self.limvs
+        self.desvs = (self.limvs==0)*self.desvs + (self.limvs!=0)*self.limvs
 
         # To be discussed: Following change in VNAV mode only?
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
@@ -753,57 +742,54 @@ class Traffic:
 
         # ama is deleted when below crossover
         swma2 = np.where(self.belco*(self.ama!=0.)) # below corss-over
-        self.ama[swma2] = 0.
+        self.ama[swma2] = 0. 
 
         #---------- Basic Autopilot  modes ----------
 
-        # SPD HOLD/SEL mode: aspd = autopilot selected speed (first only eas)
-        # for information:
-
-# no more ?       self.aptas = (self.actwpspd > 0.01)*self.actwpspd*self.swvnav + \
-#                            np.logical_or((self.actwpspd <= 0.01),np.logical_not (self.swvnav))*self.aptas
-
-        self.delspd = self.aptas - self.tas
+        # Update TAS
+        self.delspd = self.desspd - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
 
-        self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) *  \
-                                          simdt) + (1. - swspdsel) * self.aptas
+        self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) * simdt) \
+                               + (1. - swspdsel) * self.tas
 
-        # Speed conversions
+        # Speed conversions using updated TAS
         self.cas = vtas2cas(self.tas, self.alt)
         self.gs  = self.tas
         self.M   = vtas2mach(self.tas, self.alt)
 
         # Update performance every self.perfdt seconds
-        if abs(simt - self.perft0) >= self.perfdt:
-            self.perft0 = simt
+        if abs(simt - self.perft0) >= self.perfdt:               
+            self.perft0 = simt            
             self.perf.perf()
 
-        # Update aircraft altitude
-        self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes
-        swaltsel = np.abs(self.aalt-self.alt) >      \
+        # Update altitude
+        self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes        
+        swaltsel = np.abs(self.desalt-self.alt) >      \
                   np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
 
-        self.vs = swaltsel*np.sign(self.aalt-self.alt)*       \
-                    ( (1-self.swvnav)*np.abs(1500./60.*ft) +    \
-                      self.swvnav*np.abs(self.avs)         )
+        # if asas is not active AND VNAV is not active, then it should use the standard climb rate.
+        # if asas is active AND VNAV is not active it should use asasvs (which is desvs)
+        # if asas is not active and VNAV is active desvs
+        # if asas AND VNAV is active then use desvs
+        self.vs = swaltsel*np.sign(self.desalt-self.alt)* \
+                  ((1-self.asas.asasactive)*(1-self.swvnav)*np.abs(1500./60*ft)+\
+                   self.asas.asasactive*(1-self.swvnav)*np.abs(self.desvs)+\
+                   (1-self.asas.asasactive)*self.swvnav*np.abs(self.desvs)+\
+                   self.asas.asasactive*self.swvnav*np.abs(self.desvs))
 
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
-                   (1. - swaltsel) * self.aalt + turbalt
+                   (1. - swaltsel) * self.desalt + turbalt
 
         # HDG HOLD/SEL mode: ahdg = ap selected heading
-        delhdg = (self.ahdg - self.trk + 180.) % 360 - 180.  # [deg]
-
-        # omega = np.degrees(g0 * np.tan(self.aphi) / \
-        # np.maximum(self.tas, self.eps))
+        delhdg = (self.deshdg - self.trk + 180.) % 360 - 180.  # [deg]
 
         # nominal bank angles per phase from BADA 3.12
         omega = np.degrees(g0 * np.tan(self.bank) / \
                            np.maximum(self.tas, self.eps))
 
         self.hdgsel = np.abs(delhdg) > np.abs(2. * simdt * omega)
-
         self.trk = (self.trk + simdt * omega * self.hdgsel * np.sign(delhdg)) % 360.
 
         #--------- Kinematics: update lat,lon,alt ----------
@@ -842,7 +828,7 @@ class Traffic:
                     inside = self.arealat0 <= self.lat[i] <= self.arealat1 and \
                              self.arealon0 <= self.lon[i] <= self.arealon1 and \
                              self.alt[i] >= self.areafloor and \
-                             (self.alt[i] >= 1500 or self.swtaxi)
+                             (self.alt[i] >= 0.5*ft or self.swtaxi)
 
                 elif self.area == "Circle":
 
