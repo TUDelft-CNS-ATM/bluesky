@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include "asas.hpp"
 #define DEG2RAD 0.017453292519943295
 #define RAD2DEG 57.29577951308232
@@ -36,8 +37,9 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         conflict confhor, confver;
         double tin, tout;
         double dalt, dvs;
-        qdr_d_in ll1, ll2[size];
-        qdr_d_in *pll2 = ll2;
+        qdr_d_in ll1;
+        std::vector<qdr_d_in> ll2(size);
+        std::vector<qdr_d_in>::iterator pll2 = ll2.begin();
         npy_bool asasactive = NPY_FALSE;
 
         // Pre-calculate intruder data
@@ -48,7 +50,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         
         for (unsigned int i = 0; i < size; ++i) {
             ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
-            pll2 = ll2;
+            pll2 = ll2.begin();
             PyListAttr acconfids;
             for (unsigned int j = 0; j < size; ++j) {
                 if (i != j) {
@@ -60,8 +62,8 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                         if (detect_hor(dbconf, confhor, 
                                        ll1,   *gs1.ptr, *trk1.ptr * DEG2RAD,
                                        *pll2, *gs2.ptr, *trk2.ptr * DEG2RAD)) {
-                            tin  = fmax(confhor.tin, confver.tin);
-                            tout = fmin(confhor.tout, confver.tout);
+                            tin  = std::max(confhor.tin, confver.tin);
+                            tout = std::min(confhor.tout, confver.tout);
                             // Combined conflict?
                             if (tin <= dbconf.dtlookahead && tin < tout && tout > 0.0) {
                                 // Add AC id to conflict list
