@@ -167,7 +167,7 @@ class Traffic:
         # Scheduling of FMS and ASAS
         self.t0fms = -999.  # last time fms was called
         self.dtfms = 1.01  # interval for fms
-
+                
         # Flight performance scheduling
         self.perfdt = 0.1           # [s] update interval of performance limits
         self.perft0 = -self.perfdt  # [s] last time checked (in terms of simt)
@@ -650,7 +650,7 @@ class Traffic:
                 qdr[i] = degrees(atan2(dx,dy))
 
                 self.actwpturn[i] = self.actwpflyby[i]*                     \
-                     max(3.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
+                     max(10.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]
 
             #=============== End of Waypoint switching loop ===================
@@ -666,8 +666,11 @@ class Traffic:
             # VNAV AP LOGIC: descend as late as possible, climb as soon as possible
             # First term: descend when distance to next wp is descent distance
             # Second term: climb when still below altitude of next waypoint
+            # Third line: climb/descend if doing so before lnav/vnav was switched off 
+            #               because there are no more waypoints
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
-                                     (self.actwpalt>self.alt))
+                                     (self.actwpalt>self.alt))+\
+                                     (1-self.swlnav)*(dist < self.actwpturn)                                
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.apalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
