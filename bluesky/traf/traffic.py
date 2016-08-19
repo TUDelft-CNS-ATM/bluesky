@@ -670,7 +670,7 @@ class Traffic:
                                      (self.actwpalt>self.alt))
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
-            self.aalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
+            self.apalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
 
             # Set headings based on swlnav
             self.ahdg = np.where(self.swlnav, qdr, self.ahdg)
@@ -713,11 +713,11 @@ class Traffic:
         # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on. 
         self.deshdg = self.asas.asasactive*self.asas.asashdg + (1-self.asas.asasactive)*self.ahdg
         self.desspd = self.asas.asasactive*self.asas.asasspd + (1-self.asas.asasactive)*self.aptas
-        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.aalt
+        self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.apalt
         self.desvs  = self.asas.asasactive*self.asas.asasvsp + (1-self.asas.asasactive)*self.avs
 
         # check for the flight envelope
-        self.delalt = self.aalt - self.alt  # [m]
+        self.delalt = self.apalt - self.alt  # [m]
         self.perf.limits()
 
         # Update desired sates with values within the flight envelope
@@ -925,7 +925,7 @@ class Traffic:
 
         if alt:
             self.alt[idx]  = alt
-            self.aalt[idx] = alt
+            self.apalt[idx] = alt
 
         if hdg:
             self.trk[idx]  = hdg
