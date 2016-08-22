@@ -276,11 +276,32 @@ class Commandstack:
             "RESET": [
                 "RESET",
                 "",
-                sim.reset],
+                sim.reset
+            ],
+            "RFACH": [
+                "RFACH [factor]",
+                "[float]",
+                traf.asas.SetResoFacH
+            ],
+            "RFACV": [
+                "RFACV [factor]",
+                "[float]",
+                traf.asas.SetResoFacV
+            ],
             "RESO": [
                 "RESO [method]",
                 "[txt]",
                 traf.asas.SetCRmethod
+            ],
+            "RMETHH": [
+                "RMETHH [method]",
+                "[txt]",
+                traf.asas.SetResoHoriz
+            ],
+            "RMETHV": [
+                "RMETHV [method]",
+                "[txt]",
+                traf.asas.SetResoVert
             ],
             "RSZONEDH": [
                 "RSZONEDH [height]",
@@ -386,12 +407,20 @@ class Commandstack:
             "END": "STOP",
             "EXIT": "STOP",
             "FWD": "FF",
+            "HMETH":"RMETHH",
+            "HRESOM":"RMETHH",
+            "HRESOMETH":"RMETHH",
             "PAUSE": "HOLD",
             "Q": "STOP",
             "QUIT": "STOP",
-            "RUN": "OP",
+            "RUN": "OP",            
+            "RESOFACH":"RFACH",
+            "RESOFACV":"RFACV",
             "START": "OP",
             "TURN": "HDG",
+            "VMETH":"RMETHV",
+            "VRESOM":"RMETHV",
+            "VRESOMETH":"RMETHV",
             "?": "HELP"
         }
         #--------------------------------------------------------------------

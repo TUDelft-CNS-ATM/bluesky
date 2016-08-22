@@ -355,7 +355,7 @@ class Traffic:
 
         self.eps        = np.append(self.eps, 0.01)
 
-        self.asas.create(achdg, eas, acalt)
+        self.asas.create(achdg, acspd, acalt)
 
         return True
 
@@ -524,7 +524,7 @@ class Traffic:
         # Save old result
 
         iconf0 = np.array(self.asas.iconf)
-
+        
         self.asas.update(self, simt)
 
         # TODO: this doesn't work anymore when asas.iconf is a list of lists
@@ -648,7 +648,10 @@ class Traffic:
                 dy = (self.actwplat[i]-self.lat[i])
                 dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
                 qdr[i] = degrees(atan2(dx,dy))
-
+                
+                # Aircraft should start climbing/decending(/turning) to the next 
+                # waypoint at a maximum of 10 Nm from the next waypoint to comply 
+                # with the 1:3 rule of thumb for steepness.
                 self.actwpturn[i] = self.actwpflyby[i]*                     \
                      max(10.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
                      self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]
@@ -667,7 +670,9 @@ class Traffic:
             # First term: descend when distance to next wp is descent distance
             # Second term: climb when still below altitude of next waypoint
             # Third line: climb/descend if doing so before lnav/vnav was switched off 
-            #               because there are no more waypoints
+            #               (because there are no more waypoints). This is needed
+            #               to continue descending when you get into a conflict
+            #               while descending to the destination (the last waypoint) 
             self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
                                      (self.actwpalt>self.alt))+\
                                      (1-self.swlnav)*(dist < self.actwpturn)                                
@@ -753,7 +758,6 @@ class Traffic:
         self.delspd = self.desspd - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
-
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) * simdt) \
                                + (1. - swspdsel) * self.tas
 
@@ -770,8 +774,9 @@ class Traffic:
         # Update altitude
         self.eps = np.array(self.ntraf * [0.01])  # almost zero for misc purposes        
         swaltsel = np.abs(self.desalt-self.alt) >      \
-                  np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt
-
+                  np.maximum(3.,np.abs(2. * simdt * np.abs(self.vs))) # 3.[m] = 10 [ft] eps alt   
+                  
+        # TO DO: ADD some vertical speed dynamics so that the desired VS can't be obtained instantly
         # if asas is not active AND VNAV is not active, then it should use the standard climb rate.
         # if asas is active AND VNAV is not active it should use asasvs (which is desvs)
         # if asas is not active and VNAV is active desvs
@@ -781,7 +786,6 @@ class Traffic:
                    self.asas.asasactive*(1-self.swvnav)*np.abs(self.desvs)+\
                    (1-self.asas.asasactive)*self.swvnav*np.abs(self.desvs)+\
                    self.asas.asasactive*self.swvnav*np.abs(self.desvs))
-
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
                    (1. - swaltsel) * self.desalt + turbalt
 

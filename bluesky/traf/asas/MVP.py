@@ -5,7 +5,7 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from ...tools.aero import vtas2eas, ft, veas2tas
+from ...tools.aero import ft
 
 
 def start(dbconf):
@@ -59,21 +59,40 @@ def resolve(dbconf, traf):
 
     # The new speed vector, cartesian coordinates
     newv = dv+v
-
-    # The new speed vector, polar coordinates
-    newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
-    newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
-    neweas   = vtas2eas(newgs,traf.alt)
-     
+    
+    # Compute new speed vector in polar coordinates based on desired resolution 
+    # direction: horizontal or vertical or horizontal+vertical
+    if dbconf.swresohoriz: # horizontal resolutions
+        if dbconf.swresospd and not dbconf.swresohdg: # SPD only
+            newtrack = traf.trk
+            newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)            
+            newvs    = traf.vs           
+        elif dbconf.swresohdg and not dbconf.swresospd: # HDG only
+            newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
+            newgs    = traf.gs
+            newvs    = traf.vs  
+        else: # SPD + HDG
+            newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
+            newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
+            newvs    = traf.vs 
+    elif dbconf.swresovert: # vertical resolutions
+        newtrack = traf.trk
+        newgs    = traf.gs
+        newvs    = newv[2,:]       
+    else: # horizontal + vertical
+        newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
+        newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
+        newvs    = newv[2,:]
+        
     # Cap the velocity
-    neweascapped = np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
+    newgscapped = np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,newgs))
     
     # Cap the vertical speed
-    vscapped = np.maximum(dbconf.vsmin,np.minimum(dbconf.vsmax,newv[2,:]))
+    vscapped = np.maximum(dbconf.vsmin,np.minimum(dbconf.vsmax,newvs))
     
     # Now assign resolutions to variables in the ASAS class
     dbconf.asashdg = newtrack
-    dbconf.asasspd = veas2tas(neweascapped,traf.alt)
+    dbconf.asasspd = newgscapped
     dbconf.asasvsp = vscapped
     
     # To update asasalt, tinconf is used. tinconf is a really big value if there is 
@@ -81,10 +100,15 @@ def resolve(dbconf, traf):
     # time. Therefore, asasalt should only be updated for those aircraft that have a 
     # tinconf that is between 0 and the lookahead time (i.e., for the ones that are 
     # in conflict). This is what the following code does:
-    altCondition = dbconf.tinconf.min(axis=1) < dbconf.dtlookahead*1.2 
+    altCondition = dbconf.tinconf.min(axis=1) < dbconf.dtlookahead
     asasalttemp  = dbconf.asasvsp*dbconf.tinconf.min(axis=1) + traf.alt
     dbconf.asasalt[altCondition] = asasalttemp[altCondition]
     
+    # If resolutions are limited in the horizontal direction, then asasalt should
+    # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed 
+    # using the auto pilot vertical speed (traf.avs) using the code in line 106 (asasalttemp) when only
+    # horizontal resolutions are allowed.
+    dbconf.asasalt = dbconf.asasalt*(1-dbconf.swresohoriz) + traf.apalt*dbconf.swresohoriz
            
 #=================================== Modified Voltage Potential ===============
            
@@ -120,11 +144,11 @@ def MVP(traf, dbconf, id1, id2):
     dcpa  = drel + vrel*tcpa
     dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
     dabsV = dcpa[2]
-	
+    	
     # Compute horizontal and vertical intrusions
     iH = dbconf.Rm - dabsH
     iV = dbconf.dhm - dabsV
-    
+        
     # If id1 and id2 are in intrusion, assume full intrusion to force max movement
     if drel[0] < dbconf.Rm or drel[1] < dbconf.Rm:
         iH = dbconf.Rm
@@ -138,20 +162,21 @@ def MVP(traf, dbconf, id1, id2):
         dcpa[0] = 10.
         dcpa[1] = 10.
     if dabsV <= 10.:
-        dabsV = 10.        
+        dabsV = 10. 
+        if dbconf.swresovert:
+            dcpa[2] = 10.
 
     # Compute the resolution velocity vector in all three directions
     dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)  # abs(tcpa) since tinconf can be positive, while tcpa can be be negative (i.e.,conflcit is behind the two aircraft). A negative tcpa would direct dv in the wrong direction.
     dv2 = (iH*dcpa[1])/(abs(tcpa)*dabsH)
-    dv3 = (iV*dcpa[2])/(abs(tcpa)*dabsV)
-
+    dv3 = (iV*dcpa[2])/(abs(tcpa)*dabsV)    
+    
     # It is necessary to cap dv3 to prevent that a vertical conflict 
     # is solved in 1 timestep, leading to a vertical separation that is too 
-    # high (high vs assumed in traf). 
-    # If vertical dynamics are included to aircraft  model in traffic.py, the 
-    # below lines should be deleted    
-    mindv3 = -200./60.*ft # ~ 1.016 [m/s]
-    maxdv3 = 200./60.*ft
+    # high (high vs assumed in traf). If vertical dynamics are included to 
+    # aircraft  model in traffic.py, the below three lines should be deleted.
+    mindv3 = -400./60.*ft # ~ 2.016 [m/s]
+    maxdv3 = 400./60.*ft
     dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
 
     # combine the dv components 
@@ -168,5 +193,5 @@ def MVP(traf, dbconf, id1, id2):
     # Intruder inside ownship IPZ
     else: 
         dv_plus=dv
-        
+          
     return dv_plus

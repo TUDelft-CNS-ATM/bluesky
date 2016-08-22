@@ -245,28 +245,25 @@ def APorASAS(dbconf, traf):
             # Compute pastCPA
             pastCPA = np.dot(d,v2-v1)>0.
             
-            # pastCPA exception 1: hLOS
-            # If two aircraft solved their conflict vertically, pastCPA is false 
-            # as long as there is HLOS. This is to prevent aircraft from recovering 
-            # their route too fast, as that would result in an intrusion with a 
-            # negative tcpa!
+            # hLOS:
+            # Aircraft should continue to resolve until there is no horizontal 
+            # LOS. This is particularly relevant when vertical resolutions
+            # are used. 
             dx = (traf.lat[id1] - traf.lat[id2]) * 111319.
             dy = (traf.lon[id1] - traf.lon[id2]) * 111319.    
             hdist2 = dx**2 + dy**2
-            hLOS   = hdist2 < dbconf.R**2            
-            if hLOS:
-                pastCPA = False
+            hLOS   = hdist2 < dbconf.R**2          
             
-            # pastCPA exception 2: Bouncing conflicts
-            # If two aircraft have a conflict with small delta hdg, pastCPA is
-            # False if the distance between them is less than Rm.
-            # This is to prevent aircraft from recovering their trjectory too 
-            # early as that would cause a new conflict in these cases
-            # (i.e., a bouncing conflict that never ends)
-            if (abs(traf.trk[id1] - traf.trk[id2]) < 30.) &  (hdist2<dbconf.Rm**2):
-                pastCPA = False           
-
-            if not pastCPA:
+            # Bouncing conflicts:
+            # If two aircraft are getting in and out of conflict continously, 
+            # then they it is a bouncing conflict. ASAS should stay active until 
+            # the bouncing stops.
+            bouncingConflict = (abs(traf.trk[id1] - traf.trk[id2]) < 30.) & (hdist2<dbconf.Rm**2)         
+            
+            # Decide if conflict is over or not. 
+            # If not over, turn asasactive to true. 
+            # If over, then initiate recovery
+            if not pastCPA or hLOS or bouncingConflict:
                 # Aircraft haven't passed their CPA: must follow their ASAS
                 dbconf.asasactive[id1] = True
                 dbconf.asasactive[id2] = True
