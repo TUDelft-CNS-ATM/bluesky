@@ -68,6 +68,9 @@ class ASAS():
         self.swresovert   = False                      # [-] switch to limit resolution to the vertical direction       
         self.swresocoop   = False                      # [-] switch to limit resolution magnitude to half (cooperative resolutions) 
         
+        self.swprio       = False                      # [-] switch to activate priority rules for conflict resolution
+        self.priocode     = "FF1"                      # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
+        
         self.resoFacH     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
         self.resoFacV     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
 
@@ -229,7 +232,8 @@ class ASAS():
         self.R = self.R*self.resoFacH
         self.Rm = self.R*self.mar
         
-        return True, "\nCurrent horizontal resolution factor is: "+ str(self.resoFacH) + \
+        return True, "IMPORTANT NOTE: " + \
+                     "\nCurrent horizontal resolution factor is: "+ str(self.resoFacH) + \
                      "\nCurrent PZ radius:" + str(self.R/nm) + " NM" + \
                      "\nCurrent resolution PZ radius: " + str(self.Rm/nm) + " NM\n"
         
@@ -242,9 +246,34 @@ class ASAS():
         self.dh = self.dh*self.resoFacV
         self.dhm = self.dh*self.mar
         
-        return True, "\nCurrent vertical resolution factor is: "+ str(self.resoFacV) + \
+        return True, "IMPORTANT NOTE: " + \
+                     "\nCurrent vertical resolution factor is: "+ str(self.resoFacV) + \
                      "\nCurrent PZ height:" + str(self.dh/ft) + " ft" + \
                      "\nCurrent resolution PZ height: " + str(self.dhm/ft) + " ft\n"
+                     
+    def SetPrio(self, flag=None, priocode="FF1"):
+        '''Set the prio switch and the type of prio '''
+
+        options = ["FF1","FF2","FF3","LAY1","LAY2"]
+        
+        if flag is None:
+            return True, "PRIORULES ON/OFF [PRIOCODE]"  + \
+                         "\nAvailable priority codes: " + \
+                         "\n     FF1:  Free Flight Primary (No Prio) " + \
+                         "\n     FF2:  Free Flight Secondary (Cruising has priority)" + \
+                         "\n     FF3:  Free Flight Tertiary (Climbing/descending has priority)" + \
+                         "\n     LAY1: Layers Primary (Cruising has priority + horizontal resolutions)" + \
+                         "\n     LAY2: Layers Secondary (Climbing/descending has priority + horizontal resolutions)" + \
+                         "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
+                         "\nPriority code is currently: " + str(self.priocode)                         
+        
+        self.swprio = flag 
+        
+        if priocode not in options:
+            return False, "Priority code Not Understood. Available Options: " + str(options)
+        else:
+            self.priocode = priocode
+            
 
     def create(self, hdg, spd, alt):
         # ASAS info: no conflict => empty list

@@ -273,6 +273,11 @@ class Commandstack:
                 "txt",
                 lambda acid: scr.showacinfo(acid, traf.acinfo(acid))
             ],
+            "PRIORULES": [
+                "PRIORULES [ON/OFF PRIOCODE]",
+                "[onoff, txt]",
+                traf.asas.SetPrio
+            ],
             "RESET": [
                 "RESET",
                 "",
@@ -317,8 +322,7 @@ class Commandstack:
                 "RUNWAYS ICAO",
                 "txt",   
                 lambda ICAO: traf.navdb.listrwys(ICAO)
-                ],            
-            
+            ],           
             "SAVEIC": [
                 "SAVEIC filename",
                 "string",
