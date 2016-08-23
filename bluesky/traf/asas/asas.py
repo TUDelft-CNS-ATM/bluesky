@@ -71,6 +71,7 @@ class ASAS():
         self.swprio       = False                      # [-] switch to activate priority rules for conflict resolution
         self.priocode     = "FF1"                      # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
         
+        self.swnoreso     = False
         self.noresolst    = []                         # [-] list for NORESO command. Nobody will avoid conflicts with aircraft in this list
         
         self.resoFacH     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
@@ -255,11 +256,9 @@ class ASAS():
                      
     def SetPrio(self, flag=None, priocode="FF1"):
         '''Set the prio switch and the type of prio '''
-
-        options = ["FF1","FF2","FF3","LAY1","LAY2"]
-        
+        options = ["FF1","FF2","FF3","LAY1","LAY2"]        
         if flag is None:
-            return True, "PRIORULES ON/OFF [PRIOCODE]"  + \
+            return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
                          "\nAvailable priority codes: " + \
                          "\n     FF1:  Free Flight Primary (No Prio) " + \
                          "\n     FF2:  Free Flight Secondary (Cruising has priority)" + \
@@ -267,15 +266,32 @@ class ASAS():
                          "\n     LAY1: Layers Primary (Cruising has priority + horizontal resolutions)" + \
                          "\n     LAY2: Layers Secondary (Climbing/descending has priority + horizontal resolutions)" + \
                          "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
-                         "\nPriority code is currently: " + str(self.priocode)                         
-        
-        self.swprio = flag 
-        
+                         "\nPriority code is currently: " + str(self.priocode)                        
+        self.swprio = flag         
         if priocode not in options:
             return False, "Priority code Not Understood. Available Options: " + str(options)
         else:
             self.priocode = priocode
             
+    def SetNoreso(self,noresoac=None):
+        "ADD or Remove aircraft that nobody should avoid"
+        if noresoac is None:
+            return True, "NORESO [ACID]" + \
+                          "\nCurrent list of aircraft nobody will avoid:" + \
+                           str(self.noresolst)            
+        # Split the input into separate aircraft ids if multiple acids are given
+        acids = noresoac.split(',') if len(noresoac.split(',')) > 1 else noresoac.split(' ')
+               
+        # Remove acids if they are already in self.noresolst. This is used to 
+        # delete aircraft from this list.
+        # Else, add them to self.noresolst. Nobody will avoid these aircraft
+        if set(acids) <= set(self.noresolst):
+            self.noresolst = filter(lambda x: x not in set(acids), self.noresolst)
+        else: 
+            self.noresolst.extend(acids)
+        
+        # active the switch, if there are acids in the list
+        self.swnoreso = len(self.noresolst)>0         
 
     def create(self, hdg, spd, alt):
         # ASAS info: no conflict => empty list

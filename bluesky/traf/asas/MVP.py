@@ -41,7 +41,16 @@ def resolve(dbconf, traf):
                     dv[id1],dv[id2] = prioRules(traf, dbconf.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
                 else:
                     dv[id1] = dv[id1] - dv_mvp
-                    dv[id2] = dv[id2] + dv_mvp                                        
+                    dv[id2] = dv[id2] + dv_mvp 
+                
+                # Check the noreso aircraft. Nobody avoids noreso aircraft. 
+                # But noreso aircraft will avoid other aircraft
+                if dbconf.swnoreso:
+                    if ac1 in dbconf.noresolst: # -> Then id2 does not avoid id1. 
+                        dv[id2] = dv[id2] - dv_mvp
+                    if ac2 in dbconf.noresolst: # -> Then id1 does not avoid id2. 
+                        dv[id1] = dv[id1] + dv_mvp
+                                                               
     else:
         for i in range(dbconf.nconf):
             confpair = dbconf.confpairs[i]
@@ -51,7 +60,18 @@ def resolve(dbconf, traf):
             id2      = traf.id.index(ac2)
             if id1 >-1 and id2 > -1:
                 dv_mvp   = MVP(traf, dbconf, id1, id2)
-                dv[id1]  = dv[id1] - dv_mvp
+                
+                # Use priority rules if activated
+                if dbconf.swprio:
+                   dv[id1], foobar = prioRules(traf, dbconf.priocode, dv_mvp, dv[id1], dv[id2], id1, id2) 
+                else:
+                   dv[id1]  = dv[id1] - dv_mvp
+                   
+                # Check the noreso aircraft. Nobody avoids noreso aircraft. 
+                # But noreso aircraft will avoid other aircraft
+                if dbconf.swnoreso:
+                    if ac2 in dbconf.noresolst: # -> Then id1 does not avoid id2. 
+                        dv[id1] = dv[id1] + dv_mvp
 
     # Now we have the resolution velocity vector for all A/C, cartesian coordinates
     dv = np.transpose(dv)
@@ -169,7 +189,7 @@ def MVP(traf, dbconf, id1, id2):
         dcpa[1] = 10.
     if dabsV <= 10.:
         dabsV = 10. 
-        if dbconf.swresovert:
+        if dbconf.swresovert: # only trigger vertical resolution if it is the desired resolution direction
             dcpa[2] = 10.
 
     # Compute the resolution velocity vector in all three directions
@@ -228,11 +248,11 @@ def prioRules(traf, priocode, dv_mvp, dv1, dv2, id1, id2):
     elif priocode == "FF3": 
         # If aircraft 1 is cruising, and aircraft 2 is climbing/descending -> aircraft 1 solves conflict horizontally
         if abs(traf.vs[id1])<0.1 and abs(traf.vs[id2]) > 0.1:
-            dv1 = dv1 + dv_mvp
+            dv1 = dv1 - dv_mvp
             dv1[2] = 0.0 # -> set vertical speed to 0
         # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft 2 solves conflict horizontally
         elif abs(traf.vs[id2])<0.1 and abs(traf.vs[id1]) > 0.1:
-            dv2 = dv2 - dv_mvp
+            dv2 = dv2 + dv_mvp
             dv2[2] = 0.0
         else: # both are climbing/descending/cruising -> both aircraft solves the conflict, combined
             dv1 = dv1 - dv_mvp
@@ -258,11 +278,11 @@ def prioRules(traf, priocode, dv_mvp, dv1, dv2, id1, id2):
     elif priocode ==  "LAY2": 
          # If aircraft 1 is cruising, and aircraft 2 is climbing/descending -> aircraft 1 solves conflict horizontally
         if abs(traf.vs[id1])<0.1 and abs(traf.vs[id2]) > 0.1:
-            dv1 = dv1 + dv_mvp
+            dv1 = dv1 - dv_mvp
             dv1[2] = 0.0
         # If aircraft 2 is cruising, and aircraft 1 is climbing -> aircraft 2 solves conflict horizontally
         elif abs(traf.vs[id2])<0.1 and abs(traf.vs[id1]) > 0.1:
-            dv2 = dv2 - dv_mvp
+            dv2 = dv2 + dv_mvp
             dv2[2] = 0.0
         else: # both are climbing/descending/cruising -> both aircraft solves the conflic horizontally
             dv1 = dv1 - dv_mvp

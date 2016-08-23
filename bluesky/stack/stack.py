@@ -242,7 +242,13 @@ class Commandstack:
             "NOM": [
                 "NOM acid",
                 "acid",
-                traf.nom],
+                traf.nom
+            ],
+            "NORESO": [
+                "NORESO [acid]",
+                "[string]",
+                traf.asas.SetNoreso
+            ],
             "OP": [
                 "OP",
                 "",
