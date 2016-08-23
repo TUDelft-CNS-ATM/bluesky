@@ -304,6 +304,11 @@ class Commandstack:
                 "[txt]",
                 traf.asas.SetCRmethod
             ],
+            "RESOOFF": [
+                "RESOOFF [acid]",
+                "[string]",
+                traf.asas.SetResooff
+            ],
             "RMETHH": [
                 "RMETHH [method]",
                 "[txt]",

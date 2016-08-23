@@ -32,7 +32,7 @@ def resolve(dbconf, traf):
             
             # If A/C indexes are found, then apply MVP on this conflict pair
             # Then use the MVP computed resolution to subtract and add dv_mvp 
-            #     to id1 and id2, respectively
+            # to id1 and id2, respectively
             if id1 > -1 and id2 > -1:
                 dv_mvp = MVP(traf, dbconf, id1, id2)
                 
@@ -50,6 +50,14 @@ def resolve(dbconf, traf):
                         dv[id2] = dv[id2] - dv_mvp
                     if ac2 in dbconf.noresolst: # -> Then id1 does not avoid id2. 
                         dv[id1] = dv[id1] + dv_mvp
+                
+                # Check the resooff aircraft. These aircraft will not do resolutions.
+                if dbconf.swresooff:
+                    if ac1 in dbconf.resoofflst: # -> Then id1 does not do any resolutions
+                        dv[id1] = 0.0
+                    if ac2 in dbconf.resoofflst: # -> Then id2 does not do any resolutions
+                        dv[id2] = 0.0    
+                    
                                                                
     else:
         for i in range(dbconf.nconf):
@@ -58,6 +66,9 @@ def resolve(dbconf, traf):
             ac2      = confpair[1]
             id1      = traf.id.index(ac1)
             id2      = traf.id.index(ac2)
+            
+            # If A/C indexes are found, then apply MVP on this conflict pair
+            # Because ADSB is ON, this is done for each aircraft separately
             if id1 >-1 and id2 > -1:
                 dv_mvp   = MVP(traf, dbconf, id1, id2)
                 
@@ -72,6 +83,12 @@ def resolve(dbconf, traf):
                 if dbconf.swnoreso:
                     if ac2 in dbconf.noresolst: # -> Then id1 does not avoid id2. 
                         dv[id1] = dv[id1] + dv_mvp
+                
+                # Check the resooff aircraft. These aircraft will not do resolutions.
+                if dbconf.swresooff:
+                    if ac1 in dbconf.resoofflst: # -> Then id1 does not do any resolutions
+                        dv[id1] = 0.0                
+                
 
     # Now we have the resolution velocity vector for all A/C, cartesian coordinates
     dv = np.transpose(dv)

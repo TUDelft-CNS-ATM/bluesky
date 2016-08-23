@@ -71,8 +71,11 @@ class ASAS():
         self.swprio       = False                      # [-] switch to activate priority rules for conflict resolution
         self.priocode     = "FF1"                      # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
         
-        self.swnoreso     = False
+        self.swnoreso     = False                      # [-] switch to activate the NORESO command. Nobody will avoid conflicts with  NORESO aircraft 
         self.noresolst    = []                         # [-] list for NORESO command. Nobody will avoid conflicts with aircraft in this list
+        
+        self.swresooff    = False                      # [-] switch to active the RESOOFF command. RESOOFF aircraft will NOT avoid other aircraft. Opposite of NORESO command. 
+        self.resoofflst   = []                         # [-] list for the RESOOFF command. These aircraft will not do conflict resolutions. 
         
         self.resoFacH     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
         self.resoFacV     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
@@ -273,9 +276,10 @@ class ASAS():
         else:
             self.priocode = priocode
             
-    def SetNoreso(self,noresoac=None):
-        "ADD or Remove aircraft that nobody should avoid"
-        if noresoac is None:
+    def SetNoreso(self,noresoac=''):
+        '''ADD or Remove aircraft that nobody will avoid. 
+        Multiple aircraft can be sent to this function at once '''
+        if noresoac is '':
             return True, "NORESO [ACID]" + \
                           "\nCurrent list of aircraft nobody will avoid:" + \
                            str(self.noresolst)            
@@ -291,7 +295,27 @@ class ASAS():
             self.noresolst.extend(acids)
         
         # active the switch, if there are acids in the list
-        self.swnoreso = len(self.noresolst)>0         
+        self.swnoreso = len(self.noresolst)>0   
+        
+    def SetResooff(self,resooffac=''):
+        "ADD or Remove aircraft that will not avoid anybody else"
+        if resooffac is '':
+            return True, "NORESO [ACID]" + \
+                          "\nCurrent list of aircraft will not avoid anybody:" + \
+                           str(self.resoofflst)            
+        # Split the input into separate aircraft ids if multiple acids are given
+        acids = resooffac.split(',') if len(resooffac.split(',')) > 1 else resooffac.split(' ')
+               
+        # Remove acids if they are already in self.resoofflst. This is used to 
+        # delete aircraft from this list.
+        # Else, add them to self.resoofflst. These aircraft will not avoid anybody
+        if set(acids) <= set(self.resoofflst):
+            self.resoofflst = filter(lambda x: x not in set(acids), self.resoofflst)
+        else: 
+            self.resoofflst.extend(acids)
+        
+        # active the switch, if there are acids in the list
+        self.swresooff = len(self.resoofflst)>0  
 
     def create(self, hdg, spd, alt):
         # ASAS info: no conflict => empty list
