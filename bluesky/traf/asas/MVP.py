@@ -270,8 +270,5 @@ def prioRules(traf, priocode, dv_mvp, dv1, dv2, id1, id2):
             dv1[2] = 0.0
             dv2[2] = 0.0
     
-    print dv1
-    print
-    print dv2
     return dv1, dv2
     

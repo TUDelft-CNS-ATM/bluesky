@@ -71,6 +71,8 @@ class ASAS():
         self.swprio       = False                      # [-] switch to activate priority rules for conflict resolution
         self.priocode     = "FF1"                      # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
         
+        self.noresolst    = []                         # [-] list for NORESO command. Nobody will avoid conflicts with aircraft in this list
+        
         self.resoFacH     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
         self.resoFacV     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
 
