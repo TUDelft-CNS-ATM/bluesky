@@ -242,7 +242,13 @@ class Commandstack:
             "NOM": [
                 "NOM acid",
                 "acid",
-                traf.nom],
+                traf.nom
+            ],
+            "NORESO": [
+                "NORESO [acid]",
+                "[string]",
+                traf.asas.SetNoreso
+            ],
             "OP": [
                 "OP",
                 "",
@@ -273,14 +279,45 @@ class Commandstack:
                 "txt",
                 lambda acid: scr.showacinfo(acid, traf.acinfo(acid))
             ],
+            "PRIORULES": [
+                "PRIORULES [ON/OFF PRIOCODE]",
+                "[onoff, txt]",
+                traf.asas.SetPrio
+            ],
             "RESET": [
                 "RESET",
                 "",
-                sim.reset],
+                sim.reset
+            ],
+            "RFACH": [
+                "RFACH [factor]",
+                "[float]",
+                traf.asas.SetResoFacH
+            ],
+            "RFACV": [
+                "RFACV [factor]",
+                "[float]",
+                traf.asas.SetResoFacV
+            ],
             "RESO": [
                 "RESO [method]",
                 "[txt]",
                 traf.asas.SetCRmethod
+            ],
+            "RESOOFF": [
+                "RESOOFF [acid]",
+                "[string]",
+                traf.asas.SetResooff
+            ],
+            "RMETHH": [
+                "RMETHH [method]",
+                "[txt]",
+                traf.asas.SetResoHoriz
+            ],
+            "RMETHV": [
+                "RMETHV [method]",
+                "[txt]",
+                traf.asas.SetResoVert
             ],
             "RSZONEDH": [
                 "RSZONEDH [height]",
@@ -296,8 +333,7 @@ class Commandstack:
                 "RUNWAYS ICAO",
                 "txt",   
                 lambda ICAO: traf.navdb.listrwys(ICAO)
-                ],            
-            
+            ],           
             "SAVEIC": [
                 "SAVEIC filename",
                 "string",
@@ -386,12 +422,20 @@ class Commandstack:
             "END": "STOP",
             "EXIT": "STOP",
             "FWD": "FF",
+            "HMETH":"RMETHH",
+            "HRESOM":"RMETHH",
+            "HRESOMETH":"RMETHH",
             "PAUSE": "HOLD",
             "Q": "STOP",
             "QUIT": "STOP",
-            "RUN": "OP",
+            "RUN": "OP",            
+            "RESOFACH":"RFACH",
+            "RESOFACV":"RFACV",
             "START": "OP",
             "TURN": "HDG",
+            "VMETH":"RMETHV",
+            "VRESOM":"RMETHV",
+            "VRESOMETH":"RMETHV",
             "?": "HELP"
         }
         #--------------------------------------------------------------------
