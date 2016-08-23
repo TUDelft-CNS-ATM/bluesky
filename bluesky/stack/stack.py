@@ -186,7 +186,7 @@ class Commandstack:
             ],
             "IC": [
                 "IC [IC/filename]",
-                "[txt]",
+                "[string]",
                 lambda *args: self.ic(scr, sim, *args)
             ],
             "INSEDIT": [
