@@ -99,10 +99,11 @@ class Commandstack:
                 traf.create
             ],
             "DEL": [
-                "DEL acid/shape",
+                "DEL acid/WIND/shape",
                 "txt",
-                lambda a: traf.delete(a) if traf.id.count(a) > 0 \
-                else scr.objappend(0, a, None)
+                lambda a:   traf.delete(a)    if traf.id.count(a) > 0 \
+                       else traf.wind.clear() if a=="WIND" \
+                       else scr.objappend(0, a, None)
             ],
             "DELWPT": [
                 "DELWPT acid,wpname",
@@ -168,6 +169,11 @@ class Commandstack:
                 "FIXDT ON/OFF [tend]",
                 "onoff,[time]",
                 sim.setFixdt
+            ],
+            "GETWIND": [
+                "GETWIND lat,lon[,alt]",
+                "latlon,[alt]",
+                traf.wind.get
             ],
             "HDG": [
                 "HDG acid,hdg (deg,True)",
@@ -268,7 +274,8 @@ class Commandstack:
                 "PCALL filename [REL/ABS]",
                 "txt,[txt]",
                 lambda *args: self.openfile(*args, mergeWithExisting=True)
-            ],
+            ],         
+            
             "POLY": [
                 "POLY name,lat,lon,lat,lon, ...",
                 "txt,latlon,...",
@@ -392,6 +399,14 @@ class Commandstack:
                 "VS acid,vspd (ft/min)",
                 "acid,vspd",
                 traf.selvspd],
+            
+            "WIND": [
+                "WIND lat,lon,[alt],dir,spd[,alt,dir,spd,alt,...]",
+                "latlon,alt,float,float,...,...,...",
+                traf.wind.add
+                ],
+            
+            
             "ZONEDH": [
                 "ZONEDH [height]",
                 "[float]",
@@ -724,9 +739,10 @@ class Commandstack:
                     arglist = []
                     curtype = curarg = 0
                     while curtype < len(argtypes) and curarg < len(args):
-                        if argtypes[curtype] == '...':
-                            curtype -= 1
-                        argtype    = argtypes[curtype].strip().split('/')
+                        if argtypes[curtype][:3] == '...':
+                            repeatsize = len(argtypes) - curtype
+                            curtype = curtype - repeatsize
+                        argtype    = argtypes[curtype].strip().replace(" ","").split('/')
                         for i in range(len(argtype)):
                             try:
                                 argtypei = argtype[i]
