@@ -338,7 +338,8 @@ class Perf():
         
         # reference velocities
         self.refma= np.array ([]) # reference Mach
-        self.refcas= np.array ([]) # reference CAS        
+        self.refcas= np.array ([]) # reference CAS  
+        self.atrans=np.array([]) # crossover altitude
         
         # limits
         self.vm_to = np.array([]) # min takeoff spd (w/o mass, density)
@@ -417,6 +418,10 @@ class Perf():
 
         self.refma  = np.append(self.refma, coeffBS.cr_Ma[self.coeffidx]) # nominal cruise Mach at 35000 ft
         self.refcas = np.append(self.refcas, vtas2cas(coeffBS.cr_spd[self.coeffidx], 35000*ft)) # nominal cruise CAS
+        
+        # calculate the crossover altitude according to the BADA 3.12 User Manual
+        self.atrans = ((1000/6.5)*(T0*(1-((((1+gamma1*(self.refcas/a0)**2)**(gamma2))-1) /  \
+        (((1+gamma1*self.refma**2)**(gamma2))-1))**((-(beta)*R)/g0))))
 
         # limits   
         self.vm_to = np.append(self.vm_to, coeffBS.vmto[self.coeffidx])
@@ -531,6 +536,7 @@ class Perf():
         # reference speeds
         self.refma   = np.delete(self.refma, idx)   # nominal cruise Mach at 35000 ft
         self.refcas  = np.delete(self.refcas, idx)  # nominal cruise CAS
+        self.atrans = np.delete(self.atrans, idx)   # crossover altitude
 
         # aerodynamics
         self.CD0     = np.delete(self.CD0, idx)      # parasite drag coefficient
@@ -630,9 +636,6 @@ class Perf():
         self.climb = np.array(self.traf.delalt > epsalt)
         self.descent = np.array(self.traf.delalt<epsalt)
   
-        #crossover altitude (BADA User Manual 3.12, p. 12)
-        self.atrans = (1000/6.5)*(T0*(1-((((1+gamma1*(self.refcas/a0)**2)**(gamma2))-1) /  \
-        (((1+gamma1*self.refma**2)**(gamma2))-1))**((-(beta)*R)/g0)))
 
         # crossover altitiude
         self.traf.abco = np.array(self.traf.alt>self.atrans)
@@ -705,16 +708,18 @@ class Perf():
 
         # combine minimum speeds and flight phases. Phases initial climb, cruise
         # and approach use the same CLmax and thus the same function for Vmin
-        self.vmto = vtas2cas(self.vm_to*np.sqrt(self.mass/self.traf.rho), self.traf.alt)
-        self.vmic = vtas2cas(np.sqrt(2*self.mass*g0/(self.traf.rho*self.clmaxcr*self.Sref)), self.traf.alt)
+        self.vmto = self.vm_to*np.sqrt(self.mass/self.traf.rho)
+        self.vmic = np.sqrt(2*self.mass*g0/(self.traf.rho*self.clmaxcr*self.Sref))
         self.vmcr = self.vmic
         self.vmap = self.vmic
-        self.vmld = vtas2cas(self.vm_ld*np.sqrt(self.mass/self.traf.rho), self.traf.alt)
+        self.vmld = self.vm_ld*np.sqrt(self.mass/self.traf.rho)
 
         # summarize
         # note: aircraft on ground may be pushed back
         self.vmin = (self.phase==1)*self.vmto + ((self.phase==2) + (self.phase==3) + (self.phase==4))*self.vmcr + \
                     (self.phase==5)*self.vmld + (self.phase==6)*-10.0
+        # minimum speeds are required in cas
+        self.vmin= vtas2cas(self.vmin, self.traf.alt)            
 
         # forwarding to tools
         self.traf.limspd, self.traf.limalt, self.traf.limvs, self.traf.ama = \
