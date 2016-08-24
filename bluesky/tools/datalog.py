@@ -150,7 +150,45 @@ def logSelSnap(simt, traf, fselsnap):
 # for each of the 6 deafult logs. These functions should also set the logdt of each
 # log type as an optional argument.   
 
+''' ALGORITHM TO CONVERT ARRAY TO STRING AND WRITE ARRAY TO FILE
 
+def tic():
+    #Homemade version of matlab tic and toc functions
+    import time
+    global startTime_for_tictoc
+    startTime_for_tictoc = time.time()
+
+def toc():
+    import time
+    if 'startTime_for_tictoc' in globals():
+        print "Elapsed time is " + str(time.time() - startTime_for_tictoc) + " seconds."
+    else:
+        print "Toc: start time not set"
+
+# Create a random array with a large size
+largearray = np.random.rand(10000,50)
+stacker = np.random.rand(10000,1)
+largearray = np.hstack((stacker,largearray))
+
+tic()
+largearray = largearray.astype('|S10')
+toc()
+
+# write array to file 
+with open('largeArray.txt','w') as f_handle:
+    np.savetxt(f_handle,largearray, delimiter=',   ', newline='\n', fmt='%.10s')
+
+# create another random array with a large size
+largearray2 = np.random.rand(10000,50)
+largearray2 = largearray.astype('|S10')
+
+tic()
+# append array to file 
+with open('largeArray.txt','a') as f_handle:
+    np.savetxt(f_handle,largearray2,delimiter=',   ', newline='\n', fmt='%.10s')
+
+toc()
+''' 
 
 
     
