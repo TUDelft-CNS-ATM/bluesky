@@ -1,92 +1,112 @@
-""" 
-Datalog class definition : Data logging class
+""" BlueSky Datalogger """
+from .. import settings
 
-Methods:
-    Datalog(filename)  : constructor
-
-    write(txt)         : add a line to the datalogging buffer
-    save()             : save data to file
-   
-Created by  : Jacco M. Hoekstra (TU Delft)
-Date        : October 2013
-
-Modifation  :   - added start method including command processing
-                - added CSV-style saving
-By          : P. Danneels
-Date        : April 2016
-
-"""
-import os
-import numpy as np
-from misc import tim2txt
-from time import strftime, gmtime
-
-#-----------------------------------------------------------------
+eventlogs  = dict()
+periodiclogs = {
+    'SNAPLOG' : ['this is the header', None],
+    'INSTLOG' : ['this is the header', None],
+    'SKYLOG'  : ['this is the header', None],
+    'SELECTIVESNAP' : ['this is the header', None]
+}
 
 
-class Datalog():
-    def __init__(self, sim):
-        self.sim = sim
-        # Create a buffer and save filename
-        self.fname = os.path.dirname(__file__) + "/../../data/output/" \
-            + strftime("%Y-%m-%d-%H-%M-%S-BlueSky.txt", gmtime())
-        self.buffer = ["time;acid;gs;vs;track;lat;long\n"]  # Log data
-        self.aclist = np.zeros(1)                                 # AC list to log
-        self.dt = 1.                                              # Default logging interval
-        self.t0 = -9999                                           # Timer
-        self.swlog = False                                        # Logging started
+def createEventLog(name, variables, header):
+    # Eventlogs is a dict with the separate event logs, that each have a header,
+    # a set of variables, and a reference to the current file (which starts
+    # as None)
+    global eventlogs
+    varnames, formats  = zip(*variables)
+    header             = header + '\n' + str.join(', ', varnames)
+    eventlogs[name]    = [header, tuple(formats), None]
+
+
+def logEvent(name, *data):
+    log     = eventlogs[name]
+    formats = log[1]
+    file    = log[2]
+    if file is None:
         return
+    file.write(str.join(', ', formats) % data)
 
-    def start(self, acbatch, dt):
-        if len(self.sim.traf.id) == 0:
-            return False, "LOG: No traffic present, log not started."
-        self.id2idx = np.vectorize(self.sim.traf.id2idx)  # vectorize function
-        if acbatch is None:  # No batch defined, log all
-            self.aclist = self.id2idx(self.sim.traf.id)
-        elif acbatch == 'AREA':
-            if self.sim.traf.swarea:
-                self.aclist = self.id2idx(self.sim.traf.id)
-            else:
-                return False, "LOG: AREA DISABLED, LOG NOT STARTED"
-        else:
-            idx = self.id2idx(acbatch)
-            if idx < 0:  # not an acid or ac does not exist
-                return False, "LOG: ACID " + acbatch + " NOT FOUND"
-            else:
-                self.aclist = idx
-        self.dt = dt
-        if self.aclist.any():
-            self.swlog = True
-        return True, "LOG started."
 
-    def update(self, sim):
-        if not self.swlog:                     # Only update when logging started an traffic is selected
-            return
-        if abs(sim.simt - self.t0) < self.dt:  # Only do something when time is there
-            return
-        self.t0 = sim.simt                     # Update time for scheduler
+def logPeriodic(simt, traf):
+    global snapt, instt, skyt, selsnapt
+    fsnap    = periodiclogs['SNAPLOG'][1]
+    finst    = periodiclogs['INSTLOG'][1]
+    fsky     = periodiclogs['SKYLOG'][1]
+    fselsnap = periodiclogs['SELECTIVESNAP'][1]
+    if fsnap and simt > snapt:
+        snapt = snapt + snapdt
+        # Write to fsnap
+        logSnap(simt, traf)
+    elif finst and simt > instt:
+        instt = instt + instdt
+        # Write to finst
+        logInst(simt, traf)
+    elif fsky and simt > skyt:
+        skyt = skyt + skydt
+        # Write to fsky
+        logSky(simt, traf)
+    elif fselsnap and simt > selsnapt:
+        selsnapt = selsnapt + selsnapdt
+        # Write to fselsnap
+        logSelSnap(simt, traf)
 
-        t = tim2txt(sim.simt)                  # Nicely formated time
+def logSnap(simt, traf):
+    file = periodiclogs['SNAPLOG'][1]
+    file.write()
 
-        if self.aclist.ndim < 1:               # Write to buffer for one AC
-            self.writebuffer(sim, t, self.aclist)
-        else:                                  # Write to buffer for multiple AC
-            for i in self.aclist:
-                self.writebuffer(sim, t, self.aclist[i])
-        return
 
-    def writebuffer(self, sim, t, idx):
-        self.buffer.append(t + ";" +
-                           str(sim.traf.id[idx]) + ";" +
-                           str(sim.traf.gs[idx]) + ";" +
-                           str(sim.traf.vs[idx]) + ";" +
-                           str(sim.traf.trk[idx]) + ";" +
-                           str(sim.traf.lat[idx]) + ";" +
-                           str(sim.traf.lon[idx]) + "\n")
-        return
+def save(name=None):
+    global eventlogs, periodiclogs
+    if name is None:
+        # Close all open file objects
+        for elog in eventlogs:
+            elog[2].close()
+            elog[2] = None
+        for plog in periodiclogs:
+            plog[1].close()
+            plog[1] = None
+    elif name in periodiclogs:
+        periodiclogs[name][1].close()
+        periodiclogs[name][1] = None
+    elif name in eventlogs:
+        eventlogs[name][2].close()
+        eventlogs[name][2] = None
 
-    def save(self):  # Write buffer to file
-        f = open(self.fname, "w")
-        f.writelines(self.buffer)
-        f.close()
-        return
+
+def start(name, suffix=''):
+    global eventlogs, periodiclogs
+    if name in periodiclogs:
+        if periodiclogs[name][1] is not None:
+            periodiclogs[name][1].close()
+        periodiclogs[name][1] = open(name + '.' + suffix, 'w')
+        periodiclogs[name][1].write(periodiclogs[name][0] + '\n')
+
+    elif name in eventlogs:
+        if eventlogs[name][2] is not None:
+            eventlogs[name][2].close()
+        eventlogs[name][2] = open(name + '.' + suffix, 'w')
+        eventlogs[name][2].write(eventlogs[name][0] +  '\n')
+
+    else:
+        return False, name + ' not found.'
+
+
+def reset():
+    global eventlogs, periodiclogs, snapdt, instdt, skydt, selsnapdt, snapt, instt, skyt, selsnapt
+    for name in periodiclogs:
+        if periodiclogs[name][1] is not None:
+            periodiclogs[name].close()
+            periodiclogs[name] = None
+
+    snapt    = 0.0
+    instt    = 0.0
+    skyt     = 0.0
+    selsnapt = 0.0
+
+    snapdt    = settings.snapdt
+    instdt    = settings.instdt
+    skydt     = settings.skydt
+    selsnapdt = settings.selsnapdt
+
