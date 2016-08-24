@@ -398,15 +398,13 @@ class Commandstack:
             "VS": [
                 "VS acid,vspd (ft/min)",
                 "acid,vspd",
-                traf.selvspd],
-            
+                traf.selvspd
+            ],
             "WIND": [
                 "WIND lat,lon,[alt],dir,spd[,alt,dir,spd,alt,...]",
-                "latlon,alt,float,float,...,...,...",
+                "latlon,alt,float,float,...,...,...",   # last 3 args are repeated
                 traf.wind.add
-                ],
-            
-            
+            ],
             "ZONEDH": [
                 "ZONEDH [height]",
                 "[float]",
@@ -422,7 +420,8 @@ class Commandstack:
                 "float/txt",
                 lambda a: scr.zoom(1.4142135623730951) if a == "IN" else \
                           scr.zoom(0.7071067811865475) if a == "OUT" else \
-                          scr.zoom(a, True)]
+                          scr.zoom(a, True)
+            ]
         }
 
         #--------------------------------------------------------------------
@@ -742,7 +741,7 @@ class Commandstack:
                         if argtypes[curtype][:3] == '...':
                             repeatsize = len(argtypes) - curtype
                             curtype = curtype - repeatsize
-                        argtype    = argtypes[curtype].strip().replace(" ","").split('/')
+                        argtype    = argtypes[curtype].strip().split('/')
                         for i in range(len(argtype)):
                             try:
                                 argtypei = argtype[i]

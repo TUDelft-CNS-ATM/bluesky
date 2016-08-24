@@ -780,8 +780,7 @@ class Traffic:
             tasnorth = self.tas * cos(radians(self.trk))
             taseast  = self.tas * sin(radians(self.trk))
 
-            windnorth,windeast = self.wind.getdata(self.lat,self.lon,self.alt)
- 
+            windnorth, windeast = self.wind.getdata(self.lat, self.lon, self.alt)
 
             gsnorth  = tasnorth + windnorth
             gseast   = taseast  + windeast
