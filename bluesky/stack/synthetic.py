@@ -3,10 +3,7 @@ sys.path.append('bluesky/tools/')
 import random
 import numpy as np
 from aero import ft, eas2tas
-try:
-    import cgeo as geo
-except ImportError:
-    import geo
+import geo
 from misc import txt2alt, txt2spd
 '''
     Original version by Jerom Maas, fall 2014

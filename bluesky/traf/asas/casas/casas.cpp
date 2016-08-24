@@ -36,9 +36,19 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         conflict confhor, confver;
         double tin, tout;
         double dalt, dvs;
-        qdr_d_in ll1, ll2;
+        qdr_d_in ll1, ll2[size];
+        qdr_d_in *pll2 = ll2;
         npy_bool asasactive = NPY_FALSE;
+
+        // Pre-calculate intruder data
         for (unsigned int i = 0; i < size; ++i) {
+            pll2->init(*lat2.ptr * DEG2RAD, *lon2.ptr * DEG2RAD);
+            lat2.ptr++; lon2.ptr++; pll2++;
+        }
+        
+        for (unsigned int i = 0; i < size; ++i) {
+            ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
+            pll2 = ll2;
             PyListAttr acconfids;
             for (unsigned int j = 0; j < size; ++j) {
                 if (i != j) {
@@ -47,11 +57,9 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                     dvs  = *vs1.ptr  - *vs2.ptr;
                     if (detect_ver(dbconf, confver, dalt, dvs)) {
                         // Horizontal detection
-                        ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
-                        ll2.init(*lat2.ptr * DEG2RAD, *lon2.ptr * DEG2RAD);
                         if (detect_hor(dbconf, confhor, 
-                                       ll1, *gs1.ptr, *trk1.ptr * DEG2RAD,
-                                       ll2, *gs2.ptr, *trk2.ptr * DEG2RAD)) {
+                                       ll1,   *gs1.ptr, *trk1.ptr * DEG2RAD,
+                                       *pll2, *gs2.ptr, *trk2.ptr * DEG2RAD)) {
                             tin  = fmax(confhor.tin, confver.tin);
                             tout = fmin(confhor.tout, confver.tout);
                             // Combined conflict?
@@ -69,14 +77,14 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                         }
                     }
                 }
-                lat2.ptr++; lon2.ptr++; trk2.ptr++; gs2.ptr++; alt2.ptr++; vs2.ptr++;
+                pll2++; trk2.ptr++; gs2.ptr++; alt2.ptr++; vs2.ptr++;
             }
             dbconf.iconf.append(acconfids.attr);
             *dbconf.asasactive.ptr = asasactive;
             dbconf.asasactive.ptr++;
             asasactive = NPY_FALSE;
-            lat2.ptr = lat2.ptr_start; lon2.ptr = lon2.ptr_start; trk2.ptr = trk2.ptr_start; 
-            gs2.ptr  = gs2.ptr_start;  alt2.ptr = alt2.ptr_start; vs2.ptr  = vs2.ptr_start;
+            trk2.ptr = trk2.ptr_start; gs2.ptr  = gs2.ptr_start;
+            alt2.ptr = alt2.ptr_start; vs2.ptr  = vs2.ptr_start;
             lat1.ptr++; lon1.ptr++; trk1.ptr++; gs1.ptr++; alt1.ptr++; vs1.ptr++;
         }
         // Copy new lists back to python dbconf object

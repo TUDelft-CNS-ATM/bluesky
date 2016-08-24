@@ -1,10 +1,14 @@
 import numpy as np
+from ... import settings
 from ...tools.aero import ft, nm
 
 # Import default CD methods
 try:
     import casas as StateBasedCD
-except:
+except ImportError:
+    StateBasedCD = False
+
+if not settings.prefer_compiled or not StateBasedCD:
     import StateBasedCD
 
 # Import default CR methods
@@ -32,34 +36,59 @@ class ASAS():
     def addCRMethod(asas, name, module):
         asas.CRmethods[name] = module
 
-    # Constructor of conflict database, call with SI units (meters and seconds)
-    def __init__(self, tlook, R, dh):
-        self.t0asas      = -999.          # last time ASAS was called
-        self.dtasas      = 1.00           # interval for ASAS
-        self.swasas      = True           # [-] whether to perform CD&R
-        self.dtlookahead = tlook          # [s] lookahead time
-
-        self.mar         = 1.05           # [-] Safety margin for evasion
-        self.R           = R              # [m] Horizontal separation minimum
-        self.dh          = dh             # [m] Vertical separation minimum
-        self.Rm          = R * self.mar   # [m] Horizontal separation minimum + margin
-        self.dhm         = dh * self.mar  # [m] Vertical separation minimum + margin
-
-        self.vmin        = 100.0          # [m/s] Minimum ASAS velocity
-        self.vmax        = 180.0          # [m/s] Maximum ASAS velocity
-
-        self.cd_name     = "STATEBASED"
-        self.cr_name     = "OFF"
-        self.cd          = ASAS.CDmethods[self.cd_name]
-        self.cr          = ASAS.CRmethods[self.cr_name]
-
-        # Reset database
+    def __init__(self):
+        # All ASAS variables are initialized in the reset function
         self.reset()
+
+    def reset(self):
+        """ ASAS constructor """
+        self.cd_name      = "STATEBASED"
+        self.cr_name      = "OFF"
+        self.cd           = ASAS.CDmethods[self.cd_name]
+        self.cr           = ASAS.CRmethods[self.cr_name]
+
+        self.dtasas       = settings.asas_dt           # interval for ASAS
+        self.dtlookahead  = settings.asas_dtlookahead  # [s] lookahead time
+        self.mar          = settings.asas_mar          # [-] Safety margin for evasion
+        self.R            = settings.asas_pzr * nm     # [m] Horizontal separation minimum
+        self.dh           = settings.asas_pzh * ft     # [m] Vertical separation minimum
+        self.swasas       = True                       # [-] whether to perform CD&R
+        self.tasas        = 0.0                        # Next time ASAS should be called
+
+        self.vmin         = 100.0                      # [m/s] Minimum ASAS velocity
+        self.vmax         = 180.0                      # [m/s] Maximum ASAS velocity
+
+        self.confpairs    = []                         # Start with emtpy database: no conflicts
+        self.nconf        = 0                          # Number of detected conflicts
+        self.latowncpa    = np.array([])
+        self.lonowncpa    = np.array([])
+        self.altowncpa    = np.array([])
+
+        self.conflist_all = []  # List of all Conflicts
+        self.LOSlist_all  = []  # List of all Losses Of Separation
+        self.conflist_exp = []  # List of all Conflicts in experiment time
+        self.LOSlist_exp  = []  # List of all Losses Of Separation in experiment time
+        self.conflist_now = []  # List of current Conflicts
+        self.LOSlist_now  = []  # List of current Losses Of Separation
+
+        # For keeping track of locations with most severe intrusions
+        self.LOSmaxsev    = []
+        self.LOShmaxsev   = []
+        self.LOSvmaxsev   = []
+
+        # ASAS info per aircraft:
+        self.iconf        = []            # index in 'conflicting' aircraft database
+        self.asasactive   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
+        self.asashdg      = np.array([])  # heading provided by the ASAS [deg]
+        self.asasspd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
+        self.asasalt      = np.array([])  # speed alt by the ASAS [m]
+        self.asasvsp      = np.array([])  # speed vspeed by the ASAS [m/s]
 
     def toggle(self, flag=None):
         if flag is None:
             return True, "ASAS is currently " + ("ON" if self.swasas else "OFF")
         self.swasas = flag
+        return True
 
     def SetCDmethod(self, method=""):
         if method is "":
@@ -126,34 +155,6 @@ class ASAS():
 
         self.dtasas = value
 
-    # Reset conflict database
-    def reset(self):
-        self.confpairs    = []      # Start with emtpy database: no conflicts
-        self.nconf        = 0       # Number of detected conflicts
-        self.latowncpa    = np.array([])
-        self.lonowncpa    = np.array([])
-        self.altowncpa    = np.array([])
-
-        self.conflist_all = []  # List of all Conflicts
-        self.LOSlist_all  = []  # List of all Losses Of Separation
-        self.conflist_exp = []  # List of all Conflicts in experiment time
-        self.LOSlist_exp  = []  # List of all Losses Of Separation in experiment time
-        self.conflist_now = []  # List of current Conflicts
-        self.LOSlist_now  = []  # List of current Losses Of Separation
-
-        # For keeping track of locations with most severe intrusions
-        self.LOSmaxsev    = []
-        self.LOShmaxsev   = []
-        self.LOSvmaxsev   = []
-
-        # ASAS info per aircraft:
-        self.iconf        = []            # index in 'conflicting' aircraft database
-        self.asasactive   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
-        self.asashdg      = np.array([])  # heading provided by the ASAS [deg]
-        self.asasspd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
-        self.asasalt      = np.array([])  # speed alt by the ASAS [m]
-        self.asasvsp      = np.array([])  # speed vspeed by the ASAS [m/s]
-
     def create(self, hdg, spd, alt):
         # ASAS info: no conflict => empty list
         self.iconf.append([])  # List of indices in 'conflicting' aircraft database
@@ -174,9 +175,9 @@ class ASAS():
         self.asasvsp    = np.delete(self.asasvsp, idx)
 
     def update(self, traf, simt):
-        # Scheduling: when dt has passed or restart:
-        if self.swasas and self.t0asas + self.dtasas < simt or simt < self.t0asas:
-            self.t0asas       = simt
+        # Scheduling: update when dt has passed
+        if self.swasas and simt >= self.tasas:
+            self.tasas += self.dtasas
 
             # Conflict detection and resolution
             self.cd.detect(self, traf, simt)
