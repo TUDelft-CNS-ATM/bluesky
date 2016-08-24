@@ -771,12 +771,14 @@ class Traffic:
         # Speed conversions using updated TAS
         self.cas = vtas2cas(self.tas, self.alt)
         if self.wind.winddim==0: # no wind
-             self.gs  = self.tas
+            self.gs  = self.tas
+            gsnorth = self.tas * cos(radians(self.trk))
+            gseast  = self.tas * sin(radians(self.trk))
 #             self.trk = self.hdg
         else:
         # Add wind to ground speed
-            tasnorth = self.tas*cos(radians(self.trk))
-            taseast  = self.tas*sin(radians(self.trk))
+            tasnorth = self.tas * cos(radians(self.trk))
+            taseast  = self.tas * sin(radians(self.trk))
 
             windnorth,windeast = self.wind.getdata(self.lat,self.lon,self.alt)
  
@@ -785,7 +787,7 @@ class Traffic:
             gseast   = taseast  + windeast
    
             self.gs  = np.sqrt(gsnorth*gsnorth + gseast*gseast) 
-            self.trk = np.arctan2(gseast,gsnorth)
+            self.trk = np.arctan2(gseast, gsnorth)
             
         self.M   = vtas2mach(self.tas, self.alt)
 
@@ -823,17 +825,14 @@ class Traffic:
         self.trk = (self.trk + simdt * omega * self.hdgsel * np.sign(delhdg)) % 360.
 
         #--------- Kinematics: update lat,lon,alt ----------
-        ds = simdt * self.gs
+        dsnorth = simdt * gsnorth
+        dseast = simdt * gseast
 
-        self.lat = self.lat +        \
-                   np.degrees((ds * np.cos(np.radians(self.trk)) + turblat) \
-                                         / Rearth)
+        self.lat = self.lat + np.degrees((dsnorth + turblat) / Rearth)
 
         self.coslat = np.cos(np.deg2rad(self.lat))
 
-        self.lon = self.lon +        \
-                   np.degrees((ds * np.sin(np.radians(self.trk)) + turblon) \
-                                         / self.coslat / Rearth)
+        self.lon = self.lon + np.degrees((dseast + turblon) / self.coslat / Rearth)
 
         # Update trails when switched on
         if self.swtrails:

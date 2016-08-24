@@ -1,5 +1,8 @@
-from numpy import array,sin,cos,arange,radians,ones,append,ndarray,\
-                  amin,minimum,repeat,delete,zeros,around,maximum
+from numpy import array, sin, cos, arange, radians, ones, append, ndarray, \
+                  amin, minimum, repeat, delete, zeros, around, maximum, floor, \
+                  interp
+
+from ..tools.aero import ft
 
 class Windfield():
     """ Windfield class:
@@ -36,12 +39,12 @@ class Windfield():
     """
     def __init__(self):
         # For altitude use fixed axis to allow vectorisation later
-        self.altmax  = 45000. # [m]
-        self.altstep = 250. # [m]
+        self.altmax  = 45000. * ft   # [m]
+        self.altstep = 100. * ft    # [m]
 
         # Axis
-        self.altaxis = arange(0.,self.altmax+self.altstep,self.altstep)
-        self.idxalt  = arange(0,len(self.altaxis),1.)
+        self.altaxis = arange(0., self.altmax + self.altstep, self.altstep)
+        self.idxalt  = arange(0, len(self.altaxis), 1.)
         self.nalt    = len(self.altaxis)
 
         # List of indices of points with an altitude profile (for 3D check)
@@ -88,30 +91,8 @@ class Windfield():
             altve  = wspd*sin(radians(wdir))
             alttab = windalt
 
-            vnaxis = array([])
-            veaxis = array([])
-            itab   = 0 # index of lower side of where we are in definition table
-            for iax in range(0,self.nalt):
-                # Update index of definition table
-                if self.altaxis[iax]>alttab[itab]:
-                    itab = min(itab+1,len(alttab)-1)
-            
-                if itab == 0: # below definition table, use first value
-                    vnaxis = append(vnaxis,altvn[0])
-                    veaxis = append(veaxis,altve[0])
-
-                elif itab == len(alttab)-1:
-                    # above defintion table, use last value
-                    vnaxis = append(vnaxis,altvn[-1])
-                    veaxis = append(veaxis,altve[-1])
-
-                else:
-                    # else interpolate
-                    factalt = (self.altaxis[iax] - alttab[itab])/   \
-                                  (alttab[itab+1] - alttab[itab])
-
-                    vnaxis = append(vnaxis,factalt*altvn[itab+1]+factalt*altvn[itab])
-                    veaxis = append(veaxis,factalt*altve[itab+1]+factalt*altve[itab])
+            vnaxis = interp(self.altaxis, alttab, altvn)
+            veaxis = interp(self.altaxis, alttab, altve)
                          
 #        print array([vnaxis]).transpose()
         self.lat    = append(self.lat,lat)
@@ -200,11 +181,10 @@ class Windfield():
             else:
 
                 # Get altitude index as float for alt interpolation
-                idxalt = maximum(0.,minimum(self.altaxis[-1]-eps,alt)  \
-                                 /self.altstep) # find right index
+                idxalt = maximum(0., minimum(self.altaxis[-1]-eps, alt) / self.altstep) # find right index
 
                 # Convert to index and factor                                
-                ialt   = around(idxalt).astype(int) # index array for lower altitude
+                ialt   = floor(idxalt).astype(int) # index array for lower altitude
                 falt   = idxalt-ialt  # factor for upper value
                
                 # Altitude interpolation combined with horizontal

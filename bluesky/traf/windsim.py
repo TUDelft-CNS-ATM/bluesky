@@ -1,5 +1,6 @@
 from numpy import arctan2,degrees,array,sqrt # to allow arrays, their functions and types
 from windfield import *
+from ..tools.aero import kts
 
 class WindSim(Windfield):
     def add(self, *arg):
@@ -19,7 +20,7 @@ class WindSim(Windfield):
         elif ndata>3:
             windarr = array(winddata)
             dirarr = windarr[1::3]
-            spdarr = windarr[2::3]
+            spdarr = windarr[2::3] / kts
             altarr = windarr[0::3]
             
             self.addpoint(lat,lon,dirarr,spdarr,altarr)
