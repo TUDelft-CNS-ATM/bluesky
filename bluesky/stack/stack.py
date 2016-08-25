@@ -726,7 +726,7 @@ class Commandstack:
 
                 # Add optional argument types if they are given
                 if len(argvsopt) == 2:
-                    argtypes += argvsopt[1].strip(']').split(',')
+                    argtypes = argtypes + argvsopt[1].strip(']').split(',')
 
                 # Process arg list
                 optargs = {}
