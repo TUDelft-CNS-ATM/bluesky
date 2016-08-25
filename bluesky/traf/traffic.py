@@ -1093,7 +1093,7 @@ class Traffic:
         actype   = self.type[idx]
         lat, lon = self.lat[idx], self.lon[idx]
         alt, hdg = self.alt[idx] / ft, self.trk[idx]
-        cas      = tas2cas(self.tas[idx], self.alt[idx]) / kts
+        cas      = self.cas[idx] / kts
         tas      = self.tas[idx] / kts
         route    = self.route[idx]
         line = "Info on %s %s index = %d\n" % (acid, actype, idx) \

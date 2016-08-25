@@ -41,7 +41,7 @@ class Commandstack:
                 sim.addNodes],
             "ADDWPT": [
                 "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-                "acid,latlon/txt,[alt,spd,txt]",
+                "acid,pos/txt,[alt,spd,txt]",
                 # lambda: short-hand for using function output as argument, equivalent with:
                 #
                 # def fun(idx, args):
@@ -112,7 +112,7 @@ class Commandstack:
             ],
             "DEST": [
                 "DEST acid, latlon/airport",
-                "acid,latlon/pos",
+                "acid,pos",
                 lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
             ],
             "DIRECT": [
@@ -262,7 +262,7 @@ class Commandstack:
             ],
             "ORIG": [
                 "ORIG acid, latlon/airport",
-                "acid,latlon/pos",
+                "acid,pos",
                 lambda *args: traf.setDestOrig("ORIG", *args)
             ],
             "PAN": [
@@ -894,6 +894,7 @@ class Commandstack:
 
         if argtype == "alt":  # alt: FL250 or 25000 [ft]
             return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
+            
 
         if argtype == "hdg":
             # TODO: for now no difference between magnetic/true heading
