@@ -401,8 +401,8 @@ class Commandstack:
                 traf.selvspd
             ],
             "WIND": [
-                "WIND lat,lon,[alt],dir,spd[,alt,dir,spd,alt,...]",
-                "latlon,alt,float,float,...,...,...",   # last 3 args are repeated
+                "WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]",
+                "latlon,[alt],float,float,...,...,...",   # last 3 args are repeated
                 traf.wind.add
             ],
             "ZONEDH": [
@@ -571,7 +571,8 @@ class Commandstack:
                         self.scentime.append(ihr + imin + xsec + t_offset)
                         self.scencmd.append(line[icmdline + 1:-1])
                     except:
-                        print "except this:", line
+                        if not(len(line.strip())>0 and line.strip()[0]=="#"):                        
+                            print "except this:", line
                         pass  # nice try, we will just ignore this syntax error
 
         if mergeWithExisting:
@@ -718,7 +719,6 @@ class Commandstack:
 
                 # Check if at least the number of mandatory arguments is given.
                 if numargs < len(argtypes):
-                    print numargs, len(argtypes)
                     scr.echo("Syntax error: Too few arguments")
                     scr.echo(line)
                     scr.echo(helptext)
