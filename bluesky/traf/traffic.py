@@ -1,6 +1,8 @@
 import numpy as np
+from collections import OrderedDict
 from math import *
 from random import random, randint
+from ..tools import datalog
 from ..tools import geo
 from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
@@ -213,6 +215,100 @@ class Traffic:
         self.eps = np.array([])
 
         self.asas.reset()
+
+        # Make a list of variables that can be logged
+        logvars = OrderedDict([
+            # Traffic basic flight data
+            ('id', self.id),
+            ('type', self.type),
+            ('lat', self.lat),
+            ('lon', self.lon),
+            ('trk', self.trk),
+            ('tas', self.tas),
+            ('gs', self.gs),
+            ('cas', self.cas),
+            ('M', self.M),
+            ('alt', self.alt),
+            ('fll', self.fll),
+            ('vs', self.vs),
+            ('p', self.p),
+            ('rho', self.rho),
+            ('Temp', self.Temp),
+            ('dtemp', self.dtemp),
+
+            # Traffic performance data
+            ('avsdef', self.avsdef),
+            ('aphi', self.aphi),
+            ('ax', self.ax),
+            ('bank', self.bank),
+            ('bphase', self.bphase),
+            ('hdgsel', self.hdgsel),
+
+            # Help variables to save computation time
+            ('coslat', self.coslat),
+
+            # Crossover altitude
+            ('abco', self.abco),
+            ('belco', self.belco),
+
+            # Traffic autopilot settings
+            ('ahdg', self.ahdg),
+            ('aspd', self.aspd),
+            ('aptas', self.aptas),
+            ('ama', self.ama),
+            ('apalt', self.apalt),
+            ('apfll', self.apfll),
+            ('avs', self.avs),
+
+            # limit settings
+            ('limspd', self.limspd),
+            ('limalt', self.limalt),
+            ('limvs', self.limvs),
+
+            # Traffic navigation information
+            ('orig', self.orig),
+            ('dest', self.dest),
+
+            # LNAV route navigation
+            ('swlnav', self.swlnav),
+            ('swvnav', self.swvnav),
+
+            ('actwplat', self.actwplat),
+            ('actwplon', self.actwplon),
+            ('actwpalt', self.actwpalt),
+            ('actwpspd', self.actwpspd),
+            ('actwpturn', self.actwpturn),
+            ('actwpflyby', self.actwpflyby),
+
+            # VNAV variablescruise level
+            ('crzalt', self.crzalt),
+            ('dist2vs', self.dist2vs),
+            ('actwpvs', self.actwpvs),
+
+            # Route info
+            ('route', self.route),
+
+            ('desalt', self.desalt),
+            ('deshdg', self.deshdg),
+            ('desvs', self.desvs),
+            ('desspd', self.desspd),
+
+            # Display information on label
+            ('label', self.label),
+            ('trailcol', self.trailcol),
+
+            # Transmitted data to other aircraft due to truncated effect
+            ('adsbtime', self.adsbtime),
+            ('adsblat', self.adsblat),
+            ('adsblon', self.adsblon),
+            ('adsbalt', self.adsbalt),
+            ('adsbtrk', self.adsbtrk),
+            ('adsbtas', self.adsbtas),
+            ('adsbgs', self.adsbgs),
+            ('adsbvs', self.adsbvs)
+        ])
+
+        datalog.setPeriodicVars(logvars)
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
         """ Create multiple random aircraft in a specified area """
