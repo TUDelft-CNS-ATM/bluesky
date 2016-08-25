@@ -99,11 +99,11 @@ def detect(dbconf, traf, simt):
 
     dbconf.dalt = alt - adsbalt.T
 
-    vs = traf.vs
-    vs = vs.reshape(1, len(vs))
 
-    avs = traf.adsbvs
-    avs = avs.reshape(1, len(avs))
+    vs = traf.vs.reshape(1, len(traf.vs))
+
+
+    avs = traf.adsbvs.reshape(1, len(traf.adsbvs))
 
     dvs = vs - avs.T
 

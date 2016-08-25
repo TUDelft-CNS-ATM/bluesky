@@ -41,7 +41,7 @@ class Commandstack:
                 sim.addNodes],
             "ADDWPT": [
                 "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-                "acid,latlon/txt,[alt,spd,txt]",
+                "acid,pos/txt,[alt,spd,txt]",
                 # lambda: short-hand for using function output as argument, equivalent with:
                 #
                 # def fun(idx, args):
@@ -112,7 +112,7 @@ class Commandstack:
             ],
             "DEST": [
                 "DEST acid, latlon/airport",
-                "acid,latlon/pos",
+                "acid,pos",
                 lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
             ],
             "DIRECT": [
@@ -262,7 +262,7 @@ class Commandstack:
             ],
             "ORIG": [
                 "ORIG acid, latlon/airport",
-                "acid,latlon/pos",
+                "acid,pos",
                 lambda *args: traf.setDestOrig("ORIG", *args)
             ],
             "PAN": [
@@ -401,8 +401,8 @@ class Commandstack:
                 traf.selvspd
             ],
             "WIND": [
-                "WIND lat,lon,[alt],dir,spd[,alt,dir,spd,alt,...]",
-                "latlon,alt,float,float,...,...,...",   # last 3 args are repeated
+                "WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]",
+                "latlon,[alt],float,float,...,...,...",   # last 3 args are repeated
                 traf.wind.add
             ],
             "ZONEDH": [
@@ -571,7 +571,8 @@ class Commandstack:
                         self.scentime.append(ihr + imin + xsec + t_offset)
                         self.scencmd.append(line[icmdline + 1:-1])
                     except:
-                        print "except this:", line
+                        if not(len(line.strip())>0 and line.strip()[0]=="#"):                        
+                            print "except this:", line
                         pass  # nice try, we will just ignore this syntax error
 
         if mergeWithExisting:
@@ -626,7 +627,7 @@ class Commandstack:
             # CRE acid,type,lat,lon,hdg,alt,spd
             cmdline = "CRE " + traf.id[i] + "," + traf.type[i] + "," + \
                       repr(traf.lat[i]) + "," + repr(traf.lon[i]) + "," + \
-                      repr(traf.trk[i]) + "," + repr(traf.alt[i] / ft) + "," + \
+                      repr(traf.hdg[i]) + "," + repr(traf.alt[i] / ft) + "," + \
                       repr(tas2cas(traf.tas[i], traf.alt[i]) / kts)
 
             f.write(timtxt + cmdline + chr(13) + chr(10))
@@ -648,7 +649,7 @@ class Commandstack:
                 f.write(timtxt + cmdline + chr(13) + chr(10))
 
             # Heading as well when heading select
-            delhdg = (traf.trk[i] - traf.ahdg[i] + 180.) % 360. - 180.
+            delhdg = (traf.hdg[i] - traf.ahdg[i] + 180.) % 360. - 180.
             if abs(delhdg) > 0.5:
                 cmdline = "HDG " + traf.id[i] + "," + repr(traf.ahdg[i])
                 f.write(timtxt + cmdline + chr(13) + chr(10))
@@ -718,7 +719,6 @@ class Commandstack:
 
                 # Check if at least the number of mandatory arguments is given.
                 if numargs < len(argtypes):
-                    print numargs, len(argtypes)
                     scr.echo("Syntax error: Too few arguments")
                     scr.echo(line)
                     scr.echo(helptext)
@@ -726,7 +726,7 @@ class Commandstack:
 
                 # Add optional argument types if they are given
                 if len(argvsopt) == 2:
-                    argtypes += argvsopt[1].strip(']').split(',')
+                    argtypes = argtypes + argvsopt[1].strip(']').split(',')
 
                 # Process arg list
                 optargs = {}
@@ -894,6 +894,7 @@ class Commandstack:
 
         if argtype == "alt":  # alt: FL250 or 25000 [ft]
             return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
+            
 
         if argtype == "hdg":
             # TODO: for now no difference between magnetic/true heading
