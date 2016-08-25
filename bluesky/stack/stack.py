@@ -627,7 +627,7 @@ class Commandstack:
             # CRE acid,type,lat,lon,hdg,alt,spd
             cmdline = "CRE " + traf.id[i] + "," + traf.type[i] + "," + \
                       repr(traf.lat[i]) + "," + repr(traf.lon[i]) + "," + \
-                      repr(traf.trk[i]) + "," + repr(traf.alt[i] / ft) + "," + \
+                      repr(traf.hdg[i]) + "," + repr(traf.alt[i] / ft) + "," + \
                       repr(tas2cas(traf.tas[i], traf.alt[i]) / kts)
 
             f.write(timtxt + cmdline + chr(13) + chr(10))
@@ -649,7 +649,7 @@ class Commandstack:
                 f.write(timtxt + cmdline + chr(13) + chr(10))
 
             # Heading as well when heading select
-            delhdg = (traf.trk[i] - traf.ahdg[i] + 180.) % 360. - 180.
+            delhdg = (traf.hdg[i] - traf.ahdg[i] + 180.) % 360. - 180.
             if abs(delhdg) > 0.5:
                 cmdline = "HDG " + traf.id[i] + "," + repr(traf.ahdg[i])
                 f.write(timtxt + cmdline + chr(13) + chr(10))
