@@ -94,7 +94,7 @@ def resolve(dbconf, traf):
     dv = np.transpose(dv)
 
     # The old speed vector, cartesian coordinates
-    trkrad = np.radians(traf.trk)
+    trkrad = np.radians(traf.hdg)
     v      = np.array([np.sin(trkrad)*traf.tas,\
                        np.cos(trkrad)*traf.tas,\
                        traf.vs])
@@ -106,7 +106,7 @@ def resolve(dbconf, traf):
     # direction: horizontal or vertical or horizontal+vertical
     if dbconf.swresohoriz: # horizontal resolutions
         if dbconf.swresospd and not dbconf.swresohdg: # SPD only
-            newtrack = traf.trk
+            newtrack = traf.hdg
             newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)            
             newvs    = traf.vs           
         elif dbconf.swresohdg and not dbconf.swresospd: # HDG only
@@ -118,7 +118,7 @@ def resolve(dbconf, traf):
             newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
             newvs    = traf.vs 
     elif dbconf.swresovert: # vertical resolutions
-        newtrack = traf.trk
+        newtrack = traf.hdg
         newgs    = traf.gs
         newvs    = newv[2,:]       
     else: # horizontal + vertical
@@ -172,8 +172,8 @@ def MVP(traf, dbconf, id1, id2):
                 traf.alt[id2]-traf.alt[id1]])
 
     # Find track of id1 and id2 in radians
-    t1 = np.radians(traf.trk[id1])
-    t2 = np.radians(traf.trk[id2])
+    t1 = np.radians(traf.hdg[id1])
+    t2 = np.radians(traf.hdg[id2])
         
     # Write velocities as vectors and find relative velocity vector              
     v1 = np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
