@@ -14,13 +14,18 @@ class WindSim(Windfield):
         # No altitude or just one: same wind for all altitudes at this position
         
         if ndata ==3 or (ndata==4 and winddata[0]==None): # only one point, ignore altitude 
-            self.addpoint(lat,lon,winddata[1],winddata[2])
+            if winddata[1]==None or winddata[2]==None:                              
+
+               return False,"Wind direction and speed needed."              
+
+            else:            
+                self.addpoint(lat,lon,winddata[1],winddata[2]*kts)
 
         # More than one altitude is given
         elif ndata>3:
             windarr = array(winddata)
             dirarr = windarr[1::3]
-            spdarr = windarr[2::3] / kts
+            spdarr = windarr[2::3] * kts
             altarr = windarr[0::3]
             
             self.addpoint(lat,lon,dirarr,spdarr,altarr)
@@ -40,6 +45,6 @@ class WindSim(Windfield):
         wdir = degrees(arctan2(ve,vn))%360.
         wspd = sqrt(vn*vn+ve*ve)
         
-        txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,wdir,wspd)
+        txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,wdir,wspd/kts)
 
         return True,txt

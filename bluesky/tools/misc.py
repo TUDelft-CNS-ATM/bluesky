@@ -82,6 +82,10 @@ def degto180(angle):
     """Change to domain -180,180 """
     return (angle + 180.) % 360 - 180.
 
+def degtopi(angle):
+    """Change to domain -pi,pi """
+    return (angle + pi) % (2.*pi) - pi
+
 
 def findnearest(lat, lon, latarr, lonarr):
     """Find index of nearest postion in numpy arrays with lat and lon"""

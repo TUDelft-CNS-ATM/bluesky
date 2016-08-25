@@ -295,7 +295,7 @@ class Screen:
             if i >= 0:
                 self.ndlat = traf.lat[i]
                 self.ndlon = traf.lon[i]
-                self.ndcrs = traf.trk[i]
+                self.ndcrs = traf.hdg[i]
             else:
                 self.swnavdisp = False
         else:
@@ -623,7 +623,7 @@ class Screen:
             for i in trafsel:
 
                 # Get index of ac symbol, based on heading and its rect object
-                isymb = int((traf.trk[i] - self.ndcrs) / 6.) % 60
+                isymb = int((traf.hdg[i] - self.ndcrs) / 6.) % 60
                 pos = self.acsymbol[isymb].get_rect()
 
                 # Draw aircraft symbol
