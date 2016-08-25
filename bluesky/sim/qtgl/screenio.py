@@ -197,8 +197,8 @@ class ScreenIO(QObject):
     @pyqtSlot()
     def send_siminfo(self):
         # if self.manager.isActive():
-        t  = time.time()
-        dt = t - self.prevtime
+        t  = time.time()        
+        dt = np.maximum(t - self.prevtime, 0.00001) # avoid divide by 0 
         speed = (self.samplecount - self.prevcount) / dt * self.sim.simdt
         self.manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
             self.sim.traf.ntraf, self.sim.state, self.sim.scenname))

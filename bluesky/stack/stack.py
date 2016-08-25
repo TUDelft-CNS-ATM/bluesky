@@ -99,10 +99,11 @@ class Commandstack:
                 traf.create
             ],
             "DEL": [
-                "DEL acid/shape",
+                "DEL acid/WIND/shape",
                 "txt",
-                lambda a: traf.delete(a) if traf.id.count(a) > 0 \
-                else scr.objappend(0, a, None)
+                lambda a:   traf.delete(a)    if traf.id.count(a) > 0 \
+                       else traf.wind.clear() if a=="WIND" \
+                       else scr.objappend(0, a, None)
             ],
             "DELWPT": [
                 "DELWPT acid,wpname",
@@ -169,6 +170,11 @@ class Commandstack:
                 "onoff,[time]",
                 sim.setFixdt
             ],
+            "GETWIND": [
+                "GETWIND lat,lon[,alt]",
+                "latlon,[alt]",
+                traf.wind.get
+            ],
             "HDG": [
                 "HDG acid,hdg (deg,True)",
                 "acid,float",
@@ -186,7 +192,7 @@ class Commandstack:
             ],
             "IC": [
                 "IC [IC/filename]",
-                "[txt]",
+                "[string]",
                 lambda *args: self.ic(scr, sim, *args)
             ],
             "INSEDIT": [
@@ -202,7 +208,7 @@ class Commandstack:
             "LISTRTE": [
                 "LISTRTE acid, [pagenr]",
                 "acid,[int]",
-                lambda idx, *args: traf.route[idx].listrte(scr, *args)
+                lambda idx, *args: traf.route[idx].listrte(scr, idx, traf, *args)
             ],
             "LNAV": [
                 "LNAV acid,[ON/OFF]",
@@ -242,7 +248,13 @@ class Commandstack:
             "NOM": [
                 "NOM acid",
                 "acid",
-                traf.nom],
+                traf.nom
+            ],
+            "NORESO": [
+                "NORESO [acid]",
+                "[string]",
+                traf.asas.SetNoreso
+            ],
             "OP": [
                 "OP",
                 "",
@@ -262,7 +274,8 @@ class Commandstack:
                 "PCALL filename [REL/ABS]",
                 "txt,[txt]",
                 lambda *args: self.openfile(*args, mergeWithExisting=True)
-            ],
+            ],         
+            
             "POLY": [
                 "POLY name,lat,lon,lat,lon, ...",
                 "txt,latlon,...",
@@ -273,14 +286,45 @@ class Commandstack:
                 "txt",
                 lambda acid: scr.showacinfo(acid, traf.acinfo(acid))
             ],
+            "PRIORULES": [
+                "PRIORULES [ON/OFF PRIOCODE]",
+                "[onoff, txt]",
+                traf.asas.SetPrio
+            ],
             "RESET": [
                 "RESET",
                 "",
-                sim.reset],
+                sim.reset
+            ],
+            "RFACH": [
+                "RFACH [factor]",
+                "[float]",
+                traf.asas.SetResoFacH
+            ],
+            "RFACV": [
+                "RFACV [factor]",
+                "[float]",
+                traf.asas.SetResoFacV
+            ],
             "RESO": [
                 "RESO [method]",
                 "[txt]",
                 traf.asas.SetCRmethod
+            ],
+            "RESOOFF": [
+                "RESOOFF [acid]",
+                "[string]",
+                traf.asas.SetResooff
+            ],
+            "RMETHH": [
+                "RMETHH [method]",
+                "[txt]",
+                traf.asas.SetResoHoriz
+            ],
+            "RMETHV": [
+                "RMETHV [method]",
+                "[txt]",
+                traf.asas.SetResoVert
             ],
             "RSZONEDH": [
                 "RSZONEDH [height]",
@@ -296,8 +340,7 @@ class Commandstack:
                 "RUNWAYS ICAO",
                 "txt",   
                 lambda ICAO: traf.navdb.listrwys(ICAO)
-                ],            
-            
+            ],           
             "SAVEIC": [
                 "SAVEIC filename",
                 "string",
@@ -355,7 +398,13 @@ class Commandstack:
             "VS": [
                 "VS acid,vspd (ft/min)",
                 "acid,vspd",
-                traf.selvspd],
+                traf.selvspd
+            ],
+            "WIND": [
+                "WIND lat,lon,[alt],dir,spd[,alt,dir,spd,alt,...]",
+                "latlon,alt,float,float,...,...,...",   # last 3 args are repeated
+                traf.wind.add
+            ],
             "ZONEDH": [
                 "ZONEDH [height]",
                 "[float]",
@@ -371,7 +420,8 @@ class Commandstack:
                 "float/txt",
                 lambda a: scr.zoom(1.4142135623730951) if a == "IN" else \
                           scr.zoom(0.7071067811865475) if a == "OUT" else \
-                          scr.zoom(a, True)]
+                          scr.zoom(a, True)
+            ]
         }
 
         #--------------------------------------------------------------------
@@ -386,12 +436,20 @@ class Commandstack:
             "END": "STOP",
             "EXIT": "STOP",
             "FWD": "FF",
+            "HMETH":"RMETHH",
+            "HRESOM":"RMETHH",
+            "HRESOMETH":"RMETHH",
             "PAUSE": "HOLD",
             "Q": "STOP",
             "QUIT": "STOP",
-            "RUN": "OP",
+            "RUN": "OP",            
+            "RESOFACH":"RFACH",
+            "RESOFACV":"RFACV",
             "START": "OP",
             "TURN": "HDG",
+            "VMETH":"RMETHV",
+            "VRESOM":"RMETHV",
+            "VRESOMETH":"RMETHV",
             "?": "HELP"
         }
         #--------------------------------------------------------------------
@@ -680,8 +738,9 @@ class Commandstack:
                     arglist = []
                     curtype = curarg = 0
                     while curtype < len(argtypes) and curarg < len(args):
-                        if argtypes[curtype] == '...':
-                            curtype -= 1
+                        if argtypes[curtype][:3] == '...':
+                            repeatsize = len(argtypes) - curtype
+                            curtype = curtype - repeatsize
                         argtype    = argtypes[curtype].strip().split('/')
                         for i in range(len(argtype)):
                             try:

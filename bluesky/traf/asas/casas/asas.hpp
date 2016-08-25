@@ -3,6 +3,7 @@
 #include <geo.hpp>
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 struct Dbconf {
     PyObject* self;
@@ -96,8 +97,8 @@ inline bool detect_ver(const Dbconf& params, conflict& conf,
         double tcrosshi = (dalt + params.dh) / -dvs,
                tcrosslo = (dalt - params.dh) / -dvs;
 
-        conf.tin  = fmax(0.0, fmin(tcrosslo, tcrosshi));
-        conf.tout = fmax(tcrosslo, tcrosshi);
+        conf.tin  = std::max(0.0, std::min(tcrosslo, tcrosshi));
+        conf.tout = std::max(tcrosslo, tcrosshi);
 
         // Vertical conflict if t_in is within lookahead horizon, and t_out > 0
         return (conf.tin <= params.dtlookahead && conf.tout > 0.0);

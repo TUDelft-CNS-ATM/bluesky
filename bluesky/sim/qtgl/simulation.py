@@ -18,6 +18,9 @@ from ...tools.datafeed import Modesbeast
 from ...tools.datalog import Datalog
 
 
+
+
+
 class Simulation(QObject):
     # simulation modes
     init, op, hold, end = range(4)
@@ -96,6 +99,7 @@ class Simulation(QObject):
             self.stack.process(self, self.traf, self.screenio)
 
             if self.state == Simulation.op:
+
                 self.traf.update(self.simt, self.simdt)
 
                 # Update metrics
