@@ -9,6 +9,8 @@ from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2
                          vcas2tas, vtas2cas, vtas2mach, vcas2mach, vmach2tas
 from ..tools.misc import degto180
 
+from windsim import WindSim
+
 from route import Route
 from params import Trails
 from adsbmodel import ADSBModel
@@ -51,9 +53,12 @@ class Traffic:
     def __init__(self, navdb):
         # ASAS object
         self.asas = ASAS()
+        self.wind = WindSim()
 
         # All traffic data is initialized in the reset function
         self.reset(navdb)
+        
+        
 
     def reset(self, navdb):
         #  model-specific parameters.
@@ -215,6 +220,8 @@ class Traffic:
         self.eps = np.array([])
 
         self.asas.reset()
+        
+        self.wind.clear()
 
         # Make a list of variables that can be logged
         logvars = OrderedDict([
@@ -859,7 +866,24 @@ class Traffic:
 
         # Speed conversions using updated TAS
         self.cas = vtas2cas(self.tas, self.alt)
-        self.gs  = self.tas
+        if self.wind.winddim==0: # no wind
+            self.gs  = self.tas
+            gsnorth = self.tas * cos(radians(self.trk))
+            gseast  = self.tas * sin(radians(self.trk))
+#             self.trk = self.hdg
+        else:
+        # Add wind to ground speed
+            tasnorth = self.tas * cos(radians(self.trk))
+            taseast  = self.tas * sin(radians(self.trk))
+
+            windnorth, windeast = self.wind.getdata(self.lat, self.lon, self.alt)
+
+            gsnorth  = tasnorth + windnorth
+            gseast   = taseast  + windeast
+   
+            self.gs  = np.sqrt(gsnorth*gsnorth + gseast*gseast) 
+            self.trk = np.arctan2(gseast, gsnorth)
+            
         self.M   = vtas2mach(self.tas, self.alt)
 
         # Update performance every self.perfdt seconds
@@ -896,17 +920,14 @@ class Traffic:
         self.trk = (self.trk + simdt * omega * self.hdgsel * np.sign(delhdg)) % 360.
 
         #--------- Kinematics: update lat,lon,alt ----------
-        ds = simdt * self.gs
+        dsnorth = simdt * gsnorth
+        dseast = simdt * gseast
 
-        self.lat = self.lat +        \
-                   np.degrees((ds * np.cos(np.radians(self.trk)) + turblat) \
-                                         / Rearth)
+        self.lat = self.lat + np.degrees((dsnorth + turblat) / Rearth)
 
         self.coslat = np.cos(np.deg2rad(self.lat))
 
-        self.lon = self.lon +        \
-                   np.degrees((ds * np.sin(np.radians(self.trk)) + turblon) \
-                                         / self.coslat / Rearth)
+        self.lon = self.lon + np.degrees((dseast + turblon) / self.coslat / Rearth)
 
         # Update trails when switched on
         if self.swtrails:
