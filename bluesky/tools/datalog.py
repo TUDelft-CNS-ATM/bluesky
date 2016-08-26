@@ -1,23 +1,33 @@
 """ BlueSky Datalogger """
-from collections import OrderedDict
+import os
+from operator import isNumberType as isnum
+from datetime import datetime
+import numpy as np
 from .. import settings
+from .. import stack
+
+# Check if logdir exists, and if not, create it.
+if not os.path.exists(settings.log_path):
+    print 'Creating log path [' + settings.log_path + ']'
+    os.makedirs(settings.log_path)
+
+logprecision = '%.8f'
 
 # Lists to contain the definitions of event and periodic logs
-eventlogs = dict()
-periodicvars = OrderedDict()
-selectedpvars = list()
-periodiclogs = {
-    'SNAPLOG': ['this is the header', None],
-    'INSTLOG': ['this is the header', None],
-    'SKYLOG': ['this is the header', None],
-    'SELECTIVESNAP': ['this is the header', None]
-}
+eventlogs    = dict()
+periodiclogs = dict()
 
 
-def setPeriodicVars(pvars):
-    global periodicvars, selectedpvars
-    periodicvars = pvars
-    selectedpvars = pvars.values()
+def createPeriodicLog(name, header, logdt, *variables):
+    if name in periodiclogs:
+        return False, name + ' already exists.'
+    stackcmd = {name : [
+        name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn',
+        'txt,[float/txt,...]', lambda *args : setPeriodicLog(name, args)]
+    }
+    stack.append_commands(stackcmd)
+
+    periodiclogs[name] = PeriodicLog(header, variables, logdt)
 
 
 def createEventLog(name, header, variables):
@@ -26,184 +36,161 @@ def createEventLog(name, header, variables):
     # Eventlogs is a dict with the separate event logs, that each have a header,
     # a set of variables with their format, and a reference to the current file
     # (which starts as None)
-    global eventlogs
+    if name in eventlogs:
+        return False
+
+    # Add the access function for this logger to the stack command list
+    stackcmd = {name : [name + ' ON/OFF', 'txt',
+        lambda *args : setEventLog(name, args)]}
+    stack.append_commands(stackcmd)
+
+    # Create the log object in the eventlog dict
     varnames, formats = zip(*variables)
     header = header + '\n' + str.join(', ', varnames)
-    eventlogs[name] = [header, tuple(formats), None]
-
-
-def start(name, fileext=''):
-    """ This function opens a text file and writes header text to it. It is to
-    be called when a particular log is activated, or started, with a stack command"""
-    global eventlogs, periodiclogs
-    if name in periodiclogs:
-        if periodiclogs[name][1] is not None:
-            periodiclogs[name][1].close()
-        # TO DO: NAME OF SCENARIO AND GMT TIME
-        # QUESTION: Should we close the files after wrting, and open them again when necessary?
-        periodiclogs[name][1] = open(name + '.' + fileext, 'w')
-        periodiclogs[name][1].write(periodiclogs[name][0] + '\n')
-
-    elif name in eventlogs:
-        if eventlogs[name][2] is not None:
-            eventlogs[name][2].close()
-        # TO DO: NAME OF SCENARIO AND GMT TIME
-        eventlogs[name][2] = open(name + '.' + fileext, 'w')
-        eventlogs[name][2].write(eventlogs[name][0] + '\n')
-
-    else:
-        return False, name + ' not found.'
-
-
-def stop(name=None):
-    """ This function stops logging of the desired log, or stops all logs. It is
-    to be called when a log is switched off using a stack command, or when BlueSky
-    exits"""
-    global eventlogs, periodiclogs
-    if name is None:
-        # Close all open file objects
-        for elog in eventlogs:
-            elog[2].close()
-            elog[2] = None
-        for plog in periodiclogs:
-            plog[1].close()
-            plog[1] = None
-    elif name in periodiclogs:
-        periodiclogs[name][1].close()
-        periodiclogs[name][1] = None
-    elif name in eventlogs:
-        eventlogs[name][2].close()
-        eventlogs[name][2] = None
-
-
-def reset():
-    """ This function resets all logs. It is to be called when simulation is 
-    reset and in reset functions of the all the classes where periodic (traffic) 
-    and event logs are used """
-    global eventlogs, periodiclogs
-    global snapdt, instdt, skydt, selsnapdt, snapt, instt, skyt, selsnapt
-
-    snapt = 0.0
-    instt = 0.0
-    skyt = 0.0
-    selsnapt = 0.0
-
-    snapdt = settings.snapdt
-    instdt = settings.instdt
-    skydt = settings.skydt
-    selsnapdt = settings.selsnapdt
-
-    # Close all periodic logs and remove reference to its file object
-    for name in periodiclogs:
-        if periodiclogs[name][1] is not None:
-            periodiclogs[name].close()
-            periodiclogs[name] = None
-    # Close all event logs and remove reference to its file object
-    for name in eventlogs:
-        if eventlogs[name][2] is not None:
-            eventlogs[name].close()
-            eventlogs[name] = None
+    eventlogs[name] = [None, header, tuple(formats)]
 
 
 def logEvent(name, *data):
     """ This function is used to write to file the details of a desrired event
     when it occurs. It is to be called at the location where such event could occur"""
     log = eventlogs[name]
-    formats = log[1]
-    eventfile = log[2]
+    formats = log[2]
+    eventfile = log[0]
     if eventfile is None:
         return
     eventfile.write(str.join(', ', formats) % data)
 
 
-def logPeriodic(simt, traf):
-    """ This function writes to files of all periodic logs by calling the appropriate 
+def update(simt):
+    """ This function writes to files of all periodic logs by calling the appropriate
     functions for each type of periodic log, at the approriate update time. """
-    global snapt, instt, skyt, selsnapt
-
-    fsnap = periodiclogs['SNAPLOG'][1]
-    finst = periodiclogs['INSTLOG'][1]
-    fsky = periodiclogs['SKYLOG'][1]
-    fselsnap = periodiclogs['SELECTIVESNAP'][1]
-
-    # update each of the periodic logs if it is their update time and if activated
-    if fsnap and simt >= snapt:
-        snapt = simt + snapdt
-        # Write to fsnap
-        logSnap(simt, traf, fsnap)
-    elif finst and simt >= instt:
-        instt = simt + instdt
-        # Write to finst
-        logInst(simt, traf, finst)
-    elif fsky and simt >= skyt:
-        skyt = simt + skydt
-        # Write to fsky
-        logSky(simt, traf, fsky)
-    elif fselsnap and simt >= selsnapt:
-        selsnapt = simt + selsnapdt
-        # Write to fselsnap
-        logSelSnap(simt, traf, fselsnap)
+    for key, log in periodiclogs.iteritems():
+        log.log(simt)
 
 
-def logSnap(simt, traf, fsnap):
-    """ This function writes the snap data to the snap file """
-    fsnap.write()
+def reset():
+    """ This function closes all logs. It is called when simulation is
+    reset and at quit. """
+
+    # Close all periodic logs and remove reference to its file object
+    for key, log in periodiclogs.iteritems():
+        log.reset()
+
+    # Close all event logs and remove reference to its file object
+    for key, log in eventlogs.iteritems():
+        if log[0]:
+            log[0].close()
+            log[0] = None
 
 
-def logInst(simt, traf, finst):
-    """ This function writes the intantaneous conflict data to the inst file """
-    finst.write()
+def makeLogfileName(logname):
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    scn = stack.get_scenfile()
+    scn = scn[:scn.lower().find('.scn')]
+    fname = "%s-[%s]-[%s].log" % (logname, scn, timestamp)
+    return settings.log_path + '/' + fname
 
 
-def logSky(simt, traf, fsky):
-    """ This function writes the simulation summary data to the sky file """
-    fsky.write()
+def setEventLog(logname, args):
+    if logname not in eventlogs:
+        return False, logname + " doesn't exist."
+
+    log = eventlogs[logname]
+
+    if len(args) == 0:
+        return True, logname + ' is ' + ('OFF' if log[0] is None else 'ON')
+    elif args[0] == 'ON':
+        if log[0] is not None:
+            log[0].close()
+
+        log[0] = open(makeLogfileName(logname), 'w')
+        log[0].write(log[1] + '\n')
+    elif args[0] == 'OFF':
+        if log[0] is not None:
+            log[0].close()
+
+    return True
 
 
-def logSelSnap(simt, traf, fselsnap):
-    """ This function writes the snap data of the desired aircraft/s to the selective snap file """
+def setPeriodicLog(logname, args):
+    log = periodiclogs[logname]
+
+    if len(args) == 0:
+        return True, logname + ' is ' + ('ON' if log.isopen() else 'OFF')
+    elif args[0] == 'ON':
+        # Set log dt if passed
+        if len(args) > 1:
+            if type(args[1]) is float:
+                log.dt = args[1]
+            else:
+                return False, 'Turn ' + logname + ' on with optional dt'
+
+        log.open(makeLogfileName(logname))
+
+    elif args[0] == 'OFF':
+        log.reset()
+    elif args[0] == 'LISTVARS':
+        return True, 'Periodic log ' + logname + ' has variables: ' \
+            + log.listallvarnames()
+    elif args[0] == 'SELECTVARS':
+        log.selectvars(args[1:])
+
+    return True
 
 
-# TO DO: Functions to switch on logging based on the stack commands. One function
-# for each of the 6 deafult logs. These functions should also set the logdt of each
-# log type as an optional argument.
+class PeriodicLog:
+    def __init__(self, header, variables, dt):
+        self.file       = None
+        self.header     = header
+        self.allvars    = variables
+        self.selvars    = variables
+        self.dt         = dt
+        self.default_dt = dt
+        self.tlog       = 0.0
 
-''' ALGORITHM TO CONVERT ARRAY TO STRING AND WRITE ARRAY TO FILE
+    def selectvars(self, selection):
+        self.selvars = []
+        selection = set(selection)
+        for logset in self.allvars:
+            cursel    = set(logset[1]) & selection
+            if len(cursel) > 0:
+                selection = selection - cursel
+                self.selvars.append((logset[0], list(cursel)))
 
-def tic():
-    #Homemade version of matlab tic and toc functions
-    import time
-    global startTime_for_tictoc
-    startTime_for_tictoc = time.time()
+    def open(self, fname):
+        if self.file:
+            self.file.close()
+        self.file       = open(fname, 'w')
+        self.file.write(self.header + '\n')
 
-def toc():
-    import time
-    if 'startTime_for_tictoc' in globals():
-        print "Elapsed time is " + str(time.time() - startTime_for_tictoc) + " seconds."
-    else:
-        print "Toc: start time not set"
+    def isopen(self):
+        return self.file is not None
 
-# Create a random array with a large size
-largearray = np.random.rand(10000,50)
-stacker = np.random.rand(10000,1)
-largearray = np.hstack((stacker,largearray))
+    def log(self, simt):
+        if self.file and len(self.selvars) > 0 and simt >= self.tlog:
+            # Set the next log timestep
+            self.tlog += self.dt
 
-tic()
-largearray = largearray.astype('|S10')
-toc()
+            # Make the variable reference list
+            varlist = [logset[0].__dict__.get(varname) for logset in self.selvars for varname in logset[1]]
 
-# write array to file 
-with open('largeArray.txt','w') as f_handle:
-    np.savetxt(f_handle,largearray, delimiter=',   ', newline='\n', fmt='%.10s')
+            # Convert numeric arrays to text, leave text arrays untouched
+            txtdata = [len(varlist[0]) * ['%.3f' % simt]] + \
+                [np.char.mod(logprecision, col) if isnum(col[0]) else col for col in varlist]
 
-# create another random array with a large size
-largearray2 = np.random.rand(10000,50)
-largearray2 = largearray.astype('|S10')
+            # log the data to file
+            np.savetxt(self.file, np.vstack(txtdata).T, delimiter=',', newline='\n', fmt='%s')
 
-tic()
-# append array to file 
-with open('largeArray.txt','a') as f_handle:
-    np.savetxt(f_handle,largearray2,delimiter=',   ', newline='\n', fmt='%.10s')
+    def reset(self):
+        self.dt         = self.default_dt
+        self.tlog       = 0.0
+        self.selvars    = self.allvars
+        if self.file:
+            self.file.close()
+            self.file   = None
 
-toc()
-'''
+    def listallvarnames(self):
+        ret = []
+        for logset in self.allvars:
+            ret.append(str.join(', ', logset[1]))
+        return str.join(', ', ret)

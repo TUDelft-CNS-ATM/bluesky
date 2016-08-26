@@ -8,6 +8,9 @@ performance_model = 'bluesky'
 # Indicate the datafile path
 data_path = 'data'
 
+# Indicate the logfile path
+log_path = 'output'
+
 # Indicate the scenario path
 scenario_path = 'scenario'
 
@@ -25,6 +28,18 @@ start_location = 'EHAM'
 
 # Simulation timestep [seconds]
 simdt = 0.05
+
+# Snaplog dt [seconds]
+snapdt = 30.0
+
+# Instlog dt [seconds]
+instdt = 30.0
+
+# Skylog dt [seconds]
+skydt = 60.0
+
+# Selective snap log dt [seconds]
+selsnapdt = 5.0
 
 # Prefer compiled BlueSky modules (cgeo, casas)
 prefer_compiled = True
