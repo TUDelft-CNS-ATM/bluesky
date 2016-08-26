@@ -139,6 +139,7 @@ class Traffic:
         self.actwpspd  = np.array([])  # Active WP speed
         self.actwpturn = np.array([])  # Distance when to turn to next waypoint
         self.actwpflyby = np.array([])  # Distance when to turn to next waypoint
+        self.next_qdr  = np.array([]) # bearing next leg
 
         # VNAV variablescruise level
         self.crzalt  = np.array([])    # Cruise altitude[m]
@@ -339,6 +340,7 @@ class Traffic:
         self.actwpspd   = np.append(self.actwpspd, -999.)   # Active WP speed
         self.actwpturn  = np.append(self.actwpturn, 1.0)   # Distance to active waypoint where to turn
         self.actwpflyby = np.append(self.actwpflyby, 1.0)   # Flyby/fly-over switch
+        self.next_qdr  = np.append(self.next_qdr, -999.0)    # bearing next leg
 
         # VNAV cruise level
         self.crzalt = np.append(self.crzalt, -999.)    # Cruise altitude[m] <0=None
@@ -458,6 +460,7 @@ class Traffic:
         self.actwpspd   = np.delete(self.actwpspd, idx)
         self.actwpturn  = np.delete(self.actwpturn, idx)
         self.actwpflyby = np.delete(self.actwpflyby, idx)
+        self.next_qdr   = np.delete(self.next_qdr, idx)
 
         # VNAV cruise level
         self.crzalt    = np.delete(self.crzalt, idx)
@@ -566,15 +569,34 @@ class Traffic:
 
             # FMS LNAV mode:
             qdr, dist = geo.qdrdist(self.lat, self.lon, self.actwplat, self.actwplon)  # [deg][nm])
+            
+            # turn distance, turn radius
 
-            # Check whether shift based dist [nm] is required, set closer than WP turn distance
+
+            # Calculate distance before waypoint where to start the turn
+            # Turn radius:      R = V2 tan phi / g
+            # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
+            # using default bank angle per flight phase
+            # bank angle already is in radians
+            turnrad = self.tas*self.tas / max(self.eps,tan(self.bank)*g0*nm) # [nm]
+            
+            next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
+
+            # distance to turn initialisation point
+            self.actwpturn = np.maximum(0.1, abs(turnrad*tan(radians(0.5*degto180(abs(qdr -    \
+                 next_qdr))))))
+
+
+            # Check whether shift based dist [nm] is required, set closer than WP turn distanc
+            '''this logic has to be adapted: distance to actwpt against initialize turn'''
+            '''prior to very first wpt in the route: howto get actwpt'''
             iwpclose = np.where(self.swlnav * (dist < self.actwpturn))[0]
 
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
-
+                            
                 # Get next wp (lnavon = False if no more waypoints)
-                lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby =  \
+                lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby, self.next_qdr[i] =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
                 # End of route/no more waypoints: switch off LNAV
@@ -664,22 +686,7 @@ class Traffic:
                 else:
                    self.actwpspd[i] = -999.
 
-                # Calculate distance before waypoint where to start the turn
-                # Turn radius:      R = V2 tan phi / g
-                # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
-                # using default bank angle per flight phase
-                turnrad = self.tas[i]*self.tas[i]/tan(self.bank[i]) /g0 /nm # [nm]
 
-                dy = (self.actwplat[i]-self.lat[i])
-                dx = (self.actwplon[i]-self.lon[i])*self.coslat[i]
-                qdr[i] = degrees(atan2(dx,dy))
-                
-                # Aircraft should start climbing/decending(/turning) to the next 
-                # waypoint at a maximum of 10 Nm from the next waypoint to comply 
-                # with the 1:3 rule of thumb for steepness.
-                self.actwpturn[i] = self.actwpflyby[i]*                     \
-                     max(10.,abs(turnrad*tan(radians(0.5*degto180(qdr[i]-    \
-                     self.route[i].wpdirfrom[self.route[i].iactwp])))))  # [nm]
 
             #=============== End of Waypoint switching loop ===================
 
@@ -838,6 +845,7 @@ class Traffic:
 
         self.hdgsel = np.abs(delhdg) > np.abs(2. * simdt * omega)
         self.hdg = (self.hdg + simdt * omega * self.hdgsel * np.sign(delhdg)) % 360.
+        
 
         #--------- Kinematics: update lat,lon,alt ----------
 

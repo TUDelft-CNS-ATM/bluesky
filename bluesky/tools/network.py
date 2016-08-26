@@ -1,4 +1,8 @@
 from ..settings import gui
+import time
+import socket
+import threading
+
 if gui == 'qtgl':
     try:
         from PyQt5.QtCore import pyqtSlot
@@ -63,9 +67,8 @@ if gui == 'qtgl':
 
 
 elif gui == 'pygame':
-    import socket
-    import threading
-    import time
+
+
 
     class TcpSocket(object):
         """A TCP Client receving message from server, analysing the data, and """
@@ -104,7 +107,7 @@ elif gui == 'pygame':
         def receiver(self):
             while True:
                 if not self.is_connected:
-                    time.sleep(1)
+                    time.sleep(1.0)
                     continue
 
                 try:
@@ -113,7 +116,7 @@ elif gui == 'pygame':
                     time.sleep(0.1)
                 except Exception, err:
                     print "Revecier Error: %s" % err
-                    time.sleep(1)
+                    time.sleep(1.0)
 
         def processData(self, data):
             # rewrite this function
