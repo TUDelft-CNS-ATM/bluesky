@@ -48,7 +48,7 @@ def detect(dbconf, traf, simt):
     dbconf.dx = dbconf.dist * np.sin(qdrrad)  # is pos j rel to i
     dbconf.dy = dbconf.dist * np.cos(qdrrad)  # is pos j rel to i
 
-    trkrad   = np.radians(traf.trk)
+    trkrad   = np.radians(traf.hdg)
     dbconf.u = traf.gs * np.sin(trkrad).reshape((1, len(trkrad)))  # m/s
     dbconf.v = traf.gs * np.cos(trkrad).reshape((1, len(trkrad)))  # m/s
 
@@ -149,7 +149,7 @@ def detect(dbconf, traf, simt):
         dbconf.confpairs.append((traf.id[i], traf.id[j]))
 
         rng        = dbconf.tcpa[i, j] * traf.gs[i] / nm
-        lato, lono = geo.qdrpos(traf.lat[i], traf.lon[i], traf.trk[i], rng)
+        lato, lono = geo.qdrpos(traf.lat[i], traf.lon[i], traf.hdg[i], rng)
         alto       = traf.alt[i] + dbconf.tcpa[i, j] * traf.vs[i]
 
         dbconf.latowncpa.append(lato)
@@ -235,8 +235,8 @@ def APorASAS(dbconf, traf):
             # Check if conflict is past CPA
             d = np.array([traf.lon[id2] - traf.lon[id1], traf.lat[id2] - traf.lat[id1]])
 
-            t1 = np.radians(traf.trk[id1])
-            t2 = np.radians(traf.trk[id2])
+            t1 = np.radians(traf.hdg[id1])
+            t2 = np.radians(traf.hdg[id2])
 
             # write velocities as vectors
             v1 = np.array([np.sin(t1) * traf.tas[id1], np.cos(t1) * traf.tas[id1]])
@@ -258,7 +258,7 @@ def APorASAS(dbconf, traf):
             # If two aircraft are getting in and out of conflict continously, 
             # then they it is a bouncing conflict. ASAS should stay active until 
             # the bouncing stops.
-            bouncingConflict = (abs(traf.trk[id1] - traf.trk[id2]) < 30.) & (hdist2<dbconf.Rm**2)         
+            bouncingConflict = (abs(traf.hdg[id1] - traf.hdg[id2]) < 30.) & (hdist2<dbconf.Rm**2)         
             
             # Decide if conflict is over or not. 
             # If not over, turn asasactive to true. 
