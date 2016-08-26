@@ -137,6 +137,13 @@ def setPeriodicLog(logname, args):
 
     return True
 
+# TODO: Eventlog also with class, create parent generic log class, try to make also log() common
+# class EventLog:
+#     def __init__(self, header, variables):
+#         self.file       = None
+#         self.header     = header
+#         self.variables  = variables
+
 
 class PeriodicLog:
     def __init__(self, header, variables, dt):
