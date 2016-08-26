@@ -1,1 +1,1 @@
-from stack import Commandstack
+from stack import *

@@ -1,11 +1,12 @@
 import numpy as np
 from math import *
 from random import random, randint
+from ..tools import datalog
 from ..tools import geo
 from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
                          vcas2tas, vtas2cas, vtas2mach, vcas2mach, vmach2tas
-from ..tools.misc import degto180,degtopi
+from ..tools.misc import degto180
 
 from windsim import WindSim
 
@@ -55,8 +56,6 @@ class Traffic:
 
         # All traffic data is initialized in the reset function
         self.reset(navdb)
-        
-        
 
     def reset(self, navdb):
         #  model-specific parameters.
@@ -139,7 +138,7 @@ class Traffic:
         self.actwpspd  = np.array([])  # Active WP speed
         self.actwpturn = np.array([])  # Distance when to turn to next waypoint
         self.actwpflyby = np.array([])  # Distance when to turn to next waypoint
-        self.next_qdr  = np.array([]) # bearing next leg
+        self.next_qdr  = np.array([])  # bearing next leg
 
         # VNAV variablescruise level
         self.crzalt  = np.array([])    # Cruise altitude[m]
@@ -174,7 +173,7 @@ class Traffic:
         # Scheduling of FMS and ASAS
         self.t0fms = -999.  # last time fms was called
         self.dtfms = 1.01  # interval for fms
-                
+
         # Flight performance scheduling
         self.perfdt = 0.1           # [s] update interval of performance limits
         self.perft0 = -self.perfdt  # [s] last time checked (in terms of simt)
@@ -220,8 +219,46 @@ class Traffic:
         self.eps = np.array([])
 
         self.asas.reset()
-        
+
         self.wind.clear()
+
+        # Make a list of variables that can be logged
+        logvars = [
+            # Traffic basic flight data
+            'id', 'type', 'lat', 'lon', 'trk', 'tas', 'gs', 'cas', 'M', 'alt', 'fll', 'vs', 'p', 'rho', 'Temp',
+
+            # Crossover altitude
+            'abco', 'belco',
+
+            # Traffic autopilot settings
+            'ahdg', 'aspd', 'aptas', 'ama', 'apalt', 'apfll', 'avs',
+
+            # limit settings
+            'limspd', 'limalt', 'limvs',
+
+            # Traffic navigation information
+            'orig', 'dest',
+
+            # LNAV route navigation
+            'swlnav', 'swvnav', 'actwplat', 'actwplon', 'actwpalt', 'actwpspd', 'actwpturn', 'actwpflyby',
+
+            # VNAV variables cruise level
+            'crzalt', 'dist2vs', 'actwpvs',
+
+            # Route info
+            # 'route',
+
+            # Transmitted data to other aircraft due to truncated effect
+            'adsbtime', 'adsblat', 'adsblon', 'adsbalt', 'adsbtrk', 'adsbtas', 'adsbgs', 'adsbvs'
+        ]
+        snapheader = '# SNAPLOG logfile.'
+        datalog.createPeriodicLog('SNAPLOG', snapheader, settings.snapdt, (self, logvars))
+
+        # Temporarily make the other default periodic logs here as well
+        instheader = '# INSTLOG logfile.'
+        datalog.createPeriodicLog('INSTLOG', instheader, settings.instdt)
+        skyheader = '# SKYLOG logfile.'
+        datalog.createPeriodicLog('SKYLOG', skyheader, settings.skydt)
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
         """ Create multiple random aircraft in a specified area """
@@ -273,21 +310,20 @@ class Traffic:
         self.M     = np.append(self.M, tas2mach(acspd, acalt))
 
         # Using heading,TAS and wind vector, compute track angle and ground spd
-        if self.wind.winddim>0:
-    
-            vnwnd,vewnd = self.wind.getdata(self.lat[-1],self.lon[-1],self.alt[-1])
-            tasnorth = self.tas[-1]*cos(radians(self.hdg[-1]))
-            taseast  = self.tas[-1]*sin(radians(self.hdg[-1]))
-    
+        if self.wind.winddim > 0:
+
+            vnwnd, vewnd = self.wind.getdata(self.lat[-1], self.lon[-1], self.alt[-1])
+            tasnorth = self.tas[-1] * cos(radians(self.hdg[-1]))
+            taseast  = self.tas[-1] * sin(radians(self.hdg[-1]))
+
             gsnorth    = tasnorth + vnwnd
             gseast     = taseast  + vewnd
-            self.trk   = np.append(self.trk,degrees(atan2(gseast,gsnorth)))
-            self.gs    = np.append(self.gs,sqrt(gsnorth*gsnorth + gseast*gseast)) 
+            self.trk   = np.append(self.trk, degrees(atan2(gseast, gsnorth)))
+            self.gs    = np.append(self.gs, sqrt(gsnorth * gsnorth + gseast * gseast))
 
-        else:             
+        else:
             self.trk   = np.append(self.trk, achdg)
             self.gs    = np.append(self.gs, acspd)
-
 
         # AC is initialized with neutral max bank angle
         self.bank = np.append(self.bank, radians(25.))
@@ -552,12 +588,12 @@ class Traffic:
         # Save old result
 
         iconf0 = np.array(self.asas.iconf)
-        
+
         self.asas.update(self, simt)
 
         # TODO: this doesn't work anymore when asas.iconf is a list of lists
         # chnged = np.where(iconf0 != np.array(self.asas.iconf))[0]
-        if settings.gui=="pygame":
+        if settings.gui == "pygame":
             for i in range(self.ntraf):
                 if np.any(iconf0[i] != self.asas.iconf[i]):
                     self.label[i] = [" ", " ", "", " "]
@@ -569,23 +605,21 @@ class Traffic:
 
             # FMS LNAV mode:
             qdr, dist = geo.qdrdist(self.lat, self.lon, self.actwplat, self.actwplon)  # [deg][nm])
-            
-            # turn distance, turn radius
 
+            # turn distance, turn radius
 
             # Calculate distance before waypoint where to start the turn
             # Turn radius:      R = V2 tan phi / g
             # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
             # using default bank angle per flight phase
             # bank angle already is in radians
-            turnrad = self.tas*self.tas / max(self.eps,tan(self.bank)*g0*nm) # [nm]
-            
+            turnrad = self.tas * self.tas / max(self.eps, tan(self.bank) * g0 * nm)  # [nm]
+
             next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
             # distance to turn initialisation point
-            self.actwpturn = np.maximum(0.1, abs(turnrad*tan(radians(0.5*degto180(abs(qdr -    \
-                 next_qdr))))))
-
+            self.actwpturn = np.maximum(0.1, abs(turnrad *
+                tan(radians(0.5 * degto180(abs(qdr - next_qdr))))))
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distanc
             '''this logic has to be adapted: distance to actwpt against initialize turn'''
@@ -594,7 +628,6 @@ class Traffic:
 
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
-                            
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby, self.next_qdr[i] =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
@@ -612,7 +645,6 @@ class Traffic:
                 self.actwpflyby[i] = int(flyby)  # 1.0 in case of fly by, els fly over
 
                 # User has entered an altitude for this waypoint
-
                 if alt >= 0.:
                     self.actwpalt[i] = alt
 
@@ -649,12 +681,11 @@ class Traffic:
 
                             # Calculate V/s using steepness,
                             # protect against zero/invalid ground speed value
-                            self.actwpvs[i] = -steepness*(self.gs[i] +   \
-                                            (self.gs[i]<0.2*self.tas[i])*self.tas[i])
+                            self.actwpvs[i] = -steepness * (self.gs[i] +
+                                            (self.gs[i] < 0.2 * self.tas[i]) * self.tas[i])
 
                     # Climb VNAV mode: climb as soon as possible (T/C logic)
-                    elif self.swvnav[i] and self.alt[i]<toalt-10.*ft:
-
+                    elif self.swvnav[i] and self.alt[i] < toalt - 10. * ft:
                         self.actwpalt[i] = toalt
                         self.apalt[i]    = self.actwpalt[i]  # dial in altitude of next waypoint as calculated
                         self.dist2vs[i]  = 9999.
@@ -669,45 +700,42 @@ class Traffic:
 
                 # VNAV spd mode: use speed of this waypoint as commanded speed
                 # while passing waypoint and save next speed for passing next wp
-                if self.swvnav[i] and self.actwpspd[i]>0.0: # check mode and value
+                if self.swvnav[i] and self.actwpspd[i] > 0.0:  # check mode and value
 
                     # Select CAS or Mach command by checking value of actwpspd
-                    if self.actwpspd[i]<2.0: # Mach command
-
-                       self.aspd[i] = mach2cas(self.actwpspd[i],self.alt[i])
-                       self.ama[i]  = self.actwpspd[i]
+                    if self.actwpspd[i] < 2.0:  # Mach command
+                        self.aspd[i] = mach2cas(self.actwpspd[i], self.alt[i])
+                        self.ama[i]  = self.actwpspd[i]
 
                     else:    # CAS command
-                       self.aspd[i] = self.actwpspd[i]
-                       self.ama[i]  = cas2tas(spd,self.alt[i])
+                        self.aspd[i] = self.actwpspd[i]
+                        self.ama[i]  = cas2tas(spd, self.alt[i])
 
-                if spd>0. and self.swlnav[i] and self.swvnav[i]: # Valid speed and LNAV and VNAV ap modes are on
-                   self.actwpspd[i] = spd
+                if spd > 0. and self.swlnav[i] and self.swvnav[i]:  # Valid speed and LNAV and VNAV ap modes are on
+                    self.actwpspd[i] = spd
                 else:
-                   self.actwpspd[i] = -999.
-
-
+                    self.actwpspd[i] = -999.
 
             #=============== End of Waypoint switching loop ===================
 
             # VNAV Guidance
 
             # Do VNAV start of descent check
-            dy = (self.actwplat-self.lat)
-            dx = (self.actwplon-self.lon)*self.coslat
-            dist2wp = 60.*nm*np.sqrt(dx*dx+dy*dy)
-            steepness = 3000.*ft/(10.*nm)
+            dy = (self.actwplat - self.lat)
+            dx = (self.actwplon - self.lon) * self.coslat
+            dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy)
+            steepness = 3000. * ft / (10. * nm)
 
             # VNAV AP LOGIC: descend as late as possible, climb as soon as possible
             # First term: descend when distance to next wp is descent distance
             # Second term: climb when still below altitude of next waypoint
-            # Third line: climb/descend if doing so before lnav/vnav was switched off 
+            # Third line: climb/descend if doing so before lnav/vnav was switched off
             #               (because there are no more waypoints). This is needed
             #               to continue descending when you get into a conflict
-            #               while descending to the destination (the last waypoint) 
-            self.swvnavvs = self.swlnav*self.swvnav*((dist2wp<self.dist2vs) + \
-                                     (self.actwpalt>self.alt))+\
-                                     (1-self.swlnav)*(dist < self.actwpturn)                                
+            #               while descending to the destination (the last waypoint)
+            self.swvnavvs = self.swlnav * self.swvnav * ((dist2wp < self.dist2vs) +
+                                     (self.actwpalt > self.alt)) + \
+                                     (1 - self.swlnav) * (dist < self.actwpturn)
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.apalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
@@ -810,7 +838,6 @@ class Traffic:
 
         # Speed conversions using updated TAS
         self.cas = vtas2cas(self.tas, self.alt)
-
         self.M   = vtas2mach(self.tas, self.alt)
 
         # Update performance every self.perfdt seconds
