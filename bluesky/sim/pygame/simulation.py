@@ -54,8 +54,6 @@ class Simulation:
 
         # Additional modules
         self.beastfeed   = Modesbeast(self.traf)
-        self.telnet_in   = StackTelnetServer(self.stack)
-        self.beastfeed   = Modesbeast(self.traf)
         self.telnet_in   = StackTelnetServer()
 
         # Initialize the stack module once
