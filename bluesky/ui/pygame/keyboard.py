@@ -69,13 +69,13 @@ class Keyboard:
                     stack.stack("ZOOM IN")
 
                 elif event.key == 273: # Cursor up
-                    stack.stack("PAN UP")
-                elif event.key == 274: # Num lock up
-                    stack.stack("PAN DOWN")
+                    scr.pan("UP")
+                elif event.key == 274: # Cursor down
+                    scr.pan("DOWN")
                 elif event.key == 275: # Num lock down
-                    stack.stack("PAN RIGHT")
+                    scr.pan("RIGHT")
                 elif event.key == 276: # Num lock right
-                    stack.stack("PAN LEFT")
+                    scr.pan("LEFT")
 
                 elif event.key ==pg.K_F11: # F11: Toggle full screen
                     
@@ -162,7 +162,11 @@ class Keyboard:
                         scr.redrawedit   = True
                         self.dragdx = event.pos[0] - scr.menu.x
                         self.dragdy = event.pos[1] - scr.menu.y
-
+                elif event.button==4:
+                    scr.zoom(0.5*sqrt(2.0))
+                elif event.button==5:
+                    scr.zoom(sqrt(2.0))
+                
             # Mouse motion: drag edit/menu window with mouse, if necessary
             # Check also for mouse button 1                    
             elif event.type==pg.MOUSEMOTION and \

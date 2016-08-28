@@ -297,7 +297,7 @@ def init(sim, traf, scr):
             lambda *args: traf.setDestOrig("ORIG", *args)
         ],
         "PAN": [
-            "PAN latlon/acid/airport/waypoint",
+            "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
             "pos/txt",
             scr.pan
         ],
