@@ -1,4 +1,5 @@
 from ..settings import gui
+from .. import stack
 import time
 import socket
 import threading
@@ -134,9 +135,8 @@ elif gui == 'pygame':
 
 
 class StackTelnetServer(TcpServer):
-    def __init__(self, stack):
+    def __init__(self):
         super(StackTelnetServer, self).__init__()
-        self.stack = stack
 
     def processData(self, sender_id, data):
-        self.stack.stack(str(data).strip())
+        stack.stack(str(data).strip())
