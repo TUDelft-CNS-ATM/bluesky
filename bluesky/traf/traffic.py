@@ -77,23 +77,25 @@ class Traffic:
         # Traffic basic flight data
 
         # Traffic basic flight data
-        self.id     = []  # identifier (string)
-        self.type   = []  # aircaft type (string)
-        self.lat    = np.array([])  # latitude [deg]
-        self.lon    = np.array([])  # longitude [deg]
-        self.hdg    = np.array([])  # traffic heading [deg]
-        self.trk    = np.array([])  # track angle [deg]
-        self.tas    = np.array([])  # true airspeed [m/s]
-        self.gs     = np.array([])  # ground speed [m/s]
-        self.cas    = np.array([])  # calibrated airspeed [m/s]
-        self.M      = np.array([])  # mach number
-        self.alt    = np.array([])  # altitude [m]
-        self.fll    = np.array([])  # flight level [ft/100]
-        self.vs     = np.array([])  # vertical speed [m/s]
-        self.p      = np.array([])  # atmospheric air pressure [N/m2]
-        self.rho    = np.array([])  # atmospheric air density [kg/m3]
-        self.Temp   = np.array([])  # atmospheric air temperature [K]
-        self.dtemp  = np.array([])  # delta t for non-ISA conditions
+        self.id      = []  # identifier (string)
+        self.type    = []  # aircaft type (string)
+        self.lat     = np.array([])  # latitude [deg]
+        self.lon     = np.array([])  # longitude [deg]
+        self.hdg     = np.array([])  # traffic heading [deg]
+        self.trk     = np.array([])  # track angle [deg]
+        self.tas     = np.array([])  # true airspeed [m/s]
+        self.gs      = np.array([])  # ground speed [m/s]
+        self.gsnorth = np.array([])  # ground speed [m/s]
+        self.gseast  = np.array([])  # ground speed [m/s]
+        self.cas     = np.array([])  # calibrated airspeed [m/s]
+        self.M       = np.array([])  # mach number
+        self.alt     = np.array([])  # altitude [m]
+        self.fll     = np.array([])  # flight level [ft/100]
+        self.vs      = np.array([])  # vertical speed [m/s]
+        self.p       = np.array([])  # atmospheric air pressure [N/m2]
+        self.rho     = np.array([])  # atmospheric air density [kg/m3]
+        self.Temp    = np.array([])  # atmospheric air temperature [K]
+        self.dtemp   = np.array([])  # delta t for non-ISA conditions
 
         # Traffic performance data
         self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
@@ -111,7 +113,7 @@ class Traffic:
         self.belco  = np.array([])
 
         # Traffic autopilot settings
-        self.ahdg   = []  # selected heading [deg]
+        self.atrk   = []  # selected heading [deg]
         self.aspd   = []  # selected spd(CAS) [m/s]
         self.aptas  = []  # just for initializing
         self.ama    = []  # selected spd above crossover altitude (Mach) [-]
@@ -309,21 +311,22 @@ class Traffic:
         self.cas   = np.append(self.cas, tas2cas(acspd, acalt))
         self.M     = np.append(self.M, tas2mach(acspd, acalt))
 
+        tasnorth = self.tas[-1]*cos(radians(self.hdg[-1]))
+        taseast  = self.tas[-1]*sin(radians(self.hdg[-1]))
+    
         # Using heading,TAS and wind vector, compute track angle and ground spd
-        if self.wind.winddim > 0:
-
-            vnwnd, vewnd = self.wind.getdata(self.lat[-1], self.lon[-1], self.alt[-1])
-            tasnorth = self.tas[-1] * cos(radians(self.hdg[-1]))
-            taseast  = self.tas[-1] * sin(radians(self.hdg[-1]))
-
-            gsnorth    = tasnorth + vnwnd
-            gseast     = taseast  + vewnd
-            self.trk   = np.append(self.trk, degrees(atan2(gseast, gsnorth)))
-            self.gs    = np.append(self.gs, sqrt(gsnorth * gsnorth + gseast * gseast))
+        if self.wind.winddim>0:
+            vnwnd,vewnd     = self.wind.getdata(self.lat[-1],self.lon[-1],self.alt[-1])
+            self.gsnorth    = np.append(self.gsnorth,tasnorth + vnwnd)
+            self.gseast     = np.append(self.gseast, taseast  + vewnd)
+            self.trk        = np.append(self.trk,np.degrees(np.arctan2(self.gseast[-1],self.gsnorth[-1])))
+            self.gs         = np.append(self.gs,np.sqrt(self.gsnorth[-1]*self.gsnorth[-1] + self.gseast[-1]*self.gseast[-1])) 
 
         else:
-            self.trk   = np.append(self.trk, achdg)
-            self.gs    = np.append(self.gs, acspd)
+            self.trk     = np.append(self.trk, achdg)
+            self.gs      = np.append(self.gs, acspd)
+            self.gsnorth = np.append(self.gsnorth,tasnorth)
+            self.gseast  = np.append(self.gseast,taseast)
 
         # AC is initialized with neutral max bank angle
         self.bank = np.append(self.bank, radians(25.))
@@ -346,7 +349,7 @@ class Traffic:
         self.perf.create(actype)
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
-        self.ahdg  = np.append(self.ahdg, achdg)  # selected heading [deg]
+        self.atrk  = np.append(self.atrk, achdg)  # selected heading [deg]
         self.aspd  = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
         self.aptas = np.append(self.aptas, acspd)  # [m/s]
         self.ama   = np.append(self.ama, 0.)  # selected spd above crossover (Mach) [-]
@@ -410,14 +413,14 @@ class Traffic:
         self.adsblat    = np.append(self.adsblat, aclat)
         self.adsblon    = np.append(self.adsblon, aclon)
         self.adsbalt    = np.append(self.adsbalt, acalt)
-        self.adsbtrk    = np.append(self.adsbtrk, achdg)
+        self.adsbtrk    = np.append(self.adsbtrk, self.trk[-1])
         self.adsbtas    = np.append(self.adsbtas, acspd)
         self.adsbgs     = np.append(self.adsbgs, acspd)
         self.adsbvs     = np.append(self.adsbvs, 0.)
 
         self.eps        = np.append(self.eps, 0.01)
 
-        self.asas.create(achdg, acspd, acalt)
+        self.asas.create(self.trk[-1], acspd, acalt)
 
         return True
 
@@ -435,17 +438,19 @@ class Traffic:
         del self.type[idx]
 
         # Traffic basic data
-        self.lat    = np.delete(self.lat, idx)
-        self.lon    = np.delete(self.lon, idx)
-        self.hdg    = np.delete(self.hdg, idx)
-        self.trk    = np.delete(self.trk, idx)
-        self.alt    = np.delete(self.alt, idx)
-        self.fll    = np.delete(self.fll, idx)
-        self.vs     = np.delete(self.vs, idx)
-        self.tas    = np.delete(self.tas, idx)
-        self.gs     = np.delete(self.gs, idx)
-        self.cas    = np.delete(self.cas, idx)
-        self.M      = np.delete(self.M, idx)
+        self.lat     = np.delete(self.lat, idx)
+        self.lon     = np.delete(self.lon, idx)
+        self.hdg     = np.delete(self.hdg, idx)
+        self.trk     = np.delete(self.trk, idx)
+        self.alt     = np.delete(self.alt, idx)
+        self.fll     = np.delete(self.fll, idx)
+        self.vs      = np.delete(self.vs, idx)
+        self.tas     = np.delete(self.tas, idx)
+        self.gs      = np.delete(self.gs, idx)
+        self.gsnorth = np.delete(self.gsnorth, idx)
+        self.gseast  = np.delete(self.gseast, idx)
+        self.cas     = np.delete(self.cas, idx)
+        self.M       = np.delete(self.M, idx)
 
         self.p      = np.delete(self.p, idx)
         self.rho    = np.delete(self.rho, idx)
@@ -467,7 +472,7 @@ class Traffic:
         self.perf.delete(idx)
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
-        self.ahdg   = np.delete(self.ahdg, idx)
+        self.atrk   = np.delete(self.atrk, idx)
         self.aspd   = np.delete(self.aspd, idx)
         self.ama    = np.delete(self.ama, idx)
         self.aptas  = np.delete(self.aptas, idx)
@@ -591,7 +596,6 @@ class Traffic:
 
         self.asas.update(self, simt)
 
-        # TODO: this doesn't work anymore when asas.iconf is a list of lists
         # chnged = np.where(iconf0 != np.array(self.asas.iconf))[0]
         if settings.gui == "pygame":
             for i in range(self.ntraf):
@@ -613,21 +617,19 @@ class Traffic:
             # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
             # using default bank angle per flight phase
             # bank angle already is in radians
-            turnrad = self.tas * self.tas / max(self.eps, tan(self.bank) * g0 * nm)  # [nm]
-
+            turnrad = self.tas*self.tas / np.maximum(self.eps,np.tan(self.bank)*g0*nm) # [nm]
             next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
             # distance to turn initialisation point
-            self.actwpturn = np.maximum(0.1, abs(turnrad *
-                tan(radians(0.5 * degto180(abs(qdr - next_qdr))))))
+            self.actwpturn = np.maximum(0.1, np.abs(turnrad*np.tan(np.radians(0.5*degto180(np.abs(qdr -    \
+                 next_qdr))))))
 
             # Check whether shift based dist [nm] is required, set closer than WP turn distanc
-            '''this logic has to be adapted: distance to actwpt against initialize turn'''
-            '''prior to very first wpt in the route: howto get actwpt'''
             iwpclose = np.where(self.swlnav * (dist < self.actwpturn))[0]
 
             # Shift waypoints for aircraft i where necessary
             for i in iwpclose:
+
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby, self.next_qdr[i] =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
@@ -739,25 +741,9 @@ class Traffic:
 
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.apalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
-
-            # Set heading values based for LNAV
-            if self.wind.winddim>0:
-
-                # Calculate wind correction # TODO check 0-360 variations
-                vwn,vwe = self.wind.getdata(self.lat,self.lon,self.alt)
-                Vw   = np.sqrt(vwn*vwn + vwe*vwe)
-                winddir = np.arctan2(vwe,vwn)
-                drift   = np.radians(qdr)-winddir #[rad]
-                steer   = np.arcsin(np.minimum(1.0,np.maximum(-1.0,\
-                               Vw*np.sin(drift)/np.maximum(0.001,self.tas))))
- 
-                lnavhdg = (qdr + np.degrees(steer))%360. 
-            else:
-                lnavhdg = qdr%360.
-
             
             # LNAV switch
-            self.ahdg = np.where(self.swlnav, lnavhdg, self.ahdg)
+            self.atrk = np.where(self.swlnav, qdr, self.atrk)
         #-------------END of FMS update -------------------
          
         # NOISE: Turbulence
@@ -792,12 +778,36 @@ class Traffic:
                 
         # Below crossover altitude: CAS=const, above crossover altitude: MA = const
         self.aptas = vcas2tas(self.aspd, self.alt)*self.belco + vmach2tas(self.ama, self.alt)*self.abco
-               
+        
+        # Convert the ASAS commanded speed from ground speed to TAS
+        if self.wind.winddim>0:            
+            vwn, vwe     = self.wind.getdata(self.lat,self.lon,self.alt)
+            asastasnorth = self.asas.asasspd * np.cos(np.radians(self.asas.asastrk)) - vwn
+            asastaseast  = self.asas.asasspd * np.sin(np.radians(self.asas.asastrk)) - vwe    
+            asastas      = np.sqrt(asastasnorth*asastasnorth + asastaseast*asastaseast)
+        # no wind, then ground speed = TAS
+        else:
+            asastas = self.asas.asasspd
+
         # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on. 
-        self.deshdg = self.asas.asasactive*self.asas.asashdg + (1-self.asas.asasactive)*self.ahdg
-        self.desspd = self.asas.asasactive*self.asas.asasspd + (1-self.asas.asasactive)*self.aptas
+        self.destrk = self.asas.asasactive*self.asas.asastrk + (1-self.asas.asasactive)*self.atrk
+        self.desspd = self.asas.asasactive*asastas           + (1-self.asas.asasactive)*self.aptas
         self.desalt = self.asas.asasactive*self.asas.asasalt + (1-self.asas.asasactive)*self.apalt
         self.desvs  = self.asas.asasactive*self.asas.asasvsp + (1-self.asas.asasactive)*self.avs
+
+        # Compute the desired heading needed to compensate for the wind
+        if self.wind.winddim>0:
+            # Calculate wind correction 
+            vwn, vwe = self.wind.getdata(self.lat,self.lon,self.alt)
+            Vw       = np.sqrt(vwn*vwn + vwe*vwe)
+            winddir  = np.arctan2(vwe,vwn)
+            drift    = np.radians(self.destrk)-winddir #[rad]
+            steer    = np.arcsin(np.minimum(1.0,np.maximum(-1.0,\
+                           Vw*np.sin(drift)/np.maximum(0.001,self.tas))))
+            # desired heading
+            self.deshdg = (self.destrk + np.degrees(steer))%360. 
+        else:
+            self.deshdg = self.destrk%360.
 
         # check for the flight envelope
         self.delalt = self.apalt - self.alt  # [m]
@@ -809,9 +819,6 @@ class Traffic:
 
         # Autopilot selected altitude [m]
         self.desalt = (self.limalt ==0)*self.desalt + (self.limalt!=0)*self.limalt
-
-        # Autopilot selected heading
-        self.deshdg = self.deshdg
 
         # Autopilot selected vertical speed (V/S)
         self.desvs = (self.limvs==0)*self.desvs + (self.limvs!=0)*self.limvs
@@ -863,7 +870,7 @@ class Traffic:
         self.alt = swaltsel * (self.alt + self.vs * simdt) +   \
                    (1. - swaltsel) * self.desalt + turbalt
 
-        # HDG HOLD/SEL mode: ahdg = ap selected heading
+        # HDG HOLD/SEL mode: atrk = ap selected track angle
         delhdg = (self.deshdg - self.hdg + 180.) % 360 - 180.  # [deg]
 
         # nominal bank angles per phase from BADA 3.12
@@ -872,15 +879,14 @@ class Traffic:
 
         self.hdgsel = np.abs(delhdg) > np.abs(2. * simdt * omega)
         self.hdg = (self.hdg + simdt * omega * self.hdgsel * np.sign(delhdg)) % 360.
-        
 
         #--------- Kinematics: update lat,lon,alt ----------
 
         # Compute ground speed and track from heading,airspeed and wind
         if self.wind.winddim==0: # no wind
             self.gs  = self.tas
-            gsnorth  = self.tas * np.cos(np.radians(self.hdg))
-            gseast   = self.tas * np.sin(np.radians(self.hdg))
+            self.gsnorth  = self.tas * np.cos(np.radians(self.hdg))
+            self.gseast   = self.tas * np.sin(np.radians(self.hdg))
             self.trk = self.hdg
 
         else:
@@ -890,14 +896,14 @@ class Traffic:
 
             windnorth, windeast = self.wind.getdata(self.lat, self.lon, self.alt)
 
-            gsnorth  = tasnorth + windnorth
-            gseast   = taseast  + windeast
+            self.gsnorth  = tasnorth + windnorth
+            self.gseast   = taseast  + windeast
    
-            self.gs  = np.sqrt(gsnorth*gsnorth + gseast*gseast) 
-            self.trk = np.degrees(np.arctan2(gseast, gsnorth))%360.
+            self.gs  = np.sqrt(self.gsnorth*self.gsnorth + self.gseast*self.gseast) 
+            self.trk = np.degrees(np.arctan2(self.gseast, self.gsnorth))%360.
 
-        dsnorth = simdt * gsnorth
-        dseast = simdt * gseast
+        dsnorth = simdt * self.gsnorth
+        dseast = simdt * self.gseast
 
         self.lat = self.lat + np.degrees((dsnorth + turblat) / Rearth)
 
@@ -1000,7 +1006,17 @@ class Traffic:
     def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
         # Give autopilot commands
-        self.ahdg[idx]   = float(hdg)
+        if self.wind.winddim>0:
+            # Calculate wind correction # TODO check 0-360 variations
+            vwn,vwe = self.wind.getdata(self.lat[idx],self.lon[idx],self.alt[idx])
+            Vw      = np.sqrt(vwn*vwn + vwe*vwe)
+            winddir = np.arctan2(vwe,vwn)
+            drift   = hdg-winddir #[rad]
+            steer   = np.arcsin(np.minimum(1.0,np.maximum(-1.0,\
+                           Vw*np.sin(drift)/np.maximum(0.001,self.tas[idx]))))
+            hdg = (np.degrees(hdg + steer))%360. 
+
+        self.atrk[idx]   = float(hdg)
         self.swlnav[idx] = False
         # Everything went ok!
         return True
@@ -1029,7 +1045,7 @@ class Traffic:
 
         if hdg:
             self.hdg[idx]  = hdg
-            self.ahdg[idx] = hdg
+            self.atrk[idx] = hdg
 
         if casmach:
             # Convert speed
