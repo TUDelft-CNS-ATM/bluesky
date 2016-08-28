@@ -101,7 +101,7 @@ class ASAS():
         # ASAS info per aircraft:
         self.iconf        = []            # index in 'conflicting' aircraft database
         self.asasactive   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
-        self.asashdg      = np.array([])  # heading provided by the ASAS [deg]
+        self.asastrk      = np.array([])  # heading provided by the ASAS [deg]
         self.asasspd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
         self.asasalt      = np.array([])  # speed alt by the ASAS [m]
         self.asasvsp      = np.array([])  # speed vspeed by the ASAS [m/s]
@@ -317,13 +317,13 @@ class ASAS():
         # active the switch, if there are acids in the list
         self.swresooff = len(self.resoofflst)>0  
 
-    def create(self, hdg, spd, alt):
+    def create(self, trk, spd, alt):
         # ASAS info: no conflict => empty list
         self.iconf.append([])  # List of indices in 'conflicting' aircraft database
 
         # ASAS output commanded values
         self.asasactive = np.append(self.asasactive, False)
-        self.asashdg    = np.append(self.asashdg, hdg)
+        self.asastrk    = np.append(self.asastrk, trk)
         self.asasspd    = np.append(self.asasspd, spd)
         self.asasalt    = np.append(self.asasalt, alt)
         self.asasvsp    = np.append(self.asasvsp, 0.)
@@ -331,7 +331,7 @@ class ASAS():
     def delete(self, idx):
         del self.iconf[idx]
         self.asasactive = np.delete(self.asasactive, idx)
-        self.asashdg    = np.delete(self.asashdg, idx)
+        self.asastrk    = np.delete(self.asastrk, idx)
         self.asasspd    = np.delete(self.asasspd, idx)
         self.asasalt    = np.delete(self.asasalt, idx)
         self.asasvsp    = np.delete(self.asasvsp, idx)

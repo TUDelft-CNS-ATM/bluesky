@@ -94,10 +94,7 @@ def resolve(dbconf, traf):
     dv = np.transpose(dv)
 
     # The old speed vector, cartesian coordinates
-    trkrad = np.radians(traf.hdg)
-    v      = np.array([np.sin(trkrad)*traf.tas,\
-                       np.cos(trkrad)*traf.tas,\
-                       traf.vs])
+    v = np.array([traf.gseast, traf.gsnorth, traf.vs])
 
     # The new speed vector, cartesian coordinates
     newv = dv+v
@@ -106,7 +103,7 @@ def resolve(dbconf, traf):
     # direction: horizontal or vertical or horizontal+vertical
     if dbconf.swresohoriz: # horizontal resolutions
         if dbconf.swresospd and not dbconf.swresohdg: # SPD only
-            newtrack = traf.hdg
+            newtrack = traf.trk
             newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)            
             newvs    = traf.vs           
         elif dbconf.swresohdg and not dbconf.swresospd: # HDG only
@@ -118,7 +115,7 @@ def resolve(dbconf, traf):
             newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
             newvs    = traf.vs 
     elif dbconf.swresovert: # vertical resolutions
-        newtrack = traf.hdg
+        newtrack = traf.trk
         newgs    = traf.gs
         newvs    = newv[2,:]       
     else: # horizontal + vertical
@@ -133,7 +130,7 @@ def resolve(dbconf, traf):
     vscapped = np.maximum(dbconf.vsmin,np.minimum(dbconf.vsmax,newvs))
     
     # Now assign resolutions to variables in the ASAS class
-    dbconf.asashdg = newtrack
+    dbconf.asastrk = newtrack
     dbconf.asasspd = newgscapped
     dbconf.asasvsp = vscapped
     
@@ -170,14 +167,10 @@ def MVP(traf, dbconf, id1, id2):
     drel = np.array([np.sin(qdr)*dist, \
                 np.cos(qdr)*dist, \
                 traf.alt[id2]-traf.alt[id1]])
-
-    # Find track of id1 and id2 in radians
-    t1 = np.radians(traf.hdg[id1])
-    t2 = np.radians(traf.hdg[id2])
-        
+       
     # Write velocities as vectors and find relative velocity vector              
-    v1 = np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
-    v2 = np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
+    v1 = np.array([traf.gseast[id1], traf.gsnorth[id1], traf.vs[id1]])
+    v2 = np.array([traf.gseast[id2], traf.gsnorth[id2], traf.vs[id2]])
     vrel = np.array(v2-v1) 
     
     # Find tcpa (or should it be tinconf, since tinconf decided whether its a conflict?)
