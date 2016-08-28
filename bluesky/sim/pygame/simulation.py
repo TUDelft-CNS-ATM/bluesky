@@ -50,8 +50,11 @@ class Simulation:
         self.traf  = Traffic(navdb)
         self.navdb = navdb
         self.metric = Metric()
+        self.stack = stack.init(self, self.traf, gui.scr)
 
         # Additional modules
+        self.beastfeed   = Modesbeast(self.traf)
+        self.telnet_in   = StackTelnetServer(self.stack)
         self.beastfeed   = Modesbeast(self.traf)
         self.telnet_in   = StackTelnetServer()
 
@@ -141,7 +144,8 @@ class Simulation:
 
     def stop(self):  # Quit mode
         self.mode   = self.end
-        self.datalog.save()
+        datalog.reset()        
+#        datalog.save()
         return
 
     def start(self):  # Back to op-mode: run after HOLD/PAUSE
@@ -175,3 +179,4 @@ class Simulation:
         self.simt = 0.0
         self.mode = self.init
         self.traf.reset(self.navdb)
+        datalog.reset()
