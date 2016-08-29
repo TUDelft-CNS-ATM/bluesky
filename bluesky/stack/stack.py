@@ -26,6 +26,9 @@ from ..tools.aero import kts, ft, fpm, tas2cas, density
 from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
 from .. import settings
 
+# Temporary fix for synthetic
+import synthetic as syn
+
 # Global variables
 cmddict   = dict()
 cmdsynon  = dict()
@@ -37,31 +40,6 @@ scencmd   = []
 
 reflat    = -999.  # Reference latitude for searching in nav db in case of duplicate names
 reflon    = -999.  # Reference longitude for searching in nav db in case of duplicate names
-
-# ------------------ [start] Deprecated -------------------
-# An alternative way to add your own commands:
-# add your entry to the dictionary.
-# The dictionary should be formed as {"Key":module'}.
-
-# "Key" is a FOUR-symbol reference used at the start of command.
-# 'module' is the name of the .py-file in which the
-# commands are located (without .py).
-
-# Make sure that the module has a function "process" with
-# arguments:
-#   command, number of args, array of args, sim, traf, scr, cmd
-
-extracmdmodules = {
-    "SYN_": 'synthetic'
-}
-
-# Import modules from the list
-extracmdrefs = {}
-sys.path.append('bluesky/stack/')
-for key in extracmdmodules:
-    obj=__import__(extracmdmodules[key],globals(),locals(),[],0)
-    extracmdrefs[key]=obj
-# ------------------ [end] Deprecated -------------------
 
 
 def init(sim, traf, scr):
@@ -412,6 +390,12 @@ def init(sim, traf, scr):
             "SYMBOL",
             "",
             scr.symbol
+        ],
+        "SYN": [
+            " SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER,\n" + \
+            "MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP",
+            "txt,...",
+            lambda *args: syn.process(args[0], len(args) - 1, args, sim, traf, scr)
         ],
         "TAXI": [
             "TAXI ON/OFF : OFF auto deletes traffic below 1500 ft",
