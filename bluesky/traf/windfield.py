@@ -1,6 +1,6 @@
 from numpy import array, sin, cos, arange, radians, ones, append, ndarray, \
                   amin, minimum, repeat, delete, zeros, around, maximum, floor, \
-                  interp
+                  interp, pi
 
 from ..tools.aero import ft
 
@@ -79,16 +79,16 @@ class Windfield():
             prof3D = False # no wind profile, just one value
             wspd   = ones(self.nalt)*windspd
             wdir   = ones(self.nalt)*winddir
-            vnaxis = wspd*cos(radians(wdir))
-            veaxis = wspd*sin(radians(wdir))
+            vnaxis = wspd*cos(radians(wdir)+pi)
+            veaxis = wspd*sin(radians(wdir)+pi)
 
         # if list or array, convert to alt axis of wind field
         else:
             prof3D = True # switch on 3D parameter as an altitude array is given
             wspd   = array(windspd)
             wdir   = array(winddir)
-            altvn  = wspd*cos(radians(wdir))
-            altve  = wspd*sin(radians(wdir))
+            altvn  = wspd*cos(radians(wdir)+pi)
+            altve  = wspd*sin(radians(wdir)+pi)
             alttab = windalt
 
             vnaxis = interp(self.altaxis, alttab, altvn)
