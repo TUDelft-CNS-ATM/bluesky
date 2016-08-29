@@ -113,7 +113,7 @@ class Traffic:
         self.belco  = np.array([])
 
         # Traffic autopilot settings
-        self.atrk   = []  # selected heading [deg]
+        self.atrk   = []  # selected track angle [deg]
         self.aspd   = []  # selected spd(CAS) [m/s]
         self.aptas  = []  # just for initializing
         self.ama    = []  # selected spd above crossover altitude (Mach) [-]
@@ -149,9 +149,11 @@ class Traffic:
 
         # Route info
         self.route = []
-
+        
+        # Desired aircraft states
         self.desalt     = np.array([])  # desired altitude [m]
-        self.deshdg     = np.array([])  # desired heading
+        self.deshdg     = np.array([])  # desired heading [deg]
+        self.destrk     = np.array([])  # desired track angle [deg]
         self.desvs      = np.array([])  # desired vertical speed [m/s]
         self.desspd     = np.array([])  # desired speed [m/s]
 
@@ -310,11 +312,10 @@ class Traffic:
         self.tas   = np.append(self.tas, acspd)
         self.cas   = np.append(self.cas, tas2cas(acspd, acalt))
         self.M     = np.append(self.M, tas2mach(acspd, acalt))
-
-        tasnorth = self.tas[-1]*cos(radians(self.hdg[-1]))
-        taseast  = self.tas[-1]*sin(radians(self.hdg[-1]))
-    
+        
         # Using heading,TAS and wind vector, compute track angle and ground spd
+        tasnorth = self.tas[-1]*cos(radians(self.hdg[-1]))
+        taseast  = self.tas[-1]*sin(radians(self.hdg[-1]))       
         if self.wind.winddim>0:
             vnwnd,vewnd     = self.wind.getdata(self.lat[-1],self.lon[-1],self.alt[-1])
             self.gsnorth    = np.append(self.gsnorth,tasnorth + vnwnd)
@@ -349,7 +350,7 @@ class Traffic:
         self.perf.create(actype)
 
         # Traffic autopilot settings: hdg[deg], spd (CAS,m/s), alt[m], vspd[m/s]
-        self.atrk  = np.append(self.atrk, achdg)  # selected heading [deg]
+        self.atrk  = np.append(self.atrk, self.trk[-1])  # selected heading [deg]
         self.aspd  = np.append(self.aspd, tas2cas(acspd, acalt))  # selected spd(cas) [m/s]
         self.aptas = np.append(self.aptas, acspd)  # [m/s]
         self.ama   = np.append(self.ama, 0.)  # selected spd above crossover (Mach) [-]
@@ -390,11 +391,13 @@ class Traffic:
         self.route.append(Route(self.navdb))  # create empty route connected with nav databse
 
         eas = tas2eas(acspd, acalt)
-
+        
+        # Desired aircraft states   
         self.desalt  = np.append(self.desalt, acalt)
         self.desvs   = np.append(self.desvs, 0.0)
         self.desspd  = np.append(self.desspd, eas)
         self.deshdg  = np.append(self.deshdg, achdg)
+        self.destrk  = np.append(self.destrk, self.trk[-1])
 
         # Area variable set to False to avoid deletion upon creation outside
         self.inside.append(False)
@@ -510,11 +513,13 @@ class Traffic:
 
         # Route info
         del self.route[idx]
-
+        
+        # Desired aircraft states
         self.desalt     = np.delete(self.desalt, idx)
         self.desvs      = np.delete(self.desvs, idx)
         self.desspd     = np.delete(self.desspd, idx)
         self.deshdg     = np.delete(self.deshdg, idx)
+        self.destrk     = np.delete(self.destrk, idx)
 
         # Metrics, area
         del self.inside[idx]
@@ -742,7 +747,7 @@ class Traffic:
             self.avs = (1-self.swvnavvs)*self.avs + self.swvnavvs*steepness*self.gs
             self.apalt = (1-self.swvnavvs)*self.apalt + self.swvnavvs*self.actwpalt
             
-            # LNAV switch
+            # LNAV commanded track angle
             self.atrk = np.where(self.swlnav, qdr, self.atrk)
         #-------------END of FMS update -------------------
          
@@ -1005,18 +1010,19 @@ class Traffic:
 
     def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
-        # Give autopilot commands
+        
+        # If there is wind, compute the corresponding track angle            
         if self.wind.winddim>0:
-            # Calculate wind correction # TODO check 0-360 variations
-            vwn,vwe = self.wind.getdata(self.lat[idx],self.lon[idx],self.alt[idx])
-            Vw      = np.sqrt(vwn*vwn + vwe*vwe)
-            winddir = np.arctan2(vwe,vwn)
-            drift   = hdg-winddir #[rad]
-            steer   = np.arcsin(np.minimum(1.0,np.maximum(-1.0,\
-                           Vw*np.sin(drift)/np.maximum(0.001,self.tas[idx]))))
-            hdg = (np.degrees(hdg + steer))%360. 
+            tasnorth = self.tas[idx]*cos(radians(hdg))
+            taseast  = self.tas[idx]*sin(radians(hdg)) 
+            vnwnd,vewnd = self.wind.getdata(self.lat[idx],self.lon[idx],self.alt[idx])
+            gsnorth    = tasnorth + vnwnd
+            gseast     = taseast  + vewnd
+            trk        = np.degrees(np.arctan2(gseast,gsnorth))
+        else:             
+            trk = hdg           
 
-        self.atrk[idx]   = float(hdg)
+        self.atrk[idx]   = trk
         self.swlnav[idx] = False
         # Everything went ok!
         return True
