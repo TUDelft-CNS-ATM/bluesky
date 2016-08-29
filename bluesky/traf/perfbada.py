@@ -173,7 +173,7 @@ class Coefficients:
         # read OPF-File
         for f in self.files:
             if ".OPF" in f:
-                OPFfile = open(self.path + f,'r')
+                OPFfile = open(self.path + "/" + f,'r')
                 # Read-in of OPFfiles
                 OPFin = OPFfile.read()
                 # information is given in colums
@@ -337,7 +337,7 @@ class Coefficients:
 
             # Airline Procedure Files
             elif ".APF" in f:
-                APFfile = open(self.path + f,'r')          
+                APFfile = open(self.path+"/" + f,'r')          
             
                 for line in APFfile.readlines():
                     if not line.startswith("CC") and not line.strip() =="":
@@ -403,7 +403,7 @@ class PerfBADA():
         coeff.coeff()
 
         # Create datalog instance
-        self.log = Datalog()
+        #self.log = Datalog()
         return
 
     def engchange(self, acid, engid=None):
@@ -450,6 +450,7 @@ class PerfBADA():
         self.cascr  = np.array([]) # cruise [m/s]
         self.casdes = np.array([]) # descent [m/s]
         self.refcas    = np.array([]) # nominal cruise CAS  [m/s]
+        self.atrans=np.array([]) # crossover altitude [m]
         
         #reference mach numbers [-] 
         self.macl = np.array([]) # climb 
@@ -595,6 +596,18 @@ class PerfBADA():
         # reference speed during descent
         self.vdes = np.append(self.vdes, coeff.vdes[self.coeffidx]*kts)
         self.mdes = np.append(self.mdes, coeff.mdes[self.coeffidx])
+        
+#######################################        
+
+
+        # crossover altitude for climbing aircraft (BADA User Manual 3.12, p. 12)
+        self.atranscl = (1000/6.5)*(T0*(1-((((1+gamma1*(self.cascl/a0)**2)**(gamma2))-1) /  \
+        (((1+gamma1*self.macl**2)**(gamma2))-1))**((-(beta)*R)/g0)))        
+
+        # crossover altitude for descending aircraft (BADA User Manual 3.12, p. 12)
+        self.atransdes = (1000/6.5)*(T0*(1-((((1+gamma1*(self.casdes/a0)**2)**(gamma2))-1) /  \
+        (((1+gamma1*self.mades**2)**(gamma2))-1))**((-(beta)*R)/g0)))          
+       
 
         # aerodynamics                
         # parasitic drag coefficients per phase
@@ -727,6 +740,7 @@ class PerfBADA():
         self.cascr = np.delete(self.cascr, idx)
         self.casdes = np.delete(self.casdes, idx)
         self.refcas = np.delete(self.refcas, idx)
+        self.atrans=np.delete(self.atrans, idx)
 
         # reference Mach
         self.macl = np.delete(self.macl, idx)
@@ -810,11 +824,13 @@ class PerfBADA():
 
     def perf(self):
         """AIRCRAFT PERFORMANCE"""
+        # BADA version
+        swbada = True
         # flight phase
         self.phase, self.bank = \
         phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
         self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
-        self.traf.hdgsel, self.traf.bada)
+        self.traf.hdgsel, swbada)
 
         # AERODYNAMICS
         # Lift
@@ -856,25 +872,10 @@ class PerfBADA():
         self.descent = np.array(self.traf.delalt<epsalt)
         lvl = np.array(np.abs(self.traf.delalt)<0.0001)*1
         
-        # designate reference CAS to phases
-        cascl = self.cascl*self.climb
-        cascr = self.cascr*lvl
-        casdes = self.casdes*self.descent
-        
-        self.refcas = np.maximum.reduce([cascl, cascr, casdes])
 
-        # designate reference Ma to phases
-        macl = self.macl*self.climb
-        macr = self.macr*(np.abs(self.traf.delalt) < epsalt)
-        mades = self.mades*self.descent
-
-        self.refma = np.maximum.reduce([macl, macr, mades])
-
-        # crossover altitude (BADA User Manual 3.12, p. 12)
-        self.atrans = (1000/6.5)*(T0*(1-((((1+gamma1*(self.refcas/a0)**2)**(gamma2))-1) /  \
-        (((1+gamma1*self.refma**2)**(gamma2))-1))**((-(beta)*R)/g0)))
 
         # crossover altitiude
+        self.atrans = self.atranscl*self.climb + self.atransdes*(1-self.climb)
         self.traf.abco = np.array(self.traf.alt>self.atrans)
         self.traf.belco = np.array(self.traf.alt<self.atrans)
 
@@ -1069,10 +1070,10 @@ class PerfBADA():
         self.hmaxact = (self.hmax==0)*self.hmo +(self.hmax !=0)*np.minimum(self.hmo, self.hact)  
         
         # forwarding to tools
-        self.traf.lspd, self.traf.lalt, self.traf.lvs, self.traf.ama = \
-        limits(self.traf.desspd, self.traf.lspd, self.vmin, self.vmo, self.mmo,\
-        self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, self.traf.desalt, self.traf.lalt,\
-        self.maxthr, self.Thr,self.traf.lvs,  self.D, self.traf.tas, self.mass, self.ESF)        
+        self.traf.limspd, self.traf.limalt, self.traf.limvs, self.traf.ama = \
+        limits(self.traf.desspd, self.traf.limspd, self.vmin, self.vmo, self.mmo,\
+        self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, self.traf.desalt, self.traf.limalt,\
+        self.maxthr, self.Thr,self.traf.limvs, self.D, self.traf.tas, self.mass, self.ESF)         
         
         return
 

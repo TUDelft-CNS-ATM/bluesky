@@ -1,7 +1,7 @@
 import time
-from ...tools.datalog import Datalog
+from ...tools import datalog
 from ...traf import Traffic
-from ...stack import Commandstack
+from ... import stack
 from ...traf.metric import Metric
 
 from ...tools.network import StackTelnetServer
@@ -41,9 +41,6 @@ class Simulation:
         self.datadir = "./data/"
         self.dts = []
 
-        # Create datalog instance
-        self.datalog = Datalog(self)
-
         # Fixed dt mode for fast forward
         self.ffmode = False  # Default FF off
         self.fixdt = 0.1     # Default time step
@@ -53,13 +50,14 @@ class Simulation:
         self.traf  = Traffic(navdb)
         self.navdb = navdb
         self.metric = Metric()
-        self.stack = Commandstack(self, self.traf, gui.scr)
+        self.stack = stack.init(self, self.traf, gui.scr)
 
         # Additional modules
-        self.beastfeed   = Modesbeast(self.stack, self.traf)
-        self.telnet_in   = StackTelnetServer(self.stack)
+        self.beastfeed   = Modesbeast(self.traf)
+        self.telnet_in   = StackTelnetServer()
 
-        return
+        # Initialize the stack module once
+        stack.init(self, self.traf, gui.scr)
 
     def update(self, scr):
 
@@ -98,13 +96,13 @@ class Simulation:
             if len(self.dts) > 20:
                     del self.dts[0]
 
-            self.stack.checkfile(self.simt)
+            stack.checkfile(self.simt)
 
             # Update the Mode-S beast parsing
             self.beastfeed.update()
 
         # Always process stack
-        self.stack.process(self, self.traf, scr)
+        stack.process(self, self.traf, scr)
 
         if self.mode == Simulation.op:
             self.traf.update(self.simt, self.dt)
@@ -113,8 +111,7 @@ class Simulation:
             self.metric.update(self)
 
             # Update log
-            if self.datalog is not None:
-                self.datalog.update(self)
+            datalog.update(self.simt)
 
         # HOLD/Pause mode
         else:
@@ -145,7 +142,8 @@ class Simulation:
 
     def stop(self):  # Quit mode
         self.mode   = self.end
-        self.datalog.save()
+        datalog.reset()        
+#        datalog.save()
         return
 
     def start(self):  # Back to op-mode: run after HOLD/PAUSE
@@ -179,3 +177,4 @@ class Simulation:
         self.simt = 0.0
         self.mode = self.init
         self.traf.reset(self.navdb)
+        datalog.reset()

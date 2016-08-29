@@ -1,4 +1,5 @@
 import pygame as pg
+from ... import stack
 from math import *
 from ..radarclick import radarclick
 
@@ -31,7 +32,7 @@ class Keyboard:
 
         # First time: IC window in pygame version        
         if self.firstx:
-            cmd.stack("IC")
+            stack.stack("IC")
             self.firstx = False
         
         # Get events
@@ -50,7 +51,7 @@ class Keyboard:
                     scr.editwin.enter()
                     if len(cmdline)>0:
                         self.lastcmd = cmdline
-                        cmd.stack(cmdline)
+                        stack.stack(cmdline)
 
                 elif event.key==8:   # BACKSPACE
                     scr.editwin.backspace()
@@ -63,18 +64,18 @@ class Keyboard:
                    
                 # Display keys
                 elif event.key == 269: # Num lock minus
-                    cmd.stack("ZOOM OUT")
+                    stack.stack("ZOOM OUT")
                 elif event.key == 270: # Num lock pluus
-                    cmd.stack("ZOOM IN")
+                    stack.stack("ZOOM IN")
 
                 elif event.key == 273: # Cursor up
-                    cmd.stack("PAN UP")
-                elif event.key == 274: # Num lock up
-                    cmd.stack("PAN DOWN")
+                    scr.pan("UP")
+                elif event.key == 274: # Cursor down
+                    scr.pan("DOWN")
                 elif event.key == 275: # Num lock down
-                    cmd.stack("PAN RIGHT")
+                    scr.pan("RIGHT")
                 elif event.key == 276: # Num lock right
-                    cmd.stack("PAN LEFT")
+                    scr.pan("LEFT")
 
                 elif event.key ==pg.K_F11: # F11: Toggle full screen
                     
@@ -115,7 +116,7 @@ class Keyboard:
                          not self.dragmenu:
                         cmdtxt = scr.menu.getcmd(event.pos)
                         if cmdtxt != "":
-                            cmd.stack(cmdtxt)
+                            stack.stack(cmdtxt)
 
                     # In all other cases process as radar click
                     elif self.dragmenu:
@@ -135,7 +136,7 @@ class Keyboard:
                                 if todisplay[-1] == '\n':
                                     scr.editwin.enter()
                             if len(tostack) > 0:
-                                cmd.stack(tostack)
+                                stack.stack(tostack)
 
                 # Make sure edit and menu window are released
                 self.dragedit    = False
@@ -161,7 +162,11 @@ class Keyboard:
                         scr.redrawedit   = True
                         self.dragdx = event.pos[0] - scr.menu.x
                         self.dragdy = event.pos[1] - scr.menu.y
-
+                elif event.button==4:
+                    scr.zoom(0.5*sqrt(2.0))
+                elif event.button==5:
+                    scr.zoom(sqrt(2.0))
+                
             # Mouse motion: drag edit/menu window with mouse, if necessary
             # Check also for mouse button 1                    
             elif event.type==pg.MOUSEMOTION and \

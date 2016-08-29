@@ -22,4 +22,9 @@
 
 00:00:00.00>ECHO Conflict between CX52 and HV296 occurs at 4min and 32sec
 
-00:00:00.00>FF 268
+00:00:00.00>FF
+
+00:00:00.00>WIND 0,0,,180,25
+
+00:04:28.00>HOLD
+

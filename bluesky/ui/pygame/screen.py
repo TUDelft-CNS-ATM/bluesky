@@ -42,7 +42,7 @@ class Screen:
         ll2xy(lat,lon)      : lat/lon[deg] to pixel coordinate conversion
         xy2ll(x,y)          : pixel to lat/lon[de]g conversion    
         zoom(factor)        : zoom in/out
-        pan(lat,lon)        : pan to lat,lon position
+        pan(lat,lon,txt)    : pan to lat,lon position
 
     Members: see constructor
 
@@ -295,7 +295,7 @@ class Screen:
             if i >= 0:
                 self.ndlat = traf.lat[i]
                 self.ndlon = traf.lon[i]
-                self.ndcrs = traf.trk[i]
+                self.ndcrs = traf.hdg[i]
             else:
                 self.swnavdisp = False
         else:
@@ -623,7 +623,7 @@ class Screen:
             for i in trafsel:
 
                 # Get index of ac symbol, based on heading and its rect object
-                isymb = int((traf.trk[i] - self.ndcrs) / 6.) % 60
+                isymb = int((traf.hdg[i] - self.ndcrs) / 6.) % 60
                 pos = self.acsymbol[isymb].get_rect()
 
                 # Draw aircraft symbol
@@ -937,16 +937,16 @@ class Screen:
     def pan(self, *args):
         """Pan function:
                absolute: lat,lon;
-               relative: UP/DOWN/LEFT/RIGHT"""
+               relative: ABOVE/DOWN/LEFT/RIGHT"""
         lat, lon = self.ctrlat, self.ctrlon
         if args[0] == "LEFT":
             lon = self.ctrlon - 0.5 * (self.lon1 - self.lon0)
         elif args[0] == "RIGHT":
             lon = self.ctrlon + 0.5 * (self.lon1 - self.lon0)
-        elif args[0] == "UP":
+        elif args[0] == "ABOVE" or args[0] == "UP":
             lat = self.ctrlat + 0.5 * (self.lat1 - self.lat0)
         elif args[0] == "DOWN":
-            lat = self.ctrlat - 0.5 * self.lat1 - self.lat0
+            lat = self.ctrlat - 0.5 * (self.lat1 - self.lat0)
         else:
             lat, lon = args
 

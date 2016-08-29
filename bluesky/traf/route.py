@@ -137,6 +137,7 @@ class Route():
                 self.nwp    = self.nwp + 1
                 if self.iactwp > 0:
                     self.iactwp = self.iactwp + 1
+                    
             idx = 0
 
         # DESTINATION: Wptype is destination?
@@ -211,61 +212,64 @@ class Route():
 
             # Check if afterwp is specified and found:
             aftwp = afterwp.upper().strip()  # Remove space, upper case
-            if wpok and afterwp != "" and self.wpname.count(aftwp) > 0:
-                wpidx = self.wpname.index(aftwp) + 1
-                self.wpname.insert(wpidx, newname)
-                self.wplat.insert(wpidx, wplat)
-                self.wplon.insert(wpidx, wplon)
-                self.wpalt.insert(wpidx, alt)
-                self.wpspd.insert(wpidx, spd)
-                self.wptype.insert(wpidx, wptype)
-                self.wpflyby.insert(wpidx, self.swflyby)
-                if self.iactwp >= wpidx:
-                    self.iactwp = self.iactwp + 1
-
-                idx = wpidx
-
-            # No afterwp: append, just before dest if there is a dest
-            elif wpok:
+            if wpok:  
+            
+                if afterwp != "" and self.wpname.count(aftwp) > 0:
+                    wpidx = self.wpname.index(aftwp) + 1
+                    self.wpname.insert(wpidx, newname)
+                    self.wplat.insert(wpidx, wplat)
+                    self.wplon.insert(wpidx, wplon)
+                    self.wpalt.insert(wpidx, alt)
+                    self.wpspd.insert(wpidx, spd)
+                    self.wptype.insert(wpidx, wptype)
+                    self.wpflyby.insert(wpidx, self.swflyby)
+                    if self.iactwp >= wpidx:
+                        self.iactwp = self.iactwp + 1
+    
+                    idx = wpidx
+    
+                # No afterwp: append, just before dest if there is a dest
+                else:
 
                 # Is there a destination?
-                if self.nwp > 0 and self.wptype[-1] == self.dest:
-
-                    # Copy last waypoint and insert before
-                    self.wpname.append(self.wpname[-1])
-                    self.wplat.append(self.wplat[-1])
-                    self.wplon.append(self.wplon[-1])
-                    self.wpalt.append(self.wpalt[-1])
-                    self.wpspd.append(self.wpspd[-1])
-                    self.wptype.append(self.wptype[-1])
-                    self.wpflyby.append(self.wpflyby[-1])
-
-                    self.wpname[-2] = newname
-                    self.wplat[-2]  = (wplat + 90.) % 180. - 90.
-                    self.wplon[-2]  = (wplon + 180.) % 360. - 180.
-                    self.wpalt[-2]  = alt
-                    self.wpspd[-2]  = spd
-                    self.wptype[-2] = wptype
-                    idx = self.nwp - 2
-
-                # Or simply append
-                else:
-                    self.wpname.append(newname)
-                    self.wplat.append((wplat + 90.) % 180. - 90.)
-                    self.wplon.append((wplon + 180.) % 360. - 180.)
-                    self.wpalt.append(alt)
-                    self.wpspd.append(spd)
-                    self.wptype.append(wptype)
-                    self.wpflyby.append(self.swflyby)
-                    idx = self.nwp 
-
-        # Update pointers and report whether we are ok
-
-        if not wpok:
-            idx = -1
-            if len(self.wplat) == 1:
-                self.iactwp = 0
-
+                    if self.nwp > 0 and self.wptype[-1] == self.dest:
+    
+                        # Copy last waypoint and insert before
+                        self.wpname.append(self.wpname[-1])
+                        self.wplat.append(self.wplat[-1])
+                        self.wplon.append(self.wplon[-1])
+                        self.wpalt.append(self.wpalt[-1])
+                        self.wpspd.append(self.wpspd[-1])
+                        self.wptype.append(self.wptype[-1])
+                        self.wpflyby.append(self.wpflyby[-1])
+    
+                        self.wpname[-2] = newname
+                        self.wplat[-2]  = (wplat + 90.) % 180. - 90.
+                        self.wplon[-2]  = (wplon + 180.) % 360. - 180.
+                        self.wpalt[-2]  = alt
+                        self.wpspd[-2]  = spd
+                        self.wptype[-2] = wptype
+                        idx = self.nwp - 2
+    
+                    # Or simply append
+                    else:
+                        self.wpname.append(newname)
+                        self.wplat.append((wplat + 90.) % 180. - 90.)
+                        self.wplon.append((wplon + 180.) % 360. - 180.)
+                        self.wpalt.append(alt)
+                        self.wpspd.append(spd)
+                        self.wptype.append(wptype)
+                        self.wpflyby.append(self.swflyby)
+                        idx = self.nwp 
+    
+            # Update pointers and report whether we are ok
+                   
+            else:
+                idx = -1
+                if len(self.wplat) == 1:
+                    self.iactwp = 0
+            #update qdr in traffic
+            traf.next_qdr[iac] = self.getnextqdr()        
         # Update waypoints
         if not (wptype == self.calcwp):
             self.calcfp()
@@ -368,11 +372,13 @@ class Route():
             lnavon = True
         else:
             lnavon = False
+            
+        nextqdr= self.getnextqdr()                                                          
 
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
-               lnavon,self.wpflyby[self.iactwp]
+               lnavon,self.wpflyby[self.iactwp], nextqdr
 
     def delwpt(self, delwpname):
         """Delete waypoint"""
@@ -653,3 +659,13 @@ class Route():
             # End of data
             f.write("----\n")
             f.close()
+            
+    def getnextqdr(self):
+        # get qdr for next leg
+        if self.iactwp+1<self.nwp:
+            nextqdr, dist = geo.qdrdist(\
+                        self.wplat[self.iactwp],  self.wplon[self.iactwp],\
+                        self.wplat[self.iactwp+1],self.wplon[self.iactwp+1]) 
+        else:
+            nextqdr = -999. 
+        return nextqdr

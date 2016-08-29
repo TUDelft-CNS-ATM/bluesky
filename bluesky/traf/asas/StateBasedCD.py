@@ -99,11 +99,11 @@ def detect(dbconf, traf, simt):
 
     dbconf.dalt = alt - adsbalt.T
 
-    vs = traf.vs
-    vs = vs.reshape(1, len(vs))
 
-    avs = traf.adsbvs
-    avs = avs.reshape(1, len(avs))
+    vs = traf.vs.reshape(1, len(traf.vs))
+
+
+    avs = traf.adsbvs.reshape(1, len(traf.adsbvs))
 
     dvs = vs - avs.T
 
@@ -235,12 +235,9 @@ def APorASAS(dbconf, traf):
             # Check if conflict is past CPA
             d = np.array([traf.lon[id2] - traf.lon[id1], traf.lat[id2] - traf.lat[id1]])
 
-            t1 = np.radians(traf.trk[id1])
-            t2 = np.radians(traf.trk[id2])
-
             # write velocities as vectors
-            v1 = np.array([np.sin(t1) * traf.tas[id1], np.cos(t1) * traf.tas[id1]])
-            v2 = np.array([np.sin(t2) * traf.tas[id2], np.cos(t2) * traf.tas[id2]])
+            v1 = np.array([traf.gseast[id1], traf.gsnorth[id1]])
+            v2 = np.array([traf.gseast[id2], traf.gsnorth[id2]])
             
             # Compute pastCPA
             pastCPA = np.dot(d,v2-v1)>0.

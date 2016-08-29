@@ -3,12 +3,12 @@ import aero
 import adsb_decoder as decoder
 from network import TcpSocket
 from .. import settings
+from .. import stack
 
 
 class Modesbeast(TcpSocket):
-    def __init__(self, stack, traf):
+    def __init__(self, traf):
         super(Modesbeast, self).__init__()
-        self.stack = stack
         self.traf = traf
         self.acpool = {}
         self.buffer = ''
@@ -20,7 +20,7 @@ class Modesbeast(TcpSocket):
                    "DATAFEED [ON/OFF]",
                    "[onoff]",
                    self.toggle]}
-        self.stack.append_commands(cmddict)
+        stack.append_commands(cmddict)
 
     def processData(self, data):
         self.buffer += data
@@ -31,7 +31,7 @@ class Modesbeast(TcpSocket):
 
             bfdata = [ord(i) for i in self.buffer]
             n = (len(bfdata) - 1) - bfdata[::-1].index(0x1a)
-            data = bfdata[:n-1]
+            data = bfdata[:n - 1]
             self.buffer = self.buffer[n:]
 
             messages = self.read_mode_s(data)
@@ -200,18 +200,18 @@ class Modesbeast(TcpSocket):
                     cmdstr = 'CRE %s, %s, %f, %f, %f, %d, %d' % \
                         (acid, mdl, d['lat'], d['lon'],
                             d['heading'], d['alt'], v)
-                    self.stack.stack(cmdstr)
+                    stack.stack(cmdstr)
                 else:
                     cmdstr = 'MOVE %s, %f, %f, %d' % \
                         (acid, d['lat'], d['lon'], d['alt'])
-                    self.stack.stack(cmdstr)
+                    stack.stack(cmdstr)
 
                     cmdstr = 'HDG %s, %f' % (acid,  d['heading'])
-                    self.stack.stack(cmdstr)
+                    stack.stack(cmdstr)
 
                     v_cas = aero.tas2cas(d['speed'], d['alt'] * aero.ft)
                     cmdstr = 'SPD %s, %f' % (acid,  v_cas)
-                    self.stack.stack(cmdstr)
+                    stack.stack(cmdstr)
         return
 
     def remove_outdated_ac(self):
@@ -223,7 +223,7 @@ class Modesbeast(TcpSocket):
                     del self.acpool[addr]
                     # remove from sim traffic
                     if 'callsign' in ac:
-                        self.stack.stack('DEL %s' % ac['callsign'])
+                        stack.stack('DEL %s' % ac['callsign'])
         return
 
     def debug(self):
