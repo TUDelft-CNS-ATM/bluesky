@@ -570,8 +570,8 @@ def openfile(scenname, absrel='ABS', mergeWithExisting=False):
     if scenname.find("/") < 0 and scenname.find( "\\") < 0:
         scenfile = settings.scenario_path
         if scenfile[-1] is not '/':
-            scenfile += '/'
-        scenfile += scenname
+            scenfile = scenfile + '/'
+        scenfile = scenfile+scenname
     else:
         scenfile = scenname
 
@@ -598,7 +598,8 @@ def openfile(scenname, absrel='ABS', mergeWithExisting=False):
                     imin = int(ttxt[1]) * 60.0
                     xsec = float(ttxt[2])
                     scentime.append(ihr + imin + xsec + t_offset)
-                    scencmd.append(line[icmdline + 1:-1])
+                    scencmd.append(line[icmdline + 1:].strip("\n"))
+                    print line[icmdline + 1:].strip("\n")
                 except:
                     if not(len(line.strip())>0 and line.strip()[0]=="#"):                        
                         print "except this:", line
