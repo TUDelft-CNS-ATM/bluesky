@@ -35,6 +35,8 @@ scenfile  = ""
 scentime  = []
 scencmd   = []
 
+reflat    = -999.  # Reference latitude for searching in nav db in case of duplicate names
+reflon    = -999.  # Reference longitude for searching in nav db in case of duplicate names
 
 # ------------------ [start] Deprecated -------------------
 # An alternative way to add your own commands:
@@ -712,7 +714,7 @@ def saveic(fname, sim, traf):
 
 def process(sim, traf, scr):
     """process and empty command stack"""
-    global cmdstack
+    global cmdstack, reflat,reflon,refacid
 
     # Process stack of commands
     for line in cmdstack:
@@ -860,6 +862,8 @@ def process(sim, traf, scr):
 
 
 def argparse(argtype, argidx, args, traf, scr):
+    global reflat, reflon
+    
     """ Parse one or more arguments.
 
         Returns:
@@ -875,6 +879,8 @@ def argparse(argtype, argidx, args, traf, scr):
             scr.echo(cmd + ":" + args[idx] + " not found")
             raise IndexError
         else:
+            reflat = traf.lat[idx] # Update ref position for navdb lookup
+            reflon = traf.lon[idx] # Update ref position for navdb lookup
             return [idx], {}, 1
 
     if argtype == "txt":  # simple text
@@ -895,6 +901,8 @@ def argparse(argtype, argidx, args, traf, scr):
         # Arg is an existing aircraft?
         idx = traf.id2idx(args[argidx])
         if idx >= 0:
+            reflat = traf.lat[idx] # Update ref position for navdb lookup
+            reflon = traf.lon[idx] # Update ref position for navdb lookup
             return [traf.lat[idx], traf.lon[idx]], {}, 1
         # Arg is an airport?
         idx = traf.navdb.getapidx(args[argidx])
@@ -907,15 +915,26 @@ def argparse(argtype, argidx, args, traf, scr):
                 return arglist, optargs, 2
 
             # If no runway return airport center
+            reflat = traf.navdb.aplat[idx] # Update ref position for navdb lookup
+            reflon = traf.navdb.aplon[idx] # Update ref position for navdb lookup
+
             return [traf.navdb.aplat[idx], traf.navdb.aplon[idx]], {}, 1
-        # Arg is a waypoint?
-        idx = traf.navdb.getwpidx(args[argidx])
+        # Arg is a waypoint? Use last position or a/c id as reference
+        if reflat<180.: # No reference avaiable yet: use screen center
+            refalt,reflon = scr.ctrlat,scr.ctrlon
+        idx = traf.navdb.getwpidx(args[argidx],reflat,reflon)
         if idx >= 0:
+            reflat = traf.navdb.wplat[idx] # Update ref position for navdb lookup
+            reflon = traf.navdb.wplon[idx] # Update ref position for navdb lookup
             return [traf.navdb.wplat[idx], traf.navdb.wplon[idx]], {}, 1
         # Arg, next arg are a lat/lon combination
+        reflat = txt2lat(args[argidx]) # Update ref position for navdb lookup
+        reflon = txt2lon(args[argidx + 1]) # Update ref position for navdb lookup
         return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], {}, 2
 
     if argtype == "latlon":
+        reflat = txt2lat(args[argidx]) # Update ref position for navdb lookup
+        reflon = txt2lon(args[argidx + 1]) # Update ref position for navdb lookup
         return [txt2lat(args[argidx]), txt2lon(args[argidx + 1])], {}, 2
 
     if argtype == "spd":  # CAS[kts] Mach
