@@ -312,11 +312,10 @@ class Traffic:
         self.tas   = np.append(self.tas, acspd)
         self.cas   = np.append(self.cas, tas2cas(acspd, acalt))
         self.M     = np.append(self.M, tas2mach(acspd, acalt))
-        taseast  = self.tas[-1]*sin(radians(self.hdg[-1]))       
-        tasnorth = self.tas[-1]*cos(radians(self.hdg[-1]))
-        taseast  = self.tas[-1]*sin(radians(self.hdg[-1]))
-    
+        
         # Using heading,TAS and wind vector, compute track angle and ground spd
+        tasnorth = self.tas[-1]*cos(radians(self.hdg[-1]))
+        taseast  = self.tas[-1]*sin(radians(self.hdg[-1]))       
         if self.wind.winddim>0:
             vnwnd,vewnd     = self.wind.getdata(self.lat[-1],self.lon[-1],self.alt[-1])
             self.gsnorth    = np.append(self.gsnorth,tasnorth + vnwnd)
