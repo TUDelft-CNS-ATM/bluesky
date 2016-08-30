@@ -1146,15 +1146,18 @@ class Traffic:
 
         route = self.route[idx]
         if len(args) == 1:
+
             name = args[0]
+            print name
             apidx = self.navdb.getapidx(name)
             if apidx < 0:
                 return False, (cmd + ": Airport " + name + " not found.")
             lat = self.navdb.aplat[apidx]
             lon = self.navdb.aplon[apidx]
         else:
-            name = self.id[idx] + cmd
-            lat, lon = args
+            name, lat, lon = args
+            if name=="":
+                name = self.id[idx]+"DEST"
 
         if cmd == "DEST":
             self.dest[idx] = name

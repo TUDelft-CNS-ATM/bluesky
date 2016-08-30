@@ -43,7 +43,7 @@ class Route():
 
         return
 
-    def addwptStack(self, traf, idx, *args):
+    def addwptStack(self, traf, idx, *args): # args: all arguments of addwpt
         "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"
         if len(args) == 1:
             isflyby = args[0].replace('-', '')
@@ -64,7 +64,7 @@ class Route():
             name     = traf.id[idx]
             lat, lon = args[0:2]
             wptype   = self.wplatlon
-            args     = args[2:]
+            args     = args[3:]
 
         alt = -999. if len(args) < 1 else args[0]
         spd = -999. if len(args) < 2 else args[1]
@@ -97,8 +97,14 @@ class Route():
         # Be default we trust, distrust needs to be earned
         wpok = True   # switch for waypoint check
 
-        # Select on wptype
+        # Check if name already exists, if so add integer 01, 02, 03 etc.
+        appi    = 0 # appended integer to name starts at zero (=nothing)
+        wprtename = name.upper()  # wp name for in route
+        while self.wpname.count(wprtename)>0:
+            appi = appi+1
+            wprtename = name.upper()+"%02d"%appi
 
+        # Select on wptype
         # ORIGIN: Wptype is origin?
         if wptype == self.orig:
 
@@ -116,7 +122,7 @@ class Route():
             if wpok:
                 # Overwrite existing origin
                 if self.nwp > 0 and self.wptype[0] == self.orig:
-                    self.wpname[0] = name.upper()
+                    self.wpname[0] = wprtename
                     self.wptype[0] = wptype
                     self.wplat[0]  = wplat
                     self.wplon[0]  = wplon
@@ -199,14 +205,14 @@ class Route():
                 wpok  = True
 
             # Else make data complete with nav database and closest to given lat,lon
-            else:
-                newname = name.upper()
+            else: # so wptypewpnav
+                newname = wprtename
 
                 i = self.navdb.getwpidx(name.upper().strip(), lat, lon)
                 wpok = (i >= 0)
 
                 if wpok:
-                    newname = name.upper()
+                    newname = wprtename
                     wplat = self.navdb.wplat[i]
                     wplon = self.navdb.wplon[i]
 
@@ -249,8 +255,10 @@ class Route():
                         self.wpalt[-2]  = alt
                         self.wpspd[-2]  = spd
                         self.wptype[-2] = wptype
+
+                        # Update pointers and report whether we are ok
+                        self.nwp = len(self.wplat)
                         idx = self.nwp - 2
-    
                     # Or simply append
                     else:
                         self.wpname.append(newname)
@@ -260,14 +268,15 @@ class Route():
                         self.wpspd.append(spd)
                         self.wptype.append(wptype)
                         self.wpflyby.append(self.swflyby)
-                        idx = self.nwp 
-    
-            # Update pointers and report whether we are ok
-                   
+ 
+                        # Update pointers and report whether we are ok
+                        self.nwp = len(self.wplat) 
+                        idx = self.nwp-1 
             else:
                 idx = -1
                 if len(self.wplat) == 1:
                     self.iactwp = 0
+
             #update qdr in traffic
             traf.next_qdr[iac] = self.getnextqdr()        
         # Update waypoints
@@ -669,3 +678,4 @@ class Route():
         else:
             nextqdr = -999. 
         return nextqdr
+
