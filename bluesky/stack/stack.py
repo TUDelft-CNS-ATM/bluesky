@@ -394,7 +394,7 @@ def init(sim, traf, scr):
         "SYN": [
             " SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER,\n" + \
             "MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP",
-            "txt,...",
+            "txt,[...]",
             lambda *args: syn.process(args[0], len(args) - 1, args, sim, traf, scr)
         ],
         "TAXI": [
