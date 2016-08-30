@@ -940,20 +940,21 @@ class Screen:
                relative: ABOVE/DOWN/LEFT/RIGHT"""
         lat, lon = self.ctrlat, self.ctrlon
         if args[0] == "LEFT":
-            lon = self.ctrlon - 0.5 * (self.lon1 - self.lon0)
+            lon = lon - 0.5 * (self.lon1 - self.lon0)
         elif args[0] == "RIGHT":
-            lon = self.ctrlon + 0.5 * (self.lon1 - self.lon0)
+            lon = lon + 0.5 * (self.lon1 - self.lon0)
         elif args[0] == "ABOVE" or args[0] == "UP":
-            lat = self.ctrlat + 0.5 * (self.lat1 - self.lat0)
+            lat = lat + 0.5 * (self.lat1 - self.lat0)
         elif args[0] == "DOWN":
-            lat = self.ctrlat - 0.5 * (self.lat1 - self.lat0)
+            lat = lat - 0.5 * (self.lat1 - self.lat0)
         else:
-            lat, lon = args
+            if len(args)>1:
+                lat, lon = args
+            else:
+                return False
 
-        # Maintain size
+        # Maintain size & avoid getting out of range
         dellat2 = (self.lat1 - self.lat0) * 0.5
-
-        # Avoid getting out of range
         self.ctrlat = max(min(lat, 90. - dellat2), dellat2 - 90.)
 
         # Allow wrap around of longitude
@@ -961,6 +962,7 @@ class Screen:
                                     (self.height * cos(radians(self.ctrlat)))
         self.ctrlon = (lon + 180.) % 360 - 180.
 
+        # Update edge coordinates
         self.lat0 = self.ctrlat - dellat2
         self.lat1 = self.ctrlat + dellat2
         self.lon0 = (self.ctrlon - dellon2 + 180.) % 360. - 180.
@@ -977,7 +979,7 @@ class Screen:
         # print "Longitude range:",int(self.lon0),int(self.ctrlon),int(self.lon1)
         # print "dellon2 =",dellon2
 
-        return
+        return True
 
 
     def fullscreen(self, switch):  # full screen switch

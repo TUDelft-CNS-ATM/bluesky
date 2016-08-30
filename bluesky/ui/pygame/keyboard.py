@@ -69,7 +69,7 @@ class Keyboard:
                     stack.stack("ZOOM IN")
 
                 elif event.key == 273: # Cursor up
-                    scr.pan("UP")
+                    scr.pan("ABOVE")
                 elif event.key == 274: # Cursor down
                     scr.pan("DOWN")
                 elif event.key == 275: # Num lock down

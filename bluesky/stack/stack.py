@@ -57,7 +57,7 @@ def init(sim, traf, scr):
             sim.addNodes],
         "ADDWPT": [
             "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-            "acid,wpt/pos,[alt,spd,txt]",
+            "acid,latlon/txt,[alt,spd,txt]",
             # lambda: short-hand for using function output as argument, equivalent with:
             #
             # def fun(idx, args):
@@ -881,15 +881,14 @@ def argparse(argtype, argidx, args, traf, scr):
         return [sw], {}, 1
 
     elif argtype == "pos":
-
         # Arg is an existing aircraft?
         idx = traf.id2idx(args[argidx])
         if idx >= 0:
-            return setref(traf.lat[idx], traf.lon[idx]), {}, 1
+            return setrefll(traf.lat[idx], traf.lon[idx]), {}, 1
 
         # Arg is a waypoint? Use last position or a/c id as reference
         if reflat<180.: # No reference avaiable yet: use screen center
-            refalt,reflon = scr.ctrlat,scr.ctrlon
+            reflat,reflon = scr.ctrlat,scr.ctrlon
 
         # Arg is an airport?
         idx = traf.navdb.getapidx(args[argidx])

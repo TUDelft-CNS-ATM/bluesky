@@ -103,7 +103,7 @@ class ScreenIO(QObject):
                 self.ctrlon -= 0.5
             elif args[0] == "RIGHT":
                 self.ctrlon += 0.5
-            elif args[0] == "UP":
+            elif args[0] == "UP" or args[0]== "ABOVE":
                 self.ctrlat += 0.5
             elif args[0] == "DOWN":
                 self.ctrlat -= 0.5
