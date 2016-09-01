@@ -8,8 +8,8 @@ import numpy as np
 from math import *
 from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 
-from performance import esf, phases, limits, vmin
-from ..tools.datalog import Datalog
+from performance import esf, phases, limits
+
 
 
 class Coefficients:
@@ -402,8 +402,6 @@ class PerfBADA():
         # prepare for coefficient readin
         coeff.coeff()
 
-        # Create datalog instance
-        #self.log = Datalog()
         return
 
     def engchange(self, acid, engid=None):
@@ -413,117 +411,115 @@ class PerfBADA():
         """RESET DATABASE"""
 
         # engine
-        self.etype = np.array ([]) # jet, turboprop or piston
+        self.etype      = np.array ([]) # jet, turboprop or piston
 
         # masses and dimensions
-        self.mass = np.array([]) # effective mass [kg]
+        self.mass       = np.array([]) # effective mass [kg]
         # self.mref = np.array([]) # ref. mass [kg]: 70% between min and max. mass
-        self.mmin = np.array([]) # OEW (or assumption) [kg]        
-        self.mmax = np.array([]) # MTOW (or assumption) [kg]
+        self.mmin       = np.array([]) # OEW (or assumption) [kg]        
+        self.mmax       = np.array([]) # MTOW (or assumption) [kg]
         # self.mpyld = np.array([]) # MZFW-OEW (or assumption) [kg]
-        self.gw = np.array([]) # weight gradient on max. alt [m/kg]
-        self.Sref = np.array([]) # wing reference surface area [m^2]
+        self.gw         = np.array([]) # weight gradient on max. alt [m/kg]
+        self.Sref       = np.array([]) # wing reference surface area [m^2]
     
         # flight enveloppe
-        self.vmto = np.array([]) # min TO spd [m/s]
-        self.vmic = np.array([]) # min climb spd [m/s]
-        self.vmcr = np.array([]) # min cruise spd [m/s]
-        self.vmap = np.array([]) # min approach spd [m/s]
-        self.vmld = np.array([]) # min landing spd [m/s]   
-        self.vmin = np.array([]) # min speed over all phases [m/s]   
+        self.vmto       = np.array([]) # min TO spd [m/s]
+        self.vmic       = np.array([]) # min climb spd [m/s]
+        self.vmcr       = np.array([]) # min cruise spd [m/s]
+        self.vmap       = np.array([]) # min approach spd [m/s]
+        self.vmld       = np.array([]) # min landing spd [m/s]   
+        self.vmin       = np.array([]) # min speed over all phases [m/s]   
     
-        self.vmo =  np.array([]) # max operating speed [m/s]
-        self.mmo =  np.array([]) # max operating mach number [-]
-        self.hmax = np.array([]) # max. alt above standard MSL (ISA) at MTOW [m]
-        self.hmaxact = np.array([]) # max. alt depending on temperature gradient [m]
-        self.hmo =  np.array([]) # max. operating alt abov standard MSL [m]
-        self.gt =   np.array([]) # temp. gradient on max. alt [ft/k]
-        self.maxthr = np.array([]) # maximum thrust [N]
+        self.vmo        =  np.array([]) # max operating speed [m/s]
+        self.mmo        =  np.array([]) # max operating mach number [-]
+        self.hmax       = np.array([]) # max. alt above standard MSL (ISA) at MTOW [m]
+        self.hmaxact    = np.array([]) # max. alt depending on temperature gradient [m]
+        self.hmo        =  np.array([]) # max. operating alt abov standard MSL [m]
+        self.gt         =   np.array([]) # temp. gradient on max. alt [ft/k]
+        self.maxthr     = np.array([]) # maximum thrust [N]
     
         # Buffet Coefficients
-        self.clbo = np.array([]) # buffet onset lift coefficient [-]
-        self.k =    np.array([]) # buffet coefficient [-]
-        self.cm16 = np.array([]) # CM16
+        self.clbo       = np.array([]) # buffet onset lift coefficient [-]
+        self.k          = np.array([]) # buffet coefficient [-]
+        self.cm16       = np.array([]) # CM16
         
         # reference CAS speeds
-        self.cascl  = np.array([]) # climb [m/s]
-        self.cascr  = np.array([]) # cruise [m/s]
-        self.casdes = np.array([]) # descent [m/s]
-        self.refcas    = np.array([]) # nominal cruise CAS  [m/s]
-        self.atrans=np.array([]) # crossover altitude [m]
+        self.cascl      = np.array([]) # climb [m/s]
+        self.cascr      = np.array([]) # cruise [m/s]
+        self.casdes     = np.array([]) # descent [m/s]
         
         #reference mach numbers [-] 
-        self.macl = np.array([]) # climb 
-        self.macr = np.array([]) # cruise 
-        self.mades = np.array([]) # descent 
-        self.refma = np.array([]) # nominal cruise Mach at 35000 ft
+        self.macl       = np.array([]) # climb 
+        self.macr       = np.array([]) # cruise 
+        self.mades      = np.array([]) # descent 
         
         # parasitic drag coefficients per phase [-]
-        self.cd0to = np.array([]) # phase takeoff 
-        self.cd0ic = np.array([]) # phase initial climb
-        self.cd0cr = np.array([]) # phase cruise
-        self.cd0ap = np.array([]) # phase approach
-        self.cd0ld = np.array([]) # phase land
-        self.gear  = np.array([]) # drag due to gear down
+        self.cd0to      = np.array([]) # phase takeoff 
+        self.cd0ic      = np.array([]) # phase initial climb
+        self.cd0cr      = np.array([]) # phase cruise
+        self.cd0ap      = np.array([]) # phase approach
+        self.cd0ld      = np.array([]) # phase land
+        self.gear       = np.array([]) # drag due to gear down
         
         # induced drag coefficients per phase [-]
-        self.cd2to = np.array([]) # phase takeoff
-        self.cd2ic = np.array([]) # phase initial climb
-        self.cd2cr = np.array([]) # phase cruise
-        self.cd2ap = np.array([]) # phase approach
-        self.cd2ld = np.array([]) # phase land
+        self.cd2to      = np.array([]) # phase takeoff
+        self.cd2ic      = np.array([]) # phase initial climb
+        self.cd2cr      = np.array([]) # phase cruise
+        self.cd2ap      = np.array([]) # phase approach
+        self.cd2ld      = np.array([]) # phase land
     
         # max climb thrust coefficients
-        self.ctcth1 = np.array([]) # jet/piston [N], turboprop [ktN]
-        self.ctcth2 = np.array([]) # [ft]
-        self.ctcth3 = np.array([]) # jet [1/ft^2], turboprop [N], piston [ktN]
+        self.ctcth1      = np.array([]) # jet/piston [N], turboprop [ktN]
+        self.ctcth2      = np.array([]) # [ft]
+        self.ctcth3      = np.array([]) # jet [1/ft^2], turboprop [N], piston [ktN]
     
         # reduced climb power coefficient
-        self.cred = np.array([]) # [-]
-    
+        self.cred       = np.array([]) # [-]
+        
         # 1st and 2nd thrust temp coefficient 
-        self.ctct1 = np.array([]) # [k]
-        self.ctct2 = np.array([]) # [1/k]
-        self.dtemp = np.array([]) # [k]
+        self.ctct1      = np.array([]) # [k]
+        self.ctct2      = np.array([]) # [1/k]
+        self.dtemp      = np.array([]) # [k]
     
         # Descent Fuel Flow Coefficients
         # Note: Ctdes,app and Ctdes,lnd assume a 3 degree descent gradient during app and lnd
-        self.ctdesl =  np.array([]) # low alt descent thrust coefficient [-]
-        self.ctdesh =  np.array([]) # high alt descent thrust coefficient [-]
-        self.ctdesa =  np.array([]) # approach thrust coefficient [-]
-        self.ctdesld = np.array([]) # landing thrust coefficient [-]
+        self.ctdesl      =  np.array([]) # low alt descent thrust coefficient [-]
+        self.ctdesh      =  np.array([]) # high alt descent thrust coefficient [-]
+        self.ctdesa      =  np.array([]) # approach thrust coefficient [-]
+        self.ctdesld     = np.array([]) # landing thrust coefficient [-]
     
         # transition altitude for calculation of descent thrust
-        self.hpdes = np.array([]) # [m]
+        self.hpdes       = np.array([]) # [m]
         
-        # crossover altitude
-        self.atrans = np.array([]) # [m]
-        self.ESF = np.array([]) # [-]  
+        # Energy Share Factor
+        self.ESF         = np.array([]) # [-]  
         
         # reference speed during descent
-        self.vdes = np.array([]) # [m/s]
-        self.mdes = np.array([]) # [-]
+        self.vdes        = np.array([]) # [m/s]
+        self.mdes        = np.array([]) # [-]
         
         # flight phase
-        self.phase = np.array([])
+        self.phase       = np.array([])
+        self.post_flight = np.array([]) # taxi prior of post flight?
         
         # Thrust specific fuel consumption coefficients
-        self.cf1 = np.array([]) # jet [kg/(min*kN)], turboprop [kg/(min*kN*knot)], piston [kg/min]
-        self.cf2 = np.array([]) # [knots]
-        self.cf3 = np.array([]) # [kg/min]
-        self.cf4 = np.array([]) # [ft]
-        self.cf5 = np.array([]) # [-]
+        self.cf1         = np.array([]) # jet [kg/(min*kN)], turboprop [kg/(min*kN*knot)], piston [kg/min]
+        self.cf2         = np.array([]) # [knots]
+        self.cf3         = np.array([]) # [kg/min]
+        self.cf4         = np.array([]) # [ft]
+        self.cf5         = np.array([]) # [-]
 
         # performance
-        self.Thr = np.array([]) # thrust
-        self.D   = np.array([]) # drag
-        self.ff  = np.array([]) # fuel flow
+        self.Thr         = np.array([]) # thrust
+        self.D           = np.array([]) # drag
+        self.ff          = np.array([]) # fuel flow
     
         # ground
-        self.tol = np.array([]) # take-off length[m]
-        self.ldl = np.array([]) #landing length[m]
-        self.ws  = np.array([]) # wingspan [m]
-        self.len = np.array([]) # aircraft length[m] 
+        self.tol         = np.array([]) # take-off length[m]
+        self.ldl         = np.array([]) #landing length[m]
+        self.ws          = np.array([]) # wingspan [m]
+        self.len         = np.array([]) # aircraft length[m] 
+        self.gr_acc      = np.array([]) # ground acceleration [m/s^2]
 
         return
        
@@ -536,105 +532,109 @@ class PerfBADA():
         # general        
         # designate aircraft to its aircraft type
         if actype in coeff.atype:
-            self.coeffidx = coeff.atype.index(actype)
+            self.coeffidx  = coeff.atype.index(actype)
         else:
-            self.coeffidx = 0
+            self.coeffidx  = 0
             if not self.warned:
                   print "Aircraft is using default B747-400 performance."
-            self.warned = True
+            self.warned    = True
         # designate aicraft to its aircraft type
-        self.etype = np.append(self.etype, coeff.etype[self.coeffidx])        
+        self.etype         = np.append(self.etype, coeff.etype[self.coeffidx])        
        
         # Initial aircraft mass is currently reference mass. 
         # BADA 3.12 also supports masses between 1.2*mmin and mmax
         # self.mref = np.append(self.mref, coeff.mref[self.coeffidx]*1000)         
-        self.mass = np.append(self.mass, coeff.mref[self.coeffidx]*1000)   
-        self.mmin = np.append(self.mmin, coeff.mmin[self.coeffidx]*1000)
-        self.mmax = np.append(self.mmax, coeff.mmax[self.coeffidx]*1000)
+        self.mass          = np.append(self.mass, coeff.mref[self.coeffidx]*1000)   
+        self.mmin          = np.append(self.mmin, coeff.mmin[self.coeffidx]*1000)
+        self.mmax          = np.append(self.mmax, coeff.mmax[self.coeffidx]*1000)
+        
         # self.mpyld = np.append(self.mpyld, coeff.mpyld[self.coeffidx]*1000)
-        self.gw = np.append(self.gw, coeff.gw[self.coeffidx]*ft)
+        self.gw           = np.append(self.gw, coeff.gw[self.coeffidx]*ft)
         
         # Surface Area [m^2]
-        self.Sref = np.append(self.Sref, coeff.Sref[self.coeffidx])
+        self.Sref         = np.append(self.Sref, coeff.Sref[self.coeffidx])
 
         # flight enveloppe
         # minimum speeds per phase
-        self.vmto = np.append(self.vmto, coeff.vmto[self.coeffidx]*kts)
-        self.vmic = np.append(self.vmic, coeff.vmic[self.coeffidx]*kts)
-        self.vmcr = np.append(self.vmcr, coeff.vmcr[self.coeffidx]*kts)
-        self.vmap = np.append(self.vmap, coeff.vmap[self.coeffidx]*kts)
-        self.vmld = np.append(self.vmld, coeff.vmld[self.coeffidx]*kts)    
-        self.vmin = np.append(self.vmin, 0.)
-        self.vmo = np.append(self.vmo, coeff.vmo[self.coeffidx]*kts)
-        self.mmo = np.append(self.mmo, coeff.mmo[self.coeffidx])
+        self.vmto         = np.append(self.vmto, coeff.vmto[self.coeffidx]*kts)
+        self.vmic         = np.append(self.vmic, coeff.vmic[self.coeffidx]*kts)
+        self.vmcr         = np.append(self.vmcr, coeff.vmcr[self.coeffidx]*kts)
+        self.vmap         = np.append(self.vmap, coeff.vmap[self.coeffidx]*kts)
+        self.vmld         = np.append(self.vmld, coeff.vmld[self.coeffidx]*kts)    
+        self.vmin         = np.append(self.vmin, 0.)
+        self.vmo          = np.append(self.vmo, coeff.vmo[self.coeffidx]*kts)
+        self.mmo          = np.append(self.mmo, coeff.mmo[self.coeffidx])
         
         # max. altitude parameters
-        self.hmo = np.append(self.hmo, coeff.hmo[self.coeffidx]*ft)        
-        self.hmax = np.append(self.hmax, coeff.hmax[self.coeffidx]*ft)
-        self.hmaxact = np.append(self.hmaxact, coeff.hmax[self.coeffidx]*ft) # initialize with hmax
-        self.gt = np.append(self.gt, coeff.gt[self.coeffidx]*ft)
+        self.hmo          = np.append(self.hmo, coeff.hmo[self.coeffidx]*ft)        
+        self.hmax         = np.append(self.hmax, coeff.hmax[self.coeffidx]*ft)
+        self.hmaxact      = np.append(self.hmaxact, coeff.hmax[self.coeffidx]*ft) # initialize with hmax
+        self.gt           = np.append(self.gt, coeff.gt[self.coeffidx]*ft)
         
         # max thrust setting
-        self.maxthr = np.append(self.maxthr, 1000000.) # initialize with excessive setting to avoid unrealistic limit setting
+        self.maxthr       = np.append(self.maxthr, 1000000.) # initialize with excessive setting to avoid unrealistic limit setting
 
         # Buffet Coefficients
-        self.clbo = np.append(self.clbo, coeff.clbo[self.coeffidx])
-        self.k = np.append(self.k, coeff.k[self.coeffidx])
-        self.cm16 = np.append(self.cm16, coeff.cm16[self.coeffidx])
+        self.clbo         = np.append(self.clbo, coeff.clbo[self.coeffidx])
+        self.k            = np.append(self.k, coeff.k[self.coeffidx])
+        self.cm16         = np.append(self.cm16, coeff.cm16[self.coeffidx])
 
         # reference speeds
         # reference CAS speeds
-        self.cascl = np.append(self.cascl, coeff.cascl[self.coeffidx]*kts)
-        self.cascr = np.append(self.cascr, coeff.cascr[self.coeffidx]*kts)
-        self.casdes = np.append(self.casdes, coeff.casdes[self.coeffidx]*kts)
+        self.cascl        = np.append(self.cascl, coeff.cascl[self.coeffidx]*kts)
+        self.cascr        = np.append(self.cascr, coeff.cascr[self.coeffidx]*kts)
+        self.casdes       = np.append(self.casdes, coeff.casdes[self.coeffidx]*kts)
 
         # reference mach numbers
-        self.macl = np.append(self.macl, coeff.macl[self.coeffidx])
-        self.macr = np.append(self.macr, coeff.macr[self.coeffidx] )
-        self.mades = np.append(self.mades, coeff.mades[self.coeffidx] )      
+        self.macl         = np.append(self.macl, coeff.macl[self.coeffidx])
+        self.macr         = np.append(self.macr, coeff.macr[self.coeffidx] )
+        self.mades        = np.append(self.mades, coeff.mades[self.coeffidx] )      
 
         # reference speed during descent
-        self.vdes = np.append(self.vdes, coeff.vdes[self.coeffidx]*kts)
-        self.mdes = np.append(self.mdes, coeff.mdes[self.coeffidx])
+        self.vdes         = np.append(self.vdes, coeff.vdes[self.coeffidx]*kts)
+        self.mdes         = np.append(self.mdes, coeff.mdes[self.coeffidx])
         
 #######################################        
 
 
         # crossover altitude for climbing aircraft (BADA User Manual 3.12, p. 12)
-        self.atranscl = (1000/6.5)*(T0*(1-((((1+gamma1*(self.cascl/a0)**2)**(gamma2))-1) /  \
-        (((1+gamma1*self.macl**2)**(gamma2))-1))**((-(beta)*R)/g0)))        
+        self.atranscl     = (1000/6.5)*(T0*(1-((((1+gamma1*(self.cascl/a0)**(self.cascl/a0))** \
+                                (gamma2))-1) /(((1+gamma1*self.macl*self.macl)**(gamma2))-1))** \
+                                    ((-(beta)*R)/g0)))        
 
         # crossover altitude for descending aircraft (BADA User Manual 3.12, p. 12)
-        self.atransdes = (1000/6.5)*(T0*(1-((((1+gamma1*(self.casdes/a0)**2)**(gamma2))-1) /  \
-        (((1+gamma1*self.mades**2)**(gamma2))-1))**((-(beta)*R)/g0)))          
+        self.atransdes    = (1000/6.5)*(T0*(1-((((1+gamma1*(self.casdes/a0)*(self.casdes/a0))**(gamma2))-1) /  \
+                              (((1+gamma1*self.mades*self.mades)**(gamma2))-1)) **\
+                                  ((-(beta)*R)/g0)))          
+
        
 
         # aerodynamics                
         # parasitic drag coefficients per phase
-        self.cd0to = np.append(self.cd0to, coeff.cd0to[self.coeffidx])
-        self.cd0ic = np.append(self.cd0ic, coeff.cd0ic[self.coeffidx])
-        self.cd0cr = np.append(self.cd0cr, coeff.cd0cr[self.coeffidx])
-        self.cd0ap = np.append(self.cd0ap, coeff.cd0ap[self.coeffidx])
-        self.cd0ld = np.append(self.cd0ld, coeff.cd0ld[self.coeffidx])
-        self.gear = np.append(self.gear, coeff.gear[self.coeffidx])
+        self.cd0to        = np.append(self.cd0to, coeff.cd0to[self.coeffidx])
+        self.cd0ic        = np.append(self.cd0ic, coeff.cd0ic[self.coeffidx])
+        self.cd0cr        = np.append(self.cd0cr, coeff.cd0cr[self.coeffidx])
+        self.cd0ap        = np.append(self.cd0ap, coeff.cd0ap[self.coeffidx])
+        self.cd0ld        = np.append(self.cd0ld, coeff.cd0ld[self.coeffidx])
+        self.gear         = np.append(self.gear, coeff.gear[self.coeffidx])
 
         # induced drag coefficients per phase
-        self.cd2to = np.append(self.cd2to, coeff.cd2to[self.coeffidx])
-        self.cd2ic = np.append(self.cd2ic, coeff.cd2ic[self.coeffidx])
-        self.cd2cr = np.append(self.cd2cr, coeff.cd2cr[self.coeffidx])
-        self.cd2ap = np.append(self.cd2ap, coeff.cd2ap[self.coeffidx])
-        self.cd2ld = np.append(self.cd2ld, coeff.cd2ld[self.coeffidx])
+        self.cd2to        = np.append(self.cd2to, coeff.cd2to[self.coeffidx])
+        self.cd2ic        = np.append(self.cd2ic, coeff.cd2ic[self.coeffidx])
+        self.cd2cr        = np.append(self.cd2cr, coeff.cd2cr[self.coeffidx])
+        self.cd2ap        = np.append(self.cd2ap, coeff.cd2ap[self.coeffidx])
+        self.cd2ld        = np.append(self.cd2ld, coeff.cd2ld[self.coeffidx])
 
         # reduced climb coefficient
         #jet
         if self.etype [self.traf.ntraf-1] == 1:
-            self.cred = np.append(self.cred, coeff.credj)
+            self.cred     = np.append(self.cred, coeff.credj)
         # turboprop
         elif self.etype [self.traf.ntraf-1]  ==2:
-            self.cred = np.append(self.cred, coeff.credt)
+            self.cred     = np.append(self.cred, coeff.credt)
         #piston
         else:
-            self.cred = np.append(self.cred, coeff.credp)
+            self.cred     = np.append(self.cred, coeff.credp)
 
         # NOTE: model only validated for jet and turbo aircraft
         if not self.warned2 and self.etype[self.traf.ntraf-1] == 3:
@@ -645,53 +645,58 @@ class PerfBADA():
         # performance
 
         # max climb thrust coefficients
-        self.ctcth1 = np.append(self.ctcth1, coeff.ctcth1[self.coeffidx]) # jet/piston [N], turboprop [ktN]
-        self.ctcth2 = np.append(self.ctcth2, coeff.ctcth2[self.coeffidx]) # [ft]
-        self.ctcth3 = np.append(self.ctcth3, coeff.ctcth3[self.coeffidx]) # jet [1/ft^2], turboprop [N], piston [ktN]
+        self.ctcth1       = np.append(self.ctcth1, coeff.ctcth1[self.coeffidx]) # jet/piston [N], turboprop [ktN]
+        self.ctcth2       = np.append(self.ctcth2, coeff.ctcth2[self.coeffidx]) # [ft]
+        self.ctcth3       = np.append(self.ctcth3, coeff.ctcth3[self.coeffidx]) # jet [1/ft^2], turboprop [N], piston [ktN]
 
         # 1st and 2nd thrust temp coefficient 
-        self.ctct1 = np.append(self.ctct1, coeff.ctct1[self.coeffidx]) # [k]
-        self.ctct2 = np.append(self.ctct2, coeff.ctct2[self.coeffidx]) # [1/k]
-        self.dtemp = np.append(self.dtemp, 0.) # [k], difference from current to ISA temperature. At the moment: 0, as ISA environment
+        self.ctct1        = np.append(self.ctct1, coeff.ctct1[self.coeffidx]) # [k]
+        self.ctct2        = np.append(self.ctct2, coeff.ctct2[self.coeffidx]) # [1/k]
+        self.dtemp        = np.append(self.dtemp, 0.) # [k], difference from current to ISA temperature. At the moment: 0, as ISA environment
 
         # Descent Fuel Flow Coefficients
         # Note: Ctdes,app and Ctdes,lnd assume a 3 degree descent gradient during app and lnd
-        self.ctdesl = np.append(self.ctdesl, coeff.ctdesl[self.coeffidx])
-        self.ctdesh = np.append(self.ctdesh, coeff.ctdesh[self.coeffidx])
-        self.ctdesa = np.append(self.ctdesa, coeff.ctdesa[self.coeffidx])
-        self.ctdesld = np.append(self.ctdesld, coeff.ctdesld[self.coeffidx])
+        self.ctdesl       = np.append(self.ctdesl, coeff.ctdesl[self.coeffidx])
+        self.ctdesh       = np.append(self.ctdesh, coeff.ctdesh[self.coeffidx])
+        self.ctdesa       = np.append(self.ctdesa, coeff.ctdesa[self.coeffidx])
+        self.ctdesld      = np.append(self.ctdesld, coeff.ctdesld[self.coeffidx])
 
         # transition altitude for calculation of descent thrust
-        self.hpdes = np.append(self.hpdes, coeff.hpdes[self.coeffidx]*ft)
-        self.ESF   = np.append(self.ESF, 1.) # neutral initialisation
+        self.hpdes       = np.append(self.hpdes, coeff.hpdes[self.coeffidx]*ft)
+        self.ESF         = np.append(self.ESF, 1.) # neutral initialisation
 
         # flight phase
-        self.phase = np.append(self.phase, 0)
+        self.phase       = np.append(self.phase, 0)
+        self.post_flight = np.append(self.post_flight, False) # we assume prior
 
          # Thrust specific fuel consumption coefficients
-        self.cf1 = np.append(self.cf1, coeff.cf1[self.coeffidx])      
+        self.cf1         = np.append(self.cf1, coeff.cf1[self.coeffidx])   
+        
         # prevent from division per zero in fuelflow calculation
         if coeff.cf2[self.coeffidx]==0:
-            self.cf2 = np.append(self.cf2, 1) 
+            self.cf2     = np.append(self.cf2, 1) 
         else:
-            self.cf2 = np.append(self.cf2, coeff.cf2[self.coeffidx])
-        self.cf3 = np.append(self.cf3, coeff.cf3[self.coeffidx])       
+            self.cf2     = np.append(self.cf2, coeff.cf2[self.coeffidx])
+        self.cf3         = np.append(self.cf3, coeff.cf3[self.coeffidx])  
+        
         # prevent from division per zero in fuelflow calculation
         if coeff.cf2[self.coeffidx]==0:
-            self.cf4 = np.append(self.cf4, 1)
+            self.cf4     = np.append(self.cf4, 1)
         else:
-            self.cf4 = np.append(self.cf4, coeff.cf4[self.coeffidx])            
-        self.cf5 = np.append(self.cf5, coeff.cf5[self.coeffidx])
+            self.cf4     = np.append(self.cf4, coeff.cf4[self.coeffidx])            
+        self.cf5         = np.append(self.cf5, coeff.cf5[self.coeffidx])
 
-        self.Thr = np.append(self.Thr, 0.)
-        self.D = np.append(self.D, 0.)         
-        self.ff = np.append(self.ff, 0.)
+        self.Thr         = np.append(self.Thr, 0.)
+        self.D           = np.append(self.D, 0.)         
+        self.ff          = np.append(self.ff, 0.)
 
         # ground
-        self.tol = np.append(self.tol, coeff.tol[self.coeffidx])
-        self.ldl = np.append(self.ldl, coeff.ldl[self.coeffidx])
-        self.ws = np.append(self.ws, coeff.ws[self.coeffidx])
-        self.len = np.append(self.len, coeff.len[self.coeffidx])         
+        self.tol         = np.append(self.tol, coeff.tol[self.coeffidx])
+        self.ldl         = np.append(self.ldl, coeff.ldl[self.coeffidx])
+        self.ws          = np.append(self.ws, coeff.ws[self.coeffidx])
+        self.len         = np.append(self.len, coeff.len[self.coeffidx])  
+        self.gr_acc      = np.append(self.gr_acc, 0.6096) # value from BADA.gpf file
+        # for now, BADA aircraft have the same acceleration as deceleration 
         return
 
 
@@ -700,124 +705,124 @@ class PerfBADA():
         
         # mass and dimensions
         # self.mref = np.delete(self.mref, idx)
-        self.mass = np.delete(self.mass, idx)
-        self.mmin = np.delete(self.mmin, idx)
-        self.mmax = np.delete(self.mmax, idx)
+        self.mass         = np.delete(self.mass, idx)
+        self.mmin         = np.delete(self.mmin, idx)
+        self.mmax         = np.delete(self.mmax, idx)
         # self.mpyld = np.delete(self.mpyld, idx)
-        self.gw = np.delete(self.gw, idx)
+        self.gw           = np.delete(self.gw, idx)
 
-        self.Sref = np.delete(self.Sref, idx)
-
+        self.Sref         = np.delete(self.Sref, idx)
+ 
         # engine
-        self.etype = np.delete(self.etype, idx)
+        self.etype        = np.delete(self.etype, idx)
 
         # flight enveloppe
         # speeds
-        self.vmto = np.delete(self.vmto, idx)
-        self.vmic = np.delete(self.vmic, idx)
-        self.vmcr = np.delete(self.vmcr, idx)
-        self.vmap = np.delete(self.vmap, idx)
-        self.vmld = np.delete(self.vmld, idx) 
-        self.vmin = np.delete(self.vmin, idx)
-        self.vmo = np.delete(self.vmo, idx)
-        self.mmo = np.delete(self.mmo, idx)
+        self.vmto         = np.delete(self.vmto, idx)
+        self.vmic         = np.delete(self.vmic, idx)
+        self.vmcr         = np.delete(self.vmcr, idx)
+        self.vmap         = np.delete(self.vmap, idx)
+        self.vmld         = np.delete(self.vmld, idx) 
+        self.vmin         = np.delete(self.vmin, idx)
+        self.vmo          = np.delete(self.vmo, idx)
+        self.mmo          = np.delete(self.mmo, idx)
 
         # altitude
-        self.hmo = np.delete(self.hmo, idx)
-        self.hmax = np.delete(self.hmax, idx)
-        self.hmaxact = np.delete (self.hmaxact, idx)
-        self.maxthr = np.delete(self.maxthr, idx)
-        self.gt = np.delete(self.gt, idx)
+        self.hmo          = np.delete(self.hmo, idx)
+        self.hmax         = np.delete(self.hmax, idx)
+        self.hmaxact      = np.delete (self.hmaxact, idx)
+        self.maxthr       = np.delete(self.maxthr, idx)
+        self.gt           = np.delete(self.gt, idx)
 
         # buffet coefficients
-        self.clbo = np.delete(self.clbo, idx)
-        self.k = np.delete(self.k, idx)
-        self.cm16 = np.delete(self.cm16, idx)
+        self.clbo         = np.delete(self.clbo, idx)
+        self.k            = np.delete(self.k, idx)
+        self.cm16         = np.delete(self.cm16, idx)
 
         # reference speeds        
         # reference CAS
-        self.cascl = np.delete(self.cascl, idx)
-        self.cascr = np.delete(self.cascr, idx)
-        self.casdes = np.delete(self.casdes, idx)
-        self.refcas = np.delete(self.refcas, idx)
-        self.atrans=np.delete(self.atrans, idx)
+        self.cascl        = np.delete(self.cascl, idx)
+        self.cascr        = np.delete(self.cascr, idx)
+        self.casdes       = np.delete(self.casdes, idx)
 
         # reference Mach
-        self.macl = np.delete(self.macl, idx)
-        self.macr = np.delete(self.macr, idx)
-        self.mades = np.delete(self.mades, idx)      
-        self.refma = np.delete(self.refma, idx)        
+        self.macl         = np.delete(self.macl, idx)
+        self.macr         = np.delete(self.macr, idx)
+        self.mades        = np.delete(self.mades, idx)      
 
         # reference speed during descent
-        self.vdes = np.delete(self.vdes, idx)
-        self.mdes = np.delete(self.mdes, idx)
+        self.vdes         = np.delete(self.vdes, idx)
+        self.mdes         = np.delete(self.mdes, idx)
 
         # aerodynamics
-        self.qS = np.delete(self.qS, idx)
+        self.qS           = np.delete(self.qS, idx)
 
         # parasitic drag coefficients per phase
-        self.cd0to = np.delete(self.cd0to, idx)
-        self.cd0ic = np.delete(self.cd0ic, idx)
-        self.cd0cr = np.delete(self.cd0cr, idx)
-        self.cd0ap = np.delete(self.cd0ap, idx)
-        self.cd0ld = np.delete(self.cd0ld, idx)
-        self.gear = np.delete(self.gear, idx)
+        self.cd0to        = np.delete(self.cd0to, idx)
+        self.cd0ic        = np.delete(self.cd0ic, idx)
+        self.cd0cr        = np.delete(self.cd0cr, idx)
+        self.cd0ap        = np.delete(self.cd0ap, idx)
+        self.cd0ld        = np.delete(self.cd0ld, idx)
+        self.gear         = np.delete(self.gear, idx)
 
         # induced drag coefficients per phase
-        self.cd2to = np.delete(self.cd2to, idx)
-        self.cd2ic = np.delete(self.cd2ic, idx)
-        self.cd2cr = np.delete(self.cd2cr, idx)
-        self.cd2ap = np.delete(self.cd2ap, idx)
-        self.cd2ld = np.delete(self.cd2ld, idx)
+        self.cd2to        = np.delete(self.cd2to, idx)
+        self.cd2ic        = np.delete(self.cd2ic, idx)
+        self.cd2cr        = np.delete(self.cd2cr, idx)
+        self.cd2ap        = np.delete(self.cd2ap, idx)
+        self.cd2ld        = np.delete(self.cd2ld, idx)
 
         # performance        
         # reduced climb coefficient
-        self.cred = np.delete(self.cred, idx)
+        self.cred         = np.delete(self.cred, idx)
 
         # max climb thrust coefficients
-        self.ctcth1 = np.delete(self.ctcth1, idx) # jet/piston [N], turboprop [ktN]
-        self.ctcth2 = np.delete(self.ctcth2, idx) # [ft]
-        self.ctcth3 = np.delete(self.ctcth3, idx) # jet [1/ft^2], turboprop [N], piston [ktN]
+        self.ctcth1       = np.delete(self.ctcth1, idx) # jet/piston [N], turboprop [ktN]
+        self.ctcth2       = np.delete(self.ctcth2, idx) # [ft]
+        self.ctcth3       = np.delete(self.ctcth3, idx) # jet [1/ft^2], turboprop [N], piston [ktN]
 
         # 1st and 2nd thrust temp coefficient 
-        self.ctct1 = np.delete(self.ctct1, idx) # [k]
-        self.ctct2 = np.delete(self.ctct2, idx) # [1/k]
-        self.dtemp = np.delete(self.dtemp, idx) # [k]
+        self.ctct1        = np.delete(self.ctct1, idx) # [k]
+        self.ctct2        = np.delete(self.ctct2, idx) # [1/k]
+        self.dtemp        = np.delete(self.dtemp, idx) # [k]
 
         # Descent Fuel Flow Coefficients
-        self.ctdesl = np.delete(self.ctdesl, idx)
-        self.ctdesh = np.delete(self.ctdesh, idx)
-        self.ctdesa = np.delete(self.ctdesa, idx)
-        self.ctdesld = np.delete(self.ctdesld, idx)
+        self.ctdesl       = np.delete(self.ctdesl, idx)
+        self.ctdesh       = np.delete(self.ctdesh, idx)
+        self.ctdesa       = np.delete(self.ctdesa, idx)
+        self.ctdesld      = np.delete(self.ctdesld, idx)
 
         # transition altitude for calculation of descent thrust
-        self.hpdes = np.delete(self.hpdes, idx)
-        self.hact = np.delete(self.hact, idx)
+        self.hpdes       = np.delete(self.hpdes, idx)
+        self.hact        = np.delete(self.hact, idx)
 
         # crossover altitude
-        self.atrans = np.delete(self.atrans, idx)
-        self.ESF = np.delete (self.ESF, idx)
+        self.ESF         = np.delete (self.ESF, idx)
+        self.atranscl    = np.delete(self.atranscl, idx)
+        self.atransdes   = np.delete(self.atransdes, idx)
 
         # flight phase
-        self.phase = np.delete(self.phase, idx)
-        self.bank = np.delete(self.bank, idx)
+        self.phase       = np.delete(self.phase, idx)
+        self.bank        = np.delete(self.bank, idx)
+        self.post_flight = np.delete(self.post_flight, idx)
 
         # Thrust specific fuel consumption coefficients
-        self.cf1 = np.delete(self.cf1, idx)
-        self.cf2 = np.delete(self.cf2, idx)
-        self.cf3 = np.delete(self.cf3, idx)
-        self.cf4 = np.delete(self.cf4, idx)
-        self.cf5 = np.delete(self.cf5, idx)
+        self.cf1         = np.delete(self.cf1, idx)
+        self.cf2         = np.delete(self.cf2, idx)
+        self.cf3         = np.delete(self.cf3, idx)
+        self.cf4         = np.delete(self.cf4, idx)
+        self.cf5         = np.delete(self.cf5, idx)
 
-        self.Thr = np.delete(self.Thr, idx)
-        self.D = np.delete(self.D, idx)         
-        self.ff = np.delete(self.ff, idx)
+        self.Thr         = np.delete(self.Thr, idx)
+        self.D           = np.delete(self.D, idx)         
+        self.ff          = np.delete(self.ff, idx)
 
         # ground
-        self.tol = np.delete(self.tol, idx)
-        self.ldl = np.delete(self.ldl, idx)
-        self.ws  = np.delete(self.ws, idx)
-        self.len = np.delete(self.len, idx)
+        self.tol         = np.delete(self.tol, idx)
+        self.ldl         = np.delete(self.ldl, idx)
+        self.ws          = np.delete(self.ws, idx)
+        self.len         = np.delete(self.len, idx)
+        self.gr_acc      = np.delete(self.gr_acc, idx)
         
         return
 
@@ -841,21 +846,18 @@ class PerfBADA():
         # Drag Coefficient
 
         # phases TO, IC, CR
-        cdph = self.cd0cr+self.cd2cr*(cl**2)
+        cdph = self.cd0cr+self.cd2cr*(cl*cl)
 
         # phase AP
-        cdapp = self.cd0ap+self.cd2ap*(cl**2)
-
         # in case approach coefficients in OPF-Files are set to zero: 
         #Use cruise values instead
-        cdapp = cdapp + (cdapp ==0)*cdph
+        cdapp = np.where(self.cd0ap !=0, self.cd0ap+self.cd2ap*(cl*cl), cdph)
 
         # phase LD
-        cdld = self.cd0ld + self.gear + self.cd2ld*(cl**2)
-
         # in case landing coefficients in OPF-Files are set to zero: 
         #Use cruise values instead
-        cdld = cdld + (cdld ==0)*cdph   
+        cdld = np.where(self.cd0ld !=0, self.cd0ld+self.cd2ld*(cl*cl), cdph)        
+
 
         # now combine phases            
         cd = (self.phase==1)*cdph + (self.phase==2)*cdph + (self.phase==3)*cdph \
@@ -869,15 +871,15 @@ class PerfBADA():
         # conditions
         epsalt = np.array([0.001]*self.traf.ntraf)   
         self.climb = np.array(self.traf.delalt > epsalt)
-        self.descent = np.array(self.traf.delalt<epsalt)
+        self.descent = np.array(self.traf.delalt<-epsalt)
         lvl = np.array(np.abs(self.traf.delalt)<0.0001)*1
         
 
 
         # crossover altitiude
-        self.atrans = self.atranscl*self.climb + self.atransdes*(1-self.climb)
-        self.traf.abco = np.array(self.traf.alt>self.atrans)
-        self.traf.belco = np.array(self.traf.alt<self.atrans)
+        atrans = self.atranscl*self.climb + self.atransdes*(1-self.climb)
+        self.traf.abco = np.array(self.traf.alt>atrans)
+        self.traf.belco = np.array(self.traf.alt<atrans)
 
         # energy share factor
         self.ESF = esf(self.traf.abco, self.traf.belco, self.traf.alt, self.traf.M,\
@@ -898,7 +900,7 @@ class PerfBADA():
         cljet = np.logical_and.reduce([self.climb, self.jet]) *1          
 
         # thrust
-        Tj = self.ctcth1* (1-(self.traf.alt/ft)/self.ctcth2+self.ctcth3*(self.traf.alt/ft)**2) 
+        Tj = self.ctcth1* (1-(self.traf.alt/ft)/self.ctcth2+self.ctcth3*(self.traf.alt/ft)*(self.traf.alt/ft)) 
 
         # combine jet and default aircraft
         Tjc = cljet*Tj # *ThrISA
@@ -1047,13 +1049,27 @@ class PerfBADA():
 
         # update mass
         self.mass = self.mass - self.ff*self.traf.perfdt # Use fuelflow in kg/min
+        
+        
+        
+        # for aircraft on the runway and taxiways we need to know, whether they
+        # are prior or after their flight
+        self.post_flight = np.where(self.descent, True, self.post_flight)
+        
+        # when landing, we would like to stop the aircraft.
+        self.traf.aspd = np.where((self.traf.alt <0.5)*(self.post_flight), 0.0, self.traf.aspd)        
+        
+        
+        
+        
         return
 
     
     def limits(self):
         """FLIGHT ENVELPOE"""        
-        # summarize minimum speeds
-        self.vmin = vmin(self.vmto, self.vmic, self.vmcr, self.vmap, self.vmld, self.phase)        
+        # summarize minimum speeds - ac in ground mode might be pushing back
+        self.vmin =  (self.phase == 1) * self.vmto + (self.phase == 2) * self.vmic + (self.phase == 3) * self.vmcr + \
+        (self.phase == 4) * self.vmap + (self.phase == 5) * self.vmld + (self.phase == 6) * -10.       
 
         # maximum altitude: hmax/act = MIN[hmo, hmax+gt*(dtemp-ctc1)+gw*(mmax-mact)]
         #                   or hmo if hmx ==0 ()
@@ -1070,13 +1086,23 @@ class PerfBADA():
         self.hmaxact = (self.hmax==0)*self.hmo +(self.hmax !=0)*np.minimum(self.hmo, self.hact)  
         
         # forwarding to tools
-        self.traf.limspd, self.traf.limalt, self.traf.limvs, self.traf.ama = \
-        limits(self.traf.desspd, self.traf.limspd, self.vmin, self.vmo, self.mmo,\
-        self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, self.traf.desalt, self.traf.limalt,\
-        self.maxthr, self.Thr,self.traf.limvs, self.D, self.traf.tas, self.mass, self.ESF)         
+        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag, self.traf.ama = \
+        limits(self.traf.desspd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
+        self.vmo, self.mmo, self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, \
+        self.traf.desalt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
+        self.D, self.traf.tas, self.mass, self.ESF)   
         
         return
 
+    def acceleration(self, simdt):
+        # define acceleration: aircraft taxiing and taking off use ground acceleration,
+        # others standard acceleration
+        ax = ((self.phase==2) + (self.phase==3) + (self.phase==4) + (self.phase==5) ) \
+            *np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
+            ((self.phase==1) + (self.phase==6))*np.minimum(abs(self.traf.delspd \
+            / max(1e-8,simdt)), self.gr_acc)
+
+        return ax
         #------------------------------------------------------------------------------
         #DEBUGGING
 

@@ -122,9 +122,11 @@ class Traffic:
         self.avs    = []  # selected vertical speed [m/s]
 
         # limit settings
-        self.limspd   = []  # limit speed
-        self.limalt   = []  # limit altitude
-        self.limvs    = []  # limit vertical speed due to thrust limitation
+        self.limspd      = []  # limit speed
+        self.limspd_flag = [] # flag for limit spd - we have to test for max and min
+        self.limalt      = []  # limit altitude
+        self.limvs       = []  # limit vertical speed due to thrust limitation
+        self.limvs_flag  = []
 
         # Traffic navigation information
         self.orig   = []  # Four letter code of origin airport
@@ -360,7 +362,10 @@ class Traffic:
 
         # limit settings: initialize with 0
         self.limspd = np.append(self.limspd, 0.0)
+        self.limspd_flag = np.append (self.limspd_flag, False)
         self.limalt = np.append(self.limalt, 0.0)
+        
+        # limit vertical speed: initialization is -999, as 0 is used for ac taking off
         self.limvs  = np.append(self.limvs, 0.0)
 
         # Help variables to save computation time
@@ -485,8 +490,10 @@ class Traffic:
 
         # limit settings
         self.limspd   = np.delete(self.limspd, idx)
+        self.limspd_flag = np.delete(self.limspd_flag, idx)
         self.limalt   = np.delete(self.limalt, idx)
         self.limvs    = np.delete(self.limvs, idx)
+        self.limvs_flag  = np.delete(self.limvs_flag, idx)
 
         # Help variables to save computation time
         self.coslat = np.delete(self.coslat, idx)  # Cosine of latitude for flat-earth aproximations
@@ -820,31 +827,32 @@ class Traffic:
 
         # Update desired sates with values within the flight envelope
         # To do: add const Mach const CAS mode
-        self.desspd = ((self.desspd<vcas2tas(self.limspd,self.alt)) + ( self.limspd == 0.0 ))*self.desspd + (self.desspd>vcas2tas(self.limspd,self.alt))*vcas2tas(self.limspd,self.alt)
+        self.desspd = np.where (self.limspd_flag, vcas2tas(self.limspd,self.alt), self.desspd )
 
         # Autopilot selected altitude [m]
-        self.desalt = (self.limalt ==0)*self.desalt + (self.limalt!=0)*self.limalt
+        self.desalt = (self.limalt < -900.)*self.desalt + (self.limalt > -900.)*self.limalt
 
         # Autopilot selected vertical speed (V/S)
-        self.desvs = (self.limvs==0)*self.desvs + (self.limvs!=0)*self.limvs
+        self.desvs = (self.limvs< -9000.)*self.desvs + (self.limvs > -9000.)*self.limvs
 
         # To be discussed: Following change in VNAV mode only?
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         #climb/descend above crossover: Ma = const, else CAS = const
         #ama is fixed when above crossover
-        swma = np.where(self.abco*(self.ama == 0.)) # Above cross-over
-        self.ama[swma] = vcas2mach(self.aspd[swma], self.alt[swma])
+        self.ama = np.where(self.abco*(self.ama == 0.), \
+                                vcas2mach(self.aspd,self.alt), self.ama)
 
         # ama is deleted when below crossover
-        swma2 = np.where(self.belco*(self.ama!=0.)) # below corss-over
-        self.ama[swma2] = 0. 
+        self.ama = np.where(self.belco*(self.ama!=0.), 0.0, self.ama)         
 
         #---------- Basic Autopilot  modes ----------
 
         # Update TAS
         self.delspd = self.desspd - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
-        ax = np.minimum(abs(self.delspd / max(1e-8,simdt)), self.ax)
+
+        # acceleration: ground /standard acceleration depending on flight phase
+        ax = self.perf.acceleration(simdt)       
         self.tas = swspdsel * (self.tas + ax * np.sign(self.delspd) * simdt) \
                                + (1. - swspdsel) * self.tas
 
@@ -864,11 +872,13 @@ class Traffic:
                   
         # TO DO: ADD some vertical speed dynamics so that the desired VS can't be obtained instantly
         # if asas is not active AND VNAV is not active, then it should use the standard climb rate.
+        # In this case, desvs is not considered - hence a flag is required to prevent
+        # that aircraft taking off start climbing before they have reached v_2
         # if asas is active AND VNAV is not active it should use asasvs (which is desvs)
         # if asas is not active and VNAV is active desvs
         # if asas AND VNAV is active then use desvs
         self.vs = swaltsel*np.sign(self.desalt-self.alt)* \
-                  ((1-self.asas.asasactive)*(1-self.swvnav)*np.abs(1500./60*ft)+\
+                  ((1-self.asas.asasactive)*(1-self.swvnav)*np.abs(1500./60*ft)*self.limvs_flag+\
                    self.asas.asasactive*(1-self.swvnav)*np.abs(self.desvs)+\
                    (1-self.asas.asasactive)*self.swvnav*np.abs(self.desvs)+\
                    self.asas.asasactive*self.swvnav*np.abs(self.desvs))
@@ -1148,7 +1158,7 @@ class Traffic:
         if len(args) == 1:
 
             name = args[0]
-            print name
+
             apidx = self.navdb.getapidx(name)
             if apidx < 0:
                 return False, (cmd + ": Airport " + name + " not found.")
