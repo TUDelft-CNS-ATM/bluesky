@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+defaults = {"float":0.0,"int":0,"bool":False,"S":"","str":""}
+
 class DynamicArrays():
     """ Parent class to use separate arrays and lists to allow
         vectorizing but still maintain and object like benefits
         for creation and deletion of an element for all paramters"""
-    
+
     def StartElementParameters(self):
         self.OriginalVars = []
         for var in self.__dict__:
@@ -29,10 +31,34 @@ class DynamicArrays():
 
     def CreateElement(self):
         for v in self.StrVars:
+
+            # Get type 
+            if len(v)>0:
+                vartype = str(type(v[0])).strip("<type '").strip("'>")
+                
+
+            if vartype in defaults:
+                defaultvalue = defaults[vartype] 
+            else:
+                defaultvalue = ""
+                
             self.Vars[v].append('')
             
         for v in self.NumVars:
-            self.Vars[v] = np.append(self.Vars[v],0)
+
+            # Get type
+            vartype = v.dtype
+
+            for d in "0123456789":
+                vartype = vartype.replace(d,"")
+            
+            # Get default value
+            if vartype in defaults:
+                defaultvalue = defaults[vartype]
+            else:
+                defaultvalue = 0.0
+            
+            self.Vars[v] = np.append(self.Vars[v],defaultvalue)
 
     def DeleteElement(self,idx):
         for v in self.StrVars:
