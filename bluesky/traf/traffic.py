@@ -598,7 +598,7 @@ class Traffic:
             self.adsbvs[i]   = self.vs[i]
 
         # New version ADSB Model
-        self.adsb.update()
+        self.adsb.update(simt)
 
         #------------------- ASAS update: ---------------------
         # Reset label because of colour change
