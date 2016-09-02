@@ -30,27 +30,27 @@ class DynamicArrays():
         self.StrVars=Strs
 
     def CreateElement(self):
-        for v in self.StrVars:
+        for v in self.StrVars:  # Lists (mostly used for strings)
 
             # Get type 
             if len(v)>0:
                 vartype = str(type(v[0])).strip("<type '").strip("'>")
-                
 
             if vartype in defaults:
                 defaultvalue = defaults[vartype] 
             else:
                 defaultvalue = ""
                 
-            self.Vars[v].append('')
+            self.Vars[v].append(defaultvalue)
             
-        for v in self.NumVars:
+        for v in self.NumVars: # Numpy array 
 
-            # Get type
-            vartype = v.dtype
-
-            for d in "0123456789":
-                vartype = vartype.replace(d,"")
+            # Get type without byte length
+            fulltype = v.dtype
+            vartype  = ""
+            for c in fulltype:
+                if not c.isdigit(): 
+                    vartype = vartype + c
             
             # Get default value
             if vartype in defaults:
