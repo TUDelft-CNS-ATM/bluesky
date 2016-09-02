@@ -58,7 +58,10 @@ class Route():
             name     = args[0]
             lat      = traf.lat[idx]
             lon      = traf.lon[idx]
-            wptype   = self.wpnav
+            if args[0]=="": #latlon type                       
+                wptype   = self.latlon
+            else: 
+                wptype   = self.wpnav
             args     = args[1:]
         else:
             name     = traf.id[idx]

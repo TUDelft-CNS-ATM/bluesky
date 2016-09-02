@@ -23,7 +23,8 @@ import sys
 
 from ..tools import geo
 from ..tools.aero import kts, ft, fpm, tas2cas, density
-from ..tools.misc import txt2alt, cmdsplit, txt2lat, txt2lon
+from ..tools.misc import txt2alt, cmdsplit
+from ..tools.position import txt2pos,islat
 from .. import settings
 
 # Temporary fix for synthetic
@@ -111,7 +112,7 @@ def init(sim, traf, scr):
         ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
-            "txt,txt,pos,hdg,alt,spd",
+            "txt,txt,latlon,hdg,alt,spd",
             traf.create
         ],
         "DEL": [
@@ -128,7 +129,7 @@ def init(sim, traf, scr):
         ],
         "DEST": [
             "DEST acid, latlon/airport",
-            "acid,wpt/pos",
+            "acid,wpt",
             lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
         ],
         "DIRECT": [
@@ -278,7 +279,7 @@ def init(sim, traf, scr):
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
-            "pos/txt",
+            "latlon/txt",
             scr.pan
         ],
         "PCALL": [
@@ -794,7 +795,7 @@ def process(sim, traf, scr):
                 if type(results) == bool:  # Only flag is returned
                     synerr = not results
                     if synerr:
-                        if numargs <= 0 or args[curarg] == "?":
+                        if numargs <= 0 or curarg<len(args) and args[curarg] == "?":
                             scr.echo(helptext)
                         else:
                             scr.echo("Syntax error: " + helptext)
@@ -863,7 +864,7 @@ def argparse(argtype, argidx, args, traf, scr):
             scr.echo(cmd + ":" + args[idx] + " not found")
             raise IndexError
         else:
-            setrefll(traf.lat[idx],traf.lon[idx]) # Update ref position for navdb lookup
+            reflat,reflon = traf.lat[idx],traf.lon[idx] # Update ref position for navdb lookup
             return [idx], {}, 1
 
     elif argtype == "txt":  # simple text
@@ -880,38 +881,49 @@ def argparse(argtype, argidx, args, traf, scr):
               args[argidx] == "1" or args[argidx] == "TRUE")
         return [sw], {}, 1
 
-    elif argtype == "pos":
-        # Arg is an existing aircraft?
-        idx = traf.id2idx(args[argidx])
-        if idx >= 0:
-            return setrefll(traf.lat[idx], traf.lon[idx]), {}, 1
+    elif argtype=="latlon" or argtype=="wpt": # latlon and waypoint type
 
-        # Arg is a waypoint? Use last position or a/c id as reference
         if reflat<180.: # No reference avaiable yet: use screen center
             reflat,reflon = scr.ctrlat,scr.ctrlon
 
-        # Arg is an airport?
-        idx = traf.navdb.getapidx(args[argidx])
-        if idx >= 0:
-            # Next arg is a runway?
-            if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
-                    args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
-                arglist = traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2]
-                optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][2]]}
-                return arglist, optargs, 2
+        optargs = {}
 
-            return setrefll(traf.navdb.aplat[idx], traf.navdb.aplon[idx]), {}, 1
+        # lat/lon type
+        if islat(args[argidx]) and len(args) > argidx + 1: 
+            posobj,usedargs = txt2pos([args[argidx],args[argidx+1]],traf,traf.navdb,reflat,reflon)
+        # fix/navaid/airport/runway or a/c id
+        else:
+            posobj,usedargs = txt2pos(args[argidx],traf,traf.navdb,reflat,reflon)
+        
 
-        # Arg is a waypoint?
-        idx = traf.navdb.getwpidx(args[argidx],reflat,reflon)
-        if idx >= 0:
-            return setrefll(traf.navdb.wplat[idx], traf.navdb.wplon[idx]), {}, 1
+        # TODO: move to two arg position class based on RW in next arg??? 
+        if posobj.type=="apt" and len(args) > argidx + 1  and   \
+           len(args[argidx + 1])>1 and args[argidx + 1][:2].upper()=="RW":
+    
+    
+            rwyname = argtype[argidx +1].strip("RW").strip("Y") # remove RW or RWY
+    
+            arglist = traf.navdb.rwythresholds[args[argidx]][rwyname][:2]
+            optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
 
-        # Arg, next arg are a lat/lon combination
-        return setrefll(txt2lat(args[argidx]), txt2lon(args[argidx + 1])), {}, 2
+            return arglist, optargs, 2 # what is lat/lon? In arglist? Why hdg optarg?
 
-    elif argtype == "latlon":
-        return setrefll(txt2lat(args[argidx]), txt2lon(args[argidx + 1])), {}, 2
+        else:
+            lat  = posobj.lat
+            lon  = posobj.lon
+            name = posobj.name
+
+        # Update reference position for next navdb search
+        reflat,reflon = lat,lon
+
+        # For "latlon"-argtype only return lat,lon 
+        # For "wpt"-argtype also name
+
+        if argtype=="latlon" or posobj.type=="latlon":
+            return [lat,lon],optargs,usedargs
+
+        else:
+            return [name,lat,lon],optargs,usedargs
 
     elif argtype == "spd":  # CAS[kts] Mach
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
@@ -940,41 +952,5 @@ def argparse(argtype, argidx, args, traf, scr):
         else:
             return [float(args[argidx])], {}, 1
 
-    elif argtype == "wpt": # always name,lat,lon 
-        
-        # Arg is an airport?
-        wpname = args[argidx].upper()
-        idx = traf.navdb.getapidx(args[argidx])
-        if idx >= 0:
-            # Next arg is a runway?
-            if len(args) > argidx + 1 and args[argidx] in traf.navdb.rwythresholds and \
-                    args[argidx + 1] in traf.navdb.rwythresholds[args[argidx]]:
-
-                arglist = traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][:2]
-                optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][args[argidx + 1]][2]]}
-
-                wpname = wpname+args[argidx+1].upper()
-                return arglist, optargs, 2
-
-            return [wpname]+setrefll(traf.navdb.aplat[idx], traf.navdb.aplon[idx]), \
-                               {}, 1
-
-        # Arg is a waypoint? Use last position or a/c id as reference
-        if reflat<180.: # No reference avaiable yet: use screen center
-            refalt,reflon = scr.ctrlat,scr.ctrlon
-        idx = traf.navdb.getwpidx(args[argidx],reflat,reflon)
-        if idx >= 0:
-            return [wpname]+setrefll(traf.navdb.wplat[idx], traf.navdb.wplon[idx]), {}, 1
-
-        # Arg, next arg are a lat/lon combination
-        return [""],setrefll(txt2lat(args[argidx]), txt2lon(args[argidx + 1])), {}, 2
-
     return
     
-
-def setrefll(lat,lon): # Set referecne lat/lon
-    global reflat,reflon
-    
-    reflat = lat
-    reflon = lon
-    return [lat,lon]
