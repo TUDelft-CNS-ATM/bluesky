@@ -39,7 +39,7 @@ class Position():
     """ Position class: container for position data
     """
     def __init__(self,name,traf,navdb,reflat,reflon):
- 
+
         if name.count(",")>0: #lat,lon or apt,rwy type
             txt1,txt2 = name.split(",")
             if islat(txt1):
@@ -63,8 +63,18 @@ class Position():
 
         else:
             self.name = name
+            
+            # exception for pan, check for LEFT, RIGHT, ABOVE or DOWN
+            if name.upper() in ["LEFT","RIGHT","ABOVE","DOWN"]:
+                self.lat = reflat
+                self.lon = reflon
+                self.type = "dir"
+                self.name = name.upper()
+                return
+            
+            # Check for aircraft            
             idx = traf.id2idx(name)
-            if idx>0:
+            if idx>=0:
                 self.lat = traf.lat[idx]
                 self.lon = traf.lon[idx]
                 self.name = ""
@@ -75,6 +85,7 @@ class Position():
                 if idx >= 0:
                     self.lat  = navdb.wplat[idx]
                     self.lon  = navdb.wplon[idx]
+                    self.name = navdb.wpid[idx]
                     self.type = "wpt"
             
                 else:
@@ -82,8 +93,8 @@ class Position():
                     if idx>0:
                         self.lat = navdb.aplat[idx]
                         self.lon = navdb.aplon[idx]
+                        self.name = navdb.apid[idx]
                         self.type = "apt"
-    
     
 #        if self.type=="ac" or self.type=="latlon":
 #            # Make N52E004 name

@@ -339,6 +339,10 @@ if gui == 'qtgl':
         # return the data
         return vbuf_asphalt, vbuf_concrete, vbuf_runways,vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds
 
+else:
+    # ToDo: Add runway threshold data for pygame version
+    pass
+
 
 
 # calculates the threshold points per runway
