@@ -58,7 +58,7 @@ def init(sim, traf, scr):
             sim.addNodes],
         "ADDWPT": [
             "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-            "acid,latlon/txt,[alt,spd,txt]",
+            "acid,wpt,[alt,spd,txt]",
             # lambda: short-hand for using function output as argument, equivalent with:
             #
             # def fun(idx, args):
@@ -764,7 +764,8 @@ def process(sim, traf, scr):
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
                     for i in range(len(argtype)):
-                        try:
+#                        if True:                                # use for debugging argparsing
+                        try:    
                             argtypei = argtype[i]
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
                             if parsed_arg[0] is None and argtypei in optargs:
@@ -774,7 +775,8 @@ def process(sim, traf, scr):
                             optargs.update(opt_arg)
                             curarg  += argstep
                             break
-                        except:
+#                        else:
+                        except:                                 # use for debugging argparsing
                             # not yet last type possible here?
                             if i < len(argtype) - 1:
                                 # We have alternative argument formats that we can try
@@ -854,7 +856,9 @@ def argparse(argtype, argidx, args, traf, scr):
         Returns:
         - A list with the parse results
         - The number of arguments parsed
-        - A dict with additional optional parsed arguments. """
+        - A dict with additional optional parsed arguments. 
+        As different ype can be tried, raise error if syntax not ok"""
+        
     if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
         return [None], {}, 1
 
@@ -887,6 +891,7 @@ def argparse(argtype, argidx, args, traf, scr):
             reflat,reflon = scr.ctrlat,scr.ctrlon
 
         optargs = {}
+        usedargs = 1
 
         # lat/lon type
         if islat(args[argidx]) and len(args) > argidx + 1: 
@@ -896,17 +901,15 @@ def argparse(argtype, argidx, args, traf, scr):
             posobj,usedargs = txt2pos(args[argidx],traf,traf.navdb,reflat,reflon)
         
 
-        # TODO: move to two arg position class based on RW in next arg??? 
+        # If it's an airport check for next arg a runway and process it 
         if posobj.type=="apt" and len(args) > argidx + 1  and   \
            len(args[argidx + 1])>1 and args[argidx + 1][:2].upper()=="RW":
     
-    
-            rwyname = argtype[argidx +1].strip("RW").strip("Y") # remove RW or RWY
-    
-            arglist = traf.navdb.rwythresholds[args[argidx]][rwyname][:2]
+            rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
+   
+            lat,lon = traf.navdb.rwythresholds[args[argidx]][rwyname][:2]
             optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
-
-            return arglist, optargs, 2 # what is lat/lon? In arglist? Why hdg optarg?
+            usedargs = 2
 
         else:
             lat  = posobj.lat
@@ -916,10 +919,13 @@ def argparse(argtype, argidx, args, traf, scr):
         # Update reference position for next navdb search
         reflat,reflon = lat,lon
 
+        # For direction, rasie error (for pan command) 
         # For "latlon"-argtype only return lat,lon 
         # For "wpt"-argtype also name
+        if posobj.type == "dir":
+            raise IndexError
 
-        if argtype=="latlon" or posobj.type=="latlon":
+        elif argtype=="latlon" or argtype == "ac" or posobj.type=="latlon":
             return [lat,lon],optargs,usedargs
 
         else:
