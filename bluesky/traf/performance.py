@@ -195,31 +195,27 @@ def esf(abco, belco, alt, M, climb, descent, delspd):
 # LIMITS
 #
 #------------------------------------------------------------------------------
-def limits(desspd, limspd, gs, to_spd, vmin, vmo, mmo, M, ama, alt, hmaxact, 
+def limits(desspd, limspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact, 
            desalt, lalt, maxthr, Thr, limvs, D, tas, mass, ESF):
 
-    # minimum CAS: below crossover: limspd; above crossover: ama
+    # minimum CAS - below crossover (we do not check for minimum Mach)
     limspd      = np.where((desspd < vmin), vmin, -999.)
-    ama         = np.where((desspd < vmin), vcas2mach(limspd, alt), ama ) 
     # in traf, we will check for min and max spd, hence a flag is required
     limspd_flag = np.where((desspd < vmin), True, False)
         
     
     
-    # maximum CAS: below crossover: limspd; above crossover: ama
+    # maximum CAS: below crossover and above crossover
     limspd      = np.where((desspd > vmo), vmo, limspd )
-    ama         = np.where((desspd > vmo), vcas2mach(limspd, alt), ama ) 
     limspd_flag = np.where((desspd > vmo), True, limspd_flag)    
 
     # maximum Mach
-    limspd      = np.where((M > mmo), vmach2cas((mmo - 0.001), alt), limspd)
-    ama         = np.where((M > mmo), vcas2mach(limspd, alt), ama)  
+    limspd      = np.where((M > mmo), vmach2cas((mmo - 0.01), alt), limspd)
     limspd_flag = np.where((M > mmo), True, limspd_flag)
 
     # remove non-needed limits
     limspd_flag = np.where((np.abs(desspd-limspd) <0.1), False, limspd_flag)
     limspd      = np.where((limspd_flag==False), -999.,limspd)
-    ama         = np.where((limspd_flag==False), 0.,ama)
 
 
 
@@ -247,7 +243,7 @@ def limits(desspd, limspd, gs, to_spd, vmin, vmo, mmo, M, ama, alt, hmaxact,
     limvs_flag = np.where((np.abs(to_spd - gs) < 0.1), True, limvs_flag)
 
 
-    return limspd, limspd_flag, limalt, limvs, limvs_flag, ama
+    return limspd, limspd_flag, limalt, limvs, limvs_flag
 
 
 

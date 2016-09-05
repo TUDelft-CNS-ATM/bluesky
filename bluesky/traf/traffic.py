@@ -240,7 +240,7 @@ class Traffic:
             'ahdg', 'aspd', 'aptas', 'ama', 'apalt', 'apfll', 'avs',
 
             # limit settings
-            'limspd', 'limalt', 'limvs',
+            'limspd', 'limalt', 'limvs', 
 
             # Traffic navigation information
             'orig', 'dest',
@@ -361,12 +361,12 @@ class Traffic:
         self.avs   = np.append(self.avs, 0.)  # selected vertical speed [m/s]
 
         # limit settings: initialize with 0
-        self.limspd = np.append(self.limspd, 0.0)
+        self.limspd      = np.append(self.limspd, 0.0)
         self.limspd_flag = np.append (self.limspd_flag, False)
         self.limalt = np.append(self.limalt, 0.0)
         
         # limit vertical speed: initialization is -999, as 0 is used for ac taking off
-        self.limvs  = np.append(self.limvs, 0.0)
+        self.limvs  = np.append(self.limvs, -999.0)
 
         # Help variables to save computation time
         self.coslat = np.append(self.coslat, cos(radians(aclat)))  # Cosine of latitude for flat-earth aproximations
@@ -489,10 +489,10 @@ class Traffic:
         self.avs    = np.delete(self.avs, idx)
 
         # limit settings
-        self.limspd   = np.delete(self.limspd, idx)
+        self.limspd      = np.delete(self.limspd, idx)
         self.limspd_flag = np.delete(self.limspd_flag, idx)
-        self.limalt   = np.delete(self.limalt, idx)
-        self.limvs    = np.delete(self.limvs, idx)
+        self.limalt      = np.delete(self.limalt, idx)
+        self.limvs       = np.delete(self.limvs, idx)
         self.limvs_flag  = np.delete(self.limvs_flag, idx)
 
         # Help variables to save computation time
