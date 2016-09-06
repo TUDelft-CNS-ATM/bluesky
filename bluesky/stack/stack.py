@@ -910,11 +910,12 @@ def argparse(argtype, argidx, args, traf, scr):
             lat,lon = traf.navdb.rwythresholds[args[argidx]][rwyname][:2]
             optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
             usedargs = 2
-
+            runway = True
         else:
             lat  = posobj.lat
             lon  = posobj.lon
             name = posobj.name
+            runway = False
 
         # Update reference position for next navdb search
         reflat,reflon = lat,lon
@@ -925,7 +926,8 @@ def argparse(argtype, argidx, args, traf, scr):
         if posobj.type == "dir":
             raise IndexError
 
-        elif argtype=="latlon" or argtype == "ac" or posobj.type=="latlon":
+        elif argtype=="latlon" or argtype == "ac" or posobj.type=="latlon"\
+             or runway:
             return [lat,lon],optargs,usedargs
 
         else:
