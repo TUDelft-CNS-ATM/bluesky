@@ -1164,15 +1164,25 @@ class Traffic:
                 return False, (cmd + ": Airport " + name + " not found.")
             lat = self.navdb.aplat[apidx]
             lon = self.navdb.aplon[apidx]
-        else:
+            
+        elif len(args)==2:
+            lat, lon = args
+            name = self.id[idx]+cmd
+
+        elif len(args)==3:
             name, lat, lon = args
             if name=="":
-                name = self.id[idx]+"DEST"
+                name = self.id[idx]+cmd
+        else:
+            return False,cmd+" needs lat/lon or airport"
+            
 
         if cmd == "DEST":
             self.dest[idx] = name
-            iwp = route.addwpt(self, idx, self.dest[idx], route.dest,
+            
+            iwp = route.addwpt(self, idx, name, route.dest,
                                lat, lon, 0.0, self.cas[idx])
+
             # If only waypoint: activate
             if (iwp == 0) or (self.orig[idx] != "" and route.nwp == 2):
                 self.actwplat[idx] = route.wplat[iwp]
