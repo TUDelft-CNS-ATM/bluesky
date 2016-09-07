@@ -13,74 +13,57 @@ if not os.path.exists(settings.log_path):
 
 logprecision = '%.8f'
 
-# Lists to contain the definitions of event and periodic logs
-eventlogs    = dict()
-periodiclogs = dict()
+# Dict to contain the definitions of periodic loggers
+periodicloggers = dict()
+
+# Dict to contain all loggers (also the periodic loggers)
+allloggers      = dict()
 
 
-def createPeriodicLog(name, header, logdt, *variables):
-    if name in periodiclogs:
-        return False, name + ' already exists.'
-    stackcmd = {name : [
-        name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn',
-        'txt,[float/txt,...]', lambda *args : setPeriodicLog(name, args)]
-    }
-    stack.append_commands(stackcmd)
+def registerLogParameters(name, dataparent):
+    if name not in allloggers:
+        logger        = CSVLogger(name)
+        allloggers[name] = logger
 
-    periodiclogs[name] = PeriodicLog(header, variables, logdt)
+    logger.dataparents.append(dataparent)
+    return logger
 
 
-def createEventLog(name, header, variables):
-    """ This function creates the event log dictionary. Call it in the __init__
-    function of the class where the desired event logger is going to be used """
-    # Eventlogs is a dict with the separate event logs, that each have a header,
-    # a set of variables with their format, and a reference to the current file
-    # (which starts as None)
-    if name in eventlogs:
-        return False
+def defineLogger(name, header):
+    if name not in allloggers:
+        allloggers[name] = CSVLogger(name)
 
-    # Add the access function for this logger to the stack command list
-    stackcmd = {name : [name + ' ON/OFF', 'txt',
-        lambda *args : setEventLog(name, args)]}
-    stack.append_commands(stackcmd)
-
-    # Create the log object in the eventlog dict
-    varnames, formats = zip(*variables)
-    header = header + '\n' + str.join(', ', varnames)
-    eventlogs[name] = [None, header, tuple(formats)]
+    logger = allloggers[name]
+    logger.setheader(header)
+    return logger
 
 
-def logEvent(name, *data):
-    """ This function is used to write to file the details of a desrired event
-    when it occurs. It is to be called at the location where such event could occur"""
-    log = eventlogs[name]
-    formats = log[2]
-    eventfile = log[0]
-    if eventfile is None:
-        return
-    eventfile.write(str.join(', ', formats) % data)
+def definePeriodicLogger(name, header, logdt):
+    logger = defineLogger(name, header)
+    logger.setdt(logdt)
+    periodicloggers[name] = logger
 
 
-def update(simt):
+def preupdate(simt):
+    CSVLogger.simt = simt
+
+
+def postupdate():
     """ This function writes to files of all periodic logs by calling the appropriate
     functions for each type of periodic log, at the approriate update time. """
-    for key, log in periodiclogs.iteritems():
-        log.log(simt)
+    for key, log in periodicloggers.iteritems():
+        log.log()
 
 
 def reset():
     """ This function closes all logs. It is called when simulation is
     reset and at quit. """
 
-    # Close all periodic logs and remove reference to its file object
-    for key, log in periodiclogs.iteritems():
-        log.reset()
+    CSVLogger.simt = 0.0
 
-    # Close all event logs and remove reference to its file object
-    for key, log in eventlogs.iteritems():
-        if log[0]:
-            log[0].close()
-            log[0] = None
+    # Close all logs and remove reference to its file object
+    for key, log in allloggers.iteritems():
+        log.reset()
 
 
 def makeLogfileName(logname):
@@ -91,90 +74,75 @@ def makeLogfileName(logname):
     return settings.log_path + '/' + fname
 
 
-def setEventLog(logname, args):
-    if logname not in eventlogs:
-        return False, logname + " doesn't exist."
+class CSVLogger:
+    # Simulation time is static, shared between all loggers
+    simt = 0.0
 
-    log = eventlogs[logname]
+    def __init__(self, name):
+        self.name        = name
+        self.file        = None
+        self.dataparents = []
+        self.header      = ''
+        self.tlog        = 0.0
+        self.allvars     = []
+        self.selvars     = []
 
-    if len(args) == 0:
-        return True, logname + ' is ' + ('OFF' if log[0] is None else 'ON')
-    elif args[0] == 'ON':
-        if log[0] is not None:
-            log[0].close()
+        # In case this is a periodic logger: log timestep
+        self.dt          = 1.0
+        self.default_dt  = 1.0
 
-        log[0] = open(makeLogfileName(logname), 'w')
-        log[0].write(log[1] + '\n')
-    elif args[0] == 'OFF':
-        if log[0] is not None:
-            log[0].close()
+        # Register a command for this logger in the stack
+        stackcmd = {name : [
+            name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn',
+            '[txt,float/txt,...]', self.stackio]
+        }
+        stack.append_commands(stackcmd)
 
-    return True
+    def __enter__(self):
+        self.keys0         = set(self.dataparents[-1].__dict__.keys())
 
+    def __exit__(self, ex_type, ex_value, traceback):
+        keys               = list(set(self.dataparents[-1].__dict__.keys()) - self.keys0)
+        # Pre-process variable list to remove non-existing variables
+        variables          = [x for x in keys if self.dataparents[-1].__dict__.get(x) is not None]
+        self.allvars.append((self.dataparents[-1], variables))
+        self.selvars.append((self.dataparents[-1], variables))
+        self.dataparents.pop()
 
-def setPeriodicLog(logname, args):
-    log = periodiclogs[logname]
+    def setheader(self, header):
+        self.header     = header.split('\n')
 
-    if len(args) == 0:
-        return True, logname + ' is ' + ('ON' if log.isopen() else 'OFF')
-    elif args[0] == 'ON':
-        # Set log dt if passed
-        if len(args) > 1:
-            if type(args[1]) is float:
-                log.dt = args[1]
-            else:
-                return False, 'Turn ' + logname + ' on with optional dt'
-
-        log.open(makeLogfileName(logname))
-
-    elif args[0] == 'OFF':
-        log.reset()
-    elif args[0] == 'LISTVARS':
-        return True, 'Periodic log ' + logname + ' has variables: ' \
-            + log.listallvarnames()
-    elif args[0] == 'SELECTVARS':
-        log.selectvars(args[1:])
-
-    return True
-
-# TODO: Eventlog also with class, create parent generic log class, try to make also log() common
-# class EventLog:
-#     def __init__(self, header, variables):
-#         self.file       = None
-#         self.header     = header
-#         self.variables  = variables
-
-
-class PeriodicLog:
-    def __init__(self, header, variables, dt):
-        self.file       = None
-        self.header     = header
-        self.allvars    = variables
-        self.selvars    = variables
+    def setdt(self, dt):
         self.dt         = dt
         self.default_dt = dt
-        self.tlog       = 0.0
 
     def selectvars(self, selection):
         self.selvars = []
-        selection = set(selection)
         for logset in self.allvars:
-            cursel    = set(logset[1]) & selection
+            # Create a list of member variables in logset that are in the selection
+            cursel    = filter(lambda el: el.upper() in selection, logset[1])
             if len(cursel) > 0:
-                selection = selection - cursel
+                # Add non-empty result with parent object to selected log variables
                 self.selvars.append((logset[0], list(cursel)))
 
     def open(self, fname):
         if self.file:
             self.file.close()
         self.file       = open(fname, 'w')
-        self.file.write(self.header + '\n')
+        # Write the header
+        for line in self.header:
+            self.file.write('# ' + line + '\n')
+        # Write the column contents
+        columns = ['simt']
+        for logset in self.selvars:
+            columns += logset[1]
+        self.file.write('# ' + str.join(', ', columns) + '\n')
 
     def isopen(self):
         return self.file is not None
 
-    def log(self, simt):
-        if self.file and len(self.selvars) > 0 and simt >= self.tlog:
+    def log(self):
+        if self.file and len(self.selvars) > 0 and self.simt >= self.tlog:
             # Set the next log timestep
             self.tlog += self.dt
 
@@ -182,7 +150,7 @@ class PeriodicLog:
             varlist = [logset[0].__dict__.get(varname) for logset in self.selvars for varname in logset[1]]
 
             # Convert numeric arrays to text, leave text arrays untouched
-            txtdata = [len(varlist[0]) * ['%.3f' % simt]] + \
+            txtdata = [len(varlist[0]) * ['%.3f' % self.simt]] + \
                 [np.char.mod(logprecision, col) if isnum(col[0]) else col for col in varlist]
 
             # log the data to file
@@ -201,3 +169,33 @@ class PeriodicLog:
         for logset in self.allvars:
             ret.append(str.join(', ', logset[1]))
         return str.join(', ', ret)
+
+    def stackio(self, *args):
+        if len(args) == 0:
+            text = 'This is '
+            if self.name in periodicloggers:
+                text += 'a periodic logger, with an update interval of %.2f seconds.\n' % self.dt
+            else:
+                text += 'an aperiodic logger.\n'
+            text += self.name + ' is ' + ('ON' if self.isopen() else 'OFF') + \
+                '\nUsage: ' + self.name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn'
+            return True, text
+        elif args[0] == 'ON':
+            # Set log dt if passed
+            if len(args) > 1:
+                if type(args[1]) is float:
+                    self.dt = args[1]
+                else:
+                    return False, 'Turn ' + self.name + ' on with optional dt'
+
+            self.open(makeLogfileName(self.name))
+
+        elif args[0] == 'OFF':
+            self.reset()
+        elif args[0] == 'LISTVARS':
+            return True, 'Logger ' + self.name + ' has variables: ' \
+                + self.listallvarnames()
+        elif args[0] == 'SELECTVARS':
+            self.selectvars(args[1:])
+
+        return True

@@ -57,6 +57,11 @@ class Traffic:
         # All traffic data is initialized in the reset function
         self.reset(navdb)
 
+        # Define the periodic loggers
+        datalog.definePeriodicLogger('SNAPLOG', 'SNAPLOG logfile.', settings.snapdt)
+        datalog.definePeriodicLogger('INSTLOG', 'INSTLOG logfile.', settings.instdt)
+        datalog.definePeriodicLogger('SKYLOG', 'SKYLOG logfile.', settings.skydt)
+
     def reset(self, navdb):
         #  model-specific parameters.
         # Default: BlueSky internal performance model.
@@ -76,26 +81,36 @@ class Traffic:
 
         # Traffic basic flight data
 
-        # Traffic basic flight data
-        self.id      = []  # identifier (string)
-        self.type    = []  # aircaft type (string)
-        self.lat     = np.array([])  # latitude [deg]
-        self.lon     = np.array([])  # longitude [deg]
-        self.hdg     = np.array([])  # traffic heading [deg]
-        self.trk     = np.array([])  # track angle [deg]
-        self.tas     = np.array([])  # true airspeed [m/s]
-        self.gs      = np.array([])  # ground speed [m/s]
-        self.gsnorth = np.array([])  # ground speed [m/s]
-        self.gseast  = np.array([])  # ground speed [m/s]
-        self.cas     = np.array([])  # calibrated airspeed [m/s]
-        self.M       = np.array([])  # mach number
-        self.alt     = np.array([])  # altitude [m]
-        self.fll     = np.array([])  # flight level [ft/100]
-        self.vs      = np.array([])  # vertical speed [m/s]
-        self.p       = np.array([])  # atmospheric air pressure [N/m2]
-        self.rho     = np.array([])  # atmospheric air density [kg/m3]
-        self.Temp    = np.array([])  # atmospheric air temperature [K]
-        self.dtemp   = np.array([])  # delta t for non-ISA conditions
+        with datalog.registerLogParameters('SNAPLOG', self):
+            # Traffic basic flight data
+            self.id      = []  # identifier (string)
+            self.type    = []  # aircaft type (string)
+            self.lat     = np.array([])  # latitude [deg]
+            self.lon     = np.array([])  # longitude [deg]
+            self.hdg     = np.array([])  # traffic heading [deg]
+            self.trk     = np.array([])  # track angle [deg]
+            self.tas     = np.array([])  # true airspeed [m/s]
+            self.gs      = np.array([])  # ground speed [m/s]
+            self.gsnorth = np.array([])  # ground speed [m/s]
+            self.gseast  = np.array([])  # ground speed [m/s]
+            self.cas     = np.array([])  # calibrated airspeed [m/s]
+            self.M       = np.array([])  # mach number
+            self.alt     = np.array([])  # altitude [m]
+            self.fll     = np.array([])  # flight level [ft/100]
+            self.vs      = np.array([])  # vertical speed [m/s]
+            self.p       = np.array([])  # atmospheric air pressure [N/m2]
+            self.rho     = np.array([])  # atmospheric air density [kg/m3]
+            self.Temp    = np.array([])  # atmospheric air temperature [K]
+            self.dtemp   = np.array([])  # delta t for non-ISA conditions
+
+            # Traffic autopilot settings
+            self.atrk   = []  # selected track angle [deg]
+            self.aspd   = []  # selected spd(CAS) [m/s]
+            self.aptas  = []  # just for initializing
+            self.ama    = []  # selected spd above crossover altitude (Mach) [-]
+            self.apalt  = []  # selected alt[m]
+            self.apfll  = []  # selected fl [ft/100]
+            self.avs    = []  # selected vertical speed [m/s]
 
         # Traffic performance data
         self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
@@ -112,18 +127,9 @@ class Traffic:
         self.abco   = np.array([])
         self.belco  = np.array([])
 
-        # Traffic autopilot settings
-        self.atrk   = []  # selected track angle [deg]
-        self.aspd   = []  # selected spd(CAS) [m/s]
-        self.aptas  = []  # just for initializing
-        self.ama    = []  # selected spd above crossover altitude (Mach) [-]
-        self.apalt  = []  # selected alt[m]
-        self.apfll  = []  # selected fl [ft/100]
-        self.avs    = []  # selected vertical speed [m/s]
-
         # limit settings
         self.limspd      = []  # limit speed
-        self.limspd_flag = [] # flag for limit spd - we have to test for max and min
+        self.limspd_flag = []  # flag for limit spd - we have to test for max and min
         self.limalt      = []  # limit altitude
         self.limvs       = []  # limit vertical speed due to thrust limitation
         self.limvs_flag  = []
@@ -151,7 +157,7 @@ class Traffic:
 
         # Route info
         self.route = []
-        
+
         # Desired aircraft states
         self.desalt     = np.array([])  # desired altitude [m]
         self.deshdg     = np.array([])  # desired heading [deg]
@@ -227,44 +233,6 @@ class Traffic:
         self.asas.reset()
 
         self.wind.clear()
-
-        # Make a list of variables that can be logged
-        logvars = [
-            # Traffic basic flight data
-            'id', 'type', 'lat', 'lon', 'trk', 'tas', 'gs', 'cas', 'M', 'alt', 'fll', 'vs', 'p', 'rho', 'Temp',
-
-            # Crossover altitude
-            'abco', 'belco',
-
-            # Traffic autopilot settings
-            'ahdg', 'aspd', 'aptas', 'ama', 'apalt', 'apfll', 'avs',
-
-            # limit settings
-            'limspd', 'limalt', 'limvs', 
-
-            # Traffic navigation information
-            'orig', 'dest',
-
-            # LNAV route navigation
-            'swlnav', 'swvnav', 'actwplat', 'actwplon', 'actwpalt', 'actwpspd', 'actwpturn', 'actwpflyby',
-
-            # VNAV variables cruise level
-            'crzalt', 'dist2vs', 'actwpvs',
-
-            # Route info
-            # 'route',
-
-            # Transmitted data to other aircraft due to truncated effect
-            'adsbtime', 'adsblat', 'adsblon', 'adsbalt', 'adsbtrk', 'adsbtas', 'adsbgs', 'adsbvs'
-        ]
-        snapheader = '# SNAPLOG logfile.'
-        datalog.createPeriodicLog('SNAPLOG', snapheader, settings.snapdt, (self, logvars))
-
-        # Temporarily make the other default periodic logs here as well
-        instheader = '# INSTLOG logfile.'
-        datalog.createPeriodicLog('INSTLOG', instheader, settings.instdt)
-        skyheader = '# SKYLOG logfile.'
-        datalog.createPeriodicLog('SKYLOG', skyheader, settings.skydt)
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
         """ Create multiple random aircraft in a specified area """
