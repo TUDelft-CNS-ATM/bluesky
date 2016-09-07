@@ -45,7 +45,7 @@ class Route():
 
     def addwptStack(self, traf, idx, *args): # args: all arguments of addwpt
         "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"
-
+        
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
         if len(args) == 1:
 
@@ -86,7 +86,7 @@ class Route():
 
         # Add waypoint
         wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
-
+        
         # Check for success by checking insetred locaiton in flight plan >= 0
         if wpidx < 0:
             return False, "Waypoint " + name + " not added."
@@ -315,6 +315,7 @@ class Route():
         if wpok and self.iactwp >= 0 and self.iactwp < self.nwp:
             self.direct(traf, iac, self.wpname[self.iactwp])
 
+
         return idx
 
     def direct(self, traf, i, wpnam):
@@ -325,7 +326,7 @@ class Route():
             self.iactwp = wpidx
             traf.actwplat[i] = self.wplat[wpidx]
             traf.actwplon[i] = self.wplon[wpidx]
-
+            
             if traf.swvnav[i]:
                 # Set target altitude for autopilot
                 if self.wpalt[wpidx] > 0:
@@ -668,13 +669,13 @@ class Route():
         
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
-            qdr = arctan2(dx[iwpnear],dy[iwpnear])
+            qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
             delhdg = abs(degto180(traf.trk[i]-qdr))            
             # If the bearing to the active waypoint is larger
             # than 25 degrees, choose the next waypoint
             if delhdg>25.:
                 iwpnear= iwpnear+1
-        
+
         return iwpnear
 
     def dumpRoute(self, traf, idx):
