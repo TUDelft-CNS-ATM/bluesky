@@ -22,20 +22,18 @@ allloggers      = dict()
 
 def registerLogParameters(name, dataparent):
     if name not in allloggers:
-        logger        = CSVLogger(name)
-        allloggers[name] = logger
+        allloggers[name] = CSVLogger(name)
 
-    logger.dataparents.append(dataparent)
-    return logger
+    allloggers[name].dataparents.append(dataparent)
+    return allloggers[name]
 
 
 def defineLogger(name, header):
     if name not in allloggers:
         allloggers[name] = CSVLogger(name)
 
-    logger = allloggers[name]
-    logger.setheader(header)
-    return logger
+    allloggers[name].setheader(header)
+    return allloggers[name]
 
 
 def definePeriodicLogger(name, header, logdt):
@@ -67,10 +65,10 @@ def reset():
 
 
 def makeLogfileName(logname):
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    timestamp = datetime.now().strftime('%Y%m%d_%H-%M-%S')
     scn = stack.get_scenfile()
     scn = scn[:scn.lower().find('.scn')]
-    fname = "%s-[%s]-[%s].log" % (logname, scn, timestamp)
+    fname = "%s_%s_%s.log" % (logname, scn, timestamp)
     return settings.log_path + '/' + fname
 
 
@@ -176,7 +174,7 @@ class CSVLogger:
             if self.name in periodicloggers:
                 text += 'a periodic logger, with an update interval of %.2f seconds.\n' % self.dt
             else:
-                text += 'an aperiodic logger.\n'
+                text += 'a non-periodic logger.\n'
             text += self.name + ' is ' + ('ON' if self.isopen() else 'OFF') + \
                 '\nUsage: ' + self.name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn'
             return True, text
