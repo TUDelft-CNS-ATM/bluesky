@@ -75,6 +75,9 @@ class Simulation(QObject):
         self.fixdt = self.simdt
 
         while self.running:
+            # Datalog pre-update (communicate current sim time to loggers)
+            datalog.preupdate(self.simt)
+
             # Update screen logic
             self.screenio.update()
 
@@ -102,8 +105,8 @@ class Simulation(QObject):
                 # Update metrics
                 self.metric.update(self)
 
-                # Update log
-                datalog.update(self.simt)
+                # Update loggers
+                datalog.postupdate()
 
                 # Update time for the next timestep
                 self.simt += self.simdt

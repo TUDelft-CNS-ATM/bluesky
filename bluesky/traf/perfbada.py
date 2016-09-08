@@ -501,6 +501,7 @@ class PerfBADA():
         # flight phase
         self.phase       = np.array([])
         self.post_flight = np.array([]) # taxi prior of post flight?
+        self.pf_flag     = np.array([])
         
         # Thrust specific fuel consumption coefficients
         self.cf1         = np.array([]) # jet [kg/(min*kN)], turboprop [kg/(min*kN*knot)], piston [kg/min]
@@ -668,6 +669,7 @@ class PerfBADA():
         # flight phase
         self.phase       = np.append(self.phase, 0)
         self.post_flight = np.append(self.post_flight, False) # we assume prior
+        self.pf_flag     = np.append(self.pf_flag, True)
 
          # Thrust specific fuel consumption coefficients
         self.cf1         = np.append(self.cf1, coeff.cf1[self.coeffidx])   
@@ -695,7 +697,7 @@ class PerfBADA():
         self.ldl         = np.append(self.ldl, coeff.ldl[self.coeffidx])
         self.ws          = np.append(self.ws, coeff.ws[self.coeffidx])
         self.len         = np.append(self.len, coeff.len[self.coeffidx])  
-        self.gr_acc      = np.append(self.gr_acc, 0.6096) # value from BADA.gpf file
+        self.gr_acc      = np.append(self.gr_acc, 2.0) # value from BADA.gpf file
         # for now, BADA aircraft have the same acceleration as deceleration 
         return
 
@@ -805,6 +807,7 @@ class PerfBADA():
         self.phase       = np.delete(self.phase, idx)
         self.bank        = np.delete(self.bank, idx)
         self.post_flight = np.delete(self.post_flight, idx)
+        self.pf_flag     = np.delete(self.pf_flag, idx)
 
         # Thrust specific fuel consumption coefficients
         self.cf1         = np.delete(self.cf1, idx)
@@ -1058,7 +1061,9 @@ class PerfBADA():
         
         # when landing, we would like to stop the aircraft.
         self.traf.aspd = np.where((self.traf.alt <0.5)*(self.post_flight), 0.0, self.traf.aspd)        
-        
+
+        # otherwise taxiing will be impossible afterwards
+        self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)        
         
         
         
@@ -1086,9 +1091,9 @@ class PerfBADA():
         self.hmaxact = (self.hmax==0)*self.hmo +(self.hmax !=0)*np.minimum(self.hmo, self.hact)  
         
         # forwarding to tools
-        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag, self.traf.ama = \
+        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
         limits(self.traf.desspd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
-        self.vmo, self.mmo, self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, \
+        self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
         self.traf.desalt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
         self.D, self.traf.tas, self.mass, self.ESF)   
         

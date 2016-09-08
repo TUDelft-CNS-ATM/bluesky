@@ -91,6 +91,9 @@ class Simulation:
                     self.ffmode = False
                     self.mode = self.hold
 
+            # Datalog pre-update (communicate current sim time to loggers)
+            datalog.preupdate(self.simt)
+
             # For measuring game loop frequency
             self.dts.append(self.dt)
             if len(self.dts) > 20:
@@ -110,8 +113,8 @@ class Simulation:
             # Update metrics
             self.metric.update(self)
 
-            # Update log
-            datalog.update(self.simt)
+            # Update loggers
+            datalog.postupdate()
 
         # HOLD/Pause mode
         else:

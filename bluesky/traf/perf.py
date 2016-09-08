@@ -415,6 +415,7 @@ class Perf():
         self.bank         = np.array ([]) # bank angle    
         self.post_flight  = np.array([]) # check for ground mode: 
                                           #taxi prior of after flight
+        self.pf_flag      = np.array([])
         return
        
 
@@ -474,6 +475,7 @@ class Perf():
         self.bank         = np.append(self.bank, 0.)
         self.post_flight  = np.append(self.post_flight, False) # for initialisation,
                                                               # we assume that ac has yet to take off
+        self.pf_flag      = np.append(self.pf_flag, True)
         # engines
 
         # turboprops
@@ -596,6 +598,7 @@ class Perf():
         self.phase        = np.delete(self.phase, idx)
         self.bank         = np.delete(self.bank, idx)
         self.post_flight  = np.delete(self.post_flight, idx)
+        self.pf_flag      = np.delete(self.pf_flag, idx)
 
         return
 
@@ -726,7 +729,10 @@ class Perf():
         self.post_flight = np.where(self.descent, True, self.post_flight)
         
         # when landing, we would like to stop the aircraft.
-        self.traf.aspd = np.where((self.traf.alt <0.5)*(self.post_flight), 0.0, self.traf.aspd)
+        self.traf.aspd = np.where((self.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, self.traf.aspd)
+        # the impulse for reducing the speed to 0 should only be given once,
+        # otherwise taxiing will be impossible afterwards
+        self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
 
         
         return
@@ -750,9 +756,9 @@ class Perf():
 
 
         # forwarding to tools
-        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag, self.traf.ama = \
+        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
         limits(self.traf.desspd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
-        self.vmo, self.mmo, self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, \
+        self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
         self.traf.desalt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
         self.D, self.traf.tas, self.mass, self.ESF)        
 
