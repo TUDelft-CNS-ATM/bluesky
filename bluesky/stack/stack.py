@@ -19,12 +19,11 @@ from math import *
 import numpy as np
 from random import seed
 import os
-import sys
 
-from ..tools import geo
+from ..tools import geo, areafilter
 from ..tools.aero import kts, ft, fpm, tas2cas, density
 from ..tools.misc import txt2alt, cmdsplit
-from ..tools.position import txt2pos,islat
+from ..tools.position import txt2pos, islat
 from .. import settings
 
 # Temporary fix for synthetic
@@ -91,9 +90,9 @@ def init(sim, traf, scr):
             sim.benchmark
         ],
         "BOX": [
-            "BOX name,lat,lon,lat,lon",
-            "txt,latlon,latlon",
-            lambda name, *coords: scr.objappend(2, name, coords)
+            "BOX name,lat,lon,lat,lon,[top,bottom]",
+            "txt,latlon,latlon,[alt,alt]",
+            lambda name, *coords: areafilter.defineArea(scr, name, 'BOX', coords)
         ],
         "CALC": [
             "CALC expression",
@@ -106,9 +105,9 @@ def init(sim, traf, scr):
             traf.asas.SetCDmethod
         ],
         "CIRCLE": [
-            "CIRCLE name,lat,lon,radius",
-            "txt,latlon,float",
-            lambda name, *coords: scr.objappend(3, name, coords)
+            "CIRCLE name,lat,lon,radius,[top,bottom]",
+            "txt,latlon,float,[alt,alt]",
+            lambda name, *coords: areafilter.defineArea(scr, name, 'CIRCLE', coords)
         ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
@@ -120,7 +119,7 @@ def init(sim, traf, scr):
             "txt",
             lambda a:   traf.delete(a)    if traf.id.count(a) > 0 \
                    else traf.wind.clear() if a=="WIND" \
-                   else scr.objappend(0, a, None)
+                   else areafilter.deleteArea(scr, a)
         ],
         "DELWPT": [
             "DELWPT acid,wpname",
@@ -291,7 +290,12 @@ def init(sim, traf, scr):
         "POLY": [
             "POLY name,lat,lon,lat,lon, ...",
             "txt,latlon,...",
-            lambda name, *coords: scr.objappend(4, name, coords)
+            lambda name, *coords: areafilter.defineArea(scr, name, 'POLY', coords)
+        ],
+        "POLYALT": [
+            "POLY name,top,bottom,lat,lon,lat,lon, ...",
+            "txt,alt,alt,latlon,...",
+            lambda name, *coords: areafilter.defineArea(scr, name, 'POLYALT', coords)
         ],
         "POS": [
             "POS acid",
