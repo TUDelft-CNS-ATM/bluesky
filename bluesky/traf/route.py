@@ -662,19 +662,22 @@ class Route():
         # Find closest    
         wplat  = array(self.wplat)
         wplon  = array(self.wplon)
-        dy = wplat - traf.lat[i] 
-        dx = (wplon - traf.lon[i]) * traf.coslat[i]
-        dist2 = dx*dx + dy*dy            
-        iwpnear = argmin(dist2)
         
+        qdr, dist2 = geo.qdrdist( traf.lat[i], traf.lon[i], wplat, wplon)  # [deg][nm])        
+        iwpnear = argmin(dist2)
+
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
-            qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
-            delhdg = abs(degto180(traf.trk[i]-qdr))            
-            # If the bearing to the active waypoint is larger
-            # than 25 degrees, choose the next waypoint
-            if delhdg>25.:
-                iwpnear= iwpnear+1
+           # qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
+            delhdg = abs(degto180(traf.trk[i]-qdr[iwpnear]))    
+            
+            # we only turn to the first waypoint if we can reach the required
+            # heading before reaching the waypoint
+            time_turn = delhdg/(degrees(g0*tan(traf.bank[i])/traf.tas[i]))
+            time_straight= dist2[iwpnear]*nm/traf.tas[i]
+            
+            if time_turn >time_straight:
+                iwpnear = iwpnear+1         
 
         return iwpnear
 
