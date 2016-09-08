@@ -15,7 +15,7 @@ from ... import stack
 from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
-from ...tools import datalog
+from ...tools import datalog, areafilter
 
 
 class Simulation(QObject):
@@ -155,6 +155,7 @@ class Simulation(QObject):
         self.traf.reset(self.navdb)
         stack.reset()
         datalog.reset()
+        areafilter.reset()
         self.screenio.reset()
 
     def quit(self):
