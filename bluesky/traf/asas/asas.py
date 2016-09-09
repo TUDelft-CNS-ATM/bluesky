@@ -1,6 +1,10 @@
 import numpy as np
 from ... import settings
 from ...tools.aero import ft, nm
+from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+
+
+from ... import settings
 
 # Import default CD methods
 try:
@@ -18,7 +22,7 @@ import MVP
 import Swarm
 
 
-class ASAS():
+class ASAS(DynamicArrays):
     """ Central class for ASAS conflict detection and resolution.
         Maintains a confict database, and links to external CD and CR methods."""
 
@@ -36,11 +40,25 @@ class ASAS():
     def addCRMethod(asas, name, module):
         asas.CRmethods[name] = module
 
-    def __init__(self):
+    def __init__(self,traf):
+        self.traf = traf
+        with RegisterElementParameters(self):
+            # ASAS info per aircraft:  
+            self.iconf    = []            # index in 'conflicting' aircraft database
+
+            self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
+            self.trk      = np.array([])  # heading provided by the ASAS [deg]
+            self.spd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
+            self.alt      = np.array([])  # speed alt by the ASAS [m]
+            self.vs       = np.array([])  # speed vspeed by the ASAS [m/s]
+
         # All ASAS variables are initialized in the reset function
         self.reset()
 
     def reset(self):
+
+        self.resetParameters()
+
         """ ASAS constructor """
         self.cd_name      = "STATEBASED"
         self.cr_name      = "OFF"
@@ -97,14 +115,6 @@ class ASAS():
         self.LOSmaxsev    = []
         self.LOShmaxsev   = []
         self.LOSvmaxsev   = []
-
-        # ASAS info per aircraft:
-        self.iconf        = []            # index in 'conflicting' aircraft database
-        self.asasactive   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
-        self.asastrk      = np.array([])  # heading provided by the ASAS [deg]
-        self.asasspd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
-        self.asasalt      = np.array([])  # speed alt by the ASAS [m]
-        self.asasvsp      = np.array([])  # speed vspeed by the ASAS [m/s]
 
     def toggle(self, flag=None):
         if flag is None:
@@ -317,30 +327,30 @@ class ASAS():
         # active the switch, if there are acids in the list
         self.swresooff = len(self.resoofflst)>0  
 
-    def create(self, trk, spd, alt):
-        # ASAS info: no conflict => empty list
-        self.iconf.append([])  # List of indices in 'conflicting' aircraft database
+    def create(self):
+        self.CreateElement()
 
         # ASAS output commanded values
-        self.asasactive = np.append(self.asasactive, False)
-        self.asastrk    = np.append(self.asastrk, trk)
-        self.asasspd    = np.append(self.asasspd, spd)
-        self.asasalt    = np.append(self.asasalt, alt)
-        self.asasvsp    = np.append(self.asasvsp, 0.)
+        self.trk[-1] = self.traf.trk[-1]
+        self.spd[-1] = self.traf.tas[-1]
+        self.alt[-1] = self.traf.alt[-1]
 
     def delete(self, idx):
-        del self.iconf[idx]
-        self.asasactive = np.delete(self.asasactive, idx)
-        self.asastrk    = np.delete(self.asastrk, idx)
-        self.asasspd    = np.delete(self.asasspd, idx)
-        self.asasalt    = np.delete(self.asasalt, idx)
-        self.asasvsp    = np.delete(self.asasvsp, idx)
+        self.DeleteElement(idx)
+        
+    def update(self, simt):
+        iconf0 = np.array(self.iconf)
 
-    def update(self, traf, simt):
         # Scheduling: update when dt has passed
         if self.swasas and simt >= self.tasas:
             self.tasas += self.dtasas
 
             # Conflict detection and resolution
-            self.cd.detect(self, traf, simt)
-            self.cr.resolve(self, traf)
+            self.cd.detect(self, self.traf, simt)
+            self.cr.resolve(self, self.traf)
+
+        # Change labels in interface
+        if settings.gui == "pygame":
+            for i in range(self.traf.ntraf):
+                if np.any(iconf0[i] != self.iconf[i]):
+                    self.traf.label[i] = [" ", " ", " ", " "]

@@ -57,10 +57,10 @@ def resolve(dbconf, traf):
     neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
     
     # now assign in the traf class
-    dbconf.asashdg=newtrack
-    dbconf.asasspd=neweascapped
-    dbconf.asasvsp=newv[2,:]
-    dbconf.asasalt=np.sign(dbconf.asasvsp)*1e5
+    dbconf.hdg=newtrack
+    dbconf.spd=neweascapped
+    dbconf.vs=newv[2,:]
+    dbconf.alt=np.sign(dbconf.vs)*1e5
     
 #=================================== Eby Method ===============================
         

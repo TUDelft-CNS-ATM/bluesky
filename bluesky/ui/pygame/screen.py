@@ -545,7 +545,7 @@ class Screen:
                 # print pg.time.get_ticks()*0.001-t0," seconds to draw coastlines"
 
             #---------- Draw background trails ----------
-            if traf.swtrails:
+            if traf.trails.active:
                 traf.trails.buffer()  # move all new trails to background
 
                 trlsel = list(np.where(
@@ -613,7 +613,7 @@ class Screen:
             trafx, trafy = self.ll2xy(traf.lat, traf.lon)
             trafy -= traf.alt*self.isoalt
             
-            if traf.swtrails:
+            if traf.trails.active:
                 ltx, lty = self.ll2xy(traf.lastlat, traf.lastlon)
 
             # Find pixel size of horizontal separation on screen
@@ -649,7 +649,7 @@ class Screen:
 
                         
                 # Draw last trail part
-                if traf.swtrails:
+                if traf.trails.active:
                     pg.draw.line(self.win, tuple(traf.trailcol[i]),
                                  (ltx[i], lty[i]), (trafx[i], trafy[i]))
 
@@ -766,7 +766,7 @@ class Screen:
 
 
             # Draw aircraft trails which are on screen
-            if traf.swtrails:
+            if traf.trails.active:
                 trlsel = list(np.where(
                     self.onradar(traf.trails.lat0, traf.trails.lon0) + \
                     self.onradar(traf.trails.lat1, traf.trails.lon1))[0])
