@@ -91,15 +91,15 @@ class Route():
         if wpidx < 0:
             return False, "Waypoint " + name + " not added."
 
-        # chekc for presence of orig/dest
-        norig = int(traf.orig[idx] != "")
-        ndest = int(traf.dest[idx] != "")
+        norig = int(traf.fms.orig[idx] != "")
+        ndest = int(traf.fms.dest[idx] != "")
+
 
         # Check whether this is first 'real' wayppint (not orig & dest), 
         # And if so, make active
         if self.nwp - norig - ndest == 1:  # first waypoint: make active
             self.direct(traf, idx, self.wpname[norig])  # 0 if no orig
-            traf.swlnav[idx] = True
+            traf.fms.lnav[idx] = True
 
         if afterwp and self.wpname.count(afterwp) == 0:
             return True, "Waypoint " + afterwp + " not found" + \
@@ -306,7 +306,7 @@ class Route():
                     self.iactwp = 0
 
             #update qdr in traffic
-            traf.next_qdr[iac] = self.getnextqdr()        
+            traf.fms.WP.next_qdr[iac] = self.getnextqdr()        
         # Update waypoints
         if not (wptype == self.calcwp):
             self.calcfp()
@@ -323,21 +323,21 @@ class Route():
         if name != "" and self.wpname.count(name) > 0:
             wpidx = self.wpname.index(name)
             self.iactwp = wpidx
-            traf.actwplat[i] = self.wplat[wpidx]
-            traf.actwplon[i] = self.wplon[wpidx]
+            traf.fms.WP.lat[i] = self.wplat[wpidx]
+            traf.fms.WP.lon[i] = self.wplon[wpidx]
 
-            if traf.swvnav[i]:
+            if traf.fms.vnav[i]:
                 # Set target altitude for autopilot
                 if self.wpalt[wpidx] > 0:
 
                     if traf.alt[i] < self.wptoalt[i]-10.*ft:
-                        traf.actwpalt[i] = self.wptoalt[wpidx]
-                        traf.dist2vs[i] = 9999.
+                        traf.fms.WP.alt[i] = self.wptoalt[wpidx]
+                        traf.fms.TODdist[i] = 9999.
                     else:
                         steepness = 3000.*ft/(10.*nm)
-                        traf.actwpalt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-                        delalt = traf.alt[i] - traf.actwpalt[i]
-                        traf.dist2vs[i] = steepness*delalt
+                        traf.fms.WP.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
+                        delalt = traf.alt[i] - traf.fms.WP.alt[i]
+                        traf.fms.TODdist[i] = steepness*delalt
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
@@ -348,14 +348,14 @@ class Route():
                         traf.aspd[i] = cas2tas(spd, traf.alt[i]) # or is '= spd'
 
             qdr, dist = geo.qdrdist(traf.lat[i], traf.lon[i],
-                                traf.actwplat[i], traf.actwplon[i])
+                                traf.fms.WP.lat[i], traf.fms.WP.lon[i])
 
             turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
 
-            traf.actwpturn[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
+            traf.fms.WP.turn[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
                         self.wpdirfrom[self.iactwp]))))))
 
-            traf.swlnav[i] = True
+            traf.fms.lnav[i] = True
             return True
         else:
             return False, "Waypoint " + wpnam + " not found"
@@ -404,11 +404,9 @@ class Route():
 
     def getnextwp(self):
         """Go to next waypoint and return data"""
-        if self.iactwp+1<self.nwp:
+        lnavon = self.iactwp +1 < self.nwp
+        if lnavon:
             self.iactwp = self.iactwp + 1
-            lnavon = True
-        else:
-            lnavon = False
             
         nextqdr= self.getnextqdr()                                                          
 
@@ -416,6 +414,7 @@ class Route():
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], nextqdr
+
 
     def delwpt(self, delwpname):
         """Delete waypoint"""

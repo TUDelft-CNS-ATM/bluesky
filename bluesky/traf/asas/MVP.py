@@ -23,7 +23,7 @@ def resolve(dbconf, traf):
 
     # If possible, solve conflicts once and copy results for symmetrical conflicts
     # If that is not possible, solve each conflict twice, once for each A/C
-    if not traf.ADSBtrunc and not traf.ADSBtransnoise:
+    if not traf.adsb.truncated and not traf.adsb.transnoise:
         for conflict in dbconf.conflist_now:
             
             # Determine ac indexes from callsigns
@@ -130,9 +130,9 @@ def resolve(dbconf, traf):
     vscapped = np.maximum(dbconf.vsmin,np.minimum(dbconf.vsmax,newvs))
     
     # Now assign resolutions to variables in the ASAS class
-    dbconf.asastrk = newtrack
-    dbconf.asasspd = newgscapped
-    dbconf.asasvsp = vscapped
+    dbconf.trk = newtrack
+    dbconf.spd = newgscapped
+    dbconf.vs  = vscapped
     
     # To update asasalt, tinconf is used. tinconf is a really big value if there is 
     # no conflict. If there is a conflict, tinconf will be between 0 and the lookahead
@@ -140,14 +140,14 @@ def resolve(dbconf, traf):
     # tinconf that is between 0 and the lookahead time (i.e., for the ones that are 
     # in conflict). This is what the following code does:
     altCondition = dbconf.tinconf.min(axis=1) < dbconf.dtlookahead
-    asasalttemp  = dbconf.asasvsp*dbconf.tinconf.min(axis=1) + traf.alt
-    dbconf.asasalt[altCondition] = asasalttemp[altCondition]
+    asasalttemp  = dbconf.vs*dbconf.tinconf.min(axis=1) + traf.alt
+    dbconf.alt[altCondition] = asasalttemp[altCondition]
     
     # If resolutions are limited in the horizontal direction, then asasalt should
     # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed 
     # using the auto pilot vertical speed (traf.avs) using the code in line 106 (asasalttemp) when only
     # horizontal resolutions are allowed.
-    dbconf.asasalt = dbconf.asasalt*(1-dbconf.swresohoriz) + traf.apalt*dbconf.swresohoriz
+    dbconf.alt = dbconf.alt*(1-dbconf.swresohoriz) + traf.apalt*dbconf.swresohoriz
     
            
 #=================================== Modified Voltage Potential ===============
