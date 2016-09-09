@@ -402,6 +402,11 @@ class PerfBADA():
         # prepare for coefficient readin
         coeff.coeff()
 
+        # Flight performance scheduling
+        self.dt  = 0.1           # [s] update interval of performance limits
+        self.t0  = -self.dt  # [s] last time checked (in terms of simt)
+        self.warned2 = False        # Flag: Did we warn for default engine parameters yet?
+
         return
 
     def engchange(self, acid, engid=None):
@@ -525,7 +530,8 @@ class PerfBADA():
        
 
 
-    def create(self, actype):
+    def create(self):
+        actype = self.traf.type[-1]
         """CREATE NEW AIRCRAFT"""
         # note: coefficients are initialized in SI units
 
@@ -827,7 +833,11 @@ class PerfBADA():
         return
 
 
-    def perf(self):
+    def perf(self,simt):
+        if abs(simt - self.t0) >= self.dt:
+            self.t0 = simt
+        else:
+            return
         """AIRCRAFT PERFORMANCE"""
         # BADA version
         swbada = True
@@ -964,7 +974,7 @@ class PerfBADA():
         # switch for given vertical speed avs
         if (self.traf.avs.any()>0) or (self.traf.avs.any()<0):
             # thrust = f(avs)
-            T = ((self.traf.avs!=0)*(((self.traf.desvs*self.mass*g0)/     \
+            T = ((self.traf.avs!=0)*(((self.traf.pilot.vs*self.mass*g0)/     \
                       (self.ESF*np.maximum(self.traf.eps,self.traf.tas)*cpred)) \
                       + self.D)) + ((self.traf.avs==0)*T)
                       
@@ -1048,7 +1058,7 @@ class PerfBADA():
         self.ff = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
 
         # update mass
-        self.mass = self.mass - self.ff*self.traf.perfdt # Use fuelflow in kg/min
+        self.mass = self.mass - self.ff*self.dt # Use fuelflow in kg/min
         
         
         
@@ -1087,9 +1097,9 @@ class PerfBADA():
         
         # forwarding to tools
         self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag, self.traf.ama = \
-        limits(self.traf.desspd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
+        limits(self.traf.pilot.spd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
         self.vmo, self.mmo, self.traf.M, self.traf.ama, self.traf.alt, self.hmaxact, \
-        self.traf.desalt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
+        self.traf.pilot.alt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
         self.D, self.traf.tas, self.mass, self.ESF)   
         
         return
@@ -1107,7 +1117,7 @@ class PerfBADA():
         #DEBUGGING
 
         #record data 
-        # self.log.write(self.traf.perfdt, str(self.traf.alt[0]), str(self.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.ff[0]),  str(self.traf.vs[0]), str(cd[0]))
+        # self.log.write(self.dt, str(self.traf.alt[0]), str(self.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.ff[0]),  str(self.traf.vs[0]), str(cd[0]))
         # self.log.save()
 
         # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \

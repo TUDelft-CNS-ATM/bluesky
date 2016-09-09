@@ -61,19 +61,19 @@ def init(sim, traf, scr):
             # lambda: short-hand for using function output as argument, equivalent with:
             #
             # def fun(idx, args):
-            #     return traf.route[idx].addwptStack(traf, idx, *args)
+            #     return traf.fms.route[idx].addwptStack(traf, idx, *args)
             # fun(idx,*args)
-            lambda idx, *args: traf.route[idx].addwptStack(traf, idx, *args)
+            lambda idx, *args: traf.fms.route[idx].addwptStack(traf, idx, *args)
         ],
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
-            traf.selalt
+            traf.fms.selalt
         ],
         "AREA": [
             "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
             "float/txt,float,[float,float,float]",
-            lambda *args: traf.setArea(scr, sim.metric, *args)
+            lambda *args: traf.area.SetArea(scr, sim.metric, *args)
         ],
         "ASAS": [
             "ASAS ON/OFF",
@@ -124,17 +124,17 @@ def init(sim, traf, scr):
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,txt",
-            lambda idx, wpname: traf.route[idx].delwpt(wpname)
+            lambda idx, wpname: traf.fms.route[idx].delwpt(wpname)
         ],
         "DEST": [
             "DEST acid, latlon/airport",
             "acid,wpt/pos",
-            lambda idx, *args: traf.setDestOrig("DEST", idx, *args)
+            lambda idx, *args: traf.fms.setDestOrig("DEST", idx, *args)
         ],
         "DIRECT": [
             "DIRECT acid wpname",
             "acid,txt",
-            lambda idx, wpname: traf.route[idx].direct(traf, idx, wpname)
+            lambda idx, wpname: traf.fms.route[idx].direct(traf, idx, wpname)
         ],
         "DIST": [
             "DIST lat0, lon0, lat1, lon1",
@@ -164,7 +164,7 @@ def init(sim, traf, scr):
         "DUMPRTE": [
             "DUMPRTE acid",
             "acid",
-            lambda idx: traf.route[idx].dumpRoute(traf, idx)
+            lambda idx: traf.fms.route[idx].dumpRoute(traf, idx)
         ],
         "ECHO": [
             "ECHO txt",
@@ -194,7 +194,7 @@ def init(sim, traf, scr):
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
-            traf.selhdg
+            traf.fms.selhdg
         ],
         "HELP": [
             "HELP [command]",
@@ -224,12 +224,12 @@ def init(sim, traf, scr):
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: traf.route[idx].listrte(scr, idx, traf, *args)
+            lambda idx, *args: traf.fms.route[idx].listrte(scr, idx, traf, *args)
         ],
         "LNAV": [
             "LNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.setLNAV
+            traf.fms.setLNAV
         ],
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
@@ -274,7 +274,7 @@ def init(sim, traf, scr):
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
-            lambda *args: traf.setDestOrig("ORIG", *args)
+            lambda *args: traf.fms.setDestOrig("ORIG", *args)
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
@@ -369,7 +369,7 @@ def init(sim, traf, scr):
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
             "acid,spd",
-            traf.selspd
+            traf.fms.selspd
         ],
         "SSD": [
             "SSD acid/ALL/OFF",
@@ -400,22 +400,22 @@ def init(sim, traf, scr):
         "TAXI": [
             "TAXI ON/OFF : OFF auto deletes traffic below 1500 ft",
             "onoff",
-            traf.setTaxi
+            traf.area.setTaxi
         ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
             "acid/bool,[float/txt]",
-            traf.setTrails
+            traf.trails.setTrails
         ],
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.setVNAV
+            traf.fms.setVNAV
         ],
         "VS": [
             "VS acid,vspd (ft/min)",
             "acid,vspd",
-            traf.selvspd
+            traf.fms.selvspd
         ],
         "WIND": [
             "WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]",
@@ -681,14 +681,13 @@ def saveic(fname, sim, traf):
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # DEST acid,dest-apt
-        if traf.dest[i] != "":
-            cmdline = "DEST " + traf.id[i] + "," + traf.dest[i]
+        if traf.fms.dest[i] != "":
+            cmdline = "DEST " + traf.id[i] + "," + traf.fms.dest[i]
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # ORIG acid,orig-apt
-        if traf.orig[i] != "":
-            cmdline = "ORIG " + traf.id[i] + "," + \
-                      traf.orig[i]
+        if traf.fms.orig[i] != "":
+            cmdline = "ORIG " + traf.id[i] + "," + traf.fms.orig[i]
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
     # Saveic: should close
