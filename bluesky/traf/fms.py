@@ -255,7 +255,7 @@ class FMS(DynamicArrays):
             lat = self.traf.navdb.aplat[apidx]
             lon = self.traf.navdb.aplon[apidx]
         else:
-            lat, lon = args
+            lat, lon = args[-2:]
             name = self.traf.id[idx]+"DEST"
 
         if cmd == "DEST":

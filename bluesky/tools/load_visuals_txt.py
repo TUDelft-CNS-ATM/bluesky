@@ -1,5 +1,7 @@
 from ..settings import gui, data_path
 
+REARTH_INV = 1.56961231e-7
+
 
 def load_coastline_txt():
     # -------------------------COASTLINE DATA----------------------------------
@@ -24,7 +26,7 @@ def load_coastline_txt():
     coastlon = coastvertices[:, 1]
     for i in range(0, 360):
         coastindices[i] = np.searchsorted(coastlon, i - 180) * 2
-    coastvertices.resize((coastvertices.size/2, 2))
+    coastvertices.resize((coastvertices.size / 2, 2))
     del coast
     return coastvertices, coastindices
 
@@ -66,7 +68,7 @@ if gui == 'qtgl':
 
     import OpenGL.GLU as glu
     import numpy as np
-    from math import cos, radians, degrees, sqrt, atan2,  sin, asin
+    from math import cos, radians, degrees, sqrt, atan2, sin, asin
     from zipfile import ZipFile
 
     tess = glu.gluNewTess()
@@ -81,11 +83,11 @@ if gui == 'qtgl':
         in_contour = False
 
         def __init__(self):
-            self.vbuf           = []
-            self.prevnode       = None
-            self.prevcp         = None
-            self.start_vertex   = None
-            self.start_cp       = None
+            self.vbuf         = []
+            self.prevnode     = None
+            self.prevcp       = None
+            self.start_vertex = None
+            self.start_cp     = None
 
         def bufsize(self):
             return len(self.vbuf)
@@ -140,21 +142,21 @@ if gui == 'qtgl':
                         self.bezier1(vertex, self.prevcp)
 
             self.prevnode = vertex
-            self.prevcp   = controlpoint
+            self.prevcp = controlpoint
 
         def bezier1(self, vertex, controlpoint):
             for fraction in [0.2, 0.4, 0.6, 0.8, 1.0]:
                 lnode1 = self.prevnode + fraction * (controlpoint - self.prevnode)
-                lnode2 = controlpoint  + fraction * (vertex - controlpoint)
+                lnode2 = controlpoint + fraction * (vertex - controlpoint)
 
                 vnew   = lnode1 + fraction * (lnode2 - lnode1)
                 glu.gluTessVertex(tess, vnew, vnew)
 
         def bezier2(self, vertex, controlpoint):
             for fraction in [0.2, 0.4, 0.6, 0.8, 1.0]:
-                lnode1 = self.prevnode + fraction * (self.prevcp  - self.prevnode)
-                lnode2 = self.prevcp   + fraction * (controlpoint - self.prevcp)
-                lnode3 = controlpoint  + fraction * (vertex       - controlpoint)
+                lnode1 = self.prevnode + fraction * (self.prevcp - self.prevnode)
+                lnode2 = self.prevcp + fraction * (controlpoint - self.prevcp)
+                lnode3 = controlpoint + fraction * (vertex - controlpoint)
 
                 lnode4 = lnode1 + fraction * (lnode2 - lnode1)
                 lnode5 = lnode2 + fraction * (lnode3 - lnode2)
@@ -179,7 +181,6 @@ if gui == 'qtgl':
         """ Read airport data from navigation database files"""
         pb = ProgressBar('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.')
 
-        REARTH_INV    = 1.56961231e-7
         rwythresholds = dict()
         curthresholds = None
         runways       = []
@@ -193,9 +194,8 @@ if gui == 'qtgl':
         apt_bb        = None
         count         = 0
         bytecount     = 0
-        #fsize         = os.stat(data_path + '/global/apt.dat').st_size
-        zfile = ZipFile(data_path + '/global/apt.zip')
-        fsize = float(zfile.getinfo('apt.dat').file_size)
+        zfile         = ZipFile(data_path + '/global/apt.zip')
+        fsize         = float(zfile.getinfo('apt.dat').file_size)
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
                 bytecount += len(line)
@@ -213,7 +213,7 @@ if gui == 'qtgl':
                     cur_poly.end()
                     if len(apt_indices) > 0:
                         # Store the number of vertices per airport
-                        apt_indices[-1][1] = asphalt.bufsize()  / 2 - apt_indices[-1][0]
+                        apt_indices[-1][1] = asphalt.bufsize() / 2 - apt_indices[-1][0]
                         apt_indices[-1][3] = concrete.bufsize() / 2 - apt_indices[-1][2]
 
                     # Store the starting vertex index for the next airport
@@ -232,40 +232,36 @@ if gui == 'qtgl':
                     # Only asphalt and concrete runways
                     if int(elems[2]) > 2:
                         continue
-                    # rwy_lbl = (elems[8], elems[17])                      
-                        
-                    lat0 = float(elems[9])
-                    lon0 = float(elems[10])
-                    offset0 = float(elems[11])
-                    
-                    lat1 = float(elems[18])
-                    lon1 = float(elems[19])
-                    offset1 = float(elems[20])
-                    
-                    # runway vertices 
-                    runways.extend(dlatlon(lat0, lon0, lat1, lon1, width, REARTH_INV))
-                                    
+                    # rwy_lbl = (elems[8], elems[17])
 
-                    
+                    lat0    = float(elems[9])
+                    lon0    = float(elems[10])
+                    offset0 = float(elems[11])
+
+                    lat1    = float(elems[18])
+                    lon1    = float(elems[19])
+                    offset1 = float(elems[20])
+
+                    # runway vertices
+                    runways.extend(dlatlon(lat0, lon0, lat1, lon1, width, REARTH_INV))
+
                     # threshold information: ICAO code airport, Runway identifier,
                     # latitude, longitude, bearing
                     # vertices: gives vertices of the box around the threshold
-                    
+
                     # opposite runways are on the same line. RWY1: 8-11, RWY2: 17-20
                     # Hence, there are two thresholds per line
                     # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
                     # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
-                   
+
                     thr0, vertices0 = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0, REARTH_INV)
                     thr1, vertices1 = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1, REARTH_INV)
-                    curthresholds[elems[8]] = thr0
+                    curthresholds[elems[8]]  = thr0
                     curthresholds[elems[17]] = thr1
                     rwythr.extend(vertices0)
                     rwythr.extend(vertices1)
-                                        
-                    continue
-                
 
+                    continue
 
                 # 110: TAXIWAY/PAVEMENT: Start of polygon contour
                 if elems[0] == '110':
@@ -281,7 +277,7 @@ if gui == 'qtgl':
                 # 130: AIRPORT BOUNDARY
                 if elems[0] == '130':
                     cur_poly.end()
-                    apt_bb      = BoundingBox()
+                    apt_bb = BoundingBox()
                     continue
 
                 if cur_poly.in_poly is False and apt_bb is None:
@@ -290,7 +286,7 @@ if gui == 'qtgl':
                 controlpoint = None
                 # Straight line (111) or bezier line (112) in contour
                 if elems[0] == '111' or elems[0] == '112':
-                    vertex           = np.array((float(elems[1]), float(elems[2]), 0.0))
+                    vertex = np.array((float(elems[1]), float(elems[2]), 0.0))
                     if apt_bb is not None:
                         apt_bb.update(vertex)
                         continue
@@ -301,7 +297,7 @@ if gui == 'qtgl':
 
                 # Straight (113) or bezier (114) contour endpoint
                 elif elems[0] == '113' or elems[0] == '114':
-                    vertex           = np.array((float(elems[1]), float(elems[2]), 0.0))
+                    vertex = np.array((float(elems[1]), float(elems[2]), 0.0))
                     if apt_bb is not None:
                         apt_bb.update(vertex)
                         apt_ctr_lat[-1], apt_ctr_lon[-1] = apt_bb.center()
@@ -321,14 +317,14 @@ if gui == 'qtgl':
 
         # Clean up:
         cur_poly.end()
-        apt_indices[-1][1] = asphalt.bufsize()  / 2 - apt_indices[-1][0]
+        apt_indices[-1][1] = asphalt.bufsize() / 2 - apt_indices[-1][0]
         apt_indices[-1][3] = concrete.bufsize() / 2 - apt_indices[-1][2]
 
         # Store in binary pickle file
         vbuf_asphalt  = np.array(asphalt.vbuf, dtype=np.float32)
         vbuf_concrete = np.array(concrete.vbuf, dtype=np.float32)
         vbuf_runways  = np.array(runways, dtype=np.float32)
-        vbuf_rwythr   = np.array(rwythr, dtype= np.float32)
+        vbuf_rwythr   = np.array(rwythr, dtype=np.float32)
         apt_ctr_lat   = np.array(apt_ctr_lat)
         apt_ctr_lon   = np.array(apt_ctr_lon)
         apt_indices   = np.array(apt_indices)
@@ -337,108 +333,128 @@ if gui == 'qtgl':
         pb.close()
 
         # return the data
-        return vbuf_asphalt, vbuf_concrete, vbuf_runways,vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds
+        return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds
 
+else:
+    # Runway threshold loader for pygame version
+    def pygame_load_rwythresholds():
+        rwythresholds = dict()
+        curthresholds = None
+        zfile = ZipFile(data_path + '/global/apt.zip')
+        with zfile.open('apt.dat', 'r') as f:
+            for line in f:
+                elems = line.strip().split()
+                if len(elems) == 0:
+                    continue
+
+                # 1: AIRPORT
+                if elems[0] == '1':
+                    # Add airport to runway threshold database
+                    curthresholds = dict()
+                    rwythresholds[elems[4]] = curthresholds
+                    continue
+
+                if elems[0] == '100':
+                    # Only asphalt and concrete runways
+                    if int(elems[2]) > 2:
+                        continue
+                    # rwy_lbl = (elems[8], elems[17])
+
+                    lat0    = float(elems[9])
+                    lon0    = float(elems[10])
+                    offset0 = float(elems[11])
+
+                    lat1    = float(elems[18])
+                    lon1    = float(elems[19])
+                    offset1 = float(elems[20])
+
+                    # threshold information: ICAO code airport, Runway identifier,
+                    # latitude, longitude, bearing
+                    # vertices: gives vertices of the box around the threshold
+
+                    # opposite runways are on the same line. RWY1: 8-11, RWY2: 17-20
+                    # Hence, there are two thresholds per line
+                    # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
+                    # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
+
+                    thr0, _ = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0, REARTH_INV)
+                    thr1, _ = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1, REARTH_INV)
+                    curthresholds[elems[8]]  = thr0
+                    curthresholds[elems[17]] = thr1
+                    continue
+        return rwythresholds
 
 
 # calculates the threshold points per runway
-# underlying equations can be found at 
+# underlying equations can be found at
 # http://www.movable-type.co.uk/scripts/latlong.html
-
 def thresholds(lat1, lon1, lat2, lon2, offset, REARTH_INV):
 
     # Earth radius [m]
-    REARTH = 6371000.0
-    d = offset/REARTH
-    d_box = 20.0/REARTH #m
-    width_box = 30#m
-    deltal = lon2-lon1
+    REARTH    = 6371000.0
+    d         = offset / REARTH
+    d_box     = 20.0 / REARTH  # m
+    width_box = 30  # m
+    deltal    = lon2 - lon1
 
 # calculate runway bearing
-    bearing = atan2(sin(deltal)*cos(lat2), (cos(lat1)*sin(lat2)-
-            sin(lat1)*cos(lat2)*cos(deltal)))
-    
+    bearing = atan2(sin(deltal) * cos(lat2), (cos(lat1) * sin(lat2) -
+                                              sin(lat1) * cos(lat2) * cos(deltal)))
+
     # normalize to 0-360 degrees
-    bearing = radians((degrees(bearing)+360)%360)
-    
+    bearing = radians((degrees(bearing) + 360) % 360)
+
     # bearing in opposite direction
-    opp_bearing = radians((degrees(bearing)+180)%360)
-    
+    opp_bearing = radians((degrees(bearing) + 180) % 360)
+
     # get threshold points
     latthres, lonthres = thrpoints(lat1, lon1, d, bearing)
-    
-    # get points at both ends of the boxes around the threshold point 
-    # (zebra crossing) 
-    latbox0, lonbox0 = thrpoints(latthres,lonthres,d_box, bearing)
+
+    # get points at both ends of the boxes around the threshold point
+    # (zebra crossing)
+    latbox0, lonbox0 = thrpoints(latthres, lonthres, d_box, bearing)
     latbox1, lonbox1 = thrpoints(latthres, lonthres, d_box, opp_bearing)
-    
+
     # calculate vertices of threshold box
     vertices = dlatlon(degrees(latbox0), degrees(lonbox0), degrees(latbox1),
-                       degrees(lonbox1), width_box, REARTH_INV )
-    
-    
+                       degrees(lonbox1), width_box, REARTH_INV)
+
     return (degrees(latthres), degrees(lonthres), degrees(bearing)), vertices
 
 
-
 # calculate threshold points as well as end points of threshold box
-# underlying equations can be found at 
+# underlying equations can be found at
 # http://www.movable-type.co.uk/scripts/latlong.html
 
-def thrpoints(lat1,lon1, d, bearing):
+def thrpoints(lat1, lon1, d, bearing):
 
-    latthres = asin(sin(lat1)*cos(d) + cos(lat1)*sin(d)*cos(bearing))
-    
-    lonthres = lon1 + atan2(sin(bearing)*sin(d)*cos(lat1),
-                  cos(d) - sin(lat1)*sin(latthres))
-                  
+    latthres = asin(sin(lat1) * cos(d) + cos(lat1) * sin(d) * cos(bearing))
+
+    lonthres = lon1 + atan2(sin(bearing) * sin(d) * cos(lat1),
+                            cos(d) - sin(lat1) * sin(latthres))
+
     return latthres, lonthres
-    
-    
-    
+
+
 # used for calculating the vertices of the runways as well as the threshold boxes
-def dlatlon (lat0, lon0, lat1, lon1, width, REARTH_INV):
-    
+def dlatlon(lat0, lon0, lat1, lon1, width, REARTH_INV):
+
     # calculate distance between ends of runways / threshold boxes
     flat_earth = cos(0.5 * radians(lat0 + lat1))
-    lx = lat1 - lat0
-    ly = (lon1 - lon0) * flat_earth
-    l  = sqrt(lx * lx + ly * ly)
-    wx =  ly / l * 0.5 * width
-    wy = -lx / l * 0.5 * width
-    dlat = degrees(wx * REARTH_INV)
-    dlon = degrees(wy * REARTH_INV / flat_earth)
-    
+    lx         = lat1 - lat0
+    ly         = (lon1 - lon0) * flat_earth
+    l          = sqrt(lx * lx + ly * ly)
+    wx         = ly / l * 0.5 * width
+    wy         = -lx / l * 0.5 * width
+    dlat       = degrees(wx * REARTH_INV)
+    dlon       = degrees(wy * REARTH_INV / flat_earth)
+
     # store the vertice information per runway /threshold box
-    vertices=  [lat0 + dlat, lon0 + dlon,
+    vertices = [lat0 + dlat, lon0 + dlon,
                 lat0 - dlat, lon0 - dlon,
                 lat1 + dlat, lon1 + dlon,
                 lat0 - dlat, lon0 - dlon,
                 lat1 + dlat, lon1 + dlon,
                 lat1 - dlat, lon1 - dlon]
-                
+
     return vertices
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    

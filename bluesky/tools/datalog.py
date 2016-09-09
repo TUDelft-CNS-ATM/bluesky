@@ -65,10 +65,10 @@ def reset():
 
 
 def makeLogfileName(logname):
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    timestamp = datetime.now().strftime('%Y%m%d_%H-%M-%S')
     scn = stack.get_scenfile()
     scn = scn[:scn.lower().find('.scn')]
-    fname = "%s-[%s]-[%s].log" % (logname, scn, timestamp)
+    fname = "%s_%s_%s.log" % (logname, scn, timestamp)
     return settings.log_path + '/' + fname
 
 
@@ -174,7 +174,7 @@ class CSVLogger:
             if self.name in periodicloggers:
                 text += 'a periodic logger, with an update interval of %.2f seconds.\n' % self.dt
             else:
-                text += 'an aperiodic logger.\n'
+                text += 'a non-periodic logger.\n'
             text += self.name + ' is ' + ('ON' if self.isopen() else 'OFF') + \
                 '\nUsage: ' + self.name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn'
             return True, text

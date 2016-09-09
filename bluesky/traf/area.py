@@ -64,8 +64,8 @@ class Area:
         if args[0] == 'OFF':
             self.active = False
             self.shape   = ""
-            scr.objappend(2, "AREA", None)  # delete square areas
-            scr.objappend(3, "AREA", None)  # delete circle areas
+            scr.objappend('BOX', "AREA", None)  # delete square areas
+            scr.objappend('CIRCLE', "AREA", None)  # delete circle areas
             return True
 
         if type(args[0]) == float and len(args) >= 4:
@@ -82,7 +82,7 @@ class Area:
 
             self.shape = "Square"
             self.active = True
-            scr.objappend(2, "AREA", [args[0], args[1], args[2], args[3]])
+            scr.objappend('BOX', "AREA", [args[0], args[1], args[2], args[3]])
 
             # Avoid mass delete due to redefinition of area
             self.inside.fill(False)
@@ -107,7 +107,7 @@ class Area:
             self.shape   = "Circle"
             self.active = True
             self.inside.fill(False)
-            scr.objappend(3, "AREA", [metric.fir_circle_point[0] , metric.fir_circle_point[1], metric.fir_circle_radius])
+            scr.objappend('CIRCLE', "AREA", [metric.fir_circle_point[0] , metric.fir_circle_point[1], metric.fir_circle_radius])
             return True
 
         elif args[0] == "CIRCLE" and len(args) in [4, 5]:
@@ -126,7 +126,7 @@ class Area:
                 self.floor = -9999999.  # [m]
 
             # draw the circular experiment area on the radar gui
-            scr.objappend(3, "AREA", [self.lat0, self.lon0, self.radius])
+            scr.objappend('CIRCLE', "AREA", [self.lat0, self.lon0, self.radius])
 
             # Avoid mass delete due to redefinition of area
             self.inside.fill(False)

@@ -134,7 +134,7 @@ class Traffic(DynamicArrays):
 
     def reset(self, navdb):
         self.ntraf = 0
-        
+
         self.resetParameters()
 
         # Reset models
@@ -241,7 +241,7 @@ class Traffic(DynamicArrays):
         self.asas.create()
         self.perf.create()
         self.trails.create()
-        
+
         #
         if self.ntraf < 2:
             self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
@@ -256,6 +256,7 @@ class Traffic(DynamicArrays):
         # Do nothing if not found
         if idx < 0:
             return False
+
         # Decrease number of aircraft
         self.ntraf = self.ntraf - 1
         
