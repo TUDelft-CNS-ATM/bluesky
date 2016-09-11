@@ -128,8 +128,8 @@ def init(sim, traf, scr):
         ],
         "DEST": [
             "DEST acid, latlon/airport",
-            "acid,wpt/pos",
-            lambda idx, *args: traf.fms.setDestOrig("DEST", idx, *args)
+            "acid,wpt/latlon",
+            lambda idx, *args: traf.fms.setdestorig("DEST", idx, *args)
         ],
         "DIRECT": [
             "DIRECT acid wpname",
@@ -274,7 +274,7 @@ def init(sim, traf, scr):
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
-            lambda *args: traf.fms.setDestOrig("ORIG", *args)
+            lambda *args: traf.fms.setdestorig("ORIG", *args)
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
@@ -706,6 +706,7 @@ def process(sim, traf, scr):
 
     # Process stack of commands
     for line in cmdstack:
+#debug        print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
         if len(line) == 0:
@@ -767,8 +768,8 @@ def process(sim, traf, scr):
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
                     for i in range(len(argtype)):
-#                        if True:                                # use for debugging argparsing
-                        try:    
+                        if True:                                # use for debugging argparsing
+#                        try:    
                             argtypei = argtype[i]
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
                             if parsed_arg[0] is None and argtypei in optargs:
@@ -778,8 +779,8 @@ def process(sim, traf, scr):
                             optargs.update(opt_arg)
                             curarg  += argstep
                             break
-#                        else:
-                        except:                                 # use for debugging argparsing
+                        else:
+#                        except:                                 # use for debugging argparsing
                             # not yet last type possible here?
                             if i < len(argtype) - 1:
                                 # We have alternative argument formats that we can try
@@ -888,53 +889,76 @@ def argparse(argtype, argidx, args, traf, scr):
               args[argidx] == "1" or args[argidx] == "TRUE")
         return [sw], {}, 1
 
-    elif argtype=="latlon" or argtype=="wpt": # latlon and waypoint type
+    elif argtype=="wpt" or argtype =="latlon":
 
+        # wpt: Make 1 or 2 argument(s) into 1 position text to be used as waypoint
+        # latlon: return lat,lon to be used as a position only
+
+        # Examples valid position texts:
+        # lat/lon : "N52.12,E004.23","N52'14'12',E004'23'10"
+        # navaid/fix: "SPY","OA","SUGOL"
+        # airport:   "EHAM"
+        # runway:    "EHAM/RW06" "LFPG/RWY23"    
+
+        # Set default lat,lon to screen
         if reflat<180.: # No reference avaiable yet: use screen center
             reflat,reflon = scr.ctrlat,scr.ctrlon
 
-        optargs = {}
-        usedargs = 1
+        optargs= {}
 
-        # lat/lon type
-        if islat(args[argidx]) and len(args) > argidx + 1: 
-            posobj,usedargs = txt2pos([args[argidx],args[argidx+1]],traf,traf.navdb,reflat,reflon)
-        # fix/navaid/airport/runway or a/c id
+        # If last argument, no lat,lom or airport,runway so simply return this argument
+        if len(args)-1 == argidx:
+            
+            # translate a/c id into a valid position text with a lat,lon
+            if traf.id2idx(args[argidx])>=0:
+                idx = id2idx(args[argidx])
+                name = str(traf.lat[idx])+","+str(traf.lon[idx])
+            else:
+                name = args[argidx]
+            nusedargs = 1  # we used one argument
+
+        # Check occasionally also next arg
         else:
-            posobj,usedargs = txt2pos(args[argidx],traf,traf.navdb,reflat,reflon)
-        
+            # lat,lon ? Combine into one string with a comma
+            if islat(args[argidx]):
+                name = args[argidx]+","+args[argidx+1]
+                nusedargs = 2   # we used two arguments               
 
-        # If it's an airport check for next arg a runway and process it 
-        if posobj.type=="apt" and len(args) > argidx + 1  and   \
-           len(args[argidx + 1])>1 and args[argidx + 1][:2].upper()=="RW":
-    
-            rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
-   
-            lat,lon = traf.navdb.rwythresholds[args[argidx]][rwyname][:2]
-            optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
-            usedargs = 2
-            runway = True
-        else:
-            lat  = posobj.lat
-            lon  = posobj.lon
-            name = posobj.name
-            runway = False
+            # apt,runway ? Combine into one string with a slash as separator
+            elif args[argidx+1][:2].upper() == "RW" and traf.navdb.apid.count(args[argidx])>0:
+                name = args[argidx]+"/"+args[argidx+1]
+                nusedargs = 2   # we used two arguments               
 
-        # Update reference position for next navdb search
-        reflat,reflon = lat,lon
+            # aircraft id? convert to lat/lon string
+            elif traf.id2idx(argidx)>=0:
+                idx = traf.id2idx(args[argidx])
+                name = str(traf.lat[idx])+","+str(traf.lon[idx])
+                nusedargs = 1
 
-        # For direction, rasie error (for pan command) 
-        # For "latlon"-argtype only return lat,lon 
-        # For "wpt"-argtype also name
-        if posobj.type == "dir":
-            raise IndexError
+            # In other cases parse string as position
+            else:
+                name = args[argidx]
+                nusedargs = 1  # we used one argument
 
-        elif argtype=="latlon" or argtype == "ac" or posobj.type=="latlon"\
-             or runway:
-            return [lat,lon],optargs,usedargs
+        # Return something different for the two argtypes:
 
-        else:
-            return [name,lat,lon],optargs,usedargs
+        # for wpt argument type, simply return positiontext, no need it look up nw
+        if argtype == "wpt":
+            return [name], optargs, nusedargs
+
+        # for lat/lon argument type we also need to it up:
+        elif argtype == "latlon":
+            posobj = txt2pos(name,traf,traf.navdb,reflat,reflon)
+
+            # for runway type, get heading as default optional argument for command line
+            if posobj.type=="rwy":
+                rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
+                optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
+
+            reflat,reflon = posobj.lat,posobj.lon
+            
+            return [posobj.lat , posobj.lon],optargs,nusedargs
+       
 
     elif argtype == "spd":  # CAS[kts] Mach
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))

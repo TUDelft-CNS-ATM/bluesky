@@ -2,24 +2,8 @@
 
 from misc import txt2lat, txt2lon
 
-def txt2pos(txt,traf,navdb,reflat,reflon):
-    """ Convert text with lat/lon, waypoint,airport,runway,navaid,fix etc. 
-    to a position with lat,lon,name and type info
-    """
-
-    # Join texts incase of tuple/list
-    if type(txt)==tuple or type(txt)==list:
-        name = ",".join(txt).upper()
-    else:
-        name = txt.upper()
-
-    # Check for two args or one
-    if name.count(",")>0:
-        nargs = 2
-    else:
-        nargs = 1
-
-    return Position(name,traf,navdb,reflat,reflon),nargs
+def txt2pos(name,traf,navdb,reflat,reflon):
+    return Position(name.upper().strip(),traf,navdb,reflat,reflon)
 
 def islat(txt):
     # Is it a latitude-like format or not?
@@ -38,8 +22,15 @@ def islat(txt):
 class Position():
     """ Position class: container for position data
     """
+
+    # position types: "latlon","nav","apt","rwy"    
+    
+    # Initialize using text
     def __init__(self,name,traf,navdb,reflat,reflon):
 
+        self.name = name # default: copy source name
+
+        # lat,lon type ?
         if name.count(",")>0: #lat,lon or apt,rwy type
             txt1,txt2 = name.split(",")
             if islat(txt1):
@@ -48,60 +39,53 @@ class Position():
                 self.name = ""
                 self.type ="latlon"
 
-            # apt-RWY type
-            else:
-                idx = self.navdb.apid.index(txt.upper())
- 
-                self.lat = navdb.aplat[idx]
-                self.lon = navdb.aplon[idx]
-                # What should this return? for now, return airport
-                # What is this?  
-                # arglist = traf.navdb.rwythresholds[args[argidx]][rwyname][:2]
-                self.name = self.navdb.apid[idx]
-#                self.type = "rwy"
-                self.type ="apt" # temporarily let stack handle runway part
+        # runway type ? "EHAM/RW06","EHGG/RWY27"
+        elif name.count("/RW")>0:
+            aptname,rwytxt = name.split("/")
 
-        else:
-            self.name = name
+            rwyname = rwytxt.strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
+
+            self.lat,self.lon = traf.navdb.rwythresholds[aptname][rwyname][:2] # raises error if not found
+            self.type = "rwy" 
+
+        # airport?
+        elif navdb.apid.count(name)>0:
+            idx = navdb.apid.index(name.upper())
+
+            self.lat = navdb.aplat[idx]
+            self.lon = navdb.aplon[idx]
+            self.type ="apt"
+
+        # fix or navaid?
+        elif navdb.wpid.count(name)>0:
+            idx = navdb.getwpidx(name,reflat,reflon)
+            self.lat = navdb.wplat[idx]
+            self.lon = navdb.wplon[idx]
+            self.type ="nav"
+
+        # aircraft id?
+        elif traf.id2idx(name)>=0:
+            idx = traf.id2idx(name)
+            self.name = ""
+            self.type = "latlon"
+            self.lat = traf.lat[idx]
+            self.lon = traf.lon[idx]
             
             # exception for pan, check for LEFT, RIGHT, ABOVE or DOWN
-            if name.upper() in ["LEFT","RIGHT","ABOVE","DOWN"]:
-                self.lat = reflat
-                self.lon = reflon
-                self.type = "dir"
-                self.name = name.upper()
-                return
-            
-            # Check for aircraft            
-            idx = traf.id2idx(name)
-            if idx>=0:
-                self.lat = traf.lat[idx]
-                self.lon = traf.lon[idx]
-                self.name = ""
-                self.type = "ac"
-    
-            else:            
-                idx = navdb.getwpidx(name, reflat, reflon)
-                if idx >= 0:
-                    self.lat  = navdb.wplat[idx]
-                    self.lon  = navdb.wplon[idx]
-                    self.name = navdb.wpid[idx]
-                    self.type = "wpt"
-            
-                else:
-                    idx = navdb.getapidx(name)
-                    if idx>0:
-                        self.lat = navdb.aplat[idx]
-                        self.lon = navdb.aplon[idx]
-                        self.name = navdb.apid[idx]
-                        self.type = "apt"
-    
-#        if self.type=="ac" or self.type=="latlon":
-#            # Make N52E004 name
+        elif name.upper() in ["LEFT","RIGHT","ABOVE","DOWN"]:
+            self.lat = reflat
+            self.lon = reflon
+            self.type = "dir"
+
+# Not used now, but save this code for future use
+#            # Make a N52E004 type waypoint name
 #            clat = "SN"[lat>0]
 #            clon = "WE"[lon>0] 
 #            name = clat + "%02d"%int(abs(round(lat))) + \
 #                   clon + "%03d"%int(abs(round(lon)))
+        else:
+            pass
+            # raise error with missing data... (empty position object)
 
         return
 

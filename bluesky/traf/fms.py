@@ -237,7 +237,7 @@ class FMS(DynamicArrays):
         self.vnav[idx]   = False
         return True
 
-    def setDestOrig(self, cmd, idx, *args):
+    def setdestorig(self, cmd, idx, *args):
         if len(args) == 0:
             if cmd == 'DEST':
                 return True, ('DEST ' + self.traf.id[idx] + ': ' + self.dest[idx])
@@ -245,23 +245,19 @@ class FMS(DynamicArrays):
                 return True, ('ORIG ' + self.traf.id[idx] + ': ' + self.orig[idx])
 
         route = self.route[idx]
-        if len(args) == 1:
 
+        if len(args) == 1:
             name = args[0]
 
-            apidx = self.traf.navdb.getapidx(name)
-            if apidx < 0:
-                return False, (cmd + ": Airport " + name + " not found.")
-            lat = self.traf.navdb.aplat[apidx]
-            lon = self.traf.navdb.aplon[apidx]
         else:
             lat, lon = args[-2:]
-            name = self.traf.id[idx]+"DEST"
-
+            name = str(lat)+","+str(lon)
+            
         if cmd == "DEST":
             self.dest[idx] = name
             iwp = route.addwpt(self.traf, idx, self.dest[idx], route.dest,
-                               lat, lon, 0.0, self.traf.cas[idx])
+                               0.0, self.traf.cas[idx])
+
             # If only waypoint: activate
             if (iwp == 0) or (self.orig[idx] != "" and route.nwp == 2):
                 self.WP.lat[idx] = route.wplat[iwp]
@@ -280,7 +276,7 @@ class FMS(DynamicArrays):
         else:
             self.orig[idx] = name
             iwp = route.addwpt(self.traf, idx, self.orig[idx], route.orig,
-                               self.traf.lat[idx], self.traf.lon[idx], 0.0, self.traf.cas[idx])
+                                0.0, self.traf.cas[idx])
             if iwp < 0:
                 return False, (self.orig[idx] + " not found.")
 
