@@ -519,10 +519,8 @@ class Screen:
 
 
             #--------- Draw traffic area ---------
-# ???? # why does traf.swarea nit exist anymore? - JMH
-#            if traf.swarea and not self.swnavdisp:
-            if False and not self.navdisp:
-                if traf.area == "Square":
+            if traf.area.active and not self.swnavdisp:
+                if traf.area.shape == "Square":
                     x0, y0 = self.ll2xy(traf.arealat0, traf.arealon0)
                     x1, y1 = self.ll2xy(traf.arealat1, traf.arealon1)
 
@@ -532,7 +530,7 @@ class Screen:
                     pg.draw.line(self.radbmp, blue, (x0, y1), (x0, y0))
 
                 #FIR CIRCLE
-                if traf.area == "Circle":
+                if traf.area.shape == "Circle":
                     lat2_circle, lon2_circle = geo.qdrpos(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1],
                                                       180, sim.metric.fir_circle_radius)
 
