@@ -1,4 +1,6 @@
 import numpy as np
+from math import sqrt, sin, cos
+
 from ..tools import geo
 from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2tas,  \
                          mach2cas, cas2tas, cas2mach, Rearth, vatmos, \

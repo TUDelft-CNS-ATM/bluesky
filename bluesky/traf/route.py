@@ -178,6 +178,12 @@ class Route():
                 wplon     = lon
                 wpok      = True
 
+            elif posobj.type == "rwy":
+                wprtename = posobj.name
+                wplat     = lat
+                wplon     = lon
+                wpok      = True
+
             else: # published identifier
                 i = self.navdb.getapidx(name.upper().strip())
                 wpok = (i >= 0)
