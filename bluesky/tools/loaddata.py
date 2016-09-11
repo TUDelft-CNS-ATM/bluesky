@@ -73,10 +73,6 @@ def load_navdata():
             aptdata = pickle.load(f)
             firdata = pickle.load(f)
 
-    if not gui == 'qtgl':
-        # Threshold data is not available for the PyGame version of BlueSky
-        return wptdata, aptdata, firdata, []
-
     if not os.path.isfile(cachedir + '/rwythresholds.p'):
         if gui == 'qtgl':
             load_aptsurface()
