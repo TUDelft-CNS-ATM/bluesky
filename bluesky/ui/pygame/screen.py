@@ -521,8 +521,8 @@ class Screen:
             #--------- Draw traffic area ---------
             if traf.area.active and not self.swnavdisp:
                 if traf.area.shape == "Square":
-                    x0, y0 = self.ll2xy(traf.arealat0, traf.arealon0)
-                    x1, y1 = self.ll2xy(traf.arealat1, traf.arealon1)
+                    x0, y0 = self.ll2xy(traf.area.lat0, traf.area.lon0)
+                    x1, y1 = self.ll2xy(traf.area.lat1, traf.area.lon1)
 
                     pg.draw.line(self.radbmp, blue, (x0, y0), (x1, y0))
                     pg.draw.line(self.radbmp, blue, (x1, y0), (x1, y1))
