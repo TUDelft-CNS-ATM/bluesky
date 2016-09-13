@@ -27,7 +27,7 @@ def detect(dbconf, traf, simt):
 
     # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
     qdlst = geo.qdrdist_matrix(np.mat(traf.lat), np.mat(traf.lon),
-                               np.mat(traf.adsblat), np.mat(traf.adsblon))
+                               np.mat(traf.adsb.lat), np.mat(traf.adsb.lon))
 
     # Convert results from mat-> array
     dbconf.qdr  = np.array(qdlst[0])  # degrees
@@ -35,12 +35,12 @@ def detect(dbconf, traf, simt):
     dbconf.dist = np.array(qdlst[1]) * nm + 1e9 * I  # meters i to j
 
     # Transmission noise
-    if traf.ADSBtransnoise:
+    if traf.adsb.transnoise:
         # error in the determined bearing between two a/c
-        bearingerror = np.random.normal(0, traf.transerror[0], dbconf.qdr.shape)  # degrees
+        bearingerror = np.random.normal(0, traf.adsb.transerror[0], dbconf.qdr.shape)  # degrees
         dbconf.qdr += bearingerror
         # error in the perceived distance between two a/c
-        disterror = np.random.normal(0, traf.transerror[1], dbconf.dist.shape)  # meters
+        disterror = np.random.normal(0, traf.adsb.transerror[1], dbconf.dist.shape)  # meters
         dbconf.dist += disterror
 
     # Calculate horizontal closest point of approach (CPA)
@@ -53,9 +53,9 @@ def detect(dbconf, traf, simt):
     dbconf.v = traf.gs * np.cos(trkrad).reshape((1, len(trkrad)))  # m/s
 
     # parameters received through ADSB
-    adsbtrkrad = np.radians(traf.adsbtrk)
-    adsbu = traf.adsbgs * np.sin(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
-    adsbv = traf.adsbgs * np.cos(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
+    adsbtrkrad = np.radians(traf.adsb.trk)
+    adsbu = traf.adsb.gs * np.sin(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
+    adsbv = traf.adsb.gs * np.cos(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
 
     du = dbconf.u - adsbu.T  # Speed du[i,j] is perceived eastern speed of i to j
     dv = dbconf.v - adsbv.T  # Speed dv[i,j] is perceived northern speed of i to j
@@ -91,10 +91,10 @@ def detect(dbconf, traf, simt):
 
     # Vertical crossing of disk (-dh,+dh)
     alt = traf.alt.reshape((1, traf.ntraf))
-    adsbalt = traf.adsbalt.reshape((1, traf.ntraf))
-    if traf.ADSBtransnoise:
+    adsbalt = traf.adsb.alt.reshape((1, traf.ntraf))
+    if traf.adsb.transnoise:
         # error in the determined altitude of other a/c
-        alterror = np.random.normal(0, traf.transerror[2], adsbalt.shape)  # degrees
+        alterror = np.random.normal(0, traf.adsb.transerror[2], traf.alt.shape)  # degrees
         adsbalt += alterror
 
     dbconf.dalt = alt - adsbalt.T
@@ -103,7 +103,7 @@ def detect(dbconf, traf, simt):
     vs = traf.vs.reshape(1, len(traf.vs))
 
 
-    avs = traf.adsbvs.reshape(1, len(traf.adsbvs))
+    avs = traf.adsb.vs.reshape(1, len(traf.adsb.vs))
 
     dvs = vs - avs.T
 
@@ -225,7 +225,7 @@ def APorASAS(dbconf, traf):
     """ Decide for each aircraft in the conflict list whether the ASAS
         should be followed or not, based on if the aircraft pairs passed
         their CPA. """
-    dbconf.asasactive.fill(False)
+    dbconf.active.fill(False)
 
     # Look at all conflicts, also the ones that are solved but CPA is yet to come
     for conflict in dbconf.conflist_all:
@@ -258,23 +258,23 @@ def APorASAS(dbconf, traf):
             bouncingConflict = (abs(traf.trk[id1] - traf.trk[id2]) < 30.) & (hdist2<dbconf.Rm**2)         
             
             # Decide if conflict is over or not. 
-            # If not over, turn asasactive to true. 
+            # If not over, turn active to true. 
             # If over, then initiate recovery
             if not pastCPA or hLOS or bouncingConflict:
                 # Aircraft haven't passed their CPA: must follow their ASAS
-                dbconf.asasactive[id1] = True
-                dbconf.asasactive[id2] = True
+                dbconf.active[id1] = True
+                dbconf.active[id2] = True
             
             else:
                 # Waypoint recovery after conflict
                 # Find the next active waypoint and send the aircraft to that 
                 # waypoint.             
-                iwpid1 = traf.route[id1].findact(traf,id1)
+                iwpid1 = traf.fms.route[id1].findact(traf,id1)
                 if iwpid1 != -1: # To avoid problems if there are no waypoints
-                    traf.route[id1].direct(traf, id1, traf.route[id1].wpname[iwpid1])
-                iwpid2 = traf.route[id2].findact(traf,id2)
+                    traf.fms.route[id1].direct(traf, id1, traf.fms.route[id1].wpname[iwpid1])
+                iwpid2 = traf.fms.route[id2].findact(traf,id2)
                 if iwpid2 != -1: # To avoid problems if there are no waypoints
-                    traf.route[id2].direct(traf, id2, traf.route[id2].wpname[iwpid2])
+                    traf.fms.route[id2].direct(traf, id2, traf.fms.route[id2].wpname[iwpid2])
                 
                 # If conflict is solved, remove it from conflist_all list
                 # This is so that if a conflict between this pair of aircraft 
@@ -286,18 +286,18 @@ def APorASAS(dbconf, traf):
         # flight (and has been deleted), start trajectory recovery for aircraft id2
         # And remove the conflict from the conflict_all list
         elif id1 < 0 and id2 >= 0:
-             iwpid2 = traf.route[id2].findact(traf,id2)
+             iwpid2 = traf.fms.route[id2].findact(traf,id2)
              if iwpid2 != -1: # To avoid problems if there are no waypoints
-                 traf.route[id2].direct(traf, id2, traf.route[id2].wpname[iwpid2])
+                 traf.fms.route[id2].direct(traf, id2, traf.fms.route[id2].wpname[iwpid2])
              dbconf.conflist_all.remove(conflict)
 
         # If aircraft id2 cannot be found in traffic because it has finished its
         # flight (and has been deleted) start trajectory recovery for aircraft id1
         # And remove the conflict from the conflict_all list
         elif id2 < 0 and id1 >= 0:
-            iwpid1 = traf.route[id1].findact(traf,id1)
+            iwpid1 = traf.fms.route[id1].findact(traf,id1)
             if iwpid1 != -1: # To avoid problems if there are no waypoints
-                traf.route[id1].direct(traf, id1, traf.route[id1].wpname[iwpid1])
+                traf.fms.route[id1].direct(traf, id1, traf.fms.route[id1].wpname[iwpid1])
             dbconf.conflist_all.remove(conflict)
         
         # if both ids are unknown, then delete this conflict, because both aircraft

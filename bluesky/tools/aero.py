@@ -153,6 +153,19 @@ def vcas2mach(cas, h):
     M   = vtas2mach(tas, h)
     return M
 
+def vcasormach(spd,alt):
+    if 0.1 < spd < 2.0:
+        # Interpret spd as Mach number
+        tas = vmach2tas(spd, alt)
+        cas = vmach2cas(spd, alt)
+        m   = spd
+    else:
+        # Interpret spd as CAS
+        tas = vcas2tas(spd,alt)
+        cas = spd
+        m   = vcas2mach(spd, alt)
+    return tas, cas, m
+
 
 # ------------------------------------------------------------------------------
 # Scalar aero functions
@@ -346,3 +359,16 @@ def cas2mach(cas, h):
     tas = cas2tas(cas, h)
     M   = tas2mach(tas, h)
     return M
+
+def casormach(spd,alt):
+    if 0.1 < spd < 2.0:
+        # Interpret spd as Mach number
+        tas = mach2tas(spd, alt)
+        cas = mach2cas(spd, alt)
+        m   = spd
+    else:
+        # Interpret spd as CAS
+        tas = cas2tas(spd,alt)
+        cas = spd
+        m   = cas2mach(spd, alt)
+    return tas, cas, m

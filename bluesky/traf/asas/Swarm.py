@@ -39,9 +39,9 @@ def resolve(dbconf, traf):
     MVP.resolve(dbconf)    
     
     # Find desired speed vector after Collision Avoidance or Autopilot 
-    ca_trk = dbconf.asasactive*dbconf.asashdg+(1-dbconf.asasactive)*traf.ahdg
-    ca_cas = dbconf.asasactive*dbconf.asasspd+(1-dbconf.asasactive)*traf.aspd
-    ca_vs = dbconf.asasactive*dbconf.asasvsp+(1-dbconf.asasactive)*traf.avs
+    ca_trk = dbconf.active*dbconf.hdg+(1-dbconf.active)*traf.ahdg
+    ca_cas = dbconf.active*dbconf.spd+(1-dbconf.active)*traf.aspd
+    ca_vs = dbconf.active*dbconf.vs+(1-dbconf.active)*traf.avs
     
     # Add factor of Velocity Alignment to speed vector
     hspeed=np.ones((traf.ntraf,traf.ntraf))*traf.cas
@@ -86,11 +86,11 @@ def resolve(dbconf, traf):
     # Cap the velocity
     Swarmcascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,Swarmcas))    
     # Assign Final Swarming directions to traffic
-    dbconf.asashdg=Swarmhdg
-    dbconf.asasspd=Swarmcascapped
-    dbconf.asasvsp =Swarmvs
-    dbconf.asasalt=np.sign(Swarmvs)*1e5
+    dbconf.hdg=Swarmhdg
+    dbconf.spd=Swarmcascapped
+    dbconf.vs =Swarmvs
+    dbconf.alt=np.sign(Swarmvs)*1e5
     
     # Make sure that all aircraft follow these directions
-    dbconf.asasactive.fill(True)
+    dbconf.active.fill(True)
     pass

@@ -344,6 +344,11 @@ class Perf():
         # prepare for coefficient readin
         coeffBS.coeff()
 
+        # Flight performance scheduling
+        self.dt  = 0.1           # [s] update interval of performance limits
+        self.t0  = -self.dt  # [s] last time checked (in terms of simt)
+        self.warned2 = False        # Flag: Did we warn for default engine parameters yet?
+
         return
 
     def reset(self):
@@ -358,8 +363,8 @@ class Perf():
         # speeds         
 
         # reference velocities
-        self.refma        = np.array ([]) # reference Mach
-        self.refcas       = np.array ([]) # reference CAS  
+        self.refma        = np.array([]) # reference Mach
+        self.refcas       = np.array([]) # reference CAS  
         self.gr_acc       = np.array([]) # ground acceleration
         self.gr_dec       = np.array([]) # ground deceleration
         
@@ -372,21 +377,21 @@ class Perf():
         self.vmap         = np.array([]) # min approach speed
         self.vmld         = np.array([]) # min landing spd     
         self.vmin         = np.array([]) # min speed over all phases          
-        self.vmo          = np.array ([]) # max CAS
-        self.mmo          = np.array ([]) # max Mach    
+        self.vmo          = np.array([]) # max CAS
+        self.mmo          = np.array([]) # max Mach    
         
         self.hmaxact      = np.array([]) # max. altitude
         self.maxthr       = np.array([]) # maximum thrust
 
         # aerodynamics
-        self.CD0          = np.array([])  # parasite drag coefficient
-        self.k            = np.array([])  # induced drag factor      
-        self.clmaxcr      = np.array([])   # max. cruise lift coefficient
+        self.CD0          = np.array([]) # parasite drag coefficient
+        self.k            = np.array([]) # induced drag factor      
+        self.clmaxcr      = np.array([]) # max. cruise lift coefficient
         self.qS           = np.array([])
         
         # engines
         self.traf.engines = [] # avaliable engine type per aircraft type
-        self.etype        = np.array ([]) # jet /turboprop
+        self.etype        = np.array([]) # jet /turboprop
         
         # jet engines:
         self.rThr         = np.array([]) # rated thrust (all engines)
@@ -395,16 +400,16 @@ class Perf():
         self.ff           = np.array([]) # fuel flow
         self.ffto         = np.array([]) # fuel flow takeoff
         self.ffcl         = np.array([]) # fuel flow climb
-        self.ffcr         = np.array ([]) # fuel flow cruise
+        self.ffcr         = np.array([]) # fuel flow cruise
         self.ffid         = np.array([]) # fuel flow idle
         self.ffap         = np.array([]) # fuel flow approach
         self.Thr_s        = np.array([1., 0.85, 0.07, 0.3 ]) # Thrust settings per flight phase according to ICAO
 
         # turboprop engines
-        self.P            = np.array([])    # avaliable power at takeoff conditions
+        self.P            = np.array([]) # avaliable power at takeoff conditions
         self.PSFC_TO      = np.array([]) # specific fuel consumption takeoff
         self.PSFC_CR      = np.array([]) # specific fuel consumption cruise
-        self.eta          = 0.8           # propeller efficiency according to Raymer
+        self.eta          = 0.8          # propeller efficiency according to Raymer
         
         self.Thr          = np.array([]) # Thrust
         self.D            = np.array([]) # Drag
@@ -412,14 +417,15 @@ class Perf():
         
         # flight phase
         self.phase        = np.array([]) # flight phase
-        self.bank         = np.array ([]) # bank angle    
+        self.bank         = np.array([]) # bank angle    
         self.post_flight  = np.array([]) # check for ground mode: 
                                           #taxi prior of after flight
         self.pf_flag      = np.array([])
         return
        
 
-    def create(self, actype):
+    def create(self):
+        actype = self.traf.type[-1]
         """Create new aircraft"""
         # note: coefficients are initialized in SI units
         if actype in coeffBS.atype:
@@ -501,7 +507,7 @@ class Perf():
             self.ffcl    = np.append(self.ffcl, 1.)
             self.ffcr    = np.append(self.ffcr, 1.)
             self.ffid    = np.append(self.ffid, 1.)
-            self.ffap    = np.append(self.ffap, 1.)  
+            self.ffap    = np.append(self.ffap, 1.)
 
 
         # jet (also default)
@@ -602,7 +608,11 @@ class Perf():
 
         return
 
-    def perf(self):
+    def perf(self,simt):
+        if abs(simt - self.t0) >= self.dt:
+            self.t0 = simt
+        else:
+            return
         """Aircraft performance"""
         swbada = False # no-bada version
 
@@ -667,14 +677,6 @@ class Perf():
         self.ESF = esf(self.traf.abco, self.traf.belco, self.traf.alt, self.traf.M,\
                   self.climb, self.descent, self.traf.delspd)
 
-
-        # THRUST
-        # determine vertical speed
-        swvs = (np.abs(self.traf.desvs) > self.traf.eps)
-        vspd = swvs * self.traf.desvs + (1. - swvs) * self.traf.avsdef * np.sign(self.traf.delalt)
-        swaltsel = np.abs(self.traf.delalt) > np.abs(2. * self.traf.perfdt * np.abs(vspd))
-        self.traf.vs = swaltsel * vspd  
-
         self.Thr = (((self.traf.vs*self.mass*g0)/(self.ESF*np.maximum(self.traf.eps, self.traf.tas))) + self.D) 
 
         # maximum thrust jet (Bruenig et al., p. 66): 
@@ -716,7 +718,7 @@ class Perf():
         self.ff = ff_jet + ff_prop
 
         # update mass
-        #self.mass = self.mass - self.ff*self.traf.perfdt/60. # Use fuelflow in kg/min
+        #self.mass = self.mass - self.ff*self.dt/60. # Use fuelflow in kg/min
 
         # print self.traf.id, self.phase, self.traf.alt/ft, self.traf.tas/kts, self.traf.cas/kts, self.traf.M,  \
         # self.Thr, self.D, self.ff,  cl, cd, self.traf.vs/fpm, self.ESF,self.atrans, self.maxthr, \
@@ -734,7 +736,6 @@ class Perf():
         # otherwise taxiing will be impossible afterwards
         self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
 
-        
         return
 
     def limits(self):
@@ -757,10 +758,11 @@ class Perf():
 
         # forwarding to tools
         self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
-        limits(self.traf.desspd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
+        limits(self.traf.pilot.spd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
         self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
-        self.traf.desalt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
+        self.traf.pilot.alt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
         self.D, self.traf.tas, self.mass, self.ESF)        
+
 
         return
 
