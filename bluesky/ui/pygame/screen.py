@@ -580,7 +580,7 @@ class Screen:
 
             # User defined objects
             for i in range(len(self.objtype)):
-                if self.objtype[i]==1:  # 1 = line
+                if self.objtype[i]=='LINE':
                     x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
                     x1,y1 = self.ll2xy(self.objdata[i][2],self.objdata[i][3])
                     pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
