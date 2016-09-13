@@ -328,10 +328,10 @@ class Traffic:
         self.apfll = np.append(self.apfll, (acalt / 100))  # selected fl[ft/100]
         self.avs   = np.append(self.avs, 0.)  # selected vertical speed [m/s]
 
-        # limit settings: initialize with 0
-        self.limspd      = np.append(self.limspd, 0.0)
+        # limit settings: initialize with -999
+        self.limspd      = np.append(self.limspd, -999.0)
         self.limspd_flag = np.append (self.limspd_flag, False)
-        self.limalt = np.append(self.limalt, 0.0)
+        self.limalt = np.append(self.limalt, -999.0)
         
         # limit vertical speed: initialization is -999, as 0 is used for ac taking off
         self.limvs  = np.append(self.limvs, -999.0)
