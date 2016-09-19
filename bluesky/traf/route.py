@@ -64,9 +64,9 @@ class Route():
         # Convert to positions
         name = args[0]
         posobj = txt2pos(name,traf,self.navdb,traf.lat[idx],traf.lon[idx])
+        
         lat      = posobj.lat
         lon      = posobj.lat
-
         
         if posobj.type== "nav" or posobj.type== "apt":
             wptype = self.wpnav
@@ -98,7 +98,7 @@ class Route():
         # And if so, make active
         if self.nwp - norig - ndest == 1:  # first waypoint: make active
             self.direct(traf, idx, self.wpname[norig])  # 0 if no orig
-            traf.fms.lnav[idx] = True
+            traf.swlnav[idx] = True
 
         if afterwp and self.wpname.count(afterwp) == 0:
             return True, "Waypoint " + afterwp + " not found" + \
@@ -228,24 +228,29 @@ class Route():
             else: # so wptypewpnav
                 newname = wprtename
 
-                i = self.navdb.getwpidx(name.upper().strip(), lat, lon)
-                wpok = (i >= 0)
+                if wptype == self.runway:
+                    wplat = lat
+                    wplon = lon
 
-                if wpok:
-                    newname = wprtename
-                    wplat = self.navdb.wplat[i]
-                    wplon = self.navdb.wplon[i]
                 else:
-                    i = self.navdb.getapidx(name.upper().strip())
+                    i = self.navdb.getwpidx(name.upper().strip(), lat, lon)
                     wpok = (i >= 0)
+    
                     if wpok:
                         newname = wprtename
-                        wplat = self.navdb.aplat[i]
-                        wplon = self.navdb.aplon[i]
+                        wplat = self.navdb.wplat[i]
+                        wplon = self.navdb.wplon[i]
                     else:
-                        newname = wprtename
-                        wplat = lat
-                        wplon = lon
+                        i = self.navdb.getapidx(name.upper().strip())
+                        wpok = (i >= 0)
+                        if wpok:
+                            newname = wprtename
+                            wplat = self.navdb.aplat[i]
+                            wplon = self.navdb.aplon[i]
+                        else:
+                            newname = wprtename
+                            wplat = lat
+                            wplon = lon
                         
 
             # Check if afterwp is specified and found:
@@ -310,7 +315,7 @@ class Route():
                     self.iactwp = 0
 
             #update qdr in traffic
-            traf.fms.WP.next_qdr[iac] = self.getnextqdr() 
+            traf.actwp.next_qdr[iac] = self.getnextqdr()        
             
         # Update waypoints
         if not (wptype == self.calcwp):
@@ -329,21 +334,21 @@ class Route():
         if name != "" and self.wpname.count(name) > 0:
             wpidx = self.wpname.index(name)
             self.iactwp = wpidx
-            traf.fms.WP.lat[i] = self.wplat[wpidx]
-            traf.fms.WP.lon[i] = self.wplon[wpidx]
-            
-            if traf.fms.vnav[i]:
+            traf.actwp.lat[i] = self.wplat[wpidx]
+            traf.actwp.lon[i] = self.wplon[wpidx]
+
+            if traf.swvnav[i]:
                 # Set target altitude for autopilot
                 if self.wpalt[wpidx] > 0:
 
                     if traf.alt[i] < self.wptoalt[i]-10.*ft:
-                        traf.actwpalt[i] = self.wptoalt[wpidx]
-                        traf.dist2vs[i] = 9999.
+                        traf.actwp.alt[i] = self.wptoalt[wpidx]
+                        traf.fms.dist2vs[i] = 9999.
                     else:
                         steepness = 3000.*ft/(10.*nm)
-                        traf.fms.WP.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-                        delalt = traf.alt[i] - traf.fms.WP.alt[i]
-                        traf.dist2vs[i] = steepness*delalt
+                        traf.actwp.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
+                        delalt = traf.alt[i] - traf.actwp.alt[i]
+                        traf.fms.dist2vs[i] = steepness*delalt
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
@@ -354,14 +359,14 @@ class Route():
                         traf.aspd[i] = cas2tas(spd, traf.alt[i]) # or is '= spd'
 
             qdr, dist = geo.qdrdist(traf.lat[i], traf.lon[i],
-                                traf.fms.WP.lat[i], traf.fms.WP.lon[i])
+                                traf.actwp.lat[i], traf.actwp.lon[i])
 
             turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
 
-            traf.fms.WP.turn[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
+            traf.actwp.turn[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
                         self.wpdirfrom[self.iactwp]))))))
 
-            traf.fms.lnav[i] = True
+            traf.swlnav[i] = True
             return True
         else:
             return False, "Waypoint " + wpnam + " not found"
@@ -412,7 +417,8 @@ class Route():
 
     def getnextwp(self):
         """Go to next waypoint and return data"""
-        if self.iactwp+1<self.nwp:
+        lnavon = self.iactwp +1 < self.nwp
+        if lnavon:
             self.iactwp = self.iactwp + 1
             lnavon = True
         else:
@@ -669,14 +675,15 @@ class Route():
         # Find closest    
         wplat  = array(self.wplat)
         wplon  = array(self.wplon)
-        
-        qdr, dist2 = geo.qdrdist( traf.lat[i], traf.lon[i], wplat, wplon)  # [deg][nm])        
+        dy = wplat - traf.lat[i] 
+        dx = (wplon - traf.lon[i]) * traf.coslat[i]
+        dist2 = dx*dx + dy*dy            
         iwpnear = argmin(dist2)
 
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
-           # qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
-            delhdg = abs(degto180(traf.trk[i]-qdr[iwpnear]))    
+            qdr = arctan2(dx[iwpnear],dy[iwpnear])
+            delhdg = abs(degto180(traf.trk[i]-qdr))            
             
             # we only turn to the first waypoint if we can reach the required
             # heading before reaching the waypoint

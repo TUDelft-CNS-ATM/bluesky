@@ -4,9 +4,8 @@ from ..tools.aero import nm, g0
 from ..tools.misc import degto180
 
 class ActiveWaypoint(DynamicArrays):
-    def __init__(self,fms):
-        self.fms = fms
-        self.traf = fms.traf
+    def __init__(self,traf):
+        self.traf = traf
         
         with RegisterElementParameters(self):
             self.lat  = np.array([])  # Active WP latitude
@@ -43,4 +42,4 @@ class ActiveWaypoint(DynamicArrays):
              next_qdr))))))
 
         # Check whether shift based dist [nm] is required, set closer than WP turn distanc
-        return np.where(self.fms.lnav * (dist < self.turn))[0]
+        return np.where(self.traf.swlnav * (dist < self.turn))[0]

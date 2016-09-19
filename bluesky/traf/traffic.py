@@ -17,6 +17,7 @@ from adsbmodel import ADSB
 from asas import ASAS
 from pilot import Pilot
 from fms import FMS
+from waypoint import ActiveWaypoint
 from turbulence import Turbulence
 from area import Area
 
@@ -96,13 +97,18 @@ class Traffic(DynamicArrays):
                 self.ama    = np.array([])  # selected spd above crossover altitude (Mach) [-]
                 self.apalt  = np.array([])  # selected alt[m]
                 self.avs    = np.array([])  # selected vertical speed [m/s]
-
+            
+            # Whether to perform LNAV and VNAV 
+            self.swlnav   = np.array([],dtype=np.bool)
+            self.swvnav   = np.array([],dtype=np.bool)
+            
             # Flight Models
             self.asas  = ASAS(self)
             self.fms   = FMS(self)
             self.pilot = Pilot(self)
             self.adsb  = ADSB(self)
             self.trails= Trails(self)
+            self.actwp = ActiveWaypoint(self)
 
             # Traffic performance data
             self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
@@ -134,7 +140,7 @@ class Traffic(DynamicArrays):
 
     def reset(self, navdb):
         self.ntraf = 0
-
+        
         self.resetParameters()
 
         # Reset models
@@ -235,13 +241,14 @@ class Traffic(DynamicArrays):
 
         # ----- Submodules of Traffic -----
         self.fms.create()
+        self.actwp.create()
         self.pilot.create()
         self.adsb.create()
         self.area.create()
         self.asas.create()
         self.perf.create()
         self.trails.create()
-
+        
         #
         if self.ntraf < 2:
             self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
@@ -256,7 +263,6 @@ class Traffic(DynamicArrays):
         # Do nothing if not found
         if idx < 0:
             return False
-
         # Decrease number of aircraft
         self.ntraf = self.ntraf - 1
         
@@ -389,7 +395,7 @@ class Traffic(DynamicArrays):
 
         if vspd:
             self.vs[idx]       = vspd
-            self.fms.vnav[idx] = False
+            self.swvnav[idx] = False
 
     def nom(self, idx):
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
@@ -406,8 +412,8 @@ class Traffic(DynamicArrays):
         line = "Info on %s %s index = %d\n" % (acid, actype, idx) \
              + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
              + "Alt = %d ft, Hdg = %d, Trk = %d\n" % (alt, hdg, trk)
-        if self.fms.lnav[idx] and route.nwp > 0 and route.iactwp >= 0:
-            if self.fms.vnav[idx]:
+        if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
+            if self.swvnav[idx]:
                 line += "VNAV, "
             line += "LNAV to " + route.wpname[route.iactwp] + "\n"
         if self.fms.orig[idx] != "" or self.fms.dest[idx] != "":
