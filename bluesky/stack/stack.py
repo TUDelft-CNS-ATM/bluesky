@@ -911,7 +911,7 @@ def argparse(argtype, argidx, args, traf, scr):
             
             # translate a/c id into a valid position text with a lat,lon
             if traf.id2idx(args[argidx])>=0:
-                idx = id2idx(args[argidx])
+                idx  = traf.id2idx(args[argidx])
                 name = str(traf.lat[idx])+","+str(traf.lon[idx])
             else:
                 name = args[argidx]
