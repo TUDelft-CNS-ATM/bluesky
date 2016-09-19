@@ -86,8 +86,8 @@ class CSVLogger:
         self.selvars     = []
 
         # In case this is a periodic logger: log timestep
-        self.dt          = 1.0
-        self.default_dt  = 1.0
+        self.dt          = 0.0
+        self.default_dt  = 0.0
 
         # Register a command for this logger in the stack
         stackcmd = {name : [
@@ -139,13 +139,14 @@ class CSVLogger:
     def isopen(self):
         return self.file is not None
 
-    def log(self):
+    def log(self, *additional_vars):
         if self.file and len(self.selvars) > 0 and self.simt >= self.tlog:
             # Set the next log timestep
             self.tlog += self.dt
 
             # Make the variable reference list
-            varlist = [logset[0].__dict__.get(varname) for logset in self.selvars for varname in logset[1]]
+            varlist = [v[0].__dict__.get(vname) for v in self.selvars for vname in v[1]] 
+            varlist += additional_vars
 
             # Convert numeric arrays to text, leave text arrays untouched
             txtdata = [len(varlist[0]) * ['%.3f' % self.simt]] + \
