@@ -129,6 +129,7 @@ class CSVLogger:
         class WatchedObject(obj.__class__):
             def __setattr__(self, name, value):
                 self.log_attrs.append(name)
+                # super(WatchedObject, self).__setattr__(name, value)
                 self.__dict__[name] = value
 
         obj.__class__ = WatchedObject
@@ -141,8 +142,8 @@ class CSVLogger:
         self.selvars.append((obj, obj.log_attrs))
         # Reset the object back to its original class, and remove its reference
         # to the list of log parameters.
-        del obj.log_attrs
         obj.__class__ = obj.__class__.__bases__[0]
+        del obj.log_attrs
         self.dataparents.pop()
 
     def setheader(self, header):
@@ -223,6 +224,7 @@ class CSVLogger:
                 '\nUsage: ' + self.name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn'
             return True, text
         elif args[0] == 'ON':
+            self.tlog = self.simt
             # Set log dt if passed
             if len(args) > 1:
                 if type(args[1]) is float:
