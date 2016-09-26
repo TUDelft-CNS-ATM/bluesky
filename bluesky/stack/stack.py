@@ -555,10 +555,10 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     global scentime, scencmd, scenname
 
     # Split the incoming filename into a path, a filename and an extension
-    path, fname   = os.path.split(fname)
+    path, fname   = os.path.split(os.path.normpath(fname))
     scenname, ext = os.path.splitext(fname)
     if len(path) == 0:
-        path = settings.scenario_path
+        path = os.path.normpath(settings.scenario_path)
     if len(ext) == 0:
         ext = '.scn'
 
