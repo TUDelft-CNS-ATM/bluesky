@@ -15,7 +15,6 @@ Methods:
 
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
-import ntpath
 from math import *
 import numpy as np
 from random import seed
@@ -556,15 +555,15 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     global scentime, scencmd, scenname
 
     # Split the incoming filename into a path, a filename and an extension
-    path, fname   = ntpath.split(fname)
-    scenname, ext = ntpath.splitext(fname)
+    path, fname   = os.path.split(fname)
+    scenname, ext = os.path.splitext(fname)
     if len(path) == 0:
         path = settings.scenario_path
     if len(ext) == 0:
         ext = '.scn'
 
     # The entire filename, possibly with added path and extension
-    scenfile = path + '/' + scenname + ext
+    scenfile = os.path.join(path, scenname + ext)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
