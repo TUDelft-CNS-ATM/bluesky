@@ -67,9 +67,7 @@ def reset():
 
 def makeLogfileName(logname):
     timestamp = datetime.now().strftime('%Y%m%d_%H-%M-%S')
-    scn = stack.get_scenfile()
-    scn = scn[:scn.lower().find('.scn')]
-    fname = "%s_%s_%s.log" % (logname, scn, timestamp)
+    fname     = "%s_%s_%s.log" % (logname, stack.get_scenname(), timestamp)
     return settings.log_path + '/' + fname
 
 

@@ -187,10 +187,6 @@ class Simulation(QObject):
         self.bencht  = 0.0  # Start time will be set at next sim cycle
         self.benchdt = dt
 
-    def scenarioInit(self, name):
-        self.screenio.echo('Starting scenario ' + name)
-        self.scenname = name
-
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.state))
 
