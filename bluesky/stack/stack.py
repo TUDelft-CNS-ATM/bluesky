@@ -34,6 +34,7 @@ cmddict   = dict()
 cmdsynon  = dict()
 cmdstack  = []
 
+scenname  = ""
 scenfile  = ""
 scentime  = []
 scencmd   = []
@@ -365,7 +366,7 @@ def init(sim, traf, scr):
         "SCEN": [
             "SCEN scenname",
             "string",
-            sim.scenarioInit
+            scenarioinit
         ],
         "SEED": [
             "SEED value",
@@ -488,8 +489,8 @@ def init(sim, traf, scr):
     stack("ZOOM 0.4")
 
 
-def get_scenfile():
-    return scenfile
+def get_scenname():
+    return scenname
 
 
 def get_scendata():
@@ -500,6 +501,12 @@ def set_scendata(newtime, newcmd):
     global scentime, scencmd
     scentime = newtime
     scencmd  = newcmd
+
+
+def scenarioinit(name):
+    global scenname
+    scenname = name
+    return True, 'Starting scenario ' + name
 
 
 def append_commands(newcommands):
@@ -531,9 +538,10 @@ def setSeed(value):
 
 
 def reset():
-    global scentime, scencmd
+    global scentime, scencmd, scenname
     scentime = []
     scencmd  = []
+    scenname = ''
 
 
 def stack(cmdline):
@@ -544,25 +552,25 @@ def stack(cmdline):
             cmdstack.append(line)
 
 
-def openfile(scenname, absrel='ABS', mergeWithExisting=False):
+def openfile(fname, absrel='ABS', mergeWithExisting=False):
     global scentime, scencmd
+
+    # Split the incoming filename into a path, a filename and an extension
+    path, fname   = os.path.split(os.path.normpath(fname))
+    scenname, ext = os.path.splitext(fname)
+    if len(path) == 0:
+        path = os.path.normpath(settings.scenario_path)
+    if len(ext) == 0:
+        ext = '.scn'
+
+    # The entire filename, possibly with added path and extension
+    scenfile = os.path.join(path, scenname + ext)
+
+    print scenfile
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
     t_offset = sim.simt if absrel == 'REL' else 0.0
-
-    # Add .scn extension if necessary
-    if scenname.lower().find(".scn") < 0:
-        scenname = scenname + ".scn"
-
-    # If it is with a path don't touch it, else add path
-    if scenname.find("/") < 0 and scenname.find( "\\") < 0:
-        scenfile = settings.scenario_path
-        if scenfile[-1] is not '/':
-            scenfile = scenfile + '/'
-        scenfile = scenfile+scenname
-    else:
-        scenfile = scenname
 
     if not os.path.exists(scenfile):
         return False, "Error: cannot find file: " + scenfile
@@ -581,15 +589,15 @@ def openfile(scenname, absrel='ABS', mergeWithExisting=False):
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
-                    tstamp = line[:icmdline]
-                    ttxt = tstamp.strip().split(':')
-                    ihr = int(ttxt[0]) * 3600.0
-                    imin = int(ttxt[1]) * 60.0
-                    xsec = float(ttxt[2])
+                    tstamp   = line[:icmdline]
+                    ttxt     = tstamp.strip().split(':')
+                    ihr      = int(ttxt[0]) * 3600.0
+                    imin     = int(ttxt[1]) * 60.0
+                    xsec     = float(ttxt[2])
                     scentime.append(ihr + imin + xsec + t_offset)
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 except:
-                    if not(len(line.strip())>0 and line.strip()[0]=="#"):                        
+                    if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
                         print "except this:", line
                     pass  # nice try, we will just ignore this syntax error
 
@@ -602,7 +610,7 @@ def openfile(scenname, absrel='ABS', mergeWithExisting=False):
 
 
 def ic(scr, sim, filename=''):
-    global scenfile
+    global scenfile, scenname
     if filename == '':
         filename = scr.show_file_dialog()
     elif filename == "IC":
@@ -611,8 +619,9 @@ def ic(scr, sim, filename=''):
     if len(filename) > 0:
         sim.reset()
         result = openfile(filename)
-        if type(result) is bool:
-            scenfile = filename
+        if result is True:
+            scenfile    = filename
+            scenname, _ = os.path.splitext(os.path.basename(filename))
             return True, "Opened " + filename
         else:
             return result
@@ -768,8 +777,8 @@ def process(sim, traf, scr):
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
                     for i in range(len(argtype)):
-                        if True:                                # use for debugging argparsing
-#                        try:    
+#                        if True:                                # use for debugging argparsing
+                        try:    
                             argtypei = argtype[i]
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
                             if parsed_arg[0] is None and argtypei in optargs:
@@ -779,8 +788,8 @@ def process(sim, traf, scr):
                             optargs.update(opt_arg)
                             curarg  += argstep
                             break
-                        else:
-#                        except:                                 # use for debugging argparsing
+#                        else:
+                        except:                                 # use for debugging argparsing
                             # not yet last type possible here?
                             if i < len(argtype) - 1:
                                 # We have alternative argument formats that we can try

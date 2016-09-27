@@ -1,6 +1,7 @@
 """ BlueSky Datalogger """
 import os
-from operator import isNumberType as isnum
+import numbers
+import collections
 from datetime import datetime
 import numpy as np
 from .. import settings
@@ -66,10 +67,28 @@ def reset():
 
 def makeLogfileName(logname):
     timestamp = datetime.now().strftime('%Y%m%d_%H-%M-%S')
-    scn = stack.get_scenfile()
-    scn = scn[:scn.lower().find('.scn')]
-    fname = "%s_%s_%s.log" % (logname, scn, timestamp)
+    fname     = "%s_%s_%s.log" % (logname, stack.get_scenname(), timestamp)
     return settings.log_path + '/' + fname
+
+
+def col2txt(col):
+    if isinstance(col[0], numbers.Integral):
+        return np.char.mod('%d', col)
+    elif isinstance(col[0], numbers.Number):
+        return np.char.mod(logprecision, col)
+
+    # The input is not a number
+    return col
+
+
+def num2txt(num):
+    if isinstance(num, numbers.Integral):
+        return '%d' % num
+    elif isinstance(num, numbers.Number):
+        return logprecision % num
+
+    # The input is not a number
+    return num
 
 
 class CSVLogger:
@@ -86,8 +105,8 @@ class CSVLogger:
         self.selvars     = []
 
         # In case this is a periodic logger: log timestep
-        self.dt          = 1.0
-        self.default_dt  = 1.0
+        self.dt          = 0.0
+        self.default_dt  = 0.0
 
         # Register a command for this logger in the stack
         stackcmd = {name : [
@@ -97,14 +116,32 @@ class CSVLogger:
         stack.append_commands(stackcmd)
 
     def __enter__(self):
-        self.keys0         = set(self.dataparents[-1].__dict__.keys())
+        # The current object we want to log variables from is the last one in the list
+        obj = self.dataparents[-1]
+        obj.log_attrs = []
+
+        # To register an ordered list of variable names we temporarily change
+        # the class of OBJ with a derived class which implements a modified
+        # setattr function. This is reset once the registering of log parameters
+        # is done.
+        class WatchedObject(obj.__class__):
+            def __setattr__(self, name, value):
+                self.log_attrs.append(name)
+                # super(WatchedObject, self).__setattr__(name, value)
+                self.__dict__[name] = value
+
+        obj.__class__ = WatchedObject
 
     def __exit__(self, ex_type, ex_value, traceback):
-        keys               = list(set(self.dataparents[-1].__dict__.keys()) - self.keys0)
-        # Pre-process variable list to remove non-existing variables
-        variables          = [x for x in keys if self.dataparents[-1].__dict__.get(x) is not None]
-        self.allvars.append((self.dataparents[-1], variables))
-        self.selvars.append((self.dataparents[-1], variables))
+        obj = self.dataparents[-1]
+        # Append the list of log parameters to the logger, together with their
+        # parent object.
+        self.allvars.append((obj, obj.log_attrs))
+        self.selvars.append((obj, obj.log_attrs))
+        # Reset the object back to its original class, and remove its reference
+        # to the list of log parameters.
+        obj.__class__ = obj.__class__.__bases__[0]
+        del obj.log_attrs
         self.dataparents.pop()
 
     def setheader(self, header):
@@ -139,17 +176,23 @@ class CSVLogger:
     def isopen(self):
         return self.file is not None
 
-    def log(self):
+    def log(self, *additional_vars):
         if self.file and len(self.selvars) > 0 and self.simt >= self.tlog:
             # Set the next log timestep
             self.tlog += self.dt
 
             # Make the variable reference list
-            varlist = [logset[0].__dict__.get(varname) for logset in self.selvars for varname in logset[1]]
+            varlist = [v[0].__dict__.get(vname) for v in self.selvars for vname in v[1]]
+            varlist += additional_vars
 
             # Convert numeric arrays to text, leave text arrays untouched
-            txtdata = [len(varlist[0]) * ['%.3f' % self.simt]] + \
-                [np.char.mod(logprecision, col) if isnum(col[0]) else col for col in varlist]
+            if isinstance(varlist[0], collections.Container):
+                nrows = len(varlist[0])
+                if nrows == 0:
+                    return
+                txtdata = [nrows * [str(self.simt)]] + [col2txt(col) for col in varlist]
+            else:
+                txtdata = [str(self.simt)] + [num2txt(col) for col in varlist]
 
             # log the data to file
             np.savetxt(self.file, np.vstack(txtdata).T, delimiter=',', newline='\n', fmt='%s')
@@ -179,6 +222,7 @@ class CSVLogger:
                 '\nUsage: ' + self.name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn'
             return True, text
         elif args[0] == 'ON':
+            self.tlog = self.simt
             # Set log dt if passed
             if len(args) > 1:
                 if type(args[1]) is float:
