@@ -777,8 +777,8 @@ def process(sim, traf, scr):
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
                     for i in range(len(argtype)):
-                        if True:                                # use for debugging argparsing
-#                        try:    
+#                        if True:                                # use for debugging argparsing
+                        try:    
                             argtypei = argtype[i]
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
                             if parsed_arg[0] is None and argtypei in optargs:
@@ -788,8 +788,8 @@ def process(sim, traf, scr):
                             optargs.update(opt_arg)
                             curarg  += argstep
                             break
-                        else:
-#                        except:                                 # use for debugging argparsing
+#                        else:
+                        except:                                 # use for debugging argparsing
                             # not yet last type possible here?
                             if i < len(argtype) - 1:
                                 # We have alternative argument formats that we can try
@@ -799,6 +799,8 @@ def process(sim, traf, scr):
                                 scr.echo("Syntax error in processing arguments")
                                 scr.echo(line)
                                 scr.echo(helptext)
+                                print "Error in processing arguments:"
+                                print line
                     curtype += 1
 
             # Call function return flag,text
