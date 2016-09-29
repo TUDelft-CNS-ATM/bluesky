@@ -777,8 +777,8 @@ def process(sim, traf, scr):
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
                     for i in range(len(argtype)):
-#                        if True:                                # use for debugging argparsing
-                        try:    
+                        if True:                                # use for debugging argparsing
+#                        try:    
                             argtypei = argtype[i]
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
                             if parsed_arg[0] is None and argtypei in optargs:
@@ -788,8 +788,8 @@ def process(sim, traf, scr):
                             optargs.update(opt_arg)
                             curarg  += argstep
                             break
-#                        else:
-                        except:                                 # use for debugging argparsing
+                        else:
+#                        except:                                 # use for debugging argparsing
                             # not yet last type possible here?
                             if i < len(argtype) - 1:
                                 # We have alternative argument formats that we can try
@@ -805,6 +805,8 @@ def process(sim, traf, scr):
             # flag: indicates sucess
             # text: optional error message
             if not synerr:
+                
+#                print cmd,arglist
                 results = function(*arglist)  # * = unpack list to call arguments
 
                 if type(results) == bool:  # Only flag is returned
@@ -957,17 +959,21 @@ def argparse(argtype, argidx, args, traf, scr):
 
         # for lat/lon argument type we also need to it up:
         elif argtype == "latlon":
-            posobj = txt2pos(name,traf,traf.navdb,reflat,reflon)
+            success,posobj = txt2pos(name,traf,traf.navdb,reflat,reflon)
 
-            # for runway type, get heading as default optional argument for command line
-            if posobj.type=="rwy":
-                rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
-                optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
-
-            reflat,reflon = posobj.lat,posobj.lon
-            
-            return [posobj.lat , posobj.lon],optargs,nusedargs
-       
+            if success:
+    
+                # for runway type, get heading as default optional argument for command line
+                if posobj.type=="rwy":
+                    rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
+                    optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
+    
+                reflat,reflon = posobj.lat,posobj.lon
+                
+                return [posobj.lat , posobj.lon],optargs,nusedargs
+            else:
+                scr.echo(posobj) # contains error message
+                return [None],{},1
 
     elif argtype == "spd":  # CAS[kts] Mach
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))

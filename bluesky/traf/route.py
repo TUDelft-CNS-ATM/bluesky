@@ -63,48 +63,52 @@ class Route():
 
         # Convert to positions
         name = args[0]
-        posobj = txt2pos(name,traf,self.navdb,traf.lat[idx],traf.lon[idx])
-        
-        lat      = posobj.lat
-        lon      = posobj.lat
-        
-        if posobj.type== "nav" or posobj.type== "apt":
-            wptype = self.wpnav
-
-        elif posobj.type == "rwy":
-            wptype  = self.runway
-
-        else: # treat as lat/lon
-            name   = traf.id[idx]            
-            wptype   = self.wplatlon
-
-        # Default altitude, speed and afterwp if not given
-        alt     = -999.  if len(args) < 2 else args[1]
-        spd     = -999.  if len(args) < 3 else args[2]
-        afterwp = ""     if len(args) < 4 else args[3]
-
-        # Add waypoint
-        wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
-        
-        # Check for success by checking insetred locaiton in flight plan >= 0
-        if wpidx < 0:
-            return False, "Waypoint " + name + " not added."
-
-        # chekc for presence of orig/dest
-        norig = int(traf.fms.orig[idx] != "")
-        ndest = int(traf.fms.dest[idx] != "")
-
-        # Check whether this is first 'real' wayppint (not orig & dest), 
-        # And if so, make active
-        if self.nwp - norig - ndest == 1:  # first waypoint: make active
-            self.direct(traf, idx, self.wpname[norig])  # 0 if no orig
-            traf.swlnav[idx] = True
-
-        if afterwp and self.wpname.count(afterwp) == 0:
-            return True, "Waypoint " + afterwp + " not found" + \
-                "waypoint added at end of route"
+        success,posobj = txt2pos(name,traf,self.navdb,traf.lat[idx],traf.lon[idx])
+        if success:        
+            
+            lat      = posobj.lat
+            lon      = posobj.lat
+            
+            if posobj.type== "nav" or posobj.type== "apt":
+                wptype = self.wpnav
+    
+            elif posobj.type == "rwy":
+                wptype  = self.runway
+    
+            else: # treat as lat/lon
+                name   = traf.id[idx]            
+                wptype   = self.wplatlon
+    
+            # Default altitude, speed and afterwp if not given
+            alt     = -999.  if len(args) < 2 else args[1]
+            spd     = -999.  if len(args) < 3 else args[2]
+            afterwp = ""     if len(args) < 4 else args[3]
+    
+            # Add waypoint
+            wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
+            
+            # Check for success by checking insetred locaiton in flight plan >= 0
+            if wpidx < 0:
+                return False, "Waypoint " + name + " not added."
+    
+            # chekc for presence of orig/dest
+            norig = int(traf.fms.orig[idx] != "")
+            ndest = int(traf.fms.dest[idx] != "")
+    
+            # Check whether this is first 'real' wayppint (not orig & dest), 
+            # And if so, make active
+            if self.nwp - norig - ndest == 1:  # first waypoint: make active
+                self.direct(traf, idx, self.wpname[norig])  # 0 if no orig
+                traf.swlnav[idx] = True
+    
+            if afterwp and self.wpname.count(afterwp) == 0:
+                return True, "Waypoint " + afterwp + " not found" + \
+                    "waypoint added at end of route"
+            else:
+                return True
         else:
-            return True
+             return False,"Waypoint "+name+" not found."
+
 
     def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
