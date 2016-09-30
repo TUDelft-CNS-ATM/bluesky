@@ -618,9 +618,9 @@ class Perf():
 
         # allocate aircraft to their flight phase
         self.phase, self.bank = \
-        phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
-        self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
-        self.traf.hdgsel,swbada)
+           phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
+           self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
+           self.traf.hdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)
@@ -739,7 +739,7 @@ class Perf():
         return
 
     def limits(self):
-        """Flight envelope"""
+        """Flight envelope""" # Connect this with function limits in performance.py
 
         # combine minimum speeds and flight phases. Phases initial climb, cruise
         # and approach use the same CLmax and thus the same function for Vmin
@@ -757,11 +757,29 @@ class Perf():
 
 
         # forwarding to tools
-        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
-        limits(self.traf.pilot.spd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
-        self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
-        self.traf.pilot.alt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
-        self.D, self.traf.tas, self.mass, self.ESF)        
+        self.traf.limspd,          \
+        self.traf.limspd_flag,     \
+        self.traf.limalt,          \
+        self.traf.limvs,           \
+        self.traf.limvs_flag  =  limits(self.traf.pilot.spd,   \
+                                        self.traf.limspd,      \
+                                        self.traf.gs,          \
+                                        self.vmto,             \
+                                        self.vmin,             \
+                                        self.vmo,              \
+                                        self.mmo,              \
+                                        self.traf.M,           \
+                                        self.traf.alt,         \
+                                        self.hmaxact,          \
+                                        self.traf.pilot.alt,   \
+                                        self.traf.limalt,      \
+                                        self.maxthr,           \
+                                        self.Thr,              \
+                                        self.traf.limvs,       \
+                                        self.D,                \
+                                        self.traf.tas,         \
+                                        self.mass,             \
+                                        self.ESF)        
 
 
         return

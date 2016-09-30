@@ -286,7 +286,7 @@ class Traffic(DynamicArrays):
         self.adsb.update(simt)
 
         #---------- Fly the Aircraft --------------------------
-        self.fms.Guide(simt)
+        self.fms.update(simt)
         self.asas.update(simt)
         self.pilot.FMSOrAsas()
 
@@ -352,6 +352,7 @@ class Traffic(DynamicArrays):
 
     def ComputePosition(self,simdt):
         # Update position
+    
         self.alt = np.where(self.swaltsel, self.alt + self.vs*simdt, self.pilot.alt)
         self.lat = self.lat + np.degrees(simdt * self.gsnorth / Rearth)
         self.coslat = np.cos(np.deg2rad(self.lat))

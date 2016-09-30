@@ -63,7 +63,7 @@ class FMS(DynamicArrays):
         # Route objects
         del self.route[idx]
 
-    def Guide(self, simt):
+    def update(self, simt):
         # Scheduling: when dt has passed or restart
         if self.t0 + self.dt < simt or simt < self.t0:
             self.t0 = simt
@@ -129,13 +129,12 @@ class FMS(DynamicArrays):
             self.swvnavvs  = np.where(self.swnavvs, self.steepness*self.traf.gs, self.swvnavvs)
 
             self.vs = np.where(self.traf.swvnav, self.swvnavvs, self.traf.avsdef * self.traf.limvs_flag)
-            self.alt = np.where(self.swnavvs, self.traf.actwp.alt, self.alt)
-                    
+            self.alt = np.where(self.swnavvs, self.traf.actwp.alt, self.traf.apalt)
             # LNAV commanded track angle
             self.trk = np.where(self.traf.swlnav, qdr, self.trk)
 
         # Below crossover altitude: CAS=const, above crossover altitude: MA = const
-        self.tas = vcas2tas(self.spd, self.traf.alt)*self.traf.belco + vmach2tas(self.traf.ama, self.traf.alt)*self.traf.abco
+        self.tas = vcas2tas(self.traf.aspd, self.traf.alt)*self.traf.belco + vmach2tas(self.traf.ama, self.traf.alt)*self.traf.abco
 
     def ComputeVNAV(self, idx, toalt, xtoalt):
         if  not (toalt >=0 and self.traf.swvnav[idx]):
@@ -202,6 +201,7 @@ class FMS(DynamicArrays):
         # self.traf.vs[idx] = vspd
         self.traf.swvnav[idx] = False
 
+
     def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
         
@@ -223,7 +223,7 @@ class FMS(DynamicArrays):
 
     def selspd(self, idx, casmach):  # SPD command
         """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
-        dummy, self.traf.aspd[-1], self.traf.ama[-1] = casormach(casmach,self.traf.alt[idx])
+        dummy, self.traf.aspd[idx], self.traf.ama[idx] = casormach(casmach,self.traf.alt[idx])
         # Switch off VNAV: SPD command overrides
         self.traf.swvnav[idx]   = False
         return True
