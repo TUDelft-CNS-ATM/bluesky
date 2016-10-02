@@ -59,15 +59,16 @@ class Route():
             elif isflyby == "FLYOVER":
                 self.swflyby = False
                 return True
-
+       
 
         # Convert to positions
         name = args[0]
+
         success,posobj = txt2pos(name,traf,self.navdb,traf.lat[idx],traf.lon[idx])
         if success:        
             
             lat      = posobj.lat
-            lon      = posobj.lat
+            lon      = posobj.lon
             
             if posobj.type== "nav" or posobj.type== "apt":
                 wptype = self.wpnav
@@ -235,6 +236,7 @@ class Route():
                 if wptype == self.runway:
                     wplat = lat
                     wplon = lon
+                    wpok  = True
 
                 else:
                     i = self.navdb.getwpidx(name.upper().strip(), lat, lon)
