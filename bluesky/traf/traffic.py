@@ -140,7 +140,10 @@ class Traffic(DynamicArrays):
 
     def reset(self, navdb):
         self.ntraf = 0
-        
+ 
+        # TODO: Reset routes,fms etc. 
+ 
+ 
         self.resetParameters()
 
         # Reset models

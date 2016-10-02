@@ -670,6 +670,7 @@ class Route():
     def findact(self,traf,i):
         """ Find best default active waypoint. 
         This function is called during route creation"""
+        print "findact is called.!"
 
         # Check for easy answers first
         if self.nwp<=0:
@@ -693,8 +694,8 @@ class Route():
             
             # we only turn to the first waypoint if we can reach the required
             # heading before reaching the waypoint
-            time_turn = delhdg/(degrees(g0*tan(traf.bank[i])/traf.tas[i]))
-            time_straight= dist2[iwpnear]*nm/traf.tas[i]
+            time_turn = max(0.01,traf.tas[i])*radians(delhdg)/(g0*tan(traf.bank[i]))
+            time_straight= dist2[iwpnear]*nm/max(0.01,traf.tas[i])
             
             if time_turn >time_straight:
                 iwpnear = iwpnear+1         
