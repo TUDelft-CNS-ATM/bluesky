@@ -2,6 +2,7 @@ import numpy as np
 from ..tools.aero import ft
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
+
 class ADSB(DynamicArrays):
     """
     Traffic class definition    : Traffic data
@@ -24,38 +25,35 @@ class ADSB(DynamicArrays):
         # From here, define object arrays
         with RegisterElementParameters(self):
             # Most recent broadcast data
-            self.lastupdate= np.array([])
-            self.lat    = np.array([])
-            self.lon    = np.array([])
-            self.alt    = np.array([])
-            self.trk    = np.array([])
-            self.tas    = np.array([])
-            self.gs     = np.array([])
-            self.vs     = np.array([])
-        
+            self.lastupdate = np.array([])
+            self.lat        = np.array([])
+            self.lon        = np.array([])
+            self.alt        = np.array([])
+            self.trk        = np.array([])
+            self.tas        = np.array([])
+            self.gs         = np.array([])
+            self.vs         = np.array([])
+
         self.traf = traf
         self.SetNoise(False)
 
-    def SetNoise(self,n):
+    def SetNoise(self, n):
         self.transnoise = n
         self.truncated  = n
         self.transerror = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
-        self.trunctime  = 5 #[s]
-        
+        self.trunctime  = 5  # [s]
+
     def create(self):
-        self.CreateElement()
-        
-        self.lastupdate[-1] = -self.trunctime*np.random.rand(1)
+        super(ADSB, self).create()
+
+        self.lastupdate[-1] = -self.trunctime * np.random.rand(1)
         self.lat[-1] = self.traf.lat[-1]
         self.lon[-1] = self.traf.lon[-1]
         self.alt[-1] = self.traf.alt[-1]
         self.trk[-1] = self.traf.trk[-1]
         self.tas[-1] = self.traf.tas[-1]
         self.gs[-1]  = self.traf.gs[-1]
-        
-    def delete(self,idx):
-        self.DeleteElement(idx)
-        
+
     def update(self, time):
         up = np.where(self.lastupdate + self.trunctime < time)
         self.lat[up] = self.traf.lat[up]
@@ -65,4 +63,4 @@ class ADSB(DynamicArrays):
         self.tas[up] = self.traf.tas[up]
         self.gs[up]  = self.traf.gs[up]
         self.vs[up]  = self.traf.vs[up]
-        self.lastupdate[up]=self.lastupdate[up]+self.trunctime
+        self.lastupdate[up] = self.lastupdate[up] + self.trunctime

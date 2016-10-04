@@ -1,29 +1,25 @@
 import numpy as np
-from math import sqrt, sin, cos
+from math import sin, cos, radians
 
 from ..tools import geo
-from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2tas,  \
-                         mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
-                         vcas2tas, vtas2cas, vtas2mach, vcas2mach, vmach2tas, \
-                         vcasormach, casormach
-from ..tools.misc import degto180
+from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach
 from route import Route
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+
 
 class FMS(DynamicArrays):
     def __init__(self, traf):
         self.traf = traf
 
         # Scheduling of FMS and ASAS
-        self.t0 = -999. # last time fms was called
-        self.dt = 1.01  # interval for fms
+        self.t0 = -999.  # last time fms was called
+        self.dt = 1.01   # interval for fms
 
         # Standard self.steepness for descent
         self.steepness = 3000. * ft / (10. * nm)
-        
+
         # From here, define object arrays
         with RegisterElementParameters(self):
-            
             # FMS directions
             self.trk = np.array([])
             self.spd = np.array([])
@@ -32,9 +28,9 @@ class FMS(DynamicArrays):
             self.vs  = np.array([])
 
             # VNAV variables
-            self.dist2vs = np.array([]) # distance from coming waypoint to TOD
-            self.swnavvs = np.array([]) # whether to use given VS or not
-            self.swvnavvs = np.array([]) # vertical speed in VNAV
+            self.dist2vs  = np.array([])  # distance from coming waypoint to TOD
+            self.swnavvs  = np.array([])  # whether to use given VS or not
+            self.swvnavvs = np.array([])  # vertical speed in VNAV
 
             # Traffic navigation information
             self.orig = []  # Four letter code of origin airport
@@ -44,7 +40,7 @@ class FMS(DynamicArrays):
         self.route = []
 
     def create(self):
-        self.CreateElement()
+        super(FMS, self).create()
 
         # FMS directions
         self.tas[-1] = self.traf.tas[-1]
@@ -58,8 +54,8 @@ class FMS(DynamicArrays):
         # Route objects
         self.route.append(Route(self.traf.navdb))
 
-    def delete(self,idx):
-        self.DeleteElement(idx)
+    def delete(self, idx):
+        super(FMS, self).delete(idx)
         # Route objects
         del self.route[idx]
 
@@ -72,7 +68,7 @@ class FMS(DynamicArrays):
             qdr, dist = geo.qdrdist(self.traf.lat, self.traf.lon, self.traf.actwp.lat, self.traf.actwp.lon)  # [deg][nm])
 
             # Shift waypoints for aircraft i where necessary
-            for i in self.traf.actwp.Reached(qdr,dist):
+            for i in self.traf.actwp.Reached(qdr, dist):
                 # Save current wp speed
                 oldspd = self.traf.actwp.spd[i]
 
@@ -93,20 +89,20 @@ class FMS(DynamicArrays):
                 # User has entered an altitude for this waypoint
                 if alt >= 0.:
                     self.traf.actwp.alt[i] = alt
-                
+
                 if spd > 0. and self.traf.swlnav[i] and self.traf.swvnav[i]:
                     # Valid speed and LNAV and VNAV ap modes are on
                     self.traf.actwp.spd[i] = spd
                 else:
                     self.traf.actwp.spd[i] = -999.
-                
+
                 # VNAV spd mode: use speed of this waypoint as commanded speed
                 # while passing waypoint and save next speed for passing next wp
                 if self.traf.swvnav[i] and oldspd > 0.0:
-                    dummy, self.traf.aspd[i], self.traf.ama[i] = casormach(oldspd,self.traf.alt[i])
-                
+                    dummy, self.traf.aspd[i], self.traf.ama[i] = casormach(oldspd, self.traf.alt[i])
+
                 # VNAV = FMS ALT/SPD mode
-                self.ComputeVNAV(i,toalt,xtoalt)
+                self.ComputeVNAV(i, toalt, xtoalt)
 
             #=============== End of Waypoint switching loop ===================
 
@@ -118,15 +114,15 @@ class FMS(DynamicArrays):
             dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
             # VNAV logic: descend as late as possible, climb as soon as possible
-            govertical = self.traf.swvnav*np.logical_or(dist2wp < self.dist2vs, self.traf.actwp.alt > self.traf.alt)
+            govertical = self.traf.swvnav * np.logical_or(dist2wp < self.dist2vs, self.traf.actwp.alt > self.traf.alt)
 
             # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
             #    (because there are no more waypoints). This is needed
-                    #    to continue descending when you get into a conflict
-                    #    while descending to the destination (the last waypoint)
+            #    to continue descending when you get into a conflict
+            #    while descending to the destination (the last waypoint)
             self.swnavvs = np.where(self.traf.swlnav, govertical, dist < self.traf.actwp.turn)
 
-            self.swvnavvs  = np.where(self.swnavvs, self.steepness*self.traf.gs, self.swvnavvs)
+            self.swvnavvs  = np.where(self.swnavvs, self.steepness * self.traf.gs, self.swvnavvs)
 
             self.vs = np.where(self.traf.swvnav, self.swvnavvs, self.traf.avsdef * self.traf.limvs_flag)
             self.alt = np.where(self.swnavvs, self.traf.actwp.alt, self.traf.apalt)
@@ -134,13 +130,13 @@ class FMS(DynamicArrays):
             self.trk = np.where(self.traf.swlnav, qdr, self.trk)
 
         # Below crossover altitude: CAS=const, above crossover altitude: MA = const
-        self.tas = vcas2tas(self.traf.aspd, self.traf.alt)*self.traf.belco + vmach2tas(self.traf.ama, self.traf.alt)*self.traf.abco
+        self.tas = vcas2tas(self.traf.aspd, self.traf.alt) * self.traf.belco + vmach2tas(self.traf.ama, self.traf.alt) * self.traf.abco
 
     def ComputeVNAV(self, idx, toalt, xtoalt):
-        if  not (toalt >=0 and self.traf.swvnav[idx]):
+        if not (toalt >= 0 and self.traf.swvnav[idx]):
             self.dist2vs[idx] = -999
             return
-        
+
         # So: somewhere there is an altitude constraint ahead
         # Compute proper values for self.traf.actwp.alt, self.dist2vs, self.alt, self.traf.actwp.vs
         # Descent VNAV mode (T/D logic)
@@ -201,20 +197,19 @@ class FMS(DynamicArrays):
         # self.traf.vs[idx] = vspd
         self.traf.swvnav[idx] = False
 
-
     def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
-        
-        # If there is wind, compute the corresponding track angle            
-        if self.traf.wind.winddim>0:
-            tasnorth = self.traf.tas[idx]*cos(radians(hdg))
-            taseast  = self.traf.tas[idx]*sin(radians(hdg)) 
-            vnwnd,vewnd = self.traf.wind.getdata(self.traf.lat[idx],self.traf.lon[idx],self.traf.alt[idx])
+
+        # If there is wind, compute the corresponding track angle
+        if self.traf.wind.winddim > 0:
+            tasnorth = self.traf.tas[idx] * cos(radians(hdg))
+            taseast  = self.traf.tas[idx] * sin(radians(hdg))
+            vnwnd, vewnd = self.traf.wind.getdata(self.traf.lat[idx], self.traf.lon[idx], self.traf.alt[idx])
             gsnorth    = tasnorth + vnwnd
             gseast     = taseast  + vewnd
-            trk        = np.degrees(np.arctan2(gseast,gsnorth))
-        else:             
-            trk = hdg           
+            trk        = np.degrees(np.arctan2(gseast, gsnorth))
+        else:
+            trk = hdg
 
         self.trk[idx]  = trk
         self.traf.swlnav[idx] = False
@@ -223,7 +218,7 @@ class FMS(DynamicArrays):
 
     def selspd(self, idx, casmach):  # SPD command
         """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
-        dummy, self.traf.aspd[idx], self.traf.ama[idx] = casormach(casmach,self.traf.alt[idx])
+        dummy, self.traf.aspd[idx], self.traf.ama[idx] = casormach(casmach, self.traf.alt[idx])
         # Switch off VNAV: SPD command overrides
         self.traf.swvnav[idx]   = False
         return True
@@ -247,7 +242,7 @@ class FMS(DynamicArrays):
             lon = self.traf.navdb.aplon[apidx]
         else:
             lat, lon = args
-            name = self.traf.id[idx]+"DEST"
+            name = self.traf.id[idx] + "DEST"
 
         if cmd == "DEST":
             self.dest[idx] = name
@@ -279,7 +274,7 @@ class FMS(DynamicArrays):
         """ Set LNAV on or off for a specific or for all aircraft """
         if idx is None:
             # All aircraft are targeted
-            self.traf.swlnav = np.array(self.traf.ntraf*[flag])
+            self.traf.swlnav = np.array(self.traf.ntraf * [flag])
 
         elif flag is None:
             return True, (self.traf.id[idx] + ": LNAV is " + "ON" if self.traf.swlnav[idx] else "OFF")
@@ -298,7 +293,7 @@ class FMS(DynamicArrays):
         """ Set VNAV on or off for a specific or for all aircraft """
         if idx is None:
             # All aircraft are targeted
-            self.traf.swvnav = np.array(self.traf.ntraf*[flag])
+            self.traf.swvnav = np.array(self.traf.ntraf * [flag])
 
         elif flag is None:
             return True, (self.traf.id[idx] + ": VNAV is " + "ON" if self.traf.swvnav[idx] else "OFF")
