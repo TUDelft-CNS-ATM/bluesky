@@ -670,7 +670,7 @@ class Route():
     def findact(self,traf,i):
         """ Find best default active waypoint. 
         This function is called during route creation"""
-        print "findact is called.!"
+#        print "findact is called.!"
 
         # Check for easy answers first
         if self.nwp<=0:
