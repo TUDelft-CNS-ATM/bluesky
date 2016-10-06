@@ -25,6 +25,8 @@ class MainWindow(QMainWindow):
     def __init__(self, app, radarwidget):
         super(MainWindow, self).__init__()
         self.app = app
+        self.app.setWindowIcon(QIcon("./data/graphics/icon.gif"))
+        
         uic.loadUi("./data/graphics/mainwindow.ui", self)
 
         # list of buttons to connect to, give icons, and tooltips
