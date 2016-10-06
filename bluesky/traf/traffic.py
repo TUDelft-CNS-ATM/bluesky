@@ -136,6 +136,9 @@ class Traffic(DynamicArrays):
         self.reset(navdb)
 
     def reset(self, navdb):
+        
+        # This ensures that the traffic arrays (which size is dynamic) 
+        # are all reset as well, so all lat,lon,sdp etc but also objects adsb
         super(Traffic, self).reset()
         self.ntraf = 0
 

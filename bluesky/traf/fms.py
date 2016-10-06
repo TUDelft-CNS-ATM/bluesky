@@ -310,3 +310,9 @@ class FMS(DynamicArrays):
                 return False, ("VNAV " + self.traf.id[idx] + ": no waypoints or destination specified")
         else:
             self.traf.swvnav[idx] = False
+
+    def reset(self):
+        super(FMS,self).reset()
+        self.route = []
+        
+        

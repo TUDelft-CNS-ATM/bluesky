@@ -539,6 +539,7 @@ def setSeed(value):
 
 def reset():
     global scentime, scencmd, scenname
+
     scentime = []
     scencmd  = []
     scenname = ''
@@ -566,7 +567,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     # The entire filename, possibly with added path and extension
     scenfile = os.path.join(path, scenname + ext)
 
-    print scenfile
+    print "Opening ",scenfile
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
@@ -611,11 +612,17 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
 
 def ic(scr, sim, filename=''):
     global scenfile, scenname
+ 
+    # Get the filename of new scenario
     if filename == '':
         filename = scr.show_file_dialog()
     elif filename == "IC":
         filename = scenfile
+        
+    # Clean up filename
+    filename = filename.strip()
 
+    # Reset sim and open new scenario file
     if len(filename) > 0:
         sim.reset()
         result = openfile(filename)
