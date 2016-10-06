@@ -938,14 +938,15 @@ class Screen:
                absolute: lat,lon;
                relative: ABOVE/DOWN/LEFT/RIGHT"""
         lat, lon = self.ctrlat, self.ctrlon
-        if args[0] == "LEFT":
-            lon = lon - 0.5 * (self.lon1 - self.lon0)
-        elif args[0] == "RIGHT":
-            lon = lon + 0.5 * (self.lon1 - self.lon0)
-        elif args[0] == "ABOVE" or args[0] == "UP":
-            lat = lat + 0.5 * (self.lat1 - self.lat0)
-        elif args[0] == "DOWN":
-            lat = lat - 0.5 * (self.lat1 - self.lat0)
+        if type(args[0])==str:        
+            if args[0].upper() == "LEFT":
+                lon = lon - 0.5 * (self.lon1 - self.lon0)
+            elif args[0].upper() == "RIGHT":
+                lon = lon + 0.5 * (self.lon1 - self.lon0)
+            elif args[0].upper() == "ABOVE" or args[0].upper() == "UP":
+                lat = lat + 0.5 * (self.lat1 - self.lat0)
+            elif args[0].upper() == "DOWN":
+                lat = lat - 0.5 * (self.lat1 - self.lat0)
         else:
             if len(args)>1:
                 lat, lon = args

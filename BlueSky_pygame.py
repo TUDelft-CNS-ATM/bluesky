@@ -51,6 +51,9 @@ def MainLoop():
     print 'BlueSky normal end.'
     return
 
+#==============================================================================
+
+# Run mainloop if BlueSky_pygame is called directly
+
 if __name__ == '__main__':
-    # Run mainloop if BlueSky_pygame is called directly
     MainLoop()

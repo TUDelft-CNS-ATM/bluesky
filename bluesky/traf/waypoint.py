@@ -9,21 +9,21 @@ class ActiveWaypoint(DynamicArrays):
         self.traf = traf
 
         with RegisterElementParameters(self):
-            self.lat  = np.array([])  # Active WP latitude
-            self.lon  = np.array([])  # Active WP longitude
-            self.alt  = np.array([])  # Active WP altitude to arrive at
-            self.spd  = np.array([])  # Active WP speed
-            self.vs   = np.array([])  # Active vertical speed to use
-            self.turn = np.array([])  # Distance when to turn to next waypoint
-            self.flyby = np.array([])  # Distance when to turn to next waypoint
-            self.next_qdr  = np.array([])  # bearing next leg
+            self.lat      = np.array([])  # Active WP latitude
+            self.lon      = np.array([])  # Active WP longitude
+            self.alt      = np.array([])  # Active WP altitude to arrive at
+            self.spd      = np.array([])  # Active WP speed
+            self.vs       = np.array([])  # Active vertical speed to use
+            self.turndist = np.array([])  # Distance when to turn to next waypoint
+            self.flyby    = np.array([])  # Distance when to turn to next waypoint
+            self.next_qdr = np.array([])  # bearing next leg
 
     def create(self):
         super(ActiveWaypoint, self).create()
         # LNAV route navigation
         self.lat[-1]       = 89.99  # Active WP latitude
         self.spd[-1]       = -999.   # Active WP speed
-        self.turn[-1]      = 1.0   # Distance to active waypoint where to turn
+        self.turndist[-1]  = 1.0   # Distance to active waypoint where to turn
         self.flyby[-1]     = 1.0   # Flyby/fly-over switch
         self.next_qdr[-1]  = -999.0    # bearing next leg
 
@@ -36,8 +36,8 @@ class ActiveWaypoint(DynamicArrays):
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
         # distance to turn initialisation point
-        self.turn = np.maximum(100, np.abs(turnrad *
+        self.turndist = np.minimum(100, np.abs(turnrad *
             np.tan(np.radians(0.5 * degto180(np.abs(qdr - next_qdr))))))
 
         # Check whether shift based dist [nm] is required, set closer than WP turn distanc
-        return np.where(self.traf.swlnav * (dist < self.turn))[0]
+        return np.where(self.traf.swlnav * (dist < self.turndist))[0]

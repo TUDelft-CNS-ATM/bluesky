@@ -369,7 +369,7 @@ class Route():
 
             turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
 
-            traf.actwp.turn[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
+            traf.actwp.turndist[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
                         self.wpdirfrom[self.iactwp]))))))
 
             traf.swlnav[i] = True

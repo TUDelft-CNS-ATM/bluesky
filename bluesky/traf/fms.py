@@ -120,7 +120,7 @@ class FMS(DynamicArrays):
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
-            self.swnavvs = np.where(self.traf.swlnav, govertical, dist < self.traf.actwp.turn)
+            self.swnavvs = np.where(self.traf.swlnav, govertical, dist < self.traf.actwp.turndist)
 
             self.swvnavvs  = np.where(self.swnavvs, self.steepness * self.traf.gs, self.swvnavvs)
 
@@ -281,7 +281,7 @@ class FMS(DynamicArrays):
 
         elif flag:
             route = self.route[idx]
-            if route.nwp > 0:
+            if route.nwp > 0 and not self.traf.swlnav[idx]:
                 self.traf.swlnav[idx] = True
                 route.direct(self.traf, idx, route.wpname[route.findact(self.traf, idx)])
             else:
@@ -305,7 +305,6 @@ class FMS(DynamicArrays):
             route = self.route[idx]
             if route.nwp > 0:
                 self.traf.swvnav[idx] = True
-                route.direct(self.traf, idx, route.wpname[route.findact(self.traf, idx)])
             else:
                 return False, ("VNAV " + self.traf.id[idx] + ": no waypoints or destination specified")
         else:
