@@ -279,7 +279,7 @@ def init(sim, traf, scr):
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
-            "latlon/txt",
+            "float/latlon/txt[,float]",
             scr.pan
         ],
         "PCALL": [
@@ -539,6 +539,7 @@ def setSeed(value):
 
 def reset():
     global scentime, scencmd, scenname
+
     scentime = []
     scencmd  = []
     scenname = ''
@@ -566,7 +567,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     # The entire filename, possibly with added path and extension
     scenfile = os.path.join(path, scenname + ext)
 
-    print scenfile
+    print "Opening ",scenfile
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
@@ -611,11 +612,17 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
 
 def ic(scr, sim, filename=''):
     global scenfile, scenname
+ 
+    # Get the filename of new scenario
     if filename == '':
         filename = scr.show_file_dialog()
     elif filename == "IC":
         filename = scenfile
+        
+    # Clean up filename
+    filename = filename.strip()
 
+    # Reset sim and open new scenario file
     if len(filename) > 0:
         sim.reset()
         result = openfile(filename)
@@ -799,12 +806,16 @@ def process(sim, traf, scr):
                                 scr.echo("Syntax error in processing arguments")
                                 scr.echo(line)
                                 scr.echo(helptext)
+                                print "Error in processing arguments:"
+                                print line
                     curtype += 1
 
             # Call function return flag,text
             # flag: indicates sucess
             # text: optional error message
             if not synerr:
+                
+#                print cmd,arglist
                 results = function(*arglist)  # * = unpack list to call arguments
 
                 if type(results) == bool:  # Only flag is returned
@@ -957,17 +968,21 @@ def argparse(argtype, argidx, args, traf, scr):
 
         # for lat/lon argument type we also need to it up:
         elif argtype == "latlon":
-            posobj = txt2pos(name,traf,traf.navdb,reflat,reflon)
+            success,posobj = txt2pos(name,traf,traf.navdb,reflat,reflon)
 
-            # for runway type, get heading as default optional argument for command line
-            if posobj.type=="rwy":
-                rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
-                optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
-
-            reflat,reflon = posobj.lat,posobj.lon
-            
-            return [posobj.lat , posobj.lon],optargs,nusedargs
-       
+            if success:
+    
+                # for runway type, get heading as default optional argument for command line
+                if posobj.type=="rwy":
+                    rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
+                    optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
+    
+                reflat,reflon = posobj.lat,posobj.lon
+                
+                return [posobj.lat , posobj.lon],optargs,nusedargs
+            else:
+                scr.echo(posobj) # contains error message
+                return [None],{},1
 
     elif argtype == "spd":  # CAS[kts] Mach
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))

@@ -44,6 +44,9 @@ selsnapdt = 5.0
 # Prefer compiled BlueSky modules (cgeo, casas)
 prefer_compiled = True
 
+# Limit the max number of cpu nodes for parallel simulation
+max_nnodes = 999
+
 #=========================================================================
 #=  ASAS default settings
 #=========================================================================

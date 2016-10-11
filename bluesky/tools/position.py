@@ -3,7 +3,11 @@
 from misc import txt2lat, txt2lon
 
 def txt2pos(name,traf,navdb,reflat,reflon):
-    return Position(name.upper().strip(),traf,navdb,reflat,reflon)
+    pos = Position(name.upper().strip(),traf,navdb,reflat,reflon)
+    if not pos.error:
+        return True,pos
+    else:
+        return False,name+" not found in database"
 
 def islat(txt):
     # Is it a latitude-like format or not?
@@ -29,6 +33,7 @@ class Position():
     def __init__(self,name,traf,navdb,reflat,reflon):
 
         self.name = name # default: copy source name
+        self.error = False # we're optmistic about our succes
 
         # lat,lon type ?
         if name.count(",")>0: #lat,lon or apt,rwy type
@@ -84,7 +89,7 @@ class Position():
 #            name = clat + "%02d"%int(abs(round(lat))) + \
 #                   clon + "%03d"%int(abs(round(lon)))
         else:
-            pass
+            self.error = True            
             # raise error with missing data... (empty position object)
 
         return

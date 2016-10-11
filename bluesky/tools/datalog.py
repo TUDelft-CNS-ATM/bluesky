@@ -140,7 +140,7 @@ class CSVLogger:
         self.selvars.append((obj, obj.log_attrs))
         # Reset the object back to its original class, and remove its reference
         # to the list of log parameters.
-        obj.__class__ = obj.__class__.__bases__[0]
+        super(obj.__class__, obj).__setattr__('__class__', obj.__class__.__base__)
         del obj.log_attrs
         self.dataparents.pop()
 

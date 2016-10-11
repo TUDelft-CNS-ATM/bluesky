@@ -2,8 +2,8 @@
 
 1     # Fullscreen (0)  or window (1)
 
-1100  # width [pixels] window size <= means full screen
-840  # height [pixels] window size  <= means full screen
+1500  # width [pixels] window size 
+1040  # height [pixels] window size
 
 # Console/Edit window
 
