@@ -93,8 +93,8 @@ class Route():
                 return False, "Waypoint " + name + " not added."
     
             # chekc for presence of orig/dest
-            norig = int(traf.fms.orig[idx] != "")
-            ndest = int(traf.fms.dest[idx] != "")
+            norig = int(traf.ap.orig[idx] != "")
+            ndest = int(traf.ap.dest[idx] != "")
     
             # Check whether this is first 'real' wayppint (not orig & dest), 
             # And if so, make active
@@ -349,12 +349,12 @@ class Route():
 
                     if traf.alt[i] < self.wptoalt[i]-10.*ft:
                         traf.actwp.alt[i] = self.wptoalt[wpidx]
-                        traf.fms.dist2vs[i] = 9999.
+                        traf.ap.dist2vs[i] = 9999.
                     else:
                         steepness = 3000.*ft/(10.*nm)
                         traf.actwp.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
                         delalt = traf.alt[i] - traf.actwp.alt[i]
-                        traf.fms.dist2vs[i] = steepness*delalt
+                        traf.ap.dist2vs[i] = steepness*delalt
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]

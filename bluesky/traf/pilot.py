@@ -6,7 +6,7 @@ from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 class Pilot(DynamicArrays):
     def __init__(self, traf):
         self.traf = traf
-        self.fms  = traf.fms
+        self.ap  = traf.ap
         self.asas = self.traf.asas
 
         with RegisterElementParameters(self):
@@ -38,10 +38,10 @@ class Pilot(DynamicArrays):
             asastas = self.asas.spd
 
         # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on.
-        self.trk = np.where(self.asas.active, self.asas.trk, self.fms.trk)
-        self.spd = np.where(self.asas.active, asastas, self.fms.tas)
-        self.alt = np.where(self.asas.active, self.asas.alt, self.fms.alt)
-        self.vs  = np.where(self.asas.active, self.asas.vs, self.fms.vs)
+        self.trk = np.where(self.asas.active, self.asas.trk, self.ap.trk)
+        self.spd = np.where(self.asas.active, asastas, self.ap.tas)
+        self.alt = np.where(self.asas.active, self.asas.alt, self.ap.alt)
+        self.vs  = np.where(self.asas.active, self.asas.vs, self.ap.vs)
 
         # Compute the desired heading needed to compensate for the wind
         if self.traf.wind.winddim > 0:

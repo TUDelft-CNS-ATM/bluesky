@@ -235,7 +235,7 @@ class ScreenIO(QObject):
             data.acid          = self.route_acid
             idx   = self.sim.traf.id2idx(self.route_acid)
             if idx >= 0:
-                route          = self.sim.traf.fms.route[idx]
+                route          = self.sim.traf.ap.route[idx]
                 data.iactwp    = route.iactwp
 
                 # We also need the corresponding aircraft position

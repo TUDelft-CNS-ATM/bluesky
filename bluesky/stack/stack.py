@@ -62,14 +62,14 @@ def init(sim, traf, scr):
             # lambda: short-hand for using function output as argument, equivalent with:
             #
             # def fun(idx, args):
-            #     return traf.fms.route[idx].addwptStack(traf, idx, *args)
+            #     return traf.ap.route[idx].addwptStack(traf, idx, *args)
             # fun(idx,*args)
-            lambda idx, *args: traf.fms.route[idx].addwptStack(traf, idx, *args)
+            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args)
         ],
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
-            traf.fms.selalt
+            traf.ap.selalt
         ],
         "AREA": [
             "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
@@ -125,17 +125,17 @@ def init(sim, traf, scr):
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,txt",
-            lambda idx, wpname: traf.fms.route[idx].delwpt(wpname)
+            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname)
         ],
         "DEST": [
             "DEST acid, latlon/airport",
             "acid,wpt/latlon",
-            lambda idx, *args: traf.fms.setdestorig("DEST", idx, *args)
+            lambda idx, *args: traf.ap.setdestorig("DEST", idx, *args)
         ],
         "DIRECT": [
             "DIRECT acid wpname",
             "acid,txt",
-            lambda idx, wpname: traf.fms.route[idx].direct(traf, idx, wpname)
+            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname)
         ],
         "DIST": [
             "DIST lat0, lon0, lat1, lon1",
@@ -165,7 +165,7 @@ def init(sim, traf, scr):
         "DUMPRTE": [
             "DUMPRTE acid",
             "acid",
-            lambda idx: traf.fms.route[idx].dumpRoute(traf, idx)
+            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx)
         ],
         "ECHO": [
             "ECHO txt",
@@ -195,7 +195,7 @@ def init(sim, traf, scr):
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
-            traf.fms.selhdg
+            traf.ap.selhdg
         ],
         "HELP": [
             "HELP [command]",
@@ -225,12 +225,12 @@ def init(sim, traf, scr):
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: traf.fms.route[idx].listrte(scr, idx, traf, *args)
+            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args)
         ],
         "LNAV": [
             "LNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.fms.setLNAV
+            traf.ap.setLNAV
         ],
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
@@ -275,7 +275,7 @@ def init(sim, traf, scr):
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
-            lambda *args: traf.fms.setdestorig("ORIG", *args)
+            lambda *args: traf.ap.setdestorig("ORIG", *args)
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
@@ -375,7 +375,7 @@ def init(sim, traf, scr):
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
             "acid,spd",
-            traf.fms.selspd
+            traf.ap.selspd
         ],
         "SSD": [
             "SSD acid/ALL/OFF",
@@ -416,12 +416,12 @@ def init(sim, traf, scr):
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.fms.setVNAV
+            traf.ap.setVNAV
         ],
         "VS": [
             "VS acid,vspd (ft/min)",
             "acid,vspd",
-            traf.fms.selvspd
+            traf.ap.selvspd
         ],
         "WIND": [
             "WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]",
@@ -702,13 +702,13 @@ def saveic(fname, sim, traf):
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # DEST acid,dest-apt
-        if traf.fms.dest[i] != "":
-            cmdline = "DEST " + traf.id[i] + "," + traf.fms.dest[i]
+        if traf.ap.dest[i] != "":
+            cmdline = "DEST " + traf.id[i] + "," + traf.ap.dest[i]
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # ORIG acid,orig-apt
-        if traf.fms.orig[i] != "":
-            cmdline = "ORIG " + traf.id[i] + "," + traf.fms.orig[i]
+        if traf.ap.orig[i] != "":
+            cmdline = "ORIG " + traf.id[i] + "," + traf.ap.orig[i]
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
     # Saveic: should close

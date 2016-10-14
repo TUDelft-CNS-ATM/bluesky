@@ -726,29 +726,29 @@ class Screen:
             if self.acidrte != "":
                 i = traf.id2idx(self.acidrte)
                 if i >= 0:
-                    for j in range(0,traf.fms.route[i].nwp):
+                    for j in range(0,traf.ap.route[i].nwp):
                         if j==0:
-                            x1,y1 = self.ll2xy(traf.fms.route[i].wplat[j], \
-                                               traf.fms.route[i].wplon[j])
+                            x1,y1 = self.ll2xy(traf.ap.route[i].wplat[j], \
+                                               traf.ap.route[i].wplon[j])
                         else:
                             x0,y0 = x1,y1
-                            x1,y1 = self.ll2xy(traf.fms.route[i].wplat[j], \
-                                               traf.fms.route[i].wplon[j])
+                            x1,y1 = self.ll2xy(traf.ap.route[i].wplat[j], \
+                                               traf.ap.route[i].wplon[j])
                             pg.draw.line(self.win, magenta,(x0,y0),(x1,y1))
 
-                        if j>=len(self.rtewpid) or not self.rtewpid[j]==traf.fms.route[i].wpname[j]:
+                        if j>=len(self.rtewpid) or not self.rtewpid[j]==traf.ap.route[i].wpname[j]:
                             # Waypoint name labels
                             # If waypoint label bitmap does not yet exist, make it
 
                             wplabel = pg.Surface((50, 30), 0, self.win)
                             self.fontnav.printat(wplabel, 0, 0, \
-                                                 traf.fms.route[i].wpname[j])
+                                                 traf.ap.route[i].wpname[j])
 
                             if j>=len(self.rtewpid):                      
-                                self.rtewpid.append(traf.fms.route[i].wpname[j])
+                                self.rtewpid.append(traf.ap.route[i].wpname[j])
                                 self.rtewplabel.append(wplabel)
                             else:
-                                self.rtewpid[j]=traf.fms.route[i].wpname[j]
+                                self.rtewpid[j]=traf.ap.route[i].wpname[j]
                                 self.rtewplabel[j]= wplabel
 
                         # In any case, blit the waypoint name
@@ -758,7 +758,7 @@ class Screen:
                                          None, pg.BLEND_ADD)
 
                         # Line from aircraft to active waypoint    
-                        if traf.fms.route[i].iactwp == j:
+                        if traf.ap.route[i].iactwp == j:
                             x0,y0 = self.ll2xy(traf.lat[i],traf.lon[i])
                             pg.draw.line(self.win, magenta,(x0,y0),(x1,y1))
 

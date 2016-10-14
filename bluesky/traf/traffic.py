@@ -13,7 +13,7 @@ from trails import Trails
 from adsbmodel import ADSB
 from asas import ASAS
 from pilot import Pilot
-from fms import FMS
+from autopilot import Autopilot
 from waypoint import ActiveWaypoint
 from turbulence import Turbulence
 from area import Area
@@ -101,7 +101,7 @@ class Traffic(DynamicArrays):
 
             # Flight Models
             self.asas   = ASAS(self)
-            self.fms    = FMS(self)
+            self.ap     = Autopilot(self)
             self.pilot  = Pilot(self)
             self.adsb   = ADSB(self)
             self.trails = Trails(self)
@@ -240,7 +240,7 @@ class Traffic(DynamicArrays):
         self.eps[-1] = 0.01
 
         # ----- Submodules of Traffic -----
-        self.fms.create()
+        self.ap.create()
         self.actwp.create()
         self.pilot.create()
         self.adsb.create()
@@ -286,7 +286,7 @@ class Traffic(DynamicArrays):
         self.adsb.update(simt)
 
         #---------- Fly the Aircraft --------------------------
-        self.fms.update(simt)
+        self.ap.update(simt)
         self.asas.update(simt)
         self.pilot.FMSOrAsas()
 
@@ -388,7 +388,7 @@ class Traffic(DynamicArrays):
 
         if hdg:
             self.hdg[idx]  = hdg
-            self.fms.trk[idx] = hdg
+            self.ap.trk[idx] = hdg
 
         if casmach:
             self.tas[idx], self.aspd[-1], dummy = casormach(casmach, alt)
@@ -408,7 +408,7 @@ class Traffic(DynamicArrays):
         alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], self.trk[idx]
         cas           = self.cas[idx] / kts
         tas           = self.tas[idx] / kts
-        route         = self.fms.route[idx]
+        route         = self.ap.route[idx]
         line = "Info on %s %s index = %d\n" % (acid, actype, idx) \
              + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
              + "Alt = %d ft, Hdg = %d, Trk = %d\n" % (alt, hdg, trk)
@@ -416,11 +416,11 @@ class Traffic(DynamicArrays):
             if self.swvnav[idx]:
                 line += "VNAV, "
             line += "LNAV to " + route.wpname[route.iactwp] + "\n"
-        if self.fms.orig[idx] != "" or self.fms.dest[idx] != "":
+        if self.ap.orig[idx] != "" or self.ap.dest[idx] != "":
             line += "Flying"
-            if self.fms.orig[idx] != "":
-                line += " from " + self.fms.orig[idx]
-            if self.fms.dest[idx] != "":
-                line += " to " + self.fms.dest[idx]
+            if self.ap.orig[idx] != "":
+                line += " from " + self.ap.orig[idx]
+            if self.ap.dest[idx] != "":
+                line += " to " + self.ap.dest[idx]
 
         return line

@@ -7,7 +7,7 @@ from route import Route
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
-class FMS(DynamicArrays):
+class Autopilot(DynamicArrays):
     def __init__(self, traf):
         self.traf = traf
 
@@ -20,6 +20,7 @@ class FMS(DynamicArrays):
 
         # From here, define object arrays
         with RegisterElementParameters(self):
+
             # FMS directions
             self.trk = np.array([])
             self.spd = np.array([])
@@ -40,7 +41,7 @@ class FMS(DynamicArrays):
         self.route = []
 
     def create(self):
-        super(FMS, self).create()
+        super(Autopilot, self).create()
 
         # FMS directions
         self.tas[-1] = self.traf.tas[-1]
@@ -55,7 +56,7 @@ class FMS(DynamicArrays):
         self.route.append(Route(self.traf.navdb))
 
     def delete(self, idx):
-        super(FMS, self).delete(idx)
+        super(Autopilot, self).delete(idx)
         # Route objects
         del self.route[idx]
 
@@ -311,7 +312,7 @@ class FMS(DynamicArrays):
             self.traf.swvnav[idx] = False
 
     def reset(self):
-        super(FMS,self).reset()
+        super(Autopilot,self).reset()
         self.route = []
         
         
