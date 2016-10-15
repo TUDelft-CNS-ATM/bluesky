@@ -279,7 +279,7 @@ def init(sim, traf, scr):
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
-            "float/latlon/txt[,float]",
+            "latlon/txt",
             scr.pan
         ],
         "PCALL": [
