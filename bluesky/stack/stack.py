@@ -279,7 +279,7 @@ def init(sim, traf, scr):
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
-            "latlon/txt",
+            "pandir/latlon/txt",
             scr.pan
         ],
         "PCALL": [
@@ -788,10 +788,14 @@ def process(sim, traf, scr):
                         try:    
                             argtypei = argtype[i]
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
+
+                            # Missing arguments, so maybe not filled in so enter optargs?
                             if parsed_arg[0] is None and argtypei in optargs:
                                 arglist += optargs[argtypei]
+
                             else:
                                 arglist += parsed_arg
+
                             optargs.update(opt_arg)
                             curarg  += argstep
                             break
@@ -983,6 +987,13 @@ def argparse(argtype, argidx, args, traf, scr):
             else:
                 scr.echo(posobj) # contains error message
                 return [None],{},1
+
+    elif argtype == "pandir":  # Pan direction
+
+        if args[argidx].upper().strip() in ["LEFT","RIGHT","UP","ABOVE","RIGHT","DOWN"]: 
+            return [args[argidx].upper()], {}, 1  # pass on string to pan function
+        else:
+            raise IndexError
 
     elif argtype == "spd":  # CAS[kts] Mach
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
