@@ -519,11 +519,10 @@ class Screen:
 
 
             #--------- Draw traffic area ---------
-            if traf.swarea and not self.swnavdisp:
-
-                if traf.area == "Square":
-                    x0, y0 = self.ll2xy(traf.arealat0, traf.arealon0)
-                    x1, y1 = self.ll2xy(traf.arealat1, traf.arealon1)
+            if traf.area.active and not self.swnavdisp:
+                if traf.area.shape == "Square":
+                    x0, y0 = self.ll2xy(traf.area.lat0, traf.area.lon0)
+                    x1, y1 = self.ll2xy(traf.area.lat1, traf.area.lon1)
 
                     pg.draw.line(self.radbmp, blue, (x0, y0), (x1, y0))
                     pg.draw.line(self.radbmp, blue, (x1, y0), (x1, y1))
@@ -531,7 +530,7 @@ class Screen:
                     pg.draw.line(self.radbmp, blue, (x0, y1), (x0, y0))
 
                 #FIR CIRCLE
-                if traf.area == "Circle":
+                if traf.area.shape == "Circle":
                     lat2_circle, lon2_circle = geo.qdrpos(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1],
                                                       180, sim.metric.fir_circle_radius)
 
@@ -727,29 +726,29 @@ class Screen:
             if self.acidrte != "":
                 i = traf.id2idx(self.acidrte)
                 if i >= 0:
-                    for j in range(0,traf.route[i].nwp):
+                    for j in range(0,traf.ap.route[i].nwp):
                         if j==0:
-                            x1,y1 = self.ll2xy(traf.route[i].wplat[j], \
-                                               traf.route[i].wplon[j])
+                            x1,y1 = self.ll2xy(traf.ap.route[i].wplat[j], \
+                                               traf.ap.route[i].wplon[j])
                         else:
                             x0,y0 = x1,y1
-                            x1,y1 = self.ll2xy(traf.route[i].wplat[j], \
-                                               traf.route[i].wplon[j])
+                            x1,y1 = self.ll2xy(traf.ap.route[i].wplat[j], \
+                                               traf.ap.route[i].wplon[j])
                             pg.draw.line(self.win, magenta,(x0,y0),(x1,y1))
 
-                        if j>=len(self.rtewpid) or not self.rtewpid[j]==traf.route[i].wpname[j]:
+                        if j>=len(self.rtewpid) or not self.rtewpid[j]==traf.ap.route[i].wpname[j]:
                             # Waypoint name labels
                             # If waypoint label bitmap does not yet exist, make it
 
                             wplabel = pg.Surface((50, 30), 0, self.win)
                             self.fontnav.printat(wplabel, 0, 0, \
-                                                 traf.route[i].wpname[j])
+                                                 traf.ap.route[i].wpname[j])
 
                             if j>=len(self.rtewpid):                      
-                                self.rtewpid.append(traf.route[i].wpname[j])
+                                self.rtewpid.append(traf.ap.route[i].wpname[j])
                                 self.rtewplabel.append(wplabel)
                             else:
-                                self.rtewpid[j]=traf.route[i].wpname[j]
+                                self.rtewpid[j]=traf.ap.route[i].wpname[j]
                                 self.rtewplabel[j]= wplabel
 
                         # In any case, blit the waypoint name
@@ -759,7 +758,7 @@ class Screen:
                                          None, pg.BLEND_ADD)
 
                         # Line from aircraft to active waypoint    
-                        if traf.route[i].iactwp == j:
+                        if traf.ap.route[i].iactwp == j:
                             x0,y0 = self.ll2xy(traf.lat[i],traf.lon[i])
                             pg.draw.line(self.win, magenta,(x0,y0),(x1,y1))
 
@@ -939,14 +938,15 @@ class Screen:
                absolute: lat,lon;
                relative: ABOVE/DOWN/LEFT/RIGHT"""
         lat, lon = self.ctrlat, self.ctrlon
-        if args[0] == "LEFT":
-            lon = lon - 0.5 * (self.lon1 - self.lon0)
-        elif args[0] == "RIGHT":
-            lon = lon + 0.5 * (self.lon1 - self.lon0)
-        elif args[0] == "ABOVE" or args[0] == "UP":
-            lat = lat + 0.5 * (self.lat1 - self.lat0)
-        elif args[0] == "DOWN":
-            lat = lat - 0.5 * (self.lat1 - self.lat0)
+        if type(args[0])==str:        
+            if args[0].upper() == "LEFT":
+                lon = lon - 0.5 * (self.lon1 - self.lon0)
+            elif args[0].upper() == "RIGHT":
+                lon = lon + 0.5 * (self.lon1 - self.lon0)
+            elif args[0].upper() == "ABOVE" or args[0].upper() == "UP":
+                lat = lat + 0.5 * (self.lat1 - self.lat0)
+            elif args[0].upper() == "DOWN":
+                lat = lat - 0.5 * (self.lat1 - self.lat0)
         else:
             if len(args)>1:
                 lat, lon = args

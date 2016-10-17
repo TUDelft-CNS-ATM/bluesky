@@ -182,3 +182,4 @@ class Simulation:
         self.traf.reset(self.navdb)
         datalog.reset()
         areafilter.reset()
+

@@ -2,6 +2,7 @@ from math import *
 import numpy as np
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
+
 class Trails(DynamicArrays):
     """
     Traffic trails class definition    : Data for trails
@@ -16,8 +17,8 @@ class Trails(DynamicArrays):
 
     def __init__(self, traf, dttrail=30.):
         self.traf = traf
-        self.active = False # Wether or not to show trails
-        self.dt = dttrail  # Resolution of trail pieces in time
+        self.active = False  # Wether or not to show trails
+        self.dt = dttrail    # Resolution of trail pieces in time
 
         self.tcol0 = 60.  # After how many seconds old colour
 
@@ -56,13 +57,11 @@ class Trails(DynamicArrays):
         return
 
     def create(self):
-        self.CreateElement()
+        super(Trails, self).create()
+
         self.accolor[-1] = self.defcolor
         self.lastlat[-1] = self.traf.lat[-1]
         self.lastlon[-1] = self.traf.lon[-1]
-
-    def delete(self,idx):
-        self.DeleteElement(idx)
 
     def update(self, t):
         if not self.active:
@@ -89,14 +88,14 @@ class Trails(DynamicArrays):
 
         for i in idxs:
             # Add to lists
-            lstlat0.append(self.lastlat [i])
+            lstlat0.append(self.lastlat[i])
             lstlon0.append(self.lastlon[i])
             lstlat1.append(self.traf.lat[i])
             lstlon1.append(self.traf.lon[i])
             lsttime.append(t)
             self.acid.append(self.traf.id[i])
 
-            if type(self.col) == type(np.array(1)):
+            if isinstance(self.col, np.ndarray):
                 # print type(trailcol[i])
                 # print trailcol[i]
                 # print "col type: ",type(self.col)
@@ -132,9 +131,9 @@ class Trails(DynamicArrays):
         self.bgtime = np.append(self.bgtime, self.time)
 
         # No color saved: bBackground: always 'old color' self.col0
-        if type(self.bgcol) == type(np.array(1)):
+        if isinstance(self.bgcol, np.ndarray):
             self.bgcol = self.bgcol.tolist()
-        if type(self.col) == type(np.array(1)):
+        if isinstance(self.col, np.ndarray):
             self.col = self.col.tolist()
 
         self.bgcol = self.bgcol + self.col

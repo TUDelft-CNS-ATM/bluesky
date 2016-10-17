@@ -4,8 +4,6 @@ from ...tools.aero import ft, nm
 from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
-from ... import settings
-
 # Import default CD methods
 try:
     import casas as StateBasedCD
@@ -40,10 +38,10 @@ class ASAS(DynamicArrays):
     def addCRMethod(asas, name, module):
         asas.CRmethods[name] = module
 
-    def __init__(self,traf):
+    def __init__(self, traf):
         self.traf = traf
         with RegisterElementParameters(self):
-            # ASAS info per aircraft:  
+            # ASAS info per aircraft:
             self.iconf    = []            # index in 'conflicting' aircraft database
 
             self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
@@ -56,8 +54,7 @@ class ASAS(DynamicArrays):
         self.reset()
 
     def reset(self):
-
-        self.resetParameters()
+        super(ASAS, self).reset()
 
         """ ASAS constructor """
         self.cd_name      = "STATEBASED"
@@ -70,8 +67,8 @@ class ASAS(DynamicArrays):
         self.mar          = settings.asas_mar          # [-] Safety margin for evasion
         self.R            = settings.asas_pzr * nm     # [m] Horizontal separation minimum for detection
         self.dh           = settings.asas_pzh * ft     # [m] Vertical separation minimum for detection
-        self.Rm           = self.R * self.mar          # [m] Horizontal separation minimum for resolution 
-        self.dhm          = self.dh * self.mar         # [m] Vertical separation minimum for resolution 
+        self.Rm           = self.R * self.mar          # [m] Horizontal separation minimum for resolution
+        self.dhm          = self.dh * self.mar         # [m] Vertical separation minimum for resolution
         self.swasas       = True                       # [-] whether to perform CD&R
         self.tasas        = 0.0                        # Next time ASAS should be called
 
@@ -328,16 +325,13 @@ class ASAS(DynamicArrays):
         self.swresooff = len(self.resoofflst)>0  
 
     def create(self):
-        self.CreateElement()
+        super(ASAS, self).create()
 
         # ASAS output commanded values
         self.trk[-1] = self.traf.trk[-1]
         self.spd[-1] = self.traf.tas[-1]
         self.alt[-1] = self.traf.alt[-1]
 
-    def delete(self, idx):
-        self.DeleteElement(idx)
-        
     def update(self, simt):
         iconf0 = np.array(self.iconf)
 

@@ -1,5 +1,7 @@
 from ..settings import gui, data_path
-
+import numpy as np
+from math import cos, radians, degrees, sqrt, atan2, sin, asin
+from zipfile import ZipFile
 REARTH_INV = 1.56961231e-7
 
 
@@ -32,6 +34,7 @@ def load_coastline_txt():
 
 
 if gui == 'qtgl':
+    import OpenGL.GLU as glu
     try:
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QApplication, QProgressDialog
@@ -65,11 +68,6 @@ if gui == 'qtgl':
         def close(self):
             if self.dialog:
                 self.dialog.close()
-
-    import OpenGL.GLU as glu
-    import numpy as np
-    from math import cos, radians, degrees, sqrt, atan2, sin, asin
-    from zipfile import ZipFile
 
     tess = glu.gluNewTess()
     glu.gluTessCallback(tess, glu.GLU_TESS_VERTEX_DATA, lambda vertex, vbuf: vbuf.extend(vertex[0:2]))

@@ -151,6 +151,41 @@ def process(command, numargs, cmdargs, sim, traf, scr):
                 # cmd.saveic(fname,sim,traf)
             return True
 
+    elif command == "FUNNEL":
+        if numargs ==0:
+            scr.echo(callsign+"FUNNEL <FUNNELSIZE IN NUMBER OF A/C>")
+        else:
+            scr.isoalt=0
+            traf.deleteall()
+            traf.asas=CASASfunnel.Dbconf(traf,300., 5.*nm, 1000.*ft)
+            size=float(commandargs[1])
+            mperdeg=111319.
+            distance=0.90 #this is in degrees lat/lon, for now
+            alt=20000 #meters
+            spd=200 #kts
+            numac=8 #number of aircraft
+            for i in range(numac):
+                angle=np.pi/2/numac*i+np.pi/4
+                acid="SUP"+str(i)
+                traf.create(acid,"SUPER",distance*-np.cos(angle),distance*-np.sin(angle),90,alt,spd)             
+                
+            separation=traf.asas.R*1.01 #[m] the factor 1.01 is so that the funnel doesn't collide with itself
+            sepdeg=separation/np.sqrt(2.)/mperdeg #[deg]
+            
+            for row in range(1):
+                for col in range(15):
+                    opening=(size+1)/2.*separation/mperdeg
+                    Coldeg=sepdeg*col  #[deg]
+                    Rowdeg=sepdeg*row  #[deg]
+                    acid1="FUNN"+str(row)+"-"+str(col)
+                    acid2="FUNL"+str(row)+"-"+str(col)
+                    traf.create(acid1,"FUNNEL", Coldeg+Rowdeg+opening,-Coldeg+Rowdeg+0.5,0,alt,0)             
+                    traf.create(acid2,"FUNNEL",-Coldeg-Rowdeg-opening,-Coldeg+Rowdeg+0.5,0,alt,0)
+                    
+            if savescenarios:
+                fname="funnel"+str(size)
+                cmd.saveic(fname,sim,traf)
+
     # create a conflict with several aircraft flying in a matrix formation    
     elif command == "MATRIX":
         if numargs ==0:

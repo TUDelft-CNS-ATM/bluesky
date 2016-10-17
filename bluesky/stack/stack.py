@@ -34,6 +34,7 @@ cmddict   = dict()
 cmdsynon  = dict()
 cmdstack  = []
 
+scenname  = ""
 scenfile  = ""
 scentime  = []
 scencmd   = []
@@ -61,14 +62,14 @@ def init(sim, traf, scr):
             # lambda: short-hand for using function output as argument, equivalent with:
             #
             # def fun(idx, args):
-            #     return traf.fms.route[idx].addwptStack(traf, idx, *args)
+            #     return traf.ap.route[idx].addwptStack(traf, idx, *args)
             # fun(idx,*args)
-            lambda idx, *args: traf.fms.route[idx].addwptStack(traf, idx, *args)
+            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args)
         ],
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
-            traf.fms.selalt
+            traf.ap.selalt
         ],
         "AREA": [
             "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
@@ -124,17 +125,17 @@ def init(sim, traf, scr):
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,txt",
-            lambda idx, wpname: traf.fms.route[idx].delwpt(wpname)
+            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname)
         ],
         "DEST": [
             "DEST acid, latlon/airport",
-            "acid,wpt/pos",
-            lambda idx, *args: traf.fms.setDestOrig("DEST", idx, *args)
+            "acid,wpt/latlon",
+            lambda idx, *args: traf.ap.setdestorig("DEST", idx, *args)
         ],
         "DIRECT": [
             "DIRECT acid wpname",
             "acid,txt",
-            lambda idx, wpname: traf.fms.route[idx].direct(traf, idx, wpname)
+            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname)
         ],
         "DIST": [
             "DIST lat0, lon0, lat1, lon1",
@@ -164,7 +165,7 @@ def init(sim, traf, scr):
         "DUMPRTE": [
             "DUMPRTE acid",
             "acid",
-            lambda idx: traf.fms.route[idx].dumpRoute(traf, idx)
+            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx)
         ],
         "ECHO": [
             "ECHO txt",
@@ -194,7 +195,7 @@ def init(sim, traf, scr):
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
-            traf.fms.selhdg
+            traf.ap.selhdg
         ],
         "HELP": [
             "HELP [command]",
@@ -224,12 +225,12 @@ def init(sim, traf, scr):
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: traf.fms.route[idx].listrte(scr, idx, traf, *args)
+            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args)
         ],
         "LNAV": [
             "LNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.fms.setLNAV
+            traf.ap.setLNAV
         ],
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
@@ -274,11 +275,11 @@ def init(sim, traf, scr):
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
-            lambda *args: traf.fms.setDestOrig("ORIG", *args)
+            lambda *args: traf.ap.setdestorig("ORIG", *args)
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
-            "latlon/txt",
+            "pandir/latlon/txt",
             scr.pan
         ],
         "PCALL": [
@@ -365,7 +366,7 @@ def init(sim, traf, scr):
         "SCEN": [
             "SCEN scenname",
             "string",
-            sim.scenarioInit
+            scenarioinit
         ],
         "SEED": [
             "SEED value",
@@ -374,7 +375,7 @@ def init(sim, traf, scr):
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
             "acid,spd",
-            traf.fms.selspd
+            traf.ap.selspd
         ],
         "SSD": [
             "SSD acid/ALL/OFF",
@@ -415,12 +416,12 @@ def init(sim, traf, scr):
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.fms.setVNAV
+            traf.ap.setVNAV
         ],
         "VS": [
             "VS acid,vspd (ft/min)",
             "acid,vspd",
-            traf.fms.selvspd
+            traf.ap.selvspd
         ],
         "WIND": [
             "WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]",
@@ -488,8 +489,8 @@ def init(sim, traf, scr):
     stack("ZOOM 0.4")
 
 
-def get_scenfile():
-    return scenfile
+def get_scenname():
+    return scenname
 
 
 def get_scendata():
@@ -500,6 +501,12 @@ def set_scendata(newtime, newcmd):
     global scentime, scencmd
     scentime = newtime
     scencmd  = newcmd
+
+
+def scenarioinit(name):
+    global scenname
+    scenname = name
+    return True, 'Starting scenario ' + name
 
 
 def append_commands(newcommands):
@@ -531,9 +538,11 @@ def setSeed(value):
 
 
 def reset():
-    global scentime, scencmd
+    global scentime, scencmd, scenname
+
     scentime = []
     scencmd  = []
+    scenname = ''
 
 
 def stack(cmdline):
@@ -544,25 +553,25 @@ def stack(cmdline):
             cmdstack.append(line)
 
 
-def openfile(scenname, absrel='ABS', mergeWithExisting=False):
+def openfile(fname, absrel='ABS', mergeWithExisting=False):
     global scentime, scencmd
+
+    # Split the incoming filename into a path, a filename and an extension
+    path, fname   = os.path.split(os.path.normpath(fname))
+    scenname, ext = os.path.splitext(fname)
+    if len(path) == 0:
+        path = os.path.normpath(settings.scenario_path)
+    if len(ext) == 0:
+        ext = '.scn'
+
+    # The entire filename, possibly with added path and extension
+    scenfile = os.path.join(path, scenname + ext)
+
+    print "Opening ",scenfile
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
     t_offset = sim.simt if absrel == 'REL' else 0.0
-
-    # Add .scn extension if necessary
-    if scenname.lower().find(".scn") < 0:
-        scenname = scenname + ".scn"
-
-    # If it is with a path don't touch it, else add path
-    if scenname.find("/") < 0 and scenname.find( "\\") < 0:
-        scenfile = settings.scenario_path
-        if scenfile[-1] is not '/':
-            scenfile = scenfile + '/'
-        scenfile = scenfile+scenname
-    else:
-        scenfile = scenname
 
     if not os.path.exists(scenfile):
         return False, "Error: cannot find file: " + scenfile
@@ -581,15 +590,15 @@ def openfile(scenname, absrel='ABS', mergeWithExisting=False):
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
-                    tstamp = line[:icmdline]
-                    ttxt = tstamp.strip().split(':')
-                    ihr = int(ttxt[0]) * 3600.0
-                    imin = int(ttxt[1]) * 60.0
-                    xsec = float(ttxt[2])
+                    tstamp   = line[:icmdline]
+                    ttxt     = tstamp.strip().split(':')
+                    ihr      = int(ttxt[0]) * 3600.0
+                    imin     = int(ttxt[1]) * 60.0
+                    xsec     = float(ttxt[2])
                     scentime.append(ihr + imin + xsec + t_offset)
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 except:
-                    if not(len(line.strip())>0 and line.strip()[0]=="#"):                        
+                    if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
                         print "except this:", line
                     pass  # nice try, we will just ignore this syntax error
 
@@ -602,17 +611,24 @@ def openfile(scenname, absrel='ABS', mergeWithExisting=False):
 
 
 def ic(scr, sim, filename=''):
-    global scenfile
+    global scenfile, scenname
+ 
+    # Get the filename of new scenario
     if filename == '':
         filename = scr.show_file_dialog()
     elif filename == "IC":
         filename = scenfile
+        
+    # Clean up filename
+    filename = filename.strip()
 
+    # Reset sim and open new scenario file
     if len(filename) > 0:
         sim.reset()
         result = openfile(filename)
-        if type(result) is bool:
-            scenfile = filename
+        if result is True:
+            scenfile    = filename
+            scenname, _ = os.path.splitext(os.path.basename(filename))
             return True, "Opened " + filename
         else:
             return result
@@ -686,13 +702,13 @@ def saveic(fname, sim, traf):
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # DEST acid,dest-apt
-        if traf.fms.dest[i] != "":
-            cmdline = "DEST " + traf.id[i] + "," + traf.fms.dest[i]
+        if traf.ap.dest[i] != "":
+            cmdline = "DEST " + traf.id[i] + "," + traf.ap.dest[i]
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # ORIG acid,orig-apt
-        if traf.fms.orig[i] != "":
-            cmdline = "ORIG " + traf.id[i] + "," + traf.fms.orig[i]
+        if traf.ap.orig[i] != "":
+            cmdline = "ORIG " + traf.id[i] + "," + traf.ap.orig[i]
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
     # Saveic: should close
@@ -706,6 +722,7 @@ def process(sim, traf, scr):
 
     # Process stack of commands
     for line in cmdstack:
+#debug        print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
         if len(line) == 0:
@@ -771,10 +788,14 @@ def process(sim, traf, scr):
                         try:    
                             argtypei = argtype[i]
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
+
+                            # Missing arguments, so maybe not filled in so enter optargs?
                             if parsed_arg[0] is None and argtypei in optargs:
                                 arglist += optargs[argtypei]
+
                             else:
                                 arglist += parsed_arg
+
                             optargs.update(opt_arg)
                             curarg  += argstep
                             break
@@ -789,12 +810,16 @@ def process(sim, traf, scr):
                                 scr.echo("Syntax error in processing arguments")
                                 scr.echo(line)
                                 scr.echo(helptext)
+                                print "Error in processing arguments:"
+                                print line
                     curtype += 1
 
             # Call function return flag,text
             # flag: indicates sucess
             # text: optional error message
             if not synerr:
+                
+#                print cmd,arglist
                 results = function(*arglist)  # * = unpack list to call arguments
 
                 if type(results) == bool:  # Only flag is returned
@@ -888,53 +913,87 @@ def argparse(argtype, argidx, args, traf, scr):
               args[argidx] == "1" or args[argidx] == "TRUE")
         return [sw], {}, 1
 
-    elif argtype=="latlon" or argtype=="wpt": # latlon and waypoint type
+    elif argtype=="wpt" or argtype =="latlon":
 
+        # wpt: Make 1 or 2 argument(s) into 1 position text to be used as waypoint
+        # latlon: return lat,lon to be used as a position only
+
+        # Examples valid position texts:
+        # lat/lon : "N52.12,E004.23","N52'14'12',E004'23'10"
+        # navaid/fix: "SPY","OA","SUGOL"
+        # airport:   "EHAM"
+        # runway:    "EHAM/RW06" "LFPG/RWY23"    
+
+        # Set default lat,lon to screen
         if reflat<180.: # No reference avaiable yet: use screen center
             reflat,reflon = scr.ctrlat,scr.ctrlon
 
-        optargs = {}
-        usedargs = 1
+        optargs= {}
 
-        # lat/lon type
-        if islat(args[argidx]) and len(args) > argidx + 1: 
-            posobj,usedargs = txt2pos([args[argidx],args[argidx+1]],traf,traf.navdb,reflat,reflon)
-        # fix/navaid/airport/runway or a/c id
+        # If last argument, no lat,lom or airport,runway so simply return this argument
+        if len(args)-1 == argidx:
+            
+            # translate a/c id into a valid position text with a lat,lon
+            if traf.id2idx(args[argidx])>=0:
+                idx  = traf.id2idx(args[argidx])
+                name = str(traf.lat[idx])+","+str(traf.lon[idx])
+            else:
+                name = args[argidx]
+            nusedargs = 1  # we used one argument
+
+        # Check occasionally also next arg
         else:
-            posobj,usedargs = txt2pos(args[argidx],traf,traf.navdb,reflat,reflon)
-        
+            # lat,lon ? Combine into one string with a comma
+            if islat(args[argidx]):
+                name = args[argidx]+","+args[argidx+1]
+                nusedargs = 2   # we used two arguments               
 
-        # If it's an airport check for next arg a runway and process it 
-        if posobj.type=="apt" and len(args) > argidx + 1  and   \
-           len(args[argidx + 1])>1 and args[argidx + 1][:2].upper()=="RW":
+            # apt,runway ? Combine into one string with a slash as separator
+            elif args[argidx+1][:2].upper() == "RW" and traf.navdb.apid.count(args[argidx])>0:
+                name = args[argidx]+"/"+args[argidx+1]
+                nusedargs = 2   # we used two arguments               
+
+            # aircraft id? convert to lat/lon string
+            elif traf.id2idx(argidx)>=0:
+                idx = traf.id2idx(args[argidx])
+                name = str(traf.lat[idx])+","+str(traf.lon[idx])
+                nusedargs = 1
+
+            # In other cases parse string as position
+            else:
+                name = args[argidx]
+                nusedargs = 1  # we used one argument
+
+        # Return something different for the two argtypes:
+
+        # for wpt argument type, simply return positiontext, no need it look up nw
+        if argtype == "wpt":
+            return [name], optargs, nusedargs
+
+        # for lat/lon argument type we also need to it up:
+        elif argtype == "latlon":
+            success,posobj = txt2pos(name,traf,traf.navdb,reflat,reflon)
+
+            if success:
     
-            rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
-   
-            lat,lon = traf.navdb.rwythresholds[args[argidx]][rwyname][:2]
-            optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
-            usedargs = 2
-            runway = True
+                # for runway type, get heading as default optional argument for command line
+                if posobj.type=="rwy":
+                    rwyname = args[argidx +1].strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
+                    optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
+    
+                reflat,reflon = posobj.lat,posobj.lon
+                
+                return [posobj.lat , posobj.lon],optargs,nusedargs
+            else:
+                scr.echo(posobj) # contains error message
+                return [None],{},1
+
+    elif argtype == "pandir":  # Pan direction
+
+        if args[argidx].upper().strip() in ["LEFT","RIGHT","UP","ABOVE","RIGHT","DOWN"]: 
+            return [args[argidx].upper()], {}, 1  # pass on string to pan function
         else:
-            lat  = posobj.lat
-            lon  = posobj.lon
-            name = posobj.name
-            runway = False
-
-        # Update reference position for next navdb search
-        reflat,reflon = lat,lon
-
-        # For direction, rasie error (for pan command) 
-        # For "latlon"-argtype only return lat,lon 
-        # For "wpt"-argtype also name
-        if posobj.type == "dir":
             raise IndexError
-
-        elif argtype=="latlon" or argtype == "ac" or posobj.type=="latlon"\
-             or runway:
-            return [lat,lon],optargs,usedargs
-
-        else:
-            return [name,lat,lon],optargs,usedargs
 
     elif argtype == "spd":  # CAS[kts] Mach
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))

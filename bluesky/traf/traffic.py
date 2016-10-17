@@ -2,12 +2,9 @@ import numpy as np
 from math import *
 from random import random, randint
 from ..tools import datalog
-from ..tools import geo
-from ..tools.aero import fpm, kts, ft, nm, g0, tas2eas, tas2mach, tas2cas, mach2tas,  \
-                         mach2cas, cas2tas, cas2mach, Rearth, vatmos, \
-                         vcas2tas, vtas2cas, vtas2mach, vcas2mach, vmach2tas, \
-                         vcasormach, casormach
-from ..tools.misc import degto180
+from ..tools.aero import fpm, kts, ft, g0, Rearth, \
+                         vatmos,  vtas2cas, vtas2mach, casormach
+
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 from windsim import WindSim
@@ -16,7 +13,8 @@ from trails import Trails
 from adsbmodel import ADSB
 from asas import ASAS
 from pilot import Pilot
-from fms import FMS
+from autopilot import Autopilot
+from waypoint import ActiveWaypoint
 from turbulence import Turbulence
 from area import Area
 
@@ -59,7 +57,7 @@ class Traffic(DynamicArrays):
         datalog.definePeriodicLogger('SNAPLOG', 'SNAPLOG logfile.', settings.snapdt)
         datalog.definePeriodicLogger('INSTLOG', 'INSTLOG logfile.', settings.instdt)
         datalog.definePeriodicLogger('SKYLOG', 'SKYLOG logfile.', settings.skydt)
-        
+
         with RegisterElementParameters(self):
 
             # Register the following parameters for logging
@@ -74,7 +72,7 @@ class Traffic(DynamicArrays):
                 self.alt     = np.array([])  # altitude [m]
                 self.hdg     = np.array([])  # traffic heading [deg]
                 self.trk     = np.array([])  # track angle [deg]
-                
+
                 # Velocities
                 self.tas     = np.array([])  # true airspeed [m/s]
                 self.gs      = np.array([])  # ground speed [m/s]
@@ -89,7 +87,7 @@ class Traffic(DynamicArrays):
                 self.rho     = np.array([])  # air density [kg/m3]
                 self.Temp    = np.array([])  # air temperature [K]
                 self.dtemp   = np.array([])  # delta t for non-ISA conditions
-                
+
                 # Traffic autopilot settings
                 self.aspd   = np.array([])  # selected spd(CAS) [m/s]
                 self.aptas  = np.array([])  # just for initializing
@@ -97,12 +95,17 @@ class Traffic(DynamicArrays):
                 self.apalt  = np.array([])  # selected alt[m]
                 self.avs    = np.array([])  # selected vertical speed [m/s]
 
+            # Whether to perform LNAV and VNAV
+            self.swlnav   = np.array([], dtype=np.bool)
+            self.swvnav   = np.array([], dtype=np.bool)
+
             # Flight Models
-            self.asas  = ASAS(self)
-            self.fms   = FMS(self)
-            self.pilot = Pilot(self)
-            self.adsb  = ADSB(self)
-            self.trails= Trails(self)
+            self.asas   = ASAS(self)
+            self.ap     = Autopilot(self)
+            self.pilot  = Pilot(self)
+            self.adsb   = ADSB(self)
+            self.trails = Trails(self)
+            self.actwp  = ActiveWaypoint(self)
 
             # Traffic performance data
             self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
@@ -110,7 +113,7 @@ class Traffic(DynamicArrays):
             self.ax     = np.array([])  # [m/s2] absolute value of longitudinal accelleration
             self.bank   = np.array([])  # nominal bank angle, [radian]
             self.bphase = np.array([])  # standard bank angles per phase
-            self.hdgsel = np.array([],dtype=np.bool)  # determines whether aircraft is turning
+            self.hdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
             # Crossover altitude
             self.abco   = np.array([])
@@ -118,13 +121,13 @@ class Traffic(DynamicArrays):
 
             # limit settings
             self.limspd      = np.array([])  # limit speed
-            self.limspd_flag = np.array([],dtype=np.bool)  # flag for limit spd - we have to test for max and min
+            self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
             self.limalt      = np.array([])  # limit altitude
             self.limvs       = np.array([])  # limit vertical speed due to thrust limitation
             self.limvs_flag  = np.array([])
 
             # Display information on label
-            self.label      = []  # Text and bitmap of traffic label
+            self.label       = []  # Text and bitmap of traffic label
 
             # Miscallaneous
             self.coslat = np.array([])  # Cosine of latitude for computations
@@ -133,15 +136,17 @@ class Traffic(DynamicArrays):
         self.reset(navdb)
 
     def reset(self, navdb):
+        
+        # This ensures that the traffic arrays (which size is dynamic) 
+        # are all reset as well, so all lat,lon,sdp etc but also objects adsb
+        super(Traffic, self).reset()
         self.ntraf = 0
-
-        self.resetParameters()
 
         # Reset models
         self.wind.clear()
 
         # Build new modules for area and turbulence
-        self.area = Area(self)
+        self.area       = Area(self)
         self.Turbulence = Turbulence(self)
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
@@ -177,7 +182,8 @@ class Traffic(DynamicArrays):
         if self.id.count(acid.upper()) > 0:
             return False, acid + " already exists."  # already exists do nothing
 
-        self.CreateElement()
+        super(Traffic, self).create()
+
         # Increase number of aircraft
         self.ntraf = self.ntraf + 1
 
@@ -194,31 +200,31 @@ class Traffic(DynamicArrays):
         self.trk[-1]  = achdg
 
         # Velocities
-        self.tas[-1], self.cas[-1], self.M[-1] = casormach(casmach,acalt)
+        self.tas[-1], self.cas[-1], self.M[-1] = casormach(casmach, acalt)
         self.gs[-1]      = self.tas[-1]
-        self.gsnorth[-1] = self.tas[-1]*cos(radians(self.hdg[-1]))
-        self.gseast[-1]  = self.tas[-1]*sin(radians(self.hdg[-1]))
-        
+        self.gsnorth[-1] = self.tas[-1] * cos(radians(self.hdg[-1]))
+        self.gseast[-1]  = self.tas[-1] * sin(radians(self.hdg[-1]))
+
         # Atmosphere
         self.Temp[-1], self.rho[-1], self.p[-1] = vatmos(acalt)
 
         # Wind
-        if self.wind.winddim>0:
-            vnwnd,vewnd     = self.wind.getdata(self.lat[-1],self.lon[-1],self.alt[-1])
-            self.gsnorth[-1]= self.gsnorth[-1] + vnwnd
-            self.gseast[-1] = self.gseast[-1]  + vewnd
-            self.trk[-1]    = np.degrees(np.arctan2(self.gseast[-1],self.gsnorth[-1]))
-            self.gs[-1]     = np.sqrt(self.gsnorth[-1]**2+ self.gseast[-1]**2)
+        if self.wind.winddim > 0:
+            vnwnd, vewnd     = self.wind.getdata(self.lat[-1], self.lon[-1], self.alt[-1])
+            self.gsnorth[-1] = self.gsnorth[-1] + vnwnd
+            self.gseast[-1]  = self.gseast[-1]  + vewnd
+            self.trk[-1]     = np.degrees(np.arctan2(self.gseast[-1], self.gsnorth[-1]))
+            self.gs[-1]      = np.sqrt(self.gsnorth[-1]**2 + self.gseast[-1]**2)
 
         # Traffic performance data
         #(temporarily default values)
-        self.avsdef[-1] = 1500. * fpm  # default vertical speed of autopilot
-        self.aphi[-1]   = radians(25.) # bank angle setting of autopilot
-        self.ax[-1]     = kts          # absolute value of longitudinal accelleration
+        self.avsdef[-1] = 1500. * fpm   # default vertical speed of autopilot
+        self.aphi[-1]   = radians(25.)  # bank angle setting of autopilot
+        self.ax[-1]     = kts           # absolute value of longitudinal accelleration
         self.bank[-1]   = radians(25.)
 
         # Crossover altitude
-        self.abco[-1]   = 0 # not necessary to overwrite 0 to 0, but leave for clarity
+        self.abco[-1]   = 0  # not necessary to overwrite 0 to 0, but leave for clarity
         self.belco[-1]  = 1
 
         # Traffic autopilot settings
@@ -234,7 +240,8 @@ class Traffic(DynamicArrays):
         self.eps[-1] = 0.01
 
         # ----- Submodules of Traffic -----
-        self.fms.create()
+        self.ap.create()
+        self.actwp.create()
         self.pilot.create()
         self.adsb.create()
         self.area.create()
@@ -256,12 +263,11 @@ class Traffic(DynamicArrays):
         # Do nothing if not found
         if idx < 0:
             return False
-
         # Decrease number of aircraft
         self.ntraf = self.ntraf - 1
-        
+
         # Delete all aircraft parameters
-        self.DeleteElement(idx)
+        super(Traffic, self).delete(idx)
 
         # ----- Submodules of Traffic -----
         self.perf.delete(idx)
@@ -280,7 +286,7 @@ class Traffic(DynamicArrays):
         self.adsb.update(simt)
 
         #---------- Fly the Aircraft --------------------------
-        self.fms.Guide(simt)
+        self.ap.update(simt)
         self.asas.update(simt)
         self.pilot.FMSOrAsas()
 
@@ -288,7 +294,7 @@ class Traffic(DynamicArrays):
         self.pilot.FlightEnvelope()
 
         #---------- Kinematics --------------------------------
-        self.ComputeAirSpeed(simdt,simt)
+        self.ComputeAirSpeed(simdt, simt)
         self.ComputeGroundSpeed(simdt)
         self.ComputePosition(simdt)
 
@@ -303,17 +309,17 @@ class Traffic(DynamicArrays):
         self.area.check(simt)
         return
 
-    def ComputeAirSpeed(self,simdt,simt):
+    def ComputeAirSpeed(self, simdt, simt):
         # Acceleration
         self.delspd = self.pilot.spd - self.tas
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
-        ax = self.perf.acceleration(simdt)      
+        ax = self.perf.acceleration(simdt)
 
         # Update velocities
         self.tas = self.tas + swspdsel * ax * np.sign(self.delspd) * simdt
         self.cas = vtas2cas(self.tas, self.alt)
         self.M   = vtas2mach(self.tas, self.alt)
-        
+
         # Turning
         turnrate = np.degrees(g0 * np.tan(self.bank) / np.maximum(self.tas, self.eps))
         delhdg   = (self.pilot.hdg - self.hdg + 180.) % 360 - 180.  # [deg]
@@ -324,12 +330,12 @@ class Traffic(DynamicArrays):
 
         # Update vertical speed
         delalt   = self.pilot.alt - self.alt
-        self.swaltsel = np.abs(delalt) > np.maximum(10*ft ,np.abs(2*simdt*np.abs(self.vs)))
-        self.vs  = self.swaltsel*np.sign(delalt)* self.pilot.vs
+        self.swaltsel = np.abs(delalt) > np.maximum(10 * ft, np.abs(2 * simdt * np.abs(self.vs)))
+        self.vs  = self.swaltsel * np.sign(delalt) * self.pilot.vs
 
-    def ComputeGroundSpeed(self,simdt):
+    def ComputeGroundSpeed(self, simdt):
         # Compute ground speed and track from heading, airspeed and wind
-        if self.wind.winddim == 0: # no wind
+        if self.wind.winddim == 0:  # no wind
             self.gsnorth  = self.tas * np.cos(np.radians(self.hdg))
             self.gseast   = self.tas * np.sin(np.radians(self.hdg))
 
@@ -340,13 +346,13 @@ class Traffic(DynamicArrays):
             windnorth, windeast = self.wind.getdata(self.lat, self.lon, self.alt)
             self.gsnorth  = self.tas * np.cos(np.radians(self.hdg)) + windnorth
             self.gseast   = self.tas * np.sin(np.radians(self.hdg)) + windeast
-   
-            self.gs  = np.sqrt(self.gsnorth**2 + self.gseast**2)
-            self.trk = np.degrees(np.arctan2(self.gseast, self.gsnorth))%360.
 
-    def ComputePosition(self,simdt):
+            self.gs  = np.sqrt(self.gsnorth**2 + self.gseast**2)
+            self.trk = np.degrees(np.arctan2(self.gseast, self.gsnorth)) % 360.
+
+    def ComputePosition(self, simdt):
         # Update position
-        self.alt = np.where(self.swaltsel, self.alt + self.vs*simdt, self.pilot.alt)
+        self.alt = np.where(self.swaltsel, self.alt + self.vs * simdt, self.pilot.alt)
         self.lat = self.lat + np.degrees(simdt * self.gsnorth / Rearth)
         self.coslat = np.cos(np.deg2rad(self.lat))
         self.lon = self.lon + np.degrees(simdt * self.gseast / self.coslat / Rearth)
@@ -382,14 +388,14 @@ class Traffic(DynamicArrays):
 
         if hdg:
             self.hdg[idx]  = hdg
-            self.fms.trk[idx] = hdg
+            self.ap.trk[idx] = hdg
 
         if casmach:
-            self.tas[idx], self.aspd[-1], dummy = casormach(casmach,alt)
+            self.tas[idx], self.aspd[-1], dummy = casormach(casmach, alt)
 
         if vspd:
             self.vs[idx]       = vspd
-            self.fms.vnav[idx] = False
+            self.swvnav[idx] = False
 
     def nom(self, idx):
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
@@ -402,19 +408,19 @@ class Traffic(DynamicArrays):
         alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], self.trk[idx]
         cas           = self.cas[idx] / kts
         tas           = self.tas[idx] / kts
-        route         = self.fms.route[idx]
+        route         = self.ap.route[idx]
         line = "Info on %s %s index = %d\n" % (acid, actype, idx) \
              + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
              + "Alt = %d ft, Hdg = %d, Trk = %d\n" % (alt, hdg, trk)
-        if self.fms.lnav[idx] and route.nwp > 0 and route.iactwp >= 0:
-            if self.fms.vnav[idx]:
+        if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
+            if self.swvnav[idx]:
                 line += "VNAV, "
             line += "LNAV to " + route.wpname[route.iactwp] + "\n"
-        if self.fms.orig[idx] != "" or self.fms.dest[idx] != "":
+        if self.ap.orig[idx] != "" or self.ap.dest[idx] != "":
             line += "Flying"
-            if self.fms.orig[idx] != "":
-                line += " from " + self.fms.orig[idx]
-            if self.fms.dest[idx] != "":
-                line += " to " + self.fms.dest[idx]
+            if self.ap.orig[idx] != "":
+                line += " from " + self.ap.orig[idx]
+            if self.ap.dest[idx] != "":
+                line += " to " + self.ap.dest[idx]
 
         return line

@@ -9,6 +9,7 @@ import numpy as np
 import time
 
 # Local imports
+from ... import stack
 from timer import Timer
 from simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
                         SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
@@ -194,12 +195,11 @@ class ScreenIO(QObject):
     # =========================================================================
     @pyqtSlot()
     def send_siminfo(self):
-        # if self.manager.isActive():
-        t  = time.time()        
-        dt = np.maximum(t - self.prevtime, 0.00001) # avoid divide by 0 
+        t  = time.time()
+        dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * self.sim.simdt
         self.manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
-            self.sim.traf.ntraf, self.sim.state, self.sim.scenname))
+            self.sim.traf.ntraf, self.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
 
@@ -235,7 +235,7 @@ class ScreenIO(QObject):
             data.acid          = self.route_acid
             idx   = self.sim.traf.id2idx(self.route_acid)
             if idx >= 0:
-                route          = self.sim.traf.fms.route[idx]
+                route          = self.sim.traf.ap.route[idx]
                 data.iactwp    = route.iactwp
 
                 # We also need the corresponding aircraft position

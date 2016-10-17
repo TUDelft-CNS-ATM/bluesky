@@ -55,9 +55,6 @@ class Simulation(QObject):
         self.ffmode      = False
         self.ffstop      = None
 
-        # If available, name of the currently running scenario
-        self.scenname    = 'Untitled'
-
         # Simulation objects
         self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self, manager)
@@ -151,7 +148,6 @@ class Simulation(QObject):
         self.simt     = 0.0
         self.state    = Simulation.init
         self.ffmode   = False
-        self.scenname = 'Untitled'
         self.traf.reset(self.navdb)
         stack.reset()
         datalog.reset()
@@ -187,10 +183,6 @@ class Simulation(QObject):
         self.bencht  = 0.0  # Start time will be set at next sim cycle
         self.benchdt = dt
 
-    def scenarioInit(self, name):
-        self.screenio.echo('Starting scenario ' + name)
-        self.scenname = name
-
     def sendState(self):
         self.manager.sendEvent(SimStateEvent(self.state))
 
@@ -199,9 +191,12 @@ class Simulation(QObject):
 
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
-        stack.openfile(filename)
-        self.manager.sendEvent(BatchEvent(stack.scentime, stack.scencmd))
+        result = stack.openfile(filename)
+        scentime, scencmd = stack.get_scendata()
+        if result is True:
+            self.manager.sendEvent(BatchEvent(scentime, scencmd))
         self.reset()
+        return result
 
     def event(self, event):
         # Keep track of event processing
@@ -215,8 +210,7 @@ class Simulation(QObject):
         elif event.type() == BatchEventType:
             # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
             self.reset()
-            stack.scentime = event.scentime
-            stack.scencmd  = event.scencmd
+            stack.set_scendata(event.scentime, event.scencmd)
             self.start()
             event_processed     = True
         elif event.type() == SimQuitEventType:
