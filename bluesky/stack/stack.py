@@ -72,9 +72,9 @@ def init(sim, traf, scr):
             traf.ap.selalt
         ],
         "AREA": [
-            "AREA OFF, or\nlat0,lon0,lat1,lon1[,lowalt]\nor\nAREA FIR,radius[,lowalt]\nor\nAREA CIRCLE,lat0,lon0,radius[,lowalt]",
-            "float/txt,float,[float,float,float]",
-            lambda *args: traf.area.SetArea(scr, sim.metric, *args)
+            "AREA Shapename/OFF or\n AREA lat,lon,lat,lon,[top,bottom]",
+            "[float/txt,float,float,float,alt,alt]",
+            lambda *args: traf.area.setArea(scr, args)
         ],
         "ASAS": [
             "ASAS ON/OFF",
