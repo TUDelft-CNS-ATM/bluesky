@@ -10,8 +10,9 @@ def start(dbconf):
 
 def resolve(dbconf, traf):
     
-    # When resolution is OFF, and aircraft is in conflict, then asas will be active
-    # Under these conditions, the aircraft should listen to AP
+    # If resolution is off, and detection is on, and a conflict is detected
+    # then asas will be active for that airplane. Since resolution is off, it
+    # should then follow the auto pilot instructions.   
     dbconf.trk = traf.ap.trk
     dbconf.spd = traf.ap.tas
     dbconf.vs  = traf.ap.vs
