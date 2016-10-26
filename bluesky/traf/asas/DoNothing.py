@@ -9,4 +9,12 @@ def start(dbconf):
     pass
 
 def resolve(dbconf, traf):
-    pass
+    
+    # When resolution is OFF, and aircraft is in conflict, then asas will be active
+    # Under these conditions, the aircraft should listen to AP
+    dbconf.trk = traf.ap.trk
+    dbconf.spd = traf.ap.tas
+    dbconf.vs  = traf.ap.vs
+    dbconf.alt = traf.ap.alt
+    
+    return
