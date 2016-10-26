@@ -42,6 +42,10 @@ class Pilot(DynamicArrays):
         self.spd = np.where(self.asas.active, asastas, self.ap.tas)
         self.alt = np.where(self.asas.active, self.asas.alt, self.ap.alt)
         self.vs  = np.where(self.asas.active, self.asas.vs, self.ap.vs)
+        
+        # ASAS can give positive and negative VS, but the sign of VS is determined using delalt in Traf.ComputeAirSpeed 
+        # Therefore, ensure that pilot.vs is always positive to prevent opposite signs of delalt and VS in Traf.ComputeAirSpeed 
+        self.vs = np.abs(self.vs)
 
         # Compute the desired heading needed to compensate for the wind
         if self.traf.wind.winddim > 0:
