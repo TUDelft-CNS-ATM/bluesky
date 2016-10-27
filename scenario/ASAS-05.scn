@@ -1,9 +1,9 @@
 # Test file: ASAS + VNAV + LNAV + trajectory recovery
 # Cruise - cruise conflict
 
-00:00:00.00>WIND 0,0,,45,25
+#00:00:00.00>WIND 0,0,,45,25
 
-00:00:00.00>AREA 4.16 4.16 -4.16 -4.16 0.0
+00:00:00.00>AREA 4.16,4.16,-4.16,-4.16,10000,10
 
 00:00:00.00>PAN 0. 0. 
 00:00:00.00>ASAS ON
@@ -23,7 +23,7 @@
 
 00:00:00.00>ECHO Conflict between AC0001 and AC0002 occurs at 8min 45sec
 
-00:00:00.00>FF
+00:00:00.00>FF 520
 
 00:00:01.00>CRE AC0001 B744 0. 0. 44.9607121476 0. 500
 
@@ -85,5 +85,5 @@
 
 00:00:01.00>AC0002 LNAV ON
 00:00:01.00>AC0002 VNAV ON
-00:06:40.00>HOLD
+#00:06:40.00>HOLD
 
