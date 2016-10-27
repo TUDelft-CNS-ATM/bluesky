@@ -1,7 +1,12 @@
 import bluesky.settings as settings
+import os
+import sys
 
 print "   *****   BlueSky Open ATM simulator *****"
 print "Distributed under GNU General Public License v3"
+
+if getattr(sys, 'frozen', False):
+    os.chdir(os.path.dirname(sys.executable))
 
 settings.init()
 
