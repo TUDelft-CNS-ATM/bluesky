@@ -1320,12 +1320,12 @@ class Metric():
     
     def __init__(self):    
         # Create metrics file
-        fname = log_path + \
-            strftime("%Y-%m-%d-%H-%M-%S-BlueSky-Metrics.txt", gmtime())
-        self.file = open(fname,"w")
+        # fname = log_path + \
+        #     strftime("%Y-%m-%d-%H-%M-%S-BlueSky-Metrics.txt", gmtime())
+        # self.file = open(fname,"w")
 
         # Write header
-        self.write(0.0,"Header info tbd")        
+#        self.write(0.0,"Header info tbd")        
         
         # Last time for which Metrics.update was called 
         self.t0 = -9999   # force first time call
