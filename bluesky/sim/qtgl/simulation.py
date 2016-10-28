@@ -16,7 +16,9 @@ from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
 from ...tools import datalog, areafilter
+from ...tools.misc import txt2tim,tim2txt
 
+onedayinsec = 24*3600 # [s] time of one day in seconds for clock time
 
 class Simulation(QObject):
     # simulation modes
@@ -47,6 +49,11 @@ class Simulation(QObject):
 
         # Simulation timestep multiplier: run sim at n x speed
         self.dtmult      = 1.0
+
+        # Simulated clock time
+        self.deltclock = 0.0
+        self.simtclock = self.simt
+
 
         # System timestep [milliseconds]
         self.sysdt       = int(self.simdt / self.dtmult * 1000)
@@ -108,6 +115,9 @@ class Simulation(QObject):
                 # Update time for the next timestep
                 self.simt += self.simdt
 
+            # Update clock
+            self.simtclock = (self.deltclock + self.simt)%onedayinsec
+
             # Process Qt events
             self.manager.processEvents()
 
@@ -118,6 +128,7 @@ class Simulation(QObject):
 
                 if remainder > 0:
                     QThread.msleep(remainder)
+                    
             elif self.ffstop is not None and self.simt >= self.ffstop:
                 if self.benchdt > 0.0:
                     self.screenio.echo('Benchmark complete: %d samples in %.3f seconds.' % (self.screenio.samplecount, time.time() - self.bencht))
@@ -146,6 +157,8 @@ class Simulation(QObject):
 
     def reset(self):
         self.simt     = 0.0
+        self.deltclock = 0.0
+        self.simtclock = self.simt
         self.state    = Simulation.init
         self.ffmode   = False
         self.traf.reset(self.navdb)
@@ -221,3 +234,24 @@ class Simulation(QObject):
             event_processed = self.screenio.event(event)
 
         return event_processed
+
+    def setclock(self,txt=""):
+        """ Set simulated clock time offset"""
+        if txt == "":
+            pass # avoid error message, just give time
+       
+        elif txt.upper()== "RUN":
+            self.deltclock = 0.0
+            self.simtclock = self.simt
+           
+        elif txt.upper()== "REAL":
+            self.simtclock = self.syst
+            self.deltclock = self.simtclock - self.simt
+       
+        elif txt.replace(":","").replace(".","").isdigit():
+            self.simtclock = txt2tim(txt)
+            self.deltclock = self.simtclock - self.simt
+        else:
+            return False,"Time syntax error"
+ 
+        return True,"Time is now "+tim2txt(self.simtclock)
