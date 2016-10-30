@@ -8,7 +8,8 @@ import time
 
 # Local imports
 from screenio import ScreenIO
-from simevents import StackTextEventType, BatchEventType, BatchEvent, SimStateEvent, SimQuitEventType
+from simevents import StackTextEventType, BatchEventType, BatchEvent, \
+    SimStateEvent, SimQuitEventType
 from ...traf import Traffic
 from ...navdb import Navdatabase
 from ... import stack
@@ -16,9 +17,10 @@ from ...traf import Metric
 from ... import settings
 from ...tools.datafeed import Modesbeast
 from ...tools import datalog, areafilter
-from ...tools.misc import txt2tim,tim2txt
+from ...tools.misc import txt2tim, tim2txt
 
-onedayinsec = 24*3600 # [s] time of one day in seconds for clock time
+onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
+
 
 class Simulation(QObject):
     # simulation modes
@@ -51,9 +53,8 @@ class Simulation(QObject):
         self.dtmult      = 1.0
 
         # Simulated clock time
-        self.deltclock = 0.0
-        self.simtclock = self.simt
-
+        self.deltclock   = 0.0
+        self.simtclock   = self.simt
 
         # System timestep [milliseconds]
         self.sysdt       = int(self.simdt / self.dtmult * 1000)
@@ -116,7 +117,7 @@ class Simulation(QObject):
                 self.simt += self.simdt
 
             # Update clock
-            self.simtclock = (self.deltclock + self.simt)%onedayinsec
+            self.simtclock = (self.deltclock + self.simt) % onedayinsec
 
             # Process Qt events
             self.manager.processEvents()
@@ -128,7 +129,7 @@ class Simulation(QObject):
 
                 if remainder > 0:
                     QThread.msleep(remainder)
-                    
+
             elif self.ffstop is not None and self.simt >= self.ffstop:
                 if self.benchdt > 0.0:
                     self.screenio.echo('Benchmark complete: %d samples in %.3f seconds.' % (self.screenio.samplecount, time.time() - self.bencht))
@@ -143,24 +144,24 @@ class Simulation(QObject):
                 self.prevstate = self.state
 
     def stop(self):
-        self.state   = Simulation.end
+        self.state = Simulation.end
         datalog.reset()
 
     def start(self):
         if self.ffmode:
             self.syst = int(time.time() * 1000.0)
-        self.ffmode  = False
-        self.state   = Simulation.op
+        self.ffmode   = False
+        self.state    = Simulation.op
 
     def pause(self):
-        self.state   = Simulation.hold
+        self.state = Simulation.hold
 
     def reset(self):
-        self.simt     = 0.0
+        self.simt      = 0.0
         self.deltclock = 0.0
         self.simtclock = self.simt
-        self.state    = Simulation.init
-        self.ffmode   = False
+        self.state     = Simulation.init
+        self.ffmode    = False
         self.traf.reset(self.navdb)
         stack.reset()
         datalog.reset()
@@ -176,7 +177,7 @@ class Simulation(QObject):
 
     def setDtMultiplier(self, mult):
         self.dtmult = mult
-        self.sysdt = int(self.simdt / self.dtmult * 1000)
+        self.sysdt  = int(self.simdt / self.dtmult * 1000)
 
     def setFixdt(self, flag, nsec=None):
         if flag:

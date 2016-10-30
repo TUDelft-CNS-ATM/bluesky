@@ -36,14 +36,15 @@ class DisplayFlagEvent(QEvent):
 
 
 class SimInfoEvent(QEvent):
-    def __init__(self, sys_freq, simdt, simt, n_ac, mode, scenname):
+    def __init__(self, sys_freq, simdt, simt, simtclock, n_ac, mode, scenname):
         super(SimInfoEvent, self).__init__(SimInfoEventType)
-        self.sys_freq = sys_freq
-        self.simdt    = simdt
-        self.simt     = simt
-        self.n_ac     = n_ac
-        self.mode     = mode
-        self.scenname = scenname
+        self.sys_freq  = sys_freq
+        self.simdt     = simdt
+        self.simt      = simt
+        self.simtclock = simtclock
+        self.n_ac      = n_ac
+        self.mode      = mode
+        self.scenname  = scenname
 
 
 class StackTextEvent(QEvent):

@@ -27,7 +27,7 @@ from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete
-from ...tools.misc import cmdsplit
+from ...tools.misc import cmdsplit, tim2txt
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -133,7 +133,6 @@ class Gui(QApplication):
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
         # self.aman = AMANDisplay()
-        
 
         gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
@@ -187,15 +186,13 @@ class Gui(QApplication):
                 self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
-                hours     = np.floor(event.simt / 3600)
-                minutes   = np.floor((event.simt - 3600 * hours) / 60)
-                seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
-                time = '%02d:%02d:%02d' % (hours, minutes, seconds)
-                self.win.setNodeInfo(manager.sender()[0], time, event.scenname)
+                simt = tim2txt(event.simt)[:-3]
+                simtclock = tim2txt(event.simtclock)[:-3]
+                self.win.setNodeInfo(manager.sender()[0], simt, event.scenname)
                 if manager.sender()[0] == manager.actnode():
                     self.simt = event.simt
-                    self.win.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                        % (time, event.simdt, event.sys_freq, self.modes[event.mode], event.n_ac, self.acdata.nconf_cur, self.acdata.nconf_tot, self.acdata.nlos_cur, self.acdata.nlos_tot))
+                    self.win.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
+                        % (simt, event.simdt, event.sys_freq, simtclock, self.modes[event.mode], event.n_ac, self.acdata.nconf_cur, self.acdata.nconf_tot, self.acdata.nlos_cur, self.acdata.nlos_tot))
                 return True
 
             elif event.type() == StackTextEventType:
