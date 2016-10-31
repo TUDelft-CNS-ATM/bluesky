@@ -7,6 +7,7 @@ import datetime, os
 import numpy as np
 
 from ...tools import geo
+from ...tools.areafilter import areas
 from ...tools.aero import ft, kts, nm
 from ...tools.misc import tim2txt
 import splash
@@ -518,31 +519,6 @@ class Screen:
                     #     traf.navdb.apid[i])
 
 
-            #--------- Draw traffic area ---------
-            if traf.area.active and not self.swnavdisp:
-                if traf.area.shape == "Square":
-                    x0, y0 = self.ll2xy(traf.area.lat0, traf.area.lon0)
-                    x1, y1 = self.ll2xy(traf.area.lat1, traf.area.lon1)
-
-                    pg.draw.line(self.radbmp, blue, (x0, y0), (x1, y0))
-                    pg.draw.line(self.radbmp, blue, (x1, y0), (x1, y1))
-                    pg.draw.line(self.radbmp, blue, (x1, y1), (x0, y1))
-                    pg.draw.line(self.radbmp, blue, (x0, y1), (x0, y0))
-
-                #FIR CIRCLE
-                if traf.area.shape == "Circle":
-                    lat2_circle, lon2_circle = geo.qdrpos(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1],
-                                                      180, sim.metric.fir_circle_radius)
-
-                    x_circle, y_circle = self.ll2xy(sim.metric.fir_circle_point[0], sim.metric.fir_circle_point[1])
-                    x2_circle, y2_circle = self.ll2xy(lat2_circle, lon2_circle)
-                    radius = int(abs(y2_circle - y_circle))
-
-                    pg.draw.circle(self.radbmp, blue, (int(x_circle), int(y_circle)), radius, 2)
-
-
-                # print pg.time.get_ticks()*0.001-t0," seconds to draw coastlines"
-
             #---------- Draw background trails ----------
             if traf.trails.active:
                 traf.trails.buffer()  # move all new trails to background
@@ -579,10 +555,35 @@ class Screen:
 
             # User defined objects
             for i in range(len(self.objtype)):
+                
                 if self.objtype[i]=='LINE':
                     x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
                     x1,y1 = self.ll2xy(self.objdata[i][2],self.objdata[i][3])
                     pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
+
+                elif self.objtype[i]=='BOX':
+                    lat0 = min(self.objdata[i][0],self.objdata[i][2])
+                    lon0 = min(self.objdata[i][1],self.objdata[i][3])
+                    lat1 = max(self.objdata[i][0],self.objdata[i][2])
+                    lon1 = max(self.objdata[i][1],self.objdata[i][3])
+
+                    x0,y0 = self.ll2xy(lat1,lon0)
+                    x1,y1 = self.ll2xy(lat0,lon1)
+                    pg.draw.rect(self.radbmp,self.objcolor[i],pg.Rect(x0, y0, x1-x0, y1-y0),1)
+
+                elif self.objtype[i]=='CIRCLE':
+                    pass
+#                Use: pg.draw.circle((Surface, color, pos, radius, width=0)
+#                    x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
+#                    x1,y1 = self.ll2xy(self.objdata[i][2],self.objdata[i][3])
+#                    pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
+                    
+                elif self.objtype[i]=='POLY' or self.objtype[i]=="POLYALT":
+                    pass
+#                    x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
+#                    x1,y1 = self.ll2xy(self.objdata[i][2],self.objdata[i][3])
+#                    pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
+
 
             # Reset background drawing switch
             self.redrawradbg = False

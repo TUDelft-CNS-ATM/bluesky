@@ -408,6 +408,11 @@ def init(sim, traf, scr):
             "onoff",
             traf.area.setTaxi
         ],
+        "TIME": [
+            "TIME RUN(default) / HH:MM:SS.hh / REAL ",
+            "[txt]",
+            sim.setclock
+        ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
             "acid/bool,[float/txt]",

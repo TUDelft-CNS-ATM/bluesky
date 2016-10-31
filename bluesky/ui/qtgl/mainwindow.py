@@ -4,19 +4,19 @@ try:
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QPushButton
     from PyQt5 import uic
 except ImportError:
-    from PyQt4.QtCore import Qt, pyqtSlot, QSize    
+    from PyQt4.QtCore import Qt, pyqtSlot, QSize
     from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
         QItemSelectionModel, QTreeWidgetItem, QPushButton
     from PyQt4 import uic
 
 # Local imports
 from ...sim.qtgl import PanZoomEvent, MainManager as manager
-
+from ...settings import data_path
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super(Splash, self).__init__(QPixmap('data/graphics/splash.gif'), Qt.WindowStaysOnTopHint)
+        super(Splash, self).__init__(QPixmap(data_path + '/graphics/splash.gif'), Qt.WindowStaysOnTopHint)
 
 
 class MainWindow(QMainWindow):
@@ -25,9 +25,9 @@ class MainWindow(QMainWindow):
     def __init__(self, app, radarwidget):
         super(MainWindow, self).__init__()
         self.app = app
-        self.app.setWindowIcon(QIcon("./data/graphics/icon.gif"))
-        
-        uic.loadUi("./data/graphics/mainwindow.ui", self)
+        self.app.setWindowIcon(QIcon(data_path + "/graphics/icon.gif"))
+
+        uic.loadUi(data_path + "/graphics/mainwindow.ui", self)
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         for b in buttons.iteritems():
             # Set icon
             if not b[1][0] is None:
-                icon = QIcon('data/graphics/icons/' + b[1][0])
+                icon = QIcon(data_path + '/graphics/icons/' + b[1][0])
                 b[0].setIcon(icon)
             # Set tooltip
             if not b[1][1] is None:
@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
             btn.setFlat(True)
             btn.setStyleSheet('font-weight:bold')
 
-            btn.setIcon(QIcon('data/graphics/icons/addnode.svg'))
+            btn.setIcon(QIcon(data_path + '/graphics/icons/addnode.svg'))
             btn.setIconSize(QSize(24, 16))
             btn.setLayoutDirection(Qt.RightToLeft)
             btn.setMaximumHeight(16)
