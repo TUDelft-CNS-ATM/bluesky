@@ -1,4 +1,3 @@
-import os
 from time import time, gmtime, strftime
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +8,7 @@ import itertools as IT
 from ..tools import geo
 from ..tools.misc import tim2txt
 from ..tools.aero import *
-
+from ..settings import log_path
 
 """
     This module seems to work as follows:
@@ -462,7 +461,7 @@ class metric_CoCa():
             self.reset()
             self.resettime = self.resettime + self.deltaresettime
             self.iteration = self.iteration + 1
-            filedata = "output/data/coca_20120727-78am-1hour.npy"
+            filedata = log_path + "/coca_20120727-78am-1hour.npy"
             # self.cellPlot(traf)
             # np.save(filedata,self.cocametric)
             sim.start()
@@ -1011,7 +1010,7 @@ class metric_HB():
         data = izip(acid,lat,lon,alt,spd,trk,ntraf,compl)
 
         step = str(self.step).zfill(3)
-        fname = "./output/Metric-HB/"+step+"-BlueSky.csv"
+        fname = log_path + "/Metric-HB/"+step+"-BlueSky.csv"
         f = csv.writer(open(fname, "wb"))
         for row in data:
             f.writerow(row)
@@ -1321,12 +1320,12 @@ class Metric():
     
     def __init__(self):    
         # Create metrics file
-        fname = os.path.dirname(__file__) + "/../../data/output/" \
-            + strftime("%Y-%m-%d-%H-%M-%S-BlueSky-Metrics.txt", gmtime())
-        self.file = open(fname,"w")
+        # fname = log_path + \
+        #     strftime("%Y-%m-%d-%H-%M-%S-BlueSky-Metrics.txt", gmtime())
+        # self.file = open(fname,"w")
 
         # Write header
-        self.write(0.0,"Header info tbd")        
+#        self.write(0.0,"Header info tbd")        
         
         # Last time for which Metrics.update was called 
         self.t0 = -9999   # force first time call

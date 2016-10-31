@@ -1,5 +1,6 @@
 import time
 from ...tools import datalog, areafilter
+from ...tools.misc import txt2tim,tim2txt
 from ...traf import Traffic
 from ... import stack
 from ...traf.metric import Metric
@@ -8,6 +9,7 @@ from ...tools.network import StackTelnetServer
 from ... import settings
 from ...tools.datafeed import Modesbeast
 
+onedayinsec = 24*3600 # [s] time of one day in seconds for clock time
 
 class Simulation:
     """
@@ -36,6 +38,9 @@ class Simulation:
         self.syst0  = 0.0
         self.dt     = 0.0
         self.syst   = 0.0   # system time
+
+        self.deltclock = 0.0   # SImulated clock time at simt=0. 
+        self.simtclock = 0.0
 
         # Directories
         self.datadir = "./data/"
@@ -90,6 +95,9 @@ class Simulation:
                 if self.ffstop > 0. and self.simt >= self.ffstop:
                     self.ffmode = False
                     self.mode = self.hold
+
+            # Update simulated clock time
+            self.simtclock = (self.simt + self.deltclock)%onedayinsec
 
             # Datalog pre-update (communicate current sim time to loggers)
             datalog.preupdate(self.simt)
@@ -150,8 +158,8 @@ class Simulation:
         return
 
     def start(self):  # Back to op-mode: run after HOLD/PAUSE
-        self.mode = self.op
-        self.syst = time.clock()
+        self.mode  = self.op
+        self.syst  = time.clock()
         self.syst0 = self.syst-self.simt
         self.tprev = self.simt-0.001  # allow 1 msec step rto avoid div by zero
         return
@@ -182,4 +190,28 @@ class Simulation:
         self.traf.reset(self.navdb)
         datalog.reset()
         areafilter.reset()
+        self.delclock  = 0.0   # SImulated clock time at simt=0. 
+        self.simtclock = 0.0
 
+    def setclock(self,txt=""):
+        """ Set simulated clock time offset"""
+        if txt == "":
+            pass # avoid error message, just give time
+       
+        elif txt.upper()== "RUN":
+            self.deltclock = 0.0
+            self.simtclock = self.simt
+           
+        elif txt.upper()== "REAL":
+            self.simtclock = self.syst
+            self.deltclock = self.simtclock - self.simt
+       
+        elif txt.replace(":","").replace(".","").isdigit():
+            self.simtclock = txt2tim(txt)
+            self.deltclock = self.simtclock - self.simt
+        else:
+            return False,"Time syntax error"
+ 
+        
+        return True,"Time is now "+tim2txt(self.simtclock)
+       

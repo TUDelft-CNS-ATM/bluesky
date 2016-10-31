@@ -9,7 +9,7 @@ from math import *
 from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 
 from performance import esf, phases, limits
-
+from ..settings import data_path
 
 
 class Coefficients:
@@ -42,7 +42,7 @@ class Coefficients:
     """
     def __init__(self):
         # Check opffiles in folder 
-        self.path = os.path.abspath(os.path.join(os.path.dirname(__file__),"../../data/coefficients/BADA/"))
+        self.path = data_path + "/coefficients/BADA/"
         self.files = os.listdir(self.path)
         return
         

@@ -6,7 +6,7 @@ from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 
 from performance import esf, phases, limits
-
+from ..settings import data_path
 
 class CoeffBS:
     """ 
@@ -103,7 +103,7 @@ class CoeffBS:
         
         # parse AC files
                 
-        path = './data/coefficients/BS_aircraft/'
+        path = data_path + '/coefficients/BS_aircraft/'
         files = os.listdir(path)
         for file in files:
             acdoc = ElementTree.parse(path + file)
@@ -283,7 +283,7 @@ class CoeffBS:
         self.PSFC_CR     = [] # SFC cruise
 
         # parse engine files
-        path = os.path.dirname(__file__) + '/../../data/coefficients/BS_engines/'
+        path = data_path + '/coefficients/BS_engines/'
         files = os.listdir(path)
         for filename in files:
             endoc = ElementTree.parse(path + filename)
