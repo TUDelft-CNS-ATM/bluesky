@@ -147,7 +147,7 @@ class ScreenIO(QObject):
         elif objtype == 'LINE' or objtype[:4] == 'POLY':
             data = np.array(data_in, dtype=np.float32)
         elif objtype == 'BOX':
-            # BOX
+            # BOX: 0 = lat0, 1 = lon0, 2 = lat1, 3 = lat1 , use bounding box  
             data = np.array([data_in[0], data_in[1],
                              data_in[0], data_in[3],
                              data_in[2], data_in[3],

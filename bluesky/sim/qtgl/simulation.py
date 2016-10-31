@@ -246,7 +246,13 @@ class Simulation(QObject):
             self.simtclock = self.simt
            
         elif txt.upper()== "REAL":
-            self.simtclock = self.syst
+            tclock = time.localtime()
+            self.simtclock = tclock.tm_hour*3600. + tclock.tm_min*60. + tclock.tm_sec
+            self.deltclock = self.simtclock - self.simt
+       
+        elif txt.upper()== "UTC":
+            utclock = time.gmtime()
+            self.simtclock = utclock.tm_hour*3600. + utclock.tm_min*60. + utclock.tm_sec
             self.deltclock = self.simtclock - self.simt
        
         elif txt.replace(":","").replace(".","").isdigit():
@@ -255,4 +261,6 @@ class Simulation(QObject):
         else:
             return False,"Time syntax error"
  
+        
         return True,"Time is now "+tim2txt(self.simtclock)
+       
