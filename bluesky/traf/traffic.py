@@ -112,7 +112,6 @@ class Traffic(DynamicArrays):
             self.aphi   = np.array([])  # [rad] bank angle setting of autopilot
             self.ax     = np.array([])  # [m/s2] absolute value of longitudinal accelleration
             self.bank   = np.array([])  # nominal bank angle, [radian]
-            self.bphase = np.array([])  # standard bank angles per phase
             self.hdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
             # Crossover altitude
@@ -133,11 +132,13 @@ class Traffic(DynamicArrays):
             self.coslat = np.array([])  # Cosine of latitude for computations
             self.eps    = np.array([])  # Small nonzero numbers
 
+        # Default bank angles per flight phase
+        self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
+
         self.reset(navdb)
 
     def reset(self, navdb):
-        
-        # This ensures that the traffic arrays (which size is dynamic) 
+        # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
         super(Traffic, self).reset()
         self.ntraf = 0
@@ -248,10 +249,6 @@ class Traffic(DynamicArrays):
         self.asas.create()
         self.perf.create()
         self.trails.create()
-
-        #
-        if self.ntraf < 2:
-            self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
 
         return True
 

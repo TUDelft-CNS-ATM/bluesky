@@ -30,7 +30,6 @@ from ..tools.aero import kts, ft, gamma, gamma1, gamma2, R, beta, g0, \
 
 def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
            vmcr, vmld, bank, bphase, hdgsel, bada):
-
     # flight phases: TO (1), IC (2), CR (3), AP(4), LD(5), GD (6)
     #--> no holding phase yet
     #-------------------------------------------------
