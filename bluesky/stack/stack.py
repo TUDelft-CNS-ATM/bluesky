@@ -409,7 +409,7 @@ def init(sim, traf, scr):
             traf.area.setTaxi
         ],
         "TIME": [
-            "TIME RUN(default) / HH:MM:SS.hh / REAL ",
+            "TIME RUN(default) / HH:MM:SS.hh / REAL / UTC ",
             "[txt]",
             sim.setclock
         ],

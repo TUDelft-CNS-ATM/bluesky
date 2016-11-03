@@ -25,6 +25,7 @@ white = (255, 255, 255)
 green = (0, 255, 0)
 blue = (0, 0, 255)
 red = (255, 0, 0)
+cyan = (0,150,150)
 lightgreyblue = (130, 150, 190)  # waypoint symbol color
 lightgreygreen = (149, 215, 179)  # grid color
 lightcyan = (0, 255, 255)  # FIR boundaries
@@ -200,7 +201,7 @@ class Screen:
         self.editwin = Console(self.win, nch, nlin, winx, winy)
    
         # Menu button window
-        self.menu = Menu(self.win,10,20)
+        self.menu = Menu(self.win,10,36)
    
 
         #-------------------------COASTLINE DATA--------------------------------------
@@ -256,10 +257,11 @@ class Screen:
         self.rtewpid = []
         self.rtewplabel = []
 
-        # User defined background objects: 0 = None, 1 = line
+        # User defined background objects
         self.objtype    = []
         self.objcolor   = []
         self.objdata    = []
+        self.objname    = []
 
         # Wpt and apt drawing logic memory
         self.wpswbmp = []              # switch indicating whether label bmp is present
@@ -555,12 +557,22 @@ class Screen:
 
             # User defined objects
             for i in range(len(self.objtype)):
-                
-                if self.objtype[i]=='LINE':
+ 
+                # Draw LINE or POLYGON with objdata = [lat0,lon,lat1,lon1,lat2,lon2,..]
+                if self.objtype[i]=='LINE' or self.objtype[i]=="POLY":
+                    npoints = len(self.objdata[i])/2
+                    print npoints
                     x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
-                    x1,y1 = self.ll2xy(self.objdata[i][2],self.objdata[i][3])
-                    pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
+                    for j in range(1,npoints):
+                        x1,y1 = self.ll2xy(self.objdata[i][j*2],self.objdata[i][j*2+1])
+                        pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
+                        x0,y0 = x1,y1
 
+                    if self.objtype[i]=="POLY":
+                        x1,y1 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
+                        pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
+                        
+                # Draw bounding box of objdata = [lat0,lon0,lat1,lon1]
                 elif self.objtype[i]=='BOX':
                     lat0 = min(self.objdata[i][0],self.objdata[i][2])
                     lon0 = min(self.objdata[i][1],self.objdata[i][3])
@@ -571,20 +583,14 @@ class Screen:
                     x1,y1 = self.ll2xy(lat0,lon1)
                     pg.draw.rect(self.radbmp,self.objcolor[i],pg.Rect(x0, y0, x1-x0, y1-y0),1)
 
+                # Draw circle with objdata = [latcenter,loncenter,radiusnm]
                 elif self.objtype[i]=='CIRCLE':
                     pass
-#                Use: pg.draw.circle((Surface, color, pos, radius, width=0)
-#                    x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
-#                    x1,y1 = self.ll2xy(self.objdata[i][2],self.objdata[i][3])
-#                    pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
+                    xm,ym     = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
+                    xtop,ytop = self.ll2xy(self.objdata[i][0]+self.objdata[i][2]/60.,self.objdata[i][1])
+                    radius    = int(round(abs(ytop-ym)))
+                    pg.draw.circle(self.radbmp, self.objcolor[i], (int(xm),int(ym)), radius, 1)
                     
-                elif self.objtype[i]=='POLY' or self.objtype[i]=="POLYALT":
-                    pass
-#                    x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
-#                    x1,y1 = self.ll2xy(self.objdata[i][2],self.objdata[i][3])
-#                    pg.draw.line(self.radbmp,self.objcolor[i],(x0, y0), (x1, y1))
-
-
             # Reset background drawing switch
             self.redrawradbg = False
             
@@ -795,7 +801,8 @@ class Screen:
             pg.draw.rect(self.win, white, pg.Rect(1, 1, self.width - 1, self.height - 1), 1)
 
             # Add debug line
-            self.fontsys.printat(self.win, 10, 2, tim2txt(sim.simt))
+            self.fontsys.printat(self.win, 10, 2, tim2txt(sim.simtclock))
+            self.fontsys.printat(self.win, 10, 18, tim2txt(sim.simt))
             self.fontsys.printat(self.win, 10+80, 2, \
                                  "ntraf = " + str(traf.ntraf))
             self.fontsys.printat(self.win, 10+160, 2, \
@@ -1071,9 +1078,16 @@ class Screen:
         """Add user defined objects"""
         if data is None:
             return self.objdel()
+
+       
+        self.objname.append(name)   
         self.objtype.append(itype)
-        self.objcolor.append(blue)
+        if self.objtype[-1]==1:
+            self.objtype[-1]="LINE" # Convert to string
+            
+        self.objcolor.append(cyan)
         self.objdata.append(data)
+        
 
         self.redrawradbg = True  # redraw background
 
@@ -1081,6 +1095,7 @@ class Screen:
 
     def objdel(self):
         """Add user defined objects"""
+        self.objname     = []
         self.objtype     = []
         self.objcolor    = []
         self.objdata     = []
