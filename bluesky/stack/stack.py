@@ -727,7 +727,7 @@ def process(sim, traf, scr):
 
     # Process stack of commands
     for line in cmdstack:
-        print "stack is processing:",line
+ #debug       print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
         if len(line) == 0:
