@@ -677,6 +677,14 @@ class Perf():
         self.ESF = esf(self.traf.abco, self.traf.belco, self.traf.alt, self.traf.M,\
                   self.climb, self.descent, self.traf.delspd)
 
+
+        # determine vertical speed
+        swvs = (np.abs(self.traf.pilot.spd) > self.traf.eps)
+        vspd = swvs * self.traf.pilot.spd + (1. - swvs) * self.traf.avs * np.sign(self.traf.delalt)
+        swaltsel = np.abs(self.traf.delalt) > np.abs(2. * self.dt * np.abs(vspd))
+        self.traf.vs = swaltsel * vspd  
+
+        # determine thrust
         self.Thr = (((self.traf.vs*self.mass*g0)/(self.ESF*np.maximum(self.traf.eps, self.traf.tas))) + self.D) 
 
         # maximum thrust jet (Bruenig et al., p. 66): 
