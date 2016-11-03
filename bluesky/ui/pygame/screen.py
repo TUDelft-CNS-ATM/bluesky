@@ -955,9 +955,23 @@ class Screen:
                 lat = lat + 0.5 * (self.lat1 - self.lat0)
             elif args[0].upper() == "DOWN":
                 lat = lat - 0.5 * (self.lat1 - self.lat0)
+            else:
+                i = traf.navdb.getwpidx(args[0],self.ctrlat,self.ctrlon)
+                if i<0:
+                    i = traf.navdb.getapidx(args[0],self.ctrlat,self.ctrlon)
+                    if i>0:
+                        lat = traf.navdb.aplat[i]
+                        lon = traf.navdb.aplon[i]
+                else:                
+                    lat = traf.navdb.wplat[i]
+                    lon = traf.navdb.wplon[i]
+                
+                if i<0:
+                    return False,args[0]+"not found."
+                    
         else:
             if len(args)>1:
-                lat, lon = args
+                lat, lon = args[:2]
             else:
                 return False
 

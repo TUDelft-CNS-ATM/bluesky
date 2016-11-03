@@ -788,6 +788,8 @@ def process(sim, traf, scr):
                         repeatsize = len(argtypes) - curtype
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
+
+                    # Go over all argtypes separated by"/" in this place in the command line
                     for i in range(len(argtype)):
 #                        if True:                                # use for debugging argparsing
                         try:    
@@ -899,7 +901,7 @@ def argparse(argtype, argidx, args, traf, scr):
         idx = traf.id2idx(args[argidx])
         if idx < 0:
             scr.echo(args[idx] + " not found")
-            return [None],{},1
+            return [-1],{},1
         else:
             reflat,reflon = traf.lat[idx],traf.lon[idx] # Update ref position for navdb lookup
             return [idx], {}, 1
@@ -998,7 +1000,7 @@ def argparse(argtype, argidx, args, traf, scr):
         if args[argidx].upper().strip() in ["LEFT","RIGHT","UP","ABOVE","RIGHT","DOWN"]: 
             return [args[argidx].upper()], {}, 1  # pass on string to pan function
         else:
-            return [None],{}, 0
+            raise IndexError
 
     elif argtype == "spd":  # CAS[kts] Mach
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))

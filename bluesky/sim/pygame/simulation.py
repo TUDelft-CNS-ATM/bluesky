@@ -1,4 +1,5 @@
 import time
+
 from ...tools import datalog, areafilter
 from ...tools.misc import txt2tim,tim2txt
 from ...traf import Traffic
@@ -52,6 +53,7 @@ class Simulation:
         self.ffstop = -1.    # Indefinitely
 
         # Simulation objects
+        print "Setting up Traffic simulation" 
         self.traf  = Traffic(navdb)
         self.navdb = navdb
         self.metric = Metric()

@@ -382,6 +382,9 @@ class Route():
         if self.nwp <= 0:
             return False, "Aircraft has no route."
 
+        if idx<0:
+            return False, "Aircraft id not found."
+
         for i in range(ipage * 7, ipage * 7 + 7):
             if 0 <= i < self.nwp:
                 # Name
