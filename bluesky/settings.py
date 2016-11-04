@@ -128,9 +128,9 @@ def init(gui='ask'):
                  open(os.path.join(bsdir, 'settings.cfg'), 'w') as fout:
                 for line in fin:
                     if line[:8] == 'log_path':
-                        line = "log_path = '" + os.path.join(bsdir, 'output') + "'"
+                        line = "log_path = '" + os.path.join(bsdir, 'output').replace('\\', '/') + "'"
                     if line[:13] == 'scenario_path':
-                        line = "scenario_path = '" + os.path.join(bsdir, 'scenario') + "'"
+                        line = "scenario_path = '" + os.path.join(bsdir, 'scenario').replace('\\', '/') + "'"
                     fout.write(line + '\n')
 
     for i in range(len(sys.argv)):
