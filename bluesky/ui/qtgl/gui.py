@@ -28,6 +28,7 @@ from radarwidget import RadarWidget
 from nd import ND
 import autocomplete
 from ...tools.misc import cmdsplit, tim2txt
+from ...settings import scenario_path
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -458,7 +459,7 @@ class Gui(QApplication):
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', 'scenario', 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', scenario_path, 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:
