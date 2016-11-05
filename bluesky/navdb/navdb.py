@@ -45,7 +45,9 @@ class Navdatabase:
             self.wpseg.append(361 * [[]])
             self.apseg.append(361 * [[]])
 
+        print "Loading global navigation database..."
         wptdata, aptdata, firdata, rwythresholds = load_navdata()
+
         self.wpid     = wptdata['wpid']  # identifier (string)
         self.wplat    = wptdata['wplat']  # latitude [deg]
         self.wplon    = wptdata['wplon']  # longitude [deg]

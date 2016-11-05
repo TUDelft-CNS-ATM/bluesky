@@ -727,7 +727,7 @@ def process(sim, traf, scr):
 
     # Process stack of commands
     for line in cmdstack:
-#debug        print "stack is processing:",line
+ #debug       print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
         if len(line) == 0:
@@ -788,6 +788,8 @@ def process(sim, traf, scr):
                         repeatsize = len(argtypes) - curtype
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
+
+                    # Go over all argtypes separated by"/" in this place in the command line
                     for i in range(len(argtype)):
 #                        if True:                                # use for debugging argparsing
                         try:    
@@ -898,8 +900,8 @@ def argparse(argtype, argidx, args, traf, scr):
     elif argtype == "acid":  # aircraft id => parse index
         idx = traf.id2idx(args[argidx])
         if idx < 0:
-            scr.echo(cmd + ":" + args[idx] + " not found")
-            raise IndexError
+            scr.echo(args[idx] + " not found")
+            return [-1],{},1
         else:
             reflat,reflon = traf.lat[idx],traf.lon[idx] # Update ref position for navdb lookup
             return [idx], {}, 1
@@ -1027,5 +1029,5 @@ def argparse(argtype, argidx, args, traf, scr):
         else:
             return [float(args[argidx])], {}, 1
 
-    return
+    return [None],{}, 0
     
