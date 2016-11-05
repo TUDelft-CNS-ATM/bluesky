@@ -110,13 +110,32 @@ modeS_port = 0
 
 # END OF SETTINGS
 
+
 # Import config settings from settings.cfg if this exists, if it doesn't create an initial config file
 def init(gui='ask'):
-    import os, sys
+    import os, sys, shutil
     configfile = 'settings.cfg'
+    # If BlueSky is run from a compiled bundle instead of from source, adjust the startup path
+    # and change the path of configurable files to $home/bluesky
+    if getattr(sys, 'frozen', False):
+        os.chdir(os.path.dirname(sys.executable))
+        bsdir = os.path.join(os.path.expanduser('~'), 'bluesky')
+        configfile = os.path.join(bsdir, 'settings.cfg')
+        if not os.path.isdir(bsdir):
+            os.makedirs(os.path.join(bsdir, 'output'))
+            shutil.copytree('scenario', os.path.join(bsdir, 'scenario'))
+            with open('settings.cfg', 'r') as fin, \
+                 open(os.path.join(bsdir, 'settings.cfg'), 'w') as fout:
+                for line in fin:
+                    if line[:8] == 'log_path':
+                        line = "log_path = '" + os.path.join(bsdir, 'output').replace('\\', '/') + "'"
+                    if line[:13] == 'scenario_path':
+                        line = "scenario_path = '" + os.path.join(bsdir, 'scenario').replace('\\', '/') + "'"
+                    fout.write(line + '\n')
+
     for i in range(len(sys.argv)):
         if sys.argv[i] == '--config-file':
-            configfile = sys.argv[i+1]
+            configfile = sys.argv[i + 1]
             break
 
     if not os.path.isfile(configfile):

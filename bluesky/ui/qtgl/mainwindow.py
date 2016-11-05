@@ -12,6 +12,10 @@ except ImportError:
 # Local imports
 from ...sim.qtgl import PanZoomEvent, MainManager as manager
 from ...settings import data_path
+import platform
+
+is_osx = platform.system() == 'Darwin'
+
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
@@ -25,7 +29,10 @@ class MainWindow(QMainWindow):
     def __init__(self, app, radarwidget):
         super(MainWindow, self).__init__()
         self.app = app
-        self.app.setWindowIcon(QIcon(data_path + "/graphics/icon.gif"))
+        if is_osx:
+            self.app.setWindowIcon(QIcon(data_path + "/graphics/bluesky.icns"))
+        else:
+            self.app.setWindowIcon(QIcon(data_path + "/graphics/icon.gif"))
 
         uic.loadUi(data_path + "/graphics/mainwindow.ui", self)
 

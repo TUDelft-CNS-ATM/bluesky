@@ -14,7 +14,7 @@ from adsbmodel import ADSB
 from asas import ASAS
 from pilot import Pilot
 from autopilot import Autopilot
-from waypoint import ActiveWaypoint
+from activewpdata import ActiveWaypoint
 from turbulence import Turbulence
 from area import Area
 
