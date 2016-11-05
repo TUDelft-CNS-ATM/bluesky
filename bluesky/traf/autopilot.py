@@ -141,6 +141,12 @@ class Autopilot(DynamicArrays):
         # So: somewhere there is an altitude constraint ahead
         # Compute proper values for self.traf.actwp.alt, self.dist2vs, self.alt, self.traf.actwp.vs
         # Descent VNAV mode (T/D logic)
+        #
+        # xtoalt =  distance to go to next altitude constraint at a waypoinit in the route 
+        #           (could be beyond next waypoint) 
+        #        
+        # toalt  = altitude at next waypoint with an altitude constraint
+        #
         if self.traf.alt[idx] > toalt + 10. * ft:
 
             #Calculate max allowed altitude at next wp (above toalt)
@@ -162,7 +168,7 @@ class Autopilot(DynamicArrays):
                 self.traf.actwp.vs[idx]  = (self.traf.actwp.alt[idx] - self.traf.alt[idx]) / t2go
 
             else:
-                # Calculate V/s using self.steepness,
+                # Calculate V/S using self.steepness,
                 # protect against zero/invalid ground speed value
                 self.traf.actwp.vs[idx] = -self.steepness * (self.traf.gs[idx] +
                       (self.traf.gs[idx] < 0.2 * self.traf.tas[idx]) * self.traf.tas[idx])
@@ -176,6 +182,8 @@ class Autopilot(DynamicArrays):
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
+                        
+        return
 
     def selalt(self, idx, alt, vspd=None):
         """ Select altitude command: ALT acid, alt, [vspd] """
