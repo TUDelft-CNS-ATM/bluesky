@@ -142,6 +142,7 @@ class Autopilot(DynamicArrays):
         if not (toalt >= 0 and self.traf.swvnav[idx]):
             self.dist2vs[idx] = -999
             return
+#        print "alt, toalt=",self.traf.alt[idx],toalt
 
         # So: somewhere there is an altitude constraint ahead
         # Compute proper values for self.traf.actwp.alt, self.dist2vs, self.alt, self.traf.actwp.vs
@@ -156,7 +157,8 @@ class Autopilot(DynamicArrays):
             
 
             #Calculate max allowed altitude at next wp (above toalt)
-            self.traf.actwp.alt[idx] = toalt + xtoalt * self.steepness
+            self.traf.actwp.alt[idx] = min(self.traf.alt[idx],toalt + xtoalt * self.steepness)
+            
 
             # Dist to waypoint where descent should start
             self.dist2vs[idx] = (self.traf.alt[idx] - self.traf.actwp.alt[idx]) / self.steepness
@@ -319,6 +321,9 @@ class Autopilot(DynamicArrays):
             route = self.route[idx]
             if route.nwp > 0:
                 self.traf.swvnav[idx] = True
+                self.route[idx].calcfp()
+                self.ComputeVNAV(idx,self.route[idx].wptoalt[self.route[idx].iactwp],
+                                     self.route[idx].wpxtoalt[self.route[idx].iactwp])
             else:
                 return False, ("VNAV " + self.traf.id[idx] + ": no waypoints or destination specified")
         else:

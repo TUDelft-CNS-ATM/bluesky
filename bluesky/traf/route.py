@@ -343,6 +343,7 @@ class Route():
             traf.actwp.lat[i] = self.wplat[wpidx]
             traf.actwp.lon[i] = self.wplon[wpidx]
 
+            self.calcfp()
             traf.ap.ComputeVNAV(i,self.wptoalt[wpidx],self.wpxtoalt[wpidx])
             if traf.swvnav[i]:
 #            if True:
