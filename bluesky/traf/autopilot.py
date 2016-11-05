@@ -126,7 +126,12 @@ class Autopilot(DynamicArrays):
             self.swvnavvs  = np.where(self.swnavvs, self.steepness * self.traf.gs, self.swvnavvs)
 
             self.vs = np.where(self.traf.swvnav, self.swvnavvs, self.traf.avsdef * self.traf.limvs_flag)
+
             self.alt = np.where(self.swnavvs, self.traf.actwp.alt, self.traf.apalt)
+
+            # When descending or climbing in VNAV also update altitude command of select/hold mode            
+            self.traf.apalt = np.where(self.swnavvs,self.traf.actwp.alt,self.traf.apalt)
+            
             # LNAV commanded track angle
             self.trk = np.where(self.traf.swlnav, qdr, self.trk)
 
