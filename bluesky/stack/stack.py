@@ -1002,7 +1002,11 @@ def argparse(argtype, argidx, args, traf, scr):
         return [spd], {}, 1  # speed CAS[m/s] or Mach (float)
 
     elif argtype == "vspd":
-        return [fpm * float(args[argidx])], {}, 1
+        try:
+            return [fpm * float(args[argidx])], {}, 1
+        except:
+            return [None],{}, 0
+
 
     elif argtype == "alt":  # alt: FL250 or 25000 [ft]
         return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
@@ -1020,7 +1024,10 @@ def argparse(argtype, argidx, args, traf, scr):
             xsec = float(ttxt[2])
             return [ihr + imin + xsec], {}, 1
         else:
-            return [float(args[argidx])], {}, 1
+            try:
+                return [float(args[argidx])], {}, 1
+            except:
+                return [None],{}, 0
 
     return [None],{}, 0
     
