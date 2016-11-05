@@ -343,18 +343,22 @@ class Route():
             traf.actwp.lat[i] = self.wplat[wpidx]
             traf.actwp.lon[i] = self.wplon[wpidx]
 
+            self.calcfp()
+            traf.ap.ComputeVNAV(i,self.wptoalt[wpidx],self.wpxtoalt[wpidx])
             if traf.swvnav[i]:
-                # Set target altitude for autopilot
-                if self.wpalt[wpidx] > 0:
-
-                    if traf.alt[i] < self.wptoalt[i]-10.*ft:
-                        traf.actwp.alt[i] = self.wptoalt[wpidx]
-                        traf.ap.dist2vs[i] = 9999.
-                    else:
-                        steepness = 3000.*ft/(10.*nm)
-                        traf.actwp.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-                        delalt = traf.alt[i] - traf.actwp.alt[i]
-                        traf.ap.dist2vs[i] = steepness*delalt
+#            if True:
+#                # Set target altitude for autopilot
+#                if self.wptoalt[wpidx] > 0:
+#
+#                    if traf.alt[i] < self.wptoalt[i]-10.*ft:
+#                        traf.actwp.alt[i] = self.wptoalt[wpidx]
+#                        traf.ap.dist2vs[i] = 9999.
+#                    else:
+#                    
+#                        steepness = 3000.*ft/(10.*nm)
+#                        traf.actwp.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
+#                        delalt = traf.alt[i] - traf.actwp.alt[i]
+#                        traf.ap.dist2vs[i] = steepness*delalt
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
@@ -619,8 +623,8 @@ class Route():
 
     def calcfp(self):
         """Do flight plan calculations"""
-        self.delwpt("T/D")
-        self.delwpt("T/C")
+#        self.delwpt("T/D")
+#        self.delwpt("T/C")
 
         # Direction to waypoint
         self.nwp = len(self.wpname)
@@ -629,7 +633,7 @@ class Route():
         self.wpdirfrom   = self.nwp*[0.]
         self.wpdistto    = self.nwp*[0.]
         self.wpialt      = self.nwp*[-1]  
-        self.wptoalt     = self.nwp*[0.]
+        self.wptoalt     = self.nwp*[-999.]
         self.wpxtoalt    = self.nwp*[1.]
 
         # No waypoints: make empty variables to be safe and return: nothing to do
@@ -656,7 +660,12 @@ class Route():
         for i in range(self.nwp-2,-1,-1):
 
             # waypoint with altitude constraint (dest of al specified)        
-            if self.wptype[i]==self.dest or self.wpalt[i] >= 0:
+            if self.wptype[i]==self.dest:
+                ialt   = i
+                toalt  = 0.
+                xtoalt = 0.                # [m]
+
+            elif self.wpalt[i] >= 0:
                 ialt   = i
                 toalt  = self.wpalt[i]
                 xtoalt = 0.                # [m]

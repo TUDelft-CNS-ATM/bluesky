@@ -629,7 +629,7 @@ class Screen:
             for i in trafsel:
 
                 # Get index of ac symbol, based on heading and its rect object
-                isymb = int((traf.hdg[i] - self.ndcrs) / 6.) % 60
+                isymb = int(round((traf.hdg[i] - self.ndcrs) / 6.)) % 60
                 pos = self.acsymbol[isymb].get_rect()
 
                 # Draw aircraft symbol

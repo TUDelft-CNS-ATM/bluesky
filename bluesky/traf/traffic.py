@@ -402,7 +402,7 @@ class Traffic(DynamicArrays):
         idx           = self.id.index(acid)
         actype        = self.type[idx]
         lat, lon      = self.lat[idx], self.lon[idx]
-        alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], self.trk[idx]
+        alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], round(self.trk[idx])
         cas           = self.cas[idx] / kts
         tas           = self.tas[idx] / kts
         route         = self.ap.route[idx]

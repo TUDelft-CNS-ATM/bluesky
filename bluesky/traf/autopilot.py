@@ -115,8 +115,8 @@ class Autopilot(DynamicArrays):
             dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
             # VNAV logic: descend as late as possible, climb as soon as possible
-            govertical = self.traf.swvnav * np.logical_or(dist2wp < self.dist2vs, self.traf.actwp.alt > self.traf.alt)
-
+            govertical = self.traf.swvnav * ((dist2wp < self.dist2vs)+(self.traf.actwp.alt > self.traf.alt))
+            
             # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
@@ -142,6 +142,7 @@ class Autopilot(DynamicArrays):
         if not (toalt >= 0 and self.traf.swvnav[idx]):
             self.dist2vs[idx] = -999
             return
+#        print "alt, toalt=",self.traf.alt[idx],toalt
 
         # So: somewhere there is an altitude constraint ahead
         # Compute proper values for self.traf.actwp.alt, self.dist2vs, self.alt, self.traf.actwp.vs
@@ -153,9 +154,11 @@ class Autopilot(DynamicArrays):
         # toalt  = altitude at next waypoint with an altitude constraint
         #
         if self.traf.alt[idx] > toalt + 10. * ft:
+            
 
             #Calculate max allowed altitude at next wp (above toalt)
-            self.traf.actwp.alt[idx] = toalt + xtoalt * self.steepness
+            self.traf.actwp.alt[idx] = min(self.traf.alt[idx],toalt + xtoalt * self.steepness)
+            
 
             # Dist to waypoint where descent should start
             self.dist2vs[idx] = (self.traf.alt[idx] - self.traf.actwp.alt[idx]) / self.steepness
@@ -183,7 +186,6 @@ class Autopilot(DynamicArrays):
             self.traf.actwp.alt[idx] = toalt
             self.alt[idx]    = self.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
             self.dist2vs[idx]  = 9999.
-
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
@@ -295,11 +297,11 @@ class Autopilot(DynamicArrays):
 
         elif flag:
             route = self.route[idx]
-            if route.nwp > 0 and not self.traf.swlnav[idx]:
-                self.traf.swlnav[idx] = True
-                route.direct(self.traf, idx, route.wpname[route.findact(self.traf, idx)])
-            else:
+            if route.nwp <= 0:
                 return False, ("LNAV " + self.traf.id[idx] + ": no waypoints or destination specified")
+            elif not self.traf.swlnav[idx]:
+               self.traf.swlnav[idx] = True
+               route.direct(self.traf, idx, route.wpname[route.findact(self.traf, idx)])
         else:
             self.traf.swlnav[idx] = False
 
@@ -319,6 +321,9 @@ class Autopilot(DynamicArrays):
             route = self.route[idx]
             if route.nwp > 0:
                 self.traf.swvnav[idx] = True
+                self.route[idx].calcfp()
+                self.ComputeVNAV(idx,self.route[idx].wptoalt[self.route[idx].iactwp],
+                                     self.route[idx].wpxtoalt[self.route[idx].iactwp])
             else:
                 return False, ("VNAV " + self.traf.id[idx] + ": no waypoints or destination specified")
         else:
