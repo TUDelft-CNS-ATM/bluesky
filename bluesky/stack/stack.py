@@ -883,7 +883,7 @@ def saveic(fname, sim, traf):
                   repr(traf.trk[i]) + "," + repr(traf.alt[i] / ft) + "," + \
                   repr(tas2cas(traf.tas[i], traf.alt[i]) / kts)
 
-        f.write(timtxt + cmdline + chr(13) + chr(10))
+        f.write(timtxt + cmdline +"\n")
 
         # VS acid,vs
         if abs(traf.vs[i]) > 0.05:  # 10 fpm dead band
@@ -893,19 +893,19 @@ def saveic(fname, sim, traf):
                 vs_ = traf.vs[i] / fpm
 
             cmdline = "VS " + traf.id[i] + "," + repr(vs_)
-            f.write(timtxt + cmdline + chr(13) + chr(10))
+            f.write(timtxt + cmdline + "\n")
 
         # Autopilot commands
         # Altitude
         if abs(traf.alt[i] - traf.ap.alt[i]) > 10.:
             cmdline = "ALT " + traf.id[i] + "," + repr(traf.ap.alt[i] / ft)
-            f.write(timtxt + cmdline + chr(13) + chr(10))
+            f.write(timtxt + cmdline + "\n")
 
         # Heading as well when heading select
         delhdg = (traf.hdg[i] - traf.ap.trk[i] + 180.) % 360. - 180.
         if abs(delhdg) > 0.5:
             cmdline = "HDG " + traf.id[i] + "," + repr(traf.ap.trk[i])
-            f.write(timtxt + cmdline + chr(13) + chr(10))
+            f.write(timtxt + cmdline + "\n")
 
         # Speed select? => Record
         rho = density(traf.alt[i])  # alt in m!
@@ -914,17 +914,44 @@ def saveic(fname, sim, traf):
 
         if abs(delspd) > 0.4:
             cmdline = "SPD " + traf.id[i] + "," + repr(traf.ap.spd[i] / kts)
-            f.write(timtxt + cmdline + chr(13) + chr(10))
+            f.write(timtxt + cmdline + "\n")
 
         # DEST acid,dest-apt
         if traf.ap.dest[i] != "":
             cmdline = "DEST " + traf.id[i] + "," + traf.ap.dest[i]
-            f.write(timtxt + cmdline + chr(13) + chr(10))
+            f.write(timtxt + cmdline + "\n")
 
         # ORIG acid,orig-apt
         if traf.ap.orig[i] != "":
             cmdline = "ORIG " + traf.id[i] + "," + traf.ap.orig[i]
-            f.write(timtxt + cmdline + chr(13) + chr(10))
+            f.write(timtxt + cmdline + "\n")
+            
+        # Route with ADDWPT
+        route = traf.ap.route[i]
+        for iwp in range(route.nwp):
+            # dets and orig al already done, skip them here
+            if iwp==0 and route.wpname[iwp]==traf.ap.orig[i]:
+                continue
+
+            if iwp==route.nwp-1 and route.wpname[iwp]==traf.ap.dest[i]:
+                continue
+            
+            #add other waypoints
+            cmdline = "ADDWPT "+traf.id[i]+" "
+            wpname = route.wpname[iwp]
+            if wpname[:len(traf.id[i])]==traf.id[i]:
+                wpname = repr(route.lat[iwp])+","+repr(route.lon[iwp])
+            cmdline = cmdline + wpname+","
+            
+            if route.wpalt[iwp]>=0.:
+                cmdline = cmdline +repr(route.wpalt[iwp])+","
+            else:
+                cmdline = cmdline+","
+
+            if route.wpspd[iwp]>=0.:
+                cmdline = cmdline +repr(route.wpspd[iwp])+","
+                
+            f.write(timtxt + cmdline + "\n")
 
     # Saveic: should close
     f.close()
