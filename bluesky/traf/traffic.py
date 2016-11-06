@@ -54,6 +54,7 @@ class Traffic(DynamicArrays):
         self.wind = WindSim()
 
         # Define the periodic loggers
+        # ToDo: explain what these line sdo in comments (type of logs?)
         datalog.definePeriodicLogger('SNAPLOG', 'SNAPLOG logfile.', settings.snapdt)
         datalog.definePeriodicLogger('INSTLOG', 'INSTLOG logfile.', settings.instdt)
         datalog.definePeriodicLogger('SKYLOG', 'SKYLOG logfile.', settings.skydt)

@@ -1,4 +1,7 @@
 """ BlueSky Datalogger """
+
+# ToDo: Add description in comments
+
 import os
 import numbers
 import collections
@@ -111,7 +114,7 @@ class CSVLogger:
         # Register a command for this logger in the stack
         stackcmd = {name : [
             name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn',
-            '[txt,float/txt,...]', self.stackio]
+            '[txt,float/txt,...]', self.stackio, name+" data logging on"]
         }
         stack.append_commands(stackcmd)
 

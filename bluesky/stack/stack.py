@@ -89,7 +89,7 @@ def init(sim, traf, scr):
             "Altitude command (autopilot)"
         ],
         "AREA": [
-            "AREA Shapename/OFF or\n AREA lat,lon,lat,lon,[top,bottom]",
+            "AREA Shapename/OFF or AREA lat,lon,lat,lon,[top,bottom]",
             "[float/txt,float,float,float,alt,alt]",
             lambda *args: traf.area.setArea(scr, args),
             "Define experiment area (area of interest)"
@@ -110,7 +110,7 @@ def init(sim, traf, scr):
             "BENCHMARK [scenfile,time]",
             "[txt,time]",
             sim.benchmark,
-            "Run becnhmark"
+            "Run benchmark"
         ],
         "BOX": [
             "BOX name,lat,lon,lat,lon,[top,bottom]",
@@ -122,7 +122,7 @@ def init(sim, traf, scr):
             "CALC expression",
             "string",
             lambda expr: scr.echo("Ans = " + str(eval(expr))),
-            "Simple in-line math calculator, evaluate expression"
+            "Simple in-line math calculator, evaluates expression"
         ],
         "CDMETHOD": [
             "CDMETHOD [method]",
@@ -280,7 +280,7 @@ def init(sim, traf, scr):
             "LNAV acid,[ON/OFF]",
             "acid,[onoff]",
             traf.ap.setLNAV,
-            "LNAV (lateral FMS mode) swithc for autopilot"
+            "LNAV (lateral FMS mode) switch for autopilot"
         ],
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
@@ -322,7 +322,7 @@ def init(sim, traf, scr):
             "NORESO [acid]",
             "[string]",
             traf.asas.SetNoreso,
-            "Switch off conflict resolution for this aicraft"
+            "Switch off conflict resolution for this aircraft"
         ],
         "OP": [
             "OP",
@@ -482,7 +482,7 @@ def init(sim, traf, scr):
             "Toggle aircraft symbol"
         ],
         "SYN": [
-            " SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER,\n" + \
+            " SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER," + \
             "MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP",
             "txt,[...]",
             lambda *args: syn.process(args[0], len(args) - 1, args, sim, traf, scr),
@@ -504,7 +504,7 @@ def init(sim, traf, scr):
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
             "acid/bool,[float/txt]",
             traf.trails.setTrails,
-            "Toggle aicraft trails on/off"
+            "Toggle aircraft trails on/off"
         ],
         "VNAV": [
             "VNAV acid,[ON/OFF]",
