@@ -243,7 +243,7 @@ def init(sim, traf, scr):
         "HELP": [
             "HELP [command] / >filename",
             "[txt]",
-            lambda *args: scr.echo(helptext(*args)),
+            lambda *args: scr.echo(showhelp(*args)),
             "Show help in a command or write list of commands to file"
         ],
         "HOLD": [
@@ -554,6 +554,7 @@ def init(sim, traf, scr):
     synonyms = {
         "CONTINUE": "OP",
         "CREATE": "CRE",
+        "CLOSE": "QUIT",
         "DELETE": "DEL",
         "DIRECTTO": "DIRECT",
         "DIRTO": "DIRECT",
@@ -564,6 +565,8 @@ def init(sim, traf, scr):
         "HMETH": "RMETHH",
         "HRESOM": "RMETHH",
         "HRESOMETH": "RMETHH",
+        "LOAD": "IC",
+        "OPEN": "IC",
         "PAUSE": "HOLD",
         "Q": "QUIT",
         "STOP": "QUIT",
@@ -614,7 +617,7 @@ def append_commands(newcommands):
     cmddict.update(newcommands)
 
 
-def helptext(cmd=''):
+def showhelp(cmd=''):
     """ Generate help text for displaying or dump command referecen in file
         when command is >filename
     """
@@ -649,9 +652,19 @@ def helptext(cmd=''):
             fname = "./info/"+cmd[1:]
         else:
             fname = "./info/bluesky-commands.txt"
+
+        # Write command dictionary to tab-dleoimited text file
+        try:        
+            f = open(fname,"w")
+        except:
+            return "Invalid filename:"+fname
         
+        # Header of first table
+        f.write("Command\tDescription\tUsage\tArgument types\tFunction\n")
+      
         
-        table = [] 
+        table = []  # for alphabetical sort use a table
+        
         # Get info for all commands
         for item in cmddict:
 
@@ -664,6 +677,8 @@ def helptext(cmd=''):
 
             # Clean up string with function name and add if not a lambda function
             funct = str(lst[2]).replace("<","").replace(">","")
+
+            # Lambda function give no info, also remove hex address and "method" text
             if funct.count("lambda")==0:
 
                 if funct.count("at")>0:
@@ -675,25 +690,23 @@ def helptext(cmd=''):
      
             table.append(line)
 
-        # Sort table
-        table.sort()
-        
-        # Write command dictionary to tab-dleoimited text file
-        try:        
-            f = open(fname,"w")
-        except:
-            return "Invalid filename:"+fname
-        
-        f.write("Command\tDescription\tUsage\tArgument types\tFunction\n")
-
+        # Sort & write table
+        table.sort()       
         for line in table:        
             f.write(line+"\n")
+        f.write("\n")
 
         # Add synonyms table
         f.write("\n\n Synonyms (equivalent commands)\n") 
+
+        table = []  # for alphabetical sort use table      
         for item in cmdsynon:
-            f.write(item + "\t" +cmdsynon[item]+"\n")
- 
+            table.append(item + "\t" +cmdsynon[item])
+
+        # Sort & write table        
+        table.sort()
+        for line in table:        
+            f.write(line+"\n")
         f.write("\n")
         
         # Close and report where file is to be found
