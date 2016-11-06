@@ -946,9 +946,11 @@ def process(sim, traf, scr):
         #----------------------------------------------------------------------
         # First check command synonymes list, then in dictionary
         #----------------------------------------------------------------------
+        orgcmd = cmd # save for string cutting out of line and use of synonyms
         if cmd in cmdsynon.keys():
-            cmd = cmdsynon[cmd]
+            cmd    = cmdsynon[cmd]
 
+            
         if cmd in cmddict.keys():
             helptext, argtypelist, function = cmddict[cmd][:3]
             argvsopt = argtypelist.split('[')
@@ -972,7 +974,7 @@ def process(sim, traf, scr):
             # Special case: single text string argument: case sensitive,
             # possibly with spaces/newlines pass the original
             if argtypes == ['string']:
-                arglist = [line[len(cmd) + 1:]]
+                arglist = [line[len(orgcmd) + 1:]]
             else:
                 arglist = []
                 curtype = curarg = 0
