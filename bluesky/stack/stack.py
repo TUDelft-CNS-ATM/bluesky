@@ -19,6 +19,8 @@ from math import *
 import numpy as np
 from random import seed
 import os
+import os.path
+import subprocess
 
 from ..tools import geo, areafilter
 from ..tools.aero import kts, ft, fpm, tas2cas, density
@@ -241,10 +243,10 @@ def init(sim, traf, scr):
             "Heading command (autopilot)"
         ],
         "HELP": [
-            "HELP [command] / >filename",
+            "HELP [command]/pdf/ >filename",
             "[txt]",
             lambda *args: scr.echo(showhelp(*args)),
-            "Show help in a command or write list of commands to file"
+            "Show help on a command, show pdf or write list of commands to file"
         ],
         "HOLD": [
             "HOLD",
@@ -633,6 +635,20 @@ def showhelp(cmd=''):
                 text2 = ""
         text += (text2 + "\nSee Info subfolder for more info.")
         return text
+
+    elif cmd.upper()=="PDF":
+        cwd = os.getcwd()
+        os.chdir("info")
+        pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
+        if os.path.isfile(pdfhelp):
+            try:            
+                subprocess.Popen(pdfhelp,shell=True)
+            except:               
+                return "Opening "+pdfhelp+" failed."
+        else:
+            return pdfhelp+"does not exist."
+        os.chdir("..")
+        return "Pdf window opened"
     
     # Show help line for command
     elif cmd in cmddict:
