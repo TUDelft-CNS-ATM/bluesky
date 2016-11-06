@@ -575,6 +575,7 @@ def init(sim, traf, scr):
         "RUN": "OP",
         "RESOFACH": "RFACH",
         "RESOFACV": "RFACV",
+        "SAVE": "SAVEIC",
         "START": "OP",
         "TURN": "HDG",
         "VMETH": "RMETHV",
@@ -879,15 +880,15 @@ def saveic(fname, sim, traf):
         # CRE acid,type,lat,lon,hdg,alt,spd
         cmdline = "CRE " + traf.id[i] + "," + traf.type[i] + "," + \
                   repr(traf.lat[i]) + "," + repr(traf.lon[i]) + "," + \
-                  repr(traf.hdg[i]) + "," + repr(traf.alt[i] / ft) + "," + \
+                  repr(traf.trk[i]) + "," + repr(traf.alt[i] / ft) + "," + \
                   repr(tas2cas(traf.tas[i], traf.alt[i]) / kts)
 
         f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # VS acid,vs
         if abs(traf.vs[i]) > 0.05:  # 10 fpm dead band
-            if abs(traf.avs[i]) > 0.05:
-                vs_ = traf.avs[i] / fpm
+            if abs(traf.ap.vs[i]) > 0.05:
+                vs_ = traf.ap.vs[i] / fpm
             else:
                 vs_ = traf.vs[i] / fpm
 
@@ -896,23 +897,23 @@ def saveic(fname, sim, traf):
 
         # Autopilot commands
         # Altitude
-        if abs(traf.alt[i] - traf.aalt[i]) > 10.:
-            cmdline = "ALT " + traf.id[i] + "," + repr(traf.aalt[i] / ft)
+        if abs(traf.alt[i] - traf.ap.alt[i]) > 10.:
+            cmdline = "ALT " + traf.id[i] + "," + repr(traf.ap.alt[i] / ft)
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # Heading as well when heading select
-        delhdg = (traf.hdg[i] - traf.ahdg[i] + 180.) % 360. - 180.
+        delhdg = (traf.hdg[i] - traf.ap.trk[i] + 180.) % 360. - 180.
         if abs(delhdg) > 0.5:
-            cmdline = "HDG " + traf.id[i] + "," + repr(traf.ahdg[i])
+            cmdline = "HDG " + traf.id[i] + "," + repr(traf.ap.trk[i])
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # Speed select? => Record
         rho = density(traf.alt[i])  # alt in m!
-        aptas = sqrt(1.225 / rho) * traf.aspd[i]
+        aptas = sqrt(1.225 / rho) * traf.ap.spd[i]
         delspd = aptas - traf.tas[i]
 
         if abs(delspd) > 0.4:
-            cmdline = "SPD " + traf.id[i] + "," + repr(traf.aspd[i] / kts)
+            cmdline = "SPD " + traf.id[i] + "," + repr(traf.ap.spd[i] / kts)
             f.write(timtxt + cmdline + chr(13) + chr(10))
 
         # DEST acid,dest-apt
