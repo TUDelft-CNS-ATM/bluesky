@@ -559,8 +559,8 @@ def init(sim, traf, scr):
         "DIRECTTO": "DIRECT",
         "DIRTO": "DIRECT",
         "DISP": "SWRAD",
-        "END": "STOP",
-        "EXIT": "STOP",
+        "END": "QUIT",
+        "EXIT": "QUIT",
         "FWD": "FF",
         "HMETH": "RMETHH",
         "HRESOM": "RMETHH",
@@ -618,7 +618,7 @@ def append_commands(newcommands):
 
 
 def showhelp(cmd=''):
-    """ Generate help text for displaying or dump command referecen in file
+    """ Generate help text for displaying or dump command reference in file
         when command is >filename
     """
     # No command given: show all
@@ -642,6 +642,15 @@ def showhelp(cmd=''):
             return cmddict[cmd][0]
         else:
             return cmddict[cmd][0]+"\n"+cmddict[cmd][3]
+
+    # Show help line for equivalent command
+    elif cmd in cmdsynon:
+        
+        # Check whether description is available, then show it as well
+        if len(cmddict[cmdsynon[cmd]])<=3:
+            return cmddict[cmdsynon[cmd]][0]
+        else:
+            return cmddict[cmdsynon[cmd]][0]+"\n"+cmddict[cmdsynon[cmd]][3]
             
     
     # Write command reference to tab-delimited text file
@@ -701,7 +710,11 @@ def showhelp(cmd=''):
 
         table = []  # for alphabetical sort use table      
         for item in cmdsynon:
-            table.append(item + "\t" +cmdsynon[item])
+            if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]])>=3 :
+                table.append(item + "\t" +cmdsynon[item]+"\t"+cmddict[cmdsynon[item]][3])
+            else:
+                table.append(item + "\t" +cmdsynon[item]+"\t")
+                
 
         # Sort & write table        
         table.sort()
@@ -711,7 +724,7 @@ def showhelp(cmd=''):
         
         # Close and report where file is to be found
         f.close()
-        return "Writing command reference in "+fname+" in /info folder."
+        return "Writing command reference in "+fname
 
     else:
         return "HELP: Unknown command: " + cmd

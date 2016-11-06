@@ -87,31 +87,31 @@ ZOOM	Zoom display in/out, you can also use +++ or -----	ZOOM IN/OUT or factor	fl
 
 
  Synonyms (equivalent commands)
-?	HELP
-CLOSE	QUIT
-CONTINUE	OP
-CREATE	CRE
-DELETE	DEL
-DIRECTTO	DIRECT
-DIRTO	DIRECT
-DISP	SWRAD
-END	STOP
-EXIT	STOP
-FWD	FF
-HMETH	RMETHH
-HRESOM	RMETHH
-HRESOMETH	RMETHH
-LOAD	IC
-OPEN	IC
-PAUSE	HOLD
-Q	QUIT
-RESOFACH	RFACH
-RESOFACV	RFACV
-RUN	OP
-START	OP
-STOP	QUIT
-TURN	HDG
-VMETH	RMETHV
-VRESOM	RMETHV
-VRESOMETH	RMETHV
+?	HELP	Show help in a command or write list of commands to file
+CLOSE	QUIT	Quit program/Stop simulation
+CONTINUE	OP	Start/Run simulation or continue after pause
+CREATE	CRE	Create an aircraft
+DELETE	DEL	Delete command (aircraft, wind, area)
+DIRECTTO	DIRECT	Go direct to specified waypoint in route (FMS)
+DIRTO	DIRECT	Go direct to specified waypoint in route (FMS)
+DISP	SWRAD	Switch on/off elements and background of map/radar view
+END	QUIT	Quit program/Stop simulation
+EXIT	QUIT	Quit program/Stop simulation
+FWD	FF	Fast forward the simulation
+HMETH	RMETHH	Set resolution method to be used horizontally
+HRESOM	RMETHH	Set resolution method to be used horizontally
+HRESOMETH	RMETHH	Set resolution method to be used horizontally
+LOAD	IC	Initial condition: (re)start simulation and open scenario file
+OPEN	IC	Initial condition: (re)start simulation and open scenario file
+PAUSE	HOLD	Pause(hold) simulation
+Q	QUIT	Quit program/Stop simulation
+RESOFACH	RFACH	Set resolution factor horizontal (to add a margin)
+RESOFACV	RFACV	Set resolution factor vertical (to add a margin)
+RUN	OP	Start/Run simulation or continue after pause
+START	OP	Start/Run simulation or continue after pause
+STOP	QUIT	Quit program/Stop simulation
+TURN	HDG	Heading command (autopilot)
+VMETH	RMETHV	Set resolution method to be used vertically
+VRESOM	RMETHV	Set resolution method to be used vertically
+VRESOMETH	RMETHV	Set resolution method to be used vertically
 
