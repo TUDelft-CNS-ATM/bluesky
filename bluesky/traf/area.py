@@ -25,7 +25,11 @@ class Area:
     def delete(self,idx):
         self.inside = np.delete(self.inside,idx)
 
-    def check(self,t):        
+    def check(self,t):
+        # ToDo: Add autodelete for descending with swTaxi:
+        if self.swtaxi:
+            pass # To be added!!!
+        
         # Update area once per areadt seconds:
         if self.active and abs(t - self.t0) > self.dt:
             self.t0 = t
