@@ -23,7 +23,7 @@ if gui == 'qtgl':
 
         @pyqtSlot()
         def onError(self):
-            print self.socket.errorString()
+            print self.errorString()
 
         @pyqtSlot()
         def onConnected(self):
@@ -91,7 +91,6 @@ elif gui == 'pygame':
             except Exception, err:
                 self.is_connected = False
                 print "Connection Error: %s" % err
-                pass
 
         def disconnectFromHost(self):
             try:
@@ -100,7 +99,6 @@ elif gui == 'pygame':
                 print "Server disconnected."
             except Exception, err:
                 print "Disconnection Error: %s" % err
-                pass
 
         def isConnected(self):
             return self.is_connected
@@ -113,7 +111,7 @@ elif gui == 'pygame':
 
                 try:
                     data = self.sock.recv(self.buffer_size)
-                    self.parse_data(data)
+                    self.processData(data)
                     time.sleep(0.1)
                 except Exception, err:
                     print "Revecier Error: %s" % err

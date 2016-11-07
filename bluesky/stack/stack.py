@@ -49,9 +49,9 @@ def init(sim, traf, scr):
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
-    # Command dictionary with command as key, gives a list with: 
-    #         - helptext 
-    #         - arglist to specify 
+    # Command dictionary with command as key, gives a list with:
+    #         - helptext
+    #         - arglist to specify
     #         - function to call
     #         - description of goal of command
     #
@@ -143,6 +143,11 @@ def init(sim, traf, scr):
             "txt,txt,latlon,hdg,alt,spd",
             traf.create,
             "Create an aircraft"
+        ],
+        "DATAFEED":  [
+            "DATAFEED [ON/OFF]",
+            "[onoff]",
+            sim.datafeed
         ],
         "DEL": [
             "DEL acid/WIND/shape",
@@ -457,7 +462,7 @@ def init(sim, traf, scr):
             "SEED value",
             "int",
             setSeed,
-            "Set seed for all functions using a randomizer (e.g.mcre,noise)"              
+            "Set seed for all functions using a randomizer (e.g.mcre,noise)"
         ],
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
@@ -475,7 +480,7 @@ def init(sim, traf, scr):
             "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]",
             "txt,[float]",
             scr.feature,
-            "Switch on/off elements and background of map/radar view" 
+            "Switch on/off elements and background of map/radar view"
         ],
         "SYMBOL": [
             "SYMBOL",
@@ -642,18 +647,18 @@ def showhelp(cmd=''):
         os.chdir("info")
         pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
         if os.path.isfile(pdfhelp):
-            try:            
+            try:
                 subprocess.Popen(pdfhelp,shell=True)
-            except:               
+            except:
                 return "Opening "+pdfhelp+" failed."
         else:
             return pdfhelp+"does not exist."
         os.chdir("..")
         return "Pdf window opened"
-    
+
     # Show help line for command
     elif cmd in cmddict:
-        
+
         # Check whether description is available, then show it as well
         if len(cmddict)<=3:
             return cmddict[cmd][0]
@@ -662,14 +667,14 @@ def showhelp(cmd=''):
 
     # Show help line for equivalent command
     elif cmd in cmdsynon:
-        
+
         # Check whether description is available, then show it as well
         if len(cmddict[cmdsynon[cmd]])<=3:
             return cmddict[cmdsynon[cmd]][0]
         else:
             return cmddict[cmdsynon[cmd]][0]+"\n"+cmddict[cmdsynon[cmd]][3]
-            
-    
+
+
     # Write command reference to tab-delimited text file
     elif cmd[0] == ">":
 
@@ -680,17 +685,17 @@ def showhelp(cmd=''):
             fname = "./info/bluesky-commands.txt"
 
         # Write command dictionary to tab-dleoimited text file
-        try:        
+        try:
             f = open(fname,"w")
         except:
             return "Invalid filename:"+fname
-        
+
         # Header of first table
         f.write("Command\tDescription\tUsage\tArgument types\tFunction\n")
-      
-        
+
+
         table = []  # for alphabetical sort use a table
-        
+
         # Get info for all commands
         for item in cmddict:
 
@@ -710,35 +715,35 @@ def showhelp(cmd=''):
                 if funct.count("at")>0:
                     idxat = funct.index(" at ")
                     funct = funct[:idxat]
-    
+
                 funct = funct.replace("bound method","")
-                line = line + funct           
-     
+                line = line + funct
+
             table.append(line)
 
         # Sort & write table
-        table.sort()       
-        for line in table:        
+        table.sort()
+        for line in table:
             f.write(line+"\n")
         f.write("\n")
 
         # Add synonyms table
-        f.write("\n\n Synonyms (equivalent commands)\n") 
+        f.write("\n\n Synonyms (equivalent commands)\n")
 
-        table = []  # for alphabetical sort use table      
+        table = []  # for alphabetical sort use table
         for item in cmdsynon:
             if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]])>=3 :
                 table.append(item + "\t" +cmdsynon[item]+"\t"+cmddict[cmdsynon[item]][3])
             else:
                 table.append(item + "\t" +cmdsynon[item]+"\t")
-                
 
-        # Sort & write table        
+
+        # Sort & write table
         table.sort()
-        for line in table:        
+        for line in table:
             f.write(line+"\n")
         f.write("\n")
-        
+
         # Close and report where file is to be found
         f.close()
         return "Writing command reference in "+fname
@@ -835,7 +840,10 @@ def ic(scr, sim, filename=''):
         filename = scenfile
 
     # Clean up filename
-    filename = filename.strip()
+    try:
+        filename = filename.strip()
+    except:
+        pass
 
     # Reset sim and open new scenario file
     if len(filename) > 0:
@@ -925,7 +933,7 @@ def saveic(fname, sim, traf):
         if traf.ap.orig[i] != "":
             cmdline = "ORIG " + traf.id[i] + "," + traf.ap.orig[i]
             f.write(timtxt + cmdline + "\n")
-            
+
         # Route with ADDWPT
         route = traf.ap.route[i]
         for iwp in range(route.nwp):
@@ -935,14 +943,14 @@ def saveic(fname, sim, traf):
 
             if iwp==route.nwp-1 and route.wpname[iwp]==traf.ap.dest[i]:
                 continue
-            
+
             #add other waypoints
             cmdline = "ADDWPT "+traf.id[i]+" "
             wpname = route.wpname[iwp]
             if wpname[:len(traf.id[i])]==traf.id[i]:
                 wpname = repr(route.lat[iwp])+","+repr(route.lon[iwp])
             cmdline = cmdline + wpname+","
-            
+
             if route.wpalt[iwp]>=0.:
                 cmdline = cmdline +repr(route.wpalt[iwp])+","
             else:
@@ -950,7 +958,7 @@ def saveic(fname, sim, traf):
 
             if route.wpspd[iwp]>=0.:
                 cmdline = cmdline +repr(route.wpspd[iwp])+","
-                
+
             f.write(timtxt + cmdline + "\n")
 
     # Saveic: should close
@@ -994,7 +1002,7 @@ def process(sim, traf, scr):
         if cmd in cmdsynon.keys():
             cmd    = cmdsynon[cmd]
 
-            
+
         if cmd in cmddict.keys():
             helptext, argtypelist, function = cmddict[cmd][:3]
             argvsopt = argtypelist.split('[')
@@ -1269,4 +1277,3 @@ def argparse(argtype, argidx, args, traf, scr):
                 return [None],{}, 0
 
     return [None],{}, 0
-    
