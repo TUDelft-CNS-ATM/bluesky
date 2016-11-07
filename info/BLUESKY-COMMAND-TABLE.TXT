@@ -1,0 +1,115 @@
+Command	Description	Usage	Argument types	Function
+ADDNODES	Add a simulation instance/node	ADDNODES number	int	 Simulation.addNodes of bluesky.sim.pygame.simulation.Simulation instance
+ADDWPT	Add a waypoint to route of aircraft (FMS)	ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]	acid,wpt,[alt,spd,txt]	
+ALT	Altitude command (autopilot)	ALT acid, alt, [vspd]	acid,alt,[vspd]	 Autopilot.selalt of bluesky.traf.autopilot.Autopilot object
+AREA	Define experiment area (area of interest)	AREA Shapename/OFF or AREA lat,lon,lat,lon,[top,bottom]	[float/txt,float,float,float,alt,alt]	
+ASAS	Airborne Separation Assurance System switch	ASAS ON/OFF	[onoff]	 ASAS.toggle of bluesky.traf.asas.asas.ASAS object
+BATCH	Start a scenario file as batch simulation	BATCH filename	string	 Simulation.batch of bluesky.sim.pygame.simulation.Simulation instance
+BENCHMARK	Run benchmark	BENCHMARK [scenfile,time]	[txt,time]	 Simulation.benchmark of bluesky.sim.pygame.simulation.Simulation instance
+BOX	Define a box-shaped area	BOX name,lat,lon,lat,lon,[top,bottom]	txt,latlon,latlon,[alt,alt]	
+CALC	Simple in-line math calculator, evaluates expression	CALC expression	string	
+CDMETHOD	Set conflict detection method	CDMETHOD [method]	[txt]	 ASAS.SetCDmethod of bluesky.traf.asas.asas.ASAS object
+CIRCLE	Define a circle-shaped area	CIRCLE name,lat,lon,radius,[top,bottom]	txt,latlon,float,[alt,alt]	
+CRE	Create an aircraft	CRE acid,type,lat,lon,hdg,alt,spd	txt,txt,latlon,hdg,alt,spd	 Traffic.create of bluesky.traf.traffic.Traffic object
+DATAFEED	Select an ADS-B data source for traffic	DATAFEED [ON/OFF]	[onoff]	 Modesbeast.toggle of bluesky.tools.datafeed.Modesbeast object
+DEL	Delete command (aircraft, wind, area)	DEL acid/WIND/shape	txt	
+DELWPT	Delete a waypoint from a route (FMS)	DELWPT acid,wpname	acid,txt	
+DEST	Set destination of aircraft, aircraft wil fly to this airport	DEST acid, latlon/airport	acid,wpt/latlon	
+DIRECT	Go direct to specified waypoint in route (FMS)	DIRECT acid wpname	acid,txt	
+DIST	Distance and direction calculation between two positions	DIST lat0, lon0, lat1, lon1	latlon,latlon	
+DT	Set simulation time step	DT dt	float	 Simulation.setDt of bluesky.sim.pygame.simulation.Simulation instance
+DTLOOK	Set lookahead time in seconds for conflict detection	DTLOOK [time]	[float]	 ASAS.SetDtLook of bluesky.traf.asas.asas.ASAS object
+DTMULT	Sel multiplication factor for fast-time simulation	DTMULT multiplier	float	 Simulation.setDtMultiplier of bluesky.sim.pygame.simulation.Simulation instance
+DTNOLOOK	Set interval for conflict detection	DTNOLOOK [time]	[float]	 ASAS.SetDtNoLook of bluesky.traf.asas.asas.ASAS object
+DUMPRTE	Write route to output/routelog.txt	DUMPRTE acid	acid	
+ECHO	Show a text in command window for user to read	ECHO txt	string	 Screen.echo of bluesky.ui.pygame.screen.Screen instance
+ENG	Specify a different engine type	ENG acid,[engine_id]	acid,[txt]	 Perf.engchange of bluesky.traf.perf.Perf instance
+FF	Fast forward the simulation	FF [tend]	[time]	 Simulation.fastforward of bluesky.sim.pygame.simulation.Simulation instance
+FIXDT	Fix the time step	FIXDT ON/OFF [tend]	onoff,[time]	 Simulation.setFixdt of bluesky.sim.pygame.simulation.Simulation instance
+GETWIND	Get wind at a specified position (and optionally at altitude)	GETWIND lat,lon[,alt]	latlon,[alt]	 WindSim.get of bluesky.traf.windsim.WindSim instance
+HDG	Heading command (autopilot)	HDG acid,hdg (deg,True)	acid,float	 Autopilot.selhdg of bluesky.traf.autopilot.Autopilot object
+HELP	Show help in a command or write list of commands to file	HELP [command] / >filename	[txt]	
+HOLD	Pause(hold) simulation	HOLD		 Simulation.pause of bluesky.sim.pygame.simulation.Simulation instance
+IC	Initial condition: (re)start simulation and open scenario file	IC [IC/filename]	[string]	
+INSEDIT	Insert text op edit line in command window	INSEDIT txt	string	 Screen.cmdline of bluesky.ui.pygame.screen.Screen instance
+INSTLOG	INSTLOG data logging on	INSTLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn	[txt,float/txt,...]	 CSVLogger.stackio of bluesky.tools.datalog.CSVLogger instance
+LINE	Draw a line on the radar screen	LINE name,lat,lon,lat,lon	txt,latlon,latlon	
+LISTRTE	Show list of route in window per page of 5 waypoints	LISTRTE acid, [pagenr]	acid,[int]	
+LNAV	LNAV (lateral FMS mode) switch for autopilot	LNAV acid,[ON/OFF]	acid,[onoff]	 Autopilot.setLNAV of bluesky.traf.autopilot.Autopilot object
+MCRE	Multiple random create of n aircraft in current view	MCRE n, [type/*, alt/*, spd/*, dest/*]	int,[txt,alt,spd,txt]	
+METRIC	Complexity metrics module	METRIC OFF/0/1/2, [dt]	onoff/int,[float]	
+MOVE	Move an aircraft to a new position	MOVE acid,lat,lon,[alt,hdg,spd,vspd]	acid,latlon,[alt,hdg,spd,vspd]	 Traffic.move of bluesky.traf.traffic.Traffic object
+ND	Show navigation display with CDTI	ND acid	txt	
+NOISE	Turbulence/noise switch	NOISE [ON/OFF]	[onoff]	 Traffic.setNoise of bluesky.traf.traffic.Traffic object
+NOM	Set nominal acceleration for this aircraft (perf model)	NOM acid	acid	 Traffic.nom of bluesky.traf.traffic.Traffic object
+NORESO	Switch off conflict resolution for this aircraft	NORESO [acid]	[string]	 ASAS.SetNoreso of bluesky.traf.asas.asas.ASAS object
+OP	Start/Run simulation or continue after pause	OP		 Simulation.start of bluesky.sim.pygame.simulation.Simulation instance
+ORIG	Set origin airport of aircraft	ORIG acid, latlon/airport	acid,wpt/latlon	
+PAN	Pan screen (move view) to a waypoint, direction or aircraft	PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN	pandir/latlon	 Screen.pan of bluesky.ui.pygame.screen.Screen instance
+PCALL	Call commands in another scenario file	PCALL filename [REL/ABS]	txt,[txt]	
+POLY	Define a polygon-shaped area	POLY name,lat,lon,lat,lon, ...	txt,latlon,...	
+POLYALT	Define a polygon-shaped area in 3D: between two altitudes	POLY name,top,bottom,lat,lon,lat,lon, ...	txt,alt,alt,latlon,...	
+POS	Get info on aircraft	POS acid	txt	
+PRIORULES	Define priority rules (right of way) for conflict resolution	PRIORULES [ON/OFF PRIOCODE]	[onoff, txt]	 ASAS.SetPrio of bluesky.traf.asas.asas.ASAS object
+QUIT	Quit program/Stop simulation	QUIT		 Simulation.stop of bluesky.sim.pygame.simulation.Simulation instance
+RESET	Reset simulation	RESET		 Simulation.reset of bluesky.sim.pygame.simulation.Simulation instance
+RESO	Set resolution method	RESO [method]	[txt]	 ASAS.SetCRmethod of bluesky.traf.asas.asas.ASAS object
+RESOOFF	Switch for conflict resolution module	RESOOFF [acid]	[string]	 ASAS.SetResooff of bluesky.traf.asas.asas.ASAS object
+RFACH	Set resolution factor horizontal (to add a margin)	RFACH [factor]	[float]	 ASAS.SetResoFacH of bluesky.traf.asas.asas.ASAS object
+RFACV	Set resolution factor vertical (to add a margin)	RFACV [factor]	[float]	 ASAS.SetResoFacV of bluesky.traf.asas.asas.ASAS object
+RMETHH	Set resolution method to be used horizontally	RMETHH [method]	[txt]	 ASAS.SetResoHoriz of bluesky.traf.asas.asas.ASAS object
+RMETHV	Set resolution method to be used vertically	RMETHV [method]	[txt]	 ASAS.SetResoVert of bluesky.traf.asas.asas.ASAS object
+RSZONEDH	Set half of vertical dimension of resolution zone in ft	RSZONEDH [height]	[float]	 ASAS.SetPZHm of bluesky.traf.asas.asas.ASAS object
+RSZONER	Set horizontal radius of resolution zone in nm	RSZONER [radius]	[float]	 ASAS.SetPZRm of bluesky.traf.asas.asas.ASAS object
+RUNWAYS	List available runways on an airport	RUNWAYS ICAO	txt	
+SAVEIC	Save current situation as IC	SAVEIC filename	string	
+SCEN	Give current situation a scenario name	SCEN scenname	string	function scenarioinit
+SEED	Set seed for all functions using a randomizer (e.g.mcre,noise)	SEED value	int	function setSeed
+SKYLOG	SKYLOG data logging on	SKYLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn	[txt,float/txt,...]	 CSVLogger.stackio of bluesky.tools.datalog.CSVLogger instance
+SNAPLOG	SNAPLOG data logging on	SNAPLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn	[txt,float/txt,...]	 CSVLogger.stackio of bluesky.tools.datalog.CSVLogger instance
+SPD	Speed command (autopilot)	SPD acid,spd (CAS-kts/Mach)	acid,spd	 Autopilot.selspd of bluesky.traf.autopilot.Autopilot object
+SSD	Show state-space diagram (=conflict prevention display/predictive ASAS)	SSD acid/ALL/OFF	txt	 Screen.showssd of bluesky.ui.pygame.screen.Screen instance
+SWRAD	Switch on/off elements and background of map/radar view	SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]	txt,[float]	 Screen.feature of bluesky.ui.pygame.screen.Screen instance
+SYMBOL	Toggle aircraft symbol	SYMBOL		 Screen.symbol of bluesky.ui.pygame.screen.Screen instance
+SYN	Macro for generating synthetic (geometric) traffic scenarios	 SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER,MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP	txt,[...]	
+TAXI	Switch on/off ground/low altitude mode, prevents auto-delete at 1500 ft	TAXI ON/OFF : OFF auto deletes traffic below 1500 ft	onoff	 Area.setTaxi of bluesky.traf.area.Area instance
+TIME	Set simulated clock time	TIME RUN(default) / HH:MM:SS.hh / REAL / UTC 	[txt]	 Simulation.setclock of bluesky.sim.pygame.simulation.Simulation instance
+TRAIL	Toggle aircraft trails on/off	TRAIL ON/OFF, [dt] OR TRAIL acid color	acid/bool,[float/txt]	 Trails.setTrails of bluesky.traf.trails.Trails object
+VNAV	Switch on/off VNAV mode, the vertical FMS mode (autopilot)	VNAV acid,[ON/OFF]	acid,[onoff]	 Autopilot.setVNAV of bluesky.traf.autopilot.Autopilot object
+VS	Vertical speed command (autopilot)	VS acid,vspd (ft/min)	acid,vspd	 Autopilot.selvspd of bluesky.traf.autopilot.Autopilot object
+WIND	Define a wind vector as part of the 2D or 3D wind field	WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]	latlon,[alt],float,float,...,...,...	 WindSim.add of bluesky.traf.windsim.WindSim instance
+ZONEDH	Set half of the vertical protected zone dimensions in ft	ZONEDH [height]	[float]	 ASAS.SetPZH of bluesky.traf.asas.asas.ASAS object
+ZONER	Set the radius of the horizontal protected zone dimensions in nm	ZONER [radius]	[float]	 ASAS.SetPZR of bluesky.traf.asas.asas.ASAS object
+ZOOM	Zoom display in/out, you can also use +++ or -----	ZOOM IN/OUT or factor	float/txt	
+
+
+
+ Synonyms (equivalent commands)
+?	HELP	Show help in a command or write list of commands to file
+CLOSE	QUIT	Quit program/Stop simulation
+CONTINUE	OP	Start/Run simulation or continue after pause
+CREATE	CRE	Create an aircraft
+DELETE	DEL	Delete command (aircraft, wind, area)
+DIRECTTO	DIRECT	Go direct to specified waypoint in route (FMS)
+DIRTO	DIRECT	Go direct to specified waypoint in route (FMS)
+DISP	SWRAD	Switch on/off elements and background of map/radar view
+END	QUIT	Quit program/Stop simulation
+EXIT	QUIT	Quit program/Stop simulation
+FWD	FF	Fast forward the simulation
+HMETH	RMETHH	Set resolution method to be used horizontally
+HRESOM	RMETHH	Set resolution method to be used horizontally
+HRESOMETH	RMETHH	Set resolution method to be used horizontally
+LOAD	IC	Initial condition: (re)start simulation and open scenario file
+OPEN	IC	Initial condition: (re)start simulation and open scenario file
+PAUSE	HOLD	Pause(hold) simulation
+Q	QUIT	Quit program/Stop simulation
+RESOFACH	RFACH	Set resolution factor horizontal (to add a margin)
+RESOFACV	RFACV	Set resolution factor vertical (to add a margin)
+RUN	OP	Start/Run simulation or continue after pause
+START	OP	Start/Run simulation or continue after pause
+STOP	QUIT	Quit program/Stop simulation
+TURN	HDG	Heading command (autopilot)
+VMETH	RMETHV	Set resolution method to be used vertically
+VRESOM	RMETHV	Set resolution method to be used vertically
+VRESOMETH	RMETHV	Set resolution method to be used vertically
+

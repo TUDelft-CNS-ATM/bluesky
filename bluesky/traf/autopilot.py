@@ -272,7 +272,9 @@ class Autopilot(DynamicArrays):
                 self.traf.actwp.spd[idx] = route.wpspd[iwp]
 
                 self.traf.swlnav[idx] = True
+                self.traf.swvnav[idx] = True
                 route.iactwp = iwp
+                route.direct(self.traf, idx, route.wpname[iwp])
 
             # If not found, say so
             elif iwp < 0:

@@ -19,7 +19,8 @@ class Modesbeast(TcpSocket):
         cmddict = {"DATAFEED": [
                    "DATAFEED [ON/OFF]",
                    "[onoff]",
-                   self.toggle]}
+                   self.toggle,
+                   "Select an ADS-B data source for traffic"]}
         stack.append_commands(cmddict)
 
     def processData(self, data):
