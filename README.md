@@ -11,6 +11,10 @@ modified, cited, etc. without any limitations.
 Please send suggestions, proposed changes or contributions through GitHub, preferably after 
 debugging it and optimising it for run-time performance.
 
+## BlueSky Releases
+If you are not (yet) interested in reading and editing the source of BlueSky, you can also download a release version of BlueSky, that you can install directly, without having to worry about python and library dependencies. You can find the latest release here:
+https://github.com/ProfHoekstra/bluesky/releases
+
 ## BlueSky Wiki
 Installation and user guides are accessible at:
 https://github.com/ProfHoekstra/bluesky/wiki
