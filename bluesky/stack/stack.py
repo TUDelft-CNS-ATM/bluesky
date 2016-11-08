@@ -983,135 +983,137 @@ def process(sim, traf, scr):
         # Assume syntax is ok (default)
         synerr = False
 
-        #**********************************************************************
-        #=====================  Start of command branches =====================
-        #**********************************************************************
+        try:
+            #**********************************************************************
+            #=====================  Start of command branches =====================
+            #**********************************************************************
 
-        #----------------------------------------------------------------------
-        # First check command synonymes list, then in dictionary
-        #----------------------------------------------------------------------
-        orgcmd = cmd # save for string cutting out of line and use of synonyms
-        if cmd in cmdsynon.keys():
-            cmd    = cmdsynon[cmd]
+            #----------------------------------------------------------------------
+            # First check command synonymes list, then in dictionary
+            #----------------------------------------------------------------------
+            orgcmd = cmd # save for string cutting out of line and use of synonyms
+            if cmd in cmdsynon.keys():
+                cmd    = cmdsynon[cmd]
 
-            
-        if cmd in cmddict.keys():
-            helptext, argtypelist, function = cmddict[cmd][:3]
-            argvsopt = argtypelist.split('[')
-            argtypes = argvsopt[0].strip(',').split(",")
-            if argtypes == ['']:
-                argtypes = []
+            if cmd in cmddict.keys():
+                helptext, argtypelist, function = cmddict[cmd][:3]
+                argvsopt = argtypelist.split('[')
+                argtypes = argvsopt[0].strip(',').split(",")
+                if argtypes == ['']:
+                    argtypes = []
 
-            # Check if at least the number of mandatory arguments is given.
-            if numargs < len(argtypes):
-                scr.echo("Syntax error: Too few arguments")
-                scr.echo(line)
-                scr.echo(helptext)
-                continue
+                # Check if at least the number of mandatory arguments is given.
+                if numargs < len(argtypes):
+                    scr.echo("Syntax error: Too few arguments")
+                    scr.echo(line)
+                    scr.echo(helptext)
+                    continue
 
-            # Add optional argument types if they are given
-            if len(argvsopt) == 2:
-                argtypes = argtypes + argvsopt[1].strip(']').split(',')
+                # Add optional argument types if they are given
+                if len(argvsopt) == 2:
+                    argtypes = argtypes + argvsopt[1].strip(']').split(',')
 
-            # Process arg list
-            optargs = {}
-            # Special case: single text string argument: case sensitive,
-            # possibly with spaces/newlines pass the original
-            if argtypes == ['string']:
-                arglist = [line[len(orgcmd) + 1:]]
-            else:
-                arglist = []
-                curtype = curarg = 0
-                while curtype < len(argtypes) and curarg < len(args) and not synerr:
-                    if argtypes[curtype][:3] == '...':
-                        repeatsize = len(argtypes) - curtype
-                        curtype = curtype - repeatsize
-                    argtype    = argtypes[curtype].strip().split('/')
+                # Process arg list
+                optargs = {}
+                # Special case: single text string argument: case sensitive,
+                # possibly with spaces/newlines pass the original
+                if argtypes == ['string']:
+                    arglist = [line[len(orgcmd) + 1:]]
+                else:
+                    arglist = []
+                    curtype = curarg = 0
+                    while curtype < len(argtypes) and curarg < len(args) and not synerr:
+                        if argtypes[curtype][:3] == '...':
+                            repeatsize = len(argtypes) - curtype
+                            curtype = curtype - repeatsize
+                        argtype    = argtypes[curtype].strip().split('/')
 
-                    # Go over all argtypes separated by"/" in this place in the command line
-                    for i in range(len(argtype)):
-                        argtypei = argtype[i]
-                        parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
+                        # Go over all argtypes separated by"/" in this place in the command line
+                        for i in range(len(argtype)):
+                            argtypei = argtype[i]
+                            parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
 
-                        if parsed_arg[0] is None:
-                            # not yet last type possible here?
-                            if i < len(argtype) - 1:
-                                # We have alternative argument formats that we can try
-                                continue
-                            elif argtypei in optargs:
-                                # Missing arguments, so maybe not filled in so enter optargs?
-                                arglist += optargs[argtypei]
+                            if parsed_arg[0] is None:
+                                # not yet last type possible here?
+                                if i < len(argtype) - 1:
+                                    # We have alternative argument formats that we can try
+                                    continue
+                                elif argtypei in optargs:
+                                    # Missing arguments, so maybe not filled in so enter optargs?
+                                    arglist += optargs[argtypei]
+                                else:
+                                    synerr = True
+                                    scr.echo("Syntax error in processing arguments")
+                                    scr.echo(line)
+                                    scr.echo(helptext)
+                                    print "Error in processing arguments:"
+                                    print line
                             else:
-                                synerr = True
-                                scr.echo("Syntax error in processing arguments")
-                                scr.echo(line)
+                                arglist += parsed_arg
+
+                            optargs.update(opt_arg)
+                            curarg  += argstep
+                            break
+
+                        curtype += 1
+
+                # Call function return flag,text
+                # flag: indicates sucess
+                # text: optional error message
+                if not synerr:
+                    # print cmd, arglist
+                    results = function(*arglist)  # * = unpack list to call arguments
+
+                    if type(results) == bool:  # Only flag is returned
+                        synerr = not results
+                        if synerr:
+                            if numargs <= 0 or curarg < len(args) and args[curarg] == "?":
                                 scr.echo(helptext)
-                                print "Error in processing arguments:"
-                                print line
-                        else:
-                            arglist += parsed_arg
+                            else:
+                                scr.echo("Syntax error: " + helptext)
+                            synerr =  False  # Prevent further nagging
 
-                        optargs.update(opt_arg)
-                        curarg  += argstep
-                        break
+                    elif type(results) == list or type(results) == tuple:
+                        # Maybe there is also an error message returned?
+                        if len(results) >= 1:
+                            synerr = not results[0]
 
-                    curtype += 1
+                        if len(results) >= 2:
+                            scr.echo(cmd + ":" + results[1])
+                            synerr = False
 
-            # Call function return flag,text
-            # flag: indicates sucess
-            # text: optional error message
-            if not synerr:
-                # print cmd, arglist
-                results = function(*arglist)  # * = unpack list to call arguments
+                else:  # synerr:
+                    scr.echo("Syntax error: " + helptext)
 
-                if type(results) == bool:  # Only flag is returned
-                    synerr = not results
-                    if synerr:
-                        if numargs <= 0 or curarg < len(args) and args[curarg] == "?":
-                            scr.echo(helptext)
-                        else:
-                            scr.echo("Syntax error: " + helptext)
-                        synerr =  False  # Prevent further nagging
+            #----------------------------------------------------------------------
+            # ZOOM command (or use ++++  or --  to zoom in or out)
+            #----------------------------------------------------------------------
+            elif cmd[0] in ["+", "=", "-"]:
+                nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
+                nmin  = cmd.count("-")
+                scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
 
-                elif type(results) == list or type(results) == tuple:
-                    # Maybe there is also an error message returned?
-                    if len(results) >= 1:
-                        synerr = not results[0]
+            #-------------------------------------------------------------------
+            # Reference to other command files
+            # Check external references
+            #-------------------------------------------------------------------
+    #        elif cmd[:4] in extracmdrefs:
+    #            extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
 
-                    if len(results) >= 2:
-                        scr.echo(cmd + ":" + results[1])
-                        synerr = False
-
-            else:  # synerr:
-                scr.echo("Syntax error: " + helptext)
-
-        #----------------------------------------------------------------------
-        # ZOOM command (or use ++++  or --  to zoom in or out)
-        #----------------------------------------------------------------------
-        elif cmd[0] in ["+", "=", "-"]:
-            nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
-            nmin  = cmd.count("-")
-            scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
-
-        #-------------------------------------------------------------------
-        # Reference to other command files
-        # Check external references
-        #-------------------------------------------------------------------
-#        elif cmd[:4] in extracmdrefs:
-#            extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
-
-        #-------------------------------------------------------------------
-        # Command not found
-        #-------------------------------------------------------------------
-        else:
-            if numargs == 0:
-                scr.echo("Unknown command or aircraft: " + cmd)
+            #-------------------------------------------------------------------
+            # Command not found
+            #-------------------------------------------------------------------
             else:
-                scr.echo("Unknown command: " + cmd)
+                if numargs == 0:
+                    scr.echo("Unknown command or aircraft: " + cmd)
+                else:
+                    scr.echo("Unknown command: " + cmd)
 
-        #**********************************************************************
-        #======================  End of command branches ======================
-        #**********************************************************************
+            #**********************************************************************
+            #======================  End of command branches ======================
+            #**********************************************************************
+        except Exception as e:
+            print e
 
     # End of for-loop of cmdstack
     cmdstack = []
@@ -1144,10 +1146,18 @@ def argparse(argtype, argidx, args, traf, scr):
         return [args[argidx]], {}, 1
 
     elif argtype == "float":  # float number
-        return [float(args[argidx])], {}, 1
+        try:
+            f = float(args[argidx])
+        except:
+            f = None
+        return [f], {}, 1
 
     elif argtype == "int":   # integer
-        return [int(args[argidx])], {}, 1
+        try:
+            i = int(args[argidx])
+        except:
+            i = None
+        return [i], {}, 1
 
     elif argtype == "onoff" or argtype == "bool":
         sw = (args[argidx] == "ON" or
