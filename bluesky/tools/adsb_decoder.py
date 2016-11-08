@@ -204,8 +204,8 @@ def get_speed_heading(msg):
     v_ew = -1*v_ew if v_ew_dir else v_ew
     v_ns = -1*v_ns if v_ns_dir else v_ns
 
-    # vr       = bin2int(msgbin[68:77])       # vertical rate
-    # vr_dir   = bin2int(msgbin[77])
+    # vr       = (bin2int(msgbin[69:78]) - 1) * 64       # vertical rate
+    # vr_dir   = bin2int(msgbin[68])
 
     speed = math.sqrt(v_ns*v_ns + v_ew*v_ew)    # unit in kts
 

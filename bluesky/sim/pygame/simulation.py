@@ -40,7 +40,7 @@ class Simulation:
         self.dt     = 0.0
         self.syst   = 0.0   # system time
 
-        self.deltclock = 0.0   # SImulated clock time at simt=0. 
+        self.deltclock = 0.0   # SImulated clock time at simt=0.
         self.simtclock = 0.0
 
         # Directories
@@ -53,7 +53,7 @@ class Simulation:
         self.ffstop = -1.    # Indefinitely
 
         # Simulation objects
-        print "Setting up Traffic simulation" 
+        print "Setting up Traffic simulation"
         self.traf  = Traffic(navdb)
         self.navdb = navdb
         self.metric = Metric()
@@ -155,7 +155,7 @@ class Simulation:
 
     def stop(self):  # Quit mode
         self.mode   = self.end
-        datalog.reset()        
+        datalog.reset()
 #        datalog.save()
         return
 
@@ -192,34 +192,44 @@ class Simulation:
         self.traf.reset(self.navdb)
         datalog.reset()
         areafilter.reset()
-        self.delclock  = 0.0   # SImulated clock time at simt=0. 
+        self.delclock  = 0.0   # SImulated clock time at simt=0.
         self.simtclock = 0.0
 
     def setclock(self,txt=""):
         """ Set simulated clock time offset"""
         if txt == "":
             pass # avoid error message, just give time
-       
+
         elif txt.upper()== "RUN":
             self.deltclock = 0.0
             self.simtclock = self.simt
-           
+
         elif txt.upper()== "REAL":
             tclock = time.localtime()
             self.simtclock = tclock.tm_hour*3600. + tclock.tm_min*60. + tclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
+
         elif txt.upper()== "UTC":
             utclock = time.gmtime()
             self.simtclock = utclock.tm_hour*3600. + utclock.tm_min*60. + utclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
+
         elif txt.replace(":","").replace(".","").isdigit():
             self.simtclock = txt2tim(txt)
             self.deltclock = self.simtclock - self.simt
         else:
             return False,"Time syntax error"
- 
-        
+
+
         return True,"Time is now "+tim2txt(self.simtclock)
-       
+
+    def datafeed(self, flag=None):
+        if flag is None:
+            msg = 'DATAFEED is '
+            msg += 'connected' if self.beastfeed.isConnected() else 'not connected'
+            # self.screenio.echo(msg)
+        elif flag:
+            self.beastfeed.connectToHost(settings.modeS_host,
+                                         settings.modeS_port)
+        else:
+            self.beastfeed.disconnectFromHost()
