@@ -24,7 +24,8 @@ class Route():
     runway   = 5   # Runway: Copy name and positions
 
     def __init__(self, navdb):
-        # Add pointer to self navdb object
+        
+        # Save a local pointer to the navigation database object navdb
         self.navdb  = navdb
         self.nwp    = 0
 
@@ -39,7 +40,6 @@ class Route():
 
         # Current actual waypoint
         self.iactwp = -1
-
         self.swflyby  = True  # Default waypoints are flyby waypoint
 
         return
