@@ -123,7 +123,9 @@ def init(gui='ask'):
         configfile = os.path.join(bsdir, 'settings.cfg')
         if not os.path.isdir(bsdir):
             os.makedirs(os.path.join(bsdir, 'output'))
+        if not os.path.isdir(os.path.join(bsdir, 'scenario')):
             shutil.copytree('scenario', os.path.join(bsdir, 'scenario'))
+        if not os.path.isfile(os.path.join(bsdir, 'settings.cfg')):
             with open('settings.cfg', 'r') as fin, \
                  open(os.path.join(bsdir, 'settings.cfg'), 'w') as fout:
                 for line in fin:
