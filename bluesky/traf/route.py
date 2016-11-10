@@ -47,6 +47,7 @@ class Route():
     def addwptStack(self, traf, idx, *args): # args: all arguments of addwpt
         "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"
         
+        print "addwpt args=",args
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
         if len(args) == 1:
 
@@ -85,6 +86,16 @@ class Route():
             spd     = -999.  if len(args) < 3 else args[2]
             afterwp = ""     if len(args) < 4 else args[3]
     
+            #Catch empty arguments (None)
+            if alt=="" or alt==None:
+                alt = -999
+            
+            if spd=="" or spd==None:
+                spd = -999
+            
+            if afterwp==None:
+                afterwp = ""
+    
             # Add waypoint
             wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
             
@@ -107,6 +118,7 @@ class Route():
                     "waypoint added at end of route"
             else:
                 return True
+
         else:
              return False,"Waypoint "+name+" not found."
 

@@ -73,7 +73,7 @@ def init(sim, traf, scr):
         ],
         "ADDWPT": [
             "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-            "acid,wpt,[alt,spd,txt]",
+            "acid,wpt,[alt],[spd],[wpt]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
@@ -1031,6 +1031,7 @@ def process(sim, traf, scr):
                         # Go over all argtypes separated by"/" in this place in the command line
                         for i in range(len(argtype)):
                             argtypei = argtype[i]
+                            
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
 
                             if parsed_arg[0] is None:
@@ -1124,11 +1125,13 @@ def argparse(argtype, argidx, args, traf, scr):
     global reflat, reflon
     """ Parse one or more arguments.
 
-        Returns:
-        - A list with the parse results
-        - The number of arguments parsed
-        - A dict with additional optional parsed arguments.
-        As different types can be tried, return none if syntax not ok"""
+        Returns: parsed_arg, opt_arg, argstep 
+        
+        parsed_args = a list with the parsed results (or [None] in case of error)
+        opt_arg     = store for future opt args (like a runway heading)
+        argstep    = how many argtypes are processed
+
+        If syntax not ok, as different types can be tried, return [None],{},0 """
 
     if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
         return [None], {}, 1
@@ -1175,7 +1178,7 @@ def argparse(argtype, argidx, args, traf, scr):
         # airport:   "EHAM"
         # runway:    "EHAM/RW06" "LFPG/RWY23"
 
-        # Set default lat,lon to screen
+        # Set default reference lat,lon for duplicate name in navdb to screen
         if reflat < 180.:  # No reference avaiable yet: use screen center
             reflat, reflon = scr.ctrlat, scr.ctrlon
 
@@ -1216,11 +1219,11 @@ def argparse(argtype, argidx, args, traf, scr):
 
         # Return something different for the two argtypes:
 
-        # for wpt argument type, simply return positiontext, no need it look up nw
+        # wpt argument type: simply return positiontext, no need it look up nw
         if argtype == "wpt":
             return [name], optargs, nusedargs
 
-        # for lat/lon argument type we also need to it up:
+        # lat/lon argument type we also need to it up:
         elif argtype == "latlon":
             success, posobj = txt2pos(name, traf, traf.navdb, reflat, reflon)
 
@@ -1237,34 +1240,39 @@ def argparse(argtype, argidx, args, traf, scr):
                 scr.echo(posobj)  # contains error message
                 return [None], {}, 1
 
-    elif argtype == "pandir":  # Pan direction
+    # Pan direction: check for valid string value
+    elif argtype == "pandir":
 
         if args[argidx].upper().strip() in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
             return [args[argidx].upper()], {}, 1  # pass on string to pan function
         else:
             return [None], {}, 1
 
-    elif argtype == "spd":  # CAS[kts] Mach
+    # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning  CAS)
+    elif argtype == "spd":  
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
         if not 0.1 < spd < 1.0:
             spd *= kts
         return [spd], {}, 1  # speed CAS[m/s] or Mach (float)
 
+    # Vertical speed: convert fpm to in m/s
     elif argtype == "vspd":
         try:
             return [fpm * float(args[argidx])], {}, 1
         except:
             return [None],{}, 0
 
-
+    # Altutide convert ft or FL to m
     elif argtype == "alt":  # alt: FL250 or 25000 [ft]
         return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
 
+    # Heading: return float in degrees
     elif argtype == "hdg":
         # TODO: for now no difference between magnetic/true heading
         hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
         return [hdg], {}, 1
 
+    # Time: convert time MM:SS.hh or HH:MM:SS.hh to a float in seconds
     elif argtype == "time":
         ttxt = args[argidx].strip().split(':')
         if len(ttxt) >= 3:
@@ -1278,5 +1286,6 @@ def argparse(argtype, argidx, args, traf, scr):
             except:
                 return [None],{}, 0
 
+    # Argument not found: return [None],{},0 which will trigger errot and try the next type
     return [None],{}, 0
     
