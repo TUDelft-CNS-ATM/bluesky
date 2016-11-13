@@ -251,11 +251,11 @@ class Autopilot(DynamicArrays):
 
             name = args[0]
 
-            apidx = self.traf.navdb.getapidx(name)
+            apidx = self.traf.navdb.getaptidx(name)
             if apidx < 0:
                 return False, (cmd + ": Airport " + name + " not found.")
-            lat = self.traf.navdb.aplat[apidx]
-            lon = self.traf.navdb.aplon[apidx]
+            lat = self.traf.navdb.aptlat[apidx]
+            lon = self.traf.navdb.aptlon[apidx]
         else:
             lat, lon = args
             name = self.traf.id[idx] + "DEST"

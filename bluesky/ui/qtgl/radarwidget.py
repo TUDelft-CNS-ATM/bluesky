@@ -315,15 +315,15 @@ class RadarWidget(QGLWidget):
         del wptids
 
         # ------- Airports -------------------------------
-        self.nairports = len(self.navdb.aplat)
+        self.nairports = len(self.navdb.aptlat)
         self.airports = RenderObject(gl.GL_LINE_LOOP, vertex_count=4, n_instances=self.nairports)
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
         self.airports.bind_attrib(ATTRIB_VERTEX, 2, aptvertices)
         indices = self.navdb.aptype.argsort()
-        aplat   = np.array(self.navdb.aplat[indices], dtype=np.float32)
-        aplon   = np.array(self.navdb.aplon[indices], dtype=np.float32)
+        aplat   = np.array(self.navdb.aptlat[indices], dtype=np.float32)
+        aplon   = np.array(self.navdb.aptlon[indices], dtype=np.float32)
         aptypes = self.navdb.aptype[indices]
-        apnames = np.array(self.navdb.apid)
+        apnames = np.array(self.navdb.aptid)
         apnames = apnames[indices]
         # The number of large, large+med, and large+med+small airports
         self.nairports = [aptypes.searchsorted(2), aptypes.searchsorted(3), self.nairports]

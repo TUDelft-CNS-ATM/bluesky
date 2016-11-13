@@ -50,10 +50,11 @@ def init(sim, traf, scr):
         at the initialization of the main simulation object."""
 
     # Command dictionary with command as key, gives a list with: 
-    #         - helptext 
-    #         - arglist to specify 
-    #         - function to call
-    #         - description of goal of command
+    #
+    #         command: [ helptext , 
+    #                    arglist , 
+    #                    function to call, 
+    #                    description in one line ] 
     #
     # Regarding the arglist:
     #    - Separate aruments with a comma ","
@@ -61,7 +62,24 @@ def init(sim, traf, scr):
     #    - Separate different argument type variants in one argument with "/"
     #    - Repeat last one using "..." ,    (see e.g. WIND or POLY)
     #
-    # Below this dictionary also a dictionary of synonyms is given (equivalent commands)
+    # Argtypes = syntax parsing (see below in this module for parsing):
+    #
+    #   acid      = aircraft id (text => index) 
+    #   alt       = altitude (FL250, 25000  ft+. meters)
+    #   spd       = CAS or Mach (when <1)   => m/s
+    #   hdg       = heading in degrees
+    #
+    #   float     = plain float
+    #   int       = integer
+    #   txt       = string
+    #   on/off    = text => boolean
+    #
+    #   latlon    = converts acid, wpt, airport etc => lat,lon (deg) so 2 args!
+    #   wpt       = converts postext or lat,lon into a text string to be used as named waypoint
+    #   wpinroute = text string with name of waypoint in route
+    #   pandir    = text with LEFT, RIGHT, UP/ABOVE or DOWN
+    #
+    # Below this dictionary also a dictionary of synonym commandss is given (equivalent commands)
     #
     #--------------------------------------------------------------------
     commands = {
@@ -73,7 +91,7 @@ def init(sim, traf, scr):
         ],
         "ADDWPT": [
             "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-            "acid,wpt,[alt],[spd],[wpt]",
+            "acid,wpt,[alt],[spd],[wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
@@ -154,7 +172,7 @@ def init(sim, traf, scr):
         ],
         "DELWPT": [
             "DELWPT acid,wpname",
-            "acid,txt",
+            "acid,wpinroute",
             lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
             "Delete a waypoint from a route (FMS)"
         ],
@@ -638,7 +656,6 @@ def showhelp(cmd=''):
         return text
 
     elif cmd.upper()=="PDF":
-        cwd = os.getcwd()
         os.chdir("info")
         pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
         if os.path.isfile(pdfhelp):
@@ -1148,6 +1165,10 @@ def argparse(argtype, argidx, args, traf, scr):
     elif argtype == "txt":  # simple text
         return [args[argidx]], {}, 1
 
+    elif argtype == "wpinroute":  # return text in upper case 
+#debug        print "argparse:", args[argidx].upper()
+        return [args[argidx].upper()], {}, 1
+
     elif argtype == "float":  # float number
         try:
             f = float(args[argidx])
@@ -1202,7 +1223,7 @@ def argparse(argtype, argidx, args, traf, scr):
                 nusedargs = 2   # we used two arguments
 
             # apt,runway ? Combine into one string with a slash as separator
-            elif args[argidx + 1][:2].upper() == "RW" and traf.navdb.apid.count(args[argidx]) > 0:
+            elif args[argidx + 1][:2].upper() == "RW" and traf.navdb.aptid.count(args[argidx]) > 0:
                 name = args[argidx] + "/" + args[argidx + 1]
                 nusedargs = 2   # we used two arguments
 

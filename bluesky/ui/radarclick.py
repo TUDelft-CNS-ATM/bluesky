@@ -1,13 +1,13 @@
+from math import cos, atan2, radians, degrees
+
 from ..tools import geo
 from ..tools.misc import findnearest, cmdsplit
-from math import cos, atan2, radians, degrees
+
+from .. import settings
 
 
 def radarclick(cmdline, lat, lon, traf, navdb):
     """Process lat,lon as clicked in radar window"""
-    tostack   = ""
-    todisplay = ""
-
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
 
@@ -19,8 +19,9 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "SPD": "acid,-",
                 "ALT": "acid,-",
                 "LISTRTE": "acid,-",
-                "ADDWPT": "acid,latlon,-,-,-",
+                "ADDWPT": "acid,latlon,-,-,wpinroute,-",
                 "ASAS": "acid,-",
+                "DELWPT": "acid,wpinroute,-",
                 "DEL": "acid,-",
                 "LNAV": "acid,-",
                 "VNAV": "acid,-",
@@ -40,6 +41,10 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 "POLYGON": "-,latlon,...",
                 "CIRCLE": "-,latlon,-,dist"
                 }
+
+    # Default values, when nothing is found to be added based on click
+    todisplay = "" # Result of click is added here
+    tostack   = "" # If it is the last argument we will pass wbole line to the stack
 
     # Split command line into command and arguments, pass traf ids to check for
     # switched acid and command
@@ -96,9 +101,27 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                     todisplay += str(round(geo.kwikdist(latref, lonref, lat, lon), 6))
 
                 elif clicktype == "apt":
-                    idx = findnearest(lat, lon, navdb.aplat, navdb.aplon)
+                    idx = findnearest(lat, lon, navdb.aptlat, navdb.aptlon)
                     if idx >= 0:
-                        todisplay += navdb.apid[idx] + " "
+                        todisplay += navdb.aptid[idx] + " "
+
+                elif clicktype == "wpinroute": # Find nearets waypoint in route
+                    if traf.id.count(args[0]) > 0:
+                        itraf      = traf.id.index(args[0])
+                        reflat = traf.lat[itraf]
+                        reflon = traf.lon[itraf]
+                        synerr = False
+
+                        if settings.gui == "pygame":
+                            if traf.ap.route[itraf].nwp>0:                       
+                                iwp = findnearest(lat, lon,   \
+                                          traf.ap.route[itraf].wplat, 
+                                          traf.ap.route[itraf].wplon)
+                                if iwp>=0:
+                                    todisplay += traf.ap.route[itraf].wpname[iwp]
+
+                    else:
+                        synerr = True
 
                 elif clicktype == "hdg":
                     # Read start position from command line
