@@ -45,7 +45,9 @@ class Route():
         return
 
     def addwptStack(self, traf, idx, *args): # args: all arguments of addwpt
-        "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"
+        """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"""
+
+#        print "addwptStack:",args
 
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
         if len(args) == 1:
@@ -121,9 +123,39 @@ class Route():
         else:
              return False,"Waypoint "+name+" not found."
 
+    def afteraddwptStack(self, traf, idx, *args): # args: all arguments of addwpt
+
+        # AFTER acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]"
+        if len(args)< 3:
+            return False,"AFTER needs more arguments"
+
+        # Change order of arguments
+        arglst = [args[2],None,None,args[0]] # postxt,,,afterwp
+
+        # Add alt when given
+        if len(args)>3:
+            arglst[1]=args[3]  # alt
+
+        # Add speed when given
+        if len(args)>4:
+            arglst[2] = args[4] # spd
+
+        result = self.addwptStack(traf, idx, *arglst) # args: all arguments of addwpt
+
+        return result
+         
+
 
     def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
+#        print "addwpt:"
+#        print "iac = ",iac
+#        print "name = ",name
+#        print "alt = ",alt
+#        print "spd = ",spd
+#        print "afterwp =",afterwp
+#        print
+   
         self.traf = traf  # Traffic object
         self.iac = iac    # a/c to which this route belongs
         # For safety
