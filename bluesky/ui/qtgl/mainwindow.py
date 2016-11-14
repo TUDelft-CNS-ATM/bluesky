@@ -69,6 +69,10 @@ class MainWindow(QMainWindow):
             # Connect clicked signal
             b[0].clicked.connect(b[1][2])
 
+        # Link menubar buttons
+        self.action_Open.triggered.connect(app.show_file_dialog)
+        self.action_Save.triggered.connect(self.buttonClicked)
+
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
@@ -186,3 +190,5 @@ class MainWindow(QMainWindow):
             self.radarwidget.show_lbl = not self.radarwidget.show_lbl
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
+        elif self.sender() == self.action_Save:
+            self.app.stack('SAVEIC')
