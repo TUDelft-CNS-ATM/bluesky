@@ -155,4 +155,10 @@ class Navdatabase:
 
     # returns all runways of given airport
     def listrwys(self, ICAO):
-        return True, str(self.rwythresholds[ICAO].keys())
+        try: 
+            runway = str(self.rwythresholds[ICAO].keys())
+
+        except:
+            runway = ICAO + " is not a valid ICAO airport classifier. Please try again"            
+
+        return True, runway
