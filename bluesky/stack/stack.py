@@ -90,8 +90,8 @@ def init(sim, traf, scr):
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-            "acid,wpt,[alt],[spd],[wpinroute]",
+            "ADDWPT acid, (wpname/lat,lon),[alt,spd,afterwp]",
+            "acid,wpt,[alt,spd,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
@@ -249,7 +249,7 @@ def init(sim, traf, scr):
             "Fix the time step"
         ],
         "GETWIND": [
-            "GETWIND lat,lon[,alt]",
+            "GETWIND lat,lon,[alt]",
             "latlon,[alt]",
             traf.wind.get,
             "Get wind at a specified position (and optionally at altitude)"
@@ -475,7 +475,7 @@ def init(sim, traf, scr):
             "SEED value",
             "int",
             setSeed,
-            "Set seed for all functions using a randomizer (e.g.mcre,noise)"              
+            "Set seed for all functions using a randomizer (e.g.mcre,noise)"
         ],
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
@@ -493,7 +493,7 @@ def init(sim, traf, scr):
             "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]",
             "txt,[float]",
             scr.feature,
-            "Switch on/off elements and background of map/radar view" 
+            "Switch on/off elements and background of map/radar view"
         ],
         "SYMBOL": [
             "SYMBOL",
@@ -539,7 +539,7 @@ def init(sim, traf, scr):
             "Vertical speed command (autopilot)"
         ],
         "WIND": [
-            "WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]",
+            "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
             "latlon,[alt],float,float,...,...,...",   # last 3 args are repeated
             traf.wind.add,
             "Define a wind vector as part of the 2D or 3D wind field"
@@ -1008,7 +1008,7 @@ def process(sim, traf, scr):
             #----------------------------------------------------------------------
             # First check command synonymes list, then in dictionary
             #----------------------------------------------------------------------
-            orgcmd = cmd # save for string cutting out of line and use of synonyms
+            orgcmd = cmd  # save for string cutting out of line and use of synonyms
             if cmd in cmdsynon.keys():
                 cmd    = cmdsynon[cmd]
 
