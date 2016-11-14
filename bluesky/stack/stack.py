@@ -900,7 +900,7 @@ def saveic(fname, sim, traf):
                   repr(traf.trk[i]) + "," + repr(traf.alt[i] / ft) + "," + \
                   repr(tas2cas(traf.tas[i], traf.alt[i]) / kts)
 
-        f.write(timtxt + cmdline +"\n")
+        f.write(timtxt + cmdline + "\n")
 
         # VS acid,vs
         if abs(traf.vs[i]) > 0.05:  # 10 fpm dead band
@@ -942,32 +942,32 @@ def saveic(fname, sim, traf):
         if traf.ap.orig[i] != "":
             cmdline = "ORIG " + traf.id[i] + "," + traf.ap.orig[i]
             f.write(timtxt + cmdline + "\n")
-            
+
         # Route with ADDWPT
         route = traf.ap.route[i]
         for iwp in range(route.nwp):
             # dets and orig al already done, skip them here
-            if iwp==0 and route.wpname[iwp]==traf.ap.orig[i]:
+            if iwp == 0 and route.wpname[iwp] == traf.ap.orig[i]:
                 continue
 
-            if iwp==route.nwp-1 and route.wpname[iwp]==traf.ap.dest[i]:
+            if iwp == route.nwp - 1 and route.wpname[iwp] == traf.ap.dest[i]:
                 continue
-            
+
             #add other waypoints
-            cmdline = "ADDWPT "+traf.id[i]+" "
+            cmdline = "ADDWPT " + traf.id[i] + " "
             wpname = route.wpname[iwp]
-            if wpname[:len(traf.id[i])]==traf.id[i]:
-                wpname = repr(route.lat[iwp])+","+repr(route.lon[iwp])
-            cmdline = cmdline + wpname+","
-            
-            if route.wpalt[iwp]>=0.:
-                cmdline = cmdline +repr(route.wpalt[iwp])+","
-            else:
-                cmdline = cmdline+","
+            if wpname[:len(traf.id[i])] == traf.id[i]:
+                wpname = repr(route.lat[iwp]) + "," + repr(route.lon[iwp])
+            cmdline = cmdline + wpname + ","
 
-            if route.wpspd[iwp]>=0.:
-                cmdline = cmdline +repr(route.wpspd[iwp])+","
-                
+            if route.wpalt[iwp] >= 0.:
+                cmdline = cmdline + repr(route.wpalt[iwp]) + ","
+            else:
+                cmdline = cmdline + ","
+
+            if route.wpspd[iwp] >= 0.:
+                cmdline = cmdline + repr(route.wpspd[iwp]) + ","
+
             f.write(timtxt + cmdline + "\n")
 
     # Saveic: should close
@@ -1048,10 +1048,10 @@ def process(sim, traf, scr):
                         # Go over all argtypes separated by"/" in this place in the command line
                         for i in range(len(argtype)):
                             argtypei = argtype[i]
-                            
+
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
 
-                            if parsed_arg[0] is None:
+                            if len(parsed_arg) == 0:
                                 # not yet last type possible here?
                                 if i < len(argtype) - 1:
                                     # We have alternative argument formats that we can try
@@ -1142,13 +1142,13 @@ def argparse(argtype, argidx, args, traf, scr):
     global reflat, reflon
     """ Parse one or more arguments.
 
-        Returns: parsed_arg, opt_arg, argstep 
-        
+        Returns: parsed_arg, opt_arg, argstep
+
         parsed_args = a list with the parsed results (or [None] in case of error)
         opt_arg     = store for future opt args (like a runway heading)
-        argstep    = how many argtypes are processed
+        argstep     = how many argtypes are processed
 
-        If syntax not ok, as different types can be tried, return [None],{},0 """
+        If syntax not ok, as different types can be tried, return [],{},0 """
 
     if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
         return [None], {}, 1
@@ -1165,28 +1165,31 @@ def argparse(argtype, argidx, args, traf, scr):
     elif argtype == "txt":  # simple text
         return [args[argidx]], {}, 1
 
-    elif argtype == "wpinroute":  # return text in upper case 
-#debug        print "argparse:", args[argidx].upper()
+    elif argtype == "wpinroute":  # return text in upper case
+        #debug        print "argparse:", args[argidx].upper()
         return [args[argidx].upper()], {}, 1
 
     elif argtype == "float":  # float number
         try:
-            f = float(args[argidx])
+            parsed_args = [float(args[argidx])]
+            return parsed_args, {}, 1
         except:
-            f = None
-        return [f], {}, 1
+            return [], {}, 0
 
     elif argtype == "int":   # integer
         try:
-            i = int(args[argidx])
+            parsed_args = [int(args[argidx])]
+            return parsed_args, {}, 1
         except:
-            i = None
-        return [i], {}, 1
+            return [], {}, 0
 
     elif argtype == "onoff" or argtype == "bool":
-        sw = (args[argidx] == "ON" or
-              args[argidx] == "1" or args[argidx] == "TRUE")
-        return [sw], {}, 1
+        if args[argidx] == "ON" or args[argidx] == "1" or args[argidx] == "TRUE":
+            return [True], {}, 1
+        elif args[argidx] == "OFF" or args[argidx] == "0" or args[argidx] == "FALSE":
+            return [False], {}, 1
+        else:
+            return [], {}, 0
 
     elif argtype == "wpt" or argtype == "latlon":
 
@@ -1259,7 +1262,7 @@ def argparse(argtype, argidx, args, traf, scr):
                 return [posobj.lat , posobj.lon], optargs, nusedargs
             else:
                 scr.echo(posobj)  # contains error message
-                return [None], {}, 1
+                return [], {}, 0
 
     # Pan direction: check for valid string value
     elif argtype == "pandir":
@@ -1267,10 +1270,10 @@ def argparse(argtype, argidx, args, traf, scr):
         if args[argidx].upper().strip() in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
             return [args[argidx].upper()], {}, 1  # pass on string to pan function
         else:
-            return [None], {}, 1
+            return [], {}, 0
 
     # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning  CAS)
-    elif argtype == "spd":  
+    elif argtype == "spd":
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
         if not 0.1 < spd < 1.0:
             spd *= kts
@@ -1281,32 +1284,38 @@ def argparse(argtype, argidx, args, traf, scr):
         try:
             return [fpm * float(args[argidx])], {}, 1
         except:
-            return [None],{}, 0
+            return [], {}, 0
 
     # Altutide convert ft or FL to m
     elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-        return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
+        alt = txt2alt(args[argidx])
+        if alt > -990.0:
+            return [ft * alt], {}, 1  # alt in m
+        else:
+            return [], {}, 0
 
     # Heading: return float in degrees
     elif argtype == "hdg":
-        # TODO: for now no difference between magnetic/true heading
-        hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
-        return [hdg], {}, 1
+        try:
+            # TODO: for now no difference between magnetic/true heading
+            hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
+            return [hdg], {}, 1
+        except:
+            return [], {}, 0
 
     # Time: convert time MM:SS.hh or HH:MM:SS.hh to a float in seconds
     elif argtype == "time":
-        ttxt = args[argidx].strip().split(':')
-        if len(ttxt) >= 3:
-            ihr  = int(ttxt[0]) * 3600.0
-            imin = int(ttxt[1]) * 60.0
-            xsec = float(ttxt[2])
-            return [ihr + imin + xsec], {}, 1
-        else:
-            try:
+        try:
+            ttxt = args[argidx].strip().split(':')
+            if len(ttxt) >= 3:
+                ihr  = int(ttxt[0]) * 3600.0
+                imin = int(ttxt[1]) * 60.0
+                xsec = float(ttxt[2])
+                return [ihr + imin + xsec], {}, 1
+            else:
                 return [float(args[argidx])], {}, 1
-            except:
-                return [None],{}, 0
+        except:
+            return [], {}, 0
 
     # Argument not found: return [None],{},0 which will trigger errot and try the next type
-    return [None],{}, 0
-    
+    return [], {}, 0
