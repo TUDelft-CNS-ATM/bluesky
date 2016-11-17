@@ -24,7 +24,8 @@ class Route():
     runway   = 5   # Runway: Copy name and positions
 
     def __init__(self, navdb):
-        # Add pointer to self navdb object
+        
+        # Save a local pointer to the navigation database object navdb
         self.navdb  = navdb
         self.nwp    = 0
 
@@ -39,14 +40,13 @@ class Route():
 
         # Current actual waypoint
         self.iactwp = -1
-
         self.swflyby  = True  # Default waypoints are flyby waypoint
 
         return
 
     def addwptStack(self, traf, idx, *args): # args: all arguments of addwpt
         "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"
-        
+
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
         if len(args) == 1:
 
@@ -85,6 +85,16 @@ class Route():
             spd     = -999.  if len(args) < 3 else args[2]
             afterwp = ""     if len(args) < 4 else args[3]
     
+            #Catch empty arguments (None)
+            if alt=="" or alt==None:
+                alt = -999
+            
+            if spd=="" or spd==None:
+                spd = -999
+            
+            if afterwp==None:
+                afterwp = ""
+    
             # Add waypoint
             wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
             
@@ -107,6 +117,7 @@ class Route():
                     "waypoint added at end of route"
             else:
                 return True
+
         else:
              return False,"Waypoint "+name+" not found."
 
@@ -115,7 +126,6 @@ class Route():
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
         self.traf = traf  # Traffic object
         self.iac = iac    # a/c to which this route belongs
-
         # For safety
         self.nwp = len(self.wplat)
 
@@ -134,11 +144,11 @@ class Route():
         if wptype == self.orig:
 
             if not (name == traf.id[iac] + "ORIG"):   # published identifier
-                i = self.navdb.getapidx(name.upper().strip())
+                i = self.navdb.getaptidx(name.upper().strip())
                 wpok = (i >= 0)
                 if wpok:
-                    wplat = self.navdb.aplat[i]
-                    wplon = self.navdb.aplon[i]
+                    wplat = self.navdb.aptlat[i]
+                    wplon = self.navdb.aptlon[i]
             else:                                 # lat/lon type
                 wplat = lat
                 wplon = lon
@@ -176,11 +186,11 @@ class Route():
         elif wptype == self.dest:
 
             if not (name == traf.id[iac] + "DEST"):   # published identifier
-                i = self.navdb.getapidx(name.upper().strip())
+                i = self.navdb.getaptidx(name.upper().strip())
                 wpok = (i >= 0)
                 if wpok:
-                    wplat = self.navdb.aplat[i]
-                    wplon = self.navdb.aplon[i]
+                    wplat = self.navdb.aptlat[i]
+                    wplon = self.navdb.aptlon[i]
             else:                                 # lat/lon type
                 wplat = lat
                 wplon = lon
@@ -247,12 +257,12 @@ class Route():
                         wplat = self.navdb.wplat[i]
                         wplon = self.navdb.wplon[i]
                     else:
-                        i = self.navdb.getapidx(name.upper().strip())
+                        i = self.navdb.getaptidx(name.upper().strip())
                         wpok = (i >= 0)
                         if wpok:
                             newname = wprtename
-                            wplat = self.navdb.aplat[i]
-                            wplon = self.navdb.aplon[i]
+                            wplat = self.navdb.aptlat[i]
+                            wplon = self.navdb.aptlon[i]
                         else:
                             newname = wprtename
                             wplat = lat

@@ -275,8 +275,8 @@ class Screen:
         self.wpswbmp = len(navdb.wplat) * [False]
         self.wplabel = len(navdb.wplat) * [0]
 
-        self.apswbmp = len(navdb.aplat) * [False]
-        self.aplabel = len(navdb.aplat) * [0]
+        self.apswbmp = len(navdb.aptlat) * [False]
+        self.aplabel = len(navdb.aptlat) * [0]
 
     def echo(self, msg):
         msgs = msg.split('\n')
@@ -449,15 +449,15 @@ class Screen:
                         self.wptsel.append(i)
                 self.wptx, self.wpty = self.ll2xy(traf.navdb.wplat, traf.navdb.wplon)
 
-                self.apinside = list(np.where(self.onradar(traf.navdb.aplat, \
-                                                           traf.navdb.aplon))[0])
+                self.apinside = list(np.where(self.onradar(traf.navdb.aptlat, \
+                                                           traf.navdb.aptlon))[0])
 
                 self.aptsel = []
                 for i in self.apinside:
                     if self.apsw == 2 or (self.apsw == 1 and \
-                                                      traf.navdb.apmaxrwy[i] > 1000.):
+                                                      traf.navdb.aptmaxrwy[i] > 1000.):
                         self.aptsel.append(i)
-                self.aptx, self.apty = self.ll2xy(traf.navdb.aplat, traf.navdb.aplon)
+                self.aptx, self.apty = self.ll2xy(traf.navdb.aptlat, traf.navdb.aptlon)
 
 
             #------- Draw waypoints -------
@@ -499,8 +499,8 @@ class Screen:
                 # print len(self.aptsel)," airports"
 
                 for i in self.aptsel:
-                    # aptrect.center = self.ll2xy(traf.navdb.aplat[i],  \
-                    #                            traf.navdb.aplon[i])
+                    # aptrect.center = self.ll2xy(traf.navdb.aptlat[i],  \
+                    #                            traf.navdb.aptlon[i])
                     aptrect.center = self.aptx[i], self.apty[i]
                     self.radbmp.blit(self.aptsymbol, aptrect)
 
@@ -508,7 +508,7 @@ class Screen:
                     if not self.apswbmp[i]:
                         self.aplabel[i] = pg.Surface((50, 30), 0, self.win)
                         self.fontnav.printat(self.aplabel[i], 0, 0, \
-                                             traf.navdb.apid[i])
+                                             traf.navdb.aptid[i])
                         self.apswbmp[i] = True
 
                     # In either case, blit it
@@ -518,7 +518,7 @@ class Screen:
                                      None, pg.BLEND_ADD)
 
                     # self.fontnav.printat(self.radbmp,xtxt,ytxt, \
-                    #     traf.navdb.apid[i])
+                    #     traf.navdb.aptid[i])
 
 
             #---------- Draw background trails ----------
@@ -958,10 +958,10 @@ class Screen:
             else:
                 i = traf.navdb.getwpidx(args[0],self.ctrlat,self.ctrlon)
                 if i<0:
-                    i = traf.navdb.getapidx(args[0],self.ctrlat,self.ctrlon)
+                    i = traf.navdb.getaptidx(args[0],self.ctrlat,self.ctrlon)
                     if i>0:
-                        lat = traf.navdb.aplat[i]
-                        lon = traf.navdb.aplon[i]
+                        lat = traf.navdb.aptlat[i]
+                        lon = traf.navdb.aptlon[i]
                 else:                
                     lat = traf.navdb.wplat[i]
                     lon = traf.navdb.wplon[i]

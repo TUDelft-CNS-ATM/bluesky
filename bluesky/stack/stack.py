@@ -50,10 +50,11 @@ def init(sim, traf, scr):
         at the initialization of the main simulation object."""
 
     # Command dictionary with command as key, gives a list with: 
-    #         - helptext 
-    #         - arglist to specify 
-    #         - function to call
-    #         - description of goal of command
+    #
+    #         command: [ helptext , 
+    #                    arglist , 
+    #                    function to call, 
+    #                    description in one line ] 
     #
     # Regarding the arglist:
     #    - Separate aruments with a comma ","
@@ -61,7 +62,24 @@ def init(sim, traf, scr):
     #    - Separate different argument type variants in one argument with "/"
     #    - Repeat last one using "..." ,    (see e.g. WIND or POLY)
     #
-    # Below this dictionary also a dictionary of synonyms is given (equivalent commands)
+    # Argtypes = syntax parsing (see below in this module for parsing):
+    #
+    #   acid      = aircraft id (text => index) 
+    #   alt       = altitude (FL250, 25000  ft+. meters)
+    #   spd       = CAS or Mach (when <1)   => m/s
+    #   hdg       = heading in degrees
+    #
+    #   float     = plain float
+    #   int       = integer
+    #   txt       = string
+    #   on/off    = text => boolean
+    #
+    #   latlon    = converts acid, wpt, airport etc => lat,lon (deg) so 2 args!
+    #   wpt       = converts postext or lat,lon into a text string to be used as named waypoint
+    #   wpinroute = text string with name of waypoint in route
+    #   pandir    = text with LEFT, RIGHT, UP/ABOVE or DOWN
+    #
+    # Below this dictionary also a dictionary of synonym commandss is given (equivalent commands)
     #
     #--------------------------------------------------------------------
     commands = {
@@ -72,8 +90,8 @@ def init(sim, traf, scr):
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]",
-            "acid,wpt,[alt,spd,txt]",
+            "ADDWPT acid, (wpname/lat,lon),[alt,spd,afterwp]",
+            "acid,wpt,[alt,spd,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
@@ -154,7 +172,7 @@ def init(sim, traf, scr):
         ],
         "DELWPT": [
             "DELWPT acid,wpname",
-            "acid,txt",
+            "acid,wpinroute",
             lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
             "Delete a waypoint from a route (FMS)"
         ],
@@ -231,7 +249,7 @@ def init(sim, traf, scr):
             "Fix the time step"
         ],
         "GETWIND": [
-            "GETWIND lat,lon[,alt]",
+            "GETWIND lat,lon,[alt]",
             "latlon,[alt]",
             traf.wind.get,
             "Get wind at a specified position (and optionally at altitude)"
@@ -457,7 +475,7 @@ def init(sim, traf, scr):
             "SEED value",
             "int",
             setSeed,
-            "Set seed for all functions using a randomizer (e.g.mcre,noise)"              
+            "Set seed for all functions using a randomizer (e.g.mcre,noise)"
         ],
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
@@ -475,7 +493,7 @@ def init(sim, traf, scr):
             "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]",
             "txt,[float]",
             scr.feature,
-            "Switch on/off elements and background of map/radar view" 
+            "Switch on/off elements and background of map/radar view"
         ],
         "SYMBOL": [
             "SYMBOL",
@@ -521,7 +539,7 @@ def init(sim, traf, scr):
             "Vertical speed command (autopilot)"
         ],
         "WIND": [
-            "WIND lat,lon,alt/*,dir,spd[,alt,dir,spd,alt,...]",
+            "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
             "latlon,[alt],float,float,...,...,...",   # last 3 args are repeated
             traf.wind.add,
             "Define a wind vector as part of the 2D or 3D wind field"
@@ -638,7 +656,6 @@ def showhelp(cmd=''):
         return text
 
     elif cmd.upper()=="PDF":
-        cwd = os.getcwd()
         os.chdir("info")
         pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
         if os.path.isfile(pdfhelp):
@@ -883,7 +900,7 @@ def saveic(fname, sim, traf):
                   repr(traf.trk[i]) + "," + repr(traf.alt[i] / ft) + "," + \
                   repr(tas2cas(traf.tas[i], traf.alt[i]) / kts)
 
-        f.write(timtxt + cmdline +"\n")
+        f.write(timtxt + cmdline + "\n")
 
         # VS acid,vs
         if abs(traf.vs[i]) > 0.05:  # 10 fpm dead band
@@ -925,32 +942,32 @@ def saveic(fname, sim, traf):
         if traf.ap.orig[i] != "":
             cmdline = "ORIG " + traf.id[i] + "," + traf.ap.orig[i]
             f.write(timtxt + cmdline + "\n")
-            
+
         # Route with ADDWPT
         route = traf.ap.route[i]
         for iwp in range(route.nwp):
             # dets and orig al already done, skip them here
-            if iwp==0 and route.wpname[iwp]==traf.ap.orig[i]:
+            if iwp == 0 and route.wpname[iwp] == traf.ap.orig[i]:
                 continue
 
-            if iwp==route.nwp-1 and route.wpname[iwp]==traf.ap.dest[i]:
+            if iwp == route.nwp - 1 and route.wpname[iwp] == traf.ap.dest[i]:
                 continue
-            
+
             #add other waypoints
-            cmdline = "ADDWPT "+traf.id[i]+" "
+            cmdline = "ADDWPT " + traf.id[i] + " "
             wpname = route.wpname[iwp]
-            if wpname[:len(traf.id[i])]==traf.id[i]:
-                wpname = repr(route.lat[iwp])+","+repr(route.lon[iwp])
-            cmdline = cmdline + wpname+","
-            
-            if route.wpalt[iwp]>=0.:
-                cmdline = cmdline +repr(route.wpalt[iwp])+","
-            else:
-                cmdline = cmdline+","
+            if wpname[:len(traf.id[i])] == traf.id[i]:
+                wpname = repr(route.lat[iwp]) + "," + repr(route.lon[iwp])
+            cmdline = cmdline + wpname + ","
 
-            if route.wpspd[iwp]>=0.:
-                cmdline = cmdline +repr(route.wpspd[iwp])+","
-                
+            if route.wpalt[iwp] >= 0.:
+                cmdline = cmdline + repr(route.wpalt[iwp]) + ","
+            else:
+                cmdline = cmdline + ","
+
+            if route.wpspd[iwp] >= 0.:
+                cmdline = cmdline + repr(route.wpspd[iwp]) + ","
+
             f.write(timtxt + cmdline + "\n")
 
     # Saveic: should close
@@ -991,7 +1008,7 @@ def process(sim, traf, scr):
             #----------------------------------------------------------------------
             # First check command synonymes list, then in dictionary
             #----------------------------------------------------------------------
-            orgcmd = cmd # save for string cutting out of line and use of synonyms
+            orgcmd = cmd  # save for string cutting out of line and use of synonyms
             if cmd in cmdsynon.keys():
                 cmd    = cmdsynon[cmd]
 
@@ -1031,9 +1048,10 @@ def process(sim, traf, scr):
                         # Go over all argtypes separated by"/" in this place in the command line
                         for i in range(len(argtype)):
                             argtypei = argtype[i]
+
                             parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
 
-                            if parsed_arg[0] is None:
+                            if len(parsed_arg) == 0:
                                 # not yet last type possible here?
                                 if i < len(argtype) - 1:
                                     # We have alternative argument formats that we can try
@@ -1124,11 +1142,13 @@ def argparse(argtype, argidx, args, traf, scr):
     global reflat, reflon
     """ Parse one or more arguments.
 
-        Returns:
-        - A list with the parse results
-        - The number of arguments parsed
-        - A dict with additional optional parsed arguments.
-        As different types can be tried, return none if syntax not ok"""
+        Returns: parsed_arg, opt_arg, argstep
+
+        parsed_args = a list with the parsed results (or [None] in case of error)
+        opt_arg     = store for future opt args (like a runway heading)
+        argstep     = how many argtypes are processed
+
+        If syntax not ok, as different types can be tried, return [],{},0 """
 
     if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
         return [None], {}, 1
@@ -1145,24 +1165,31 @@ def argparse(argtype, argidx, args, traf, scr):
     elif argtype == "txt":  # simple text
         return [args[argidx]], {}, 1
 
+    elif argtype == "wpinroute":  # return text in upper case
+        #debug        print "argparse:", args[argidx].upper()
+        return [args[argidx].upper()], {}, 1
+
     elif argtype == "float":  # float number
         try:
-            f = float(args[argidx])
+            parsed_args = [float(args[argidx])]
+            return parsed_args, {}, 1
         except:
-            f = None
-        return [f], {}, 1
+            return [], {}, 0
 
     elif argtype == "int":   # integer
         try:
-            i = int(args[argidx])
+            parsed_args = [int(args[argidx])]
+            return parsed_args, {}, 1
         except:
-            i = None
-        return [i], {}, 1
+            return [], {}, 0
 
     elif argtype == "onoff" or argtype == "bool":
-        sw = (args[argidx] == "ON" or
-              args[argidx] == "1" or args[argidx] == "TRUE")
-        return [sw], {}, 1
+        if args[argidx] == "ON" or args[argidx] == "1" or args[argidx] == "TRUE":
+            return [True], {}, 1
+        elif args[argidx] == "OFF" or args[argidx] == "0" or args[argidx] == "FALSE":
+            return [False], {}, 1
+        else:
+            return [], {}, 0
 
     elif argtype == "wpt" or argtype == "latlon":
 
@@ -1175,7 +1202,7 @@ def argparse(argtype, argidx, args, traf, scr):
         # airport:   "EHAM"
         # runway:    "EHAM/RW06" "LFPG/RWY23"
 
-        # Set default lat,lon to screen
+        # Set default reference lat,lon for duplicate name in navdb to screen
         if reflat < 180.:  # No reference avaiable yet: use screen center
             reflat, reflon = scr.ctrlat, scr.ctrlon
 
@@ -1199,7 +1226,7 @@ def argparse(argtype, argidx, args, traf, scr):
                 nusedargs = 2   # we used two arguments
 
             # apt,runway ? Combine into one string with a slash as separator
-            elif args[argidx + 1][:2].upper() == "RW" and traf.navdb.apid.count(args[argidx]) > 0:
+            elif args[argidx + 1][:2].upper() == "RW" and traf.navdb.aptid.count(args[argidx]) > 0:
                 name = args[argidx] + "/" + args[argidx + 1]
                 nusedargs = 2   # we used two arguments
 
@@ -1216,11 +1243,11 @@ def argparse(argtype, argidx, args, traf, scr):
 
         # Return something different for the two argtypes:
 
-        # for wpt argument type, simply return positiontext, no need it look up nw
+        # wpt argument type: simply return positiontext, no need it look up nw
         if argtype == "wpt":
             return [name], optargs, nusedargs
 
-        # for lat/lon argument type we also need to it up:
+        # lat/lon argument type we also need to it up:
         elif argtype == "latlon":
             success, posobj = txt2pos(name, traf, traf.navdb, reflat, reflon)
 
@@ -1235,48 +1262,60 @@ def argparse(argtype, argidx, args, traf, scr):
                 return [posobj.lat , posobj.lon], optargs, nusedargs
             else:
                 scr.echo(posobj)  # contains error message
-                return [None], {}, 1
+                return [], {}, 0
 
-    elif argtype == "pandir":  # Pan direction
+    # Pan direction: check for valid string value
+    elif argtype == "pandir":
 
         if args[argidx].upper().strip() in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
             return [args[argidx].upper()], {}, 1  # pass on string to pan function
         else:
-            return [None], {}, 1
+            return [], {}, 0
 
-    elif argtype == "spd":  # CAS[kts] Mach
+    # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning  CAS)
+    elif argtype == "spd":
         spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
         if not 0.1 < spd < 1.0:
             spd *= kts
         return [spd], {}, 1  # speed CAS[m/s] or Mach (float)
 
+    # Vertical speed: convert fpm to in m/s
     elif argtype == "vspd":
         try:
             return [fpm * float(args[argidx])], {}, 1
         except:
-            return [None],{}, 0
+            return [], {}, 0
 
-
+    # Altutide convert ft or FL to m
     elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-        return [ft * txt2alt(args[argidx])], {}, 1  # alt in m
-
-    elif argtype == "hdg":
-        # TODO: for now no difference between magnetic/true heading
-        hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
-        return [hdg], {}, 1
-
-    elif argtype == "time":
-        ttxt = args[argidx].strip().split(':')
-        if len(ttxt) >= 3:
-            ihr  = int(ttxt[0]) * 3600.0
-            imin = int(ttxt[1]) * 60.0
-            xsec = float(ttxt[2])
-            return [ihr + imin + xsec], {}, 1
+        alt = txt2alt(args[argidx])
+        if alt > -990.0:
+            return [ft * alt], {}, 1  # alt in m
         else:
-            try:
-                return [float(args[argidx])], {}, 1
-            except:
-                return [None],{}, 0
+            return [], {}, 0
 
-    return [None],{}, 0
-    
+    # Heading: return float in degrees
+    elif argtype == "hdg":
+        try:
+            # TODO: for now no difference between magnetic/true heading
+            hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
+            return [hdg], {}, 1
+        except:
+            return [], {}, 0
+
+    # Time: convert time MM:SS.hh or HH:MM:SS.hh to a float in seconds
+    elif argtype == "time":
+        try:
+            ttxt = args[argidx].strip().split(':')
+            if len(ttxt) >= 3:
+                ihr  = int(ttxt[0]) * 3600.0
+                imin = int(ttxt[1]) * 60.0
+                xsec = float(ttxt[2])
+                return [ihr + imin + xsec], {}, 1
+            else:
+                return [float(args[argidx])], {}, 1
+        except:
+            return [], {}, 0
+
+    # Argument not found: return [None],{},0 which will trigger errot and try the next type
+    return [], {}, 0

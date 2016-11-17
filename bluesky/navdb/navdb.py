@@ -40,10 +40,10 @@ class Navdatabase:
 
         # Create empty segment indexing lists
         self.wpseg = []
-        self.apseg = []
+        self.aptseg = []
         for lat in range(-90, 91):
             self.wpseg.append(361 * [[]])
-            self.apseg.append(361 * [[]])
+            self.aptseg.append(361 * [[]])
 
         print "Loading global navigation database..."
         wptdata, aptdata, firdata, rwythresholds = load_navdata()
@@ -56,13 +56,13 @@ class Navdatabase:
         self.wpco     = wptdata['wpco']  # two char country code (string)
 
         # Create empty database
-        self.apid     = aptdata['apid']      # 4 char identifier (string)
-        self.apname   = aptdata['apname']    # full name
-        self.aplat    = aptdata['aplat']     # latitude [deg]
-        self.aplon    = aptdata['aplon']     # longitude [deg]
-        self.apmaxrwy = aptdata['apmaxrwy']  # reference airport {string}
+        self.aptid     = aptdata['apid']      # 4 char identifier (string)
+        self.aptname   = aptdata['apname']    # full name
+        self.aptlat    = aptdata['aplat']     # latitude [deg]
+        self.aptlon    = aptdata['aplon']     # longitude [deg]
+        self.aptmaxrwy = aptdata['apmaxrwy']  # reference airport {string}
         self.aptype   = aptdata['aptype']    # type (int, 1=large, 2=medium, 3=small)
-        self.apco     = aptdata['apco']      # two char country code (string)
+        self.aptco     = aptdata['apco']      # two char country code (string)
 
         self.fir      = firdata['fir']
         self.firlat0  = firdata['firlat0']
@@ -107,10 +107,10 @@ class Navdatabase:
                         dmin = d
                 return imin
 
-    def getapidx(self, txt):
+    def getaptidx(self, txt):
         """Get waypoint index to access data"""
         try:
-            return self.apid.index(txt.upper())
+            return self.aptid.index(txt.upper())
         except:
             return -1
 
@@ -131,7 +131,7 @@ class Navdatabase:
 
     def getapinear(self, lat, lon):  # lat,lon in degrees
         """Get closest airport index"""
-        return self.getinear(self.aplat, self.aplon, lat, lon)
+        return self.getinear(self.aptlat, self.aplon, lat, lon)
 
     def getinside(self, wlat, wlon, lat0, lat1, lon0, lon1):
         """Get indices inside given box"""
@@ -151,7 +151,7 @@ class Navdatabase:
 
     def getapinside(self, lat0, lat1, lon0, lon1):
         """Get airport indicex inside box"""
-        return self.getinside(self.aplat, self.aplon, lat0, lat1, lon0, lon1)
+        return self.getinside(self.aptlat, self.aptlon, lat0, lat1, lon0, lon1)
 
     # returns all runways of given airport
     def listrwys(self, ICAO):

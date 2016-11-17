@@ -54,11 +54,11 @@ class Position():
             self.type = "rwy" 
 
         # airport?
-        elif navdb.apid.count(name)>0:
-            idx = navdb.apid.index(name.upper())
+        elif navdb.aptid.count(name)>0:
+            idx = navdb.aptid.index(name.upper())
 
-            self.lat = navdb.aplat[idx]
-            self.lon = navdb.aplon[idx]
+            self.lat = navdb.aptlat[idx]
+            self.lon = navdb.aptlon[idx]
             self.type ="apt"
 
         # fix or navaid?
