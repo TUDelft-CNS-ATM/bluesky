@@ -45,7 +45,7 @@ lightgrey             = (160, 160, 160)
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
-ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0 = range(10)
+ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = range(10)
 
 
 class nodeData(object):
@@ -252,16 +252,16 @@ class RadarWidget(QGLWidget):
 
         # ------- SSD object -----------------------------
         self.ssd = RenderObject(gl.GL_POINTS)
-        self.ssd.bind_attrib(ATTRIB_LAT0, 1, self.aclatbuf)
-        self.ssd.bind_attrib(ATTRIB_LON0, 1, self.aclonbuf)
-        self.ssd.bind_attrib(ATTRIB_ALT0, 1, self.acaltbuf)
-        self.ssd.bind_attrib(ATTRIB_TAS0, 1, self.actasbuf)
-        self.ssd.bind_attrib(ATTRIB_TRK0, 1, self.achdgbuf)
-        self.ssd.bind_attrib(ATTRIB_LAT1, 1, self.aclatbuf, instance_divisor=1)
-        self.ssd.bind_attrib(ATTRIB_LON1, 1, self.aclonbuf, instance_divisor=1)
-        self.ssd.bind_attrib(ATTRIB_ALT1, 1, self.acaltbuf, instance_divisor=1)
-        self.ssd.bind_attrib(ATTRIB_TAS1, 1, self.actasbuf, instance_divisor=1)
-        self.ssd.bind_attrib(ATTRIB_TRK1, 1, self.achdgbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_LAT0, 1, self.aclatbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_LON0, 1, self.aclonbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_ALT0, 1, self.acaltbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_TAS0, 1, self.actasbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_TRK0, 1, self.achdgbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_LAT1, 1, self.aclatbuf)
+        self.ssd.bind_attrib(ATTRIB_LON1, 1, self.aclonbuf)
+        self.ssd.bind_attrib(ATTRIB_ALT1, 1, self.acaltbuf)
+        self.ssd.bind_attrib(ATTRIB_TAS1, 1, self.actasbuf)
+        self.ssd.bind_attrib(ATTRIB_TRK1, 1, self.achdgbuf)
 
         # ------- Circle ---------------------------------
         # Create a new VAO (Vertex Array Object) and bind it
@@ -384,6 +384,7 @@ class RadarWidget(QGLWidget):
             self.ssd_shader = BlueSkyProgram('data/graphics/shaders/ssd.vert', 'data/graphics/shaders/ssd.frag', 'data/graphics/shaders/ssd.geom')
             self.ssd_shader.bind_uniform_buffer('global_data', self.globaldata)
             self.ssd_shader.loc_vlimits = gl.glGetUniformLocation(self.ssd_shader.program, 'Vlimits')
+            self.ssd_shader.loc_nac = gl.glGetUniformLocation(self.ssd_shader.program, 'n_ac')
 
         except RuntimeError as e:
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
@@ -529,7 +530,8 @@ class RadarWidget(QGLWidget):
         # SSD
         if self.ssd_all or len(self.ssd_ownship) > 0:
             self.ssd_shader.use()
-            gl.glUniform3f(self.ssd_shader.loc_vlimits, 1e4, 4e4, 200.0)
+            gl.glUniform3f(self.ssd_shader.loc_vlimits, 4e4, 25e4, 500.0)
+            gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
             if self.ssd_all:
                 self.ssd.draw(first_vertex=0, vertex_count=self.naircraft, n_instances=self.naircraft)
             else:
