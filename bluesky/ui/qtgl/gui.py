@@ -18,7 +18,7 @@ from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
 # from aman import AMANDisplay
 from ...sim.qtgl import MainManager as manager
-from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
+from ...sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
@@ -82,6 +82,7 @@ class Gui(QApplication):
     def __init__(self):
         super(Gui, self).__init__([])
         self.acdata          = ACDataEvent()
+        self.routedata       = RouteDataEvent()
         self.navdb           = None
         self.radarwidget     = []
         self.command_history = []
@@ -180,6 +181,7 @@ class Gui(QApplication):
                 return True
 
             elif event.type() == RouteDataEventType:
+                self.routedata = event
                 self.radarwidget.update_route_data(event)
                 return True
 
@@ -310,7 +312,7 @@ class Gui(QApplication):
             elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton and not self.mousedragged:
                 event_processed = True
                 lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb)
+                tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb, self.routedata)
                 if len(todisplay) > 0:
                     if '\n' in todisplay:
                         self.command_line = ''

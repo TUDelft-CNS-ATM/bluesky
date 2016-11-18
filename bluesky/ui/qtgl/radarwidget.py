@@ -566,27 +566,27 @@ class RadarWidget(QGLWidget):
 
     def update_route_data(self, data):
         self.route_acid = data.acid
-        if data.acid != "" and len(data.lat) > 0:
-            nsegments = len(data.lat)
+        if data.acid != "" and len(data.wplat) > 0:
+            nsegments = len(data.wplat)
             data.iactwp = max(0, data.iactwp)
             self.routelbl.n_instances = nsegments
             self.route.set_vertex_count(2 * nsegments)
             routedata = np.empty(4 * nsegments, dtype=np.float32)
             routedata[0:4] = [data.aclat, data.aclon,
-                data.lat[data.iactwp], data.lon[data.iactwp]]
+                data.wplat[data.iactwp], data.wplon[data.iactwp]]
 
-            routedata[4::4] = data.lat[:-1]
-            routedata[5::4] = data.lon[:-1]
-            routedata[6::4] = data.lat[1:]
-            routedata[7::4] = data.lon[1:]
+            routedata[4::4] = data.wplat[:-1]
+            routedata[5::4] = data.wplon[:-1]
+            routedata[6::4] = data.wplat[1:]
+            routedata[7::4] = data.wplon[1:]
 
             update_buffer(self.routebuf, routedata)
-            update_buffer(self.routewplatbuf, np.array(data.lat, dtype=np.float32))
-            update_buffer(self.routewplonbuf, np.array(data.lon, dtype=np.float32))
-            wptlabels = []
-            for wp in data.wptlabels:
-                wptlabels += wp[:12].ljust(12)
-            update_buffer(self.routelblbuf, np.array(wptlabels))
+            update_buffer(self.routewplatbuf, np.array(data.wplat, dtype=np.float32))
+            update_buffer(self.routewplonbuf, np.array(data.wplon, dtype=np.float32))
+            wpname = []
+            for wp in data.wpname:
+                wpname += wp[:12].ljust(12)
+            update_buffer(self.routelblbuf, np.array(wpname))
         else:
             self.route.set_vertex_count(0)
 
