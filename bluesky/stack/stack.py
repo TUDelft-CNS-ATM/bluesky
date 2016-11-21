@@ -102,6 +102,12 @@ def init(sim, traf, scr):
             lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args),
             "Add a waypoint to route of aircraft (FMS)"
         ],
+        "AFTER": [
+            "acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]",
+            "acid,wpinroute,txt,wpt,[alt,spd]",
+            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args),
+            "After waypoint, add a waypoint to route of aircraft (FMS)"
+        ],
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
