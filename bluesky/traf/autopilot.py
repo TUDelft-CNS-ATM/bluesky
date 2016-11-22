@@ -30,8 +30,8 @@ class Autopilot(DynamicArrays):
 
             # VNAV variables
             self.dist2vs  = np.array([])  # distance from coming waypoint to TOD
-            self.swnavvs  = np.array([])  # whether to use given VS or not
-            self.swvnavvs = np.array([])  # vertical speed in VNAV
+            self.swvnavvs = np.array([])  # whether to use given VS or not
+            self.vnavvs   = np.array([])  # vertical speed in VNAV
 
             # Traffic navigation information
             self.orig = []  # Four letter code of origin airport
@@ -107,7 +107,28 @@ class Autopilot(DynamicArrays):
 
             #=============== End of Waypoint switching loop ===================
 
-            # VNAV Guidance
+            # VNAV Guidance principle:
+            #
+            #
+            #                          T/C------X---T/D
+            #                           /    .        \
+            #                          /     .         \
+            #       T/C----X----.-----X      .         .\
+            #       /           .            .         . \
+            #      /            .            .         .  X---T/D
+            #     /.            .            .         .        \ 
+            #    / .            .            .         .         \
+            #   /  .            .            .         .         .\
+            # pos  x            x            x         x         x X
+            #
+            #
+            #  X = waypoint with alt constraint  x = Wp without prescribed altitude
+            #
+            # - Ignore and look beyond waypoints without an altidue constraint
+            # - Climb as soon as possible after previous altitude constraint 
+            #   and climb as fast as possible, so arriving at alt earlier is ok
+            # - Descend at the latest when necessary for next altitude constraint
+            #   which can be many waypoints beyond current actual waypoint 
 
             # Do VNAV start of descent check
             dy = (self.traf.actwp.lat - self.traf.lat)
@@ -115,22 +136,23 @@ class Autopilot(DynamicArrays):
             dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
             # VNAV logic: descend as late as possible, climb as soon as possible
-            govertical = self.traf.swvnav * ((dist2wp < self.dist2vs)+(self.traf.actwp.alt > self.traf.alt))
+            startdescent = self.traf.swvnav * ((dist2wp < self.dist2vs)+(self.traf.actwp.alt > self.traf.alt))
             
             # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
-            self.swnavvs = np.where(self.traf.swlnav, govertical, dist < self.traf.actwp.turndist)
+            self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist < self.traf.actwp.turndist)
 
-            self.swvnavvs  = np.where(self.swnavvs, self.steepness * self.traf.gs, self.swvnavvs)
+            self.vnavvs  = np.where(self.swvnavvs, self.traf.actwp.vs, self.vnavvs)
+            #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * self.traf.gs, self.vnavvs)
 
-            self.vs = np.where(self.traf.swvnav, self.swvnavvs, self.traf.avsdef * self.traf.limvs_flag)
+            self.vs = np.where(self.traf.swvnav, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
 
-            self.alt = np.where(self.swnavvs, self.traf.actwp.alt, self.traf.apalt)
+            self.alt = np.where(self.swvnavvs, self.traf.actwp.alt, self.traf.apalt)
 
             # When descending or climbing in VNAV also update altitude command of select/hold mode            
-            self.traf.apalt = np.where(self.swnavvs,self.traf.actwp.alt,self.traf.apalt)
+            self.traf.apalt = np.where(self.swvnavvs,self.traf.actwp.alt,self.traf.apalt)
             
             # LNAV commanded track angle
             self.trk = np.where(self.traf.swlnav, qdr, self.trk)
@@ -183,9 +205,15 @@ class Autopilot(DynamicArrays):
 
         # Climb VNAV mode: climb as soon as possible (T/C logic)
         elif self.traf.alt[idx] < toalt - 10. * ft:
+
+
             self.traf.actwp.alt[idx] = toalt
             self.alt[idx]    = self.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
             self.dist2vs[idx]  = 9999.
+
+            self.traf.actwp.vs[idx] = self.steepness * (self.traf.gs[idx] +
+                      (self.traf.gs[idx] < 0.2 * self.traf.tas[idx]) * self.traf.tas[idx])
+
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
@@ -193,6 +221,10 @@ class Autopilot(DynamicArrays):
         return
 
     def selalt(self, idx, alt, vspd=None):
+
+        if idx<0 or idx>=self.traf.ntraf:
+            return False,"ALT: Aircraft does not exist"
+
         """ Select altitude command: ALT acid, alt, [vspd] """
         self.traf.apalt[idx]    = alt
         self.traf.swvnav[idx]   = False
@@ -209,12 +241,21 @@ class Autopilot(DynamicArrays):
 
     def selvspd(self, idx, vspd):
         """ Vertical speed autopilot command: VS acid vspd """
+
+        if idx<0 or idx>=self.traf.ntraf:
+            return False,"VS: Aircraft does not exist"
+
+
         self.traf.avs[idx] = vspd
         # self.traf.vs[idx] = vspd
         self.traf.swvnav[idx] = False
 
     def selhdg(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
+
+        if idx<0 or idx>=self.traf.ntraf:
+            return False,"HDG: Aircraft does not exist"
+
 
         # If there is wind, compute the corresponding track angle
         if self.traf.wind.winddim > 0:
@@ -234,7 +275,12 @@ class Autopilot(DynamicArrays):
 
     def selspd(self, idx, casmach):  # SPD command
         """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
+
+        if idx<0 or idx>=self.traf.ntraf:
+            return False,"SPD: Aircraft does not exist"
+
         dummy, self.traf.aspd[idx], self.traf.ama[idx] = casormach(casmach, self.traf.alt[idx])
+
         # Switch off VNAV: SPD command overrides
         self.traf.swvnav[idx]   = False
         return True
@@ -242,9 +288,13 @@ class Autopilot(DynamicArrays):
     def setdestorig(self, cmd, idx, *args):
         if len(args) == 0:
             if cmd == 'DEST':
-                return True, ('DEST ' + self.traf.id[idx] + ': ' + self.dest[idx])
+                return True, 'DEST ' + self.traf.id[idx] + ': ' + self.dest[idx]
             else:
-                return True, ('ORIG ' + self.traf.id[idx] + ': ' + self.orig[idx])
+                return True, 'ORIG ' + self.traf.id[idx] + ': ' + self.orig[idx]
+        
+        if idx<0 or idx>=self.traf.ntraf:
+            return False, cmd + ": Aircraft does not exist."
+            
 
         route = self.route[idx]
         if len(args) == 1:

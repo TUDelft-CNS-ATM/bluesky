@@ -99,13 +99,15 @@ def init(sim, traf, scr):
             #     return traf.ap.route[idx].addwptStack(traf, idx, *args)
             # fun(idx,*args)
             #
-            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args),
+            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args) if idx>=0
+                               else scr.echo("ADDWPT: Aircraft not found"),
             "Add a waypoint to route of aircraft (FMS)"
         ],
         "AFTER": [
             "acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]",
             "acid,wpinroute,txt,wpt,[alt,spd]",
-            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args),
+            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args)if idx>=0
+                               else scr.echo("ADDWPT: Aircraft not found"),
             "After waypoint, add a waypoint to route of aircraft (FMS)"
         ],
         "ALT": [
@@ -179,7 +181,8 @@ def init(sim, traf, scr):
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
-            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
+            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname) if idx>=0
+                                else scr.echo("DELWPT: Aircraft not found"),
             "Delete a waypoint from a route (FMS)"
         ],
         "DEST": [
@@ -191,7 +194,8 @@ def init(sim, traf, scr):
         "DIRECT": [
             "DIRECT acid wpname",
             "acid,txt",
-            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname),
+            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname)if idx>=0
+                               else scr.echo("DIRECT: Aircraft not found"),
             "Go direct to specified waypoint in route (FMS)"
         ],
         "DIST": [
@@ -227,7 +231,8 @@ def init(sim, traf, scr):
         "DUMPRTE": [
             "DUMPRTE acid",
             "acid",
-            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx),
+            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx) if idx>=0
+                        else scr.echo("DUMPRTE: Aircraft not found"),
             "Write route to output/routelog.txt"
         ],
         "ECHO": [
@@ -299,7 +304,8 @@ def init(sim, traf, scr):
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args),
+            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args) if idx>=0
+                               else scr.echo("ADDWPT: Aircraft not found"),
             "Show list of route in window per page of 5 waypoints"
         ],
         "LNAV": [
@@ -702,7 +708,7 @@ def showhelp(cmd=''):
         else:
             fname = "./info/bluesky-commands.txt"
 
-        # Write command dictionary to tab-dleoimited text file
+        # Write command dictionary to tab-delimited text file
         try:        
             f = open(fname,"w")
         except:
@@ -1006,138 +1012,135 @@ def process(sim, traf, scr):
         # Assume syntax is ok (default)
         synerr = False
 
-        try:
-            #**********************************************************************
-            #=====================  Start of command branches =====================
-            #**********************************************************************
+        #**********************************************************************
+        #=====================  Start of command branches =====================
+        #**********************************************************************
 
-            #----------------------------------------------------------------------
-            # First check command synonymes list, then in dictionary
-            #----------------------------------------------------------------------
-            orgcmd = cmd  # save for string cutting out of line and use of synonyms
-            if cmd in cmdsynon.keys():
-                cmd    = cmdsynon[cmd]
+        #----------------------------------------------------------------------
+        # First check command synonymes list, then in dictionary
+        #----------------------------------------------------------------------
+        orgcmd = cmd  # save for string cutting out of line and use of synonyms
+        if cmd in cmdsynon.keys():
+            cmd    = cmdsynon[cmd]
 
-            if cmd in cmddict.keys():
-                helptext, argtypelist, function = cmddict[cmd][:3]
-                argvsopt = argtypelist.split('[')
-                argtypes = argvsopt[0].strip(',').split(",")
-                if argtypes == ['']:
-                    argtypes = []
+        if cmd in cmddict.keys():
+            helptext, argtypelist, function = cmddict[cmd][:3]
+            argvsopt = argtypelist.split('[')
+            argtypes = argvsopt[0].strip(',').split(",")
+            if argtypes == ['']:
+                argtypes = []
 
-                # Check if at least the number of mandatory arguments is given.
-                if numargs < len(argtypes):
-                    scr.echo("Syntax error: Too few arguments")
-                    scr.echo(line)
-                    scr.echo(helptext)
-                    continue
+            # Check if at least the number of mandatory arguments is given.
+            if numargs < len(argtypes):
+                scr.echo("Syntax error: Too few arguments")
+                scr.echo(line)
+                scr.echo(helptext)
+                continue
 
-                # Add optional argument types if they are given
-                if len(argvsopt) == 2:
-                    argtypes = argtypes + argvsopt[1].strip(']').split(',')
+            # Add optional argument types if they are given
+            if len(argvsopt) == 2:
+                argtypes = argtypes + argvsopt[1].strip(']').split(',')
 
-                # Process arg list
-                optargs = {}
-                # Special case: single text string argument: case sensitive,
-                # possibly with spaces/newlines pass the original
-                if argtypes == ['string']:
-                    arglist = [line[len(orgcmd) + 1:]]
-                else:
-                    arglist = []
-                    curtype = curarg = 0
-                    while curtype < len(argtypes) and curarg < len(args) and not synerr:
-                        if argtypes[curtype][:3] == '...':
-                            repeatsize = len(argtypes) - curtype
-                            curtype = curtype - repeatsize
-                        argtype    = argtypes[curtype].strip().split('/')
-
-                        # Go over all argtypes separated by"/" in this place in the command line
-                        for i in range(len(argtype)):
-                            argtypei = argtype[i]
-
-                            parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
-
-                            if len(parsed_arg) == 0:
-                                # not yet last type possible here?
-                                if i < len(argtype) - 1:
-                                    # We have alternative argument formats that we can try
-                                    continue
-                                elif argtypei in optargs:
-                                    # Missing arguments, so maybe not filled in so enter optargs?
-                                    arglist += optargs[argtypei]
-                                else:
-                                    synerr = True
-                                    scr.echo("Syntax error in processing arguments")
-                                    scr.echo(line)
-                                    scr.echo(helptext)
-                                    print "Error in processing arguments:"
-                                    print line
-                            else:
-                                arglist += parsed_arg
-
-                            optargs.update(opt_arg)
-                            curarg  += argstep
-                            break
-
-                        curtype += 1
-
-                # Call function return flag,text
-                # flag: indicates sucess
-                # text: optional error message
-                if not synerr:
-                    # print cmd, arglist
-                    results = function(*arglist)  # * = unpack list to call arguments
-
-                    if type(results) == bool:  # Only flag is returned
-                        synerr = not results
-                        if synerr:
-                            if numargs <= 0 or curarg < len(args) and args[curarg] == "?":
-                                scr.echo(helptext)
-                            else:
-                                scr.echo("Syntax error: " + helptext)
-                            synerr =  False  # Prevent further nagging
-
-                    elif type(results) == list or type(results) == tuple:
-                        # Maybe there is also an error message returned?
-                        if len(results) >= 1:
-                            synerr = not results[0]
-
-                        if len(results) >= 2:
-                            scr.echo(cmd + ":" + results[1])
-                            synerr = False
-
-                else:  # synerr:
-                    scr.echo("Syntax error: " + helptext)
-
-            #----------------------------------------------------------------------
-            # ZOOM command (or use ++++  or --  to zoom in or out)
-            #----------------------------------------------------------------------
-            elif cmd[0] in ["+", "=", "-"]:
-                nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
-                nmin  = cmd.count("-")
-                scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
-
-            #-------------------------------------------------------------------
-            # Reference to other command files
-            # Check external references
-            #-------------------------------------------------------------------
-    #        elif cmd[:4] in extracmdrefs:
-    #            extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
-
-            #-------------------------------------------------------------------
-            # Command not found
-            #-------------------------------------------------------------------
+            # Process arg list
+            optargs = {}
+            # Special case: single text string argument: case sensitive,
+            # possibly with spaces/newlines pass the original
+            if argtypes == ['string']:
+                arglist = [line[len(orgcmd) + 1:]]
             else:
-                if numargs == 0:
-                    scr.echo("Unknown command or aircraft: " + cmd)
-                else:
-                    scr.echo("Unknown command: " + cmd)
+                arglist = []
+                curtype = curarg = 0
+                while curtype < len(argtypes) and curarg < len(args) and not synerr:
+                    if argtypes[curtype][:3] == '...':
+                        repeatsize = len(argtypes) - curtype
+                        curtype = curtype - repeatsize
+                    argtype    = argtypes[curtype].strip().split('/')
 
-            #**********************************************************************
-            #======================  End of command branches ======================
-            #**********************************************************************
-        except Exception as e:
-            print e
+                    # Go over all argtypes separated by"/" in this place in the command line
+                    for i in range(len(argtype)):
+                        argtypei = argtype[i]
+
+                        parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
+
+                        if len(parsed_arg) == 0:
+                            # not yet last type possible here?
+                            if i < len(argtype) - 1:
+                                # We have alternative argument formats that we can try
+                                continue
+                            elif argtypei in optargs:
+                                # Missing arguments, so maybe not filled in so enter optargs?
+                                arglist += optargs[argtypei]
+                            else:
+                                synerr = True
+                                scr.echo("Syntax error in processing arguments")
+                                scr.echo(line)
+                                scr.echo(helptext)
+                                print "Error in processing arguments:"
+                                print line
+                        else:
+                            arglist += parsed_arg
+
+                        optargs.update(opt_arg)
+                        curarg  += argstep
+                        break
+
+                    curtype += 1
+
+            # Call function return flag,text
+            # flag: indicates sucess
+            # text: optional error message
+            if not synerr:
+                # print cmd, arglist
+                results = function(*arglist)  # * = unpack list to call arguments
+
+                if type(results) == bool:  # Only flag is returned
+                    synerr = not results
+                    if synerr:
+                        if numargs <= 0 or curarg < len(args) and args[curarg] == "?":
+                            scr.echo(helptext)
+                        else:
+                            scr.echo("Syntax error: " + helptext)
+                        synerr =  False  # Prevent further nagging
+
+                elif type(results) == list or type(results) == tuple:
+                    # Maybe there is also an error message returned?
+                    if len(results) >= 1:
+                        synerr = not results[0]
+
+                    if len(results) >= 2:
+                        scr.echo(cmd + ":" + results[1])
+                        synerr = False
+
+            else:  # synerr:
+                scr.echo("Syntax error: " + helptext)
+
+        #----------------------------------------------------------------------
+        # ZOOM command (or use ++++  or --  to zoom in or out)
+        #----------------------------------------------------------------------
+        elif cmd[0] in ["+", "=", "-"]:
+            nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
+            nmin  = cmd.count("-")
+            scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
+
+        #-------------------------------------------------------------------
+        # Reference to other command files
+        # Check external references
+        #-------------------------------------------------------------------
+#        elif cmd[:4] in extracmdrefs:
+#            extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
+
+        #-------------------------------------------------------------------
+        # Command not found
+        #-------------------------------------------------------------------
+        else:
+            if numargs == 0:
+                scr.echo("Unknown command or aircraft: " + cmd)
+            else:
+                scr.echo("Unknown command: " + cmd)
+
+        #**********************************************************************
+        #======================  End of command branches ======================
+        #**********************************************************************
 
     # End of for-loop of cmdstack
     cmdstack = []
@@ -1145,7 +1148,7 @@ def process(sim, traf, scr):
 
 
 def argparse(argtype, argidx, args, traf, scr):
-    global reflat, reflon
+    global reflat, reflon, idx
     """ Parse one or more arguments.
 
         Returns: parsed_arg, opt_arg, argstep
@@ -1260,14 +1263,20 @@ def argparse(argtype, argidx, args, traf, scr):
             if success:
                 # for runway type, get heading as default optional argument for command line
                 if posobj.type == "rwy":
+                    aptname = args[argidx]
                     rwyname = args[argidx + 1].strip("RW").strip("Y").strip().upper()  # remove RW or RWY and spaces
-                    optargs = {"hdg": [traf.navdb.rwythresholds[args[argidx]][rwyname][2]]}
+                    try:                    
+                        optargs = {"hdg": [traf.navdb.rwythresholds[aptname][rwyname][2]]}
 
+                    except:
+                        scr.echo("Runway RW"+rwyname+" not found at "+aptname)
+                        return [], {}, 0
+                        
                 reflat, reflon = posobj.lat, posobj.lon
 
                 return [posobj.lat , posobj.lon], optargs, nusedargs
             else:
-                scr.echo(posobj)  # contains error message
+                scr.echo(posobj)  # contains error message if txt2pos was no success
                 return [], {}, 0
 
     # Pan direction: check for valid string value
@@ -1303,7 +1312,7 @@ def argparse(argtype, argidx, args, traf, scr):
     # Heading: return float in degrees
     elif argtype == "hdg":
         try:
-            # TODO: for now no difference between magnetic/true heading
+            # TODO: take care of difference between magnetic/true heading
             hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
             return [hdg], {}, 1
         except:
