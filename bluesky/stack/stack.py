@@ -1148,7 +1148,7 @@ def process(sim, traf, scr):
 
 
 def argparse(argtype, argidx, args, traf, scr):
-    global reflat, reflon, idx
+    global reflat, reflon
     """ Parse one or more arguments.
 
         Returns: parsed_arg, opt_arg, argstep
