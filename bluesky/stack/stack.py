@@ -1062,14 +1062,15 @@ def process(sim, traf, scr):
 
                         parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
 
-                        if len(parsed_arg) == 0:
+                        if parsed_arg == [None] and argtypei in optargs:
+                            # Missing arguments, so maybe not filled in so enter optargs?
+                            arglist += optargs[argtypei]
+                        elif len(parsed_arg) == 0:
                             # not yet last type possible here?
                             if i < len(argtype) - 1:
                                 # We have alternative argument formats that we can try
                                 continue
-                            elif argtypei in optargs:
-                                # Missing arguments, so maybe not filled in so enter optargs?
-                                arglist += optargs[argtypei]
+
                             else:
                                 synerr = True
                                 scr.echo("Syntax error in processing arguments")
@@ -1236,7 +1237,7 @@ def argparse(argtype, argidx, args, traf, scr):
 
             # apt,runway ? Combine into one string with a slash as separator
             elif args[argidx + 1][:2].upper() == "RW" and traf.navdb.aptid.count(args[argidx]) > 0:
-                name = args[argidx] + "/" + args[argidx + 1]
+                name = args[argidx] + "/" + args[argidx + 1].upper()
                 nusedargs = 2   # we used two arguments
 
             # aircraft id? convert to lat/lon string
@@ -1263,9 +1264,9 @@ def argparse(argtype, argidx, args, traf, scr):
             if success:
                 # for runway type, get heading as default optional argument for command line
                 if posobj.type == "rwy":
-                    aptname = args[argidx]
-                    rwyname = args[argidx + 1].strip("RW").strip("Y").strip().upper()  # remove RW or RWY and spaces
-                    try:                    
+                    aptname = name[:name.find('/')]
+                    rwyname = name[name.find('/')+3:].strip("Y")  # remove RW or RWY and spaces
+                    try:
                         optargs = {"hdg": [traf.navdb.rwythresholds[aptname][rwyname][2]]}
 
                     except:
