@@ -125,8 +125,8 @@ class Autopilot(DynamicArrays):
             self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist < self.traf.actwp.turndist)
 
             #Recalculate V/S based on current altitude and distance
-            t2go = dist2wp/max(0.5,self.traf.gs)
-            self.traf.actwp.vs = (self.traf.actwp.alt-self.traf.alt)/max(1.0,t2go)
+            t2go = dist2wp/np.maximum(0.5,self.traf.gs)
+            self.traf.actwp.vs = (self.traf.actwp.alt-self.traf.alt)/np.maximum(1.0,t2go)
 
             self.vnavvs  = np.where(self.swvnavvs, self.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * self.traf.gs, self.vnavvs)
