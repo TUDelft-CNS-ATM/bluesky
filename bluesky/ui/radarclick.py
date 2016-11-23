@@ -1,12 +1,11 @@
 from math import cos, atan2, radians, degrees
+from numpy import array
 
 from ..tools import geo
 from ..tools.misc import findnearest, cmdsplit
 
-from .. import settings
 
-
-def radarclick(cmdline, lat, lon, traf, navdb):
+def radarclick(cmdline, lat, lon, traf, navdb, route=None):
     """Process lat,lon as clicked in radar window"""
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
@@ -43,8 +42,8 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                 }
 
     # Default values, when nothing is found to be added based on click
-    todisplay = "" # Result of click is added here
-    tostack   = "" # If it is the last argument we will pass wbole line to the stack
+    todisplay = ""  # Result of click is added here
+    tostack   = ""  # If it is the last argument we will pass whole line to the stack
 
     # Split command line into command and arguments, pass traf ids to check for
     # switched acid and command
@@ -105,20 +104,23 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                     if idx >= 0:
                         todisplay += navdb.aptid[idx] + " "
 
-                elif clicktype == "wpinroute": # Find nearets waypoint in route
+                elif clicktype == "wpinroute":  # Find nearest waypoint in route
                     if traf.id.count(args[0]) > 0:
                         itraf      = traf.id.index(args[0])
+                        synerr = False
                         reflat = traf.lat[itraf]
                         reflon = traf.lon[itraf]
-                        synerr = False
+                        # The pygame version can get the route directly from traf
+                        # otherwise the route is passed to this function
+                        if route is None:
+                            route = traf.ap.route[itraf]
 
-                        if settings.gui == "pygame":
-                            if traf.ap.route[itraf].nwp>0:                       
-                                iwp = findnearest(lat, lon,   \
-                                          traf.ap.route[itraf].wplat, 
-                                          traf.ap.route[itraf].wplon)
-                                if iwp>=0:
-                                    todisplay += traf.ap.route[itraf].wpname[iwp]
+                        if len(route.wplat) > 0:
+                            iwp = findnearest(lat, lon,
+                                        array(route.wplat),
+                                        array(route.wplon))
+                            if iwp >= 0:
+                                todisplay += route.wpname[iwp]
 
                     else:
                         synerr = True

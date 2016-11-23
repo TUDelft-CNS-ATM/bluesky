@@ -93,12 +93,12 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self.app.quit()
 
-    @pyqtSlot(int)
+    @pyqtSlot(tuple, int)
     def actnodeChanged(self, nodeid, connidx):
         self.nodelabel.setText('<b>Node</b> %d:%d' % nodeid)
         self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
 
-    @pyqtSlot(str, int)
+    @pyqtSlot(str, tuple, int)
     def nodesChanged(self, address, nodeid, connidx):
         if nodeid[0] < len(self.hosts):
             host = self.hosts[nodeid[0]]

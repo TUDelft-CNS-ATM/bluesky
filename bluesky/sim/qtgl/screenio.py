@@ -242,10 +242,10 @@ class ScreenIO(QObject):
                 data.aclat     = self.sim.traf.lat[idx]
                 data.aclon     = self.sim.traf.lon[idx]
 
-                data.lat       = route.wplat
-                data.lon       = route.wplon
+                data.wplat     = route.wplat
+                data.wplon     = route.wplon
 
-                data.wptlabels = route.wpname
+                data.wpname    = route.wpname
 
             self.manager.sendEvent(data)  # Send route data to GUI
             # Empty route acid string means no longer send route data
