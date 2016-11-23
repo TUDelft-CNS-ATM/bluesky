@@ -41,9 +41,6 @@ scenfile  = ""
 scentime  = []
 scencmd   = []
 
-reflat    = -999.  # Reference latitude for searching in nav db in case of duplicate names
-reflon    = -999.  # Reference longitude for searching in nav db in case of duplicate names
-
 
 def init(sim, traf, scr):
     """ Initialization of the default stack commands. This function is called
@@ -1013,11 +1010,11 @@ def process(sim, traf, scr):
         synerr = False
 
         #**********************************************************************
-        #=====================  Start of command branches =====================
+        #=====================  Start of command parsing  =====================
         #**********************************************************************
 
         #----------------------------------------------------------------------
-        # First check command synonymes list, then in dictionary
+        # First check command synonyms list, then in dictionary
         #----------------------------------------------------------------------
         orgcmd = cmd  # save for string cutting out of line and use of synonyms
         if cmd in cmdsynon.keys():
@@ -1025,29 +1022,37 @@ def process(sim, traf, scr):
 
         if cmd in cmddict.keys():
             helptext, argtypelist, function = cmddict[cmd][:3]
-            argvsopt = argtypelist.split('[')
-            argtypes = argvsopt[0].strip(',').split(",")
-            if argtypes == ['']:
-                argtypes = []
 
-            # Check if at least the number of mandatory arguments is given.
-            if numargs < len(argtypes):
-                scr.echo("Syntax error: Too few arguments")
-                scr.echo(line)
-                scr.echo(helptext)
-                continue
+            argtypes = []
+            argisopt = []
+            while len(argtypelist) > 0:
+                opt = (argtypelist[0] == '[')
+                cut = argtypelist.find(']') if opt else \
+                      argtypelist.find('[') if '[' in argtypelist else \
+                      len(argtypelist)
 
-            # Add optional argument types if they are given
-            if len(argvsopt) == 2:
-                argtypes = argtypes + argvsopt[1].strip(']').split(',')
+                types = argtypelist[:cut].strip('[,]').split(',')
+                argtypes += types
+                argisopt += len(types) * [opt]
+                argtypelist = argtypelist[cut:].lstrip(',]')
 
-            # Process arg list
-            optargs = {}
+            # Check if at least the number of mandatory arguments is given,
+            # by finding the last argument that is not optional.
+            if False in argisopt:
+                minargs = len(argisopt) - argisopt[::-1].index(False)
+                if numargs < minargs:
+                    scr.echo("Syntax error: Too few arguments")
+                    scr.echo(line)
+                    scr.echo(helptext)
+                    continue
+
             # Special case: single text string argument: case sensitive,
             # possibly with spaces/newlines pass the original
             if argtypes == ['string']:
                 arglist = [line[len(orgcmd) + 1:]]
             else:
+                # Start with a fresh argument parser for each command
+                parser  = Argparser()
                 arglist = []
                 curtype = curarg = 0
                 while curtype < len(argtypes) and curarg < len(args) and not synerr:
@@ -1056,34 +1061,33 @@ def process(sim, traf, scr):
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
 
-                    # Go over all argtypes separated by"/" in this place in the command line
+                    # Go over all argtypes separated by "/" in this place in the command line
+                    errors = ''
                     for i in range(len(argtype)):
                         argtypei = argtype[i]
 
-                        parsed_arg, opt_arg, argstep = argparse(argtypei, curarg, args, traf, scr)
-
-                        if parsed_arg == [None] and argtypei in optargs:
-                            # Missing arguments, so maybe not filled in so enter optargs?
-                            arglist += optargs[argtypei]
-                        elif len(parsed_arg) == 0:
-                            # not yet last type possible here?
+                        # Try to parse the argument for the given argument type
+                        if parser.parse(argtypei, curarg, args, traf, scr):
+                            if parser.result[0] is None and argisopt[curtype] is False:
+                                synerr = True
+                                scr.echo('No value given for mandatory argument ' + argtypes[curtype])
+                                break
+                            arglist += parser.result
+                            curarg  += parser.argstep
+                            break
+                        else:
+                            # Store the error message and see if there are alternatives
+                            errors += parser.error + '\n'
                             if i < len(argtype) - 1:
                                 # We have alternative argument formats that we can try
                                 continue
-
                             else:
                                 synerr = True
-                                scr.echo("Syntax error in processing arguments")
-                                scr.echo(line)
+                                scr.echo('Syntax error processing "' + args[curarg] + '":')
+                                scr.echo(errors)
                                 scr.echo(helptext)
                                 print "Error in processing arguments:"
                                 print line
-                        else:
-                            arglist += parsed_arg
-
-                        optargs.update(opt_arg)
-                        curarg  += argstep
-                        break
 
                     curtype += 1
 
@@ -1148,190 +1152,247 @@ def process(sim, traf, scr):
     return
 
 
-def argparse(argtype, argidx, args, traf, scr):
-    global reflat, reflon
-    """ Parse one or more arguments.
+class Argparser:
+    # Global variables
+    reflat    = -999.  # Reference latitude for searching in nav db 
+                       # in case of duplicate names
+    reflon    = -999.  # Reference longitude for searching in nav db 
+                       # in case of duplicate names
 
-        Returns: parsed_arg, opt_arg, argstep
+    def __init__(self):
+        self.result     = []  # The outcome of a parsed argument is stored here
+        self.argstep    = 0   # The number of arguments that were parsed
+        self.error      = ''  # Potential parsing error messages are stored here
+        self.additional = {}  # Sometimes a parse can generate extra arguments 
+                              # that can be used to fill future empty arguments.
+                              # E.g., a runway gives a lat/lon, but also a heading.
+        self.refac      = -1  # Stored aircraft idx when an argument is parsed
+                              # for a function that acts on an aircraft.
 
-        parsed_args = a list with the parsed results (or [None] in case of error)
-        opt_arg     = store for future opt args (like a runway heading)
-        argstep     = how many argtypes are processed
+    def parse(self, argtype, argidx, args, traf, scr):
+        """ Parse one or more arguments.
 
-        If syntax not ok, as different types can be tried, return [],{},0 """
+            Returns True if parse was succesful. When not succesful, False is
+            returned, and the error message is stored in self.error """
 
-    if args[argidx] == "" or args[argidx] == "*":  # Empty arg or wildcard => parse None
-        return [None], {}, 1
+        # First reset outcome values
+        self.result  = []
+        self.argstep = 0
+        self.error   = ''
 
-    elif argtype == "acid":  # aircraft id => parse index
-        idx = traf.id2idx(args[argidx])
-        if idx < 0:
-            scr.echo(args[idx] + " not found")
-            return [-1], {}, 1
-        else:
-            reflat, reflon = traf.lat[idx], traf.lon[idx]  # Update ref position for navdb lookup
-            return [idx], {}, 1
+        # Empty arg or wildcard
+        if args[argidx] == "" or args[argidx] == "*":
+            # If there was a matching additional argument stored previously use that one
+            if argtype in self.additional and args[argidx] == "*":
+                self.result  = [self.additional[argtype]]
+                self.argstep = 1
+                return True
+            # Otherwise result is None
+            self.result  = [None]
+            self.argstep = 1
+            return True
 
-    elif argtype == "txt":  # simple text
-        return [args[argidx]], {}, 1
-
-    elif argtype == "wpinroute":  # return text in upper case
-        #debug        print "argparse:", args[argidx].upper()
-        return [args[argidx].upper()], {}, 1
-
-    elif argtype == "float":  # float number
-        try:
-            parsed_args = [float(args[argidx])]
-            return parsed_args, {}, 1
-        except:
-            return [], {}, 0
-
-    elif argtype == "int":   # integer
-        try:
-            parsed_args = [int(args[argidx])]
-            return parsed_args, {}, 1
-        except:
-            return [], {}, 0
-
-    elif argtype == "onoff" or argtype == "bool":
-        if args[argidx] == "ON" or args[argidx] == "1" or args[argidx] == "TRUE":
-            return [True], {}, 1
-        elif args[argidx] == "OFF" or args[argidx] == "0" or args[argidx] == "FALSE":
-            return [False], {}, 1
-        else:
-            return [], {}, 0
-
-    elif argtype == "wpt" or argtype == "latlon":
-
-        # wpt: Make 1 or 2 argument(s) into 1 position text to be used as waypoint
-        # latlon: return lat,lon to be used as a position only
-
-        # Examples valid position texts:
-        # lat/lon : "N52.12,E004.23","N52'14'12',E004'23'10"
-        # navaid/fix: "SPY","OA","SUGOL"
-        # airport:   "EHAM"
-        # runway:    "EHAM/RW06" "LFPG/RWY23"
-
-        # Set default reference lat,lon for duplicate name in navdb to screen
-        if reflat < 180.:  # No reference avaiable yet: use screen center
-            reflat, reflon = scr.ctrlat, scr.ctrlon
-
-        optargs = {}
-
-        # If last argument, no lat,lom or airport,runway so simply return this argument
-        if len(args) - 1 == argidx:
-            # translate a/c id into a valid position text with a lat,lon
-            if traf.id2idx(args[argidx]) >= 0:
-                idx  = traf.id2idx(args[argidx])
-                name = str(traf.lat[idx]) + "," + str(traf.lon[idx])
+        if argtype == "acid":  # aircraft id => parse index
+            idx = traf.id2idx(args[argidx])
+            if idx < 0:
+                self.error = args[idx] + " not found"
+                return False
             else:
-                name = args[argidx]
-            nusedargs = 1  # we used one argument
+                # Update ref position for navdb lookup
+                Argparser.reflat = traf.lat[idx]
+                Argparser.reflon = traf.lon[idx]
+                self.refac   = idx
+                self.result  = [idx]
+                self.argstep = 1
+                return True
 
-        # Check occasionally also next arg
-        else:
-            # lat,lon ? Combine into one string with a comma
-            if islat(args[argidx]):
-                name = args[argidx] + "," + args[argidx + 1]
-                nusedargs = 2   # we used two arguments
+        elif argtype == "txt":  # simple text
+            self.result  = [args[argidx]]
+            self.argstep = 1
+            return True
 
-            # apt,runway ? Combine into one string with a slash as separator
-            elif args[argidx + 1][:2].upper() == "RW" and traf.navdb.aptid.count(args[argidx]) > 0:
-                name = args[argidx] + "/" + args[argidx + 1].upper()
-                nusedargs = 2   # we used two arguments
+        elif argtype == "wpinroute":  # return text in upper case
+            wpname = args[argidx].upper()
+            if self.refac >= 0 and wpname not in traf.ap.route[self.refac].wpname:
+                self.error = 'There is no waypoint ' + wpname + ' in route of ' + traf.id[self.refac]
+                return False
+            self.result  = [wpname]
+            self.argstep = 1
+            return True
 
-            # aircraft id? convert to lat/lon string
-            elif traf.id2idx(argidx) >= 0:
-                idx = traf.id2idx(args[argidx])
-                name = str(traf.lat[idx]) + "," + str(traf.lon[idx])
-                nusedargs = 1
+        elif argtype == "float":  # float number
+            try:
+                self.result  = [float(args[argidx])]
+                self.argstep = 1
+                return True
+            except:
+                self.error = 'Argument "' + args[argidx] + '" is not a float'
+                return False
 
-            # In other cases parse string as position
+        elif argtype == "int":   # integer
+            try:
+                self.result  = [int(args[argidx])]
+                self.argstep = 1
+                return True
+            except:
+                self.error = 'Argument "' + args[argidx] + '" is not an int'
+                return False
+
+        elif argtype == "onoff" or argtype == "bool":
+            if args[argidx] == "ON" or args[argidx] == "1" or args[argidx] == "TRUE":
+                self.result  = [True]
+                self.argstep = 1
+                return True
+            elif args[argidx] == "OFF" or args[argidx] == "0" or args[argidx] == "FALSE":
+                self.result  = [False]
+                self.argstep = 1
+                return True
             else:
-                name = args[argidx]
-                nusedargs = 1  # we used one argument
+                self.error = 'Argument "' + args[argidx] + '" is not a bool'
+                return False
 
-        # Return something different for the two argtypes:
+        elif argtype == "wpt" or argtype == "latlon":
 
-        # wpt argument type: simply return positiontext, no need it look up nw
-        if argtype == "wpt":
-            return [name], optargs, nusedargs
+            # wpt: Make 1 or 2 argument(s) into 1 position text to be used as waypoint
+            # latlon: return lat,lon to be used as a position only
 
-        # lat/lon argument type we also need to it up:
-        elif argtype == "latlon":
-            success, posobj = txt2pos(name, traf, traf.navdb, reflat, reflon)
+            # Examples valid position texts:
+            # lat/lon : "N52.12,E004.23","N52'14'12',E004'23'10"
+            # navaid/fix: "SPY","OA","SUGOL"
+            # airport:   "EHAM"
+            # runway:    "EHAM/RW06" "LFPG/RWY23"
 
-            if success:
-                # for runway type, get heading as default optional argument for command line
-                if posobj.type == "rwy":
-                    aptname = name[:name.find('/')]
-                    rwyname = name[name.find('/')+3:].strip("Y")  # remove RW or RWY and spaces
-                    try:
-                        optargs = {"hdg": [traf.navdb.rwythresholds[aptname][rwyname][2]]}
+            # Default values
+            self.argstep = 1
+            name         = args[argidx]
 
-                    except:
-                        scr.echo("Runway RW"+rwyname+" not found at "+aptname)
-                        return [], {}, 0
-                        
-                reflat, reflon = posobj.lat, posobj.lon
+            # Try aircraft first: translate a/c id into a valid position text with a lat,lon
+            idx = traf.id2idx(name)
+            if idx >= 0:
+                name     = str(traf.lat[idx]) + "," + str(traf.lon[idx])
 
-                return [posobj.lat , posobj.lon], optargs, nusedargs
+            # Check next arg if available
+            elif argidx < len(args) - 1:
+                # lat,lon ? Combine into one string with a comma
+                if islat(args[argidx]):
+                    name = args[argidx] + "," + args[argidx + 1]
+                    self.argstep = 2   # we used two arguments
+
+                # apt,runway ? Combine into one string with a slash as separator
+                elif args[argidx + 1][:2].upper() == "RW" and args[argidx] in traf.navdb.aptid:
+                    name = args[argidx] + "/" + args[argidx + 1].upper()
+                    self.argstep = 2   # we used two arguments
+
+            # Return something different for the two argtypes:
+
+            # wpt argument type: simply return positiontext, no need it look up nw
+            if argtype == "wpt":
+                self.result = [name]
+                return True
+
+            # lat/lon argument type we also need to it up:
+            elif argtype == "latlon":
+                # Set default reference lat,lon for duplicate name in navdb to screen
+                if Argparser.reflat < -180.:  # No reference avaiable yet: use screen center
+                    Argparser.reflat = scr.ctrlat
+                    Argparser.reflon = scr.ctrlon
+
+                success, posobj = txt2pos(name, traf, traf.navdb, Argparser.reflat, Argparser.reflon)
+
+                if success:
+                    # for runway type, get heading as default optional argument for command line
+                    if posobj.type == "rwy":
+                        aptname, rwyname = name.split('/RW')
+                        rwyname = rwyname.lstrip('Y')
+                        try:
+                            self.additional['hdg'] = traf.navdb.rwythresholds[aptname][rwyname][2]
+                        except:
+                            pass
+
+                    # Update reference lat/lon
+                    Argparser.reflat = posobj.lat
+                    Argparser.reflon = posobj.lon
+
+                    self.result = [posobj.lat, posobj.lon]
+                    return True
+                else:
+                    self.error = posobj  # contains error message if txt2pos was no success
+                    return False
+
+        # Pan direction: check for valid string value
+        elif argtype == "pandir":
+            pandir = args[argidx].upper().strip()
+            if pandir in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
+                self.result  = pandir
+                self.argstep = 1
+                return True
             else:
-                scr.echo(posobj)  # contains error message if txt2pos was no success
-                return [], {}, 0
+                self.error = pandir + ' is not a valid pan argument'
+                return False
 
-    # Pan direction: check for valid string value
-    elif argtype == "pandir":
+        # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning  CAS)
+        elif argtype == "spd":
+            try:
+                spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
+                if not 0.1 < spd < 1.0:
+                    spd *= kts
+                self.result  = [spd]
+                self.argstep = 1
+                return True
+            except:
+                self.error = 'Could not parse "' + args[argidx] +'" as speed'
+                return False
 
-        if args[argidx].upper().strip() in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
-            return [args[argidx].upper()], {}, 1  # pass on string to pan function
-        else:
-            return [], {}, 0
+        # Vertical speed: convert fpm to in m/s
+        elif argtype == "vspd":
+            try:
+                self.result  = [fpm * float(args[argidx])]
+                self.argstep = 1
+                return True
+            except:
+                self.error = 'Could not parse "' + args[argidx] + '" as vertical speed'
+                return False
 
-    # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning  CAS)
-    elif argtype == "spd":
-        spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
-        if not 0.1 < spd < 1.0:
-            spd *= kts
-        return [spd], {}, 1  # speed CAS[m/s] or Mach (float)
-
-    # Vertical speed: convert fpm to in m/s
-    elif argtype == "vspd":
-        try:
-            return [fpm * float(args[argidx])], {}, 1
-        except:
-            return [], {}, 0
-
-    # Altutide convert ft or FL to m
-    elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-        alt = txt2alt(args[argidx])
-        if alt > -990.0:
-            return [ft * alt], {}, 1  # alt in m
-        else:
-            return [], {}, 0
-
-    # Heading: return float in degrees
-    elif argtype == "hdg":
-        try:
-            # TODO: take care of difference between magnetic/true heading
-            hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
-            return [hdg], {}, 1
-        except:
-            return [], {}, 0
-
-    # Time: convert time MM:SS.hh or HH:MM:SS.hh to a float in seconds
-    elif argtype == "time":
-        try:
-            ttxt = args[argidx].strip().split(':')
-            if len(ttxt) >= 3:
-                ihr  = int(ttxt[0]) * 3600.0
-                imin = int(ttxt[1]) * 60.0
-                xsec = float(ttxt[2])
-                return [ihr + imin + xsec], {}, 1
+        # Altutide convert ft or FL to m
+        elif argtype == "alt":  # alt: FL250 or 25000 [ft]
+            alt = txt2alt(args[argidx])
+            if alt > -990.0:
+                self.result  = [alt * ft]
+                self.argstep = 1
+                return True
             else:
-                return [float(args[argidx])], {}, 1
-        except:
-            return [], {}, 0
+                self.error = 'Could not parse "' + args[argidx] + '" as altitude'
+                return False
 
-    # Argument not found: return [None],{},0 which will trigger errot and try the next type
-    return [], {}, 0
+        # Heading: return float in degrees
+        elif argtype == "hdg":
+            try:
+                # TODO: take care of difference between magnetic/true heading
+                hdg = float(args[argidx].upper().replace('T', '').replace('M', ''))
+                self.result  = [hdg]
+                self.argstep = 1
+                return True
+            except:
+                self.error = 'Could not parse "' + args[argidx] + '" as heading'
+                return False
+
+        # Time: convert time MM:SS.hh or HH:MM:SS.hh to a float in seconds
+        elif argtype == "time":
+            try:
+                ttxt = args[argidx].strip().split(':')
+                if len(ttxt) >= 3:
+                    ihr  = int(ttxt[0]) * 3600.0
+                    imin = int(ttxt[1]) * 60.0
+                    xsec = float(ttxt[2])
+                    self.result = [ihr + imin + xsec]
+                else:
+                    self.result = [float(args[argidx])]
+                self.argstep = 1
+                return True
+            except:
+                self.error = 'Could not parse "' + args[argidx] + '" as time'
+                return False
+
+        # Argument not found: return [None],{},0 which will trigger error and try the next type
+        self.error = 'Unknown argument type: ' + argtype
+        return False
