@@ -178,13 +178,14 @@ class Traffic(DynamicArrays):
 
             self.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
 
-    def create(self, acid=None, actype=None, aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
+    def create(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
         """Create an aircraft"""
+
         # Check if not already exist
         if self.id.count(acid.upper()) > 0:
             return False, acid + " already exists."  # already exists do nothing
 
-        # Catch missing acid, repalce by a default
+        # Catch missing acid, replace by a default
         if acid == None or acid =="*":
             acid = "KL204"
             flno = 204
@@ -196,7 +197,7 @@ class Traffic(DynamicArrays):
         if actype == None or aclat == None or aclon == None or achdg == None \
             or acalt == None or casmach == None:
             
-            return False,"Missing one or more arguments:"\
+            return False,"CRE: Missing one or more arguments:"\
                          "acid,actype,aclat,aclon,achdg,acalt,acspd"
 
         super(Traffic, self).create()

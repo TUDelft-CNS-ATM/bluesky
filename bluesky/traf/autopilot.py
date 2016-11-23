@@ -107,29 +107,9 @@ class Autopilot(DynamicArrays):
 
             #=============== End of Waypoint switching loop ===================
 
-            # VNAV Guidance principle:
-            #
-            #
-            #                          T/C------X---T/D
-            #                           /    .        \
-            #                          /     .         \
-            #       T/C----X----.-----X      .         .\
-            #       /           .            .         . \
-            #      /            .            .         .  X---T/D
-            #     /.            .            .         .        \ 
-            #    / .            .            .         .         \
-            #   /  .            .            .         .         .\
-            # pos  x            x            x         x         x X
-            #
-            #
-            #  X = waypoint with alt constraint  x = Wp without prescribed altitude
-            #
-            # - Ignore and look beyond waypoints without an altidue constraint
-            # - Climb as soon as possible after previous altitude constraint 
-            #   and climb as fast as possible, so arriving at alt earlier is ok
-            # - Descend at the latest when necessary for next altitude constraint
-            #   which can be many waypoints beyond current actual waypoint 
+            #================= Continuous FMS guidance ========================
 
+        
             # Do VNAV start of descent check
             dy = (self.traf.actwp.lat - self.traf.lat)
             dx = (self.traf.actwp.lon - self.traf.lon) * self.traf.coslat
@@ -143,6 +123,10 @@ class Autopilot(DynamicArrays):
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
             self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist < self.traf.actwp.turndist)
+
+            #Recalculate V/S based on current altitude and distance
+            t2go = dist2wp/max(0.5,self.traf.gs)
+            self.traf.actwp.vs = (self.traf.actwp.alt-self.traf.alt)/max(1.0,t2go)
 
             self.vnavvs  = np.where(self.swvnavvs, self.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * self.traf.gs, self.vnavvs)
@@ -164,7 +148,6 @@ class Autopilot(DynamicArrays):
         if not (toalt >= 0 and self.traf.swvnav[idx]):
             self.dist2vs[idx] = -999
             return
-#        print "alt, toalt=",self.traf.alt[idx],toalt
 
         # So: somewhere there is an altitude constraint ahead
         # Compute proper values for self.traf.actwp.alt, self.dist2vs, self.alt, self.traf.actwp.vs
@@ -175,6 +158,32 @@ class Autopilot(DynamicArrays):
         #        
         # toalt  = altitude at next waypoint with an altitude constraint
         #
+
+        # VNAV Guidance principle:
+        #
+        #
+        #                          T/C------X---T/D
+        #                           /    .        \
+        #                          /     .         \
+        #       T/C----X----.-----X      .         .\
+        #       /           .            .         . \
+        #      /            .            .         .  X---T/D
+        #     /.            .            .         .        \ 
+        #    / .            .            .         .         \
+        #   /  .            .            .         .         .\
+        # pos  x            x            x         x         x X
+        #
+        #
+        #  X = waypoint with alt constraint  x = Wp without prescribed altitude
+        #
+        # - Ignore and look beyond waypoints without an altidue constraint
+        # - Climb as soon as possible after previous altitude constraint 
+        #   and climb as fast as possible, so arriving at alt earlier is ok
+        # - Descend at the latest when necessary for next altitude constraint
+        #   which can be many waypoints beyond current actual waypoint 
+
+
+        # VNAV Descent mode
         if self.traf.alt[idx] > toalt + 10. * ft:
             
 
@@ -190,6 +199,7 @@ class Autopilot(DynamicArrays):
             dx = (self.traf.actwp.lon[idx] - self.traf.lon[idx]) * self.traf.coslat[idx]
             legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
+
             # If descent is urgent, descent with maximum steepness
             if legdist < self.dist2vs[idx]:
                 self.alt[idx] = self.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
@@ -203,7 +213,7 @@ class Autopilot(DynamicArrays):
                 self.traf.actwp.vs[idx] = -self.steepness * (self.traf.gs[idx] +
                       (self.traf.gs[idx] < 0.2 * self.traf.tas[idx]) * self.traf.tas[idx])
 
-        # Climb VNAV mode: climb as soon as possible (T/C logic)
+        # VNAV climb mode: climb as soon as possible (T/C logic)
         elif self.traf.alt[idx] < toalt - 10. * ft:
 
 
@@ -211,8 +221,14 @@ class Autopilot(DynamicArrays):
             self.alt[idx]    = self.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
             self.dist2vs[idx]  = 9999.
 
-            self.traf.actwp.vs[idx] = self.steepness * (self.traf.gs[idx] +
-                      (self.traf.gs[idx] < 0.2 * self.traf.tas[idx]) * self.traf.tas[idx])
+            # Flat earth distance to next wp
+            dy = (self.traf.actwp.lat[idx] - self.traf.lat[idx])
+            dx = (self.traf.actwp.lon[idx] - self.traf.lon[idx]) * self.traf.coslat[idx]
+            legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)
+            t2go = max(0.1, legdist) / max(0.01, self.traf.gs[idx])
+            self.traf.actwp.vs[idx]  = (self.traf.actwp.alt[idx] - self.traf.alt[idx]) / t2go
+
+
 
         # Level leg: never start V/S
         else:
