@@ -570,7 +570,7 @@ class RadarWidget(QGLWidget):
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
             nsegments = len(data.wplat)
-            data.iactwp = max(0, data.iactwp)
+            data.iactwp = min(max(0, data.iactwp), nsegments - 1)
             self.routelbl.n_instances = nsegments
             self.route.set_vertex_count(2 * nsegments)
             routedata = np.empty(4 * nsegments, dtype=np.float32)
@@ -665,16 +665,16 @@ class RadarWidget(QGLWidget):
             del nact.polynames[name]
 
         if data_in is not None:
-            nact.polynames[name] = (len(nact.polydata), 2*len(data_in))
+            nact.polynames[name] = (len(nact.polydata), 2 * len(data_in))
             newbuf = np.empty(2 * len(data_in), dtype=np.float32)
             newbuf[0::4]   = data_in[0::2]  # lat
             newbuf[1::4]   = data_in[1::2]  # lon
             newbuf[2:-2:4] = data_in[2::2]  # lat
             newbuf[3:-3:4] = data_in[3::2]  # lon
             newbuf[-2:]    = data_in[0:2]
-            nact.polydata = np.append(nact.polydata, newbuf)
+            nact.polydata  = np.append(nact.polydata, newbuf)
             update_buffer(self.allpolysbuf, nact.polydata)
-            self.allpolys.set_vertex_count(len(nact.polydata)/2)
+            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
     def previewpoly(self, shape_type, data_in=None):
         if shape_type is None:
@@ -690,7 +690,7 @@ class RadarWidget(QGLWidget):
         else:
             data = data_in
         update_buffer(self.polyprevbuf, data)
-        self.polyprev.set_vertex_count(len(data)/2)
+        self.polyprev.set_vertex_count(len(data) / 2)
 
     def airportsInRange(self):
         ll_range = max(1.5 / self.zoom, 1.0)
