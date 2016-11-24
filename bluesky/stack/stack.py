@@ -1340,7 +1340,7 @@ class Argparser:
                 self.argstep = 1
                 return True
             except:
-                self.error = 'Could not parse "' + args[argidx] +'" as speed'
+                self.error = 'Could not parse "' + args[argidx] + '" as speed'
                 return False
 
         # Vertical speed: convert fpm to in m/s
