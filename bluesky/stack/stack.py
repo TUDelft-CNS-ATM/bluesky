@@ -1015,10 +1015,15 @@ def process(sim, traf, scr):
             cmd    = cmdsynon[cmd]
 
         if cmd in cmddict.keys():
+            # Look up command in dictionary to get string with argtypes andhelp texts
             helptext, argtypelist, function = cmddict[cmd][:3]
 
+            # Make list of argtypes and whether entering an argument is optional
             argtypes = []
             argisopt = []
+
+            # Process and reduce arglist from left to right
+            # First cut at square brackets, then take separate argument types
             while len(argtypelist) > 0:
                 opt = (argtypelist[0] == '[')
                 cut = argtypelist.find(']') if opt else \
@@ -1049,19 +1054,25 @@ def process(sim, traf, scr):
                 parser  = Argparser()
                 arglist = []
                 curtype = curarg = 0
+
+                # Iterate over list of argument types & arguments
                 while curtype < len(argtypes) and curarg < len(args) and not synerr:
+                    # Optional repeat with "...", e.g. for lat/lon list for polygon
                     if argtypes[curtype][:3] == '...':
                         repeatsize = len(argtypes) - curtype
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
 
-                    # Go over all argtypes separated by "/" in this place in the command line
+                    # Save error messages from argument parsing for each possible type for this field
                     errors = ''
+                    # Go over all argtypes separated by "/" in this place in the command line
                     for i in range(len(argtype)):
                         argtypei = argtype[i]
 
                         # Try to parse the argument for the given argument type
+                        # First successful parsing is used!
                         if parser.parse(argtypei, curarg, args, traf, scr):
+                            # No value = None when this is allowed because it is an optional argument
                             if parser.result[0] is None and argisopt[curtype] is False:
                                 synerr = True
                                 scr.echo('No value given for mandatory argument ' + argtypes[curtype])
@@ -1069,6 +1080,7 @@ def process(sim, traf, scr):
                             arglist += parser.result
                             curarg  += parser.argstep
                             break
+                        # No success yet with this type (maybe we can try other ones)
                         else:
                             # Store the error message and see if there are alternatives
                             errors += parser.error + '\n'
@@ -1076,6 +1088,7 @@ def process(sim, traf, scr):
                                 # We have alternative argument formats that we can try
                                 continue
                             else:
+                                # No more types to check: print error message
                                 synerr = True
                                 scr.echo('Syntax error processing "' + args[curarg] + '":')
                                 scr.echo(errors)
@@ -1122,13 +1135,6 @@ def process(sim, traf, scr):
             scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
 
         #-------------------------------------------------------------------
-        # Reference to other command files
-        # Check external references
-        #-------------------------------------------------------------------
-#        elif cmd[:4] in extracmdrefs:
-#            extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
-
-        #-------------------------------------------------------------------
         # Command not found
         #-------------------------------------------------------------------
         else:
@@ -1148,16 +1154,16 @@ def process(sim, traf, scr):
 
 class Argparser:
     # Global variables
-    reflat    = -999.  # Reference latitude for searching in nav db 
+    reflat    = -999.  # Reference latitude for searching in nav db
                        # in case of duplicate names
-    reflon    = -999.  # Reference longitude for searching in nav db 
+    reflon    = -999.  # Reference longitude for searching in nav db
                        # in case of duplicate names
 
     def __init__(self):
         self.result     = []  # The outcome of a parsed argument is stored here
         self.argstep    = 0   # The number of arguments that were parsed
         self.error      = ''  # Potential parsing error messages are stored here
-        self.additional = {}  # Sometimes a parse can generate extra arguments 
+        self.additional = {}  # Sometimes a parse can generate extra arguments
                               # that can be used to fill future empty arguments.
                               # E.g., a runway gives a lat/lon, but also a heading.
         self.refac      = -1  # Stored aircraft idx when an argument is parsed
@@ -1166,7 +1172,7 @@ class Argparser:
     def parse(self, argtype, argidx, args, traf, scr):
         """ Parse one or more arguments.
 
-            Returns True if parse was succesful. When not succesful, False is
+            Returns True if parse was successful. When not successful, False is
             returned, and the error message is stored in self.error """
 
         # First reset outcome values
@@ -1387,6 +1393,6 @@ class Argparser:
                 self.error = 'Could not parse "' + args[argidx] + '" as time'
                 return False
 
-        # Argument not found: return [None],{},0 which will trigger error and try the next type
+        # Argument not found: return False
         self.error = 'Unknown argument type: ' + argtype
         return False
