@@ -24,7 +24,6 @@ class Route():
     runway   = 5   # Runway: Copy name and positions
 
     def __init__(self, navdb):
-        
         # Save a local pointer to the navigation database object navdb
         self.navdb  = navdb
         self.nwp    = 0
@@ -44,7 +43,7 @@ class Route():
 
         return
 
-    def addwptStack(self, traf, idx, *args): # args: all arguments of addwpt
+    def addwptStack(self, traf, idx, *args):  # args: all arguments of addwpt
         """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"""
 
 #        print "addwptStack:",args
@@ -57,63 +56,61 @@ class Route():
             if isflyby == "FLYBY":
                 self.swflyby = True
                 return True
-                
+
             elif isflyby == "FLYOVER":
                 self.swflyby = False
                 return True
-       
 
         # Convert to positions
         name = args[0]
 
-        success,posobj = txt2pos(name,traf,self.navdb,traf.lat[idx],traf.lon[idx])
-        if success:        
-            
+        success, posobj = txt2pos(name, traf, self.navdb, traf.lat[idx], traf.lon[idx])
+        if success:
             lat      = posobj.lat
             lon      = posobj.lon
-            
-            if posobj.type== "nav" or posobj.type== "apt":
+
+            if posobj.type == "nav" or posobj.type == "apt":
                 wptype = self.wpnav
-    
+
             elif posobj.type == "rwy":
                 wptype  = self.runway
-    
-            else: # treat as lat/lon
-                name   = traf.id[idx]            
-                wptype   = self.wplatlon
-    
+
+            else:  # treat as lat/lon
+                name    = traf.id[idx]
+                wptype  = self.wplatlon
+
             # Default altitude, speed and afterwp if not given
             alt     = -999.  if len(args) < 2 else args[1]
             spd     = -999.  if len(args) < 3 else args[2]
             afterwp = ""     if len(args) < 4 else args[3]
-    
+
             #Catch empty arguments (None)
-            if alt=="" or alt==None:
+            if alt == "" or alt is None:
                 alt = -999
-            
-            if spd=="" or spd==None:
+
+            if spd == "" or spd is None:
                 spd = -999
-            
-            if afterwp==None:
+
+            if afterwp is None:
                 afterwp = ""
-    
+
             # Add waypoint
             wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
-            
+
             # Check for success by checking insetred locaiton in flight plan >= 0
             if wpidx < 0:
                 return False, "Waypoint " + name + " not added."
-    
+
             # chekc for presence of orig/dest
             norig = int(traf.ap.orig[idx] != "")
             ndest = int(traf.ap.dest[idx] != "")
-    
-            # Check whether this is first 'real' wayppint (not orig & dest), 
+
+            # Check whether this is first 'real' wayppint (not orig & dest),
             # And if so, make active
             if self.nwp - norig - ndest == 1:  # first waypoint: make active
                 self.direct(traf, idx, self.wpname[norig])  # 0 if no orig
                 traf.swlnav[idx] = True
-    
+
             if afterwp and self.wpname.count(afterwp) == 0:
                 return True, "Waypoint " + afterwp + " not found" + \
                     "waypoint added at end of route"
@@ -121,32 +118,30 @@ class Route():
                 return True
 
         else:
-             return False,"Waypoint "+name+" not found."
+            return False, "Waypoint " + name + " not found."
 
-    def afteraddwptStack(self, traf, idx, *args): # args: all arguments of addwpt
+    def afteraddwptStack(self, traf, idx, *args):  # args: all arguments of addwpt
 
         # AFTER acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]"
-        if len(args)< 3:
-            return False,"AFTER needs more arguments"
+        if len(args) < 3:
+            return False, "AFTER needs more arguments"
 
         # Change order of arguments
-        arglst = [args[2],None,None,args[0]] # postxt,,,afterwp
+        arglst = [args[2], None, None, args[0]]  # postxt,,,afterwp
 
         # Add alt when given
-        if len(args)>3:
-            arglst[1]=args[3]  # alt
+        if len(args) > 3:
+            arglst[1] = args[3]  # alt
 
         # Add speed when given
-        if len(args)>4:
-            arglst[2] = args[4] # spd
+        if len(args) > 4:
+            arglst[2] = args[4]  # spd
 
-        result = self.addwptStack(traf, idx, *arglst) # args: all arguments of addwpt
+        result = self.addwptStack(traf, idx, *arglst)  # args: all arguments of addwpt
 
         return result
-         
 
-
-    def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp=""):
+    def addwpt(self, traf, iac, name, wptype, lat, lon, alt=-999., spd=-999., afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
 #        print "addwpt:"
 #        print "iac = ",iac
@@ -155,7 +150,6 @@ class Route():
 #        print "spd = ",spd
 #        print "afterwp =",afterwp
 #        print
-   
         self.traf = traf  # Traffic object
         self.iac = iac    # a/c to which this route belongs
         # For safety
@@ -511,6 +505,7 @@ class Route():
         if self.iactwp > idx:
             self.iactwp = max(0, self.iactwp - 1)
 
+        self.iactwp = min(self.iactwp, self.nwp - 1)
         return True
 
     def newcalcfp(self):
