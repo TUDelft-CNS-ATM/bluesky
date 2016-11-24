@@ -415,8 +415,8 @@ class Traffic(DynamicArrays):
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
         self.ax[idx] = kts
 
-    def acinfo(self, acid):
-        idx           = self.id.index(acid)
+    def acinfo(self, idx):
+        acid          = self.id[idx]
         actype        = self.type[idx]
         lat, lon      = self.lat[idx], self.lon[idx]
         alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], round(self.trk[idx])
@@ -437,4 +437,4 @@ class Traffic(DynamicArrays):
             if self.ap.dest[idx] != "":
                 line += " to " + self.ap.dest[idx]
 
-        return line
+        return acid, line

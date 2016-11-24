@@ -96,15 +96,13 @@ def init(sim, traf, scr):
             #     return traf.ap.route[idx].addwptStack(traf, idx, *args)
             # fun(idx,*args)
             #
-            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args) if idx>=0
-                               else scr.echo("ADDWPT: Aircraft not found"),
+            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args),
             "Add a waypoint to route of aircraft (FMS)"
         ],
         "AFTER": [
             "acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]",
             "acid,wpinroute,txt,wpt,[alt,spd]",
-            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args)if idx>=0
-                               else scr.echo("ADDWPT: Aircraft not found"),
+            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args),
             "After waypoint, add a waypoint to route of aircraft (FMS)"
         ],
         "ALT": [
@@ -178,8 +176,7 @@ def init(sim, traf, scr):
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
-            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname) if idx>=0
-                                else scr.echo("DELWPT: Aircraft not found"),
+            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
             "Delete a waypoint from a route (FMS)"
         ],
         "DEST": [
@@ -191,8 +188,7 @@ def init(sim, traf, scr):
         "DIRECT": [
             "DIRECT acid wpname",
             "acid,txt",
-            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname)if idx>=0
-                               else scr.echo("DIRECT: Aircraft not found"),
+            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname),
             "Go direct to specified waypoint in route (FMS)"
         ],
         "DIST": [
@@ -228,8 +224,7 @@ def init(sim, traf, scr):
         "DUMPRTE": [
             "DUMPRTE acid",
             "acid",
-            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx) if idx>=0
-                        else scr.echo("DUMPRTE: Aircraft not found"),
+            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx),
             "Write route to output/routelog.txt"
         ],
         "ECHO": [
@@ -301,8 +296,7 @@ def init(sim, traf, scr):
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args) if idx>=0
-                               else scr.echo("ADDWPT: Aircraft not found"),
+            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args),
             "Show list of route in window per page of 5 waypoints"
         ],
         "LNAV": [
@@ -392,8 +386,8 @@ def init(sim, traf, scr):
         ],
         "POS": [
             "POS acid",
-            "txt",
-            lambda acid: scr.showacinfo(acid, traf.acinfo(acid)),
+            "acid",
+            lambda acid: scr.showacinfo(*traf.acinfo(acid)),
             "Get info on aircraft"
         ],
         "PRIORULES": [
@@ -1195,7 +1189,7 @@ class Argparser:
         if argtype == "acid":  # aircraft id => parse index
             idx = traf.id2idx(args[argidx])
             if idx < 0:
-                self.error = args[idx] + " not found"
+                self.error = args[argidx] + " not found"
                 return False
             else:
                 # Update ref position for navdb lookup
