@@ -123,6 +123,12 @@ def init(sim, traf, scr):
             traf.asas.toggle,
             "Airborne Separation Assurance System switch"
         ],
+        "AT": [
+            "acid AT wpname [DEL] SPD/ALT [spd/alt]",
+            "acid,wpinroute,[txt,txt]",
+            lambda idx, *args: traf.ap.route[idx].atwptStack(scr, idx, traf, *args),
+            "Edit, delete or show spd/alt constraints at a waypoint in the route"
+        ],
         "BATCH": [
             "BATCH filename",
             "string",
@@ -1355,7 +1361,11 @@ class Argparser:
 
         # Altutide convert ft or FL to m
         elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-            alt = txt2alt(args[argidx])
+            try:            
+                alt = txt2alt(args[argidx])
+            except:
+                alt = -9999.
+                
             if alt > -990.0:
                 self.result  = [alt * ft]
                 self.argstep = 1
