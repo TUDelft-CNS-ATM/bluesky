@@ -3,6 +3,7 @@ from ..tools import geo
 from ..tools.aero import ft, kts, g0, nm, cas2tas, mach2cas
 from ..tools.misc import degto180
 from ..tools.position import txt2pos
+from ..stack.stack import Argparser
 
 class Route():
     """
@@ -160,7 +161,7 @@ class Route():
 
                 txt = name + " : "
 
-                if len(args)==1 or len(args)==2:
+                if len(args)==1 or (len(args)==2 and not args[1].count("/")==1):
 
                     txt = name+" : "
     
@@ -177,7 +178,7 @@ class Route():
                             swalt = True
                             swspd = True
     
-                    # Altitude
+                    # Show altitude
                     if swalt:
                         if self.wpalt[wpidx] < 0:
                             txt = txt+"-----"
@@ -190,9 +191,9 @@ class Route():
                             txt = txt+str(int(round(self.wpalt[wpidx] / ft)))
                         
                         if swspd:
-                            txt = txt + " / "
+                            txt = txt + "/"
     
-                    # Speed
+                    # Show speed
                     if swspd:
                         if self.wpspd[wpidx] < 0:
                             txt = txt+"---"
@@ -209,23 +210,73 @@ class Route():
                     scr.echo(txt)
                     return True
 
-                #acid AT wpinroute ALT/SPD alt/spd
-                elif len(args)==3:       
-                    swalt = args[1].upper()=="ALT"
-                    swspd = args[1].upper() in ("SPD","SPEED")
+                elif args[1].count("/")==1:
+                    # acid AT wpinroute alt"/"spd
+
+                    # Use parse from stack.py to interpret alt & speed
+                    parser  = Argparser()
+                    islash = args[1].index("/")
+                    swalt  = islash>0
+                    swspd  = islash<len(args[1])-2 #at keast one char after slash
 
                     # Edit waypoint altitude constraint
                     if swalt:
-                        try:            
-                            alt = txt2alt(args[argidx])
-                        except:
-                            alt = -9999.
-                            
-                        if alt > -990.0:
-                            alt = alt * ft
-                            self.argstep = 1
-                            return True
+                        alttxt = [args[1][:islash]]
+                        # Use argument parser from stack to parse speed
+                        success = parser.parse("alt", 0, alttxt, traf, scr)
+
+                        # Set new value if success, "---" etc ignored
+                        if success and not (parser.result[0] == None):
+                            self.wpalt[wpidx]  = parser.result[0]
                         else:
+                            if len(alttxt[0])==alttxt[0].count("-"): # "----" = delete
+                                self.wpalt[wpidx]  = -999.
+                            else:
+                                swalt = False
+
+
+                    # Edit waypoint speed constraint
+                    if swspd:
+                        spdtxt = [args[1][islash+1:]]
+                        # Use argument parser from stack to parse speed
+                        success = parser.parse("spd", 0, spdtxt, traf, scr)
+
+                        # Set new value if success, "---" etc ignored
+                        if success and not (parser.result[0] == None):
+                            self.wpspd[wpidx]  = parser.result[0]
+                        else:
+                            if len(spdtxt[0])==spdtxt[0].count("-"): # "----" = delete
+                                self.wpspd[wpidx]  = -999.
+                            else:    
+                                swspd = False
+
+                    del parser
+                    
+                    if (not swspd) and (not swalt):
+                        return False,"Could not parse "+args[1]+" as alt / spd"
+
+                    # If success: update flight plan and guidance
+                    self.calcfp()
+                    self.direct(traf, idx, self.wpname[self.iactwp])
+
+
+                #acid AT wpinroute ALT/SPD alt/spd
+                elif len(args)==3 :       
+                    swalt = args[1].upper()=="ALT"
+                    swspd = args[1].upper() in ("SPD","SPEED")
+
+                    # Use parse from stack.py to interpret alt & speed
+                    parser  = Argparser()
+
+                    # Edit waypoint altitude constraint
+                    if swalt:
+                        
+                        # Use argument parser from stakc to parse speed
+                        success = parser.parse("alt", 2, args, traf, scr)
+                        if success:
+                            alt = parser.result[0]
+                        else:
+                            del parser
                             return False,'Could not parse "' + args[2] + '" as altitude'
                         
                         # Set new value
@@ -234,16 +285,19 @@ class Route():
 
                     # Edit waypoint speed constraint
                     elif swspd:
-                        try:
-                            spd = float(args[2].upper().replace("M", ".").replace("..", "."))
-                            if not 0.1 < spd < 1.0:
-                                spd = spd *kts
-                        except:
-                            return False,'Could not parse "' + args[2] + '" as speed'
+                        
+                        # Use argument parser from stakc to parse speed
+                        success = parser.parse("spd", 2, args, traf, scr)
+                        if success:
+                            spd = parser.result[0]
+                        else:
+                            del parser
+                            return False,'AT: Could not parse "' + args[2] + '" as speed'
 
                         # Set new value
                         self.wpspd[wpidx]  = spd
  
+                    # Delete a constraint (or both) at this waypoint
                     elif args[1]=="DEL" or args[1]=="DELETE":
                         swalt = args[2].upper()=="ALT"
                         swspd = args[2].upper() in ("SPD","SPEED")
@@ -256,12 +310,15 @@ class Route():
                             self.wpalt[wpidx]  = -999.
 
                     else:
+                        del parser
                         return False,"No "+args[1]+" at ",name
 
 
                     # If success: update flight plan and guidance
                     self.calcfp()
                     self.direct(traf, idx, self.wpname[self.iactwp])
+
+                    del parser                    
                     
             # Waypoint not found in route
             else:
@@ -558,20 +615,20 @@ class Route():
             if 0 <= i < self.nwp:
                 # Name
                 if i == self.iactwp:
-                    txt = "*" + self.wpname[i] + " / "
+                    txt = "*" + self.wpname[i] + " : "
                 else:
-                    txt = " " + self.wpname[i] + " / "
+                    txt = " " + self.wpname[i] + " : "
 
                 # Altitude
                 if self.wpalt[i] < 0:
-                    txt = txt+"----- / "
+                    txt = txt+"-----/"
                     
                 elif self.wpalt[i] > 4500 * ft:
                     FL = int(round((self.wpalt[i]/(100.*ft))))
-                    txt = txt+"FL"+str(FL)+" / "
+                    txt = txt+"FL"+str(FL)+"/"
                     
                 else:
-                    txt = txt+str(int(round(self.wpalt[i] / ft))) + " / "
+                    txt = txt+str(int(round(self.wpalt[i] / ft))) + "/"
 
                 # Speed
                 if self.wpspd[i] < 0:

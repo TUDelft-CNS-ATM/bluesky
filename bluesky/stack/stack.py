@@ -1055,11 +1055,13 @@ def process(sim, traf, scr):
             # possibly with spaces/newlines pass the original
             if argtypes == ['string']:
                 arglist = [line[len(orgcmd) + 1:]]
+
             else:
                 # Start with a fresh argument parser for each command
                 parser  = Argparser()
                 arglist = []
-                curtype = curarg = 0
+                curtype = 0
+                curarg  = 0
 
                 # Iterate over list of argument types & arguments
                 while curtype < len(argtypes) and curarg < len(args) and not synerr:
