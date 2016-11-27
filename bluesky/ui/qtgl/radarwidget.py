@@ -198,7 +198,7 @@ class RadarWidget(QGLWidget):
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
-        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 12, usage=gl.GL_DYNAMIC_DRAW)
+        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 20, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject(gl.GL_TRIANGLE_FAN, vertex_count=4)
@@ -291,8 +291,19 @@ class RadarWidget(QGLWidget):
         self.route = RenderObject(gl.GL_LINES)
         self.route.bind_attrib(ATTRIB_VERTEX, 2, self.routebuf)
         self.route.bind_attrib(ATTRIB_COLOR, 3, np.array(magenta, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (12, 1), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
-
+        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (10, 2), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        rwptvertices = np.array([(-0.2 * wpt_size, -0.2 * wpt_size),
+                                 ( 0.0,            -0.8 * wpt_size),
+                                 ( 0.2 * wpt_size, -0.2 * wpt_size),
+                                 ( 0.8 * wpt_size,  0.0),
+                                 ( 0.2 * wpt_size,  0.2 * wpt_size),
+                                 ( 0.0,             0.8 * wpt_size),
+                                 (-0.2 * wpt_size,  0.2 * wpt_size),
+                                 (-0.8 * wpt_size,  0.0)], dtype=np.float32)
+        self.rwaypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=8)
+        self.rwaypoints.bind_attrib(ATTRIB_VERTEX, 2, rwptvertices)
+        self.rwaypoints.bind_attrib(ATTRIB_LAT, 1, self.routewplatbuf, instance_divisor=1)
+        self.rwaypoints.bind_attrib(ATTRIB_LON, 1, self.routewplonbuf, instance_divisor=1)
         # ------- Waypoints ------------------------------
         self.nwaypoints = len(self.navdb.wplat)
         self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=3, n_instances=self.nwaypoints)
@@ -473,6 +484,9 @@ class RadarWidget(QGLWidget):
 
         # Draw traffic symbols
         if self.naircraft > 0 and self.show_traf:
+            self.rwaypoints.bind()
+            gl.glVertexAttrib4Nub(ATTRIB_COLOR, *(magenta + (255,)))
+            self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.ac_symbol.draw(n_instances=self.naircraft)
 
         if self.zoom >= 0.5:
@@ -585,9 +599,27 @@ class RadarWidget(QGLWidget):
             update_buffer(self.routebuf, routedata)
             update_buffer(self.routewplatbuf, np.array(data.wplat, dtype=np.float32))
             update_buffer(self.routewplonbuf, np.array(data.wplon, dtype=np.float32))
-            wpname = []
-            for wp in data.wpname:
-                wpname += wp[:12].ljust(12)
+            wpname = ''
+            for wp, alt, spd in zip(data.wpname, data.wpalt, data.wpspd):
+                if alt < 0. and spd < 0.:
+                    txt = wp[:10].ljust(20)
+                else:
+                    txt = wp[:10].ljust(10)
+                    if alt < 0:
+                        txt += "-----/"
+                    elif alt > 4500 * ft:
+                        FL = int(round((alt / (100. * ft))))
+                        txt += "FL%03d/" % FL
+                    else:
+                        txt += "%05d/" % int(round(alt / ft))
+
+                    # Speed
+                    if spd < 0:
+                        txt += "--- "
+                    else:
+                        txt += "%03d " % int(round(spd / kts))
+
+                wpname += txt
             update_buffer(self.routelblbuf, np.array(wpname))
         else:
             self.route.set_vertex_count(0)

@@ -245,6 +245,9 @@ class ScreenIO(QObject):
                 data.wplat     = route.wplat
                 data.wplon     = route.wplon
 
+                data.wpalt     = route.wpalt
+                data.wpspd     = route.wpspd
+
                 data.wpname    = route.wpname
 
             self.manager.sendEvent(data)  # Send route data to GUI
