@@ -438,9 +438,9 @@ class Gui(QApplication):
                 elif self.cmd in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
                     data = np.zeros(len(self.args) + 1, dtype=np.float32)
                     for i in range(1, len(self.args), 2):
-                        data[i-1] = float(self.args[i])
-                        data[i]   = float(self.args[i+1])
-                    data[-2:]     = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
+                        data[i - 1] = float(self.args[i])
+                        data[i]     = float(self.args[i + 1])
+                    data[-2:]       = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
                     self.radarwidget.previewpoly(self.cmd, data)
 
             except:
@@ -455,8 +455,6 @@ class Gui(QApplication):
         self.display_stack(text)
 
     def display_stack(self, text):
-        self.win.stackText.setTextColor(QColor(0, 255, 0))
-        # self.win.stackText.insertHtml('<br>' + text)
         self.win.stackText.append(text)
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 

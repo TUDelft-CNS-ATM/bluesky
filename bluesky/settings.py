@@ -92,6 +92,12 @@ wpt_size = 10
 # Radarscreen aircraft symbol size in pixels
 ac_size = 16
 
+# Stack and command line text color
+stack_text_color = 0, 255, 0
+
+# Stack and command line background color
+stack_background_color = 102, 102, 102
+
 #=========================================================================
 #=  Settings for the BlueSky telnet server
 #=========================================================================
