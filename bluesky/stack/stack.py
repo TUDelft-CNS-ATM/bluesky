@@ -1341,12 +1341,15 @@ class Argparser:
                 self.error = pandir + ' is not a valid pan argument'
                 return False
 
-        # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning  CAS)
+        # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning CAS)
         elif argtype == "spd":
+
             try:
-                spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
-                if not 0.1 < spd < 1.0:
-                    spd *= kts
+                spd = float(args[argidx].upper() \
+                       .replace("M0.",".").replace("M", ".").replace("..", "."))
+                       
+                if not (0.1 < spd < 1.0 or args[argidx].count("M")>0):
+                    spd = spd * kts
                 self.result  = [spd]
                 self.argstep = 1
                 return True
