@@ -1,13 +1,12 @@
 try:
     from PyQt5.QtCore import Qt, QEvent, QTimer
-    from PyQt5.QtGui import QColor
     from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
 except ImportError:
     from PyQt4.QtCore import Qt, QEvent, QTimer
-    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
+    from PyQt4.QtGui import QApplication, QFileDialog, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
     QT_VERSION = 4
     print('Using Qt4 for windows and widgets')
@@ -99,7 +98,7 @@ class Gui(QApplication):
         self.simt            = 0.0
 
         # Register our custom pan/zoom event
-        for etype in range(1000, 1000+NUMEVENTS):
+        for etype in range(1000, 1000 + NUMEVENTS):
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -212,8 +211,10 @@ class Gui(QApplication):
 
             elif event.type() == DisplayFlagEventType:
                 # Switch/toggle/cycle radar screen features e.g. from SWRAD command
+                if event.switch == 'RESET':
+                    self.radarwidget.clearPolygons()
                 # Coastlines
-                if event.switch == "GEO":
+                elif event.switch == "GEO":
                     self.radarwidget.show_coast = not self.radarwidget.show_coast
 
                 # FIR boundaries

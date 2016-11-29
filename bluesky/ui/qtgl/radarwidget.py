@@ -688,6 +688,18 @@ class RadarWidget(QGLWidget):
             else:
                 self.ssd_ownship = np.append(self.ssd_ownship, arg)
 
+    def clearPolygons(self):
+        # Clear all polys for sender node
+        nact = self.nodedata[manager.sender()[0]]
+        nact.polydata = np.array([], dtype=np.float32)
+        nact.polynames.clear()
+
+        # If the updated polygon buffer is also currently viewed, also send
+        # updates to the gpu buffer
+        if manager.sender()[0] == self.iactconn:
+            update_buffer(self.allpolysbuf, nact.polydata)
+            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+
     def updatePolygon(self, name, data_in):
         nact = self.nodedata[manager.sender()[0]]
         if name in nact.polynames:
@@ -705,6 +717,10 @@ class RadarWidget(QGLWidget):
             newbuf[3:-3:4] = data_in[3::2]  # lon
             newbuf[-2:]    = data_in[0:2]
             nact.polydata  = np.append(nact.polydata, newbuf)
+
+        # If the updated polygon buffer is also currently viewed, also send
+        # updates to the gpu buffer
+        if manager.sender()[0] == self.iactconn:
             update_buffer(self.allpolysbuf, nact.polydata)
             self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
