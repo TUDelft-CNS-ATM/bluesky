@@ -970,12 +970,15 @@ def saveic(fname, sim, traf):
             cmdline = cmdline + wpname + ","
 
             if route.wpalt[iwp] >= 0.:
-                cmdline = cmdline + repr(route.wpalt[iwp]) + ","
+                cmdline = cmdline + repr(route.wpalt[iwp]/ft) + ","
             else:
                 cmdline = cmdline + ","
 
             if route.wpspd[iwp] >= 0.:
-                cmdline = cmdline + repr(route.wpspd[iwp]) + ","
+                if route.wpspd[iwp]>1.0:
+                     cmdline = cmdline + repr(route.wpspd[iwp]/kts)
+                else:
+                     cmdline = cmdline + repr(route.wpspd[iwp]) 
 
             f.write(timtxt + cmdline + "\n")
 
