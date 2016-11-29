@@ -189,9 +189,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showpz:
             self.radarwidget.show_pz = not self.radarwidget.show_pz
         elif self.sender() == self.showapt:
-            self.radarwidget.show_apt = not self.radarwidget.show_apt
+            if self.radarwidget.show_apt < 3:
+                self.radarwidget.show_apt += 1
+            else:
+                self.radarwidget.show_apt = 0
         elif self.sender() == self.showwpt:
-            self.radarwidget.show_wpt = not self.radarwidget.show_wpt
+            if self.radarwidget.show_wpt < 2:
+                self.radarwidget.show_wpt += 1
+            else:
+                self.radarwidget.show_wpt = 0
         elif self.sender() == self.showlabels:
             self.radarwidget.show_lbl = not self.radarwidget.show_lbl
         elif self.sender() == self.showmap:

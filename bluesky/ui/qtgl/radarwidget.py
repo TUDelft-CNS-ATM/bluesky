@@ -133,8 +133,8 @@ class RadarWidget(QGLWidget):
         self.show_traf      = True
         self.show_pz        = False
         self.show_lbl       = True
-        self.show_wpt       = True
-        self.show_apt       = True
+        self.show_wpt       = 1
+        self.show_apt       = 1
 
         self.initialized    = False
 
@@ -489,14 +489,14 @@ class RadarWidget(QGLWidget):
             self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.ac_symbol.draw(n_instances=self.naircraft)
 
-        if self.zoom >= 0.5:
+        if self.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
             nairports = self.nairports[2]
-        elif self.zoom  >= 0.25:
+        elif self.zoom  >= 0.25 and self.show_apt == 1 or self.show_apt == 3:
             nairports = self.nairports[1]
         else:
             nairports = self.nairports[0]
 
-        if self.zoom >= 3:
+        if self.zoom >= 3 and self.show_wpt == 1 or self.show_wpt == 2:
             nwaypoints = self.nwaypoints
         else:
             nwaypoints = self.nnavaids
