@@ -423,7 +423,7 @@ class Gui(QApplication):
                     hintargs = hint.split(',')
                     hint = ' ' + str.join(',', hintargs[len(self.args):])
 
-            self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa">' + hint + '</font>')
+            self.win.lineEdit.setHtml('>>' + self.command_line + '<font color="#aaaaaa">' + hint + '</font>')
             self.prev_cmdline = self.command_line
 
         if self.mousepos != self.prevmousepos and len(self.args) >= 2:
