@@ -65,7 +65,22 @@ class Route():
         # Convert to positions
         name = args[0]
 
-        success, posobj = txt2pos(name, traf, self.navdb, traf.lat[idx], traf.lon[idx])
+        # Choose reference position ot look up VOR and waypoints
+        # First waypoint: own position        
+        if self.nwp == 0:
+            reflat = traf.lat[idx]
+            reflon = traf.on[idx]
+
+        # Or last waypoint before destination
+        else:
+            if self.wptype[-1]!=self.dest or self.nwp==1:
+                reflat = self.wplat[-1]
+                reflon = self.wplon[-1]
+            else:
+                reflat = self.wplat[-2]
+                reflon = self.wplon[-2]
+
+        success, posobj = txt2pos(name, traf, self.navdb, reflat, reflon)
         if success:
             lat      = posobj.lat
             lon      = posobj.lon
