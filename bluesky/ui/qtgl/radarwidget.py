@@ -133,8 +133,8 @@ class RadarWidget(QGLWidget):
         self.show_traf      = True
         self.show_pz        = False
         self.show_lbl       = True
-        self.show_wpt       = True
-        self.show_apt       = True
+        self.show_wpt       = 1
+        self.show_apt       = 1
 
         self.initialized    = False
 
@@ -198,7 +198,7 @@ class RadarWidget(QGLWidget):
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
-        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 12, usage=gl.GL_DYNAMIC_DRAW)
+        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 20, usage=gl.GL_DYNAMIC_DRAW)
 
         # ------- Map ------------------------------------
         self.map = RenderObject(gl.GL_TRIANGLE_FAN, vertex_count=4)
@@ -291,8 +291,19 @@ class RadarWidget(QGLWidget):
         self.route = RenderObject(gl.GL_LINES)
         self.route.bind_attrib(ATTRIB_VERTEX, 2, self.routebuf)
         self.route.bind_attrib(ATTRIB_COLOR, 3, np.array(magenta, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (12, 1), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
-
+        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (10, 2), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        rwptvertices = np.array([(-0.2 * wpt_size, -0.2 * wpt_size),
+                                 ( 0.0,            -0.8 * wpt_size),
+                                 ( 0.2 * wpt_size, -0.2 * wpt_size),
+                                 ( 0.8 * wpt_size,  0.0),
+                                 ( 0.2 * wpt_size,  0.2 * wpt_size),
+                                 ( 0.0,             0.8 * wpt_size),
+                                 (-0.2 * wpt_size,  0.2 * wpt_size),
+                                 (-0.8 * wpt_size,  0.0)], dtype=np.float32)
+        self.rwaypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=8)
+        self.rwaypoints.bind_attrib(ATTRIB_VERTEX, 2, rwptvertices)
+        self.rwaypoints.bind_attrib(ATTRIB_LAT, 1, self.routewplatbuf, instance_divisor=1)
+        self.rwaypoints.bind_attrib(ATTRIB_LON, 1, self.routewplonbuf, instance_divisor=1)
         # ------- Waypoints ------------------------------
         self.nwaypoints = len(self.navdb.wplat)
         self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex_count=3, n_instances=self.nwaypoints)
@@ -473,16 +484,19 @@ class RadarWidget(QGLWidget):
 
         # Draw traffic symbols
         if self.naircraft > 0 and self.show_traf:
+            self.rwaypoints.bind()
+            gl.glVertexAttrib4Nub(ATTRIB_COLOR, *(magenta + (255,)))
+            self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.ac_symbol.draw(n_instances=self.naircraft)
 
-        if self.zoom >= 0.5:
+        if self.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
             nairports = self.nairports[2]
-        elif self.zoom  >= 0.25:
+        elif self.zoom  >= 0.25 and self.show_apt == 1 or self.show_apt == 3:
             nairports = self.nairports[1]
         else:
             nairports = self.nairports[0]
 
-        if self.zoom >= 3:
+        if self.zoom >= 3 and self.show_wpt == 1 or self.show_wpt == 2:
             nwaypoints = self.nwaypoints
         else:
             nwaypoints = self.nnavaids
@@ -570,7 +584,7 @@ class RadarWidget(QGLWidget):
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
             nsegments = len(data.wplat)
-            data.iactwp = max(0, data.iactwp)
+            data.iactwp = min(max(0, data.iactwp), nsegments - 1)
             self.routelbl.n_instances = nsegments
             self.route.set_vertex_count(2 * nsegments)
             routedata = np.empty(4 * nsegments, dtype=np.float32)
@@ -585,9 +599,27 @@ class RadarWidget(QGLWidget):
             update_buffer(self.routebuf, routedata)
             update_buffer(self.routewplatbuf, np.array(data.wplat, dtype=np.float32))
             update_buffer(self.routewplonbuf, np.array(data.wplon, dtype=np.float32))
-            wpname = []
-            for wp in data.wpname:
-                wpname += wp[:12].ljust(12)
+            wpname = ''
+            for wp, alt, spd in zip(data.wpname, data.wpalt, data.wpspd):
+                if alt < 0. and spd < 0.:
+                    txt = wp[:10].ljust(20)
+                else:
+                    txt = wp[:10].ljust(10)
+                    if alt < 0:
+                        txt += "-----/"
+                    elif alt > 4500 * ft:
+                        FL = int(round((alt / (100. * ft))))
+                        txt += "FL%03d/" % FL
+                    else:
+                        txt += "%05d/" % int(round(alt / ft))
+
+                    # Speed
+                    if spd < 0:
+                        txt += "--- "
+                    else:
+                        txt += "%03d " % int(round(spd / kts))
+
+                wpname += txt
             update_buffer(self.routelblbuf, np.array(wpname))
         else:
             self.route.set_vertex_count(0)
@@ -656,6 +688,18 @@ class RadarWidget(QGLWidget):
             else:
                 self.ssd_ownship = np.append(self.ssd_ownship, arg)
 
+    def clearPolygons(self):
+        # Clear all polys for sender node
+        nact = self.nodedata[manager.sender()[0]]
+        nact.polydata = np.array([], dtype=np.float32)
+        nact.polynames.clear()
+
+        # If the updated polygon buffer is also currently viewed, also send
+        # updates to the gpu buffer
+        if manager.sender()[0] == self.iactconn:
+            update_buffer(self.allpolysbuf, nact.polydata)
+            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+
     def updatePolygon(self, name, data_in):
         nact = self.nodedata[manager.sender()[0]]
         if name in nact.polynames:
@@ -665,16 +709,20 @@ class RadarWidget(QGLWidget):
             del nact.polynames[name]
 
         if data_in is not None:
-            nact.polynames[name] = (len(nact.polydata), 2*len(data_in))
+            nact.polynames[name] = (len(nact.polydata), 2 * len(data_in))
             newbuf = np.empty(2 * len(data_in), dtype=np.float32)
             newbuf[0::4]   = data_in[0::2]  # lat
             newbuf[1::4]   = data_in[1::2]  # lon
             newbuf[2:-2:4] = data_in[2::2]  # lat
             newbuf[3:-3:4] = data_in[3::2]  # lon
             newbuf[-2:]    = data_in[0:2]
-            nact.polydata = np.append(nact.polydata, newbuf)
+            nact.polydata  = np.append(nact.polydata, newbuf)
+
+        # If the updated polygon buffer is also currently viewed, also send
+        # updates to the gpu buffer
+        if manager.sender()[0] == self.iactconn:
             update_buffer(self.allpolysbuf, nact.polydata)
-            self.allpolys.set_vertex_count(len(nact.polydata)/2)
+            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
     def previewpoly(self, shape_type, data_in=None):
         if shape_type is None:
@@ -690,7 +738,7 @@ class RadarWidget(QGLWidget):
         else:
             data = data_in
         update_buffer(self.polyprevbuf, data)
-        self.polyprev.set_vertex_count(len(data)/2)
+        self.polyprev.set_vertex_count(len(data) / 2)
 
     def airportsInRange(self):
         ll_range = max(1.5 / self.zoom, 1.0)

@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>BlueSky</string>
   </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>true</bool>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
@@ -781,10 +784,16 @@
         </property>
         <item>
          <widget class="QTextEdit" name="stackText">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>100</height>
+            <height>16777215</height>
            </size>
           </property>
           <property name="palette">
@@ -897,6 +906,18 @@
         </item>
         <item>
          <widget class="QTextEdit" name="lineEdit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>21</height>
+           </size>
+          </property>
           <property name="maximumSize">
            <size>
             <width>16777214</width>
@@ -1005,6 +1026,12 @@ p, li { white-space: pre-wrap; }
      </item>
      <item>
       <widget class="QToolButton" name="shownodes">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Ignored">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -1014,7 +1041,7 @@ p, li { white-space: pre-wrap; }
        <property name="maximumSize">
         <size>
          <width>16</width>
-         <height>133</height>
+         <height>16777215</height>
         </size>
        </property>
        <property name="palette">
@@ -1077,10 +1104,22 @@ p, li { white-space: pre-wrap; }
      </item>
      <item>
       <widget class="QTreeWidget" name="nodetree">
-       <property name="maximumSize">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
         <size>
          <width>200</width>
          <height>133</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>200</width>
+         <height>16777215</height>
         </size>
        </property>
        <property name="frameShape">

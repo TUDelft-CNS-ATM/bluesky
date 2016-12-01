@@ -64,7 +64,7 @@ class ShowDialogEvent(QEvent):
 
 
 class RouteDataEvent(QEvent):
-    aclat = aclon = wplat = wplon = wpname = []
+    aclat = aclon = wplat = wplon = wpalt = wpspd = wpname = []
     iactwp = -1
     acid = ""
 

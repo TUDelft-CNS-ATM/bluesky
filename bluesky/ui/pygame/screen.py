@@ -743,20 +743,44 @@ class Screen:
                                                traf.ap.route[i].wplon[j])
                             pg.draw.line(self.win, magenta,(x0,y0),(x1,y1))
 
-                        if j>=len(self.rtewpid) or not self.rtewpid[j]==traf.ap.route[i].wpname[j]:
+                        if j>=len(self.rtewpid) or not self.rtewpid[j]== traf.ap.route[i].wpname[j]:
                             # Waypoint name labels
                             # If waypoint label bitmap does not yet exist, make it
 
-                            wplabel = pg.Surface((50, 30), 0, self.win)
+                            # Waypoint name and constraint(s), if there are any
+                            txt = traf.ap.route[i].wpname[j]
+
+                            alt = traf.ap.route[i].wpalt[j]
+                            spd = traf.ap.route[i].wpspd[j]
+                            
+                            if alt>=0. or spd >=0.:                            
+                                # Altitude
+                                if alt < 0:
+                                    txt = txt + " -----/"
+                                    
+                                elif alt > 4500 * ft:
+                                    FL = int(round((alt/(100.*ft))))
+                                    txt = txt+" FL"+str(FL)+"/"
+                                    
+                                else:
+                                    txt = txt+" "+str(int(round(alt / ft))) + "/"
+                
+                                # Speed
+                                if spd < 0:
+                                    txt = txt+"---"
+                                else:
+                                    txt = txt+str(int(round(spd / kts)))
+
+                            wplabel = pg.Surface((128, 32), 0, self.win)
                             self.fontnav.printat(wplabel, 0, 0, \
-                                                 traf.ap.route[i].wpname[j])
+                                                 txt)
 
                             if j>=len(self.rtewpid):                      
-                                self.rtewpid.append(traf.ap.route[i].wpname[j])
+                                self.rtewpid.append(txt)
                                 self.rtewplabel.append(wplabel)
                             else:
-                                self.rtewpid[j]=traf.ap.route[i].wpname[j]
-                                self.rtewplabel[j]= wplabel
+                                self.rtewpid[j]    = txt
+                                self.rtewplabel[j] = wplabel
 
                         # In any case, blit the waypoint name
                         xtxt = x1 + 7 

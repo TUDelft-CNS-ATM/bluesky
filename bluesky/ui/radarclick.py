@@ -11,34 +11,36 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
     # and when it's the last, also add ENTER
 
     clickcmd = {"": "acid,-",
-                "POS": "acid",
-                "SSD": "acid",
-                "CRE":  "-,-,latlon,-,hdg,-,-",
-                "HDG": "acid,hdg",
-                "SPD": "acid,-",
-                "ALT": "acid,-",
-                "LISTRTE": "acid,-",
                 "ADDWPT": "acid,latlon,-,-,wpinroute,-",
-                "ASAS": "acid,-",
-                "DELWPT": "acid,wpinroute,-",
-                "DEL": "acid,-",
-                "LNAV": "acid,-",
-                "VNAV": "acid,-",
-                "VS": "acid,-",
-                "ND": "acid",
-                "NAVDISP": "acid",
-                "ASAS": "acid,-",
-                "ORIG": "acid,apt",
-                "DEST": "acid,apt",
-                "PAN": "latlon",
-                "MOVE": "acid,latlon,-,-,hdg",
-                "DIST": "latlon,-,latlon",
-                "LINE": "-,latlon,-,latlon",
+                "AFTER": "acid,wpinroute,-",
+                "AT": "acid,wpinroute,-",
+                "ALT": "acid,-",
                 "AREA": "latlon,-,latlon",
+                "ASAS": "acid,-",
                 "BOX": "-,latlon,-,latlon",
+                "CIRCLE": "-,latlon,-,dist",
+                "CRE":  "-,-,latlon,-,hdg,-,-",
+                "DEL": "acid,-",
+                "DELWPT": "acid,wpinroute,-",
+                "DEST": "acid,apt",
+                "DIRECT": "acid,wpinroute",
+                "DIST": "latlon,-,latlon",
+                "HDG": "acid,hdg",
+                "LINE": "-,latlon,-,latlon",
+                "LISTRTE": "acid,-",
+                "LNAV": "acid,-",
+                "MOVE": "acid,latlon,-,-,hdg",
+                "NAVDISP": "acid",
+                "ND": "acid",
+                "ORIG": "acid,apt",
+                "PAN": "latlon",
                 "POLY": "-,latlon,...",
                 "POLYGON": "-,latlon,...",
-                "CIRCLE": "-,latlon,-,dist"
+                "POS": "acid",
+                "SSD": "acid",
+                "SPD": "acid,-",
+                "VNAV": "acid,-",
+                "VS": "acid,-"
                 }
 
     # Default values, when nothing is found to be added based on click
@@ -120,7 +122,7 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                                         array(route.wplat),
                                         array(route.wplon))
                             if iwp >= 0:
-                                todisplay += route.wpname[iwp]
+                                todisplay += route.wpname[iwp]+" "
 
                     else:
                         synerr = True

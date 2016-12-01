@@ -236,31 +236,29 @@ class Simulation(QObject):
 
         return event_processed
 
-    def setclock(self,txt=""):
+    def setclock(self, txt=""):
         """ Set simulated clock time offset"""
         if txt == "":
-            pass # avoid error message, just give time
-       
-        elif txt.upper()== "RUN":
+            pass  # avoid error message, just give time
+
+        elif txt.upper() == "RUN":
             self.deltclock = 0.0
             self.simtclock = self.simt
-           
-        elif txt.upper()== "REAL":
+
+        elif txt.upper() == "REAL":
             tclock = time.localtime()
-            self.simtclock = tclock.tm_hour*3600. + tclock.tm_min*60. + tclock.tm_sec
+            self.simtclock = tclock.tm_hour * 3600. + tclock.tm_min * 60. + tclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
-        elif txt.upper()== "UTC":
+
+        elif txt.upper() == "UTC":
             utclock = time.gmtime()
-            self.simtclock = utclock.tm_hour*3600. + utclock.tm_min*60. + utclock.tm_sec
+            self.simtclock = utclock.tm_hour * 3600. + utclock.tm_min * 60. + utclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
-        elif txt.replace(":","").replace(".","").isdigit():
+
+        elif txt.replace(":", "").replace(".", "").isdigit():
             self.simtclock = txt2tim(txt)
             self.deltclock = self.simtclock - self.simt
         else:
-            return False,"Time syntax error"
- 
-        
-        return True,"Time is now "+tim2txt(self.simtclock)
-       
+            return False, "Time syntax error"
+
+        return True, "Time is now " + tim2txt(self.simtclock)

@@ -96,15 +96,13 @@ def init(sim, traf, scr):
             #     return traf.ap.route[idx].addwptStack(traf, idx, *args)
             # fun(idx,*args)
             #
-            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args) if idx>=0
-                               else scr.echo("ADDWPT: Aircraft not found"),
+            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args),
             "Add a waypoint to route of aircraft (FMS)"
         ],
         "AFTER": [
             "acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]",
             "acid,wpinroute,txt,wpt,[alt,spd]",
-            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args)if idx>=0
-                               else scr.echo("ADDWPT: Aircraft not found"),
+            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args),
             "After waypoint, add a waypoint to route of aircraft (FMS)"
         ],
         "ALT": [
@@ -124,6 +122,12 @@ def init(sim, traf, scr):
             "[onoff]",
             traf.asas.toggle,
             "Airborne Separation Assurance System switch"
+        ],
+        "AT": [
+            "acid AT wpname [DEL] SPD/ALT [spd/alt]",
+            "acid,wpinroute,[txt,txt]",
+            lambda idx, *args: traf.ap.route[idx].atwptStack(scr, idx, traf, *args),
+            "Edit, delete or show spd/alt constraints at a waypoint in the route"
         ],
         "BATCH": [
             "BATCH filename",
@@ -178,8 +182,7 @@ def init(sim, traf, scr):
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
-            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname) if idx>=0
-                                else scr.echo("DELWPT: Aircraft not found"),
+            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
             "Delete a waypoint from a route (FMS)"
         ],
         "DEST": [
@@ -191,8 +194,7 @@ def init(sim, traf, scr):
         "DIRECT": [
             "DIRECT acid wpname",
             "acid,txt",
-            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname)if idx>=0
-                               else scr.echo("DIRECT: Aircraft not found"),
+            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname),
             "Go direct to specified waypoint in route (FMS)"
         ],
         "DIST": [
@@ -228,8 +230,7 @@ def init(sim, traf, scr):
         "DUMPRTE": [
             "DUMPRTE acid",
             "acid",
-            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx) if idx>=0
-                        else scr.echo("DUMPRTE: Aircraft not found"),
+            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx),
             "Write route to output/routelog.txt"
         ],
         "ECHO": [
@@ -301,8 +302,7 @@ def init(sim, traf, scr):
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args) if idx>=0
-                               else scr.echo("ADDWPT: Aircraft not found"),
+            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args),
             "Show list of route in window per page of 5 waypoints"
         ],
         "LNAV": [
@@ -392,8 +392,8 @@ def init(sim, traf, scr):
         ],
         "POS": [
             "POS acid",
-            "txt",
-            lambda acid: scr.showacinfo(acid, traf.acinfo(acid)),
+            "acid",
+            lambda acid: scr.showacinfo(*traf.acinfo(acid)),
             "Get info on aircraft"
         ],
         "PRIORULES": [
@@ -661,11 +661,11 @@ def showhelp(cmd=''):
             if len(text2) >= 60:
                 text += (text2 + "\n")
                 text2 = ""
-        text += (text2 + "\nSee Info subfolder for more info.")
+        text += (text2 + "\nSee docs subfolder for more info.")
         return text
 
     elif cmd.upper()=="PDF":
-        os.chdir("info")
+        os.chdir("docs")
         pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
         if os.path.isfile(pdfhelp):
             try:            
@@ -701,9 +701,9 @@ def showhelp(cmd=''):
 
         # Get filename
         if len(cmd)>1:
-            fname = "./info/"+cmd[1:]
+            fname = "./docs/"+cmd[1:]
         else:
-            fname = "./info/bluesky-commands.txt"
+            fname = "./docs/bluesky-commands.txt"
 
         # Write command dictionary to tab-delimited text file
         try:        
@@ -970,12 +970,15 @@ def saveic(fname, sim, traf):
             cmdline = cmdline + wpname + ","
 
             if route.wpalt[iwp] >= 0.:
-                cmdline = cmdline + repr(route.wpalt[iwp]) + ","
+                cmdline = cmdline + repr(route.wpalt[iwp]/ft) + ","
             else:
                 cmdline = cmdline + ","
 
             if route.wpspd[iwp] >= 0.:
-                cmdline = cmdline + repr(route.wpspd[iwp]) + ","
+                if route.wpspd[iwp]>1.0:
+                     cmdline = cmdline + repr(route.wpspd[iwp]/kts)
+                else:
+                     cmdline = cmdline + repr(route.wpspd[iwp]) 
 
             f.write(timtxt + cmdline + "\n")
 
@@ -1021,10 +1024,15 @@ def process(sim, traf, scr):
             cmd    = cmdsynon[cmd]
 
         if cmd in cmddict.keys():
+            # Look up command in dictionary to get string with argtypes andhelp texts
             helptext, argtypelist, function = cmddict[cmd][:3]
 
+            # Make list of argtypes and whether entering an argument is optional
             argtypes = []
             argisopt = []
+
+            # Process and reduce arglist from left to right
+            # First cut at square brackets, then take separate argument types
             while len(argtypelist) > 0:
                 opt = (argtypelist[0] == '[')
                 cut = argtypelist.find(']') if opt else \
@@ -1050,24 +1058,32 @@ def process(sim, traf, scr):
             # possibly with spaces/newlines pass the original
             if argtypes == ['string']:
                 arglist = [line[len(orgcmd) + 1:]]
+
             else:
                 # Start with a fresh argument parser for each command
                 parser  = Argparser()
                 arglist = []
-                curtype = curarg = 0
+                curtype = 0
+                curarg  = 0
+
+                # Iterate over list of argument types & arguments
                 while curtype < len(argtypes) and curarg < len(args) and not synerr:
+                    # Optional repeat with "...", e.g. for lat/lon list for polygon
                     if argtypes[curtype][:3] == '...':
                         repeatsize = len(argtypes) - curtype
                         curtype = curtype - repeatsize
                     argtype    = argtypes[curtype].strip().split('/')
 
-                    # Go over all argtypes separated by "/" in this place in the command line
+                    # Save error messages from argument parsing for each possible type for this field
                     errors = ''
+                    # Go over all argtypes separated by "/" in this place in the command line
                     for i in range(len(argtype)):
                         argtypei = argtype[i]
 
                         # Try to parse the argument for the given argument type
+                        # First successful parsing is used!
                         if parser.parse(argtypei, curarg, args, traf, scr):
+                            # No value = None when this is allowed because it is an optional argument
                             if parser.result[0] is None and argisopt[curtype] is False:
                                 synerr = True
                                 scr.echo('No value given for mandatory argument ' + argtypes[curtype])
@@ -1075,6 +1091,7 @@ def process(sim, traf, scr):
                             arglist += parser.result
                             curarg  += parser.argstep
                             break
+                        # No success yet with this type (maybe we can try other ones)
                         else:
                             # Store the error message and see if there are alternatives
                             errors += parser.error + '\n'
@@ -1082,6 +1099,7 @@ def process(sim, traf, scr):
                                 # We have alternative argument formats that we can try
                                 continue
                             else:
+                                # No more types to check: print error message
                                 synerr = True
                                 scr.echo('Syntax error processing "' + args[curarg] + '":')
                                 scr.echo(errors)
@@ -1128,13 +1146,6 @@ def process(sim, traf, scr):
             scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
 
         #-------------------------------------------------------------------
-        # Reference to other command files
-        # Check external references
-        #-------------------------------------------------------------------
-#        elif cmd[:4] in extracmdrefs:
-#            extracmdrefs[cmd[:4]].process(cmd[4:], numargs, [cmd] + args, sim, traf, scr, self)
-
-        #-------------------------------------------------------------------
         # Command not found
         #-------------------------------------------------------------------
         else:
@@ -1154,16 +1165,16 @@ def process(sim, traf, scr):
 
 class Argparser:
     # Global variables
-    reflat    = -999.  # Reference latitude for searching in nav db 
+    reflat    = -999.  # Reference latitude for searching in nav db
                        # in case of duplicate names
-    reflon    = -999.  # Reference longitude for searching in nav db 
+    reflon    = -999.  # Reference longitude for searching in nav db
                        # in case of duplicate names
 
     def __init__(self):
         self.result     = []  # The outcome of a parsed argument is stored here
         self.argstep    = 0   # The number of arguments that were parsed
         self.error      = ''  # Potential parsing error messages are stored here
-        self.additional = {}  # Sometimes a parse can generate extra arguments 
+        self.additional = {}  # Sometimes a parse can generate extra arguments
                               # that can be used to fill future empty arguments.
                               # E.g., a runway gives a lat/lon, but also a heading.
         self.refac      = -1  # Stored aircraft idx when an argument is parsed
@@ -1172,7 +1183,7 @@ class Argparser:
     def parse(self, argtype, argidx, args, traf, scr):
         """ Parse one or more arguments.
 
-            Returns True if parse was succesful. When not succesful, False is
+            Returns True if parse was successful. When not successful, False is
             returned, and the error message is stored in self.error """
 
         # First reset outcome values
@@ -1195,7 +1206,7 @@ class Argparser:
         if argtype == "acid":  # aircraft id => parse index
             idx = traf.id2idx(args[argidx])
             if idx < 0:
-                self.error = args[idx] + " not found"
+                self.error = args[argidx] + " not found"
                 return False
             else:
                 # Update ref position for navdb lookup
@@ -1330,17 +1341,20 @@ class Argparser:
                 self.error = pandir + ' is not a valid pan argument'
                 return False
 
-        # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning  CAS)
+        # CAS[kts] Mach: convert kts to m/s for values=>1.0 (meaning CAS)
         elif argtype == "spd":
+
             try:
-                spd = float(args[argidx].upper().replace("M", ".").replace("..", "."))
-                if not 0.1 < spd < 1.0:
-                    spd *= kts
+                spd = float(args[argidx].upper() \
+                       .replace("M0.",".").replace("M", ".").replace("..", "."))
+                       
+                if not (0.1 < spd < 1.0 or args[argidx].count("M")>0):
+                    spd = spd * kts
                 self.result  = [spd]
                 self.argstep = 1
                 return True
             except:
-                self.error = 'Could not parse "' + args[argidx] +'" as speed'
+                self.error = 'Could not parse "' + args[argidx] + '" as speed'
                 return False
 
         # Vertical speed: convert fpm to in m/s
@@ -1355,7 +1369,11 @@ class Argparser:
 
         # Altutide convert ft or FL to m
         elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-            alt = txt2alt(args[argidx])
+            try:            
+                alt = txt2alt(args[argidx])
+            except:
+                alt = -9999.
+                
             if alt > -990.0:
                 self.result  = [alt * ft]
                 self.argstep = 1
@@ -1393,6 +1411,6 @@ class Argparser:
                 self.error = 'Could not parse "' + args[argidx] + '" as time'
                 return False
 
-        # Argument not found: return [None],{},0 which will trigger error and try the next type
+        # Argument not found: return False
         self.error = 'Unknown argument type: ' + argtype
         return False

@@ -1,6 +1,6 @@
 try:
     from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel, QSize
-    from PyQt5.QtGui import QPixmap, QIcon
+    from PyQt5.QtGui import QPixmap, QIcon, QColor
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QPushButton
     from PyQt5 import uic
 except ImportError:
@@ -11,7 +11,7 @@ except ImportError:
 
 # Local imports
 from ...sim.qtgl import PanZoomEvent, MainManager as manager
-from ...settings import data_path
+from ...settings import data_path, stack_text_color as fg, stack_background_color as bg
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -89,6 +89,12 @@ class MainWindow(QMainWindow):
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
         self.hosts = list()
         self.nodes = list()
+
+        fgcolor = '#' + format(fg[0], '02x') + format(fg[1], '02x') + format(fg[2], '02x')
+        bgcolor = '#' + format(bg[0], '02x') + format(bg[1], '02x') + format(bg[2], '02x')
+
+        self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
+        self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
 
     def closeEvent(self, event):
         self.app.quit()
@@ -183,9 +189,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showpz:
             self.radarwidget.show_pz = not self.radarwidget.show_pz
         elif self.sender() == self.showapt:
-            self.radarwidget.show_apt = not self.radarwidget.show_apt
+            if self.radarwidget.show_apt < 3:
+                self.radarwidget.show_apt += 1
+            else:
+                self.radarwidget.show_apt = 0
         elif self.sender() == self.showwpt:
-            self.radarwidget.show_wpt = not self.radarwidget.show_wpt
+            if self.radarwidget.show_wpt < 2:
+                self.radarwidget.show_wpt += 1
+            else:
+                self.radarwidget.show_wpt = 0
         elif self.sender() == self.showlabels:
             self.radarwidget.show_lbl = not self.radarwidget.show_lbl
         elif self.sender() == self.showmap:
