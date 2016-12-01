@@ -701,9 +701,9 @@ def showhelp(cmd=''):
 
         # Get filename
         if len(cmd)>1:
-            fname = "./info/"+cmd[1:]
+            fname = "./docs/"+cmd[1:]
         else:
-            fname = "./info/bluesky-commands.txt"
+            fname = "./docs/bluesky-commands.txt"
 
         # Write command dictionary to tab-delimited text file
         try:        
