@@ -661,11 +661,11 @@ def showhelp(cmd=''):
             if len(text2) >= 60:
                 text += (text2 + "\n")
                 text2 = ""
-        text += (text2 + "\nSee Info subfolder for more info.")
+        text += (text2 + "\nSee docs subfolder for more info.")
         return text
 
     elif cmd.upper()=="PDF":
-        os.chdir("info")
+        os.chdir("docs")
         pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
         if os.path.isfile(pdfhelp):
             try:            
