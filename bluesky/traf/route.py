@@ -376,6 +376,10 @@ class Route():
                 if wpok:
                     wplat = self.navdb.aptlat[i]
                     wplon = self.navdb.aptlon[i]
+                else:
+                    wplat = lat
+                    wplon = lon
+                    wpok  = True
             else:                                 # lat/lon type
                 wplat = lat
                 wplon = lon
@@ -418,6 +422,10 @@ class Route():
                 if wpok:
                     wplat = self.navdb.aptlat[i]
                     wplon = self.navdb.aptlon[i]
+                else:
+                    wplat = lat
+                    wplon = lon
+                    wpok = True
             else:                                 # lat/lon type
                 wplat = lat
                 wplon = lon

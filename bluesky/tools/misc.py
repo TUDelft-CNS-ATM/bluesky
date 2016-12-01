@@ -157,7 +157,7 @@ def cmdsplit(cmdline, trafids=None):
 
 def txt2lat(lattxt):
     """txt2lat: input txt: N52'14'13.5 or N52"""
-    txt = lattxt.replace("N", "").replace("S", "-")  # North positive, South negative
+    txt = lattxt.upper().replace("N", "").replace("S", "-")  # North positive, South negative
     neg = txt.count("-") > 0
     if txt.count("'") > 0 or txt.count('"') > 0:
         txt = txt.replace('"', "'")  # replace " by '
@@ -168,10 +168,14 @@ def txt2lat(lattxt):
             f = -1.
         else:
             f = 1.
-        for deg in degs:
-            if len(deg) > 0:
-                lat = lat + f * abs(float(deg)) / float(div)
-                div = div * 60
+        for xtxt in degs:
+            if len(xtxt) > 0:
+                try:
+                    lat = lat + f * abs(float(xtxt)) / float(div)
+                    div = div * 60
+                except:
+                    print "txt2lat value error:",lattxt
+                    return 0.0                    
     else:
         lat = float(txt)
     return lat
@@ -182,24 +186,46 @@ def txt2lon(lontxt):
     """txt2lat: input txt: N52'14'13.5 or N52"""
     # It should first be checked if lontxt is a regular float, to avoid removing
     # the 'e' in a scientific-notation number.
-    try:
+    try: 
         lon = float(lontxt)
-    except ValueError:
-        txt = lontxt.replace("E", "").replace("W", "-")  # East positive, West negative
+
+    # Leading E will trigger error ansd means simply East,just as  W = West = Negative
+    except:
+        
+        txt = lontxt.upper().replace("E", "").replace("W", "-")  # East positive, West negative
         neg = txt.count("-") > 0
+
+        # Use of "'" and '"' as degrees/minutes/seconds
+        # Also "N52'"
         if txt.count("'") > 0 or txt.count('"') > 0:
             txt = txt.replace('"', "'")  # replace " by '
             degs = txt.split("'")
             div = 1
-            lon = 0
+            lon = 0.0
             if neg:
                 f = -1.
             else:
                 f = 1.
-            for deg in degs:
-                lon = lon + f * abs(float(deg)) / float(div)
+            for xtxt in degs:
+                if len(xtxt)>0.0:
+                    try:
+                       lon = lon + f * abs(float(xtxt)) / float(div)
+                    except:
+                       print "txt2lon value error:",lontxt
+                       return 0.0 
 
                 div = div * 60
+        else:  # Cope with "W65"without "'" or '"', also "-65" or "--65" 
+            try:
+                neg = txt.count("-") > 0
+                if neg:
+                    f = -1.
+                else:
+                    f = 1.
+                lon = f*abs(float(txt))
+            except:
+                print "txt2lon value error:",lontxt
+                return 0.0 
 
     return lon
 

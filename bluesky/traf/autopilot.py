@@ -2,6 +2,7 @@ import numpy as np
 from math import sin, cos, radians
 
 from ..tools import geo
+from ..tools.position import txt2pos
 from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach
 from route import Route
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
@@ -310,21 +311,33 @@ class Autopilot(DynamicArrays):
         
         if idx<0 or idx>=self.traf.ntraf:
             return False, cmd + ": Aircraft does not exist."
-            
 
         route = self.route[idx]
-        if len(args) == 1:
 
-            name = args[0]
+        name = args[0]
 
-            apidx = self.traf.navdb.getaptidx(name)
-            if apidx < 0:
-                return False, (cmd + ": Airport " + name + " not found.")
+        apidx = self.traf.navdb.getaptidx(name)
+
+        if apidx < 0:
+
+            if cmd =="DEST" and self.traf.ap.route[idx].nwp>0:
+                reflat = self.traf.ap.route[idx].wplat[-1]
+                reflon = self.traf.ap.route[idx].wplon[-1]
+            else:
+                reflat = self.traf.lat[idx]
+                reflon = self.traf.lon[idx]
+            
+            success, posobj = txt2pos(name, self.traf, self.traf.navdb, reflat, reflon)
+            if success:                
+                lat = posobj.lat
+                lon = posobj.lon
+            else:
+                return False, (cmd + ": Position " + name + " not found.")
+                
+        else:
             lat = self.traf.navdb.aptlat[apidx]
             lon = self.traf.navdb.aptlon[apidx]
-        else:
-            lat, lon = args
-            name = self.traf.id[idx] + "DEST"
+
 
         if cmd == "DEST":
             self.dest[idx] = name
@@ -344,13 +357,32 @@ class Autopilot(DynamicArrays):
 
             # If not found, say so
             elif iwp < 0:
-                return False, (self.dest[idx] + " not found.")
+                return False, ('DEST'+self.dest[idx] + " not found.")
 
-        # Origin: bookkeeping only for now
+        # Origin: bookkeeping only for now, store in route as origin
         else:
             self.orig[idx] = name
+            apidx = self.traf.navdb.getaptidx(name)
+    
+            if apidx < 0:
+    
+                if cmd =="ORIG" and self.traf.ap.route[idx].nwp>0:
+                    reflat = self.traf.ap.route[idx].wplat[0]
+                    reflon = self.traf.ap.route[idx].wplon[0]
+                else:
+                    reflat = self.traf.lat[idx]
+                    reflon = self.traf.lon[idx]
+                
+                success, posobj = txt2pos(name, self.traf, self.traf.navdb, reflat, reflon)
+                if success:                
+                    lat = posobj.lat
+                    lon = posobj.lon
+                else:
+                    return False, (cmd + ": Orig " + name + " not found.")
+
+
             iwp = route.addwpt(self.traf, idx, self.orig[idx], route.orig,
-                               self.traf.lat[idx], self.traf.lon[idx], 0.0, self.traf.cas[idx])
+                               lat, lon, 0.0, self.traf.cas[idx])
             if iwp < 0:
                 return False, (self.orig[idx] + " not found.")
 
