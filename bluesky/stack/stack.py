@@ -171,6 +171,12 @@ def init(sim, traf, scr):
             traf.create,
             "Create an aircraft"
         ],
+         "DEFWPT": [
+            "DEFWPT wpname,[lat,lon,type,refapt,countrycode]",
+            "txt,[latlon,txt,txt,txt]",
+            traf.navdb.defwpt,
+            "Define a waypoint only for this scenario/run"
+        ],
         "DEL": [
             "DEL acid/WIND/shape",
             "txt",
@@ -179,7 +185,7 @@ def init(sim, traf, scr):
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
         ],
-        "DELWPT": [
+         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
             lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),

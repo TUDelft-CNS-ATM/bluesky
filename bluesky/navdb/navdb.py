@@ -72,7 +72,50 @@ class Navdatabase:
 
         self.rwythresholds = rwythresholds
 
-    def getwpidx(self, txt, lat=999999., lon=999999):
+
+    def defwpt(self,name=None,lat=None,lon=None,wptype=None,wpapt=None,wpco=None):
+
+        # prevent polluting the database
+        
+        if name==None:
+            return False,"Insufficient arguments"
+
+        # No data: give info on waypoint            
+        elif lat==None or lon==None: 
+            if self.wpid.count(name.upper()) > 0:
+                i = self.wpid.index(name.upper())
+                txt = self.wpid[i]+" : "+str(self.wplat[i])+","+str(self.wplon[i])
+                if len(self.wptype[i]+self.wpco[i])>0: 
+                    txt = txt+"  "+self.wptype[i]+" in "+self.wpco[i]
+                return True,txt
+         
+            # Waypoint name is free  
+            else:
+                return True,"Waypoint "+name.upper()+" does not yet exist."
+        
+        # Still here? So there is data, then we add this waypoint
+        self.wpid.append(name.upper())
+        self.wplat = np.append(self.wplat,lat)
+        self.wplon = np.append(self.wplon,lon)
+ 
+        if wptype == None:
+            self.wptype.append("")
+        else:
+            self.wptype.append(wptype)
+
+        if wpapt == None:
+            self.wpapt.append("")
+        else:
+            self.wpapt.append(wpapt)
+
+        if wpco == None:
+            self.wpco.append("")
+        else:
+            self.wpco.append(wpco)
+
+        return True,name.upper()+" added to navdb."
+
+    def getwpidx(self, txt, reflat=999999., reflon=999999):
         """Get waypoint index to access data"""
         name = txt.upper()
         try:
@@ -99,9 +142,9 @@ class Navdatabase:
                 return idx[0]
             else:
                 imin = idx[0]
-                dmin = geo.kwikdist(lat, lon, self.wplat[imin], self.wplon[imin])
+                dmin = geo.kwikdist(reflat, reflon, self.wplat[imin], self.wplon[imin])
                 for i in idx[1:]:
-                    d = geo.kwikdist(lat, lon, self.wplat[i], self.wplon[i])
+                    d = geo.kwikdist(reflat, reflon, self.wplat[i], self.wplon[i])
                     if d < dmin:
                         imin = i
                         dmin = d

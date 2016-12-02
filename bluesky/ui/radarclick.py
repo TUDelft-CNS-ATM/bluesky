@@ -20,6 +20,7 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                 "BOX": "-,latlon,-,latlon",
                 "CIRCLE": "-,latlon,-,dist",
                 "CRE":  "-,-,latlon,-,hdg,-,-",
+                "DEFWPT": "-,latlon,-",
                 "DEL": "acid,-",
                 "DELWPT": "acid,wpinroute,-",
                 "DEST": "acid,apt",
