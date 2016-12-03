@@ -73,7 +73,7 @@ class Navdatabase:
         self.rwythresholds = rwythresholds
 
 
-    def defwpt(self,name=None,lat=None,lon=None,wptype=None,wpapt=None,wpco=None):
+    def defwpt(self,scr,name=None,lat=None,lon=None,wptype=None,wpapt=None,wpco=None):
 
         # prevent polluting the database
         
@@ -81,9 +81,11 @@ class Navdatabase:
             return False,"Insufficient arguments"
 
         # No data: give info on waypoint            
-        elif lat==None or lon==None: 
+        elif lat==None or lon==None:
+            reflat = scr.ctrlat
+            reflon = scr.ctrlon
             if self.wpid.count(name.upper()) > 0:
-                i = self.wpid.index(name.upper())
+                i = self.getwpidx(name.upper(),reflat,reflon)
                 txt = self.wpid[i]+" : "+str(self.wplat[i])+","+str(self.wplon[i])
                 if len(self.wptype[i]+self.wpco[i])>0: 
                     txt = txt+"  "+self.wptype[i]+" in "+self.wpco[i]
@@ -112,6 +114,9 @@ class Navdatabase:
             self.wpco.append("")
         else:
             self.wpco.append(wpco)
+            
+        # Update screen info
+        scr.addnavwpt(name.upper(),lat,lon)
 
         return True,name.upper()+" added to navdb."
 
@@ -124,7 +129,7 @@ class Navdatabase:
             return -1
 
         # if no pos is specified, get first occurence
-        if not lat < 99999.:
+        if not reflat < 99999.:
             return i
 
         # If pos is specified check for more and return closest

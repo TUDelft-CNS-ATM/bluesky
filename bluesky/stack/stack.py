@@ -174,7 +174,7 @@ def init(sim, traf, scr):
          "DEFWPT": [
             "DEFWPT wpname,[lat,lon,type,refapt,countrycode]",
             "txt,[latlon,txt,txt,txt]",
-            traf.navdb.defwpt,
+            lambda *args: traf.navdb.defwpt(scr, *args),
             "Define a waypoint only for this scenario/run"
         ],
         "DEL": [

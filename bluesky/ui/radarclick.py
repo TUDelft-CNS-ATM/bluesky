@@ -72,7 +72,7 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
 
         # For valid value, insert relevant dat on edit line
         if lookup:
-            if len(cmdline) > 0 and cmdline[-1] != " ":
+            if len(cmdline) > 0 and (cmdline[-1] != " " and cmdline[-1]!=","):
                 todisplay = " "
 
             # Determine argument click type
