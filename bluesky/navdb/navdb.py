@@ -30,6 +30,7 @@ class Navdatabase:
         aptype                    : type of airport (1=large, 2=medium, 3=small)
         apmaxrwy                  : max rwy length in meters
         apco                      : country code
+        apelev                      : country code
 
 
     Created by  : Jacco M. Hoekstra (TU Delft)
@@ -60,9 +61,10 @@ class Navdatabase:
         self.aptname   = aptdata['apname']    # full name
         self.aptlat    = aptdata['aplat']     # latitude [deg]
         self.aptlon    = aptdata['aplon']     # longitude [deg]
-        self.aptmaxrwy = aptdata['apmaxrwy']  # reference airport {string}
-        self.aptype   = aptdata['aptype']    # type (int, 1=large, 2=medium, 3=small)
+        self.aptmaxrwy = aptdata['apmaxrwy']  # max runway length [m]
+        self.aptype    = aptdata['aptype']    # type (int, 1=large, 2=medium, 3=small)
         self.aptco     = aptdata['apco']      # two char country code (string)
+        self.aptelev   = aptdata['apelev']    # field elevation in meters [m] above mean sea level
 
         self.fir      = firdata['fir']
         self.firlat0  = firdata['firlat0']

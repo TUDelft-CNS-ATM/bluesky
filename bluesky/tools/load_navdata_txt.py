@@ -47,6 +47,7 @@ def load_navdata_txt():
     aptdata['apmaxrwy']  = []              # reference airport {string}
     aptdata['aptype']    = []              # type (int, 1=large, 2=medium, 3=small)
     aptdata['apco']      = []              # two char country code (string)
+    aptdata['apelev']    = []              # field elevation ft-> m
     with open(data_path + "/global/airports.dat", "r") as f:
         types = {'L': 1, 'M': 2, 'S': 3}
         for line in f:
@@ -58,8 +59,8 @@ def load_navdata_txt():
             # Data line => Process fields of this record, separated by a comma
             # Example line:
             # EHAM, SCHIPHOL, 52.309, 4.764, Large, 12467, NL
-            #  [id]   [name] [lat]    [lon]  [type] [max rwy length in ft] [country code]
-            #   0        1     2        3       4          5                   6
+            #  [id]   [name] [lat]    [lon]  [type] [max rwy length in ft] [country code] [elevation]
+            #   0        1     2        3       4          5                   6            7
             fields = line.split(",")
 
             # Skip airports without identifier in file and closed airports
@@ -82,10 +83,17 @@ def load_navdata_txt():
 
             aptdata['apco'].append(fields[6].strip().lower()[:2])     # country code
 
+            # Not all airports have elevation in data
+            try:
+                aptdata['apelev'].append(float(fields[7])*ft)  # apt elev [m]
+            except:
+                aptdata['apelev'].append(0.0)
+
     aptdata['aplat']    = np.array(aptdata['aplat'])
     aptdata['aplon']    = np.array(aptdata['aplon'])
     aptdata['apmaxrwy'] = np.array(aptdata['apmaxrwy'])
     aptdata['aptype']   = np.array(aptdata['aptype'])
+    aptdata['apelev']   = np.array(aptdata['apelev'])
 
     #----------  Read FIR files ----------
     firdata         = dict()
