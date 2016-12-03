@@ -61,17 +61,27 @@ def load_aptsurface():
 
 
 def load_navdata():
-    if not os.path.isfile(cachedir + '/navdata.p'):
-        wptdata, aptdata, firdata = load_navdata_txt()
-        with open(cachedir + '/navdata.p', 'wb') as f:
-            pickle.dump(wptdata, f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(aptdata, f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(firdata, f, pickle.HIGHEST_PROTOCOL)
-    else:
-        with open(cachedir + '/navdata.p', 'rb') as f:
-            wptdata = pickle.load(f)
-            aptdata = pickle.load(f)
-            firdata = pickle.load(f)
+    success = False
+    while not success:
+        if not os.path.isfile(cachedir + '/navdata.p'):
+            wptdata, aptdata, firdata = load_navdata_txt()
+            with open(cachedir + '/navdata.p', 'wb') as f:
+                pickle.dump(wptdata, f, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(aptdata, f, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(firdata, f, pickle.HIGHEST_PROTOCOL)
+            success = True
+        else:
+            with open(cachedir + '/navdata.p', 'rb') as f:
+                wptdata = pickle.load(f)
+                aptdata = pickle.load(f)
+                firdata = pickle.load(f)
+            try:
+                x = aptdata['apelev']
+                success = True
+            except:
+                success = False
+                os.remove(cachedir + '/navdata.p')
+                print "Found an error: Removing old cache-file navdata.p"
 
     if not os.path.isfile(cachedir + '/rwythresholds.p'):
         if gui == 'qtgl':
