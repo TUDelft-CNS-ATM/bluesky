@@ -65,13 +65,8 @@ def load_aptsurface():
 
 
 def load_navdata():
-    
-    # Loading of waypoints.data, airports.dat and fir folder from cache or files
-      
-    data_version  = 1     # Current version nav data, increase to force refresh cache
-    cache_ok = False # We still need to check cache content and version
 
-    print "load_navdata: data version",data_version
+    cache_ok = False # We still need to check cache content and version
     
     # Check or regenerate cache
     while not cache_ok:
@@ -82,7 +77,6 @@ def load_navdata():
             wptdata, aptdata, firdata = load_navdata_txt()
 
             with open(cachedir + '/navdata.p', 'wb') as f:
-                pickle.dump(data_version, f, pickle.HIGHEST_PROTOCOL)
                 pickle.dump(wptdata,      f, pickle.HIGHEST_PROTOCOL)
                 pickle.dump(aptdata,      f, pickle.HIGHEST_PROTOCOL)
                 pickle.dump(firdata,      f, pickle.HIGHEST_PROTOCOL)
@@ -92,14 +86,20 @@ def load_navdata():
 
         # If it exists, read it and check it
         else:
+
+            datecache = os.path.getmtime(cachedir + '/navdata.p')
             
+            datesource = max(os.path.getmtime(data_path + "/global/waypoints.dat"),
+                             os.path.getmtime(data_path + "/global/airports.dat"))
+
+            for f in os.listdir(data_path+"/global/fir/"):
+                datesource = max(datesource,
+                                 os.path.getmtime(data_path+"/global/fir/"+f))
+
+
             # Try reading data from cache
             with open(cachedir + '/navdata.p', 'rb') as f:
-
-                cache_version = pickle.load(f)
-
-                # Check whether version number is in data
-                if cache_version == data_version:
+                if datecache > datesource:
                     wptdata = pickle.load(f)
                     aptdata = pickle.load(f)
                     firdata = pickle.load(f)
@@ -112,7 +112,8 @@ def load_navdata():
 
             # Check whether cached data is okay, insert any data check here
             # If it is the same set of data:
-            wpdata_ok  = set(wptdata.keys()) == \
+            if not type(wptdata)==int:
+                wpdata_ok  = set(wptdata.keys()) == \
                          set(["wpid","wplat","wplon","wpapt","wptype","wpco"])
                                                                              
             apdata_ok  = set(aptdata.keys()) == \
@@ -128,16 +129,19 @@ def load_navdata():
             # If not delete cache file to trigger rewriting it
             if not cache_ok:
                 os.remove(cachedir + '/navdata.p')
-                print "Found an error: Removing old cache-file navdata.p"
+                print "Cache out of date: Removing old cache-file navdata.p"
 
-    if not os.path.isfile(cachedir + '/rwythresholds.p'):
+    if (not os.path.isfile(cachedir + '/rwythresholds.p'))    or     \
+            os.path.getmtime(cachedir + '/rwythresholds.p')   <      \
+            os.path.getmtime(data_path + '/global/apt.zip'):
+        print "Refreshing runway thresholds & apt surface data cache"
         if gui == 'qtgl':
             load_aptsurface()
         else:
             rwythresholds = pygame_load_rwythresholds()
             with open(cachedir + '/rwythresholds.p', 'wb') as f:
                 pickle.dump(rwythresholds,  f, pickle.HIGHEST_PROTOCOL)
-
+    
     with open(cachedir + '/rwythresholds.p', 'rb') as f:
         rwythresholds = pickle.load(f)
     return wptdata, aptdata, firdata, rwythresholds

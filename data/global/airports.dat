@@ -1,4 +1,4 @@
-# code,name,lat,lon,class,maxrunway,country code, elevationft
+# code,name,lat,lon,class,maxrunway, country code, elevation in sft
 AGAT, Uru Harbour Airport, -8.873, 161.011, Small, , BP, 
 AGBA, Barakoma Airport, -7.913, 156.706, Small, , BP, 
 AGEV, Geva Airport, -7.576, 156.597, Small, , BP, 
