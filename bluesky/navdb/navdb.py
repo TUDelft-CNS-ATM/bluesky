@@ -49,12 +49,12 @@ class Navdatabase:
         print "Loading global navigation database..."
         wptdata, aptdata, firdata, rwythresholds = load_navdata()
 
-        self.wpid     = wptdata['wpid']  # identifier (string)
-        self.wplat    = wptdata['wplat']  # latitude [deg]
-        self.wplon    = wptdata['wplon']  # longitude [deg]
-        self.wpapt    = wptdata['wpapt']  # reference airport {string}
-        self.wptype   = wptdata['wptype']  # type (string)
-        self.wpco     = wptdata['wpco']  # two char country code (string)
+        self.wpid     = wptdata['wpid']       # identifier (string)
+        self.wplat    = wptdata['wplat']      # latitude [deg]
+        self.wplon    = wptdata['wplon']      # longitude [deg]
+        self.wpapt    = wptdata['wpapt']      # reference airport {string}
+        self.wptype   = wptdata['wptype']     # type (string)
+        self.wpco     = wptdata['wpco']       # two char country code (string)
 
         # Create empty database
         self.aptid     = aptdata['apid']      # 4 char identifier (string)
@@ -66,20 +66,19 @@ class Navdatabase:
         self.aptco     = aptdata['apco']      # two char country code (string)
         self.aptelev   = aptdata['apelev']    # field elevation in meters [m] above mean sea level
 
-        self.fir      = firdata['fir']
-        self.firlat0  = firdata['firlat0']
-        self.firlon0  = firdata['firlon0']
-        self.firlat1  = firdata['firlat1']
-        self.firlon1  = firdata['firlon1']
+        self.fir      = firdata['fir']        # fir name
+        self.firlat0  = firdata['firlat0']    # start lat of a line of border
+        self.firlon0  = firdata['firlon0']    # start lon of a line of border
+        self.firlat1  = firdata['firlat1']    # end lat of a line of border
+        self.firlon1  = firdata['firlon1']    # end lon of a line of border
 
         self.rwythresholds = rwythresholds
 
 
     def defwpt(self,scr,name=None,lat=None,lon=None,wptype=None,wpapt=None,wpco=None):
 
-        # prevent polluting the database
-        
-        if name==None:
+        # Prevent polluting the database: check arguments
+        if name==None or name=="":
             return False,"Insufficient arguments"
 
         # No data: give info on waypoint            

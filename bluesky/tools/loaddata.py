@@ -52,7 +52,7 @@ def load_aptsurface():
             vbuf_asphalt  = pickle.load(f)
             vbuf_concrete = pickle.load(f)
             vbuf_runways  = pickle.load(f)
-            vbuf_rwythr  = pickle.load(f)
+            vbuf_rwythr   = pickle.load(f)
             apt_ctr_lat   = pickle.load(f)
             apt_ctr_lon   = pickle.load(f)
             apt_indices   = pickle.load(f)
@@ -61,25 +61,68 @@ def load_aptsurface():
 
 
 def load_navdata():
-    success = False
-    while not success:
+    
+    # Loading of waypoints.data, airports.dat and fir folder from cache or files
+      
+    data_version  = 1     # Current version nav data, increase to force refresh cache
+    cache_ok = False # We still need to check cache content and version
+
+    print "load_navdata: data version",data_version
+    
+    # Check or regenerate cache
+    while not cache_ok:
+
+        # Does cache exist or not? If not, make a new cachefile
         if not os.path.isfile(cachedir + '/navdata.p'):
+
             wptdata, aptdata, firdata = load_navdata_txt()
+
             with open(cachedir + '/navdata.p', 'wb') as f:
-                pickle.dump(wptdata, f, pickle.HIGHEST_PROTOCOL)
-                pickle.dump(aptdata, f, pickle.HIGHEST_PROTOCOL)
-                pickle.dump(firdata, f, pickle.HIGHEST_PROTOCOL)
-            success = True
+                pickle.dump(data_version, f, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(wptdata,      f, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(aptdata,      f, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(firdata,      f, pickle.HIGHEST_PROTOCOL)
+
+            # Renewed cache so now ok:
+            cache_ok = True
+
+        # If it exists, read it and check it
         else:
+            
+            # Try reading data from cache
             with open(cachedir + '/navdata.p', 'rb') as f:
-                wptdata = pickle.load(f)
-                aptdata = pickle.load(f)
-                firdata = pickle.load(f)
-            try:
-                x = aptdata['apelev']
-                success = True
-            except:
-                success = False
+
+                cache_version = pickle.load(f)
+
+                # Check whether version number is in data
+                if cache_version == data_version:
+                    wptdata = pickle.load(f)
+                    aptdata = pickle.load(f)
+                    firdata = pickle.load(f)
+
+                # Do not read data from an invalid file, set empty dicts
+                else:
+                    wptdata = {}
+                    aptdata = {}
+                    firdata = {}
+
+            # Check whether cached data is okay, insert any data check here
+            # If it is the same set of data:
+            wpdata_ok  = set(wptdata.keys()) == \
+                         set(["wpid","wplat","wplon","wpapt","wptype","wpco"])
+                                                                             
+            apdata_ok  = set(aptdata.keys()) == \
+                         set(["apid","apname","aplat","aplon","apmaxrwy","aptype",
+                              "apco","apelev"])
+                                              
+            firdata_ok = set(firdata.keys()) == \
+                         set(["fir","firlat0","firlon0","firlat1","firlon1"])
+
+            # If any of data not ok, cache is not ok
+            cache_ok = wpdata_ok and apdata_ok and firdata_ok       
+
+            # If not delete cache file to trigger rewriting it
+            if not cache_ok:
                 os.remove(cachedir + '/navdata.p')
                 print "Found an error: Removing old cache-file navdata.p"
 
