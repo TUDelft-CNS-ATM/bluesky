@@ -1,16 +1,20 @@
 import os
+
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+
 from ..settings import data_path, gui
 
 from load_navdata_txt import load_navdata_txt
 from load_visuals_txt import load_coastline_txt
+
 if gui == 'qtgl':
     from load_visuals_txt import load_aptsurface_txt
 else:
     from load_visuals_txt import pygame_load_rwythresholds
+
 
 
 cachedir = data_path + '/cache'
