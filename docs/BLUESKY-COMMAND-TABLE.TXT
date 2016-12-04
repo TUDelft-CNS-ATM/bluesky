@@ -94,6 +94,8 @@ CLOSE	QUIT	Quit program/Stop simulation
 CONTINUE	OP	Start/Run simulation or continue after pause
 CREATE	CRE	Create an aircraft
 DELETE	DEL	Delete command (aircraft, wind, area)
+DELWP	DELWPT	Delete a waypoint from a route (FMS)
+DELROUTE	DELRTE	Delete for this a/c the complete route/dest/orig (FMS)
 DIRECTTO	DIRECT	Go direct to specified waypoint in route (FMS)
 DIRTO	DIRECT	Go direct to specified waypoint in route (FMS)
 DISP	SWRAD	Switch on/off elements and background of map/radar view
