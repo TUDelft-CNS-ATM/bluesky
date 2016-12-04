@@ -14,8 +14,9 @@ CDMETHOD	Set conflict detection method	CDMETHOD [method]	[txt]	 ASAS.SetCDmethod
 CIRCLE	Define a circle-shaped area	CIRCLE name,lat,lon,radius,[top,bottom]	txt,latlon,float,[alt,alt]	
 CRE	Create an aircraft	CRE acid,type,lat,lon,hdg,alt,spd	txt,txt,latlon,hdg,alt,spd	 Traffic.create of bluesky.traf.traffic.Traffic object
 DATAFEED	Select an ADS-B data source for traffic	DATAFEED [ON/OFF]	[onoff]	 Modesbeast.toggle of bluesky.tools.datafeed.Modesbeast object
-DEFWPT	Define a new waypoint for this scenario	DEFWPT wpname,[lat,lon,type,refapt,countrycode]	txt,[latlon,txt,txt,txt]	 Navdatabase.defwpt of bluesky.navdb.navdb.Navdatabase instance
+DEFWPT	Define a waypoint only for this scenario/run	DEFWPT wpname,[lat,lon,type,refapt,countrycode]	txt,[latlon,txt,txt,txt]	
 DEL	Delete command (aircraft, wind, area)	DEL acid/WIND/shape	txt	
+DELRTE	Delete for this a/c the complete route/dest/orig (FMS)	DELRTE acid	acid	
 DELWPT	Delete a waypoint from a route (FMS)	DELWPT acid,wpname	acid,wpinroute	
 DEST	Set destination of aircraft, aircraft wil fly to this airport	DEST acid, latlon/airport	acid,wpt/latlon	
 DIRECT	Go direct to specified waypoint in route (FMS)	DIRECT acid wpname	acid,txt	
@@ -99,6 +100,7 @@ DISP	SWRAD	Switch on/off elements and background of map/radar view
 END	QUIT	Quit program/Stop simulation
 EXIT	QUIT	Quit program/Stop simulation
 FWD	FF	Fast forward the simulation
+HEADING	HDG	Heading command (autopilot)
 HMETH	RMETHH	Set resolution method to be used horizontally
 HRESOM	RMETHH	Set resolution method to be used horizontally
 HRESOMETH	RMETHH	Set resolution method to be used horizontally
@@ -110,6 +112,7 @@ RESOFACH	RFACH	Set resolution factor horizontal (to add a margin)
 RESOFACV	RFACV	Set resolution factor vertical (to add a margin)
 RUN	OP	Start/Run simulation or continue after pause
 SAVE	SAVEIC	Save current situation as IC
+SPEED	SPD	Speed command (autopilot)
 START	OP	Start/Run simulation or continue after pause
 STOP	QUIT	Quit program/Stop simulation
 TURN	HDG	Heading command (autopilot)

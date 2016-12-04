@@ -689,8 +689,18 @@ class Route():
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], nextqdr
 
+    def delrte(self):
+        """Delete complete route"""
+        # Simple re-initilize this route as empty
+        self.__init__(self.navdb)
+        return True
+
     def delwpt(self, delwpname):
         """Delete waypoint"""
+        
+        # Delete complete route?
+        if delwpname =="*":
+            return self.delrte()
 
         # Look up waypoint
         idx = -1

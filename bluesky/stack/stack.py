@@ -32,8 +32,42 @@ from .. import settings
 import synthetic as syn
 
 # Global variables
-cmddict   = dict()
-cmdsynon  = dict()
+cmddict   = dict() # Defined in stack.init
+
+# Command synonym dictionary defined as global (used for radarclick.py as well)
+cmdsynon  = {"CONTINUE": "OP",
+             "CREATE": "CRE",
+             "CLOSE": "QUIT",
+             "DELETE": "DEL",
+             "DIRECTTO": "DIRECT",
+             "DIRTO": "DIRECT",
+             "DISP": "SWRAD",
+             "END": "QUIT",
+             "EXIT": "QUIT",
+             "FWD": "FF",
+             "HEADING":"HDG",
+             "HMETH": "RMETHH",
+             "HRESOM": "RMETHH",
+             "HRESOMETH": "RMETHH",
+             "LOAD": "IC",
+             "OPEN": "IC",
+             "PAUSE": "HOLD",
+             "Q": "QUIT",
+             "STOP": "QUIT",
+             "RUN": "OP",
+             "RESOFACH": "RFACH",
+             "RESOFACV": "RFACV",
+             "SAVE": "SAVEIC",
+             "SPEED":"SPD",
+             "START": "OP",
+             "TURN": "HDG",
+             "VMETH": "RMETHV",
+             "VRESOM": "RMETHV",
+             "VRESOMETH": "RMETHV",
+             "?": "HELP"
+            }
+
+
 cmdstack  = []
 
 scenname  = ""
@@ -185,6 +219,12 @@ def init(sim, traf, scr):
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
         ],
+         "DELRTE": [
+            "DELRTE acid",
+            "acid",
+            lambda idx: traf.ap.route[idx].delrte(),
+            "Delete for this a/c the complete route/dest/orig (FMS)"
+         ],
          "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
@@ -584,39 +624,6 @@ def init(sim, traf, scr):
 
     cmddict.update(commands)
 
-    #--------------------------------------------------------------------
-    # Command synonym dictionary
-    synonyms = {
-        "CONTINUE": "OP",
-        "CREATE": "CRE",
-        "CLOSE": "QUIT",
-        "DELETE": "DEL",
-        "DIRECTTO": "DIRECT",
-        "DIRTO": "DIRECT",
-        "DISP": "SWRAD",
-        "END": "QUIT",
-        "EXIT": "QUIT",
-        "FWD": "FF",
-        "HMETH": "RMETHH",
-        "HRESOM": "RMETHH",
-        "HRESOMETH": "RMETHH",
-        "LOAD": "IC",
-        "OPEN": "IC",
-        "PAUSE": "HOLD",
-        "Q": "QUIT",
-        "STOP": "QUIT",
-        "RUN": "OP",
-        "RESOFACH": "RFACH",
-        "RESOFACV": "RFACV",
-        "SAVE": "SAVEIC",
-        "START": "OP",
-        "TURN": "HDG",
-        "VMETH": "RMETHV",
-        "VRESOM": "RMETHV",
-        "VRESOMETH": "RMETHV",
-        "?": "HELP"
-    }
-    cmdsynon.update(synonyms)
     #--------------------------------------------------------------------
 
     # Display Help text on start of program
@@ -1203,7 +1210,7 @@ class Argparser:
             if argtype in self.additional and args[argidx] == "*":
                 self.result  = [self.additional[argtype]]
                 self.argstep = 1
-                return True
+                return True    
             # Otherwise result is None
             self.result  = [None]
             self.argstep = 1

@@ -1,5 +1,6 @@
 from math import cos, atan2, radians, degrees
 from numpy import array
+from ..stack.stack import cmdsynon
 
 from ..tools import geo
 from ..tools.misc import findnearest, cmdsplit
@@ -23,15 +24,19 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                 "DEFWPT": "-,latlon,-",
                 "DEL": "acid,-",
                 "DELWPT": "acid,wpinroute,-",
+                "DELRTE": "acid,-",
                 "DEST": "acid,apt",
                 "DIRECT": "acid,wpinroute",
                 "DIST": "latlon,-,latlon",
+                "DUMPRTE": "acid",
+                "ENG": "acid,-",
                 "HDG": "acid,hdg",
                 "LINE": "-,latlon,-,latlon",
                 "LISTRTE": "acid,-",
                 "LNAV": "acid,-",
                 "MOVE": "acid,latlon,-,-,hdg",
                 "NAVDISP": "acid",
+                "NOM": "acid",
                 "ND": "acid",
                 "ORIG": "acid,apt",
                 "PAN": "latlon",
@@ -40,6 +45,7 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                 "POS": "acid",
                 "SSD": "acid",
                 "SPD": "acid,-",
+                "TRAIL":"acid,-",
                 "VNAV": "acid,-",
                 "VS": "acid,-"
                 }
@@ -61,6 +67,11 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
 
     # Insert: nearest aircraft id
     else:
+        
+        # Check for synonyms (dictionary is imported from stack)
+        if cmd in cmdsynon:
+           cmd = cmdsynon[cmd]
+
         # Try to find command in clickcmd dictionary
         try:
             lookup = clickcmd[cmd]
