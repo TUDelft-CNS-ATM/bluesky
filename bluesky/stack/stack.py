@@ -34,7 +34,11 @@ import synthetic as syn
 # Global variables
 cmddict   = dict() # Defined in stack.init
 
-# Command synonym dictionary defined as global (used for radarclick.py as well)
+#
+# Command synonym dictionary definea equivalent commands globally in stack
+#
+# Actual command definitions: see dictionary in def init(...) below
+#
 cmdsynon  = {"CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
@@ -439,10 +443,10 @@ def init(sim, traf, scr):
             "Define a polygon-shaped area in 3D: between two altitudes"
         ],
         "POS": [
-            "POS acid",
-            "acid",
-            lambda acid: scr.showacinfo(*traf.acinfo(acid)),
-            "Get info on aircraft"
+            "POS acid/waypoint",
+            "acid/wpt",
+            lambda *args: traf.poscommand(scr,*args),
+            "Get info on aircraft, airport or waypoint"
         ],
         "PRIORULES": [
             "PRIORULES [ON/OFF PRIOCODE]",

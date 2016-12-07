@@ -47,7 +47,7 @@ class Navdatabase:
             self.aptseg.append(361 * [[]])
 
         print "Loading global navigation database..."
-        wptdata, aptdata, firdata, rwythresholds = load_navdata()
+        wptdata, aptdata, firdata, codata, rwythresholds = load_navdata()
 
         self.wpid     = wptdata['wpid']       # identifier (string)
         self.wplat    = wptdata['wplat']      # latitude [deg]
@@ -71,6 +71,11 @@ class Navdatabase:
         self.firlon0  = firdata['firlon0']    # start lon of a line of border
         self.firlat1  = firdata['firlat1']    # end lat of a line of border
         self.firlon1  = firdata['firlon1']    # end lon of a line of border
+
+        self.coname   = codata['coname']      # country full name
+        self.cocode2  = codata['cocode2']     # country code A2 (asscii2) 2 chars
+        self.cocode3  = codata['cocode3']     # country code A3 (asscii2) 3 chars
+        self.conr     = codata['conr']        # country icao number
 
         self.rwythresholds = rwythresholds
 

@@ -147,4 +147,36 @@ def load_navdata_txt():
     firdata['firlon0'] = np.array(firdata['firlon0'])
     firdata['firlon1'] = np.array(firdata['firlon1'])
 
-    return wptdata, aptdata, firdata
+    #----------  Read ICAO country codes file icao-countries.dat ----------
+    codata           = dict()
+    codata['coname']   = []              # Country name
+    codata['cocode2']  = []              # 2 char code
+    codata['cocode3']  = []              # 3 char code
+    codata['conr']     = []              # country nr
+    with open(data_path + "/global/icao-countries.dat", "r") as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines or comments
+            if len(line) == 0 or line[0] == "#":
+                continue
+
+            # Data line: comma separated values:
+            # full name, A2 code, A3 code, number
+
+            fields = line.split(",")
+
+            # Skip airports without identifier in file and closed airports
+            if fields[0].strip() == "":
+                continue
+
+            codata['coname'].append(fields[0].strip())  # id, no leading or trailing spaces
+            codata['cocode2'].append(fields[1].strip().upper())  # name, no leading or trailing spaces
+
+            codata['cocode3'].append(fields[2].strip().upper())  # latitude [deg]
+            try:
+                codata['conr'].append(int(fields[3]))  # longitude [deg]
+            except:
+                codata['conr'].append(-1)
+
+
+    return wptdata, aptdata, firdata, codata

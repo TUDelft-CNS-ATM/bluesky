@@ -2,6 +2,7 @@ import numpy as np
 from math import *
 from random import random, randint
 from ..tools import datalog
+from ..tools.misc import latlon2txt
 from ..tools.aero import fpm, kts, ft, g0, Rearth, \
                          vatmos,  vtas2cas, vtas2mach, casormach
 
@@ -415,26 +416,114 @@ class Traffic(DynamicArrays):
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
         self.ax[idx] = kts
 
-    def acinfo(self, idx):
-        acid          = self.id[idx]
-        actype        = self.type[idx]
-        lat, lon      = self.lat[idx], self.lon[idx]
-        alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], round(self.trk[idx])
-        cas           = self.cas[idx] / kts
-        tas           = self.tas[idx] / kts
-        route         = self.ap.route[idx]
-        line = "Info on %s %s index = %d\n" % (acid, actype, idx) \
-             + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
-             + "Alt = %d ft, Hdg = %d, Trk = %d\n" % (alt, hdg, trk)
-        if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
-            if self.swvnav[idx]:
-                line += "VNAV, "
-            line += "LNAV to " + route.wpname[route.iactwp] + "\n"
-        if self.ap.orig[idx] != "" or self.ap.dest[idx] != "":
-            line += "Flying"
-            if self.ap.orig[idx] != "":
-                line += " from " + self.ap.orig[idx]
-            if self.ap.dest[idx] != "":
-                line += " to " + self.ap.dest[idx]
+    def poscommand(self, scr, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
+        """POS command: Show info or an aircraft, airport, waypoint or navaid"""
+        # Aircraft index
+        if type(idxorwp)==int and idxorwp >= 0:
 
-        return acid, line
+            idx           = idxorwp
+            acid          = self.id[idx]
+            actype        = self.type[idx]
+            lat, lon      = self.lat[idx], self.lon[idx]
+            alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], round(self.trk[idx])
+            cas           = self.cas[idx] / kts
+            tas           = self.tas[idx] / kts
+            route         = self.ap.route[idx]
+            
+            # Position report
+            lines = "Info on %s %s index = %d\n" % (acid, actype, idx)  \
+                 + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
+                 + "Alt = %d ft, Hdg = %d, Trk = %d\n" % (alt, hdg, trk)
+
+            # FMS AP modes
+            if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
+
+                if self.swvnav[idx]:
+                    lines = lines + "VNAV, "
+
+                lines += "LNAV to " + route.wpname[route.iactwp] + "\n"
+
+            # Flight info: Destination and origin
+            if self.ap.orig[idx] != "" or self.ap.dest[idx] != "":
+                lines = lines +  "Flying"
+
+                if self.ap.orig[idx] != "":
+                    lines = lines +  " from " + self.ap.orig[idx]
+
+                if self.ap.dest[idx] != "":
+                    lines = lines +  " to " + self.ap.dest[idx]
+
+            # Show a/c info and highlight route of aircraft in radar window
+            # and pan to a/c (to show route)
+            scr.pan(self.lat[idx],self.lon[idx])            
+            return scr.showacinfo(acid,lines)        
+
+        # Waypoint: airport, navaid or fix
+        else:
+            wp = idxorwp.upper()
+
+            # Reference position for finding nearest            
+            reflat = scr.ctrlat
+            reflon = scr.ctrlon            
+            
+            lines = "Info on "+wp+":\n"
+                       
+            # First try airports (most used and shorter, hence faster list)
+            iap = self.navdb.getaptidx(wp)
+            if iap>=0:                
+                aptypes = ["large","medium","small"]
+                lines = lines + self.navdb.aptname[iap]+"\n"                 \
+                        + "is a "+ aptypes[max(-1,self.navdb.aptype[iap]-1)] \
+                        +" airport at:\n"                                    \
+                        + latlon2txt(self.navdb.aptlat[iap],                 \
+                                     self.navdb.aptlon[iap]) + "\n"          \
+                        + "Elevation: "                                      \
+                        + str(int(round(self.navdb.aptelev[iap]/ft)))        \
+                        + " ft \n"
+
+               # Show country name
+                try:
+                     ico = self.navdb.cocode2.index(self.navdb.aptco[iap].upper())
+                     lines = lines + "in "+self.navdb.coname[ico]+" ("+      \
+                             self.navdb.aptco[iap]+")"
+                except:
+                     ico = -1
+                     lines = lines + "Country code: "+self.navdb.aptco[iap]
+                try:
+                    rwytxt = str(self.navdb.rwythresholds[self.navdb.aptid[iap]].keys())
+                    lines = lines + "\nRunways: " +rwytxt.strip("[]").replace("'","")
+                except:
+                    pass
+
+            # Not found as airport, try waypoints & navaids
+            else:
+                
+                iwp = self.navdb.getwpidx(wp,reflat,reflon)
+                if iwp>=0:
+                    lines = lines + wp +" is a "+self.navdb.wptype[iwp]       \
+                           + " waypoint at\n"\
+                           + latlon2txt(self.navdb.wplat[iwp],                \
+                                        self.navdb.wplon[iwp]) + "\n"         \
+                           + "Ref airport: " + self.navdb.wpapt[iwp] + "\n"               
+                    try:
+                        ico = self.navdb.cocode2.index(                        \
+                                                self.navdb.wpco[iwp].upper())
+                                                
+                        lines = lines + "in "+self.navdb.coname[ico]+"? ("+     \
+                                             self.navdb.wpco[iap]+")"
+                    except:
+                        ico = -1
+                        lines = lines + "Country code: "+self.navdb.wpco[iap]
+
+                    nother = self.navdb.wpid.count(wp)-1
+                    if nother>0:
+                        verb = ["is ","are "][min(1,max(0,nother-1))]
+                        lines = lines +"\nThere "+verb + str(nother) +\
+                                   " other waypoint(s) also named " + wp
+                else:
+                    return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
+
+            # Show what we found on airport and navaid/waypoint
+            scr.echo(lines)
+            
+        return True
