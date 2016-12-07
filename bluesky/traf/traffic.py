@@ -510,10 +510,10 @@ class Traffic(DynamicArrays):
                                                 self.navdb.wpco[iwp].upper())
                                                 
                         lines = lines + "in "+self.navdb.coname[ico]+"? ("+     \
-                                             self.navdb.wpco[iap]+")"
+                                             self.navdb.wpco[iwp]+")"
                     except:
                         ico = -1
-                        lines = lines + "Country code: "+self.navdb.wpco[iap]
+                        lines = lines + "Country code: "+self.navdb.wpco[iwp]
 
                     nother = self.navdb.wpid.count(wp)-1
                     if nother>0:
