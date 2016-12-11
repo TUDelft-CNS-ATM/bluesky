@@ -49,14 +49,17 @@ class Navdatabase:
         print "Loading global navigation database..."
         wptdata, aptdata, firdata, codata, rwythresholds = load_navdata()
 
+        # Get waypoint data
         self.wpid     = wptdata['wpid']       # identifier (string)
         self.wplat    = wptdata['wplat']      # latitude [deg]
         self.wplon    = wptdata['wplon']      # longitude [deg]
-        self.wpapt    = wptdata['wpapt']      # reference airport {string}
         self.wptype   = wptdata['wptype']     # type (string)
-        self.wpco     = wptdata['wpco']       # two char country code (string)
+        self.wpelev   = wptdata['wpelev']     # elevation [m]
+        self.wpvar    = wptdata['wpvar']      # magn variation [deg]
+        self.wpfreq   = wptdata['wpfreq']       # frequency [kHz/MHz]
+        self.wpdesc   = wptdata['wpdesc']     # description
 
-        # Create empty database
+        # Get airpoint data
         self.aptid     = aptdata['apid']      # 4 char identifier (string)
         self.aptname   = aptdata['apname']    # full name
         self.aptlat    = aptdata['aplat']     # latitude [deg]
@@ -66,12 +69,14 @@ class Navdatabase:
         self.aptco     = aptdata['apco']      # two char country code (string)
         self.aptelev   = aptdata['apelev']    # field elevation in meters [m] above mean sea level
 
+        # Get FIR data
         self.fir      = firdata['fir']        # fir name
         self.firlat0  = firdata['firlat0']    # start lat of a line of border
         self.firlon0  = firdata['firlon0']    # start lon of a line of border
         self.firlat1  = firdata['firlat1']    # end lat of a line of border
         self.firlon1  = firdata['firlon1']    # end lon of a line of border
 
+        # Get country code data
         self.coname   = codata['coname']      # country full name
         self.cocode2  = codata['cocode2']     # country code A2 (asscii2) 2 chars
         self.cocode3  = codata['cocode3']     # country code A3 (asscii2) 3 chars

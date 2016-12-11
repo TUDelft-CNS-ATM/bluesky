@@ -455,7 +455,6 @@ class Traffic(DynamicArrays):
 
             # Show a/c info and highlight route of aircraft in radar window
             # and pan to a/c (to show route)
-            scr.pan(self.lat[idx],self.lon[idx])            
             return scr.showacinfo(acid,lines)        
 
         # Waypoint: airport, navaid or fix
@@ -500,21 +499,31 @@ class Traffic(DynamicArrays):
                 
                 iwp = self.navdb.getwpidx(wp,reflat,reflon)
                 if iwp>=0:
-                    lines = lines + wp +" is a "+self.navdb.wptype[iwp]       \
-                           + " waypoint at\n"\
-                           + latlon2txt(self.navdb.wplat[iwp],                \
-                                        self.navdb.wplon[iwp]) + "\n"         \
-                           + "Ref airport: " + self.navdb.wpapt[iwp] + "\n"               
-                    try:
-                        ico = self.navdb.cocode2.index(                        \
-                                                self.navdb.wpco[iwp].upper())
-                                                
-                        lines = lines + "in "+self.navdb.coname[ico]+"? ("+     \
-                                             self.navdb.wpco[iwp]+")"
-                    except:
-                        ico = -1
-                        lines = lines + "Country code: "+self.navdb.wpco[iwp]
 
+                    # Basic info
+                    lines = lines + wp +" is a "+self.navdb.wptype[iwp]       \
+                           + " at\n"\
+                           + latlon2txt(self.navdb.wplat[iwp],                \
+                                        self.navdb.wplon[iwp])
+                    # Navaids have description                    
+                    if len(self.navdb.wpdesc[iwp].strip())>0:
+                        lines = lines+ "\n" + self.navdb.wpdesc[iwp]            
+
+                    # VOR give variation
+                    if self.navdb.wptype[iwp]=="VOR":
+                        lines = lines + "\nVariation: "+ \
+                                     str(self.navdb.wpvar[iwp])+" deg"
+
+                    # Navaid: frequency
+                    if self.navdb.wptype[iwp] in ["VOR","DME","TACAN"]:
+                        lines = lines + "\nFrequency: "+ \
+                                       str(self.navdb.wpfreq[iwp])+" MHz"  
+
+                    elif self.navdb.wptype[iwp]=="NDB":
+                        lines = lines  + "Frequency: "+ \
+                                       str(self.navdb.wpfreq[iwp])+" kHz"  
+   
+                    # How many others?
                     nother = self.navdb.wpid.count(wp)-1
                     if nother>0:
                         verb = ["is ","are "][min(1,max(0,nother-1))]

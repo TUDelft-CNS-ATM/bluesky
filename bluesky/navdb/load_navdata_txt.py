@@ -10,10 +10,17 @@ def load_navdata_txt():
     wptdata['wpid']    = []              # identifier (string)
     wptdata['wplat']   = []              # latitude [deg]
     wptdata['wplon']   = []              # longitude [deg]
-    wptdata['wpapt']   = []              # reference airport {string}
-    wptdata['wptype']  = []              # type (string)
-    wptdata['wpco']    = []              # two char country code (string)
-    with open(data_path + "/global/waypoints.dat", "r") as f:
+    wptdata['wptype']  = []              # Type "VOR","NDB","DME","TACAN" or "FIX"
+
+    wptdata['wpelev']  = []              # elevation [m]
+    wptdata['wpvar']   = []              # magnetic variation [deg]
+    wptdata['wpfreq']  = []              # Navaid frequency kHz(NDB) or MHz(VOR)
+    wptdata['wpdesc']  = []              # description       
+
+    # File nav.data
+    with open(data_path + "/global/nav.dat", "r") as f:
+        print "Reading nav.dat"
+
         for line in f:
             line = line.strip()
             # Skip empty lines or comments
@@ -25,16 +32,101 @@ def load_navdata_txt():
             # ABARA, , 61.1833, 50.85, UUYY, High and Low Level, RS
             #  [id]    [lat]    [lon]  [airport]  [type] [country code]
             #   0  1     2       3         4        5         6
-            fields = line.split(",")
-            wptdata['wpid'].append(fields[0].strip())  # id, no leading or trailing spaces
+            fields = line.split()
 
-            wptdata['wplat'].append(float(fields[2]))  # latitude [deg]
-            wptdata['wplon'].append(float(fields[3]))  # longitude [deg]
+            # Valid line starst with integers
+            if not fields[0].isdigit():
+                continue # Next line
 
-            wptdata['wpapt'].append(fields[4].strip())  # id, no leading or trailing spaces
-            wptdata['wptype'].append(fields[5].strip().lower())    # type
-            wptdata['wpco'].append(fields[6].strip())     # country code
+            # Get code for type of navaid            
+            itype = int(fields[0])
 
+            # Type names 
+            wptypedict = {2:"NDB",3:"VOR",         \
+                          4:"ILS",5:"LOC",6:"GS",  \
+                          7:"OM",8:"MM",9:"IM",
+                          12:"DME",13:"TACAN"}
+ 
+           # Type code never larger than 20
+            if itype not in wptypedict.keys():
+                continue # Next line
+
+            wptype = wptypedict[itype]
+
+            # Select types to read
+            if wptype not in ["NDB","VOR","DME","TACAN"]:
+                continue # Next line
+            
+            wptdata["wptype"].append(wptype)
+            
+            wptdata["wplat"].append(float(fields[1]))      # latitude [deg]
+            wptdata["wplon"].append(float(fields[2]))      # longitude [deg]
+            wptdata["wpelev"].append(float(fields[3])*ft)  # elevation [ft]
+
+            if wptype=="NDB":
+                wptdata["wpfreq"].append(int(fields[4]))   # NDB freq in kHz
+
+            elif wptype in ["VOR","DME","TACAN"]:
+                wptdata["wpfreq"].append(float(fields[4])/100.) # VOR freq in MHz
+            else:
+                wptdata["wpfreq"].append(0.0)
+
+            if wptype in ["VOR","NDB"]:
+                wptdata["wpvar"].append(float(fields[6])) # Magnetic variation in degrees
+                wptdata["wpid"].append(fields[7]) # Id
+
+            elif wptype in ["DME","TACAN"]:
+                wptdata["wpvar"].append(0.0) # Magnetic variation not given
+                wptdata["wpid"].append(fields[7]) # Id
+                
+            else:
+                wptdata['wpvar'].append(0.0) # Magnetic variation in degrees
+                wptdata['wpid'].append(" ")  # Id
+
+            # Find description
+            wpid = wptdata["wpid"][-1]
+            try:
+                idesc = line.index(wpid)+len(wpid)
+                
+                # Description at end of line may include spaces
+                wptdata['wpdesc'].append(line[idesc:])  # Description
+            except:
+                wptdata['wpdesc'].append("   ")  # Description
+                
+    # File fix.dat     
+    with open(data_path + "/global/fix.dat", "r") as f:
+        print "Reading fix.dat"
+        for line in f:
+            line = line.strip()
+            
+            # Skip empty lines or comments
+            if len(line) < 3 or line[0] == "#":
+                continue
+
+            # Start with valid 2 digit latitude -45. or 52.            
+            if not ((line[0]=="-" and line[3]==".") or line[2]==".")  :
+                continue
+
+
+            # Data line => Process fields of this record, separated by a comma
+            # Example line:
+            #  30.580372 -094.384169 FAREL
+            fields = line.split()
+
+            wptdata["wptype"].append("FIX")
+            
+            
+            wptdata['wplat'].append(float(fields[0]))      # latitude [deg]
+            wptdata['wplon'].append(float(fields[1]))      # longitude [deg]
+            wptdata['wpid'].append(fields[2]) # Id
+ 
+            # Not given for fixes but fill out tables for equal length
+            wptdata['wpelev'].append(0.0)  # elevation [ft]
+            wptdata['wpfreq'].append(0.0)  # Fix is no navaid, so no freq
+            wptdata['wpvar'].append(0.0)   # Magnetic variation not given
+            wptdata['wpdesc'].append("")  # Description
+              
+    # Convert lists for lat,lon to numpy-array for vectorised clipping
     wptdata['wplat']   = np.array(wptdata['wplat'])
     wptdata['wplon']   = np.array(wptdata['wplon'])
 

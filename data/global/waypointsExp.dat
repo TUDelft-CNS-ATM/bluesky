@@ -1,4 +1,4 @@
-# waypointsExp.dat
+# Legacy file waypointsExp.dat: should be done with DEFWPT statement now in scen file which is called
 # This file contains the spawn point definitions for experiments
 # Spawn points are defined to be waypoints
 # Each spawn point is defined by the following 7 parameters:

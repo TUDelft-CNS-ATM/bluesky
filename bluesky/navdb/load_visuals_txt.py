@@ -12,6 +12,7 @@ def load_coastline_txt():
     coast = []
     clat = clon = 0.0
     with open(data_path + '/global/coastlines.dat', 'r') as f:
+        print "Reading coastlines.dat"
         for line in f:
             line = line.strip()
             if not (line == "" or line[0] == '#'):
@@ -194,6 +195,7 @@ if gui == 'qtgl':
         bytecount     = 0
         zfile         = ZipFile(data_path + '/global/apt.zip')
         fsize         = float(zfile.getinfo('apt.dat').file_size)
+        print "Reading apt.dat from apt.zip"
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
                 bytecount += len(line)
@@ -357,6 +359,7 @@ else:
         rwythresholds = dict()
         curthresholds = None
         zfile = ZipFile(data_path + '/global/apt.zip')
+        print "Reading apt.dat from apt.zip"
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
                 elems = line.strip().split()
