@@ -5,7 +5,7 @@ import os
 
 
 def load_navdata_txt():
-    #---------- Read waypoints.dat file ----------
+    #----------  Read  nav.dat file (nav aids) ----------     
     wptdata         = dict()
     wptdata['wpid']    = []              # identifier (string)
     wptdata['wplat']   = []              # latitude [deg]
@@ -17,7 +17,7 @@ def load_navdata_txt():
     wptdata['wpfreq']  = []              # Navaid frequency kHz(NDB) or MHz(VOR)
     wptdata['wpdesc']  = []              # description       
 
-    # File nav.data
+
     with open(data_path + "/global/nav.dat", "r") as f:
         print "Reading nav.dat"
 
@@ -28,10 +28,12 @@ def load_navdata_txt():
                 continue
 
             # Data line => Process fields of this record, separated by a comma
-            # Example line:
-            # ABARA, , 61.1833, 50.85, UUYY, High and Low Level, RS
-            #  [id]    [lat]    [lon]  [airport]  [type] [country code]
-            #   0  1     2       3         4        5         6
+            # Example lines:
+            # 2  58.61466599  125.42666626    451   522  30    0.0 A    Aldan NDB
+            # 3  31.26894444 -085.72630556    334 11120  40   -3.0 OZR  CAIRNS VOR-DME
+            # type    lat       lon           elev freq  ?     var id    desc
+            #   0      1         2              3    4   5      6   7     8
+
             fields = line.split()
 
             # Valid line starst with integers
@@ -93,7 +95,7 @@ def load_navdata_txt():
             except:
                 wptdata['wpdesc'].append("   ")  # Description
                 
-    # File fix.dat     
+    #----------  Read  fix.dat file ----------     
     with open(data_path + "/global/fix.dat", "r") as f:
         print "Reading fix.dat"
         for line in f:
@@ -129,6 +131,66 @@ def load_navdata_txt():
     # Convert lists for lat,lon to numpy-array for vectorised clipping
     wptdata['wplat']   = np.array(wptdata['wplat'])
     wptdata['wplon']   = np.array(wptdata['wplon'])
+
+    #----------  Read  awy.dat file (airway legs) ----------     
+    awydata   = dict()
+
+    awydata['awid']        = []              # airway identifier (string)
+    awydata['awfromwpid']  = []              # from waypoint identifier (string)
+    awydata['awfromlat']   = []              # from waypoint lat [deg](float)
+    awydata['awfromlon']   = []              # from waypoint lon [deg](float)
+    awydata['awtowpid']    = []              # to waypoint identifier (string)
+    awydata['awtolat']     = []              # to waypoint lat [deg](float)
+    awydata['awtolon']     = []              # to waypoint lon [deg](float)
+    awydata['awndir']      = []              # number of directions (1 or 2)
+    awydata['awlowfl']     = []              # lowest flight level (int)
+    awydata['awupfl']      = []              # highest flight level (int)
+
+
+    with open(data_path + "/global/awy.dat", "r") as f:
+        print "Reading awy.dat"
+
+        for line in f:
+            line = line.strip()
+            # Skip empty lines or comments
+            if len(line) == 0 or line[0] == "#":
+                continue
+    
+            fields = line.split()
+            if fields<9:
+                continue
+    
+            # Example line
+            # ABAGO  56.291668  144.236667 GINOL  54.413334  142.011667 1 177 528 A218
+            # fromfwp fromlat    fromlon    towp   tolat       tolon   ndir lowfl hghfl airwayid
+            #   0        1          2         3      4           5     6     7     8       9
+    
+            # Second field should be float        
+            try:
+                fromlat = float(fields[1])
+            except:
+                continue
+    
+            awydata['awfromwpid'].append(fields[0])         # from waypoint identifier (string)
+            awydata['awfromlat'].append(fromlat)            # from latitude [deg]
+            awydata['awfromlon'].append(float(fields[2]))   # from longitude [deg]
+    
+            awydata['awtowpid'].append(fields[3])           # to waypoint identifier (string)
+            awydata['awtolat'].append(float(fields[4]))     # to latitude [deg]
+            awydata['awtolon'].append(float(fields[5]))     # to longitude [deg]
+    
+            awydata['awndir'].append(int(fields[6]))        # number of directions (1 or 2)
+    
+            awydata['awlowfl'].append(int(fields[7]))       # number of directions (1 or 2)
+            awydata['awupfl'].append(int(fields[8]))        # number of directions (1 or 2)
+    
+            awydata['awid'].append(fields[9])
+
+        # Convert lat,lons to numpy arrays for easy clipping
+        awydata['awfromlat'] = np.array(awydata['awfromlat']) 
+        awydata['awfromlon'] = np.array(awydata['awfromlon']) 
+        awydata['awtolat']   = np.array(awydata['awtolat']) 
+        awydata['awtolon']   = np.array(awydata['awtolon']) 
 
     #----------  Read airports.dat file ----------
     aptdata           = dict()
@@ -271,4 +333,4 @@ def load_navdata_txt():
                 codata['conr'].append(-1)
 
 
-    return wptdata, aptdata, firdata, codata
+    return wptdata, aptdata, awydata, firdata, codata

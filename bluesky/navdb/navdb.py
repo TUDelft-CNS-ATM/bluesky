@@ -47,7 +47,7 @@ class Navdatabase:
             self.aptseg.append(361 * [[]])
 
         print "Loading global navigation database..."
-        wptdata, aptdata, firdata, codata, rwythresholds = load_navdata()
+        wptdata, aptdata, awydata, firdata, codata, rwythresholds = load_navdata()
 
         # Get waypoint data
         self.wpid     = wptdata['wpid']       # identifier (string)
@@ -58,6 +58,18 @@ class Navdatabase:
         self.wpvar    = wptdata['wpvar']      # magn variation [deg]
         self.wpfreq   = wptdata['wpfreq']       # frequency [kHz/MHz]
         self.wpdesc   = wptdata['wpdesc']     # description
+
+        # Get airway legs data
+        self.awfromwpid = awydata['awfromwpid']  # identifier (string)
+        self.awfromlat  = awydata['awfromlat']   # latitude [deg]
+        self.awfromlon  = awydata['awfromlon']   # longitude [deg]
+        self.awtowpid   = awydata['awtowpid']    # identifier (string)
+        self.awtolat    = awydata['awtolat']     # latitude [deg]
+        self.awtolon    = awydata['awtolon']     # longitude [deg]
+        self.awid       = awydata['awid']        # airway identifier (string)
+        self.awndir     = awydata['awndir']      # number of directions (1 or 2)
+        self.awlowfl    = awydata['awlowfl']     # lower flight level (int)
+        self.awupfl     = awydata['awupfl']      # upper flight level (int)
 
         # Get airpoint data
         self.aptid     = aptdata['apid']      # 4 char identifier (string)

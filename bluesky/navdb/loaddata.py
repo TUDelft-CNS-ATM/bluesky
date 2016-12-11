@@ -80,18 +80,20 @@ def load_navdata():
         # Does cache exist or not? If not, make a new cachefile
         if not os.path.isfile(cachedir + '/navdata.p'):
 
-            wptdata, aptdata, firdata, codata = load_navdata_txt()
+            wptdata, aptdata, awydata, firdata, codata = load_navdata_txt()
             
             with open(cachedir + '/navdata.p', 'wb') as f:
                 print "Writing cache: navdata.p"
                 pickle.dump(wptdata,      f, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(awydata,      f, pickle.HIGHEST_PROTOCOL)
                 pickle.dump(aptdata,      f, pickle.HIGHEST_PROTOCOL)
                 pickle.dump(firdata,      f, pickle.HIGHEST_PROTOCOL)
                 pickle.dump(codata,       f, pickle.HIGHEST_PROTOCOL)
                 
 
             # Renewed cache so now ok:
-            cache_ok = True
+            cache_ok       = True
+            cache_complete = True
 
         # If it exists, read it and check it
         else:
@@ -117,10 +119,12 @@ def load_navdata():
                     print "Reading cache: navdata.p"
                     try:                    
                         wptdata = pickle.load(f)
+                        awydata = pickle.load(f)
                         aptdata = pickle.load(f)
                         firdata = pickle.load(f)
                         codata = pickle.load(f)
                     except:
+                        print "Cache navdata.p not complete"
                         cache_ok = False
 
             
@@ -129,6 +133,7 @@ def load_navdata():
                     wptdata = {}
                     aptdata = {}
                     firdata = {}
+                    awydata = {}
                     codata  = {}
 
             # Integrity & completenes check: 
@@ -158,4 +163,4 @@ def load_navdata():
     with open(cachedir + '/rwythresholds.p', 'rb') as f:
         print "Reading cache: rwythresholds.p"
         rwythresholds = pickle.load(f)
-    return wptdata, aptdata, firdata, codata, rwythresholds
+    return wptdata, aptdata, awydata, firdata, codata, rwythresholds
