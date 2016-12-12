@@ -496,35 +496,53 @@ class Traffic(DynamicArrays):
 
             # Not found as airport, try waypoints & navaids
             else:
-                
-                iwp = self.navdb.getwpidx(wp,reflat,reflon)
-                if iwp>=0:
+                iwps = self.navdb.getwpindices(wp,reflat,reflon)
+                if iwps[0]>=0:
+                    typetxt = ""
+                    desctxt = ""
+                    lastdesc = "XXXXXXXX"
+                    for i in iwps:
+                        
+                        # One line type text                        
+                        if typetxt == "":
+                            typetxt = typetxt+self.navdb.wptype[i]
+                        else:
+                            typetxt = typetxt+" and "+self.navdb.wptype[i]
+
+                        # Description: multi-line
+                        samedesc = self.navdb.wpdesc[i]==lastdesc
+                        if desctxt == "":
+                            desctxt = desctxt +self.navdb.wpdesc[i]
+                            lastdesc = self.navdb.wpdesc[i]
+                        elif not samedesc:
+                            desctxt = desctxt +"\n"+self.navdb.wpdesc[i]
+                            lastdesc = self.navdb.wpdesc[i]
+                            
+                        # Navaid: frequency
+                        if self.navdb.wptype[i] in ["VOR","DME","TACAN"] and not samedesc:
+                            desctxt = desctxt + " "+ str(self.navdb.wpfreq[i])+" MHz"
+                        elif self.navdb.wptype[i]=="NDB" and not samedesc:
+                            desctxt = desctxt+ " " + str(self.navdb.wpfreq[i])+" kHz"  
+
+                    iwp = iwps[0]
 
                     # Basic info
-                    lines = lines + wp +" is a "+self.navdb.wptype[iwp]       \
+                    lines = lines + wp +" is a "+ typetxt       \
                            + " at\n"\
                            + latlon2txt(self.navdb.wplat[iwp],                \
                                         self.navdb.wplon[iwp])
                     # Navaids have description                    
-                    if len(self.navdb.wpdesc[iwp].strip())>0:
-                        lines = lines+ "\n" + self.navdb.wpdesc[iwp]            
+                    if len(desctxt)>0:
+                        lines = lines+ "\n" + desctxt           
 
                     # VOR give variation
                     if self.navdb.wptype[iwp]=="VOR":
                         lines = lines + "\nVariation: "+ \
                                      str(self.navdb.wpvar[iwp])+" deg"
 
-                    # Navaid: frequency
-                    if self.navdb.wptype[iwp] in ["VOR","DME","TACAN"]:
-                        lines = lines + "\nFrequency: "+ \
-                                       str(self.navdb.wpfreq[iwp])+" MHz"  
-
-                    elif self.navdb.wptype[iwp]=="NDB":
-                        lines = lines  + "Frequency: "+ \
-                                       str(self.navdb.wpfreq[iwp])+" kHz"  
-   
+  
                     # How many others?
-                    nother = self.navdb.wpid.count(wp)-1
+                    nother = self.navdb.wpid.count(wp)-len(iwps)
                     if nother>0:
                         verb = ["is ","are "][min(1,max(0,nother-1))]
                         lines = lines +"\nThere "+verb + str(nother) +\

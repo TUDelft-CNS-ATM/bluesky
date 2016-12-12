@@ -3,6 +3,7 @@ import numpy as np
 
 from loaddata import load_navdata
 from ..tools import geo
+from ..tools.aero import nm
 
 
 class Navdatabase:
@@ -177,6 +178,50 @@ class Navdatabase:
                         imin = i
                         dmin = d
                 return imin
+
+    def getwpindices(self, txt, reflat=999999., reflon=999999,crit=1852.0):
+        """Get waypoint index to access data"""
+        name = txt.upper()
+        try:
+            i = self.wpid.index(name)
+        except:
+            return -1
+
+        # if no pos is specified, get first occurence
+        if not reflat < 99999.:
+            return [i]
+
+        # If pos is specified check for more and return closest
+        else:
+            idx = []
+            idx.append(i)
+            found = True
+            while i < len(self.wpid) - 1 and found:
+                try:
+                    i = self.wpid.index(name, i + 1)
+                    idx.append(i)
+                except:
+                    found = False
+            if len(idx) == 1:
+                return [idx[0]]
+            else:
+                imin = idx[0]
+                dmin = geo.kwikdist(reflat, reflon, self.wplat[imin], self.wplon[imin])
+                for i in idx[1:]:
+                    d = geo.kwikdist(reflat, reflon, self.wplat[i], self.wplon[i])
+                    if d < dmin:
+                        imin = i
+                        dmin = d
+                # Find co-located
+                indices = [imin]
+                for i in idx:
+                    if i!=imin:
+                        dist = nm*geo.kwikdist(self.wplat[i], self.wplon[i], \
+                                            self.wplat[imin], self.wplon[imin])
+                        if dist<=crit:
+                            indices.append(i)
+                          
+                return indices
 
     def getaptidx(self, txt):
         """Get waypoint index to access data"""
