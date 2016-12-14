@@ -187,19 +187,19 @@ class Traffic(DynamicArrays):
             return False, acid + " already exists."  # already exists do nothing
 
         # Catch missing acid, replace by a default
-        if acid == None or acid =="*":
+        if acid is None or acid == "*":
             acid = "KL204"
             flno = 204
-            while self.id.count(acid)>0:
-                flno = flno+1
-                acid ="KL"+str(flno)
-        
+            while self.id.count(acid) > 0:
+                flno = flno + 1
+                acid = "KL" + str(flno)
+
         # Check for (other) missing arguments
-        if actype == None or aclat == None or aclon == None or achdg == None \
-            or acalt == None or casmach == None:
-            
-            return False,"CRE: Missing one or more arguments:"\
-                         "acid,actype,aclat,aclon,achdg,acalt,acspd"
+        if actype is None or aclat is None or aclon is None or achdg is None \
+                or acalt is None or casmach is None:
+
+            return False, "CRE: Missing one or more arguments:"\
+                          "acid,actype,aclat,aclon,achdg,acalt,acspd"
 
         super(Traffic, self).create()
 
@@ -225,7 +225,7 @@ class Traffic(DynamicArrays):
         self.gseast[-1]  = self.tas[-1] * sin(radians(self.hdg[-1]))
 
         # Atmosphere
-        self.Temp[-1], self.rho[-1], self.p[-1] = vatmos(acalt)
+        self.p[-1], self.rho[-1], self.Temp[-1] = vatmos(acalt)
 
         # Wind
         if self.wind.winddim > 0:
