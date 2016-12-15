@@ -913,7 +913,7 @@ class Route():
         ialt = -1
         toalt = -999.
         xtoalt = 0.
-        for i in range(self.nwp-2,-1,-1):
+        for i in range(self.nwp-1,-1,-1):
 
             # waypoint with altitude constraint (dest of al specified)        
             if self.wptype[i]==self.dest:
@@ -928,11 +928,15 @@ class Route():
 
             # waypoint with no altitude constraint:keep counting
             else:                          
-                xtoalt = xtoalt+self.wpdistto[i+1]*nm  # [m] xtoalt is in meters!
-
+                if i!=self.nwp-1:
+                    xtoalt = xtoalt+self.wpdistto[i+1]*nm  # [m] xtoalt is in meters!
+                else:
+                    xtoalt = 0.0
+    
             self.wpialt[i] = ialt  
             self.wptoalt[i] = toalt   #[m]
             self.wpxtoalt[i] = xtoalt  #[m]
+        
         return        
 
     def findact(self,traf,i):
