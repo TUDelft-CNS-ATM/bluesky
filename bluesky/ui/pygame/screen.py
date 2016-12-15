@@ -677,7 +677,8 @@ class Screen:
 
 
                 # Check for changes in traffic label text
-                if not label[:3] == traf.label[i][:3]:
+                if not label[:3] == traf.label[i][:3] or \
+                                             type(traf.label[i][3])==str:
                     traf.label[i] = []
                     labelbmp = pg.Surface((100, 60), 0, self.win)
                     if len(traf.asas.iconf[i]) == 0:
@@ -1145,6 +1146,14 @@ class Screen:
             self.acidrte = ""  # Click twice on same: route disappear
         else:
             self.acidrte = acid  # Show this route
+        return
+
+
+    def addnavwpt(self,name,lat,lon): # Draw new navdb waypoint
+        # As in pygame navdb has already updated data, simply redraw background
+        self.wpswbmp.append(False) # Add cell to buffer
+        self.wplabel.append(0) # Add cell to buffer
+        self.redrawradbg = True  # redraw background
         return
 
     def showacinfo(self, acid, infotext):

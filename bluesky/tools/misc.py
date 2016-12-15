@@ -229,6 +229,14 @@ def txt2lon(lontxt):
 
     return lon
 
+def lat2txt(lat):
+    return "NS"[lat<0] + str(abs(lat))
+
+def lon2txt(lon):
+    return "EW"[lon<0] + str(abs(lon))
+
+def latlon2txt(lat,lon):
+    return lat2txt(lat)+","+lon2txt(lon)
 
 def deg180(dangle):
     """ Convert any difference in angles to interval [ -180,180 ) """

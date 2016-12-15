@@ -12,8 +12,6 @@ class Keyboard:
         Keyboard(tmx)                      :  constructor
 
         update()                           : Check for input & process it
-        radarclick(pos,command,scr,traf,navdb)   : Process click on radar window to
-                                                   to insert data in edit window
 
     Created by  : Jacco M. Hoekstra (TU Delft)
     """

@@ -32,8 +32,48 @@ from .. import settings
 import synthetic as syn
 
 # Global variables
-cmddict   = dict()
-cmdsynon  = dict()
+cmddict   = dict() # Defined in stack.init
+
+#
+# Command synonym dictionary definea equivalent commands globally in stack
+#
+# Actual command definitions: see dictionary in def init(...) below
+#
+cmdsynon  = {"CONTINUE": "OP",
+             "CREATE": "CRE",
+             "CLOSE": "QUIT",
+             "DELETE": "DEL",
+             "DELWP": "DELWPT",
+             "DELROUTE": "DELRTE",
+             "DIRECTTO": "DIRECT",
+             "DIRTO": "DIRECT",
+             "DISP": "SWRAD",
+             "END": "QUIT",
+             "EXIT": "QUIT",
+             "FWD": "FF",
+             "HEADING":"HDG",
+             "HMETH": "RMETHH",
+             "HRESOM": "RMETHH",
+             "HRESOMETH": "RMETHH",
+             "LOAD": "IC",
+             "OPEN": "IC",
+             "PAUSE": "HOLD",
+             "Q": "QUIT",
+             "STOP": "QUIT",
+             "RUN": "OP",
+             "RESOFACH": "RFACH",
+             "RESOFACV": "RFACV",
+             "SAVE": "SAVEIC",
+             "SPEED":"SPD",
+             "START": "OP",
+             "TURN": "HDG",
+             "VMETH": "RMETHV",
+             "VRESOM": "RMETHV",
+             "VRESOMETH": "RMETHV",
+             "?": "HELP"
+            }
+
+
 cmdstack  = []
 
 scenname  = ""
@@ -171,6 +211,12 @@ def init(sim, traf, scr):
             traf.create,
             "Create an aircraft"
         ],
+         "DEFWPT": [
+            "DEFWPT wpname,[lat,lon,type,refapt,countrycode]",
+            "txt,[latlon,txt,txt,txt]",
+            lambda *args: traf.navdb.defwpt(scr, *args),
+            "Define a waypoint only for this scenario/run"
+        ],
         "DEL": [
             "DEL acid/WIND/shape",
             "txt",
@@ -179,7 +225,13 @@ def init(sim, traf, scr):
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
         ],
-        "DELWPT": [
+         "DELRTE": [
+            "DELRTE acid",
+            "acid",
+            lambda idx: traf.ap.route[idx].delrte(),
+            "Delete for this a/c the complete route/dest/orig (FMS)"
+         ],
+         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
             lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
@@ -391,10 +443,10 @@ def init(sim, traf, scr):
             "Define a polygon-shaped area in 3D: between two altitudes"
         ],
         "POS": [
-            "POS acid",
-            "acid",
-            lambda acid: scr.showacinfo(*traf.acinfo(acid)),
-            "Get info on aircraft"
+            "POS acid/waypoint",
+            "acid/wpt",
+            lambda *args: traf.poscommand(scr,*args),
+            "Get info on aircraft, airport or waypoint"
         ],
         "PRIORULES": [
             "PRIORULES [ON/OFF PRIOCODE]",
@@ -578,39 +630,6 @@ def init(sim, traf, scr):
 
     cmddict.update(commands)
 
-    #--------------------------------------------------------------------
-    # Command synonym dictionary
-    synonyms = {
-        "CONTINUE": "OP",
-        "CREATE": "CRE",
-        "CLOSE": "QUIT",
-        "DELETE": "DEL",
-        "DIRECTTO": "DIRECT",
-        "DIRTO": "DIRECT",
-        "DISP": "SWRAD",
-        "END": "QUIT",
-        "EXIT": "QUIT",
-        "FWD": "FF",
-        "HMETH": "RMETHH",
-        "HRESOM": "RMETHH",
-        "HRESOMETH": "RMETHH",
-        "LOAD": "IC",
-        "OPEN": "IC",
-        "PAUSE": "HOLD",
-        "Q": "QUIT",
-        "STOP": "QUIT",
-        "RUN": "OP",
-        "RESOFACH": "RFACH",
-        "RESOFACV": "RFACV",
-        "SAVE": "SAVEIC",
-        "START": "OP",
-        "TURN": "HDG",
-        "VMETH": "RMETHV",
-        "VRESOM": "RMETHV",
-        "VRESOMETH": "RMETHV",
-        "?": "HELP"
-    }
-    cmdsynon.update(synonyms)
     #--------------------------------------------------------------------
 
     # Display Help text on start of program
@@ -1197,7 +1216,7 @@ class Argparser:
             if argtype in self.additional and args[argidx] == "*":
                 self.result  = [self.additional[argtype]]
                 self.argstep = 1
-                return True
+                return True    
             # Otherwise result is None
             self.result  = [None]
             self.argstep = 1

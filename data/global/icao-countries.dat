@@ -1,0 +1,255 @@
+# Not icao codes, but temporary codes
+Aruba,AA,ABC,0
+Antigua & Barbuda,AC,ABC,0
+United Arab Emirates,AE,ABC,0
+Afghanistan,AF,ABC,0
+Algeria,AG,ABC,0
+Azerbaijan,AJ,ABC,0
+Albania,AL,ABC,0
+Armenia,AM,ABC,0
+Andorra,AN,ABC,0
+Angola,AO,ABC,0
+Argentina,AR,ABC,0
+Australia,AS,ABC,0
+Ashmore & Cartier Islands,AT,ABC,0
+Austria,AU,ABC,0
+Anguilla,AV,ABC,0
+Akrotiri,AX,ABC,0
+Antarctica,AY,ABC,0
+Bahrain,BA,ABC,0
+Barbados,BB,ABC,0
+Botswana,BC,ABC,0
+Bermuda,BD,ABC,0
+Belgium,BE,ABC,0
+"Bahamas, The",BF,ABC,0
+Bangladesh,BG,ABC,0
+Belize,BH,ABC,0
+Bosnia & Herzegovina,BK,ABC,0
+Bolivia,BL,ABC,0
+Burma,BM,ABC,0
+Benin,BN,ABC,0
+Belarus,BO,ABC,0
+Soloman Islands,BP,ABC,0
+Brazil,BR,ABC,0
+Bhutan,BT,ABC,0
+Bulgaria,BU,ABC,0
+Bouvet Island,BV,ABC,0
+Brunei,BX,ABC,0
+Burundi,BY,ABC,0
+Canada,CA,ABC,0
+Cambodia,CB,ABC,0
+Chad,CD,ABC,0
+Sri Lanka,CE,ABC,0
+Congo,CF,ABC,0
+Congo (Dem. Republic of The)-(Zaire),CG,ABC,0
+China,CH,ABC,0
+Chile,CI,ABC,0
+Cayman Islands,CJ,ABC,0
+Cocos (Keeling) Islands,CK,ABC,0
+Cameroon,CM,ABC,0
+Comoros,CN,ABC,0
+Colombia,CO,ABC,0
+Coral Sea Islands,CR,ABC,0
+Costa Rica,CS,ABC,0
+Central African Republic,CT,ABC,0
+Cuba,CU,ABC,0
+Cape Verde,CV,ABC,0
+Cook Islands,CW,ABC,0
+Cyprus,CY,ABC,0
+Denmark,DA,ABC,0
+Djibouti,DJ,ABC,0
+Dominica,DO,ABC,0
+Dominican Republic,DR,ABC,0
+BUGPLEASFIXME,DX,ABC,0
+Ecuador,EC,ABC,0
+Egypt,EG,ABC,0
+Ireland,EI,ABC,0
+Equatorial Guinea,EK,ABC,0
+Estonia,EN,ABC,0
+Eritrea,ER,ABC,0
+El Salvador,ES,ABC,0
+Ethiopia,ET,ABC,0
+Czech Republic,EZ,ABC,0
+French Guiana,FG,ABC,0
+Finland,FI,ABC,0
+Fiji,FJ,ABC,0
+Falkland Islands (Islas Malvinas),FK,ABC,0
+Federated States of Micronesia,FM,ABC,0
+Faroe Islands,FO,ABC,0
+French Polynesia,FP,ABC,0
+France,FR,ABC,0
+French Southern & Antarctic Islands,FS,ABC,0
+"Gambia, The",GA,ABC,0
+Gabon,GB,ABC,0
+Georgia,GG,ABC,0
+Ghana,GH,ABC,0
+Gibraltar,GI,ABC,0
+Grenada,GJ,ABC,0
+Guernsey,GK,ABC,0
+Greenland,GL,ABC,0
+Germany,GM,ABC,0
+Guadeloupe,GP,ABC,0
+Greece,GR,ABC,0
+Guatemala,GT,ABC,0
+Guinea,GV,ABC,0
+Guyana,GY,ABC,0
+Gaza Strip,GZ,ABC,0
+Haiti,HA,ABC,0
+Hong Kong,HK,ABC,0
+Heard Island & McDonald Islands,HM,ABC,0
+Honduras,HO,ABC,0
+Croatia,HR,ABC,0
+Hungary,HU,ABC,0
+Iceland,IC,ABC,0
+Indonesia,ID,ABC,0
+"Man, Isle of",IM,ABC,0
+India,IN,ABC,0
+British Indian Ocean Terr.(Diego Garcia),IO,ABC,0
+Clipperton Island,IP,ABC,0
+Iran,IR,ABC,0
+Israel,IS,ABC,0
+Italy,IT,ABC,0
+Cote D'Ivoire (Ivory Coast),IV,ABC,0
+Iraq,IZ,ABC,0
+Japan,JA,ABC,0
+Jersey,JE,ABC,0
+Jamaica,JM,ABC,0
+Jan Mayen,JN,ABC,0
+Jordan,JO,ABC,0
+Kenya,KE,ABC,0
+Kyrgyzstan,KG,ABC,0
+"Korea, Dem. Peoples Rep. of (North)",KN,ABC,0
+Kiribati,KR,ABC,0
+"Korea, Republic of (South)",KS,ABC,0
+Christmas Island,KT,ABC,0
+Kuwait,KU,ABC,0
+Kosovo,KV,ABC,0
+Kazakhstan,KZ,ABC,0
+Laos,LA,ABC,0
+Lebanon,LE,ABC,0
+Latvia,LG,ABC,0
+Lithuania,LH,ABC,0
+Liberia,LI,ABC,0
+Slovakia,LO,ABC,0
+Liechtenstein,LS,ABC,0
+Lesotho,LT,ABC,0
+Luxembourg,LU,ABC,0
+Libya,LY,ABC,0
+Madagascar,MA,ABC,0
+Martinique,MB,ABC,0
+Macau,MC,ABC,0
+Moldova,MD,ABC,0
+Mayotte,MF,ABC,0
+Mongolia,MG,ABC,0
+Montserrat,MH,ABC,0
+Malawi,MI,ABC,0
+Montenegro,MJ,ABC,0
+Macedonia,MK,ABC,0
+Mali,ML,ABC,0
+Monaco,MN,ABC,0
+Morocco,MO,ABC,0
+Mauritius,MP,ABC,0
+Mauritania,MR,ABC,0
+Malta,MT,ABC,0
+Oman,MU,ABC,0
+Maldives,MV,ABC,0
+Mexico,MX,ABC,0
+Malaysia,MY,ABC,0
+Mozambique,MZ,ABC,0
+New Caledonia,NC,ABC,0
+Niue,NE,ABC,0
+Norfolk Island,NF,ABC,0
+Niger,NG,ABC,0
+Vanuatu,NH,ABC,0
+Nigeria,NI,ABC,0
+Netherlands,NL,ABC,0
+Israel-Jordan Neutral Zone,NM,ABC,0
+Sint Maarten,NN,ABC,0
+Norway,NO,ABC,0
+Nepal,NP,ABC,0
+Nauru,NR,ABC,0
+Suriname,NS,ABC,0
+Nicaragua,NU,ABC,0
+New Zealand,NZ,ABC,0
+South Sudan,OD,ABC,0
+BUGPLEASFIXME,OS,ABC,0
+Paraguay,PA,ABC,0
+Pitcairn Islands,PC,ABC,0
+Peru,PE,ABC,0
+Paracel Islands,PF,ABC,0
+Spratly Islands,PG,ABC,0
+Pakistan,PK,ABC,0
+Poland,PL,ABC,0
+Panama,PM,ABC,0
+Portugal,PO,ABC,0
+Papua New Guinea,PP,ABC,0
+Palau,PS,ABC,0
+Guinea-Bissau,PU,ABC,0
+Qatar,QA,ABC,0
+Reunion,RE,ABC,0
+Serbia,RI,ABC,0
+Marshall Islands,RM,ABC,0
+Saint Martin,RN,ABC,0
+Romania,RO,ABC,0
+Philippines,RP,ABC,0
+Russia,RS,ABC,0
+Rwanda,RW,ABC,0
+Saudi Arabia,SA,ABC,0
+St. Pierre & Miquelon,SB,ABC,0
+St. Kitts & Nevis,SC,ABC,0
+Seychelles,SE,ABC,0
+South Africa,SF,ABC,0
+Senegal,SG,ABC,0
+St. Helena & Ascension Island,SH,ABC,0
+Slovenia,SI,ABC,0
+Sierra Leone,SL,ABC,0
+San Marino,SM,ABC,0
+Singapore,SN,ABC,0
+Somalia,SO,ABC,0
+Spain,SP,ABC,0
+St. Lucia,ST,ABC,0
+Sudan,SU,ABC,0
+Svalbard,SV,ABC,0
+Sweden,SW,ABC,0
+South Georgia and South Sandwich Islands,SX,ABC,0
+Syria,SY,ABC,0
+Switzerland,SZ,ABC,0
+Saint Barthelemy,TB,ABC,0
+Trinidad and Tobago,TD,ABC,0
+Thailand,TH,ABC,0
+Tajikistan,TI,ABC,0
+Turks & Caicos Islands,TK,ABC,0
+Tokelau,TL,ABC,0
+Tonga,TN,ABC,0
+Togo,TO,ABC,0
+Sao Tome & Principe,TP,ABC,0
+Tunisia,TS,ABC,0
+East Timor,TT,ABC,0
+Turkey,TU,ABC,0
+Tuvalu,TV,ABC,0
+Taiwan,TW,ABC,0
+Turkmenistan,TX,ABC,0
+"Tanzania, United Rep. of",TZ,ABC,0
+BUGPLEASFIXME,UC,ABC,0
+BUGPLEASFIXME,UF,ABC,0
+Uganda,UG,ABC,0
+United Kingdom,UK,ABC,0
+Ukraine,UP,ABC,0
+United States,US,ABC,0
+Burkina Faso,UV,ABC,0
+Uruguay,UY,ABC,0
+Uzbekistan,UZ,ABC,0
+St. Vincent & Grenadines,VC,ABC,0
+Venezuela,VE,ABC,0
+British Virgin Islands,VI,ABC,0
+Vietnam,VM,ABC,0
+Vatican City,VT,ABC,0
+Namibia,WA,ABC,0
+West Bank,WE,ABC,0
+Wallis & Futuna,WF,ABC,0
+Western Sahara,WI,ABC,0
+Samoa,WS,ABC,0
+Swaziland,WZ,ABC,0
+Yemen,YM,ABC,0
+Zambia,ZA,ABC,0
+Zimbabwe,ZI,ABC,0

@@ -101,7 +101,8 @@ class ScreenIO(QObject):
         if self.manager.isActive():
             self.manager.sendEvent(DisplayFlagEvent('SYM'))
 
-    def pan(self, *args):
+    def pan(self, *args): 
+        # Move center of display, relative of to absolute position lat,lon
         if self.manager.isActive():
             if args[0] == "LEFT":
                 self.ctrlon -= 0.5
@@ -116,9 +117,14 @@ class ScreenIO(QObject):
 
             self.manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
-    def showroute(self, acid):
+    def showroute(self, acid): # Toggle show route for this aircraft
         self.route_acid = acid
         return True
+
+    def addnavwpt(self, name,lat,lon):
+        # ToDO: Send this data to GUI and redraw nav waypoints
+        pass
+        return 
 
     def showacinfo(self, acid, infotext):
         self.echo(infotext)
@@ -126,6 +132,8 @@ class ScreenIO(QObject):
         return True
 
     def showssd(self, param):
+        # Conflict prevention display   
+        # Show solution space diagram, indicating potential conflicts
         if self.manager.isActive():
             if param == 'ALL' or param == 'OFF':
                 self.manager.sendEvent(DisplayFlagEvent('SSD', param))
