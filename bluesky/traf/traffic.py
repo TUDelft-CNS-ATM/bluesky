@@ -565,7 +565,10 @@ class Traffic(DynamicArrays):
             scr.echo(lines)
             
         return True
+        
     def airwaycmd(self,scr,key=""):
+        # Show conections of a waypoint
+ 
         reflat = scr.ctrlat
         reflon = scr.ctrlon
 
@@ -587,9 +590,9 @@ class Traffic(DynamicArrays):
             if len(connect)>0:
                 lines = ""
                 for c in connect:
-                    if len(c)>=3:
+                    if len(c)>=2:
                         # Add airway, direction, waypoint
-                        lines = lines+ c[0]+": "+c[1].lower()+" "+c[2]+"\n"
+                        lines = lines+ c[0]+": to "+c[1]+"\n"
                 scr.echo(lines[:-1])  # exclude final newline
             else:
                 return False,"No airway legs found for ",key

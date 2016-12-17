@@ -268,7 +268,6 @@ class Navdatabase:
         awkey = airwayid.upper()
 
         airway = []     # identifier of waypoint   0 .. N-1
-#        connect = []     # "TO","FROM", "-"        
 
         # Does this airway exist?
         if self.awid.count(awkey)>0:
@@ -286,7 +285,6 @@ class Navdatabase:
                     legs.append(newleg)
                     left.append(self.awfromwpid[i])
                     right.append(self.awtowpid[i])
-                    onedir = (self.awndir[i]==1)
                 
             # Not found: return
             if len(legs)==0:
@@ -367,11 +365,7 @@ class Navdatabase:
         if wpid in self.awfromwpid:
             idx = findall(self.awfromwpid,wpid)
             for i in idx:
-                if self.awndir[i]==1:
-                    dirtxt = 'TO'
-                else:
-                    dirtxt = 'TO/FROM'
-                newitem = [self.awid[i],dirtxt,self.awtowpid[i]] 
+                newitem = [self.awid[i],self.awtowpid[i]] 
                 if (newitem not in connect) and \
                          geo.kwikdist(self.awfromlat[i],self.awfromlon[i],
                                   wplat,wplon) < 10.:
@@ -381,16 +375,11 @@ class Navdatabase:
         if wpid in self.awtowpid:
             idx = findall(self.awtowpid,wpid)
             for i in idx:
-                if self.awndir[i]==1:
-                    dirtxt = 'FROM'
-                else:
-                    dirtxt = 'TO/FROM'
-
-                newitem = [self.awid[i],dirtxt,self.awfromwpid[i]] 
+                newitem = [self.awid[i],self.awfromwpid[i]] 
                 if (newitem not in connect) and \
                          geo.kwikdist(self.awtolat[i],self.awtolon[i],
                                   wplat,wplon) < 10.:
                     connect.append(newitem)
                     
-        return connect # return list of [awid,wpid,"TO"/"FROM"/"TO/FROM"]
+        return connect # return list of [awid,wpid]
 
