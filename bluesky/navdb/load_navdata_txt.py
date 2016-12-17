@@ -151,7 +151,7 @@ def load_navdata_txt():
         print "Reading awy.dat"
 
         for line in f:
-            line = line.strip()
+            line = line.strip('\n').strip()
             # Skip empty lines or comments
             if len(line) == 0 or line[0] == "#":
                 continue
@@ -184,7 +184,20 @@ def load_navdata_txt():
             awydata['awlowfl'].append(int(fields[7]))       # number of directions (1 or 2)
             awydata['awupfl'].append(int(fields[8]))        # number of directions (1 or 2)
     
-            awydata['awid'].append(fields[9])
+            if fields[9].find("-")<0:
+                #only one airway uses this leg                
+                awydata['awid'].append(fields[9])
+            else:
+                # More airways use this leg => copy leg with all airway ids
+                awids = fields[9].split("-")
+                for i in range(len(awids)):
+                    awydata['awid'].append(awids[i].strip())
+                    if i>0:
+                        # Repeat last entry
+                        for key in awydata:
+                            if key!="awid":
+                                awydata[key].append(awydata[key][-1])
+            
 
         # Convert lat,lons to numpy arrays for easy clipping
         awydata['awfromlat'] = np.array(awydata['awfromlat']) 
@@ -242,6 +255,7 @@ def load_navdata_txt():
                 aptdata['apelev'].append(float(fields[7])*ft)  # apt elev [m]
             except:
                 aptdata['apelev'].append(0.0)
+
 
     aptdata['aplat']    = np.array(aptdata['aplat'])
     aptdata['aplon']    = np.array(aptdata['aplon'])

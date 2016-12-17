@@ -529,7 +529,7 @@ class Traffic(DynamicArrays):
                     # Basic info
                     lines = lines + wp +" is a "+ typetxt       \
                            + " at\n"\
-                           + latlon2txt(self.navdb.wplat[iwp],                \
+                           + latlon2txt(self.navdb.wplat[iwp],  \
                                         self.navdb.wplon[iwp])
                     # Navaids have description                    
                     if len(desctxt)>0:
@@ -547,10 +547,49 @@ class Traffic(DynamicArrays):
                         verb = ["is ","are "][min(1,max(0,nother-1))]
                         lines = lines +"\nThere "+verb + str(nother) +\
                                    " other waypoint(s) also named " + wp
-                else:
-                    return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
+               
+               # Try airway id
+                else:  # airway
+                    awid = wp
+                    airway = self.navdb.listairway(awid)
+                    if len(airway)>0:
+                        lines = ""  
+                        for segment in airway:
+                            lines = lines+"Airway "+ awid + ": " + \
+                                    " - ".join(segment)+"\n"
+                        lines = lines[:-1] # cut off final newline
+                    else:
+                        return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
 
             # Show what we found on airport and navaid/waypoint
             scr.echo(lines)
             
         return True
+    def airwaycmd(self,scr,key=""):
+        reflat = scr.ctrlat
+        reflon = scr.ctrlon
+
+        if key=="":
+            return False,'AIRWAY needs waypoint or airway'
+        
+        if self.navdb.awid.count(key)>0:
+            return self.poscommand(scr, key.upper())
+        else:    
+            # Find connecting airway legs
+            wpid = key.upper()
+            iwp = self.navdb.getwpidx(wpid,reflat,reflon)
+            if iwp<0:
+                return False,key," not found."
+                
+            wplat = self.navdb.wplat[iwp]
+            wplon = self.navdb.wplon[iwp]
+            connect = self.navdb.listconnections(key.upper(),wplat,wplon)
+            if len(connect)>0:
+                lines = ""
+                for c in connect:
+                    if len(c)>=3:
+                        # Add airway, direction, waypoint
+                        lines = lines+ c[0]+": "+c[1].lower()+" "+c[2]+"\n"
+                scr.echo(lines[:-1])  # exclude final newline
+            else:
+                return False,"No airway legs found for ",key

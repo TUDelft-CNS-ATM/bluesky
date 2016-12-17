@@ -241,3 +241,18 @@ def latlon2txt(lat,lon):
 def deg180(dangle):
     """ Convert any difference in angles to interval [ -180,180 ) """
     return (dangle + 180.) % 360. - 180.
+
+def findall(lst,x):
+       # Find indices of multiple occurences of x in lst
+       idx = []
+       i = 0
+       found = True
+       while i<len(lst) and found:
+           try:
+               i = lst[i:].index(x)+i
+               idx.append(i)
+               i = i + 1
+               found = True
+           except:
+               found = False
+       return idx

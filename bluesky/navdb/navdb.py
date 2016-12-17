@@ -4,6 +4,7 @@ import numpy as np
 from loaddata import load_navdata
 from ..tools import geo
 from ..tools.aero import nm
+from ..tools.misc import findall
 
 
 class Navdatabase:
@@ -185,7 +186,7 @@ class Navdatabase:
         try:
             i = self.wpid.index(name)
         except:
-            return -1
+            return [-1]
 
         # if no pos is specified, get first occurence
         if not reflat < 99999.:
@@ -193,15 +194,8 @@ class Navdatabase:
 
         # If pos is specified check for more and return closest
         else:
-            idx = []
-            idx.append(i)
-            found = True
-            while i < len(self.wpid) - 1 and found:
-                try:
-                    i = self.wpid.index(name, i + 1)
-                    idx.append(i)
-                except:
-                    found = False
+            idx = findall(self.wpid,name) # find indices of al occurences
+            
             if len(idx) == 1:
                 return [idx[0]]
             else:
@@ -270,11 +264,133 @@ class Navdatabase:
         return self.getinside(self.aptlat, self.aptlon, lat0, lat1, lon0, lon1)
 
     # returns all runways of given airport
-    def listrwys(self, ICAO):
-        try: 
-            runway = str(self.rwythresholds[ICAO].keys())
+    def listairway(self, airwayid):
+        awkey = airwayid.upper()
 
-        except:
-            runway = ICAO + " is not a valid ICAO airport classifier. Please try again"            
+        airway = []     # identifier of waypoint   0 .. N-1
+#        connect = []     # "TO","FROM", "-"        
 
-        return True, runway
+        # Does this airway exist?
+        if self.awid.count(awkey)>0:
+            # Collect leg indices
+            i = 0
+            found = True
+            legs  = []  # Alle leg incl. duplicate legs
+            left  = []  # wps in left column in file
+            right = []  # wps in right coumn in file
+            
+            idx = findall(self.awid,awkey)
+            for i in idx:
+                newleg = self.awfromwpid[i]+"-"+self.awtowpid[i]
+                if newleg not in legs:
+                    legs.append(newleg)
+                    left.append(self.awfromwpid[i])
+                    right.append(self.awtowpid[i])
+                    onedir = (self.awndir[i]==1)
+                
+            # Not found: return
+            if len(legs)==0:
+                return []
+
+            # Count wps to see when we have all segments
+            unused =  len(left)+len(right)
+
+            while unused>0 and not left==len(left)*[""]:
+
+                # Find start of a segment
+                wps  = left+right
+                iwps = 0
+                while iwps<len(wps) and wps.count(wps[iwps])>1:
+                    iwps = iwps + 1
+    
+                i = iwps%len(left)
+                j = int(iwps/len(left))
+
+                # Catch single lost wps
+                if j>1 or iwps>len(wps):
+                    break
+    
+                # Sort
+                wps = [left,right]
+                segment = []
+
+                segready = False
+                while not segready:
+                    
+                    # Get leg
+                    curwp  = wps[j][i]
+                    nextwp = wps[1-j][i]
+
+                    # Update admin of to do wplist 
+                    unused      = unused - 2
+                    wps[j][i]   = ""
+                    wps[1-j][i] = ""
+
+                    # Add first wp to segment
+                    segment.append(curwp)
+
+                    # Find next lef with nextwp
+                    if wps[0].count(nextwp)>0:
+                        j  = 0
+                        i  = wps[0].index(nextwp)
+                        found = True                        
+                        
+                    elif wps[1].count(nextwp)>0:
+                        i  = wps[1].index(nextwp)
+                        j  = 1
+                        found = True
+                    else:
+                        found = False
+
+                    # This segemnt done?    
+                    segready = (not found) or curwp=="" or nextwp==""                         
+
+                # Also add final nextwp of this segment        
+                segment.append(nextwp)
+            
+                # Airway cab have multiple separate segments
+                airway.append(segment)
+            
+                # Ready for next segment
+                left  = wps[0]
+                right = wps[1]
+
+
+        return airway #,connect
+
+    def listconnections(self, wpid,wplat,wplon):
+        
+        # Return list of connecting airway legs
+        connect = []        
+
+        # Check from-list first
+        if wpid in self.awfromwpid:
+            idx = findall(self.awfromwpid,wpid)
+            for i in idx:
+                if self.awndir[i]==1:
+                    dirtxt = 'TO'
+                else:
+                    dirtxt = 'TO/FROM'
+                newitem = [self.awid[i],dirtxt,self.awtowpid[i]] 
+                if (newitem not in connect) and \
+                         geo.kwikdist(self.awfromlat[i],self.awfromlon[i],
+                                  wplat,wplon) < 10.:
+                    connect.append(newitem)
+
+        # Check to-list nextt            
+        if wpid in self.awtowpid:
+            idx = findall(self.awtowpid,wpid)
+            for i in idx:
+                if self.awndir[i]==1:
+                    dirtxt = 'FROM'
+                else:
+                    dirtxt = 'TO/FROM'
+
+                newitem = [self.awid[i],dirtxt,self.awfromwpid[i]] 
+                if (newitem not in connect) and \
+                         geo.kwikdist(self.awtolat[i],self.awtolon[i],
+                                  wplat,wplon) < 10.:
+                    connect.append(newitem)
+                    
+        return connect # return list of [awid,wpid,"TO"/"FROM"/"TO/FROM"]
+

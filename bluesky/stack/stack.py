@@ -39,7 +39,12 @@ cmddict   = dict() # Defined in stack.init
 #
 # Actual command definitions: see dictionary in def init(...) below
 #
-cmdsynon  = {"CONTINUE": "OP",
+cmdsynon  = {"ADDAIRWAY":"ADDAWY",
+             "AWY": "POS",
+             "AIRPORT":"POS",
+             "AIRWAYS":"AIRWAY",
+             "CALL":"PCALL",
+             "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
              "DELETE": "DEL",
@@ -61,6 +66,7 @@ cmdsynon  = {"CONTINUE": "OP",
              "Q": "QUIT",
              "STOP": "QUIT",
              "RUN": "OP",
+             "RUNWAYS": "POS",
              "RESOFACH": "RFACH",
              "RESOFACV": "RFACV",
              "SAVE": "SAVEIC",
@@ -144,6 +150,12 @@ def init(sim, traf, scr):
             "acid,wpinroute,txt,wpt,[alt,spd]",
             lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args),
             "After waypoint, add a waypoint to route of aircraft (FMS)"
+        ],
+        "AIRWAY": [
+            "AIRWAY wp/airway",
+            "txt",
+            lambda *args: traf.airwaycmd(scr,*args),
+            "Get info on airway or connections of a waypoint"
         ],
         "ALT": [
             "ALT acid, alt, [vspd]",
@@ -513,12 +525,6 @@ def init(sim, traf, scr):
             "[float]",
             traf.asas.SetPZRm,
             "Set horizontal radius of resolution zone in nm"
-        ],
-        "RUNWAYS": [
-            "RUNWAYS ICAO",
-            "txt",
-            lambda ICAO: traf.navdb.listrwys(ICAO),
-            "List available runways on an airport"
         ],
         "SAVEIC": [
             "SAVEIC filename",

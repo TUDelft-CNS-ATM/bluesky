@@ -100,6 +100,7 @@ def load_navdata():
 
             datecache = os.path.getmtime(cachedir + '/navdata.p')
             
+            
             datesource = max(os.path.getmtime(data_path + "/global/nav.dat"),
                              os.path.getmtime(data_path + "/global/fix.dat"),
                              os.path.getmtime(data_path + "/global/awy.dat"),
@@ -110,8 +111,8 @@ def load_navdata():
                 datesource = max(datesource,
                                  os.path.getmtime(data_path+"/global/fir/"+f))
 
-            # Check for cache ok
-            cache_ok = (datecache > datesource)  
+            # Check for cache ok, content cache changed on Dec 16th 2016
+            cache_ok = (datecache > datesource)  and datecache>1481884372 
 
             if cache_ok:
                 # Try reading data from cache
