@@ -547,6 +547,18 @@ class Traffic(DynamicArrays):
                         verb = ["is ","are "][min(1,max(0,nother-1))]
                         lines = lines +"\nThere "+verb + str(nother) +\
                                    " other waypoint(s) also named " + wp
+                    
+                    # In which airways?
+                    connect = self.navdb.listconnections(wp, \
+                                                self.navdb.wplat[iwp],
+                                                self.navdb.wplon[iwp])
+                    if len(connect)>0:                    
+                        awset = set([])                   
+                        for c in connect:
+                            awset.add(c[0])
+        
+                        lines = lines+"\nAirways: "+"-".join(awset)
+
                
                # Try airway id
                 else:  # airway
