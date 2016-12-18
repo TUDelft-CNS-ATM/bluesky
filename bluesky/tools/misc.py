@@ -230,17 +230,25 @@ def txt2lon(lontxt):
     return lon
 
 def lat2txt(lat):
-    return "NS"[lat<0] + str(abs(lat))
+    d,m,s = float2degminsec(abs(lat))
+    return "NS"[lat<0] + "%02d'%02d'"%(int(d),int(m))+str(s)+'"'
 
 def lon2txt(lon):
-    return "EW"[lon<0] + str(abs(lon))
+    d,m,s = float2degminsec(abs(lon))    
+    return "EW"[lon<0] + "%03d'%02d'"%(int(d),int(m))+str(s)+'"'
 
 def latlon2txt(lat,lon):
-    return lat2txt(lat)+","+lon2txt(lon)
+    return lat2txt(lat)+"  "+lon2txt(lon)
 
 def deg180(dangle):
     """ Convert any difference in angles to interval [ -180,180 ) """
     return (dangle + 180.) % 360. - 180.
+
+def float2degminsec(x):
+    deg     = int(x)
+    minutes = int(x*60.) - deg *60.
+    sec     = int(x*3600.) - deg*3600. - minutes*60.
+    return deg,minutes,sec
 
 def findall(lst,x):
        # Find indices of multiple occurences of x in lst

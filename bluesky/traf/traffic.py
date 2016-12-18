@@ -424,16 +424,24 @@ class Traffic(DynamicArrays):
             idx           = idxorwp
             acid          = self.id[idx]
             actype        = self.type[idx]
-            lat, lon      = self.lat[idx], self.lon[idx]
-            alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], round(self.trk[idx])
-            cas           = self.cas[idx] / kts
-            tas           = self.tas[idx] / kts
+            latlon        = latlon2txt(self.lat[idx], self.lon[idx])
+            alt           = round(self.alt[idx] / ft)
+            hdg           = round(self.hdg[idx])
+            trk           = round(self.trk[idx])
+            cas           = round(self.cas[idx] / kts)
+            tas           = round(self.tas[idx] / kts)
+            gs            = round(self.gs[idx]/kts)
+            M             = self.M[idx]
+            VS            = round(self.vs[idx]/ft*60.)              
             route         = self.ap.route[idx]
             
             # Position report
-            lines = "Info on %s %s index = %d\n" % (acid, actype, idx)  \
-                 + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
-                 + "Alt = %d ft, Hdg = %d, Trk = %d\n" % (alt, hdg, trk)
+            
+            lines = "Info on %s %s index = %d\n" %(acid, actype, idx)     \
+                  + "Pos: "+latlon+ "\n"                                  \
+                  + "Hdg: %03d   Trk: %03d\n"        %(hdg, trk)              \
+                  + "Alt: %d ft  V/S: %d fpm\n"  %(alt,VS)                \
+                  + "CAS/TAS/GS: %d/%d/%d kts   M: %.3f\n"%(cas,tas,gs,M)
 
             # FMS AP modes
             if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:

@@ -202,7 +202,7 @@ def init(sim, traf, scr):
         "CALC": [
             "CALC expression",
             "string",
-            lambda expr: scr.echo("Ans = " + str(eval(expr))),
+            calccommand,
             "Simple in-line math calculator, evaluates expression"
         ],
         "CDMETHOD": [
@@ -1439,3 +1439,12 @@ class Argparser:
         # Argument not found: return False
         self.error = 'Unknown argument type: ' + argtype
         return False
+
+def calccommand(expr):
+    # Simple calculator which can use math functions
+    try:
+        x = eval(expr.lower())
+    except:
+        return False,"Error in calculating "+expr
+    return True, str(x)
+            
