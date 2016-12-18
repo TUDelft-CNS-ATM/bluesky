@@ -16,7 +16,7 @@ Methods:
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
 from math import *
-import numpy as np
+import numpy as np   
 from random import seed
 import os
 import os.path
@@ -25,6 +25,7 @@ import subprocess
 from ..tools import geo, areafilter
 from ..tools.aero import kts, ft, fpm, tas2cas, density
 from ..tools.misc import txt2alt, cmdsplit
+from ..tools.calculator import calculator
 from ..tools.position import txt2pos, islat
 from .. import settings
 
@@ -202,7 +203,7 @@ def init(sim, traf, scr):
         "CALC": [
             "CALC expression",
             "string",
-            calccommand,
+            calculator,
             "Simple in-line math calculator, evaluates expression"
         ],
         "CDMETHOD": [
@@ -1439,12 +1440,3 @@ class Argparser:
         # Argument not found: return False
         self.error = 'Unknown argument type: ' + argtype
         return False
-
-def calccommand(expr):
-    # Simple calculator which can use math functions
-    try:
-        x = eval(expr.lower())
-    except:
-        return False,"Error in calculating "+expr
-    return True, str(x)
-            
