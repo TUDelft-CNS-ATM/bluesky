@@ -16,9 +16,9 @@ from misc import latlon2txt,lat2txt,lon2txt
 def sind(x):
     return sin(radians(x))
 def cosd(x):
-    return sin(radians(x))
+    return cos(radians(x))
 def tand(x):
-    return sin(radians(x))
+    return tan(radians(x))
 
 # Conversion from degrees/minutes/seconds
 def rad(d,m,s):
