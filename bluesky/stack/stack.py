@@ -225,8 +225,8 @@ def init(sim, traf, scr):
             "Create an aircraft"
         ],
          "DEFWPT": [
-            "DEFWPT wpname,[lat,lon,type,refapt,countrycode]",
-            "txt,[latlon,txt,txt,txt]",
+            "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
+            "txt,latlon,[txt,txt,txt]",
             lambda *args: traf.navdb.defwpt(scr, *args),
             "Define a waypoint only for this scenario/run"
         ],

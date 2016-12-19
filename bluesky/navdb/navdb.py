@@ -99,11 +99,13 @@ class Navdatabase:
         self.rwythresholds = rwythresholds
 
 
-    def defwpt(self,scr,name=None,lat=None,lon=None,wptype=None,wpapt=None,wpco=None):
+    def defwpt(self,scr,name=None,lat=None,lon=None,wptype=None):
 
         # Prevent polluting the database: check arguments
         if name==None or name=="":
             return False,"Insufficient arguments"
+        elif name.isdigit():
+            return False,"Name needs to start with an alphabetical character"
 
         # No data: give info on waypoint            
         elif lat==None or lon==None:
@@ -130,17 +132,12 @@ class Navdatabase:
         else:
             self.wptype.append(wptype)
 
-        if wpapt == None:
-            self.wpapt.append("")
-        else:
-            self.wpapt.append(wpapt)
+        self.wpelev.append(0.0)               # elevation [m]
+        self.wpvar.append(0.0)                # magn variation [deg]
+        self.wpfreq.append(0.0)               # frequency [kHz/MHz]
+        self.wpdesc.append("Custom waypoint") # description
 
-        if wpco == None:
-            self.wpco.append("")
-        else:
-            self.wpco.append(wpco)
-            
-        # Update screen info
+         # Update screen info
         scr.addnavwpt(name.upper(),lat,lon)
 
         return True,name.upper()+" added to navdb."
