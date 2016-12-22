@@ -265,7 +265,7 @@ def init(sim, traf, scr):
         "DIST": [
             "DIST lat0, lon0, lat1, lon1",
             "latlon,latlon",
-            lambda *args: scr.echo("QDR = %.2f deg, Dist = %.3f nm" % geo.qdrdist(*args)),
+            distcalc,
             "Distance and direction calculation between two positions"
         ],
         "DT": [
@@ -1440,3 +1440,12 @@ class Argparser:
         # Argument not found: return False
         self.error = 'Unknown argument type: ' + argtype
         return False
+
+def distcalc(lat0,lon0,lat1,lon1):
+    try:
+        qdr,dist = geo.qdrdist(lat0,lon0,lat1,lon1)
+        return True,"QDR = %.2f deg, Dist = %.3f nm" %(qdr%360.,dist)
+    except:
+        return False,'Error in dist calculation.'
+
+    
