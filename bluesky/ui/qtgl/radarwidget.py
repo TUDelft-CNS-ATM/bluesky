@@ -16,7 +16,7 @@ from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, fon
 from ...tools.aero import ft, nm, kts
 from ...sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
 from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
-from ...navdb.loaddata import load_aptsurface, load_coastlines
+from ...navdb.loadnavdata import load_aptsurface, load_coastlines
 
 
 # Static defines
