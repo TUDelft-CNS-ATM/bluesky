@@ -707,7 +707,8 @@ class RadarWidget(QGLWidget):
             # we remove the current one.
             nact.polydata = np.delete(nact.polydata, range(*nact.polynames[name]))
             del nact.polynames[name]
-
+        
+        # Break up polyline list of (lat,lon)s into separate line segments
         if data_in is not None:
             nact.polynames[name] = (len(nact.polydata), 2 * len(data_in))
             newbuf = np.empty(2 * len(data_in), dtype=np.float32)
