@@ -373,6 +373,7 @@ class Gui(QApplication):
                 else:
                     self.win.showNormal()
 
+            # Enter-key: enter command
             if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
                 if len(self.command_line) > 0:
                     # emit a signal with the command for the simulation thread
@@ -453,7 +454,7 @@ class Gui(QApplication):
     def stack(self, text):
         self.sendEvent(manager.instance, StackTextEvent(cmdtext=text))
         # Echo back to command window
-        self.display_stack(text)
+        self.display_stack(">> "+text)
 
     def display_stack(self, text):
         self.win.stackText.append(text)

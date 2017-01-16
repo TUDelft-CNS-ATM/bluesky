@@ -424,16 +424,24 @@ class Traffic(DynamicArrays):
             idx           = idxorwp
             acid          = self.id[idx]
             actype        = self.type[idx]
-            lat, lon      = self.lat[idx], self.lon[idx]
-            alt, hdg, trk = self.alt[idx] / ft, self.hdg[idx], round(self.trk[idx])
-            cas           = self.cas[idx] / kts
-            tas           = self.tas[idx] / kts
+            latlon        = latlon2txt(self.lat[idx], self.lon[idx])
+            alt           = round(self.alt[idx] / ft)
+            hdg           = round(self.hdg[idx])
+            trk           = round(self.trk[idx])
+            cas           = round(self.cas[idx] / kts)
+            tas           = round(self.tas[idx] / kts)
+            gs            = round(self.gs[idx]/kts)
+            M             = self.M[idx]
+            VS            = round(self.vs[idx]/ft*60.)              
             route         = self.ap.route[idx]
             
             # Position report
-            lines = "Info on %s %s index = %d\n" % (acid, actype, idx)  \
-                 + "Pos = %.2f, %.2f. Spd: %d kts CAS, %d kts TAS\n" % (lat, lon, cas, tas) \
-                 + "Alt = %d ft, Hdg = %d, Trk = %d\n" % (alt, hdg, trk)
+            
+            lines = "Info on %s %s index = %d\n" %(acid, actype, idx)     \
+                  + "Pos: "+latlon+ "\n"                                  \
+                  + "Hdg: %03d   Trk: %03d\n"        %(hdg, trk)              \
+                  + "Alt: %d ft  V/S: %d fpm\n"  %(alt,VS)                \
+                  + "CAS/TAS/GS: %d/%d/%d kts   M: %.3f\n"%(cas,tas,gs,M)
 
             # FMS AP modes
             if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
@@ -529,7 +537,7 @@ class Traffic(DynamicArrays):
                     # Basic info
                     lines = lines + wp +" is a "+ typetxt       \
                            + " at\n"\
-                           + latlon2txt(self.navdb.wplat[iwp],                \
+                           + latlon2txt(self.navdb.wplat[iwp],  \
                                         self.navdb.wplon[iwp])
                     # Navaids have description                    
                     if len(desctxt)>0:
@@ -547,10 +555,64 @@ class Traffic(DynamicArrays):
                         verb = ["is ","are "][min(1,max(0,nother-1))]
                         lines = lines +"\nThere "+verb + str(nother) +\
                                    " other waypoint(s) also named " + wp
-                else:
-                    return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
+                    
+                    # In which airways?
+                    connect = self.navdb.listconnections(wp, \
+                                                self.navdb.wplat[iwp],
+                                                self.navdb.wplon[iwp])
+                    if len(connect)>0:                    
+                        awset = set([])                   
+                        for c in connect:
+                            awset.add(c[0])
+        
+                        lines = lines+"\nAirways: "+"-".join(awset)
+
+               
+               # Try airway id
+                else:  # airway
+                    awid = wp
+                    airway = self.navdb.listairway(awid)
+                    if len(airway)>0:
+                        lines = ""  
+                        for segment in airway:
+                            lines = lines+"Airway "+ awid + ": " + \
+                                    " - ".join(segment)+"\n"
+                        lines = lines[:-1] # cut off final newline
+                    else:
+                        return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
 
             # Show what we found on airport and navaid/waypoint
             scr.echo(lines)
             
         return True
+        
+    def airwaycmd(self,scr,key=""):
+        # Show conections of a waypoint
+ 
+        reflat = scr.ctrlat
+        reflon = scr.ctrlon
+
+        if key=="":
+            return False,'AIRWAY needs waypoint or airway'
+        
+        if self.navdb.awid.count(key)>0:
+            return self.poscommand(scr, key.upper())
+        else:    
+            # Find connecting airway legs
+            wpid = key.upper()
+            iwp = self.navdb.getwpidx(wpid,reflat,reflon)
+            if iwp<0:
+                return False,key," not found."
+                
+            wplat = self.navdb.wplat[iwp]
+            wplon = self.navdb.wplon[iwp]
+            connect = self.navdb.listconnections(key.upper(),wplat,wplon)
+            if len(connect)>0:
+                lines = ""
+                for c in connect:
+                    if len(c)>=2:
+                        # Add airway, direction, waypoint
+                        lines = lines+ c[0]+": to "+c[1]+"\n"
+                scr.echo(lines[:-1])  # exclude final newline
+            else:
+                return False,"No airway legs found for ",key

@@ -24,23 +24,75 @@ if not os.path.exists(cachedir):
 
 
 def load_coastlines():
-    if not os.path.isfile(cachedir + '/coastlines.p'):
-        coastvertices, coastindices = load_coastline_txt()
-        with open(cachedir + '/coastlines.p', 'wb') as f:
-            print "Writing cache: coastlines.p"
-            pickle.dump(coastvertices, f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(coastindices, f, pickle.HIGHEST_PROTOCOL)
+    # Check whether anything changed which requires rewriting the cache
+    if os.path.isfile(cachedir + '/coastlines.p'):
+
+        datecache = os.path.getmtime(cachedir + '/coastlines.p')
+        
+        # Check dates of original data file 
+        datesource = os.path.getmtime(data_path + "/global/coastlines.dat")
+    
+        # If running from sources, check dates of source files as well            
+        if os.path.isfile("./bluesky/navdb/load_visuals_txt.py"):
+            datesource = max(datesource,
+                  os.path.getmtime("./bluesky/navdb/load_visuals_txt.py"))
+        cache_ok = datecache>datesource    
     else:
+        cache_ok = False
+    
+    # If cache up to date, use it
+    if cache_ok:    
         with open(cachedir + '/coastlines.p', 'rb') as f:
             print "Reading cache: coastlines.p"
             coastvertices = pickle.load(f)
             coastindices  = pickle.load(f)
 
+    # else read original file, and write new cache file
+    else:
+        coastvertices, coastindices = load_coastline_txt()
+        with open(cachedir + '/coastlines.p', 'wb') as f:
+            print "Writing cache: coastlines.p"
+            pickle.dump(coastvertices, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(coastindices, f, pickle.HIGHEST_PROTOCOL)
+
     return coastvertices, coastindices
 
 
 def load_aptsurface():
-    if not os.path.isfile(cachedir + '/aptsurface.p'):
+    
+    # Check whether anything changed which requires rewriting the cache
+    if os.path.isfile(cachedir + '/aptsurface.p'):
+
+        datecache = os.path.getmtime(cachedir + '/aptsurface.p')
+        
+        # Check dates of original data file 
+        datesource = os.path.getmtime(data_path + "/global/apt.zip")
+        
+        # Chekc whether source file changed
+        if os.path.isfile("./bluesky/navdb/load_visuals_txt.py"):
+            datesource = max(datesource,
+                  os.path.getmtime("./bluesky/navdb/load_visuals_txt.py"))
+        cache_ok = datecache>datesource    
+
+    
+        cache_ok = datecache>datesource    
+    else:
+        cache_ok = False
+    
+    # If cache up to date, use it
+    if cache_ok:    
+        with open(cachedir + '/aptsurface.p', 'rb') as f:
+            print "Reading cache: aptsurface.p"
+            vbuf_asphalt  = pickle.load(f)
+            vbuf_concrete = pickle.load(f)
+            vbuf_runways  = pickle.load(f)
+            vbuf_rwythr   = pickle.load(f)
+            apt_ctr_lat   = pickle.load(f)
+            apt_ctr_lon   = pickle.load(f)
+            apt_indices   = pickle.load(f)
+
+    # else read original files, and write new cache file
+    else:
         vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, \
             apt_indices, rwythresholds = load_aptsurface_txt()
         with open(cachedir + '/aptsurface.p', 'wb') as f:
@@ -55,16 +107,7 @@ def load_aptsurface():
         with open(cachedir + '/rwythresholds.p', 'wb') as f:
             pickle.dump(rwythresholds,  f, pickle.HIGHEST_PROTOCOL)
             print "Writing cache: rwythresholds.p"
-    else:
-        with open(cachedir + '/aptsurface.p', 'rb') as f:
-            print "Reading cache: aptsurface.p"
-            vbuf_asphalt  = pickle.load(f)
-            vbuf_concrete = pickle.load(f)
-            vbuf_runways  = pickle.load(f)
-            vbuf_rwythr   = pickle.load(f)
-            apt_ctr_lat   = pickle.load(f)
-            apt_ctr_lon   = pickle.load(f)
-            apt_indices   = pickle.load(f)
+
     return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \
         apt_ctr_lat, apt_ctr_lon, apt_indices
 
@@ -100,18 +143,27 @@ def load_navdata():
 
             datecache = os.path.getmtime(cachedir + '/navdata.p')
             
+            # Check dates of original data files 
             datesource = max(os.path.getmtime(data_path + "/global/nav.dat"),
                              os.path.getmtime(data_path + "/global/fix.dat"),
                              os.path.getmtime(data_path + "/global/awy.dat"),
                              os.path.getmtime(data_path + "/global/airports.dat"),
                              os.path.getmtime(data_path + "/global/icao-countries.dat"))
 
+            # If running from sources, check dates of source files as well            
+            if os.path.isdir("./bluesky/navdb"):
+                for f in os.listdir("./bluesky/navdb"):
+                    if f.endswith(".py")>0:
+                        datesource = max(datesource,
+                                          os.path.getmtime("./bluesky/navdb/"+f))
+                        
+            # Check for newer fir data file
             for f in os.listdir(data_path+"/global/fir/"):
                 datesource = max(datesource,
                                  os.path.getmtime(data_path+"/global/fir/"+f))
 
-            # Check for cache ok
-            cache_ok = (datecache > datesource)  
+            # Check for cache ok, content cache changed on Dec 16th 2016
+            cache_ok = (datecache > datesource)  and datecache>1481884372 
 
             if cache_ok:
                 # Try reading data from cache
