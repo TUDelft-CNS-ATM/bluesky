@@ -1,7 +1,7 @@
 from math import *
 import numpy as np
 
-from loaddata import load_navdata
+from loadnavdata import load_navdata
 from ..tools import geo
 from ..tools.aero import nm
 from ..tools.misc import findall

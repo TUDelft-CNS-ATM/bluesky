@@ -152,20 +152,35 @@ class ScreenIO(QObject):
             self.manager.sendEvent(DisplayFlagEvent(switch, argument))
 
     def objappend(self, objtype, objname, data_in):
+        """Add a drawing object to the radar screen using the following inpouts:
+           objtype: "LINE"/"POLY" /"BOX"/"CIRCLE" = string with type of object
+           objname: string with a name as key for reference
+           objdata: lat,lon data, depending on type:
+                    POLY/LINE: lat0,lon0,lat1,lon1,lat2,lon2,....
+                    BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
+                    CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
+        """
         if data_in is None:
             # This is an object delete event
             data = None
+            
         elif objtype == 'LINE' or objtype[:4] == 'POLY':
+            # Input data is laist or array: [lat0,lon0,lat1,lon1,lat2,lon2,lat3,lon3,..]
             data = np.array(data_in, dtype=np.float32)
+
         elif objtype == 'BOX':
-            # BOX: 0 = lat0, 1 = lon0, 2 = lat1, 3 = lat1 , use bounding box
+            # Convert box coordinates into polyline list
+            # BOX: 0 = lat0, 1 = lon0, 2 = lat1, 3 = lon1 , use bounding box
             data = np.array([data_in[0], data_in[1],
                              data_in[0], data_in[3],
                              data_in[2], data_in[3],
                              data_in[2], data_in[1]], dtype=np.float32)
 
         elif objtype == 'CIRCLE':
-            # parameters
+            # Input data is latctr,lonctr,radius[nm]
+            # Convert circle into polyline list            
+            
+            # Circle parameters
             Rearth = 6371000.0             # radius of the Earth [m]
             numPoints = 72                 # number of straight line segments that make up the circrle
 

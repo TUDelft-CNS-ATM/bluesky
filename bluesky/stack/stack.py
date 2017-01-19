@@ -134,7 +134,7 @@ def init(sim, traf, scr):
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon),[alt,spd,afterwp]",
+            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER),[alt,spd,afterwp]",
             "acid,wpt,[alt,spd,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
@@ -361,7 +361,7 @@ def init(sim, traf, scr):
         "LINE": [
             "LINE name,lat,lon,lat,lon",
             "txt,latlon,latlon",
-            lambda name, *coords: scr.objappend(1, name, coords),
+            lambda name, *coords: scr.objappend("LINE", name, coords),
             "Draw a line on the radar screen"
         ],
         "LISTRTE": [

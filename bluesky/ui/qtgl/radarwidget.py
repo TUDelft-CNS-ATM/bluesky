@@ -16,7 +16,7 @@ from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, fon
 from ...tools.aero import ft, nm, kts
 from ...sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
 from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
-from ...navdb.loaddata import load_aptsurface, load_coastlines
+from ...navdb.loadnavdata import load_aptsurface, load_coastlines
 
 
 # Static defines
@@ -707,7 +707,8 @@ class RadarWidget(QGLWidget):
             # we remove the current one.
             nact.polydata = np.delete(nact.polydata, range(*nact.polynames[name]))
             del nact.polynames[name]
-
+        
+        # Break up polyline list of (lat,lon)s into separate line segments
         if data_in is not None:
             nact.polynames[name] = (len(nact.polydata), 2 * len(data_in))
             newbuf = np.empty(2 * len(data_in), dtype=np.float32)
