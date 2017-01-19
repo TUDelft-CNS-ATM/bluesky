@@ -63,9 +63,9 @@ try:
     from bluesky.traf import *
     from bluesky.traf.asas import *
     from bluesky.traf.metric import *
-    from bluesky.traf.navdb import *
     from bluesky.traf.params import *
     from bluesky.traf.perf import *
+    from bluesky.navdb import *
 except Exception, err:
     print traceback.format_exc()
     print "One or more bluesky modules is not working properly, check error for more detail."
