@@ -1,8 +1,4 @@
 from ..settings import perf_path_bada
-from glob import glob
-if len(glob(perf_path_bada + '/*.OPF')) == 0:
-    raise ImportError('BADA performance model: No BADA files found in ' + perf_path_bada + '!')
-
 import os
 import numpy as np
 from math import *
@@ -10,6 +6,13 @@ from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 
 from performance import esf, phases, limits
 from ..settings import data_path
+
+from glob import glob
+nfiles = len(glob(perf_path_bada + '/*.OPF'))
+if nfiles == 0:
+    raise ImportError('BADA performance model: No BADA files found in ' + perf_path_bada + '!')
+else:
+    print 'Using BADA performance model. Found %i aircraft performance definition files (*.OPF)' % nfiles
 
 
 class Coefficients:
@@ -41,11 +44,11 @@ class Coefficients:
     T134, T154, T204, TB20, TB21, TBM7, TBM8, YK40, YK42
     """
     def __init__(self):
-        # Check opffiles in folder 
+        # Check opffiles in folder
         self.path = data_path + "/coefficients/BADA/"
         self.files = os.listdir(self.path)
         return
-        
+
     def coeff(self):
         # create empty database
         # structure according to BADA OPF files

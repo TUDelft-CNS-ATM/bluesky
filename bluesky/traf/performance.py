@@ -18,7 +18,7 @@ Date          :
 
 import numpy as np
 from ..tools.aero import kts, ft, gamma, gamma1, gamma2, R, beta, g0, \
-    vmach2cas, vcas2mach
+    vmach2cas
 
 
 #------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
     Tspd = np.array(gs > (30. * kts))
     Tvs  = np.array(delalt >= 0.) * 1.0
 
-    to   = Talt*Tspd*Tvs*1
+    to   = Talt * Tspd * Tvs * 1
 
     #-------------------------------------------------
     # phase IC[2]: 400<alt<2000, vs>0
@@ -241,18 +241,3 @@ def limits(desspd, limspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
 
 
     return limspd, limspd_flag, limalt, limvs, limvs_flag
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
