@@ -59,3 +59,9 @@ docs/_build/
 target/
 
 data/cache
+data/coefficients/BADA/*.APF
+data/coefficients/BADA/*.OPF
+data/coefficients/BADA/*.PTD
+data/coefficients/BADA/SYNONYM.NEW
+data/coefficients/BADA/BADA.GPF
+data/coefficients/BADA/ReleaseSummary
