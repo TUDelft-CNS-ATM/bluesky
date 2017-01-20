@@ -1,4 +1,3 @@
-from ..settings import perf_path_bada
 import os
 import numpy as np
 from math import *
@@ -6,6 +5,8 @@ from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 
 from performance import esf, phases, limits
 from ..settings import data_path
+from ..settings import perf_path_bada
+from ..settings import verbose
 
 from glob import glob
 nfiles = len(glob(perf_path_bada + '/*.OPF'))
@@ -545,9 +546,12 @@ class PerfBADA():
             coeffidx  = coeff.atype.index(actype)
         else:
             coeffidx  = 0
-            if not self.warned:
-                  print "Aircraft is using default B747-400 performance."
-            self.warned    = True
+            if not verbose:
+                if not self.warned:
+                    print "Aircraft is using default B747-400 performance."
+                    self.warned = True
+            else:
+                print "Flight " + self.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
         # designate aicraft to its aircraft type
         self.etype         = np.append(self.etype, coeff.etype[coeffidx])        
        
