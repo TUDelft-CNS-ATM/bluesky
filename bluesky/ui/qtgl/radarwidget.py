@@ -157,7 +157,8 @@ class RadarWidget(QGLWidget):
         nact = self.nodedata[connidx]
         if len(nact.polydata) > 0:
             update_buffer(self.allpolysbuf, nact.polydata)
-        self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+        if self.initialized:
+            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
     def create_objects(self):
         if not self.isValid():
@@ -398,11 +399,15 @@ class RadarWidget(QGLWidget):
             self.ssd_shader.loc_nac = gl.glGetUniformLocation(self.ssd_shader.program, 'n_ac')
 
         except RuntimeError as e:
+            print 'Error compiling shaders in radarwidget: ' + e.args[0]
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
             return
 
         # create all vertex array objects
-        self.create_objects()
+        try:
+            self.create_objects()
+        except Exception as e:
+            print 'Error while creating RadarWidget objects: ' + e.args[0]
 
     def paintGL(self):
         """Paint the scene."""
