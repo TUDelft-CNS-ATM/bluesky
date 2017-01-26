@@ -53,12 +53,21 @@ if qt:
     print "[QT%d]" % QT_VERSION
     print "Checking for pyopengl           ",
     try:
+        import OpenGL
         import OpenGL.GL as ogl
     except ImportError:
         print "[FAIL]"
     else:
-        gl = True
-        print '[OK]'
+        v = OpenGL.__version__.split('.')
+        ver = float(v[0]) + 0.1 * int(v[1])
+
+        gl = (ver >= 3.1)
+        if gl:
+            print '[OK]'
+        else:
+            print '[FAIL]'
+            print 'OpenGL module version should be at least 3.1.0'
+        print 'OpenGL module version is         [%s]' % OpenGL.__version__
         print "Checking GL capabilities        ",
         app = QApplication([])
 
