@@ -1,13 +1,12 @@
 try:
     from PyQt5.QtCore import Qt, QEvent, QTimer
-    from PyQt5.QtGui import QColor
     from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
     QT_VERSION = 5
     print('Using Qt5 for windows and widgets')
 except ImportError:
     from PyQt4.QtCore import Qt, QEvent, QTimer
-    from PyQt4.QtGui import QColor, QApplication, QFileDialog, QErrorMessage
+    from PyQt4.QtGui import QApplication, QFileDialog, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
     QT_VERSION = 4
     print('Using Qt4 for windows and widgets')
@@ -18,7 +17,7 @@ from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
 # from aman import AMANDisplay
 from ...sim.qtgl import MainManager as manager
-from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
+from ...sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, StackTextEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
@@ -27,7 +26,8 @@ from ...sim.qtgl import PanZoomEvent, ACDataEvent, StackTextEvent, \
 from radarwidget import RadarWidget
 from nd import ND
 import autocomplete
-from ...tools.misc import cmdsplit
+from ...tools.misc import cmdsplit, tim2txt
+from ...settings import scenario_path
 import platform
 
 is_osx = platform.system() == 'Darwin'
@@ -81,6 +81,7 @@ class Gui(QApplication):
     def __init__(self):
         super(Gui, self).__init__([])
         self.acdata          = ACDataEvent()
+        self.routedata       = RouteDataEvent()
         self.navdb           = None
         self.radarwidget     = []
         self.command_history = []
@@ -97,7 +98,7 @@ class Gui(QApplication):
         self.simt            = 0.0
 
         # Register our custom pan/zoom event
-        for etype in range(1000, 1000+NUMEVENTS):
+        for etype in range(1000, 1000 + NUMEVENTS):
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
@@ -133,7 +134,6 @@ class Gui(QApplication):
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
         # self.aman = AMANDisplay()
-        
 
         gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
@@ -180,6 +180,7 @@ class Gui(QApplication):
                 return True
 
             elif event.type() == RouteDataEventType:
+                self.routedata = event
                 self.radarwidget.update_route_data(event)
                 return True
 
@@ -187,15 +188,13 @@ class Gui(QApplication):
                 self.radarwidget.updatePolygon(event.name, event.data)
 
             elif event.type() == SimInfoEventType:
-                hours     = np.floor(event.simt / 3600)
-                minutes   = np.floor((event.simt - 3600 * hours) / 60)
-                seconds   = np.floor(event.simt - 3600 * hours - 60 * minutes)
-                time = '%02d:%02d:%02d' % (hours, minutes, seconds)
-                self.win.setNodeInfo(manager.sender()[0], time, event.scenname)
+                simt = tim2txt(event.simt)[:-3]
+                simtclock = tim2txt(event.simtclock)[:-3]
+                self.win.setNodeInfo(manager.sender()[0], simt, event.scenname)
                 if manager.sender()[0] == manager.actnode():
                     self.simt = event.simt
-                    self.win.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                        % (time, event.simdt, event.sys_freq, self.modes[event.mode], event.n_ac, self.acdata.nconf_cur, self.acdata.nconf_tot, self.acdata.nlos_cur, self.acdata.nlos_tot))
+                    self.win.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
+                        % (simt, event.simdt, event.sys_freq, simtclock, self.modes[event.mode], event.n_ac, self.acdata.nconf_cur, self.acdata.nconf_tot, self.acdata.nlos_cur, self.acdata.nlos_tot))
                 return True
 
             elif event.type() == StackTextEventType:
@@ -212,8 +211,10 @@ class Gui(QApplication):
 
             elif event.type() == DisplayFlagEventType:
                 # Switch/toggle/cycle radar screen features e.g. from SWRAD command
+                if event.switch == 'RESET':
+                    self.radarwidget.clearPolygons()
                 # Coastlines
-                if event.switch == "GEO":
+                elif event.switch == "GEO":
                     self.radarwidget.show_coast = not self.radarwidget.show_coast
 
                 # FIR boundaries
@@ -312,7 +313,7 @@ class Gui(QApplication):
             elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton and not self.mousedragged:
                 event_processed = True
                 lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb)
+                tostack, todisplay = radarclick(self.command_line, lat, lon, self.acdata, self.navdb, self.routedata)
                 if len(todisplay) > 0:
                     if '\n' in todisplay:
                         self.command_line = ''
@@ -423,7 +424,7 @@ class Gui(QApplication):
                     hintargs = hint.split(',')
                     hint = ' ' + str.join(',', hintargs[len(self.args):])
 
-            self.win.lineEdit.setHtml('<font color="#00ff00">>>' + self.command_line + '</font><font color="#aaaaaa">' + hint + '</font>')
+            self.win.lineEdit.setHtml('>>' + self.command_line + '<font color="#aaaaaa">' + hint + '</font>')
             self.prev_cmdline = self.command_line
 
         if self.mousepos != self.prevmousepos and len(self.args) >= 2:
@@ -438,9 +439,9 @@ class Gui(QApplication):
                 elif self.cmd in ['BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
                     data = np.zeros(len(self.args) + 1, dtype=np.float32)
                     for i in range(1, len(self.args), 2):
-                        data[i-1] = float(self.args[i])
-                        data[i]   = float(self.args[i+1])
-                    data[-2:]     = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
+                        data[i - 1] = float(self.args[i])
+                        data[i]     = float(self.args[i + 1])
+                    data[-2:]       = self.radarwidget.pixelCoordsToLatLon(self.mousepos[0], self.mousepos[1])
                     self.radarwidget.previewpoly(self.cmd, data)
 
             except:
@@ -455,13 +456,11 @@ class Gui(QApplication):
         self.display_stack(text)
 
     def display_stack(self, text):
-        self.win.stackText.setTextColor(QColor(0, 255, 0))
-        # self.win.stackText.insertHtml('<br>' + text)
         self.win.stackText.append(text)
         self.win.stackText.verticalScrollBar().setValue(self.win.stackText.verticalScrollBar().maximum())
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', 'scenario', 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', scenario_path, 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:

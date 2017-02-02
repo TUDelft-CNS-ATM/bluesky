@@ -189,7 +189,7 @@ if gui == 'qtgl':
         apt_indices   = []
         apt_ctr_lat   = []
         apt_ctr_lon   = []
-        apt_bb        = None
+        apt_bb        = BoundingBox()
         count         = 0
         bytecount     = 0
         zfile         = ZipFile(data_path + '/global/apt.zip')
@@ -209,19 +209,31 @@ if gui == 'qtgl':
                 # 1: AIRPORT
                 if elems[0] == '1':
                     cur_poly.end()
-                    if len(apt_indices) > 0:
-                        # Store the number of vertices per airport
-                        apt_indices[-1][1] = asphalt.bufsize() / 2 - apt_indices[-1][0]
-                        apt_indices[-1][3] = concrete.bufsize() / 2 - apt_indices[-1][2]
+                    # Store the starting vertices for this apt, [0, 0] if this is the first apt
+                    if len(apt_indices):
+                        start_indices = [apt_indices[-1][0] + apt_indices[-1][1],
+                                         apt_indices[-1][2] + apt_indices[-1][3]]
+                    else:
+                        start_indices = [0, 0]
 
-                    # Store the starting vertex index for the next airport
-                    apt_indices.append([asphalt.bufsize() / 2, 0, concrete.bufsize() / 2, 0])
-                    apt_ctr_lat.append(0.0)
-                    apt_ctr_lon.append(0.0)
+                    if asphalt.bufsize() > start_indices[0] or concrete.bufsize() > start_indices[1]:
+                        apt_indices.append( [
+                                                start_indices[0],
+                                                asphalt.bufsize() / 2 - start_indices[0],
+                                                start_indices[1],
+                                                concrete.bufsize() / 2 - start_indices[1]
+                                            ])
+
+                        center = apt_bb.center()
+                        apt_ctr_lat.append(center[0])
+                        apt_ctr_lon.append(center[1])
 
                     # Add airport to runway threshold database
                     curthresholds = dict()
                     rwythresholds[elems[4]] = curthresholds
+
+                    # Reset the boundingbox
+                    apt_bb = BoundingBox()
                     continue
 
                 # 100: LAND RUNWAY
@@ -275,38 +287,32 @@ if gui == 'qtgl':
                 # 130: AIRPORT BOUNDARY
                 if elems[0] == '130':
                     cur_poly.end()
-                    apt_bb = BoundingBox()
-                    continue
-
-                if cur_poly.in_poly is False and apt_bb is None:
                     continue
 
                 controlpoint = None
                 # Straight line (111) or bezier line (112) in contour
                 if elems[0] == '111' or elems[0] == '112':
                     vertex = np.array((float(elems[1]), float(elems[2]), 0.0))
-                    if apt_bb is not None:
-                        apt_bb.update(vertex)
-                        continue
-                    if elems[0] == '112':
-                        controlpoint = np.array((float(elems[3]), float(elems[4]), 0.0))
+                    apt_bb.update(vertex)
 
-                    cur_poly.addVertex(vertex, controlpoint)
+                    if cur_poly.in_poly:
+                        if elems[0] == '112':
+                            controlpoint = np.array((float(elems[3]), float(elems[4]), 0.0))
+
+                        cur_poly.addVertex(vertex, controlpoint)
 
                 # Straight (113) or bezier (114) contour endpoint
                 elif elems[0] == '113' or elems[0] == '114':
                     vertex = np.array((float(elems[1]), float(elems[2]), 0.0))
-                    if apt_bb is not None:
-                        apt_bb.update(vertex)
-                        apt_ctr_lat[-1], apt_ctr_lon[-1] = apt_bb.center()
-                        apt_bb = None
-                        continue
-                    if elems[0] == '114':
-                        controlpoint = np.array((float(elems[3]), float(elems[4]), 0.0))
+                    apt_bb.update(vertex)
 
-                    cur_poly.addVertex(vertex, controlpoint)
+                    if cur_poly.in_poly:
+                        if elems[0] == '114':
+                            controlpoint = np.array((float(elems[3]), float(elems[4]), 0.0))
 
-                    cur_poly.endContour()
+                        cur_poly.addVertex(vertex, controlpoint)
+
+                        cur_poly.endContour()
 
                 else:
                     cur_poly.end()
@@ -315,8 +321,20 @@ if gui == 'qtgl':
 
         # Clean up:
         cur_poly.end()
-        apt_indices[-1][1] = asphalt.bufsize() / 2 - apt_indices[-1][0]
-        apt_indices[-1][3] = concrete.bufsize() / 2 - apt_indices[-1][2]
+        start_indices = [apt_indices[-1][0] + apt_indices[-1][1],
+                         apt_indices[-1][2] + apt_indices[-1][3]]
+
+        if asphalt.bufsize() > start_indices[0] or concrete.bufsize() > start_indices[1]:
+            apt_indices.append( [
+                                    start_indices[0],
+                                    asphalt.bufsize() / 2 - start_indices[0],
+                                    start_indices[1],
+                                    concrete.bufsize() / 2 - start_indices[1]
+                                ])
+
+            center = apt_bb.center()
+            apt_ctr_lat.append(center[0])
+            apt_ctr_lon.append(center[1])
 
         # Store in binary pickle file
         vbuf_asphalt  = np.array(asphalt.vbuf, dtype=np.float32)

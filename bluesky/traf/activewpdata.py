@@ -34,10 +34,16 @@ class ActiveWaypoint(DynamicArrays):
         # using default bank angle per flight phase
         turnrad = self.traf.tas * self.traf.tas / np.maximum(self.traf.eps, np.tan(self.traf.bank) * g0 * nm)  # [nm]
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
+     
+        # Avoid circling
+        away = np.abs(degto180(self.traf.trk - next_qdr)+180.)>90.
+        incircle = dist<turnrad*1.01
+        circling = away*incircle
+
 
         # distance to turn initialisation point
-        self.turndist = np.minimum(100, np.abs(turnrad *
-            np.tan(np.radians(0.5 * degto180(np.abs(qdr - next_qdr))))))
+        self.turndist = np.minimum(100., np.abs(turnrad *
+            np.tan(np.radians(0.5 * np.abs(degto180(qdr - next_qdr))))))
 
         # Check whether shift based dist [nm] is required, set closer than WP turn distanc
-        return np.where(self.traf.swlnav * (dist < self.turndist))[0]
+        return np.where(self.traf.swlnav * ((dist < self.turndist)+circling))[0]

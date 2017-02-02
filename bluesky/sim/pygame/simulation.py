@@ -1,4 +1,5 @@
 import time
+
 from ...tools import datalog, areafilter
 from ...tools.misc import txt2tim,tim2txt
 from ...traf import Traffic
@@ -52,6 +53,7 @@ class Simulation:
         self.ffstop = -1.    # Indefinitely
 
         # Simulation objects
+        print "Setting up Traffic simulation" 
         self.traf  = Traffic(navdb)
         self.navdb = navdb
         self.metric = Metric()
@@ -203,7 +205,13 @@ class Simulation:
             self.simtclock = self.simt
            
         elif txt.upper()== "REAL":
-            self.simtclock = self.syst
+            tclock = time.localtime()
+            self.simtclock = tclock.tm_hour*3600. + tclock.tm_min*60. + tclock.tm_sec
+            self.deltclock = self.simtclock - self.simt
+       
+        elif txt.upper()== "UTC":
+            utclock = time.gmtime()
+            self.simtclock = utclock.tm_hour*3600. + utclock.tm_min*60. + utclock.tm_sec
             self.deltclock = self.simtclock - self.simt
        
         elif txt.replace(":","").replace(".","").isdigit():

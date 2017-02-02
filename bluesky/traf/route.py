@@ -3,6 +3,7 @@ from ..tools import geo
 from ..tools.aero import ft, kts, g0, nm, cas2tas, mach2cas
 from ..tools.misc import degto180
 from ..tools.position import txt2pos
+from ..stack.stack import Argparser
 
 class Route():
     """
@@ -24,7 +25,7 @@ class Route():
     runway   = 5   # Runway: Copy name and positions
 
     def __init__(self, navdb):
-        # Add pointer to self navdb object
+        # Save a local pointer to the navigation database object navdb
         self.navdb  = navdb
         self.nwp    = 0
 
@@ -39,14 +40,15 @@ class Route():
 
         # Current actual waypoint
         self.iactwp = -1
-
         self.swflyby  = True  # Default waypoints are flyby waypoint
 
         return
 
-    def addwptStack(self, traf, idx, *args): # args: all arguments of addwpt
-        "ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"
-        
+    def addwptStack(self, traf, idx, *args):  # args: all arguments of addwpt
+        """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"""
+
+#        print "addwptStack:",args
+
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
         if len(args) == 1:
 
@@ -55,67 +57,302 @@ class Route():
             if isflyby == "FLYBY":
                 self.swflyby = True
                 return True
-                
+
             elif isflyby == "FLYOVER":
                 self.swflyby = False
                 return True
-       
 
         # Convert to positions
         name = args[0]
 
-        success,posobj = txt2pos(name,traf,self.navdb,traf.lat[idx],traf.lon[idx])
-        if success:        
-            
+        # Choose reference position ot look up VOR and waypoints
+        # First waypoint: own position        
+        if self.nwp == 0:
+            reflat = traf.lat[idx]
+            reflon = traf.on[idx]
+
+        # Or last waypoint before destination
+        else:
+            if self.wptype[-1]!=self.dest or self.nwp==1:
+                reflat = self.wplat[-1]
+                reflon = self.wplon[-1]
+            else:
+                reflat = self.wplat[-2]
+                reflon = self.wplon[-2]
+
+        success, posobj = txt2pos(name, traf, self.navdb, reflat, reflon)
+        if success:
             lat      = posobj.lat
             lon      = posobj.lon
-            
-            if posobj.type== "nav" or posobj.type== "apt":
+
+            if posobj.type == "nav" or posobj.type == "apt":
                 wptype = self.wpnav
-    
+
             elif posobj.type == "rwy":
                 wptype  = self.runway
-    
-            else: # treat as lat/lon
-                name   = traf.id[idx]            
-                wptype   = self.wplatlon
-    
+
+            else:  # treat as lat/lon
+                name    = traf.id[idx]
+                wptype  = self.wplatlon
+
             # Default altitude, speed and afterwp if not given
             alt     = -999.  if len(args) < 2 else args[1]
             spd     = -999.  if len(args) < 3 else args[2]
             afterwp = ""     if len(args) < 4 else args[3]
-    
+
+            #Catch empty arguments (None)
+            if alt == "" or alt is None:
+                alt = -999
+
+            if spd == "" or spd is None:
+                spd = -999
+
+            if afterwp is None:
+                afterwp = ""
+
             # Add waypoint
             wpidx = self.addwpt(traf, idx, name, wptype, lat, lon, alt, spd, afterwp)
-            
+
             # Check for success by checking insetred locaiton in flight plan >= 0
             if wpidx < 0:
                 return False, "Waypoint " + name + " not added."
-    
+
             # chekc for presence of orig/dest
             norig = int(traf.ap.orig[idx] != "")
             ndest = int(traf.ap.dest[idx] != "")
-    
-            # Check whether this is first 'real' wayppint (not orig & dest), 
+
+            # Check whether this is first 'real' wayppint (not orig & dest),
             # And if so, make active
             if self.nwp - norig - ndest == 1:  # first waypoint: make active
                 self.direct(traf, idx, self.wpname[norig])  # 0 if no orig
                 traf.swlnav[idx] = True
-    
+
             if afterwp and self.wpname.count(afterwp) == 0:
                 return True, "Waypoint " + afterwp + " not found" + \
                     "waypoint added at end of route"
             else:
                 return True
+
         else:
-             return False,"Waypoint "+name+" not found."
+            return False, "Waypoint " + name + " not found."
+
+    def afteraddwptStack(self, traf, idx, *args):  # args: all arguments of addwpt
+
+        # AFTER acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]"
+        if len(args) < 3:
+            return False, "AFTER needs more arguments"
+
+        # Change order of arguments
+        arglst = [args[2], None, None, args[0]]  # postxt,,,afterwp
+
+        # Add alt when given
+        if len(args) > 3:
+            arglst[1] = args[3]  # alt
+
+        # Add speed when given
+        if len(args) > 4:
+            arglst[2] = args[4]  # spd
+
+        result = self.addwptStack(traf, idx, *arglst)  # args: all arguments of addwpt
+
+        return result
+
+    def atwptStack(self, scr, idx, traf, *args):  # args: all arguments of addwpt
+
+        # AT acid, wpinroute [DEL] ALT/SPD spd/alt"
+
+        # args = wpname,SPD/ALT, spd/alt(string)
+        if len(args) < 1:
+            return False, "AT needs at least an aicraft id and a waypoint name"
+
+        else:
+            name = args[0]
+            if name in self.wpname:
+                wpidx = self.wpname.index(name)
+
+                # acid AT wpinroute: show alt & spd constraints at this waypoint
+                # acid AT wpinroute SPD: show spd constraint at this waypoint
+                # acid AT wpinroute ALT: show alt constraint at this waypoint
+
+                txt = name + " : "
+
+                if len(args)==1 or (len(args)==2 and not args[1].count("/")==1):
+
+                    txt = name+" : "
+    
+                    # Select what to show
+                    if len(args)==1:
+                       swalt = True
+                       swspd = True
+                    else:
+                        swalt = args[1].upper()=="ALT"
+                        swspd = args[1].upper() in ("SPD","SPEED")
+
+                        # To be safe show both when we do not know what
+                        if not (swalt or swspd):
+                            swalt = True
+                            swspd = True
+    
+                    # Show altitude
+                    if swalt:
+                        if self.wpalt[wpidx] < 0:
+                            txt = txt+"-----"
+                            
+                        elif self.wpalt[wpidx] > 4500 * ft:
+                            FL = int(round((self.wpalt[wpidx]/(100.*ft))))
+                            txt = txt+"FL"+str(FL)
+                            
+                        else:
+                            txt = txt+str(int(round(self.wpalt[wpidx] / ft)))
+                        
+                        if swspd:
+                            txt = txt + "/"
+    
+                    # Show speed
+                    if swspd:
+                        if self.wpspd[wpidx] < 0:
+                            txt = txt+"---"
+                        else:
+                            txt = txt+str(int(round(self.wpspd[wpidx] / kts)))
+    
+                    # Type
+                    if swalt and swspd:
+                        if self.wptype[wpidx] == self.orig:
+                            txt = txt + "[orig]"
+                        elif self.wptype[wpidx] == self.dest:
+                            txt = txt + "[dest]"
+    
+                    scr.echo(txt)
+                    return True
+
+                elif args[1].count("/")==1:
+                    # acid AT wpinroute alt"/"spd
+
+                    # Use parse from stack.py to interpret alt & speed
+                    parser  = Argparser()
+                    islash = args[1].index("/")
+                    swalt  = islash>0
+                    swspd  = islash<len(args[1])-2 #at keast one char after slash
+
+                    # Edit waypoint altitude constraint
+                    if swalt:
+                        alttxt = [args[1][:islash]]
+                        # Use argument parser from stack to parse speed
+                        success = parser.parse("alt", 0, alttxt, traf, scr)
+
+                        # Set new value if success, "---" etc ignored
+                        if success and not (parser.result[0] == None):
+                            self.wpalt[wpidx]  = parser.result[0]
+                        else:
+                            if len(alttxt[0])==alttxt[0].count("-"): # "----" = delete
+                                self.wpalt[wpidx]  = -999.
+                            else:
+                                swalt = False
 
 
-    def addwpt(self,traf,iac,name,wptype,lat,lon,alt=-999.,spd=-999.,afterwp=""):
+                    # Edit waypoint speed constraint
+                    if swspd:
+                        spdtxt = [args[1][islash+1:]]
+                        # Use argument parser from stack to parse speed
+                        success = parser.parse("spd", 0, spdtxt, traf, scr)
+
+                        # Set new value if success, "---" etc ignored
+                        if success and not (parser.result[0] == None):
+                            self.wpspd[wpidx]  = parser.result[0]
+                        else:
+                            if len(spdtxt[0])==spdtxt[0].count("-"): # "----" = delete
+                                self.wpspd[wpidx]  = -999.
+                            else:    
+                                swspd = False
+
+                    del parser
+                    
+                    if (not swspd) and (not swalt):
+                        return False,"Could not parse "+args[1]+" as alt / spd"
+
+                    # If success: update flight plan and guidance
+                    self.calcfp()
+                    self.direct(traf, idx, self.wpname[self.iactwp])
+
+
+                #acid AT wpinroute ALT/SPD alt/spd
+                elif len(args)==3 :       
+                    swalt = args[1].upper()=="ALT"
+                    swspd = args[1].upper() in ("SPD","SPEED")
+
+                    # Use parse from stack.py to interpret alt & speed
+                    parser  = Argparser()
+
+                    # Edit waypoint altitude constraint
+                    if swalt:
+                        
+                        # Use argument parser from stakc to parse speed
+                        success = parser.parse("alt", 2, args, traf, scr)
+                        if success:
+                            alt = parser.result[0]
+                        else:
+                            del parser
+                            return False,'Could not parse "' + args[2] + '" as altitude'
+                        
+                        # Set new value
+                        self.wpalt[wpidx]  = alt
+
+
+                    # Edit waypoint speed constraint
+                    elif swspd:
+                        
+                        # Use argument parser from stakc to parse speed
+                        success = parser.parse("spd", 2, args, traf, scr)
+                        if success:
+                            spd = parser.result[0]
+                        else:
+                            del parser
+                            return False,'AT: Could not parse "' + args[2] + '" as speed'
+
+                        # Set new value
+                        self.wpspd[wpidx]  = spd
+ 
+                    # Delete a constraint (or both) at this waypoint
+                    elif args[1]=="DEL" or args[1]=="DELETE":
+                        swalt = args[2].upper()=="ALT"
+                        swspd = args[2].upper() in ("SPD","SPEED")
+                        both  = args[2].upper() in ("ALL","BOTH") 
+
+                        if swspd or both:
+                            self.wpspd[wpidx]  = -999.
+
+                        if swalt or both:
+                            self.wpalt[wpidx]  = -999.
+
+                    else:
+                        del parser
+                        return False,"No "+args[1]+" at ",name
+
+
+                    # If success: update flight plan and guidance
+                    self.calcfp()
+                    self.direct(traf, idx, self.wpname[self.iactwp])
+
+                    del parser                    
+                    
+            # Waypoint not found in route
+            else:
+                return False,name+" not found in route "+traf.id[idx]
+
+        return True
+
+
+    def addwpt(self, traf, iac, name, wptype, lat, lon, alt=-999., spd=-999., afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
+#        print "addwpt:"
+#        print "iac = ",iac
+#        print "name = ",name
+#        print "alt = ",alt
+#        print "spd = ",spd
+#        print "afterwp =",afterwp
+#        print
         self.traf = traf  # Traffic object
         self.iac = iac    # a/c to which this route belongs
-
         # For safety
         self.nwp = len(self.wplat)
 
@@ -134,11 +371,15 @@ class Route():
         if wptype == self.orig:
 
             if not (name == traf.id[iac] + "ORIG"):   # published identifier
-                i = self.navdb.getapidx(name.upper().strip())
+                i = self.navdb.getaptidx(name.upper().strip())
                 wpok = (i >= 0)
                 if wpok:
-                    wplat = self.navdb.aplat[i]
-                    wplon = self.navdb.aplon[i]
+                    wplat = self.navdb.aptlat[i]
+                    wplon = self.navdb.aptlon[i]
+                else:
+                    wplat = lat
+                    wplon = lon
+                    wpok  = True
             else:                                 # lat/lon type
                 wplat = lat
                 wplon = lon
@@ -176,11 +417,15 @@ class Route():
         elif wptype == self.dest:
 
             if not (name == traf.id[iac] + "DEST"):   # published identifier
-                i = self.navdb.getapidx(name.upper().strip())
+                i = self.navdb.getaptidx(name.upper().strip())
                 wpok = (i >= 0)
                 if wpok:
-                    wplat = self.navdb.aplat[i]
-                    wplon = self.navdb.aplon[i]
+                    wplat = self.navdb.aptlat[i]
+                    wplon = self.navdb.aptlon[i]
+                else:
+                    wplat = lat
+                    wplon = lon
+                    wpok = True
             else:                                 # lat/lon type
                 wplat = lat
                 wplon = lon
@@ -247,12 +492,12 @@ class Route():
                         wplat = self.navdb.wplat[i]
                         wplon = self.navdb.wplon[i]
                     else:
-                        i = self.navdb.getapidx(name.upper().strip())
+                        i = self.navdb.getaptidx(name.upper().strip())
                         wpok = (i >= 0)
                         if wpok:
                             newname = wprtename
-                            wplat = self.navdb.aplat[i]
-                            wplon = self.navdb.aplon[i]
+                            wplat = self.navdb.aptlat[i]
+                            wplon = self.navdb.aptlon[i]
                         else:
                             newname = wprtename
                             wplat = lat
@@ -343,18 +588,22 @@ class Route():
             traf.actwp.lat[i] = self.wplat[wpidx]
             traf.actwp.lon[i] = self.wplon[wpidx]
 
+            self.calcfp()
+            traf.ap.ComputeVNAV(i,self.wptoalt[wpidx],self.wpxtoalt[wpidx])
             if traf.swvnav[i]:
-                # Set target altitude for autopilot
-                if self.wpalt[wpidx] > 0:
-
-                    if traf.alt[i] < self.wptoalt[i]-10.*ft:
-                        traf.actwp.alt[i] = self.wptoalt[wpidx]
-                        traf.ap.dist2vs[i] = 9999.
-                    else:
-                        steepness = 3000.*ft/(10.*nm)
-                        traf.actwp.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-                        delalt = traf.alt[i] - traf.actwp.alt[i]
-                        traf.ap.dist2vs[i] = steepness*delalt
+#            if True:
+#                # Set target altitude for autopilot
+#                if self.wptoalt[wpidx] > 0:
+#
+#                    if traf.alt[i] < self.wptoalt[i]-10.*ft:
+#                        traf.actwp.alt[i] = self.wptoalt[wpidx]
+#                        traf.ap.dist2vs[i] = 9999.
+#                    else:
+#                    
+#                        steepness = 3000.*ft/(10.*nm)
+#                        traf.actwp.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
+#                        delalt = traf.alt[i] - traf.actwp.alt[i]
+#                        traf.ap.dist2vs[i] = steepness*delalt
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
@@ -382,24 +631,27 @@ class Route():
         if self.nwp <= 0:
             return False, "Aircraft has no route."
 
+        if idx<0:
+            return False, "Aircraft id not found."
+
         for i in range(ipage * 7, ipage * 7 + 7):
             if 0 <= i < self.nwp:
                 # Name
                 if i == self.iactwp:
-                    txt = "*" + self.wpname[i] + " / "
+                    txt = "*" + self.wpname[i] + " : "
                 else:
-                    txt = " " + self.wpname[i] + " / "
+                    txt = " " + self.wpname[i] + " : "
 
                 # Altitude
                 if self.wpalt[i] < 0:
-                    txt = txt+"----- / "
+                    txt = txt+"-----/"
                     
                 elif self.wpalt[i] > 4500 * ft:
                     FL = int(round((self.wpalt[i]/(100.*ft))))
-                    txt = txt+"FL"+str(FL)+" / "
+                    txt = txt+"FL"+str(FL)+"/"
                     
                 else:
-                    txt = txt+str(int(round(self.wpalt[i] / ft))) + " / "
+                    txt = txt+str(int(round(self.wpalt[i] / ft))) + "/"
 
                 # Speed
                 if self.wpspd[i] < 0:
@@ -437,8 +689,18 @@ class Route():
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], nextqdr
 
+    def delrte(self):
+        """Delete complete route"""
+        # Simple re-initilize this route as empty
+        self.__init__(self.navdb)
+        return True
+
     def delwpt(self, delwpname):
         """Delete waypoint"""
+        
+        # Delete complete route?
+        if delwpname =="*":
+            return self.delrte()
 
         # Look up waypoint
         idx = -1
@@ -462,6 +724,7 @@ class Route():
         if self.iactwp > idx:
             self.iactwp = max(0, self.iactwp - 1)
 
+        self.iactwp = min(self.iactwp, self.nwp - 1)
         return True
 
     def newcalcfp(self):
@@ -616,8 +879,8 @@ class Route():
 
     def calcfp(self):
         """Do flight plan calculations"""
-        self.delwpt("T/D")
-        self.delwpt("T/C")
+#        self.delwpt("T/D")
+#        self.delwpt("T/C")
 
         # Direction to waypoint
         self.nwp = len(self.wpname)
@@ -626,7 +889,7 @@ class Route():
         self.wpdirfrom   = self.nwp*[0.]
         self.wpdistto    = self.nwp*[0.]
         self.wpialt      = self.nwp*[-1]  
-        self.wptoalt     = self.nwp*[0.]
+        self.wptoalt     = self.nwp*[-999.]
         self.wpxtoalt    = self.nwp*[1.]
 
         # No waypoints: make empty variables to be safe and return: nothing to do
@@ -653,7 +916,12 @@ class Route():
         for i in range(self.nwp-2,-1,-1):
 
             # waypoint with altitude constraint (dest of al specified)        
-            if self.wptype[i]==self.dest or self.wpalt[i] >= 0:
+            if self.wptype[i]==self.dest:
+                ialt   = i
+                toalt  = 0.
+                xtoalt = 0.                # [m]
+
+            elif self.wpalt[i] >= 0:
                 ialt   = i
                 toalt  = self.wpalt[i]
                 xtoalt = 0.                # [m]

@@ -1,6 +1,6 @@
 try:
     from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel, QSize
-    from PyQt5.QtGui import QPixmap, QIcon
+    from PyQt5.QtGui import QPixmap, QIcon, QColor
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QPushButton
     from PyQt5 import uic
 except ImportError:
@@ -11,7 +11,11 @@ except ImportError:
 
 # Local imports
 from ...sim.qtgl import PanZoomEvent, MainManager as manager
-from ...settings import data_path
+from ...settings import data_path, stack_text_color as fg, stack_background_color as bg
+import platform
+
+is_osx = platform.system() == 'Darwin'
+
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
@@ -25,7 +29,10 @@ class MainWindow(QMainWindow):
     def __init__(self, app, radarwidget):
         super(MainWindow, self).__init__()
         self.app = app
-        self.app.setWindowIcon(QIcon(data_path + "/graphics/icon.gif"))
+        if is_osx:
+            self.app.setWindowIcon(QIcon(data_path + "/graphics/bluesky.icns"))
+        else:
+            self.app.setWindowIcon(QIcon(data_path + "/graphics/icon.gif"))
 
         uic.loadUi(data_path + "/graphics/mainwindow.ui", self)
 
@@ -62,6 +69,10 @@ class MainWindow(QMainWindow):
             # Connect clicked signal
             b[0].clicked.connect(b[1][2])
 
+        # Link menubar buttons
+        self.action_Open.triggered.connect(app.show_file_dialog)
+        self.action_Save.triggered.connect(self.buttonClicked)
+
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
@@ -79,15 +90,21 @@ class MainWindow(QMainWindow):
         self.hosts = list()
         self.nodes = list()
 
+        fgcolor = '#' + format(fg[0], '02x') + format(fg[1], '02x') + format(fg[2], '02x')
+        bgcolor = '#' + format(bg[0], '02x') + format(bg[1], '02x') + format(bg[2], '02x')
+
+        self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
+        self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
+
     def closeEvent(self, event):
         self.app.quit()
 
-    @pyqtSlot(int)
+    @pyqtSlot(tuple, int)
     def actnodeChanged(self, nodeid, connidx):
         self.nodelabel.setText('<b>Node</b> %d:%d' % nodeid)
         self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
 
-    @pyqtSlot(str, int)
+    @pyqtSlot(str, tuple, int)
     def nodesChanged(self, address, nodeid, connidx):
         if nodeid[0] < len(self.hosts):
             host = self.hosts[nodeid[0]]
@@ -172,10 +189,18 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showpz:
             self.radarwidget.show_pz = not self.radarwidget.show_pz
         elif self.sender() == self.showapt:
-            self.radarwidget.show_apt = not self.radarwidget.show_apt
+            if self.radarwidget.show_apt < 3:
+                self.radarwidget.show_apt += 1
+            else:
+                self.radarwidget.show_apt = 0
         elif self.sender() == self.showwpt:
-            self.radarwidget.show_wpt = not self.radarwidget.show_wpt
+            if self.radarwidget.show_wpt < 2:
+                self.radarwidget.show_wpt += 1
+            else:
+                self.radarwidget.show_wpt = 0
         elif self.sender() == self.showlabels:
             self.radarwidget.show_lbl = not self.radarwidget.show_lbl
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
+        elif self.sender() == self.action_Save:
+            self.app.stack('SAVEIC')

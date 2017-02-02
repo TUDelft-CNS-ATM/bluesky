@@ -71,6 +71,9 @@ class ScreenIO(QObject):
         self.prevcount   = 0
         self.prevtime    = 0.0
 
+        # Communicate reset to gui
+        self.manager.sendEvent(DisplayFlagEvent('RESET', 'ALL'))
+
     def echo(self, text):
         if self.manager.isActive():
             self.manager.sendEvent(StackTextEvent(disptext=text))
@@ -98,13 +101,14 @@ class ScreenIO(QObject):
         if self.manager.isActive():
             self.manager.sendEvent(DisplayFlagEvent('SYM'))
 
-    def pan(self, *args):
+    def pan(self, *args): 
+        # Move center of display, relative of to absolute position lat,lon
         if self.manager.isActive():
             if args[0] == "LEFT":
                 self.ctrlon -= 0.5
             elif args[0] == "RIGHT":
                 self.ctrlon += 0.5
-            elif args[0] == "UP" or args[0]== "ABOVE":
+            elif args[0] == "UP" or args[0] == "ABOVE":
                 self.ctrlat += 0.5
             elif args[0] == "DOWN":
                 self.ctrlat -= 0.5
@@ -113,9 +117,14 @@ class ScreenIO(QObject):
 
             self.manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
-    def showroute(self, acid):
+    def showroute(self, acid): # Toggle show route for this aircraft
         self.route_acid = acid
         return True
+
+    def addnavwpt(self, name,lat,lon):
+        # ToDO: Send this data to GUI and redraw nav waypoints
+        pass
+        return 
 
     def showacinfo(self, acid, infotext):
         self.echo(infotext)
@@ -123,6 +132,8 @@ class ScreenIO(QObject):
         return True
 
     def showssd(self, param):
+        # Conflict prevention display   
+        # Show solution space diagram, indicating potential conflicts
         if self.manager.isActive():
             if param == 'ALL' or param == 'OFF':
                 self.manager.sendEvent(DisplayFlagEvent('SSD', param))
@@ -147,7 +158,7 @@ class ScreenIO(QObject):
         elif objtype == 'LINE' or objtype[:4] == 'POLY':
             data = np.array(data_in, dtype=np.float32)
         elif objtype == 'BOX':
-            # BOX
+            # BOX: 0 = lat0, 1 = lon0, 2 = lat1, 3 = lat1 , use bounding box
             data = np.array([data_in[0], data_in[1],
                              data_in[0], data_in[3],
                              data_in[2], data_in[3],
@@ -199,7 +210,7 @@ class ScreenIO(QObject):
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * self.sim.simdt
         self.manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
-            self.sim.traf.ntraf, self.sim.state, stack.get_scenname()))
+            self.sim.simtclock, self.sim.traf.ntraf, self.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
 
@@ -242,10 +253,13 @@ class ScreenIO(QObject):
                 data.aclat     = self.sim.traf.lat[idx]
                 data.aclon     = self.sim.traf.lon[idx]
 
-                data.lat       = route.wplat
-                data.lon       = route.wplon
+                data.wplat     = route.wplat
+                data.wplon     = route.wplon
 
-                data.wptlabels = route.wpname
+                data.wpalt     = route.wpalt
+                data.wpspd     = route.wpspd
+
+                data.wpname    = route.wpname
 
             self.manager.sendEvent(data)  # Send route data to GUI
             # Empty route acid string means no longer send route data

@@ -111,9 +111,9 @@ class Console:
         self.content[j][i]=" "
         return
 
-    def getline(self): # enter was pressed
+    def getline(self): # enter was pressed ro we need current command line
         line = ""
-        for idx in range(self.xedit,self.xcursor+1):        
+        for idx in range(self.xedit,self.xcursor):        
             i = idx%self.nch
             j = idx/self.nch
             line = line+self.content[j][i]

@@ -46,19 +46,20 @@ class Position():
 
         # runway type ? "EHAM/RW06","EHGG/RWY27"
         elif name.count("/RW")>0:
-            aptname,rwytxt = name.split("/")
-
-            rwyname = rwytxt.strip("RW").strip("Y").strip().upper() # remove RW or RWY and spaces
-
-            self.lat,self.lon = traf.navdb.rwythresholds[aptname][rwyname][:2] # raises error if not found
+            try:
+                aptname,rwytxt = name.split("/RW")
+                rwyname = rwytxt.lstrip("Y").upper() # remove Y and spaces
+                self.lat,self.lon = traf.navdb.rwythresholds[aptname][rwyname][:2] # raises error if not found
+            except:
+                self.error = True
             self.type = "rwy" 
 
         # airport?
-        elif navdb.apid.count(name)>0:
-            idx = navdb.apid.index(name.upper())
+        elif navdb.aptid.count(name)>0:
+            idx = navdb.aptid.index(name.upper())
 
-            self.lat = navdb.aplat[idx]
-            self.lon = navdb.aplon[idx]
+            self.lat = navdb.aptlat[idx]
+            self.lon = navdb.aptlon[idx]
             self.type ="apt"
 
         # fix or navaid?

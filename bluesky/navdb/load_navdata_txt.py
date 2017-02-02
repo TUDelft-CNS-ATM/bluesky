@@ -1,5 +1,5 @@
 from ..settings import data_path
-from aero import ft
+from ..tools.aero import ft
 import numpy as np
 import os
 
@@ -47,6 +47,7 @@ def load_navdata_txt():
     aptdata['apmaxrwy']  = []              # reference airport {string}
     aptdata['aptype']    = []              # type (int, 1=large, 2=medium, 3=small)
     aptdata['apco']      = []              # two char country code (string)
+    aptdata['apelev']    = []              # field elevation ft-> m
     with open(data_path + "/global/airports.dat", "r") as f:
         types = {'L': 1, 'M': 2, 'S': 3}
         for line in f:
@@ -58,8 +59,8 @@ def load_navdata_txt():
             # Data line => Process fields of this record, separated by a comma
             # Example line:
             # EHAM, SCHIPHOL, 52.309, 4.764, Large, 12467, NL
-            #  [id]   [name] [lat]    [lon]  [type] [max rwy length in ft] [country code]
-            #   0        1     2        3       4          5                   6
+            #  [id]   [name] [lat]    [lon]  [type] [max rwy length in ft] [country code] [elevation]
+            #   0        1     2        3       4          5                   6            7
             fields = line.split(",")
 
             # Skip airports without identifier in file and closed airports
@@ -82,10 +83,17 @@ def load_navdata_txt():
 
             aptdata['apco'].append(fields[6].strip().lower()[:2])     # country code
 
+            # Not all airports have elevation in data
+            try:
+                aptdata['apelev'].append(float(fields[7])*ft)  # apt elev [m]
+            except:
+                aptdata['apelev'].append(0.0)
+
     aptdata['aplat']    = np.array(aptdata['aplat'])
     aptdata['aplon']    = np.array(aptdata['aplon'])
     aptdata['apmaxrwy'] = np.array(aptdata['apmaxrwy'])
     aptdata['aptype']   = np.array(aptdata['aptype'])
+    aptdata['apelev']   = np.array(aptdata['apelev'])
 
     #----------  Read FIR files ----------
     firdata         = dict()
@@ -139,4 +147,36 @@ def load_navdata_txt():
     firdata['firlon0'] = np.array(firdata['firlon0'])
     firdata['firlon1'] = np.array(firdata['firlon1'])
 
-    return wptdata, aptdata, firdata
+    #----------  Read ICAO country codes file icao-countries.dat ----------
+    codata           = dict()
+    codata['coname']   = []              # Country name
+    codata['cocode2']  = []              # 2 char code
+    codata['cocode3']  = []              # 3 char code
+    codata['conr']     = []              # country nr
+    with open(data_path + "/global/icao-countries.dat", "r") as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines or comments
+            if len(line) == 0 or line[0] == "#":
+                continue
+
+            # Data line: comma separated values:
+            # full name, A2 code, A3 code, number
+
+            fields = line.split(",")
+
+            # Skip airports without identifier in file and closed airports
+            if fields[0].strip() == "":
+                continue
+
+            codata['coname'].append(fields[0].strip())  # id, no leading or trailing spaces
+            codata['cocode2'].append(fields[1].strip().upper())  # name, no leading or trailing spaces
+
+            codata['cocode3'].append(fields[2].strip().upper())  # latitude [deg]
+            try:
+                codata['conr'].append(int(fields[3]))  # longitude [deg]
+            except:
+                codata['conr'].append(-1)
+
+
+    return wptdata, aptdata, firdata, codata

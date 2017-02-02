@@ -1,45 +1,58 @@
+from math import cos, atan2, radians, degrees
+from numpy import array
+from ..stack.stack import cmdsynon
+
 from ..tools import geo
 from ..tools.misc import findnearest, cmdsplit
-from math import cos, atan2, radians, degrees
 
 
-def radarclick(cmdline, lat, lon, traf, navdb):
+def radarclick(cmdline, lat, lon, traf, navdb, route=None):
     """Process lat,lon as clicked in radar window"""
-    tostack   = ""
-    todisplay = ""
-
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
 
     clickcmd = {"": "acid,-",
-                "POS": "acid",
-                "SSD": "acid",
-                "CRE":  "-,-,latlon,-,hdg,-,-",
-                "HDG": "acid,hdg",
-                "SPD": "acid,-",
+                "ADDWPT": "acid,latlon,-,-,wpinroute,-",
+                "AFTER": "acid,wpinroute,-",
+                "AT": "acid,wpinroute,-",
                 "ALT": "acid,-",
-                "LISTRTE": "acid,-",
-                "ADDWPT": "acid,latlon,-,-,-",
-                "ASAS": "acid,-",
-                "DEL": "acid,-",
-                "LNAV": "acid,-",
-                "VNAV": "acid,-",
-                "VS": "acid,-",
-                "ND": "acid",
-                "NAVDISP": "acid",
-                "ASAS": "acid,-",
-                "ORIG": "acid,apt",
-                "DEST": "acid,apt",
-                "PAN": "latlon",
-                "MOVE": "acid,latlon,-,-,hdg",
-                "DIST": "latlon,-,latlon",
-                "LINE": "-,latlon,-,latlon",
                 "AREA": "latlon,-,latlon",
+                "ASAS": "acid,-",
                 "BOX": "-,latlon,-,latlon",
+                "CIRCLE": "-,latlon,-,dist",
+                "CRE":  "-,-,latlon,-,hdg,-,-",
+                "DEFWPT": "-,latlon,-",
+                "DEL": "acid,-",
+                "DELWPT": "acid,wpinroute,-",
+                "DELRTE": "acid,-",
+                "DEST": "acid,apt",
+                "DIRECT": "acid,wpinroute",
+                "DIST": "latlon,-,latlon",
+                "DUMPRTE": "acid",
+                "ENG": "acid,-",
+                "HDG": "acid,hdg",
+                "LINE": "-,latlon,-,latlon",
+                "LISTRTE": "acid,-",
+                "LNAV": "acid,-",
+                "MOVE": "acid,latlon,-,-,hdg",
+                "NAVDISP": "acid",
+                "NOM": "acid",
+                "ND": "acid",
+                "ORIG": "acid,apt",
+                "PAN": "latlon",
                 "POLY": "-,latlon,...",
                 "POLYGON": "-,latlon,...",
-                "CIRCLE": "-,latlon,-,dist"
+                "POS": "acid",
+                "SSD": "acid",
+                "SPD": "acid,-",
+                "TRAIL":"acid,-",
+                "VNAV": "acid,-",
+                "VS": "acid,-"
                 }
+
+    # Default values, when nothing is found to be added based on click
+    todisplay = ""  # Result of click is added here
+    tostack   = ""  # If it is the last argument we will pass whole line to the stack
 
     # Split command line into command and arguments, pass traf ids to check for
     # switched acid and command
@@ -54,6 +67,11 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
     # Insert: nearest aircraft id
     else:
+        
+        # Check for synonyms (dictionary is imported from stack)
+        if cmd in cmdsynon:
+           cmd = cmdsynon[cmd]
+
         # Try to find command in clickcmd dictionary
         try:
             lookup = clickcmd[cmd]
@@ -65,7 +83,7 @@ def radarclick(cmdline, lat, lon, traf, navdb):
 
         # For valid value, insert relevant dat on edit line
         if lookup:
-            if len(cmdline) > 0 and cmdline[-1] != " ":
+            if len(cmdline) > 0 and (cmdline[-1] != " " and cmdline[-1]!=","):
                 todisplay = " "
 
             # Determine argument click type
@@ -96,9 +114,30 @@ def radarclick(cmdline, lat, lon, traf, navdb):
                     todisplay += str(round(geo.kwikdist(latref, lonref, lat, lon), 6))
 
                 elif clicktype == "apt":
-                    idx = findnearest(lat, lon, navdb.aplat, navdb.aplon)
+                    idx = findnearest(lat, lon, navdb.aptlat, navdb.aptlon)
                     if idx >= 0:
-                        todisplay += navdb.apid[idx] + " "
+                        todisplay += navdb.aptid[idx] + " "
+
+                elif clicktype == "wpinroute":  # Find nearest waypoint in route
+                    if traf.id.count(args[0]) > 0:
+                        itraf      = traf.id.index(args[0])
+                        synerr = False
+                        reflat = traf.lat[itraf]
+                        reflon = traf.lon[itraf]
+                        # The pygame version can get the route directly from traf
+                        # otherwise the route is passed to this function
+                        if route is None:
+                            route = traf.ap.route[itraf]
+
+                        if len(route.wplat) > 0:
+                            iwp = findnearest(lat, lon,
+                                        array(route.wplat),
+                                        array(route.wplon))
+                            if iwp >= 0:
+                                todisplay += route.wpname[iwp]+" "
+
+                    else:
+                        synerr = True
 
                 elif clicktype == "hdg":
                     # Read start position from command line
