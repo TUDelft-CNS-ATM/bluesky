@@ -6,3 +6,5 @@ if prefer_compiled:
         import geo
 else:
     import geo
+
+from dynamicarrays import RegisterElementParameters, DynamicArrays
