@@ -3,9 +3,9 @@ try:
     from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton
     from PyQt5.QtWebEngineWidgets import QWebEngineView
 except:
-    from PyQt5.QtCore import QUrl, QFile as QFileInfo
-    from PyQt5.QtGui import QVBoxLayout, QWidget, QPushButton
-    from PyQt5.QtWebEngineWidgets import QWebEngineView
+    from PyQt4.QtCore import QUrl, QFileInfo
+    from PyQt4.QtGui import QVBoxLayout, QWidget, QPushButton
+    from PyQt4.QtWebKit import QWebView as QWebEngineView
 
 
 class DocWindow(QWidget):
