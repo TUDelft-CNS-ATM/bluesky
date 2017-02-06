@@ -8,6 +8,9 @@ performance_model = 'bluesky'
 # Indicate the datafile path
 data_path = 'data'
 
+# Verbose internal logging
+verbose = False
+
 # Indicate the logfile path
 log_path = 'output'
 

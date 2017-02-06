@@ -473,7 +473,7 @@ class Screen:
 
                         # If waypoint label bitmap does not yet exist, make it
                         if not self.wpswbmp[i]:
-                            self.wplabel[i] = pg.Surface((50, 30), 0, self.win)
+                            self.wplabel[i] = pg.Surface((80, 30), 0, self.win)
                             self.fontnav.printat(self.wplabel[i], 0, 0, \
                                                  traf.navdb.wpid[i])
                             self.wpswbmp[i] = True

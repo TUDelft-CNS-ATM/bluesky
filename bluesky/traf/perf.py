@@ -7,6 +7,7 @@ from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
 
 from performance import esf, phases, limits
 from ..settings import data_path
+from ..settings import verbose
 
 class CoeffBS:
     """ 
@@ -434,9 +435,13 @@ class Perf():
             # engine
         else:
             self.coeffidx = 0
-            if not Perf.warned:
-                  print "aircraft is using default aircraft performance (Boeing 747-400)."
-            Perf.warned = True
+            if not verbose:
+                if not self.warned:
+                    print "Aircraft is using default B747-400 performance."
+                    self.warned = True
+            else:
+                print "Flight " + self.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
+
         self.coeffidxlist = np.append(self.coeffidxlist, self.coeffidx)
         self.mass         = np.append(self.mass, coeffBS.MTOW[self.coeffidx]) # aircraft weight
         self.Sref         = np.append(self.Sref, coeffBS.Sref[self.coeffidx]) # wing surface reference area
