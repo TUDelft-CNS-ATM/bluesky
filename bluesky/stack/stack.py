@@ -685,16 +685,11 @@ def showhelp(cmd=''):
     """
     # No command given: show all
     if len(cmd) == 0:
-        text = "To get help on a command, enter it without arguments.\n" + \
-               "The BlueSky commands are:\n\n"
-        text2 = ""
-        for key in cmddict:
-            text2 += (key + " ")
-            if len(text2) >= 60:
-                text += (text2 + "\n")
-                text2 = ""
-        text += (text2 + "\nSee docs subfolder for more info.")
-        return text
+        return "There are different ways to get help:\n"+\
+               " HELP PDF  gives an overview of the existing commands\n"+\
+               " HELP cmd  gives a help line on the command (syntax)\n" +\
+               " DOC  cmd  show documentation of a command (if available)\n"+\
+               "And there is more info in the docs folder and the wiki on Github"
 
     elif cmd.upper()=="PDF":
         os.chdir("docs")
