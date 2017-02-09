@@ -16,7 +16,7 @@ Methods:
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
 from math import *
-import numpy as np   
+import numpy as np
 from random import seed
 import os
 import os.path
@@ -33,18 +33,18 @@ from .. import settings
 import synthetic as syn
 
 # Global variables
-cmddict   = dict() # Defined in stack.init
+cmddict   = dict()  # Defined in stack.init
 
 #
 # Command synonym dictionary definea equivalent commands globally in stack
 #
 # Actual command definitions: see dictionary in def init(...) below
 #
-cmdsynon  = {"ADDAIRWAY":"ADDAWY",
+cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "AWY": "POS",
-             "AIRPORT":"POS",
-             "AIRWAYS":"AIRWAY",
-             "CALL":"PCALL",
+             "AIRPORT": "POS",
+             "AIRWAYS": "AIRWAY",
+             "CALL": "PCALL",
              "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
@@ -57,7 +57,7 @@ cmdsynon  = {"ADDAIRWAY":"ADDAWY",
              "END": "QUIT",
              "EXIT": "QUIT",
              "FWD": "FF",
-             "HEADING":"HDG",
+             "HEADING": "HDG",
              "HMETH": "RMETHH",
              "HRESOM": "RMETHH",
              "HRESOMETH": "RMETHH",
@@ -71,7 +71,7 @@ cmdsynon  = {"ADDAIRWAY":"ADDAWY",
              "RESOFACH": "RFACH",
              "RESOFACV": "RFACV",
              "SAVE": "SAVEIC",
-             "SPEED":"SPD",
+             "SPEED": "SPD",
              "START": "OP",
              "TURN": "HDG",
              "VMETH": "RMETHV",
@@ -93,12 +93,12 @@ def init(sim, traf, scr):
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
-    # Command dictionary with command as key, gives a list with: 
+    # Command dictionary with command as key, gives a list with:
     #
-    #         command: [ helptext , 
-    #                    arglist , 
-    #                    function to call, 
-    #                    description in one line ] 
+    #         command: [ helptext ,
+    #                    arglist ,
+    #                    function to call,
+    #                    description in one line ]
     #
     # Regarding the arglist:
     #    - Separate aruments with a comma ","
@@ -108,7 +108,7 @@ def init(sim, traf, scr):
     #
     # Argtypes = syntax parsing (see below in this module for parsing):
     #
-    #   acid      = aircraft id (text => index) 
+    #   acid      = aircraft id (text => index)
     #   alt       = altitude (FL250, 25000  ft+. meters)
     #   spd       = CAS or Mach (when <1)   => m/s
     #   hdg       = heading in degrees
@@ -155,7 +155,7 @@ def init(sim, traf, scr):
         "AIRWAY": [
             "AIRWAY wp/airway",
             "txt",
-            lambda *args: traf.airwaycmd(scr,*args),
+            lambda *args: traf.airwaycmd(scr, *args),
             "Get info on airway or connections of a waypoint"
         ],
         "ALT": [
@@ -224,7 +224,7 @@ def init(sim, traf, scr):
             traf.create,
             "Create an aircraft"
         ],
-         "DEFWPT": [
+        "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",
             lambda *args: traf.navdb.defwpt(scr, *args),
@@ -234,17 +234,17 @@ def init(sim, traf, scr):
             "DEL acid/WIND/shape",
             "txt",
             lambda a:   traf.delete(a)    if traf.id.count(a) > 0 \
-                   else traf.wind.clear() if a=="WIND" \
+                   else traf.wind.clear() if a == "WIND" \
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
         ],
-         "DELRTE": [
+        "DELRTE": [
             "DELRTE acid",
             "acid",
             lambda idx: traf.ap.route[idx].delrte(),
             "Delete for this a/c the complete route/dest/orig (FMS)"
-         ],
-         "DELWPT": [
+        ],
+        "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
             lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
@@ -267,6 +267,12 @@ def init(sim, traf, scr):
             "latlon,latlon",
             distcalc,
             "Distance and direction calculation between two positions"
+        ],
+        "DOC": [
+            "DOC command",
+            "txt",
+            scr.show_cmd_doc,
+            "Show extended help window for given command."
         ],
         "DT": [
             "DT dt",
@@ -679,16 +685,11 @@ def showhelp(cmd=''):
     """
     # No command given: show all
     if len(cmd) == 0:
-        text = "To get help on a command, enter it without arguments.\n" + \
-               "The BlueSky commands are:\n\n"
-        text2 = ""
-        for key in cmddict:
-            text2 += (key + " ")
-            if len(text2) >= 60:
-                text += (text2 + "\n")
-                text2 = ""
-        text += (text2 + "\nSee docs subfolder for more info.")
-        return text
+        return "There are different ways to get help:\n"+\
+               " HELP PDF  gives an overview of the existing commands\n"+\
+               " HELP cmd  gives a help line on the command (syntax)\n" +\
+               " DOC  cmd  show documentation of a command (if available)\n"+\
+               "And there is more info in the docs folder and the wiki on Github"
 
     elif cmd.upper()=="PDF":
         os.chdir("docs")

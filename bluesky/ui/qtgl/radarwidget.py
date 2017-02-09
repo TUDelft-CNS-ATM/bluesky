@@ -157,7 +157,8 @@ class RadarWidget(QGLWidget):
         nact = self.nodedata[connidx]
         if len(nact.polydata) > 0:
             update_buffer(self.allpolysbuf, nact.polydata)
-        self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+        if self.initialized:
+            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
     def create_objects(self):
         if not self.isValid():
@@ -398,11 +399,15 @@ class RadarWidget(QGLWidget):
             self.ssd_shader.loc_nac = gl.glGetUniformLocation(self.ssd_shader.program, 'n_ac')
 
         except RuntimeError as e:
+            print 'Error compiling shaders in radarwidget: ' + e.args[0]
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
             return
 
         # create all vertex array objects
-        self.create_objects()
+        try:
+            self.create_objects()
+        except Exception as e:
+            print 'Error while creating RadarWidget objects: ' + e.args[0]
 
     def paintGL(self):
         """Paint the scene."""
@@ -581,6 +586,9 @@ class RadarWidget(QGLWidget):
         self.event(PanZoomEvent(zoom=zoom, origin=origin))
 
     def update_route_data(self, data):
+        if not self.initialized:
+            return
+
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
             nsegments = len(data.wplat)
@@ -625,6 +633,9 @@ class RadarWidget(QGLWidget):
             self.route.set_vertex_count(0)
 
     def update_aircraft_data(self, data):
+        if not self.initialized:
+            return
+
         self.naircraft = len(data.lat)
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
@@ -689,6 +700,9 @@ class RadarWidget(QGLWidget):
                 self.ssd_ownship = np.append(self.ssd_ownship, arg)
 
     def clearPolygons(self):
+        if not self.initialized:
+            return
+
         # Clear all polys for sender node
         nact = self.nodedata[manager.sender()[0]]
         nact.polydata = np.array([], dtype=np.float32)
@@ -701,6 +715,9 @@ class RadarWidget(QGLWidget):
             self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
     def updatePolygon(self, name, data_in):
+        if not self.initialized:
+            return
+
         nact = self.nodedata[manager.sender()[0]]
         if name in nact.polynames:
             # We're either updating a polygon, or deleting it. In both cases
@@ -726,6 +743,9 @@ class RadarWidget(QGLWidget):
             self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
     def previewpoly(self, shape_type, data_in=None):
+        if not self.initialized:
+            return
+
         if shape_type is None:
             self.polyprev.set_vertex_count(0)
             return
@@ -768,6 +788,9 @@ class RadarWidget(QGLWidget):
         return lat, lon
 
     def event(self, event):
+        if not self.initialized:
+            return super(RadarWidget, self).event(event)
+
         if event.type() == PanZoomEventType:
             if event.pan is not None:
                 # Absolute pan operation

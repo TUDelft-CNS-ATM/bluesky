@@ -15,6 +15,7 @@ import numpy as np
 # Local imports
 from ..radarclick import radarclick
 from mainwindow import MainWindow, Splash
+from docwindow import DocWindow
 # from aman import AMANDisplay
 from ...sim.qtgl import MainManager as manager
 from ...sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, StackTextEvent, \
@@ -133,6 +134,7 @@ class Gui(QApplication):
         self.radarwidget = RadarWidget(navdb)
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
+        self.docwin      = DocWindow()
         # self.aman = AMANDisplay()
 
         gltimer          = QTimer(self)
@@ -207,6 +209,8 @@ class Gui(QApplication):
             elif event.type() == ShowDialogEventType:
                 if event.dialog_type == event.filedialog_type:
                     self.show_file_dialog()
+                elif event.dialog_type == event.docwin_type:
+                    self.show_doc_window(event.cmd)
                 return True
 
             elif event.type() == DisplayFlagEventType:
@@ -454,7 +458,7 @@ class Gui(QApplication):
     def stack(self, text):
         self.sendEvent(manager.instance, StackTextEvent(cmdtext=text))
         # Echo back to command window
-        self.display_stack(">> "+text)
+        self.display_stack(">> " + text)
 
     def display_stack(self, text):
         self.win.stackText.append(text)
@@ -468,6 +472,10 @@ class Gui(QApplication):
             fname = response
         if len(fname) > 0:
             self.stack('IC ' + str(fname))
+
+    def show_doc_window(self, cmd=''):
+        self.docwin.show_cmd_doc(cmd)
+        self.docwin.show()
 
     def __del__(self):
         # Make sure to Clean up at quit event

@@ -23,6 +23,7 @@ from .. import settings
 
 try:
     if settings.performance_model == 'bluesky':
+        print 'Using BlueSky performance model'
         from perf import Perf
 
     elif settings.performance_model == 'bada':

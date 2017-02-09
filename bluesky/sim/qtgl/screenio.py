@@ -147,6 +147,10 @@ class ScreenIO(QObject):
             self.manager.sendEvent(ShowDialogEvent())
         return ''
 
+    def show_cmd_doc(self, cmd):
+        if self.manager.isActive():
+            self.manager.sendEvent(ShowDialogEvent(1, cmd=cmd))
+
     def feature(self, switch, argument=''):
         if self.manager.isActive():
             self.manager.sendEvent(DisplayFlagEvent(switch, argument))
