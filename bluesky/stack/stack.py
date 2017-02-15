@@ -16,7 +16,7 @@ Methods:
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
 from math import *
-import numpy as np
+import numpy as np   
 from random import seed
 import os
 import os.path
@@ -25,6 +25,7 @@ import subprocess
 from ..tools import geo, areafilter
 from ..tools.aero import kts, ft, fpm, tas2cas, density
 from ..tools.misc import txt2alt, cmdsplit
+from ..tools.calculator import calculator
 from ..tools.position import txt2pos, islat
 from .. import settings
 
@@ -39,7 +40,12 @@ cmddict   = dict() # Defined in stack.init
 #
 # Actual command definitions: see dictionary in def init(...) below
 #
-cmdsynon  = {"CONTINUE": "OP",
+cmdsynon  = {"ADDAIRWAY":"ADDAWY",
+             "AWY": "POS",
+             "AIRPORT":"POS",
+             "AIRWAYS":"AIRWAY",
+             "CALL":"PCALL",
+             "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
              "DELETE": "DEL",
@@ -61,6 +67,7 @@ cmdsynon  = {"CONTINUE": "OP",
              "Q": "QUIT",
              "STOP": "QUIT",
              "RUN": "OP",
+             "RUNWAYS": "POS",
              "RESOFACH": "RFACH",
              "RESOFACV": "RFACV",
              "SAVE": "SAVEIC",
@@ -127,7 +134,7 @@ def init(sim, traf, scr):
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon),[alt,spd,afterwp]",
+            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER),[alt,spd,afterwp]",
             "acid,wpt,[alt,spd,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
@@ -144,6 +151,12 @@ def init(sim, traf, scr):
             "acid,wpinroute,txt,wpt,[alt,spd]",
             lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args),
             "After waypoint, add a waypoint to route of aircraft (FMS)"
+        ],
+        "AIRWAY": [
+            "AIRWAY wp/airway",
+            "txt",
+            lambda *args: traf.airwaycmd(scr,*args),
+            "Get info on airway or connections of a waypoint"
         ],
         "ALT": [
             "ALT acid, alt, [vspd]",
@@ -190,7 +203,7 @@ def init(sim, traf, scr):
         "CALC": [
             "CALC expression",
             "string",
-            lambda expr: scr.echo("Ans = " + str(eval(expr))),
+            calculator,
             "Simple in-line math calculator, evaluates expression"
         ],
         "CDMETHOD": [
@@ -212,8 +225,8 @@ def init(sim, traf, scr):
             "Create an aircraft"
         ],
          "DEFWPT": [
-            "DEFWPT wpname,[lat,lon,type,refapt,countrycode]",
-            "txt,[latlon,txt,txt,txt]",
+            "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
+            "txt,latlon,[txt,txt,txt]",
             lambda *args: traf.navdb.defwpt(scr, *args),
             "Define a waypoint only for this scenario/run"
         ],
@@ -252,7 +265,7 @@ def init(sim, traf, scr):
         "DIST": [
             "DIST lat0, lon0, lat1, lon1",
             "latlon,latlon",
-            lambda *args: scr.echo("QDR = %.2f deg, Dist = %.3f nm" % geo.qdrdist(*args)),
+            distcalc,
             "Distance and direction calculation between two positions"
         ],
         "DT": [
@@ -348,7 +361,7 @@ def init(sim, traf, scr):
         "LINE": [
             "LINE name,lat,lon,lat,lon",
             "txt,latlon,latlon",
-            lambda name, *coords: scr.objappend(1, name, coords),
+            lambda name, *coords: scr.objappend("LINE", name, coords),
             "Draw a line on the radar screen"
         ],
         "LISTRTE": [
@@ -513,12 +526,6 @@ def init(sim, traf, scr):
             "[float]",
             traf.asas.SetPZRm,
             "Set horizontal radius of resolution zone in nm"
-        ],
-        "RUNWAYS": [
-            "RUNWAYS ICAO",
-            "txt",
-            lambda ICAO: traf.navdb.listrwys(ICAO),
-            "List available runways on an airport"
         ],
         "SAVEIC": [
             "SAVEIC filename",
@@ -1433,3 +1440,12 @@ class Argparser:
         # Argument not found: return False
         self.error = 'Unknown argument type: ' + argtype
         return False
+
+def distcalc(lat0,lon0,lat1,lon1):
+    try:
+        qdr,dist = geo.qdrdist(lat0,lon0,lat1,lon1)
+        return True,"QDR = %.2f deg, Dist = %.3f nm" %(qdr%360.,dist)
+    except:
+        return False,'Error in dist calculation.'
+
+    
