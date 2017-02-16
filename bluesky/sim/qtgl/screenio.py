@@ -101,8 +101,8 @@ class ScreenIO(QObject):
         if self.manager.isActive():
             self.manager.sendEvent(DisplayFlagEvent('SYM'))
 
-    def pan(self, *args): 
-        # Move center of display, relative of to absolute position lat,lon
+    def pan(self, *args):
+        ''' Move center of display, relative of to absolute position lat,lon '''
         if self.manager.isActive():
             if args[0] == "LEFT":
                 self.ctrlon -= 0.5
@@ -117,14 +117,15 @@ class ScreenIO(QObject):
 
             self.manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
-    def showroute(self, acid): # Toggle show route for this aircraft
+    def showroute(self, acid):
+        ''' Toggle show route for this aircraft '''
         self.route_acid = acid
         return True
 
-    def addnavwpt(self, name,lat,lon):
-        # ToDO: Send this data to GUI and redraw nav waypoints
-        pass
-        return 
+    def addnavwpt(self, name, lat, lon):
+        ''' Add custom waypoint to visualization '''
+        self.manager.sendEvent(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
+        return True
 
     def showacinfo(self, acid, infotext):
         self.echo(infotext)
@@ -132,8 +133,8 @@ class ScreenIO(QObject):
         return True
 
     def showssd(self, param):
-        # Conflict prevention display   
-        # Show solution space diagram, indicating potential conflicts
+        ''' Conflict prevention display
+            Show solution space diagram, indicating potential conflicts'''
         if self.manager.isActive():
             if param == 'ALL' or param == 'OFF':
                 self.manager.sendEvent(DisplayFlagEvent('SSD', param))
@@ -167,7 +168,7 @@ class ScreenIO(QObject):
         if data_in is None:
             # This is an object delete event
             data = None
-            
+
         elif objtype == 'LINE' or objtype[:4] == 'POLY':
             # Input data is laist or array: [lat0,lon0,lat1,lon1,lat2,lon2,lat3,lon3,..]
             data = np.array(data_in, dtype=np.float32)
@@ -182,8 +183,8 @@ class ScreenIO(QObject):
 
         elif objtype == 'CIRCLE':
             # Input data is latctr,lonctr,radius[nm]
-            # Convert circle into polyline list            
-            
+            # Convert circle into polyline list
+
             # Circle parameters
             Rearth = 6371000.0             # radius of the Earth [m]
             numPoints = 72                 # number of straight line segments that make up the circrle
