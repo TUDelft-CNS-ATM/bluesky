@@ -29,11 +29,11 @@ layout (location = 1) in vec3 texcoords_in;
 layout (location = 2) in float lat_in;
 layout (location = 3) in float lon_in;
 layout (location = 4) in float orientation_in;
-layout (location = 5) in vec3 color_in;
+layout (location = 5) in vec4 color_in;
 layout (location = 6) in float texdepth_in;
 
 out vec3 texcoords_fs;
-out vec3 color_fs;
+out vec4 color_fs;
 flat out int discard_instance;
 
 void main() {

@@ -216,7 +216,7 @@ class Gui(QApplication):
             elif event.type() == DisplayFlagEventType:
                 # Switch/toggle/cycle radar screen features e.g. from SWRAD command
                 if event.switch == 'RESET':
-                    self.radarwidget.clearPolygons()
+                    self.radarwidget.clearNodeData()
                 # Coastlines
                 elif event.switch == "GEO":
                     self.radarwidget.show_coast = not self.radarwidget.show_coast
@@ -252,6 +252,9 @@ class Gui(QApplication):
                 elif event.switch == "SYM":
                     # For now only toggle PZ
                     self.radarwidget.show_pz = not self.radarwidget.show_pz
+
+                elif event.switch == "DEFWPT":
+                    self.radarwidget.defwpt(event.argument)
 
                 return True
 
