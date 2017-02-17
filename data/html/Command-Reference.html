@@ -1,0 +1,647 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="bluesky-trafscript-commands">BlueSky TrafScript commands</h1>
+<p>BlueSky gives complete control over the simulation through its own 'scripting language' called <a href="https://www.researchgate.net/profile/Jacco_Hoekstra2/publication/304490055_BlueSky_ATC_Simulator_Project_an_Open_Data_and_Open_Source_Approach/links/5771118408ae6219474a345d.pdf">TrafScript</a>. The provided commands can be used in three ways:</p>
+<ul>
+<li>In scenario files. These consist of a time-stamped list of TrafScript commands, which together can be run as a complete scenario.</li>
+<li>For network communication to/from BlueSky. BlueSky can be connected over TCP to send it simulation commands.</li>
+<li>Directly in the interface. The BlueSky interface has a command line, that can be used to interact with the simulation using TrafScript commands.</li>
+</ul>
+<h2 id="command-reference">Command reference</h2>
+<p>This page gives a complete overview of the available commands in the following table. Below it is a table that lists the commands that have synonyms.</p>
+<table>
+<colgroup>
+<col width="6%" />
+<col width="37%" />
+<col width="56%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Command</th>
+<th>Description</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="ADDNODES.html">ADDNODES</a></td>
+<td>Add a simulation instance/node</td>
+<td>ADDNODES number</td>
+</tr>
+<tr class="even">
+<td>ADDWPT</td>
+<td>Add a waypoint to route of aircraft (FMS)</td>
+<td>ADDWPT acid, (wpname/lat,lon),[alt,spd,afterwp]</td>
+</tr>
+<tr class="odd">
+<td>AFTER</td>
+<td>After waypoint, add a waypoint to route of aircraft (FMS)</td>
+<td>acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]</td>
+</tr>
+<tr class="even">
+<td>ALT</td>
+<td>Altitude command (autopilot)</td>
+<td>ALT acid, alt, [vspd]</td>
+</tr>
+<tr class="odd">
+<td>AREA</td>
+<td>Define experiment area (area of interest)</td>
+<td>AREA Shapename/OFF or AREA lat,lon,lat,lon,[top,bottom]</td>
+</tr>
+<tr class="even">
+<td>ASAS</td>
+<td>Airborne Separation Assurance System switch</td>
+<td>ASAS ON/OFF</td>
+</tr>
+<tr class="odd">
+<td>AT</td>
+<td>Edit, delete or show spd/alt constraints at a waypoint in the route</td>
+<td>acid AT wpname [DEL] SPD/ALT [spd/alt]</td>
+</tr>
+<tr class="even">
+<td><a href="BATCH.html">BATCH</a></td>
+<td>Start a scenario file as batch simulation</td>
+<td>BATCH filename</td>
+</tr>
+<tr class="odd">
+<td><a href="BENCHMARK.html">BENCHMARK</a></td>
+<td>Run benchmark</td>
+<td>BENCHMARK [scenfile,time]</td>
+</tr>
+<tr class="even">
+<td>BOX</td>
+<td>Define a box-shaped area</td>
+<td>BOX name,lat,lon,lat,lon,[top,bottom]</td>
+</tr>
+<tr class="odd">
+<td>CALC</td>
+<td>Simple in-line math calculator, evaluates expression</td>
+<td>CALC expression</td>
+</tr>
+<tr class="even">
+<td>CDMETHOD</td>
+<td>Set conflict detection method</td>
+<td>CDMETHOD [method]</td>
+</tr>
+<tr class="odd">
+<td>CIRCLE</td>
+<td>Define a circle-shaped area</td>
+<td>CIRCLE name,lat,lon,radius,[top,bottom]</td>
+</tr>
+<tr class="even">
+<td>CRE</td>
+<td>Create an aircraft</td>
+<td>CRE acid,type,lat,lon,hdg,alt,spd</td>
+</tr>
+<tr class="odd">
+<td>DATAFEED</td>
+<td>Select an ADS-B data source for traffic</td>
+<td>DATAFEED [ON/OFF]</td>
+</tr>
+<tr class="even">
+<td>DEFWPT</td>
+<td>Define a waypoint only for this scenario/run</td>
+<td>DEFWPT wpname,[lat,lon,type,refapt,countrycode]</td>
+</tr>
+<tr class="odd">
+<td>DEL</td>
+<td>Delete command (aircraft, wind, area)</td>
+<td>DEL acid/WIND/shape</td>
+</tr>
+<tr class="even">
+<td>DELRTE</td>
+<td>Delete for this a/c the complete route/dest/orig (FMS)</td>
+<td>DELRTE acid</td>
+</tr>
+<tr class="odd">
+<td>DELWPT</td>
+<td>Delete a waypoint from a route (FMS)</td>
+<td>DELWPT acid,wpname</td>
+</tr>
+<tr class="even">
+<td>DEST</td>
+<td>Set destination of aircraft, aircraft wil fly to this airport</td>
+<td>DEST acid, latlon/airport</td>
+</tr>
+<tr class="odd">
+<td>DIRECT</td>
+<td>Go direct to specified waypoint in route (FMS)</td>
+<td>DIRECT acid wpname</td>
+</tr>
+<tr class="even">
+<td>DIST</td>
+<td>Distance and direction calculation between two positions</td>
+<td>DIST lat0, lon0, lat1, lon1</td>
+</tr>
+<tr class="odd">
+<td><a href="DT.html">DT</a></td>
+<td>Set simulation time step</td>
+<td>DT dt</td>
+</tr>
+<tr class="even">
+<td>DTLOOK</td>
+<td>Set lookahead time in seconds for conflict detection</td>
+<td>DTLOOK [time]</td>
+</tr>
+<tr class="odd">
+<td><a href="DTMULT.html">DTMULT</a></td>
+<td>Sel multiplication factor for fast-time simulation</td>
+<td>DTMULT multiplier</td>
+</tr>
+<tr class="even">
+<td>DTNOLOOK</td>
+<td>Set interval for conflict detection</td>
+<td>DTNOLOOK [time]</td>
+</tr>
+<tr class="odd">
+<td>DUMPRTE</td>
+<td>Write route to output/routelog.txt</td>
+<td>DUMPRTE acid</td>
+</tr>
+<tr class="even">
+<td>ECHO</td>
+<td>Show a text in command window for user to read</td>
+<td>ECHO txt</td>
+</tr>
+<tr class="odd">
+<td>ENG</td>
+<td>Specify a different engine type</td>
+<td>ENG acid,[engine_id]</td>
+</tr>
+<tr class="even">
+<td><a href="FF.html">FF</a></td>
+<td>Fast forward the simulation</td>
+<td>FF [tend]</td>
+</tr>
+<tr class="odd">
+<td><a href="FIXDT.html">FIXDT</a></td>
+<td>Fix the time step</td>
+<td>FIXDT ON/OFF [tend]</td>
+</tr>
+<tr class="even">
+<td>GETWIND</td>
+<td>Get wind at a specified position (and optionally at altitude)</td>
+<td>GETWIND lat,lon,[alt]</td>
+</tr>
+<tr class="odd">
+<td>HDG</td>
+<td>Heading command (autopilot)</td>
+<td>HDG acid,hdg (deg,True)</td>
+</tr>
+<tr class="even">
+<td>HELP</td>
+<td>Show help on a command, show pdf or write list of commands to file</td>
+<td>HELP [command]/pdf/ &gt;filename</td>
+</tr>
+<tr class="odd">
+<td><a href="HOLD.html">HOLD</a></td>
+<td>Pause(hold) simulation</td>
+<td>HOLD</td>
+</tr>
+<tr class="even">
+<td><a href="IC.html">IC</a></td>
+<td>Initial condition: (re)start simulation and open scenario file</td>
+<td>IC [IC/filename]</td>
+</tr>
+<tr class="odd">
+<td>INSEDIT</td>
+<td>Insert text op edit line in command window</td>
+<td>INSEDIT txt</td>
+</tr>
+<tr class="even">
+<td>INSTLOG</td>
+<td>INSTLOG data logging on</td>
+<td>INSTLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn</td>
+</tr>
+<tr class="odd">
+<td>LINE</td>
+<td>Draw a line on the radar screen</td>
+<td>LINE name,lat,lon,lat,lon</td>
+</tr>
+<tr class="even">
+<td>LISTRTE</td>
+<td>Show list of route in window per page of 5 waypoints</td>
+<td>LISTRTE acid, [pagenr]</td>
+</tr>
+<tr class="odd">
+<td>LNAV</td>
+<td>LNAV (lateral FMS mode) switch for autopilot</td>
+<td>LNAV acid,[ON/OFF]</td>
+</tr>
+<tr class="even">
+<td>MCRE</td>
+<td>Multiple random create of n aircraft in current view</td>
+<td>MCRE n, [type/<em>, alt/</em>, spd/<em>, dest/</em>]</td>
+</tr>
+<tr class="odd">
+<td>METRIC</td>
+<td>Complexity metrics module</td>
+<td>METRIC OFF/0/1/2, [dt]</td>
+</tr>
+<tr class="even">
+<td>MOVE</td>
+<td>Move an aircraft to a new position</td>
+<td>MOVE acid,lat,lon,[alt,hdg,spd,vspd]</td>
+</tr>
+<tr class="odd">
+<td>ND</td>
+<td>Show navigation display with CDTI</td>
+<td>ND acid</td>
+</tr>
+<tr class="even">
+<td>NOISE</td>
+<td>Turbulence/noise switch</td>
+<td>NOISE [ON/OFF]</td>
+</tr>
+<tr class="odd">
+<td>NOM</td>
+<td>Set nominal acceleration for this aircraft (perf model)</td>
+<td>NOM acid</td>
+</tr>
+<tr class="even">
+<td>NORESO</td>
+<td>Switch off conflict resolution for this aircraft</td>
+<td>NORESO [acid]</td>
+</tr>
+<tr class="odd">
+<td><a href="OP.html">OP</a></td>
+<td>Start/Run simulation or continue after pause</td>
+<td>OP</td>
+</tr>
+<tr class="even">
+<td>ORIG</td>
+<td>Set origin airport of aircraft</td>
+<td>ORIG acid, latlon/airport</td>
+</tr>
+<tr class="odd">
+<td>PAN</td>
+<td>Pan screen (move view) to a waypoint, direction or aircraft</td>
+<td>PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN</td>
+</tr>
+<tr class="even">
+<td><a href="PCALL.html">PCALL</a></td>
+<td>Call commands in another scenario file</td>
+<td>PCALL filename [REL/ABS]</td>
+</tr>
+<tr class="odd">
+<td>POLY</td>
+<td>Define a polygon-shaped area</td>
+<td>POLY name,lat,lon,lat,lon, ...</td>
+</tr>
+<tr class="even">
+<td>POLYALT</td>
+<td>Define a polygon-shaped area in 3D: between two altitudes</td>
+<td>POLY name,top,bottom,lat,lon,lat,lon, ...</td>
+</tr>
+<tr class="odd">
+<td>POS</td>
+<td>Get info on aircraft</td>
+<td>POS acid</td>
+</tr>
+<tr class="even">
+<td>PRIORULES</td>
+<td>Define priority rules (right of way) for conflict resolution</td>
+<td>PRIORULES [ON/OFF PRIOCODE]</td>
+</tr>
+<tr class="odd">
+<td><a href="QUIT.html">QUIT</a></td>
+<td>Quit program/Stop simulation</td>
+<td>QUIT</td>
+</tr>
+<tr class="even">
+<td><a href="RESET.html">RESET</a></td>
+<td>Reset simulation</td>
+<td>RESET</td>
+</tr>
+<tr class="odd">
+<td>RESO</td>
+<td>Set resolution method</td>
+<td>RESO [method]</td>
+</tr>
+<tr class="even">
+<td>RESOOFF</td>
+<td>Switch for conflict resolution module</td>
+<td>RESOOFF [acid]</td>
+</tr>
+<tr class="odd">
+<td>RFACH</td>
+<td>Set resolution factor horizontal (to add a margin)</td>
+<td>RFACH [factor]</td>
+</tr>
+<tr class="even">
+<td>RFACV</td>
+<td>Set resolution factor vertical (to add a margin)</td>
+<td>RFACV [factor]</td>
+</tr>
+<tr class="odd">
+<td>RMETHH</td>
+<td>Set resolution method to be used horizontally</td>
+<td>RMETHH [method]</td>
+</tr>
+<tr class="even">
+<td>RMETHV</td>
+<td>Set resolution method to be used vertically</td>
+<td>RMETHV [method]</td>
+</tr>
+<tr class="odd">
+<td>RSZONEDH</td>
+<td>Set half of vertical dimension of resolution zone in ft</td>
+<td>RSZONEDH [height]</td>
+</tr>
+<tr class="even">
+<td>RSZONER</td>
+<td>Set horizontal radius of resolution zone in nm</td>
+<td>RSZONER [radius]</td>
+</tr>
+<tr class="odd">
+<td>RUNWAYS</td>
+<td>List available runways on an airport</td>
+<td>RUNWAYS ICAO</td>
+</tr>
+<tr class="even">
+<td><a href="SAVEIC.html">SAVEIC</a></td>
+<td>Save current situation as IC</td>
+<td>SAVEIC filename</td>
+</tr>
+<tr class="odd">
+<td><a href="SCEN.html">SCEN</a></td>
+<td>Give current situation a scenario name</td>
+<td>SCEN scenname</td>
+</tr>
+<tr class="even">
+<td>SEED</td>
+<td>Set seed for all functions using a randomizer (e.g.mcre,noise)</td>
+<td>SEED value</td>
+</tr>
+<tr class="odd">
+<td>SKYLOG</td>
+<td>SKYLOG data logging on</td>
+<td>SKYLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn</td>
+</tr>
+<tr class="even">
+<td>SNAPLOG</td>
+<td>SNAPLOG data logging on</td>
+<td>SNAPLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn</td>
+</tr>
+<tr class="odd">
+<td>SPD</td>
+<td>Speed command (autopilot)</td>
+<td>SPD acid,spd (CAS-kts/Mach)</td>
+</tr>
+<tr class="even">
+<td>SSD</td>
+<td>Show state-space diagram (=conflict prevention display/predictive ASAS)</td>
+<td>SSD acid/ALL/OFF</td>
+</tr>
+<tr class="odd">
+<td>SWRAD</td>
+<td>Switch on/off elements and background of map/radar view</td>
+<td>SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]</td>
+</tr>
+<tr class="even">
+<td>SYMBOL</td>
+<td>Toggle aircraft symbol</td>
+<td>SYMBOL</td>
+</tr>
+<tr class="odd">
+<td>SYN</td>
+<td>Macro for generating synthetic (geometric) traffic scenarios</td>
+<td>SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER,MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP</td>
+</tr>
+<tr class="even">
+<td>TAXI</td>
+<td>Switch on/off ground/low altitude mode, prevents auto-delete at 1500 ft</td>
+<td>TAXI ON/OFF : OFF auto deletes traffic below 1500 ft</td>
+</tr>
+<tr class="odd">
+<td><a href="TIME.html">TIME</a></td>
+<td>Set simulated clock time</td>
+<td>TIME RUN(default) / HH:MM:SS.hh / REAL / UTC</td>
+</tr>
+<tr class="even">
+<td>TRAIL</td>
+<td>Toggle aircraft trails on/off</td>
+<td>TRAIL ON/OFF, [dt] OR TRAIL acid color</td>
+</tr>
+<tr class="odd">
+<td>VNAV</td>
+<td>Switch on/off VNAV mode, the vertical FMS mode (autopilot)</td>
+<td>VNAV acid,[ON/OFF]</td>
+</tr>
+<tr class="even">
+<td>VS</td>
+<td>Vertical speed command (autopilot)</td>
+<td>VS acid,vspd (ft/min)</td>
+</tr>
+<tr class="odd">
+<td>WIND</td>
+<td>Define a wind vector as part of the 2D or 3D wind field</td>
+<td>WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]</td>
+</tr>
+<tr class="even">
+<td>ZONEDH</td>
+<td>Set half of the vertical protected zone dimensions in ft</td>
+<td>ZONEDH [height]</td>
+</tr>
+<tr class="odd">
+<td>ZONER</td>
+<td>Set the radius of the horizontal protected zone dimensions in nm</td>
+<td>ZONER [radius]</td>
+</tr>
+<tr class="even">
+<td>ZOOM</td>
+<td>Zoom display in/out, you can also use +++ or -----</td>
+<td>ZOOM IN/OUT or factor</td>
+</tr>
+</tbody>
+</table>
+<h2 id="command-synonyms">Command synonyms</h2>
+<p>To maintain full compatibility with the TMX simulator, several commands can also be called by their synonym. The following table lists the currently available synonyms.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Synonym</th>
+<th>Original function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>?</td>
+<td>HELP</td>
+<td>Show help on a command, show pdf or write list of commands to file</td>
+</tr>
+<tr class="even">
+<td>CLOSE</td>
+<td>QUIT</td>
+<td>Quit program/Stop simulation</td>
+</tr>
+<tr class="odd">
+<td>CONTINUE</td>
+<td>OP</td>
+<td>Start/Run simulation or continue after pause</td>
+</tr>
+<tr class="even">
+<td>CREATE</td>
+<td>CRE</td>
+<td>Create an aircraft</td>
+</tr>
+<tr class="odd">
+<td>DELETE</td>
+<td>DEL</td>
+<td>Delete command (aircraft, wind, area)</td>
+</tr>
+<tr class="even">
+<td>DELWP</td>
+<td>DELWPT</td>
+<td>Delete a waypoint from a route (FMS)</td>
+</tr>
+<tr class="odd">
+<td>DELROUTE</td>
+<td>DELRTE</td>
+<td>Delete for this a/c the complete route/dest/orig (FMS)</td>
+</tr>
+<tr class="even">
+<td>DIRECTTO</td>
+<td>DIRECT</td>
+<td>Go direct to specified waypoint in route (FMS)</td>
+</tr>
+<tr class="odd">
+<td>DIRTO</td>
+<td>DIRECT</td>
+<td>Go direct to specified waypoint in route (FMS)</td>
+</tr>
+<tr class="even">
+<td>DISP</td>
+<td>SWRAD</td>
+<td>Switch on/off elements and background of map/radar view</td>
+</tr>
+<tr class="odd">
+<td>END</td>
+<td>QUIT</td>
+<td>Quit program/Stop simulation</td>
+</tr>
+<tr class="even">
+<td>EXIT</td>
+<td>QUIT</td>
+<td>Quit program/Stop simulation</td>
+</tr>
+<tr class="odd">
+<td>FWD</td>
+<td>FF</td>
+<td>Fast forward the simulation</td>
+</tr>
+<tr class="even">
+<td>HEADING</td>
+<td>HDG</td>
+<td>Heading command (autopilot)</td>
+</tr>
+<tr class="odd">
+<td>HMETH</td>
+<td>RMETHH</td>
+<td>Set resolution method to be used horizontally</td>
+</tr>
+<tr class="even">
+<td>HRESOM</td>
+<td>RMETHH</td>
+<td>Set resolution method to be used horizontally</td>
+</tr>
+<tr class="odd">
+<td>HRESOMETH</td>
+<td>RMETHH</td>
+<td>Set resolution method to be used horizontally</td>
+</tr>
+<tr class="even">
+<td>LOAD</td>
+<td>IC</td>
+<td>Initial condition: (re)start simulation and open scenario file</td>
+</tr>
+<tr class="odd">
+<td>OPEN</td>
+<td>IC</td>
+<td>Initial condition: (re)start simulation and open scenario file</td>
+</tr>
+<tr class="even">
+<td>PAUSE</td>
+<td>HOLD</td>
+<td>Pause(hold) simulation</td>
+</tr>
+<tr class="odd">
+<td>Q</td>
+<td>QUIT</td>
+<td>Quit program/Stop simulation</td>
+</tr>
+<tr class="even">
+<td>RESOFACH</td>
+<td>RFACH</td>
+<td>Set resolution factor horizontal (to add a margin)</td>
+</tr>
+<tr class="odd">
+<td>RESOFACV</td>
+<td>RFACV</td>
+<td>Set resolution factor vertical (to add a margin)</td>
+</tr>
+<tr class="even">
+<td>RUN</td>
+<td>OP</td>
+<td>Start/Run simulation or continue after pause</td>
+</tr>
+<tr class="odd">
+<td>SAVE</td>
+<td>SAVEIC</td>
+<td>Save current situation as IC</td>
+</tr>
+<tr class="even">
+<td>SPEED</td>
+<td>SPD</td>
+<td>Speed command (autopilot)</td>
+</tr>
+<tr class="odd">
+<td>START</td>
+<td>OP</td>
+<td>Start/Run simulation or continue after pause</td>
+</tr>
+<tr class="even">
+<td>STOP</td>
+<td>QUIT</td>
+<td>Quit program/Stop simulation</td>
+</tr>
+<tr class="odd">
+<td>TURN</td>
+<td>HDG</td>
+<td>Heading command (autopilot)</td>
+</tr>
+<tr class="even">
+<td>VMETH</td>
+<td>RMETHV</td>
+<td>Set resolution method to be used vertically</td>
+</tr>
+<tr class="odd">
+<td>VRESOM</td>
+<td>RMETHV</td>
+<td>Set resolution method to be used vertically</td>
+</tr>
+<tr class="even">
+<td>VRESOMETH</td>
+<td>RMETHV</td>
+<td>Set resolution method to be used vertically</td>
+</tr>
+</tbody>
+</table>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -269,10 +269,10 @@ def init(sim, traf, scr):
             "Distance and direction calculation between two positions"
         ],
         "DOC": [
-            "DOC command",
-            "txt",
+            "DOC [command]",
+            "[txt]",
             scr.show_cmd_doc,
-            "Show extended help window for given command."
+            "Show extended help window for given command, or the main documentation page if no command is given."
         ],
         "DT": [
             "DT dt",
