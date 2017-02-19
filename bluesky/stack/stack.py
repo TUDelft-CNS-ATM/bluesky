@@ -1442,11 +1442,25 @@ class Argparser:
         self.error = 'Unknown argument type: ' + argtype
         return False
 
-def distcalc(lat0,lon0,lat1,lon1):
-    try:
-        qdr,dist = geo.qdrdist(lat0,lon0,lat1,lon1)
-        return True,"QDR = %.2f deg, Dist = %.3f nm" %(qdr%360.,dist)
-    except:
-        return False,'Error in dist calculation.'
 
-    
+def distcalc(lat0, lon0, lat1, lon1):
+    try:
+        qdr, dist = geo.qdrdist(lat0, lon0, lat1, lon1)
+        return True, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
+    except:
+        return False, 'Error in dist calculation.'
+
+
+def makedoc():
+    if not os.path.isdir('tmp'):
+        os.mkdir('tmp')
+    for name, lst in cmddict.iteritems():
+        if not os.path.isfile('data/html/%s.html' % name.lower()):
+            with open('tmp/%s.md' % name.lower(), 'w') as f:
+                f.write('# %s: %s\n' % (name, name.capitalize()) +
+                    lst[3] + '\n\n' +
+                    '**Usage:**\n\n' +
+                    '    %s\n\n' % lst[0] +
+                    '**Arguments:**\n\n' +
+                    'This command has no arguments.\n\n'
+                    '[[Back to command reference.|Command Reference]]')
