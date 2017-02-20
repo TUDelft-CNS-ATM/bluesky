@@ -75,9 +75,6 @@ class Simulation(QObject):
         # Initialize the stack module once
         stack.init(self, self.traf, self.screenio)
 
-        # create doc templates (.md files) for all commands that don't have a doc file yet
-        # stack.makedoc()
-
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
         self.fixdt = self.simdt
