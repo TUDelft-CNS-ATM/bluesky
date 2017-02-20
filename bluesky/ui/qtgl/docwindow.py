@@ -23,4 +23,6 @@ class DocWindow(QWidget):
         self.setWindowTitle('BlueSky documentation')
 
     def show_cmd_doc(self, cmd):
+        if not cmd:
+            cmd = 'Command-Reference'
         self.view.load(QUrl.fromLocalFile(QFileInfo('data/html/' + cmd.lower() + '.html').absoluteFilePath()))
