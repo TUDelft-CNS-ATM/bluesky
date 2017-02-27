@@ -21,9 +21,9 @@ layout (location = 1) in vec2 texcoords_in;
 layout (location = 2) in float lat_in;
 layout (location = 3) in float lon_in;
 layout (location = 4) in float orientation_in;
-layout (location = 5) in vec3 color_in;
+layout (location = 5) in vec4 color_in;
 
-out vec3 color_fs;
+out vec4 color_fs;
 out vec2 texcoords_fs;
 void main()
 {

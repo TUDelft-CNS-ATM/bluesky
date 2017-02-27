@@ -57,10 +57,12 @@ class StackTextEvent(QEvent):
 class ShowDialogEvent(QEvent):
     # Types of dialog
     filedialog_type = 0
+    docwin_type = 1
 
-    def __init__(self, dialog_type=0):
+    def __init__(self, dialog_type=0, **extraattr):
         super(ShowDialogEvent, self).__init__(ShowDialogEventType)
         self.dialog_type = dialog_type
+        self.__dict__.update(extraattr)
 
 
 class RouteDataEvent(QEvent):

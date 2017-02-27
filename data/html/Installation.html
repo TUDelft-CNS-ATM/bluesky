@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="installing-bluesky">Installing BlueSky</h1>
+<p>BlueSky is developed in Python 2.x, and as such runs on a variety of platforms. Instructions for installing the BlueSky source and its dependencies are given below for Windows, MacOS and Linux. If you just want to try BlueSky without having to worry about source code and dependencies you can also use the <a href="https://github.com/ProfHoekstra/bluesky/releases">BlueSky package releases</a>, which are available for Windows and MacOS.</p>
+<h2 id="recommended-installation-instructions-for-windows-linux-and-macos-anaconda">Recommended installation instructions for Windows, Linux and MacOS: Anaconda</h2>
+<p>The easiest way to start using the BlueSky source code is to install a Python distribution such as <a href="https://www.continuum.io/downloads">Anaconda</a>. There are two versions available, based on Python 3.x and Python 2.x. BlueSky requires the latter. For the Windows and Linux versions of Anaconda you also have to choose between 64-bits and 32-bits. 64-bits is recommended. Anaconda also provides a stripped-down version of their distribution (Miniconda), which only installs python and the conda installation tool. You can also use miniconda, but this requires manual installation of more dependencies. As such, using the full distribution of Anaconda is recommended. The default destination for Anaconda is in your home directory, which also works fine for BlueSky.</p>
+<p>In addition to the basic installation of Anaconda, BlueSky also requires you to install a couple of additional libraries. You can use the <em>conda</em> command-line tool for this. In a terminal (in Windows: command line or PowerShell), execute the following commands:</p>
+<pre><code> conda install pyopengl-accelerate</code></pre>
+<p>If you have the stripped-down version of Anaconda you need more packages:</p>
+<pre><code>conda install pyqt numpy scipy matplotlib pyopengl-accelerate</code></pre>
+<p>If you think your computer might not be able to run the openGL version of BlueSky you should also install pygame:</p>
+<pre><code>pip install pygame</code></pre>
+<p>After this you're all set. Download the BlueSky source from GitHub by cloning, forking, or just downloading the zip file <a href="https://github.com/ProfHoekstra/bluesky/archive/master.zip">here</a>. Instructions to run BlueSky are described in the next <a href="Running-BlueSky.html">chapter</a>.</p>
+<h2 id="alternative-options">Alternative Options</h2>
+<h3 id="windows-pythonxy">Windows: Python(x,y)</h3>
+<p>For Windows, <a href="https://python-xy.github.io">Python(x,y)</a> is also a widely-used python distribution, especially in the scientific community. By default, Python(x,y) comes with PyQt4, but this is no problem for BlueSky. Also for this distribution, additional packages are required: pyopengl&gt;=3.1.1 and pygame.</p>
+<h3 id="macos-macports">MacOS: MacPorts</h3>
+<p>If you prefer you can also install the required dependencies using MacPorts. Assuming you already have MacPorts installed, use <em>port</em> to install the following additional dependencies:</p>
+<pre><code>sudo port install py27-pyqt5 py27-opengl-accelerate py27-game</code></pre>
+<h3 id="linux-your-distributions-package-manager">Linux: Your distribution's package manager</h3>
+<p>Each Linux distribution has its own package management software. You can use it to install the required dependencies for BlueSky. Typically python is already available by default on a Linux system. In addition, BlueSky relies on pyqt&gt;=4.7, PyOpenGL&gt;=3.1.1, numpy, scipy, matplotlib, and optionally pygame.</p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

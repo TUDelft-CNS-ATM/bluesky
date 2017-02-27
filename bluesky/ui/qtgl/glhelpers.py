@@ -131,10 +131,11 @@ class BlueSkyProgram():
 
 class RenderObject(object):
     # Attribute locations
-    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = range(7)
+    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, \
+        attrib_orientation, attrib_color, attrib_texdepth = range(7)
     bound_vao = -1
 
-    def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0, n_instances=0):
+    def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0, n_instances=0, vertex=None, texcoords=None, color=None):
         self.vao_id               = gl.glGenVertexArrays(1)
         self.enabled_attributes   = dict()
         self.primitive_type       = primitive_type
@@ -142,6 +143,16 @@ class RenderObject(object):
         self.vertex_count         = vertex_count
         self.n_instances          = n_instances
         self.max_instance_divisor = 0
+        self.single_colour        = None
+
+        if vertex is not None:
+            self.bind_vertex(vertex)
+
+        if texcoords is not None:
+            self.bind_texcoords(texcoords)
+
+        if color is not None:
+            self.bind_color(color)
 
     def set_vertex_count(self, count):
         self.vertex_count = count
@@ -181,6 +192,22 @@ class RenderObject(object):
 
         return buf_id
 
+    def bind_texcoords(self, data, *args, **kwargs):
+        self.bind_attrib(self.attrib_texcoords, 2, data, *args, **kwargs)
+
+    def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
+        self.vertex_count = np.size(data) / 2 if vertex_count == 0 else vertex_count
+        self.bind_attrib(self.attrib_vertex, 2, data, *args, **kwargs)
+
+    def bind_color(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0):
+        # One colour for everything in a  size 3/4 array? or an existing or new buffer
+        if np.size(data) in [3, 4]:
+            # Add full alpha if none is given
+            self.single_colour = np.append(data, 255) if len(data) == 3 else data
+
+        else:
+            self.bind_attrib(self.attrib_color, 4, data, storagetype, instance_divisor, datatype=gl.GL_UNSIGNED_BYTE, normalize=True)
+
     def bind(self):
         if RenderObject.bound_vao != self.vao_id:
             gl.glBindVertexArray(self.vao_id)
@@ -205,6 +232,9 @@ class RenderObject(object):
             return
 
         self.bind()
+
+        if self.single_colour is not None:
+            gl.glVertexAttrib4Nub(self.attrib_color, *self.single_colour)
 
         if n_instances > 0:
             gl.glDrawArraysInstanced(primitive_type, first_vertex, vertex_count, n_instances * self.max_instance_divisor)
@@ -254,11 +284,11 @@ class Font(object):
         self.loc_block_size = gl.glGetUniformLocation(program.program, 'block_size')
 
     def use(self):
-        gl.glActiveTexture(gl.GL_TEXTURE0+0)
+        gl.glActiveTexture(gl.GL_TEXTURE0 + 0)
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.tex_id)
 
     def set_char_size(self, char_size):
-        gl.glUniform2f(self.loc_char_size, char_size, char_size*self.char_ar)
+        gl.glUniform2f(self.loc_char_size, char_size, char_size * self.char_ar)
 
     def set_block_size(self, block_size):
         gl.glUniform2i(self.loc_block_size, block_size[0], block_size[1])
@@ -350,7 +380,7 @@ class Font(object):
             ret.bind_attrib(self.attrib_lon, 1, origin_lon, instance_divisor=divisor)
 
         if text_color is not None:
-            ret.bind_attrib(self.attrib_color, 3, text_color, datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=divisor)
+            ret.bind_attrib(self.attrib_color, 4, text_color, datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=divisor)
 
         ret.block_size = textblock_size
         ret.char_size = char_size

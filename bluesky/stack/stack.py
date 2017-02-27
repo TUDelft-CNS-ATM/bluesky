@@ -16,7 +16,7 @@ Methods:
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
 from math import *
-import numpy as np   
+import numpy as np
 from random import seed
 import os
 import os.path
@@ -33,18 +33,18 @@ from .. import settings
 import synthetic as syn
 
 # Global variables
-cmddict   = dict() # Defined in stack.init
+cmddict   = dict()  # Defined in stack.init
 
 #
 # Command synonym dictionary definea equivalent commands globally in stack
 #
 # Actual command definitions: see dictionary in def init(...) below
 #
-cmdsynon  = {"ADDAIRWAY":"ADDAWY",
+cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "AWY": "POS",
-             "AIRPORT":"POS",
-             "AIRWAYS":"AIRWAY",
-             "CALL":"PCALL",
+             "AIRPORT": "POS",
+             "AIRWAYS": "AIRWAY",
+             "CALL": "PCALL",
              "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
@@ -57,7 +57,7 @@ cmdsynon  = {"ADDAIRWAY":"ADDAWY",
              "END": "QUIT",
              "EXIT": "QUIT",
              "FWD": "FF",
-             "HEADING":"HDG",
+             "HEADING": "HDG",
              "HMETH": "RMETHH",
              "HRESOM": "RMETHH",
              "HRESOMETH": "RMETHH",
@@ -71,7 +71,7 @@ cmdsynon  = {"ADDAIRWAY":"ADDAWY",
              "RESOFACH": "RFACH",
              "RESOFACV": "RFACV",
              "SAVE": "SAVEIC",
-             "SPEED":"SPD",
+             "SPEED": "SPD",
              "START": "OP",
              "TURN": "HDG",
              "VMETH": "RMETHV",
@@ -93,12 +93,12 @@ def init(sim, traf, scr):
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
-    # Command dictionary with command as key, gives a list with: 
+    # Command dictionary with command as key, gives a list with:
     #
-    #         command: [ helptext , 
-    #                    arglist , 
-    #                    function to call, 
-    #                    description in one line ] 
+    #         command: [ helptext ,
+    #                    arglist ,
+    #                    function to call,
+    #                    description in one line ]
     #
     # Regarding the arglist:
     #    - Separate aruments with a comma ","
@@ -108,7 +108,7 @@ def init(sim, traf, scr):
     #
     # Argtypes = syntax parsing (see below in this module for parsing):
     #
-    #   acid      = aircraft id (text => index) 
+    #   acid      = aircraft id (text => index)
     #   alt       = altitude (FL250, 25000  ft+. meters)
     #   spd       = CAS or Mach (when <1)   => m/s
     #   hdg       = heading in degrees
@@ -155,7 +155,7 @@ def init(sim, traf, scr):
         "AIRWAY": [
             "AIRWAY wp/airway",
             "txt",
-            lambda *args: traf.airwaycmd(scr,*args),
+            lambda *args: traf.airwaycmd(scr, *args),
             "Get info on airway or connections of a waypoint"
         ],
         "ALT": [
@@ -224,7 +224,7 @@ def init(sim, traf, scr):
             traf.create,
             "Create an aircraft"
         ],
-         "DEFWPT": [
+        "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",
             lambda *args: traf.navdb.defwpt(scr, *args),
@@ -234,17 +234,17 @@ def init(sim, traf, scr):
             "DEL acid/WIND/shape",
             "txt",
             lambda a:   traf.delete(a)    if traf.id.count(a) > 0 \
-                   else traf.wind.clear() if a=="WIND" \
+                   else traf.wind.clear() if a == "WIND" \
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
         ],
-         "DELRTE": [
+        "DELRTE": [
             "DELRTE acid",
             "acid",
             lambda idx: traf.ap.route[idx].delrte(),
             "Delete for this a/c the complete route/dest/orig (FMS)"
-         ],
-         "DELWPT": [
+        ],
+        "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
             lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
@@ -267,6 +267,12 @@ def init(sim, traf, scr):
             "latlon,latlon",
             distcalc,
             "Distance and direction calculation between two positions"
+        ],
+        "DOC": [
+            "DOC [command]",
+            "[txt]",
+            scr.show_cmd_doc,
+            "Show extended help window for given command, or the main documentation page if no command is given."
         ],
         "DT": [
             "DT dt",
@@ -376,6 +382,12 @@ def init(sim, traf, scr):
             traf.ap.setLNAV,
             "LNAV (lateral FMS mode) switch for autopilot"
         ],
+        "MAKEDOC": [
+            "MAKEDOC",
+            "",
+            makedoc,
+            "Make markdown templates for all stack functions that don't have a doc page yet."
+        ],
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
             "int,[txt,alt,spd,txt]",
@@ -458,7 +470,7 @@ def init(sim, traf, scr):
         "POS": [
             "POS acid/waypoint",
             "acid/wpt",
-            lambda *args: traf.poscommand(scr,*args),
+            lambda *args: traf.poscommand(scr, *args),
             "Get info on aircraft, airport or waypoint"
         ],
         "PRIORULES": [
@@ -679,121 +691,110 @@ def showhelp(cmd=''):
     """
     # No command given: show all
     if len(cmd) == 0:
-        text = "To get help on a command, enter it without arguments.\n" + \
-               "The BlueSky commands are:\n\n"
-        text2 = ""
-        for key in cmddict:
-            text2 += (key + " ")
-            if len(text2) >= 60:
-                text += (text2 + "\n")
-                text2 = ""
-        text += (text2 + "\nSee docs subfolder for more info.")
-        return text
+        return "There are different ways to get help:\n" + \
+               " HELP PDF  gives an overview of the existing commands\n" + \
+               " HELP cmd  gives a help line on the command (syntax)\n"  + \
+               " DOC  cmd  show documentation of a command (if available)\n" + \
+               "And there is more info in the docs folder and the wiki on Github"
 
-    elif cmd.upper()=="PDF":
+    elif cmd.upper() == "PDF":
         os.chdir("docs")
         pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
         if os.path.isfile(pdfhelp):
-            try:            
-                subprocess.Popen(pdfhelp,shell=True)
-            except:               
-                return "Opening "+pdfhelp+" failed."
+            try:
+                subprocess.Popen(pdfhelp, shell=True)
+            except:
+                return "Opening " + pdfhelp + " failed."
         else:
-            return pdfhelp+"does not exist."
+            return pdfhelp + "does not exist."
         os.chdir("..")
         return "Pdf window opened"
-    
+
     # Show help line for command
     elif cmd in cmddict:
-        
+
         # Check whether description is available, then show it as well
-        if len(cmddict)<=3:
+        if len(cmddict) <= 3:
             return cmddict[cmd][0]
         else:
-            return cmddict[cmd][0]+"\n"+cmddict[cmd][3]
+            return cmddict[cmd][0] + "\n" + cmddict[cmd][3]
 
     # Show help line for equivalent command
     elif cmd in cmdsynon:
-        
+
         # Check whether description is available, then show it as well
-        if len(cmddict[cmdsynon[cmd]])<=3:
+        if len(cmddict[cmdsynon[cmd]]) <= 3:
             return cmddict[cmdsynon[cmd]][0]
         else:
-            return cmddict[cmdsynon[cmd]][0]+"\n"+cmddict[cmdsynon[cmd]][3]
-            
-    
+            return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][3]
+
     # Write command reference to tab-delimited text file
     elif cmd[0] == ">":
 
         # Get filename
-        if len(cmd)>1:
-            fname = "./docs/"+cmd[1:]
+        if len(cmd) > 1:
+            fname = "./docs/" + cmd[1:]
         else:
             fname = "./docs/bluesky-commands.txt"
 
         # Write command dictionary to tab-delimited text file
-        try:        
-            f = open(fname,"w")
+        try:
+            f = open(fname, "w")
         except:
-            return "Invalid filename:"+fname
-        
+            return "Invalid filename:" + fname
+
         # Header of first table
         f.write("Command\tDescription\tUsage\tArgument types\tFunction\n")
-      
-        
+
         table = []  # for alphabetical sort use a table
-        
+
         # Get info for all commands
-        for item in cmddict:
-
-            lst = cmddict[item] # Get list with helpline, argtypes & function
-
+        for item, lst in cmddict.iteritems():
             line = item + "\t"
-            if len(lst)>3:
+            if len(lst) > 3:
                 line = line + lst[3]
             line = line + "\t" + lst[0] + "\t" + str(lst[1]) + "\t"
 
             # Clean up string with function name and add if not a lambda function
-            funct = str(lst[2]).replace("<","").replace(">","")
+            funct = str(lst[2]).replace("<", "").replace(">", "")
 
             # Lambda function give no info, also remove hex address and "method" text
-            if funct.count("lambda")==0:
+            if funct.count("lambda") == 0:
 
-                if funct.count("at")>0:
+                if funct.count("at") > 0:
                     idxat = funct.index(" at ")
                     funct = funct[:idxat]
-    
-                funct = funct.replace("bound method","")
-                line = line + funct           
-     
+
+                funct = funct.replace("bound method", "")
+                line = line + funct
+
             table.append(line)
 
         # Sort & write table
-        table.sort()       
-        for line in table:        
-            f.write(line+"\n")
+        table.sort()
+        for line in table:
+            f.write(line + "\n")
         f.write("\n")
 
         # Add synonyms table
-        f.write("\n\n Synonyms (equivalent commands)\n") 
+        f.write("\n\n Synonyms (equivalent commands)\n")
 
-        table = []  # for alphabetical sort use table      
+        table = []  # for alphabetical sort use table
         for item in cmdsynon:
-            if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]])>=3 :
-                table.append(item + "\t" +cmdsynon[item]+"\t"+cmddict[cmdsynon[item]][3])
+            if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]]) >= 3:
+                table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][3])
             else:
-                table.append(item + "\t" +cmdsynon[item]+"\t")
-                
+                table.append(item + "\t" + cmdsynon[item] + "\t")
 
-        # Sort & write table        
+        # Sort & write table
         table.sort()
-        for line in table:        
-            f.write(line+"\n")
+        for line in table:
+            f.write(line + "\n")
         f.write("\n")
-        
+
         # Close and report where file is to be found
         f.close()
-        return "Writing command reference in "+fname
+        return "Writing command reference in " + fname
 
     else:
         return "HELP: Unknown command: " + cmd
@@ -996,15 +997,15 @@ def saveic(fname, sim, traf):
             cmdline = cmdline + wpname + ","
 
             if route.wpalt[iwp] >= 0.:
-                cmdline = cmdline + repr(route.wpalt[iwp]/ft) + ","
+                cmdline = cmdline + repr(route.wpalt[iwp] / ft) + ","
             else:
                 cmdline = cmdline + ","
 
             if route.wpspd[iwp] >= 0.:
-                if route.wpspd[iwp]>1.0:
-                     cmdline = cmdline + repr(route.wpspd[iwp]/kts)
+                if route.wpspd[iwp] > 1.0:
+                    cmdline = cmdline + repr(route.wpspd[iwp] / kts)
                 else:
-                     cmdline = cmdline + repr(route.wpspd[iwp]) 
+                    cmdline = cmdline + repr(route.wpspd[iwp])
 
             f.write(timtxt + cmdline + "\n")
 
@@ -1223,7 +1224,7 @@ class Argparser:
             if argtype in self.additional and args[argidx] == "*":
                 self.result  = [self.additional[argtype]]
                 self.argstep = 1
-                return True    
+                return True
             # Otherwise result is None
             self.result  = [None]
             self.argstep = 1
@@ -1371,10 +1372,10 @@ class Argparser:
         elif argtype == "spd":
 
             try:
-                spd = float(args[argidx].upper() \
-                       .replace("M0.",".").replace("M", ".").replace("..", "."))
-                       
-                if not (0.1 < spd < 1.0 or args[argidx].count("M")>0):
+                spd = float(args[argidx].upper()
+                       .replace("M0.", ".").replace("M", ".").replace("..", "."))
+
+                if not (0.1 < spd < 1.0 or args[argidx].count("M") > 0):
                     spd = spd * kts
                 self.result  = [spd]
                 self.argstep = 1
@@ -1395,11 +1396,11 @@ class Argparser:
 
         # Altutide convert ft or FL to m
         elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-            try:            
+            try:
                 alt = txt2alt(args[argidx])
             except:
                 alt = -9999.
-                
+
             if alt > -990.0:
                 self.result  = [alt * ft]
                 self.argstep = 1
@@ -1441,11 +1442,33 @@ class Argparser:
         self.error = 'Unknown argument type: ' + argtype
         return False
 
-def distcalc(lat0,lon0,lat1,lon1):
-    try:
-        qdr,dist = geo.qdrdist(lat0,lon0,lat1,lon1)
-        return True,"QDR = %.2f deg, Dist = %.3f nm" %(qdr%360.,dist)
-    except:
-        return False,'Error in dist calculation.'
 
-    
+def distcalc(lat0, lon0, lat1, lon1):
+    try:
+        qdr, dist = geo.qdrdist(lat0, lon0, lat1, lon1)
+        return True, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
+    except:
+        return False, 'Error in dist calculation.'
+
+
+def makedoc():
+    import re
+    re_args = re.compile(r'\w+')
+    if not os.path.isdir('tmp'):
+        os.mkdir('tmp')
+    for name, lst in cmddict.iteritems():
+        if not os.path.isfile('data/html/%s.html' % name.lower()):
+            with open('tmp/%s.md' % name.lower(), 'w') as f:
+                f.write('# %s: %s\n' % (name, name.capitalize()) +
+                    lst[3] + '\n\n' +
+                    '**Usage:**\n\n' +
+                    '    %s\n\n' % lst[0] +
+                    '**Arguments:**\n\n')
+                if len(lst[1]) == 0:
+                    f.write('This command has no arguments.\n\n')
+                else:
+                    f.write('|Name|Type|Optional|Description\n' +
+                        '|--------|------|---|---------------------------------------------------\n')
+                    for arg in re_args.findall(lst[0])[1:]:
+                        f.write(arg + '|     |   |\n')
+                f.write('\n[[Back to command reference.|Command Reference]]\n')

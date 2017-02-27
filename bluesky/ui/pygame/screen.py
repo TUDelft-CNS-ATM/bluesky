@@ -3,6 +3,8 @@ from math import *
 import pygame as pg
 
 import datetime, os
+import os.path
+import subprocess
 
 import numpy as np
 
@@ -1219,3 +1221,23 @@ class Screen:
     def symbol(self):
         self.swsep = not self.swsep
         return True
+
+    def show_cmd_doc(self, cmd=''):
+        # Show documentation on command
+        if not cmd:
+            cmd = 'Command-Reference'
+        curdir = os.getcwd()
+        os.chdir("data/html")
+        htmlfile = cmd.lower()+".html"
+        if os.path.isfile(htmlfile):
+            try:            
+                subprocess.Popen(htmlfile,shell=True)
+            except:
+                os.chdir(curdir)
+                return False,"Opening "+htmlfile+" failed."
+        else:
+            os.chdir(curdir)
+            return False,htmlfile+" is not yet available, try HELP PDF or check the wiki on Github."
+
+        os.chdir(curdir)
+        return True,"HTML window opened"
