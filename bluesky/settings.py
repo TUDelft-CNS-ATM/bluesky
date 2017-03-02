@@ -75,16 +75,7 @@ asas_mar = 1.05
 #=============================================================================
 
 # Radarscreen font size in pixels
-text_size = 10
-
-# The size in pixels of the font texture of one character (Change this if the font scaling doesn't look good)
-text_texture_size = 62
-
-# Font for the radar screen. The default is courier, because it is monospaced.
-font_family = 'Courier'
-
-# Font weight. A weight of 0 is ultralight, whilst 99 will be an extremely black. 50 is normal, and 75 is bold.
-font_weight = 99
+text_size = 13
 
 # Radarscreen airport symbol size in pixels
 apt_size = 10
