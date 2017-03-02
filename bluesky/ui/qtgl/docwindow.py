@@ -2,30 +2,28 @@ try:
     from PyQt5.QtCore import QUrl, QFileInfo
     from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton
     from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+
+    class DocView(QWebEngineView):
+        def __init__(self, parent=None):
+            super(DocView, self).__init__(parent)
+
+            class DocPage(QWebEnginePage):
+                def __init__(self, parent=None):
+                    super(DocPage, self).__init__(parent)
+
+                def acceptNavigationRequest(self, url, navtype, ismainframe):
+                    if navtype == self.NavigationTypeLinkClicked:
+                        if url.url()[:6].lower() == 'stack:':
+                            DocWindow.app.stack(url.url()[6:].lower())
+                            return False
+
+                    return True
+            self.page = DocPage()
+            self.setPage(self.page)
 except:
     from PyQt4.QtCore import QUrl, QFileInfo
     from PyQt4.QtGui import QVBoxLayout, QWidget, QPushButton
-    from PyQt4.QtWebKit import QWebView as QWebEngineView
-
-
-class DocView(QWebEngineView):
-    def __init__(self, parent=None):
-        super(DocView, self).__init__(parent)
-
-        class DocPage(QWebEnginePage):
-            def __init__(self, parent=None):
-                super(DocPage, self).__init__(parent)
-
-            def acceptNavigationRequest(self, url, navtype, ismainframe):
-                if navtype == self.NavigationTypeLinkClicked:
-                    if url.url()[:6].lower() == 'stack:':
-                        print 'test'
-                        DocWindow.app.stack(url.url()[6:].lower())
-                        return False
-
-                return True
-        self.page = DocPage()
-        self.setPage(self.page)
+    from PyQt4.QtWebKit import QWebView as DocView
 
 
 class DocWindow(QWidget):
