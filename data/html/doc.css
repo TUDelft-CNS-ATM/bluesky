@@ -142,6 +142,26 @@ pre {
           border-radius: 4px;
 }
 
+.bsbutton {
+  /*white-space: pre;
+  white-space: pre-wrap;
+  word-wrap: break-word;*/
+  /*margin: 0 50px 10px;*/
+  padding: 1px;
+  color: #fff;
+  /*display: inline;*/
+  background-color: #69c;
+  border: 1px solid #69c;
+  /*border: 1px solid rgba(0, 0, 0, 0.15);*/
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+
+.bsbutton:hover {
+  color: #ffa500;
+}
+
 b, strong {
   font-weight: bold;
 }

@@ -134,7 +134,7 @@ class Gui(QApplication):
         self.radarwidget = RadarWidget(navdb)
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
-        self.docwin      = DocWindow()
+        self.docwin      = DocWindow(self)
         # self.aman = AMANDisplay()
 
         gltimer          = QTimer(self)
