@@ -21,12 +21,13 @@ Date          :
 ------------------------------------------------------------------
 """
 try:
-    from PyQt5.QtGui import QImage, QPainter, QColor, QFont, QFontMetrics
+    from PyQt5.QtGui import QImage
 except ImportError:
-    from PyQt4.QtGui import QImage, QPainter, QColor, QFont, QFontMetrics
+    from PyQt4.QtGui import QImage
 import OpenGL.GL as gl
 import numpy as np
 from ctypes import c_void_p, pointer, sizeof
+from ... import settings
 
 
 def load_texture(fname):
@@ -293,31 +294,11 @@ class Font(object):
     def set_block_size(self, block_size):
         gl.glUniform2i(self.loc_block_size, block_size[0], block_size[1])
 
-    def create_font_array(self, char_height=62, pixel_margin=1, font_family='Courier', font_weight=50):
-        # Load font and get the dimensions of one character (assuming monospaced font)
-        f = QFont(font_family)
-        f.setPixelSize(char_height)
-        f.setWeight(font_weight)
-        fm = QFontMetrics(f, QImage())
-
-        char_width = char_height = 0
-        char_y = 999
-
-        for i in range(32, 127):
-            bb = fm.boundingRect(chr(i))
-            char_width = max(char_width, bb.width())
-            char_height = max(char_height, bb.height())
-            char_y = min(char_y, bb.y())
-
-        imgsize = (char_width + 2 * pixel_margin, char_height + 2 * pixel_margin)
+    def create_font_array(self):
+        # Load the first image to get font size
+        img          = QImage(settings.data_path + '/graphics/font/32.png')
+        imgsize      = (img.width(), img.height())
         self.char_ar = float(imgsize[1]) / imgsize[0]
-
-        # init the image and the painter that will draw the characters to each image
-        img = QImage(imgsize[0], imgsize[1], QImage.Format_ARGB32)
-        ptr = c_void_p(int(img.constBits()))
-        painter = QPainter(img)
-        painter.setFont(f)
-        painter.setPen(QColor(255, 255, 255, 255))
 
         # Set-up the texture array
         self.tex_id = gl.glGenTextures(1)
@@ -329,12 +310,9 @@ class Font(object):
         gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
         # We're using the ASCII range 32-126; space, uppercase, lower case, numbers, brackets, punctuation marks
         for i in range(32, 127):
-            img.fill(0)
-            painter.drawText(pixel_margin, pixel_margin - char_y, chr(i))
+            img = QImage(settings.data_path + '/graphics/font/%d.png' % i).convertToFormat(QImage.Format_ARGB32)
+            ptr = c_void_p(int(img.constBits()))
             gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 32, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
-
-        # We're done, close the painter, and return the texture ID, char width and char height
-        painter.end()
 
     @staticmethod
     def char(x, y, w, h, c=32):

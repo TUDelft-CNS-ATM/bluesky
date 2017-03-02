@@ -89,7 +89,7 @@ class ND(QGLWidget):
         edge[0:120:2] = 1.4 * np.sin(np.radians(np.arange(-60, 60, 2)))
         edge[1:120:2] = 1.4 * np.cos(np.radians(np.arange(-60, 60, 2)))
         self.edge.bind_attrib(ATTRIB_VERTEX, 2, edge)
-        self.edge.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.edge.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
         self.arcs = RenderObject(gl.GL_LINES)
         arcs = []
         for i in range(1, 4):
@@ -101,7 +101,7 @@ class ND(QGLWidget):
                     arcs.append(float(i) * 0.35 * cos(radians(angle + 2)))
 
         self.arcs.bind_attrib(ATTRIB_VERTEX, 2, np.array(arcs, dtype=np.float32))
-        self.arcs.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.arcs.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
         self.arcs.set_vertex_count(len(arcs))
 
         self.mask = RenderObject(gl.GL_TRIANGLE_STRIP, vertex_count=120)
@@ -112,7 +112,7 @@ class ND(QGLWidget):
             mask.append(1.4*sin(radians(angle)))
             mask.append(1.4*cos(radians(angle)))
         self.mask.bind_attrib(ATTRIB_VERTEX, 2, np.array(mask, dtype=np.float32))
-        self.mask.bind_attrib(ATTRIB_COLOR, 3, np.array(black, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.mask.bind_attrib(ATTRIB_COLOR, 4, np.array(black, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
 
         self.ticks = RenderObject(gl.GL_LINES, vertex_count=144)
         ticks = np.zeros(288, dtype=np.float32)
@@ -121,7 +121,7 @@ class ND(QGLWidget):
             ticks[4*i  :4*i+2] = (1.4 * sin(radians(i * 5)), 1.4 * cos(radians(i * 5)))
             ticks[4*i+2:4*i+4] = (ticktop * sin(radians(i * 5)), ticktop * cos(radians(i * 5)))
         self.ticks.bind_attrib(ATTRIB_VERTEX, 2, ticks)
-        self.ticks.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ticks.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
 
         self.ticklbls = RenderObject(gl.GL_TRIANGLES, vertex_count=12 * 36)
         ticklbls = np.zeros(24 * 36, dtype=np.float32)
@@ -147,11 +147,11 @@ class ND(QGLWidget):
 
         self.ticklbls.bind_attrib(ATTRIB_VERTEX, 2, ticklbls)
         self.ticklbls.bind_attrib(ATTRIB_TEXCOORDS, 3, texcoords)
-        self.ticklbls.bind_attrib(ATTRIB_COLOR, 3, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ticklbls.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
 
         self.ownship = RenderObject(gl.GL_LINES, vertex_count=6)
         self.ownship.bind_attrib(ATTRIB_VERTEX, 2, np.array([0.0, 0.0, 0.0, -0.12, 0.065, -0.03, -0.065, -0.03, 0.022, -0.1, -0.022, -0.1], dtype=np.float32))
-        self.ownship.bind_attrib(ATTRIB_COLOR, 3, np.array(yellow, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ownship.bind_attrib(ATTRIB_COLOR, 4, np.array(yellow, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
 
         self.spdlabel_text = self.font.prepare_text_string('GS    TAS', 0.05, white, (-0.98, 1.6))
         self.spdlabel_val  = self.font.prepare_text_string('  000    000', 0.05, green, (-0.97, 1.6))

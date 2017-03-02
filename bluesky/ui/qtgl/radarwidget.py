@@ -12,7 +12,7 @@ import OpenGL.GL as gl
 from ctypes import c_float, c_int, Structure
 
 # Local imports
-from ...settings import text_size, apt_size, wpt_size, ac_size, font_family, font_weight, text_texture_size
+from ...settings import text_size, apt_size, wpt_size, ac_size
 from ...tools.aero import ft, nm, kts
 from ...sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
 from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
@@ -161,6 +161,7 @@ class RadarWidget(QGLWidget):
         self.iactconn = connidx
         nact = self.nodedata[connidx]
         if len(nact.polydata) > 0:
+            self.makeCurrent()
             update_buffer(self.allpolysbuf, nact.polydata)
         if self.initialized:
             self.allpolys.set_vertex_count(len(nact.polydata) / 2)
@@ -177,7 +178,7 @@ class RadarWidget(QGLWidget):
 
         # Initialize font for radar view with specified settings
         self.font = Font()
-        self.font.create_font_array(char_height=text_texture_size, font_family=font_family, font_weight=font_weight)
+        self.font.create_font_array()
         self.font.init_shader(self.text_shader)
 
         # Load and bind world texture
@@ -560,6 +561,7 @@ class RadarWidget(QGLWidget):
     def update_route_data(self, data):
         if not self.initialized:
             return
+        self.makeCurrent()
 
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
@@ -607,6 +609,8 @@ class RadarWidget(QGLWidget):
     def update_aircraft_data(self, data):
         if not self.initialized:
             return
+
+        self.makeCurrent()
 
         self.naircraft = len(data.lat)
         if self.naircraft == 0:
@@ -672,11 +676,14 @@ class RadarWidget(QGLWidget):
                 self.ssd_ownship = np.append(self.ssd_ownship, arg)
 
     def defwpt(self, wpdata):
+        if not self.initialized:
+            return
         nact = self.nodedata[manager.sender()[0]]
         nact.custwplbl += wpdata[0].ljust(5)
         nact.custwplat = np.append(nact.custwplat, np.float32(wpdata[1]))
         nact.custwplon = np.append(nact.custwplon, np.float32(wpdata[2]))
         if manager.sender()[0] == self.iactconn:
+            self.makeCurrent()
             update_buffer(self.custwplblbuf, np.array(nact.custwplbl))
             update_buffer(self.custwplatbuf, nact.custwplat)
             update_buffer(self.custwplonbuf, nact.custwplon)
@@ -725,12 +732,14 @@ class RadarWidget(QGLWidget):
         # If the updated polygon buffer is also currently viewed, also send
         # updates to the gpu buffer
         if manager.sender()[0] == self.iactconn:
+            self.makeCurrent()
             update_buffer(self.allpolysbuf, nact.polydata)
             self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
     def previewpoly(self, shape_type, data_in=None):
         if not self.initialized:
             return
+        self.makeCurrent()
 
         if shape_type is None:
             self.polyprev.set_vertex_count(0)
