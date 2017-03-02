@@ -101,7 +101,8 @@ class Autopilot(DynamicArrays):
                 # VNAV spd mode: use speed of this waypoint as commanded speed
                 # while passing waypoint and save next speed for passing next wp
                 if self.traf.swvnav[i] and oldspd > 0.0:
-                    dummy, self.traf.aspd[i], self.traf.ama[i] = casormach(oldspd, self.traf.alt[i])
+                    destalt = alt if alt > 0.0 else self.traf.alt[i]
+                    dummy, self.traf.aspd[i], self.traf.ama[i] = casormach(oldspd, destalt)
 
                 # VNAV = FMS ALT/SPD mode
                 self.ComputeVNAV(i, toalt, xtoalt)
