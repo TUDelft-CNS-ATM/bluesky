@@ -10,7 +10,7 @@ out vec4 color;
 // Values that stay constant for the whole mesh.
 uniform sampler2DArray tex_sampler;
 
-const float smoothing = 1.0/5.0;
+const float smoothing = 0.2;
 const vec4 outlineColor = vec4(0.0, 0.0, 0.0, 1.0);
 const float outlineDistance = 0.2;
 

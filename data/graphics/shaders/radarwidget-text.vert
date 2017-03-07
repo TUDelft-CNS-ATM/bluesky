@@ -48,7 +48,7 @@ void main() {
     position -= vec2(panlon, panlat);
     position *= (zoom * flat_earth);
 
-    vec2 vertex = mrot * vertex_in;
+    vec2 vertex = mrot * vertex_in + ceil(0.5 * position * screen_width);
 
     // When text_dims is non-zero we are drawing instanced
     if (block_size[0] > 0) {
@@ -58,5 +58,6 @@ void main() {
     }
 
     vertex = vec2(2.0 * vertex.x / float(screen_width), 2.0 * vertex.y / float(screen_height));
-    gl_Position = vec4(vAR * position + vertex, 0.0, 1.0);
+    gl_Position = vec4(vertex, 0.0, 1.0);
+    // gl_Position = vec4(vAR * position + vertex, 0.0, 1.0);
 }
