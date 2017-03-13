@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <p><img src="images/bluesky_route.png" alt="Route" /><br />
+This tutorial will show you how to create an aircraft and modify its route. Start BlueSky and create an aircraft. To get info on how do this, type <code>CRE</code> without any arguments. This will give you the help text on the CRE (create) command, showing:</p>
+<pre><code>CRE acid, type, lat, lon, hdg, alt, spd</code></pre>
+<p>Using this syntax, we can define an aircraft in the following way:</p>
+<pre><code>CRE KL204, B744,52,4,180,2000,220</code></pre>
+<p><a class="bsbutton" href="STACK:CRE KL204, B744,52,4,180,2000,220">► Stack </a></p>
+<p>This creates a Boeing 747-400 with call sign KL204 at position lat,lon = N52, E4, flying south (180) at 2000 ft with a (calibrated) airspeed of 220 kts. One comma or spaces separate the different arguments for all commands. With existing aircraft it is possible to click on an aircraft and then enter the command without the aircraft id.</p>
+<p>Now let’s tell this level-flying plane to climb up to FL100 with a speed of 250 kts.</p>
+<pre><code>KL204 ALT FL100
+KL204 SPD 250</code></pre>
+<p>Use the <code>PAN</code> or <code>+++</code> command (or mouse/touch controls) to set-up the display. <code>PAN KL204</code> will put this aircraft in the center of the display. Freeze the simulation by entering:</p>
+<pre><code>HOLD</code></pre>
+<p>Now we’re ready to start entering a route into the Flight Management System of this aircraft.</p>
+<p>First we enter the destination using the ICAO identifier of the airport: (France, Paris de Gaulle):</p>
+<pre><code>KL204 DEST LFPG</code></pre>
+<p>If we would start the simulation now with the <code>OP</code> command, the aircraft would start flying to the destination using the great circle, i.e. the shortest route. Optionally we can also enter the origin, let’s use Amsterdam:</p>
+<pre><code>KL204 ORIG EHAM 
+KL204 ORIG EHAM RW06
+KL204 ORIG EHAM/RW06</code></pre>
+<p>By double clicking on an aircraft (or entering its call sign or a POS command with the call sign) we see its route being displayed. Currently only one route is displayed at the time.<br />
+Now we can start entering actual waypoints, the syntax is:</p>
+<pre><code>ADDWPT acid, wpname/position, [alt] , [spd] , [afterwp]</code></pre>
+<p>The aircraft id and command can be in reversed order (as with all commands as long as the aircraft exists, so not for CRE) and the altitude (feet or FL) and speed (CAS or Mach number) are optional. When only a speed constraint is entered sue two commas between waypoint and speed.</p>
+<p>The speed is the speed for the leg towards this waypoint. The altitude will be reached as soon as other altitude constraints allow it for climbs and as late as possible for descents( standard Top of Climb and Top of Descent logic).</p>
+<p>For the waypoint name also a lat/lon can be entered, e.g. by clicking on the display. For lat/lon it is also possible to type degrees’minutes’seconds’ like this: 52’16’13,004’15’40 (latitude: North is positive, longitude: East is positive).</p>
+<p>Also runways can be used as waypoint, in similar fashion like lat,lon as two arguments:</p>
+<pre><code>CRE KL204, B744, EHAM, RW06,*,100,200</code></pre>
+<p>Here the runway heading will be entered as heading because of the use of the wildcard ( * ) as heading.</p>
+<p>Some example statements of how to do this are given below:</p>
+<pre><code>KL204 ADDWPT NV
+KL204 ADDWPT WOODY,FL100,250
+Kl204 ADDWPT 51’50’15,003’55’00
+KL204 ADDWPT CMB,,0.80
+KL204 ADDWPT NEA FL370</code></pre>
+<p>By default, waypoints are added at the end of the route (but before the destination). You can use the <code>AFTER</code> command to insert a waypoint after a waypoint in the route:</p>
+<pre><code>KL204 AFTER CMB ADDWPT CIV</code></pre>
+<p>The after waypoint can also be used as the final argument in the addwpt command, so after the speed constraint:</p>
+<pre><code>KL204 ADDWPT CIV , , , CMB</code></pre>
+<p>The <code>AT</code> command allows viewing, editing or removing speed or altitude constraints<br />
+KL204 AT NEA<br />
+KL204 AT CMB SPD M74<br />
+KL204 AT NEA DEL ALT<br />
+KL204 AT WOODY FL070/250<br />
+KL204 AT NEA ----/----<br />
+KL204 AT WOODY FL070/----<br />
+KL204 DELWPT CIV</p>
+<p>During the flight it is possible to control which waypoint should be active (i.e. flown to) with the direct command:</p>
+<pre><code>KL204 DIRECT CMB
+KL204 DIRECT KL2040001</code></pre>
+<p>A lat/lon waypoint will be given a waypoint-name using the call sign of the aircraft followed by sequence number with leading zeros, e.g. KL204001. This name can then be used as reference in the <code>AT</code>, <code>AFTER</code>, <code>DELWPT</code> or last argument of the <code>ADDWPT</code> command. The complete route can be deleted with <code>DELRTE KL204</code>.</p>
+<p>For any of the commands, clicking with the mouse on the displayed route will select the route waypoint as well when it is appropriate to enter a waypoint name on the command line.</p>
+<p>To make sure that the aircraft follows the route, the autopilot should be hooked up to the FMS. For heading, this is done by switching the LNAV (lateral navigation) mode on, for speed and altitude (if specified) this is done by switching VNAV (vertical navigation) mode on. VNAV can only be active when LNAV is on as well, so switch LNAV on first:</p>
+<pre><code>KL204 LNAV ON
+KL204 VNAV ON</code></pre>
+<p>As soon as an altitude (<code>KL204 ALT FL380</code>) or speed command (<code>KL204 SPD 250</code>) is given, the VNAV mode is switched off again, and the ALT SEL or SPD SEL mode is activated, while the other vertical parameter will go to SPD/ALT HOLD. <code>KL204 VNAV OFF</code> also switches VNAV off, the aircraft continues in ALT-holf and SPEED-HOLD.</p>
+<p>Similarly, <code>LNAV OFF</code> disengages the LNAV mode, switching to HDG-HOLD, while a heading command (<code>KL204 HDG 90</code>) changes the lateral mode to HDG SEL (heading select).</p>
+<p>The <code>DEST</code> and <code>ADDWPT</code> command switch the LNAV (and if possible the VNAV mode) on as well, to result in expected behaviour for users who are not setting autopilot modes themselves.</p>
+<p>When the route pas been entered, running in FastFoward mode (the <code>FF</code> command) will show the aircraft flying the route in fast-time.</p>
+<pre><code>OP
+FF</code></pre>
+<p>All traffic, including the routes can be saved as a scenario file, by saving the current situation as an initial condition (IC) with the <code>SAVEIC</code> command:</p>
+<pre><code>SAVEIC myfirst.scn</code></pre>
+<p>When restarting BlueSky this scenario-file can be loaded by the IC-command:</p>
+<pre><code>IC myfirst</code></pre>
+<p>To see what’s in a file, simply open it in a text editor, like Notepad. It is a plain text file containing the same commands as the user can enter, but with a time stamp (HH:MM:SS.hh) in front of the line followed by a carrot sign (“&gt;”):</p>
+<pre><code>00:00:00.00&gt;CRE KL204,B744,52.304532,3.99792,191.4,10000.0,250.0
+00:00:00.00&gt;DEST KL204,LFPG
+Etc.</code></pre>
+<p>Editing this file, or generating it with your own tools, is also a way to simulate traffic with BlueSky. The timestamp is the time, relative to the start of the scenario, in ascending order. The next line will be processed when the runtime (simulated runtime) has reached this value.</p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

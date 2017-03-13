@@ -1,4 +1,7 @@
 ''' Text parsing utilities for fixed-width column data'''
+
+# TODO: Add user manual with examples of how to use dformat
+
 import re
 
 # Define regular expressions for finding:

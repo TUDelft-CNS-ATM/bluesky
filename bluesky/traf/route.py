@@ -5,6 +5,7 @@ from ..tools.misc import degto180
 from ..tools.position import txt2pos
 from ..stack.stack import Argparser
 
+
 class Route():
     """
     Route class definition   : Route data for an aircraft (basic FMS functionality)
@@ -66,14 +67,14 @@ class Route():
         name = args[0]
 
         # Choose reference position ot look up VOR and waypoints
-        # First waypoint: own position        
+        # First waypoint: own position
         if self.nwp == 0:
             reflat = traf.lat[idx]
-            reflon = traf.on[idx]
+            reflon = traf.lon[idx]
 
         # Or last waypoint before destination
         else:
-            if self.wptype[-1]!=self.dest or self.nwp==1:
+            if self.wptype[-1] != self.dest or self.nwp == 1:
                 reflat = self.wplat[-1]
                 reflon = self.wplon[-1]
             else:
@@ -579,49 +580,50 @@ class Route():
 
         return idx
 
-    def direct(self, traf, i, wpnam):
+    def direct(self, traf, idx, wpnam):
         """Set active point to a waypoint by name"""
         name = wpnam.upper().strip()
         if name != "" and self.wpname.count(name) > 0:
             wpidx = self.wpname.index(name)
             self.iactwp = wpidx
-            traf.actwp.lat[i] = self.wplat[wpidx]
-            traf.actwp.lon[i] = self.wplon[wpidx]
+            traf.actwp.lat[idx] = self.wplat[wpidx]
+            traf.actwp.lon[idx] = self.wplon[wpidx]
 
             self.calcfp()
-            traf.ap.ComputeVNAV(i,self.wptoalt[wpidx],self.wpxtoalt[wpidx])
-            if traf.swvnav[i]:
+            traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx])
+            if traf.swvnav[idx]:
 #            if True:
 #                # Set target altitude for autopilot
 #                if self.wptoalt[wpidx] > 0:
 #
-#                    if traf.alt[i] < self.wptoalt[i]-10.*ft:
-#                        traf.actwp.alt[i] = self.wptoalt[wpidx]
-#                        traf.ap.dist2vs[i] = 9999.
+#                    if traf.alt[idx] < self.wptoalt[idx]-10.*ft:
+#                        traf.actwp.alt[idx] = self.wptoalt[wpidx]
+#                        traf.ap.dist2vs[idx] = 9999.
 #                    else:
 #                    
 #                        steepness = 3000.*ft/(10.*nm)
-#                        traf.actwp.alt[i] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-#                        delalt = traf.alt[i] - traf.actwp.alt[i]
-#                        traf.ap.dist2vs[i] = steepness*delalt
+#                        traf.actwp.alt[idx] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
+#                        delalt = traf.alt[idx] - traf.actwp.alt[idx]
+#                        traf.ap.dist2vs[idx] = steepness*delalt
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
+                alt = traf.alt[idx] if self.wpalt[wpidx] < 0.0 else self.wpalt[wpidx]
                 if spd > 0:
                     if spd < 2.0:
-                        traf.aspd[i] = mach2cas(spd, traf.alt[i])
+                        traf.aspd[idx] = mach2cas(spd, alt)
                     else:
-                        traf.aspd[i] = cas2tas(spd, traf.alt[i]) # or is '= spd'
+                        traf.aspd[idx] = spd#cas2tas(spd, traf.alt[idx])  # or is '= spd'
 
-            qdr, dist = geo.qdrdist(traf.lat[i], traf.lon[i],
-                                traf.actwp.lat[i], traf.actwp.lon[i])
+            qdr, dist = geo.qdrdist(traf.lat[idx], traf.lon[idx],
+                                traf.actwp.lat[idx], traf.actwp.lon[idx])
 
-            turnrad = traf.tas[i]*traf.tas[i]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
+            turnrad = traf.tas[idx]*traf.tas[idx]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
 
-            traf.actwp.turndist[i] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
+            traf.actwp.turndist[idx] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
                         self.wpdirfrom[self.iactwp]))))))
 
-            traf.swlnav[i] = True
+            traf.swlnav[idx] = True
             return True
         else:
             return False, "Waypoint " + wpnam + " not found"
@@ -899,11 +901,11 @@ class Route():
         # Calculate lateral leg data
         # LNAV: Calculate leg distances and directions
 
-        for i in range(0,self.nwp-2):
-             qdr,dist = geo.qdrdist(self.wplat[i]  ,self.wplon[i], \
+        for i in range(0, self.nwp - 1):
+            qdr,dist = geo.qdrdist(self.wplat[i]  ,self.wplon[i], \
                                 self.wplat[i+1],self.wplon[i+1])
-             self.wpdirfrom[i] = qdr
-             self.wpdistto[i+1]  = dist #[nm]  distto is in nautical miles
+            self.wpdirfrom[i] = qdr
+            self.wpdistto[i+1]  = dist #[nm]  distto is in nautical miles
 
         if self.nwp>1:
             self.wpdirfrom[-1] = self.wpdirfrom[-2]

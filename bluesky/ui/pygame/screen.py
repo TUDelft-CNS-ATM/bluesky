@@ -1222,8 +1222,10 @@ class Screen:
         self.swsep = not self.swsep
         return True
 
-    def show_cmd_doc(self,cmd):
+    def show_cmd_doc(self, cmd=''):
         # Show documentation on command
+        if not cmd:
+            cmd = 'Command-Reference'
         curdir = os.getcwd()
         os.chdir("data/html")
         htmlfile = cmd.lower()+".html"
