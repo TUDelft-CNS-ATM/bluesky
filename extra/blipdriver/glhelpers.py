@@ -27,7 +27,6 @@ except ImportError:
 import OpenGL.GL as gl
 import numpy as np
 from ctypes import c_void_p, pointer, sizeof
-from ... import settings
 
 
 def load_texture(fname):
@@ -59,12 +58,16 @@ class UniformBuffer(object):
     max_binding = 1
 
     def __init__(self, data):
-        self.data = data
-        self.nbytes = sizeof(data)
+        if isinstance(data, np.ndarray):
+            self.pdata  = data
+            self.nbytes = data.nbytes
+        else:
+            self.pdata  = pointer(data)
+            self.nbytes = sizeof(data)
         self.ubo = gl.glGenBuffers(1)
         self.binding = self.max_binding
         gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)
-        gl.glBufferData(gl.GL_UNIFORM_BUFFER, self.nbytes, pointer(self.data), gl.GL_STREAM_DRAW)
+        gl.glBufferData(gl.GL_UNIFORM_BUFFER, self.nbytes, self.pdata, gl.GL_STREAM_DRAW)
         gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, self.binding, self.ubo)
         UniformBuffer.max_binding += 1
 
@@ -72,7 +75,7 @@ class UniformBuffer(object):
         if size is None:
             size = self.nbytes
         gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)
-        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, offset, size, pointer(self.data))
+        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, offset, size, self.pdata)
 
 
 class BlueSkyProgram():
@@ -125,6 +128,9 @@ class BlueSkyProgram():
     def use(self):
         gl.glUseProgram(self.program)
 
+    def get_uniform_location(self, name):
+        return gl.glGetUniformLocation(self.program, name)
+
     def bind_uniform_buffer(self, ubo_name, ubo):
         idx = gl.glGetUniformBlockIndex(self.program, ubo_name)
         gl.glUniformBlockBinding(self.program, idx, ubo.binding)
@@ -147,13 +153,13 @@ class RenderObject(object):
         self.single_colour        = None
 
         if vertex is not None:
-            self.vbuf = self.bind_vertex(vertex)
+            self.bind_vertex(vertex)
 
         if texcoords is not None:
-            self.texbuf = self.bind_texcoords(texcoords)
+            self.bind_texcoords(texcoords)
 
         if color is not None:
-            self.colorbuf = self.bind_color(color)
+            self.bind_color(color)
 
     def set_vertex_count(self, count):
         self.vertex_count = count
@@ -195,11 +201,11 @@ class RenderObject(object):
 
     def bind_texcoords(self, data, *args, **kwargs):
         size = kwargs['size'] if 'size' in kwargs else data.size / self.vertex_count
-        self.bind_attrib(self.attrib_texcoords, size, data, *args, **kwargs)
+        self.texcoordsbuf = self.bind_attrib(self.attrib_texcoords, size, data, *args, **kwargs)
 
     def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
         self.vertex_count = np.size(data) / 2 if vertex_count == 0 else vertex_count
-        self.bind_attrib(self.attrib_vertex, 2, data, *args, **kwargs)
+        self.vertexbuf = self.bind_attrib(self.attrib_vertex, 2, data, *args, **kwargs)
 
     def bind_color(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0):
         # One colour for everything in a  size 3/4 array? or an existing or new buffer
@@ -208,7 +214,7 @@ class RenderObject(object):
             self.single_colour = np.append(data, 255) if len(data) == 3 else data
 
         else:
-            self.bind_attrib(self.attrib_color, 4, data, storagetype, instance_divisor, datatype=gl.GL_UNSIGNED_BYTE, normalize=True)
+            self.colorbuf = self.bind_attrib(self.attrib_color, 4, data, storagetype, instance_divisor, datatype=gl.GL_UNSIGNED_BYTE, normalize=True)
 
     def bind(self):
         if RenderObject.bound_vao != self.vao_id:
@@ -295,9 +301,9 @@ class Font(object):
     def set_block_size(self, block_size):
         gl.glUniform2i(self.loc_block_size, block_size[0], block_size[1])
 
-    def create_font_array(self):
+    def create_font_array(self, path):
         # Load the first image to get font size
-        img          = QImage(settings.data_path + '/graphics/font/32.png')
+        img          = QImage(path + '32.png')
         imgsize      = (img.width(), img.height())
         self.char_ar = float(imgsize[1]) / imgsize[0]
 
@@ -311,7 +317,7 @@ class Font(object):
         gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
         # We're using the ASCII range 32-126; space, uppercase, lower case, numbers, brackets, punctuation marks
         for i in range(32, 127):
-            img = QImage(settings.data_path + '/graphics/font/%d.png' % i).convertToFormat(QImage.Format_ARGB32)
+            img = QImage(path + '%d.png' % i).convertToFormat(QImage.Format_ARGB32)
             ptr = c_void_p(int(img.constBits()))
             gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 32, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 
@@ -365,3 +371,7 @@ class Font(object):
         ret.char_size = char_size
 
         return ret
+
+
+def rect(x, y, w, h):
+    return [(x, y + h), (x, y), (x + w, y + h), (x + w, y + h), (x, y), (x + w, y)]
