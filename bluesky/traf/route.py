@@ -608,9 +608,10 @@ class Route():
 
                 # Set target speed for autopilot
                 spd = self.wpspd[wpidx]
+                alt = traf.alt[idx] if self.wpalt[wpidx] < 0.0 else self.wpalt[wpidx]
                 if spd > 0:
                     if spd < 2.0:
-                        traf.aspd[idx] = mach2cas(spd, traf.alt[idx])
+                        traf.aspd[idx] = mach2cas(spd, alt)
                     else:
                         traf.aspd[idx] = spd#cas2tas(spd, traf.alt[idx])  # or is '= spd'
 

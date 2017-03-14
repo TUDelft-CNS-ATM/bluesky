@@ -1,16 +1,15 @@
 #version 330
 
+flat in int discard_instance;
 // Interpolated values from the vertex shaders
 in vec3 texcoords_fs;
 in vec4 color_fs;
 
 // Ouput data
 out vec4 color;
- 
-// Values that stay constant for the whole mesh.
-uniform sampler2DArray tex_sampler;
 
-const float smoothing = 0.2;
+// Values that stay constant for the whole mesh.
+const float smoothing = 0.1;
 const vec4 outlineColor = vec4(0.0, 0.0, 0.0, 1.0);
 const float outlineDistance = 0.2;
 
@@ -23,8 +22,13 @@ float calcdist(vec4 tex) {
     return max(min(tex.r, tex.g), min(max(tex.r, tex.g), tex.b));
 }
 
+uniform sampler2DArray tex_sampler;
+ 
 void main()
-{
+{ 
+    if (discard_instance > 0)
+        discard;
+
     // With an outline
     // float dist = calcdist(texture(tex_sampler, texcoords_fs));
     // float outlineFactor = smoothstep(0.5 - smoothing, 0.5 + smoothing, dist);

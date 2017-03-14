@@ -1,4 +1,23 @@
 ''' Text parsing utilities for fixed-width column data'''
+# Use parser = FixedWidthParser(specformat)
+#
+# List of formats strings, one per string per line, each string contains field formats:
+#
+#   First argument per line is a discriminator, it searches first line with this key
+#
+#      3x = skip 3 places
+#      6S = string of 6 chars
+#     10F = float of 10 chars
+#      5I = integer of 5 chars
+#
+#     'CD, 3X, 6S, 9X, 1I, 12X, 9S, 17X, 1S',  # means find first line starting with CD, then skip 3 columns, 
+#     'CD, 2X, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F',
+#     'CD, 2X, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F',
+#     'CD, 2X, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F',
+#
+# First create a parser for a file format, then you can read different files with this parser,
+# by calling the parse(file) method
+
 import re
 
 # Define regular expressions for finding:
@@ -20,15 +39,15 @@ class FixedWidthParser(object):
     # Data elements can be either floats, ints, or strings.
     types = {'f': float, 'i': int, 's': str}
 
-    def __init__(self, dformat):
+    def __init__(self, specformat):
         self.dformat  = []
         # If the provided dataformat only has one line assume that all lines
         # have the same column format
-        self.repeat   = len(dformat) == 1
+        self.repeat   = len(specformat) == 1
         # Split the specified dataformat in a table of types to convert the
         # parsed text with, and a list of regular expression objects that will
         # be used to extract the fixed-with data columns.
-        for line in dformat:
+        for line in specformat:
             line_re   = re.compile(re_data.sub(r'(.{\1})', re_skip.sub(r'.{\1}', line)))
             linetypes = [self.types[t.lower()] for t in re_types.findall(line)]
             self.dformat.append((line_re, linetypes))
