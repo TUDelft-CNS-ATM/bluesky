@@ -12,11 +12,12 @@
     <div class="container">
     <div class="row">
             <div class="span12">
-            <p><img src="https://github.com/ProfHoekstra/bluesky/wiki/images/bluesky_route.png" align="center" width="500"></p>
-<p>This tutorial will show you how to create an aircraft and modify its route. Start BlueSky and create an aircraft. To get info on how do this, type <code>CRE</code> without any arguments. This will give you the help text on the CRE (create) command, showing:</p>
+            <p><img src="images/bluesky_route.png" alt="Route" /><br />
+This tutorial will show you how to create an aircraft and modify its route. Start BlueSky and create an aircraft. To get info on how do this, type <code>CRE</code> without any arguments. This will give you the help text on the CRE (create) command, showing:</p>
 <pre><code>CRE acid, type, lat, lon, hdg, alt, spd</code></pre>
 <p>Using this syntax, we can define an aircraft in the following way:</p>
 <pre><code>CRE KL204, B744,52,4,180,2000,220</code></pre>
+<p><a class="bsbutton" href="STACK:CRE KL204, B744,52,4,180,2000,220">► Stack </a></p>
 <p>This creates a Boeing 747-400 with call sign KL204 at position lat,lon = N52, E4, flying south (180) at 2000 ft with a (calibrated) airspeed of 220 kts. One comma or spaces separate the different arguments for all commands. With existing aircraft it is possible to click on an aircraft and then enter the command without the aircraft id.</p>
 <p>Now let’s tell this level-flying plane to climb up to FL100 with a speed of 250 kts.</p>
 <pre><code>KL204 ALT FL100
