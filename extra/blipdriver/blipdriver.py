@@ -439,7 +439,7 @@ class BlipDriver(QGLWidget):
                 btn_color += 24 * [255] if b else 24 * [0]
             update_buffer(self.btn_leds.colorbuf, np.array(btn_color, dtype=np.uint8))
         elif event.type() == QEvent.MouseMove:
-            if event.buttons() & Qt.LeftButton:
+            if event.buttons() & Qt.LeftButton and self.btn_pressed is not None:
                 self.rate = float(self.drag_start[1] - event.y()) / self.height
                 if self.rate > 1e-2:
                     col_triangles = 3 * [255, 140, 0, 255] + 3 * [255, 255, 255, 180]
@@ -451,6 +451,21 @@ class BlipDriver(QGLWidget):
             elif 0.24 <= px <= 0.273 and 0.05 <= py <= 0.09:
                 # Speed button
                 self.updownpos = (-0.485, -0.25)
+            elif 0.38 <= px <= 0.415 and 0.0788 <= py <= 0.12:
+                # Heading knob
+                self.updownpos = (-0.205, -0.06)
+            elif 0.55 <= px <= 0.583 and 0.075 <= py <= 0.12:
+                # Altitude knob
+                self.updownpos = (0.14, -0.05)
+            elif 0.716 <= px <= 0.738 and 0.0175 <= py <= 0.12:
+                # Vertical Speed knob
+                self.updownpos = (0.46, -0.3)
+            elif 0.032 <= px <= 0.075 and 0.07 <= py <= 0.118:
+                # Left Course knob
+                self.updownpos = (-0.89, -0.1)
+            elif 0.92 <= px <= 0.96 and 0.0675 <= py <= 0.113:
+                # Right Course knob
+                self.updownpos = (0.89, -0.15)
             else:
                 self.updownpos = None
             # ismcp = float(self.height - event.y()) / self.height <= 0.2
@@ -487,16 +502,24 @@ class BlipDriver(QGLWidget):
             else:
                 increment = 10
                 val = self.remainder + self.rate / 0.02
-                
+
             self.selValues[3] += int(val) * increment
             self.remainder = val - int(val)
             self.set_lcd(alt=self.selValues[3])
         if self.btn_pressed == 'VS':
-            val = self.remainder + 25 * self.rate
-            self.selValues[4] += int(val)
+            if abs(self.rate) > 0.06:
+                increment = 1000
+                val = self.remainder + min(2.0, abs(self.rate) / 0.04) * np.sign(self.rate)
+            elif abs(self.rate) > 0.02:
+                increment = 100
+                val = self.remainder + self.rate / 0.04
+            else:
+                increment = 10
+                val = self.remainder + self.rate / 0.02
+
+            self.selValues[4] += int(val) * increment
             self.remainder = val - int(val)
-            self.set_lcd(vs=self.selValues[4])        
-            
+            self.set_lcd(vs=self.selValues[4])
         if self.btn_pressed is not None:
             QTimer.singleShot(200, self.updateAPValues)
 
