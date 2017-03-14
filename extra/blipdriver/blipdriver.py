@@ -102,6 +102,7 @@ class BlipDriver(QGLWidget):
         self.selValues   = 5*[0] # [0:courseLeftRight, 1:spd, 2:hdg, 3:alt, 4:vs]
         self.rate        = 0.0
         self.remainder   = 0.0
+        self.updownpos   = None
 
     def create_objects(self):
         self.mcp         = RenderObject(gl.GL_TRIANGLES, vertex=np.array(rect(-1, -1, 2, 2), dtype=np.float32))
@@ -133,6 +134,13 @@ class BlipDriver(QGLWidget):
             btn_leds += rect(pos[0], pos[1], 0.055, 0.075)
         btn_color = np.zeros(14 * 6 * 4, dtype=np.uint8)
         self.btn_leds = RenderObject(gl.GL_TRIANGLES, vertex=np.array(btn_leds, dtype=np.float32), color=btn_color)
+
+        # Button up/down indicator
+        w, h, offset = 0.04, 0.16, 0.04
+        triangles = np.array([-w, offset,  0.0, offset + h, w, offset,
+                     -w, -offset, 0.0, -offset - h, w, -offset], dtype=np.float32)
+        col_triangles = np.array(6 * [255, 255, 255, 180], dtype=np.uint8)
+        self.updown = RenderObject(gl.GL_TRIANGLES, vertex=triangles, color=col_triangles)
 
         # Use the same font as the radarwidget
         self.font = Font()
@@ -300,6 +308,12 @@ class BlipDriver(QGLWidget):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.btn_tex)
         self.btn_leds.draw()
 
+        if self.updownpos is not None:
+            self.mcp_col_shader.use()
+            gl.glVertexAttrib2f(2, *self.updownpos)
+            self.updown.draw()
+            gl.glVertexAttrib2f(2, 0.0, 0.0)
+
         self.mcp_txt_shader.use()
         gl.glActiveTexture(gl.GL_TEXTURE0 + 0)
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.lcd_tex)
@@ -370,6 +384,8 @@ class BlipDriver(QGLWidget):
         elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton:
             print px, py
             self.btn_pressed = None
+            col_triangles = 6 * [255, 255, 255, 180]
+            update_buffer(self.updown.colorbuf, np.array(col_triangles, dtype=np.uint8))
             # Bottom-row buttons
             if 0.01625 <= py <= 0.05875:
                 if 0.1325 <= px <= 0.1625:
@@ -422,10 +438,21 @@ class BlipDriver(QGLWidget):
             for b in self.btn_state:
                 btn_color += 24 * [255] if b else 24 * [0]
             update_buffer(self.btn_leds.colorbuf, np.array(btn_color, dtype=np.uint8))
-        elif event.type() == QEvent.MouseMove and event.buttons() & Qt.LeftButton:
-            if self.btn_pressed is not None:
+        elif event.type() == QEvent.MouseMove:
+            if event.buttons() & Qt.LeftButton:
                 self.rate = float(self.drag_start[1] - event.y()) / self.height
-
+                if self.rate > 1e-2:
+                    col_triangles = 3 * [255, 140, 0, 255] + 3 * [255, 255, 255, 180]
+                elif self.rate < 1e-2:
+                    col_triangles = 3 * [255, 255, 255, 180] + 3 * [255, 140, 0, 255]
+                else:
+                    col_triangles = 6 * [255, 255, 255, 180]
+                update_buffer(self.updown.colorbuf, np.array(col_triangles, dtype=np.uint8))
+            elif 0.24 <= px <= 0.273 and 0.05 <= py <= 0.09:
+                # Speed button
+                self.updownpos = (-0.485, -0.25)
+            else:
+                self.updownpos = None
             # ismcp = float(self.height - event.y()) / self.height <= 0.2
 
             pass

@@ -223,7 +223,7 @@ class RenderObject(object):
             for attrib in self.enabled_attributes:
                 gl.glEnableVertexAttribArray(attrib)
 
-    def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=None):
+    def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=None, color=None):
         if primitive_type is None:
             primitive_type = self.primitive_type
 
@@ -241,7 +241,9 @@ class RenderObject(object):
 
         self.bind()
 
-        if self.single_colour is not None:
+        if color is not None:
+            gl.glVertexAttrib4Nub(self.attrib_color, *color)
+        elif self.single_colour is not None:
             gl.glVertexAttrib4Nub(self.attrib_color, *self.single_colour)
 
         if n_instances > 0:
