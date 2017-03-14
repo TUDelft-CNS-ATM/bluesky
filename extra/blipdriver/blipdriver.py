@@ -507,10 +507,10 @@ class BlipDriver(QGLWidget):
             self.remainder = val - int(val)
             self.set_lcd(alt=self.selValues[3])
         if self.btn_pressed == 'VS':
-            if abs(self.rate) > 0.06:
+            if abs(self.rate) > 0.2:
                 increment = 1000
                 val = self.remainder + min(2.0, abs(self.rate) / 0.04) * np.sign(self.rate)
-            elif abs(self.rate) > 0.02:
+            elif abs(self.rate) > 0.05:
                 increment = 100
                 val = self.remainder + self.rate / 0.04
             else:
