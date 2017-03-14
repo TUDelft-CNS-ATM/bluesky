@@ -147,13 +147,13 @@ class RenderObject(object):
         self.single_colour        = None
 
         if vertex is not None:
-            self.bind_vertex(vertex)
+            self.vbuf = self.bind_vertex(vertex)
 
         if texcoords is not None:
-            self.bind_texcoords(texcoords)
+            self.texbuf = self.bind_texcoords(texcoords)
 
         if color is not None:
-            self.bind_color(color)
+            self.colorbuf = self.bind_color(color)
 
     def set_vertex_count(self, count):
         self.vertex_count = count
@@ -194,7 +194,8 @@ class RenderObject(object):
         return buf_id
 
     def bind_texcoords(self, data, *args, **kwargs):
-        self.bind_attrib(self.attrib_texcoords, 2, data, *args, **kwargs)
+        size = kwargs['size'] if 'size' in kwargs else data.size / self.vertex_count
+        self.bind_attrib(self.attrib_texcoords, size, data, *args, **kwargs)
 
     def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
         self.vertex_count = np.size(data) / 2 if vertex_count == 0 else vertex_count
