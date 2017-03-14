@@ -1,7 +1,7 @@
 import numpy as np
 from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
-from performance import esf, phases, limits
+from performance import esf, phases, calclimits, PHASE
 from ..settings import perf_path_bada
 from ..settings import verbose
 
@@ -302,7 +302,7 @@ class PerfBADA(DynamicArrays):
         self.ESF[-1]       = 1.0  # neutral initialisation
 
         # flight phase
-        self.phase[-1]       = 0
+        self.phase[-1]       = PHASE["None"]
         self.post_flight[-1] = False  # we assume prior
         self.pf_flag[-1]     = True
 
@@ -343,7 +343,7 @@ class PerfBADA(DynamicArrays):
         # AERODYNAMICS
         # Lift
         self.qS = 0.5*self.traf.rho*np.maximum(1.,self.traf.tas)*np.maximum(1.,self.traf.tas)*self.Sref
-        cl = self.mass*g0/(self.qS*np.cos(self.bank))*(self.phase!=6)+ 0.*(self.phase==6)
+        cl = self.mass*g0/(self.qS*np.cos(self.bank))*(self.phase!=PHASE["GD"])+ 0.*(self.phase==PHASE["GD"])
 
         # Drag
         # Drag Coefficient
@@ -363,8 +363,8 @@ class PerfBADA(DynamicArrays):
 
 
         # now combine phases            
-        cd = (self.phase==1)*cdph + (self.phase==2)*cdph + (self.phase==3)*cdph \
-            + (self.phase==4)*cdapp + (self.phase ==5)*cdld  
+        cd = (self.phase==PHASE['TO'])*cdph + (self.phase==PHASE["IC"])*cdph + (self.phase==PHASE["CR"])*cdph \
+            + (self.phase==PHASE['AP'])*cdapp + (self.phase ==PHASE['LD'])*cdld  
 
         # Drag:
         self.D = cd*self.qS 
@@ -438,13 +438,13 @@ class PerfBADA(DynamicArrays):
         # below Hpdes
         low = np.array(delh<0)  
         # phase cruise
-        Tdeslc = maxthr*self.ctdesl*np.logical_and.reduce([self.descent, low, (self.phase==3)])
+        Tdeslc = maxthr*self.ctdesl*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['CR'])])
         # phase approach
-        Tdesla = maxthr*self.ctdesa*np.logical_and.reduce([self.descent, low, (self.phase==4)])
+        Tdesla = maxthr*self.ctdesa*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['AP'])])
         # phase landing
-        Tdesll = maxthr*self.ctdesld*np.logical_and.reduce([self.descent, low, (self.phase==5)])
+        Tdesll = maxthr*self.ctdesld*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['LD'])])
         # phase ground: minimum descent thrust as a first approach
-        Tgd = np.minimum.reduce([Tdesh, Tdeslc])*(self.phase==6)   
+        Tgd = np.minimum.reduce([Tdesh, Tdeslc])*(self.phase==PHASE['GD'])   
 
         # merge all thrust conditions
         T = np.maximum.reduce([Tjc, Ttc, Tpc, Tlvl, Tdesh, Tdeslc, Tdesla, Tdesll, Tgd])
@@ -459,7 +459,6 @@ class PerfBADA(DynamicArrays):
         cred = self.cred*clh
         cpred = 1-cred*((self.mmax-self.mass)/(self.mmax-self.mmin)) 
         
-        vs = (((T-self.D)*self.traf.tas) /(self.mass*g0))*self.ESF*cpred
         
         # switch for given vertical speed avs
         if (self.traf.avs.any()>0) or (self.traf.avs.any()<0):
@@ -468,12 +467,8 @@ class PerfBADA(DynamicArrays):
                       (self.ESF*np.maximum(self.traf.eps,self.traf.tas)*cpred)) \
                       + self.D)) + ((self.traf.avs==0)*T)
                       
-            vs = (self.traf.avs!=0)*self.traf.avs + (self.traf.avs==0)*vs 
-        self.traf.vs = vs
         self.Thr = T
             
-
-
         # Fuel consumption
         # thrust specific fuel consumption - jet
         # thrust
@@ -519,30 +514,30 @@ class PerfBADA(DynamicArrays):
         
         # designate each aircraft to its fuelflow           
         # takeoff
-        ffto = fnom*(self.phase==1)
+        ffto = fnom*(self.phase==PHASE['TO'])
 
         # initial climb
-        ffic = fnom*(self.phase==2)/2
+        ffic = fnom*(self.phase==PHASE['IC'])/2
 
         # phase cruise and climb
-        cc = np.logical_and.reduce([self.climb, (self.phase==3)])*1
+        cc = np.logical_and.reduce([self.climb, (self.phase==PHASE['CR'])])*1
         ffcc = fnom*cc
 
         # cruise and level
         ffcrl = fcr*lvl
 
         # descent cruise configuration
-        cd2 = np.logical_and.reduce ([self.descent, (self.phase==3)])*1
+        cd2 = np.logical_and.reduce ([self.descent, (self.phase==PHASE['CR'])])*1
         ffcd = cd2*fmin
 
         # approach
-        ffap = fal*(self.phase==4)
+        ffap = fal*(self.phase==PHASE['AP'])
 
         # landing
-        ffld = fal*(self.phase==5)
+        ffld = fal*(self.phase==PHASE['LD'])
         
         # ground
-        ffgd = fmin*(self.phase==6)
+        ffgd = fmin*(self.phase==PHASE['GD'])
 
         # fuel flow for each condition
         self.ff = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
@@ -557,13 +552,14 @@ class PerfBADA(DynamicArrays):
         self.post_flight = np.where(self.descent, True, self.post_flight)
         
         # when landing, we would like to stop the aircraft.
-        self.traf.aspd = np.where((self.traf.alt <0.5)*(self.post_flight), 0.0, self.traf.aspd)        
+        self.traf.pilot.spd = np.where((self.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, self.traf.pilot.spd)
 
+        
         # otherwise taxiing will be impossible afterwards
+        # pf_flag is released so post_flight flag is only triggered once
+
         self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)        
-        
-        
-        
+       
         return
 
     
@@ -589,22 +585,28 @@ class PerfBADA(DynamicArrays):
 
         # forwarding to tools
         self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
-        limits(self.traf.pilot.spd, self.traf.limspd, self.traf.gs,self.vmto, self.vmin, \
+        calclimits(self.traf.pilot.spd, self.traf.gs,self.vmto, self.vmin, \
         self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
-        self.traf.pilot.alt, self.traf.limalt, self.maxthr, self.Thr,self.traf.limvs, \
-        self.D, self.traf.tas, self.mass, self.ESF)        
+        self.traf.pilot.alt, self.maxthr, self.Thr,self.D, self.traf.tas, self.mass, self.ESF)        
         
         return
 
     def acceleration(self, simdt):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,
-        # others standard acceleration
-        ax = ((self.phase==2) + (self.phase==3) + (self.phase==4) + (self.phase==5) ) \
-            *np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
-            ((self.phase==1) + (self.phase==6))*np.minimum(abs(self.traf.delspd \
-            / max(1e-8,simdt)), self.gr_acc)
+        # landing aircraft use ground deceleration, others use standard acceleration
+        # --> BADA uses the same value for ground acceleration as for deceleration
+    
+        ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
+                     (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \
+                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
+             ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight))      \
+                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_acc) +  \
+              (self.phase==PHASE['GD'])*self.post_flight                                        \
+                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_acc)
 
         return ax
+    
+
         #------------------------------------------------------------------------------
         #DEBUGGING
 

@@ -433,11 +433,11 @@ class Traffic(DynamicArrays):
             tas           = round(self.tas[idx] / kts)
             gs            = round(self.gs[idx]/kts)
             M             = self.M[idx]
-            VS            = round(self.vs[idx]/ft*60.)              
+            VS            = round(self.vs[idx]/ft*60.)
             route         = self.ap.route[idx]
-            
+
             # Position report
-            
+
             lines = "Info on %s %s index = %d\n" %(acid, actype, idx)     \
                   + "Pos: "+latlon+ "\n"                                  \
                   + "Hdg: %03d   Trk: %03d\n"        %(hdg, trk)              \
@@ -464,21 +464,21 @@ class Traffic(DynamicArrays):
 
             # Show a/c info and highlight route of aircraft in radar window
             # and pan to a/c (to show route)
-            return scr.showacinfo(acid,lines)        
+            return scr.showacinfo(acid,lines)
 
         # Waypoint: airport, navaid or fix
         else:
             wp = idxorwp.upper()
 
-            # Reference position for finding nearest            
+            # Reference position for finding nearest
             reflat = scr.ctrlat
-            reflon = scr.ctrlon            
-            
+            reflon = scr.ctrlon
+
             lines = "Info on "+wp+":\n"
-                       
+
             # First try airports (most used and shorter, hence faster list)
             iap = self.navdb.getaptidx(wp)
-            if iap>=0:                
+            if iap>=0:
                 aptypes = ["large","medium","small"]
                 lines = lines + self.navdb.aptname[iap]+"\n"                 \
                         + "is a "+ aptypes[max(-1,self.navdb.aptype[iap]-1)] \
@@ -511,8 +511,8 @@ class Traffic(DynamicArrays):
                     desctxt = ""
                     lastdesc = "XXXXXXXX"
                     for i in iwps:
-                        
-                        # One line type text                        
+
+                        # One line type text
                         if typetxt == "":
                             typetxt = typetxt+self.navdb.wptype[i]
                         else:
@@ -526,12 +526,12 @@ class Traffic(DynamicArrays):
                         elif not samedesc:
                             desctxt = desctxt +"\n"+self.navdb.wpdesc[i]
                             lastdesc = self.navdb.wpdesc[i]
-                            
+
                         # Navaid: frequency
                         if self.navdb.wptype[i] in ["VOR","DME","TACAN"] and not samedesc:
                             desctxt = desctxt + " "+ str(self.navdb.wpfreq[i])+" MHz"
                         elif self.navdb.wptype[i]=="NDB" and not samedesc:
-                            desctxt = desctxt+ " " + str(self.navdb.wpfreq[i])+" kHz"  
+                            desctxt = desctxt+ " " + str(self.navdb.wpfreq[i])+" kHz"
 
                     iwp = iwps[0]
 
@@ -540,41 +540,41 @@ class Traffic(DynamicArrays):
                            + " at\n"\
                            + latlon2txt(self.navdb.wplat[iwp],  \
                                         self.navdb.wplon[iwp])
-                    # Navaids have description                    
+                    # Navaids have description
                     if len(desctxt)>0:
-                        lines = lines+ "\n" + desctxt           
+                        lines = lines+ "\n" + desctxt
 
                     # VOR give variation
                     if self.navdb.wptype[iwp]=="VOR":
                         lines = lines + "\nVariation: "+ \
                                      str(self.navdb.wpvar[iwp])+" deg"
 
-  
+
                     # How many others?
                     nother = self.navdb.wpid.count(wp)-len(iwps)
                     if nother>0:
                         verb = ["is ","are "][min(1,max(0,nother-1))]
                         lines = lines +"\nThere "+verb + str(nother) +\
                                    " other waypoint(s) also named " + wp
-                    
+
                     # In which airways?
                     connect = self.navdb.listconnections(wp, \
                                                 self.navdb.wplat[iwp],
                                                 self.navdb.wplon[iwp])
-                    if len(connect)>0:                    
-                        awset = set([])                   
+                    if len(connect)>0:
+                        awset = set([])
                         for c in connect:
                             awset.add(c[0])
-        
+
                         lines = lines+"\nAirways: "+"-".join(awset)
 
-               
+
                # Try airway id
                 else:  # airway
                     awid = wp
                     airway = self.navdb.listairway(awid)
                     if len(airway)>0:
-                        lines = ""  
+                        lines = ""
                         for segment in airway:
                             lines = lines+"Airway "+ awid + ": " + \
                                     " - ".join(segment)+"\n"
@@ -584,27 +584,27 @@ class Traffic(DynamicArrays):
 
             # Show what we found on airport and navaid/waypoint
             scr.echo(lines)
-            
+
         return True
-        
+
     def airwaycmd(self,scr,key=""):
         # Show conections of a waypoint
- 
+
         reflat = scr.ctrlat
         reflon = scr.ctrlon
 
         if key=="":
             return False,'AIRWAY needs waypoint or airway'
-        
+
         if self.navdb.awid.count(key)>0:
             return self.poscommand(scr, key.upper())
-        else:    
+        else:
             # Find connecting airway legs
             wpid = key.upper()
             iwp = self.navdb.getwpidx(wpid,reflat,reflon)
             if iwp<0:
                 return False,key," not found."
-                
+
             wplat = self.navdb.wplat[iwp]
             wplon = self.navdb.wplon[iwp]
             connect = self.navdb.listconnections(key.upper(),wplat,wplon)
