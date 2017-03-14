@@ -5,7 +5,7 @@ from math import *
 from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 
-from performance import esf, phases, limits
+from performance import esf, phases, calclimits, PHASE
 from ..settings import data_path
 from ..settings import verbose
 
@@ -714,7 +714,7 @@ class Perf():
         PSFC = (((self.PSFC_CR - self.PSFC_TO) / 20000.0)*self.traf.alt + self.PSFC_TO)*(self.traf.alt<20.000) + \
                 self.PSFC_CR*(self.traf.alt >= 20.000)
 
-        TSFC =PSFC*self.traf.tas/(550.0*self.eta)
+        TSFC = PSFC*self.traf.tas/(550.0*self.eta)
 
         # formula p.36 Raymer is missing here!
         ff_prop = self.Thr*TSFC*(self.etype==2)
@@ -737,7 +737,7 @@ class Perf():
         self.post_flight = np.where(self.descent, True, self.post_flight)
         
         # when landing, we would like to stop the aircraft.
-        self.traf.aspd = np.where((self.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, self.traf.aspd)
+        self.traf.pilot.spd = np.where((self.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, self.traf.pilot.spd)
         # the impulse for reducing the speed to 0 should only be given once,
         # otherwise taxiing will be impossible afterwards
         self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
@@ -767,24 +767,21 @@ class Perf():
         self.traf.limspd_flag,     \
         self.traf.limalt,          \
         self.traf.limvs,           \
-        self.traf.limvs_flag  =  limits(self.traf.pilot.spd,   \
-                                        self.traf.limspd,      \
-                                        self.traf.gs,          \
-                                        self.vmto,             \
-                                        self.vmin,             \
-                                        self.vmo,              \
-                                        self.mmo,              \
-                                        self.traf.M,           \
-                                        self.traf.alt,         \
-                                        self.hmaxact,          \
-                                        self.traf.pilot.alt,   \
-                                        self.traf.limalt,      \
-                                        self.maxthr,           \
-                                        self.Thr,              \
-                                        self.traf.limvs,       \
-                                        self.D,                \
-                                        self.traf.tas,         \
-                                        self.mass,             \
+        self.traf.limvs_flag  =  calclimits(self.traf.pilot.spd, \
+                                        self.traf.gs,            \
+                                        self.vmto,               \
+                                        self.vmin,               \
+                                        self.vmo,                \
+                                        self.mmo,                \
+                                        self.traf.M,             \
+                                        self.traf.alt,           \
+                                        self.hmaxact,            \
+                                        self.traf.pilot.alt,     \
+                                        self.maxthr,             \
+                                        self.Thr,                \
+                                        self.D,                  \
+                                        self.traf.tas,           \
+                                        self.mass,               \
                                         self.ESF)        
 
 
@@ -793,12 +790,16 @@ class Perf():
     def acceleration(self, simdt):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,
         # landing aircraft use ground deceleration, others use standard acceleration
-        ax = ((self.phase==2) + (self.phase==3) + (self.phase==4) + (self.phase==5) ) \
-            *np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
-            ((self.phase==1) + (self.phase==6)*(1-self.post_flight))*np.minimum(abs(self.traf.delspd \
-            / max(1e-8,simdt)), self.gr_acc) + \
-            (self.phase==6)*self.post_flight*np.minimum(abs(self.traf.delspd \
-            / max(1e-8,simdt)), self.gr_dec)
+
+        ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
+                     (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \
+                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
+             ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight))      \
+                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_acc) +  \
+              (self.phase==PHASE['GD'])*self.post_flight                                        \
+                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_dec)
+
+
         return ax
     
         
