@@ -99,7 +99,7 @@ class BlipDriver(QGLWidget):
         self.setMouseTracking(True)
         self.drag_start  = (0, 0)
         self.btn_pressed = None
-        self.iasmach     = 250
+        self.selValues   = 5*[0] # [0:courseLeftRight, 1:spd, 2:hdg, 3:alt, 4:vs]
         self.rate        = 0.0
         self.remainder   = 0.0
         self.updownpos   = None
@@ -263,6 +263,8 @@ class BlipDriver(QGLWidget):
         ynd = hmcp + max(0, (height - hmcp - hnd) / 2)
         self.mcpviewport = (0, 0, width, hmcp)
         self.ndviewport = (xnd, ynd, wnd, hnd)
+        
+        print 'resize'
 
     def paintGL(self):
         """Paint the scene."""
@@ -323,17 +325,17 @@ class BlipDriver(QGLWidget):
 
     def set_lcd(self, course_l=None, iasmach=None, hdg=None, alt=None, vs=None, course_r=None):
         if course_l is not None:
-            self.lcd_charcoords[0:18] = lcd_font_idx('%03d' % int(course_l))
+            self.lcd_charcoords[0:18] = lcd_font_idx('%03d' % (int(course_l) % 360))
         if iasmach is not None:
-            self.lcd_charcoords[18:48] = lcd_font_idx(str(iasmach).rjust(5, ' '))
+            self.lcd_charcoords[18:48] = lcd_font_idx(str(max(0, iasmach)).rjust(5, ' '))
         if hdg is not None:
-            self.lcd_charcoords[48:66] = lcd_font_idx('%03d' % int(hdg))
+            self.lcd_charcoords[48:66] = lcd_font_idx('%03d' % (int(hdg) % 360))
         if alt is not None:
-            self.lcd_charcoords[66:96] = lcd_font_idx(str(alt).rjust(5, ' '))
+            self.lcd_charcoords[66:96] = lcd_font_idx(('%5d' % min(99999,max(0, alt))).rjust(5, ' '))
         if vs is not None:
-            self.lcd_charcoords[96:126] = lcd_font_idx(str(vs).rjust(5, ' '))
+            self.lcd_charcoords[96:126] = lcd_font_idx(str(min(9999, max(-9999, vs))).rjust(5, ' '))
         if course_r is not None:
-            self.lcd_charcoords[126:144] = lcd_font_idx('%03d' % int(course_r))
+            self.lcd_charcoords[126:144] = lcd_font_idx('%03d' % (int(course_r) % 360))
 
         update_buffer(self.lcdbuf, self.lcd_charcoords)
 
@@ -347,11 +349,37 @@ class BlipDriver(QGLWidget):
             py = float(self.height - event.y()) / self.height
 
         if event.type() == QEvent.MouseButtonPress and event.button() & Qt.LeftButton:
-            # Speed button
+            # Speed knob
             if 0.24 <= px <= 0.273 and 0.05 <= py <= 0.09:
                 self.drag_start = event.x(), event.y()
                 self.btn_pressed = 'SPD'
-                QTimer.singleShot(100, self.updateSpd)
+                QTimer.singleShot(100, self.updateAPValues)
+            # Heading knob
+            elif 0.38 <= px <= 0.415 and 0.0788 <= py <= 0.12:
+                self.drag_start = event.x(), event.y()
+                self.btn_pressed = 'HDG'
+                QTimer.singleShot(100, self.updateAPValues)
+            # Altitude knob
+            elif 0.55 <= px <= 0.583 and 0.075 <= py <= 0.12:
+                self.drag_start = event.x(), event.y()
+                self.btn_pressed = 'ALT'
+                QTimer.singleShot(100, self.updateAPValues)
+            # Vertical Speed knob
+            elif 0.716 <= px <= 0.738 and 0.0175 <= py <= 0.12:
+                self.drag_start = event.x(), event.y()
+                self.btn_pressed = 'VS'
+                QTimer.singleShot(100, self.updateAPValues)
+            # Left Course knob
+            elif 0.032 <= px <= 0.075 and 0.07 <= py <= 0.118:
+                self.drag_start = event.x(), event.y()
+                self.btn_pressed = 'TRK'
+                QTimer.singleShot(100, self.updateAPValues)
+            # Right Course knob
+            elif 0.92 <= px <= 0.96 and 0.0675 <= py <= 0.113:
+                self.drag_start = event.x(), event.y()
+                self.btn_pressed = 'TRK'
+                QTimer.singleShot(100, self.updateAPValues)
+                
             pass
         elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton:
             print px, py
@@ -429,16 +457,48 @@ class BlipDriver(QGLWidget):
 
             pass
 
-        return True
+        return super(BlipDriver, self).event(event)
 
     @pyqtSlot()
-    def updateSpd(self):
-        val = self.remainder + 20 * self.rate
-        self.iasmach += int(val)
-        self.remainder = val - int(val)
-        self.set_lcd(iasmach=self.iasmach)
+    def updateAPValues(self):
+        if self.btn_pressed == 'TRK':
+            val = self.remainder + 15 * self.rate
+            self.selValues[0] += int(val)
+            self.remainder = val - int(val)
+            self.set_lcd(course_l=self.selValues[0])
+            self.set_lcd(course_r=self.selValues[0])
+        if self.btn_pressed == 'SPD':
+            val = self.remainder + 20 * self.rate
+            self.selValues[1] += int(val)
+            self.remainder = val - int(val)
+            self.set_lcd(iasmach=self.selValues[1])
+        if self.btn_pressed == 'HDG':
+            val = self.remainder + 15 * self.rate
+            self.selValues[2] += int(val)
+            self.remainder = val - int(val)
+            self.set_lcd(hdg=self.selValues[2])
+        if self.btn_pressed == 'ALT':
+            if abs(self.rate) > 0.06:
+                increment = 1000
+                val = self.remainder + min(2.0, abs(self.rate) / 0.04) * np.sign(self.rate)
+            elif abs(self.rate) > 0.02:
+                increment = 100
+                val = self.remainder + self.rate / 0.04
+            else:
+                increment = 10
+                val = self.remainder + self.rate / 0.02
+                
+            self.selValues[3] += int(val) * increment
+            self.remainder = val - int(val)
+            self.set_lcd(alt=self.selValues[3])
+        if self.btn_pressed == 'VS':
+            val = self.remainder + 25 * self.rate
+            self.selValues[4] += int(val)
+            self.remainder = val - int(val)
+            self.set_lcd(vs=self.selValues[4])        
+            
         if self.btn_pressed is not None:
-            QTimer.singleShot(200, self.updateSpd)
+            QTimer.singleShot(200, self.updateAPValues)
 
 
 if __name__ == "__main__":
