@@ -84,13 +84,11 @@ class ND(QGLWidget):
         self.font = self.shareWidget.font.copy()
         self.font.init_shader(self.text_shader)
 
-        self.edge = RenderObject(gl.GL_LINE_STRIP, vertex_count=60)
         edge = np.zeros(120, dtype=np.float32)
         edge[0:120:2] = 1.4 * np.sin(np.radians(np.arange(-60, 60, 2)))
         edge[1:120:2] = 1.4 * np.cos(np.radians(np.arange(-60, 60, 2)))
-        self.edge.bind_attrib(ATTRIB_VERTEX, 2, edge)
-        self.edge.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.arcs = RenderObject(gl.GL_LINES)
+        self.edge = RenderObject(gl.GL_LINE_STRIP, vertex=edge, color=white)
+
         arcs = []
         for i in range(1, 4):
             for angle in range(-60, 60, max(2, 6 - 2 * i)):
@@ -99,31 +97,25 @@ class ND(QGLWidget):
                 if i == 4:
                     arcs.append(float(i) * 0.35 * sin(radians(angle + 2)))
                     arcs.append(float(i) * 0.35 * cos(radians(angle + 2)))
+        arcs = np.array(arcs, dtype=np.float32)
+        self.arcs = RenderObject(gl.GL_LINES, vertex=arcs, color=white)
 
-        self.arcs.bind_attrib(ATTRIB_VERTEX, 2, np.array(arcs, dtype=np.float32))
-        self.arcs.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-        self.arcs.set_vertex_count(len(arcs))
-
-        self.mask = RenderObject(gl.GL_TRIANGLE_STRIP, vertex_count=120)
         mask = []
         for angle in range(-60, 60, 2):
-            mask.append(1.4*sin(radians(angle)))
+            mask.append(1.4 * sin(radians(angle)))
             mask.append(10.0)
-            mask.append(1.4*sin(radians(angle)))
-            mask.append(1.4*cos(radians(angle)))
-        self.mask.bind_attrib(ATTRIB_VERTEX, 2, np.array(mask, dtype=np.float32))
-        self.mask.bind_attrib(ATTRIB_COLOR, 4, np.array(black, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+            mask.append(1.4 * sin(radians(angle)))
+            mask.append(1.4 * cos(radians(angle)))
+        mask = np.array(mask, dtype=np.float32)
+        self.mask = RenderObject(gl.GL_TRIANGLE_STRIP, vertex=mask, color=black)
 
-        self.ticks = RenderObject(gl.GL_LINES, vertex_count=144)
         ticks = np.zeros(288, dtype=np.float32)
         for i in range(72):
             ticktop = 1.46 if i % 6 == 0 else (1.44 if i % 2 == 0 else 1.42)
             ticks[4*i  :4*i+2] = (1.4 * sin(radians(i * 5)), 1.4 * cos(radians(i * 5)))
             ticks[4*i+2:4*i+4] = (ticktop * sin(radians(i * 5)), ticktop * cos(radians(i * 5)))
-        self.ticks.bind_attrib(ATTRIB_VERTEX, 2, ticks)
-        self.ticks.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ticks = RenderObject(gl.GL_LINES, vertex=ticks, color=white)
 
-        self.ticklbls = RenderObject(gl.GL_TRIANGLES, vertex_count=12 * 36)
         ticklbls = np.zeros(24 * 36, dtype=np.float32)
         texcoords = np.zeros(36 * 36, dtype=np.float32)
 
@@ -145,13 +137,10 @@ class ND(QGLWidget):
             for j in range(12):
                 ticklbls[24*i+2*j:24*i+2*j+2] = rot.dot(tmp[j])
 
-        self.ticklbls.bind_attrib(ATTRIB_VERTEX, 2, ticklbls)
-        self.ticklbls.bind_attrib(ATTRIB_TEXCOORDS, 3, texcoords)
-        self.ticklbls.bind_attrib(ATTRIB_COLOR, 4, np.array(white, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        self.ticklbls = RenderObject(gl.GL_TRIANGLES, vertex=ticklbls, color=white, texcoords=texcoords)
 
-        self.ownship = RenderObject(gl.GL_LINES, vertex_count=6)
-        self.ownship.bind_attrib(ATTRIB_VERTEX, 2, np.array([0.0, 0.0, 0.0, -0.12, 0.065, -0.03, -0.065, -0.03, 0.022, -0.1, -0.022, -0.1], dtype=np.float32))
-        self.ownship.bind_attrib(ATTRIB_COLOR, 4, np.array(yellow, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
+        vown = np.array([0.0, 0.0, 0.0, -0.12, 0.065, -0.03, -0.065, -0.03, 0.022, -0.1, -0.022, -0.1], dtype=np.float32)
+        self.ownship = RenderObject(gl.GL_LINES, vertex=vown, color=yellow)
 
         self.spdlabel_text = self.font.prepare_text_string('GS    TAS', 0.05, white, (-0.98, 1.6))
         self.spdlabel_val  = self.font.prepare_text_string('  000    000', 0.05, green, (-0.97, 1.6))

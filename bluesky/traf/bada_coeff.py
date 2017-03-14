@@ -106,7 +106,11 @@ def init(bada_path=''):
     else:
         print 'No BADA release summary found: can not determine version.'
 
-    data = syn_parser.parse(path.join(path.normpath(bada_path), 'SYNONYM.NEW'))
+    synonymfile = path.join(path.normpath(bada_path), 'SYNONYM.NEW')
+    if not path.isfile(synonymfile):
+        print 'SYNONYM.NEW not found in BADA path, could not load BADA.'
+        return False
+    data = syn_parser.parse(synonymfile)
     for line in data:
         syn = Synonym(line)
         synonyms[syn.accode] = syn
