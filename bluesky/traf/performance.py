@@ -21,6 +21,20 @@ from ..tools.aero import kts, ft, gamma, gamma1, gamma2, R, beta, g0, \
     vmach2cas
 
 
+PHASE = {"None":0,
+         "TO"  :1, # Take-off
+         "IC"  :2, # Initial climb
+         "CR"  :3, # Cruise
+         "AP"  :4, # Approach
+         "LD"  :5, # Landing
+         "GD"  :6, # Ground
+         "to"  :1,
+         "ic"  :2,
+         "cr"  :3,  # and lower case to be sure
+         "ap"  :4,
+         "ld"  :5,
+         "gd"  :6}
+
 #------------------------------------------------------------------------------
 #
 # FLIGHT PHASES
@@ -194,11 +208,11 @@ def esf(abco, belco, alt, M, climb, descent, delspd):
 
 #------------------------------------------------------------------------------
 #
-# LIMITS
+# CALCULATE LIMITS
 #
 #------------------------------------------------------------------------------
-def limits(desspd, limspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact, 
-           desalt, lalt, maxthr, Thr, limvs, D, tas, mass, ESF):
+def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact, 
+           desalt, maxthr, Thr, D, tas, mass, ESF):
 
     # minimum CAS - below crossover (we do not check for minimum Mach)
     limspd      = np.where((desspd < vmin), vmin, -999.)

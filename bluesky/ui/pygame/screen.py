@@ -622,7 +622,7 @@ class Screen:
             trafy -= traf.alt*self.isoalt
             
             if traf.trails.active:
-                ltx, lty = self.ll2xy(traf.lastlat, traf.lastlon)
+                ltx, lty = self.ll2xy(traf.trails.lastlat, traf.trails.lastlon)
 
             # Find pixel size of horizontal separation on screen
             pixelrad=self.dtopix_eq(traf.asas.R/2)
@@ -658,7 +658,7 @@ class Screen:
                         
                 # Draw last trail part
                 if traf.trails.active:
-                    pg.draw.line(self.win, tuple(traf.trailcol[i]),
+                    pg.draw.line(self.win, tuple(traf.trails.accolor[i]),
                                  (ltx[i], lty[i]), (trafx[i], trafy[i]))
 
                 # Label text

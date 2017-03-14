@@ -49,13 +49,14 @@ class Pilot(DynamicArrays):
 
         # Compute the desired heading needed to compensate for the wind
         if self.traf.wind.winddim > 0:
+            
             # Calculate wind correction
             vwn, vwe = self.traf.wind.getdata(self.traf.lat, self.traf.lon, self.traf.alt)
             Vw       = np.sqrt(vwn * vwn + vwe * vwe)
             winddir  = np.arctan2(vwe, vwn)
             drift    = np.radians(self.trk) - winddir  # [rad]
             steer    = np.arcsin(np.minimum(1.0, np.maximum(-1.0,
-                                                         Vw * np.sin(drift) / np.maximum(0.001, self.traf.tas))))
+                                     Vw * np.sin(drift) / np.maximum(0.001, self.traf.tas))))
             # desired heading
             self.hdg = (self.trk + np.degrees(steer)) % 360.
         else:
@@ -65,9 +66,12 @@ class Pilot(DynamicArrays):
         # check for the flight envelope
         self.traf.delalt = self.traf.apalt - self.traf.alt  # [m]
         self.traf.perf.limits()
+        
+        #print self.aspd[0]/kts
 
         # Update desired sates with values within the flight envelope
         # To do: add const Mach const CAS mode
+
         self.spd = np.where(self.traf.limspd_flag, vcas2tas(self.traf.limspd, self.traf.alt), self.spd)
 
         # Autopilot selected altitude [m]

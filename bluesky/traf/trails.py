@@ -15,7 +15,7 @@ class Trails(DynamicArrays):
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self, traf, dttrail=30.):
+    def __init__(self, traf, dttrail=10.):
         self.traf = traf
         self.active = False  # Wether or not to show trails
         self.dt = dttrail    # Resolution of trail pieces in time
@@ -24,11 +24,12 @@ class Trails(DynamicArrays):
 
         # This list contains some standard colors
         self.colorList = {'BLUE': np.array([0, 0, 255]),
+                          'CYAN': np.array([0,255,255]),
                           'RED': np.array([255, 0, 0]),
                           'YELLOW': np.array([255, 255, 0])}
 
         # Set default color to Blue
-        self.defcolor = self.colorList['BLUE']
+        self.defcolor = self.colorList['CYAN']
 
         # Foreground data on line pieces
         self.lat0 = np.array([])
