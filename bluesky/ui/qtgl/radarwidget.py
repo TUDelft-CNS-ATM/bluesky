@@ -21,7 +21,7 @@ from ...navdb.loadnavdata import load_aptsurface, load_coastlines
 
 # Static defines
 MAX_NAIRCRAFT         = 10000
-MAX_NCONFLICTS        = 10000
+MAX_NCONFLICTS        = 25000
 MAX_ROUTE_LENGTH      = 100
 MAX_POLYPREV_SEGMENTS = 100
 MAX_ALLPOLYS_SEGMENTS = 2000

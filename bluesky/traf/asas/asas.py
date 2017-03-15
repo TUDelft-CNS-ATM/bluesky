@@ -324,13 +324,14 @@ class ASAS(DynamicArrays):
         # active the switch, if there are acids in the list
         self.swresooff = len(self.resoofflst) > 0
 
-    def create(self):
-        super(ASAS, self).create()
+    def create(self, n=1):
+        super(ASAS, self).create(n)
 
         # ASAS output commanded values
-        self.trk[-1] = self.traf.trk[-1]
-        self.spd[-1] = self.traf.tas[-1]
-        self.alt[-1] = self.traf.alt[-1]
+        self.active[-n:] = [False] * n
+        self.trk[-n:] = self.traf.trk[-n:]
+        self.spd[-n:] = self.traf.tas[-n:]
+        self.alt[-n:] = self.traf.alt[-n:]
 
     def update(self, simt):
         iconf0 = np.array(self.iconf)

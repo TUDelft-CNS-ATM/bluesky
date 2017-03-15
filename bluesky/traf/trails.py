@@ -57,12 +57,12 @@ class Trails(DynamicArrays):
             self.lasttim = np.array([])
         return
 
-    def create(self):
-        super(Trails, self).create()
+    def create(self, n=1):
+        super(Trails, self).create(n)
 
-        self.accolor[-1] = self.defcolor
-        self.lastlat[-1] = self.traf.lat[-1]
-        self.lastlon[-1] = self.traf.lon[-1]
+        self.accolor[-n:] = self.defcolor
+        self.lastlat[-n:] = self.traf.lat[-n:]
+        self.lastlon[-n:] = self.traf.lon[-n:]
 
     def update(self, t):
         if not self.active:

@@ -296,6 +296,6 @@ class ScreenIO(QObject):
             # data.etas       = self.sim.traf.AMAN.
             # data.delays     = self.sim.traf.AMAN.
             # data.rwys       = self.sim.traf.AMAN.
-            # data.spdratios  = self.sim.traf.AMAN. 
+            # data.spdratios  = self.sim.traf.AMAN.
             # self.manager.sendEvent(data)
             pass
