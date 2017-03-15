@@ -242,12 +242,12 @@ class PerfBADA(DynamicArrays):
 
         # crossover altitude for climbing and descending aircraft (BADA User Manual 3.12, p. 12)
         self.atranscl[-1]  = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
-            (self.cascl[-1] / a0) ** (self.cascl[-1] / a0)) ** gamma2) - 1.0) /
+            (self.cascl[-1] / a0) * (self.cascl[-1] / a0)) ** gamma2) - 1.0) /
                 (((1.0 + gamma1 * self.macl[-1] * self.macl[-1]) ** gamma2) - 1.0)) **
                     (-beta * R / g0)))
 
         self.atransdes[-1] = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
-            (self.casdes[-1] / a0) ** (self.casdes[-1] / a0)) ** gamma2) - 1.0) /
+            (self.casdes[-1] / a0) * (self.casdes[-1] / a0)) ** gamma2) - 1.0) /
                 (((1.0 + gamma1 * self.mades[-1] * self.mades[-1]) ** gamma2) - 1.0)) **
                     (-beta * R / g0)))
 

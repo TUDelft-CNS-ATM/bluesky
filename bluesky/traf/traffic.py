@@ -328,11 +328,13 @@ class Traffic(DynamicArrays):
     def UpdateAirSpeed(self, simdt, simt):
         # Acceleration
         self.delspd = self.pilot.spd - self.tas
+        
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = self.perf.acceleration(simdt)
 
         # Update velocities
         self.tas = self.tas + swspdsel * ax * np.sign(self.delspd) * simdt
+        
         self.cas = vtas2cas(self.tas, self.alt)
         self.M   = vtas2mach(self.tas, self.alt)
 
