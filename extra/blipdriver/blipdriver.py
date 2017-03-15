@@ -71,6 +71,44 @@ class ndUBO(UniformBuffer):
         self.update()
 
 
+def check_knob(px, py):
+    # knob name : xmin xmax ymin ymax
+    knobs = {
+        'COURSEL' : (-0.936, -0.85,  -0.3, 0.18),
+        'SPD' :     (-0.52,  -0.454, -0.5, -0.1),
+        'HDG' :     (-0.24,  -0.17,  -0.21, 0.2),
+        'ALT' :     ( 0.1,    0.166, -0.25, 0.2),
+        'VS' :      ( 0.432,  0.476, -0.825, 0.2),
+        'COURSER' : ( 0.84,   0.92,  -0.325, 0.13)
+    }
+    for name, dims in knobs.iteritems():
+        if dims[0] <= px <= dims[1] and dims[2] <= py <= dims[3]:
+            return name[:6], (0.5 * (dims[0] + dims[1]), 0.5 * (dims[2] + dims[3]))
+    return None, None
+
+
+def check_btn(px, py):
+    btns = [
+        ('N1', (-0.735, -0.675, -0.84, -0.415)),
+        ('SPD', (-0.645, -0.585, -0.84, -0.415)),
+        ('LVLCHG', (-0.375, -0.315, -0.84, -0.415)),
+        ('HDGSEL', (-0.23, -0.17, -0.84, -0.415)),
+        ('APP', (-0.093, -0.033, -0.84, -0.415)),
+        ('ALTHLD', (-0.098, 0.158, -0.84, -0.415)),
+        ('VS', (0.2, 0.26, -0.84, -0.415)),
+        ('VNAV', (-0.373, -0.303, 0.41, 0.85)),
+        ('LNAV', (-0.093, -0.033, 0.425, 0.835)),
+        ('VORLOC', (-0.093, -0.033, -0.215, 0.175)),
+        ('CMDA', (0.575, 0.643, 0.2, 0.625)),
+        ('CWSA', (0.575, 0.643, -0.44, -0.025)),
+        ('CMDB', (0.683, 0.743, 0.2, 0.625)),
+        ('CWSB', (0.683, 0.743, -0.44, -0.025))
+    ]
+    for i in range(len(btns)):
+        name, dims = btns[i]
+        if dims[0] <= px <= dims[1] and dims[2] <= py <= dims[3]:
+            return name, i
+    return None, None
 
 
 class BlipDriver(QGLWidget):
@@ -86,7 +124,7 @@ class BlipDriver(QGLWidget):
         self.setMouseTracking(True)
         self.drag_start  = (0, 0)
         self.btn_pressed = None
-        self.selValues   = 5*[0] # [0:courseLeftRight, 1:spd, 2:hdg, 3:alt, 4:vs]
+        self.selValues   = 5 * [0]  # [0:courseLeftRight, 1:spd, 2:hdg, 3:alt, 4:vs]
         self.rate        = 0.0
         self.remainder   = 0.0
         self.updownpos   = None
