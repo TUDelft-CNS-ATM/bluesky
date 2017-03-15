@@ -110,7 +110,6 @@ class Autopilot(DynamicArrays):
             #=============== End of Waypoint switching loop ===================
 
             #================= Continuous FMS guidance ========================
-
         
             # Do VNAV start of descent check
             dy = (self.traf.actwp.lat - self.traf.lat)
@@ -124,7 +123,8 @@ class Autopilot(DynamicArrays):
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
-            self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist < self.traf.actwp.turndist)
+            #    USe 500 m cirlce in case turndist might be zero
+            self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist <= np.maximum(185.2,self.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance
             t2go = dist2wp/np.maximum(0.5,self.traf.gs)
@@ -133,7 +133,7 @@ class Autopilot(DynamicArrays):
             self.vnavvs  = np.where(self.swvnavvs, self.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * self.traf.gs, self.vnavvs)
 
-            self.vs = np.where(self.traf.swvnav, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
+            self.vs = np.where(self.swvnavvs, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
 
             self.alt = np.where(self.swvnavvs, self.traf.actwp.alt, self.traf.apalt)
 
