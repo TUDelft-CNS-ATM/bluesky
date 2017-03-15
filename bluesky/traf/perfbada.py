@@ -242,16 +242,14 @@ class PerfBADA(DynamicArrays):
         self.vdes[-n:]      = coeff.Vdes_ref * kts
         self.mdes[-n:]      = coeff.Mdes_ref
 
-#######################################
-
         # crossover altitude for climbing and descending aircraft (BADA User Manual 3.12, p. 12)
         self.atranscl[-n:]  = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
-            (self.cascl[-n:] / a0) ** (self.cascl[-n:] / a0)) ** gamma2) - 1.0) /
+            (self.cascl[-n:] / a0) * (self.cascl[-n:] / a0)) ** gamma2) - 1.0) /
                 (((1.0 + gamma1 * self.macl[-n:] * self.macl[-n:]) ** gamma2) - 1.0)) **
                     (-beta * R / g0)))
 
         self.atransdes[-n:] = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
-            (self.casdes[-n:] / a0) ** (self.casdes[-n:] / a0)) ** gamma2) - 1.0) /
+            (self.casdes[-n:] / a0) * (self.casdes[-n:] / a0)) ** gamma2) - 1.0) /
                 (((1.0 + gamma1 * self.mades[-n:] * self.mades[-n:]) ** gamma2) - 1.0)) **
                     (-beta * R / g0)))
 
@@ -277,7 +275,7 @@ class PerfBADA(DynamicArrays):
             np.where(self.turbo[-n:], coeff.Cred_turboprop, coeff.Cred_piston)
         )
 
-        # commented due to vectrization 
+        # commented due to vectrization
         # # NOTE: model only validated for jet and turbo aircraft
         # if self.piston[-n:] and not self.warned2:
         #     print "Using piston aircraft performance.",
