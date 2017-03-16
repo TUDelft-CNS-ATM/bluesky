@@ -704,7 +704,14 @@ class Route():
 
             wphdg = self.navdb.rwythresholds[name[:4]][rwykey][2]            
             
+            # keep constant runway heading
             stack.stack("HDG " + str(traf.id[self.iac]) + " " + str(wphdg))
+            
+            # start decelerating
+            stack.stack("DELAY " + "10 " + "SPD " + str(traf.id[self.iac]) + " " + "10")            
+            
+            # delete aircraft
+            stack.stack("DELAY " + "42 " + "DEL " + str(traf.id[self.iac]))
 
             return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                            self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
