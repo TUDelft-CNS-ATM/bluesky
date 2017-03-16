@@ -3,6 +3,7 @@ from ..tools import geo
 from ..tools.aero import ft, kts, g0, nm, cas2tas, mach2cas
 from ..tools.misc import degto180
 from ..tools.position import txt2pos
+from .. import stack
 from ..stack.stack import Argparser
 
 
@@ -42,6 +43,11 @@ class Route():
         # Current actual waypoint
         self.iactwp = -1
         self.swflyby  = True  # Default waypoints are flyby waypoint
+        
+        # if the aircraft lands on a runway, the aircraft should keep the
+        # runway heading
+        # default: False
+        self.flag_landed_runway = False
 
         return
 
@@ -675,8 +681,36 @@ class Route():
         if ipage + 1 < npages:
             scr.cmdline("LISTRTE "+traf.id[idx]+","+str(ipage+1))
 
-    def getnextwp(self):
+    def getnextwp(self, traf):
         """Go to next waypoint and return data"""
+        
+        
+        if self.flag_landed_runway == True:
+
+            # when landing, LNAV is switched off
+            lnavon = False
+            
+            # no further waypoint
+            nextqdr = -999.
+            
+            # and the aircraft just needs a fixed heading to remain on the runway
+            # syntax: HDG acid,hdg (deg,True)
+            name = self.wpname[self.iactwp]
+            if "RWY" in name:
+                rwykey = name[8:]
+            # if it is only RW
+            else:
+                rwykey = name[7:]
+
+            wphdg = self.navdb.rwythresholds[name[:4]][rwykey][2]            
+            
+            stack.stack("HDG " + str(traf.id[self.iac]) + " " + str(wphdg))
+
+            return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
+                           self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
+                           self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
+                           lnavon,self.wpflyby[self.iactwp], nextqdr
+
         lnavon = self.iactwp +1 < self.nwp
         if lnavon:
             self.iactwp = self.iactwp + 1
@@ -684,13 +718,21 @@ class Route():
         else:
             lnavon = False
             
-        nextqdr= self.getnextqdr()                                                          
+        nextqdr= self.getnextqdr()      
+
+        # in case that there is a runway, the aircraft should remain on it 
+        # instead of deviating to the airport centre  
+        # When there is a destination: current = runway, next  = Dest 
+        # Else: current = runway and this is also the last waypoint 
+        if (self.wptype[self.iactwp] == 5 and self.wpname[self.iactwp] ==self.wpname[-1]) or \
+            (self.wptype[self.iactwp] ==5 and self.wptype[self.iactwp + 1] == 3):
+
+            self.flag_landed_runway = True
 
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], nextqdr
-
     def delrte(self):
         """Delete complete route"""
         # Simple re-initilize this route as empty

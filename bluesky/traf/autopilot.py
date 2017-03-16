@@ -76,7 +76,7 @@ class Autopilot(DynamicArrays):
 
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby, self.traf.actwp.next_qdr[i] =  \
-                       self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
+                       self.route[i].getnextwp(self.traf)  # note: xtoalt,toalt in [m]
 
                 # End of route/no more waypoints: switch off LNAV
                 self.traf.swlnav[i] = self.traf.swlnav[i] and lnavon
