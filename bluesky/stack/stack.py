@@ -238,6 +238,11 @@ def init(sim, traf, scr):
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
         ],
+        "DELAY": [
+            "DELAY time offset, COMMAND+ARGS",
+            "time,txt,...",
+            lambda time,cmd,*args: sched_cmd(time, cmd, args, relative=True)
+        ],
         "DELRTE": [
             "DELRTE acid",
             "acid",
@@ -545,6 +550,11 @@ def init(sim, traf, scr):
             lambda fname: saveic(fname, sim, traf),
             "Save current situation as IC"
         ],
+        "SCHEDULE": [
+            "SCHEDULE time, COMMAND+ARGS",
+            "time,txt,...",
+            lambda time,cmd, *args: sched_cmd(time, cmd, args, relative=False)
+        ],
         "SCEN": [
             "SCEN scenname",
             "string",
@@ -819,6 +829,13 @@ def stack(cmdline):
     if len(cmdline) > 0:
         for line in cmdline.split(';'):
             cmdstack.append(line)
+
+
+def sched_cmd(time, cmd, args, relative=False):
+    tostack = ','.join(args)
+    # find spot in time list corresponding to passed time, get idx
+    # insert time at idx in scentime, insert cmd at idx in scencmd
+    return True
 
 
 def openfile(fname, absrel='ABS', mergeWithExisting=False):
