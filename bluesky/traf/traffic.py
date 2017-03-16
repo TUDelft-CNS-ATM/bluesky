@@ -163,6 +163,7 @@ class Traffic(DynamicArrays):
         # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
         # for working with EUROCONTROL`s Base of Aircraft Data revision 3.12
         self.perf    = Perf(self)
+        self.trails.reset()
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
         """ Create multiple random aircraft in a specified area """

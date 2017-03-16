@@ -63,8 +63,8 @@ class Trails(DynamicArrays):
 
         self.accolor[-1] = self.defcolor
         self.lastlat[-1] = self.traf.lat[-1]
-        self.lastlon[-1] = self.traf.lon[-1]
-
+        self.lastlon[-1] = self.traf.lon[-1] 
+        
     def update(self, t):
         self.acid    = self.traf.id        
         if not self.active:
@@ -111,7 +111,7 @@ class Trails(DynamicArrays):
             self.lastlon[i] = self.traf.lon[i]
             self.lasttim[i] = t
 
-        # QtGL buffer
+        # QtGL send buffer
         self.newlat0.extend(lstlat0)
         self.newlon0.extend(lstlon0)
         self.newlat1.extend(lstlat1)
@@ -180,6 +180,8 @@ class Trails(DynamicArrays):
 
     def clear(self):
         """Clear all data, Foreground and background"""
+        self.lastlon = np.array([])
+        self.lastlat = np.array([])
         self.clearfg()
         self.clearbg()
         self.clearnew()
@@ -204,3 +206,9 @@ class Trails(DynamicArrays):
         """Change color of aircraft trail"""
         self.accolor[idx] = self.colorList[color]
         return
+    
+    def reset(self):
+        # This ensures that the traffic arrays (which size is dynamic)
+        # are all reset as well, so all lat,lon,sdp etc but also objects adsb
+        super(Trails, self).reset()
+        self.clear()
