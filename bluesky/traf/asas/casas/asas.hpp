@@ -22,7 +22,7 @@ struct Dbconf {
 
     Dbconf(PyObject* self) : self(self),
         dtlookahead(GetAttrDouble(self, "dtlookahead")), R(GetAttrDouble(self, "R")),
-        dh(GetAttrDouble(self, "dh")), nconf(0), asasactive(self, "asasactive")
+        dh(GetAttrDouble(self, "dh")), nconf(0), asasactive(self, "active")
         {R2 = R * R;}
 
     void copyback() {

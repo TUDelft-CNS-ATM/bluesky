@@ -707,7 +707,6 @@ class RadarWidget(QGLWidget):
                 nact.traillon0.extend(data.traillon0)
                 nact.traillat1.extend(data.traillat1)
                 nact.traillon1.extend(data.traillon1)
-                
                 update_buffer(self.trailbuf, np.array(                 \
                               zip(nact.traillat0,nact.traillon0,       \
                                   nact.traillat1,nact.traillon1)+      \
@@ -715,8 +714,8 @@ class RadarWidget(QGLWidget):
                                   list(data.lat),list(data.lon)),      \
                                        dtype=np.float32))
 
-                self.traillines.set_vertex_count(4*len(nact.traillat0) +\
-                                  4*len(data.lat))
+                self.traillines.set_vertex_count(2*len(nact.traillat0) +\
+                                  2*len(data.lat))
 
             else:
                 nact.traillat0 = []
