@@ -113,7 +113,7 @@ elif gui == 'pygame':
 
                 try:
                     data = self.sock.recv(self.buffer_size)
-                    self.parse_data(data)
+                    self.processData(data)
                     time.sleep(0.1)
                 except Exception, err:
                     print "Revecier Error: %s" % err
