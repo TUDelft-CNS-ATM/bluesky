@@ -212,3 +212,4 @@ class Trails(DynamicArrays):
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
         super(Trails, self).reset()
         self.clear()
+        self.active = False
