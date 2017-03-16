@@ -17,10 +17,12 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
     if (!PyArg_ParseTuple(args, "OOd", &pyasas, &traf, &simt))
         return NULL;
 
+    PyAttr adsb(traf, "adsb");
+
     PyDoubleArrayAttr lat1(traf, "lat"),     lon1(traf, "lon"),     trk1(traf, "trk"),
                       gs1 (traf, "gs"),      alt1(traf, "alt"),     vs1 (traf, "vs"),
-                      lat2(traf, "adsblat"), lon2(traf, "adsblon"), trk2(traf, "adsbtrk"),
-                      gs2 (traf, "adsbgs"),  alt2(traf, "adsbalt"), vs2 (traf, "adsbvs");
+                      lat2(adsb, "lat"), lon2(adsb, "lon"), trk2(adsb, "trk"),
+                      gs2 (adsb, "gs"),  alt2(adsb, "alt"), vs2 (adsb, "vs");
 
     PyListAttr  acid(traf, "id");
 
