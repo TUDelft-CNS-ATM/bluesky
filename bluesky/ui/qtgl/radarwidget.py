@@ -63,7 +63,7 @@ class nodeData(object):
         self.traillat0 = []
         self.traillon0 = []
         self.traillat1 = []
-        self.traillon1 = []      
+        self.traillon1 = []
 
 
 class radarUBO(UniformBuffer):

@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="pos-pos">POS: Pos</h1>
+<p>Get info on an object. This can be an aircraft, airport or waypoint. Provide the object name as the function argument.<br />
+The returned information depends on the type of object:</p>
+<h3 id="aircraft">Aircraft</h3>
+<ul>
+<li>Location</li>
+<li>Heading</li>
+<li>Altitude</li>
+<li>CAS &amp; TAS &amp; Groundspeed &amp; Mach number</li>
+<li>Indication of vnav &amp; lnav + destination (if used)</li>
+<li>Aircraft origin &amp; destination</li>
+</ul>
+<h3 id="airport">Airport</h3>
+<ul>
+<li>Airport size</li>
+<li>Location</li>
+<li>Elevation</li>
+<li>Country name</li>
+<li>Number of runways (if known)</li>
+</ul>
+<h3 id="waypoints">Waypoints</h3>
+<ul>
+<li>Type</li>
+<li>Location</li>
+<li>Description, including frequencies (for navaids)</li>
+<li>Variation (for VOR beacons)</li>
+<li>Number of waypoints with same name (if more than one exist)</li>
+<li>Names of airways that connect to it</li>
+</ul>
+<h3 id="airway">Airway</h3>
+<ul>
+<li>List of segments in the airway</li>
+</ul>
+<p><strong>Usage:</strong></p>
+<pre><code>POS object</code></pre>
+<p><strong>Arguments:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>object</td>
+<td>txt</td>
+<td>yes</td>
+<td><a href="Aircraft-ID.html">Object name</a></td>
+</tr>
+</tbody>
+</table>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>
