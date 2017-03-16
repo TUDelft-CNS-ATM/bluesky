@@ -327,8 +327,6 @@ class ASAS(DynamicArrays):
     def create(self, n=1):
         super(ASAS, self).create(n)
 
-        # ASAS output commanded values
-        self.active[-n:] = [False] * n
         self.trk[-n:] = self.traf.trk[-n:]
         self.spd[-n:] = self.traf.tas[-n:]
         self.alt[-n:] = self.traf.alt[-n:]
