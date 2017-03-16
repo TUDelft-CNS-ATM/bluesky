@@ -15,17 +15,17 @@ class Trails(DynamicArrays):
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self, traf, dttrail=10.):
-        self.traf = traf
+    def __init__(self, traf,dttrail=10.):
         self.active = False  # Wether or not to show trails
         self.dt = dttrail    # Resolution of trail pieces in time
 
         self.tcol0 = 60.  # After how many seconds old colour
+        self.traf = traf
 
         # This list contains some standard colors
         self.colorList = {'BLUE': np.array([0, 0, 255]),
                           'CYAN': np.array([0,255,255]),
-                          'RED': np.array([255, 0, 0]),
+                          'RED' : np.array([255, 0, 0]),
                           'YELLOW': np.array([255, 255, 0])}
 
         # Set default color to Blue
@@ -39,7 +39,6 @@ class Trails(DynamicArrays):
         self.time = np.array([])
         self.col  = []
         self.fcol = np.array([])
-        self.acid = []
 
         # background copy of data
         self.bglat0 = np.array([])
@@ -48,23 +47,26 @@ class Trails(DynamicArrays):
         self.bglon1 = np.array([])
         self.bgtime = np.array([])
         self.bgcol = []
-        self.bgacid = []
 
         with RegisterElementParameters(self):
             self.accolor = []
             self.lastlat = np.array([])
             self.lastlon = np.array([])
             self.lasttim = np.array([])
+
+        self.clearnew()
+
         return
 
-    def create(self, n=1):
+    def create(self,n=1):
         super(Trails, self).create(n)
 
-        self.accolor[-n:] = self.defcolor
-        self.lastlat[-n:] = self.traf.lat[-n:]
-        self.lastlon[-n:] = self.traf.lon[-n:]
+        self.accolor[-1] = self.defcolor
+        self.lastlat[-1] = self.traf.lat[-1]
+        self.lastlon[-1] = self.traf.lon[-1]
 
     def update(self, t):
+        self.acid    = self.traf.id        
         if not self.active:
             self.lastlat = self.traf.lat
             self.lastlon = self.traf.lon
@@ -72,21 +74,21 @@ class Trails(DynamicArrays):
             return
         """Add linepieces for trails based on traffic data"""
 
-        # Check for update
-        delta = t - self.lasttim
-        idxs = np.where(delta > self.dt)[0]
-
-        # Use temporary list for fast append
+        # Use temporary list/array for fast append
         lstlat0 = []
         lstlon0 = []
         lstlat1 = []
         lstlon1 = []
         lsttime = []
 
+        # Check for update
+        delta = t - self.lasttim
+        idxs = np.where(delta > self.dt)[0]
+
         # Add all a/c which need the update
         # if len(idxs)>0:
         #     print "len(idxs)=",len(idxs)
-
+        
         for i in idxs:
             # Add to lists
             lstlat0.append(self.lastlat[i])
@@ -94,7 +96,6 @@ class Trails(DynamicArrays):
             lstlat1.append(self.traf.lat[i])
             lstlon1.append(self.traf.lon[i])
             lsttime.append(t)
-            self.acid.append(self.traf.id[i])
 
             if isinstance(self.col, np.ndarray):
                 # print type(trailcol[i])
@@ -109,6 +110,12 @@ class Trails(DynamicArrays):
             self.lastlat[i] = self.traf.lat[i]
             self.lastlon[i] = self.traf.lon[i]
             self.lasttim[i] = t
+
+        # QtGL buffer
+        self.newlat0.extend(lstlat0)
+        self.newlon0.extend(lstlon0)
+        self.newlat1.extend(lstlat1)
+        self.newlon1.extend(lstlon1)
 
         # Add resulting linepieces
         self.lat0 = np.concatenate((self.lat0, np.array(lstlat0)))
@@ -131,7 +138,7 @@ class Trails(DynamicArrays):
         self.bglon1 = np.append(self.bglon1, self.lon1)
         self.bgtime = np.append(self.bgtime, self.time)
 
-        # No color saved: bBackground: always 'old color' self.col0
+        # No color saved: Background: always 'old color' self.col0
         if isinstance(self.bgcol, np.ndarray):
             self.bgcol = self.bgcol.tolist()
         if isinstance(self.col, np.ndarray):
@@ -143,6 +150,14 @@ class Trails(DynamicArrays):
         self.clearfg()  # Clear foreground trails
         return
 
+    def clearnew(self):
+        # Clear new lines pipeline used for QtGL
+        self.newlat0 = []
+        self.newlon0 = []
+        self.newlat1 = []
+        self.newlon1 = []
+      
+
     def clearfg(self):  # Foreground
         """Clear trails foreground"""
         self.lat0 = np.array([])
@@ -151,7 +166,6 @@ class Trails(DynamicArrays):
         self.lon1 = np.array([])
         self.time = np.array([])
         self.col = np.array([])
-        self.acid = []
         return
 
     def clearbg(self):  # Background
@@ -168,6 +182,7 @@ class Trails(DynamicArrays):
         """Clear all data, Foreground and background"""
         self.clearfg()
         self.clearbg()
+        self.clearnew()
         return
 
     def setTrails(self, *args):

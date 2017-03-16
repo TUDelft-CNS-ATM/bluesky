@@ -101,6 +101,10 @@ class ScreenIO(QObject):
         if self.manager.isActive():
             self.manager.sendEvent(DisplayFlagEvent('SYM'))
 
+    def trails(self,sw):
+        if self.manager.isActive():
+            self.manager.sendEvent(DisplayFlagEvent('TRAIL',sw))
+
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
         if self.manager.isActive():
@@ -238,6 +242,7 @@ class ScreenIO(QObject):
     def send_aircraft_data(self):
         if self.manager.isActive():
             data            = ACDataEvent()
+            data.simt       = self.sim.simt
             data.id         = self.sim.traf.id
             data.lat        = self.sim.traf.lat
             data.lon        = self.sim.traf.lon
@@ -249,6 +254,18 @@ class ScreenIO(QObject):
             data.confcpalon = self.sim.traf.asas.lonowncpa
             data.trk        = self.sim.traf.hdg
 
+            # Trails, send only new line segments to be added            
+            data.swtrails  = self.sim.traf.trails.active 
+            data.traillat0 = self.sim.traf.trails.newlat0
+            data.traillon0 = self.sim.traf.trails.newlon0
+            data.traillat1 = self.sim.traf.trails.newlat1
+            data.traillon1 = self.sim.traf.trails.newlon1
+            self.sim.traf.trails.clearnew()
+
+            # Last segment which is being built per aircraft
+            data.traillastlat   = list(self.sim.traf.trails.lastlat)
+            data.traillastlon   = list(self.sim.traf.trails.lastlon)
+                
             # Conflict statistics
             data.nconf_tot  = len(self.sim.traf.asas.conflist_all)
             data.nlos_tot   = len(self.sim.traf.asas.LOSlist_all)
