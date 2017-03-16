@@ -3,7 +3,8 @@ from math import sin, cos, radians
 
 from ..tools import geo
 from ..tools.position import txt2pos
-from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach
+from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach, \
+                          cas2mach,mach2cas
 from route import Route
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
@@ -67,7 +68,8 @@ class Autopilot(DynamicArrays):
             self.t0 = simt
 
             # FMS LNAV mode:
-            qdr, dist = geo.qdrdist(self.traf.lat, self.traf.lon, self.traf.actwp.lat, self.traf.actwp.lon)  # [deg][nm])
+            qdr, dist = geo.qdrdist(self.traf.lat, self.traf.lon, 
+                                    self.traf.actwp.lat, self.traf.actwp.lon)  # [deg][nm])
 
             # Shift waypoints for aircraft i where necessary
             for i in self.traf.actwp.Reached(qdr, dist):
@@ -102,7 +104,12 @@ class Autopilot(DynamicArrays):
                 # while passing waypoint and save next speed for passing next wp
                 if self.traf.swvnav[i] and oldspd > 0.0:
                     destalt = alt if alt > 0.0 else self.traf.alt[i]
-                    dummy, self.traf.aspd[i], self.traf.ama[i] = casormach(oldspd, destalt)
+                    if oldspd<2.0:
+                        self.traf.aspd[i] = mach2cas(oldspd, destalt)
+                        self.traf.ama[i]  = oldspd
+                    else:
+                        self.traf.aspd[i] = oldspd
+                        self.traf.ama[i]  = cas2mach(oldspd, destalt)
 
                 # VNAV = FMS ALT/SPD mode
                 self.ComputeVNAV(i, toalt, xtoalt)
