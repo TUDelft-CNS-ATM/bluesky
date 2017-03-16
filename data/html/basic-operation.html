@@ -31,7 +31,7 @@ The syntax of scenario files is explained in detail on <a href="Scenarios.html">
 <h3 id="waypoints">Waypoints</h3>
 <p>Aircraft can be simulated to move through waypoints in the air, using LNAV. VNAV is also possible. Waypoints are defined on the hand of navigational beacon data, or as specific coordinates. The autopilot settings (such as altitude and speed) are specified for each leg of the flight plan.</p>
 <h3 id="conflict-resolution">Conflict resolution</h3>
-<p>Detection of future losses of airborne separation can be performed in Bluesky. Different strategies to resolve these airborne conflicts can be implemented. These strategies can originate from centralised or decentralised separation assurance responsibility.</p>
+<p>Detection of future losses of airborne separation can be performed in Bluesky. Different strategies to <a href="RESO.html">resolve</a> these airborne conflicts can be implemented. These strategies can originate from centralised or decentralised separation assurance responsibility.</p>
 <p>It is possible to combine waypoints and conflict resolution in a single simulation. If possible, aircraft follow their flight plans. But if necessary, conflict resolution has more priority.</p>
 <h3 id="ground-traffic">Ground traffic</h3>
 <p>Taxiing of aircraft on airports can be a part of Bluesky. Taxilanes of many airports over the world are present in the software.</p>
@@ -40,11 +40,15 @@ The syntax of scenario files is explained in detail on <a href="Scenarios.html">
 <p>The results of the performance computations contain thrust limit settings, crossover altitude, fuel consumption and more.</p>
 <p>An internal open-source performance model is provided in Bluesky and holders of BADA-licences (Base of Aircraft Data) can also choose to use perfomance data from those models.</p>
 <h2 id="wind-weather">Wind &amp; weather</h2>
-<p>Bluesky can simulate wind for the aircraft.</p>
+<p>Bluesky can simulate <a href="wind.html">wind</a> for the aircraft. A wind vector field can be designed such that threedimensional wind profiles can be computed at all locations in the simulation. Turbulence in flights may also be added. Aircraft counteract for any disruptions caused by the winds.</p>
 <h2 id="experiments">Experiments</h2>
-<h3 id="human-in-the-loop-studies">Human-in-the-loop studies</h3>
+<p>Being a scientific ATM simulator, Bluesky is optimized for performing experiments and storing the results.</p>
+<h3 id="aircraft-heads-up-display">Aircraft heads-up display</h3>
+<p>A HUD can be displayed on the screen, showing situational awareness from the point of view of a specified aircraft. This view is useful for human-in-the-loop experiments that aim to simulate complex air traffic scenarios.</p>
 <h3 id="data-logging">Data Logging</h3>
+<p>A variety of options is available for data logging in Bluesky. Instantaneous logs that save snapshots of the traffic situation every time, as well as event logs that may be used to save data for example at the end of flights, the start of conflicts and possible losses of separation.</p>
 <h3 id="experiment-regions">Experiment Regions</h3>
+<p><a href="AREA.html">Experiment regions</a> can be defined in Bluesky, that allow the user to focus his/her research to all aircraft/events that occur within the region. Aircraft that leave those regions are deleted automatically. Regions can be threedimensional, having an upper and lower bound.</p>
 <p><a href="Home.html">Back to the homepage</a></p>
             </div>
     </div>
