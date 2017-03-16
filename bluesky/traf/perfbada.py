@@ -161,170 +161,174 @@ class PerfBADA(DynamicArrays):
     def engchange(self, acid, engid=None):
         return False, "BADA performance model doesn't allow changing engine type"
 
-    def create(self):
-        super(PerfBADA, self).create()
+    def create(self, n=1):
+        super(PerfBADA, self).create(n)
         """CREATE NEW AIRCRAFT"""
-        actype = self.traf.type[-1]
+        actypes = self.traf.type[-n:]
 
         # note: coefficients are initialized in SI units
 
         # general
         # designate aircraft to its aircraft type
-        syn, coeff = bada_coeff.getCoefficients(actype)
-        if not syn:
+        for actype in actypes:
+            syn, coeff = bada_coeff.getCoefficients(actype)
+            if syn:
+                continue
+
             syn, coeff = bada_coeff.getCoefficients('B744')
-            self.traf.type[-1] = syn.accode
+            self.traf.type[-n:] = syn.accode
+
             if not verbose:
                 if not self.warned:
                     print "Aircraft is using default B747-400 performance."
                     self.warned = True
             else:
-                print "Flight " + self.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
+                print "Flight " + self.traf.id[-n:] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
 
         # designate aicraft to its aircraft type
-        self.jet[-1]       = 1 if coeff.engtype == 'Jet' else 0
-        self.turbo[-1]     = 1 if coeff.engtype == 'Turboprop' else 0
-        self.piston[-1]    = 1 if coeff.engtype == 'Piston' else 0
+        self.jet[-n:]       = 1 if coeff.engtype == 'Jet' else 0
+        self.turbo[-n:]     = 1 if coeff.engtype == 'Turboprop' else 0
+        self.piston[-n:]    = 1 if coeff.engtype == 'Piston' else 0
 
         # Initial aircraft mass is currently reference mass.
         # BADA 3.12 also supports masses between 1.2*mmin and mmax
-        self.mass[-1]      = coeff.m_ref * 1000.0
-        self.mmin[-1]      = coeff.m_min * 1000.0
-        self.mmax[-1]      = coeff.m_max * 1000.0
+        self.mass[-n:]      = coeff.m_ref * 1000.0
+        self.mmin[-n:]      = coeff.m_min * 1000.0
+        self.mmax[-n:]      = coeff.m_max * 1000.0
 
         # self.mpyld = np.append(self.mpyld, coeff.mpyld[coeffidx]*1000)
-        self.gw[-1]        = coeff.mass_grad * ft
+        self.gw[-n:]        = coeff.mass_grad * ft
 
         # Surface Area [m^2]
-        self.Sref[-1]      = coeff.S
+        self.Sref[-n:]      = coeff.S
 
         # flight envelope
         # minimum speeds per phase
-        self.vmto[-1]      = coeff.Vstall_to * coeff.CVmin_to * kts
-        self.vmic[-1]      = coeff.Vstall_ic * coeff.CVmin * kts
-        self.vmcr[-1]      = coeff.Vstall_cr * coeff.CVmin * kts
-        self.vmap[-1]      = coeff.Vstall_ap * coeff.CVmin * kts
-        self.vmld[-1]      = coeff.Vstall_ld * coeff.CVmin * kts
-        self.vmin[-1]      = 0.0
-        self.vmo[-1]       = coeff.VMO * kts
-        self.mmo[-1]       = coeff.MMO
+        self.vmto[-n:]      = coeff.Vstall_to * coeff.CVmin_to * kts
+        self.vmic[-n:]      = coeff.Vstall_ic * coeff.CVmin * kts
+        self.vmcr[-n:]      = coeff.Vstall_cr * coeff.CVmin * kts
+        self.vmap[-n:]      = coeff.Vstall_ap * coeff.CVmin * kts
+        self.vmld[-n:]      = coeff.Vstall_ld * coeff.CVmin * kts
+        self.vmin[-n:]      = 0.0
+        self.vmo[-n:]       = coeff.VMO * kts
+        self.mmo[-n:]       = coeff.MMO
 
         # max. altitude parameters
-        self.hmo[-1]       = coeff.h_MO * ft
-        self.hmax[-1]      = coeff.h_max * ft
-        self.hmaxact[-1]   = coeff.h_max * ft  # initialize with hmax
-        self.gt[-1]        = coeff.temp_grad * ft
+        self.hmo[-n:]       = coeff.h_MO * ft
+        self.hmax[-n:]      = coeff.h_max * ft
+        self.hmaxact[-n:]   = coeff.h_max * ft  # initialize with hmax
+        self.gt[-n:]        = coeff.temp_grad * ft
 
         # max thrust setting
-        self.maxthr[-1]    = 1e6  # initialize with excessive setting to avoid unrealistic limit setting
+        self.maxthr[-n:]    = 1e6  # initialize with excessive setting to avoid unrealistic limit setting
 
         # Buffet Coefficients
-        self.clbo[-1]      = coeff.Clbo
-        self.k[-1]         = coeff.k
-        self.cm16[-1]      = coeff.CM16
+        self.clbo[-n:]      = coeff.Clbo
+        self.k[-n:]         = coeff.k
+        self.cm16[-n:]      = coeff.CM16
 
         # reference speeds
         # reference CAS speeds
-        self.cascl[-1]     = coeff.CAScl1[0] * kts
-        self.cascr[-1]     = coeff.CAScr1[0] * kts
-        self.casdes[-1]    = coeff.CASdes1[0] * kts
+        self.cascl[-n:]     = coeff.CAScl1[0] * kts
+        self.cascr[-n:]     = coeff.CAScr1[0] * kts
+        self.casdes[-n:]    = coeff.CASdes1[0] * kts
 
         # reference mach numbers
-        self.macl[-1]      = coeff.Mcl[0]
-        self.macr[-1]      = coeff.Mcr[0]
-        self.mades[-1]     = coeff.Mdes[0]
+        self.macl[-n:]      = coeff.Mcl[0]
+        self.macr[-n:]      = coeff.Mcr[0]
+        self.mades[-n:]     = coeff.Mdes[0]
 
         # reference speed during descent
-        self.vdes[-1]      = coeff.Vdes_ref * kts
-        self.mdes[-1]      = coeff.Mdes_ref
-
-#######################################
+        self.vdes[-n:]      = coeff.Vdes_ref * kts
+        self.mdes[-n:]      = coeff.Mdes_ref
 
         # crossover altitude for climbing and descending aircraft (BADA User Manual 3.12, p. 12)
-        self.atranscl[-1]  = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
-            (self.cascl[-1] / a0) ** (self.cascl[-1] / a0)) ** gamma2) - 1.0) /
-                (((1.0 + gamma1 * self.macl[-1] * self.macl[-1]) ** gamma2) - 1.0)) **
+        self.atranscl[-n:]  = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
+            (self.cascl[-n:] / a0) * (self.cascl[-n:] / a0)) ** gamma2) - 1.0) /
+                (((1.0 + gamma1 * self.macl[-n:] * self.macl[-n:]) ** gamma2) - 1.0)) **
                     (-beta * R / g0)))
 
-        self.atransdes[-1] = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
-            (self.casdes[-1] / a0) ** (self.casdes[-1] / a0)) ** gamma2) - 1.0) /
-                (((1.0 + gamma1 * self.mades[-1] * self.mades[-1]) ** gamma2) - 1.0)) **
+        self.atransdes[-n:] = (1e3 / 6.5) * (T0 * (1.0 - (((( 1.0 + gamma1 *
+            (self.casdes[-n:] / a0) * (self.casdes[-n:] / a0)) ** gamma2) - 1.0) /
+                (((1.0 + gamma1 * self.mades[-n:] * self.mades[-n:]) ** gamma2) - 1.0)) **
                     (-beta * R / g0)))
 
         # aerodynamics
         # parasitic drag coefficients per phase
-        self.cd0to[-1]     = coeff.CD0_to
-        self.cd0ic[-1]     = coeff.CD0_ic
-        self.cd0cr[-1]     = coeff.CD0_cr
-        self.cd0ap[-1]     = coeff.CD0_ap
-        self.cd0ld[-1]     = coeff.CD0_ld
-        self.gear[-1]      = coeff.CD0_gear
+        self.cd0to[-n:]     = coeff.CD0_to
+        self.cd0ic[-n:]     = coeff.CD0_ic
+        self.cd0cr[-n:]     = coeff.CD0_cr
+        self.cd0ap[-n:]     = coeff.CD0_ap
+        self.cd0ld[-n:]     = coeff.CD0_ld
+        self.gear[-n:]      = coeff.CD0_gear
 
         # induced drag coefficients per phase
-        self.cd2to[-1]     = coeff.CD2_to
-        self.cd2ic[-1]     = coeff.CD2_ic
-        self.cd2cr[-1]     = coeff.CD2_cr
-        self.cd2ap[-1]     = coeff.CD2_ap
-        self.cd2ld[-1]     = coeff.CD2_ld
+        self.cd2to[-n:]     = coeff.CD2_to
+        self.cd2ic[-n:]     = coeff.CD2_ic
+        self.cd2cr[-n:]     = coeff.CD2_cr
+        self.cd2ap[-n:]     = coeff.CD2_ap
+        self.cd2ld[-n:]     = coeff.CD2_ld
 
         # reduced climb coefficient
-        self.cred[-1]      = coeff.Cred_jet if self.jet[-1] else \
-                             coeff.Cred_turboprop if self.turbo[-1] else \
-                             coeff.Cred_piston
+        self.cred[-n:] = np.where(
+            self.jet[-n:], coeff.Cred_jet,
+            np.where(self.turbo[-n:], coeff.Cred_turboprop, coeff.Cred_piston)
+        )
 
-        # NOTE: model only validated for jet and turbo aircraft
-        if self.piston[-1] and not self.warned2:
-            print "Using piston aircraft performance.",
-            print "Not valid for real performance calculations."
-            self.warned2 = True
+        # commented due to vectrization
+        # # NOTE: model only validated for jet and turbo aircraft
+        # if self.piston[-n:] and not self.warned2:
+        #     print "Using piston aircraft performance.",
+        #     print "Not valid for real performance calculations."
+        #     self.warned2 = True
 
         # performance
 
         # max climb thrust coefficients
-        self.ctcth1[-1]    = coeff.CTC[0]  # jet/piston [N], turboprop [ktN]
-        self.ctcth2[-1]    = coeff.CTC[1]  # [ft]
-        self.ctcth3[-1]    = coeff.CTC[2]  # jet [1/ft^2], turboprop [N], piston [ktN]
+        self.ctcth1[-n:]    = coeff.CTC[0]  # jet/piston [N], turboprop [ktN]
+        self.ctcth2[-n:]    = coeff.CTC[1]  # [ft]
+        self.ctcth3[-n:]    = coeff.CTC[2]  # jet [1/ft^2], turboprop [N], piston [ktN]
 
         # 1st and 2nd thrust temp coefficient
-        self.ctct1[-1]     = coeff.CTC[3]  # [k]
-        self.ctct2[-1]     = coeff.CTC[4]  # [1/k]
-        self.dtemp[-1]     = 0.0  # [k], difference from current to ISA temperature. At the moment: 0, as ISA environment
+        self.ctct1[-n:]     = coeff.CTC[3]  # [k]
+        self.ctct2[-n:]     = coeff.CTC[4]  # [1/k]
+        self.dtemp[-n:]     = 0.0  # [k], difference from current to ISA temperature. At the moment: 0, as ISA environment
 
         # Descent Fuel Flow Coefficients
         # Note: Ctdes,app and Ctdes,lnd assume a 3 degree descent gradient during app and lnd
-        self.ctdesl[-1]    = coeff.CTdes_low
-        self.ctdesh[-1]    = coeff.CTdes_high
-        self.ctdesa[-1]    = coeff.CTdes_app
-        self.ctdesld[-1]   = coeff.CTdes_land
+        self.ctdesl[-n:]    = coeff.CTdes_low
+        self.ctdesh[-n:]    = coeff.CTdes_high
+        self.ctdesa[-n:]    = coeff.CTdes_app
+        self.ctdesld[-n:]   = coeff.CTdes_land
 
         # transition altitude for calculation of descent thrust
-        self.hpdes[-1]     = coeff.Hp_des * ft
-        self.ESF[-1]       = 1.0  # neutral initialisation
+        self.hpdes[-n:]     = coeff.Hp_des * ft
+        self.ESF[-n:]       = 1.0  # neutral initialisation
 
         # flight phase
-        self.phase[-1]       = PHASE["None"]
-        self.post_flight[-1] = False  # we assume prior
-        self.pf_flag[-1]     = True
+        self.phase[-n:]       = PHASE["None"]
+        self.post_flight[-n:] = False  # we assume prior
+        self.pf_flag[-n:]     = True
 
         # Thrust specific fuel consumption coefficients
         # prevent from division per zero in fuelflow calculation
-        self.cf1[-1]       = coeff.Cf1
-        self.cf2[-1]       = 1.0 if coeff.Cf2 < 1e-9 else coeff.Cf2
-        self.cf3[-1]       = coeff.Cf3
-        self.cf4[-1]       = 1.0 if coeff.Cf4 < 1e-9 else coeff.Cf4
-        self.cf_cruise[-1] = coeff.Cf_cruise
+        self.cf1[-n:]       = coeff.Cf1
+        self.cf2[-n:]       = 1.0 if coeff.Cf2 < 1e-9 else coeff.Cf2
+        self.cf3[-n:]       = coeff.Cf3
+        self.cf4[-n:]       = 1.0 if coeff.Cf4 < 1e-9 else coeff.Cf4
+        self.cf_cruise[-n:] = coeff.Cf_cruise
 
-        self.Thr[-1]       = 0.0
-        self.D[-1]         = 0.0
-        self.ff[-1]        = 0.0
+        self.Thr[-n:]       = 0.0
+        self.D[-n:]         = 0.0
+        self.ff[-n:]        = 0.0
 
         # ground
-        self.tol[-1]       = coeff.TOL
-        self.ldl[-1]       = coeff.LDL
-        self.ws[-1]        = coeff.wingspan
-        self.len[-1]       = coeff.length
+        self.tol[-n:]       = coeff.TOL
+        self.ldl[-n:]       = coeff.LDL
+        self.ws[-n:]        = coeff.wingspan
+        self.len[-n:]       = coeff.length
         # for now, BADA aircraft have the same acceleration as deceleration
-        self.gr_acc[-1]    = coeff.gr_acc
+        self.gr_acc[-n:]    = coeff.gr_acc
 
     def perf(self, simt):
         if abs(simt - self.t0) >= self.dt:
@@ -352,31 +356,31 @@ class PerfBADA(DynamicArrays):
         cdph = self.cd0cr+self.cd2cr*(cl*cl)
 
         # phase AP
-        # in case approach coefficients in OPF-Files are set to zero: 
+        # in case approach coefficients in OPF-Files are set to zero:
         #Use cruise values instead
         cdapp = np.where(self.cd0ap !=0, self.cd0ap+self.cd2ap*(cl*cl), cdph)
 
         # phase LD
-        # in case landing coefficients in OPF-Files are set to zero: 
+        # in case landing coefficients in OPF-Files are set to zero:
         #Use cruise values instead
-        cdld = np.where(self.cd0ld !=0, self.cd0ld+self.cd2ld*(cl*cl), cdph)        
+        cdld = np.where(self.cd0ld !=0, self.cd0ld+self.cd2ld*(cl*cl), cdph)
 
 
-        # now combine phases            
+        # now combine phases
         cd = (self.phase==PHASE['TO'])*cdph + (self.phase==PHASE["IC"])*cdph + (self.phase==PHASE["CR"])*cdph \
-            + (self.phase==PHASE['AP'])*cdapp + (self.phase ==PHASE['LD'])*cdld  
+            + (self.phase==PHASE['AP'])*cdapp + (self.phase ==PHASE['LD'])*cdld
 
         # Drag:
-        self.D = cd*self.qS 
+        self.D = cd*self.qS
 
-        # energy share factor and crossover altitude  
+        # energy share factor and crossover altitude
 
         # conditions
-        epsalt = np.array([0.001]*self.traf.ntraf)   
+        epsalt = np.array([0.001]*self.traf.ntraf)
         self.climb = np.array(self.traf.delalt > epsalt)
         self.descent = np.array(self.traf.delalt<-epsalt)
         lvl = np.array(np.abs(self.traf.delalt)<0.0001)*1
-        
+
 
 
         # crossover altitiude
@@ -388,11 +392,11 @@ class PerfBADA(DynamicArrays):
         self.ESF = esf(self.traf.abco, self.traf.belco, self.traf.alt, self.traf.M,\
                   self.climb, self.descent, self.traf.delspd)
 
-        # THRUST  
+        # THRUST
         # 1. climb: max.climb thrust in ISA conditions (p. 32, BADA User Manual 3.12)
         # condition: delta altitude positive
 
-    
+
         # temperature correction for non-ISA (as soon as applied)
         #            ThrISA = (1-self.ctct2*(self.dtemp-self.ctct1))
         # jet
@@ -400,11 +404,11 @@ class PerfBADA(DynamicArrays):
         cljet = np.logical_and.reduce([self.climb, self.jet]) * 1
 
         # thrust
-        Tj = self.ctcth1* (1-(self.traf.alt/ft)/self.ctcth2+self.ctcth3*(self.traf.alt/ft)*(self.traf.alt/ft)) 
+        Tj = self.ctcth1* (1-(self.traf.alt/ft)/self.ctcth2+self.ctcth3*(self.traf.alt/ft)*(self.traf.alt/ft))
 
         # combine jet and default aircraft
         Tjc = cljet*Tj # *ThrISA
-        
+
         # turboprop
         # condition
         clturbo = np.logical_and.reduce([self.climb, self.turbo]) * 1
@@ -416,27 +420,27 @@ class PerfBADA(DynamicArrays):
         Ttc = clturbo*Tt # *ThrISA
 
         # piston
-        clpiston = np.logical_and.reduce([self.climb, self.piston])*1            
+        clpiston = np.logical_and.reduce([self.climb, self.piston])*1
         Tp = self.ctcth1*(1-(self.traf.alt/ft)/self.ctcth2)+self.ctcth3/np.maximum(1.,self.traf.tas/kts)
         Tpc = clpiston*Tp
 
         # max climb thrust for futher calculations (equals maximum avaliable thrust)
-        maxthr = Tj*self.jet + Tt*self.turbo + Tp*self.piston         
+        maxthr = Tj*self.jet + Tt*self.turbo + Tp*self.piston
 
-        # 2. level flight: Thr = D. 
-        Tlvl = lvl*self.D             
+        # 2. level flight: Thr = D.
+        Tlvl = lvl*self.D
 
         # 3. Descent: condition: vs negative/ H>hdes: fixed formula. H<hdes: phase cr, ap, ld
 
         # above or below Hpdes? Careful! If non-ISA: ALT must be replaced by Hp!
         delh = (self.traf.alt - self.hpdes)
-        
-        # above Hpdes:  
-        high = np.array(delh>0)            
-        Tdesh = maxthr*self.ctdesh*np.logical_and.reduce([self.descent, high])            
-               
+
+        # above Hpdes:
+        high = np.array(delh>0)
+        Tdesh = maxthr*self.ctdesh*np.logical_and.reduce([self.descent, high])
+
         # below Hpdes
-        low = np.array(delh<0)  
+        low = np.array(delh<0)
         # phase cruise
         Tdeslc = maxthr*self.ctdesl*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['CR'])])
         # phase approach
@@ -444,7 +448,7 @@ class PerfBADA(DynamicArrays):
         # phase landing
         Tdesll = maxthr*self.ctdesld*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['LD'])])
         # phase ground: minimum descent thrust as a first approach
-        Tgd = np.minimum.reduce([Tdesh, Tdeslc])*(self.phase==PHASE['GD'])   
+        Tgd = np.minimum.reduce([Tdesh, Tdeslc])*(self.phase==PHASE['GD'])
 
         # merge all thrust conditions
         T = np.maximum.reduce([Tjc, Ttc, Tpc, Tlvl, Tdesh, Tdeslc, Tdesla, Tdesll, Tgd])
@@ -457,18 +461,18 @@ class PerfBADA(DynamicArrays):
         hcred = np.array(self.traf.alt < (self.hmaxact*0.8))
         clh = np.logical_and.reduce([hcred, self.climb])
         cred = self.cred*clh
-        cpred = 1-cred*((self.mmax-self.mass)/(self.mmax-self.mmin)) 
-        
-        
+        cpred = 1-cred*((self.mmax-self.mass)/(self.mmax-self.mmin))
+
+
         # switch for given vertical speed avs
         if (self.traf.avs.any()>0) or (self.traf.avs.any()<0):
             # thrust = f(avs)
             T = ((self.traf.avs!=0)*(((self.traf.pilot.vs*self.mass*g0)/     \
                       (self.ESF*np.maximum(self.traf.eps,self.traf.tas)*cpred)) \
                       + self.D)) + ((self.traf.avs==0)*T)
-                      
+
         self.Thr = T
-            
+
         # Fuel consumption
         # thrust specific fuel consumption - jet
         # thrust
@@ -482,20 +486,20 @@ class PerfBADA(DynamicArrays):
         etat = self.cf1*(1.-(self.traf.tas/kts)/self.cf2)*((self.traf.tas/kts)/1000.)
         # merge
         et = etat*self.turbo
-        
+
         # thrust specific fuel consumption for all aircraft
-        # eta is given in [kg/(min*kN)] - convert to [kg/(min*N)]            
+        # eta is given in [kg/(min*kN)] - convert to [kg/(min*N)]
         eta = np.maximum.reduce([ej, et])/1000.
-     
+
         # nominal fuel flow - (jet & turbo) and piston
         # condition jet,turbo:
-        jt = np.maximum.reduce([self.jet, self.turbo])  
+        jt = np.maximum.reduce([self.jet, self.turbo])
         pdf = np.maximum.reduce ([self.piston])
-        
+
         fnomjt = eta*self.Thr*jt
         fnomp = self.cf1*pdf
         # merge
-        fnom = fnomjt + fnomp 
+        fnom = fnomjt + fnomp
 
         # minimal fuel flow jet, turbo and piston
         fminjt = self.cf3*(1-(self.traf.alt/ft)/self.cf4)*jt
@@ -505,14 +509,14 @@ class PerfBADA(DynamicArrays):
 
         # cruise fuel flow jet, turbo and piston
         fcrjt = eta*self.Thr*self.cf_cruise*jt
-        fcrp = self.cf1*self.cf_cruise*pdf 
+        fcrp = self.cf1*self.cf_cruise*pdf
         #merge
         fcr = fcrjt + fcrp
 
         # approach/landing fuel flow
         fal = np.maximum(fnom, fmin)
-        
-        # designate each aircraft to its fuelflow           
+
+        # designate each aircraft to its fuelflow
         # takeoff
         ffto = fnom*(self.phase==PHASE['TO'])
 
@@ -535,7 +539,7 @@ class PerfBADA(DynamicArrays):
 
         # landing
         ffld = fal*(self.phase==PHASE['LD'])
-        
+
         # ground
         ffgd = fmin*(self.phase==PHASE['GD'])
 
@@ -544,34 +548,34 @@ class PerfBADA(DynamicArrays):
 
         # update mass
         self.mass = self.mass - self.ff*self.dt # Use fuelflow in kg/min
-        
-        
-        
+
+
+
         # for aircraft on the runway and taxiways we need to know, whether they
         # are prior or after their flight
         self.post_flight = np.where(self.descent, True, self.post_flight)
-        
+
         # when landing, we would like to stop the aircraft.
         self.traf.pilot.spd = np.where((self.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, self.traf.pilot.spd)
 
-        
+
         # otherwise taxiing will be impossible afterwards
         # pf_flag is released so post_flight flag is only triggered once
 
-        self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)        
-       
+        self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
+
         return
 
-    
+
     def limits(self):
-        """FLIGHT ENVELPOE"""        
+        """FLIGHT ENVELPOE"""
         # summarize minimum speeds - ac in ground mode might be pushing back
         self.vmin =  (self.phase == 1) * self.vmto + (self.phase == 2) * self.vmic + (self.phase == 3) * self.vmcr + \
-        (self.phase == 4) * self.vmap + (self.phase == 5) * self.vmld + (self.phase == 6) * -10.       
+        (self.phase == 4) * self.vmap + (self.phase == 5) * self.vmld + (self.phase == 6) * -10.
 
         # maximum altitude: hmax/act = MIN[hmo, hmax+gt*(dtemp-ctc1)+gw*(mmax-mact)]
         #                   or hmo if hmx ==0 ()
-        # at the moment just ISA atmosphere, dtemp  = 0            
+        # at the moment just ISA atmosphere, dtemp  = 0
         c1 = self.dtemp - self.ctct1
 
         # if c1<0: c1 = 0
@@ -580,22 +584,22 @@ class PerfBADA(DynamicArrays):
         c1def = np.maximum(c1, c1m)
 
         self.hact = self.hmax+self.gt*c1def+self.gw*(self.mmax-self.mass)
-        # if hmax in OPF File ==0: hmaxact = hmo, else minimum(hmo, hmact)       
+        # if hmax in OPF File ==0: hmaxact = hmo, else minimum(hmo, hmact)
         self.hmaxact = (self.hmax==0)*self.hmo +(self.hmax !=0)*np.minimum(self.hmo, self.hact)
 
         # forwarding to tools
         self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
         calclimits(self.traf.pilot.spd, self.traf.gs,self.vmto, self.vmin, \
         self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
-        self.traf.pilot.alt, self.maxthr, self.Thr,self.D, self.traf.tas, self.mass, self.ESF)        
-        
+        self.traf.pilot.alt, self.maxthr, self.Thr,self.D, self.traf.tas, self.mass, self.ESF)
+
         return
 
     def acceleration(self, simdt):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,
         # landing aircraft use ground deceleration, others use standard acceleration
         # --> BADA uses the same value for ground acceleration as for deceleration
-    
+
         ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
                      (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \
                  * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
@@ -605,12 +609,12 @@ class PerfBADA(DynamicArrays):
                  * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_acc)
 
         return ax
-    
+
 
         #------------------------------------------------------------------------------
         #DEBUGGING
 
-        #record data 
+        #record data
         # self.log.write(self.dt, str(self.traf.alt[0]), str(self.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.ff[0]),  str(self.traf.vs[0]), str(cd[0]))
         # self.log.save()
 

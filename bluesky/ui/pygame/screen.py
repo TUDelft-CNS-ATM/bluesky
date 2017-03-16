@@ -18,21 +18,21 @@ from console import Console
 from menu import Menu
 from dialog import fileopen as opendialog
 
-black = (0, 0, 0)
+black    = (0, 0, 0)
 white    = (255,255,255)
 darkgrey = (25, 25, 48)
-grey = (84, 84, 114)
+grey     = (84, 84, 114)
 darkblue = (25, 25, 64, 100)
-white = (255, 255, 255)
-green = (0, 255, 0)
-blue = (0, 0, 255)
-red = (255, 0, 0)
-cyan = (0,150,150)
+white    = (255, 255, 255)
+green    = (0, 255, 0)
+blue     = (0, 0, 255)
+red      = (255, 0, 0)
+cyan     = (0,150,150)
 lightgreyblue = (130, 150, 190)  # waypoint symbol color
 lightgreygreen = (149, 215, 179)  # grid color
 lightcyan = (0, 255, 255)  # FIR boundaries
-amber = (255,163,71)  # Conflicting aircraft
-magenta = (255,0,255) # Used for route
+amber    = (255,163,71)  # Conflicting aircraft
+magenta  = (255,0,255) # Used for route
 
 class Screen:
     """ 
@@ -87,7 +87,7 @@ class Screen:
 
         # Parameters for making screenshots
         self.session = "new"
-        self.folder= ""
+        self.folder  = ""
         self.screenshot = False
         self.screenshotname = ""
 
@@ -622,7 +622,7 @@ class Screen:
             trafy -= traf.alt*self.isoalt
             
             if traf.trails.active:
-                ltx, lty = self.ll2xy(traf.lastlat, traf.lastlon)
+                ltx, lty = self.ll2xy(traf.trails.lastlat, traf.trails.lastlon)
 
             # Find pixel size of horizontal separation on screen
             pixelrad=self.dtopix_eq(traf.asas.R/2)
@@ -658,7 +658,7 @@ class Screen:
                         
                 # Draw last trail part
                 if traf.trails.active:
-                    pg.draw.line(self.win, tuple(traf.trailcol[i]),
+                    pg.draw.line(self.win, tuple(traf.trails.accolor[i]),
                                  (ltx[i], lty[i]), (trafx[i], trafy[i]))
 
                 # Label text

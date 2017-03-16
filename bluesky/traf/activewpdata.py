@@ -18,14 +18,14 @@ class ActiveWaypoint(DynamicArrays):
             self.flyby    = np.array([])  # Distance when to turn to next waypoint
             self.next_qdr = np.array([])  # bearing next leg
 
-    def create(self):
-        super(ActiveWaypoint, self).create()
+    def create(self, n=1):
+        super(ActiveWaypoint, self).create(n)
         # LNAV route navigation
-        self.lat[-1]       = 89.99  # Active WP latitude
-        self.spd[-1]       = -999.   # Active WP speed
-        self.turndist[-1]  = 1.0   # Distance to active waypoint where to turn
-        self.flyby[-1]     = 1.0   # Flyby/fly-over switch
-        self.next_qdr[-1]  = -999.0    # bearing next leg
+        self.lat[-n:]       = 89.99  # Active WP latitude
+        self.spd[-n:]       = -999.   # Active WP speed
+        self.turndist[-n:]  = 1.0   # Distance to active waypoint where to turn
+        self.flyby[-n:]     = 1.0   # Flyby/fly-over switch
+        self.next_qdr[-n:]  = -999.0    # bearing next leg
 
     def Reached(self, qdr, dist):
         # Calculate distance before waypoint where to start the turn
@@ -34,7 +34,7 @@ class ActiveWaypoint(DynamicArrays):
         # using default bank angle per flight phase
         turnrad = self.traf.tas * self.traf.tas / np.maximum(self.traf.eps, np.tan(self.traf.bank) * g0 * nm)  # [nm]
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
-     
+
         # Avoid circling
         away = np.abs(degto180(self.traf.trk - next_qdr)+180.)>90.
         incircle = dist<turnrad*1.01

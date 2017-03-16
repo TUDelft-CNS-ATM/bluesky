@@ -47,21 +47,6 @@ def load_lcd_font():
     return tex_id
 
 
-def lcd_font_idx(chars):
-    indices = []
-    for c in chars:
-        if c == ' ':
-            indices += [0] * 6
-        elif c == '-':
-            indices += [1] * 6
-        elif c == '.':
-            indices += [2] * 6
-        else:
-            indices += [int(c) + 3] * 6
-
-    return indices
-
-
 class ndUBO(UniformBuffer):
     class Data(Structure):
         _fields_ = [("ownhdg", c_float), ("ownlat", c_float), ("ownlon", c_float),
@@ -86,6 +71,46 @@ class ndUBO(UniformBuffer):
         self.update()
 
 
+def check_knob(px, py):
+    # knob name : xmin xmax ymin ymax
+    knobs = {
+        'COURSEL' : (-0.936, -0.85,  -0.3, 0.18),
+        'SPD' :     (-0.52,  -0.454, -0.5, -0.1),
+        'HDG' :     (-0.24,  -0.17,  -0.21, 0.2),
+        'ALT' :     ( 0.1,    0.166, -0.25, 0.2),
+        'VS' :      ( 0.432,  0.476, -0.825, 0.2),
+        'COURSER' : ( 0.84,   0.92,  -0.325, 0.13)
+    }
+    for name, dims in knobs.iteritems():
+        if dims[0] <= px <= dims[1] and dims[2] <= py <= dims[3]:
+            return name[:6], (0.5 * (dims[0] + dims[1]), 0.5 * (dims[2] + dims[3]))
+    return None, None
+
+
+def check_btn(px, py):
+    btns = [
+        ('N1', (-0.735, -0.675, -0.84, -0.415)),
+        ('SPD', (-0.645, -0.585, -0.84, -0.415)),
+        ('LVLCHG', (-0.375, -0.315, -0.84, -0.415)),
+        ('HDGSEL', (-0.23, -0.17, -0.84, -0.415)),
+        ('APP', (-0.093, -0.033, -0.84, -0.415)),
+        ('ALTHLD', (-0.098, 0.158, -0.84, -0.415)),
+        ('VS', (0.2, 0.26, -0.84, -0.415)),
+        ('VNAV', (-0.373, -0.303, 0.41, 0.85)),
+        ('LNAV', (-0.093, -0.033, 0.425, 0.835)),
+        ('VORLOC', (-0.093, -0.033, -0.215, 0.175)),
+        ('CMDA', (0.575, 0.643, 0.2, 0.625)),
+        ('CWSA', (0.575, 0.643, -0.44, -0.025)),
+        ('CMDB', (0.683, 0.743, 0.2, 0.625)),
+        ('CWSB', (0.683, 0.743, -0.44, -0.025))
+    ]
+    for i in range(len(btns)):
+        name, dims = btns[i]
+        if dims[0] <= px <= dims[1] and dims[2] <= py <= dims[3]:
+            return name, i
+    return None, None
+
+
 class BlipDriver(QGLWidget):
     def __init__(self, parent=None):
         super(BlipDriver, self).__init__(parent=parent)
@@ -99,7 +124,7 @@ class BlipDriver(QGLWidget):
         self.setMouseTracking(True)
         self.drag_start  = (0, 0)
         self.btn_pressed = None
-        self.selValues   = 5*[0] # [0:courseLeftRight, 1:spd, 2:hdg, 3:alt, 4:vs]
+        self.selValues   = 5 * [0]  # [0:courseLeftRight, 1:spd, 2:hdg, 3:alt, 4:vs]
         self.rate        = 0.0
         self.remainder   = 0.0
         self.updownpos   = None
@@ -238,17 +263,13 @@ class BlipDriver(QGLWidget):
         self.mcp_col_shader = BlueSkyProgram('mcp.vert', 'color.frag')
         self.mcp_tex_shader = BlueSkyProgram('mcp.vert', 'texture.frag')
         self.mcp_txt_shader = BlueSkyProgram('mcp_text.vert', 'mcp_text.frag')
-        # self.mcp_txt_shader.bind_uniform_buffer('mcp_data', self.mcp_data)
-        # self.mcp_data.update()
-        # gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.mcp_data.ubo)
-        # d = np.ones(24, dtype=np.float32) * 5.0
-        # gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, 0, d.nbytes, d)
+
         self.color_shader   = BlueSkyProgram('normal.vert', 'color.frag')
         self.text_shader    = BlueSkyProgram('text.vert', 'text.frag')
         self.text_shader.bind_uniform_buffer('global_data', self.globaldata)
 
         self.create_objects()
-        self.set_lcd(20, 250, 360, 30000, None, 20)
+        self.update_lcd()
 
     def resizeGL(self, width, height):
         pixel_ratio = 1
@@ -263,8 +284,6 @@ class BlipDriver(QGLWidget):
         ynd = hmcp + max(0, (height - hmcp - hnd) / 2)
         self.mcpviewport = (0, 0, width, hmcp)
         self.ndviewport = (xnd, ynd, wnd, hnd)
-        
-        print 'resize'
 
     def paintGL(self):
         """Paint the scene."""
@@ -323,21 +342,28 @@ class BlipDriver(QGLWidget):
         RenderObject.unbind_all()
         gl.glUseProgram(0)
 
-    def set_lcd(self, course_l=None, iasmach=None, hdg=None, alt=None, vs=None, course_r=None):
-        if course_l is not None:
-            self.lcd_charcoords[0:18] = lcd_font_idx('%03d' % (int(course_l) % 360))
-        if iasmach is not None:
-            self.lcd_charcoords[18:48] = lcd_font_idx(str(max(0, iasmach)).rjust(5, ' '))
-        if hdg is not None:
-            self.lcd_charcoords[48:66] = lcd_font_idx('%03d' % (int(hdg) % 360))
-        if alt is not None:
-            self.lcd_charcoords[66:96] = lcd_font_idx(('%5d' % min(99999,max(0, alt))).rjust(5, ' '))
-        if vs is not None:
-            self.lcd_charcoords[96:126] = lcd_font_idx(str(min(9999, max(-9999, vs))).rjust(5, ' '))
-        if course_r is not None:
-            self.lcd_charcoords[126:144] = lcd_font_idx('%03d' % (int(course_r) % 360))
+    def update_lcd(self):
+        # [0:courseLeftRight, 1:spd, 2:hdg, 3:alt, 4:vs]
+        val = self.selValues
+        chars = '%03d' % (int(val[0]) % 360)
+        chars += '% 5d' % max(0, val[1])
+        chars += '%03d' % (int(val[2]) % 360)
+        chars += '% 5d' % min(99999, max(0, val[3]))
+        chars += '     ' if val[4] == 0 else '% 5d' % min(9999, max(-9999, val[4]))
+        chars += '%03d' % (int(val[0]) % 360)
 
-        update_buffer(self.lcdbuf, self.lcd_charcoords)
+        indices = []
+        for c in chars:
+            if c == ' ':
+                indices += [0] * 6
+            elif c == '-':
+                indices += [1] * 6
+            elif c == '.':
+                indices += [2] * 6
+            else:
+                indices += [int(c) + 3] * 6
+
+        update_buffer(self.lcdbuf, np.array(indices, dtype=np.float32))
 
     def event(self, event):
         if not self.initialized:
@@ -345,94 +371,24 @@ class BlipDriver(QGLWidget):
 
         self.makeCurrent()
         if event.type() in [QEvent.MouseMove, QEvent.MouseButtonPress, QEvent.MouseButtonRelease]:
-            px = float(event.x()) / self.width
-            py = float(self.height - event.y()) / self.height
+            px = 2.0 * (event.x()) / self.width - 1.0
+            py = 10.0 * (self.height - event.y()) / self.height - 1.0
 
         if event.type() == QEvent.MouseButtonPress and event.button() & Qt.LeftButton:
-            # Speed knob
-            if 0.24 <= px <= 0.273 and 0.05 <= py <= 0.09:
+            self.btn_pressed, _ = check_knob(px, py)
+            if self.btn_pressed is not None:
                 self.drag_start = event.x(), event.y()
-                self.btn_pressed = 'SPD'
                 QTimer.singleShot(100, self.updateAPValues)
-            # Heading knob
-            elif 0.38 <= px <= 0.415 and 0.0788 <= py <= 0.12:
-                self.drag_start = event.x(), event.y()
-                self.btn_pressed = 'HDG'
-                QTimer.singleShot(100, self.updateAPValues)
-            # Altitude knob
-            elif 0.55 <= px <= 0.583 and 0.075 <= py <= 0.12:
-                self.drag_start = event.x(), event.y()
-                self.btn_pressed = 'ALT'
-                QTimer.singleShot(100, self.updateAPValues)
-            # Vertical Speed knob
-            elif 0.716 <= px <= 0.738 and 0.0175 <= py <= 0.12:
-                self.drag_start = event.x(), event.y()
-                self.btn_pressed = 'VS'
-                QTimer.singleShot(100, self.updateAPValues)
-            # Left Course knob
-            elif 0.032 <= px <= 0.075 and 0.07 <= py <= 0.118:
-                self.drag_start = event.x(), event.y()
-                self.btn_pressed = 'TRK'
-                QTimer.singleShot(100, self.updateAPValues)
-            # Right Course knob
-            elif 0.92 <= px <= 0.96 and 0.0675 <= py <= 0.113:
-                self.drag_start = event.x(), event.y()
-                self.btn_pressed = 'TRK'
-                QTimer.singleShot(100, self.updateAPValues)
-                
-            pass
+
         elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton:
-            print px, py
+            # print px, py
             self.btn_pressed = None
             col_triangles = 6 * [255, 255, 255, 180]
             update_buffer(self.updown.colorbuf, np.array(col_triangles, dtype=np.uint8))
-            # Bottom-row buttons
-            if 0.01625 <= py <= 0.05875:
-                if 0.1325 <= px <= 0.1625:
-                    # N1
-                    self.btn_state[0] = not self.btn_state[0]
-                elif 0.1775 <= px <= 0.2075:
-                    # SPD
-                    self.btn_state[1] = not self.btn_state[1]
-                elif 0.3125 <= px <= 0.3425:
-                    # LVLCHG
-                    self.btn_state[2] = not self.btn_state[2]
-                elif 0.385 <= px <= 0.415:
-                    # HDGSEL
-                    self.btn_state[3] = not self.btn_state[3]
-                elif 0.45375 <= px <= 0.48375:
-                    # APP
-                    self.btn_state[4] = not self.btn_state[4]
-                elif 0.54875 <= px <= 0.57875:
-                    # ALTHLD
-                    self.btn_state[5] = not self.btn_state[5]
-                elif 0.6 <= px <= 0.63:
-                    # VS
-                    self.btn_state[6] = not self.btn_state[6]
-            elif 0.31375 <= px <= 0.34875 and 0.14125 <= py <= 0.185:
-                # VNAV
-                self.btn_state[7] = not self.btn_state[7]
-            elif 0.45375 <= px <= 0.48375:
-                if 0.1425 <= py <= 0.18375:
-                    # LNAV
-                    self.btn_state[8] = not self.btn_state[8]
-                elif 0.07875 <= py <= 0.1175:
-                    # VORLOC
-                    self.btn_state[9] = not self.btn_state[9]
-            elif 0.7875 <= px <= 0.82125:
-                if 0.12 <= py <= 0.1625:
-                    # CMDA
-                    self.btn_state[10] = not self.btn_state[10]
-                elif 0.05625 <= py <= 0.0975:
-                    # CWSA
-                    self.btn_state[11] = not self.btn_state[11]
-            elif 0.84125 <= px <= 0.87125:
-                if 0.12 <= py <= 0.1625:
-                    # CMDB
-                    self.btn_state[12] = not self.btn_state[12]
-                elif 0.05625 <= py <= 0.0975:
-                    # CWSB
-                    self.btn_state[13] = not self.btn_state[13]
+            # MCP button clicked?
+            name, idx = check_btn(px, py)
+            if name is not None:
+                self.btn_state[idx] = not self.btn_state[idx]
 
             btn_color = []
             for b in self.btn_state:
@@ -448,50 +404,31 @@ class BlipDriver(QGLWidget):
                 else:
                     col_triangles = 6 * [255, 255, 255, 180]
                 update_buffer(self.updown.colorbuf, np.array(col_triangles, dtype=np.uint8))
-            elif 0.24 <= px <= 0.273 and 0.05 <= py <= 0.09:
-                # Speed button
-                self.updownpos = (-0.485, -0.25)
-            elif 0.38 <= px <= 0.415 and 0.0788 <= py <= 0.12:
-                # Heading knob
-                self.updownpos = (-0.205, -0.06)
-            elif 0.55 <= px <= 0.583 and 0.075 <= py <= 0.12:
-                # Altitude knob
-                self.updownpos = (0.14, -0.05)
-            elif 0.716 <= px <= 0.738 and 0.0175 <= py <= 0.12:
-                # Vertical Speed knob
-                self.updownpos = (0.46, -0.3)
-            elif 0.032 <= px <= 0.075 and 0.07 <= py <= 0.118:
-                # Left Course knob
-                self.updownpos = (-0.89, -0.1)
-            elif 0.92 <= px <= 0.96 and 0.0675 <= py <= 0.113:
-                # Right Course knob
-                self.updownpos = (0.89, -0.15)
-            else:
-                self.updownpos = None
-            # ismcp = float(self.height - event.y()) / self.height <= 0.2
+                return True
+            # Mouse-over for knobs
+            name, self.updownpos = check_knob(px, py)
 
-            pass
+            # ismcp = float(self.height - event.y()) / self.height <= 0.2
 
         return super(BlipDriver, self).event(event)
 
     @pyqtSlot()
     def updateAPValues(self):
-        if self.btn_pressed == 'TRK':
+        if self.btn_pressed == 'COURSE':
             val = self.remainder + 15 * self.rate
             self.selValues[0] += int(val)
             self.remainder = val - int(val)
-            self.set_lcd(course_l=self.selValues[0])
-            self.set_lcd(course_r=self.selValues[0])
+
         if self.btn_pressed == 'SPD':
             val = self.remainder + 20 * self.rate
             self.selValues[1] += int(val)
             self.remainder = val - int(val)
-            self.set_lcd(iasmach=self.selValues[1])
+
         if self.btn_pressed == 'HDG':
             val = self.remainder + 15 * self.rate
             self.selValues[2] += int(val)
             self.remainder = val - int(val)
-            self.set_lcd(hdg=self.selValues[2])
+
         if self.btn_pressed == 'ALT':
             if abs(self.rate) > 0.06:
                 increment = 1000
@@ -505,12 +442,12 @@ class BlipDriver(QGLWidget):
 
             self.selValues[3] += int(val) * increment
             self.remainder = val - int(val)
-            self.set_lcd(alt=self.selValues[3])
+
         if self.btn_pressed == 'VS':
-            if abs(self.rate) > 0.06:
+            if abs(self.rate) > 0.2:
                 increment = 1000
                 val = self.remainder + min(2.0, abs(self.rate) / 0.04) * np.sign(self.rate)
-            elif abs(self.rate) > 0.02:
+            elif abs(self.rate) > 0.05:
                 increment = 100
                 val = self.remainder + self.rate / 0.04
             else:
@@ -519,7 +456,8 @@ class BlipDriver(QGLWidget):
 
             self.selValues[4] += int(val) * increment
             self.remainder = val - int(val)
-            self.set_lcd(vs=self.selValues[4])
+
+        self.update_lcd()
         if self.btn_pressed is not None:
             QTimer.singleShot(200, self.updateAPValues)
 
