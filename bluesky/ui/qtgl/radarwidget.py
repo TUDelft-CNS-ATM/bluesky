@@ -59,6 +59,12 @@ class nodeData(object):
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
 
+        # Create trail data
+        self.traillat0 = []
+        self.traillon0 = []
+        self.traillat1 = []
+        self.traillon1 = []      
+
 
 class radarUBO(UniformBuffer):
     class Data(Structure):
@@ -153,11 +159,6 @@ class RadarWidget(QGLWidget):
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
         
-        # Create trails
-        self.traillat0 = []
-        self.traillon0 = []
-        self.traillat1 = []
-        self.traillon1 = []      
 
     @pyqtSlot(str, tuple, int)
     def nodesChanged(self, address, nodeid, connidx):
@@ -168,11 +169,22 @@ class RadarWidget(QGLWidget):
     def actnodeChanged(self, nodeid, connidx):
         self.iactconn = connidx
         nact = self.nodedata[connidx]
+        self.makeCurrent()
+
+        # Polygon data change after node change
         if len(nact.polydata) > 0:
-            self.makeCurrent()
             update_buffer(self.allpolysbuf, nact.polydata)
-        if self.initialized:
-            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+
+        self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+
+        # Update trail buffer after node change
+        update_buffer(self.trailbuf, np.array(         \
+              zip(nact.traillat0,nact.traillon0,       \
+                  nact.traillat1,nact.traillon1),      \
+                       dtype=np.float32))
+
+        self.traillines.set_vertex_count(4*len(nact.traillat0))
+
 
     def create_objects(self):
         if not self.isValid():
@@ -687,24 +699,32 @@ class RadarWidget(QGLWidget):
                     update_buffer(self.routebuf,
                                   np.array([data.lat[idx], data.lon[idx]], dtype=np.float32))
 
+            nact = self.nodedata[manager.sender()[0]]
+
             # Update trails database with new lines
             if data.swtrails:          
-                self.traillat0.extend(data.traillat0)
-                self.traillon0.extend(data.traillon0)
-                self.traillat1.extend(data.traillat1)
-                self.traillon1.extend(data.traillon1)
+                nact.traillat0.extend(data.traillat0)
+                nact.traillon0.extend(data.traillon0)
+                nact.traillat1.extend(data.traillat1)
+                nact.traillon1.extend(data.traillon1)
                 
                 update_buffer(self.trailbuf, np.array(                 \
-                              zip(self.traillat0,self.traillon0,       \
-                                  self.traillat1,self.traillon1)+      \
+                              zip(nact.traillat0,nact.traillon0,       \
+                                  nact.traillat1,nact.traillon1)+      \
                               zip(data.traillastlat,data.traillastlon, \
                                   list(data.lat),list(data.lon)),      \
                                        dtype=np.float32))
 
-                self.traillines.set_vertex_count(4*len(self.traillat0) +\
+                self.traillines.set_vertex_count(4*len(nact.traillat0) +\
                                   4*len(data.lat))
 
             else:
+                nact.traillat0 = []
+                nact.traillon0 = []
+                nact.traillat1 = []
+                nact.traillon1 = []
+                update_buffer(self.trailbuf, np.array([], dtype=np.float32))
+               
                 self.traillines.set_vertex_count(0)
 
     def show_ssd(self, arg):
@@ -726,6 +746,7 @@ class RadarWidget(QGLWidget):
         nact.custwplbl += wpdata[0].ljust(5)
         nact.custwplat = np.append(nact.custwplat, np.float32(wpdata[1]))
         nact.custwplon = np.append(nact.custwplon, np.float32(wpdata[2]))
+        
         if manager.sender()[0] == self.iactconn:
             self.makeCurrent()
             update_buffer(self.custwplblbuf, np.array(nact.custwplbl))
@@ -744,11 +765,18 @@ class RadarWidget(QGLWidget):
         nact.custwplbl = ''
         nact.custwplat = np.array([], dtype=np.float32)
         nact.custwplon = np.array([], dtype=np.float32)
+        
+        # Clear trail data
+        nact.traillat0 = []
+        nact.traillon0 = []
+        nact.traillat1 = []
+        nact.traillon1 = []
 
         # If the updated polygon buffer is also currently viewed, also send
         # updates to the gpu buffer
         if manager.sender()[0] == self.iactconn:
             self.allpolys.set_vertex_count(0)
+            self.traillines.set_vertex_count(0)
             self.ncustwpts = 0
 
     def updatePolygon(self, name, data_in):
