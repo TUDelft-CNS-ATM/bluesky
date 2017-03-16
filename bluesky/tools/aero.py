@@ -7,24 +7,26 @@ import numpy as np
 #
 # Constants Aeronautics
 #
-kts = 0.514444 # m/s  1 knot
-ft  = 0.3048  # m     1 foot
-fpm = ft/60. # feet per minute
-inch = 0.0254 # m     1 inch
-sqft = 0.09290304 # 1sqft
-nm  = 1852. # m       1 nautical mile
-lbs = 0.453592 # kg  pound mass
-g0  = 9.80665 # m/s2    Sea level gravity constant
-R   = 287.05287 # Used in wikipedia table: checked with 11000 m 
-p0 = 101325. # Pa     Sea level pressure ISA
-rho0 = 1.225 # kg/m3  Sea level density ISA
-T0   = 288.15 # K   Sea level temperature ISA
-gamma = 1.40 # cp/cv for air
-gamma1 =  0.2 # (gamma-1)/2 for air
-gamma2 = 3.5  # gamma/(gamma-1) for air
-beta = -0.0065 # [K/m] ISA temp gradient below tropopause 
-Rearth = 6371000.  # m  Average earth radius
-a0  = sqrt(gamma*R*T0)  # sea level speed of sound ISA
+kts = 0.514444              # m/s  of 1 knot
+ft  = 0.3048                # m    of 1 foot
+fpm = ft/60.                # feet per minute
+inch = 0.0254               # m    of 1 inch
+sqft = 0.09290304           # 1sqft
+nm  = 1852.                 # m    of 1 nautical mile
+lbs = 0.453592              # kg   of 1 pound mass
+g0  = 9.80665               # m/s2    Sea level gravity constant
+R   = 287.05287             # Used in wikipedia table: checked with 11000 m
+p0 = 101325.                # Pa     Sea level pressure ISA
+rho0 = 1.225                # kg/m3  Sea level density ISA
+T0   = 288.15               # K   Sea level temperature ISA
+gamma = 1.40                # cp/cv for air
+gamma1 =  0.2               # (gamma-1)/2 for air
+gamma2 = 3.5                # gamma/(gamma-1) for air
+beta = -0.0065              # [K/m] ISA temp gradient below tropopause
+Rearth = 6371000.           # m  Average earth radius
+a0  = np.sqrt(gamma*R*T0)   # sea level speed of sound ISA
+
+
 #
 # Functions for aeronautics in this module
 #  - physical quantities always in SI units
@@ -44,7 +46,7 @@ a0  = sqrt(gamma*R*T0)  # sea level speed of sound ISA
 # tas = vmach2tas(M,h)    # true airspeed (tas) to mach number conversion
 # tas = veas2tas(eas,h)   # equivalent airspeed to true airspeed, h in [m]
 # eas = vtas2eas(tas,h)   # true airspeed to equivent airspeed, h in [m]
-# tas = vcas2tas(cas,h)   # cas  to tas conversion both m/s, h in [m] 
+# tas = vcas2tas(cas,h)   # cas  to tas conversion both m/s, h in [m]
 # cas = vtas2cas(tas,h)   # tas to cas conversion both m/s, h in [m]
 # cas = vmach2cas(M,h)    # Mach to cas conversion cas in m/s, h in [m]
 # M   = vcas2mach(cas,h)   # cas to mach copnversion cas in m/s, h in [m]
@@ -55,13 +57,15 @@ a0  = sqrt(gamma*R*T0)  # sea level speed of sound ISA
 # ------------------------------------------------------------------------------
 # Vectorized aero functions
 # ------------------------------------------------------------------------------
-def vatmos(alt):  # alt in m
+def vatmos(h):  # h in m
+    h = np.array(h)
+
     # Temp
-    T = np.maximum(288.15 - 0.0065 * alt, 216.65)
+    T = np.maximum(288.15 - 0.0065 * h, 216.65)
 
     # Density
     rhotrop = 1.225 * (T / 288.15)**4.256848030018761
-    dhstrat = np.maximum(0., alt - 11000.)
+    dhstrat = np.maximum(0., h - 11000.)
     rho     = rhotrop * np.exp(-dhstrat / 6341.552161)  # = *g0/(287.05*216.65))
 
     # Pressure
@@ -70,27 +74,29 @@ def vatmos(alt):  # alt in m
     return p, rho, T
 
 
-def vtemp(alt):         # hinput [m]
+def vtemp(h):         # h [m]
+    h = np.array(h)
+
     # Temp
-    Tstrat = np.array(len(alt) * [216.65])  # max 22 km!
-    T = np.maximum(288.15 - 0.0065 * alt, Tstrat)
+    Tstrat = np.array(len(h) * [216.65])  # max 22 km!
+    T = np.maximum(288.15 - 0.0065 * h, Tstrat)
 
     return T
 
 
 # Atmos wrappings:
-def vpressure(alt):          # hinput [m]
-    p, r, T = vatmos(alt)
+def vpressure(h):          # h [m]
+    p, r, T = vatmos(h)
     return p
 
 
-def vdensity(alt):   # air density at given altitude h [m]
-    p, r, T = vatmos(alt)
+def vdensity(h):   # air density at given altitude h [m]
+    p, r, T = vatmos(h)
     return r
 
 
-def vvsound(hinput):  # Speed of sound for given altitude h [m]
-    T = vtemp(hinput)
+def vvsound(h):  # Speed of sound for given altitude h [m]
+    T = vtemp(h)
     a = np.sqrt(gamma * R * T)
     return a
 
@@ -98,6 +104,8 @@ def vvsound(hinput):  # Speed of sound for given altitude h [m]
 # ---------Speed conversions---h in [m]------------------
 def vtas2mach(tas, h):
     """ True airspeed (tas) to mach number conversion """
+    tas = np.array(tas)
+
     a = vvsound(h)
     M = tas / a
     return M
@@ -105,6 +113,8 @@ def vtas2mach(tas, h):
 
 def vmach2tas(M, h):
     """ True airspeed (tas) to mach number conversion """
+    M = np.array(M)
+
     a = vvsound(h)
     tas = M * a
     return tas
@@ -112,6 +122,8 @@ def vmach2tas(M, h):
 
 def veas2tas(eas, h):
     """ Equivalent airspeed to true airspeed """
+    eas = np.array(eas)
+
     rho = vdensity(h)
     tas = eas * np.sqrt(rho0 / rho)
     return tas
@@ -119,6 +131,8 @@ def veas2tas(eas, h):
 
 def vtas2eas(tas, h):
     """ True airspeed to equivent airspeed """
+    tas = np.array(tas)
+
     rho = vdensity(h)
     eas = tas*np.sqrt(rho / rho0)
     return eas
@@ -126,6 +140,8 @@ def vtas2eas(tas, h):
 
 def vcas2tas(cas, h):
     """ cas2tas conversion both m/s """
+    cas = np.array(cas)
+
     p, rho, T = vatmos(h)
     qdyn      = p0*((1.+rho0*cas*cas/(7.*p0))**3.5-1.)
     tas       = np.sqrt(7.*p/rho*((1.+qdyn/p)**(2./7.)-1.))
@@ -134,6 +150,8 @@ def vcas2tas(cas, h):
 
 def vtas2cas(tas, h):
     """ tas2cas conversion both m/s """
+    tas = np.array(tas)
+
     p, rho, T = vatmos(h)
     qdyn      = p*((1.+rho*tas*tas/(7.*p))**3.5-1.)
     cas       = np.sqrt(7.*p0/rho0*((qdyn/p0+1.)**(2./7.)-1.))
@@ -142,6 +160,8 @@ def vtas2cas(tas, h):
 
 def vmach2cas(M, h):
     """ Mach to CAS conversion """
+    M = np.array(M)
+
     tas = vmach2tas(M, h)
     cas = vtas2cas(tas, h)
     return cas
@@ -149,32 +169,30 @@ def vmach2cas(M, h):
 
 def vcas2mach(cas, h):
     """ CAS to Mach conversion """
+    cas = np.array(cas)
+
     tas = vcas2tas(cas, h)
     M   = vtas2mach(tas, h)
     return M
 
-def vcasormach(spd,alt):
-    if 0.1 < spd < 2.0:
-        # Interpret spd as Mach number
-        tas = vmach2tas(spd, alt)
-        cas = vmach2cas(spd, alt)
-        m   = spd
-    else:
-        # Interpret spd as CAS
-        tas = vcas2tas(spd,alt)
-        cas = spd
-        m   = vcas2mach(spd, alt)
+def vcasormach(spd, h):
+    spd = np.array(spd)
+
+    tas = np.where(np.abs(spd) < 2.0, vmach2tas(spd, h), vcas2tas(spd, h))
+    cas = np.where(np.abs(spd) < 2.0, vmach2cas(spd, h), spd)
+    m = np.where(np.abs(spd) < 2.0, spd, vcas2mach(spd, h))
+
     return tas, cas, m
 
 
 # ------------------------------------------------------------------------------
 # Scalar aero functions
 # ------------------------------------------------------------------------------
-def atmos(hinput):
+def atmos(h):
     """ atmos(altitude): International Standard Atmosphere calculator
 
         Input:
-              hinput =  altitude in meters 0.0 < hinput < 84852.
+              h =  altitude in meters 0.0 < h < 84852.
         (will be clipped when outside range, integer input allowed)
         Output:
               [p,rho,T]    (in SI-units: Pa, kg/m3 and K) """
@@ -212,7 +230,7 @@ def atmos(hinput):
           -0.002]  # 71-   km
 
     # Clip altitude to maximum!
-    h = max(0.0, min(float(hinput), h0[-1]))
+    h = max(0.0, min(float(h), h0[-1]))
 
     # Find correct layer
     i = 0
@@ -234,11 +252,11 @@ def atmos(hinput):
     return p, rho, T
 
 
-def temp(hinput):
+def temp(h):
     """ temp (altitude): Temperature only version of ISA atmos
 
         Input:
-              hinput =  altitude in meters 0.0 < hinput < 84852.
+              h =  altitude in meters 0.0 < h < 84852.
         (will be clipped when outside range, integer input allowed)
         Output:
               T    (in SI-unit: K """
@@ -266,7 +284,7 @@ def temp(hinput):
           -0.002]  # 71-   km
 
     # Clip altitude to maximum!
-    h = max(0.0,min(float(hinput),h0[-1]))
+    h = max(0.0,min(float(h),h0[-1]))
 
 
     # Find correct layer
@@ -286,18 +304,18 @@ def temp(hinput):
 
 
 # Atmos wrappings:
-def pressure(hinput):          # hinput [m]
-    p, r, T = atmos(hinput)
+def pressure(h):          # h [m]
+    p, r, T = atmos(h)
     return p
 
 
-def density(hinput):   # air density at given altitude h [m]
-    p, r, T = atmos(hinput)
+def density(h):   # air density at given altitude h [m]
+    p, r, T = atmos(h)
     return r
 
 
-def vsound(hinput):  # Speed of sound for given altitude h [m]
-    T = temp(hinput)
+def vsound(h):  # Speed of sound for given altitude h [m]
+    T = temp(h)
     a = sqrt(gamma*R*T)
     return a
 
@@ -360,15 +378,15 @@ def cas2mach(cas, h):
     M   = tas2mach(tas, h)
     return M
 
-def casormach(spd,alt):
+def casormach(spd,h):
     if 0.1 < spd < 2.0:
         # Interpret spd as Mach number
-        tas = mach2tas(spd, alt)
-        cas = mach2cas(spd, alt)
+        tas = mach2tas(spd, h)
+        cas = mach2cas(spd, h)
         m   = spd
     else:
         # Interpret spd as CAS
-        tas = cas2tas(spd,alt)
+        tas = cas2tas(spd,h)
         cas = spd
-        m   = cas2mach(spd, alt)
+        m   = cas2mach(spd, h)
     return tas, cas, m

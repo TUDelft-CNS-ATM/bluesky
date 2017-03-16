@@ -4,7 +4,7 @@ from random import random, randint
 from ..tools import datalog
 from ..tools.misc import latlon2txt
 from ..tools.aero import fpm, kts, ft, g0, Rearth, \
-                         vatmos,  vtas2cas, vtas2mach, casormach
+                         vatmos,  vtas2cas, vtas2mach, casormach, vcasormach
 
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
@@ -163,6 +163,7 @@ class Traffic(DynamicArrays):
         # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
         # for working with EUROCONTROL`s Base of Aircraft Data revision 3.12
         self.perf    = Perf(self)
+        self.trails.reset()
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
         """ Create multiple random aircraft in a specified area """
@@ -170,15 +171,89 @@ class Traffic(DynamicArrays):
         if actype is None:
             actype = 'B744'
 
-        for i in xrange(count):
-            acid  = idbase + '%05d' % i
-            aclat = random() * (area[1] - area[0]) + area[0]
-            aclon = random() * (area[3] - area[2]) + area[2]
-            achdg = float(randint(1, 360))
-            acalt = (randint(2000, 39000) * ft) if alt is None else alt
-            acspd = (randint(250, 450) * kts) if spd is None else spd
+        n = count
+        super(Traffic, self).create(n)
 
-            self.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
+        # Increase number of aircraft
+        self.ntraf = self.ntraf + count
+
+        acids = []
+        aclats = []
+        aclons = []
+        achdgs = []
+        acalts = []
+        acspds = []
+
+        for i in xrange(count):
+            acids.append((idbase + '%05d' % i).upper())
+            aclats.append(random() * (area[1] - area[0]) + area[0])
+            aclons.append(random() * (area[3] - area[2]) + area[2])
+            achdgs.append(float(randint(1, 360)))
+            acalts.append((randint(2000, 39000) * ft) if alt is None else alt)
+            acspds.append((randint(250, 450) * kts) if spd is None else spd)
+
+        # Aircraft Info
+        self.id[-n:]   = acids
+        self.type[-n:] = [actype] * n
+
+        # Positions
+        self.lat[-n:]  = aclats
+        self.lon[-n:]  = aclons
+        self.alt[-n:]  = acalts
+
+        self.hdg[-n:]  = achdgs
+        self.trk[-n:]  = achdgs
+
+        # Velocities
+        self.tas[-n:], self.cas[-n:], self.M[-n:] = vcasormach(acspds, acalts)
+        self.gs[-n:]      = self.tas[-n:]
+        self.gsnorth[-n:] = self.tas[-n:] * np.cos(np.radians(self.hdg[-n:]))
+        self.gseast[-n:]  = self.tas[-n:] * np.sin(np.radians(self.hdg[-n:]))
+
+        # Atmosphere
+        self.p[-n:], self.rho[-n:], self.Temp[-n:] = vatmos(acalts)
+
+        # Wind
+        if self.wind.winddim > 0:
+            vnwnd, vewnd     = self.wind.getdata(self.lat[-n:], self.lon[-n:], self.alt[-n:])
+            self.gsnorth[-n:] = self.gsnorth[-n:] + vnwnd
+            self.gseast[-n:]  = self.gseast[-n:]  + vewnd
+            self.trk[-n:]     = np.degrees(np.arctan2(self.gseast[-n:], self.gsnorth[-n:]))
+            self.gs[-n:]      = np.sqrt(self.gsnorth[-n:]**2 + self.gseast[-n:]**2)
+
+        # Traffic performance data
+        #(temporarily default values)
+        self.avsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
+        self.aphi[-n:]   = np.radians(25.)  # bank angle setting of autopilot
+        self.ax[-n:]     = kts           # absolute value of longitudinal accelleration
+        self.bank[-n:]   = np.radians(25.)
+
+        # Crossover altitude
+        self.abco[-n:]   = 0  # not necessary to overwrite 0 to 0, but leave for clarity
+        self.belco[-n:]  = 1
+
+        # Traffic autopilot settings
+        self.aspd[-n:]  = self.cas[-n:]
+        self.aptas[-n:] = self.tas[-n:]
+        self.apalt[-n:] = self.alt[-n:]
+
+        # Display information on label
+        self.label[-n:] = ['', '', '', 0]
+
+        # Miscallaneous
+        self.coslat[-n:] = np.cos(np.radians(aclats))  # Cosine of latitude for flat-earth aproximations
+        self.eps[-n:] = 0.01
+
+        # ----- Submodules of Traffic -----
+        self.ap.create(n)
+        self.actwp.create(n)
+        self.pilot.create(n)
+        self.adsb.create(n)
+        self.area.create(n)
+        self.asas.create(n)
+        self.perf.create(n)
+        self.trails.create(n)
+
 
     def create(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
         """Create an aircraft"""

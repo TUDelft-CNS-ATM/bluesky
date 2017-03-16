@@ -41,20 +41,20 @@ class Autopilot(DynamicArrays):
         # Route objects
         self.route = []
 
-    def create(self):
-        super(Autopilot, self).create()
+    def create(self, n=1):
+        super(Autopilot, self).create(n)
 
         # FMS directions
-        self.tas[-1] = self.traf.tas[-1]
-        self.trk[-1] = self.traf.trk[-1]
-        self.alt[-1] = self.traf.alt[-1]
-        self.spd[-1] = vtas2cas(self.tas[-1], self.alt[-1])
+        self.tas[-n:] = self.traf.tas[-n:]
+        self.trk[-n:] = self.traf.trk[-n:]
+        self.alt[-n:] = self.traf.alt[-n:]
+        self.spd[-n:] = vtas2cas(self.tas[-n:], self.alt[-n:])
 
         # VNAV Variables
-        self.dist2vs[-1] = -999.
+        self.dist2vs[-n:] = -999.
 
         # Route objects
-        self.route.append(Route(self.traf.navdb))
+        self.route.extend([Route(self.traf.navdb)] * n)
 
     def delete(self, idx):
         super(Autopilot, self).delete(idx)
@@ -76,7 +76,7 @@ class Autopilot(DynamicArrays):
 
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby, self.traf.actwp.next_qdr[i] =  \
-                       self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
+                       self.route[i].getnextwp(self.traf)  # note: xtoalt,toalt in [m]
 
                 # End of route/no more waypoints: switch off LNAV
                 self.traf.swlnav[i] = self.traf.swlnav[i] and lnavon
@@ -110,7 +110,6 @@ class Autopilot(DynamicArrays):
             #=============== End of Waypoint switching loop ===================
 
             #================= Continuous FMS guidance ========================
-        
             # Do VNAV start of descent check
             dy = (self.traf.actwp.lat - self.traf.lat)
             dx = (self.traf.actwp.lon - self.traf.lon) * self.traf.coslat
@@ -118,7 +117,7 @@ class Autopilot(DynamicArrays):
 
             # VNAV logic: descend as late as possible, climb as soon as possible
             startdescent = self.traf.swvnav * ((dist2wp < self.dist2vs)+(self.traf.actwp.alt > self.traf.alt))
-            
+
             # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
@@ -137,9 +136,9 @@ class Autopilot(DynamicArrays):
 
             self.alt = np.where(self.swvnavvs, self.traf.actwp.alt, self.traf.apalt)
 
-            # When descending or climbing in VNAV also update altitude command of select/hold mode            
+            # When descending or climbing in VNAV also update altitude command of select/hold mode
             self.traf.apalt = np.where(self.swvnavvs,self.traf.actwp.alt,self.traf.apalt)
-            
+
             # LNAV commanded track angle
             self.trk = np.where(self.traf.swlnav, qdr, self.trk)
 
@@ -155,9 +154,9 @@ class Autopilot(DynamicArrays):
         # Compute proper values for self.traf.actwp.alt, self.dist2vs, self.alt, self.traf.actwp.vs
         # Descent VNAV mode (T/D logic)
         #
-        # xtoalt =  distance to go to next altitude constraint at a waypoinit in the route 
-        #           (could be beyond next waypoint) 
-        #        
+        # xtoalt =  distance to go to next altitude constraint at a waypoinit in the route
+        #           (could be beyond next waypoint)
+        #
         # toalt  = altitude at next waypoint with an altitude constraint
         #
 
@@ -170,7 +169,7 @@ class Autopilot(DynamicArrays):
         #       T/C----X----.-----X      .         .\
         #       /           .            .         . \
         #      /            .            .         .  X---T/D
-        #     /.            .            .         .        \ 
+        #     /.            .            .         .        \
         #    / .            .            .         .         \
         #   /  .            .            .         .         .\
         # pos  x            x            x         x         x X
@@ -179,19 +178,19 @@ class Autopilot(DynamicArrays):
         #  X = waypoint with alt constraint  x = Wp without prescribed altitude
         #
         # - Ignore and look beyond waypoints without an altidue constraint
-        # - Climb as soon as possible after previous altitude constraint 
+        # - Climb as soon as possible after previous altitude constraint
         #   and climb as fast as possible, so arriving at alt earlier is ok
         # - Descend at the latest when necessary for next altitude constraint
-        #   which can be many waypoints beyond current actual waypoint 
+        #   which can be many waypoints beyond current actual waypoint
 
 
         # VNAV Descent mode
         if self.traf.alt[idx] > toalt + 10. * ft:
-            
+
 
             #Calculate max allowed altitude at next wp (above toalt)
             self.traf.actwp.alt[idx] = min(self.traf.alt[idx],toalt + xtoalt * self.steepness)
-            
+
 
             # Dist to waypoint where descent should start
             self.dist2vs[idx] = (self.traf.alt[idx] - self.traf.actwp.alt[idx]) / self.steepness
@@ -235,7 +234,7 @@ class Autopilot(DynamicArrays):
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
-                        
+
         return
 
     def selalt(self, idx, alt, vspd=None):
@@ -309,7 +308,7 @@ class Autopilot(DynamicArrays):
                 return True, 'DEST ' + self.traf.id[idx] + ': ' + self.dest[idx]
             else:
                 return True, 'ORIG ' + self.traf.id[idx] + ': ' + self.orig[idx]
-        
+
         if idx<0 or idx>=self.traf.ntraf:
             return False, cmd + ": Aircraft does not exist."
 
@@ -327,14 +326,14 @@ class Autopilot(DynamicArrays):
             else:
                 reflat = self.traf.lat[idx]
                 reflon = self.traf.lon[idx]
-            
+
             success, posobj = txt2pos(name, self.traf, self.traf.navdb, reflat, reflon)
-            if success:                
+            if success:
                 lat = posobj.lat
                 lon = posobj.lon
             else:
                 return False, (cmd + ": Position " + name + " not found.")
-                
+
         else:
             lat = self.traf.navdb.aptlat[apidx]
             lon = self.traf.navdb.aptlon[apidx]
@@ -364,18 +363,18 @@ class Autopilot(DynamicArrays):
         else:
             self.orig[idx] = name
             apidx = self.traf.navdb.getaptidx(name)
-    
+
             if apidx < 0:
-    
+
                 if cmd =="ORIG" and self.traf.ap.route[idx].nwp>0:
                     reflat = self.traf.ap.route[idx].wplat[0]
                     reflon = self.traf.ap.route[idx].wplon[0]
                 else:
                     reflat = self.traf.lat[idx]
                     reflon = self.traf.lon[idx]
-                
+
                 success, posobj = txt2pos(name, self.traf, self.traf.navdb, reflat, reflon)
-                if success:                
+                if success:
                     lat = posobj.lat
                     lon = posobj.lon
                 else:
@@ -433,5 +432,3 @@ class Autopilot(DynamicArrays):
     def reset(self):
         super(Autopilot,self).reset()
         self.route = []
-        
-        
