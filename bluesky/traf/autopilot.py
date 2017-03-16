@@ -129,7 +129,7 @@ class Autopilot(DynamicArrays):
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
-            #    USe 500 m cirlce in case turndist might be zero
+            #    USe 185.2 m cirlce in case turndist might be zero
             self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist <= np.maximum(185.2,self.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance
@@ -302,8 +302,15 @@ class Autopilot(DynamicArrays):
 
         if idx<0 or idx>=self.traf.ntraf:
             return False,"SPD: Aircraft does not exist"
+        
+        # convert input speed to cas and mach depending on the magnitude of input
+        if 0.0<= casmach <= 2.0:
+            self.traf.aspd[idx] = mach2cas(casmach, self.traf.alt[idx])
+            self.traf.ama[idx]  = casmach
+        else:
+            self.traf.aspd[idx] = casmach
+            self.traf.ama[idx]  = cas2mach(casmach, self.traf.alt[idx])
 
-        dummy, self.traf.aspd[idx], self.traf.ama[idx] = casormach(casmach, self.traf.alt[idx])
 
         # Switch off VNAV: SPD command overrides
         self.traf.swvnav[idx]   = False
