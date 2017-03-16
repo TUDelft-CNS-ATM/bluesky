@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="cre-cre">CRE: Cre</h1>
+<p>Create an aircraft at specified coordinates.</p>
+<p>For creating multiple randomly located aircraft, see <a href="MCRE.html">MCRE</a>.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>CRE acid,type,lat,lon,hdg,alt,spd</code></pre>
+<p><strong>Arguments:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>acid</td>
+<td>txt</td>
+<td>yes</td>
+<td>Unique aircraft callsign</td>
+</tr>
+<tr class="even">
+<td>type</td>
+<td>txt</td>
+<td>yes</td>
+<td><a href="https://en.wikipedia.org/wiki/List_of_ICAO_aircraft_type_designators">ICAO aircraft type designator</a></td>
+</tr>
+<tr class="odd">
+<td>lat</td>
+<td>float</td>
+<td>yes</td>
+<td><a href="Coordinates.html">Latitude</a></td>
+</tr>
+<tr class="even">
+<td>lon</td>
+<td>float</td>
+<td>yes</td>
+<td><a href="Coordinates.html">Longitude</a></td>
+</tr>
+<tr class="odd">
+<td>hdg</td>
+<td>float</td>
+<td>yes</td>
+<td>Heading [deg] [1]</td>
+</tr>
+<tr class="even">
+<td>alt</td>
+<td>float/txt</td>
+<td>yes</td>
+<td>Altitude [2]</td>
+</tr>
+<tr class="odd">
+<td>spd</td>
+<td>float</td>
+<td>yes</td>
+<td><a href="Speed.html">Aircraft speed</a></td>
+</tr>
+</tbody>
+</table>
+<p>[1] The heading of the aircraft can be given by clicking the screen with the mouse. The aircraft will fly from its start coordinates, heading towards the clicked location.</p>
+<p>[2] Altitude can be given as altitude [ft] or flight level [-]. In order to give the altitude as flight level, use the letters &quot;FL&quot;.</p>
+<p><strong>Examples</strong></p>
+<ul>
+<li><em>CRE acid type lat lon heading altitude speed</em></li>
+<li>CRE KL204 B744 52.3836 4.0967 180 25000 200</li>
+<li>CRE KL204 B744 52'23&quot;1 4'5&quot;48 180 FL250 .49</li>
+<li>CRE KL204 B744 <em>click click</em> 25000 200</li>
+</ul>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

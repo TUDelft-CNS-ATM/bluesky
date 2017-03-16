@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="mcre-mcre">MCRE: Mcre</h1>
+<p>Create a total of n randomly positioned aircraft.</p>
+<p>All aircraft will be created within the current window frame. The headings of the aircraft are integers in the interval [0,360] degrees.</p>
+<p>All random values have uniform distributions.</p>
+<p>To create a single aircraft, use <a href="CRE.html">CRE</a>.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>MCRE n, [type/*, alt/*, spd/*, dest/*]</code></pre>
+<p><strong>Arguments:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>n</td>
+<td>int</td>
+<td>yes</td>
+<td>Number of aircraft to create</td>
+</tr>
+<tr class="even">
+<td>type</td>
+<td>txt</td>
+<td>no</td>
+<td>ICAO aircraft type designator [<a href="https://en.wikipedia.org/wiki/List_of_ICAO_aircraft_type_designators">List</a>][1]</td>
+</tr>
+<tr class="odd">
+<td>alt</td>
+<td>float</td>
+<td>no</td>
+<td>Altitude [2]</td>
+</tr>
+<tr class="even">
+<td>spd</td>
+<td>float</td>
+<td>no</td>
+<td>Aircraft speed [3]</td>
+</tr>
+<tr class="odd">
+<td>dest</td>
+<td>txt</td>
+<td>no</td>
+<td>Aircraft destination [4]</td>
+</tr>
+</tbody>
+</table>
+<p>[1] If no aircraft type is given, the Boeing 744 is used.</p>
+<p>[2] Altitude can be given as altitude [ft] or flight level [-]. In order to give the altitude as flight level, use the letters &quot;FL&quot;. If no altitude is given, a random altitude is selected in the interval [2000, 39000] ft.</p>
+<p>[3] Speed can be given as Calibrated Airspeed [kts] or Mach number [-]. If no speed is given, a random CAS is selected in the interval [250, 450] kts.</p>
+<p>[4] This functionality is not implemented yet.</p>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

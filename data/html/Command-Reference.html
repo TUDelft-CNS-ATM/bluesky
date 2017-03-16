@@ -19,6 +19,17 @@
 <li>For network communication to/from BlueSky. BlueSky can be connected over TCP to send it simulation commands.</li>
 <li>Directly in the interface. The BlueSky interface has a command line, that can be used to interact with the simulation using TrafScript commands.</li>
 </ul>
+<h2 id="command-arguments">Command arguments</h2>
+<p>Bluesky supports different types of argument formats. Follow the hyperlinks to learn about the different options for each argument type.</p>
+<ul>
+<li><a href="Aircraft-ID.html">Aircraft ID</a></li>
+<li><a href="Speed.html">Aircraft speed</a></li>
+<li><a href="Altitude.html">Altitude</a></li>
+<li><a href="Heading.html">Heading</a></li>
+<li><a href="Coordinates.html">Coordinates</a></li>
+<li><a href="Booleans.html">Booleans</a></li>
+<li><a href="Entertime.html">Time</a></li>
+</ul>
 <h2 id="command-reference">Command reference</h2>
 <p>This page gives a complete overview of the available commands in the following table. Below it is a table that lists the commands that have synonyms.</p>
 <table>
@@ -39,27 +50,27 @@
 </tr>
 <tr class="even">
 <td><a href="ADDWPT.html">ADDWPT</a></td>
-<td>Add a waypoint to route of aircraft (FMS)</td>
+<td>Add a waypoint to route of aircraft</td>
 </tr>
 <tr class="odd">
-<td>AFTER</td>
-<td>After waypoint, add a waypoint to route of aircraft (FMS)</td>
+<td><a href="AFTER.html">AFTER</a></td>
+<td>After waypoint, add a waypoint to route of aircraft</td>
 </tr>
 <tr class="even">
-<td>ALT</td>
-<td>Altitude command (autopilot)</td>
+<td><a href="ALT.html">ALT</a></td>
+<td>Altitude command</td>
 </tr>
 <tr class="odd">
-<td>AREA</td>
-<td>Define experiment area (area of interest)</td>
+<td><a href="AREA.html">AREA</a></td>
+<td>Define experiment area</td>
 </tr>
 <tr class="even">
 <td><a href="ASAS.html">ASAS</a></td>
 <td>Airborne Separation Assurance System switch</td>
 </tr>
 <tr class="odd">
-<td>AT</td>
-<td>Edit, delete or show spd/alt constraints at a waypoint in the route</td>
+<td><a href="AT.html">AT</a></td>
+<td>Edit, delete or show constraints at a waypoint</td>
 </tr>
 <tr class="even">
 <td><a href="BATCH.html">BATCH</a></td>
@@ -70,23 +81,23 @@
 <td>Run benchmark</td>
 </tr>
 <tr class="even">
-<td>BOX</td>
+<td><a href="BOX.html">BOX</a></td>
 <td>Define a box-shaped area</td>
 </tr>
 <tr class="odd">
-<td>CALC</td>
-<td>Simple in-line math calculator, evaluates expression</td>
+<td><a href="CALC.html">CALC</a></td>
+<td>Simple in-line math calculator</td>
 </tr>
 <tr class="even">
 <td><a href="CDMETHOD.html">CDMETHOD</a></td>
 <td>Set conflict detection method</td>
 </tr>
 <tr class="odd">
-<td>CIRCLE</td>
+<td><a href="CIRCLE.html">CIRCLE</a></td>
 <td>Define a circle-shaped area</td>
 </tr>
 <tr class="even">
-<td>CRE</td>
+<td><a href="CRE.html">CRE</a></td>
 <td>Create an aircraft</td>
 </tr>
 <tr class="odd">
@@ -94,224 +105,232 @@
 <td>Select an ADS-B data source for traffic</td>
 </tr>
 <tr class="even">
-<td>DEFWPT</td>
-<td>Define a waypoint only for this scenario/run</td>
+<td><a href="DEFWPT.html">DEFWPT</a></td>
+<td>Define a waypoint only for this run</td>
 </tr>
 <tr class="odd">
-<td>DEL</td>
-<td>Delete command (aircraft, wind, area</td>
+<td><a href="DEL.html">DEL</a></td>
+<td>Delete command</td>
 </tr>
 <tr class="even">
-<td>DELRTE</td>
-<td>Delete for this a/c the complete route/dest/orig (FMS)</td>
+<td>DELAY</td>
+<td>Delay a command by a specified time</td>
 </tr>
 <tr class="odd">
-<td>DELWPT</td>
-<td>Delete a waypoint from a route (FMS)</td>
+<td><a href="DELRTE.html">DELRTE</a></td>
+<td>Delete the complete route/dest/orig</td>
 </tr>
 <tr class="even">
-<td>DEST</td>
-<td>Set destination of aircraft, aircraft wil fly to this airport</td>
+<td><a href="DELWPT.html">DELWPT</a></td>
+<td>Delete a waypoint from a route</td>
 </tr>
 <tr class="odd">
-<td>DIRECT</td>
-<td>Go direct to specified waypoint in route (FMS)</td>
+<td><a href="DEST.html">DEST</a></td>
+<td>Set destination airport</td>
 </tr>
 <tr class="even">
-<td>DIST</td>
-<td>Distance and direction calculation between two positions</td>
+<td><a href="DIRECT.html">DIRECT</a></td>
+<td>Go direct to specified waypoint in route</td>
 </tr>
 <tr class="odd">
+<td><a href="DIST.html">DIST</a></td>
+<td>Distance and direction calculation between two coordinates positions</td>
+</tr>
+<tr class="even">
 <td><a href="DT.html">DT</a></td>
 <td>Set simulation time step</td>
 </tr>
-<tr class="even">
-<td>DTLOOK</td>
+<tr class="odd">
+<td><a href="DTLOOK.html">DTLOOK</a></td>
 <td>Set lookahead time in seconds for conflict detection</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="DTMULT.html">DTMULT</a></td>
 <td>Sel multiplication factor for fast-time simulation</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>DTNOLOOK</td>
 <td>Set interval for conflict detection</td>
 </tr>
-<tr class="odd">
-<td>DUMPRTE</td>
-<td>Write route to output/routelog.txt</td>
-</tr>
 <tr class="even">
-<td>ECHO</td>
+<td><a href="DUMPRTE.html">DUMPRTE</a></td>
+<td>Write route to output</td>
+</tr>
+<tr class="odd">
+<td><a href="ECHO.html">ECHO</a></td>
 <td>Show a text in command window for user to read</td>
 </tr>
-<tr class="odd">
-<td>ENG</td>
+<tr class="even">
+<td><a href="ENG.html">ENG</a></td>
 <td>Specify a different engine type</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="FF.html">FF</a></td>
 <td>Fast forward the simulation</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="FIXDT.html">FIXDT</a></td>
 <td>Fix the time step</td>
 </tr>
+<tr class="odd">
+<td><a href="GETWIND.html">GETWIND</a></td>
+<td>Get wind at a specified position</td>
+</tr>
 <tr class="even">
-<td>GETWIND</td>
-<td>Get wind at a specified position (and optionally at altitude)</td>
+<td><a href="HDG.html">HDG</a></td>
+<td>Heading command</td>
 </tr>
 <tr class="odd">
-<td>HDG</td>
-<td>Heading command (autopilot)</td>
-</tr>
-<tr class="even">
-<td>HELP</td>
+<td><a href="HELP.html">HELP</a></td>
 <td>Show help on a command, show pdf or write list of commands to file</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="HOLD.html">HOLD</a></td>
-<td>Pause(hold) simulation</td>
+<td>Pause the simulation</td>
+</tr>
+<tr class="odd">
+<td><a href="IC.html">IC</a></td>
+<td>Revert to initial conditions of scenario</td>
 </tr>
 <tr class="even">
-<td><a href="IC.html">IC</a></td>
-<td>Initial condition: (re)start simulation and open scenario file</td>
-</tr>
-<tr class="odd">
 <td>INSEDIT</td>
 <td>Insert text op edit line in command window</td>
 </tr>
-<tr class="even">
-<td>INSTLOG</td>
-<td>INSTLOG data logging on</td>
-</tr>
 <tr class="odd">
-<td>LINE</td>
+<td>INSTLOG</td>
+<td>Turn instant data logging on</td>
+</tr>
+<tr class="even">
+<td><a href="LINE.html">LINE</a></td>
 <td>Draw a line on the radar screen</td>
 </tr>
-<tr class="even">
-<td>LISTRTE</td>
+<tr class="odd">
+<td><a href="LISTRTE.html">LISTRTE</a></td>
 <td>Show list of route in window per page of 5 waypoints</td>
 </tr>
+<tr class="even">
+<td><a href="LNAV.html">LNAV</a></td>
+<td>LNAV switch for autopilot</td>
+</tr>
 <tr class="odd">
-<td>LNAV</td>
-<td>LNAV (lateral FMS mode) switch for autopilot</td>
+<td><a href="MCRE.html">MCRE</a></td>
+<td>Multiple random create of <em>n</em> aircraft in current view</td>
 </tr>
 <tr class="even">
-<td>MCRE</td>
-<td>Multiple random create of n aircraft in current view</td>
-</tr>
-<tr class="odd">
 <td>METRIC</td>
 <td>Complexity metrics module</td>
 </tr>
-<tr class="even">
-<td>MOVE</td>
+<tr class="odd">
+<td><a href="MOVE.html">MOVE</a></td>
 <td>Move an aircraft to a new position</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>ND</td>
 <td>Show navigation display with CDTI</td>
 </tr>
-<tr class="even">
-<td>NOISE</td>
+<tr class="odd">
+<td><a href="NOISE.html">NOISE</a></td>
 <td>Turbulence/noise switch</td>
 </tr>
-<tr class="odd">
-<td>NOM</td>
-<td>Set nominal acceleration for this aircraft (perf model)</td>
-</tr>
 <tr class="even">
-<td>NORESO</td>
+<td><a href="NOM.html">NOM</a></td>
+<td>Set nominal acceleration for this aircraft</td>
+</tr>
+<tr class="odd">
+<td><a href="NORESO.html">NORESO</a></td>
 <td>Switch off conflict resolution for this aircraft</td>
 </tr>
-<tr class="odd">
-<td><a href="OP.html">OP</a></td>
-<td>Start/Run simulation or continue after pause</td>
-</tr>
 <tr class="even">
-<td>ORIG</td>
+<td><a href="OP.html">OP</a></td>
+<td>Start simulation or continue after pause</td>
+</tr>
+<tr class="odd">
+<td><a href="ORIG.html">ORIG</a></td>
 <td>Set origin airport of aircraft</td>
 </tr>
-<tr class="odd">
-<td>PAN</td>
-<td>Pan screen (move view) to a waypoint, direction or aircraft</td>
-</tr>
 <tr class="even">
+<td><a href="PAN.html">PAN</a></td>
+<td>Move view to a location</td>
+</tr>
+<tr class="odd">
 <td><a href="PCALL.html">PCALL</a></td>
 <td>Call commands in another scenario file</td>
 </tr>
-<tr class="odd">
-<td>POLY</td>
+<tr class="even">
+<td><a href="POLY.html">POLY</a></td>
 <td>Define a polygon-shaped area</td>
 </tr>
-<tr class="even">
-<td>POLYALT</td>
-<td>Define a polygon-shaped area in 3D: between two altitudes</td>
-</tr>
 <tr class="odd">
-<td>POS</td>
+<td><a href="POLYALT.html">POLYALT</a></td>
+<td>Define a polygon-shaped area in 3D</td>
+</tr>
+<tr class="even">
+<td><a href="POS.html">POS</a></td>
 <td>Get info on aircraft</td>
 </tr>
-<tr class="even">
-<td>PRIORULES</td>
-<td>Define priority rules (right of way) for conflict resolution</td>
-</tr>
 <tr class="odd">
+<td>PRIORULES</td>
+<td>Define priority rules for conflict resolution</td>
+</tr>
+<tr class="even">
 <td><a href="QUIT.html">QUIT</a></td>
 <td>Quit program/Stop simulation</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="RESET.html">RESET</a></td>
 <td>Reset simulation</td>
 </tr>
-<tr class="odd">
-<td>RESO</td>
+<tr class="even">
+<td><a href="RESO.html">RESO</a></td>
 <td>Set resolution method</td>
 </tr>
-<tr class="even">
-<td>RESOOFF</td>
+<tr class="odd">
+<td><a href="RESOOFF.html">RESOOFF</a></td>
 <td>Switch for conflict resolution module</td>
 </tr>
+<tr class="even">
+<td><a href="RFACH.html">RFACH</a></td>
+<td>Set resolution factor horizontal</td>
+</tr>
 <tr class="odd">
-<td>RFACH</td>
-<td>Set resolution factor horizontal (to add a margin)</td>
+<td><a href="RFACV.html">RFACV</a></td>
+<td>Set resolution factor vertical</td>
 </tr>
 <tr class="even">
-<td>RFACV</td>
-<td>Set resolution factor vertical (to add a margin)</td>
-</tr>
-<tr class="odd">
-<td>RMETHH</td>
+<td><a href="RMETHH.html">RMETHH</a></td>
 <td>Set resolution method to be used horizontally</td>
 </tr>
-<tr class="even">
-<td>RMETHV</td>
+<tr class="odd">
+<td><a href="RMETHV.html">RMETHV</a></td>
 <td>Set resolution method to be used vertically</td>
 </tr>
-<tr class="odd">
-<td>RSZONEDH</td>
+<tr class="even">
+<td><a href="RSZONEDH.html">RSZONEDH</a></td>
 <td>Set half of vertical dimension of resolution zone in ft</td>
 </tr>
-<tr class="even">
-<td>RSZONER</td>
+<tr class="odd">
+<td><a href="RSZONER.html">RSZONER</a></td>
 <td>Set horizontal radius of resolution zone in nm</td>
 </tr>
-<tr class="odd">
-<td>RUNWAYS</td>
+<tr class="even">
+<td><a href="RUNWAYS.html">RUNWAYS</a></td>
 <td>List available runways on an airport</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="SAVEIC.html">SAVEIC</a></td>
 <td>Save current situation as IC</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="SCEN.html">SCEN</a></td>
 <td>Give current situation a scenario name</td>
 </tr>
+<tr class="odd">
+<td>SCHEDULE</td>
+<td>Define a time when a command is executed</td>
+</tr>
 <tr class="even">
-<td>SEED</td>
-<td>Set seed for all functions using a randomizer (e.g.mcre,noise</td>
+<td><a href="SEED.html">SEED</a></td>
+<td>Set seed for all functions using a randomizer</td>
 </tr>
 <tr class="odd">
 <td>SKYLOG</td>
@@ -322,15 +341,15 @@
 <td>SNAPLOG data logging on</td>
 </tr>
 <tr class="odd">
-<td>SPD</td>
-<td>Speed command (autopilot)</td>
+<td><a href="SPD.html">SPD</a></td>
+<td>Speed command</td>
 </tr>
 <tr class="even">
-<td>SSD</td>
-<td>Show state-space diagram (=conflict prevention display/predictive ASAS)</td>
+<td><a href="SSD.html">SSD</a></td>
+<td>Show conflict prevention display</td>
 </tr>
 <tr class="odd">
-<td>SWRAD</td>
+<td><a href="SWRAD.html">SWRAD</a></td>
 <td>Switch on/off elements and background of map/radar view</td>
 </tr>
 <tr class="even">
@@ -339,7 +358,7 @@
 </tr>
 <tr class="odd">
 <td>SYN</td>
-<td>Macro for generating synthetic (geometric) traffic scenarios</td>
+<td>Macro for generating geometric traffic scenarios</td>
 </tr>
 <tr class="even">
 <td>TAXI</td>
@@ -350,31 +369,31 @@
 <td>Set simulated clock time</td>
 </tr>
 <tr class="even">
-<td>TRAIL</td>
+<td><a href="TRAIL.html">TRAIL</a></td>
 <td>Toggle aircraft trails on/off</td>
 </tr>
 <tr class="odd">
-<td>VNAV</td>
-<td>Switch on/off VNAV mode, the vertical FMS mode (autopilot</td>
+<td><a href="VNAV.html">VNAV</a></td>
+<td>Switch on/off VNAV mode, the vertical FMS mode</td>
 </tr>
 <tr class="even">
-<td>VS</td>
-<td>Vertical speed command (autopilot)</td>
+<td><a href="VS.html">VS</a></td>
+<td>Vertical speed command</td>
 </tr>
 <tr class="odd">
 <td>WIND</td>
 <td>Define a wind vector as part of the 2D or 3D wind field</td>
 </tr>
 <tr class="even">
-<td>ZONEDH</td>
+<td><a href="ZONEDH.html">ZONEDH</a></td>
 <td>Set half of the vertical protected zone dimensions in ft</td>
 </tr>
 <tr class="odd">
-<td>ZONER</td>
+<td><a href="ZONER.html">ZONER</a></td>
 <td>Set the radius of the horizontal protected zone dimensions in nm</td>
 </tr>
 <tr class="even">
-<td>ZOOM</td>
+<td><a href="ZOOM.html">ZOOM</a></td>
 <td>Zoom display in/out, you can also use +++ or -----</td>
 </tr>
 </tbody>

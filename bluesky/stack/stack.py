@@ -242,7 +242,7 @@ def init(sim, traf, scr):
         "DELAY": [
             "DELAY time offset, COMMAND+ARGS",
             "time,txt,...",
-            lambda time,cmd,*args: sched_cmd(time, cmd, args, relative=True)
+            lambda time,*args: sched_cmd(time, args, relative=True, sim=sim)
         ],
         "DELRTE": [
             "DELRTE acid",
@@ -554,7 +554,7 @@ def init(sim, traf, scr):
         "SCHEDULE": [
             "SCHEDULE time, COMMAND+ARGS",
             "time,txt,...",
-            lambda time,cmd, *args: sched_cmd(time, cmd, args, relative=False)
+            lambda time, *args: sched_cmd(time, args, relative=False)
         ],
         "SCEN": [
             "SCEN scenname",
@@ -832,10 +832,28 @@ def stack(cmdline):
             cmdstack.append(line)
 
 
-def sched_cmd(time, cmd, args, relative=False):
+def sched_cmd(time, args, relative=False, sim=None):
     tostack = ','.join(args)
     # find spot in time list corresponding to passed time, get idx
     # insert time at idx in scentime, insert cmd at idx in scencmd
+    if relative:
+        time += sim.simt
+    # in case there is no scentime yet, only extend
+
+    if len(scentime) == 0:    
+        scentime.extend([time])
+        scencmd.extend([tostack])
+    else:
+        try:
+            idx = scentime.index(next(sctime for sctime in scentime if sctime > time))  
+            
+            scentime.insert(idx, time)
+            scencmd.insert(idx, tostack)
+        except:
+            scentime.extend([time])
+            scencmd.extend([tostack])
+   
+    
     return True
 
 
@@ -1236,8 +1254,14 @@ class Argparser:
         self.argstep = 0
         self.error   = ''
 
+        if argtype == "txt":  # simple text
+            self.result  = [args[argidx]]
+            self.argstep = 1
+            return True
+
+
         # Empty arg or wildcard
-        if args[argidx] == "" or args[argidx] == "*":
+        elif args[argidx] == "" or args[argidx] == "*":
             # If there was a matching additional argument stored previously use that one
             if argtype in self.additional and args[argidx] == "*":
                 self.result  = [self.additional[argtype]]
@@ -1261,11 +1285,6 @@ class Argparser:
                 self.result  = [idx]
                 self.argstep = 1
                 return True
-
-        elif argtype == "txt":  # simple text
-            self.result  = [args[argidx]]
-            self.argstep = 1
-            return True
 
         elif argtype == "wpinroute":  # return text in upper case
             wpname = args[argidx].upper()
