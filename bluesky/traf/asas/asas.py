@@ -5,12 +5,15 @@ from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
 # Import default CD methods
-try:
-    import casas as StateBasedCD
-except ImportError:
-    StateBasedCD = False
+StateBasedCD = False
+if settings.prefer_compiled:
+    try:
+        import casas as StateBasedCD
+        print 'Using compiled version of StateBasedCD'
+    except ImportError:
+        print 'Failed loading compiled version of StateBasedCD, reverting to python version.'
 
-if not settings.prefer_compiled or not StateBasedCD:
+if not StateBasedCD:
     import StateBasedCD
 
 # Import default CR methods
