@@ -1,6 +1,6 @@
 try:
     from PyQt5.QtCore import QUrl, QFileInfo
-    from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton
+    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton
     from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 
     class DocView(QWebEngineView):
@@ -22,7 +22,7 @@ try:
             self.setPage(self.page)
 except:
     from PyQt4.QtCore import QUrl, QFileInfo
-    from PyQt4.QtGui import QVBoxLayout, QWidget, QPushButton
+    from PyQt4.QtGui import QVBoxLayout, QHBoxLayout, QWidget, QPushButton
     from PyQt4.QtWebKit import QWebView as DocView
 
 
@@ -34,12 +34,19 @@ class DocWindow(QWidget):
         DocWindow.app = app
         self.vlayout  = QVBoxLayout()
         self.view     = DocView()
+        self.backbtn  = QPushButton('Back')
         self.closebtn = QPushButton('Close')
         self.vlayout.setContentsMargins(1, 1, 1, 1)
         self.vlayout.setSpacing(1)
         self.vlayout.addWidget(self.view)
-        self.vlayout.addWidget(self.closebtn)
+        hlayout = QHBoxLayout()
+        buttonbox = QWidget()
+        buttonbox.setLayout(hlayout)
+        self.vlayout.addWidget(buttonbox)
+        hlayout.addWidget(self.closebtn)
+        hlayout.addWidget(self.backbtn)
         self.closebtn.clicked.connect(self.hide)
+        self.backbtn.clicked.connect(self.view.back)
         self.setLayout(self.vlayout)
         self.setWindowTitle('BlueSky documentation')
 

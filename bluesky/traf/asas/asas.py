@@ -9,9 +9,9 @@ StateBasedCD = False
 if settings.prefer_compiled:
     try:
         import casas as StateBasedCD
-        print 'Using compiled version of StateBasedCD'
+        print 'StateBasedCD: using compiled version'
     except ImportError:
-        print 'Failed loading compiled version of StateBasedCD, reverting to python version.'
+        print 'StateBasedCD: using default Python version, no compiled version for this platform.'
 
 if not StateBasedCD:
     import StateBasedCD
