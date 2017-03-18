@@ -1,4 +1,7 @@
 from math import *
+
+from ..settings import gui
+
 import numpy as np
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
@@ -111,18 +114,22 @@ class Trails(DynamicArrays):
             self.lastlon[i] = self.traf.lon[i]
             self.lasttim[i] = t
 
-        # QtGL send buffer
-        self.newlat0.extend(lstlat0)
-        self.newlon0.extend(lstlon0)
-        self.newlat1.extend(lstlat1)
-        self.newlon1.extend(lstlon1)
+        # When a/c is no longer part of trail semgment,
+        # it is no longer a/c data => move to the GUI buffer (send or draw)
+        if gui == 'qtgl':
+            # QtGL: add to send buffer
+            self.newlat0.extend(lstlat0)
+            self.newlon0.extend(lstlon0)
+            self.newlat1.extend(lstlat1)
+            self.newlon1.extend(lstlon1)
 
-        # Add resulting linepieces
-        self.lat0 = np.concatenate((self.lat0, np.array(lstlat0)))
-        self.lon0 = np.concatenate((self.lon0, np.array(lstlon0)))
-        self.lat1 = np.concatenate((self.lat1, np.array(lstlat1)))
-        self.lon1 = np.concatenate((self.lon1, np.array(lstlon1)))
-        self.time = np.concatenate((self.time, np.array(lsttime)))
+        else:
+            # Pygame: send to drawing buffer
+            self.lat0 = np.concatenate((self.lat0, np.array(lstlat0)))
+            self.lon0 = np.concatenate((self.lon0, np.array(lstlon0)))
+            self.lat1 = np.concatenate((self.lat1, np.array(lstlat1)))
+            self.lon1 = np.concatenate((self.lon1, np.array(lstlon1)))
+            self.time = np.concatenate((self.time, np.array(lsttime)))
 
         # Update colours
         self.fcol = (1. - np.minimum(self.tcol0, np.abs(t - self.time)) / self.tcol0)
@@ -130,7 +137,7 @@ class Trails(DynamicArrays):
         return
 
     def buffer(self):
-        """Buffer trails: Move current stack to background"""
+        """Buffer trails: Move current stack to background """
 
         self.bglat0 = np.append(self.bglat0, self.lat0)
         self.bglon0 = np.append(self.bglon0, self.lon0)
@@ -189,18 +196,34 @@ class Trails(DynamicArrays):
 
     def setTrails(self, *args):
         """ Set trails on/off, or change trail color of aircraft """
-        if type(args[0]) == bool:
+        if len(args)==0:
+            msg = "TRAIL ON/OFF, [dt] / TRAIL acid color\n"         
+
+            if self.active:
+                msg = msg + "TRAILS ARE ON"
+            else:    
+                msg = msg + "TRAILS ARE OFF"
+
+            return True,msg
+
+        # Switch on/off
+        elif type(args[0]) == bool:
             # Set trails on/off
             self.active = args[0]
             if len(args) > 1:
                 self.dt = args[1]
             if not self.active:
                 self.clear()
+
+        # Change color per acid (pygame only)
         else:
+            
             # Change trail color
             if len(args) < 2 or args[1] not in ["BLUE", "RED", "YELLOW"]:
                 return False, "Set aircraft trail color with: TRAIL acid BLUE/RED/YELLOW"
             self.changeTrailColor(args[1], args[0])
+        
+        return True
 
     def changeTrailColor(self, color, idx):
         """Change color of aircraft trail"""
