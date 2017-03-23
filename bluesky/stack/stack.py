@@ -613,7 +613,7 @@ def init(sim, traf, scr):
         ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
-            "acid/bool,[float/txt]",
+            "[acid/bool],[float/txt]",
             traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
