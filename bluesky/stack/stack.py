@@ -73,7 +73,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "SAVE": "SAVEIC",
              "SPEED": "SPD",
              "START": "OP",
-             "TRAILS":"TRAIL",
+             "TRAILS": "TRAIL",
              "TURN": "HDG",
              "VMETH": "RMETHV",
              "VRESOM": "RMETHV",
@@ -225,6 +225,12 @@ def init(sim, traf, scr):
             traf.create,
             "Create an aircraft"
         ],
+        "CRECONFS": [
+            "CRECONFS id, type, targetid, dpsi, cpa, tlos_hor, dH, tlos_ver, spd",
+            "txt,txt,acid,hdg,float,time,[alt,time,spd]",
+            traf.creconfs,
+            "Create an aircraft that is in conflict with 'targetid'"
+        ],
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",
@@ -242,7 +248,8 @@ def init(sim, traf, scr):
         "DELAY": [
             "DELAY time offset, COMMAND+ARGS",
             "time,txt,...",
-            lambda time,*args: sched_cmd(time, args, relative=True, sim=sim)
+            lambda time,*args: sched_cmd(time, args, relative=True, sim=sim),
+            "Add a delayed command to stack"
         ],
         "DELRTE": [
             "DELRTE acid",
@@ -554,7 +561,8 @@ def init(sim, traf, scr):
         "SCHEDULE": [
             "SCHEDULE time, COMMAND+ARGS",
             "time,txt,...",
-            lambda time, *args: sched_cmd(time, args, relative=False)
+            lambda time, *args: sched_cmd(time, args, relative=False),
+            "Schedule a stack command at a given time"
         ],
         "SCEN": [
             "SCEN scenname",
