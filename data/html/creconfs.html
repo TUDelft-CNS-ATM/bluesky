@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="creconfs-creconfs">CRECONFS: Creconfs</h1>
+<p>Create an aircraft that is in conflict with 'targetid'</p>
+<p><strong>Usage:</strong></p>
+<pre><code>CRECONFS id, type, targetid, dpsi, cpa, tlos_hor, dH, tlos_ver, spd</code></pre>
+<p><strong>Arguments:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>id</td>
+<td>txt</td>
+<td>No</td>
+<td>Aircraft id for the new aircraft</td>
+</tr>
+<tr class="even">
+<td>type</td>
+<td>txt</td>
+<td>No</td>
+<td>Aircraft type</td>
+</tr>
+<tr class="odd">
+<td>targetid</td>
+<td>acid</td>
+<td>No</td>
+<td>Id of the aircraft you want to create a conflict with</td>
+</tr>
+<tr class="even">
+<td>dpsi</td>
+<td>hdg</td>
+<td>No</td>
+<td>Relative heading [deg]</td>
+</tr>
+<tr class="odd">
+<td>cpa</td>
+<td>float</td>
+<td>No</td>
+<td>Distance at closest point of approach [nm]</td>
+</tr>
+<tr class="even">
+<td>tlos_hor</td>
+<td>time</td>
+<td>No</td>
+<td>Time until horizontal loss of separation [sec]</td>
+</tr>
+<tr class="odd">
+<td>dH</td>
+<td>alt</td>
+<td>Yes</td>
+<td>Altitude difference [ft]</td>
+</tr>
+<tr class="even">
+<td>tlos_ver</td>
+<td>time</td>
+<td>Yes</td>
+<td>Time until vertical loss of separation [sec]</td>
+</tr>
+<tr class="odd">
+<td>spd</td>
+<td>spd</td>
+<td>Yes</td>
+<td>Aircraft speed</td>
+</tr>
+</tbody>
+</table>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>
