@@ -17,7 +17,6 @@ from ...tools.aero import ft, nm, kts
 from ...sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
 from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
 from ...navdb.loadnavdata import load_aptsurface, load_coastlines
-from ...traf.trails import Trails
 
 
 # Static defines
@@ -27,7 +26,7 @@ MAX_ROUTE_LENGTH      = 100
 MAX_POLYPREV_SEGMENTS = 100
 MAX_ALLPOLYS_SEGMENTS = 2000
 MAX_CUST_WPT          = 1000
-MAX_TRAILLEN          = MAX_NAIRCRAFT*1000
+MAX_TRAILLEN          = MAX_NAIRCRAFT * 1000
 
 REARTH_INV            = 1.56961231e-7
 
@@ -158,7 +157,6 @@ class RadarWidget(QGLWidget):
         # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
-        
 
     @pyqtSlot(str, tuple, int)
     def nodesChanged(self, address, nodeid, connidx):
@@ -178,13 +176,11 @@ class RadarWidget(QGLWidget):
         self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
         # Update trail buffer after node change
-        update_buffer(self.trailbuf, np.array(         \
-              zip(nact.traillat0,nact.traillon0,       \
-                  nact.traillat1,nact.traillon1),      \
-                       dtype=np.float32))
+        update_buffer(self.trailbuf, np.array(
+              zip(nact.traillat0, nact.traillon0,
+                  nact.traillat1, nact.traillon1), dtype=np.float32))
 
-        self.traillines.set_vertex_count(4*len(nact.traillat0))
-
+        self.traillines.set_vertex_count(4 * len(nact.traillat0))
 
     def create_objects(self):
         if not self.isValid():
@@ -212,13 +208,11 @@ class RadarWidget(QGLWidget):
                 break
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
-       
         # usage flag indicates drawing priority:
         #
         # gl.GL_STREAM_DRAW  =  most frequent update
         # gl.GL_DYNAMIC_DRAW =  update
         # gl.GL_STATIC_DRAW  =  less frequent update
-
 
         self.achdgbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.aclatbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
@@ -240,7 +234,6 @@ class RadarWidget(QGLWidget):
         self.custwplatbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
         self.custwplonbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
         self.custwplblbuf  = create_empty_buffer(MAX_CUST_WPT * 5, usage=gl.GL_STATIC_DRAW)
-
 
         # ------- Map ------------------------------------
         mapvertices = np.array([(-90.0, 540.0), (-90.0, -540.0), (90.0, -540.0), (90.0, 540.0)], dtype=np.float32)
@@ -702,20 +695,20 @@ class RadarWidget(QGLWidget):
             nact = self.nodedata[manager.sender()[0]]
 
             # Update trails database with new lines
-            if data.swtrails:          
+            if data.swtrails:
                 nact.traillat0.extend(data.traillat0)
                 nact.traillon0.extend(data.traillon0)
                 nact.traillat1.extend(data.traillat1)
                 nact.traillon1.extend(data.traillon1)
-                update_buffer(self.trailbuf, np.array(                 \
-                              zip(nact.traillat0,nact.traillon0,       \
-                                  nact.traillat1,nact.traillon1)+      \
-                              zip(data.traillastlat,data.traillastlon, \
-                                  list(data.lat),list(data.lon)),      \
+                update_buffer(self.trailbuf, np.array(
+                              zip(nact.traillat0, nact.traillon0,
+                                  nact.traillat1, nact.traillon1) +
+                              zip(data.traillastlat, data.traillastlon,
+                                  list(data.lat), list(data.lon)),
                                        dtype=np.float32))
 
-                self.traillines.set_vertex_count(2*len(nact.traillat0) +\
-                                  2*len(data.lat))
+                self.traillines.set_vertex_count(2 * len(nact.traillat0) +
+                                  2 * len(data.lat))
 
             else:
                 nact.traillat0 = []
@@ -723,7 +716,7 @@ class RadarWidget(QGLWidget):
                 nact.traillat1 = []
                 nact.traillon1 = []
                 update_buffer(self.trailbuf, np.array([], dtype=np.float32))
-               
+
                 self.traillines.set_vertex_count(0)
 
     def show_ssd(self, arg):
@@ -745,7 +738,7 @@ class RadarWidget(QGLWidget):
         nact.custwplbl += wpdata[0].ljust(5)
         nact.custwplat = np.append(nact.custwplat, np.float32(wpdata[1]))
         nact.custwplon = np.append(nact.custwplon, np.float32(wpdata[2]))
-        
+
         if manager.sender()[0] == self.iactconn:
             self.makeCurrent()
             update_buffer(self.custwplblbuf, np.array(nact.custwplbl))
@@ -764,7 +757,7 @@ class RadarWidget(QGLWidget):
         nact.custwplbl = ''
         nact.custwplat = np.array([], dtype=np.float32)
         nact.custwplon = np.array([], dtype=np.float32)
-        
+
         # Clear trail data
         nact.traillat0 = []
         nact.traillon0 = []

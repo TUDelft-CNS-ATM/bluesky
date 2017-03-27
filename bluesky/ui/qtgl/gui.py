@@ -1,15 +1,12 @@
 try:
-    from PyQt5.QtCore import Qt, QEvent, QTimer
+    from PyQt5.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
-    QT_VERSION = 5
-    print('Using Qt5 for windows and widgets')
 except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, QTimer
+    from PyQt4.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
     from PyQt4.QtGui import QApplication, QFileDialog, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
-    QT_VERSION = 4
-    print('Using Qt4 for windows and widgets')
+
 import numpy as np
 
 # Local imports
@@ -29,9 +26,14 @@ from nd import ND
 import autocomplete
 from ...tools.misc import cmdsplit, tim2txt
 from ...settings import scenario_path
-import platform
 
-is_osx = platform.system() == 'Darwin'
+print('Using Qt ' + QT_VERSION_STR + ' for windows and widgets')
+
+# Qt smaller than 5.6.2 needs a different approach to pinch gestures
+correct_pinch = False
+if QT_VERSION <= 0x050600:
+    import platform
+    correct_pinch = platform.system() == 'Darwin'
 
 
 usage_hints = { 'BATCH': 'filename',
@@ -125,7 +127,7 @@ class Gui(QApplication):
             print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
 
         # Enable HiDPI support (Qt5 only)
-        if QT_VERSION == 5:
+        if QT_VERSION >= 0x050000:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     def init(self, navdb):
@@ -303,7 +305,7 @@ class Gui(QApplication):
                         if zoom is None:
                             zoom = 1.0
                         zoom  *= g.scaleFactor()
-                        if is_osx:
+                        if correct_pinch:
                             zoom /= g.lastScaleFactor()
                     elif g.gestureType() == Qt.PanGesture:
                         if abs(g.delta().y() + g.delta().x()) > 1e-1:
