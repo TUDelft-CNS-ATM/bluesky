@@ -9,7 +9,7 @@ import time
 # Local imports
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, \
-    SimStateEvent, SimQuitEventType
+    SimStateEvent, SimQuitEventType, StackInitEvent
 from ...traf import Traffic
 from ...navdb import Navdatabase
 from ... import stack
@@ -78,6 +78,10 @@ class Simulation(QObject):
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
         self.fixdt = self.simdt
+
+        # Send list of stack functions available in this sim to gui at start
+        stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.iteritems()}
+        self.manager.sendEvent(StackInitEvent(stackdict))
 
         while self.running:
             # Datalog pre-update (communicate current sim time to loggers)

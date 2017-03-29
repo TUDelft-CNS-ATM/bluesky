@@ -19,7 +19,7 @@ from ...sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
-                     DisplayShapeEventType, \
+                     DisplayShapeEventType, StackInitEventType, \
                      AMANEventType, NUMEVENTS
 from radarwidget import RadarWidget
 from nd import ND
@@ -158,6 +158,10 @@ class Gui(QApplication):
                     self.win.console.echo(event.disptext)
                 if event.cmdtext:
                     self.win.console.setCmdline(event.cmdtext)
+
+            elif event.type() == StackInitEventType:
+                event_processed = True
+                self.win.console.addStackHelp(manager.sender()[0], event.stackdict)
 
             elif event.type() == ShowDialogEventType:
                 if event.dialog_type == event.filedialog_type:

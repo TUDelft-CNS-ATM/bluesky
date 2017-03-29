@@ -11,48 +11,7 @@ from ...sim.qtgl import MainManager as manager
 from ...sim.qtgl import StackTextEvent
 
 
-usage_hints = { 'BATCH': 'filename',
-                'CRE' : 'acid,type,lat,lon,hdg,alt,spd',
-                'POS' : 'acid',
-                'SSD' : 'acid/ALL/OFF',
-                'MOVE': 'acid,lat,lon,[alt],[hdg],[spd],[vspd]',
-                'DELAY': 'time offset [secs], CMD + CMD-specific arguments',
-                'DEL': 'acid',
-                'ALT': 'acid,alt,[vspd]',
-                'HDG': 'acid,hdg',
-                'SPD': 'acid,spd',
-                'NOM': 'acid',
-                'VS': 'acid,vs',
-                'ORIG': 'acid,apt',
-                'DEST': 'acid,apt',
-                'ZOOM': 'in/out',
-                'PAN': 'LEFT/RIGHT/UP/DOWN/acid/airport/navid',
-                'IC': 'IC/filename',
-                'SAVEIC': 'filename',
-                'SCHEDULE': 'execution time [secs], CMD + CMD-specific arguments',
-                'DT': 'dt',
-                'AREA': 'lat0,lon0,lat1,lon1,[lowalt]',
-                'BOX': 'boxname,lat0,lon0,lat1,lon1',
-                'POLY': 'polyname,lat0,lon0,lat1,lon1,lat2,lon2,...',
-                'TAXI': 'ON/OFF',
-                'SWRAD': 'GEO/GRID/APT/VOR/WPT/LABEL/TRAIL,[dt]/[value]',
-                'TRAIL': 'ON/OFF,[delta_t]',
-                'MCRE': 'n,type/*,alt/*,spd/*,dest/*',
-                'DIST': 'lat1,lon1,lat2,lon2',
-                'LNAV': 'acid,ON/OFF',
-                'VNAV': 'acid,ON/OFF',
-                'ASAS': 'acid,ON/OFF',
-                'ADDWPT': 'acid,wpname/latlon/fly-by/fly-over,[alt],[spd],[afterwp]',
-                'DELWPT': 'acid,wpname',
-                'DIRECT': 'acid,wpname',
-                'LISTRTE': 'acid,[pagenr]',
-                'ND': 'acid',
-                'NAVDISP': 'acid',
-                'NOISE': 'ON/OFF',
-                'LINE': 'name,lat1,lon1,lat2,lon2',
-                'ENG': 'acid',
-                'DATAFEED': 'ON/OFF'
-                }
+node_stacks = dict()
 
 
 class Console(QWidget):
@@ -69,6 +28,9 @@ class Console(QWidget):
         self.history_pos     = 0
         self.command_mem     = ''
         self.command_line    = ''
+
+    def addStackHelp(self, nodeid, stackdict):
+        node_stacks[nodeid] = stackdict
 
     def stack(self, text):
         # Add command to the command history
@@ -94,14 +56,18 @@ class Console(QWidget):
         self.command_line   = text
         self.cmd, self.args = cmdsplit(self.command_line)
 
-        hint = ''
-        if self.cmd in usage_hints:
-            hint = usage_hints[self.cmd]
-            if len(self.args) > 0:
-                hintargs = hint.split(',')
-                hint = ' ' + str.join(',', hintargs[len(self.args):])
+        hintline = ''
+        allhints = node_stacks.get(manager.actnode())
+        if allhints:
+            hint = allhints.get(self.cmd)
+            if hint:
+                if len(self.args) > 0:
+                    hintargs = hint.split(',')
+                    hintline = ' ' + str.join(',', hintargs[len(self.args):])
+                else:
+                    hintline = ' ' + hint
 
-        self.lineEdit.setHtml('>>' + self.command_line + '<font color="#aaaaaa">' + hint + '</font>')
+        self.lineEdit.setHtml('>>' + self.command_line + '<font color="#aaaaaa">' + hintline + '</font>')
 
     def keyPressEvent(self, event):
         # Enter-key: enter command
