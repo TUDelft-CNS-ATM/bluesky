@@ -143,11 +143,8 @@ class MainWindow(QMainWindow):
                 hostname = 'This computer'
             f = host.font(0)
             f.setBold(True)
-            # host.setFont(0, f)
-            # host.setText(0, hostname)
             host.setExpanded(True)
             btn = QPushButton(self.nodetree)
-            # btn.setFont(0, f)
             btn.setText(hostname)
             btn.setFlat(True)
             btn.setStyleSheet('font-weight:bold')
