@@ -1,6 +1,6 @@
 try:
     from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel, QSize
-    from PyQt5.QtGui import QPixmap, QIcon, QColor
+    from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QPushButton
     from PyQt5 import uic
 except ImportError:
@@ -79,6 +79,8 @@ class MainWindow(QMainWindow):
         # Connect to manager's nodelist changed signal
         manager.instance.nodes_changed.connect(self.nodesChanged)
         manager.instance.activenode_changed.connect(self.actnodeChanged)
+        # Connect widgets with each other
+        self.console.cmdline_stacked.connect(self.radarwidget.cmdline_stacked)
 
         self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
@@ -90,11 +92,37 @@ class MainWindow(QMainWindow):
         self.hosts = list()
         self.nodes = list()
 
-        fgcolor = '#' + format(fg[0], '02x') + format(fg[1], '02x') + format(fg[2], '02x')
-        bgcolor = '#' + format(bg[0], '02x') + format(bg[1], '02x') + format(bg[2], '02x')
+        fgcolor = '#%02x%02x%02x' % fg
+        bgcolor = '#%02x%02x%02x' % bg
 
         self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
+
+    def keyPressEvent(self, event):
+        if event.modifiers() & Qt.ShiftModifier:
+            dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
+            dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
+            if event.key() == Qt.Key_Up:
+                self.radarwidget.event(PanZoomEvent(pan=(dlat, 0.0)))
+            elif event.key() == Qt.Key_Down:
+                self.radarwidget.event(PanZoomEvent(pan=(-dlat, 0.0)))
+            elif event.key() == Qt.Key_Left:
+                self.radarwidget.event(PanZoomEvent(pan=(0.0, -dlon)))
+            elif event.key() == Qt.Key_Right:
+                self.radarwidget.event(PanZoomEvent(pan=(0.0, dlon)))
+
+        elif event.key() == Qt.Key_Escape:
+                self.app.quit()
+
+        elif event.key() == Qt.Key_F11:  # F11 = Toggle Full Screen mode
+            if not self.isFullScreen():
+                self.showFullScreen()
+            else:
+                self.showNormal()
+
+        else:
+            # All other events go to the BlueSky console
+            self.console.keyPressEvent(event)
 
     def closeEvent(self, event):
         self.app.quit()

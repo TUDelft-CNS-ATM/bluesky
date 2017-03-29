@@ -800,6 +800,10 @@ class RadarWidget(QGLWidget):
             update_buffer(self.allpolysbuf, nact.polydata)
             self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
+    def cmdline_stacked(self, cmd, args):
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+            self.polyprev.set_vertex_count(0)
+
     def previewpoly(self, shape_type, data_in=None):
         if not self.initialized:
             return
@@ -816,7 +820,7 @@ class RadarWidget(QGLWidget):
             data[4:6] = data_in[2:4]
             data[6:8] = data_in[0], data_in[3]
         else:
-            data = data_in
+            data = np.array(data_in, dtype=np.float32)
         update_buffer(self.polyprevbuf, data)
         self.polyprev.set_vertex_count(len(data) / 2)
 
@@ -875,7 +879,7 @@ class RadarWidget(QGLWidget):
                     self.zoom = max(event.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
                 else:
                     prevzoom = self.zoom
-                    glx, gly = self.pixelCoordsToGLxy(event.origin[0], event.origin[1])
+                    glx, gly = self.pixelCoordsToGLxy(*event.origin)
                     self.zoom *= event.zoom
 
                     # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
