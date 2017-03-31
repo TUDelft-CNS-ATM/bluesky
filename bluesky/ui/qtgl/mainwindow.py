@@ -72,6 +72,7 @@ class MainWindow(QMainWindow):
         # Link menubar buttons
         self.action_Open.triggered.connect(app.show_file_dialog)
         self.action_Save.triggered.connect(self.buttonClicked)
+        self.actionBlueSky_help.triggered.connect(app.show_doc_window)
 
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)

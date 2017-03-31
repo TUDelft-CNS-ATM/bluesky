@@ -2,12 +2,11 @@ try:
     from PyQt5.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
+
 except ImportError:
     from PyQt4.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
     from PyQt4.QtGui import QApplication, QFileDialog, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
-
-import numpy as np
 
 # Local imports
 from ..radarclick import radarclick

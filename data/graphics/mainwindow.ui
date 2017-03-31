@@ -1181,6 +1181,7 @@ p, li { white-space: pre-wrap; }
      <string>Help</string>
     </property>
     <addaction name="actionAbout_BlueSky"/>
+    <addaction name="actionBlueSky_help"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
@@ -1218,6 +1219,11 @@ p, li { white-space: pre-wrap; }
   <action name="actionAbout_BlueSky">
    <property name="text">
     <string>About BlueSky</string>
+   </property>
+  </action>
+  <action name="actionBlueSky_help">
+   <property name="text">
+    <string>BlueSky help</string>
    </property>
   </action>
  </widget>
