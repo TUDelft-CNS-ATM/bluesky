@@ -394,7 +394,6 @@ class Traffic(DynamicArrays):
 
         # Create and, when necessary, set vertical speed
         self.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
-        print 'vs = %.2f cas = %.2f' % (acvs / ft * 60.0, acspd / kts)
         self.ap.selalt(len(self.lat) - 1, altref, acvs)
 
     def delete(self, acid):

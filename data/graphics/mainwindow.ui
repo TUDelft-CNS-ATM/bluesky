@@ -762,7 +762,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QWidget" name="verticalWidget" native="true">
+      <widget class="Console" name="console" native="true">
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <property name="spacing">
          <number>1</number>
@@ -783,7 +783,7 @@
          <number>1</number>
         </property>
         <item>
-         <widget class="QTextEdit" name="stackText">
+         <widget class="Stackwin" name="stackText">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
             <horstretch>0</horstretch>
@@ -905,7 +905,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QTextEdit" name="lineEdit">
+         <widget class="Cmdline" name="lineEdit">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -1181,6 +1181,7 @@ p, li { white-space: pre-wrap; }
      <string>Help</string>
     </property>
     <addaction name="actionAbout_BlueSky"/>
+    <addaction name="actionBlueSky_help"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
@@ -1220,7 +1221,30 @@ p, li { white-space: pre-wrap; }
     <string>About BlueSky</string>
    </property>
   </action>
+  <action name="actionBlueSky_help">
+   <property name="text">
+    <string>BlueSky help</string>
+   </property>
+  </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Console</class>
+   <extends>QWidget</extends>
+   <header location="global">bluesky/ui/qtgl/console</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>Cmdline</class>
+   <extends>QTextEdit</extends>
+   <header>bluesky/ui/qtgl/console</header>
+  </customwidget>
+  <customwidget>
+   <class>Stackwin</class>
+   <extends>QTextEdit</extends>
+   <header>bluesky/ui/qtgl/console</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
