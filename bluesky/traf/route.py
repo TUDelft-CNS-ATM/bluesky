@@ -1018,7 +1018,7 @@ class Route():
 
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
-            qdr = degrees(arctan2(dy[iwpnear],dx[iwpnear]))
+            qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
             delhdg = abs(degto180(traf.trk[i]-qdr))            
             
             # we only turn to the first waypoint if we can reach the required
