@@ -395,6 +395,7 @@ class Traffic(DynamicArrays):
         # Create and, when necessary, set vertical speed
         self.create(acid, actype, aclat, aclon, achdg, acalt, acspd)
         self.ap.selalt(len(self.lat) - 1, altref, acvs)
+        self.vs[-1] = acvs
 
     def delete(self, acid):
         """Delete an aircraft"""

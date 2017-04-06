@@ -139,7 +139,9 @@ class Autopilot(DynamicArrays):
             self.vnavvs  = np.where(self.swvnavvs, self.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * self.traf.gs, self.vnavvs)
 
-            self.vs = np.where(self.swvnavvs, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
+            # self.vs = np.where(self.swvnavvs, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
+            avs = np.where(abs(self.traf.avs) > 0.1, self.traf.avs, self.traf.avsdef)
+            self.vs = np.where(self.swvnavvs, self.vnavvs, avs * self.traf.limvs_flag)
 
             self.alt = np.where(self.swvnavvs, self.traf.actwp.alt, self.traf.apalt)
 
@@ -236,8 +238,6 @@ class Autopilot(DynamicArrays):
             t2go = max(0.1, legdist) / max(0.01, self.traf.gs[idx])
             self.traf.actwp.vs[idx]  = (self.traf.actwp.alt[idx] - self.traf.alt[idx]) / t2go
 
-
-
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
@@ -245,11 +245,10 @@ class Autopilot(DynamicArrays):
         return
 
     def selalt(self, idx, alt, vspd=None):
-
-        if idx<0 or idx>=self.traf.ntraf:
-            return False,"ALT: Aircraft does not exist"
-
         """ Select altitude command: ALT acid, alt, [vspd] """
+        if idx < 0 or idx >= self.traf.ntraf:
+            return False, "ALT: Aircraft does not exist"
+
         self.traf.apalt[idx]    = alt
         self.traf.swvnav[idx]   = False
 
@@ -266,9 +265,8 @@ class Autopilot(DynamicArrays):
     def selvspd(self, idx, vspd):
         """ Vertical speed autopilot command: VS acid vspd """
 
-        if idx<0 or idx>=self.traf.ntraf:
-            return False,"VS: Aircraft does not exist"
-
+        if idx < 0 or idx >= self.traf.ntraf:
+            return False, "VS: Aircraft does not exist"
 
         self.traf.avs[idx] = vspd
         # self.traf.vs[idx] = vspd
