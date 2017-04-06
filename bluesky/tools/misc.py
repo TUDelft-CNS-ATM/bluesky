@@ -18,17 +18,13 @@ from aero import cas2tas, mach2tas, kts
 def txt2alt(txt):
     """Convert text to altitude in ft: also FL300 => 30000. as float"""
     # First check for FL otherwise feet
-    if txt.upper()[:2] == 'FL' and len(txt) >= 4:  # Syntax check Flxxx or Flxx
-        try:
+    try:
+        if txt.upper()[:2] == 'FL' and len(txt) >= 4:  # Syntax check Flxxx or Flxx
             return 100. * int(txt[2:])
-        except:
-            return -999.
-    else:
-        try:
+        else:
             return float(txt)
-        except:
-            return -999.
-    return -999
+    except ValueError:
+        return -1e9
 
 
 def tim2txt(t):
