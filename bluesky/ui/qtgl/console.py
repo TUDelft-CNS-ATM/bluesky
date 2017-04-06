@@ -28,9 +28,13 @@ class Console(QWidget):
         self.history_pos     = 0
         self.command_mem     = ''
         self.command_line    = ''
+        self.initialized     = False
 
     def addStackHelp(self, nodeid, stackdict):
         node_stacks[nodeid] = stackdict
+        if not self.initialized:
+            self.initialized = True
+            self.lineEdit.setHtml('>>')
 
     def stack(self, text):
         # Add command to the command history
