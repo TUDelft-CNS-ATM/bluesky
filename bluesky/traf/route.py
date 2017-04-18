@@ -3,6 +3,7 @@ from ..tools import geo
 from ..tools.aero import ft, kts, g0, nm, cas2tas, mach2cas
 from ..tools.misc import degto180
 from ..tools.position import txt2pos
+from .. import stack
 from ..stack.stack import Argparser
 
 
@@ -42,6 +43,11 @@ class Route():
         # Current actual waypoint
         self.iactwp = -1
         self.swflyby  = True  # Default waypoints are flyby waypoint
+        
+        # if the aircraft lands on a runway, the aircraft should keep the
+        # runway heading
+        # default: False
+        self.flag_landed_runway = False
 
         return
 
@@ -586,35 +592,40 @@ class Route():
         if name != "" and self.wpname.count(name) > 0:
             wpidx = self.wpname.index(name)
             self.iactwp = wpidx
+
             traf.actwp.lat[idx] = self.wplat[wpidx]
             traf.actwp.lon[idx] = self.wplon[wpidx]
 
             self.calcfp()
             traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx])
-            if traf.swvnav[idx]:
-#            if True:
-#                # Set target altitude for autopilot
-#                if self.wptoalt[wpidx] > 0:
-#
-#                    if traf.alt[idx] < self.wptoalt[idx]-10.*ft:
-#                        traf.actwp.alt[idx] = self.wptoalt[wpidx]
-#                        traf.ap.dist2vs[idx] = 9999.
-#                    else:
-#                    
-#                        steepness = 3000.*ft/(10.*nm)
-#                        traf.actwp.alt[idx] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-#                        delalt = traf.alt[idx] - traf.actwp.alt[idx]
-#                        traf.ap.dist2vs[idx] = steepness*delalt
 
+            # If there is a speed specified, process it
+            if self.wpspd[wpidx]>0.:
                 # Set target speed for autopilot
-                spd = self.wpspd[wpidx]
-                alt = traf.alt[idx] if self.wpalt[wpidx] < 0.0 else self.wpalt[wpidx]
-                if spd > 0:
-                    if spd < 2.0:
-                        traf.aspd[idx] = mach2cas(spd, alt)
-                    else:
-                        traf.aspd[idx] = spd#cas2tas(spd, traf.alt[idx])  # or is '= spd'
 
+                if self.wpalt[wpidx] < 0.0:
+                    alt = traf.alt[idx] 
+                else:
+                    alt = self.wpalt[wpidx]
+
+                # Check for valid Mach or CAS
+                if self.wpspd[wpidx] <2.0:
+                    cas = mach2cas(self.wpspd[wpidx], alt)
+                else:
+                    cas = self.wpspd[wpidx]
+
+                # Save it for next leg
+                traf.actwp.spd[idx] = cas
+
+                # When already in VNAV: fly it 
+                if traf.swvnav[idx]:
+                    traf.aspd[idx]=cas
+                
+            # No speed specified for next leg 
+            else:
+                 traf.actwp.spd[idx] = -999.
+                    
+                    
             qdr, dist = geo.qdrdist(traf.lat[idx], traf.lon[idx],
                                 traf.actwp.lat[idx], traf.actwp.lon[idx])
 
@@ -675,8 +686,43 @@ class Route():
         if ipage + 1 < npages:
             scr.cmdline("LISTRTE "+traf.id[idx]+","+str(ipage+1))
 
-    def getnextwp(self):
+    def getnextwp(self, traf):
         """Go to next waypoint and return data"""
+        
+        
+        if self.flag_landed_runway == True:
+
+            # when landing, LNAV is switched off
+            lnavon = False
+            
+            # no further waypoint
+            nextqdr = -999.
+            
+            # and the aircraft just needs a fixed heading to remain on the runway
+            # syntax: HDG acid,hdg (deg,True)
+            name = self.wpname[self.iactwp]
+            if "RWY" in name:
+                rwykey = name[8:]
+            # if it is only RW
+            else:
+                rwykey = name[7:]
+
+            wphdg = self.navdb.rwythresholds[name[:4]][rwykey][2]            
+            
+            # keep constant runway heading
+            stack.stack("HDG " + str(traf.id[self.iac]) + " " + str(wphdg))
+            
+            # start decelerating
+            stack.stack("DELAY " + "10 " + "SPD " + str(traf.id[self.iac]) + " " + "10")            
+            
+            # delete aircraft
+            stack.stack("DELAY " + "42 " + "DEL " + str(traf.id[self.iac]))
+
+            return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
+                           self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
+                           self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
+                           lnavon,self.wpflyby[self.iactwp], nextqdr
+
         lnavon = self.iactwp +1 < self.nwp
         if lnavon:
             self.iactwp = self.iactwp + 1
@@ -684,13 +730,22 @@ class Route():
         else:
             lnavon = False
             
-        nextqdr= self.getnextqdr()                                                          
+        nextqdr= self.getnextqdr()      
+
+        # in case that there is a runway, the aircraft should remain on it 
+        # instead of deviating to the airport centre  
+        # When there is a destination: current = runway, next  = Dest 
+        # Else: current = runway and this is also the last waypoint 
+        if (self.wptype[self.iactwp] == 5 and self.wpname[self.iactwp] ==self.wpname[-1]) or \
+            (self.wptype[self.iactwp] ==5 and self.wptype[self.iactwp + 1] == 3):
+
+            self.flag_landed_runway = True
 
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], nextqdr
-
+               
     def delrte(self):
         """Delete complete route"""
         # Simple re-initilize this route as empty
@@ -963,7 +1018,7 @@ class Route():
 
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
-            qdr = arctan2(dx[iwpnear],dy[iwpnear])
+            qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
             delhdg = abs(degto180(traf.trk[i]-qdr))            
             
             # we only turn to the first waypoint if we can reach the required

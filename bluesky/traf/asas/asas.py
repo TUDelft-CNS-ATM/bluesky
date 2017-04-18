@@ -5,12 +5,15 @@ from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
 # Import default CD methods
-try:
-    import casas as StateBasedCD
-except ImportError:
-    StateBasedCD = False
+StateBasedCD = False
+if settings.prefer_compiled:
+    try:
+        import casas as StateBasedCD
+        print 'StateBasedCD: using compiled version'
+    except ImportError:
+        print 'StateBasedCD: using default Python version, no compiled version for this platform.'
 
-if not settings.prefer_compiled or not StateBasedCD:
+if not StateBasedCD:
     import StateBasedCD
 
 # Import default CR methods
@@ -324,13 +327,12 @@ class ASAS(DynamicArrays):
         # active the switch, if there are acids in the list
         self.swresooff = len(self.resoofflst) > 0
 
-    def create(self):
-        super(ASAS, self).create()
+    def create(self, n=1):
+        super(ASAS, self).create(n)
 
-        # ASAS output commanded values
-        self.trk[-1] = self.traf.trk[-1]
-        self.spd[-1] = self.traf.tas[-1]
-        self.alt[-1] = self.traf.alt[-1]
+        self.trk[-n:] = self.traf.trk[-n:]
+        self.spd[-n:] = self.traf.tas[-n:]
+        self.alt[-n:] = self.traf.alt[-n:]
 
     def update(self, simt):
         iconf0 = np.array(self.iconf)

@@ -7,9 +7,9 @@ import re
 source_path = 'bluesky.wiki/'
 
 # Regular expression to match Github internal references like [[name|link]]
-re_gitlink1 = re.compile('\[\[([^|\]]+)\|([^]]+)\]\]')
+re_gitlink2 = re.compile('\[\[([^|]+)\|([^]]+)\]\]')
 # Regular expression to match Github internal references like [[name]]
-re_gitlink2 = re.compile('\[\[([^]]+)\]\]')
+re_gitlink1 = re.compile('\[\[([^]|]+)\]\]')
 # Replace whitespace in file names to dashes
 re_ws       = re.compile('\s+')
 

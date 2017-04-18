@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <p>BlueSky comes in two graphical flavours: Qt+OpenGL (the default) and PyGame (for older systems). If you followed the <a href="Installation.html">installation instructions</a> you should be ready to go. You can check whether your installation is complete and capable of running BlueSky by running the BlueSky check script:</p>
+<pre><code>python check.py</code></pre>
+<p>If there are missing packages you should install them. The instructions for Anaconda users can be found in the <a href="Installation.html">installation chapter</a>.</p>
+<p>When successful, you should see something like:</p>
+<pre><code>This script checks the availability of the libraries required
+by BlueSky, and the capabilities of your system.
+
+Checking for numpy               [OK]
+Checking for scipy               [OK]
+Checking for matplotlib          [OK]
+Checking for pyqt                [QT5]
+Checking for pyopengl            [OK]
+OpenGL module version is         [3.1.1a1]
+Checking GL capabilities         [OK]
+GL Version at least 3.3          [OK]
+Supported GL version             [4.1]
+Checking for pygame              [OK]
+
+You have all the required libraries to run BlueSky.
+You can use both the QTGL and the pygame versions.
+Checking bluesky modules
+Using Qt5 for windows and widgets
+Using BlueSky performance model
+Successfully loaded all BlueSky modules. Start BlueSky by running BlueSky.py.</code></pre>
+<p>You can now start BlueSky by running:</p>
+<pre><code>python BlueSky.py</code></pre>
+<p>If this is the first time you run BlueSky, you will be presented with a menu where you can choose between the different graphical flavours of BlueSky. Your choice is stored in <code>settings.cfg</code>, so you will get this question only once. Alternatively, you can run either version directly by calling:</p>
+<pre><code>python BlueSky_pygame.py</code></pre>
+<p>or</p>
+<pre><code>python BlueSky_qtgl.py</code></pre>
+<p>The first time you run the QTGL version of BlueSky it will generate visualisation data for things like airport layouts. This generally takes a couple of minutes.</p>
+<p>Congratulations, you have BlueSky running. To get the most out of BlueSky, have a look at:</p>
+<ul>
+<li><a href="Basic-Operation.html">Basic Operation</a></li>
+<li><a href="Data-Logging.html">Data Logging</a></li>
+<li><a href="Batch-Simulation.html">Batch Simulation</a></li>
+<li><a href="Network-Communication.html">Network Communication</a></li>
+<li><a href="Command-Reference.html">Command Reference</a></li>
+<li><a href="Tutorials.html">Tutorials</a></li>
+<li><a href="Troubleshooting.html">Troubleshooting</a></li>
+</ul>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

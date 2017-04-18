@@ -43,7 +43,7 @@ class DynamicArrays(object):
         self.LstVars = Lsts
         self.DynArrs = DynArrs
 
-    def create(self):
+    def create(self, n=1):
         # Append one element (aircraft) to all lists and arrays
 
         for v in self.LstVars:  # Lists (mostly used for strings)
@@ -53,11 +53,11 @@ class DynamicArrays(object):
                 vartype = str(type(v[0])).strip("<type '").strip("'>")
 
             if vartype in defaults:
-                defaultvalue = defaults[vartype]
+                defaultvalue = [defaults[vartype]] * n
             else:
-                defaultvalue = ""
+                defaultvalue = [""] * n
 
-            self.Vars[v].append(defaultvalue)
+            self.Vars[v].extend(defaultvalue)
 
         for v in self.ArrVars:  # Numpy array
             # Get type without byte length
@@ -69,9 +69,9 @@ class DynamicArrays(object):
 
             # Get default value
             if vartype in defaults:
-                defaultvalue = defaults[vartype]
+                defaultvalue = [defaults[vartype]] * n
             else:
-                defaultvalue = 0.0
+                defaultvalue = [0.0] * n
 
             self.Vars[v] = np.append(self.Vars[v], defaultvalue)
 

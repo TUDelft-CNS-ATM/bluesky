@@ -43,16 +43,16 @@ class ADSB(DynamicArrays):
         self.transerror = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
         self.trunctime  = 0  # [s]
 
-    def create(self):
-        super(ADSB, self).create()
+    def create(self, n=1):
+        super(ADSB, self).create(n)
 
-        self.lastupdate[-1] = -self.trunctime * np.random.rand(1)
-        self.lat[-1] = self.traf.lat[-1]
-        self.lon[-1] = self.traf.lon[-1]
-        self.alt[-1] = self.traf.alt[-1]
-        self.trk[-1] = self.traf.trk[-1]
-        self.tas[-1] = self.traf.tas[-1]
-        self.gs[-1]  = self.traf.gs[-1]
+        self.lastupdate[-n:] = -self.trunctime * np.random.rand(n)
+        self.lat[-n:] = self.traf.lat[-n:]
+        self.lon[-n:] = self.traf.lon[-n:]
+        self.alt[-n:] = self.traf.alt[-n:]
+        self.trk[-n:] = self.traf.trk[-n:]
+        self.tas[-n:] = self.traf.tas[-n:]
+        self.gs[-n:]  = self.traf.gs[-n:]
 
     def update(self, time):
         up = np.where(self.lastupdate + self.trunctime < time)

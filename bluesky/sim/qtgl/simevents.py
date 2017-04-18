@@ -3,9 +3,9 @@ try:
 except ImportError:
     from PyQt4.QtCore import QEvent
 
-NUMEVENTS = 15
+NUMEVENTS = 16
 SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, PanZoomEventType, ACDataEventType, \
-    SimInfoEventType, StackTextEventType, ShowDialogEventType, \
+    SimInfoEventType, StackTextEventType, StackInitEventType, ShowDialogEventType, \
     DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType, \
     SimQuitEventType, AMANEventType = range(1000, 1000 + NUMEVENTS)
 
@@ -52,6 +52,12 @@ class StackTextEvent(QEvent):
         super(StackTextEvent, self).__init__(StackTextEventType)
         self.disptext = disptext
         self.cmdtext = cmdtext
+
+
+class StackInitEvent(QEvent):
+    def __init__(self, stackdict):
+        super(StackInitEvent, self).__init__(StackInitEventType)
+        self.stackdict = stackdict
 
 
 class ShowDialogEvent(QEvent):

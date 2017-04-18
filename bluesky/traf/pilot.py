@@ -1,5 +1,5 @@
 import numpy as np
-from ..tools.aero import tas2eas, vcas2tas, vcas2mach
+from ..tools.aero import vtas2eas, vcas2tas, vcas2mach
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
@@ -17,13 +17,13 @@ class Pilot(DynamicArrays):
             self.vs  = np.array([])  # desired vertical speed [m/s]
             self.spd = np.array([])  # desired speed [m/s]
 
-    def create(self):
-        super(Pilot, self).create()
+    def create(self, n=1):
+        super(Pilot, self).create(n)
 
-        self.alt[-1] = self.traf.alt[-1]
-        self.spd[-1] = tas2eas(self.traf.tas[-1], self.traf.alt[-1])
-        self.hdg[-1] = self.traf.hdg[-1]
-        self.trk[-1] = self.traf.trk[-1]
+        self.alt[-n:] = self.traf.alt[-n:]
+        self.spd[-n:] = vtas2eas(self.traf.tas[-n:], self.traf.alt[-n:])
+        self.hdg[-n:] = self.traf.hdg[-n:]
+        self.trk[-n:] = self.traf.trk[-n:]
 
     def FMSOrAsas(self):
         #--------- Input to Autopilot settings to follow: destination or ASAS ----------
@@ -42,14 +42,14 @@ class Pilot(DynamicArrays):
         self.spd = np.where(self.asas.active, asastas, self.ap.tas)
         self.alt = np.where(self.asas.active, self.asas.alt, self.ap.alt)
         self.vs  = np.where(self.asas.active, self.asas.vs, self.ap.vs)
-        
-        # ASAS can give positive and negative VS, but the sign of VS is determined using delalt in Traf.ComputeAirSpeed 
-        # Therefore, ensure that pilot.vs is always positive to prevent opposite signs of delalt and VS in Traf.ComputeAirSpeed 
+
+        # ASAS can give positive and negative VS, but the sign of VS is determined using delalt in Traf.ComputeAirSpeed
+        # Therefore, ensure that pilot.vs is always positive to prevent opposite signs of delalt and VS in Traf.ComputeAirSpeed
         self.vs = np.abs(self.vs)
 
         # Compute the desired heading needed to compensate for the wind
         if self.traf.wind.winddim > 0:
-            
+
             # Calculate wind correction
             vwn, vwe = self.traf.wind.getdata(self.traf.lat, self.traf.lon, self.traf.alt)
             Vw       = np.sqrt(vwn * vwn + vwe * vwe)
@@ -66,7 +66,7 @@ class Pilot(DynamicArrays):
         # check for the flight envelope
         self.traf.delalt = self.traf.apalt - self.traf.alt  # [m]
         self.traf.perf.limits()
-        
+
         #print self.aspd[0]/kts
 
         # Update desired sates with values within the flight envelope

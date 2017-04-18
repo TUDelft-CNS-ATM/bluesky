@@ -21,11 +21,12 @@ from ...navdb.loadnavdata import load_aptsurface, load_coastlines
 
 # Static defines
 MAX_NAIRCRAFT         = 10000
-MAX_NCONFLICTS        = 10000
+MAX_NCONFLICTS        = 25000
 MAX_ROUTE_LENGTH      = 100
 MAX_POLYPREV_SEGMENTS = 100
 MAX_ALLPOLYS_SEGMENTS = 2000
 MAX_CUST_WPT          = 1000
+MAX_TRAILLEN          = MAX_NAIRCRAFT * 1000
 
 REARTH_INV            = 1.56961231e-7
 
@@ -56,6 +57,12 @@ class nodeData(object):
         self.custwplbl = ''
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
+
+        # Create trail data
+        self.traillat0 = []
+        self.traillon0 = []
+        self.traillat1 = []
+        self.traillon1 = []
 
 
 class radarUBO(UniformBuffer):
@@ -160,11 +167,20 @@ class RadarWidget(QGLWidget):
     def actnodeChanged(self, nodeid, connidx):
         self.iactconn = connidx
         nact = self.nodedata[connidx]
+        self.makeCurrent()
+
+        # Polygon data change after node change
         if len(nact.polydata) > 0:
-            self.makeCurrent()
             update_buffer(self.allpolysbuf, nact.polydata)
-        if self.initialized:
-            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+
+        self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+
+        # Update trail buffer after node change
+        update_buffer(self.trailbuf, np.array(
+              zip(nact.traillat0, nact.traillon0,
+                  nact.traillat1, nact.traillon1), dtype=np.float32))
+
+        self.traillines.set_vertex_count(4 * len(nact.traillat0))
 
     def create_objects(self):
         if not self.isValid():
@@ -192,6 +208,12 @@ class RadarWidget(QGLWidget):
                 break
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
+        # usage flag indicates drawing priority:
+        #
+        # gl.GL_STREAM_DRAW  =  most frequent update
+        # gl.GL_DYNAMIC_DRAW =  update
+        # gl.GL_STATIC_DRAW  =  less frequent update
+
         self.achdgbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.aclatbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.aclonbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
@@ -200,12 +222,15 @@ class RadarWidget(QGLWidget):
         self.accolorbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
         self.aclblbuf      = create_empty_buffer(MAX_NAIRCRAFT * 24, usage=gl.GL_STREAM_DRAW)
         self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 16, usage=gl.GL_STREAM_DRAW)
+        self.trailbuf      = create_empty_buffer(MAX_TRAILLEN * 16, usage=gl.GL_STREAM_DRAW)
+
         self.polyprevbuf   = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 20, usage=gl.GL_DYNAMIC_DRAW)
+
         self.custwplatbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
         self.custwplonbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
         self.custwplblbuf  = create_empty_buffer(MAX_CUST_WPT * 5, usage=gl.GL_STATIC_DRAW)
@@ -281,6 +306,9 @@ class RadarWidget(QGLWidget):
         self.rwaypoints = RenderObject(gl.GL_LINE_LOOP, vertex=rwptvertices, color=magenta)
         self.rwaypoints.bind_attrib(ATTRIB_LAT, 1, self.routewplatbuf, instance_divisor=1)
         self.rwaypoints.bind_attrib(ATTRIB_LON, 1, self.routewplonbuf, instance_divisor=1)
+
+        # --------Aircraft Trails------------------------------------------------
+        self.traillines  = RenderObject(gl.GL_LINES, vertex=self.trailbuf, color=cyan)
 
         # ------- Waypoints ------------------------------
         wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
@@ -447,6 +475,7 @@ class RadarWidget(QGLWidget):
         if self.show_traf:
             self.route.draw()
             self.cpalines.draw()
+            self.traillines.draw()
 
         # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------
         self.runways.draw()
@@ -663,6 +692,33 @@ class RadarWidget(QGLWidget):
                     update_buffer(self.routebuf,
                                   np.array([data.lat[idx], data.lon[idx]], dtype=np.float32))
 
+            nact = self.nodedata[manager.sender()[0]]
+
+            # Update trails database with new lines
+            if data.swtrails:
+                nact.traillat0.extend(data.traillat0)
+                nact.traillon0.extend(data.traillon0)
+                nact.traillat1.extend(data.traillat1)
+                nact.traillon1.extend(data.traillon1)
+                update_buffer(self.trailbuf, np.array(
+                              zip(nact.traillat0, nact.traillon0,
+                                  nact.traillat1, nact.traillon1) +
+                              zip(data.traillastlat, data.traillastlon,
+                                  list(data.lat), list(data.lon)),
+                                       dtype=np.float32))
+
+                self.traillines.set_vertex_count(2 * len(nact.traillat0) +
+                                  2 * len(data.lat))
+
+            else:
+                nact.traillat0 = []
+                nact.traillon0 = []
+                nact.traillat1 = []
+                nact.traillon1 = []
+                update_buffer(self.trailbuf, np.array([], dtype=np.float32))
+
+                self.traillines.set_vertex_count(0)
+
     def show_ssd(self, arg):
         if arg == 'ALL':
             self.ssd_all = True
@@ -682,6 +738,7 @@ class RadarWidget(QGLWidget):
         nact.custwplbl += wpdata[0].ljust(5)
         nact.custwplat = np.append(nact.custwplat, np.float32(wpdata[1]))
         nact.custwplon = np.append(nact.custwplon, np.float32(wpdata[2]))
+
         if manager.sender()[0] == self.iactconn:
             self.makeCurrent()
             update_buffer(self.custwplblbuf, np.array(nact.custwplbl))
@@ -701,10 +758,17 @@ class RadarWidget(QGLWidget):
         nact.custwplat = np.array([], dtype=np.float32)
         nact.custwplon = np.array([], dtype=np.float32)
 
+        # Clear trail data
+        nact.traillat0 = []
+        nact.traillon0 = []
+        nact.traillat1 = []
+        nact.traillon1 = []
+
         # If the updated polygon buffer is also currently viewed, also send
         # updates to the gpu buffer
         if manager.sender()[0] == self.iactconn:
             self.allpolys.set_vertex_count(0)
+            self.traillines.set_vertex_count(0)
             self.ncustwpts = 0
 
     def updatePolygon(self, name, data_in):
@@ -736,6 +800,10 @@ class RadarWidget(QGLWidget):
             update_buffer(self.allpolysbuf, nact.polydata)
             self.allpolys.set_vertex_count(len(nact.polydata) / 2)
 
+    def cmdline_stacked(self, cmd, args):
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+            self.polyprev.set_vertex_count(0)
+
     def previewpoly(self, shape_type, data_in=None):
         if not self.initialized:
             return
@@ -752,7 +820,7 @@ class RadarWidget(QGLWidget):
             data[4:6] = data_in[2:4]
             data[6:8] = data_in[0], data_in[3]
         else:
-            data = data_in
+            data = np.array(data_in, dtype=np.float32)
         update_buffer(self.polyprevbuf, data)
         self.polyprev.set_vertex_count(len(data) / 2)
 
@@ -811,7 +879,7 @@ class RadarWidget(QGLWidget):
                     self.zoom = max(event.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
                 else:
                     prevzoom = self.zoom
-                    glx, gly = self.pixelCoordsToGLxy(event.origin[0], event.origin[1])
+                    glx, gly = self.pixelCoordsToGLxy(*event.origin)
                     self.zoom *= event.zoom
 
                     # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]

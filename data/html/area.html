@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="area-area">AREA: Area</h1>
+<p>Define an area of interest.<br />
+When an aircraft exits the area, it is deleted from the simulation. It is possible to predefine shapes using the <a href="BOX.html">BOX</a>, <a href="CIRCLE.html">CIRCLE</a>, <a href="POLY.html">POLY</a> and <a href="POLYALT.html">POLYALT</a> commands.</p>
+<p>This argument can be called in two ways:</p>
+<ol>
+<li>using the name of an already existing shape</li>
+<li>as a square shape</li>
+</ol>
+<p>Note that shapes/areas defined in the second way can be 2D (without altitude constraints) or 3D (with altitude constraints).</p>
+<p><strong>Usage:</strong></p>
+<pre><code>AREA Shapename/OFF or AREA lat1,lon1,lat2,lon2,[top,bottom]</code></pre>
+<p><strong>Arguments 1:</strong></p>
+<table>
+<colgroup>
+<col width="12%" />
+<col width="9%" />
+<col width="5%" />
+<col width="72%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Shapename</td>
+<td>txt</td>
+<td>yes</td>
+<td>Name of the predefined shape to be used as an area of interest. If 'Shapename' is 'OFF', then aircraft are no longer deleted if they leave the area of interest.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Arguments 2:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>lat1</td>
+<td>float</td>
+<td>yes</td>
+<td><a href="Coordinates.html">latitude</a> of the bottom left corner [deg]</td>
+</tr>
+<tr class="even">
+<td>lon1</td>
+<td>float</td>
+<td>yes</td>
+<td><a href="Coordinates.html">longitude</a> of the bottom left corner [deg]</td>
+</tr>
+<tr class="odd">
+<td>lat2</td>
+<td>float</td>
+<td>yes</td>
+<td><a href="Coordinates.html">latitude</a> of the top right corner [deg]</td>
+</tr>
+<tr class="even">
+<td>lon2</td>
+<td>float</td>
+<td>yes</td>
+<td><a href="Coordinates.html">longitude</a> of the top right corner [deg]</td>
+</tr>
+<tr class="odd">
+<td>top</td>
+<td>float</td>
+<td>no</td>
+<td>altitude of the top of area [ft]</td>
+</tr>
+<tr class="even">
+<td>bottom</td>
+<td>float</td>
+<td>no</td>
+<td>altitude of the bottom of area [ft]</td>
+</tr>
+</tbody>
+</table>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

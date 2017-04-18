@@ -73,6 +73,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "SAVE": "SAVEIC",
              "SPEED": "SPD",
              "START": "OP",
+             "TRAILS": "TRAIL",
              "TURN": "HDG",
              "VMETH": "RMETHV",
              "VRESOM": "RMETHV",
@@ -224,6 +225,12 @@ def init(sim, traf, scr):
             traf.create,
             "Create an aircraft"
         ],
+        "CRECONFS": [
+            "CRECONFS id, type, targetid, dpsi, cpa, tlos_hor, dH, tlos_ver, spd",
+            "txt,txt,acid,hdg,float,time,[alt,time,spd]",
+            traf.creconfs,
+            "Create an aircraft that is in conflict with 'targetid'"
+        ],
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",
@@ -237,6 +244,12 @@ def init(sim, traf, scr):
                    else traf.wind.clear() if a == "WIND" \
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
+        ],
+        "DELAY": [
+            "DELAY time offset, COMMAND+ARGS",
+            "time,txt,...",
+            lambda time,*args: sched_cmd(time, args, relative=True, sim=sim),
+            "Add a delayed command to stack"
         ],
         "DELRTE": [
             "DELRTE acid",
@@ -545,6 +558,12 @@ def init(sim, traf, scr):
             lambda fname: saveic(fname, sim, traf),
             "Save current situation as IC"
         ],
+        "SCHEDULE": [
+            "SCHEDULE time, COMMAND+ARGS",
+            "time,txt,...",
+            lambda time, *args: sched_cmd(time, args, relative=False),
+            "Schedule a stack command at a given time"
+        ],
         "SCEN": [
             "SCEN scenname",
             "string",
@@ -602,7 +621,7 @@ def init(sim, traf, scr):
         ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
-            "acid/bool,[float/txt]",
+            "[acid/bool],[float/txt]",
             traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
@@ -819,6 +838,31 @@ def stack(cmdline):
     if len(cmdline) > 0:
         for line in cmdline.split(';'):
             cmdstack.append(line)
+
+
+def sched_cmd(time, args, relative=False, sim=None):
+    tostack = ','.join(args)
+    # find spot in time list corresponding to passed time, get idx
+    # insert time at idx in scentime, insert cmd at idx in scencmd
+    if relative:
+        time += sim.simt
+    # in case there is no scentime yet, only extend
+
+    if len(scentime) == 0:    
+        scentime.extend([time])
+        scencmd.extend([tostack])
+    else:
+        try:
+            idx = scentime.index(next(sctime for sctime in scentime if sctime > time))  
+            
+            scentime.insert(idx, time)
+            scencmd.insert(idx, tostack)
+        except:
+            scentime.extend([time])
+            scencmd.extend([tostack])
+   
+    
+    return True
 
 
 def openfile(fname, absrel='ABS', mergeWithExisting=False):
@@ -1218,8 +1262,14 @@ class Argparser:
         self.argstep = 0
         self.error   = ''
 
+        if argtype == "txt":  # simple text
+            self.result  = [args[argidx]]
+            self.argstep = 1
+            return True
+
+
         # Empty arg or wildcard
-        if args[argidx] == "" or args[argidx] == "*":
+        elif args[argidx] == "" or args[argidx] == "*":
             # If there was a matching additional argument stored previously use that one
             if argtype in self.additional and args[argidx] == "*":
                 self.result  = [self.additional[argtype]]
@@ -1243,11 +1293,6 @@ class Argparser:
                 self.result  = [idx]
                 self.argstep = 1
                 return True
-
-        elif argtype == "txt":  # simple text
-            self.result  = [args[argidx]]
-            self.argstep = 1
-            return True
 
         elif argtype == "wpinroute":  # return text in upper case
             wpname = args[argidx].upper()
