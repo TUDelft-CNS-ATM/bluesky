@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="pan-pan">PAN: Pan</h1>
+<p>Move the screen to a specific location. A text parameter is required to determine the direction of panning.<br />
+The destination can be multiple data types:</p>
+<ul>
+<li>world <a href="Coordinates.html">Coordinates</a></li>
+<li>an aircraft callsign</li>
+<li>an airport name</li>
+<li>a waypoint name</li>
+<li>Direction LEFT/RIGHT/ABOVE/UP/DOWN</li>
+</ul>
+<p>The coordinates of panning will be at the center of the new view. No zooming (in or out) is performed with this function.</p>
+<p>If a direction is given, the view will pan horizontally in the indicated direction.</p>
+<p>The directions ABOVE and UP are synonyms for this function.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>PAN latlon/acid/airport/waypoint/direction</code></pre>
+<p><strong>Arguments:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>location</td>
+<td>txt</td>
+<td>yes</td>
+<td>pan destination</td>
+</tr>
+</tbody>
+</table>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

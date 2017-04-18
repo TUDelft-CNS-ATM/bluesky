@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="defwpt-defwpt">DEFWPT: Defwpt</h1>
+<p>Define a new navigation waypoint in the database.</p>
+<p>The type of the waypoint is a choice between four options: FIX, VOR, DME or NDB.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>DEFWPT wpname,lat,lon,type</code></pre>
+<p><strong>Arguments:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>wpname</td>
+<td>txt</td>
+<td>yes</td>
+<td>Waypoint name [1]</td>
+</tr>
+<tr class="even">
+<td>lat</td>
+<td>float</td>
+<td>yes</td>
+<td>Latitude [deg] [2]</td>
+</tr>
+<tr class="odd">
+<td>lon</td>
+<td>float</td>
+<td>yes</td>
+<td>Longitude [deg] [2]</td>
+</tr>
+<tr class="even">
+<td>type</td>
+<td>txt</td>
+<td>yes</td>
+<td>Type of waypoint</td>
+</tr>
+</tbody>
+</table>
+<p>[1] The waypoint name needs to start with an alphanumerical character</p>
+<p>[2] For more information on entering coordinates, see <a href="Coordinates.html">Coordinates</a>.</p>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

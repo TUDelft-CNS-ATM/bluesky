@@ -592,35 +592,40 @@ class Route():
         if name != "" and self.wpname.count(name) > 0:
             wpidx = self.wpname.index(name)
             self.iactwp = wpidx
+
             traf.actwp.lat[idx] = self.wplat[wpidx]
             traf.actwp.lon[idx] = self.wplon[wpidx]
 
             self.calcfp()
             traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx])
-            if traf.swvnav[idx]:
-#            if True:
-#                # Set target altitude for autopilot
-#                if self.wptoalt[wpidx] > 0:
-#
-#                    if traf.alt[idx] < self.wptoalt[idx]-10.*ft:
-#                        traf.actwp.alt[idx] = self.wptoalt[wpidx]
-#                        traf.ap.dist2vs[idx] = 9999.
-#                    else:
-#                    
-#                        steepness = 3000.*ft/(10.*nm)
-#                        traf.actwp.alt[idx] = self.wptoalt[wpidx] + self.wpxtoalt[wpidx]*steepness
-#                        delalt = traf.alt[idx] - traf.actwp.alt[idx]
-#                        traf.ap.dist2vs[idx] = steepness*delalt
 
+            # If there is a speed specified, process it
+            if self.wpspd[wpidx]>0.:
                 # Set target speed for autopilot
-                spd = self.wpspd[wpidx]
-                alt = traf.alt[idx] if self.wpalt[wpidx] < 0.0 else self.wpalt[wpidx]
-                if spd > 0:
-                    if spd < 2.0:
-                        traf.aspd[idx] = mach2cas(spd, alt)
-                    else:
-                        traf.aspd[idx] = spd#cas2tas(spd, traf.alt[idx])  # or is '= spd'
 
+                if self.wpalt[wpidx] < 0.0:
+                    alt = traf.alt[idx] 
+                else:
+                    alt = self.wpalt[wpidx]
+
+                # Check for valid Mach or CAS
+                if self.wpspd[wpidx] <2.0:
+                    cas = mach2cas(self.wpspd[wpidx], alt)
+                else:
+                    cas = self.wpspd[wpidx]
+
+                # Save it for next leg
+                traf.actwp.spd[idx] = cas
+
+                # When already in VNAV: fly it 
+                if traf.swvnav[idx]:
+                    traf.aspd[idx]=cas
+                
+            # No speed specified for next leg 
+            else:
+                 traf.actwp.spd[idx] = -999.
+                    
+                    
             qdr, dist = geo.qdrdist(traf.lat[idx], traf.lon[idx],
                                 traf.actwp.lat[idx], traf.actwp.lon[idx])
 
@@ -740,6 +745,7 @@ class Route():
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], nextqdr
+               
     def delrte(self):
         """Delete complete route"""
         # Simple re-initilize this route as empty
@@ -1012,7 +1018,7 @@ class Route():
 
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
-            qdr = arctan2(dx[iwpnear],dy[iwpnear])
+            qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
             delhdg = abs(degto180(traf.trk[i]-qdr))            
             
             # we only turn to the first waypoint if we can reach the required

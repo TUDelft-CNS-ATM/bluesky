@@ -3,7 +3,8 @@ from math import sin, cos, radians
 
 from ..tools import geo
 from ..tools.position import txt2pos
-from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach
+from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach, \
+                          cas2mach,mach2cas
 from route import Route
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
@@ -67,7 +68,8 @@ class Autopilot(DynamicArrays):
             self.t0 = simt
 
             # FMS LNAV mode:
-            qdr, dist = geo.qdrdist(self.traf.lat, self.traf.lon, self.traf.actwp.lat, self.traf.actwp.lon)  # [deg][nm])
+            qdr, dist = geo.qdrdist(self.traf.lat, self.traf.lon, 
+                                    self.traf.actwp.lat, self.traf.actwp.lon)  # [deg][nm])
 
             # Shift waypoints for aircraft i where necessary
             for i in self.traf.actwp.Reached(qdr, dist):
@@ -102,7 +104,12 @@ class Autopilot(DynamicArrays):
                 # while passing waypoint and save next speed for passing next wp
                 if self.traf.swvnav[i] and oldspd > 0.0:
                     destalt = alt if alt > 0.0 else self.traf.alt[i]
-                    dummy, self.traf.aspd[i], self.traf.ama[i] = casormach(oldspd, destalt)
+                    if oldspd<2.0:
+                        self.traf.aspd[i] = mach2cas(oldspd, destalt)
+                        self.traf.ama[i]  = oldspd
+                    else:
+                        self.traf.aspd[i] = oldspd
+                        self.traf.ama[i]  = cas2mach(oldspd, destalt)
 
                 # VNAV = FMS ALT/SPD mode
                 self.ComputeVNAV(i, toalt, xtoalt)
@@ -122,7 +129,7 @@ class Autopilot(DynamicArrays):
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
-            #    USe 500 m cirlce in case turndist might be zero
+            #    USe 185.2 m cirlce in case turndist might be zero
             self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist <= np.maximum(185.2,self.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance
@@ -132,7 +139,9 @@ class Autopilot(DynamicArrays):
             self.vnavvs  = np.where(self.swvnavvs, self.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * self.traf.gs, self.vnavvs)
 
-            self.vs = np.where(self.swvnavvs, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
+            # self.vs = np.where(self.swvnavvs, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
+            avs = np.where(abs(self.traf.avs) > 0.1, self.traf.avs, self.traf.avsdef)
+            self.vs = np.where(self.swvnavvs, self.vnavvs, avs * self.traf.limvs_flag)
 
             self.alt = np.where(self.swvnavvs, self.traf.actwp.alt, self.traf.apalt)
 
@@ -229,8 +238,6 @@ class Autopilot(DynamicArrays):
             t2go = max(0.1, legdist) / max(0.01, self.traf.gs[idx])
             self.traf.actwp.vs[idx]  = (self.traf.actwp.alt[idx] - self.traf.alt[idx]) / t2go
 
-
-
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
@@ -238,11 +245,10 @@ class Autopilot(DynamicArrays):
         return
 
     def selalt(self, idx, alt, vspd=None):
-
-        if idx<0 or idx>=self.traf.ntraf:
-            return False,"ALT: Aircraft does not exist"
-
         """ Select altitude command: ALT acid, alt, [vspd] """
+        if idx < 0 or idx >= self.traf.ntraf:
+            return False, "ALT: Aircraft does not exist"
+
         self.traf.apalt[idx]    = alt
         self.traf.swvnav[idx]   = False
 
@@ -259,9 +265,8 @@ class Autopilot(DynamicArrays):
     def selvspd(self, idx, vspd):
         """ Vertical speed autopilot command: VS acid vspd """
 
-        if idx<0 or idx>=self.traf.ntraf:
-            return False,"VS: Aircraft does not exist"
-
+        if idx < 0 or idx >= self.traf.ntraf:
+            return False, "VS: Aircraft does not exist"
 
         self.traf.avs[idx] = vspd
         # self.traf.vs[idx] = vspd
@@ -295,8 +300,15 @@ class Autopilot(DynamicArrays):
 
         if idx<0 or idx>=self.traf.ntraf:
             return False,"SPD: Aircraft does not exist"
+        
+        # convert input speed to cas and mach depending on the magnitude of input
+        if 0.0<= casmach <= 2.0:
+            self.traf.aspd[idx] = mach2cas(casmach, self.traf.alt[idx])
+            self.traf.ama[idx]  = casmach
+        else:
+            self.traf.aspd[idx] = casmach
+            self.traf.ama[idx]  = cas2mach(casmach, self.traf.alt[idx])
 
-        dummy, self.traf.aspd[idx], self.traf.ama[idx] = casormach(casmach, self.traf.alt[idx])
 
         # Switch off VNAV: SPD command overrides
         self.traf.swvnav[idx]   = False

@@ -762,7 +762,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QWidget" name="verticalWidget" native="true">
+      <widget class="Console" name="console" native="true">
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <property name="spacing">
          <number>1</number>
@@ -783,7 +783,7 @@
          <number>1</number>
         </property>
         <item>
-         <widget class="QTextEdit" name="stackText">
+         <widget class="Stackwin" name="stackText">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
             <horstretch>0</horstretch>
@@ -902,10 +902,13 @@
           <property name="readOnly">
            <bool>true</bool>
           </property>
+          <property name="textInteractionFlags">
+           <set>Qt::NoTextInteraction</set>
+          </property>
          </widget>
         </item>
         <item>
-         <widget class="QTextEdit" name="lineEdit">
+         <widget class="Cmdline" name="lineEdit">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -1017,7 +1020,10 @@
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'.SF NS Text'; font-size:13pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'.Helvetica Neue DeskInterface';&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::NoTextInteraction</set>
           </property>
          </widget>
         </item>
@@ -1181,6 +1187,7 @@ p, li { white-space: pre-wrap; }
      <string>Help</string>
     </property>
     <addaction name="actionAbout_BlueSky"/>
+    <addaction name="actionBlueSky_help"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
@@ -1220,7 +1227,30 @@ p, li { white-space: pre-wrap; }
     <string>About BlueSky</string>
    </property>
   </action>
+  <action name="actionBlueSky_help">
+   <property name="text">
+    <string>BlueSky help</string>
+   </property>
+  </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Console</class>
+   <extends>QWidget</extends>
+   <header location="global">bluesky/ui/qtgl/console</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>Cmdline</class>
+   <extends>QTextEdit</extends>
+   <header>bluesky/ui/qtgl/console</header>
+  </customwidget>
+  <customwidget>
+   <class>Stackwin</class>
+   <extends>QTextEdit</extends>
+   <header>bluesky/ui/qtgl/console</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

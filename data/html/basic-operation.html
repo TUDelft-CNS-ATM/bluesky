@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="basic-operation">Basic Operation</h1>
+<p>Bluesky, being open-source software, is completely customizable and suitable for ATM-research. Many different functionalities have been developed by scientific contributors. Several of the existing key-features are introduced below.</p>
+<h2 id="interface">Interface</h2>
+<p>Two user interfaces are available - one built with the Pygame library and the other built on Qt + OpenGL. The key difference is whether the visual output is computed by the CPU (Pygame) or on the graphics card (Qtgl). When <a href="Running-Bluesky.html">running Bluesky for the first time</a>, the user is asked which interface to use - this choice is stored in the configuration text file <em>settings.cfg</em>. A specific choice for Pygame or Qtgl can also be made by running <em>bluesky_pygame.py</em> or <em>bluesky_qtgl.py</em></p>
+<p>The simulation screen contains a mercator projection of earth, with a top-down view of all aircraft. Nations borders, airports and navaids are indicated on the screen.</p>
+<p>The same functional elements are present in both interfaces. The most important element is the command window (discussed in the paragraph below). Buttons for time control can be found, as well as switches for display of airports, navaids, aircraft labels etc.</p>
+<h2 id="command-window">Command Window</h2>
+<p>The command window is the main interface between the user and the internal functions of Bluesky. This is where the user can enter <a href="-Command-Reference.html">commands</a> to set up simulations, or to change them in runtime. Commands are entered as text, with arguments separated by spaces. The <a href="HELP.html">HELP</a> command can be used to find more information about the specific commands.</p>
+<h2 id="scenario-files">Scenario Files</h2>
+<p>Scenario files contain lines of commands for the command window. Additionally, each command is accompanied by a specific time stamp at which to execute it. Scenario files will therefore yield the exact same results when executed multiple times. Scenario files can be opened by Bluesky with the <a href="IC.html">IC</a> command.<br />
+The syntax of scenario files is explained in detail on <a href="Scenarios.html">this page</a>.</p>
+<h2 id="time-management">Time Management</h2>
+<p>Simulations in Bluesky are standard performed in real-time, meaning that the elapsed time on screen is equal to the elapsed time in the simulation. Fast-time modus is also available, where a constant timestep is applied and the simulations are performed as fast as possible.</p>
+<p>It is possible to have multiple simulations running in parallel in Bluesky. To do this, different simulation nodes can be created and each node is assigned processor power. During simulation, the results of a single node are displayed on the screen. It is possible to switch this display between nodes.</p>
+<h2 id="aircraft-movement">Aircraft movement</h2>
+<p>Aircraft are the core of the ATM simulator. Different steering strategies are therefore available, to simulate different flight styles.</p>
+<h3 id="waypoints">Waypoints</h3>
+<p>Aircraft can be simulated to move through waypoints in the air, using LNAV. VNAV is also possible. Waypoints are defined on the hand of navigational beacon data, or as specific coordinates. The autopilot settings (such as altitude and speed) are specified for each leg of the flight plan.</p>
+<h3 id="conflict-resolution">Conflict resolution</h3>
+<p>Detection of future losses of airborne separation can be performed in Bluesky. Different strategies to <a href="RESO.html">resolve</a> these airborne conflicts can be implemented. These strategies can originate from centralised or decentralised separation assurance responsibility.</p>
+<p>It is possible to combine waypoints and conflict resolution in a single simulation. If possible, aircraft follow their flight plans. But if necessary, conflict resolution has more priority.</p>
+<h3 id="ground-traffic">Ground traffic</h3>
+<p>Taxiing of aircraft on airports can be a part of Bluesky. Taxilanes of many airports over the world are present in the software.</p>
+<h2 id="performance">Performance</h2>
+<p>Bluesky can compute performance characteristics of aircraft in Bluesky. Based on the type of aircraft, statistics such as engine type and gross empty weight can be collected and performance computations can be enabled.</p>
+<p>The results of the performance computations contain thrust limit settings, crossover altitude, fuel consumption and more.</p>
+<p>An internal open-source performance model is provided in Bluesky and holders of BADA-licences (Base of Aircraft Data) can also choose to use perfomance data from those models.</p>
+<h2 id="wind-weather">Wind &amp; weather</h2>
+<p>Bluesky can simulate <a href="wind.html">wind</a> for the aircraft. A wind vector field can be designed such that threedimensional wind profiles can be computed at all locations in the simulation. Turbulence in flights may also be added. Aircraft counteract for any disruptions caused by the winds.</p>
+<h2 id="experiments">Experiments</h2>
+<p>Being a scientific ATM simulator, Bluesky is optimized for performing experiments and storing the results.</p>
+<h3 id="aircraft-heads-up-display">Aircraft heads-up display</h3>
+<p>A HUD can be displayed on the screen, showing situational awareness from the point of view of a specified aircraft. This view is useful for human-in-the-loop experiments that aim to simulate complex air traffic scenarios.</p>
+<h3 id="data-logging">Data Logging</h3>
+<p>A variety of options is available for data logging in Bluesky. Instantaneous logs that save snapshots of the traffic situation every time, as well as event logs that may be used to save data for example at the end of flights, the start of conflicts and possible losses of separation.</p>
+<h3 id="experiment-regions">Experiment Regions</h3>
+<p><a href="AREA.html">Experiment regions</a> can be defined in Bluesky, that allow the user to focus his/her research to all aircraft/events that occur within the region. Aircraft that leave those regions are deleted automatically. Regions can be threedimensional, having an upper and lower bound.</p>
+<p><a href="Home.html">Back to the homepage</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -73,7 +73,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "SAVE": "SAVEIC",
              "SPEED": "SPD",
              "START": "OP",
-             "TRAILS":"TRAIL",
+             "TRAILS": "TRAIL",
              "TURN": "HDG",
              "VMETH": "RMETHV",
              "VRESOM": "RMETHV",
@@ -225,6 +225,12 @@ def init(sim, traf, scr):
             traf.create,
             "Create an aircraft"
         ],
+        "CRECONFS": [
+            "CRECONFS id, type, targetid, dpsi, cpa, tlos_hor, dH, tlos_ver, spd",
+            "txt,txt,acid,hdg,float,time,[alt,time,spd]",
+            traf.creconfs,
+            "Create an aircraft that is in conflict with 'targetid'"
+        ],
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",
@@ -242,7 +248,8 @@ def init(sim, traf, scr):
         "DELAY": [
             "DELAY time offset, COMMAND+ARGS",
             "time,txt,...",
-            lambda time,*args: sched_cmd(time, args, relative=True, sim=sim)
+            lambda time,*args: sched_cmd(time, args, relative=True, sim=sim),
+            "Add a delayed command to stack"
         ],
         "DELRTE": [
             "DELRTE acid",
@@ -554,7 +561,8 @@ def init(sim, traf, scr):
         "SCHEDULE": [
             "SCHEDULE time, COMMAND+ARGS",
             "time,txt,...",
-            lambda time, *args: sched_cmd(time, args, relative=False)
+            lambda time, *args: sched_cmd(time, args, relative=False),
+            "Schedule a stack command at a given time"
         ],
         "SCEN": [
             "SCEN scenname",
@@ -613,7 +621,7 @@ def init(sim, traf, scr):
         ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
-            "acid/bool,[float/txt]",
+            "[acid/bool],[float/txt]",
             traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
@@ -1259,7 +1267,6 @@ class Argparser:
             self.argstep = 1
             return True
 
-
         # Empty arg or wildcard
         elif args[argidx] == "" or args[argidx] == "*":
             # If there was a matching additional argument stored previously use that one
@@ -1300,7 +1307,7 @@ class Argparser:
                 self.result  = [float(args[argidx])]
                 self.argstep = 1
                 return True
-            except:
+            except ValueError:
                 self.error = 'Argument "' + args[argidx] + '" is not a float'
                 return False
 
@@ -1309,7 +1316,7 @@ class Argparser:
                 self.result  = [int(args[argidx])]
                 self.argstep = 1
                 return True
-            except:
+            except ValueError:
                 self.error = 'Argument "' + args[argidx] + '" is not an int'
                 return False
 
@@ -1417,7 +1424,7 @@ class Argparser:
                 self.result  = [spd]
                 self.argstep = 1
                 return True
-            except:
+            except ValueError:
                 self.error = 'Could not parse "' + args[argidx] + '" as speed'
                 return False
 
@@ -1427,18 +1434,15 @@ class Argparser:
                 self.result  = [fpm * float(args[argidx])]
                 self.argstep = 1
                 return True
-            except:
+            except ValueError:
                 self.error = 'Could not parse "' + args[argidx] + '" as vertical speed'
                 return False
 
         # Altutide convert ft or FL to m
         elif argtype == "alt":  # alt: FL250 or 25000 [ft]
-            try:
-                alt = txt2alt(args[argidx])
-            except:
-                alt = -9999.
+            alt = txt2alt(args[argidx])
 
-            if alt > -990.0:
+            if alt > -1e8:
                 self.result  = [alt * ft]
                 self.argstep = 1
                 return True
@@ -1454,7 +1458,7 @@ class Argparser:
                 self.result  = [hdg]
                 self.argstep = 1
                 return True
-            except:
+            except ValueError:
                 self.error = 'Could not parse "' + args[argidx] + '" as heading'
                 return False
 
@@ -1471,7 +1475,7 @@ class Argparser:
                     self.result = [float(args[argidx])]
                 self.argstep = 1
                 return True
-            except:
+            except ValueError:
                 self.error = 'Could not parse "' + args[argidx] + '" as time'
                 return False
 
