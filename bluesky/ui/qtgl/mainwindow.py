@@ -10,7 +10,7 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from ...sim.qtgl import PanZoomEvent, MainManager as manager
+from ...sim.qtgl import StackTextEvent, PanZoomEvent, MainManager as manager
 from ...settings import data_path, stack_text_color as fg, stack_background_color as bg
 import platform
 
@@ -100,7 +100,8 @@ class MainWindow(QMainWindow):
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
 
     def keyPressEvent(self, event):
-        if event.modifiers() & Qt.ShiftModifier:
+        if event.modifiers() & Qt.ShiftModifier \
+                and event.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
             if event.key() == Qt.Key_Up:
@@ -201,15 +202,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
-            self.app.stack('IC IC')
+            manager.sendEvent(StackTextEvent(cmdtext='IC IC'))
         elif self.sender() == self.hold:
-            self.app.stack('HOLD')
+            manager.sendEvent(StackTextEvent(cmdtext='HOLD'))
         elif self.sender() == self.op:
-            self.app.stack('OP')
+            manager.sendEvent(StackTextEvent(cmdtext='OP'))
         elif self.sender() == self.fast:
-            self.app.stack('FF')
+            manager.sendEvent(StackTextEvent(cmdtext='FF'))
         elif self.sender() == self.fast10:
-            self.app.stack('FF 0:0:10')
+            manager.sendEvent(StackTextEvent(cmdtext='FF 0:0:10'))
         elif self.sender() == self.showac:
             self.radarwidget.show_traf = not self.radarwidget.show_traf
         elif self.sender() == self.showpz:
@@ -229,4 +230,4 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
         elif self.sender() == self.action_Save:
-            self.app.stack('SAVEIC')
+            manager.sendEvent(StackTextEvent(cmdtext='SAVEIC'))
