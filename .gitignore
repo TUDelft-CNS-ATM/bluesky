@@ -63,3 +63,4 @@ target/
 data/cache
 data/coefficients/BADA/*
 !/data/coefficients/BADA/README
+ssd.obj
