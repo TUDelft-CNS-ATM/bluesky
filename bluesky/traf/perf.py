@@ -777,6 +777,7 @@ class Perf():
                                         self.traf.alt,           \
                                         self.hmaxact,            \
                                         self.traf.pilot.alt,     \
+                                        self.traf.pilot.vs,      \
                                         self.maxthr,             \
                                         self.Thr,                \
                                         self.D,                  \

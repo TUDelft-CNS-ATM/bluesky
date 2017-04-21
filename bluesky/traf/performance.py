@@ -212,7 +212,7 @@ def esf(abco, belco, alt, M, climb, descent, delspd):
 #
 #------------------------------------------------------------------------------
 def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact, 
-           desalt, maxthr, Thr, D, tas, mass, ESF):
+           desalt, desvs, maxthr, Thr, D, tas, mass, ESF):
 
     # minimum CAS - below crossover (we do not check for minimum Mach)
     limspd      = np.where((desspd < vmin), vmin, -999.)
@@ -244,8 +244,10 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
 
     # aircraft can only take-off as soon as their speed is above v_rotate
     # True means that current speed is below rotation speed
-    limvs       = np.where((gs<to_spd), 0.0, limvs)
-    limvs_flag  = np.where ((gs<to_spd), False, True)
+    # limit vertical speed is thrust limited and thus should only be
+    # applied for aircraft that are climbing
+    limvs       = np.where((desvs > 0.) & (gs<to_spd), 0.0, limvs)
+    limvs_flag  = np.where ((desvs > 0.) & (gs<to_spd), False, True)
 
     # remove non-needed limits
     Thr        = np.where((maxthr-Thr< 2.), -9999., Thr)
