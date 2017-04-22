@@ -75,10 +75,10 @@ class Pilot(DynamicArrays):
         self.spd = np.where(self.traf.limspd_flag, vcas2tas(self.traf.limspd, self.traf.alt), self.spd)
 
         # Autopilot selected altitude [m]
-        self.alt = np.where(self.traf.limalt > -900, self.traf.limalt, self.alt)
+        self.alt = np.where(self.traf.limalt > -900., self.traf.limalt, self.alt)
 
         # Autopilot selected vertical speed (V/S)
-        self.vs = np.where(self.traf.limvs > -9000, self.traf.limvs, self.vs)
+        self.vs = np.where(self.traf.limvs > -9000., self.traf.limvs, self.vs)
 
         # To be discussed: Following change in VNAV mode only?
         # below crossover altitude: CAS=const, above crossover altitude: MA = const

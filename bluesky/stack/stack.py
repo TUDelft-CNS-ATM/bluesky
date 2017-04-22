@@ -330,7 +330,7 @@ def init(sim, traf, scr):
             "Specify a different engine type"
         ],
         "FF": [
-            "FF [tend]",
+            "FF [timeinsec]",
             "[time]",
             sim.fastforward,
             "Fast forward the simulation"
