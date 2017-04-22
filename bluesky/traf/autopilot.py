@@ -129,7 +129,7 @@ class Autopilot(DynamicArrays):
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
-            #    USe 185.2 m cirlce in case turndist might be zero
+            #    Use 100 nm (185.2 m) circle in case turndist might be zero
             self.swvnavvs = np.where(self.traf.swlnav, startdescent, dist <= np.maximum(185.2,self.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance
@@ -140,7 +140,7 @@ class Autopilot(DynamicArrays):
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * self.traf.gs, self.vnavvs)
 
             # self.vs = np.where(self.swvnavvs, self.vnavvs, self.traf.avsdef * self.traf.limvs_flag)
-            avs = np.where(abs(self.traf.avs) > 0.1, self.traf.avs, self.traf.avsdef)
+            avs = np.where(abs(self.traf.avs) > 0.1, self.traf.avs, self.traf.avsdef) # m/s
             self.vs = np.where(self.swvnavvs, self.vnavvs, avs * self.traf.limvs_flag)
 
             self.alt = np.where(self.swvnavvs, self.traf.actwp.alt, self.traf.apalt)

@@ -475,7 +475,7 @@ class Traffic(DynamicArrays):
         # Update vertical speed
         delalt   = self.pilot.alt - self.alt
         self.swaltsel = np.abs(delalt) > np.maximum(10 * ft, np.abs(2. * simdt * np.abs(self.vs)))
-        self.vs  = self.swaltsel * np.sign(delalt) * self.pilot.vs
+        self.vs  = self.swaltsel * np.sign(delalt) * np.abs(self.pilot.vs)
 
     def UpdateGroundSpeed(self, simdt):
         # Compute ground speed and track from heading, airspeed and wind
