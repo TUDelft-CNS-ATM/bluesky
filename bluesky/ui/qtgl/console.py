@@ -39,6 +39,7 @@ class Console(QWidget):
     def stack(self, text):
         # Add command to the command history
         self.command_history.append(text)
+        self.echo(text)
         # Send stack command to sim process
         manager.sendEvent(StackTextEvent(cmdtext=text))
         self.cmdline_stacked.emit(self.cmd, self.args)
