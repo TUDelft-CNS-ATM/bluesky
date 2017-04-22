@@ -671,7 +671,10 @@ class RadarWidget(QGLWidget):
                     data.alt[i] = 0.0
 
                 # Make label: 3 lines of 8 characters per aircraft
-                rawlabel += '%-8sFL%03d   %-8d' % (data.id[i][:8], int(data.alt[i] / ft / 100), int(data.cas[i] / kts))
+                if data.alt[i]<=4500.*ft:
+                    rawlabel += '%-8s%-5d   %-8d' % (data.id[i][:8], int(data.alt[i]/ft  +0.5), int(data.cas[i] / kts+0.5))
+                else:
+                    rawlabel += '%-8sFL%03d   %-8d' % (data.id[i][:8], int(data.alt[i]/ft/100.+0.5), int(data.cas[i] / kts+0.5))
                 confindices = data.iconf[i]
                 if len(confindices) > 0:
                     color[i, :] = amber + (255,)
