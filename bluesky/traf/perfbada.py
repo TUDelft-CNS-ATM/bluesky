@@ -588,10 +588,28 @@ class PerfBADA(DynamicArrays):
         self.hmaxact = (self.hmax==0)*self.hmo +(self.hmax !=0)*np.minimum(self.hmo, self.hact)
 
         # forwarding to tools
-        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
-        calclimits(self.traf.pilot.spd, self.traf.gs,self.vmto, self.vmin, \
-        self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
-        self.traf.pilot.alt, self.maxthr, self.Thr,self.D, self.traf.tas, self.mass, self.ESF)
+        # forwarding to tools
+        self.traf.limspd,          \
+        self.traf.limspd_flag,     \
+        self.traf.limalt,          \
+        self.traf.limvs,           \
+        self.traf.limvs_flag  =  calclimits(self.traf.pilot.spd, \
+                                        self.traf.gs,            \
+                                        self.vmto,               \
+                                        self.vmin,               \
+                                        self.vmo,                \
+                                        self.mmo,                \
+                                        self.traf.M,             \
+                                        self.traf.alt,           \
+                                        self.hmaxact,            \
+                                        self.traf.pilot.alt,     \
+                                        self.traf.pilot.vs,      \
+                                        self.maxthr,             \
+                                        self.Thr,                \
+                                        self.D,                  \
+                                        self.traf.tas,           \
+                                        self.mass,               \
+                                        self.ESF)
 
         return
 
