@@ -254,7 +254,6 @@ class Traffic(DynamicArrays):
         self.perf.create(n)
         self.trails.create(n)
 
-
     def create(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
         """Create an aircraft"""
 
@@ -373,7 +372,7 @@ class Traffic(DynamicArrays):
         # Relative velocity magnitude
         vrel    = sqrt(vreln * vreln + vrele * vrele)
         # Relative travel distance to closest point of approach
-        drelcpa = tlosh * vrel + sqrt(pzr * pzr - cpa * cpa)
+        drelcpa = tlosh * vrel + (0 if cpa > pzr else sqrt(pzr * pzr - cpa * cpa))
         # Initial intruder distance
         dist    = sqrt(drelcpa * drelcpa + cpa * cpa)
         # Rotation matrix diagonal and cross elements for distance vector
