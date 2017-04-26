@@ -1,13 +1,18 @@
 try:
     from PyQt5.QtCore import QUrl, QFileInfo
     from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton
-    from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+    try:
+        # Within PyQt5 there are different locations for QWebView and QWebPage,
+        # depending on release version.
+        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+    except ImportError:
+        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
-    class DocView(QWebEngineView):
+    class DocView(QWebView):
         def __init__(self, parent=None):
             super(DocView, self).__init__(parent)
 
-            class DocPage(QWebEnginePage):
+            class DocPage(QWebPage):
                 def __init__(self, parent=None):
                     super(DocPage, self).__init__(parent)
 
@@ -20,7 +25,7 @@ try:
                     return True
             self.page = DocPage()
             self.setPage(self.page)
-except:
+except ImportError:
     from PyQt4.QtCore import QUrl, QFileInfo
     from PyQt4.QtGui import QVBoxLayout, QHBoxLayout, QWidget, QPushButton
     from PyQt4.QtWebKit import QWebView as DocView
