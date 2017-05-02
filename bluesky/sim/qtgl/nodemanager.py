@@ -1,66 +1,68 @@
 try:
-    from PyQt5.QtCore import QObject, QEvent
+    from PyQt5.QtCore import QEvent
 except ImportError:
-    from PyQt4.QtCore import QObject, QEvent
+    from PyQt4.QtCore import QEvent
 
 from multiprocessing.connection import Client
 
 # Local imports
-from simulation import Simulation
 from timer import Timer
 from simevents import SetNodeIdType, SetActiveNodeType, AddNodeType
 # import faulthandler
 # faulthandler.enable()
 
-
-def runNode():
-    connection  = Client(('localhost', 6000), authkey='bluesky')
-    manager     = NodeManager(connection)
-    manager.sim = Simulation(manager)
-    manager.sim.doWork()
-    manager.close()
-    print 'Node', manager.nodeid, 'stopped.'
+connection = None
+sim        = None
+timers     = []
+nodeid     = -1
+active     = True
 
 
-class NodeManager(QObject):
-    def __init__(self, connection):
-        super(NodeManager, self).__init__()
-        self.connection      = connection
-        self.sim             = None
-        self.timers          = []
-        self.nodeid          = -1
-        self.active          = True
+def run():
+    from simulation import Simulation
+    global connection, sim
+    connection = Client(('localhost', 6000), authkey='bluesky')
+    sim        = Simulation()
+    sim.doWork()
+    connection.close()
+    print 'Node', nodeid, 'stopped.'
 
-    def close(self):
-        self.connection.close()
 
-    def processEvents(self):
-        # Process incoming data, and send to sim
-        while self.connection.poll():
-            (eventtype, event) = self.connection.recv()
-            if eventtype == SetNodeIdType:
-                self.nodeid = event
-            elif eventtype == SetActiveNodeType:
-                self.active = event
-            else:
-                # Data over pipes is pickled/unpickled, this causes problems with
-                # inherited classes. Solution is to call the ancestor's init
-                QEvent.__init__(event, eventtype)
-                self.sim.event(event)
+def close():
+    connection.close()
 
-        # Process timers
-        Timer.updateTimers()
 
-    def sendEvent(self, event):
-        # Send event to the main process
-        self.connection.send((int(event.type()), event))
+def processEvents():
+    global nodeid, active
+    # Process incoming data, and send to sim
+    while connection.poll():
+        (eventtype, event) = connection.recv()
+        if eventtype == SetNodeIdType:
+            nodeid = event
+        elif eventtype == SetActiveNodeType:
+            active = event
+        else:
+            # Data over pipes is pickled/unpickled, this causes problems with
+            # inherited classes. Solution is to call the ancestor's init
+            QEvent.__init__(event, eventtype)
+            sim.event(event)
 
-    def addNodes(self, count):
-        self.connection.send((AddNodeType, count))
+    # Process timers
+    Timer.updateTimers()
 
-    def isActive(self):
-        return self.active
+
+def sendEvent(event):
+    # Send event to the main process
+    connection.send((int(event.type()), event))
+
+
+def addNodes(count):
+    connection.send((AddNodeType, count))
+
+
+def isActive():
+    return active
 
 
 if __name__ == '__main__':
-    runNode()
+    run()

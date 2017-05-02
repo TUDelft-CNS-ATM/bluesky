@@ -7,6 +7,7 @@ except ImportError:
 import time
 
 # Local imports
+import nodemanager as manager
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
@@ -29,9 +30,8 @@ class Simulation(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, manager):
+    def __init__(self):
         super(Simulation, self).__init__()
-        self.manager     = manager
         self.running     = True
         self.state       = Simulation.init
         self.prevstate   = None
@@ -65,7 +65,7 @@ class Simulation(QObject):
 
         # Simulation objects
         self.navdb       = Navdatabase('global')
-        self.screenio    = ScreenIO(self, manager)
+        self.screenio    = ScreenIO(self)
         self.traf        = Traffic(self.navdb)
 
         # Additional modules
@@ -81,7 +81,7 @@ class Simulation(QObject):
 
         # Send list of stack functions available in this sim to gui at start
         stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.iteritems()}
-        self.manager.sendEvent(StackInitEvent(stackdict))
+        manager.sendEvent(StackInitEvent(stackdict))
 
         while self.running:
             # Datalog pre-update (communicate current sim time to loggers)
@@ -124,7 +124,7 @@ class Simulation(QObject):
             self.simtclock = (self.deltclock + self.simt) % onedayinsec
 
             # Process Qt events
-            self.manager.processEvents()
+            manager.processEvents()
 
             # When running at a fixed rate, or when in hold/init, increment system time with sysdt and calculate remainder to sleep
             if not self.ffmode or not self.state == Simulation.op:
@@ -202,17 +202,17 @@ class Simulation(QObject):
         self.benchdt = dt
 
     def sendState(self):
-        self.manager.sendEvent(SimStateEvent(self.state))
+        manager.sendEvent(SimStateEvent(self.state))
 
     def addNodes(self, count):
-        self.manager.addNodes(count)
+        manager.addNodes(count)
 
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
         result = stack.openfile(filename)
         scentime, scencmd = stack.get_scendata()
         if result is True:
-            self.manager.sendEvent(BatchEvent(scentime, scencmd))
+            manager.sendEvent(BatchEvent(scentime, scencmd))
         self.reset()
         return result
 
