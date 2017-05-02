@@ -212,6 +212,14 @@ class Gui(QApplication):
                 elif event.switch == "DEFWPT":
                     self.radarwidget.defwpt(event.argument)
 
+                elif event.switch == "FILTERALT":
+                    # First argument is an on/off flag
+                    nact = self.radarwidget.nodedata[manager.sender()[0]]
+                    if event.argument[0]:
+                        nact.filteralt = event.argument[1:]
+                    else:
+                        nact.filteralt = False
+
                 return True
 
             elif event.type() == AMANEventType:

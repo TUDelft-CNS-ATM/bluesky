@@ -9,6 +9,7 @@ import numpy as np
 import time
 
 # Local imports
+import nodemanager as manager
 from ... import stack
 from timer import Timer
 from simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
@@ -31,7 +32,7 @@ class ScreenIO(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, sim, manager):
+    def __init__(self, sim):
         super(ScreenIO, self).__init__()
 
         # Keep track of the important parameters of the screen state
@@ -44,7 +45,6 @@ class ScreenIO(QObject):
 
         # Keep reference to parent simulation object for access to simulation data
         self.sim         = sim
-        self.manager     = manager
 
         # Timing bookkeeping counters
         self.prevtime    = 0.0
@@ -72,15 +72,15 @@ class ScreenIO(QObject):
         self.prevtime    = 0.0
 
         # Communicate reset to gui
-        self.manager.sendEvent(DisplayFlagEvent('RESET', 'ALL'))
+        manager.sendEvent(DisplayFlagEvent('RESET', 'ALL'))
 
     def echo(self, text):
-        if self.manager.isActive():
-            self.manager.sendEvent(StackTextEvent(disptext=text))
+        if manager.isActive():
+            manager.sendEvent(StackTextEvent(disptext=text))
 
     def cmdline(self, text):
-        if self.manager.isActive():
-            self.manager.sendEvent(StackTextEvent(cmdtext=text))
+        if manager.isActive():
+            manager.sendEvent(StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
@@ -90,24 +90,24 @@ class ScreenIO(QObject):
         return lat0, lat1, lon0, lon1
 
     def zoom(self, zoom, absolute=True):
-        if self.manager.isActive():
+        if manager.isActive():
             if absolute:
                 self.scrzoom = zoom
             else:
                 self.scrzoom *= zoom
-            self.manager.sendEvent(PanZoomEvent(zoom=zoom, absolute=absolute))
+            manager.sendEvent(PanZoomEvent(zoom=zoom, absolute=absolute))
 
     def symbol(self):
-        if self.manager.isActive():
-            self.manager.sendEvent(DisplayFlagEvent('SYM'))
+        if manager.isActive():
+            manager.sendEvent(DisplayFlagEvent('SYM'))
 
     def trails(self,sw):
-        if self.manager.isActive():
-            self.manager.sendEvent(DisplayFlagEvent('TRAIL',sw))
+        if manager.isActive():
+            manager.sendEvent(DisplayFlagEvent('TRAIL',sw))
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
-        if self.manager.isActive():
+        if manager.isActive():
             if args[0] == "LEFT":
                 self.ctrlon -= 0.5
             elif args[0] == "RIGHT":
@@ -119,7 +119,7 @@ class ScreenIO(QObject):
             else:
                 self.ctrlat, self.ctrlon = args
 
-            self.manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
+            manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -128,7 +128,7 @@ class ScreenIO(QObject):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        self.manager.sendEvent(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
+        manager.sendEvent(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
         return True
 
     def showacinfo(self, acid, infotext):
@@ -139,26 +139,29 @@ class ScreenIO(QObject):
     def showssd(self, param):
         ''' Conflict prevention display
             Show solution space diagram, indicating potential conflicts'''
-        if self.manager.isActive():
+        if manager.isActive():
             if param == 'ALL' or param == 'OFF':
-                self.manager.sendEvent(DisplayFlagEvent('SSD', param))
+                manager.sendEvent(DisplayFlagEvent('SSD', param))
             else:
                 idx = self.sim.traf.id2idx(param)
                 if idx >= 0:
-                    self.manager.sendEvent(DisplayFlagEvent('SSD', idx))
+                    manager.sendEvent(DisplayFlagEvent('SSD', idx))
 
     def show_file_dialog(self):
-        if self.manager.isActive():
-            self.manager.sendEvent(ShowDialogEvent())
+        if manager.isActive():
+            manager.sendEvent(ShowDialogEvent())
         return ''
 
     def show_cmd_doc(self, cmd=''):
-        if self.manager.isActive():
-            self.manager.sendEvent(ShowDialogEvent(1, cmd=cmd))
+        if manager.isActive():
+            manager.sendEvent(ShowDialogEvent(1, cmd=cmd))
 
     def feature(self, switch, argument=''):
-        if self.manager.isActive():
-            self.manager.sendEvent(DisplayFlagEvent(switch, argument))
+        if manager.isActive():
+            manager.sendEvent(DisplayFlagEvent(switch, argument))
+
+    def filteralt(self, *args):
+        manager.sendEvent(DisplayFlagEvent('FILTERALT', args))
 
     def objappend(self, objtype, objname, data_in):
         """Add a drawing object to the radar screen using the following inpouts:
@@ -214,7 +217,7 @@ class ScreenIO(QObject):
             data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
             data[1::2] = lonCircle
 
-        self.manager.sendEvent(DisplayShapeEvent(objname, data))
+        manager.sendEvent(DisplayShapeEvent(objname, data))
 
     def event(self, event):
         if event.type() == PanZoomEventType:
@@ -233,14 +236,14 @@ class ScreenIO(QObject):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * self.sim.simdt
-        self.manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
+        manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
             self.sim.simtclock, self.sim.traf.ntraf, self.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
 
     @pyqtSlot()
     def send_aircraft_data(self):
-        if self.manager.isActive():
+        if manager.isActive():
             data            = ACDataEvent()
             data.simt       = self.sim.simt
             data.id         = self.sim.traf.id
@@ -254,8 +257,8 @@ class ScreenIO(QObject):
             data.confcpalon = self.sim.traf.asas.lonowncpa
             data.trk        = self.sim.traf.hdg
 
-            # Trails, send only new line segments to be added            
-            data.swtrails  = self.sim.traf.trails.active 
+            # Trails, send only new line segments to be added
+            data.swtrails  = self.sim.traf.trails.active
             data.traillat0 = self.sim.traf.trails.newlat0
             data.traillon0 = self.sim.traf.trails.newlon0
             data.traillat1 = self.sim.traf.trails.newlat1
@@ -265,7 +268,7 @@ class ScreenIO(QObject):
             # Last segment which is being built per aircraft
             data.traillastlat   = list(self.sim.traf.trails.lastlat)
             data.traillastlon   = list(self.sim.traf.trails.lastlon)
-                
+
             # Conflict statistics
             data.nconf_tot  = len(self.sim.traf.asas.conflist_all)
             data.nlos_tot   = len(self.sim.traf.asas.LOSlist_all)
@@ -274,11 +277,11 @@ class ScreenIO(QObject):
             data.nconf_cur  = len(self.sim.traf.asas.conflist_now)
             data.nlos_cur   = len(self.sim.traf.asas.LOSlist_now)
 
-            self.manager.sendEvent(data)
+            manager.sendEvent(data)
 
     @pyqtSlot()
     def send_route_data(self):
-        if self.manager.isActive() and self.route_acid is not None:
+        if manager.isActive() and self.route_acid is not None:
             data               = RouteDataEvent()
             data.acid          = self.route_acid
             idx   = self.sim.traf.id2idx(self.route_acid)
@@ -298,14 +301,14 @@ class ScreenIO(QObject):
 
                 data.wpname    = route.wpname
 
-            self.manager.sendEvent(data)  # Send route data to GUI
+            manager.sendEvent(data)  # Send route data to GUI
             # Empty route acid string means no longer send route data
             if len(self.route_acid) == 0:
                 self.route_acid = None
 
     @pyqtSlot()
     def send_aman_data(self):
-        if self.manager.isActive():
+        if manager.isActive():
             # data            = AMANEvent()
             # data.ids        = self.sim.traf.AMAN.
             # data.iafs       = self.sim.traf.AMAN.
@@ -314,5 +317,5 @@ class ScreenIO(QObject):
             # data.delays     = self.sim.traf.AMAN.
             # data.rwys       = self.sim.traf.AMAN.
             # data.spdratios  = self.sim.traf.AMAN.
-            # self.manager.sendEvent(data)
+            # manager.sendEvent(data)
             pass

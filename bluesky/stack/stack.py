@@ -335,6 +335,13 @@ def init(sim, traf, scr):
             sim.fastforward,
             "Fast forward the simulation"
         ],
+        "FILTERALT":
+        [
+            "FILTERALT ON/OFF,[bottom,top]",
+            "bool,[alt,alt]",
+            scr.filteralt,
+            "Display aircraft on only a selected range of altitudes"
+        ],
         "FIXDT": [
             "FIXDT ON/OFF [tend]",
             "onoff,[time]",
@@ -848,20 +855,20 @@ def sched_cmd(time, args, relative=False, sim=None):
         time += sim.simt
     # in case there is no scentime yet, only extend
 
-    if len(scentime) == 0:    
+    if len(scentime) == 0:
         scentime.extend([time])
         scencmd.extend([tostack])
     else:
         try:
-            idx = scentime.index(next(sctime for sctime in scentime if sctime > time))  
-            
+            idx = scentime.index(next(sctime for sctime in scentime if sctime > time))
+
             scentime.insert(idx, time)
             scencmd.insert(idx, tostack)
         except:
             scentime.extend([time])
             scencmd.extend([tostack])
-   
-    
+
+
     return True
 
 

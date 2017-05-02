@@ -58,6 +58,9 @@ class nodeData(object):
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
 
+        # Filteralt settings
+        self.filteralt = False
+
         # Create trail data
         self.traillat0 = []
         self.traillon0 = []
@@ -640,8 +643,16 @@ class RadarWidget(QGLWidget):
             return
 
         self.makeCurrent()
-
+        curnode = self.nodedata[self.iactconn]
+        if curnode.filteralt:
+            idx = np.where((data.alt >= curnode.filteralt[0]) * (data.alt <= curnode.filteralt[1]))
+            data.lat = data.lat[idx]
+            data.lon = data.lon[idx]
+            data.trk = data.trk[idx]
+            data.alt = data.alt[idx]
+            data.tas = data.tas[idx]
         self.naircraft = len(data.lat)
+
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
         else:
