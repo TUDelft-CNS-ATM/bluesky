@@ -5,8 +5,10 @@ settings.cfg
 __pycache__/
 *.py[cod]
 
-# Sublime text project files
+# Editor project files
 *.sublime*
+*.atom-build*
+*.build-tools*
 
 # C extensions
 *.so
