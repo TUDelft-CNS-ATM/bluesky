@@ -109,7 +109,10 @@ modeS_host = ''
 modeS_port = 0
 
 # END OF SETTINGS
+import sys
 
+# This file is used to start the gui mainloop or a single node simulation loop
+node_only = ('--node' in sys.argv)
 
 # Import config settings from settings.cfg if this exists, if it doesn't create an initial config file
 def init(gui='ask'):

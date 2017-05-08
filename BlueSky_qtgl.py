@@ -5,10 +5,7 @@ from bluesky import settings
 if __name__ == "__main__":
     settings.init('qtgl')
 
-# This file is used to start the gui mainloop or a single node simulation loop
-node_only = ('--node' in sys.argv)
-
-if not node_only:
+if not settings.node_only:
     from bluesky.sim.qtgl.mainmanager import MainManager
     from bluesky.ui.qtgl import Gui
     from bluesky.tools.network import StackTelnetServer
@@ -37,7 +34,7 @@ sys.excepthook = exception_handler
 # Start the mainloop (and possible other threads)
 # =============================================================================
 def MainLoop():
-    if node_only:
+    if settings.node_only:
         import bluesky.sim.qtgl.nodemanager as manager
         manager.run()
 
