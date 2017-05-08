@@ -5,11 +5,11 @@ import pygame as pg
 
 
 class Gui:
-    def __init__(self, navdb):
+    def __init__(self):
         splash.show()
         self.keyb = Keyboard()                                # processes input from keyboard & mouse
         self.scr  = Screen()                                  # screen output object
-        self.scr.updateNavBuffers(navdb)
+        self.scr.updateNavBuffers()
 
     def update(self, sim):
         self.keyb.update(sim, sim.stack, self.scr, sim.traf)  # Check for keys & mouse

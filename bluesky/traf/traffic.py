@@ -1,6 +1,7 @@
 import numpy as np
 from math import *
 from random import random, randint
+import bluesky as bs
 from ..tools import datalog, geo
 from ..tools.misc import latlon2txt
 from ..tools.aero import fpm, kts, ft, g0, Rearth, nm, \
@@ -52,7 +53,7 @@ class Traffic(DynamicArrays):
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self, navdb):
+    def __init__(self):
         self.wind = WindSim()
 
         # Define the periodic loggers
@@ -138,9 +139,9 @@ class Traffic(DynamicArrays):
         # Default bank angles per flight phase
         self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
 
-        self.reset(navdb)
+        self.reset()
 
-    def reset(self, navdb):
+    def reset(self):
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
         super(Traffic, self).reset()
@@ -155,9 +156,6 @@ class Traffic(DynamicArrays):
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
-
-        # Import navigation data base
-        self.navdb   = navdb
 
         # Default: BlueSky internal performance model.
         # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
@@ -453,13 +451,13 @@ class Traffic(DynamicArrays):
     def UpdateAirSpeed(self, simdt, simt):
         # Acceleration
         self.delspd = self.pilot.spd - self.tas
-        
+
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = self.perf.acceleration(simdt)
 
         # Update velocities
         self.tas = self.tas + swspdsel * ax * np.sign(self.delspd) * simdt
-        
+
         self.cas = vtas2cas(self.tas, self.alt)
         self.M   = vtas2mach(self.tas, self.alt)
 
@@ -604,35 +602,35 @@ class Traffic(DynamicArrays):
             lines = "Info on "+wp+":\n"
 
             # First try airports (most used and shorter, hence faster list)
-            iap = self.navdb.getaptidx(wp)
+            iap = bs.navdb.getaptidx(wp)
             if iap>=0:
                 aptypes = ["large","medium","small"]
-                lines = lines + self.navdb.aptname[iap]+"\n"                 \
-                        + "is a "+ aptypes[max(-1,self.navdb.aptype[iap]-1)] \
+                lines = lines + bs.navdb.aptname[iap]+"\n"                 \
+                        + "is a "+ aptypes[max(-1,bs.navdb.aptype[iap]-1)] \
                         +" airport at:\n"                                    \
-                        + latlon2txt(self.navdb.aptlat[iap],                 \
-                                     self.navdb.aptlon[iap]) + "\n"          \
+                        + latlon2txt(bs.navdb.aptlat[iap],                 \
+                                     bs.navdb.aptlon[iap]) + "\n"          \
                         + "Elevation: "                                      \
-                        + str(int(round(self.navdb.aptelev[iap]/ft)))        \
+                        + str(int(round(bs.navdb.aptelev[iap]/ft)))        \
                         + " ft \n"
 
                # Show country name
                 try:
-                     ico = self.navdb.cocode2.index(self.navdb.aptco[iap].upper())
-                     lines = lines + "in "+self.navdb.coname[ico]+" ("+      \
-                             self.navdb.aptco[iap]+")"
+                    ico = bs.navdb.cocode2.index(bs.navdb.aptco[iap].upper())
+                    lines = lines + "in "+bs.navdb.coname[ico]+" ("+      \
+                             bs.navdb.aptco[iap]+")"
                 except:
-                     ico = -1
-                     lines = lines + "Country code: "+self.navdb.aptco[iap]
+                    ico = -1
+                    lines = lines + "Country code: "+bs.navdb.aptco[iap]
                 try:
-                    rwytxt = str(self.navdb.rwythresholds[self.navdb.aptid[iap]].keys())
+                    rwytxt = str(bs.navdb.rwythresholds[bs.navdb.aptid[iap]].keys())
                     lines = lines + "\nRunways: " +rwytxt.strip("[]").replace("'","")
                 except:
                     pass
 
             # Not found as airport, try waypoints & navaids
             else:
-                iwps = self.navdb.getwpindices(wp,reflat,reflon)
+                iwps = bs.navdb.getwpindices(wp,reflat,reflon)
                 if iwps[0]>=0:
                     typetxt = ""
                     desctxt = ""
@@ -641,53 +639,53 @@ class Traffic(DynamicArrays):
 
                         # One line type text
                         if typetxt == "":
-                            typetxt = typetxt+self.navdb.wptype[i]
+                            typetxt = typetxt+bs.navdb.wptype[i]
                         else:
-                            typetxt = typetxt+" and "+self.navdb.wptype[i]
+                            typetxt = typetxt+" and "+bs.navdb.wptype[i]
 
                         # Description: multi-line
-                        samedesc = self.navdb.wpdesc[i]==lastdesc
+                        samedesc = bs.navdb.wpdesc[i]==lastdesc
                         if desctxt == "":
-                            desctxt = desctxt +self.navdb.wpdesc[i]
-                            lastdesc = self.navdb.wpdesc[i]
+                            desctxt = desctxt +bs.navdb.wpdesc[i]
+                            lastdesc = bs.navdb.wpdesc[i]
                         elif not samedesc:
-                            desctxt = desctxt +"\n"+self.navdb.wpdesc[i]
-                            lastdesc = self.navdb.wpdesc[i]
+                            desctxt = desctxt +"\n"+bs.navdb.wpdesc[i]
+                            lastdesc = bs.navdb.wpdesc[i]
 
                         # Navaid: frequency
-                        if self.navdb.wptype[i] in ["VOR","DME","TACAN"] and not samedesc:
-                            desctxt = desctxt + " "+ str(self.navdb.wpfreq[i])+" MHz"
-                        elif self.navdb.wptype[i]=="NDB" and not samedesc:
-                            desctxt = desctxt+ " " + str(self.navdb.wpfreq[i])+" kHz"
+                        if bs.navdb.wptype[i] in ["VOR","DME","TACAN"] and not samedesc:
+                            desctxt = desctxt + " "+ str(bs.navdb.wpfreq[i])+" MHz"
+                        elif bs.navdb.wptype[i]=="NDB" and not samedesc:
+                            desctxt = desctxt+ " " + str(bs.navdb.wpfreq[i])+" kHz"
 
                     iwp = iwps[0]
 
                     # Basic info
                     lines = lines + wp +" is a "+ typetxt       \
                            + " at\n"\
-                           + latlon2txt(self.navdb.wplat[iwp],  \
-                                        self.navdb.wplon[iwp])
+                           + latlon2txt(bs.navdb.wplat[iwp],  \
+                                        bs.navdb.wplon[iwp])
                     # Navaids have description
                     if len(desctxt)>0:
                         lines = lines+ "\n" + desctxt
 
                     # VOR give variation
-                    if self.navdb.wptype[iwp]=="VOR":
+                    if bs.navdb.wptype[iwp]=="VOR":
                         lines = lines + "\nVariation: "+ \
-                                     str(self.navdb.wpvar[iwp])+" deg"
+                                     str(bs.navdb.wpvar[iwp])+" deg"
 
 
                     # How many others?
-                    nother = self.navdb.wpid.count(wp)-len(iwps)
+                    nother = bs.navdb.wpid.count(wp)-len(iwps)
                     if nother>0:
                         verb = ["is ","are "][min(1,max(0,nother-1))]
                         lines = lines +"\nThere "+verb + str(nother) +\
                                    " other waypoint(s) also named " + wp
 
                     # In which airways?
-                    connect = self.navdb.listconnections(wp, \
-                                                self.navdb.wplat[iwp],
-                                                self.navdb.wplon[iwp])
+                    connect = bs.navdb.listconnections(wp, \
+                                                bs.navdb.wplat[iwp],
+                                                bs.navdb.wplon[iwp])
                     if len(connect)>0:
                         awset = set([])
                         for c in connect:
@@ -699,7 +697,7 @@ class Traffic(DynamicArrays):
                # Try airway id
                 else:  # airway
                     awid = wp
-                    airway = self.navdb.listairway(awid)
+                    airway = bs.navdb.listairway(awid)
                     if len(airway)>0:
                         lines = ""
                         for segment in airway:
@@ -723,18 +721,18 @@ class Traffic(DynamicArrays):
         if key=="":
             return False,'AIRWAY needs waypoint or airway'
 
-        if self.navdb.awid.count(key)>0:
+        if bs.navdb.awid.count(key)>0:
             return self.poscommand(scr, key.upper())
         else:
             # Find connecting airway legs
             wpid = key.upper()
-            iwp = self.navdb.getwpidx(wpid,reflat,reflon)
+            iwp = bs.navdb.getwpidx(wpid,reflat,reflon)
             if iwp<0:
                 return False,key," not found."
 
-            wplat = self.navdb.wplat[iwp]
-            wplon = self.navdb.wplon[iwp]
-            connect = self.navdb.listconnections(key.upper(),wplat,wplon)
+            wplat = bs.navdb.wplat[iwp]
+            wplon = bs.navdb.wplon[iwp]
+            connect = bs.navdb.listconnections(key.upper(),wplat,wplon)
             if len(connect)>0:
                 lines = ""
                 for c in connect:

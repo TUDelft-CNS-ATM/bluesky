@@ -7,12 +7,12 @@ except ImportError:
 import time
 
 # Local imports
+import bluesky as bs
 import nodemanager as manager
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
 from ...traf import Traffic
-from ...navdb import Navdatabase
 from ... import stack
 from ...traf import Metric
 from ... import settings
@@ -64,9 +64,8 @@ class Simulation(QObject):
         self.ffstop      = None
 
         # Simulation objects
-        self.navdb       = Navdatabase('global')
         self.screenio    = ScreenIO(self)
-        self.traf        = Traffic(self.navdb)
+        self.traf        = Traffic()
 
         # Additional modules
         self.metric      = Metric()
@@ -166,7 +165,8 @@ class Simulation(QObject):
         self.simtclock = self.simt
         self.state     = Simulation.init
         self.ffmode    = False
-        self.traf.reset(self.navdb)
+        bs.navdb.reset()
+        self.traf.reset()
         stack.reset()
         datalog.reset()
         areafilter.reset()

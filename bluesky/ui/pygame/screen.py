@@ -8,6 +8,7 @@ import subprocess
 
 import numpy as np
 
+import bluesky as bs
 from ...tools import geo
 from ...tools.areafilter import areas
 from ...tools.aero import ft, kts, nm
@@ -273,12 +274,12 @@ class Screen:
 
         return
 
-    def updateNavBuffers(self, navdb):
-        self.wpswbmp = len(navdb.wplat) * [False]
-        self.wplabel = len(navdb.wplat) * [0]
+    def updateNavBuffers(self):
+        self.wpswbmp = len(bs.navdb.wplat) * [False]
+        self.wplabel = len(bs.navdb.wplat) * [0]
 
-        self.apswbmp = len(navdb.aptlat) * [False]
-        self.aplabel = len(navdb.aptlat) * [0]
+        self.apswbmp = len(bs.navdb.aptlat) * [False]
+        self.aplabel = len(bs.navdb.aptlat) * [0]
 
     def echo(self, msg):
         msgs = msg.split('\n')
@@ -419,11 +420,11 @@ class Screen:
 
             #------ Draw FIRs ------
             if self.swfir:
-                self.firx0, self.firy0 = self.ll2xy(traf.navdb.firlat0, \
-                                                    traf.navdb.firlon0)
+                self.firx0, self.firy0 = self.ll2xy(bs.navdb.firlat0, \
+                                                    bs.navdb.firlon0)
 
-                self.firx1, self.firy1 = self.ll2xy(traf.navdb.firlat1, \
-                                                    traf.navdb.firlon1)
+                self.firx1, self.firy1 = self.ll2xy(bs.navdb.firlat1, \
+                                                    bs.navdb.firlon1)
 
                 for i in range(len(self.firx0)):
                     pg.draw.line(self.radbmp, lightcyan,
@@ -440,26 +441,26 @@ class Screen:
 
                 # Make list of indices of waypoints & airports on screen
 
-                self.wpinside = list(np.where(self.onradar(traf.navdb.wplat, \
-                                                           traf.navdb.wplon))[0])
+                self.wpinside = list(np.where(self.onradar(bs.navdb.wplat, \
+                                                           bs.navdb.wplon))[0])
 
                 self.wptsel = []
                 for i in self.wpinside:
                     if self.wpsw == 3 or \
-                            (self.wpsw == 1 and len(traf.navdb.wpid[i]) == 3) or \
-                            (self.wpsw == 2 and traf.navdb.wpid[i].isalpha()):
+                            (self.wpsw == 1 and len(bs.navdb.wpid[i]) == 3) or \
+                            (self.wpsw == 2 and bs.navdb.wpid[i].isalpha()):
                         self.wptsel.append(i)
-                self.wptx, self.wpty = self.ll2xy(traf.navdb.wplat, traf.navdb.wplon)
+                self.wptx, self.wpty = self.ll2xy(bs.navdb.wplat, bs.navdb.wplon)
 
-                self.apinside = list(np.where(self.onradar(traf.navdb.aptlat, \
-                                                           traf.navdb.aptlon))[0])
+                self.apinside = list(np.where(self.onradar(bs.navdb.aptlat, \
+                                                           bs.navdb.aptlon))[0])
 
                 self.aptsel = []
                 for i in self.apinside:
                     if self.apsw == 2 or (self.apsw == 1 and \
-                                                      traf.navdb.aptmaxrwy[i] > 1000.):
+                                                      bs.navdb.aptmaxrwy[i] > 1000.):
                         self.aptsel.append(i)
-                self.aptx, self.apty = self.ll2xy(traf.navdb.aptlat, traf.navdb.aptlon)
+                self.aptx, self.apty = self.ll2xy(bs.navdb.aptlat, bs.navdb.aptlon)
 
 
             #------- Draw waypoints -------
@@ -468,8 +469,8 @@ class Screen:
                 if len(self.wptsel) < self.maxnrwp:
                     wptrect = self.wptsymbol.get_rect()
                     for i in self.wptsel:
-                        # wptrect.center = self.ll2xy(traf.navdb.wplat[i],  \
-                        #     traf.navdb.wplon[i])
+                        # wptrect.center = self.ll2xy(bs.navdb.wplat[i],  \
+                        #     bs.navdb.wplon[i])
                         wptrect.center = self.wptx[i], self.wpty[i]
                         self.radbmp.blit(self.wptsymbol, wptrect)
 
@@ -477,7 +478,7 @@ class Screen:
                         if not self.wpswbmp[i]:
                             self.wplabel[i] = pg.Surface((80, 30), 0, self.win)
                             self.fontnav.printat(self.wplabel[i], 0, 0, \
-                                                 traf.navdb.wpid[i])
+                                                 bs.navdb.wpid[i])
                             self.wpswbmp[i] = True
 
                         # In any case, blit it
@@ -491,7 +492,7 @@ class Screen:
                             ytxt = wptrect.top
 
                             # self.fontnav.printat(self.radbmp,xtxt,ytxt, \
-                            #     traf.navdb.wpid[i])
+                            #     bs.navdb.wpid[i])
 
             #------- Draw airports -------
             if self.apsw > 0:
@@ -501,8 +502,8 @@ class Screen:
                 # print len(self.aptsel)," airports"
 
                 for i in self.aptsel:
-                    # aptrect.center = self.ll2xy(traf.navdb.aptlat[i],  \
-                    #                            traf.navdb.aptlon[i])
+                    # aptrect.center = self.ll2xy(bs.navdb.aptlat[i],  \
+                    #                            bs.navdb.aptlon[i])
                     aptrect.center = self.aptx[i], self.apty[i]
                     self.radbmp.blit(self.aptsymbol, aptrect)
 
@@ -510,7 +511,7 @@ class Screen:
                     if not self.apswbmp[i]:
                         self.aplabel[i] = pg.Surface((50, 30), 0, self.win)
                         self.fontnav.printat(self.aplabel[i], 0, 0, \
-                                             traf.navdb.aptid[i])
+                                             bs.navdb.aptid[i])
                         self.apswbmp[i] = True
 
                     # In either case, blit it
@@ -520,7 +521,7 @@ class Screen:
                                      None, pg.BLEND_ADD)
 
                     # self.fontnav.printat(self.radbmp,xtxt,ytxt, \
-                    #     traf.navdb.aptid[i])
+                    #     bs.navdb.aptid[i])
 
 
             #---------- Draw background trails ----------
@@ -983,15 +984,15 @@ class Screen:
             elif args[0].upper() == "DOWN":
                 lat = lat - 0.5 * (self.lat1 - self.lat0)
             else:
-                i = traf.navdb.getwpidx(args[0],self.ctrlat,self.ctrlon)
+                i = bs.navdb.getwpidx(args[0],self.ctrlat,self.ctrlon)
                 if i<0:
-                    i = traf.navdb.getaptidx(args[0],self.ctrlat,self.ctrlon)
+                    i = bs.navdb.getaptidx(args[0],self.ctrlat,self.ctrlon)
                     if i>0:
-                        lat = traf.navdb.aptlat[i]
-                        lon = traf.navdb.aptlon[i]
+                        lat = bs.navdb.aptlat[i]
+                        lon = bs.navdb.aptlon[i]
                 else:
-                    lat = traf.navdb.wplat[i]
-                    lon = traf.navdb.wplon[i]
+                    lat = bs.navdb.wplat[i]
+                    lon = bs.navdb.wplon[i]
 
                 if i<0:
                     return False,args[0]+"not found."

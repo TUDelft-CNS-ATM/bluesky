@@ -10,7 +10,6 @@ node_only = ('--node' in sys.argv)
 
 if not node_only:
     from bluesky.sim.qtgl.mainmanager import MainManager
-    from bluesky.navdb import Navdatabase
     from bluesky.ui.qtgl import Gui
     from bluesky.tools.network import StackTelnetServer
     if __name__ == "__main__":
@@ -18,8 +17,7 @@ if not node_only:
         print "Distributed under GNU General Public License v3"
 
 
-# Global navdb, gui, and sim objects for easy access in interactive python shell
-navdb   = None
+# Global gui object for easy access in interactive python shell
 gui     = None
 
 
@@ -47,14 +45,13 @@ def MainLoop():
         # ======================================================================
         # Create gui and simulation objects
         # ======================================================================
-        global navdb, gui
+        global gui
         manager   = MainManager()
         gui       = Gui()
-        navdb     = Navdatabase('global')  # Read database from specified folder
         telnet_in = StackTelnetServer()
 
         # Initialize the gui (loading graphics data, etc.)
-        gui.init(navdb)
+        gui.init()
 
         # Start the node manager
         manager.start()

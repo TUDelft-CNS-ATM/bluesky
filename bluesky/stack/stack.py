@@ -21,7 +21,7 @@ from random import seed
 import os
 import os.path
 import subprocess
-
+import bluesky as bs
 from ..tools import geo, areafilter
 from ..tools.aero import kts, ft, fpm, tas2cas, density
 from ..tools.misc import txt2alt, cmdsplit
@@ -234,7 +234,7 @@ def init(sim, traf, scr):
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",
-            lambda *args: traf.navdb.defwpt(scr, *args),
+            lambda *args: bs.navdb.defwpt(scr, *args),
             "Define a waypoint only for this scenario/run"
         ],
         "DEL": [
@@ -1350,7 +1350,6 @@ class Argparser:
             # navaid/fix: "SPY","OA","SUGOL"
             # airport:   "EHAM"
             # runway:    "EHAM/RW06" "LFPG/RWY23"
-
             # Default values
             self.argstep = 1
             name         = args[argidx]
@@ -1368,7 +1367,7 @@ class Argparser:
                     self.argstep = 2   # we used two arguments
 
                 # apt,runway ? Combine into one string with a slash as separator
-                elif args[argidx + 1][:2].upper() == "RW" and args[argidx] in traf.navdb.aptid:
+                elif args[argidx + 1][:2].upper() == "RW" and args[argidx] in bs.navdb.aptid:
                     name = args[argidx] + "/" + args[argidx + 1].upper()
                     self.argstep = 2   # we used two arguments
 
@@ -1386,7 +1385,7 @@ class Argparser:
                     Argparser.reflat = scr.ctrlat
                     Argparser.reflon = scr.ctrlon
 
-                success, posobj = txt2pos(name, traf, traf.navdb, Argparser.reflat, Argparser.reflon)
+                success, posobj = txt2pos(name, traf, Argparser.reflat, Argparser.reflon)
 
                 if success:
                     # for runway type, get heading as default optional argument for command line
@@ -1394,7 +1393,7 @@ class Argparser:
                         aptname, rwyname = name.split('/RW')
                         rwyname = rwyname.lstrip('Y')
                         try:
-                            self.additional['hdg'] = traf.navdb.rwythresholds[aptname][rwyname][2]
+                            self.additional['hdg'] = bs.navdb.rwythresholds[aptname][rwyname][2]
                         except:
                             pass
 

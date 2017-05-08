@@ -4,13 +4,11 @@ if __name__ == "__main__":
     print "Distributed under GNU General Public License v3"
     settings.init('pygame')
 
-from bluesky.navdb import Navdatabase
 from bluesky.ui.pygame import Gui
 from bluesky.sim.pygame import Simulation
 
 
-# Global navdb, gui, and sim objects for easy access in interactive python shell
-navdb = None
+# Global gui and sim objects for easy access in interactive python shell
 gui   = None
 sim   = None
 
@@ -19,10 +17,9 @@ def MainLoop():
     # =============================================================================
     # Create gui and simulation objects
     # =============================================================================
-    global navdb, gui, sim
-    navdb = Navdatabase('global')   # Read database from specified folder
-    gui   = Gui(navdb)
-    sim   = Simulation(gui, navdb)
+    global gui, sim
+    gui   = Gui()
+    sim   = Simulation(gui)
 
     # =============================================================================
     # Start the mainloop (and possible other threads)

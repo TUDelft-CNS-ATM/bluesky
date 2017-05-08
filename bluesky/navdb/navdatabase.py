@@ -2,9 +2,10 @@ from math import *
 import numpy as np
 
 from loadnavdata import load_navdata
-from ..tools import geo
-from ..tools.aero import nm
-from ..tools.misc import findall
+from bluesky.tools import geo
+from bluesky.tools.aero import nm
+from bluesky.tools.misc import findall
+from bluesky import settings
 
 
 class Navdatabase:
@@ -32,22 +33,19 @@ class Navdatabase:
         aptype                    : type of airport (1=large, 2=medium, 3=small)
         apmaxrwy                  : max rwy length in meters
         apco                      : country code
-        apelev                      : country code
+        apelev                    : country code
 
 
     Created by  : Jacco M. Hoekstra (TU Delft)
     """
 
-    def __init__(self, subfolder):
-        """read data from subfolder"""
+    def __init__(self):
+        """The navigation database: Contains waypoint, airport, airway, and sector data, but also
+           geographical graphics data."""
+        # Variables are initialized in reset()
+        self.reset()
 
-        # Create empty segment indexing lists
-        self.wpseg = []
-        self.aptseg = []
-        for lat in range(-90, 91):
-            self.wpseg.append(361 * [[]])
-            self.aptseg.append(361 * [[]])
-
+    def reset(self):
         print "Loading global navigation database..."
         wptdata, aptdata, awydata, firdata, codata, rwythresholds = load_navdata()
 
@@ -98,7 +96,6 @@ class Navdatabase:
 
         self.rwythresholds = rwythresholds
 
-
     def defwpt(self,scr,name=None,lat=None,lon=None,wptype=None):
 
         # Prevent polluting the database: check arguments
@@ -107,26 +104,26 @@ class Navdatabase:
         elif name.isdigit():
             return False,"Name needs to start with an alphabetical character"
 
-        # No data: give info on waypoint            
+        # No data: give info on waypoint
         elif lat==None or lon==None:
             reflat = scr.ctrlat
             reflon = scr.ctrlon
             if self.wpid.count(name.upper()) > 0:
                 i = self.getwpidx(name.upper(),reflat,reflon)
                 txt = self.wpid[i]+" : "+str(self.wplat[i])+","+str(self.wplon[i])
-                if len(self.wptype[i]+self.wpco[i])>0: 
+                if len(self.wptype[i]+self.wpco[i])>0:
                     txt = txt+"  "+self.wptype[i]+" in "+self.wpco[i]
                 return True,txt
-         
-            # Waypoint name is free  
+
+            # Waypoint name is free
             else:
                 return True,"Waypoint "+name.upper()+" does not yet exist."
-        
+
         # Still here? So there is data, then we add this waypoint
         self.wpid.append(name.upper())
         self.wplat = np.append(self.wplat,lat)
         self.wplon = np.append(self.wplon,lon)
- 
+
         if wptype == None:
             self.wptype.append("")
         else:
@@ -192,7 +189,7 @@ class Navdatabase:
         # If pos is specified check for more and return closest
         else:
             idx = findall(self.wpid,name) # find indices of al occurences
-            
+
             if len(idx) == 1:
                 return [idx[0]]
             else:
@@ -211,7 +208,7 @@ class Navdatabase:
                                             self.wplat[imin], self.wplon[imin])
                         if dist<=crit:
                             indices.append(i)
-                          
+
                 return indices
 
     def getaptidx(self, txt):
@@ -274,7 +271,7 @@ class Navdatabase:
             legs  = []  # Alle leg incl. duplicate legs
             left  = []  # wps in left column in file
             right = []  # wps in right coumn in file
-            
+
             idx = findall(self.awid,awkey)
             for i in idx:
                 newleg = self.awfromwpid[i]+"-"+self.awtowpid[i]
@@ -282,7 +279,7 @@ class Navdatabase:
                     legs.append(newleg)
                     left.append(self.awfromwpid[i])
                     right.append(self.awtowpid[i])
-                
+
             # Not found: return
             if len(legs)==0:
                 return []
@@ -297,26 +294,26 @@ class Navdatabase:
                 iwps = 0
                 while iwps<len(wps) and wps.count(wps[iwps])>1:
                     iwps = iwps + 1
-    
+
                 i = iwps%len(left)
                 j = int(iwps/len(left))
 
                 # Catch single lost wps
                 if j>1 or iwps>len(wps):
                     break
-    
+
                 # Sort
                 wps = [left,right]
                 segment = []
 
                 segready = False
                 while not segready:
-                    
+
                     # Get leg
                     curwp  = wps[j][i]
                     nextwp = wps[1-j][i]
 
-                    # Update admin of to do wplist 
+                    # Update admin of to do wplist
                     unused      = unused - 2
                     wps[j][i]   = ""
                     wps[1-j][i] = ""
@@ -328,8 +325,8 @@ class Navdatabase:
                     if wps[0].count(nextwp)>0:
                         j  = 0
                         i  = wps[0].index(nextwp)
-                        found = True                        
-                        
+                        found = True
+
                     elif wps[1].count(nextwp)>0:
                         i  = wps[1].index(nextwp)
                         j  = 1
@@ -337,15 +334,15 @@ class Navdatabase:
                     else:
                         found = False
 
-                    # This segemnt done?    
-                    segready = (not found) or curwp=="" or nextwp==""                         
+                    # This segemnt done?
+                    segready = (not found) or curwp=="" or nextwp==""
 
-                # Also add final nextwp of this segment        
+                # Also add final nextwp of this segment
                 segment.append(nextwp)
-            
+
                 # Airway cab have multiple separate segments
                 airway.append(segment)
-            
+
                 # Ready for next segment
                 left  = wps[0]
                 right = wps[1]
@@ -354,29 +351,31 @@ class Navdatabase:
         return airway #,connect
 
     def listconnections(self, wpid,wplat,wplon):
-        
+
         # Return list of connecting airway legs
-        connect = []        
+        connect = []
 
         # Check from-list first
         if wpid in self.awfromwpid:
             idx = findall(self.awfromwpid,wpid)
             for i in idx:
-                newitem = [self.awid[i],self.awtowpid[i]] 
+                newitem = [self.awid[i],self.awtowpid[i]]
                 if (newitem not in connect) and \
                          geo.kwikdist(self.awfromlat[i],self.awfromlon[i],
                                   wplat,wplon) < 10.:
                     connect.append(newitem)
 
-        # Check to-list nextt            
+        # Check to-list nextt
         if wpid in self.awtowpid:
             idx = findall(self.awtowpid,wpid)
             for i in idx:
-                newitem = [self.awid[i],self.awfromwpid[i]] 
+                newitem = [self.awid[i],self.awfromwpid[i]]
                 if (newitem not in connect) and \
                          geo.kwikdist(self.awtolat[i],self.awtolon[i],
                                   wplat,wplon) < 10.:
                     connect.append(newitem)
-                    
+
         return connect # return list of [awid,wpid]
 
+# Singleton instance of the navigation database
+navdb = Navdatabase()

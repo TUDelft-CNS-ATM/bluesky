@@ -5,7 +5,7 @@ from ..radarclick import radarclick
 
 
 class Keyboard:
-    """ 
+    """
     Keyboard class definition : keyboard & mouse input processing class
 
     Methods:
@@ -25,14 +25,14 @@ class Keyboard:
         self.lastcmd  = ""     # previously typed command line
         self.firstx = True
         return
-    
+
     def update(self, sim, cmd, scr, traf):
 
-        # First time: IC window in pygame version        
+        # First time: IC window in pygame version
         if self.firstx:
             stack.stack("IC")
             self.firstx = False
-        
+
         # Get events
         for event in pg.event.get():
             if event.type==pg.QUIT:
@@ -59,7 +59,7 @@ class Keyboard:
 
                 elif event.key ==pg.K_F3: # F3: Insert last command
                     scr.editwin.insert(self.lastcmd.strip().upper()+" ")
-                   
+
                 # Display keys
                 elif event.key == 269: # Num lock minus
                     stack.stack("ZOOM OUT")
@@ -76,17 +76,17 @@ class Keyboard:
                     scr.pan("LEFT")
 
                 elif event.key ==pg.K_F11: # F11: Toggle full screen
-                    
-                    scr.swfullscreen = not scr.swfullscreen 
+
+                    scr.swfullscreen = not scr.swfullscreen
                     scr.fullscreen(scr.swfullscreen)
 
                 else: #TEST OPTION
                     pass
-                
+
                 # scr.editwin.insert(str(event.key))
-                # TBD            
+                # TBD
                 # scr.insedit(chr(ikey))
-                
+
             # End of keys selection
 
 
@@ -108,7 +108,7 @@ class Keyboard:
                         scr.editwin.rect = pg.Rect(scr.editwin.winx,scr.editwin.winy, \
                              scr.editwin.bmpdx,scr.editwin.bmpdy)
                         scr.redrawedit = True
-                    
+
                     # Menu button click
                     elif scr.menu.rect.collidepoint(event.pos) and \
                          not self.dragmenu:
@@ -120,13 +120,13 @@ class Keyboard:
                     elif self.dragmenu:
                         self.dragmenu    = False
                         self.dragpotmenu = False
-                        
+
                     else:
                         if not scr.swnavdisp:
                             # Interpret current edit line
                             cmdline = scr.editwin.getline()
                             lat, lon = scr.xy2ll(event.pos[0], event.pos[1])
-                            tostack, todisplay = radarclick(cmdline, lat, lon, traf, traf.navdb)
+                            tostack, todisplay = radarclick(cmdline, lat, lon, traf)
                             if len(todisplay) > 0:
                                 if todisplay[0] == '\n':
                                     scr.editwin.enter()
@@ -141,7 +141,7 @@ class Keyboard:
                 self.dragmenu    = False
                 self.dragpotmenu = False
 
-            # Mouse button down: lock onto edit window if insied edit window     
+            # Mouse button down: lock onto edit window if insied edit window
             elif event.type==pg.MOUSEBUTTONDOWN:
 
                 self.dragmenu = False
@@ -164,9 +164,9 @@ class Keyboard:
                     scr.zoom(sqrt(2.0))
                 elif event.button==5:
                     scr.zoom(0.5*sqrt(2.0))
-                
+
             # Mouse motion: drag edit/menu window with mouse, if necessary
-            # Check also for mouse button 1                    
+            # Check also for mouse button 1
             elif event.type==pg.MOUSEMOTION and \
                 (self.dragedit or self.dragpotmenu or self.dragmenu):
                 if self.dragedit:
@@ -178,8 +178,8 @@ class Keyboard:
                         scr.editwin.winy = event.pos[1]-self.dragdy
                         scr.editwin.rect = pg.Rect(scr.editwin.winx,scr.editwin.winy, \
                                  scr.editwin.bmpdx,scr.editwin.bmpdy)
-                        scr.redrawedit = True             
-     
+                        scr.redrawedit = True
+
                 elif self.dragpotmenu:
                     pressed = pg.mouse.get_pressed()[0]
                     if  not pressed:
@@ -191,14 +191,14 @@ class Keyboard:
                         if outside and pressed:
                             self.dragmenu = True
                             self.dragpotmenu = False
-                            
+
                 elif self.dragmenu:
-    
+
                     mx,my = event.pos
                     scr.menu.x = mx - self.dragdx
                     scr.menu.y = my - self.dragdy
                     scr.menu.update() # Update rectangle
-                    scr.redrawedit = True             
+                    scr.redrawedit = True
                     pressed = pg.mouse.get_pressed()[0]
                     if  not pressed:
                         self.dragpotmenu = False

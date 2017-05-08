@@ -1,6 +1,6 @@
 import numpy as np
 from math import sin, cos, radians
-
+import bluesky as bs
 from ..tools import geo
 from ..tools.position import txt2pos
 from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach, \
@@ -55,7 +55,7 @@ class Autopilot(DynamicArrays):
         self.dist2vs[-n:] = -999.
 
         # Route objects
-        self.route.extend([Route(self.traf.navdb)] * n)
+        self.route.extend([Route()] * n)
 
     def delete(self, idx):
         super(Autopilot, self).delete(idx)
@@ -68,7 +68,7 @@ class Autopilot(DynamicArrays):
             self.t0 = simt
 
             # FMS LNAV mode:
-            qdr, dist = geo.qdrdist(self.traf.lat, self.traf.lon, 
+            qdr, dist = geo.qdrdist(self.traf.lat, self.traf.lon,
                                     self.traf.actwp.lat, self.traf.actwp.lon)  # [deg][nm])
 
             # Shift waypoints for aircraft i where necessary
@@ -300,7 +300,7 @@ class Autopilot(DynamicArrays):
 
         if idx<0 or idx>=self.traf.ntraf:
             return False,"SPD: Aircraft does not exist"
-        
+
         # convert input speed to cas and mach depending on the magnitude of input
         if 0.0<= casmach <= 2.0:
             self.traf.aspd[idx] = mach2cas(casmach, self.traf.alt[idx])
@@ -328,7 +328,7 @@ class Autopilot(DynamicArrays):
 
         name = args[0]
 
-        apidx = self.traf.navdb.getaptidx(name)
+        apidx = bs.navdb.getaptidx(name)
 
         if apidx < 0:
 
@@ -339,7 +339,7 @@ class Autopilot(DynamicArrays):
                 reflat = self.traf.lat[idx]
                 reflon = self.traf.lon[idx]
 
-            success, posobj = txt2pos(name, self.traf, self.traf.navdb, reflat, reflon)
+            success, posobj = txt2pos(name, self.traf, reflat, reflon)
             if success:
                 lat = posobj.lat
                 lon = posobj.lon
@@ -347,8 +347,8 @@ class Autopilot(DynamicArrays):
                 return False, (cmd + ": Position " + name + " not found.")
 
         else:
-            lat = self.traf.navdb.aptlat[apidx]
-            lon = self.traf.navdb.aptlon[apidx]
+            lat = bs.navdb.aptlat[apidx]
+            lon = bs.navdb.aptlon[apidx]
 
 
         if cmd == "DEST":
@@ -374,7 +374,7 @@ class Autopilot(DynamicArrays):
         # Origin: bookkeeping only for now, store in route as origin
         else:
             self.orig[idx] = name
-            apidx = self.traf.navdb.getaptidx(name)
+            apidx = bs.navdb.getaptidx(name)
 
             if apidx < 0:
 
@@ -385,7 +385,7 @@ class Autopilot(DynamicArrays):
                     reflat = self.traf.lat[idx]
                     reflon = self.traf.lon[idx]
 
-                success, posobj = txt2pos(name, self.traf, self.traf.navdb, reflat, reflon)
+                success, posobj = txt2pos(name, self.traf, reflat, reflon)
                 if success:
                     lat = posobj.lat
                     lon = posobj.lon

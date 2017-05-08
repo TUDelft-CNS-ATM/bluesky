@@ -1,5 +1,5 @@
 import time
-
+import bluesky as bs
 from ...tools import datalog, areafilter
 from ...tools.misc import txt2tim,tim2txt
 from ...traf import Traffic
@@ -30,7 +30,7 @@ class Simulation:
     # simulation modes
     init, op, hold, end = range(4)
 
-    def __init__(self, gui, navdb):
+    def __init__(self, gui):
         # simmode
         self.mode   = self.init
 
@@ -40,7 +40,7 @@ class Simulation:
         self.dt     = 0.0
         self.syst   = 0.0   # system time
 
-        self.deltclock = 0.0   # SImulated clock time at simt=0. 
+        self.deltclock = 0.0   # SImulated clock time at simt=0.
         self.simtclock = 0.0
 
         # Directories
@@ -53,9 +53,8 @@ class Simulation:
         self.ffstop = -1.    # Indefinitely
 
         # Simulation objects
-        print "Setting up Traffic simulation" 
-        self.traf  = Traffic(navdb)
-        self.navdb = navdb
+        print "Setting up Traffic simulation"
+        self.traf  = Traffic()
         self.metric = Metric()
         self.stack = stack.init(self, self.traf, gui.scr)
 
@@ -155,7 +154,7 @@ class Simulation:
 
     def stop(self):  # Quit mode
         self.mode   = self.end
-        datalog.reset()        
+        datalog.reset()
 #        datalog.save()
         return
 
@@ -189,37 +188,37 @@ class Simulation:
     def reset(self):
         self.simt = 0.0
         self.mode = self.init
-        self.traf.reset(self.navdb)
+        self.navdb.reset()
+        self.traf.reset()
         datalog.reset()
         areafilter.reset()
-        self.delclock  = 0.0   # SImulated clock time at simt=0. 
+        self.delclock  = 0.0   # SImulated clock time at simt=0.
         self.simtclock = 0.0
 
     def setclock(self,txt=""):
         """ Set simulated clock time offset"""
         if txt == "":
             pass # avoid error message, just give time
-       
+
         elif txt.upper()== "RUN":
             self.deltclock = 0.0
             self.simtclock = self.simt
-           
+
         elif txt.upper()== "REAL":
             tclock = time.localtime()
             self.simtclock = tclock.tm_hour*3600. + tclock.tm_min*60. + tclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
+
         elif txt.upper()== "UTC":
             utclock = time.gmtime()
             self.simtclock = utclock.tm_hour*3600. + utclock.tm_min*60. + utclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
+
         elif txt.replace(":","").replace(".","").isdigit():
             self.simtclock = txt2tim(txt)
             self.deltclock = self.simtclock - self.simt
         else:
             return False,"Time syntax error"
- 
-        
+
+
         return True,"Time is now "+tim2txt(self.simtclock)
-       

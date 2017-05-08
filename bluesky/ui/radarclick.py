@@ -1,12 +1,13 @@
 from math import cos, atan2, radians, degrees
 from numpy import array
+import bluesky as bs
 from ..stack.stack import cmdsynon
 
 from ..tools import geo
 from ..tools.misc import findnearest, cmdsplit
 
 
-def radarclick(cmdline, lat, lon, traf, navdb, route=None):
+def radarclick(cmdline, lat, lon, traf, route=None):
     """Process lat,lon as clicked in radar window"""
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
@@ -67,7 +68,7 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
 
     # Insert: nearest aircraft id
     else:
-        
+
         # Check for synonyms (dictionary is imported from stack)
         if cmd in cmdsynon:
            cmd = cmdsynon[cmd]
@@ -114,9 +115,9 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                     todisplay += str(round(geo.kwikdist(latref, lonref, lat, lon), 6))
 
                 elif clicktype == "apt":
-                    idx = findnearest(lat, lon, navdb.aptlat, navdb.aptlon)
+                    idx = findnearest(lat, lon, bs.navdb.aptlat, bs.navdb.aptlon)
                     if idx >= 0:
-                        todisplay += navdb.aptid[idx] + " "
+                        todisplay += bs.navdb.aptid[idx] + " "
 
                 elif clicktype == "wpinroute":  # Find nearest waypoint in route
                     if traf.id.count(args[0]) > 0:

@@ -9,22 +9,20 @@ except ImportError:
     from PyQt4.QtOpenGL import QGLFormat
 
 # Local imports
-from ..radarclick import radarclick
-from mainwindow import MainWindow, Splash
-from docwindow import DocWindow
-# from aman import AMANDisplay
-from ...sim.qtgl import MainManager as manager
-from ...sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
+from bluesky.ui.radarclick import radarclick
+from bluesky.tools.misc import tim2txt
+from bluesky.settings import scenario_path
+from bluesky.sim.qtgl import MainManager as manager
+from bluesky.sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
                      DisplayShapeEventType, StackInitEventType, \
                      AMANEventType, NUMEVENTS
-from radarwidget import RadarWidget
-from nd import ND
-
-from ...tools.misc import tim2txt
-from ...settings import scenario_path
+from .mainwindow import MainWindow, Splash
+from .docwindow import DocWindow
+from .radarwidget import RadarWidget
+from .nd import ND
 
 print('Using Qt ' + QT_VERSION_STR + ' for windows and widgets')
 
@@ -42,7 +40,6 @@ class Gui(QApplication):
         super(Gui, self).__init__([])
         self.acdata          = ACDataEvent()
         self.routedata       = RouteDataEvent()
-        self.navdb           = None
         self.radarwidget     = None
         self.mousedragged    = False
         self.mousepos        = (0, 0)
@@ -78,12 +75,11 @@ class Gui(QApplication):
         if QT_VERSION >= 0x050000:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-    def init(self, navdb):
+    def init(self):
         self.splash.showMessage('Constructing main window')
         self.processEvents()
         # Create the main window and related widgets
-        self.navdb       = navdb
-        self.radarwidget = RadarWidget(navdb)
+        self.radarwidget = RadarWidget()
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
         self.docwin      = DocWindow(self)
@@ -284,7 +280,7 @@ class Gui(QApplication):
             elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton and not self.mousedragged:
                 event_processed = True
                 lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                tostack, tocmdline = radarclick(self.win.console.command_line, lat, lon, self.acdata, self.navdb, self.routedata)
+                tostack, tocmdline = radarclick(self.win.console.command_line, lat, lon, self.acdata, self.routedata)
                 if len(tocmdline) > 0:
                     if '\n' in tocmdline:
                         self.win.console.setCmdline('')
