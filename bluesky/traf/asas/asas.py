@@ -1,4 +1,5 @@
 import numpy as np
+import bluesky as bs
 from ... import settings
 from ...tools.aero import ft, nm
 from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
@@ -41,8 +42,7 @@ class ASAS(DynamicArrays):
     def addCRMethod(asas, name, module):
         asas.CRmethods[name] = module
 
-    def __init__(self, traf):
-        self.traf = traf
+    def __init__(self):
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
             self.iconf    = []            # index in 'conflicting' aircraft database
@@ -330,9 +330,9 @@ class ASAS(DynamicArrays):
     def create(self, n=1):
         super(ASAS, self).create(n)
 
-        self.trk[-n:] = self.traf.trk[-n:]
-        self.spd[-n:] = self.traf.tas[-n:]
-        self.alt[-n:] = self.traf.alt[-n:]
+        self.trk[-n:] = bs.traf.trk[-n:]
+        self.spd[-n:] = bs.traf.tas[-n:]
+        self.alt[-n:] = bs.traf.alt[-n:]
 
     def update(self, simt):
         iconf0 = np.array(self.iconf)
@@ -342,11 +342,11 @@ class ASAS(DynamicArrays):
             self.tasas += self.dtasas
 
             # Conflict detection and resolution
-            self.cd.detect(self, self.traf, simt)
-            self.cr.resolve(self, self.traf)
+            self.cd.detect(self, bs.traf, simt)
+            self.cr.resolve(self, bs.traf)
 
         # Change labels in interface
         if settings.gui == "pygame":
-            for i in range(self.traf.ntraf):
+            for i in range(bs.traf.ntraf):
                 if np.any(iconf0[i] != self.iconf[i]):
-                    self.traf.label[i] = [" ", " ", " ", " "]
+                    bs.traf.label[i] = [" ", " ", " ", " "]

@@ -1,5 +1,6 @@
 from math import *
 
+import bluesky as bs
 from ..settings import gui
 
 import numpy as np
@@ -18,12 +19,11 @@ class Trails(DynamicArrays):
     Created by  : Jacco M. Hoekstra
     """
 
-    def __init__(self, traf,dttrail=10.):
+    def __init__(self,dttrail=10.):
         self.active = False  # Wether or not to show trails
         self.dt = dttrail    # Resolution of trail pieces in time
 
         self.tcol0 = 60.  # After how many seconds old colour
-        self.traf = traf
 
         # This list contains some standard colors
         self.colorList = {'BLUE': np.array([0, 0, 255]),
@@ -65,14 +65,14 @@ class Trails(DynamicArrays):
         super(Trails, self).create(n)
 
         self.accolor[-1] = self.defcolor
-        self.lastlat[-1] = self.traf.lat[-1]
-        self.lastlon[-1] = self.traf.lon[-1] 
-        
+        self.lastlat[-1] = bs.traf.lat[-1]
+        self.lastlon[-1] = bs.traf.lon[-1]
+
     def update(self, t):
-        self.acid    = self.traf.id        
+        self.acid    = bs.traf.id
         if not self.active:
-            self.lastlat = self.traf.lat
-            self.lastlon = self.traf.lon
+            self.lastlat = bs.traf.lat
+            self.lastlon = bs.traf.lon
             self.lasttim[:] = t
             return
         """Add linepieces for trails based on traffic data"""
@@ -91,13 +91,13 @@ class Trails(DynamicArrays):
         # Add all a/c which need the update
         # if len(idxs)>0:
         #     print "len(idxs)=",len(idxs)
-        
+
         for i in idxs:
             # Add to lists
             lstlat0.append(self.lastlat[i])
             lstlon0.append(self.lastlon[i])
-            lstlat1.append(self.traf.lat[i])
-            lstlon1.append(self.traf.lon[i])
+            lstlat1.append(bs.traf.lat[i])
+            lstlon1.append(bs.traf.lon[i])
             lsttime.append(t)
 
             if isinstance(self.col, np.ndarray):
@@ -110,8 +110,8 @@ class Trails(DynamicArrays):
             self.col.append(self.accolor[i])
 
             # Update aircraft record
-            self.lastlat[i] = self.traf.lat[i]
-            self.lastlon[i] = self.traf.lon[i]
+            self.lastlat[i] = bs.traf.lat[i]
+            self.lastlon[i] = bs.traf.lon[i]
             self.lasttim[i] = t
 
         # When a/c is no longer part of trail semgment,
@@ -163,7 +163,7 @@ class Trails(DynamicArrays):
         self.newlon0 = []
         self.newlat1 = []
         self.newlon1 = []
-      
+
 
     def clearfg(self):  # Foreground
         """Clear trails foreground"""
@@ -197,11 +197,11 @@ class Trails(DynamicArrays):
     def setTrails(self, *args):
         """ Set trails on/off, or change trail color of aircraft """
         if len(args)==0:
-            msg = "TRAIL ON/OFF, [dt] / TRAIL acid color\n"         
+            msg = "TRAIL ON/OFF, [dt] / TRAIL acid color\n"
 
             if self.active:
                 msg = msg + "TRAILS ARE ON"
-            else:    
+            else:
                 msg = msg + "TRAILS ARE OFF"
 
             return True,msg
@@ -217,19 +217,19 @@ class Trails(DynamicArrays):
 
         # Change color per acid (pygame only)
         else:
-            
+
             # Change trail color
             if len(args) < 2 or args[1] not in ["BLUE", "RED", "YELLOW"]:
                 return False, "Set aircraft trail color with: TRAIL acid BLUE/RED/YELLOW"
             self.changeTrailColor(args[1], args[0])
-        
+
         return True
 
     def changeTrailColor(self, color, idx):
         """Change color of aircraft trail"""
         self.accolor[idx] = self.colorList[color]
         return
-    
+
     def reset(self):
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb

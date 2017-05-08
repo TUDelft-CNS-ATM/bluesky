@@ -269,15 +269,15 @@ def APorASAS(dbconf, traf):
                 # Waypoint recovery after conflict
                 # Find the next active waypoint and send the aircraft to that
                 # waypoint.
-                iwpid1 = traf.ap.route[id1].findact(traf,id1)
+                iwpid1 = traf.ap.route[id1].findact(id1)
                 if iwpid1 != -1: # To avoid problems if there are no waypoints
-                    traf.ap.route[id1].direct(traf, id1, traf.ap.route[id1].wpname[iwpid1])
-                iwpid2 = traf.ap.route[id2].findact(traf,id2)
+                    traf.ap.route[id1].direct(id1, traf.ap.route[id1].wpname[iwpid1])
+                iwpid2 = traf.ap.route[id2].findact(id2)
                 if iwpid2 != -1: # To avoid problems if there are no waypoints
-                    traf.ap.route[id2].direct(traf, id2, traf.ap.route[id2].wpname[iwpid2])
+                    traf.ap.route[id2].direct(id2, traf.ap.route[id2].wpname[iwpid2])
 
                 # If conflict is solved, remove it from conflist_all list
-                # This is so that if a conflict between this pair of aircraft 
+                # This is so that if a conflict between this pair of aircraft
                 # occurs again, then that new conflict should be detected, logged
                 # and solved (if reso is on)
                 dbconf.conflist_all.remove(conflict)
@@ -286,18 +286,18 @@ def APorASAS(dbconf, traf):
         # flight (and has been deleted), start trajectory recovery for aircraft id2
         # And remove the conflict from the conflict_all list
         elif id1 < 0 and id2 >= 0:
-             iwpid2 = traf.ap.route[id2].findact(traf,id2)
+             iwpid2 = traf.ap.route[id2].findact(id2)
              if iwpid2 != -1: # To avoid problems if there are no waypoints
-                 traf.ap.route[id2].direct(traf, id2, traf.ap.route[id2].wpname[iwpid2])
+                 traf.ap.route[id2].direct(id2, traf.ap.route[id2].wpname[iwpid2])
              dbconf.conflist_all.remove(conflict)
 
         # If aircraft id2 cannot be found in traffic because it has finished its
         # flight (and has been deleted) start trajectory recovery for aircraft id1
         # And remove the conflict from the conflict_all list
         elif id2 < 0 and id1 >= 0:
-            iwpid1 = traf.ap.route[id1].findact(traf,id1)
+            iwpid1 = traf.ap.route[id1].findact(id1)
             if iwpid1 != -1: # To avoid problems if there are no waypoints
-                traf.ap.route[id1].direct(traf, id1, traf.ap.route[id1].wpname[iwpid1])
+                traf.ap.route[id1].direct(id1, traf.ap.route[id1].wpname[iwpid1])
             dbconf.conflist_all.remove(conflict)
 
         # if both ids are unknown, then delete this conflict, because both aircraft

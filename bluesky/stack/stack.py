@@ -6,12 +6,12 @@ Methods:
     stack(cmdline)          : add a command to the command stack
     openfile(scenname)      : start playing a scenario file scenname.SCN
                               from scenario folder
-    savefile(scenname,traf) : save current traffic situation as
+    savefile(scenname)      : save current traffic situation as
                               scenario file scenname.SCN
     checkfile(t)            : check whether commands need to be
                               processed from scenario file
 
-    process(sim, traf, scr) : central command processing method
+    process(sim, scr)       : central command processing method
 
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
@@ -90,7 +90,7 @@ scentime  = []
 scencmd   = []
 
 
-def init(sim, traf, scr):
+def init(sim, scr):
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -141,46 +141,46 @@ def init(sim, traf, scr):
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
             # def fun(idx, args):
-            #     return traf.ap.route[idx].addwptStack(traf, idx, *args)
+            #     return bs.traf.ap.route[idx].addwptStack(idx, *args)
             # fun(idx,*args)
             #
-            lambda idx, *args: traf.ap.route[idx].addwptStack(traf, idx, *args),
+            lambda idx, *args: bs.traf.ap.route[idx].addwptStack(idx, *args),
             "Add a waypoint to route of aircraft (FMS)"
         ],
         "AFTER": [
             "acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]",
             "acid,wpinroute,txt,wpt,[alt,spd]",
-            lambda idx, *args: traf.ap.route[idx].afteraddwptStack(traf, idx, *args),
+            lambda idx, *args: bs.traf.ap.route[idx].afteraddwptStack(idx, *args),
             "After waypoint, add a waypoint to route of aircraft (FMS)"
         ],
         "AIRWAY": [
             "AIRWAY wp/airway",
             "txt",
-            lambda *args: traf.airwaycmd(scr, *args),
+            lambda *args: bs.traf.airwaycmd(scr, *args),
             "Get info on airway or connections of a waypoint"
         ],
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
-            traf.ap.selalt,
+            bs.traf.ap.selalt,
             "Altitude command (autopilot)"
         ],
         "AREA": [
             "AREA Shapename/OFF or AREA lat,lon,lat,lon,[top,bottom]",
             "[float/txt,float,float,float,alt,alt]",
-            lambda *args: traf.area.setArea(scr, args),
+            lambda *args: bs.traf.area.setArea(scr, args),
             "Define experiment area (area of interest)"
         ],
         "ASAS": [
             "ASAS ON/OFF",
             "[onoff]",
-            traf.asas.toggle,
+            bs.traf.asas.toggle,
             "Airborne Separation Assurance System switch"
         ],
         "AT": [
             "acid AT wpname [DEL] SPD/ALT [spd/alt]",
             "acid,wpinroute,[txt,txt]",
-            lambda idx, *args: traf.ap.route[idx].atwptStack(scr, idx, traf, *args),
+            lambda idx, *args: bs.traf.ap.route[idx].atwptStack(scr, idx, *args),
             "Edit, delete or show spd/alt constraints at a waypoint in the route"
         ],
         "BATCH": [
@@ -210,7 +210,7 @@ def init(sim, traf, scr):
         "CDMETHOD": [
             "CDMETHOD [method]",
             "[txt]",
-            traf.asas.SetCDmethod,
+            bs.traf.asas.SetCDmethod,
             "Set conflict detection method"
         ],
         "CIRCLE": [
@@ -222,13 +222,13 @@ def init(sim, traf, scr):
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
             "txt,txt,latlon,hdg,alt,spd",
-            traf.create,
+            bs.traf.create,
             "Create an aircraft"
         ],
         "CRECONFS": [
             "CRECONFS id, type, targetid, dpsi, cpa, tlos_hor, dH, tlos_ver, spd",
             "txt,txt,acid,hdg,float,time,[alt,time,spd]",
-            traf.creconfs,
+            bs.traf.creconfs,
             "Create an aircraft that is in conflict with 'targetid'"
         ],
         "DEFWPT": [
@@ -240,8 +240,8 @@ def init(sim, traf, scr):
         "DEL": [
             "DEL acid/WIND/shape",
             "txt",
-            lambda a:   traf.delete(a)    if traf.id.count(a) > 0 \
-                   else traf.wind.clear() if a == "WIND" \
+            lambda a:   bs.traf.delete(a)    if bs.traf.id.count(a) > 0 \
+                   else bs.traf.wind.clear() if a == "WIND" \
                    else areafilter.deleteArea(scr, a),
             "Delete command (aircraft, wind, area)"
         ],
@@ -254,25 +254,25 @@ def init(sim, traf, scr):
         "DELRTE": [
             "DELRTE acid",
             "acid",
-            lambda idx: traf.ap.route[idx].delrte(),
+            lambda idx: bs.traf.ap.route[idx].delrte(),
             "Delete for this a/c the complete route/dest/orig (FMS)"
         ],
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
-            lambda idx, wpname: traf.ap.route[idx].delwpt(wpname),
+            lambda idx, wpname: bs.traf.ap.route[idx].delwpt(wpname),
             "Delete a waypoint from a route (FMS)"
         ],
         "DEST": [
             "DEST acid, latlon/airport",
             "acid,wpt/latlon",
-            lambda idx, *args: traf.ap.setdestorig("DEST", idx, *args),
+            lambda idx, *args: bs.traf.ap.setdestorig("DEST", idx, *args),
             "Set destination of aircraft, aircraft wil fly to this airport"
         ],
         "DIRECT": [
             "DIRECT acid wpname",
             "acid,txt",
-            lambda idx, wpname: traf.ap.route[idx].direct(traf, idx, wpname),
+            lambda idx, wpname: bs.traf.ap.route[idx].direct(idx, wpname),
             "Go direct to specified waypoint in route (FMS)"
         ],
         "DIST": [
@@ -296,7 +296,7 @@ def init(sim, traf, scr):
         "DTLOOK": [
             "DTLOOK [time]",
             "[float]",
-            traf.asas.SetDtLook,
+            bs.traf.asas.SetDtLook,
             "Set lookahead time in seconds for conflict detection"
         ],
         "DTMULT": [
@@ -308,13 +308,13 @@ def init(sim, traf, scr):
         "DTNOLOOK": [
             "DTNOLOOK [time]",
             "[float]",
-            traf.asas.SetDtNoLook,
+            bs.traf.asas.SetDtNoLook,
             "Set interval for conflict detection"
         ],
         "DUMPRTE": [
             "DUMPRTE acid",
             "acid",
-            lambda idx: traf.ap.route[idx].dumpRoute(traf, idx),
+            lambda idx: bs.traf.ap.route[idx].dumpRoute(idx),
             "Write route to output/routelog.txt"
         ],
         "ECHO": [
@@ -326,7 +326,7 @@ def init(sim, traf, scr):
         "ENG": [
             "ENG acid,[engine_id]",
             "acid,[txt]",
-            traf.perf.engchange,
+            bs.traf.perf.engchange,
             "Specify a different engine type"
         ],
         "FF": [
@@ -351,13 +351,13 @@ def init(sim, traf, scr):
         "GETWIND": [
             "GETWIND lat,lon,[alt]",
             "latlon,[alt]",
-            traf.wind.get,
+            bs.traf.wind.get,
             "Get wind at a specified position (and optionally at altitude)"
         ],
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
-            traf.ap.selhdg,
+            bs.traf.ap.selhdg,
             "Heading command (autopilot)"
         ],
         "HELP": [
@@ -393,13 +393,13 @@ def init(sim, traf, scr):
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: traf.ap.route[idx].listrte(scr, idx, traf, *args),
+            lambda idx, *args: bs.traf.ap.route[idx].listrte(scr, idx, *args),
             "Show list of route in window per page of 5 waypoints"
         ],
         "LNAV": [
             "LNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.ap.setLNAV,
+            bs.traf.ap.setLNAV,
             "LNAV (lateral FMS mode) switch for autopilot"
         ],
         "MAKEDOC": [
@@ -411,19 +411,19 @@ def init(sim, traf, scr):
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
             "int,[txt,alt,spd,txt]",
-            lambda *args: traf.mcreate(*args, area=scr.getviewlatlon()),
+            lambda *args: bs.traf.mcreate(*args, area=scr.getviewlatlon()),
             "Multiple random create of n aircraft in current view"
         ],
         "METRIC": [
             "METRIC OFF/0/1/2, [dt]",
             "onoff/int,[float]",
-            lambda *args: sim.metric.toggle(traf, *args),
+            lambda *args: sim.metric.toggle(*args),
             "Complexity metrics module"
         ],
         "MOVE": [
             "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
             "acid,latlon,[alt,hdg,spd,vspd]",
-            traf.move,
+            bs.traf.move,
             "Move an aircraft to a new position"
         ],
         "ND": [
@@ -435,19 +435,19 @@ def init(sim, traf, scr):
         "NOISE": [
             "NOISE [ON/OFF]",
             "[onoff]",
-            traf.setNoise,
+            bs.traf.setNoise,
             "Turbulence/noise switch"
         ],
         "NOM": [
             "NOM acid",
             "acid",
-            traf.nom,
+            bs.traf.nom,
             "Set nominal acceleration for this aircraft (perf model)"
         ],
         "NORESO": [
             "NORESO [acid]",
             "[string]",
-            traf.asas.SetNoreso,
+            bs.traf.asas.SetNoreso,
             "Switch off conflict resolution for this aircraft"
         ],
         "OP": [
@@ -459,7 +459,7 @@ def init(sim, traf, scr):
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
-            lambda *args: traf.ap.setdestorig("ORIG", *args),
+            lambda *args: bs.traf.ap.setdestorig("ORIG", *args),
             "Set origin airport of aircraft"
         ],
         "PAN": [
@@ -490,13 +490,13 @@ def init(sim, traf, scr):
         "POS": [
             "POS acid/waypoint",
             "acid/wpt",
-            lambda *args: traf.poscommand(scr, *args),
+            lambda *args: bs.traf.poscommand(scr, *args),
             "Get info on aircraft, airport or waypoint"
         ],
         "PRIORULES": [
             "PRIORULES [ON/OFF PRIOCODE]",
             "[onoff, txt]",
-            traf.asas.SetPrio,
+            bs.traf.asas.SetPrio,
             "Define priority rules (right of way) for conflict resolution"
         ],
         "QUIT": [
@@ -514,55 +514,55 @@ def init(sim, traf, scr):
         "RFACH": [
             "RFACH [factor]",
             "[float]",
-            traf.asas.SetResoFacH,
+            bs.traf.asas.SetResoFacH,
             "Set resolution factor horizontal (to add a margin)"
         ],
         "RFACV": [
             "RFACV [factor]",
             "[float]",
-            traf.asas.SetResoFacV,
+            bs.traf.asas.SetResoFacV,
             "Set resolution factor vertical (to add a margin)"
         ],
         "RESO": [
             "RESO [method]",
             "[txt]",
-            traf.asas.SetCRmethod,
+            bs.traf.asas.SetCRmethod,
             "Set resolution method"
         ],
         "RESOOFF": [
             "RESOOFF [acid]",
             "[string]",
-            traf.asas.SetResooff,
+            bs.traf.asas.SetResooff,
             "Switch for conflict resolution module"
         ],
         "RMETHH": [
             "RMETHH [method]",
             "[txt]",
-            traf.asas.SetResoHoriz,
+            bs.traf.asas.SetResoHoriz,
             "Set resolution method to be used horizontally"
         ],
         "RMETHV": [
             "RMETHV [method]",
             "[txt]",
-            traf.asas.SetResoVert,
+            bs.traf.asas.SetResoVert,
             "Set resolution method to be used vertically"
         ],
         "RSZONEDH": [
             "RSZONEDH [height]",
             "[float]",
-            traf.asas.SetPZHm,
+            bs.traf.asas.SetPZHm,
             "Set half of vertical dimension of resolution zone in ft"
         ],
         "RSZONER": [
             "RSZONER [radius]",
             "[float]",
-            traf.asas.SetPZRm,
+            bs.traf.asas.SetPZRm,
             "Set horizontal radius of resolution zone in nm"
         ],
         "SAVEIC": [
             "SAVEIC filename",
             "string",
-            lambda fname: saveic(fname, sim, traf),
+            lambda fname: saveic(fname, sim),
             "Save current situation as IC"
         ],
         "SCHEDULE": [
@@ -586,7 +586,7 @@ def init(sim, traf, scr):
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
             "acid,spd",
-            traf.ap.selspd,
+            bs.traf.ap.selspd,
             "Speed command (autopilot)"
         ],
         "SSD": [
@@ -611,13 +611,13 @@ def init(sim, traf, scr):
             " SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER," + \
             "MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP",
             "txt,[...]",
-            lambda *args: syn.process(args[0], len(args) - 1, args, sim, traf, scr),
+            lambda *args: syn.process(args[0], len(args) - 1, args, sim, scr),
             "Macro for generating synthetic (geometric) traffic scenarios"
         ],
         "TAXI": [
             "TAXI ON/OFF : OFF auto deletes traffic below 1500 ft",
             "onoff",
-            traf.area.setTaxi,
+            bs.traf.area.setTaxi,
             "Switch on/off ground/low altitude mode, prevents auto-delete at 1500 ft"
         ],
         "TIME": [
@@ -629,37 +629,37 @@ def init(sim, traf, scr):
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
             "[acid/bool],[float/txt]",
-            traf.trails.setTrails,
+            bs.traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
-            traf.ap.setVNAV,
+            bs.traf.ap.setVNAV,
             "Switch on/off VNAV mode, the vertical FMS mode (autopilot)"
         ],
         "VS": [
             "VS acid,vspd (ft/min)",
             "acid,vspd",
-            traf.ap.selvspd,
+            bs.traf.ap.selvspd,
             "Vertical speed command (autopilot)"
         ],
         "WIND": [
             "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
             "latlon,[alt],float,float,...,...,...",   # last 3 args are repeated
-            traf.wind.add,
+            bs.traf.wind.add,
             "Define a wind vector as part of the 2D or 3D wind field"
         ],
         "ZONEDH": [
             "ZONEDH [height]",
             "[float]",
-            traf.asas.SetPZH,
+            bs.traf.asas.SetPZH,
             "Set half of the vertical protected zone dimensions in ft"
         ],
         "ZONER": [
             "ZONER [radius]",
             "[float]",
-            traf.asas.SetPZR,
+            bs.traf.asas.SetPZR,
             "Set the radius of the horizontal protected zone dimensions in nm"
 
         ],
@@ -679,7 +679,7 @@ def init(sim, traf, scr):
 
     # Display Help text on start of program
     stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n" +
-        "Or select IC to Open a scenario file.")
+          "Or select IC to Open a scenario file.")
 
     # Pan to initial location
     stack('PAN ' + settings.start_location)
@@ -963,7 +963,7 @@ def checkfile(simt):
     return
 
 
-def saveic(fname, sim, traf):
+def saveic(fname, sim):
     # Add extension .scn if not already present
     if fname.lower().find(".scn") < 0:
         fname = fname + ".scn"
@@ -980,70 +980,70 @@ def saveic(fname, sim, traf):
     # Write files
     timtxt = "00:00:00.00>"
 
-    for i in range(traf.ntraf):
+    for i in range(bs.traf.nbs.traf):
         # CRE acid,type,lat,lon,hdg,alt,spd
-        cmdline = "CRE " + traf.id[i] + "," + traf.type[i] + "," + \
-                  repr(traf.lat[i]) + "," + repr(traf.lon[i]) + "," + \
-                  repr(traf.trk[i]) + "," + repr(traf.alt[i] / ft) + "," + \
-                  repr(tas2cas(traf.tas[i], traf.alt[i]) / kts)
+        cmdline = "CRE " + bs.traf.id[i] + "," + bs.traf.type[i] + "," + \
+                  repr(bs.traf.lat[i]) + "," + repr(bs.traf.lon[i]) + "," + \
+                  repr(bs.traf.trk[i]) + "," + repr(bs.traf.alt[i] / ft) + "," + \
+                  repr(tas2cas(bs.traf.tas[i], bs.traf.alt[i]) / kts)
 
         f.write(timtxt + cmdline + "\n")
 
         # VS acid,vs
-        if abs(traf.vs[i]) > 0.05:  # 10 fpm dead band
-            if abs(traf.ap.vs[i]) > 0.05:
-                vs_ = traf.ap.vs[i] / fpm
+        if abs(bs.traf.vs[i]) > 0.05:  # 10 fpm dead band
+            if abs(bs.traf.ap.vs[i]) > 0.05:
+                vs_ = bs.traf.ap.vs[i] / fpm
             else:
-                vs_ = traf.vs[i] / fpm
+                vs_ = bs.traf.vs[i] / fpm
 
-            cmdline = "VS " + traf.id[i] + "," + repr(vs_)
+            cmdline = "VS " + bs.traf.id[i] + "," + repr(vs_)
             f.write(timtxt + cmdline + "\n")
 
         # Autopilot commands
         # Altitude
-        if abs(traf.alt[i] - traf.ap.alt[i]) > 10.:
-            cmdline = "ALT " + traf.id[i] + "," + repr(traf.ap.alt[i] / ft)
+        if abs(bs.traf.alt[i] - bs.traf.ap.alt[i]) > 10.:
+            cmdline = "ALT " + bs.traf.id[i] + "," + repr(bs.traf.ap.alt[i] / ft)
             f.write(timtxt + cmdline + "\n")
 
         # Heading as well when heading select
-        delhdg = (traf.hdg[i] - traf.ap.trk[i] + 180.) % 360. - 180.
+        delhdg = (bs.traf.hdg[i] - bs.traf.ap.trk[i] + 180.) % 360. - 180.
         if abs(delhdg) > 0.5:
-            cmdline = "HDG " + traf.id[i] + "," + repr(traf.ap.trk[i])
+            cmdline = "HDG " + bs.traf.id[i] + "," + repr(bs.traf.ap.trk[i])
             f.write(timtxt + cmdline + "\n")
 
         # Speed select? => Record
-        rho = density(traf.alt[i])  # alt in m!
-        aptas = sqrt(1.225 / rho) * traf.ap.spd[i]
-        delspd = aptas - traf.tas[i]
+        rho = density(bs.traf.alt[i])  # alt in m!
+        aptas = sqrt(1.225 / rho) * bs.traf.ap.spd[i]
+        delspd = aptas - bs.traf.tas[i]
 
         if abs(delspd) > 0.4:
-            cmdline = "SPD " + traf.id[i] + "," + repr(traf.ap.spd[i] / kts)
+            cmdline = "SPD " + bs.traf.id[i] + "," + repr(bs.traf.ap.spd[i] / kts)
             f.write(timtxt + cmdline + "\n")
 
         # DEST acid,dest-apt
-        if traf.ap.dest[i] != "":
-            cmdline = "DEST " + traf.id[i] + "," + traf.ap.dest[i]
+        if bs.traf.ap.dest[i] != "":
+            cmdline = "DEST " + bs.traf.id[i] + "," + bs.traf.ap.dest[i]
             f.write(timtxt + cmdline + "\n")
 
         # ORIG acid,orig-apt
-        if traf.ap.orig[i] != "":
-            cmdline = "ORIG " + traf.id[i] + "," + traf.ap.orig[i]
+        if bs.traf.ap.orig[i] != "":
+            cmdline = "ORIG " + bs.traf.id[i] + "," + bs.traf.ap.orig[i]
             f.write(timtxt + cmdline + "\n")
 
         # Route with ADDWPT
-        route = traf.ap.route[i]
+        route = bs.traf.ap.route[i]
         for iwp in range(route.nwp):
             # dets and orig al already done, skip them here
-            if iwp == 0 and route.wpname[iwp] == traf.ap.orig[i]:
+            if iwp == 0 and route.wpname[iwp] == bs.traf.ap.orig[i]:
                 continue
 
-            if iwp == route.nwp - 1 and route.wpname[iwp] == traf.ap.dest[i]:
+            if iwp == route.nwp - 1 and route.wpname[iwp] == bs.traf.ap.dest[i]:
                 continue
 
             #add other waypoints
-            cmdline = "ADDWPT " + traf.id[i] + " "
+            cmdline = "ADDWPT " + bs.traf.id[i] + " "
             wpname = route.wpname[iwp]
-            if wpname[:len(traf.id[i])] == traf.id[i]:
+            if wpname[:len(bs.traf.id[i])] == bs.traf.id[i]:
                 wpname = repr(route.lat[iwp]) + "," + repr(route.lon[iwp])
             cmdline = cmdline + wpname + ","
 
@@ -1065,7 +1065,7 @@ def saveic(fname, sim, traf):
     return True
 
 
-def process(sim, traf, scr):
+def process(sim, scr):
     """process and empty command stack"""
     global cmdstack
 
@@ -1079,10 +1079,10 @@ def process(sim, traf, scr):
 
         # Split command line into command and arguments, pass traf ids to check for
         # switched acid and command
-        cmd, args = cmdsplit(line.upper(), traf.id)
+        cmd, args = cmdsplit(line.upper(), bs.traf.id)
         numargs   = len(args)
         # Check if this is a POS command with only an aircraft id
-        if numargs == 0 and traf.id.count(cmd) > 0:
+        if numargs == 0 and bs.traf.id.count(cmd) > 0:
             args    = [cmd]
             cmd     = 'POS'
             numargs = 1
@@ -1160,7 +1160,7 @@ def process(sim, traf, scr):
 
                         # Try to parse the argument for the given argument type
                         # First successful parsing is used!
-                        if parser.parse(argtypei, curarg, args, traf, scr):
+                        if parser.parse(argtypei, curarg, args, scr):
                             # No value = None when this is allowed because it is an optional argument
                             if parser.result[0] is None and argisopt[curtype] is False:
                                 synerr = True
@@ -1258,7 +1258,7 @@ class Argparser:
         self.refac      = -1  # Stored aircraft idx when an argument is parsed
                               # for a function that acts on an aircraft.
 
-    def parse(self, argtype, argidx, args, traf, scr):
+    def parse(self, argtype, argidx, args, scr):
         """ Parse one or more arguments.
 
             Returns True if parse was successful. When not successful, False is
@@ -1287,14 +1287,14 @@ class Argparser:
             return True
 
         if argtype == "acid":  # aircraft id => parse index
-            idx = traf.id2idx(args[argidx])
+            idx = bs.traf.id2idx(args[argidx])
             if idx < 0:
                 self.error = args[argidx] + " not found"
                 return False
             else:
                 # Update ref position for navdb lookup
-                Argparser.reflat = traf.lat[idx]
-                Argparser.reflon = traf.lon[idx]
+                Argparser.reflat = bs.traf.lat[idx]
+                Argparser.reflon = bs.traf.lon[idx]
                 self.refac   = idx
                 self.result  = [idx]
                 self.argstep = 1
@@ -1302,8 +1302,8 @@ class Argparser:
 
         elif argtype == "wpinroute":  # return text in upper case
             wpname = args[argidx].upper()
-            if self.refac >= 0 and wpname not in traf.ap.route[self.refac].wpname:
-                self.error = 'There is no waypoint ' + wpname + ' in route of ' + traf.id[self.refac]
+            if self.refac >= 0 and wpname not in bs.traf.ap.route[self.refac].wpname:
+                self.error = 'There is no waypoint ' + wpname + ' in route of ' + bs.traf.id[self.refac]
                 return False
             self.result  = [wpname]
             self.argstep = 1
@@ -1355,9 +1355,9 @@ class Argparser:
             name         = args[argidx]
 
             # Try aircraft first: translate a/c id into a valid position text with a lat,lon
-            idx = traf.id2idx(name)
+            idx = bs.traf.id2idx(name)
             if idx >= 0:
-                name     = str(traf.lat[idx]) + "," + str(traf.lon[idx])
+                name     = str(bs.traf.lat[idx]) + "," + str(bs.traf.lon[idx])
 
             # Check next arg if available
             elif argidx < len(args) - 1:
@@ -1385,7 +1385,7 @@ class Argparser:
                     Argparser.reflat = scr.ctrlat
                     Argparser.reflon = scr.ctrlon
 
-                success, posobj = txt2pos(name, traf, Argparser.reflat, Argparser.reflon)
+                success, posobj = txt2pos(name, Argparser.reflat, Argparser.reflon)
 
                 if success:
                     # for runway type, get heading as default optional argument for command line

@@ -1,4 +1,5 @@
 import pygame as pg
+import bluesky as bs
 from ... import stack
 from math import *
 from ..radarclick import radarclick
@@ -26,7 +27,7 @@ class Keyboard:
         self.firstx = True
         return
 
-    def update(self, sim, cmd, scr, traf):
+    def update(self, sim, cmd, scr):
 
         # First time: IC window in pygame version
         if self.firstx:
@@ -126,7 +127,7 @@ class Keyboard:
                             # Interpret current edit line
                             cmdline = scr.editwin.getline()
                             lat, lon = scr.xy2ll(event.pos[0], event.pos[1])
-                            tostack, todisplay = radarclick(cmdline, lat, lon, traf)
+                            tostack, todisplay = radarclick(cmdline, lat, lon)
                             if len(todisplay) > 0:
                                 if todisplay[0] == '\n':
                                     scr.editwin.enter()

@@ -9,6 +9,7 @@ import numpy as np
 import time
 
 # Local imports
+import bluesky as bs
 import nodemanager as manager
 from ... import stack
 from timer import Timer
@@ -143,7 +144,7 @@ class ScreenIO(QObject):
             if param == 'ALL' or param == 'OFF':
                 manager.sendEvent(DisplayFlagEvent('SSD', param))
             else:
-                idx = self.sim.traf.id2idx(param)
+                idx = bs.traf.id2idx(param)
                 if idx >= 0:
                     manager.sendEvent(DisplayFlagEvent('SSD', idx))
 
@@ -237,7 +238,7 @@ class ScreenIO(QObject):
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * self.sim.simdt
         manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
-            self.sim.simtclock, self.sim.traf.ntraf, self.sim.state, stack.get_scenname()))
+            self.sim.simtclock, bs.traf.ntraf, self.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
 
@@ -246,36 +247,36 @@ class ScreenIO(QObject):
         if manager.isActive():
             data            = ACDataEvent()
             data.simt       = self.sim.simt
-            data.id         = self.sim.traf.id
-            data.lat        = self.sim.traf.lat
-            data.lon        = self.sim.traf.lon
-            data.alt        = self.sim.traf.alt
-            data.tas        = self.sim.traf.tas
-            data.cas        = self.sim.traf.cas
-            data.iconf      = self.sim.traf.asas.iconf
-            data.confcpalat = self.sim.traf.asas.latowncpa
-            data.confcpalon = self.sim.traf.asas.lonowncpa
-            data.trk        = self.sim.traf.hdg
+            data.id         = bs.traf.id
+            data.lat        = bs.traf.lat
+            data.lon        = bs.traf.lon
+            data.alt        = bs.traf.alt
+            data.tas        = bs.traf.tas
+            data.cas        = bs.traf.cas
+            data.iconf      = bs.traf.asas.iconf
+            data.confcpalat = bs.traf.asas.latowncpa
+            data.confcpalon = bs.traf.asas.lonowncpa
+            data.trk        = bs.traf.hdg
 
             # Trails, send only new line segments to be added
-            data.swtrails  = self.sim.traf.trails.active
-            data.traillat0 = self.sim.traf.trails.newlat0
-            data.traillon0 = self.sim.traf.trails.newlon0
-            data.traillat1 = self.sim.traf.trails.newlat1
-            data.traillon1 = self.sim.traf.trails.newlon1
-            self.sim.traf.trails.clearnew()
+            data.swtrails  = bs.traf.trails.active
+            data.traillat0 = bs.traf.trails.newlat0
+            data.traillon0 = bs.traf.trails.newlon0
+            data.traillat1 = bs.traf.trails.newlat1
+            data.traillon1 = bs.traf.trails.newlon1
+            bs.traf.trails.clearnew()
 
             # Last segment which is being built per aircraft
-            data.traillastlat   = list(self.sim.traf.trails.lastlat)
-            data.traillastlon   = list(self.sim.traf.trails.lastlon)
+            data.traillastlat   = list(bs.traf.trails.lastlat)
+            data.traillastlon   = list(bs.traf.trails.lastlon)
 
             # Conflict statistics
-            data.nconf_tot  = len(self.sim.traf.asas.conflist_all)
-            data.nlos_tot   = len(self.sim.traf.asas.LOSlist_all)
-            data.nconf_exp  = len(self.sim.traf.asas.conflist_exp)
-            data.nlos_exp   = len(self.sim.traf.asas.LOSlist_exp)
-            data.nconf_cur  = len(self.sim.traf.asas.conflist_now)
-            data.nlos_cur   = len(self.sim.traf.asas.LOSlist_now)
+            data.nconf_tot  = len(bs.traf.asas.conflist_all)
+            data.nlos_tot   = len(bs.traf.asas.LOSlist_all)
+            data.nconf_exp  = len(bs.traf.asas.conflist_exp)
+            data.nlos_exp   = len(bs.traf.asas.LOSlist_exp)
+            data.nconf_cur  = len(bs.traf.asas.conflist_now)
+            data.nlos_cur   = len(bs.traf.asas.LOSlist_now)
 
             manager.sendEvent(data)
 
@@ -284,14 +285,14 @@ class ScreenIO(QObject):
         if manager.isActive() and self.route_acid is not None:
             data               = RouteDataEvent()
             data.acid          = self.route_acid
-            idx   = self.sim.traf.id2idx(self.route_acid)
+            idx   = bs.traf.id2idx(self.route_acid)
             if idx >= 0:
-                route          = self.sim.traf.ap.route[idx]
+                route          = bs.traf.ap.route[idx]
                 data.iactwp    = route.iactwp
 
                 # We also need the corresponding aircraft position
-                data.aclat     = self.sim.traf.lat[idx]
-                data.aclon     = self.sim.traf.lon[idx]
+                data.aclat     = bs.traf.lat[idx]
+                data.aclon     = bs.traf.lon[idx]
 
                 data.wplat     = route.wplat
                 data.wplon     = route.wplon
@@ -310,12 +311,12 @@ class ScreenIO(QObject):
     def send_aman_data(self):
         if manager.isActive():
             # data            = AMANEvent()
-            # data.ids        = self.sim.traf.AMAN.
-            # data.iafs       = self.sim.traf.AMAN.
-            # data.eats       = self.sim.traf.AMAN.
-            # data.etas       = self.sim.traf.AMAN.
-            # data.delays     = self.sim.traf.AMAN.
-            # data.rwys       = self.sim.traf.AMAN.
-            # data.spdratios  = self.sim.traf.AMAN.
+            # data.ids        = bs.traf.AMAN.
+            # data.iafs       = bs.traf.AMAN.
+            # data.eats       = bs.traf.AMAN.
+            # data.etas       = bs.traf.AMAN.
+            # data.delays     = bs.traf.AMAN.
+            # data.rwys       = bs.traf.AMAN.
+            # data.spdratios  = bs.traf.AMAN.
             # manager.sendEvent(data)
             pass

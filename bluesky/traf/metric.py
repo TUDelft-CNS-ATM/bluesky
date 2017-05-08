@@ -313,8 +313,8 @@ class metric_CoCa():
     #     return self.newaircraft
 
 
-    def cellPlot(self,traf):
-        cell = [floor(x/12) for x in sim.traf.cell]
+    def cellPlot(self):
+        cell = [floor(x/12) for x in bs.traf.cell]
         count = collections.Counter(cell)
         count = np.array(count.items())
 
@@ -457,7 +457,7 @@ class metric_CoCa():
 
         return
 
-    def AircraftCell(self,traf,cells,time,sim):
+    def AircraftCell(self,cells,time,sim):
         if floor(time) >= self.resettime:
             sim.pause()
             self.reset()
@@ -468,36 +468,36 @@ class metric_CoCa():
             # np.save(filedata,self.cocametric)
             sim.start()
 
-        sim.traf.cell = []
+        bs.traf.cell = []
 
-        for i in range(sim.traf.ntraf):
-            lat = sim.traf.lat[i]
-            lon = sim.traf.lon[i]
-            fl = sim.traf.alt[i]/ft
+        for i in range(bs.traf.ntraf):
+            lat = bs.traf.lat[i]
+            lon = bs.traf.lon[i]
+            fl = bs.traf.alt[i]/ft
             cellN = self.findCell(cells,lat,lon,fl)
 
             if cellN > 0:
-                sim.traf.cell = np.append(sim.traf.cell, cellN)
+                bs.traf.cell = np.append(bs.traf.cell, cellN)
                 name = 'cell'+str(cellN)
 
-                index = np.where(sim.traf.id[i] == self.cells[name][:,[0]])[0]
+                index = np.where(bs.traf.id[i] == self.cells[name][:,[0]])[0]
                 if len(index) != 1:
 
                     j = 0
                     for j in range(0,len(self.cells[name])):
                         if self.cells[name][j][0] == "":
                             break
-                    self.cells[name][j][0] = sim.traf.id[i]
+                    self.cells[name][j][0] = bs.traf.id[i]
                     self.cells[name][j][1] = time
-                    self.cells[name][j][2] = sim.traf.ahdg[i]
-                    self.cells[name][j][3] = eas2tas(sim.traf.aspd[i],sim.traf.aalt[i])/kts
-                    self.cells[name][j][4] = sim.traf.avs[i]/fpm
+                    self.cells[name][j][2] = bs.traf.ahdg[i]
+                    self.cells[name][j][3] = eas2tas(bs.traf.aspd[i],bs.traf.aalt[i])/kts
+                    self.cells[name][j][4] = bs.traf.avs[i]/fpm
                     self.cells[name][j][5] = time
                 if len(index) == 1:
                     createtime = float(self.cells[name][index[0]][5])
                     self.cells[name][index[0]][1] = str(time - createtime)
 
-                # self.newaircraft['callsign'][i] = traf.id[i]
+                # self.newaircraft['callsign'][i] = bs.traf.id[i]
                 # self.newaircraft['cellnumber'][i] =
         return
 
@@ -546,28 +546,28 @@ class metric_HB():
         traf_selected_trk = np.array([])
         traf_selected_ntraf = 0
         # RECTANGLE AREA
-        # for i in range(0,traf.ntraf):
-        #     if nx.pnpoly(traf.lat[i],traf.lon[i],self.selected_area) == 1:
-        #         traf_selected_lat = np.append(traf_selected_lat,traf.lat[i])
-        #         traf_selected_lon = np.append(traf_selected_lon,traf.lon[i])
-        #         traf_selected_alt = np.append(traf_selected_alt,traf.alt[i])
-        #         traf_selected_tas = np.append(traf_selected_tas,traf.tas[i])
-        #         traf_selected_trk = np.append( traf_selected_trk,traf.trk[i])
+        # for i in range(0,bs.traf.ntraf):
+        #     if nx.pnpoly(bs.traf.lat[i],bs.traf.lon[i],self.selected_area) == 1:
+        #         traf_selected_lat = np.append(traf_selected_lat,bs.traf.lat[i])
+        #         traf_selected_lon = np.append(traf_selected_lon,bs.traf.lon[i])
+        #         traf_selected_alt = np.append(traf_selected_alt,bs.traf.alt[i])
+        #         traf_selected_tas = np.append(traf_selected_tas,bs.traf.tas[i])
+        #         traf_selected_trk = np.append( traf_selected_trk,bs.traf.trk[i])
         #         traf_selected_ntraf = traf_selected_ntraf + 1
 
         # CIRCLE AREA (FIR Circle)
-        for i in range(0,sim.traf.ntraf):
+        for i in range(0,bs.traf.ntraf):
 
             dist = latlondist(sim.metric.fir_circle_point[0],\
                               sim.metric.fir_circle_point[1],\
-                              sim.traf.lat[i],sim.traf.lon[i])
+                              bs.traf.lat[i],bs.traf.lon[i])
 
             if  dist/nm < sim.metric.fir_circle_radius:
-                traf_selected_lat = np.append(traf_selected_lat,sim.traf.lat[i])
-                traf_selected_lon = np.append(traf_selected_lon,sim.traf.lon[i])
-                traf_selected_alt = np.append(traf_selected_alt,sim.traf.alt[i])
-                traf_selected_tas = np.append(traf_selected_tas,sim.traf.tas[i])
-                traf_selected_trk = np.append( traf_selected_trk,sim.traf.trk[i])
+                traf_selected_lat = np.append(traf_selected_lat,bs.traf.lat[i])
+                traf_selected_lon = np.append(traf_selected_lon,bs.traf.lon[i])
+                traf_selected_alt = np.append(traf_selected_alt,bs.traf.alt[i])
+                traf_selected_tas = np.append(traf_selected_tas,bs.traf.tas[i])
+                traf_selected_trk = np.append( traf_selected_trk,bs.traf.trk[i])
                 traf_selected_ntraf = traf_selected_ntraf + 1
 
 
@@ -593,7 +593,7 @@ class metric_HB():
         [self.rel_trk, self.pos] = geo.qdrdist_matrix(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
         # self.lat = np.append(self.lat,traf.lat)
         # self.lon = np.append(self.lon,traf.lon)
-        self.id = sim.traf.id
+        self.id = bs.traf.id
 
         # Position x and y wrt to initial position
         self.pos = np.mat(self.pos)
@@ -1352,7 +1352,7 @@ class Metric():
 
         return
 
-    def toggle(self, traf, flag, dt=None):
+    def toggle(self, flag, dt=None):
         """ Toggle metrics module from stack """
         if type(flag) == bool and not flag:
             # Can toggle metrics off with 'OFF'
@@ -1365,7 +1365,7 @@ class Metric():
             if flag > len(self.name):
                 return False, "No such metric"
 
-            if not traf.area == "Circle":
+            if not bs.traf.area == "Circle":
                 return False, "First define AREA for metric"
 
             if dt:
@@ -1385,7 +1385,7 @@ class Metric():
 
     def update(self,sim):
         #check if configured and there is actual traffic
-        if self.metric_number == -1 or sim.traf.ntraf < 1:
+        if self.metric_number == -1 or bs.traf.ntraf < 1:
             return
 
         """Update: to call for regular logging & runtime analysis"""
@@ -1404,28 +1404,28 @@ class Metric():
         # A lot of smart Michon-code here, probably using numpy arrays etc.
         if sim.simt >= 0:
             if self.metric_number == 0:
-                self.metric[self.metric_number].AircraftCell(sim.traf,self.cells,sim.t-self.tbegin,sim)
+                self.metric[self.metric_number].AircraftCell(bs.traf,self.cells,sim.t-self.tbegin,sim)
             elif self.metric_number == 1:
                 self.metric[self.metric_number].applymetric(sim)
 
         print "Number of Aircraft in Research Area (FIR):" + str(self.metric[self.metric_number].ntraf)
 
         deleteAC = []
-        for i in range(0,sim.traf.ntraf):
-            if sim.traf.avs[i] <= 0 and (sim.traf.aalt[i]/ft) < 750 and sim.traf.aspd[i] < 300:
-                deleteAC.append(sim.traf.id[i])
+        for i in range(0,bs.traf.ntraf):
+            if bs.traf.avs[i] <= 0 and (bs.traf.aalt[i]/ft) < 750 and bs.traf.aspd[i] < 300:
+                deleteAC.append(bs.traf.id[i])
 
-            elif sim.traf.avs[i] <=0 and (sim.traf.aalt[i]/ft) < 10:
-                deleteAC.append(sim.traf.id[i])
+            elif bs.traf.avs[i] <=0 and (bs.traf.aalt[i]/ft) < 10:
+                deleteAC.append(bs.traf.id[i])
 
-            if sim.traf.avs[i] <=0 and sim.traf.aspd[i] < 10:
-                deleteAC.append(sim.traf.id[i])
+            if bs.traf.avs[i] <=0 and bs.traf.aspd[i] < 10:
+                deleteAC.append(bs.traf.id[i])
 
         for i in range(0,len(deleteAC)):
-            sim.traf.delete(deleteAC[i])
+            bs.traf.delete(deleteAC[i])
 
         # Heartbeat for test
-        self.write(sim.simt,"NTRAF;"+str(sim.traf.ntraf))
+        self.write(sim.simt,"NTRAF;"+str(bs.traf.ntraf))
         return
 
     def plot(self):

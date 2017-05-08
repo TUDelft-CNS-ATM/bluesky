@@ -12,7 +12,6 @@ import nodemanager as manager
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
-from ...traf import Traffic
 from ... import stack
 from ...traf import Metric
 from ... import settings
@@ -65,14 +64,13 @@ class Simulation(QObject):
 
         # Simulation objects
         self.screenio    = ScreenIO(self)
-        self.traf        = Traffic()
 
         # Additional modules
         self.metric      = Metric()
-        self.beastfeed   = Modesbeast(self.traf)
+        self.beastfeed   = Modesbeast()
 
         # Initialize the stack module once
-        stack.init(self, self.traf, self.screenio)
+        stack.init(self, self.screenio)
 
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
@@ -94,7 +92,7 @@ class Simulation(QObject):
 
             # Simulation starts as soon as there is traffic, or pending commands
             if self.state == Simulation.init:
-                if self.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
+                if bs.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
                     self.start()
                     if self.benchdt > 0.0:
                         self.fastforward(self.benchdt)
@@ -104,11 +102,11 @@ class Simulation(QObject):
                 stack.checkfile(self.simt)
 
             # Always update stack
-            stack.process(self, self.traf, self.screenio)
+            stack.process(self, self.screenio)
 
             if self.state == Simulation.op:
 
-                self.traf.update(self.simt, self.simdt)
+                bs.traf.update(self.simt, self.simdt)
 
                 # Update metrics
                 self.metric.update(self)
@@ -166,7 +164,7 @@ class Simulation(QObject):
         self.state     = Simulation.init
         self.ffmode    = False
         bs.navdb.reset()
-        self.traf.reset()
+        bs.traf.reset()
         stack.reset()
         datalog.reset()
         areafilter.reset()

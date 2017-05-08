@@ -1,4 +1,5 @@
 import time
+import bluesky as bs
 import aero
 import adsb_decoder as decoder
 from network import TcpSocket
@@ -7,9 +8,8 @@ from .. import stack
 
 
 class Modesbeast(TcpSocket):
-    def __init__(self, traf):
+    def __init__(self):
         super(Modesbeast, self).__init__()
-        self.traf = traf
         self.acpool = {}
         self.buffer = ''
         self.default_ac_mdl = "B738"
@@ -195,7 +195,7 @@ class Modesbeast(TcpSocket):
             if set(params).issubset(d):
                 acid = d['callsign']
                 # check is aircraft is already beening displayed
-                if(self.traf.id2idx(acid) < 0):
+                if(bs.traf.id2idx(acid) < 0):
                     mdl = self.default_ac_mdl
                     v = aero.tas2cas(d['speed'], d['alt'] * aero.ft)
                     cmdstr = 'CRE %s, %s, %f, %f, %f, %d, %d' % \

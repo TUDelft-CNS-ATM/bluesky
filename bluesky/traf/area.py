@@ -1,11 +1,10 @@
 import numpy as np
+import bluesky as bs
 from ..tools import areafilter
 
 class Area:
-    def __init__(self,traf):
-        # Traffic area: delete traffic when it leaves this area (so not when outside)
-
-        self.traf   = traf
+    def __init__(self):
+        """ Traffic area: delete traffic when it leaves this area (so not when outside)"""
 
         # Parameters of area
         self.active = False
@@ -35,7 +34,7 @@ class Area:
             self.t0 = t
 
             # Find out which aircraft are inside the experiment area
-            inside = areafilter.checkInside(self.name, self.traf.lat, self.traf.lon, self.traf.alt)
+            inside = areafilter.checkInside(self.name, bs.traf.lat, bs.traf.lon, bs.traf.alt)
 
             # Determine the aircraft indexes that should be deleted
             delAircraftidx = np.intersect1d(np.where(np.array(self.inside)==True), np.where(np.array(inside)==False))
@@ -44,8 +43,8 @@ class Area:
             self.inside = inside
 
             # delete all aicraft in delAircraftidx and log their flight statistics
-            for acid in [self.traf.id[idx] for idx in delAircraftidx]:
-                self.traf.delete(acid)
+            for acid in [bs.traf.id[idx] for idx in delAircraftidx]:
+                bs.traf.delete(acid)
 
     def setArea(self, scr, args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.

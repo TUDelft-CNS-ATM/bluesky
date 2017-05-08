@@ -3,8 +3,8 @@
 import bluesky as bs
 from misc import txt2lat, txt2lon
 
-def txt2pos(name, traf, reflat, reflon):
-    pos = Position(name.upper().strip(), traf, reflat, reflon)
+def txt2pos(name, reflat, reflon):
+    pos = Position(name.upper().strip(), reflat, reflon)
     if not pos.error:
         return True,pos
     else:
@@ -31,7 +31,7 @@ class Position():
     # position types: "latlon","nav","apt","rwy"
 
     # Initialize using text
-    def __init__(self,name,traf,reflat,reflon):
+    def __init__(self,name,reflat,reflon):
 
         self.name = name # default: copy source name
         self.error = False # we're optmistic about our succes
@@ -71,12 +71,12 @@ class Position():
             self.type ="nav"
 
         # aircraft id?
-        elif traf.id2idx(name)>=0:
-            idx = traf.id2idx(name)
+        elif bs.traf.id2idx(name)>=0:
+            idx = bs.traf.id2idx(name)
             self.name = ""
             self.type = "latlon"
-            self.lat = traf.lat[idx]
-            self.lon = traf.lon[idx]
+            self.lat = bs.traf.lat[idx]
+            self.lon = bs.traf.lon[idx]
 
             # exception for pan, check for LEFT, RIGHT, ABOVE or DOWN
         elif name.upper() in ["LEFT","RIGHT","ABOVE","DOWN"]:

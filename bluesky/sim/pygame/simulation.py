@@ -2,7 +2,6 @@ import time
 import bluesky as bs
 from ...tools import datalog, areafilter
 from ...tools.misc import txt2tim,tim2txt
-from ...traf import Traffic
 from ... import stack
 from ...traf.metric import Metric
 
@@ -54,16 +53,12 @@ class Simulation:
 
         # Simulation objects
         print "Setting up Traffic simulation"
-        self.traf  = Traffic()
         self.metric = Metric()
-        self.stack = stack.init(self, self.traf, gui.scr)
+        self.stack = stack.init(self, gui.scr)
 
         # Additional modules
-        self.beastfeed   = Modesbeast(self.traf)
+        self.beastfeed   = Modesbeast()
         self.telnet_in   = StackTelnetServer()
-
-        # Initialize the stack module once
-        stack.init(self, self.traf, gui.scr)
 
     def update(self, scr):
 
@@ -114,10 +109,10 @@ class Simulation:
             self.beastfeed.update()
 
         # Always process stack
-        stack.process(self, self.traf, scr)
+        stack.process(self, scr)
 
         if self.mode == Simulation.op:
-            self.traf.update(self.simt, self.dt)
+            bs.traf.update(self.simt, self.dt)
 
             # Update metrics
             self.metric.update(self)
@@ -188,8 +183,8 @@ class Simulation:
     def reset(self):
         self.simt = 0.0
         self.mode = self.init
-        self.navdb.reset()
-        self.traf.reset()
+        bs.navdb.reset()
+        bs.traf.reset()
         datalog.reset()
         areafilter.reset()
         self.delclock  = 0.0   # SImulated clock time at simt=0.

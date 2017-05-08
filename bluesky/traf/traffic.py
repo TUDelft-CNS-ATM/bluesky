@@ -104,12 +104,12 @@ class Traffic(DynamicArrays):
             self.swvnav   = np.array([], dtype=np.bool)
 
             # Flight Models
-            self.asas   = ASAS(self)
-            self.ap     = Autopilot(self)
-            self.pilot  = Pilot(self)
-            self.adsb   = ADSB(self)
-            self.trails = Trails(self)
-            self.actwp  = ActiveWaypoint(self)
+            self.asas   = ASAS()
+            self.ap     = Autopilot()
+            self.pilot  = Pilot()
+            self.adsb   = ADSB()
+            self.trails = Trails()
+            self.actwp  = ActiveWaypoint()
 
             # Traffic performance data
             self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
@@ -151,8 +151,8 @@ class Traffic(DynamicArrays):
         self.wind.clear()
 
         # Build new modules for area and turbulence
-        self.area       = Area(self)
-        self.Turbulence = Turbulence(self)
+        self.area       = Area()
+        self.Turbulence = Turbulence()
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
@@ -160,7 +160,7 @@ class Traffic(DynamicArrays):
         # Default: BlueSky internal performance model.
         # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
         # for working with EUROCONTROL`s Base of Aircraft Data revision 3.12
-        self.perf    = Perf(self)
+        self.perf    = Perf()
         self.trails.reset()
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
@@ -742,3 +742,6 @@ class Traffic(DynamicArrays):
                 scr.echo(lines[:-1])  # exclude final newline
             else:
                 return False,"No airway legs found for ",key
+
+# Traffic singleton object
+traf = Traffic()

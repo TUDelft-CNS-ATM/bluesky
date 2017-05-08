@@ -1,4 +1,5 @@
 import numpy as np
+import bluesky as bs
 from ..tools.aero import ft
 from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
@@ -20,7 +21,7 @@ class ADSB(DynamicArrays):
     Created by  : Jacco M. Hoekstra, Jerom Maas
     """
 
-    def __init__(self, traf):
+    def __init__(self):
 
         # From here, define object arrays
         with RegisterElementParameters(self):
@@ -34,7 +35,6 @@ class ADSB(DynamicArrays):
             self.gs         = np.array([])
             self.vs         = np.array([])
 
-        self.traf = traf
         self.SetNoise(False)
 
     def SetNoise(self, n):
@@ -47,20 +47,20 @@ class ADSB(DynamicArrays):
         super(ADSB, self).create(n)
 
         self.lastupdate[-n:] = -self.trunctime * np.random.rand(n)
-        self.lat[-n:] = self.traf.lat[-n:]
-        self.lon[-n:] = self.traf.lon[-n:]
-        self.alt[-n:] = self.traf.alt[-n:]
-        self.trk[-n:] = self.traf.trk[-n:]
-        self.tas[-n:] = self.traf.tas[-n:]
-        self.gs[-n:]  = self.traf.gs[-n:]
+        self.lat[-n:] = bs.traf.lat[-n:]
+        self.lon[-n:] = bs.traf.lon[-n:]
+        self.alt[-n:] = bs.traf.alt[-n:]
+        self.trk[-n:] = bs.traf.trk[-n:]
+        self.tas[-n:] = bs.traf.tas[-n:]
+        self.gs[-n:]  = bs.traf.gs[-n:]
 
     def update(self, time):
         up = np.where(self.lastupdate + self.trunctime < time)
-        self.lat[up] = self.traf.lat[up]
-        self.lon[up] = self.traf.lon[up]
-        self.alt[up] = self.traf.alt[up]
-        self.trk[up] = self.traf.trk[up]
-        self.tas[up] = self.traf.tas[up]
-        self.gs[up]  = self.traf.gs[up]
-        self.vs[up]  = self.traf.vs[up]
+        self.lat[up] = bs.traf.lat[up]
+        self.lon[up] = bs.traf.lon[up]
+        self.alt[up] = bs.traf.alt[up]
+        self.trk[up] = bs.traf.trk[up]
+        self.tas[up] = bs.traf.tas[up]
+        self.gs[up]  = bs.traf.gs[up]
+        self.vs[up]  = bs.traf.vs[up]
         self.lastupdate[up] = self.lastupdate[up] + self.trunctime
