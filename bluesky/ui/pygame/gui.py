@@ -1,5 +1,5 @@
 from keyboard import Keyboard
-from screen import Screen
+import bluesky as bs
 import splash
 import pygame as pg
 
@@ -8,15 +8,14 @@ class Gui:
     def __init__(self):
         splash.show()
         self.keyb = Keyboard()                      # processes input from keyboard & mouse
-        self.scr  = Screen()                        # screen output object
-        self.scr.updateNavBuffers()
+        bs.scr.updateNavBuffers()
 
-    def update(self, sim):
-        self.keyb.update(sim, sim.stack, self.scr)  # Check for keys & mouse
-        self.scr.update(sim)                        # GUI update
+    def update(self):
+        self.keyb.update()  # Check for keys & mouse
+        bs.scr.update()     # GUI update
 
     def reset(self):
-        self.scr.objdel()                           # Delete user defined objects
+        bs.scr.objdel()     # Delete user defined objects
 
     def close(self):
         pg.quit()

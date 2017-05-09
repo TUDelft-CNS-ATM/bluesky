@@ -46,7 +46,7 @@ class Area:
             for acid in [bs.traf.id[idx] for idx in delAircraftidx]:
                 bs.traf.delete(acid)
 
-    def setArea(self, scr, args):
+    def setArea(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
         Input can be exisiting shape name, or a box with optional altitude constrainsts.'''
 
@@ -64,7 +64,7 @@ class Area:
                 return True, "Area is set to " + str(self.name)
             elif args[0]=='OFF' or args[0]=='OF':
                 # switch off the area
-                areafilter.deleteArea(scr, self.name)
+                areafilter.deleteArea(self.name)
                 self.active = False
                 self.name = None
                 return True, "Area is switched OFF"
@@ -75,7 +75,7 @@ class Area:
         elif (isinstance(args[0],float) or isinstance(args[0],int)) and 4<=len(args)<=6:
             self.active = True
             self.name = 'DELAREA'
-            areafilter.defineArea(scr, self.name, 'BOX', args)
+            areafilter.defineArea(self.name, 'BOX', args)
             return True, "Area is ON. Area name is: " + str(self.name)
         else:
             return False,  "Incorrect arguments" + \

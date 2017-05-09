@@ -62,15 +62,9 @@ class Simulation(QObject):
         self.ffmode      = False
         self.ffstop      = None
 
-        # Simulation objects
-        self.screenio    = ScreenIO(self)
-
         # Additional modules
         self.metric      = Metric()
         self.beastfeed   = Modesbeast()
-
-        # Initialize the stack module once
-        stack.init(self, self.screenio)
 
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
@@ -85,7 +79,7 @@ class Simulation(QObject):
             datalog.preupdate(self.simt)
 
             # Update screen logic
-            self.screenio.update()
+            bs.scr.update()
 
             # Update the Mode-S beast parsing
             self.beastfeed.update()
@@ -102,14 +96,14 @@ class Simulation(QObject):
                 stack.checkfile(self.simt)
 
             # Always update stack
-            stack.process(self, self.screenio)
+            stack.process()
 
             if self.state == Simulation.op:
 
                 bs.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-                self.metric.update(self)
+                self.metric.update()
 
                 # Update loggers
                 datalog.postupdate()
@@ -133,7 +127,7 @@ class Simulation(QObject):
 
             elif self.ffstop is not None and self.simt >= self.ffstop:
                 if self.benchdt > 0.0:
-                    self.screenio.echo('Benchmark complete: %d samples in %.3f seconds.' % (self.screenio.samplecount, time.time() - self.bencht))
+                    bs.scr.echo('Benchmark complete: %d samples in %.3f seconds.' % (self.screenio.samplecount, time.time() - self.bencht))
                     self.benchdt = -1.0
                     self.pause()
                 else:
@@ -168,7 +162,7 @@ class Simulation(QObject):
         stack.reset()
         datalog.reset()
         areafilter.reset()
-        self.screenio.reset()
+        bs.scr.reset()
 
     def quit(self):
         self.running = False
@@ -195,7 +189,7 @@ class Simulation(QObject):
             self.ffstop = None
 
     def benchmark(self, fname='IC', dt=300.0):
-        stack.ic(self.screenio, self, fname)
+        stack.ic(fname)
         self.bencht  = 0.0  # Start time will be set at next sim cycle
         self.benchdt = dt
 
@@ -234,7 +228,7 @@ class Simulation(QObject):
             self.quit()
         else:
             # This is either an unknown event or a gui event.
-            event_processed = self.screenio.event(event)
+            event_processed = bs.scr.event(event)
 
         return event_processed
 
@@ -264,3 +258,5 @@ class Simulation(QObject):
             return False, "Time syntax error"
 
         return True, "Time is now " + tim2txt(self.simtclock)
+
+sim = Simulation()

@@ -43,7 +43,7 @@ class Screen:
         Screen(tmx)         :  constructor
 
         echo(msg)           : print something at screen
-        update(sim)         : Draw a new frame of screen
+        update()            : Draw a new frame of screen
         ll2xy(lat,lon)      : lat/lon[deg] to pixel coordinate conversion
         xy2ll(x,y)          : pixel to lat/lon[de]g conversion
         zoom(factor)        : zoom in/out
@@ -293,7 +293,7 @@ class Screen:
     def cmdline(self, text):
         self.editwin.insert(text)
 
-    def update(self, sim):
+    def update(self):
         """Draw a new frame"""
         # Navdisp mode: get center:
         if self.swnavdisp:
@@ -829,12 +829,12 @@ class Screen:
             pg.draw.rect(self.win, white, pg.Rect(1, 1, self.width - 1, self.height - 1), 1)
 
             # Add debug line
-            self.fontsys.printat(self.win, 10, 2, tim2txt(sim.simtclock))
-            self.fontsys.printat(self.win, 10, 18, tim2txt(sim.simt))
+            self.fontsys.printat(self.win, 10, 2, tim2txt(bs.sim.simtclock))
+            self.fontsys.printat(self.win, 10, 18, tim2txt(bs.sim.simt))
             self.fontsys.printat(self.win, 10+80, 2, \
                                  "ntraf = " + str(bs.traf.ntraf))
             self.fontsys.printat(self.win, 10+160, 2, \
-                                 "Freq=" + str(int(len(sim.dts) / max(0.001, sum(sim.dts)))))
+                                 "Freq=" + str(int(len(bs.sim.dts) / max(0.001, sum(bs.sim.dts)))))
 
             self.fontsys.printat(self.win, 10+240, 2, \
                                  "#LOS      = " + str(len(bs.traf.asas.LOSlist_now)))
@@ -1245,3 +1245,5 @@ class Screen:
 
         os.chdir(curdir)
         return True,"HTML window opened"
+
+scr = Screen()

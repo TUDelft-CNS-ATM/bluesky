@@ -163,8 +163,9 @@ class Traffic(DynamicArrays):
         self.perf    = Perf()
         self.trails.reset()
 
-    def mcreate(self, count, actype=None, alt=None, spd=None, dest=None, area=None):
+    def mcreate(self, count, actype=None, alt=None, spd=None, dest=None):
         """ Create multiple random aircraft in a specified area """
+        area = bs.scr.getviewlatlon()
         idbase = chr(randint(65, 90)) + chr(randint(65, 90))
         if actype is None:
             actype = 'B744'
@@ -542,7 +543,7 @@ class Traffic(DynamicArrays):
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
         self.ax[idx] = kts
 
-    def poscommand(self, scr, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
+    def poscommand(self, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
         """POS command: Show info or an aircraft, airport, waypoint or navaid"""
         # Aircraft index
         if type(idxorwp)==int and idxorwp >= 0:
@@ -589,15 +590,15 @@ class Traffic(DynamicArrays):
 
             # Show a/c info and highlight route of aircraft in radar window
             # and pan to a/c (to show route)
-            return scr.showacinfo(acid,lines)
+            return bs.scr.showacinfo(acid,lines)
 
         # Waypoint: airport, navaid or fix
         else:
             wp = idxorwp.upper()
 
             # Reference position for finding nearest
-            reflat = scr.ctrlat
-            reflon = scr.ctrlon
+            reflat = bs.scr.ctrlat
+            reflon = bs.scr.ctrlon
 
             lines = "Info on "+wp+":\n"
 
@@ -708,27 +709,27 @@ class Traffic(DynamicArrays):
                         return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
 
             # Show what we found on airport and navaid/waypoint
-            scr.echo(lines)
+            bs.scr.echo(lines)
 
         return True
 
-    def airwaycmd(self,scr,key=""):
+    def airwaycmd(self,key=""):
         # Show conections of a waypoint
 
-        reflat = scr.ctrlat
-        reflon = scr.ctrlon
+        reflat = bs.scr.ctrlat
+        reflon = bs.scr.ctrlon
 
         if key=="":
             return False,'AIRWAY needs waypoint or airway'
 
         if bs.navdb.awid.count(key)>0:
-            return self.poscommand(scr, key.upper())
+            return self.poscommand(key.upper())
         else:
             # Find connecting airway legs
             wpid = key.upper()
             iwp = bs.navdb.getwpidx(wpid,reflat,reflon)
             if iwp<0:
-                return False,key," not found."
+                return False,key + " not found."
 
             wplat = bs.navdb.wplat[iwp]
             wplon = bs.navdb.wplon[iwp]
@@ -739,7 +740,7 @@ class Traffic(DynamicArrays):
                     if len(c)>=2:
                         # Add airway, direction, waypoint
                         lines = lines+ c[0]+": to "+c[1]+"\n"
-                scr.echo(lines[:-1])  # exclude final newline
+                return True, lines[:-1]  # exclude final newline
             else:
                 return False,"No airway legs found for ",key
 

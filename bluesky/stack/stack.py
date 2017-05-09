@@ -11,7 +11,7 @@ Methods:
     checkfile(t)            : check whether commands need to be
                               processed from scenario file
 
-    process(sim, scr)       : central command processing method
+    process()               : central command processing method
 
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
@@ -90,7 +90,7 @@ scentime  = []
 scencmd   = []
 
 
-def init(sim, scr):
+def init():
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -131,7 +131,7 @@ def init(sim, scr):
         "ADDNODES": [
             "ADDNODES number",
             "int",
-            sim.addNodes,
+            bs.sim.addNodes,
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
@@ -156,7 +156,7 @@ def init(sim, scr):
         "AIRWAY": [
             "AIRWAY wp/airway",
             "txt",
-            lambda *args: bs.traf.airwaycmd(scr, *args),
+            bs.traf.airwaycmd,
             "Get info on airway or connections of a waypoint"
         ],
         "ALT": [
@@ -168,7 +168,7 @@ def init(sim, scr):
         "AREA": [
             "AREA Shapename/OFF or AREA lat,lon,lat,lon,[top,bottom]",
             "[float/txt,float,float,float,alt,alt]",
-            lambda *args: bs.traf.area.setArea(scr, args),
+            bs.traf.area.setArea,
             "Define experiment area (area of interest)"
         ],
         "ASAS": [
@@ -180,25 +180,25 @@ def init(sim, scr):
         "AT": [
             "acid AT wpname [DEL] SPD/ALT [spd/alt]",
             "acid,wpinroute,[txt,txt]",
-            lambda idx, *args: bs.traf.ap.route[idx].atwptStack(scr, idx, *args),
+            lambda idx, *args: bs.traf.ap.route[idx].atwptStack(idx, *args),
             "Edit, delete or show spd/alt constraints at a waypoint in the route"
         ],
         "BATCH": [
             "BATCH filename",
             "string",
-            sim.batch,
+            bs.sim.batch,
             "Start a scenario file as batch simulation"
         ],
         "BENCHMARK": [
             "BENCHMARK [scenfile,time]",
             "[txt,time]",
-            sim.benchmark,
+            bs.sim.benchmark,
             "Run benchmark"
         ],
         "BOX": [
             "BOX name,lat,lon,lat,lon,[top,bottom]",
             "txt,latlon,latlon,[alt,alt]",
-            lambda name, *coords: areafilter.defineArea(scr, name, 'BOX', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'BOX', coords),
             "Define a box-shaped area"
         ],
         "CALC": [
@@ -216,7 +216,7 @@ def init(sim, scr):
         "CIRCLE": [
             "CIRCLE name,lat,lon,radius,[top,bottom]",
             "txt,latlon,float,[alt,alt]",
-            lambda name, *coords: areafilter.defineArea(scr, name, 'CIRCLE', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'CIRCLE', coords),
             "Define a circle-shaped area"
         ],
         "CRE": [
@@ -234,7 +234,7 @@ def init(sim, scr):
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",
-            lambda *args: bs.navdb.defwpt(scr, *args),
+            bs.navdb.defwpt,
             "Define a waypoint only for this scenario/run"
         ],
         "DEL": [
@@ -242,13 +242,13 @@ def init(sim, scr):
             "txt",
             lambda a:   bs.traf.delete(a)    if bs.traf.id.count(a) > 0 \
                    else bs.traf.wind.clear() if a == "WIND" \
-                   else areafilter.deleteArea(scr, a),
+                   else areafilter.deleteArea(a),
             "Delete command (aircraft, wind, area)"
         ],
         "DELAY": [
             "DELAY time offset, COMMAND+ARGS",
             "time,txt,...",
-            lambda time,*args: sched_cmd(time, args, relative=True, sim=sim),
+            lambda time,*args: sched_cmd(time, args, relative=True),
             "Add a delayed command to stack"
         ],
         "DELRTE": [
@@ -284,13 +284,13 @@ def init(sim, scr):
         "DOC": [
             "DOC [command]",
             "[txt]",
-            scr.show_cmd_doc,
+            bs.scr.show_cmd_doc,
             "Show extended help window for given command, or the main documentation page if no command is given."
         ],
         "DT": [
             "DT dt",
             "float",
-            sim.setDt,
+            bs.sim.setDt,
             "Set simulation time step"
         ],
         "DTLOOK": [
@@ -302,7 +302,7 @@ def init(sim, scr):
         "DTMULT": [
             "DTMULT multiplier",
             "float",
-            sim.setDtMultiplier,
+            bs.sim.setDtMultiplier,
             "Sel multiplication factor for fast-time simulation"
         ],
         "DTNOLOOK": [
@@ -320,7 +320,7 @@ def init(sim, scr):
         "ECHO": [
             "ECHO txt",
             "string",
-            scr.echo,
+            bs.scr.echo,
             "Show a text in command window for user to read"
         ],
         "ENG": [
@@ -332,20 +332,20 @@ def init(sim, scr):
         "FF": [
             "FF [timeinsec]",
             "[time]",
-            sim.fastforward,
+            bs.sim.fastforward,
             "Fast forward the simulation"
         ],
         "FILTERALT":
         [
             "FILTERALT ON/OFF,[bottom,top]",
             "bool,[alt,alt]",
-            scr.filteralt,
+            bs.scr.filteralt,
             "Display aircraft on only a selected range of altitudes"
         ],
         "FIXDT": [
             "FIXDT ON/OFF [tend]",
             "onoff,[time]",
-            sim.setFixdt,
+            bs.sim.setFixdt,
             "Fix the time step"
         ],
         "GETWIND": [
@@ -363,37 +363,37 @@ def init(sim, scr):
         "HELP": [
             "HELP [command]/pdf/ >filename",
             "[txt]",
-            lambda *args: scr.echo(showhelp(*args)),
+            lambda *args: bs.scr.echo(showhelp(*args)),
             "Show help on a command, show pdf or write list of commands to file"
         ],
         "HOLD": [
             "HOLD",
             "",
-            sim.pause,
+            bs.sim.pause,
             "Pause(hold) simulation"
         ],
         "IC": [
             "IC [IC/filename]",
             "[string]",
-            lambda *args: ic(scr, sim, *args),
+            ic,
             "Initial condition: (re)start simulation and open scenario file"
         ],
         "INSEDIT": [
             "INSEDIT txt",
             "string",
-            scr.cmdline,
+            bs.scr.cmdline,
             "Insert text op edit line in command window"
         ],
         "LINE": [
             "LINE name,lat,lon,lat,lon",
             "txt,latlon,latlon",
-            lambda name, *coords: scr.objappend("LINE", name, coords),
+            lambda name, *coords: bs.scr.objappend("LINE", name, coords),
             "Draw a line on the radar screen"
         ],
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
-            lambda idx, *args: bs.traf.ap.route[idx].listrte(scr, idx, *args),
+            lambda idx, *args: bs.traf.ap.route[idx].listrte(idx, *args),
             "Show list of route in window per page of 5 waypoints"
         ],
         "LNAV": [
@@ -411,13 +411,13 @@ def init(sim, scr):
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
             "int,[txt,alt,spd,txt]",
-            lambda *args: bs.traf.mcreate(*args, area=scr.getviewlatlon()),
+            bs.traf.mcreate,
             "Multiple random create of n aircraft in current view"
         ],
         "METRIC": [
             "METRIC OFF/0/1/2, [dt]",
             "onoff/int,[float]",
-            lambda *args: sim.metric.toggle(*args),
+            bs.sim.metric.toggle,
             "Complexity metrics module"
         ],
         "MOVE": [
@@ -429,7 +429,7 @@ def init(sim, scr):
         "ND": [
             "ND acid",
             "txt",
-            lambda acid: scr.feature("ND", acid),
+            lambda acid: bs.scr.feature("ND", acid),
             "Show navigation display with CDTI"
         ],
         "NOISE": [
@@ -453,7 +453,7 @@ def init(sim, scr):
         "OP": [
             "OP",
             "",
-            sim.start,
+            bs.sim.start,
             "Start/Run simulation or continue after pause"
         ],
         "ORIG": [
@@ -465,7 +465,7 @@ def init(sim, scr):
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
             "pandir/latlon",
-            scr.pan,
+            bs.scr.pan,
             "Pan screen (move view) to a waypoint, direction or aircraft"
         ],
         "PCALL": [
@@ -478,19 +478,19 @@ def init(sim, scr):
         "POLY": [
             "POLY name,lat,lon,lat,lon, ...",
             "txt,latlon,...",
-            lambda name, *coords: areafilter.defineArea(scr, name, 'POLY', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'POLY', coords),
             "Define a polygon-shaped area"
         ],
         "POLYALT": [
             "POLY name,top,bottom,lat,lon,lat,lon, ...",
             "txt,alt,alt,latlon,...",
-            lambda name, *coords: areafilter.defineArea(scr, name, 'POLYALT', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'POLYALT', coords),
             "Define a polygon-shaped area in 3D: between two altitudes"
         ],
         "POS": [
             "POS acid/waypoint",
             "acid/wpt",
-            lambda *args: bs.traf.poscommand(scr, *args),
+            bs.traf.poscommand,
             "Get info on aircraft, airport or waypoint"
         ],
         "PRIORULES": [
@@ -502,13 +502,13 @@ def init(sim, scr):
         "QUIT": [
             "QUIT",
             "",
-            sim.stop,
+            bs.sim.stop,
             "Quit program/Stop simulation"
         ],
         "RESET": [
             "RESET",
             "",
-            sim.reset,
+            bs.sim.reset,
             "Reset simulation"
         ],
         "RFACH": [
@@ -562,7 +562,7 @@ def init(sim, scr):
         "SAVEIC": [
             "SAVEIC filename",
             "string",
-            lambda fname: saveic(fname, sim),
+            saveic,
             "Save current situation as IC"
         ],
         "SCHEDULE": [
@@ -592,26 +592,26 @@ def init(sim, scr):
         "SSD": [
             "SSD acid/ALL/OFF",
             "txt",
-            scr.showssd,
+            bs.scr.showssd,
             "Show state-space diagram (=conflict prevention display/predictive ASAS)"
         ],
         "SWRAD": [
             "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]",
             "txt,[float]",
-            scr.feature,
+            bs.scr.feature,
             "Switch on/off elements and background of map/radar view"
         ],
         "SYMBOL": [
             "SYMBOL",
             "",
-            scr.symbol,
+            bs.scr.symbol,
             "Toggle aircraft symbol"
         ],
         "SYN": [
             " SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER," + \
             "MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP",
             "txt,[...]",
-            lambda *args: syn.process(args[0], len(args) - 1, args, sim, scr),
+            syn.process,
             "Macro for generating synthetic (geometric) traffic scenarios"
         ],
         "TAXI": [
@@ -623,7 +623,7 @@ def init(sim, scr):
         "TIME": [
             "TIME RUN(default) / HH:MM:SS.hh / REAL / UTC ",
             "[txt]",
-            sim.setclock,
+            bs.sim.setclock,
             "Set simulated clock time"
         ],
         "TRAIL": [
@@ -666,9 +666,9 @@ def init(sim, scr):
         "ZOOM": [
             "ZOOM IN/OUT or factor",
             "float/txt",
-            lambda a: scr.zoom(1.4142135623730951) if a == "IN" else \
-                      scr.zoom(0.7071067811865475) if a == "OUT" else \
-                      scr.zoom(a, True),
+            lambda a: bs.scr.zoom(1.4142135623730951) if a == "IN" else \
+                      bs.scr.zoom(0.7071067811865475) if a == "OUT" else \
+                      bs.scr.zoom(a, True),
             "Zoom display in/out, you can also use +++ or -----"
         ]
     }
@@ -847,12 +847,12 @@ def stack(cmdline):
             cmdstack.append(line)
 
 
-def sched_cmd(time, args, relative=False, sim=None):
+def sched_cmd(time, args, relative=False):
     tostack = ','.join(args)
     # find spot in time list corresponding to passed time, get idx
     # insert time at idx in scentime, insert cmd at idx in scencmd
     if relative:
-        time += sim.simt
+        time += bs.sim.simt
     # in case there is no scentime yet, only extend
 
     if len(scentime) == 0:
@@ -890,7 +890,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
-    t_offset = sim.simt if absrel == 'REL' else 0.0
+    t_offset = bs.sim.simt if absrel == 'REL' else 0.0
 
     if not os.path.exists(scenfile):
         return False, "Error: cannot find file: " + scenfile
@@ -929,7 +929,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     return True
 
 
-def ic(scr, sim, filename=''):
+def ic(filename=''):
     global scenfile, scenname
 
     # Get the filename of new scenario
@@ -943,7 +943,7 @@ def ic(scr, sim, filename=''):
 
     # Reset sim and open new scenario file
     if len(filename) > 0:
-        sim.reset()
+        bs.sim.reset()
         result = openfile(filename)
         if result is True:
             scenfile    = filename
@@ -963,7 +963,7 @@ def checkfile(simt):
     return
 
 
-def saveic(fname, sim):
+def saveic(fname):
     # Add extension .scn if not already present
     if fname.lower().find(".scn") < 0:
         fname = fname + ".scn"
@@ -1065,7 +1065,7 @@ def saveic(fname, sim):
     return True
 
 
-def process(sim, scr):
+def process():
     """process and empty command stack"""
     global cmdstack
 
@@ -1127,9 +1127,9 @@ def process(sim, scr):
             if False in argisopt:
                 minargs = len(argisopt) - argisopt[::-1].index(False)
                 if numargs < minargs:
-                    scr.echo("Syntax error: Too few arguments")
-                    scr.echo(line)
-                    scr.echo(helptext)
+                    bs.scr.echo("Syntax error: Too few arguments")
+                    bs.scr.echo(line)
+                    bs.scr.echo(helptext)
                     continue
 
             # Special case: single text string argument: case sensitive,
@@ -1160,11 +1160,11 @@ def process(sim, scr):
 
                         # Try to parse the argument for the given argument type
                         # First successful parsing is used!
-                        if parser.parse(argtypei, curarg, args, scr):
+                        if parser.parse(argtypei, curarg, args):
                             # No value = None when this is allowed because it is an optional argument
                             if parser.result[0] is None and argisopt[curtype] is False:
                                 synerr = True
-                                scr.echo('No value given for mandatory argument ' + argtypes[curtype])
+                                bs.scr.echo('No value given for mandatory argument ' + argtypes[curtype])
                                 break
                             arglist += parser.result
                             curarg  += parser.argstep
@@ -1179,9 +1179,9 @@ def process(sim, scr):
                             else:
                                 # No more types to check: print error message
                                 synerr = True
-                                scr.echo('Syntax error processing "' + args[curarg] + '":')
-                                scr.echo(errors)
-                                scr.echo(helptext)
+                                bs.scr.echo('Syntax error processing "' + args[curarg] + '":')
+                                bs.scr.echo(errors)
+                                bs.scr.echo(helptext)
                                 print "Error in processing arguments:"
                                 print line
 
@@ -1191,29 +1191,28 @@ def process(sim, scr):
             # flag: indicates sucess
             # text: optional error message
             if not synerr:
-                # print cmd, arglist
                 results = function(*arglist)  # * = unpack list to call arguments
 
-                if type(results) == bool:  # Only flag is returned
+                if isinstance(results, bool):  # Only flag is returned
                     synerr = not results
                     if synerr:
                         if numargs <= 0 or curarg < len(args) and args[curarg] == "?":
-                            scr.echo(helptext)
+                            bs.scr.echo(helptext)
                         else:
-                            scr.echo("Syntax error: " + helptext)
-                        synerr =  False  # Prevent further nagging
+                            bs.scr.echo("Syntax error: " + helptext)
 
-                elif type(results) == list or type(results) == tuple:
-                    # Maybe there is also an error message returned?
-                    if len(results) >= 1:
-                        synerr = not results[0]
-
+                elif isinstance(results, (tuple, list)) and len(results) > 0:
+                    synerr = not results[0]
+                    if synerr:
+                        bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""))
+                    # Maybe there is also an error/info message returned?
                     if len(results) >= 2:
-                        scr.echo(cmd + ":" + results[1])
-                        synerr = False
+                        bs.scr.echo(cmd + ":" + results[1])
+
+                synerr =  False  # Prevent further nagging
 
             else:  # synerr:
-                scr.echo("Syntax error: " + helptext)
+                bs.scr.echo("Syntax error: " + helptext)
 
         #----------------------------------------------------------------------
         # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -1221,16 +1220,16 @@ def process(sim, scr):
         elif cmd[0] in ["+", "=", "-"]:
             nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
             nmin  = cmd.count("-")
-            scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
+            bs.scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
 
         #-------------------------------------------------------------------
         # Command not found
         #-------------------------------------------------------------------
         else:
             if numargs == 0:
-                scr.echo("Unknown command or aircraft: " + cmd)
+                bs.scr.echo("Unknown command or aircraft: " + cmd)
             else:
-                scr.echo("Unknown command: " + cmd)
+                bs.scr.echo("Unknown command: " + cmd)
 
         #**********************************************************************
         #======================  End of command branches ======================
@@ -1258,7 +1257,7 @@ class Argparser:
         self.refac      = -1  # Stored aircraft idx when an argument is parsed
                               # for a function that acts on an aircraft.
 
-    def parse(self, argtype, argidx, args, scr):
+    def parse(self, argtype, argidx, args):
         """ Parse one or more arguments.
 
             Returns True if parse was successful. When not successful, False is
@@ -1382,8 +1381,8 @@ class Argparser:
             elif argtype == "latlon":
                 # Set default reference lat,lon for duplicate name in navdb to screen
                 if Argparser.reflat < -180.:  # No reference avaiable yet: use screen center
-                    Argparser.reflat = scr.ctrlat
-                    Argparser.reflon = scr.ctrlon
+                    Argparser.reflat = bs.scr.ctrlat
+                    Argparser.reflon = bs.scr.ctrlon
 
                 success, posobj = txt2pos(name, Argparser.reflat, Argparser.reflon)
 

@@ -163,7 +163,7 @@ class Route():
 
         return result
 
-    def atwptStack(self, scr, idx, *args):  # args: all arguments of addwpt
+    def atwptStack(self, idx, *args):  # args: all arguments of addwpt
 
         # AT acid, wpinroute [DEL] ALT/SPD spd/alt"
 
@@ -228,8 +228,7 @@ class Route():
                         elif self.wptype[wpidx] == self.dest:
                             txt = txt + "[dest]"
 
-                    scr.echo(txt)
-                    return True
+                    return True, txt
 
                 elif args[1].count("/")==1:
                     # acid AT wpinroute alt"/"spd
@@ -244,7 +243,7 @@ class Route():
                     if swalt:
                         alttxt = [args[1][:islash]]
                         # Use argument parser from stack to parse speed
-                        success = parser.parse("alt", 0, alttxt, scr)
+                        success = parser.parse("alt", 0, alttxt)
 
                         # Set new value if success, "---" etc ignored
                         if success and not (parser.result[0] == None):
@@ -260,7 +259,7 @@ class Route():
                     if swspd:
                         spdtxt = [args[1][islash+1:]]
                         # Use argument parser from stack to parse speed
-                        success = parser.parse("spd", 0, spdtxt, scr)
+                        success = parser.parse("spd", 0, spdtxt)
 
                         # Set new value if success, "---" etc ignored
                         if success and not (parser.result[0] == None):
@@ -293,7 +292,7 @@ class Route():
                     if swalt:
 
                         # Use argument parser from stakc to parse speed
-                        success = parser.parse("alt", 2, args, scr)
+                        success = parser.parse("alt", 2, args)
                         if success:
                             alt = parser.result[0]
                         else:
@@ -308,7 +307,7 @@ class Route():
                     elif swspd:
 
                         # Use argument parser from stakc to parse speed
-                        success = parser.parse("spd", 2, args, scr)
+                        success = parser.parse("spd", 2, args)
                         if success:
                             spd = parser.result[0]
                         else:
@@ -637,7 +636,7 @@ class Route():
         else:
             return False, "Waypoint " + wpnam + " not found"
 
-    def listrte(self, scr, idx, ipage=0):
+    def listrte(self, idx, ipage=0):
         """LISTRTE command: output route to screen"""
         if self.nwp <= 0:
             return False, "Aircraft has no route."
@@ -677,12 +676,12 @@ class Route():
                     txt = txt + "[dest]"
 
                 # Display message
-                scr.echo(txt)
+                bs.scr.echo(txt)
 
         # Add command for next page to screen command line
         npages = int((self.nwp + 6) / 7)
         if ipage + 1 < npages:
-            scr.cmdline("LISTRTE " + bs.traf.id[idx] + "," + str(ipage + 1))
+            bs.scr.cmdline("LISTRTE " + bs.traf.id[idx] + "," + str(ipage + 1))
 
     def getnextwp(self):
         """Go to next waypoint and return data"""

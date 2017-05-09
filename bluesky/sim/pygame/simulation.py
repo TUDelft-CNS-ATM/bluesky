@@ -29,7 +29,7 @@ class Simulation:
     # simulation modes
     init, op, hold, end = range(4)
 
-    def __init__(self, gui):
+    def __init__(self):
         # simmode
         self.mode   = self.init
 
@@ -54,13 +54,12 @@ class Simulation:
         # Simulation objects
         print "Setting up Traffic simulation"
         self.metric = Metric()
-        self.stack = stack.init(self, gui.scr)
 
         # Additional modules
         self.beastfeed   = Modesbeast()
         self.telnet_in   = StackTelnetServer()
 
-    def update(self, scr):
+    def update(self):
 
         self.syst = time.clock()
 
@@ -109,13 +108,13 @@ class Simulation:
             self.beastfeed.update()
 
         # Always process stack
-        stack.process(self, scr)
+        stack.process()
 
         if self.mode == Simulation.op:
             bs.traf.update(self.simt, self.dt)
 
             # Update metrics
-            self.metric.update(self)
+            self.metric.update()
 
             # Update loggers
             datalog.postupdate()
@@ -217,3 +216,5 @@ class Simulation:
 
 
         return True,"Time is now "+tim2txt(self.simtclock)
+
+sim = Simulation()

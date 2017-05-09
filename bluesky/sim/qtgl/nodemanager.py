@@ -6,24 +6,24 @@ except ImportError:
 from multiprocessing.connection import Client
 
 # Local imports
+import bluesky as bs
+from bluesky import stack
 from timer import Timer
 from simevents import SetNodeIdType, SetActiveNodeType, AddNodeType
 # import faulthandler
 # faulthandler.enable()
 
 connection = None
-sim        = None
 timers     = []
 nodeid     = -1
 active     = True
 
 
 def run():
-    from simulation import Simulation
-    global connection, sim
+    global connection
     connection = Client(('localhost', 6000), authkey='bluesky')
-    sim        = Simulation()
-    sim.doWork()
+    stack.init()
+    bs.sim.doWork()
     connection.close()
     print 'Node', nodeid, 'stopped.'
 
@@ -45,7 +45,7 @@ def processEvents():
             # Data over pipes is pickled/unpickled, this causes problems with
             # inherited classes. Solution is to call the ancestor's init
             QEvent.__init__(event, eventtype)
-            sim.event(event)
+            bs.sim.event(event)
 
     # Process timers
     Timer.updateTimers()

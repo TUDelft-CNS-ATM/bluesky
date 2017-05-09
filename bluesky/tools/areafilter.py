@@ -1,4 +1,5 @@
 """Area filter module"""
+import bluesky as bs
 from geo import kwikdist_matrix
 from matplotlib.path import Path
 import numpy as np
@@ -7,7 +8,7 @@ import numpy as np
 areas = dict()
 
 
-def defineArea(scr, areaname, areatype, coordinates):
+def defineArea(areaname, areatype, coordinates):
     # When top is skipped in stack, None is entered instead. Replace with 1e9
     if coordinates[-2] is None:
         coordinates[-2] = 1e9
@@ -22,8 +23,8 @@ def defineArea(scr, areaname, areatype, coordinates):
         areas[areaname] = Poly(coordinates[2:], *coordinates[:2])
 
     # Pass the shape on to the screen object
-    scr.objappend(areatype, areaname, coordinates)
-    
+    bs.scr.objappend(areatype, areaname, coordinates)
+
 def checkInside(areaname, lat, lon, alt):
     '''Returns an array of booleans. True ==  Inside'''
     if areaname not in areas:
@@ -31,10 +32,10 @@ def checkInside(areaname, lat, lon, alt):
     area = areas[areaname]
     return area.checkInside(lat, lon, alt)
 
-def deleteArea(scr, areaname):
+def deleteArea(areaname):
     if areaname in areas:
         areas.pop(areaname)
-        scr.objappend('', areaname, None)    
+        bs.scr.objappend('', areaname, None)    
 
 def reset():
     areas.clear()
@@ -43,19 +44,19 @@ def reset():
 class Box:
     def __init__(self, coordinates, top=1e9, bottom=-1e9):
         self.top    = top
-        self.bottom = bottom        
-        # Sort the order of the corner points 
+        self.bottom = bottom
+        # Sort the order of the corner points
         self.lat0 = min(coordinates[0],coordinates[2])
         self.lon0 = min(coordinates[1],coordinates[3])
         self.lat1 = max(coordinates[0],coordinates[2])
         self.lon1 = max(coordinates[1],coordinates[3])
-        
-    def checkInside(self, lat, lon, alt):     
+
+    def checkInside(self, lat, lon, alt):
         inside = ((self.lat0 <=  lat) & ( lat <= self.lat1)) & \
                  ((self.lon0 <= lon) & (lon <= self.lon1)) & \
-                 ((self.bottom <= alt) & (alt <= self.top))      
+                 ((self.bottom <= alt) & (alt <= self.top))
         return inside
-        
+
 
 
 class Circle:
@@ -65,15 +66,15 @@ class Circle:
         self.r      = radius
         self.top    = top
         self.bottom = bottom
-         
-    def checkInside(self, lat, lon, alt): 
+
+    def checkInside(self, lat, lon, alt):
         clat     = np.array([self.clat]*len( lat))
         clon     = np.array([self.clon]*len( lat))
-        r        = np.array([self.r]*len( lat))        
-        distance = kwikdist_matrix(clat, clon,  lat, lon)  # [NM]        
+        r        = np.array([self.r]*len( lat))
+        distance = kwikdist_matrix(clat, clon,  lat, lon)  # [NM]
         inside   = (distance <= r) & (self.bottom <= alt) & (alt <= self.top)
         return inside
-        
+
 
 
 class Poly:
@@ -81,9 +82,8 @@ class Poly:
         self.border = Path(np.reshape(coordinates, (len(coordinates) / 2, 2)))
         self.top    = top
         self.bottom = bottom
-            
+
     def checkInside(self, lat, lon, alt):
-        points = np.vstack((lat,lon)).T         
-        inside = self.border.contains_points(points) & (self.bottom <= alt) & (alt <= self.top)        
+        points = np.vstack((lat,lon)).T
+        inside = self.border.contains_points(points) & (self.bottom <= alt) & (alt <= self.top)
         return inside
-    

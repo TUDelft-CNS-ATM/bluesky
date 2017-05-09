@@ -4,6 +4,7 @@ if __name__ == "__main__":
     print "Distributed under GNU General Public License v3"
     settings.init('pygame')
 
+from bluesky import stack
 from bluesky.ui.pygame import Gui
 from bluesky.sim.pygame import Simulation
 
@@ -19,17 +20,18 @@ def MainLoop():
     # =============================================================================
     global gui, sim
     gui   = Gui()
-    sim   = Simulation(gui)
+    sim   = Simulation()
 
     # =============================================================================
     # Start the mainloop (and possible other threads)
     # =============================================================================
+    stack.init()
     sim.start()
 
     # Main loop for tmx object
     while not sim.mode == sim.end:
-        sim.update(gui.scr)  # Update sim
-        gui.update(sim)      # Update GUI
+        sim.update()  # Update sim
+        gui.update()  # Update GUI
 
         # Restart traffic simulation:
         if sim.mode == sim.init:

@@ -457,16 +457,16 @@ class metric_CoCa():
 
         return
 
-    def AircraftCell(self,cells,time,sim):
+    def AircraftCell(self,cells,time):
         if floor(time) >= self.resettime:
-            sim.pause()
+            bs.sim.pause()
             self.reset()
             self.resettime = self.resettime + self.deltaresettime
             self.iteration = self.iteration + 1
             filedata = log_path + "/coca_20120727-78am-1hour.npy"
             # self.cellPlot(traf)
             # np.save(filedata,self.cocametric)
-            sim.start()
+            bs.sim.start()
 
         bs.traf.cell = []
 
@@ -537,7 +537,7 @@ class metric_HB():
 
         return
 
-    def selectTraffic(self,sim):
+    def selectTraffic(self):
 
         traf_selected_lat = np.array([])
         traf_selected_lon = np.array([])
@@ -558,11 +558,11 @@ class metric_HB():
         # CIRCLE AREA (FIR Circle)
         for i in range(0,bs.traf.ntraf):
 
-            dist = latlondist(sim.metric.fir_circle_point[0],\
-                              sim.metric.fir_circle_point[1],\
+            dist = latlondist(bs.sim.metric.fir_circle_point[0],\
+                              bs.sim.metric.fir_circle_point[1],\
                               bs.traf.lat[i],bs.traf.lon[i])
 
-            if  dist/nm < sim.metric.fir_circle_radius:
+            if  dist/nm < bs.sim.metric.fir_circle_radius:
                 traf_selected_lat = np.append(traf_selected_lat,bs.traf.lat[i])
                 traf_selected_lon = np.append(traf_selected_lon,bs.traf.lon[i])
                 traf_selected_alt = np.append(traf_selected_alt,bs.traf.alt[i])
@@ -574,9 +574,9 @@ class metric_HB():
         return traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf
 
 
-    def applymetric(self,sim):
+    def applymetric(self):
         time1 = time()
-        sim.pause()
+        bs.sim.pause()
         self.doubleconflict = 0
         # relative pos x and pos y
         self.step = self.step + 1
@@ -587,7 +587,7 @@ class metric_HB():
         self.id = []
         self.alt_dif = 0
 
-        traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf = self.selectTraffic(sim)
+        traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf = self.selectTraffic()
 
 
         [self.rel_trk, self.pos] = geo.qdrdist_matrix(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
@@ -617,7 +617,7 @@ class metric_HB():
         time2 = time()
         print "Time to Complete Calculation: " + str(time2-time1)
 
-        sim.start()
+        bs.sim.start()
         return
 
 
@@ -1383,18 +1383,18 @@ class Metric():
         self.file.write(tim2txt(t)+";"+line+chr(13)+chr(10))
         return
 
-    def update(self,sim):
+    def update(self):
         #check if configured and there is actual traffic
         if self.metric_number == -1 or bs.traf.ntraf < 1:
             return
 
         """Update: to call for regular logging & runtime analysis"""
         # Only do something when time is there
-        if abs(sim.simt-self.t0)<self.dt:
+        if abs(bs.sim.simt-self.t0)<self.dt:
             return
-        self.t0 = sim.simt  # Update time for scheduler
+        self.t0 = bs.sim.simt  # Update time for scheduler
         if self.metricstime == 0:
-            self.tbegin = sim.simt
+            self.tbegin = bs.sim.simt
             self.metricstime = 1
             print "METRICS STARTED"
             # FIR_circle(bs.navdb,self.fir_number)
@@ -1402,11 +1402,11 @@ class Metric():
             #   ","+str(self.cellarea[0][0])+","+str(self.cellarea[0][1]))
 
         # A lot of smart Michon-code here, probably using numpy arrays etc.
-        if sim.simt >= 0:
+        if bs.sim.simt >= 0:
             if self.metric_number == 0:
-                self.metric[self.metric_number].AircraftCell(bs.traf,self.cells,sim.t-self.tbegin,sim)
+                self.metric[self.metric_number].AircraftCell(self.cells,bs.sim.t-self.tbegin)
             elif self.metric_number == 1:
-                self.metric[self.metric_number].applymetric(sim)
+                self.metric[self.metric_number].applymetric()
 
         print "Number of Aircraft in Research Area (FIR):" + str(self.metric[self.metric_number].ntraf)
 
@@ -1425,16 +1425,16 @@ class Metric():
             bs.traf.delete(deleteAC[i])
 
         # Heartbeat for test
-        self.write(sim.simt,"NTRAF;"+str(bs.traf.ntraf))
+        self.write(bs.sim.simt,"NTRAF;"+str(bs.traf.ntraf))
         return
 
     def plot(self):
         # Pause simulation
-        sim.pause()
+        bs.sim.pause()
 
         # Open a plot window attached to a command?
         #    plot, showplot and other matplotlib commands
 
         # Continue simulation
-        sim.start()
+        bs.sim.start()
         return

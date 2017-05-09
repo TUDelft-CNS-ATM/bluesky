@@ -11,31 +11,32 @@ from ..tools.misc import txt2alt, txt2spd
 
 savescenarios=False #whether to save a scenario as .scn file after generation via commands
 
-def process(command, numargs, cmdargs, sim, scr):
+def process(*cmdargs):
+    command = cmdargs[0]
+    numargs = len(cmdargs) - 1
     callsign = 'SYN_'
 
     # change display settings and delete AC to generate own FF scenarios
     if command == "START":
-        scr.swgeo=False         #don't draw coastlines and borders
-        scr.swsat=False         #don't draw the satellite image
-        scr.apsw=0              #don't draw airports
-        scr.swlabel=0           #don't draw aircraft labels
-        scr.wpsw=0              #don't draw waypoints
-        scr.swfir=False         #don't show FIRs
-        scr.swgrid=True         #do show a grid
-        scr.pan(0, 0)           #focus the map at the prime meridian and equator
-        scr.redrawradbg=True    #draw the background again
-        scr.swsep = True        #show circles of seperation between ac
-        scr.swspd = True        #show speed vectors of aircraft
-        scr.zoom(0.4, True)     #set zoom level to the standard distance
+        bs.scr.swgeo=False         #don't draw coastlines and borders
+        bs.scr.swsat=False         #don't draw the satellite image
+        bs.scr.apsw=0              #don't draw airports
+        bs.scr.swlabel=0           #don't draw aircraft labels
+        bs.scr.wpsw=0              #don't draw waypoints
+        bs.scr.swfir=False         #don't show FIRs
+        bs.scr.swgrid=True         #do show a grid
+        bs.scr.pan(0, 0)           #focus the map at the prime meridian and equator
+        bs.scr.redrawradbg=True    #draw the background again
+        bs.scr.swsep = True        #show circles of seperation between ac
+        bs.scr.swspd = True        #show speed vectors of aircraft
+        bs.scr.zoom(0.4, True)     #set zoom level to the standard distance
         # cmd.scenlines=[]        #skip the rest of the scenario
         # cmd.scencmd=[]          #skip the rest of the scenario
         # cmd.scentime=[]         #skip the rest of the scenario
-        cmd.scenlines.append("00:00:00.00>"+callsign+"TESTCIRCLE")
-        cmd.scenlines.append("00:00:00.00>DT 1")
-        cmd.scenlines.append("00:00:00.00>FIXDT ON")
-        sim.mode=sim.init
-        sim.reset()
+        # cmd.scenlines.append("00:00:00.00>"+callsign+"TESTCIRCLE")
+        # cmd.scenlines.append("00:00:00.00>DT 1")
+        # cmd.scenlines.append("00:00:00.00>FIXDT ON")
+        bs.sim.reset()
 
     # display help
     elif command == "HELP":
@@ -45,7 +46,7 @@ def process(command, numargs, cmdargs, sim, scr):
 
     #create a perpendicular conflict between two aircraft
     elif command == "SIMPLE":
-        scr.isoalt = 0
+        bs.scr.isoalt = 0
         bs.traf.reset()
         bs.traf.create("OWNSHIP", "GENERIC", -.5, 0, 0, 5000 * ft, 200)
         bs.traf.create("INTRUDER", "GENERIC", 0, .5, 270, 5000 * ft, 200)
@@ -53,7 +54,7 @@ def process(command, numargs, cmdargs, sim, scr):
 
     #create a perpendicular conflict with slight deviations to aircraft speeds and places
     elif command == "SIMPLED":
-        scr.isoalt = 0
+        bs.scr.isoalt = 0
         bs.traf.reset()
         ds = random.uniform(0.92, 1.08)
         dd = random.uniform(0.92, 1.08)
@@ -66,7 +67,7 @@ def process(command, numargs, cmdargs, sim, scr):
         if numargs < 5:
             return False, "5 ARGUMENTS REQUIRED"
         else:
-            scr.isoalt=0
+            bs.scr.isoalt=0
             bs.traf.reset()
             x=  bs.traf.asas.xw[int(float(cmdargs[1]))]/111319.
             y=  bs.traf.asas.yw[int(float(cmdargs[2]))]/111319.
@@ -82,7 +83,7 @@ def process(command, numargs, cmdargs, sim, scr):
         if numargs ==0:
             return True, callsign+"SUPER <NUMBER OF A/C>"
         else:
-            scr.isoalt=0
+            bs.scr.isoalt=0
             bs.traf.reset()
             numac=int(float(cmdargs[1]))
             distance=0.50 #this is in degrees lat/lon, for now
@@ -95,7 +96,7 @@ def process(command, numargs, cmdargs, sim, scr):
                     distance * np.sin(angle), 360.0 - 360.0 / numac * i, alt, spd)
             if savescenarios:
                 fname="super"+str(numac)
-                # cmd.saveic(fname,sim)
+                # cmd.saveic(fname)
             return True
 
     # create a sphereconflict of 3 layers of superconflicts
@@ -103,7 +104,7 @@ def process(command, numargs, cmdargs, sim, scr):
         if numargs ==0:
             return True, callsign+"SPHERE <NUMBER OF A/C PER LAYER>"
         else:
-            scr.isoalt=1./200
+            bs.scr.isoalt=1./200
             bs.traf.reset()
             numac=int(float(cmdargs[1]))
             distance=0.5 #this is in degrees lat/lon, for now
@@ -149,14 +150,14 @@ def process(command, numargs, cmdargs, sim, scr):
 
             if savescenarios:
                 fname="sphere"+str(numac)
-                # cmd.saveic(fname,sim)
+                # cmd.saveic(fname)
             return True
 
     elif command == "FUNNEL":
         if numargs ==0:
-            scr.echo(callsign+"FUNNEL <FUNNELSIZE IN NUMBER OF A/C>")
+            bs.scr.echo(callsign+"FUNNEL <FUNNELSIZE IN NUMBER OF A/C>")
         else:
-            scr.isoalt=0
+            bs.scr.isoalt=0
             bs.traf.deleteall()
             bs.traf.asas=CASASfunnel.Dbconf(300., 5.*nm, 1000.*ft)
             size=float(commandargs[1])
@@ -185,7 +186,7 @@ def process(command, numargs, cmdargs, sim, scr):
 
             if savescenarios:
                 fname="funnel"+str(size)
-                cmd.saveic(fname,sim)
+                cmd.saveic(fname)
 
     # create a conflict with several aircraft flying in a matrix formation
     elif command == "MATRIX":
@@ -193,7 +194,7 @@ def process(command, numargs, cmdargs, sim, scr):
             return True, callsign+"MATRIX <SIZE>"
         else:
             size=int(float(cmdargs[1]))
-            scr.isoalt=0
+            bs.scr.isoalt=0
             bs.traf.reset()
             mperdeg=111319.
             hsep=bs.traf.asas.R # [m] horizontal separation minimum
@@ -214,12 +215,12 @@ def process(command, numargs, cmdargs, sim, scr):
 
             if savescenarios:
                 fname="matrix"+str(size)
-                # cmd.saveic(fname,sim)
+                # cmd.saveic(fname)
             return True
 
     # create a conflict with several aircraft flying in a floor formation
     elif command == "FLOOR":
-        scr.isoalt=1./50
+        bs.scr.isoalt=1./50
         bs.traf.reset()
         mperdeg=111319.
         altdif=3000 # ft
@@ -235,7 +236,7 @@ def process(command, numargs, cmdargs, sim, scr):
             bs.traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,200)
         if savescenarios:
             fname="floor"
-            # cmd.saveic(fname,sim)
+            # cmd.saveic(fname)
         return True
 
     # create a conflict with several aircraft overtaking eachother
@@ -244,7 +245,7 @@ def process(command, numargs, cmdargs, sim, scr):
             return True, callsign+"TAKEOVER <NUMBER OF A/C>"
         else:
             numac=int(float(cmdargs[1]))
-            scr.isoalt=0
+            bs.scr.isoalt=0
             bs.traf.reset()
             mperdeg=111319.
             vsteps=50 #[m/s]
@@ -255,12 +256,12 @@ def process(command, numargs, cmdargs, sim, scr):
                 bs.traf.create(acid,"OT",0,-degtofly,90,20000*ft,v)
             if savescenarios:
                 fname="takeover"+str(numac)
-                # cmd.saveic(fname,sim)
+                # cmd.saveic(fname)
             return True
 
     # create a conflict with several aircraft flying in a wall formation
     elif command == "WALL":
-        scr.isoalt=0
+        bs.scr.isoalt=0
         bs.traf.reset()
         mperdeg=111319.
         distance=0.6 # in degrees lat/lon, for now
@@ -273,7 +274,7 @@ def process(command, numargs, cmdargs, sim, scr):
             bs.traf.create(acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000*ft,200)
         if savescenarios:
             fname="wall"
-            # cmd.saveic(fname,sim)
+            # cmd.saveic(fname)
         return True
 
     # create a conflict with several aircraft flying in two rows angled towards each other
@@ -307,7 +308,7 @@ def process(command, numargs, cmdargs, sim, scr):
                     bs.traf.create("ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt*ft, acspd)
                     alternate = alternate * -1
 
-                scr.pan([0,0],True)
+                bs.scr.pan([0,0],True)
                 return True
             except Exception:
                 return False, 'unknown argument flag'
@@ -346,7 +347,7 @@ def process(command, numargs, cmdargs, sim, scr):
                     bs.traf.create("ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt*ft, acspd)
                     bs.traf.create("ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt*ft, acspd)
 
-                scr.pan([0,0],True)
+                bs.scr.pan([0,0],True)
                 return True
             except Exception:
                 return False, 'unknown argument flag'

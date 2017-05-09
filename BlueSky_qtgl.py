@@ -35,7 +35,7 @@ sys.excepthook = exception_handler
 # =============================================================================
 def MainLoop():
     if settings.node_only:
-        import bluesky.sim.qtgl.nodemanager as manager
+        from bluesky.sim.qtgl import nodemanager as manager
         manager.run()
 
     else:

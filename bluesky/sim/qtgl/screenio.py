@@ -33,7 +33,7 @@ class ScreenIO(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, sim):
+    def __init__(self):
         super(ScreenIO, self).__init__()
 
         # Keep track of the important parameters of the screen state
@@ -43,9 +43,6 @@ class ScreenIO(QObject):
         self.scrzoom     = 1.0
 
         self.route_acid  = None
-
-        # Keep reference to parent simulation object for access to simulation data
-        self.sim         = sim
 
         # Timing bookkeeping counters
         self.prevtime    = 0.0
@@ -64,7 +61,7 @@ class ScreenIO(QObject):
         self.fast_timer.start(1000 / self.acupdate_rate)
 
     def update(self):
-        if self.sim.state == self.sim.op:
+        if bs.sim.state == bs.sim.op:
             self.samplecount += 1
 
     def reset(self):
@@ -236,9 +233,9 @@ class ScreenIO(QObject):
     def send_siminfo(self):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
-        speed = (self.samplecount - self.prevcount) / dt * self.sim.simdt
-        manager.sendEvent(SimInfoEvent(speed, self.sim.simdt, self.sim.simt,
-            self.sim.simtclock, bs.traf.ntraf, self.sim.state, stack.get_scenname()))
+        speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
+        manager.sendEvent(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
+            bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
 
@@ -246,7 +243,7 @@ class ScreenIO(QObject):
     def send_aircraft_data(self):
         if manager.isActive():
             data            = ACDataEvent()
-            data.simt       = self.sim.simt
+            data.simt       = bs.sim.simt
             data.id         = bs.traf.id
             data.lat        = bs.traf.lat
             data.lon        = bs.traf.lon
@@ -320,3 +317,6 @@ class ScreenIO(QObject):
             # data.spdratios  = bs.traf.AMAN.
             # manager.sendEvent(data)
             pass
+
+# Singleton instance of ScreenIO
+scr = ScreenIO()
