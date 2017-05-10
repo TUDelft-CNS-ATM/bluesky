@@ -1,8 +1,8 @@
 import numpy as np
 import bluesky as bs
-from ... import settings
-from ...tools.aero import ft, nm
-from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky import settings
+from bluesky.tools.aero import ft, nm
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
 # Import default CD methods
@@ -103,6 +103,16 @@ class ASAS(DynamicArrays):
         self.latowncpa    = np.array([])
         self.lonowncpa    = np.array([])
         self.altowncpa    = np.array([])
+        self.tcpa         = np.array([])
+        self.tinconf      = np.array([])
+        self.toutconf     = np.array([])
+        self.qdr          = np.array([])
+        self.dist         = np.array([])
+        self.dx           = np.array([])
+        self.dy           = np.array([])
+        self.dalt         = np.array([])
+        self.u            = np.array([])
+        self.v            = np.array([])
 
         self.conflist_all = []  # List of all Conflicts
         self.LOSlist_all  = []  # List of all Losses Of Separation
