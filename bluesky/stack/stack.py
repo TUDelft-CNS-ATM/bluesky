@@ -934,7 +934,7 @@ def ic(filename=''):
 
     # Get the filename of new scenario
     if filename == '':
-        filename = scr.show_file_dialog()
+        filename = bs.scr.show_file_dialog()
     elif filename == "IC":
         filename = scenfile
 
