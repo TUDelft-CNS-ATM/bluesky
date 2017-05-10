@@ -107,7 +107,7 @@ class Console(QWidget):
             if len(newcmd) > 0:
                 newcmd, displaytext = autocomplete.complete(newcmd)
                 if len(displaytext) > 0:
-                    self.display_stack(displaytext)
+                    self.echo(displaytext)
 
         elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
             newcmd += str(event.text()).upper()
