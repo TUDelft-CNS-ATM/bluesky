@@ -138,7 +138,7 @@ if settings.node_only:
         update_funs.pop(name)
 
     def preupdate(simt):
-        for fun in preupdate_funs:
+        for fun in preupdate_funs.values():
             # Call function if its update interval has passed
             if simt >= fun[0]:
                 # Set the next triggering time for this function
