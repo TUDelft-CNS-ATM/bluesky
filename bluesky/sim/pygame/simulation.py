@@ -4,9 +4,7 @@ from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim,tim2txt
 from bluesky import settings, stack
 from bluesky.traf.metric import Metric
-
 from bluesky.tools.network import StackTelnetServer
-from bluesky.tools.datafeed import Modesbeast
 
 onedayinsec = 24*3600 # [s] time of one day in seconds for clock time
 
@@ -55,7 +53,6 @@ class Simulation:
         self.metric = Metric()
 
         # Additional modules
-        self.beastfeed   = Modesbeast()
         self.telnet_in   = StackTelnetServer()
 
     def update(self):
@@ -105,9 +102,6 @@ class Simulation:
                     del self.dts[0]
 
             stack.checkfile(self.simt)
-
-            # Update the Mode-S beast parsing
-            self.beastfeed.update()
 
         # Always process stack
         stack.process()

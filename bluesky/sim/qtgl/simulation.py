@@ -14,7 +14,6 @@ from simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
 from bluesky import settings, stack
 from bluesky.traf import Metric
-from bluesky.tools.datafeed import Modesbeast
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
 
@@ -63,7 +62,6 @@ class Simulation(QObject):
 
         # Additional modules
         self.metric      = Metric()
-        self.beastfeed   = Modesbeast()
 
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
@@ -82,9 +80,6 @@ class Simulation(QObject):
 
             # Update screen logic
             bs.scr.update()
-
-            # Update the Mode-S beast parsing
-            self.beastfeed.update()
 
             # Simulation starts as soon as there is traffic, or pending commands
             if self.state == Simulation.init:
