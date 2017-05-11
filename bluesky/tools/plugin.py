@@ -1,6 +1,7 @@
 """ Implementation of BlueSky's plugin system. """
 import ast
 from os import path
+import sys
 from glob import glob
 import imp
 import bluesky as bs
@@ -72,7 +73,11 @@ def manage(cmd, plugin_name=''):
     return False
 
 def init():
+    # Add plugin path to module search path
+    sys.path.append(path.abspath(settings.plugin_path))
+    # Set plugin type for this instance of BlueSky
     req_type = 'sim' if settings.node_only else 'gui'
+    # Find available plugins
     for fname in glob(path.join(settings.plugin_path, '*.py')):
         p = check_plugin(fname)
         # This is indeed a plugin, and it is meant for us
@@ -103,7 +108,7 @@ if settings.node_only:
             bs.stack.append_commands(stackfuns)
             return True, 'Successfully loaded %s' % name
         except ImportError as e:
-            print 'here', e
+            print 'BlueSky plugin system failed to load', name, ':', e
             return False, 'Failed to load %s' % name
 
     def remove(name, descr):
