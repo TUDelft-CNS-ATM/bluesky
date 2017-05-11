@@ -14,11 +14,12 @@ StateBasedCD = False
 if settings.prefer_compiled:
     try:
         import casas as StateBasedCD
-        print 'StateBasedCD: using compiled version'
+        print 'StateBasedCD: using compiled version.'
     except ImportError:
         print 'StateBasedCD: using default Python version, no compiled version for this platform.'
 
 if not StateBasedCD:
+    print 'StateBasedCD: using Python version.'
     import StateBasedCD
 
 # Import default CR methods
