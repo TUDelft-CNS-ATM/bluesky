@@ -86,7 +86,10 @@ def init():
     # Add plugin path to module search path
     sys.path.append(path.abspath(settings.plugin_path))
     # Set plugin type for this instance of BlueSky
-    req_type = 'sim' if settings.node_only else 'gui'
+    if settings.node_only or settings.gui == 'pygame':
+        req_type = 'sim'
+    else:
+        req_type = 'gui'
     # Find available plugins
     for fname in glob(path.join(settings.plugin_path, '*.py')):
         p = check_plugin(fname)
