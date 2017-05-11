@@ -1,3 +1,6 @@
+""" ScreenIO is a screen proxy on the simulation side for the QTGL implementation of BlueSky."""
+import time
+import numpy as np
 try:
     # Try Qt5 first
     from PyQt5.QtCore import QObject, pyqtSlot
@@ -5,13 +8,10 @@ except ImportError:
     # Else fall back to Qt4
     from PyQt4.QtCore import QObject, pyqtSlot
 
-import numpy as np
-import time
-
 # Local imports
 import bluesky as bs
 import nodemanager as manager
-from ... import stack
+from bluesky import stack
 from timer import Timer
 from simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
                         SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \

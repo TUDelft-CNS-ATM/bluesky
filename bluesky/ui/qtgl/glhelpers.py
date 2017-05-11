@@ -27,8 +27,10 @@ except ImportError:
 import OpenGL.GL as gl
 import numpy as np
 from ctypes import c_void_p, pointer, sizeof
-from ... import settings
+from bluesky import settings
 
+# Register settings defaults
+settings.set_variable_defaults(data_path='data')
 
 def load_texture(fname):
     img = QImage(fname)

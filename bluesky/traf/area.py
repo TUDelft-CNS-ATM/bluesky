@@ -1,6 +1,7 @@
+""" Traffic area: delete traffic when it leaves this area (so not when outside)"""
 import numpy as np
 import bluesky as bs
-from ..tools import areafilter
+from bluesky.tools import areafilter
 
 class Area:
     def __init__(self):

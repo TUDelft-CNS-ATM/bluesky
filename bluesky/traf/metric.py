@@ -7,10 +7,13 @@ from collections import defaultdict
 import itertools as IT
 
 import bluesky as bs
-from ..tools import geo
-from ..tools.misc import tim2txt
-from ..tools.aero import *
-from ..settings import log_path
+from bluesky.tools import geo
+from bluesky.tools.misc import tim2txt
+from bluesky.tools.aero import *
+from bluesky import settings
+
+# Register settings defaults
+settings.set_variable_defaults(log_path='output')
 
 """
     This module seems to work as follows:
@@ -463,7 +466,7 @@ class metric_CoCa():
             self.reset()
             self.resettime = self.resettime + self.deltaresettime
             self.iteration = self.iteration + 1
-            filedata = log_path + "/coca_20120727-78am-1hour.npy"
+            filedata = settings.log_path + "/coca_20120727-78am-1hour.npy"
             # self.cellPlot(traf)
             # np.save(filedata,self.cocametric)
             bs.sim.start()
@@ -1012,7 +1015,7 @@ class metric_HB():
         data = izip(acid,lat,lon,alt,spd,trk,ntraf,compl)
 
         step = str(self.step).zfill(3)
-        fname = log_path + "/Metric-HB/"+step+"-BlueSky.csv"
+        fname = settings.log_path + "/Metric-HB/"+step+"-BlueSky.csv"
         f = csv.writer(open(fname, "wb"))
         for row in data:
             f.writerow(row)
@@ -1322,7 +1325,7 @@ class Metric():
 
     def __init__(self):
         # Create metrics file
-        # fname = log_path + \
+        # fname = settings.log_path + \
         #     strftime("%Y-%m-%d-%H-%M-%S-BlueSky-Metrics.txt", gmtime())
         # self.file = open(fname,"w")
 

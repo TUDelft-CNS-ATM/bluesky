@@ -13,13 +13,15 @@ from ctypes import c_float, c_int, Structure
 
 # Local imports
 import bluesky as bs
-from bluesky.settings import text_size, apt_size, wpt_size, ac_size
+from bluesky import settings
 from bluesky.tools.aero import ft, nm, kts
 from bluesky.sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
 from bluesky.navdb import load_aptsurface, load_coastlines
 from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
     update_buffer, create_empty_buffer
 
+# Register settings defaults
+settings.set_variable_defaults(text_size=13, apt_size=10, wpt_size=10, ac_size=16)
 
 # Static defines
 MAX_NAIRCRAFT         = 10000
@@ -195,6 +197,11 @@ class RadarWidget(QGLWidget):
 
         # Make the radarwidget context current, necessary when create_objects is not called from initializeGL
         self.makeCurrent()
+
+        text_size = settings.text_size
+        apt_size  = settings.apt_size
+        wpt_size  = settings.wpt_size
+        ac_size   = settings.ac_size
 
         # Initialize font for radar view with specified settings
         self.font = Font()

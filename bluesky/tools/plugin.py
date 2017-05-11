@@ -7,6 +7,9 @@ import imp
 import bluesky as bs
 from bluesky import settings
 
+# Register settings defaults
+settings.set_variable_defaults(plugin_path='plugins')
+
 # Dict of descriptions of plugins found for this instance of bluesky
 plugin_descriptions = dict()
 # Dict of loaded plugins for this instance of bluesky

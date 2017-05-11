@@ -2,7 +2,7 @@ import time
 import bluesky as bs
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim,tim2txt
-from bluesky import settings, stack
+from bluesky import stack
 from bluesky.traf.metric import Metric
 from bluesky.tools.network import StackTelnetServer
 

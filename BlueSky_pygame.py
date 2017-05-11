@@ -1,5 +1,5 @@
 import pygame as pg
-from bluesky import settings, sim, scr, stack
+from bluesky import sim, scr, stack
 from bluesky.ui.pygame import Keyboard, splash
 from bluesky.tools import plugin
 if __name__ == "__main__":

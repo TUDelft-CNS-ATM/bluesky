@@ -9,10 +9,10 @@ import subprocess
 import numpy as np
 
 import bluesky as bs
-from ...tools import geo
-from ...tools.areafilter import areas
-from ...tools.aero import ft, kts, nm
-from ...tools.misc import tim2txt
+from bluesky.tools import geo
+from bluesky.tools.areafilter import areas
+from bluesky.tools.aero import ft, kts, nm
+from bluesky.tools.misc import tim2txt
 import splash
 from fastfont import Fastfont
 from console import Console

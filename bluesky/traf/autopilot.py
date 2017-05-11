@@ -1,12 +1,12 @@
-import numpy as np
+""" Autopilot Implementation."""
 from math import sin, cos, radians
+import numpy as np
 import bluesky as bs
-from ..tools import geo
-from ..tools.position import txt2pos
-from ..tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, casormach, \
-                          cas2mach,mach2cas
+from bluesky.tools import geo
+from bluesky.tools.position import txt2pos
+from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach,mach2cas
 from route import Route
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
 class Autopilot(DynamicArrays):

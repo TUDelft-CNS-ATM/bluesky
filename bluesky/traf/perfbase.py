@@ -1,5 +1,5 @@
 import numpy as np
-from ..tools import RegisterElementParameters, DynamicArrays
+from bluesky.tools import RegisterElementParameters, DynamicArrays
 
 
 class PerfBase(DynamicArrays):

@@ -1,3 +1,4 @@
+""" QTGL Gui for BlueSky."""
 try:
     from PyQt5.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
@@ -11,7 +12,7 @@ except ImportError:
 # Local imports
 from bluesky.ui.radarclick import radarclick
 from bluesky.tools.misc import tim2txt
-from bluesky.settings import scenario_path
+from bluesky import settings
 from bluesky.sim.qtgl import MainManager as manager
 from bluesky.sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
@@ -32,6 +33,8 @@ if QT_VERSION <= 0x050600:
     import platform
     correct_pinch = platform.system() == 'Darwin'
 
+# Register settings defaults
+settings.set_variable_defaults(scenario_path='scenario')
 
 class Gui(QApplication):
     modes = ['Init', 'Operate', 'Hold', 'End']
@@ -339,7 +342,7 @@ class Gui(QApplication):
         return True
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', scenario_path, 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', settings.scenario_path, 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:

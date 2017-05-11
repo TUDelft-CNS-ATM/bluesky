@@ -1,25 +1,12 @@
+""" ADS-B model. Implements real-life limitations of ADS-B communication."""
 import numpy as np
 import bluesky as bs
-from ..tools.aero import ft
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.aero import ft
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
 class ADSB(DynamicArrays):
-    """
-    Traffic class definition    : Traffic data
-
-    Methods:
-        Traffic()            :  constructor
-
-        create(acid,actype,aclat,aclon,achdg,acalt,acspd) : create aircraft
-        delete(acid)         : delete an aircraft from traffic data
-        update(sim)          : do a numerical integration step
-        trafperf ()          : calculate aircraft performance parameters
-
-    Members: see create
-
-    Created by  : Jacco M. Hoekstra, Jerom Maas
-    """
+    """ ADS-B model. Implements real-life limitations of ADS-B communication."""
 
     def __init__(self):
 

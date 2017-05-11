@@ -1,14 +1,17 @@
+""" BlueSky aircraft performance calculations using BADA 3.xx."""
 import numpy as np
 import bluesky as bs
-from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 from performance import esf, phases, calclimits, PHASE
-from ..settings import perf_path_bada
-from ..settings import verbose
+from bluesky import settings
+
+# Register settings defaults
+settings.set_variable_defaults(perf_path_bada='data/coefficients/BADA', verbose=False)
 
 import bada_coeff
-if not bada_coeff.init(perf_path_bada):
-    raise ImportError('BADA performance model: Error loading BADA files from ' + perf_path_bada + '!')
+if not bada_coeff.init(settings.perf_path_bada):
+    raise ImportError('BADA performance model: Error loading BADA files from ' + settings.perf_path_bada + '!')
 else:
     print 'Using BADA performance model.'
 
@@ -177,7 +180,7 @@ class PerfBADA(DynamicArrays):
             syn, coeff = bada_coeff.getCoefficients('B744')
             bs.traf.type[-n:] = syn.accode
 
-            if not verbose:
+            if not settings.verbose:
                 if not self.warned:
                     print "Aircraft is using default B747-400 performance."
                     self.warned = True

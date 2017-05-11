@@ -1,9 +1,9 @@
+""" NodeManager manages I/O with the simulation processes on the Sim side. """
+from multiprocessing.connection import Client
 try:
     from PyQt5.QtCore import QEvent
 except ImportError:
     from PyQt4.QtCore import QEvent
-
-from multiprocessing.connection import Client
 
 # Local imports
 import bluesky as bs

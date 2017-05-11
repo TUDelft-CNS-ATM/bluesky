@@ -86,6 +86,8 @@ def init():
     execfile(configfile, globals())
     if not gui == 'ask':
         globals()['gui'] = gui
+    elif 'gui' not in globals():
+        globals()['gui'] = 'qtgl'
 
     return True
 

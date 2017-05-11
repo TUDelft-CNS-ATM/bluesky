@@ -1,7 +1,8 @@
+""" Keyboard and mouse processing for the pygame version of BlueSky."""
+from math import *
 import pygame as pg
 import bluesky as bs
-from ... import stack
-from math import *
+from bluesky import stack
 from ..radarclick import radarclick
 
 

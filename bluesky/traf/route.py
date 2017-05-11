@@ -1,12 +1,12 @@
+""" Route implementation for the BlueSky FMS."""
 from numpy import *
 import bluesky as bs
-from ..tools import geo
-from ..tools.aero import ft, kts, g0, nm, cas2tas, mach2cas
-from ..tools.misc import degto180
-from ..tools.position import txt2pos
-from .. import stack
-from ..stack.stack import Argparser
-
+from bluesky.tools import geo
+from bluesky.tools.aero import ft, kts, g0, nm, mach2cas
+from bluesky.tools.misc import degto180
+from bluesky.tools.position import txt2pos
+from bluesky import stack
+from bluesky.stack import Argparser
 
 class Route():
     """

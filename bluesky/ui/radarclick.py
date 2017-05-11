@@ -1,10 +1,10 @@
 from math import cos, atan2, radians, degrees
 from numpy import array
 import bluesky as bs
-from ..stack.stack import cmdsynon
+from bluesky.stack import cmdsynon
 
-from ..tools import geo
-from ..tools.misc import findnearest, cmdsplit
+from bluesky.tools import geo
+from bluesky.tools.misc import findnearest, cmdsplit
 
 
 def radarclick(cmdline, lat, lon, route=None):

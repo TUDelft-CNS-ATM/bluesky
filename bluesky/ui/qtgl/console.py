@@ -1,3 +1,4 @@
+""" Console interface for the QTGL implementation."""
 try:
     from PyQt5.QtCore import Qt, pyqtSignal
     from PyQt5.QtWidgets import QWidget, QTextEdit
@@ -6,9 +7,9 @@ except ImportError:
     from PyQt4.QtGui import QWidget, QTextEdit
 
 import autocomplete
-from ...tools.misc import cmdsplit
-from ...sim.qtgl import MainManager as manager
-from ...sim.qtgl import StackTextEvent
+from bluesky.tools.misc import cmdsplit
+from bluesky.sim.qtgl import MainManager as manager
+from bluesky.sim.qtgl import StackTextEvent
 
 
 node_stacks = dict()

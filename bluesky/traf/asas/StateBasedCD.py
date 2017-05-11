@@ -4,8 +4,8 @@ State-based conflict detection
 
 """
 import numpy as np
-from ...tools import geo
-from ...tools.aero import nm
+from bluesky.tools import geo
+from bluesky.tools.aero import nm
 
 
 def detect(dbconf, traf, simt):

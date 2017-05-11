@@ -1,8 +1,8 @@
 import numpy as np
 import bluesky as bs
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
-from ..tools.aero import nm, g0
-from ..tools.misc import degto180
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.aero import nm, g0
+from bluesky.tools.misc import degto180
 
 
 class ActiveWaypoint(DynamicArrays):

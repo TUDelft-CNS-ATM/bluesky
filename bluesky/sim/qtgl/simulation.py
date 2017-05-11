@@ -19,6 +19,8 @@ from bluesky.tools.misc import txt2tim, tim2txt
 
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
+# Register settings defaults
+settings.set_variable_defaults(simdt=0.05)
 
 class Simulation(QObject):
     # simulation modes

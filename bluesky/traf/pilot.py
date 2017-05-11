@@ -1,7 +1,8 @@
+""" Pilot logic."""
 import numpy as np
 import bluesky as bs
-from ..tools.aero import vtas2eas, vcas2tas, vcas2mach
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.aero import vtas2eas, vcas2tas, vcas2mach
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
 class Pilot(DynamicArrays):

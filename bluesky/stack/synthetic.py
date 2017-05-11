@@ -1,13 +1,10 @@
+""" Stack functions to generate synthetic traffic scenarios."""
 import random
 import numpy as np
 import bluesky as bs
-from ..tools.aero import ft, eas2tas
-from ..tools import geo
-from ..tools.misc import txt2alt, txt2spd
-'''
-    Original version by Jerom Maas, fall 2014
-    Adapted and expanded by Pieter Danneels, fall 2015
-'''
+from bluesky.tools.aero import ft, eas2tas
+from bluesky.tools import geo
+from bluesky.tools.misc import txt2alt, txt2spd
 
 savescenarios=False #whether to save a scenario as .scn file after generation via commands
 

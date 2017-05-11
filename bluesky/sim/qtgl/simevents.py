@@ -1,17 +1,16 @@
+""" Definition of data content to be transferred between GUI and Sim tasks,
+    these defintions are used on both sides of the communication """
 try:
     from PyQt5.QtCore import QEvent
 except ImportError:
     from PyQt4.QtCore import QEvent
 
 NUMEVENTS = 16
-SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, PanZoomEventType, ACDataEventType, \
-    SimInfoEventType, StackTextEventType, StackInitEventType, ShowDialogEventType, \
-    DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType, \
+SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, \
+    PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, \
+    StackInitEventType, ShowDialogEventType, DisplayFlagEventType, \
+    RouteDataEventType, DisplayShapeEventType, \
     SimQuitEventType, AMANEventType = range(1000, 1000 + NUMEVENTS)
-
-""" Definition of data content to be transferred between GUI and Sim tasks,
-    these defintions are used on both sides of the communication """
-
 
 class SimStateEvent(QEvent):
     init, op, hold, end = range(4)

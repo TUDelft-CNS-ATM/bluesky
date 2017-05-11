@@ -5,7 +5,7 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from ...tools.aero import ft
+from bluesky.tools.aero import ft
 
 
 def start(dbconf):

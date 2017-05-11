@@ -16,11 +16,11 @@ Methods:
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
 from math import *
-import numpy as np
 from random import seed
 import os
 import os.path
 import subprocess
+import numpy as np
 import bluesky as bs
 from bluesky.tools import geo, areafilter, plugin
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
@@ -31,6 +31,8 @@ from bluesky import settings
 
 # Temporary fix for synthetic
 import synthetic as syn
+# Register settings defaults
+settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario')
 
 # Global variables
 cmddict   = dict()  # Defined in stack.init

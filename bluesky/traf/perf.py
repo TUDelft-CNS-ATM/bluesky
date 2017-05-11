@@ -1,14 +1,17 @@
+""" BlueSky aircraft performance calculations."""
 import os
 import numpy as np
 from xml.etree import ElementTree
 from math import *
 import bluesky as bs
-from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
+from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 
 from performance import esf, phases, calclimits, PHASE
-from ..settings import data_path
-from ..settings import verbose
+from bluesky import settings
+
+# Register settings defaults
+settings.set_variable_defaults(data_path='data', verbose=False)
 
 class CoeffBS:
     """
@@ -105,7 +108,7 @@ class CoeffBS:
 
         # parse AC files
 
-        path = data_path + '/coefficients/BS_aircraft/'
+        path = settings.data_path + '/coefficients/BS_aircraft/'
         files = os.listdir(path)
         for file in files:
             acdoc = ElementTree.parse(path + file)
@@ -285,7 +288,7 @@ class CoeffBS:
         self.PSFC_CR     = [] # SFC cruise
 
         # parse engine files
-        path = data_path + '/coefficients/BS_engines/'
+        path = settings.data_path + '/coefficients/BS_engines/'
         files = os.listdir(path)
         for filename in files:
             endoc = ElementTree.parse(path + filename)
@@ -433,7 +436,7 @@ class Perf():
             # engine
         else:
             self.coeffidx = 0
-            if not verbose:
+            if not settings.verbose:
                 if not self.warned:
                     print "Aircraft is using default B747-400 performance."
                     self.warned = True

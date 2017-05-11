@@ -1,9 +1,13 @@
+""" Airborne Separation Assurance System. Implements CD&R functionality together with
+    separate conflict detection and conflict resolution modules."""
 import numpy as np
 import bluesky as bs
 from bluesky import settings
 from bluesky.tools.aero import ft, nm
 from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
+# Register settings defaults
+settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0, asas_dtlookahead=300.0, asas_mar=1.2, asas_pzr=5.0, asas_pzh=1000.0)
 
 # Import default CD methods
 StateBasedCD = False

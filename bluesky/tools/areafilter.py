@@ -1,9 +1,8 @@
 """Area filter module"""
-import bluesky as bs
-from geo import kwikdist_matrix
 from matplotlib.path import Path
 import numpy as np
-
+import bluesky as bs
+from geo import kwikdist_matrix
 
 areas = dict()
 
@@ -35,7 +34,7 @@ def checkInside(areaname, lat, lon, alt):
 def deleteArea(areaname):
     if areaname in areas:
         areas.pop(areaname)
-        bs.scr.objappend('', areaname, None)    
+        bs.scr.objappend('', areaname, None)
 
 def reset():
     areas.clear()

@@ -1,10 +1,10 @@
+""" Create aircraft trails on the radar display."""
 from math import *
-
-import bluesky as bs
-from ..settings import gui
-
 import numpy as np
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+import bluesky as bs
+from bluesky import settings
+
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 
 class Trails(DynamicArrays):
@@ -116,7 +116,7 @@ class Trails(DynamicArrays):
 
         # When a/c is no longer part of trail semgment,
         # it is no longer a/c data => move to the GUI buffer (send or draw)
-        if gui == 'qtgl':
+        if settings.gui == 'qtgl':
             # QtGL: add to send buffer
             self.newlat0.extend(lstlat0)
             self.newlon0.extend(lstlon0)

@@ -1,13 +1,14 @@
+""" BlueSky traffic implementation."""
 import numpy as np
 from math import *
 from random import random, randint
 import bluesky as bs
-from ..tools import datalog, geo
-from ..tools.misc import latlon2txt
-from ..tools.aero import fpm, kts, ft, g0, Rearth, nm, \
+from bluesky.tools import datalog, geo
+from bluesky.tools.misc import latlon2txt
+from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
                          vatmos,  vtas2cas, vtas2mach, casormach, vcasormach
 
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 from windsim import WindSim
 
@@ -20,7 +21,10 @@ from activewpdata import ActiveWaypoint
 from turbulence import Turbulence
 from area import Area
 
-from .. import settings
+from bluesky import settings
+
+# Register settings defaults
+settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
 
 try:
     if settings.performance_model == 'bluesky':

@@ -5,7 +5,6 @@ from loadnavdata import load_navdata
 from bluesky.tools import geo
 from bluesky.tools.aero import nm
 from bluesky.tools.misc import findall
-from bluesky import settings
 
 
 class Navdatabase:

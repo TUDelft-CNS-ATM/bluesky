@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
+Swarm conflict resolution algorithm.
+
 Created on Wed Mar 04 14:27:44 2015
 
 @author: Jerom Maas
 """
 
 import numpy as np
-from ...tools.aero import nm, ft
+from bluesky.tools.aero import nm, ft
 import MVP
 
 
