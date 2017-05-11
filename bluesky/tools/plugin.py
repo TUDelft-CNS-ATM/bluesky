@@ -103,7 +103,7 @@ def init():
             success = load(pname, p)
             print success[1]
 
-if settings.node_only:
+if settings.node_only or settings.gui == 'pygame':
     # Sim implementation of plugin management
     preupdate_funs = dict()
     update_funs    = dict()
