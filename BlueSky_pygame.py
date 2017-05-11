@@ -1,6 +1,7 @@
 import pygame as pg
 from bluesky import settings, sim, scr, stack
 from bluesky.ui.pygame import Keyboard, splash
+from bluesky.tools import plugin
 if __name__ == "__main__":
     print "   *****   BlueSky Open ATM simulator *****"
     print "Distributed under GNU General Public License v3"
@@ -14,6 +15,7 @@ def MainLoop():
     keyb = Keyboard()                      # processes input from keyboard & mouse
     splash.show()
     scr.updateNavBuffers()
+    plugin.init()
     stack.init()
     sim.start()
 

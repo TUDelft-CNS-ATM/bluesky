@@ -12,12 +12,11 @@ import nodemanager as manager
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
-from ... import stack
-from ...traf import Metric
-from ... import settings
-from ...tools.datafeed import Modesbeast
-from ...tools import datalog, areafilter
-from ...tools.misc import txt2tim, tim2txt
+from bluesky import settings, stack
+from bluesky.traf import Metric
+from bluesky.tools.datafeed import Modesbeast
+from bluesky.tools import datalog, areafilter, plugin
+from bluesky.tools.misc import txt2tim, tim2txt
 
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
@@ -75,8 +74,11 @@ class Simulation(QObject):
         manager.sendEvent(StackInitEvent(stackdict))
 
         while self.running:
-            # Datalog pre-update (communicate current sim time to loggers)
-            datalog.preupdate(self.simt)
+            if self.state == Simulation.op:
+                # Plugins pre-update
+                plugin.preupdate(self.simt)
+                # Datalog pre-update (communicate current sim time to loggers)
+                datalog.preupdate(self.simt)
 
             # Update screen logic
             bs.scr.update()
@@ -104,6 +106,9 @@ class Simulation(QObject):
 
                 # Update metrics
                 self.metric.update()
+
+                # Update plugins
+                plugin.update(self.simt)
 
                 # Update loggers
                 datalog.postupdate()

@@ -1,13 +1,12 @@
 import time
 import bluesky as bs
-from ...tools import datalog, areafilter
-from ...tools.misc import txt2tim,tim2txt
-from ... import stack
-from ...traf.metric import Metric
+from bluesky.tools import datalog, areafilter, plugin
+from bluesky.tools.misc import txt2tim,tim2txt
+from bluesky import settings, stack
+from bluesky.traf.metric import Metric
 
-from ...tools.network import StackTelnetServer
-from ... import settings
-from ...tools.datafeed import Modesbeast
+from bluesky.tools.network import StackTelnetServer
+from bluesky.tools.datafeed import Modesbeast
 
 onedayinsec = 24*3600 # [s] time of one day in seconds for clock time
 
@@ -36,7 +35,7 @@ class Simulation:
         self.simt   = 0.0   # Runtime
         self.tprev  = 0.0
         self.syst0  = 0.0
-        self.dt     = 0.0
+        self.simdt  = 0.0
         self.syst   = 0.0   # system time
 
         self.deltclock = 0.0   # SImulated clock time at simt=0.
@@ -72,19 +71,19 @@ class Simulation:
             # Not fast forward: variable dt
             if not self.ffmode:
                 self.tprev = self.simt
-                self.simt     = self.syst - self.syst0
-                self.dt = self.simt - self.tprev
+                self.simt  = self.syst - self.syst0
+                self.simdt = self.simt - self.tprev
 
                 # Protect against incidental dt's larger than 1 second,
                 # due to window moving, switch to/from full screen, etc.
-                if self.dt > 1.0:
-                    extra = self.dt-1.0
+                if self.simdt > 1.0:
+                    extra = self.simdt-1.0
                     self.simt = self.simt - extra
                     self.syst0 = self.syst-self.simt
 
             # Fast forward: fixed dt until ffstop time, goto pause
             else:
-                self.dt = self.fixdt
+                self.simdt = self.fixdt
                 self.simt = self.simt+self.fixdt
                 self.syst0 = self.syst - self.simt
                 if self.ffstop > 0. and self.simt >= self.ffstop:
@@ -97,8 +96,11 @@ class Simulation:
             # Datalog pre-update (communicate current sim time to loggers)
             datalog.preupdate(self.simt)
 
+            # Plugins pre-update
+            plugin.preupdate(self.simt)
+
             # For measuring game loop frequency
-            self.dts.append(self.dt)
+            self.dts.append(self.simdt)
             if len(self.dts) > 20:
                     del self.dts[0]
 
@@ -111,10 +113,13 @@ class Simulation:
         stack.process()
 
         if self.mode == Simulation.op:
-            bs.traf.update(self.simt, self.dt)
+            bs.traf.update(self.simt, self.simdt)
 
             # Update metrics
             self.metric.update()
+
+            # Update plugins
+            plugin.update(self.simt)
 
             # Update loggers
             datalog.postupdate()
@@ -122,7 +127,7 @@ class Simulation:
         # HOLD/Pause mode
         else:
             self.syst0 = self.syst-self.simt
-            self.dt = 0.0
+            self.simdt = 0.0
 
         return
 
@@ -141,9 +146,9 @@ class Simulation:
         return
 
     def pause(self):  # Hold mode
-        self.mode = self.hold
+        self.mode  = self.hold
         self.syst0 = self.syst-self.simt
-        self.dt = 0.0
+        self.simdt = 0.0
         return
 
     def stop(self):  # Quit mode

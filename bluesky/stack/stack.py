@@ -22,12 +22,12 @@ import os
 import os.path
 import subprocess
 import bluesky as bs
-from ..tools import geo, areafilter
-from ..tools.aero import kts, ft, fpm, tas2cas, density
-from ..tools.misc import txt2alt, cmdsplit
-from ..tools.calculator import calculator
-from ..tools.position import txt2pos, islat
-from .. import settings
+from bluesky.tools import geo, areafilter, plugin
+from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
+from bluesky.tools.misc import txt2alt, cmdsplit
+from bluesky.tools.calculator import calculator
+from bluesky.tools.position import txt2pos, islat
+from bluesky import settings
 
 # Temporary fix for synthetic
 import synthetic as syn
@@ -474,7 +474,12 @@ def init():
             lambda *args: openfile(*args, mergeWithExisting=True),
             "Call commands in another scenario file"
         ],
-
+        "PLUGINS": [
+            "PLUGINS LIST or LOAD plugin or REMOVE plugin",
+            "txt,[txt]",
+            plugin.manage,
+            "List all plugins, load a plugin, or remove a loaded plugin."
+        ],
         "POLY": [
             "POLY name,lat,lon,lat,lon, ...",
             "txt,latlon,...",
@@ -710,6 +715,10 @@ def append_commands(newcommands):
     """ Append additional functions to the stack command dictionary """
     cmddict.update(newcommands)
 
+def remove_commands(commands):
+    """ Remove functions from the stack """
+    for cmd in commands:
+        cmddict.pop(cmd)
 
 def showhelp(cmd=''):
     """ Generate help text for displaying or dump command reference in file

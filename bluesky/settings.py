@@ -17,6 +17,8 @@ log_path = 'output'
 # Indicate the scenario path
 scenario_path = 'scenario'
 
+plugin_path = 'plugins'
+
 # Indicate the path for the aircraft performance data
 perf_path = data_path + '/coefficients/BS_aircraft'
 
@@ -156,15 +158,15 @@ def init(gui='ask'):
             print
             print '1. QtGL:    This is the most current interface of BlueSky, but requires a graphics card that supports at least OpenGL 3.3.'
             print '2. Pygame:  Use this version if your pc doesn\'t support OpenGL 3.3.'
-            print '3. Console: Run a console-only version of BlueSky. This is useful if you want to do batch simulations on a remote server.'
+            # print '3. Console: Run a console-only version of BlueSky. This is useful if you want to do batch simulations on a remote server.'
             print
             ans = input('Default UI version: ')
             if ans == 1:
                 gui = 'qtgl'
             elif ans == 2:
                 gui = 'pygame'
-            elif ans == 3:
-                gui = 'console'
+            # elif ans == 3:
+            #     gui = 'console'
         lines = ''
 
         with open(os.path.dirname(__file__).replace("\\", "/") + '/settings.py') as fin:

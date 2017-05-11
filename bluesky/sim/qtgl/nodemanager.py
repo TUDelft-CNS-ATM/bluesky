@@ -8,6 +8,7 @@ from multiprocessing.connection import Client
 # Local imports
 import bluesky as bs
 from bluesky import stack
+from bluesky.tools import plugin
 from timer import Timer
 from simevents import SetNodeIdType, SetActiveNodeType, AddNodeType
 # import faulthandler
@@ -22,6 +23,7 @@ active     = True
 def run():
     global connection
     connection = Client(('localhost', 6000), authkey='bluesky')
+    plugin.init()
     stack.init()
     bs.sim.doWork()
     connection.close()
