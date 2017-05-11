@@ -267,11 +267,14 @@ class Modesbeast(TcpSocket):
 
     def toggle(self, flag=None):
         if flag is None:
-            msg = 'Connected' if self.isConnected() else 'Not connected'
-            return True, msg
+            if self.isConnected():
+                return True, 'Connected to %s on port %s' % (settings.modeS_host, settings.modeS_port)
+            else:
+                return True, 'Not connected'
         elif flag:
-            self.connectToHost(settings.modeS_host,
-                               settings.modeS_port)
+            self.connectToHost(settings.modeS_host, settings.modeS_port)
+            stack.stack('OP')
+            return True, 'Connecting to %s on port %s' % (settings.modeS_host, settings.modeS_port)
         else:
             self.disconnectFromHost()
 
