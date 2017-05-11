@@ -8,7 +8,7 @@ import bluesky as bs
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(plugin_path='plugins')
+settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
 
 # Dict of descriptions of plugins found for this instance of bluesky
 plugin_descriptions = dict()
@@ -59,7 +59,14 @@ def check_plugin(fname):
 
 def manage(cmd, plugin_name=''):
     if cmd == 'LIST':
-        return True, 'Available plugins:\n' + ', '.join(plugin_descriptions.keys())
+        running   = set(active_plugins.keys())
+        available = set(plugin_descriptions.keys()) - running
+        text  = '\nCurrently running plugins: %s' % ', '.join(running)
+        if len(available) > 0:
+            text += '\nAvailable plugins: %s' % ', '.join(available)
+        else:
+            text += '\nNo additional plugins available.'
+        return True, text
     if cmd not in ['LOAD', 'REMOVE']:
         return False
     p = plugin_descriptions.get(plugin_name)
@@ -86,6 +93,15 @@ def init():
         # This is indeed a plugin, and it is meant for us
         if p and p.plugin_type == req_type:
             plugin_descriptions[p.plugin_name.upper()] = p
+    # Load plugins selected in config
+    for pname in settings.enabled_plugins:
+        pname = pname.upper()
+        p = plugin_descriptions.get(pname)
+        if not p:
+            print 'Error loading plugin: plugin %s not found.' % pname
+        else:
+            success = load(pname, p)
+            print success[1]
 
 if settings.node_only:
     # Sim implementation of plugin management

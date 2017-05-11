@@ -14,6 +14,8 @@ if not settings.node_only:
 # Global gui object for easy access in interactive python shell
 gui     = None
 
+# Register settings defaults
+settings.set_variable_defaults(telnet_port=8888)
 
 # Create custom system-wide exception handler. For now it replicates python's
 # default traceback message. This was added to counter a new PyQt5.5 feature
