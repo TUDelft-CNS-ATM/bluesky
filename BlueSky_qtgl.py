@@ -2,9 +2,6 @@ import sys
 import traceback
 from bluesky import settings
 
-if __name__ == "__main__":
-    settings.init('qtgl')
-
 if not settings.node_only:
     from bluesky.sim.qtgl.mainmanager import MainManager
     from bluesky.ui.qtgl import Gui

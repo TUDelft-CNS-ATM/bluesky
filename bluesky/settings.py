@@ -1,150 +1,49 @@
-# Select the gui implementation. options: 'qtgl', 'pygame'
-# Try the pygame implementation if you are having issues with qtgl.
-gui = 'qtgl'
-
-# Select the performance model. options: 'bluesky', 'bada'
-performance_model = 'bluesky'
-
-# Indicate the datafile path
-data_path = 'data'
-
-# Verbose internal logging
-verbose = False
-
-# Indicate the logfile path
-log_path = 'output'
-
-# Indicate the scenario path
-scenario_path = 'scenario'
-
-plugin_path = 'plugins'
-
-# Indicate the path for the aircraft performance data
-perf_path = data_path + '/coefficients/BS_aircraft'
-
-# Indicate the path for the BADA aircraft performance data (leave empty if BADA is not available)
-perf_path_bada = data_path + '/coefficients/BADA'
-
-# Indicate the location of the airport database
-airport_file = data_path + '/global/airports.dat'
-
-# Indicate the start location of the radar screen (e.g. [lat, lon], or airport ICAO code)
-start_location = 'EHAM'
-
-# Simulation timestep [seconds]
-simdt = 0.05
-
-# Snaplog dt [seconds]
-snapdt = 30.0
-
-# Instlog dt [seconds]
-instdt = 30.0
-
-# Skylog dt [seconds]
-skydt = 60.0
-
-# Selective snap log dt [seconds]
-selsnapdt = 5.0
-
-# Prefer compiled BlueSky modules (cgeo, casas)
-prefer_compiled = True
-
-# Limit the max number of cpu nodes for parallel simulation
-max_nnodes = 999
-
-#=========================================================================
-#=  ASAS default settings
-#=========================================================================
-
-# ASAS lookahead time [sec]
-asas_dtlookahead = 300.0
-
-# ASAS update interval [sec]
-asas_dt = 1.0
-
-# ASAS horizontal PZ margin [nm]
-asas_pzr = 5.0
-
-# ASAS vertical PZ margin [ft]
-asas_pzh = 1000.0
-
-# ASAS safety margin [-]
-asas_mar = 1.05
-
-#=============================================================================
-#=   QTGL Gui specific settings below
-#=   Pygame Gui options in /data/graphics/scr_cfg.dat
-#=============================================================================
-
-# Radarscreen font size in pixels
-text_size = 13
-
-# Radarscreen airport symbol size in pixels
-apt_size = 10
-
-# Radarscreen waypoint symbol size in pixels
-wpt_size = 10
-
-# Radarscreen aircraft symbol size in pixels
-ac_size = 16
-
-# Stack and command line text color
-stack_text_color = 0, 255, 0
-
-# Stack and command line background color
-stack_background_color = 102, 102, 102
-
-#=========================================================================
-#=  Settings for the BlueSky telnet server
-#=========================================================================
-telnet_port = 8888
-
-#=========================================================================
-#=  Configure the following to stream raw data from a mode-s / ADS-B
-#=  TCP server.
-#=========================================================================
-
-# Mode-S / ADS-B server hostname / ip
-modeS_host = ''
-
-# Mode-S /ADS-B server port
-modeS_port = 0
-
-# END OF SETTINGS
+'''BlueSky global configuration module'''
+import os
 import sys
+import shutil
 
 # This file is used to start the gui mainloop or a single node simulation loop
 node_only = ('--node' in sys.argv)
 
-# Import config settings from settings.cfg if this exists, if it doesn't create an initial config file
-def init(gui='ask'):
-    import os, sys, shutil
-    configfile = 'settings.cfg'
+def init():
+    '''Initialize configuration.
+       Import config settings from settings.cfg if this exists, if it doesn't
+       create an initial config file'''
+    rundir = ''
+    srcdir = ''
+    # Determine gui preference from whether bluesky was started with
+    # BlueSky.py, BlueSky_qtgl.py, or BlueSky_pygame.py
+    gui = 'pygame' if 'pygame' in sys.argv[0] else ('qtgl' if 'qtgl' in sys.argv[0] else 'ask')
+
     # If BlueSky is run from a compiled bundle instead of from source, adjust the startup path
     # and change the path of configurable files to $home/bluesky
     if getattr(sys, 'frozen', False):
-        os.chdir(os.path.dirname(sys.executable))
-        bsdir = os.path.join(os.path.expanduser('~'), 'bluesky')
-        configfile = os.path.join(bsdir, 'settings.cfg')
-        if not os.path.isdir(bsdir):
-            os.makedirs(os.path.join(bsdir, 'output'))
-        if not os.path.isdir(os.path.join(bsdir, 'scenario')):
-            shutil.copytree('scenario', os.path.join(bsdir, 'scenario'))
-        if not os.path.isfile(os.path.join(bsdir, 'settings.cfg')):
-            with open('settings.cfg', 'r') as fin, \
-                 open(os.path.join(bsdir, 'settings.cfg'), 'w') as fout:
-                for line in fin:
-                    if line[:8] == 'log_path':
-                        line = "log_path = '" + os.path.join(bsdir, 'output').replace('\\', '/') + "'"
-                    if line[:13] == 'scenario_path':
-                        line = "scenario_path = '" + os.path.join(bsdir, 'scenario').replace('\\', '/') + "'"
-                    fout.write(line + '\n')
+        srcdir = os.path.dirname(sys.executable)
+        rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
 
+    scnsrc     = os.path.join(srcdir, 'scenario')
+    scndir     = os.path.join(rundir, 'scenario')
+    outdir     = os.path.join(rundir, 'output')
+    plgdir     = os.path.join(rundir, 'plugins')
+    configfile = os.path.join(rundir, 'settings.cfg')
+    configsrc  = os.path.join(srcdir, 'data/default.cfg')
+
+    # Check if alternate config file is passed
     for i in range(len(sys.argv)):
         if sys.argv[i] == '--config-file':
             configfile = sys.argv[i + 1]
             break
 
+    # Create default directories if they don't exist yet
+    for d in (outdir, plgdir):
+        if not os.path.isdir(d):
+            os.makedirs(d)
+    if not os.path.isdir(scndir):
+        shutil.copytree(scnsrc, scndir)
+
+    # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
+    # was started with BlueSky.py
     if not os.path.isfile(configfile):
         print
         print 'No config file settings.cfg found in your BlueSky starting directory!'
@@ -167,19 +66,42 @@ def init(gui='ask'):
                 gui = 'pygame'
             # elif ans == 3:
             #     gui = 'console'
-        lines = ''
 
-        with open(os.path.dirname(__file__).replace("\\", "/") + '/settings.py') as fin:
-            line = fin.readline().strip('\n')
-            while line[:5] != '# END':
-                lines += line + '\n'
-                line = fin.readline().strip('\n')
+        with open(configsrc, 'r') as fin, open(configfile, 'w') as fout:
+            for line in fin:
+                if line[:3] == 'gui':
+                    line = "gui = '" + gui + "'\n"
+                if line[:8] == 'log_path':
+                    line = "log_path = '" + outdir.replace('\\', '/') + "'\n"
+                if line[:13] == 'scenario_path':
+                    line = "scenario_path = '" + scndir.replace('\\', '/') + "'\n"
+                if line[:11] == 'plugin_path':
+                    line = "plugin_path = '" + plgdir.replace('\\', '/') + "'\n"
 
-        with open(configfile, 'w') as fout:
-            fout.write(lines)
+                fout.write(line)
+
     else:
         print 'Reading config from settings.cfg'
 
     execfile(configfile, globals())
     if not gui == 'ask':
         globals()['gui'] = gui
+
+    return True
+
+def set_variable_defaults(**kwargs):
+    ''' Register a default value for a configuration variable. Use this functionality
+        in plugins to make sure that configuration variables are available upon usage.
+
+        Example:
+            from bluesky import settings
+            settings.set_variable_defaults(var1=1.0, var2=[1, 2, 3])
+
+            This will make settings.var1 and settings.var2 available, with the
+            provided default values.'''
+    for key, value in kwargs.iteritems():
+        if key not in globals():
+            globals()[key] = value
+
+# Call settings.init() at creation
+initialized = init()

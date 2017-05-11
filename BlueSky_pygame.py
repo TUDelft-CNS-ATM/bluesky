@@ -5,7 +5,6 @@ from bluesky.tools import plugin
 if __name__ == "__main__":
     print "   *****   BlueSky Open ATM simulator *****"
     print "Distributed under GNU General Public License v3"
-    settings.init('pygame')
 
 
 def MainLoop():
