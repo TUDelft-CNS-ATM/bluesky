@@ -11,17 +11,15 @@ def MainLoop():
     # =============================================================================
     # Start the mainloop (and possible other threads)
     # =============================================================================
-    keyb = Keyboard()                      # processes input from keyboard & mouse
     splash.show()
-    scr.updateNavBuffers()
     plugin.init()
     stack.init()
     sim.start()
+    scr.init()
 
     # Main loop for tmx object
     while not sim.mode == sim.end:
         sim.update()   # Update sim
-        keyb.update()  # Check for keys & mouse
         scr.update()   # GUI update
 
         # Restart traffic simulation:

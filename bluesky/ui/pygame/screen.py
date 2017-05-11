@@ -14,6 +14,7 @@ from bluesky.tools.areafilter import areas
 from bluesky.tools.aero import ft, kts, nm
 from bluesky.tools.misc import tim2txt
 import splash
+from keyboard import Keyboard
 from fastfont import Fastfont
 from console import Console
 from menu import Menu
@@ -56,8 +57,27 @@ class Screen:
 
     """
     def __init__(self):
-        pg.init()
+        # processes input from keyboard & mouse
+        self.keyb = Keyboard()
 
+        # Parameters for making screenshots
+        self.session = "new"
+        self.folder  = ""
+        self.screenshot = False
+        self.screenshotname = ""
+
+        # Isometric display parameter
+        self.isoalt = 0.  # how many meters one pixel is high
+
+        # Display ADS-B range flag
+        self.swAdsbCoverage = False
+
+        # Update rate radar:
+        self.radardt = 0.10  # 10x per sec 0.25  # 4x per second max
+        self.radt0 = -999.  # last time drawn
+        self.maxnrwp = 1000  # max nr apts+wpts to be drawn
+
+    def init(self):
         # Read Screen configuration file:
         print
         print "Setting up screen..."
@@ -86,22 +106,6 @@ class Screen:
         self.ctrlat = avelat
         self.ctrlon = avelon
 
-        # Parameters for making screenshots
-        self.session = "new"
-        self.folder  = ""
-        self.screenshot = False
-        self.screenshotname = ""
-
-        # Isometric display parameter
-        self.isoalt = 0.  # how many meters one pixel is high
-
-        # Display ADS-B range flag
-        self.swAdsbCoverage = False
-
-        # Update rate radar:
-        self.radardt = 0.10  # 10x per sec 0.25  # 4x per second max
-        self.radt0 = -999.  # last time drawn
-        self.maxnrwp = 1000  # max nr apts+wpts to be drawn
 
         #----------------------------SYMBOLS-----------------------------
         # Read graphics for acsymbol (normal = green) + amber
@@ -272,6 +276,7 @@ class Screen:
         self.apswbmp = []              # switch indicating whether label bmp is present
         self.aplabel = []              # List to store bitmaps of label
 
+        self.updateNavBuffers()
         return
 
     def updateNavBuffers(self):
@@ -295,6 +300,8 @@ class Screen:
 
     def update(self):
         """Draw a new frame"""
+        # First check for keys & mouse
+        self.keyb.update()
         # Navdisp mode: get center:
         if self.swnavdisp:
             i = bs.traf.id2idx(self.ndacid)
