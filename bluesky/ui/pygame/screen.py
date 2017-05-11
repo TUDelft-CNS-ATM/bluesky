@@ -1220,7 +1220,8 @@ class Screen:
         return True # Success
 
     def show_file_dialog(self):
-        return opendialog()
+        ret = opendialog()
+        return ret if isinstance(ret, str) else ''
 
     def symbol(self):
         self.swsep = not self.swsep

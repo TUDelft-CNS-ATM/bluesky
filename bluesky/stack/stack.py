@@ -950,10 +950,7 @@ def ic(filename=''):
         filename = scenfile
 
     # Clean up filename
-    try:
-        filename = filename.strip()
-    except:
-        pass
+    filename = filename.strip()
 
     # Reset sim and open new scenario file
     if len(filename) > 0:
