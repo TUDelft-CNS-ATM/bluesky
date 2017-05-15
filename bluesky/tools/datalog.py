@@ -7,8 +7,10 @@ import numbers
 import collections
 from datetime import datetime
 import numpy as np
-from .. import settings
-from .. import stack
+from bluesky import settings, stack
+
+# Register settings defaults
+settings.set_variable_defaults(log_path='output')
 
 # Check if logdir exists, and if not, create it.
 if not os.path.exists(settings.log_path):

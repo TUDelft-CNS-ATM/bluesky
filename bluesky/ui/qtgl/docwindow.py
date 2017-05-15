@@ -1,3 +1,4 @@
+""" Documentation window for the QTGL version of BlueSky."""
 try:
     from PyQt5.QtCore import QUrl, QFileInfo
     from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton

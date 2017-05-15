@@ -1,9 +1,7 @@
-import bluesky.settings as settings
+from bluesky import settings
 
 print "   *****   BlueSky Open ATM simulator *****"
 print "Distributed under GNU General Public License v3"
-
-settings.init()
 
 if settings.gui == 'pygame':
     import BlueSky_pygame as bs

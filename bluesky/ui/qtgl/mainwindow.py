@@ -1,3 +1,5 @@
+""" Main window for the QTGL gui."""
+import platform
 try:
     from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel, QSize
     from PyQt5.QtGui import QPixmap, QIcon
@@ -10,17 +12,22 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from ...sim.qtgl import StackTextEvent, PanZoomEvent, MainManager as manager
-from ...settings import data_path, stack_text_color as fg, stack_background_color as bg
-import platform
+from bluesky.sim.qtgl import StackTextEvent, PanZoomEvent, MainManager as manager
+from bluesky import settings
+
 
 is_osx = platform.system() == 'Darwin'
 
+# Register settings defaults
+settings.set_variable_defaults(data_path='data', stack_text_color=(0, 255, 0), stack_background_color=(102, 102, 102))
+
+fg = settings.stack_text_color
+bg = settings.stack_background_color
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super(Splash, self).__init__(QPixmap(data_path + '/graphics/splash.gif'), Qt.WindowStaysOnTopHint)
+        super(Splash, self).__init__(QPixmap(settings.data_path + '/graphics/splash.gif'), Qt.WindowStaysOnTopHint)
 
 
 class MainWindow(QMainWindow):
@@ -30,11 +37,11 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.app = app
         if is_osx:
-            self.app.setWindowIcon(QIcon(data_path + "/graphics/bluesky.icns"))
+            self.app.setWindowIcon(QIcon(settings.data_path + "/graphics/bluesky.icns"))
         else:
-            self.app.setWindowIcon(QIcon(data_path + "/graphics/icon.gif"))
+            self.app.setWindowIcon(QIcon(settings.data_path + "/graphics/icon.gif"))
 
-        uic.loadUi(data_path + "/graphics/mainwindow.ui", self)
+        uic.loadUi(settings.data_path + "/graphics/mainwindow.ui", self)
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
@@ -61,7 +68,7 @@ class MainWindow(QMainWindow):
         for b in buttons.iteritems():
             # Set icon
             if not b[1][0] is None:
-                icon = QIcon(data_path + '/graphics/icons/' + b[1][0])
+                icon = QIcon(settings.data_path + '/graphics/icons/' + b[1][0])
                 b[0].setIcon(icon)
             # Set tooltip
             if not b[1][1] is None:
@@ -151,7 +158,7 @@ class MainWindow(QMainWindow):
             btn.setFlat(True)
             btn.setStyleSheet('font-weight:bold')
 
-            btn.setIcon(QIcon(data_path + '/graphics/icons/addnode.svg'))
+            btn.setIcon(QIcon(settings.data_path + '/graphics/icons/addnode.svg'))
             btn.setIconSize(QSize(24, 16))
             btn.setLayoutDirection(Qt.RightToLeft)
             btn.setMaximumHeight(16)

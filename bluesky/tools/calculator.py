@@ -1,4 +1,6 @@
-# Functions below are imported for use in eval-function!
+""" Basic implementation of a calculator.
+    These functions are imported for use in eval-function for the calculator
+    functionality in the BlueSky console."""
 
 from math import *      # Make all math function available for calculator
 
@@ -24,7 +26,7 @@ def tand(x):
 def rad(d,m,s):
     return radians(float(d)+float(m)/60.+float(s)/3600.)
 def deg(d,m,s):
-    return float(d)+float(m)/60.+float(s)/3600.                        
+    return float(d)+float(m)/60.+float(s)/3600.
 
 # Short-hand for sqrt()
 def v(x):

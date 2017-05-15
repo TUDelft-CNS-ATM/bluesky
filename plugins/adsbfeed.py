@@ -1,27 +1,49 @@
+""" BlueSky ADS-B datafeed plugin. Reads the feed from a Mode-S Beast server,
+    and visualizes traffic in BlueSky."""
 import time
-import aero
+from bluesky import stack, settings, traf
+from bluesky.tools.network import TcpSocket
+from bluesky.tools import aero
 import adsb_decoder as decoder
-from network import TcpSocket
-from .. import settings
-from .. import stack
+
+## Default settings
+# Mode-S / ADS-B server hostname/ip, and server port
+settings.set_variable_defaults(modeS_host='', modeS_port=0)
+
+# Global data
+reader = None
+
+### Initialization function of the adsbfeed plugin.
+def init_plugin():
+    # Initialize Modesbeast reader
+    global reader
+    reader = Modesbeast()
+
+    # Configuration parameters
+    config = {
+        'plugin_name':     'DATAFEED',
+        'plugin_type':     'sim',
+        'update_interval': 0.0,
+        'preupdate':       reader.update
+        }
+
+    stackfunctions = {
+        "DATAFEED": [
+            "DATAFEED [ON/OFF]",
+            "[onoff]",
+            reader.toggle,
+            "Select an ADS-B data source for traffic"]}
+
+    # init_plugin() should always return these two dicts.
+    return config, stackfunctions
 
 
 class Modesbeast(TcpSocket):
-    def __init__(self, traf):
+    def __init__(self):
         super(Modesbeast, self).__init__()
-        self.traf = traf
-        self.acpool = {}
-        self.buffer = ''
+        self.acpool         = {}
+        self.buffer         = ''
         self.default_ac_mdl = "B738"
-        self.add_stack_commands()
-
-    def add_stack_commands(self):
-        cmddict = {"DATAFEED": [
-                   "DATAFEED [ON/OFF]",
-                   "[onoff]",
-                   self.toggle,
-                   "Select an ADS-B data source for traffic"]}
-        stack.append_commands(cmddict)
 
     def processData(self, data):
         self.buffer += data
@@ -62,9 +84,9 @@ class Modesbeast(TcpSocket):
         '''
 
         # split raw data into chunks
-        chunks = []
+        chunks    = []
         separator = 0x1a
-        piece = []
+        piece     = []
         for d in data:
             if d == separator:
                 # shortest msgs are 11 chars
@@ -195,7 +217,7 @@ class Modesbeast(TcpSocket):
             if set(params).issubset(d):
                 acid = d['callsign']
                 # check is aircraft is already beening displayed
-                if(self.traf.id2idx(acid) < 0):
+                if(traf.id2idx(acid) < 0):
                     mdl = self.default_ac_mdl
                     v = aero.tas2cas(d['speed'], d['alt'] * aero.ft)
                     cmdstr = 'CRE %s, %s, %f, %f, %f, %d, %d' % \
@@ -245,11 +267,14 @@ class Modesbeast(TcpSocket):
 
     def toggle(self, flag=None):
         if flag is None:
-            msg = 'Connected' if self.isConnected() else 'Not connected'
-            return True, msg
+            if self.isConnected():
+                return True, 'Connected to %s on port %s' % (settings.modeS_host, settings.modeS_port)
+            else:
+                return True, 'Not connected'
         elif flag:
-            self.connectToHost(settings.modeS_host,
-                               settings.modeS_port)
+            self.connectToHost(settings.modeS_host, settings.modeS_port)
+            stack.stack('OP')
+            return True, 'Connecting to %s on port %s' % (settings.modeS_host, settings.modeS_port)
         else:
             self.disconnectFromHost()
 

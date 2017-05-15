@@ -2,7 +2,7 @@ import pygame as pg
 
 
 def show():
-# Show splash screen
+    # Show splash screen
     pg.init()
     imgpath = "data/graphics/splash.gif"
     splashimg = pg.image.load(imgpath)

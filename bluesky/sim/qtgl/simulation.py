@@ -7,20 +7,20 @@ except ImportError:
 import time
 
 # Local imports
+import bluesky as bs
+import nodemanager as manager
 from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
-from ...traf import Traffic
-from ...navdb import Navdatabase
-from ... import stack
-from ...traf import Metric
-from ... import settings
-from ...tools.datafeed import Modesbeast
-from ...tools import datalog, areafilter
-from ...tools.misc import txt2tim, tim2txt
+from bluesky import settings, stack
+from bluesky.traf import Metric
+from bluesky.tools import datalog, areafilter, plugin
+from bluesky.tools.misc import txt2tim, tim2txt
 
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
+# Register settings defaults
+settings.set_variable_defaults(simdt=0.05)
 
 class Simulation(QObject):
     # simulation modes
@@ -29,9 +29,8 @@ class Simulation(QObject):
     # =========================================================================
     # Functions
     # =========================================================================
-    def __init__(self, manager):
+    def __init__(self):
         super(Simulation, self).__init__()
-        self.manager     = manager
         self.running     = True
         self.state       = Simulation.init
         self.prevstate   = None
@@ -63,17 +62,8 @@ class Simulation(QObject):
         self.ffmode      = False
         self.ffstop      = None
 
-        # Simulation objects
-        self.navdb       = Navdatabase('global')
-        self.screenio    = ScreenIO(self, manager)
-        self.traf        = Traffic(self.navdb)
-
         # Additional modules
         self.metric      = Metric()
-        self.beastfeed   = Modesbeast(self.traf)
-
-        # Initialize the stack module once
-        stack.init(self, self.traf, self.screenio)
 
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
@@ -81,21 +71,21 @@ class Simulation(QObject):
 
         # Send list of stack functions available in this sim to gui at start
         stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.iteritems()}
-        self.manager.sendEvent(StackInitEvent(stackdict))
+        manager.sendEvent(StackInitEvent(stackdict))
 
         while self.running:
-            # Datalog pre-update (communicate current sim time to loggers)
-            datalog.preupdate(self.simt)
+            if self.state == Simulation.op:
+                # Plugins pre-update
+                plugin.preupdate(self.simt)
+                # Datalog pre-update (communicate current sim time to loggers)
+                datalog.preupdate(self.simt)
 
             # Update screen logic
-            self.screenio.update()
-
-            # Update the Mode-S beast parsing
-            self.beastfeed.update()
+            bs.scr.update()
 
             # Simulation starts as soon as there is traffic, or pending commands
             if self.state == Simulation.init:
-                if self.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
+                if bs.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
                     self.start()
                     if self.benchdt > 0.0:
                         self.fastforward(self.benchdt)
@@ -105,14 +95,17 @@ class Simulation(QObject):
                 stack.checkfile(self.simt)
 
             # Always update stack
-            stack.process(self, self.traf, self.screenio)
+            stack.process()
 
             if self.state == Simulation.op:
 
-                self.traf.update(self.simt, self.simdt)
+                bs.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-                self.metric.update(self)
+                self.metric.update()
+
+                # Update plugins
+                plugin.update(self.simt)
 
                 # Update loggers
                 datalog.postupdate()
@@ -124,7 +117,7 @@ class Simulation(QObject):
             self.simtclock = (self.deltclock + self.simt) % onedayinsec
 
             # Process Qt events
-            self.manager.processEvents()
+            manager.processEvents()
 
             # When running at a fixed rate, or when in hold/init, increment system time with sysdt and calculate remainder to sleep
             if not self.ffmode or not self.state == Simulation.op:
@@ -136,7 +129,7 @@ class Simulation(QObject):
 
             elif self.ffstop is not None and self.simt >= self.ffstop:
                 if self.benchdt > 0.0:
-                    self.screenio.echo('Benchmark complete: %d samples in %.3f seconds.' % (self.screenio.samplecount, time.time() - self.bencht))
+                    bs.scr.echo('Benchmark complete: %d samples in %.3f seconds.' % (self.screenio.samplecount, time.time() - self.bencht))
                     self.benchdt = -1.0
                     self.pause()
                 else:
@@ -166,11 +159,12 @@ class Simulation(QObject):
         self.simtclock = self.simt
         self.state     = Simulation.init
         self.ffmode    = False
-        self.traf.reset(self.navdb)
+        bs.navdb.reset()
+        bs.traf.reset()
         stack.reset()
         datalog.reset()
         areafilter.reset()
-        self.screenio.reset()
+        bs.scr.reset()
 
     def quit(self):
         self.running = False
@@ -197,22 +191,22 @@ class Simulation(QObject):
             self.ffstop = None
 
     def benchmark(self, fname='IC', dt=300.0):
-        stack.ic(self.screenio, self, fname)
+        stack.ic(fname)
         self.bencht  = 0.0  # Start time will be set at next sim cycle
         self.benchdt = dt
 
     def sendState(self):
-        self.manager.sendEvent(SimStateEvent(self.state))
+        manager.sendEvent(SimStateEvent(self.state))
 
     def addNodes(self, count):
-        self.manager.addNodes(count)
+        manager.addNodes(count)
 
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
         result = stack.openfile(filename)
         scentime, scencmd = stack.get_scendata()
         if result is True:
-            self.manager.sendEvent(BatchEvent(scentime, scencmd))
+            manager.sendEvent(BatchEvent(scentime, scencmd))
         self.reset()
         return result
 
@@ -236,7 +230,7 @@ class Simulation(QObject):
             self.quit()
         else:
             # This is either an unknown event or a gui event.
-            event_processed = self.screenio.event(event)
+            event_processed = bs.scr.event(event)
 
         return event_processed
 
@@ -266,3 +260,5 @@ class Simulation(QObject):
             return False, "Time syntax error"
 
         return True, "Time is now " + tim2txt(self.simtclock)
+
+sim = Simulation()

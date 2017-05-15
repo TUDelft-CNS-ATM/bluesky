@@ -1,7 +1,3 @@
-from glob import glob
-from os import path
-import re
-from ..tools.fwparser import FixedWidthParser
 '''BADA Coefficient file loader
 
    This module provides access to the performance data contained in the various
@@ -11,6 +7,10 @@ from ..tools.fwparser import FixedWidthParser
    report: EEC Technical/Scientific Report No. 14/04/24-44. This report can be obtained here:
    https://www.eurocontrol.int/sites/default/files/field_tabs/content/documents/sesar/user-manual-bada-3-12.pdf
 '''
+from glob import glob
+from os import path
+import re
+from bluesky.tools.fwparser import FixedWidthParser
 
 # File formats of BADA data files. Uses fortran-like notation
 # Adapted from the BADA manual format lines. (page 61-81 in the BADA manual)

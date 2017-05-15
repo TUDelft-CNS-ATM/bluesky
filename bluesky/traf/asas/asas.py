@@ -1,19 +1,25 @@
+""" Airborne Separation Assurance System. Implements CD&R functionality together with
+    separate conflict detection and conflict resolution modules."""
 import numpy as np
-from ... import settings
-from ...tools.aero import ft, nm
-from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+import bluesky as bs
+from bluesky import settings
+from bluesky.tools.aero import ft, nm
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
+# Register settings defaults
+settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0, asas_dtlookahead=300.0, asas_mar=1.2, asas_pzr=5.0, asas_pzh=1000.0)
 
 # Import default CD methods
 StateBasedCD = False
 if settings.prefer_compiled:
     try:
         import casas as StateBasedCD
-        print 'StateBasedCD: using compiled version'
+        print 'StateBasedCD: using compiled version.'
     except ImportError:
         print 'StateBasedCD: using default Python version, no compiled version for this platform.'
 
 if not StateBasedCD:
+    print 'StateBasedCD: using Python version.'
     import StateBasedCD
 
 # Import default CR methods
@@ -41,8 +47,7 @@ class ASAS(DynamicArrays):
     def addCRMethod(asas, name, module):
         asas.CRmethods[name] = module
 
-    def __init__(self, traf):
-        self.traf = traf
+    def __init__(self):
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
             self.iconf    = []            # index in 'conflicting' aircraft database
@@ -103,6 +108,16 @@ class ASAS(DynamicArrays):
         self.latowncpa    = np.array([])
         self.lonowncpa    = np.array([])
         self.altowncpa    = np.array([])
+        self.tcpa         = np.array([])
+        self.tinconf      = np.array([])
+        self.toutconf     = np.array([])
+        self.qdr          = np.array([])
+        self.dist         = np.array([])
+        self.dx           = np.array([])
+        self.dy           = np.array([])
+        self.dalt         = np.array([])
+        self.u            = np.array([])
+        self.v            = np.array([])
 
         self.conflist_all = []  # List of all Conflicts
         self.LOSlist_all  = []  # List of all Losses Of Separation
@@ -330,9 +345,9 @@ class ASAS(DynamicArrays):
     def create(self, n=1):
         super(ASAS, self).create(n)
 
-        self.trk[-n:] = self.traf.trk[-n:]
-        self.spd[-n:] = self.traf.tas[-n:]
-        self.alt[-n:] = self.traf.alt[-n:]
+        self.trk[-n:] = bs.traf.trk[-n:]
+        self.spd[-n:] = bs.traf.tas[-n:]
+        self.alt[-n:] = bs.traf.alt[-n:]
 
     def update(self, simt):
         iconf0 = np.array(self.iconf)
@@ -342,11 +357,11 @@ class ASAS(DynamicArrays):
             self.tasas += self.dtasas
 
             # Conflict detection and resolution
-            self.cd.detect(self, self.traf, simt)
-            self.cr.resolve(self, self.traf)
+            self.cd.detect(self, bs.traf, simt)
+            self.cr.resolve(self, bs.traf)
 
         # Change labels in interface
         if settings.gui == "pygame":
-            for i in range(self.traf.ntraf):
+            for i in range(bs.traf.ntraf):
                 if np.any(iconf0[i] != self.iconf[i]):
-                    self.traf.label[i] = [" ", " ", " ", " "]
+                    bs.traf.label[i] = [" ", " ", " ", " "]

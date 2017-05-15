@@ -1,3 +1,4 @@
+""" Console interface for the QTGL implementation."""
 try:
     from PyQt5.QtCore import Qt, pyqtSignal
     from PyQt5.QtWidgets import QWidget, QTextEdit
@@ -6,9 +7,9 @@ except ImportError:
     from PyQt4.QtGui import QWidget, QTextEdit
 
 import autocomplete
-from ...tools.misc import cmdsplit
-from ...sim.qtgl import MainManager as manager
-from ...sim.qtgl import StackTextEvent
+from bluesky.tools.misc import cmdsplit
+from bluesky.sim.qtgl import MainManager as manager
+from bluesky.sim.qtgl import StackTextEvent
 
 
 node_stacks = dict()
@@ -107,7 +108,7 @@ class Console(QWidget):
             if len(newcmd) > 0:
                 newcmd, displaytext = autocomplete.complete(newcmd)
                 if len(displaytext) > 0:
-                    self.display_stack(displaytext)
+                    self.echo(displaytext)
 
         elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
             newcmd += str(event.text()).upper()

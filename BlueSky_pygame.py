@@ -1,53 +1,35 @@
-from bluesky import settings
+import pygame as pg
+from bluesky import sim, scr, stack
+from bluesky.ui.pygame import Keyboard, splash
+from bluesky.tools import plugin
 if __name__ == "__main__":
     print "   *****   BlueSky Open ATM simulator *****"
     print "Distributed under GNU General Public License v3"
-    settings.init('pygame')
-
-from bluesky.navdb import Navdatabase
-from bluesky.ui.pygame import Gui
-from bluesky.sim.pygame import Simulation
-
-
-# Global navdb, gui, and sim objects for easy access in interactive python shell
-navdb = None
-gui   = None
-sim   = None
 
 
 def MainLoop():
     # =============================================================================
-    # Create gui and simulation objects
-    # =============================================================================
-    global navdb, gui, sim
-    navdb = Navdatabase('global')   # Read database from specified folder
-    gui   = Gui(navdb)
-    sim   = Simulation(gui, navdb)
-
-    # =============================================================================
     # Start the mainloop (and possible other threads)
     # =============================================================================
+    splash.show()
+    plugin.init()
+    stack.init()
     sim.start()
+    scr.init()
 
     # Main loop for tmx object
     while not sim.mode == sim.end:
-        sim.update(gui.scr)  # Update sim
-        gui.update(sim)      # Update GUI
+        sim.update()   # Update sim
+        scr.update()   # GUI update
 
         # Restart traffic simulation:
         if sim.mode == sim.init:
             sim.reset()
-            gui.reset()
+            scr.objdel()     # Delete user defined objects
 
     # After the simulation is done, close the gui
     sim.stop()
-    gui.close()
-    # =============================================================================
-    # Clean up before exit. Comment this out when debugging for checking variables
-    # in the shell.
-    # =============================================================================
-    del gui
-    #-debug del sim
+    pg.quit()
     print 'BlueSky normal end.'
     return
 

@@ -1,3 +1,4 @@
+""" This module defines a set of standard aerodynamic functions and constants."""
 # Vectorized versions of aero conversion routines
 from math import *
 import numpy as np

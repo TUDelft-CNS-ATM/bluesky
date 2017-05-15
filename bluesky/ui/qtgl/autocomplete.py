@@ -1,6 +1,9 @@
-
+""" Autocomplete filenames in the BlueSky console."""
 import glob
-from ...settings import scenario_path
+from bluesky import settings
+
+# Register settings defaults
+settings.set_variable_defaults(scenario_path='scenario')
 
 previous_g = ''
 
@@ -25,7 +28,7 @@ def complete(cmd):
 
     if lcmd[0] == 'IC' or lcmd[0] == 'BATCH':
         global previous_g
-        g = scenario_path
+        g = settings.scenario_path
         striplen = len(g)
         if g[-1] != '/':
             g += '/'

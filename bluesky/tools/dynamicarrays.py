@@ -1,3 +1,5 @@
+""" Classes that derive from DynamicArrays (like Traffic) get automated create,
+    delete, and reset functionality for all registered child arrays."""
 # -*- coding: utf-8 -*-
 import numpy as np
 

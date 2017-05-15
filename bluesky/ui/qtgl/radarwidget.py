@@ -12,12 +12,16 @@ import OpenGL.GL as gl
 from ctypes import c_float, c_int, Structure
 
 # Local imports
-from ...settings import text_size, apt_size, wpt_size, ac_size
-from ...tools.aero import ft, nm, kts
-from ...sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
-from glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, update_buffer, create_empty_buffer
-from ...navdb.loadnavdata import load_aptsurface, load_coastlines
+import bluesky as bs
+from bluesky import settings
+from bluesky.tools.aero import ft, nm, kts
+from bluesky.sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
+from bluesky.navdb import load_aptsurface, load_coastlines
+from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
+    update_buffer, create_empty_buffer
 
+# Register settings defaults
+settings.set_variable_defaults(text_size=13, apt_size=10, wpt_size=10, ac_size=16)
 
 # Static defines
 MAX_NAIRCRAFT         = 10000
@@ -57,6 +61,9 @@ class nodeData(object):
         self.custwplbl = ''
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
+
+        # Filteralt settings
+        self.filteralt = False
 
         # Create trail data
         self.traillat0 = []
@@ -118,7 +125,7 @@ class RadarWidget(QGLWidget):
     do_text = True
     invalid_count = 0
 
-    def __init__(self, navdb, shareWidget=None):
+    def __init__(self, shareWidget=None):
         super(RadarWidget, self).__init__(shareWidget=shareWidget)
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.grabGesture(Qt.PanGesture)
@@ -135,7 +142,6 @@ class RadarWidget(QGLWidget):
         self.ssd_ownship    = np.array([], dtype=np.uint16)
         self.apt_inrange    = np.array([])
         self.ssd_all        = False
-        self.navdb          = navdb
         self.iactconn       = 0
         self.nodedata       = list()
 
@@ -156,7 +162,7 @@ class RadarWidget(QGLWidget):
 
         # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
-            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
+            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices, rwythr = load_aptsurface()
 
     @pyqtSlot(str, tuple, int)
     def nodesChanged(self, address, nodeid, connidx):
@@ -191,6 +197,11 @@ class RadarWidget(QGLWidget):
 
         # Make the radarwidget context current, necessary when create_objects is not called from initializeGL
         self.makeCurrent()
+
+        text_size = settings.text_size
+        apt_size  = settings.apt_size
+        wpt_size  = settings.wpt_size
+        ac_size   = settings.ac_size
 
         # Initialize font for radar view with specified settings
         self.font = Font()
@@ -312,10 +323,10 @@ class RadarWidget(QGLWidget):
 
         # ------- Waypoints ------------------------------
         wptvertices = np.array([(0.0, 0.5 * wpt_size), (-0.5 * wpt_size, -0.5 * wpt_size), (0.5 * wpt_size, -0.5 * wpt_size)], dtype=np.float32)  # a triangle
-        self.nwaypoints = len(self.navdb.wplat)
+        self.nwaypoints = len(bs.navdb.wplat)
         self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex=wptvertices, color=lightblue3, n_instances=self.nwaypoints)
         # Sort based on id string length
-        llid = sorted(zip(self.navdb.wpid, self.navdb.wplat, self.navdb.wplon), key=lambda i: len(i[0]) > 3)
+        llid = sorted(zip(bs.navdb.wpid, bs.navdb.wplat, bs.navdb.wplon), key=lambda i: len(i[0]) > 3)
         wplat = [lat for (wpid, lat, lon) in llid]
         wplon = [lon for (wpid, lon, lon) in llid]
         self.wptlatbuf = self.waypoints.bind_attrib(ATTRIB_LAT, 1, np.array(wplat, dtype=np.float32), instance_divisor=1)
@@ -336,13 +347,13 @@ class RadarWidget(QGLWidget):
         self.customwplbl.bind_color(lightblue4)
         # ------- Airports -------------------------------
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
-        self.nairports = len(self.navdb.aptlat)
+        self.nairports = len(bs.navdb.aptlat)
         self.airports = RenderObject(gl.GL_LINE_LOOP, vertex=aptvertices, color=lightblue3, n_instances=self.nairports)
-        indices = self.navdb.aptype.argsort()
-        aplat   = np.array(self.navdb.aptlat[indices], dtype=np.float32)
-        aplon   = np.array(self.navdb.aptlon[indices], dtype=np.float32)
-        aptypes = self.navdb.aptype[indices]
-        apnames = np.array(self.navdb.aptid)
+        indices = bs.navdb.aptype.argsort()
+        aplat   = np.array(bs.navdb.aptlat[indices], dtype=np.float32)
+        aplon   = np.array(bs.navdb.aptlon[indices], dtype=np.float32)
+        aptypes = bs.navdb.aptype[indices]
+        apnames = np.array(bs.navdb.aptid)
         apnames = apnames[indices]
         # The number of large, large+med, and large+med+small airports
         self.nairports = [aptypes.searchsorted(2), aptypes.searchsorted(3), self.nairports]
@@ -640,8 +651,16 @@ class RadarWidget(QGLWidget):
             return
 
         self.makeCurrent()
-
+        curnode = self.nodedata[self.iactconn]
+        if curnode.filteralt:
+            idx = np.where((data.alt >= curnode.filteralt[0]) * (data.alt <= curnode.filteralt[1]))
+            data.lat = data.lat[idx]
+            data.lon = data.lon[idx]
+            data.trk = data.trk[idx]
+            data.alt = data.alt[idx]
+            data.tas = data.tas[idx]
         self.naircraft = len(data.lat)
+
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
         else:
@@ -662,14 +681,6 @@ class RadarWidget(QGLWidget):
             rawlabel = ''
             color    = np.empty((self.naircraft, 4), dtype=np.uint8)
             for i in range(self.naircraft):
-                if np.isnan(data.tas[i]):
-                    print 'CAS NaN in %d: %s' % (i, data.id[i])
-                    data.cas[i] = 0.0
-
-                if np.isnan(data.alt[i]):
-                    print 'ALT NaN in %d: %s' % (i, data.id[i])
-                    data.alt[i] = 0.0
-
                 # Make label: 3 lines of 8 characters per aircraft
                 if data.alt[i]<=4500.*ft:
                     rawlabel += '%-8s%-5d   %-8d' % (data.id[i][:8], int(data.alt[i]/ft  +0.5), int(data.cas[i] / kts+0.5))

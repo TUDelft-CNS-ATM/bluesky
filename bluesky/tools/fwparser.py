@@ -10,7 +10,7 @@
 #     10F = float of 10 chars
 #      5I = integer of 5 chars
 #
-#     'CD, 3X, 6S, 9X, 1I, 12X, 9S, 17X, 1S',  # means find first line starting with CD, then skip 3 columns, 
+#     'CD, 3X, 6S, 9X, 1I, 12X, 9S, 17X, 1S',  # means find first line starting with CD, then skip 3 columns,
 #     'CD, 2X, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F',
 #     'CD, 2X, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F',
 #     'CD, 2X, 3X, 10F, 3X, 10F, 3X, 10F, 3X, 10F',

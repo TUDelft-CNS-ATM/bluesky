@@ -2,29 +2,20 @@ import sys
 import traceback
 from bluesky import settings
 
-if __name__ == "__main__":
-    settings.init('qtgl')
- 
-# This file is used to start the gui mainloop or a single node simulation loop
-node_only = ('--node' in sys.argv)
-
-if node_only:
-    from bluesky.sim.qtgl.nodemanager import runNode
-else:
-    from bluesky.navdb import Navdatabase
+if not settings.node_only:
+    from bluesky.sim.qtgl.mainmanager import MainManager
     from bluesky.ui.qtgl import Gui
-    from bluesky.sim.qtgl import MainManager
     from bluesky.tools.network import StackTelnetServer
     if __name__ == "__main__":
         print "   *****   BlueSky Open ATM simulator *****"
         print "Distributed under GNU General Public License v3"
 
 
-# Global navdb, gui, and sim objects for easy access in interactive python shell
-navdb   = None
+# Global gui object for easy access in interactive python shell
 gui     = None
-manager = None
 
+# Register settings defaults
+settings.set_variable_defaults(telnet_port=8888)
 
 # Create custom system-wide exception handler. For now it replicates python's
 # default traceback message. This was added to counter a new PyQt5.5 feature
@@ -34,6 +25,7 @@ def exception_handler(exc_type, exc_value, exc_traceback):
     traceback.print_exception(exc_type, exc_value, exc_traceback)
     sys.exit()
 
+
 sys.excepthook = exception_handler
 
 
@@ -41,21 +33,21 @@ sys.excepthook = exception_handler
 # Start the mainloop (and possible other threads)
 # =============================================================================
 def MainLoop():
-    if node_only:
-        runNode()
+    if settings.node_only:
+        from bluesky.sim.qtgl import nodemanager as manager
+        manager.run()
 
     else:
         # ======================================================================
         # Create gui and simulation objects
         # ======================================================================
-        global navdb, manager, gui
+        global gui
         manager   = MainManager()
         gui       = Gui()
-        navdb     = Navdatabase('global')  # Read database from specified folder
         telnet_in = StackTelnetServer()
 
         # Initialize the gui (loading graphics data, etc.)
-        gui.init(navdb)
+        gui.init()
 
         # Start the node manager
         manager.start()
@@ -78,6 +70,7 @@ def MainLoop():
         # ======================================================================
         del gui
         print 'BlueSky normal end.'
+
 
 if __name__ == "__main__":
     # Run mainloop if BlueSky-qtgl is called directly

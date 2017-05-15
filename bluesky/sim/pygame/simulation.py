@@ -1,14 +1,10 @@
 import time
-
-from ...tools import datalog, areafilter
-from ...tools.misc import txt2tim,tim2txt
-from ...traf import Traffic
-from ... import stack
-from ...traf.metric import Metric
-
-from ...tools.network import StackTelnetServer
-from ... import settings
-from ...tools.datafeed import Modesbeast
+import bluesky as bs
+from bluesky.tools import datalog, areafilter, plugin
+from bluesky.tools.misc import txt2tim,tim2txt
+from bluesky import stack
+from bluesky.traf.metric import Metric
+from bluesky.tools.network import StackTelnetServer
 
 onedayinsec = 24*3600 # [s] time of one day in seconds for clock time
 
@@ -30,17 +26,17 @@ class Simulation:
     # simulation modes
     init, op, hold, end = range(4)
 
-    def __init__(self, gui, navdb):
+    def __init__(self):
         # simmode
         self.mode   = self.init
 
         self.simt   = 0.0   # Runtime
         self.tprev  = 0.0
         self.syst0  = 0.0
-        self.dt     = 0.0
+        self.simdt  = 0.0
         self.syst   = 0.0   # system time
 
-        self.deltclock = 0.0   # SImulated clock time at simt=0. 
+        self.deltclock = 0.0   # SImulated clock time at simt=0.
         self.simtclock = 0.0
 
         # Directories
@@ -53,20 +49,13 @@ class Simulation:
         self.ffstop = -1.    # Indefinitely
 
         # Simulation objects
-        print "Setting up Traffic simulation" 
-        self.traf  = Traffic(navdb)
-        self.navdb = navdb
+        print "Setting up Traffic simulation"
         self.metric = Metric()
-        self.stack = stack.init(self, self.traf, gui.scr)
 
         # Additional modules
-        self.beastfeed   = Modesbeast(self.traf)
         self.telnet_in   = StackTelnetServer()
 
-        # Initialize the stack module once
-        stack.init(self, self.traf, gui.scr)
-
-    def update(self, scr):
+    def update(self):
 
         self.syst = time.clock()
 
@@ -79,19 +68,19 @@ class Simulation:
             # Not fast forward: variable dt
             if not self.ffmode:
                 self.tprev = self.simt
-                self.simt     = self.syst - self.syst0
-                self.dt = self.simt - self.tprev
+                self.simt  = self.syst - self.syst0
+                self.simdt = self.simt - self.tprev
 
                 # Protect against incidental dt's larger than 1 second,
                 # due to window moving, switch to/from full screen, etc.
-                if self.dt > 1.0:
-                    extra = self.dt-1.0
+                if self.simdt > 1.0:
+                    extra = self.simdt-1.0
                     self.simt = self.simt - extra
                     self.syst0 = self.syst-self.simt
 
             # Fast forward: fixed dt until ffstop time, goto pause
             else:
-                self.dt = self.fixdt
+                self.simdt = self.fixdt
                 self.simt = self.simt+self.fixdt
                 self.syst0 = self.syst - self.simt
                 if self.ffstop > 0. and self.simt >= self.ffstop:
@@ -104,24 +93,27 @@ class Simulation:
             # Datalog pre-update (communicate current sim time to loggers)
             datalog.preupdate(self.simt)
 
+            # Plugins pre-update
+            plugin.preupdate(self.simt)
+
             # For measuring game loop frequency
-            self.dts.append(self.dt)
+            self.dts.append(self.simdt)
             if len(self.dts) > 20:
                     del self.dts[0]
 
             stack.checkfile(self.simt)
 
-            # Update the Mode-S beast parsing
-            self.beastfeed.update()
-
         # Always process stack
-        stack.process(self, self.traf, scr)
+        stack.process()
 
         if self.mode == Simulation.op:
-            self.traf.update(self.simt, self.dt)
+            bs.traf.update(self.simt, self.simdt)
 
             # Update metrics
-            self.metric.update(self)
+            self.metric.update()
+
+            # Update plugins
+            plugin.update(self.simt)
 
             # Update loggers
             datalog.postupdate()
@@ -129,7 +121,7 @@ class Simulation:
         # HOLD/Pause mode
         else:
             self.syst0 = self.syst-self.simt
-            self.dt = 0.0
+            self.simdt = 0.0
 
         return
 
@@ -148,14 +140,14 @@ class Simulation:
         return
 
     def pause(self):  # Hold mode
-        self.mode = self.hold
+        self.mode  = self.hold
         self.syst0 = self.syst-self.simt
-        self.dt = 0.0
+        self.simdt = 0.0
         return
 
     def stop(self):  # Quit mode
         self.mode   = self.end
-        datalog.reset()        
+        datalog.reset()
 #        datalog.save()
         return
 
@@ -189,37 +181,39 @@ class Simulation:
     def reset(self):
         self.simt = 0.0
         self.mode = self.init
-        self.traf.reset(self.navdb)
+        bs.navdb.reset()
+        bs.traf.reset()
         datalog.reset()
         areafilter.reset()
-        self.delclock  = 0.0   # SImulated clock time at simt=0. 
+        self.delclock  = 0.0   # SImulated clock time at simt=0.
         self.simtclock = 0.0
 
     def setclock(self,txt=""):
         """ Set simulated clock time offset"""
         if txt == "":
             pass # avoid error message, just give time
-       
+
         elif txt.upper()== "RUN":
             self.deltclock = 0.0
             self.simtclock = self.simt
-           
+
         elif txt.upper()== "REAL":
             tclock = time.localtime()
             self.simtclock = tclock.tm_hour*3600. + tclock.tm_min*60. + tclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
+
         elif txt.upper()== "UTC":
             utclock = time.gmtime()
             self.simtclock = utclock.tm_hour*3600. + utclock.tm_min*60. + utclock.tm_sec
             self.deltclock = self.simtclock - self.simt
-       
+
         elif txt.replace(":","").replace(".","").isdigit():
             self.simtclock = txt2tim(txt)
             self.deltclock = self.simtclock - self.simt
         else:
             return False,"Time syntax error"
- 
-        
+
+
         return True,"Time is now "+tim2txt(self.simtclock)
-       
+
+sim = Simulation()

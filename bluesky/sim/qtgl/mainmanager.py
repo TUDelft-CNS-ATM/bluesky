@@ -1,3 +1,9 @@
+""" MainManager manages I/O with the simulation processes on the GUI side. """
+import select
+import sys
+from subprocess import Popen
+from multiprocessing.connection import Listener
+from multiprocessing import cpu_count
 try:
     from PyQt5.QtCore import QObject, QEvent, QTimer, pyqtSignal, \
         QCoreApplication as qapp
@@ -6,18 +12,14 @@ except ImportError:
         QCoreApplication as qapp
 
 # Local imports
-from ...settings import max_nnodes
+from bluesky import settings
 from simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
     BatchEvent, StackTextEvent, SimQuitEvent, SetNodeIdType, \
     SetActiveNodeType, AddNodeType
 
-import select
-import sys
-from subprocess import Popen
-from multiprocessing.connection import Listener
-from multiprocessing import cpu_count
 Listener.fileno = lambda self: self._listener._socket.fileno()
-
+# Register settings defaults
+settings.set_variable_defaults(max_nnodes=cpu_count())
 
 def split_scenarios(scentime, scencmd):
     start = 0
@@ -50,7 +52,7 @@ class MainManager(QObject):
         self.connections     = []
         self.localnodes      = []
         self.hosts           = dict()
-        self.max_nnodes      = min(cpu_count(), max_nnodes)
+        self.max_nnodes      = min(cpu_count(), settings.max_nnodes)
         self.activenode      = 0
         self.sender_id       = None
         self.stopping        = False

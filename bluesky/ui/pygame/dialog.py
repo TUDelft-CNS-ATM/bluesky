@@ -31,5 +31,12 @@ def fileopen():
     # Close Tk, return to working directory
     master.quit()
     os.chdir(cdir)
-#    print file_path
-    return file_path
+    if type(file_path)==str or type(file_path)==unicode:
+        fpath = str(file_path)
+    else:
+        print "Warning: Unexpected type from FileDialog:",file_path
+        print type(file_path)
+        print "No file selected."
+        fpath = ""
+#    print file_path,fpath
+    return fpath
