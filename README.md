@@ -22,6 +22,7 @@ https://github.com/ProfHoekstra/bluesky/wiki
 ## Some features of BlueSky:
 - Written in the freely available, ultra-simple-hence-easy-to-learn, multi-platform language 
 Python 2.x (using numpy and either pygame or Qt+OpenGL for visualisation) with source
+- Extensible by means of self-contained [plugins](https://github.com/ProfHoekstra/bluesky/wiki/plugin)
 - Contains open source data on navaids, performance data of aircraft and geography
 - Global coverage navaid and airport data
 - Contains simulations of aircraft performance, flight management system (LNAV, VNAV under construction), 
