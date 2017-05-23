@@ -1166,9 +1166,7 @@ def process():
                     # Save error messages from argument parsing for each possible type for this field
                     errors = ''
                     # Go over all argtypes separated by "/" in this place in the command line
-                    for i in range(len(argtype)):
-                        argtypei = argtype[i]
-
+                    for i, argtypei in enumerate(argtype):
                         # Try to parse the argument for the given argument type
                         # First successful parsing is used!
                         if parser.parse(argtypei, curarg, args):
@@ -1338,11 +1336,11 @@ class Argparser:
                 return False
 
         elif argtype == "onoff" or argtype == "bool":
-            if args[argidx] == "ON" or args[argidx] == "1" or args[argidx] == "TRUE":
+            if args[argidx] in ["ON", "TRUE", "YES", "1"]:
                 self.result  = [True]
                 self.argstep = 1
                 return True
-            elif args[argidx] == "OFF" or args[argidx] == "0" or args[argidx] == "FALSE":
+            elif args[argidx] in ["OFF", "FALSE", "NO", "0"]:
                 self.result  = [False]
                 self.argstep = 1
                 return True
