@@ -5,7 +5,7 @@ import os
 
 
 def load_navdata_txt():
-    #----------  Read  nav.dat file (nav aids) ----------     
+    #----------  Read  nav.dat file (nav aids) ----------
     wptdata         = dict()
     wptdata['wpid']    = []              # identifier (string)
     wptdata['wplat']   = []              # latitude [deg]
@@ -15,7 +15,7 @@ def load_navdata_txt():
     wptdata['wpelev']  = []              # elevation [m]
     wptdata['wpvar']   = []              # magnetic variation [deg]
     wptdata['wpfreq']  = []              # Navaid frequency kHz(NDB) or MHz(VOR)
-    wptdata['wpdesc']  = []              # description       
+    wptdata['wpdesc']  = []              # description
 
 
     with open(data_path + "/global/nav.dat", "r") as f:
@@ -40,15 +40,15 @@ def load_navdata_txt():
             if not fields[0].isdigit():
                 continue # Next line
 
-            # Get code for type of navaid            
+            # Get code for type of navaid
             itype = int(fields[0])
 
-            # Type names 
+            # Type names
             wptypedict = {2:"NDB",3:"VOR",         \
                           4:"ILS",5:"LOC",6:"GS",  \
                           7:"OM",8:"MM",9:"IM",
                           12:"DME",13:"TACAN"}
- 
+
            # Type code never larger than 20
             if itype not in wptypedict.keys():
                 continue # Next line
@@ -58,9 +58,9 @@ def load_navdata_txt():
             # Select types to read
             if wptype not in ["NDB","VOR","DME","TACAN"]:
                 continue # Next line
-            
+
             wptdata["wptype"].append(wptype)
-            
+
             wptdata["wplat"].append(float(fields[1]))      # latitude [deg]
             wptdata["wplon"].append(float(fields[2]))      # longitude [deg]
             wptdata["wpelev"].append(float(fields[3])*ft)  # elevation [ft]
@@ -80,7 +80,7 @@ def load_navdata_txt():
             elif wptype in ["DME","TACAN"]:
                 wptdata["wpvar"].append(0.0) # Magnetic variation not given
                 wptdata["wpid"].append(fields[7]) # Id
-                
+
             else:
                 wptdata['wpvar'].append(0.0) # Magnetic variation in degrees
                 wptdata['wpid'].append(" ")  # Id
@@ -89,23 +89,23 @@ def load_navdata_txt():
             wpid = wptdata["wpid"][-1]
             try:
                 idesc = line.index(wpid)+len(wpid)
-                
+
                 # Description at end of line may include spaces
                 wptdata['wpdesc'].append(line[idesc:])  # Description
             except:
                 wptdata['wpdesc'].append("   ")  # Description
-                
-    #----------  Read  fix.dat file ----------     
+
+    #----------  Read  fix.dat file ----------
     with open(data_path + "/global/fix.dat", "r") as f:
         print "Reading fix.dat"
         for line in f:
             line = line.strip()
-            
+
             # Skip empty lines or comments
             if len(line) < 3 or line[0] == "#":
                 continue
 
-            # Start with valid 2 digit latitude -45. or 52.            
+            # Start with valid 2 digit latitude -45. or 52.
             if not ((line[0]=="-" and line[3]==".") or line[2]==".")  :
                 continue
 
@@ -116,23 +116,23 @@ def load_navdata_txt():
             fields = line.split()
 
             wptdata["wptype"].append("FIX")
-            
-            
+
+
             wptdata['wplat'].append(float(fields[0]))      # latitude [deg]
             wptdata['wplon'].append(float(fields[1]))      # longitude [deg]
             wptdata['wpid'].append(fields[2]) # Id
- 
+
             # Not given for fixes but fill out tables for equal length
             wptdata['wpelev'].append(0.0)  # elevation [ft]
             wptdata['wpfreq'].append(0.0)  # Fix is no navaid, so no freq
             wptdata['wpvar'].append(0.0)   # Magnetic variation not given
             wptdata['wpdesc'].append("")  # Description
-              
+
     # Convert lists for lat,lon to numpy-array for vectorised clipping
     wptdata['wplat']   = np.array(wptdata['wplat'])
     wptdata['wplon']   = np.array(wptdata['wplon'])
 
-    #----------  Read  awy.dat file (airway legs) ----------     
+    #----------  Read  awy.dat file (airway legs) ----------
     awydata   = dict()
 
     awydata['awid']        = []              # airway identifier (string)
@@ -155,55 +155,55 @@ def load_navdata_txt():
             # Skip empty lines or comments
             if len(line) == 0 or line[0] == "#":
                 continue
-    
+
             fields = line.split()
             if fields<9:
                 continue
-    
+
             # Example line
             # ABAGO  56.291668  144.236667 GINOL  54.413334  142.011667 1 177 528 A218
             # fromfwp fromlat    fromlon    towp   tolat       tolon   ndir lowfl hghfl airwayid
             #   0        1          2         3      4           5     6     7     8       9
-    
-            # Second field should be float        
+
+            # Second field should be float
             try:
                 fromlat = float(fields[1])
             except:
                 continue
-    
+
             awydata['awfromwpid'].append(fields[0])         # from waypoint identifier (string)
             awydata['awfromlat'].append(fromlat)            # from latitude [deg]
             awydata['awfromlon'].append(float(fields[2]))   # from longitude [deg]
-    
+
             awydata['awtowpid'].append(fields[3])           # to waypoint identifier (string)
             awydata['awtolat'].append(float(fields[4]))     # to latitude [deg]
             awydata['awtolon'].append(float(fields[5]))     # to longitude [deg]
-    
+
             awydata['awndir'].append(int(fields[6]))        # number of directions (1 or 2)
-    
+
             awydata['awlowfl'].append(int(fields[7]))       # number of directions (1 or 2)
             awydata['awupfl'].append(int(fields[8]))        # number of directions (1 or 2)
-    
+
             if fields[9].find("-")<0:
-                #only one airway uses this leg                
+                #only one airway uses this leg
                 awydata['awid'].append(fields[9])
             else:
                 # More airways use this leg => copy leg with all airway ids
                 awids = fields[9].split("-")
-                for i in range(len(awids)):
-                    awydata['awid'].append(awids[i].strip())
+                for i, awid in enumerate(awids):
+                    awydata['awid'].append(awid.strip())
                     if i>0:
                         # Repeat last entry
                         for key in awydata:
                             if key!="awid":
                                 awydata[key].append(awydata[key][-1])
-            
+
 
         # Convert lat,lons to numpy arrays for easy clipping
-        awydata['awfromlat'] = np.array(awydata['awfromlat']) 
-        awydata['awfromlon'] = np.array(awydata['awfromlon']) 
-        awydata['awtolat']   = np.array(awydata['awtolat']) 
-        awydata['awtolon']   = np.array(awydata['awtolon']) 
+        awydata['awfromlat'] = np.array(awydata['awfromlat'])
+        awydata['awfromlon'] = np.array(awydata['awfromlon'])
+        awydata['awtolat']   = np.array(awydata['awtolat'])
+        awydata['awtolon']   = np.array(awydata['awtolon'])
 
     #----------  Read airports.dat file ----------
     aptdata           = dict()

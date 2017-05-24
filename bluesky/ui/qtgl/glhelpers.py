@@ -330,8 +330,8 @@ class Font(object):
         vertices, texcoords = [], []
         w, h = char_size, char_size * self.char_ar
         x, y = vertex_offset
-        for i in range(len(text_string)):
-            v, t = self.char(x + i * w, y, w, h, ord(text_string[i]))
+        for i, c in enumerate(text_string):
+            v, t = self.char(x + i * w, y, w, h, ord(c))
             vertices  += v
             texcoords += t
 

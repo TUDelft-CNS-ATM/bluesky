@@ -39,8 +39,8 @@ def load_lcd_font():
     gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
     gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
 
-    for i in range(len(files)):
-        img = QImage(files[i]).convertToFormat(QImage.Format_ARGB32)
+    for i, fname in enumerate(files):
+        img = QImage(fname).convertToFormat(QImage.Format_ARGB32)
         ptr = c_void_p(int(img.constBits()))
         gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 
@@ -104,8 +104,7 @@ def check_btn(px, py):
         ('CMDB', (0.683, 0.743, 0.2, 0.625)),
         ('CWSB', (0.683, 0.743, -0.44, -0.025))
     ]
-    for i in range(len(btns)):
-        name, dims = btns[i]
+    for i, (name, dims) in enumerate(btns):
         if dims[0] <= px <= dims[1] and dims[2] <= py <= dims[3]:
             return name, i
     return None, None

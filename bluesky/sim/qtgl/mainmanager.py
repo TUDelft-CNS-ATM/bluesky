@@ -82,8 +82,7 @@ class MainManager(QObject):
             self.setActiveNode(connidx)
 
         # Then process any data in the active connections
-        for connidx in range(len(self.connections)):
-            conn = self.connections[connidx]
+        for idx, conn in enumerate(self.connections):
             if conn[0] is None or conn[0].closed:
                 continue
 
@@ -96,7 +95,7 @@ class MainManager(QObject):
                     continue
 
                 # Sender id is connection index and node id
-                self.sender_id = (connidx, conn[1])
+                self.sender_id = (idx, conn[1])
 
                 if eventtype == AddNodeType:
                     # This event only consists of an int: the number of nodes to add
@@ -128,7 +127,7 @@ class MainManager(QObject):
                     else:
                         qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='Found %d scenarios in batch' % len(self.scenarios)))
                         # Available nodes (nodes that are in init or hold mode):
-                        av_nodes = [n for n in range(len(self.connections)) if self.connections[n][2] in [0, 2]]
+                        av_nodes = [n for n, conn in enumerate(self.connections) if conn[2] in [0, 2]]
                         for i in range(min(len(av_nodes), len(self.scenarios))):
                             self.sendScenario(self.connections[i])
                         # If there are still scenarios left, determine and start the required number of local nodes
@@ -181,15 +180,15 @@ class MainManager(QObject):
         # Tell each process to quit
         quitevent = (SimQuitEventType, SimQuitEvent())
         print 'Stopping nodes:'
-        for n in range(len(self.connections)):
-            self.connections[n][0].send(quitevent)
+        for conn in self.connections:
+            conn[0].send(quitevent)
 
         # Wait for all nodes to finish
         for n in self.localnodes:
             n.wait()
 
-        for n in range(len(self.connections)):
-            self.connections[n][0].close()
+        for conn in self.connections:
+            conn[0].close()
         print 'Done.'
 
     @classmethod
