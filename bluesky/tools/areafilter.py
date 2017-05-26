@@ -7,6 +7,10 @@ from geo import kwikdist_matrix
 areas = dict()
 
 
+def hasArea(areaname):
+    return areaname in areas
+
+
 def defineArea(areaname, areatype, coordinates):
     # When top is skipped in stack, None is entered instead. Replace with 1e9
     if coordinates[-2] is None:
