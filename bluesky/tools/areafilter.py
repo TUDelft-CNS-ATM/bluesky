@@ -2,16 +2,18 @@
 from matplotlib.path import Path
 import numpy as np
 import bluesky as bs
-from geo import kwikdist_matrix
+from bluesky.tools.geo import kwikdist_matrix
 
 areas = dict()
 
 
 def hasArea(areaname):
+    """Check if area with name 'areaname' exists."""
     return areaname in areas
 
 
 def defineArea(areaname, areatype, coordinates):
+    """Define a new area"""
     # When top is skipped in stack, None is entered instead. Replace with 1e9
     if coordinates[-2] is None:
         coordinates[-2] = 1e9
@@ -29,18 +31,21 @@ def defineArea(areaname, areatype, coordinates):
     bs.scr.objappend(areatype, areaname, coordinates)
 
 def checkInside(areaname, lat, lon, alt):
-    '''Returns an array of booleans. True ==  Inside'''
+    """ Check if points with coordinates lat, lon, alt are inside area with name 'areaname'.
+        Returns an array of booleans. True ==  Inside"""
     if areaname not in areas:
         return []
     area = areas[areaname]
     return area.checkInside(lat, lon, alt)
 
 def deleteArea(areaname):
+    """ Delete area with name 'areaname'. """
     if areaname in areas:
         areas.pop(areaname)
         bs.scr.objappend('', areaname, None)
 
 def reset():
+    """ Clear all data. """
     areas.clear()
 
 
@@ -88,5 +93,5 @@ class Poly:
 
     def checkInside(self, lat, lon, alt):
         points = np.vstack((lat,lon)).T
-        inside = self.border.contains_points(points) & (self.bottom <= alt) & (alt <= self.top)
+        inside = np.all(self.border.contains_points(points), self.bottom <= alt, alt <= self.top)
         return inside
