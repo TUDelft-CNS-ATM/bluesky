@@ -93,5 +93,5 @@ class Poly:
 
     def checkInside(self, lat, lon, alt):
         points = np.vstack((lat,lon)).T
-        inside = np.all(self.border.contains_points(points), self.bottom <= alt, alt <= self.top)
+        inside = np.all((self.border.contains_points(points), self.bottom <= alt, alt <= self.top), axis=0)
         return inside
