@@ -489,7 +489,7 @@ def init():
             "Define a polygon-shaped area"
         ],
         "POLYALT": [
-            "POLY name,top,bottom,lat,lon,lat,lon, ...",
+            "POLYALT name,top,bottom,lat,lon,lat,lon, ...",
             "txt,alt,alt,latlon,...",
             lambda name, *coords: areafilter.defineArea(name, 'POLYALT', coords),
             "Define a polygon-shaped area in 3D: between two altitudes"
