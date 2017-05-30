@@ -324,12 +324,12 @@ class Gui(QApplication):
         if not event_processed:
             return super(Gui, self).notify(receiver, event)
 
-        if self.win.console.cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+        if self.win.console.cmd in ['AREA', 'BOX', 'POLY', 'POLYALT', 'POLYGON', 'CIRCLE', 'LINE']:
             if self.mousepos != self.prevmousepos and len(self.win.console.args) >= 2:
                 self.prevmousepos = self.mousepos
                 try:
                     # get the largest even number of points
-                    start = 0 if self.win.console.cmd == 'AREA' else 1
+                    start = 0 if self.win.console.cmd == 'AREA' else 3 if self.win.console.cmd == 'POLYALT' else 1
                     end   = ((len(self.win.console.args) - start) / 2) * 2 + start
                     data  = [float(v) for v in self.win.console.args[start:end]]
                     data += self.radarwidget.pixelCoordsToLatLon(*self.mousepos)
