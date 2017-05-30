@@ -76,7 +76,7 @@ class Area:
         elif (isinstance(args[0],float) or isinstance(args[0],int)) and 4<=len(args)<=6:
             self.active = True
             self.name = 'DELAREA'
-            areafilter.defineArea(self.name, 'BOX', args)
+            areafilter.defineArea(self.name, 'BOX', args[:4], args[4:])
             return True, "Area is ON. Area name is: " + str(self.name)
         else:
             return False,  "Incorrect arguments" + \

@@ -200,7 +200,7 @@ def init():
         "BOX": [
             "BOX name,lat,lon,lat,lon,[top,bottom]",
             "txt,latlon,latlon,[alt,alt]",
-            lambda name, *coords: areafilter.defineArea(name, 'BOX', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'BOX', coords[:4], *coords[4:]),
             "Define a box-shaped area"
         ],
         "CALC": [
@@ -218,7 +218,7 @@ def init():
         "CIRCLE": [
             "CIRCLE name,lat,lon,radius,[top,bottom]",
             "txt,latlon,float,[alt,alt]",
-            lambda name, *coords: areafilter.defineArea(name, 'CIRCLE', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'CIRCLE', coords[:3], *coords[3:]),
             "Define a circle-shaped area"
         ],
         "CRE": [
@@ -491,7 +491,7 @@ def init():
         "POLYALT": [
             "POLYALT name,top,bottom,lat,lon,lat,lon, ...",
             "txt,alt,alt,latlon,...",
-            lambda name, *coords: areafilter.defineArea(name, 'POLYALT', coords),
+            lambda name, top, bottom, *coords: areafilter.defineArea(name, 'POLYALT', coords, top, bottom),
             "Define a polygon-shaped area in 3D: between two altitudes"
         ],
         "POS": [

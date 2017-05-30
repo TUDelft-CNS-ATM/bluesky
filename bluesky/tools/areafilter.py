@@ -12,20 +12,18 @@ def hasArea(areaname):
     return areaname in areas
 
 
-def defineArea(areaname, areatype, coordinates):
+def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
     """Define a new area"""
     # When top is skipped in stack, None is entered instead. Replace with 1e9
     if coordinates[-2] is None:
         coordinates[-2] = 1e9
 
     if areatype == 'BOX':
-        areas[areaname] = Box(coordinates[:4], *coordinates[4:])
+        areas[areaname] = Box(coordinates, top, bottom)
     elif areatype == 'CIRCLE':
-        areas[areaname] = Circle(coordinates[:2], *coordinates[2:])
-    elif areatype == 'POLY':
-        areas[areaname] = Poly(coordinates)
-    elif areatype == 'POLYALT':
-        areas[areaname] = Poly(coordinates[2:], *coordinates[:2])
+        areas[areaname] = Circle(coordinates, top, bottom)
+    elif areatype[:4] == 'POLY':
+        areas[areaname] = Poly(coordinates, top, bottom)
 
     # Pass the shape on to the screen object
     bs.scr.objappend(areatype, areaname, coordinates)
@@ -66,7 +64,6 @@ class Box:
         return inside
 
 
-
 class Circle:
     def __init__(self, center, radius, top=1e9, bottom=-1e9):
         self.clat   = center[0]
@@ -82,7 +79,6 @@ class Circle:
         distance = kwikdist_matrix(clat, clon,  lat, lon)  # [NM]
         inside   = (distance <= r) & (self.bottom <= alt) & (alt <= self.top)
         return inside
-
 
 
 class Poly:
