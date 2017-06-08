@@ -273,7 +273,7 @@ class RadarWidget(QGLWidget):
 
         # ------- SSD object -----------------------------
         self.ssd = RenderObject(gl.GL_POINTS)
-        self.ssd.selssdbuf = self.ssd.bind_attrib(ATTRIB_SELSSD, 1, np.zeros(MAX_NAIRCRAFT, dtype=np.uint8), datatype=gl.GL_BYTE, instance_divisor=1)
+        self.ssd.selssdbuf = self.ssd.bind_attrib(ATTRIB_SELSSD, 1, np.zeros(MAX_NAIRCRAFT, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, instance_divisor=1)
         self.ssd.bind_attrib(ATTRIB_LAT0, 1, self.aclatbuf, instance_divisor=1)
         self.ssd.bind_attrib(ATTRIB_LON0, 1, self.aclonbuf, instance_divisor=1)
         self.ssd.bind_attrib(ATTRIB_ALT0, 1, self.acaltbuf, instance_divisor=1)
