@@ -51,7 +51,7 @@ lightgrey             = (160, 160, 160)
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
-ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = range(10)
+ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = range(11)
 
 
 class nodeData(object):
@@ -139,9 +139,10 @@ class RadarWidget(QGLWidget):
         self.ncustwpts      = 0
         self.nairports      = 0
         self.route_acid     = ""
-        self.ssd_ownship    = np.array([], dtype=np.uint16)
+        self.ssd_ownship    = set()
         self.apt_inrange    = np.array([])
         self.ssd_all        = False
+        self.ssd_conflicts   = False
         self.iactconn       = 0
         self.nodedata       = list()
 
@@ -272,6 +273,7 @@ class RadarWidget(QGLWidget):
 
         # ------- SSD object -----------------------------
         self.ssd = RenderObject(gl.GL_POINTS)
+        self.ssd.selssdbuf = self.ssd.bind_attrib(ATTRIB_SELSSD, 1, np.zeros(MAX_NAIRCRAFT, dtype=np.uint8), datatype=gl.GL_BYTE, instance_divisor=1)
         self.ssd.bind_attrib(ATTRIB_LAT0, 1, self.aclatbuf, instance_divisor=1)
         self.ssd.bind_attrib(ATTRIB_LON0, 1, self.aclonbuf, instance_divisor=1)
         self.ssd.bind_attrib(ATTRIB_ALT0, 1, self.acaltbuf, instance_divisor=1)
@@ -328,7 +330,7 @@ class RadarWidget(QGLWidget):
         # Sort based on id string length
         llid = sorted(zip(bs.navdb.wpid, bs.navdb.wplat, bs.navdb.wplon), key=lambda i: len(i[0]) > 3)
         wplat = [lat for (wpid, lat, lon) in llid]
-        wplon = [lon for (wpid, lon, lon) in llid]
+        wplon = [lon for (wpid, lat, lon) in llid]
         self.wptlatbuf = self.waypoints.bind_attrib(ATTRIB_LAT, 1, np.array(wplat, dtype=np.float32), instance_divisor=1)
         self.wptlonbuf = self.waypoints.bind_attrib(ATTRIB_LON, 1, np.array(wplon, dtype=np.float32), instance_divisor=1)
         wptids = ''
@@ -560,14 +562,11 @@ class RadarWidget(QGLWidget):
                 self.aclabels.draw(n_instances=self.naircraft)
 
         # SSD
-        if self.ssd_all or len(self.ssd_ownship) > 0:
+        if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
             self.ssd_shader.use()
             gl.glUniform3f(self.ssd_shader.loc_vlimits, 4e4, 25e4, 500.0)
             gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
-            if self.ssd_all:
-                self.ssd.draw(first_vertex=0, vertex_count=self.naircraft, n_instances=self.naircraft)
-            else:
-                self.ssd.draw(first_vertex=self.ssd_ownship[-1], vertex_count=1, n_instances=self.naircraft)
+            self.ssd.draw(vertex_count=self.naircraft, n_instances=self.naircraft)
 
         # Unbind everything
         RenderObject.unbind_all()
@@ -680,20 +679,30 @@ class RadarWidget(QGLWidget):
             # Labels and colors
             rawlabel = ''
             color    = np.empty((self.naircraft, 4), dtype=np.uint8)
-            for i in range(self.naircraft):
+            selssd   = np.zeros(self.naircraft, dtype=np.uint8)
+            for i, acid in enumerate(data.id):
                 # Make label: 3 lines of 8 characters per aircraft
-                if data.alt[i]<=4500.*ft:
-                    rawlabel += '%-8s%-5d   %-8d' % (data.id[i][:8], int(data.alt[i]/ft  +0.5), int(data.cas[i] / kts+0.5))
+                if data.alt[i] <= 4500. * ft:
+                    rawlabel += '%-8s%-5d   %-8d' % (acid[:8], int(data.alt[i]/ft  +0.5), int(data.cas[i] / kts+0.5))
                 else:
-                    rawlabel += '%-8sFL%03d   %-8d' % (data.id[i][:8], int(data.alt[i]/ft/100.+0.5), int(data.cas[i] / kts+0.5))
+                    rawlabel += '%-8sFL%03d   %-8d' % (acid[:8], int(data.alt[i]/ft/100.+0.5), int(data.cas[i] / kts+0.5))
                 confindices = data.iconf[i]
                 if len(confindices) > 0:
+                    if self.ssd_conflicts:
+                        selssd[i] = 255
                     color[i, :] = amber + (255,)
                     for confidx in confindices:
                         cpalines[4 * confidx : 4 * confidx + 4] = [ data.lat[i], data.lon[i],
                                                                     data.confcpalat[confidx], data.confcpalon[confidx]]
                 else:
                     color[i, :] = green + (255,)
+
+                #  Check if aircraft is selected to show SSD
+                if acid in self.ssd_ownship:
+                    selssd[i] = 255
+
+            if len(self.ssd_ownship) > 0 or self.ssd_conflicts:
+                update_buffer(self.ssd.selssdbuf, selssd)
 
             update_buffer(self.confcpabuf, cpalines)
             update_buffer(self.accolorbuf, color)
@@ -729,21 +738,29 @@ class RadarWidget(QGLWidget):
                 nact.traillon0 = []
                 nact.traillat1 = []
                 nact.traillon1 = []
-                update_buffer(self.trailbuf, np.array([], dtype=np.float32))
 
                 self.traillines.set_vertex_count(0)
 
     def show_ssd(self, arg):
-        if arg == 'ALL':
-            self.ssd_all = True
-        elif arg == 'OFF':
-            self.ssd_all = False
-            self.ssd_ownship = np.array([], dtype=np.uint16)
+        if not self.initialized:
+            return
+
+        self.makeCurrent()
+        if 'ALL' in arg:
+            self.ssd_all      = True
+            self.ssd_conflicts = False
+            update_buffer(self.ssd.selssdbuf, np.ones(MAX_NAIRCRAFT, dtype=np.uint8))
+        elif 'CONFLICTS' in arg:
+            self.ssd_all      = False
+            self.ssd_conflicts = True
+        elif 'OFF' in arg:
+            self.ssd_all      = False
+            self.ssd_conflicts = False
+            self.ssd_ownship = set()
+            update_buffer(self.ssd.selssdbuf, np.zeros(MAX_NAIRCRAFT, dtype=np.uint8))
         else:
-            if arg in self.ssd_ownship:
-                self.ssd_ownship = np.delete(self.ssd_ownship, np.argmax(self.ssd_ownship == arg))
-            else:
-                self.ssd_ownship = np.append(self.ssd_ownship, arg)
+            remove = self.ssd_ownship.intersection(arg)
+            self.ssd_ownship = self.ssd_ownship.union(arg) - remove
 
     def defwpt(self, wpdata):
         if not self.initialized:

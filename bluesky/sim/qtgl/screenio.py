@@ -134,16 +134,11 @@ class ScreenIO(QObject):
         self.showroute(acid)
         return True
 
-    def showssd(self, param):
+    def showssd(self, *param):
         ''' Conflict prevention display
             Show solution space diagram, indicating potential conflicts'''
         if manager.isActive():
-            if param == 'ALL' or param == 'OFF':
-                manager.sendEvent(DisplayFlagEvent('SSD', param))
-            else:
-                idx = bs.traf.id2idx(param)
-                if idx >= 0:
-                    manager.sendEvent(DisplayFlagEvent('SSD', idx))
+            manager.sendEvent(DisplayFlagEvent('SSD', param))
 
     def show_file_dialog(self):
         if manager.isActive():

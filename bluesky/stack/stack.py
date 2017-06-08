@@ -597,8 +597,8 @@ def init():
             "Speed command (autopilot)"
         ],
         "SSD": [
-            "SSD acid/ALL/OFF",
-            "txt",
+            "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
+            "txt,[...]",
             bs.scr.showssd,
             "Show state-space diagram (=conflict prevention display/predictive ASAS)"
         ],

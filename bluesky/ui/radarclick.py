@@ -46,7 +46,7 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
                 "POLYALT": "-,-,-,latlon,...",
                 "POLYGON": "-,latlon,...",
                 "POS": "acid",
-                "SSD": "acid",
+                "SSD": "acid,...",
                 "SPD": "acid,-",
                 "TRAIL":"acid,-",
                 "VNAV": "acid,-",
