@@ -1,8 +1,9 @@
 """ BlueSky aircraft performance calculations."""
 import os
-import numpy as np
+
 from xml.etree import ElementTree
 from math import *
+import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
@@ -11,7 +12,7 @@ from performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(data_path='data', verbose=False)
+settings.set_variable_defaults(perf_path='data/coefficients', verbose=False)
 
 class CoeffBS:
     """
@@ -108,10 +109,10 @@ class CoeffBS:
 
         # parse AC files
 
-        path = settings.data_path + '/coefficients/BS_aircraft/'
+        path = os.path.join(settings.perf_path, 'BS_aircraft')
         files = os.listdir(path)
-        for file in files:
-            acdoc = ElementTree.parse(path + file)
+        for fname in files:
+            acdoc = ElementTree.parse(os.path.join(path, fname))
 
             #actype = doc.find('ac_type')
             self.atype.append(acdoc.find('ac_type').text)
@@ -288,10 +289,10 @@ class CoeffBS:
         self.PSFC_CR     = [] # SFC cruise
 
         # parse engine files
-        path = settings.data_path + '/coefficients/BS_engines/'
+        path = os.path.join(settings.perf_path, 'BS_engines/')
         files = os.listdir(path)
-        for filename in files:
-            endoc = ElementTree.parse(path + filename)
+        for fname in files:
+            endoc = ElementTree.parse(os.path.join(path, fname))
             self.enlist.append(endoc.find('engines/engine').text)
 
             # thrust

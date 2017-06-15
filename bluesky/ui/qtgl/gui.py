@@ -85,9 +85,11 @@ class Gui(QApplication):
         self.radarwidget = RadarWidget()
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
-        self.docwin      = DocWindow(self)
+        try:
+            self.docwin      = DocWindow(self)
+        except Exception as e:
+            print 'Couldnt make docwindow:', e
         # self.aman = AMANDisplay()
-
         gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
         gltimer.timeout.connect(self.nd.updateGL)

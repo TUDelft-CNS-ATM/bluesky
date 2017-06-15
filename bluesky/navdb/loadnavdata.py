@@ -1,25 +1,25 @@
-from os import path, listdir, makedirs
+from os import path, listdir
 
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
-from ..settings import data_path, gui
+from bluesky import settings
 
 from load_navdata_txt import load_navdata_txt
 from load_visuals_txt import load_coastline_txt
 
-if gui == 'qtgl':
+if settings.gui == 'qtgl':
     from load_visuals_txt import load_aptsurface_txt
 else:
     from load_visuals_txt import pygame_load_rwythresholds
 
+## Default settings
+settings.set_variable_defaults(navdata_path='data/navdata', cache_path='data/cache')
 
-sourcedir = path.join(data_path, 'global')
-cachedir  = path.join(data_path, 'cache')
-if not path.exists(cachedir):
-    makedirs(cachedir)
+sourcedir = settings.navdata_path
+cachedir  = settings.cache_path
 
 
 def check_cache(cachefile, *sources):
@@ -76,6 +76,7 @@ def load_aptsurface():
 
     # else read original files, and write new cache file
     else:
+        print cachefile
         vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, \
             apt_indices, rwythresholds = load_aptsurface_txt()
         with open(cachefile, 'wb') as f:
@@ -103,7 +104,7 @@ def load_navdata():
 
     if not cache_ok:
         wptdata, aptdata, awydata, firdata, codata = load_navdata_txt()
-        if gui == 'qtgl':
+        if settings.gui == 'qtgl':
             vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \
                 apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds = load_aptsurface()
 

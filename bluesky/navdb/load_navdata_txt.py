@@ -1,8 +1,11 @@
-from ..settings import data_path
-from ..tools.aero import ft
-import numpy as np
+''' Load navigation data from text files.'''
 import os
+import numpy as np
+from bluesky import settings
+from bluesky.tools.aero import ft
 
+## Default settings
+settings.set_variable_defaults(navdata_path='data/navdata')
 
 def load_navdata_txt():
     #----------  Read  nav.dat file (nav aids) ----------
@@ -18,7 +21,7 @@ def load_navdata_txt():
     wptdata['wpdesc']  = []              # description
 
 
-    with open(data_path + "/global/nav.dat", "r") as f:
+    with open(os.path.join(settings.navdata_path, 'nav.dat'), 'r') as f:
         print "Reading nav.dat"
 
         for line in f:
@@ -96,7 +99,7 @@ def load_navdata_txt():
                 wptdata['wpdesc'].append("   ")  # Description
 
     #----------  Read  fix.dat file ----------
-    with open(data_path + "/global/fix.dat", "r") as f:
+    with open(os.path.join(settings.navdata_path, 'fix.dat'), 'r') as f:
         print "Reading fix.dat"
         for line in f:
             line = line.strip()
@@ -147,7 +150,7 @@ def load_navdata_txt():
     awydata['awupfl']      = []              # highest flight level (int)
 
 
-    with open(data_path + "/global/awy.dat", "r") as f:
+    with open(os.path.join(settings.navdata_path, 'awy.dat'), 'r') as f:
         print "Reading awy.dat"
 
         for line in f:
@@ -215,7 +218,7 @@ def load_navdata_txt():
     aptdata['aptype']    = []              # type (int, 1=large, 2=medium, 3=small)
     aptdata['apco']      = []              # two char country code (string)
     aptdata['apelev']    = []              # field elevation ft-> m
-    with open(data_path + "/global/airports.dat", "r") as f:
+    with open(os.path.join(settings.navdata_path, 'airports.dat'), 'r') as f:
         types = {'L': 1, 'M': 2, 'S': 3}
         for line in f:
             line = line.strip()
@@ -271,7 +274,7 @@ def load_navdata_txt():
     firdata['firlat1'] = []
     firdata['firlon1'] = []
 
-    files = os.listdir(data_path + "/global/fir")
+    files = os.listdir(os.path.join(settings.navdata_path, 'fir'))
 
     # Get fir names
     for filname in files:
@@ -279,7 +282,7 @@ def load_navdata_txt():
             firname = filname[:filname.index(".txt")]
             firdata['fir'].append([firname, [], []])
 
-            with open(data_path + "/global/fir/" + filname, "r") as f:
+            with open(os.path.join(settings.navdata_path, 'fir/' + filname), 'r') as f:
                 for line in f:
                     rec = line.upper().strip()
 
@@ -321,7 +324,7 @@ def load_navdata_txt():
     codata['cocode2']  = []              # 2 char code
     codata['cocode3']  = []              # 3 char code
     codata['conr']     = []              # country nr
-    with open(data_path + "/global/icao-countries.dat", "r") as f:
+    with open(os.path.join(settings.navdata_path, 'icao-countries.dat'), 'r') as f:
         for line in f:
             line = line.strip()
             # Skip empty lines or comments

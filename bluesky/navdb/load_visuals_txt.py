@@ -1,7 +1,13 @@
-from ..settings import gui, data_path
-import numpy as np
+''' Load visual data from text files.'''
+import os
 from math import cos, radians, degrees, sqrt, atan2, sin, asin
 from zipfile import ZipFile
+import numpy as np
+from bluesky import settings
+
+## Default settings
+settings.set_variable_defaults(navdata_path='data/navdata')
+
 REARTH_INV = 1.56961231e-7
 
 
@@ -11,7 +17,7 @@ def load_coastline_txt():
     # coastlines to numpy arrays with lat/lon
     coast = []
     clat = clon = 0.0
-    with open(data_path + '/global/coastlines.dat', 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'coastlines.dat'), 'r') as f:
         print "Reading coastlines.dat"
         for line in f:
             line = line.strip()
@@ -34,7 +40,7 @@ def load_coastline_txt():
     return coastvertices, coastindices
 
 
-if gui == 'qtgl':
+if settings.gui == 'qtgl':
     import OpenGL.GLU as glu
     try:
         from PyQt5.QtCore import Qt
@@ -193,7 +199,7 @@ if gui == 'qtgl':
         apt_bb        = BoundingBox()
         count         = 0
         bytecount     = 0
-        zfile         = ZipFile(data_path + '/global/apt.zip')
+        zfile         = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
         fsize         = float(zfile.getinfo('apt.dat').file_size)
         print "Reading apt.dat from apt.zip"
         with zfile.open('apt.dat', 'r') as f:
@@ -358,7 +364,7 @@ else:
     def pygame_load_rwythresholds():
         rwythresholds = dict()
         curthresholds = None
-        zfile = ZipFile(data_path + '/global/apt.zip')
+        zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
         print "Reading apt.dat from apt.zip"
         with zfile.open('apt.dat', 'r') as f:
             for line in f:

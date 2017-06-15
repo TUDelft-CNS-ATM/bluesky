@@ -11,11 +11,6 @@ from bluesky import settings, stack
 # Register settings defaults
 settings.set_variable_defaults(log_path='output')
 
-# Check if logdir exists, and if not, create it.
-if not os.path.exists(settings.log_path):
-    print 'Creating log path [' + settings.log_path + ']'
-    os.makedirs(settings.log_path)
-
 logprecision = '%.8f'
 
 # Dict to contain the definitions of periodic loggers

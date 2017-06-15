@@ -22,9 +22,16 @@ def init():
         srcdir = os.path.dirname(sys.executable)
         rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
 
+    cachedir   = os.path.join(rundir, 'data/cache')
+    badadir    = os.path.join(rundir, 'data/coefficients/BADA')
+    badasrc    = os.path.join(srcdir, 'data/coefficients/BADA')
+    perfdir    = os.path.join(srcdir, 'data/coefficients')
+    gfxdir     = os.path.join(srcdir, 'data/graphics')
+    navdir     = os.path.join(srcdir, 'data/navdata')
     scnsrc     = os.path.join(srcdir, 'scenario')
     scndir     = os.path.join(rundir, 'scenario')
     outdir     = os.path.join(rundir, 'output')
+    plgsrc     = os.path.join(srcdir, 'plugins')
     plgdir     = os.path.join(rundir, 'plugins')
     configfile = os.path.join(rundir, 'settings.cfg')
     configsrc  = os.path.join(srcdir, 'data/default.cfg')
@@ -36,11 +43,14 @@ def init():
             break
 
     # Create default directories if they don't exist yet
-    for d in (outdir, plgdir):
+    for d in (outdir, cachedir):
         if not os.path.isdir(d):
+            print 'Creating directory "%s"' % d
             os.makedirs(d)
-    if not os.path.isdir(scndir):
-        shutil.copytree(scnsrc, scndir)
+    for d in [(badasrc, badadir), (scnsrc, scndir), (plgsrc, plgdir)]:
+        if not os.path.isdir(d[1]):
+            print 'Creating directory "%s", and copying default files' % d[1]
+            shutil.copytree(*d)
 
     # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
     # was started with BlueSky.py
@@ -71,12 +81,22 @@ def init():
             for line in fin:
                 if line[:3] == 'gui':
                     line = "gui = '" + gui + "'\n"
-                if line[:8] == 'log_path':
+                elif line[:10] == 'cache_path':
+                    line = "cache_path = '" + cachedir.replace('\\', '/') + "'\n"
+                elif line[:8] == 'log_path':
                     line = "log_path = '" + outdir.replace('\\', '/') + "'\n"
-                if line[:13] == 'scenario_path':
+                elif line[:13] == 'scenario_path':
                     line = "scenario_path = '" + scndir.replace('\\', '/') + "'\n"
-                if line[:11] == 'plugin_path':
+                elif line[:11] == 'plugin_path':
                     line = "plugin_path = '" + plgdir.replace('\\', '/') + "'\n"
+                elif line[:14] == 'perf_path_bada':
+                    line = "perf_path_bada = '" + badadir.replace('\\', '/') + "'\n"
+                elif line[:9] == 'perf_path':
+                    line = "perf_path = '" + perfdir.replace('\\', '/') + "'\n"
+                elif line[:8] == 'gfx_path':
+                    line = "gfx_path = '" + gfxdir.replace('\\', '/') + "'\n"
+                elif line[:12] == 'navdata_path':
+                    line = "navdata_path = '" + navdir.replace('\\', '/') + "'\n"
 
                 fout.write(line)
 

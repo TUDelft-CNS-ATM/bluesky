@@ -1,3 +1,4 @@
+from os import path
 try:
     from PyQt5.QtCore import Qt, qCritical, QTimer, pyqtSlot
     from PyQt5.QtOpenGL import QGLWidget
@@ -21,7 +22,7 @@ from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
     update_buffer, create_empty_buffer
 
 # Register settings defaults
-settings.set_variable_defaults(text_size=13, apt_size=10, wpt_size=10, ac_size=16)
+settings.set_variable_defaults(gfx_path='data/graphics', text_size=13, apt_size=10, wpt_size=10, ac_size=16)
 
 # Static defines
 MAX_NAIRCRAFT         = 10000
@@ -214,7 +215,7 @@ class RadarWidget(QGLWidget):
         print 'Maximum supported texture size: %d' % max_texture_size
         for i in [16384, 8192, 4096]:
             if max_texture_size >= i:
-                fname = 'data/graphics/world.%dx%d.dds' % (i, i / 2)
+                fname = path.join(settings.gfx_path, 'world.%dx%d.dds' % (i, i / 2))
                 print 'Loading texture ' + fname
                 self.map_texture = self.bindTexture(fname)
                 break
@@ -402,19 +403,20 @@ class RadarWidget(QGLWidget):
         self.globaldata = radarUBO()
 
         try:
+            shpath = path.join(settings.gfx_path, 'shaders')
             # Compile shaders and link color shader program
-            self.color_shader = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-color.frag')
+            self.color_shader = BlueSkyProgram(path.join(shpath, 'radarwidget-normal.vert'), path.join(shpath, 'radarwidget-color.frag'))
             self.color_shader.bind_uniform_buffer('global_data', self.globaldata)
 
             # Compile shaders and link texture shader program
-            self.texture_shader = BlueSkyProgram('data/graphics/shaders/radarwidget-normal.vert', 'data/graphics/shaders/radarwidget-texture.frag')
+            self.texture_shader = BlueSkyProgram(path.join(shpath, 'radarwidget-normal.vert'), path.join(shpath, 'radarwidget-texture.frag'))
             self.texture_shader.bind_uniform_buffer('global_data', self.globaldata)
 
             # Compile shaders and link text shader program
-            self.text_shader = BlueSkyProgram('data/graphics/shaders/radarwidget-text.vert', 'data/graphics/shaders/radarwidget-text.frag')
+            self.text_shader = BlueSkyProgram(path.join(shpath, 'radarwidget-text.vert'), path.join(shpath, 'radarwidget-text.frag'))
             self.text_shader.bind_uniform_buffer('global_data', self.globaldata)
 
-            self.ssd_shader = BlueSkyProgram('data/graphics/shaders/ssd.vert', 'data/graphics/shaders/ssd.frag', 'data/graphics/shaders/ssd.geom')
+            self.ssd_shader = BlueSkyProgram(path.join(shpath, 'ssd.vert'), path.join(shpath, 'ssd.frag'), path.join(shpath, 'ssd.geom'))
             self.ssd_shader.bind_uniform_buffer('global_data', self.globaldata)
             self.ssd_shader.loc_vlimits = gl.glGetUniformLocation(self.ssd_shader.program, 'Vlimits')
             self.ssd_shader.loc_nac = gl.glGetUniformLocation(self.ssd_shader.program, 'n_ac')
