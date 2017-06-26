@@ -213,7 +213,7 @@ class Screen:
 
         #-------------------------COASTLINE DATA--------------------------------------
         # Init geo (coastline)  data
-        f = open("data/global/coastlines.dat", 'r')
+        f = open("data/navdata/coastlines.dat", 'r')
         print "Reading coastlines.dat"
         lines = f.readlines()
         f.close()
