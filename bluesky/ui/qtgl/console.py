@@ -6,7 +6,7 @@ except ImportError:
     from PyQt4.QtCore import Qt, pyqtSignal
     from PyQt4.QtGui import QWidget, QTextEdit
 
-import autocomplete
+from . import autocomplete
 from bluesky.tools.misc import cmdsplit
 from bluesky.sim.qtgl import MainManager as manager
 from bluesky.sim.qtgl import StackTextEvent

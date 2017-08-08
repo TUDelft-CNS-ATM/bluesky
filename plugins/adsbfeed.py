@@ -194,7 +194,7 @@ class Modesbeast(TcpSocket):
 
     def update_all_ac_postition(self):
         keys = ('cprlat0', 'cprlat1', 'cprlon0', 'cprlon1')
-        for addr, ac in self.acpool.items():
+        for addr, ac in list(self.acpool.items()):
             # check if all needed keys are in dict
             if set(keys).issubset(ac):
                 pos = decoder.cpr2position(
@@ -212,7 +212,7 @@ class Modesbeast(TcpSocket):
     def stack_all_commands(self):
         """create and stack command"""
         params = ('lat', 'lon', 'alt', 'speed', 'heading', 'callsign')
-        for i, d in self.acpool.items():
+        for i, d in list(self.acpool.items()):
             # check if all needed keys are in dict
             if set(params).issubset(d):
                 acid = d['callsign']
@@ -239,7 +239,7 @@ class Modesbeast(TcpSocket):
 
     def remove_outdated_ac(self):
         """House keeping, remove old entries (offline > 100s)"""
-        for addr, ac in self.acpool.items():
+        for addr, ac in list(self.acpool.items()):
             if 'ts' in ac:
                 # threshold, remove ac after 90 seconds of no-seen
                 if (int(time.time()) - ac['ts']) > 100:
@@ -250,12 +250,10 @@ class Modesbeast(TcpSocket):
         return
 
     def debug(self):
-        count = 0
-        for addr, ac in self.acpool.iteritems():
-            print addr,
-            count += 1
-        print ""
-        print "total count: %d" % count
+        addlist = str.join(', ', self.acpool.keys())
+        print addlist
+        print("")
+        print("total count: %d" % len(self.acpool.keys()))
         return
 
     def update(self):

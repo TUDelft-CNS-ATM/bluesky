@@ -1,6 +1,6 @@
-from Tkinter import *
-import tkFileDialog
-import tkMessageBox
+from tkinter import *
+import tkinter.filedialog
+import tkinter.messagebox
 import DatToScn
 import CitationToDatFile  #/Users/yoeritorel1old/School/Afstuderen/BlueSky_yoeri/BlueSky\ Tools/Scenario\ creator/GUI/so6_to_scn.pyc
 import so6_to_scn
@@ -75,7 +75,7 @@ class FileFrame(Toplevel):
         submitButton.grid(column=1, row=i)
 
     def convertFiles(self):
-        print "Converting..."
+        print("Converting...")
 
         # Start loop until the the selected files are converted
         j = 0
@@ -86,7 +86,7 @@ class FileFrame(Toplevel):
             createScnFiles = True
             # Else, display warning message
             if not self.optionMenuStatusbar[j].cget("text"):
-                checkPopup = tkMessageBox.askquestion("Warning!", "There are still unselected"
+                checkPopup = tkinter.messagebox.askquestion("Warning!", "There are still unselected"
                                                                   "file fields. Are you sure that you want to "
                                                                   "continue?", icon='warning')
                 if checkPopup == 'yes':
@@ -98,7 +98,7 @@ class FileFrame(Toplevel):
             if createScnFiles == True:
 
                 sourceFileType = self.optionMenuVar[j].get()
-                print sourceFileType
+                print(sourceFileType)
 
                 # Check which type of file needs to be converted to a .dat file
                 if sourceFileType == "ADS-B":
@@ -134,7 +134,7 @@ class FileFrame(Toplevel):
 
                 # Merge all the .dat files, into one file
 
-                print self.tempDatFiles
+                print(self.tempDatFiles)
                 with open('tempData/mergedDatFile.dat', 'w') as outfile:
                     for fname in self.tempDatFiles:
                         with open(str(fname)) as infile:
@@ -148,14 +148,14 @@ class FileFrame(Toplevel):
                 # continue to the next file
                 pass
 
-            print "Conversion completed"
+            print("Conversion completed")
 
 
     # This method returns the filename of the file which got selected
     def getOpenFileName(self, idx):
         idx = idx - 1
 
-        selectedFiles = tkFileDialog.askopenfilenames(multiple=True)
+        selectedFiles = tkinter.filedialog.askopenfilenames(multiple=True)
         self.optionMenuSplittedSelectedFile[idx].set(self.tk.splitlist(selectedFiles))
         # Manipulate the string in order to get the right output
         tempStr = self.optionMenuSplittedSelectedFile[idx].get()
@@ -166,7 +166,7 @@ class FileFrame(Toplevel):
 
 
     def BUGloadbuttoncreator(self):
-        print self.filenumber.get()
+        print(self.filenumber.get())
         if self.filenumber.get() >= 1:
             loadfileButton = Button(self, text="Open File", command=lambda num=1: self.getOpenFileName(1))
             self.optionMenuLoadbuttons.append(loadfileButton)

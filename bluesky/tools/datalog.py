@@ -49,7 +49,7 @@ def preupdate(simt):
 def postupdate():
     """ This function writes to files of all periodic logs by calling the appropriate
     functions for each type of periodic log, at the approriate update time. """
-    for key, log in periodicloggers.iteritems():
+    for key, log in periodicloggers.items():
         log.log()
 
 
@@ -60,7 +60,7 @@ def reset():
     CSVLogger.simt = 0.0
 
     # Close all logs and remove reference to its file object
-    for key, log in allloggers.iteritems():
+    for key, log in allloggers.items():
         log.reset()
 
 
@@ -154,7 +154,7 @@ class CSVLogger:
         self.selvars = []
         for logset in self.allvars:
             # Create a list of member variables in logset that are in the selection
-            cursel    = filter(lambda el: el.upper() in selection, logset[1])
+            cursel    = [el for el in logset[1] if el.upper() in selection]
             if len(cursel) > 0:
                 # Add non-empty result with parent object to selected log variables
                 self.selvars.append((logset[0], list(cursel)))

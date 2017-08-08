@@ -24,7 +24,7 @@ class GLTest(QGLWidget):
             # Qt 5
             QGLWidget.__init__(self, QGLContext(f), parent)
 
-        print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
+        print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
         print("This script creates a file called 'opengl-test.txt', containing information about the opengl support of your computer. Useful when debugging problems with the opengl version of BlueSky.")
 

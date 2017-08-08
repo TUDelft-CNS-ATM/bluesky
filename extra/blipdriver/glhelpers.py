@@ -139,7 +139,7 @@ class BlueSkyProgram():
 class RenderObject(object):
     # Attribute locations
     attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, \
-        attrib_orientation, attrib_color, attrib_texdepth = range(7)
+        attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
     bound_vao = -1
 
     def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0, n_instances=0, vertex=None, texcoords=None, color=None):
@@ -265,11 +265,11 @@ class RenderObject(object):
 
         # Bind the same attributes for the new renderobject
         # [size, buf_id, instance_divisor, datatype]
-        for attrib, params in original.enabled_attributes.iteritems():
+        for attrib, params in original.enabled_attributes.items():
             new.bind_attrib(attrib, params[0], params[1], instance_divisor=params[2], datatype=params[3])
 
         # Copy possible object attributes that were added to the renderobject
-        for attr, val in original.__dict__.iteritems():
+        for attr, val in original.__dict__.items():
             if attr not in new.__dict__:
                 setattr(new, attr, val)
 
@@ -278,7 +278,7 @@ class RenderObject(object):
 
 class Font(object):
     # Attribute locations
-    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = range(7)
+    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
 
     def __init__(self, tex_id=0, char_ar=1.0):
         self.tex_id         = tex_id

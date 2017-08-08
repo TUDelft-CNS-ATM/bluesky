@@ -9,7 +9,7 @@ Created on Wed Mar 04 14:27:44 2015
 
 import numpy as np
 from bluesky.tools.aero import nm, ft
-import MVP
+from . import MVP
 
 
 def start(dbconf):

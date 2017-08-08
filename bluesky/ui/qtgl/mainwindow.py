@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
                     self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked],
                     self.shownodes :  ['nodes.svg', 'Show/hide node list', self.buttonClicked]}
 
-        for b in buttons.iteritems():
+        for b in buttons.items():
             # Set icon
             if not b[1][0] is None:
                 icon = QIcon(os.path.join(settings.gfx_path, 'icons/' + b[1][0]))

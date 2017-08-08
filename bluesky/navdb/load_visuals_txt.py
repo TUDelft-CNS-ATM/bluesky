@@ -18,7 +18,7 @@ def load_coastline_txt():
     coast = []
     clat = clon = 0.0
     with open(os.path.join(settings.navdata_path, 'coastlines.dat'), 'r') as f:
-        print "Reading coastlines.dat"
+        print("Reading coastlines.dat")
         for line in f:
             line = line.strip()
             if not (line == "" or line[0] == '#'):
@@ -59,7 +59,7 @@ if settings.gui == 'qtgl':
         def __init__(self, text):
             if QApplication.instance() is None:
                 self.dialog = None
-                print text
+                print(text)
             else:
                 self.dialog = QProgressDialog(text, 'Cancel', 0, 100)
                 self.dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -70,7 +70,7 @@ if settings.gui == 'qtgl':
                 self.dialog.setValue(value)
                 QApplication.processEvents()
             else:
-                print 'Progress: %.2f%% done' % value
+                print('Progress: %.2f%% done' % value)
 
         def close(self):
             if self.dialog:
@@ -201,7 +201,7 @@ if settings.gui == 'qtgl':
         bytecount     = 0
         zfile         = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
         fsize         = float(zfile.getinfo('apt.dat').file_size)
-        print "Reading apt.dat from apt.zip"
+        print("Reading apt.dat from apt.zip")
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
                 bytecount += len(line)
@@ -365,7 +365,7 @@ else:
         rwythresholds = dict()
         curthresholds = None
         zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
-        print "Reading apt.dat from apt.zip"
+        print("Reading apt.dat from apt.zip")
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
                 elems = line.strip().split()

@@ -12,7 +12,7 @@ Created by  : Jacco M. Hoekstra
 
 from numpy import *
 from time import strftime, gmtime
-from aero import cas2tas, mach2tas, kts
+from .aero import cas2tas, mach2tas, kts
 
 
 def txt2alt(txt):
@@ -170,7 +170,7 @@ def txt2lat(lattxt):
                     lat = lat + f * abs(float(xtxt)) / float(div)
                     div = div * 60
                 except:
-                    print "txt2lat value error:",lattxt
+                    print("txt2lat value error:",lattxt)
                     return 0.0                    
     else:
         lat = float(txt)
@@ -207,7 +207,7 @@ def txt2lon(lontxt):
                     try:
                        lon = lon + f * abs(float(xtxt)) / float(div)
                     except:
-                       print "txt2lon value error:",lontxt
+                       print("txt2lon value error:",lontxt)
                        return 0.0 
 
                 div = div * 60
@@ -220,7 +220,7 @@ def txt2lon(lontxt):
                     f = 1.
                 lon = f*abs(float(txt))
             except:
-                print "txt2lon value error:",lontxt
+                print("txt2lon value error:",lontxt)
                 return 0.0 
 
     return lon

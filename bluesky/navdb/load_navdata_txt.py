@@ -22,7 +22,7 @@ def load_navdata_txt():
 
 
     with open(os.path.join(settings.navdata_path, 'nav.dat'), 'r') as f:
-        print "Reading nav.dat"
+        print("Reading nav.dat")
 
         for line in f:
             line = line.strip()
@@ -53,7 +53,7 @@ def load_navdata_txt():
                           12:"DME",13:"TACAN"}
 
            # Type code never larger than 20
-            if itype not in wptypedict.keys():
+            if itype not in list(wptypedict.keys()):
                 continue # Next line
 
             wptype = wptypedict[itype]
@@ -100,7 +100,7 @@ def load_navdata_txt():
 
     #----------  Read  fix.dat file ----------
     with open(os.path.join(settings.navdata_path, 'fix.dat'), 'r') as f:
-        print "Reading fix.dat"
+        print("Reading fix.dat")
         for line in f:
             line = line.strip()
 
@@ -151,7 +151,7 @@ def load_navdata_txt():
 
 
     with open(os.path.join(settings.navdata_path, 'awy.dat'), 'r') as f:
-        print "Reading awy.dat"
+        print("Reading awy.dat")
 
         for line in f:
             line = line.strip('\n').strip()

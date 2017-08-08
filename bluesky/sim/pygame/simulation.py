@@ -24,7 +24,7 @@ class Simulation:
     """
 
     # simulation modes
-    init, op, hold, end = range(4)
+    init, op, hold, end = list(range(4))
 
     def __init__(self):
         # simmode
@@ -49,7 +49,7 @@ class Simulation:
         self.ffstop = -1.    # Indefinitely
 
         # Simulation objects
-        print "Setting up Traffic simulation"
+        print("Setting up Traffic simulation")
         self.metric = Metric()
 
         # Additional modules

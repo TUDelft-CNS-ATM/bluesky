@@ -59,8 +59,8 @@ class CitationToDatFile:
                     self.writeFile.write(line)
                 if i == 5:
                     long = self.tab[42][j]
-                    long = float(float(long * 180) / 1048576)
-                    line = 'Longitude; ' + str(long) + '\n'
+                    long = float(float(int * 180) / 1048576)
+                    line = 'Longitude; ' + str(int) + '\n'
                     self.writeFile.write(line)
                 if i == 6:
                     lat = self.tab[41][j]

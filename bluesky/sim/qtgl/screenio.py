@@ -10,10 +10,10 @@ except ImportError:
 
 # Local imports
 import bluesky as bs
-import nodemanager as manager
+from . import nodemanager as manager
 from bluesky import stack
-from timer import Timer
-from simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
+from .timer import Timer
+from .simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
                         SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
                         PanZoomEventType, DisplayShapeEvent
 

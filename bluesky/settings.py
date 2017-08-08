@@ -45,31 +45,31 @@ def init():
     # Create default directories if they don't exist yet
     for d in (outdir, cachedir):
         if not os.path.isdir(d):
-            print 'Creating directory "%s"' % d
+            print('Creating directory "%s"' % d)
             os.makedirs(d)
     for d in [(badasrc, badadir), (scnsrc, scndir), (plgsrc, plgdir)]:
         if not os.path.isdir(d[1]):
-            print 'Creating directory "%s", and copying default files' % d[1]
+            print('Creating directory "%s", and copying default files' % d[1])
             shutil.copytree(*d)
 
     # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
     # was started with BlueSky.py
     if not os.path.isfile(configfile):
-        print
-        print 'No config file settings.cfg found in your BlueSky starting directory!'
-        print
-        print 'This config file contains several default settings related to the simulation loop and the graphics.'
-        print 'A default version will be generated, which you can change if necessary before the next time you run BlueSky.'
-        print
+        print()
+        print('No config file settings.cfg found in your BlueSky starting directory!')
+        print()
+        print('This config file contains several default settings related to the simulation loop and the graphics.')
+        print('A default version will be generated, which you can change if necessary before the next time you run BlueSky.')
+        print()
         if gui == 'ask':
-            print 'BlueSky has several user interfaces to choose from. Please select which one to start by default.'
-            print 'You can always change this behavior by changing the settings.cfg file.'
-            print
-            print '1. QtGL:    This is the most current interface of BlueSky, but requires a graphics card that supports at least OpenGL 3.3.'
-            print '2. Pygame:  Use this version if your pc doesn\'t support OpenGL 3.3.'
+            print('BlueSky has several user interfaces to choose from. Please select which one to start by default.')
+            print('You can always change this behavior by changing the settings.cfg file.')
+            print()
+            print('1. QtGL:    This is the most current interface of BlueSky, but requires a graphics card that supports at least OpenGL 3.3.')
+            print('2. Pygame:  Use this version if your pc doesn\'t support OpenGL 3.3.')
             # print '3. Console: Run a console-only version of BlueSky. This is useful if you want to do batch simulations on a remote server.'
-            print
-            ans = input('Default UI version: ')
+            print()
+            ans = eval(input('Default UI version: '))
             if ans == 1:
                 gui = 'qtgl'
             elif ans == 2:
@@ -101,9 +101,9 @@ def init():
                 fout.write(line)
 
     else:
-        print 'Reading config from settings.cfg'
+        print('Reading config from settings.cfg')
 
-    execfile(configfile, globals())
+    exec(compile(open(configfile).read(), configfile, 'exec'), globals())
     if not gui == 'ask':
         globals()['gui'] = gui
     elif 'gui' not in globals():
@@ -121,7 +121,7 @@ def set_variable_defaults(**kwargs):
 
             This will make settings.var1 and settings.var2 available, with the
             provided default values.'''
-    for key, value in kwargs.iteritems():
+    for key, value in kwargs.items():
         if key not in globals():
             globals()[key] = value
 

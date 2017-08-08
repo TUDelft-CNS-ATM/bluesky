@@ -10,10 +10,10 @@ SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType
     PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, \
     StackInitEventType, ShowDialogEventType, DisplayFlagEventType, \
     RouteDataEventType, DisplayShapeEventType, \
-    SimQuitEventType, AMANEventType = range(1000, 1000 + NUMEVENTS)
+    SimQuitEventType, AMANEventType = list(range(1000, 1000 + NUMEVENTS))
 
 class SimStateEvent(QEvent):
-    init, op, hold, end = range(4)
+    init, op, hold, end = list(range(4))
 
     def __init__(self, state):
         super(SimStateEvent, self).__init__(SimStateEventType)

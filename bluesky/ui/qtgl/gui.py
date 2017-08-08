@@ -25,7 +25,7 @@ from .docwindow import DocWindow
 from .radarwidget import RadarWidget
 from .nd import ND
 
-print('Using Qt ' + QT_VERSION_STR + ' for windows and widgets')
+print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
 # Qt smaller than 5.6.2 needs a different approach to pinch gestures
 correct_pinch = False
@@ -54,7 +54,7 @@ class Gui(QApplication):
         for etype in range(1000, 1000 + NUMEVENTS):
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
-                print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
+                print(('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype)))
 
         self.splash = Splash()
         self.splash.show()
@@ -72,7 +72,7 @@ class Gui(QApplication):
             f.setProfile(QGLFormat.CoreProfile)
             f.setDoubleBuffer(True)
             QGLFormat.setDefaultFormat(f)
-            print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
+            print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION >= 0x050000:
@@ -88,7 +88,7 @@ class Gui(QApplication):
         try:
             self.docwin      = DocWindow(self)
         except Exception as e:
-            print 'Couldnt make docwindow:', e
+            print('Couldnt make docwindow:', e)
         # self.aman = AMANDisplay()
         gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)

@@ -30,7 +30,7 @@ from bluesky.tools.position import txt2pos, islat
 from bluesky import settings
 
 # Temporary fix for synthetic
-import synthetic as syn
+from . import synthetic as syn
 # Register settings defaults
 settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario')
 
@@ -786,7 +786,7 @@ def showhelp(cmd=''):
         table = []  # for alphabetical sort use a table
 
         # Get info for all commands
-        for item, lst in cmddict.iteritems():
+        for item, lst in cmddict.items():
             line = item + "\t"
             if len(lst) > 3:
                 line = line + lst[3]
@@ -897,7 +897,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     # The entire filename, possibly with added path and extension
     scenfile = os.path.join(path, scenname + ext)
 
-    print "Opening ", scenfile
+    print("Opening ", scenfile)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
@@ -929,7 +929,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 except:
                     if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
-                        print "except this:", line
+                        print("except this:", line)
                     pass  # nice try, we will just ignore this syntax error
 
     if mergeWithExisting:
@@ -1109,10 +1109,10 @@ def process():
         # First check command synonyms list, then in dictionary
         #----------------------------------------------------------------------
         orgcmd = cmd  # save for string cutting out of line and use of synonyms
-        if cmd in cmdsynon.keys():
+        if cmd in list(cmdsynon.keys()):
             cmd    = cmdsynon[cmd]
 
-        if cmd in cmddict.keys():
+        if cmd in list(cmddict.keys()):
             # Look up command in dictionary to get string with argtypes andhelp texts
             helptext, argtypelist, function = cmddict[cmd][:3]
 
@@ -1191,8 +1191,8 @@ def process():
                                 bs.scr.echo('Syntax error processing "' + args[curarg] + '":')
                                 bs.scr.echo(errors)
                                 bs.scr.echo(helptext)
-                                print "Error in processing arguments:"
-                                print line
+                                print("Error in processing arguments:")
+                                print(line)
 
                     curtype += 1
 
@@ -1511,7 +1511,7 @@ def makedoc():
     re_args = re.compile(r'\w+')
     if not os.path.isdir('tmp'):
         os.mkdir('tmp')
-    for name, lst in cmddict.iteritems():
+    for name, lst in cmddict.items():
         if not os.path.isfile('data/html/%s.html' % name.lower()):
             with open('tmp/%s.md' % name.lower(), 'w') as f:
                 f.write('# %s: %s\n' % (name, name.capitalize()) +

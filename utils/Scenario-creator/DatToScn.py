@@ -12,7 +12,7 @@ class DatToScn:
 
     def __init__(self, datalocation):
         self.datalocation = datalocation
-        print self.datalocation
+        print(self.datalocation)
         self.f = open(self.datalocation, 'r')
         self.lines = self.f.readlines()
         self.f.close()
@@ -75,7 +75,7 @@ class DatToScn:
             i = i + 18
 
         self.altitudeArray = np.array(self.altitudeArray)
-        print self.altitudeArray
+        print(self.altitudeArray)
         self.posTimeArray = []
         i = 8
         while i < len(self.sortedListValue):
@@ -140,14 +140,14 @@ class DatToScn:
             i = i + 18
 
         k = 0
-        self.tempTime = range(len(self.posTimeArray))
+        self.tempTime = list(range(len(self.posTimeArray)))
         while k < len(self.posTimeArray):
             self.tempTime[k] = datetime.strptime(self.posTimeArray[k], '%Y-%m-%d %H:%M:%S')
             k = k + 1
 
-        self.unsortedTimeDict = dict(zip(range(len(self.posTimeArray)), self.tempTime))
-        self.sortedDict = sorted(self.unsortedTimeDict.items(), key=itemgetter(1))
-        self.sortedIndexes = range(len(self.sortedDict))
+        self.unsortedTimeDict = dict(list(zip(list(range(len(self.posTimeArray))), self.tempTime)))
+        self.sortedDict = sorted(list(self.unsortedTimeDict.items()), key=itemgetter(1))
+        self.sortedIndexes = list(range(len(self.sortedDict)))
         i = 0
         while i < len(self.sortedIndexes):
             temp = self.sortedDict[i]
@@ -172,7 +172,7 @@ class DatToScn:
         self.gnssArray = self.orderListToTime(self.gnssArray, self.sortedIndexes)
         self.nucrArray = self.orderListToTime(self.nucrArray, self.sortedIndexes)
         self.typecodeArray = self.orderListToTime(self.typecodeArray, self.sortedIndexes)
-        print 'Creating scenario file...'
+        print('Creating scenario file...')
         scnFileName = 'tempData/ScenarioFile'
         self.writeFile = open(scnFileName + '.scn', 'w')
         self.createdAircraft = list()
@@ -207,7 +207,7 @@ class DatToScn:
                     try:
                         self.createdAircraft.remove(acid)
                     except:
-                        print 'Error: A/C could not be deleted from createdAircraft()' + acid
+                        print('Error: A/C could not be deleted from createdAircraft()' + acid)
 
             elif self.latitudeArray[i] == 0:
                 self.acIgnored = self.AcIgnoreCheck(i)
@@ -228,7 +228,7 @@ class DatToScn:
                     try:
                         self.createdAircraft.remove(acid)
                     except:
-                        print 'Error: A/C removal' + acid
+                        print('Error: A/C removal' + acid)
 
             elif self.groundSpeedArray[i] == 0:
                 self.acIgnored = self.AcIgnoreCheck(i)
@@ -248,7 +248,7 @@ class DatToScn:
                     try:
                         self.createdAircraft.remove(acid)
                     except:
-                        print 'Error: A/C removal' + acid
+                        print('Error: A/C removal' + acid)
 
             elif self.groundSpeedArray[i] != 0 and self.latitudeArray != 0:
                 self.acIgnored = self.AcIgnoreCheck(i)
@@ -274,14 +274,14 @@ class DatToScn:
                     try:
                         self.createdAircraft.remove(acid)
                     except:
-                        print 'Error: A/C removal' + acid
+                        print('Error: A/C removal' + acid)
 
             i = i + 1
 
-        print 'Scenario file created'
+        print('Scenario file created')
 
     def orderListToTime(self, listToBeOrdered, listWithSortedIndexes):
-        orderedList = range(len(listWithSortedIndexes))
+        orderedList = list(range(len(listWithSortedIndexes)))
         i = 0
         while i < len(listWithSortedIndexes):
             index = listWithSortedIndexes[i]

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import bluesky as bs
-from misc import txt2lat, txt2lon
+from .misc import txt2lat, txt2lon
 
 def txt2pos(name, reflat, reflon):
     pos = Position(name.upper().strip(), reflat, reflon)

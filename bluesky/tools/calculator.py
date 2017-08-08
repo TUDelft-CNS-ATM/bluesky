@@ -5,12 +5,12 @@
 from math import *      # Make all math function available for calculator
 
 # Cater for use of some geo functions
-from geo import latlondist as dist
-from geo import rwgs84 as wgs84
-from geo import kwikdist,kwikqdrdist,qdrdist,qdrpos,rwgs84,latlondist
+from .geo import latlondist as dist
+from .geo import rwgs84 as wgs84
+from .geo import kwikdist,kwikqdrdist,qdrdist,qdrpos,rwgs84,latlondist
 
 # And for conversion lat/lon formats
-from misc import latlon2txt,lat2txt,lon2txt
+from .misc import latlon2txt,lat2txt,lon2txt
 
 # Some special functions for calculator:
 

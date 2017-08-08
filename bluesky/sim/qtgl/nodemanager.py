@@ -9,8 +9,8 @@ except ImportError:
 import bluesky as bs
 from bluesky import stack
 from bluesky.tools import plugin
-from timer import Timer
-from simevents import SetNodeIdType, SetActiveNodeType, AddNodeType
+from .timer import Timer
+from .simevents import SetNodeIdType, SetActiveNodeType, AddNodeType
 # import faulthandler
 # faulthandler.enable()
 
@@ -27,7 +27,7 @@ def run():
     stack.init()
     bs.sim.doWork()
     connection.close()
-    print 'Node', nodeid, 'stopped.'
+    print('Node', nodeid, 'stopped.')
 
 
 def close():
