@@ -13,7 +13,7 @@ from screenio import ScreenIO
 from simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
 from bluesky import settings, stack
-from bluesky.traf import Metric
+# from bluesky.traf import Metric
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
 
@@ -63,7 +63,7 @@ class Simulation(QObject):
         self.ffstop      = None
 
         # Additional modules
-        self.metric      = Metric()
+        # self.metric      = Metric()
 
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
@@ -102,7 +102,7 @@ class Simulation(QObject):
                 bs.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-                self.metric.update()
+                # self.metric.update()
 
                 # Update plugins
                 plugin.update(self.simt)

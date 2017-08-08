@@ -416,12 +416,12 @@ def init():
             bs.traf.mcreate,
             "Multiple random create of n aircraft in current view"
         ],
-        "METRIC": [
-            "METRIC OFF/0/1/2, [dt]",
-            "onoff/int,[float]",
-            bs.sim.metric.toggle,
-            "Complexity metrics module"
-        ],
+        # "METRIC": [
+        #     "METRIC OFF/0/1/2, [dt]",
+        #     "onoff/int,[float]",
+        #     bs.sim.metric.toggle,
+        #     "Complexity metrics module"
+        # ],
         "MOVE": [
             "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
             "acid,latlon,[alt,hdg,spd,vspd]",

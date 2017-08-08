@@ -1,5 +1,12 @@
 # -*- mode: python -*-
 
+# For QtWebEngine to properly install on mac:
+# use macports version of python and pyinstaller 3.2.1
+# build with: /opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/pyinstaller -w --onedir BlueSky.spec
+# Afterwards copy the following into the bundle:
+# /opt/local/libexec/qt5/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app to BlueSky.app/Contents/MacOS
+# /opt/local/libexec/qt5/lib/QtWebEngineCore.framework/Resources/* to BlueSky.app/Contents/Resources
+
 block_cipher = None
 
 
@@ -16,7 +23,7 @@ a = Analysis(['BlueSky.py'],
                     ('data/default.cfg', 'data'),
                     ('scenario', 'scenario'),
                     ('plugins/*.py', 'plugins')],
-             hiddenimports=['bluesky.ui.qtgl.console', 'PyQt5.QtWebEngineWidgets', 'PyQt5.QtCore', 'PyQt5.QtGui'],
+             hiddenimports=['bluesky.ui.qtgl.console'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -45,4 +52,4 @@ app = BUNDLE(coll,
              name='BlueSky.app',
              icon='data/graphics/bluesky.icns',
              info_plist={'NSHighResolutionCapable': 'True'},
-             bundle_identifier=None)
+             bundle_identifier='org.qt-project.Qt.QtWebEngineCore')
