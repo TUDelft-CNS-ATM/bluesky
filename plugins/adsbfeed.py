@@ -251,7 +251,7 @@ class Modesbeast(TcpSocket):
 
     def debug(self):
         addlist = str.join(', ', self.acpool.keys())
-        print addlist
+        print(addlist)
         print("")
         print("total count: %d" % len(self.acpool.keys()))
         return

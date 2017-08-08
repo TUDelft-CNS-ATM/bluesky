@@ -22,7 +22,7 @@ active     = True
 
 def run():
     global connection
-    connection = Client(('localhost', 6000), authkey='bluesky')
+    connection = Client(('localhost', 6000), authkey=b'bluesky')
     plugin.init()
     stack.init()
     bs.sim.doWork()

@@ -210,7 +210,7 @@ if settings.gui == 'qtgl':
                 if count % 1000 == 0:
                     pb.update((bytecount / fsize * 100.0))
 
-                elems = line.strip().split()
+                elems = line.decode(encoding="ascii", errors="surrogateescape").strip().split()
                 if len(elems) == 0:
                     continue
 

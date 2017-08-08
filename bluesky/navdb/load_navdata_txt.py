@@ -21,7 +21,7 @@ def load_navdata_txt():
     wptdata['wpdesc']  = []              # description
 
 
-    with open(os.path.join(settings.navdata_path, 'nav.dat'), 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'nav.dat'), 'r', encoding="ascii", errors="surrogateescape") as f:
         print("Reading nav.dat")
 
         for line in f:
@@ -99,7 +99,7 @@ def load_navdata_txt():
                 wptdata['wpdesc'].append("   ")  # Description
 
     #----------  Read  fix.dat file ----------
-    with open(os.path.join(settings.navdata_path, 'fix.dat'), 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'fix.dat'), 'r', encoding="ascii", errors="surrogateescape") as f:
         print("Reading fix.dat")
         for line in f:
             line = line.strip()
@@ -150,7 +150,7 @@ def load_navdata_txt():
     awydata['awupfl']      = []              # highest flight level (int)
 
 
-    with open(os.path.join(settings.navdata_path, 'awy.dat'), 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'awy.dat'), 'r', encoding="ascii", errors="surrogateescape") as f:
         print("Reading awy.dat")
 
         for line in f:
@@ -160,7 +160,7 @@ def load_navdata_txt():
                 continue
 
             fields = line.split()
-            if fields<9:
+            if len(fields) < 10:
                 continue
 
             # Example line
@@ -218,7 +218,7 @@ def load_navdata_txt():
     aptdata['aptype']    = []              # type (int, 1=large, 2=medium, 3=small)
     aptdata['apco']      = []              # two char country code (string)
     aptdata['apelev']    = []              # field elevation ft-> m
-    with open(os.path.join(settings.navdata_path, 'airports.dat'), 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'airports.dat'), 'r', encoding="ascii", errors="surrogateescape") as f:
         types = {'L': 1, 'M': 2, 'S': 3}
         for line in f:
             line = line.strip()
@@ -282,7 +282,7 @@ def load_navdata_txt():
             firname = filname[:filname.index(".txt")]
             firdata['fir'].append([firname, [], []])
 
-            with open(os.path.join(settings.navdata_path, 'fir/' + filname), 'r') as f:
+            with open(os.path.join(settings.navdata_path, 'fir/' + filname), 'r', encoding="ascii", errors="surrogateescape") as f:
                 for line in f:
                     rec = line.upper().strip()
 
@@ -324,7 +324,7 @@ def load_navdata_txt():
     codata['cocode2']  = []              # 2 char code
     codata['cocode3']  = []              # 3 char code
     codata['conr']     = []              # country nr
-    with open(os.path.join(settings.navdata_path, 'icao-countries.dat'), 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'icao-countries.dat'), 'r', encoding="ascii", errors="surrogateescape") as f:
         for line in f:
             line = line.strip()
             # Skip empty lines or comments
