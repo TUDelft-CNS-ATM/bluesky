@@ -2,7 +2,7 @@
 import time
 import socket
 import threading
-from bluesky import settings, stack
+from bluesky import settings
 
 if settings.gui == 'qtgl':
     try:
@@ -113,7 +113,7 @@ elif settings.gui == 'pygame':
                     self.processData(data)
                     time.sleep(0.1)
                 except Exception as err:
-                    print("Revecier Error: %s" % err)
+                    print("Receiver Error: %s" % err)
                     time.sleep(1.0)
 
         def processData(self, data):
@@ -132,8 +132,16 @@ elif settings.gui == 'pygame':
 
 
 class StackTelnetServer(TcpServer):
+    @staticmethod
+    def dummy_process(cmd):
+        pass
+
     def __init__(self):
         super(StackTelnetServer, self).__init__()
+        self.process = StackTelnetServer.dummy_process
+
+    def connect(self, fun):
+        self.process = fun
 
     def processData(self, sender_id, data):
-        stack.stack(str(data).strip())
+        self.process(bytearray(data).decode(encoding='ascii', errors='ignore').strip())

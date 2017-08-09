@@ -49,6 +49,9 @@ def MainLoop():
         # Initialize the gui (loading graphics data, etc.)
         gui.init()
 
+        # Connect gui stack command to telnet_in
+        telnet_in.connect(gui.win.console.stack)
+
         # Start the node manager
         manager.start()
 

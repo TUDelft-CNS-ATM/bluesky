@@ -1078,7 +1078,6 @@ def saveic(fname):
 
 def process():
     """process and empty command stack"""
-    global cmdstack
 
     # Process stack of commands
     for line in cmdstack:
@@ -1245,7 +1244,7 @@ def process():
         #**********************************************************************
 
     # End of for-loop of cmdstack
-    cmdstack = []
+    cmdstack.clear()
     return
 
 
