@@ -43,7 +43,7 @@ class Menu:
             data = image.tobytes()
 
             surface = pg.transform.smoothscale(pg.image.frombuffer(data, size, mode),
-                                         (width/2,height/2))
+                                         (int(width/2),int(height/2)))
 
             rect = surface.get_rect()
             pg.draw.rect(surface, white, rect,1)
