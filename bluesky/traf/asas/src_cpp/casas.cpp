@@ -49,7 +49,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
             pll2->init(*lat2.ptr * DEG2RAD, *lon2.ptr * DEG2RAD);
             lat2.ptr++; lon2.ptr++; pll2++;
         }
-        
+
         for (unsigned int i = 0; i < size; ++i) {
             ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
             pll2 = ll2.begin();
@@ -61,7 +61,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                     dvs  = *vs1.ptr  - *vs2.ptr;
                     if (detect_ver(dbconf, confver, dalt, dvs)) {
                         // Horizontal detection
-                        if (detect_hor(dbconf, confhor, 
+                        if (detect_hor(dbconf, confhor,
                                        ll1,   *gs1.ptr, *trk1.ptr * DEG2RAD,
                                        *pll2, *gs2.ptr, *trk2.ptr * DEG2RAD)) {
                             tin  = std::max(confhor.tin, confver.tin);
@@ -107,8 +107,25 @@ static PyMethodDef methods[] = {
 #ifndef PyMODINIT_FUNC  /* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
-PyMODINIT_FUNC initcasas(void) 
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef casasdef =
+{
+    PyModuleDef_HEAD_INIT,
+    "casas",     /* name of module */
+    "",          /* module documentation, may be NULL */
+    -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    methods
+};
+
+PyMODINIT_FUNC PyInit_casas(void)
+{
+    import_array();
+    return PyModule_Create(&casasdef);
+};
+#else
+PyMODINIT_FUNC initcasas(void)
 {
     Py_InitModule("casas", methods);
     import_array();
-}
+};
+#endif
