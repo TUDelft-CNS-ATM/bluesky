@@ -69,7 +69,7 @@ def init():
             print('2. Pygame:  Use this version if your pc doesn\'t support OpenGL 3.3.')
             # print '3. Console: Run a console-only version of BlueSky. This is useful if you want to do batch simulations on a remote server.'
             print()
-            ans = eval(input('Default UI version: '))
+            ans = int(input('Default UI version: '))
             if ans == 1:
                 gui = 'qtgl'
             elif ans == 2:
