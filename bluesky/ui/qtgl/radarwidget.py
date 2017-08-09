@@ -181,7 +181,7 @@ class RadarWidget(QGLWidget):
         if len(nact.polydata) > 0:
             update_buffer(self.allpolysbuf, nact.polydata)
 
-        self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+        self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
 
         # Update trail buffer after node change
         update_buffer(self.trailbuf, np.array(
@@ -340,7 +340,8 @@ class RadarWidget(QGLWidget):
             if len(wptid[0]) <= 3:
                 self.nnavaids += 1
             wptids += wptid[0].ljust(5)
-        self.wptlabels = self.font.prepare_text_instanced(np.array(wptids, dtype=np.string_), (5, 1), self.wptlatbuf, self.wptlonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        npwpids = np.array(wptids.encode(encoding="ascii", errors="ignore"), dtype=np.string_)
+        self.wptlabels = self.font.prepare_text_instanced(npwpids, (5, 1), self.wptlatbuf, self.wptlonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         self.wptlabels.bind_color(lightblue4)
         del wptids
         self.customwp  = RenderObject(gl.GL_LINE_LOOP, vertex=wptvertices, color=lightblue3)
@@ -427,8 +428,10 @@ class RadarWidget(QGLWidget):
             return
 
         # create all vertex array objects
+        self.create_objects()
         try:
-            self.create_objects()
+            pass
+            # self.create_objects()
         except Exception as e:
             print('Error while creating RadarWidget objects: ' + e.args[0])
 
@@ -590,7 +593,7 @@ class RadarWidget(QGLWidget):
         origin = (width / 2, height / 2)
 
         # Update width, height, and aspect ratio
-        self.width, self.height = width / pixel_ratio, height / pixel_ratio
+        self.width, self.height = int(width / pixel_ratio), int(height / pixel_ratio)
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
 
@@ -831,7 +834,7 @@ class RadarWidget(QGLWidget):
         if manager.sender()[0] == self.iactconn:
             self.makeCurrent()
             update_buffer(self.allpolysbuf, nact.polydata)
-            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+            self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
 
     def cmdline_stacked(self, cmd, args):
         if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
@@ -855,7 +858,7 @@ class RadarWidget(QGLWidget):
         else:
             data = np.array(data_in, dtype=np.float32)
         update_buffer(self.polyprevbuf, data)
-        self.polyprev.set_vertex_count(len(data) / 2)
+        self.polyprev.set_vertex_count(int(len(data) / 2))
 
     def airportsInRange(self):
         ll_range = max(1.5 / self.zoom, 1.0)

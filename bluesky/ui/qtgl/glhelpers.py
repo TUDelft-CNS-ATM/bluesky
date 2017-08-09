@@ -159,7 +159,7 @@ class RenderObject(object):
             self.colorbuf = self.bind_color(color)
 
     def set_vertex_count(self, count):
-        self.vertex_count = count
+        self.vertex_count = int(count)
 
     def set_first_vertex(self, vertex):
         self.first_vertex = vertex
@@ -197,11 +197,11 @@ class RenderObject(object):
         return buf_id
 
     def bind_texcoords(self, data, *args, **kwargs):
-        size = kwargs['size'] if 'size' in kwargs else data.size / self.vertex_count
+        size = kwargs['size'] if 'size' in kwargs else int(data.size / self.vertex_count)
         self.bind_attrib(self.attrib_texcoords, size, data, *args, **kwargs)
 
     def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
-        self.vertex_count = np.size(data) / 2 if vertex_count == 0 else vertex_count
+        self.vertex_count = int(np.size(data) / 2) if vertex_count == 0 else vertex_count
         self.bind_attrib(self.attrib_vertex, 2, data, *args, **kwargs)
 
     def bind_color(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0):

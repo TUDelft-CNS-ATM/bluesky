@@ -35,7 +35,7 @@ def load_coastline_txt():
     coastlon = coastvertices[:, 1]
     for i in range(0, 360):
         coastindices[i] = np.searchsorted(coastlon, i - 180) * 2
-    coastvertices.resize((coastvertices.size / 2, 2))
+    coastvertices.resize((int(coastvertices.size / 2), 2))
     del coast
     return coastvertices, coastindices
 
@@ -210,7 +210,7 @@ if settings.gui == 'qtgl':
                 if count % 1000 == 0:
                     pb.update((bytecount / fsize * 100.0))
 
-                elems = line.decode(encoding="ascii", errors="surrogateescape").strip().split()
+                elems = line.decode(encoding="ascii", errors="ignore").strip().split()
                 if len(elems) == 0:
                     continue
 
@@ -227,9 +227,9 @@ if settings.gui == 'qtgl':
                     if asphalt.bufsize() > start_indices[0] or concrete.bufsize() > start_indices[1]:
                         apt_indices.append( [
                                                 start_indices[0],
-                                                asphalt.bufsize() / 2 - start_indices[0],
+                                                int(asphalt.bufsize() / 2) - start_indices[0],
                                                 start_indices[1],
-                                                concrete.bufsize() / 2 - start_indices[1]
+                                                int(concrete.bufsize() / 2) - start_indices[1]
                                             ])
 
                         center = apt_bb.center()
@@ -335,9 +335,9 @@ if settings.gui == 'qtgl':
         if asphalt.bufsize() > start_indices[0] or concrete.bufsize() > start_indices[1]:
             apt_indices.append( [
                                     start_indices[0],
-                                    asphalt.bufsize() / 2 - start_indices[0],
+                                    int(asphalt.bufsize() / 2) - start_indices[0],
                                     start_indices[1],
-                                    concrete.bufsize() / 2 - start_indices[1]
+                                    int(concrete.bufsize() / 2) - start_indices[1]
                                 ])
 
             center = apt_bb.center()
