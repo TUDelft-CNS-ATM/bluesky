@@ -1,5 +1,5 @@
 from numpy import arctan2,degrees,array,sqrt # to allow arrays, their functions and types
-from windfield import *
+from .windfield import *
 from bluesky.tools.aero import kts
 
 class WindSim(Windfield):

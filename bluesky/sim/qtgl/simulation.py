@@ -8,9 +8,9 @@ import time
 
 # Local imports
 import bluesky as bs
-import nodemanager as manager
-from screenio import ScreenIO
-from simevents import StackTextEventType, BatchEventType, BatchEvent, \
+from . import nodemanager as manager
+from .screenio import ScreenIO
+from .simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
 from bluesky import settings, stack
 # from bluesky.traf import Metric
@@ -24,7 +24,7 @@ settings.set_variable_defaults(simdt=0.05)
 
 class Simulation(QObject):
     # simulation modes
-    init, op, hold, end = range(4)
+    init, op, hold, end = list(range(4))
 
     # =========================================================================
     # Functions
@@ -70,7 +70,7 @@ class Simulation(QObject):
         self.fixdt = self.simdt
 
         # Send list of stack functions available in this sim to gui at start
-        stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.iteritems()}
+        stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
         manager.sendEvent(StackInitEvent(stackdict))
 
         while self.running:

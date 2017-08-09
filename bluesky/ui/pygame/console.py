@@ -1,5 +1,5 @@
 import pygame as pg
-from fastfont import Fastfont
+from .fastfont import Fastfont
 
 black = (0, 0, 0)
 white    = (255,255,255)

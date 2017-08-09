@@ -7,8 +7,8 @@ if not settings.node_only:
     from bluesky.ui.qtgl import Gui
     from bluesky.tools.network import StackTelnetServer
     if __name__ == "__main__":
-        print "   *****   BlueSky Open ATM simulator *****"
-        print "Distributed under GNU General Public License v3"
+        print("   *****   BlueSky Open ATM simulator *****")
+        print("Distributed under GNU General Public License v3")
 
 
 # Global gui object for easy access in interactive python shell
@@ -58,7 +58,7 @@ def MainLoop():
         # Start the gui
         gui.start()
 
-        print 'Stopping telnet server.'
+        print('Stopping telnet server.')
         telnet_in.close()
 
         # Close the manager, stop all nodes
@@ -69,7 +69,7 @@ def MainLoop():
         # variables in the shell.
         # ======================================================================
         del gui
-        print 'BlueSky normal end.'
+        print('BlueSky normal end.')
 
 
 if __name__ == "__main__":

@@ -1,1 +1,1 @@
-from stack import *
+from .stack import *

@@ -44,7 +44,7 @@ class Keyboard:
 
                 # Alphanumeric key
                 if event.key>31 and event.key<127:
-                    bs.scr.editwin.insert(str(event.unicode).upper())
+                    bs.scr.editwin.insert(str(event.str).upper())
 
                 elif event.key==13: # ENTER
                     cmdline = bs.scr.editwin.getline()

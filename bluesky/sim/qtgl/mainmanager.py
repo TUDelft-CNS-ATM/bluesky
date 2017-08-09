@@ -13,7 +13,7 @@ except ImportError:
 
 # Local imports
 from bluesky import settings
-from simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
+from .simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
     BatchEvent, StackTextEvent, SimQuitEvent, SetNodeIdType, \
     SetActiveNodeType, AddNodeType
 
@@ -23,7 +23,7 @@ settings.set_variable_defaults(max_nnodes=cpu_count())
 
 def split_scenarios(scentime, scencmd):
     start = 0
-    for i in xrange(1, len(scencmd) + 1):
+    for i in range(1, len(scencmd) + 1):
         if i == len(scencmd) or scencmd[i][:4] == 'SCEN':
             scenname = scencmd[start].split()[1].strip()
             yield (scenname, scentime[start:i], scencmd[start:i])
@@ -46,7 +46,7 @@ class MainManager(QObject):
 
     def __init__(self):
         super(MainManager, self).__init__()
-        print 'Initializing multi-process simulation'
+        print('Initializing multi-process simulation')
         MainManager.instance = self
         self.scenarios       = []
         self.connections     = []
@@ -56,7 +56,7 @@ class MainManager(QObject):
         self.activenode      = 0
         self.sender_id       = None
         self.stopping        = False
-        self.listener        = Listener(('localhost', 6000), authkey='bluesky')
+        self.listener        = Listener(('localhost', 6000), authkey=b'bluesky')
 
     def receiveFromNodes(self):
         # Only look for incoming data if we're not quitting
@@ -175,11 +175,11 @@ class MainManager(QObject):
         self.addNode()
 
     def stop(self):
-        print 'Stopping simulation processes...'
+        print('Stopping simulation processes...')
         self.stopping = True
         # Tell each process to quit
         quitevent = (SimQuitEventType, SimQuitEvent())
-        print 'Stopping nodes:'
+        print('Stopping nodes:')
         for conn in self.connections:
             conn[0].send(quitevent)
 
@@ -189,7 +189,7 @@ class MainManager(QObject):
 
         for conn in self.connections:
             conn[0].close()
-        print 'Done.'
+        print('Done.')
 
     @classmethod
     def sendEvent(cls, event):

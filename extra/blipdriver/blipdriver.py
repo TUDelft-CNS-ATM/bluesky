@@ -23,7 +23,7 @@ yellow               = (255, 255, 0)
 green                = (0,   255, 0)
 lightblue2           = (148, 178, 235)
 lightblue3           = (220, 250, 255)
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = range(4)
+VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = list(range(4))
 
 
 def load_lcd_font():
@@ -81,7 +81,7 @@ def check_knob(px, py):
         'VS' :      ( 0.432,  0.476, -0.825, 0.2),
         'COURSER' : ( 0.84,   0.92,  -0.325, 0.13)
     }
-    for name, dims in knobs.iteritems():
+    for name, dims in knobs.items():
         if dims[0] <= px <= dims[1] and dims[2] <= py <= dims[3]:
             return name[:6], (0.5 * (dims[0] + dims[1]), 0.5 * (dims[2] + dims[3]))
     return None, None
@@ -473,7 +473,7 @@ if __name__ == "__main__":
         f.setProfile(QGLFormat.CoreProfile)
         f.setDoubleBuffer(True)
         QGLFormat.setDefaultFormat(f)
-        print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
+        print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
     blip = BlipDriver()
     blip.show()

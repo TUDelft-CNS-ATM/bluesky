@@ -70,7 +70,7 @@ def checksum(msg):
     checksum = int(msg[22:28], 16)
 
     crc = 0
-    for i in xrange(len(msgbin)):
+    for i in range(len(msgbin)):
         if int(msgbin[i]):
             crc ^= MODES_CHECKSUM_TABLE[i+offset]
 

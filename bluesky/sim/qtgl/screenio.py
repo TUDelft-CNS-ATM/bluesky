@@ -10,10 +10,10 @@ except ImportError:
 
 # Local imports
 import bluesky as bs
-import nodemanager as manager
+from . import nodemanager as manager
 from bluesky import stack
-from timer import Timer
-from simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
+from .timer import Timer
+from .simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
                         SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
                         PanZoomEventType, DisplayShapeEvent
 
@@ -54,11 +54,11 @@ class ScreenIO(QObject):
         self.slow_timer.timeout.connect(self.send_siminfo)
         self.slow_timer.timeout.connect(self.send_aman_data)
         self.slow_timer.timeout.connect(self.send_route_data)
-        self.slow_timer.start(1000 / self.siminfo_rate)
+        self.slow_timer.start(int(1000 / self.siminfo_rate))
 
         self.fast_timer = Timer()
         self.fast_timer.timeout.connect(self.send_aircraft_data)
-        self.fast_timer.start(1000 / self.acupdate_rate)
+        self.fast_timer.start(int(1000 / self.acupdate_rate))
 
     def update(self):
         if bs.sim.state == bs.sim.op:

@@ -10,16 +10,16 @@ from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
 
 from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
-from windsim import WindSim
+from .windsim import WindSim
 
-from trails import Trails
-from adsbmodel import ADSB
-from asas import ASAS
-from pilot import Pilot
-from autopilot import Autopilot
-from activewpdata import ActiveWaypoint
-from turbulence import Turbulence
-from area import Area
+from .trails import Trails
+from .adsbmodel import ADSB
+from .asas import ASAS
+from .pilot import Pilot
+from .autopilot import Autopilot
+from .activewpdata import ActiveWaypoint
+from .turbulence import Turbulence
+from .area import Area
 
 from bluesky import settings
 
@@ -28,16 +28,16 @@ settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1
 
 try:
     if settings.performance_model == 'bluesky':
-        print 'Using BlueSky performance model'
-        from perf import Perf
+        print('Using BlueSky performance model')
+        from .perf import Perf
 
     elif settings.performance_model == 'bada':
-        from perfbada import PerfBADA as Perf
+        from .perfbada import PerfBADA as Perf
 
 except ImportError as err:
-    print err.args[0]
-    print 'Falling back to BlueSky performance model'
-    from perf import Perf
+    print(err.args[0])
+    print('Falling back to BlueSky performance model')
+    from .perf import Perf
 
 
 class Traffic(DynamicArrays):
@@ -187,7 +187,7 @@ class Traffic(DynamicArrays):
         acalts = []
         acspds = []
 
-        for i in xrange(count):
+        for i in range(count):
             acids.append((idbase + '%05d' % i).upper())
             aclats.append(random() * (area[1] - area[0]) + area[0])
             aclons.append(random() * (area[3] - area[2]) + area[2])
@@ -628,7 +628,7 @@ class Traffic(DynamicArrays):
                     ico = -1
                     lines = lines + "Country code: "+bs.navdb.aptco[iap]
                 try:
-                    rwytxt = str(bs.navdb.rwythresholds[bs.navdb.aptid[iap]].keys())
+                    rwytxt = str(list(bs.navdb.rwythresholds[bs.navdb.aptid[iap]].keys()))
                     lines = lines + "\nRunways: " +rwytxt.strip("[]").replace("'","")
                 except:
                     pass

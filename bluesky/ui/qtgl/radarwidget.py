@@ -50,9 +50,9 @@ grey                  = (100, 100, 100)
 white                 = (255, 255, 255)
 lightgrey             = (160, 160, 160)
 
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = range(3)
-ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = range(7)
-ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = range(11)
+VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
+ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = list(range(7))
+ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = list(range(11))
 
 
 class nodeData(object):
@@ -181,19 +181,19 @@ class RadarWidget(QGLWidget):
         if len(nact.polydata) > 0:
             update_buffer(self.allpolysbuf, nact.polydata)
 
-        self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+        self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
 
         # Update trail buffer after node change
         update_buffer(self.trailbuf, np.array(
-              zip(nact.traillat0, nact.traillon0,
-                  nact.traillat1, nact.traillon1), dtype=np.float32))
+              list(zip(nact.traillat0, nact.traillon0,
+                  nact.traillat1, nact.traillon1)), dtype=np.float32))
 
         self.traillines.set_vertex_count(4 * len(nact.traillat0))
 
     def create_objects(self):
         if not self.isValid():
             self.invalid_count += 1
-            print 'Radarwidget: Context not valid in create_objects, count=%d' % self.invalid_count
+            print('Radarwidget: Context not valid in create_objects, count=%d' % self.invalid_count)
             QTimer.singleShot(100, self.create_objects)
             return
 
@@ -212,11 +212,11 @@ class RadarWidget(QGLWidget):
 
         # Load and bind world texture
         max_texture_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
-        print 'Maximum supported texture size: %d' % max_texture_size
+        print('Maximum supported texture size: %d' % max_texture_size)
         for i in [16384, 8192, 4096]:
             if max_texture_size >= i:
                 fname = path.join(settings.gfx_path, 'world.%dx%d.dds' % (i, i / 2))
-                print 'Loading texture ' + fname
+                print('Loading texture ' + fname)
                 self.map_texture = self.bindTexture(fname)
                 break
 
@@ -340,7 +340,8 @@ class RadarWidget(QGLWidget):
             if len(wptid[0]) <= 3:
                 self.nnavaids += 1
             wptids += wptid[0].ljust(5)
-        self.wptlabels = self.font.prepare_text_instanced(np.array(wptids, dtype=np.string_), (5, 1), self.wptlatbuf, self.wptlonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        npwpids = np.array(wptids.encode(encoding="ascii", errors="ignore"), dtype=np.string_)
+        self.wptlabels = self.font.prepare_text_instanced(npwpids, (5, 1), self.wptlatbuf, self.wptlonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         self.wptlabels.bind_color(lightblue4)
         del wptids
         self.customwp  = RenderObject(gl.GL_LINE_LOOP, vertex=wptvertices, color=lightblue3)
@@ -388,7 +389,7 @@ class RadarWidget(QGLWidget):
         # First check for supported GL version
         gl_version = float(gl.glGetString(gl.GL_VERSION)[:3])
         if gl_version < 3.3:
-            print('OpenGL context created with GL version %.1f' % gl_version)
+            print(('OpenGL context created with GL version %.1f' % gl_version))
             qCritical("""Your system reports that it supports OpenGL up to version %.1f. The minimum requirement for BlueSky is OpenGL 3.3.
                 Generally, AMD/ATI/nVidia cards from 2008 and newer support OpenGL 3.3, and Intel integrated graphics from the Haswell
                 generation and newer. If you think your graphics system should be able to support GL>=3.3 please open an issue report
@@ -422,15 +423,17 @@ class RadarWidget(QGLWidget):
             self.ssd_shader.loc_nac = gl.glGetUniformLocation(self.ssd_shader.program, 'n_ac')
 
         except RuntimeError as e:
-            print 'Error compiling shaders in radarwidget: ' + e.args[0]
+            print('Error compiling shaders in radarwidget: ' + e.args[0])
             qCritical('Error compiling shaders in radarwidget: ' + e.args[0])
             return
 
         # create all vertex array objects
+        self.create_objects()
         try:
-            self.create_objects()
+            pass
+            # self.create_objects()
         except Exception as e:
-            print 'Error while creating RadarWidget objects: ' + e.args[0]
+            print('Error while creating RadarWidget objects: ' + e.args[0])
 
     def paintGL(self):
         """Paint the scene."""
@@ -590,7 +593,7 @@ class RadarWidget(QGLWidget):
         origin = (width / 2, height / 2)
 
         # Update width, height, and aspect ratio
-        self.width, self.height = width / pixel_ratio, height / pixel_ratio
+        self.width, self.height = int(width / pixel_ratio), int(height / pixel_ratio)
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
 
@@ -726,10 +729,10 @@ class RadarWidget(QGLWidget):
                 nact.traillat1.extend(data.traillat1)
                 nact.traillon1.extend(data.traillon1)
                 update_buffer(self.trailbuf, np.array(
-                              zip(nact.traillat0, nact.traillon0,
-                                  nact.traillat1, nact.traillon1) +
-                              zip(data.traillastlat, data.traillastlon,
-                                  list(data.lat), list(data.lon)),
+                              list(zip(nact.traillat0, nact.traillon0,
+                                  nact.traillat1, nact.traillon1)) +
+                              list(zip(data.traillastlat, data.traillastlon,
+                                  list(data.lat), list(data.lon))),
                                        dtype=np.float32))
 
                 self.traillines.set_vertex_count(2 * len(nact.traillat0) +
@@ -812,7 +815,7 @@ class RadarWidget(QGLWidget):
         if name in nact.polynames:
             # We're either updating a polygon, or deleting it. In both cases
             # we remove the current one.
-            nact.polydata = np.delete(nact.polydata, range(*nact.polynames[name]))
+            nact.polydata = np.delete(nact.polydata, list(range(*nact.polynames[name])))
             del nact.polynames[name]
 
         # Break up polyline list of (lat,lon)s into separate line segments
@@ -831,7 +834,7 @@ class RadarWidget(QGLWidget):
         if manager.sender()[0] == self.iactconn:
             self.makeCurrent()
             update_buffer(self.allpolysbuf, nact.polydata)
-            self.allpolys.set_vertex_count(len(nact.polydata) / 2)
+            self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
 
     def cmdline_stacked(self, cmd, args):
         if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
@@ -855,7 +858,7 @@ class RadarWidget(QGLWidget):
         else:
             data = np.array(data_in, dtype=np.float32)
         update_buffer(self.polyprevbuf, data)
-        self.polyprev.set_vertex_count(len(data) / 2)
+        self.polyprev.set_vertex_count(int(len(data) / 2))
 
     def airportsInRange(self):
         ll_range = max(1.5 / self.zoom, 1.0)

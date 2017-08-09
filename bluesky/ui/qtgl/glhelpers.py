@@ -136,7 +136,7 @@ class BlueSkyProgram():
 class RenderObject(object):
     # Attribute locations
     attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, \
-        attrib_orientation, attrib_color, attrib_texdepth = range(7)
+        attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
     bound_vao = -1
 
     def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0, n_instances=0, vertex=None, texcoords=None, color=None):
@@ -159,7 +159,7 @@ class RenderObject(object):
             self.colorbuf = self.bind_color(color)
 
     def set_vertex_count(self, count):
-        self.vertex_count = count
+        self.vertex_count = int(count)
 
     def set_first_vertex(self, vertex):
         self.first_vertex = vertex
@@ -197,11 +197,11 @@ class RenderObject(object):
         return buf_id
 
     def bind_texcoords(self, data, *args, **kwargs):
-        size = kwargs['size'] if 'size' in kwargs else data.size / self.vertex_count
+        size = kwargs['size'] if 'size' in kwargs else int(data.size / self.vertex_count)
         self.bind_attrib(self.attrib_texcoords, size, data, *args, **kwargs)
 
     def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
-        self.vertex_count = np.size(data) / 2 if vertex_count == 0 else vertex_count
+        self.vertex_count = int(np.size(data) / 2) if vertex_count == 0 else vertex_count
         self.bind_attrib(self.attrib_vertex, 2, data, *args, **kwargs)
 
     def bind_color(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0):
@@ -260,11 +260,11 @@ class RenderObject(object):
 
         # Bind the same attributes for the new renderobject
         # [size, buf_id, instance_divisor, datatype]
-        for attrib, params in original.enabled_attributes.iteritems():
+        for attrib, params in original.enabled_attributes.items():
             new.bind_attrib(attrib, params[0], params[1], instance_divisor=params[2], datatype=params[3])
 
         # Copy possible object attributes that were added to the renderobject
-        for attr, val in original.__dict__.iteritems():
+        for attr, val in original.__dict__.items():
             if attr not in new.__dict__:
                 setattr(new, attr, val)
 
@@ -273,7 +273,7 @@ class RenderObject(object):
 
 class Font(object):
     # Attribute locations
-    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = range(7)
+    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
 
     def __init__(self, tex_id=0, char_ar=1.0):
         self.tex_id         = tex_id

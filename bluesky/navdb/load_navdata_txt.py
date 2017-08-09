@@ -21,11 +21,11 @@ def load_navdata_txt():
     wptdata['wpdesc']  = []              # description
 
 
-    with open(os.path.join(settings.navdata_path, 'nav.dat'), 'r') as f:
-        print "Reading nav.dat"
+    with open(os.path.join(settings.navdata_path, 'nav.dat'), 'rb') as f:
+        print("Reading nav.dat")
 
         for line in f:
-            line = line.strip()
+            line = line.decode(encoding="ascii", errors="ignore").strip()
             # Skip empty lines or comments
             if len(line) == 0 or line[0] == "#":
                 continue
@@ -53,7 +53,7 @@ def load_navdata_txt():
                           12:"DME",13:"TACAN"}
 
            # Type code never larger than 20
-            if itype not in wptypedict.keys():
+            if itype not in list(wptypedict.keys()):
                 continue # Next line
 
             wptype = wptypedict[itype]
@@ -99,10 +99,10 @@ def load_navdata_txt():
                 wptdata['wpdesc'].append("   ")  # Description
 
     #----------  Read  fix.dat file ----------
-    with open(os.path.join(settings.navdata_path, 'fix.dat'), 'r') as f:
-        print "Reading fix.dat"
+    with open(os.path.join(settings.navdata_path, 'fix.dat'), 'rb') as f:
+        print("Reading fix.dat")
         for line in f:
-            line = line.strip()
+            line = line.decode(encoding="ascii", errors="ignore").strip()
 
             # Skip empty lines or comments
             if len(line) < 3 or line[0] == "#":
@@ -150,17 +150,17 @@ def load_navdata_txt():
     awydata['awupfl']      = []              # highest flight level (int)
 
 
-    with open(os.path.join(settings.navdata_path, 'awy.dat'), 'r') as f:
-        print "Reading awy.dat"
+    with open(os.path.join(settings.navdata_path, 'awy.dat'), 'rb') as f:
+        print("Reading awy.dat")
 
         for line in f:
-            line = line.strip('\n').strip()
+            line = line.decode(encoding="ascii", errors="ignore").strip()
             # Skip empty lines or comments
             if len(line) == 0 or line[0] == "#":
                 continue
 
             fields = line.split()
-            if fields<9:
+            if len(fields) < 10:
                 continue
 
             # Example line
@@ -218,10 +218,10 @@ def load_navdata_txt():
     aptdata['aptype']    = []              # type (int, 1=large, 2=medium, 3=small)
     aptdata['apco']      = []              # two char country code (string)
     aptdata['apelev']    = []              # field elevation ft-> m
-    with open(os.path.join(settings.navdata_path, 'airports.dat'), 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'airports.dat'), 'rb') as f:
         types = {'L': 1, 'M': 2, 'S': 3}
         for line in f:
-            line = line.strip()
+            line = line.decode(encoding="ascii", errors="ignore").strip()
             # Skip empty lines or comments
             if len(line) == 0 or line[0] == "#":
                 continue
@@ -282,9 +282,9 @@ def load_navdata_txt():
             firname = filname[:filname.index(".txt")]
             firdata['fir'].append([firname, [], []])
 
-            with open(os.path.join(settings.navdata_path, 'fir/' + filname), 'r') as f:
+            with open(os.path.join(settings.navdata_path, 'fir/' + filname), 'rb') as f:
                 for line in f:
-                    rec = line.upper().strip()
+                    rec = line.decode(encoding="ascii", errors="ignore").upper().strip()
 
                     if len(rec) == 0:
                         continue
@@ -324,9 +324,9 @@ def load_navdata_txt():
     codata['cocode2']  = []              # 2 char code
     codata['cocode3']  = []              # 3 char code
     codata['conr']     = []              # country nr
-    with open(os.path.join(settings.navdata_path, 'icao-countries.dat'), 'r') as f:
+    with open(os.path.join(settings.navdata_path, 'icao-countries.dat'), 'rb') as f:
         for line in f:
-            line = line.strip()
+            line = line.decode(encoding="ascii", errors="ignore").strip()
             # Skip empty lines or comments
             if len(line) == 0 or line[0] == "#":
                 continue

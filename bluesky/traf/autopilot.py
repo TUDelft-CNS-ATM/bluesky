@@ -5,7 +5,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach,mach2cas
-from route import Route
+from .route import Route
 from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
 

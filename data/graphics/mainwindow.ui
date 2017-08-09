@@ -53,7 +53,7 @@
          <enum>Qt::LeftToRight</enum>
         </property>
         <property name="text">
-         <string>F = 0 Hz</string>
+         <string></string>
         </property>
        </widget>
       </item>

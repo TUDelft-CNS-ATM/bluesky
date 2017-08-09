@@ -1,19 +1,15 @@
 from os import path, listdir
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 from bluesky import settings
 
-from load_navdata_txt import load_navdata_txt
-from load_visuals_txt import load_coastline_txt
+from .load_navdata_txt import load_navdata_txt
+from .load_visuals_txt import load_coastline_txt
 
 if settings.gui == 'qtgl':
-    from load_visuals_txt import load_aptsurface_txt
+    from .load_visuals_txt import load_aptsurface_txt
 else:
-    from load_visuals_txt import pygame_load_rwythresholds
+    from .load_visuals_txt import pygame_load_rwythresholds
 
 ## Default settings
 settings.set_variable_defaults(navdata_path='data/navdata', cache_path='data/cache')
@@ -28,8 +24,16 @@ def check_cache(cachefile, *sources):
     cachetm = path.getmtime(cachefile)
     for source in sources:
         if path.isfile(source) and path.getmtime(source) > cachetm:
+            print('Cache file out of date: ' + cachefile)
             return False
-    return True
+    try:
+        with open(cachefile, 'rb') as f:
+            pickle.load(f)
+            return True
+    except:
+        print('Could not read cache file: ' + cachefile)
+        return False
+
 
 def load_coastlines():
     # Check whether anything changed which requires rewriting the cache
@@ -40,7 +44,7 @@ def load_coastlines():
     # If cache up to date, use it
     if cache_ok:
         with open(cachefile, 'rb') as f:
-            print "Reading cache: coastlines.p"
+            print("Reading cache: coastlines.p")
             coastvertices = pickle.load(f)
             coastindices  = pickle.load(f)
 
@@ -48,7 +52,7 @@ def load_coastlines():
     else:
         coastvertices, coastindices = load_coastline_txt()
         with open(cachefile, 'wb') as f:
-            print "Writing cache: coastlines.p"
+            print("Writing cache: coastlines.p")
             pickle.dump(coastvertices, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(coastindices, f, pickle.HIGHEST_PROTOCOL)
 
@@ -64,7 +68,7 @@ def load_aptsurface():
     # If cache up to date, use it
     if cache_ok:
         with open(cachefile, 'rb') as f:
-            print "Reading cache: aptsurface.p"
+            print("Reading cache: aptsurface.p")
             vbuf_asphalt  = pickle.load(f)
             vbuf_concrete = pickle.load(f)
             vbuf_runways  = pickle.load(f)
@@ -76,11 +80,11 @@ def load_aptsurface():
 
     # else read original files, and write new cache file
     else:
-        print cachefile
+        print(cachefile)
         vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, \
             apt_indices, rwythresholds = load_aptsurface_txt()
         with open(cachefile, 'wb') as f:
-            print "Writing cache: aptsurface.p"
+            print("Writing cache: aptsurface.p")
             pickle.dump(vbuf_asphalt, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(vbuf_concrete, f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(vbuf_runways , f, pickle.HIGHEST_PROTOCOL)
@@ -112,7 +116,7 @@ def load_navdata():
             rwythresholds = pygame_load_rwythresholds()
 
         with open(path.join(cachedir, 'navdata.p'), 'wb') as f:
-            print "Writing cache: navdata.p"
+            print("Writing cache: navdata.p")
             pickle.dump(wptdata,       f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(awydata,       f, pickle.HIGHEST_PROTOCOL)
             pickle.dump(aptdata,       f, pickle.HIGHEST_PROTOCOL)
@@ -121,7 +125,7 @@ def load_navdata():
             pickle.dump(rwythresholds, f, pickle.HIGHEST_PROTOCOL)
     else:
         with open(path.join(cachedir, 'navdata.p'), 'rb') as f:
-            print "Reading cache: navdata.p"
+            print("Reading cache: navdata.p")
             wptdata       = pickle.load(f)
             awydata       = pickle.load(f)
             aptdata       = pickle.load(f)

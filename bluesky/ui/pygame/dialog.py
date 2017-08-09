@@ -4,8 +4,8 @@ Standard Dialog modules, using Tkinter
 Created by  : Jacco M. Hoekstra
 """
 
-from Tkinter import *
-import tkFileDialog
+from tkinter import *
+import tkinter.filedialog
 import os
 
 
@@ -25,18 +25,18 @@ def fileopen():
     master.withdraw()  # hiding tkinter window
     master.focus_set()
     
-    file_path = tkFileDialog.askopenfilename(title="Open scenario file", 
+    file_path = tkinter.filedialog.askopenfilename(title="Open scenario file", 
         filetypes=[("Scenario files",".scn"),("All files",".*")])
 
     # Close Tk, return to working directory
     master.quit()
     os.chdir(cdir)
-    if type(file_path)==str or type(file_path)==unicode:
+    if type(file_path)==str or type(file_path)==str:
         fpath = str(file_path)
     else:
-        print "Warning: Unexpected type from FileDialog:",file_path
-        print type(file_path)
-        print "No file selected."
+        print("Warning: Unexpected type from FileDialog:",file_path)
+        print(type(file_path))
+        print("No file selected.")
         fpath = ""
 #    print file_path,fpath
     return fpath

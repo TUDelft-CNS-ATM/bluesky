@@ -13,12 +13,12 @@ from bluesky.tools import geo
 from bluesky.tools.areafilter import areas
 from bluesky.tools.aero import ft, kts, nm
 from bluesky.tools.misc import tim2txt
-import splash
-from keyboard import Keyboard
-from fastfont import Fastfont
-from console import Console
-from menu import Menu
-from dialog import fileopen as opendialog
+from . import splash
+from .keyboard import Keyboard
+from .fastfont import Fastfont
+from .console import Console
+from .menu import Menu
+from .dialog import fileopen as opendialog
 
 black    = (0, 0, 0)
 white    = (255,255,255)
@@ -79,8 +79,8 @@ class Screen:
 
     def init(self):
         # Read Screen configuration file:
-        print
-        print "Setting up screen..."
+        print()
+        print("Setting up screen...")
 
         lst = np.genfromtxt("data/graphics/scr_cfg.dat", comments='#', dtype='i4')
 
@@ -214,7 +214,7 @@ class Screen:
         #-------------------------COASTLINE DATA--------------------------------------
         # Init geo (coastline)  data
         f = open("data/navdata/coastlines.dat", 'r')
-        print "Reading coastlines.dat"
+        print("Reading coastlines.dat")
         lines = f.readlines()
         f.close()
         records = []
@@ -252,7 +252,7 @@ class Screen:
         self.geosel = ()  # Force reselect first time coastlines
         self.firsel = ()  # Force reselect first time FIR lines
 
-        print "    ", len(self.coastlat0), " coastlines added."
+        print("    ", len(self.coastlat0), " coastlines added.")
 
         # Set default coastlines & FIRs on:
         self.swgeo = True
@@ -571,7 +571,7 @@ class Screen:
                 # Draw LINE or POLYGON with objdata = [lat0,lon,lat1,lon1,lat2,lon2,..]
                 if self.objtype[i]=='LINE' or self.objtype[i]=="POLY":
                     npoints = len(self.objdata[i])/2
-                    print npoints
+                    print(npoints)
                     x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
                     for j in range(1,npoints):
                         x1,y1 = self.ll2xy(self.objdata[i][j*2],self.objdata[i][j*2+1])

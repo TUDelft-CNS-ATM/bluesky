@@ -54,7 +54,7 @@ def check_plugin(fname):
                         if iitem.targets[0].id == retnames[1]:
                             stack_keys       = [el.s for el in iitem.value.keys]
                             stack_docs       = [el.elts[-1].s for el in iitem.value.values]
-                            plugin.plugin_stack = zip(stack_keys, stack_docs)
+                            plugin.plugin_stack = list(zip(stack_keys, stack_docs))
     return plugin
 
 def manage(cmd, plugin_name=''):
@@ -101,10 +101,10 @@ def init():
         pname = pname.upper()
         p = plugin_descriptions.get(pname)
         if not p:
-            print 'Error loading plugin: plugin %s not found.' % pname
+            print('Error loading plugin: plugin %s not found.' % pname)
         else:
             success = load(pname, p)
-            print success[1]
+            print(success[1])
 
 if settings.node_only or settings.gui == 'pygame':
     # Sim implementation of plugin management
@@ -130,18 +130,18 @@ if settings.node_only or settings.gui == 'pygame':
             bs.stack.append_commands(stackfuns)
             return True, 'Successfully loaded %s' % name
         except ImportError as e:
-            print 'BlueSky plugin system failed to load', name, ':', e
+            print('BlueSky plugin system failed to load', name, ':', e)
             return False, 'Failed to load %s' % name
 
     def remove(name, descr):
-        cmds, docs = zip(*descr.plugin_stack)
+        cmds, docs = list(zip(*descr.plugin_stack))
         bs.stack.remove_commands(cmds)
         active_plugins.pop(name)
         preupdate_funs.pop(name)
         update_funs.pop(name)
 
     def preupdate(simt):
-        for fun in preupdate_funs.values():
+        for fun in list(preupdate_funs.values()):
             # Call function if its update interval has passed
             if simt >= fun[0]:
                 # Set the next triggering time for this function
@@ -150,7 +150,7 @@ if settings.node_only or settings.gui == 'pygame':
                 fun[2]()
 
     def update(simt):
-        for fun in update_funs.values():
+        for fun in list(update_funs.values()):
             # Call function if its update interval has passed
             if simt >= fun[0]:
                 # Set the next triggering time for this function
@@ -159,7 +159,7 @@ if settings.node_only or settings.gui == 'pygame':
                 fun[2]()
 
     def reset():
-        for fun in preupdate_funs.values():
+        for fun in list(preupdate_funs.values()):
             fun[0] = 0.0
 
         for fun in update_funs:
