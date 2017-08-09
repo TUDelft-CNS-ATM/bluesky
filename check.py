@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import traceback
+from __future__ import print_function
 print("This script checks the availability of the libraries required by BlueSky, and the capabilities of your system.")
 print()
 np = sp = mpl = qt = gl = glhw = pg = False
