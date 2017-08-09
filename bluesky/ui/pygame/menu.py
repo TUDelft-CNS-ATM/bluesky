@@ -1,5 +1,4 @@
 import pygame as pg
-from PIL import Image
 
 white = (255, 255, 255)
 
@@ -34,16 +33,12 @@ class Menu:
         for i in range(self.npages):
             imgpath = "data/graphics/menu/menu"+str(i+1)+".jpg"
 
-            im = Image.open(imgpath)
+            im = pg.image.load(imgpath)
 
-            image = im.crop((200, 194, 200+222, 194+330))
-            width, height = image.size # Get dimensions
-            mode = image.mode
-            size = image.size
-            data = image.tobytes()
-
-            surface = pg.transform.smoothscale(pg.image.frombuffer(data, size, mode),
-                                         (int(width/2),int(height/2)))
+            image = im.subsurface(pg.Rect(200, 194, 222, 330))
+            width, height = image.get_size() # Get dimensions
+            surface = pg.transform.smoothscale(image,\
+                                               (int(width/2),int(height/2)))
 
             rect = surface.get_rect()
             pg.draw.rect(surface, white, rect,1)
