@@ -146,7 +146,6 @@ class MainManager(QObject):
     def addNode(self):
         if len(self.connections) > 0:
             self.connections[self.activenode][0].send((SetActiveNodeType, False))
-        print(sys.executable)
         p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
         self.localnodes.append(p)
 
