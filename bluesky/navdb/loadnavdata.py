@@ -24,8 +24,16 @@ def check_cache(cachefile, *sources):
     cachetm = path.getmtime(cachefile)
     for source in sources:
         if path.isfile(source) and path.getmtime(source) > cachetm:
+            print('Cache file out of date: ' + cachefile)
             return False
-    return True
+    try:
+        with open(cachefile, 'rb') as f:
+            pickle.load(f)
+            return True
+    except:
+        print('Could not read cache file: ' + cachefile)
+        return False
+
 
 def load_coastlines():
     # Check whether anything changed which requires rewriting the cache
