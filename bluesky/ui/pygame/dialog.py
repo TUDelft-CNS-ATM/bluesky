@@ -7,18 +7,17 @@ Created by  : Jacco M. Hoekstra
 from tkinter import *
 import tkinter.filedialog
 import os
-
+from bluesky import settings
 
 def fileopen():
     """returns filename of scenariofile selected"""
     cdir = os.getcwd()
-
     # load Tk crash on Mac
     # temporary work around mac without loading and file
     if sys.platform == 'darwin':
        return ''
 
-    dirpath = imgpath = "scenario"
+    dirpath = settings.scenario_path 
     os.chdir(dirpath)
 
     master = Tk()
@@ -26,7 +25,8 @@ def fileopen():
     master.focus_set()
     
     file_path = tkinter.filedialog.askopenfilename(title="Open scenario file", 
-        filetypes=[("Scenario files",".scn"),("All files",".*")])
+        filetypes=[("Scenario files",".scn"),("All files",".*")],\
+        initialdir=".")
 
     # Close Tk, return to working directory
     master.quit()
