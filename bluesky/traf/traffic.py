@@ -1,4 +1,5 @@
 """ BlueSky traffic implementation."""
+from __future__ import print_function
 import numpy as np
 from math import *
 from random import random, randint
@@ -628,8 +629,9 @@ class Traffic(DynamicArrays):
                     ico = -1
                     lines = lines + "Country code: "+bs.navdb.aptco[iap]
                 try:
-                    rwytxt = str(list(bs.navdb.rwythresholds[bs.navdb.aptid[iap]].keys()))
-                    lines = lines + "\nRunways: " +rwytxt.strip("[]").replace("'","")
+                    runways = bs.navdb.rwythresholds[bs.navdb.aptid[iap]].keys()
+                    if runways:
+                        lines = lines + "\nRunways: " + ", ".join(runways)
                 except:
                     pass
 
