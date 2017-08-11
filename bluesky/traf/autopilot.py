@@ -70,7 +70,7 @@ class Autopilot(DynamicArrays):
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
 
             # Shift waypoints for aircraft i where necessary
-            for i in bs.traf.actwp.Reached(qdr, dist):
+            for i in bs.traf.actwp.Reached(qdr, dist,bs.traf.actwp.flyby):
                 # Save current wp speed
                 oldspd = bs.traf.actwp.spd[i]
 

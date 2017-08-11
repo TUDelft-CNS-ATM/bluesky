@@ -26,23 +26,25 @@ class ActiveWaypoint(DynamicArrays):
         self.flyby[-n:]     = 1.0   # Flyby/fly-over switch
         self.next_qdr[-n:]  = -999.0    # bearing next leg
 
-    def Reached(self, qdr, dist):
+    def Reached(self, qdr, dist, flyby):
         # Calculate distance before waypoint where to start the turn
         # Turn radius:      R = V2 tan phi / g
         # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
         # using default bank angle per flight phase
-        turnrad = bs.traf.tas * bs.traf.tas / np.maximum(bs.traf.eps, np.tan(bs.traf.bank) * g0 * nm)  # [nm]
+        turnrad = bs.traf.tas * bs.traf.tas / \
+                      np.maximum(bs.traf.eps, np.tan(bs.traf.bank) * g0 * nm)  # [nm]
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
         # Avoid circling
-        away = np.abs(degto180(bs.traf.trk - next_qdr)+180.)>90.
+#        away = np.abs(degto180(bs.traf.trk - next_qdr)+180.)>90.
+        away = np.abs(degto180(bs.traf.trk - next_qdr))>90.
         incircle = dist<turnrad*1.01
         circling = away*incircle
 
 
         # distance to turn initialisation point
-        self.turndist = np.minimum(100., np.abs(turnrad *
-            np.tan(np.radians(0.5 * np.abs(degto180(qdr - next_qdr))))))
+        self.turndist = (flyby<0.5)*np.minimum(100., np.abs(turnrad *
+            np.tan(np.radians(0.5 * np.abs(degto180(qdr%360. - next_qdr%360.))))))
 
         # Check whether shift based dist [nm] is required, set closer than WP turn distanc
         return np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]
