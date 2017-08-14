@@ -3,9 +3,13 @@ Standard Dialog modules, using Tkinter
 
 Created by  : Jacco M. Hoekstra
 """
-
-from tkinter import *
-import tkinter.filedialog
+try:
+    from tkinter import *
+    import tkinter.filedialog as filedialog
+except:
+    from Tkinter import *
+    import Tkinter.filedialog as filedialog
+    
 import os
 from bluesky import settings
 
@@ -24,7 +28,7 @@ def fileopen():
     master.withdraw()  # hiding tkinter window
     master.focus_set()
     
-    file_path = tkinter.filedialog.askopenfilename(title="Open scenario file", 
+    file_path = filedialog.askopenfilename(title="Open scenario file", 
         filetypes=[("Scenario files",".scn"),("All files",".*")],\
         initialdir=".")
 
