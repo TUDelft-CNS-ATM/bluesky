@@ -1,3 +1,5 @@
+""" This module defines a set of standard geographic functions and constants for
+    easy use in BlueSky. """
 import numpy as np
 from math import *
 

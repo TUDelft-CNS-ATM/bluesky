@@ -1,3 +1,9 @@
+""" MainManager manages I/O with the simulation processes on the GUI side. """
+import select
+import sys
+from subprocess import Popen
+from multiprocessing.connection import Listener
+from multiprocessing import cpu_count
 try:
     from PyQt5.QtCore import QObject, QEvent, QTimer, pyqtSignal, \
         QCoreApplication as qapp
@@ -6,22 +12,18 @@ except ImportError:
         QCoreApplication as qapp
 
 # Local imports
-from ...settings import max_nnodes
-from simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
+from bluesky import settings
+from .simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
     BatchEvent, StackTextEvent, SimQuitEvent, SetNodeIdType, \
     SetActiveNodeType, AddNodeType
 
-import select
-import sys
-from subprocess import Popen
-from multiprocessing.connection import Listener
-from multiprocessing import cpu_count
 Listener.fileno = lambda self: self._listener._socket.fileno()
-
+# Register settings defaults
+settings.set_variable_defaults(max_nnodes=cpu_count())
 
 def split_scenarios(scentime, scencmd):
     start = 0
-    for i in xrange(1, len(scencmd) + 1):
+    for i in range(1, len(scencmd) + 1):
         if i == len(scencmd) or scencmd[i][:4] == 'SCEN':
             scenname = scencmd[start].split()[1].strip()
             yield (scenname, scentime[start:i], scencmd[start:i])
@@ -44,17 +46,17 @@ class MainManager(QObject):
 
     def __init__(self):
         super(MainManager, self).__init__()
-        print 'Initializing multi-process simulation'
+        print('Initializing multi-process simulation')
         MainManager.instance = self
         self.scenarios       = []
         self.connections     = []
         self.localnodes      = []
         self.hosts           = dict()
-        self.max_nnodes      = min(cpu_count(), max_nnodes)
+        self.max_nnodes      = min(cpu_count(), settings.max_nnodes)
         self.activenode      = 0
         self.sender_id       = None
         self.stopping        = False
-        self.listener        = Listener(('localhost', 6000), authkey='bluesky')
+        self.listener        = Listener(('localhost', 6000), authkey=b'bluesky')
 
     def receiveFromNodes(self):
         # Only look for incoming data if we're not quitting
@@ -80,8 +82,7 @@ class MainManager(QObject):
             self.setActiveNode(connidx)
 
         # Then process any data in the active connections
-        for connidx in range(len(self.connections)):
-            conn = self.connections[connidx]
+        for idx, conn in enumerate(self.connections):
             if conn[0] is None or conn[0].closed:
                 continue
 
@@ -94,7 +95,7 @@ class MainManager(QObject):
                     continue
 
                 # Sender id is connection index and node id
-                self.sender_id = (connidx, conn[1])
+                self.sender_id = (idx, conn[1])
 
                 if eventtype == AddNodeType:
                     # This event only consists of an int: the number of nodes to add
@@ -126,7 +127,7 @@ class MainManager(QObject):
                     else:
                         qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='Found %d scenarios in batch' % len(self.scenarios)))
                         # Available nodes (nodes that are in init or hold mode):
-                        av_nodes = [n for n in range(len(self.connections)) if self.connections[n][2] in [0, 2]]
+                        av_nodes = [n for n, conn in enumerate(self.connections) if conn[2] in [0, 2]]
                         for i in range(min(len(av_nodes), len(self.scenarios))):
                             self.sendScenario(self.connections[i])
                         # If there are still scenarios left, determine and start the required number of local nodes
@@ -174,21 +175,21 @@ class MainManager(QObject):
         self.addNode()
 
     def stop(self):
-        print 'Stopping simulation processes...'
+        print('Stopping simulation processes...')
         self.stopping = True
         # Tell each process to quit
         quitevent = (SimQuitEventType, SimQuitEvent())
-        print 'Stopping nodes:'
-        for n in range(len(self.connections)):
-            self.connections[n][0].send(quitevent)
+        print('Stopping nodes:')
+        for conn in self.connections:
+            conn[0].send(quitevent)
 
         # Wait for all nodes to finish
         for n in self.localnodes:
             n.wait()
 
-        for n in range(len(self.connections)):
-            self.connections[n][0].close()
-        print 'Done.'
+        for conn in self.connections:
+            conn[0].close()
+        print('Done.')
 
     @classmethod
     def sendEvent(cls, event):

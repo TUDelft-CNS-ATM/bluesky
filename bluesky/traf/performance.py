@@ -17,7 +17,7 @@ Date          :
 """
 
 import numpy as np
-from ..tools.aero import kts, ft, gamma, gamma1, gamma2, R, beta, g0, \
+from bluesky.tools.aero import kts, ft, gamma, gamma1, gamma2, R, beta, g0, \
     vmach2cas
 
 
@@ -58,7 +58,7 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
     # phase IC[2]: 400<alt<2000, vs>0
     Ialt = np.array((alt >= (400. * ft)) & (alt < (2000. * ft)))
     Ivs  = np.array(delalt > 0.)
- 
+
     ic   = Ialt*Ivs*2
 
 
@@ -108,7 +108,7 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
     # phase LD[5]: alt<3000, Speed between Vmcr+10 and Vmap+10, vs<0
     Lalt = np.array(alt <= (3000.0 * ft))
     if bada:
-        Lspd = np.array(cas < (vmap + 10.0 * kts)) 
+        Lspd = np.array(cas < (vmap + 10.0 * kts))
     else:
         Lspd = np.array(gs >= (30.0 * kts))
     Lvs = np.array(delalt <= 0.0)
@@ -185,14 +185,14 @@ def esf(abco, belco, alt, M, climb, descent, delspd):
         np.logical_and.reduce([cspd, belco, abtp]) * 1
 
     #case e: acceleration in climb
-    efe    = 0.3 * np.logical_and.reduce([acc, climb]) 
-    
+    efe    = 0.3 * np.logical_and.reduce([acc, climb])
+
     #case f: deceleration in descent
-    eff    = 0.3 * np.logical_and.reduce([dec, descent]) 
-    
+    eff    = 0.3 * np.logical_and.reduce([dec, descent])
+
     #case g: deceleration in climb
     efg    = 1.7 * np.logical_and.reduce([dec, climb])
-    
+
     #case h: acceleration in descent
     efh    = 1.7 * np.logical_and.reduce([acc, descent])
 
@@ -211,18 +211,18 @@ def esf(abco, belco, alt, M, climb, descent, delspd):
 # CALCULATE LIMITS
 #
 #------------------------------------------------------------------------------
-def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact, 
-           desalt, maxthr, Thr, D, tas, mass, ESF):
+def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
+           desalt, desvs, maxthr, Thr, D, tas, mass, ESF):
 
     # minimum CAS - below crossover (we do not check for minimum Mach)
     limspd      = np.where((desspd < vmin), vmin, -999.)
 
     # in traf, we will check for min and max spd, hence a flag is required
     limspd_flag = np.where((desspd < vmin), True, False)
-    
+
     # maximum CAS: below crossover and above crossover
     limspd      = np.where((desspd > vmo), vmo, limspd )
-    limspd_flag = np.where((desspd > vmo), True, limspd_flag)    
+    limspd_flag = np.where((desspd > vmo), True, limspd_flag)
 
     # maximum Mach
     limspd      = np.where((M > mmo), vmach2cas((mmo - 0.01), alt), limspd)
@@ -234,7 +234,7 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
 
     # set altitude to max. possible altitude if alt>Hmax
     limalt = np.where((desalt>hmaxact), hmaxact -1.0, -999.)
-    
+
     # remove non-needed limits
     limalt = np.where((np.abs(desalt-hmaxact)<0.1), -999., limalt)
 
@@ -244,13 +244,15 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
 
     # aircraft can only take-off as soon as their speed is above v_rotate
     # True means that current speed is below rotation speed
-    limvs       = np.where((gs<to_spd), 0.0, limvs)
-    limvs_flag  = np.where ((gs<to_spd), False, True)
+    # limit vertical speed is thrust limited and thus should only be
+    # applied for aircraft that are climbing
+    limvs       = np.where((desvs > 0.) & (gs<to_spd), 0.0, limvs)
+    limvs_flag  = np.where ((desvs > 0.) & (gs<to_spd), False, True)
 
     # remove non-needed limits
     Thr        = np.where((maxthr-Thr< 2.), -9999., Thr)
     limvs      = np.where((maxthr-Thr< 2.), -9999., limvs)
-    limvs      = np.where ((np.abs(to_spd - gs) < 0.1), -9999., limvs)   
+    limvs      = np.where ((np.abs(to_spd - gs) < 0.1), -9999., limvs)
     limvs_flag = np.where((np.abs(to_spd - gs) < 0.1), True, limvs_flag)
 
 

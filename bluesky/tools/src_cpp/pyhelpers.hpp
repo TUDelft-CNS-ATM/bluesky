@@ -53,10 +53,10 @@ struct PyListAttr: public PyAttr {
     PyListAttr(PyObject* parent, const char* name) : PyAttr(parent, name) {}
     PyListAttr(const PyAttr& parent, const char* name) : PyAttr(parent, name) {}
     PyObject* operator[](Py_ssize_t idx) const {return PyList_GetItem(attr, idx);}
-    int setItem(const Py_ssize_t& idx, const int& item) {return PyList_SetItem(attr, idx, PyInt_FromLong(item));}
+    int setItem(const Py_ssize_t& idx, const int& item) {return PyList_SetItem(attr, idx, PyLong_FromLong(item));}
     int setItem(const Py_ssize_t& idx, const double& item) {return PyList_SetItem(attr, idx, PyFloat_FromDouble(item));}
     int setItem(const Py_ssize_t& idx, PyObject* item) {return PyList_SetItem(attr, idx, item);}
-    int append(const int& item) {return PyList_Append(attr, PyInt_FromLong(item));}
+    int append(const int& item) {return PyList_Append(attr, PyLong_FromLong(item));}
     int append(const double& item) {return PyList_Append(attr, PyFloat_FromDouble(item));}
     int append(PyObject* item) {return PyList_Append(attr, item);}
 };
@@ -68,5 +68,5 @@ double GetAttrDouble(PyObject* parent, const char* name) {
 
 int GetAttrInt(PyObject* parent, const char* name) {
     PyAttr a(parent, name);
-    return PyInt_AsLong(a.attr);
+    return PyLong_AsLong(a.attr);
 };

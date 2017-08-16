@@ -1,15 +1,19 @@
+""" BlueSky aircraft performance calculations using BADA 3.xx."""
 import numpy as np
-from ..tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
-from performance import esf, phases, calclimits, PHASE
-from ..settings import perf_path_bada
-from ..settings import verbose
+import bluesky as bs
+from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from .performance import esf, phases, calclimits, PHASE
+from bluesky import settings
 
-import bada_coeff
-if not bada_coeff.init(perf_path_bada):
-    raise ImportError('BADA performance model: Error loading BADA files from ' + perf_path_bada + '!')
+# Register settings defaults
+settings.set_variable_defaults(perf_path_bada='data/coefficients/BADA', verbose=False)
+
+from . import bada_coeff
+if not bada_coeff.init(settings.perf_path_bada):
+    raise ImportError('BADA performance model: Error loading BADA files from ' + settings.perf_path_bada + '!')
 else:
-    print 'Using BADA performance model.'
+    print('Using BADA performance model.')
 
 
 class PerfBADA(DynamicArrays):
@@ -28,9 +32,7 @@ class PerfBADA(DynamicArrays):
         EUROCONTROL. User Manual for the Base of Aircraft Data (BADA) Revision 3.12,
         EEC Technical/Scientific Report No. 14/04/24-44 edition, 2014.
     """
-    def __init__(self, traf):
-        self.traf = traf        # assign needed data from Traffic
-
+    def __init__(self):
         self.warned = False     # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
@@ -164,7 +166,7 @@ class PerfBADA(DynamicArrays):
     def create(self, n=1):
         super(PerfBADA, self).create(n)
         """CREATE NEW AIRCRAFT"""
-        actypes = self.traf.type[-n:]
+        actypes = bs.traf.type[-n:]
 
         # note: coefficients are initialized in SI units
 
@@ -176,14 +178,14 @@ class PerfBADA(DynamicArrays):
                 continue
 
             syn, coeff = bada_coeff.getCoefficients('B744')
-            self.traf.type[-n:] = syn.accode
+            bs.traf.type[-n:] = syn.accode
 
-            if not verbose:
+            if not settings.verbose:
                 if not self.warned:
-                    print "Aircraft is using default B747-400 performance."
+                    print("Aircraft is using default B747-400 performance.")
                     self.warned = True
             else:
-                print "Flight " + self.traf.id[-n:] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
+                print("Flight " + bs.traf.id[-n:] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance.")
 
         # designate aicraft to its aircraft type
         self.jet[-n:]       = 1 if coeff.engtype == 'Jet' else 0
@@ -340,13 +342,13 @@ class PerfBADA(DynamicArrays):
         swbada = True
         # flight phase
         self.phase, self.bank = \
-        phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
-        self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
-        self.traf.hdgsel, swbada)
+        phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
+        bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
+        bs.traf.hdgsel, swbada)
 
         # AERODYNAMICS
         # Lift
-        self.qS = 0.5*self.traf.rho*np.maximum(1.,self.traf.tas)*np.maximum(1.,self.traf.tas)*self.Sref
+        self.qS = 0.5*bs.traf.rho*np.maximum(1.,bs.traf.tas)*np.maximum(1.,bs.traf.tas)*self.Sref
         cl = self.mass*g0/(self.qS*np.cos(self.bank))*(self.phase!=PHASE["GD"])+ 0.*(self.phase==PHASE["GD"])
 
         # Drag
@@ -376,21 +378,21 @@ class PerfBADA(DynamicArrays):
         # energy share factor and crossover altitude
 
         # conditions
-        epsalt = np.array([0.001]*self.traf.ntraf)
-        self.climb = np.array(self.traf.delalt > epsalt)
-        self.descent = np.array(self.traf.delalt<-epsalt)
-        lvl = np.array(np.abs(self.traf.delalt)<0.0001)*1
+        epsalt = np.array([0.001]*bs.traf.ntraf)
+        self.climb = np.array(bs.traf.delalt > epsalt)
+        self.descent = np.array(bs.traf.delalt<-epsalt)
+        lvl = np.array(np.abs(bs.traf.delalt)<0.0001)*1
 
 
 
         # crossover altitiude
         atrans = self.atranscl*self.climb + self.atransdes*(1-self.climb)
-        self.traf.abco = np.array(self.traf.alt>atrans)
-        self.traf.belco = np.array(self.traf.alt<atrans)
+        bs.traf.abco = np.array(bs.traf.alt>atrans)
+        bs.traf.belco = np.array(bs.traf.alt<atrans)
 
         # energy share factor
-        self.ESF = esf(self.traf.abco, self.traf.belco, self.traf.alt, self.traf.M,\
-                  self.climb, self.descent, self.traf.delspd)
+        self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
+                  self.climb, self.descent, bs.traf.delspd)
 
         # THRUST
         # 1. climb: max.climb thrust in ISA conditions (p. 32, BADA User Manual 3.12)
@@ -404,7 +406,7 @@ class PerfBADA(DynamicArrays):
         cljet = np.logical_and.reduce([self.climb, self.jet]) * 1
 
         # thrust
-        Tj = self.ctcth1* (1-(self.traf.alt/ft)/self.ctcth2+self.ctcth3*(self.traf.alt/ft)*(self.traf.alt/ft))
+        Tj = self.ctcth1* (1-(bs.traf.alt/ft)/self.ctcth2+self.ctcth3*(bs.traf.alt/ft)*(bs.traf.alt/ft))
 
         # combine jet and default aircraft
         Tjc = cljet*Tj # *ThrISA
@@ -414,14 +416,14 @@ class PerfBADA(DynamicArrays):
         clturbo = np.logical_and.reduce([self.climb, self.turbo]) * 1
 
         # thrust
-        Tt = self.ctcth1/np.maximum(1.,self.traf.tas/kts)*(1-(self.traf.alt/ft)/self.ctcth2)+self.ctcth3
+        Tt = self.ctcth1/np.maximum(1.,bs.traf.tas/kts)*(1-(bs.traf.alt/ft)/self.ctcth2)+self.ctcth3
 
         # merge
         Ttc = clturbo*Tt # *ThrISA
 
         # piston
         clpiston = np.logical_and.reduce([self.climb, self.piston])*1
-        Tp = self.ctcth1*(1-(self.traf.alt/ft)/self.ctcth2)+self.ctcth3/np.maximum(1.,self.traf.tas/kts)
+        Tp = self.ctcth1*(1-(bs.traf.alt/ft)/self.ctcth2)+self.ctcth3/np.maximum(1.,bs.traf.tas/kts)
         Tpc = clpiston*Tp
 
         # max climb thrust for futher calculations (equals maximum avaliable thrust)
@@ -433,7 +435,7 @@ class PerfBADA(DynamicArrays):
         # 3. Descent: condition: vs negative/ H>hdes: fixed formula. H<hdes: phase cr, ap, ld
 
         # above or below Hpdes? Careful! If non-ISA: ALT must be replaced by Hp!
-        delh = (self.traf.alt - self.hpdes)
+        delh = (bs.traf.alt - self.hpdes)
 
         # above Hpdes:
         high = np.array(delh>0)
@@ -458,32 +460,32 @@ class PerfBADA(DynamicArrays):
         # vertical speed. Note: ISA only ( tISA = 1 )
         # for climbs: reducing factor (reduced climb power) is multiplied
         # cred applies below 0.8*hmax and for climbing aircraft only
-        hcred = np.array(self.traf.alt < (self.hmaxact*0.8))
+        hcred = np.array(bs.traf.alt < (self.hmaxact*0.8))
         clh = np.logical_and.reduce([hcred, self.climb])
         cred = self.cred*clh
         cpred = 1-cred*((self.mmax-self.mass)/(self.mmax-self.mmin))
 
 
         # switch for given vertical speed avs
-        if (self.traf.avs.any()>0) or (self.traf.avs.any()<0):
+        if (bs.traf.avs.any()>0) or (bs.traf.avs.any()<0):
             # thrust = f(avs)
-            T = ((self.traf.avs!=0)*(((self.traf.pilot.vs*self.mass*g0)/     \
-                      (self.ESF*np.maximum(self.traf.eps,self.traf.tas)*cpred)) \
-                      + self.D)) + ((self.traf.avs==0)*T)
+            T = ((bs.traf.avs!=0)*(((bs.traf.pilot.vs*self.mass*g0)/     \
+                      (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
+                      + self.D)) + ((bs.traf.avs==0)*T)
 
         self.Thr = T
 
         # Fuel consumption
         # thrust specific fuel consumption - jet
         # thrust
-        etaj = self.cf1*(1.0+(self.traf.tas/kts)/self.cf2)
+        etaj = self.cf1*(1.0+(bs.traf.tas/kts)/self.cf2)
         # merge
         ej = etaj*self.jet
 
         # thrust specific fuel consumption - turboprop
 
         # thrust
-        etat = self.cf1*(1.-(self.traf.tas/kts)/self.cf2)*((self.traf.tas/kts)/1000.)
+        etat = self.cf1*(1.-(bs.traf.tas/kts)/self.cf2)*((bs.traf.tas/kts)/1000.)
         # merge
         et = etat*self.turbo
 
@@ -502,7 +504,7 @@ class PerfBADA(DynamicArrays):
         fnom = fnomjt + fnomp
 
         # minimal fuel flow jet, turbo and piston
-        fminjt = self.cf3*(1-(self.traf.alt/ft)/self.cf4)*jt
+        fminjt = self.cf3*(1-(bs.traf.alt/ft)/self.cf4)*jt
         fminp = self.cf3*pdf
         #merge
         fmin = fminjt + fminp
@@ -556,13 +558,13 @@ class PerfBADA(DynamicArrays):
         self.post_flight = np.where(self.descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
-        self.traf.pilot.spd = np.where((self.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, self.traf.pilot.spd)
+        bs.traf.pilot.spd = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.spd)
 
 
         # otherwise taxiing will be impossible afterwards
         # pf_flag is released so post_flight flag is only triggered once
 
-        self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
+        self.pf_flag = np.where ((bs.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
 
         return
 
@@ -588,10 +590,28 @@ class PerfBADA(DynamicArrays):
         self.hmaxact = (self.hmax==0)*self.hmo +(self.hmax !=0)*np.minimum(self.hmo, self.hact)
 
         # forwarding to tools
-        self.traf.limspd, self.traf.limspd_flag, self.traf.limalt, self.traf.limvs, self.traf.limvs_flag = \
-        calclimits(self.traf.pilot.spd, self.traf.gs,self.vmto, self.vmin, \
-        self.vmo, self.mmo, self.traf.M, self.traf.alt, self.hmaxact, \
-        self.traf.pilot.alt, self.maxthr, self.Thr,self.D, self.traf.tas, self.mass, self.ESF)
+        # forwarding to tools
+        bs.traf.limspd,          \
+        bs.traf.limspd_flag,     \
+        bs.traf.limalt,          \
+        bs.traf.limvs,           \
+        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.spd, \
+                                        bs.traf.gs,            \
+                                        self.vmto,               \
+                                        self.vmin,               \
+                                        self.vmo,                \
+                                        self.mmo,                \
+                                        bs.traf.M,             \
+                                        bs.traf.alt,           \
+                                        self.hmaxact,            \
+                                        bs.traf.pilot.alt,     \
+                                        bs.traf.pilot.vs,      \
+                                        self.maxthr,             \
+                                        self.Thr,                \
+                                        self.D,                  \
+                                        bs.traf.tas,           \
+                                        self.mass,               \
+                                        self.ESF)
 
         return
 
@@ -602,11 +622,11 @@ class PerfBADA(DynamicArrays):
 
         ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
                      (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \
-                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
+                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), bs.traf.ax) + \
              ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight))      \
-                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_acc) +  \
+                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), self.gr_acc) +  \
               (self.phase==PHASE['GD'])*self.post_flight                                        \
-                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_acc)
+                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), self.gr_acc)
 
         return ax
 
@@ -615,7 +635,7 @@ class PerfBADA(DynamicArrays):
         #DEBUGGING
 
         #record data
-        # self.log.write(self.dt, str(self.traf.alt[0]), str(self.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.ff[0]),  str(self.traf.vs[0]), str(cd[0]))
+        # self.log.write(self.dt, str(bs.traf.alt[0]), str(bs.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.ff[0]),  str(bs.traf.vs[0]), str(cd[0]))
         # self.log.save()
 
         # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \

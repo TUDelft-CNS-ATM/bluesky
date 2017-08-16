@@ -1,11 +1,11 @@
+""" Traffic area: delete traffic when it leaves this area (so not when outside)"""
 import numpy as np
-from ..tools import areafilter
+import bluesky as bs
+from bluesky.tools import areafilter
 
 class Area:
-    def __init__(self,traf):
-        # Traffic area: delete traffic when it leaves this area (so not when outside)
-
-        self.traf   = traf
+    def __init__(self):
+        """ Traffic area: delete traffic when it leaves this area (so not when outside)"""
 
         # Parameters of area
         self.active = False
@@ -35,7 +35,7 @@ class Area:
             self.t0 = t
 
             # Find out which aircraft are inside the experiment area
-            inside = areafilter.checkInside(self.name, self.traf.lat, self.traf.lon, self.traf.alt)
+            inside = areafilter.checkInside(self.name, bs.traf.lat, bs.traf.lon, bs.traf.alt)
 
             # Determine the aircraft indexes that should be deleted
             delAircraftidx = np.intersect1d(np.where(np.array(self.inside)==True), np.where(np.array(inside)==False))
@@ -44,10 +44,10 @@ class Area:
             self.inside = inside
 
             # delete all aicraft in delAircraftidx and log their flight statistics
-            for acid in [self.traf.id[idx] for idx in delAircraftidx]:
-                self.traf.delete(acid)
+            for acid in [bs.traf.id[idx] for idx in delAircraftidx]:
+                bs.traf.delete(acid)
 
-    def setArea(self, scr, args):
+    def setArea(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
         Input can be exisiting shape name, or a box with optional altitude constrainsts.'''
 
@@ -58,14 +58,14 @@ class Area:
 
         # start by checking if the first argument is a string -> then it is an area name
         if isinstance(args[0], str) and len(args)==1:
-            if args[0] in areafilter.areas:
+            if areafilter.hasArea(args[0]):
                 # switch on Area, set it to the shape name
                 self.name = args[0]
                 self.active = True
                 return True, "Area is set to " + str(self.name)
             elif args[0]=='OFF' or args[0]=='OF':
                 # switch off the area
-                areafilter.deleteArea(scr, self.name)
+                areafilter.deleteArea(self.name)
                 self.active = False
                 self.name = None
                 return True, "Area is switched OFF"
@@ -76,7 +76,7 @@ class Area:
         elif (isinstance(args[0],float) or isinstance(args[0],int)) and 4<=len(args)<=6:
             self.active = True
             self.name = 'DELAREA'
-            areafilter.defineArea(scr, self.name, 'BOX', args)
+            areafilter.defineArea(self.name, 'BOX', args[:4], args[4:])
             return True, "Area is ON. Area name is: " + str(self.name)
         else:
             return False,  "Incorrect arguments" + \

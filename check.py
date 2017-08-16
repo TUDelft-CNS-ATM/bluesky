@@ -1,40 +1,41 @@
 #!/usr/bin/python
+from __future__ import print_function
 import traceback
-print "This script checks the availability of the libraries required by BlueSky, and the capabilities of your system."
-print
+print("This script checks the availability of the libraries required by BlueSky, and the capabilities of your system.")
+print()
 np = sp = mpl = qt = gl = glhw = pg = False
 
 # Basic libraries
-print "Checking for numpy              ",
+print("Checking for numpy              ", end=' ')
 try:
     import numpy
 except ImportError:
-    print "[FAIL]"
+    print("[FAIL]")
 else:
     np = True
-    print '[OK]'
+    print('[OK]')
 
-print "Checking for scipy              ",
+print("Checking for scipy              ", end=' ')
 try:
     import scipy
 except ImportError:
-    print "[FAIL]"
+    print("[FAIL]")
 else:
     sp = True
-    print '[OK]'
+    print('[OK]')
 
-print "Checking for matplotlib         ",
+print("Checking for matplotlib         ", end=' ')
 try:
     import matplotlib
 except ImportError:
-    print "[FAIL]"
+    print("[FAIL]")
 else:
     mpl = True
-    print '[OK]'
+    print('[OK]')
 
 # Graphical libs and capabilities
 
-print "Checking for pyqt               ",
+print("Checking for pyqt               ", end=' ')
 try:
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtOpenGL import QGLWidget, QGLFormat
@@ -47,35 +48,35 @@ except ImportError:
         QT_VERSION = 4
         qt = True
     except ImportError:
-        print "[FAIL]"
+        print("[FAIL]")
 
 if qt:
-    print "[QT%d]" % QT_VERSION
-    print "Checking for pyopengl           ",
+    print("[QT%d]" % QT_VERSION)
+    print("Checking for pyopengl           ", end=' ')
     try:
         import OpenGL
         import OpenGL.GL as ogl
     except ImportError:
-        print "[FAIL]"
+        print("[FAIL]")
     else:
         v = OpenGL.__version__.split('.')
         ver = float(v[0]) + 0.1 * int(v[1])
 
         gl = (ver >= 3.1)
         if gl:
-            print '[OK]'
+            print('[OK]')
         else:
-            print '[FAIL]'
-            print 'OpenGL module version should be at least 3.1.0'
-        print 'OpenGL module version is         [%s]' % OpenGL.__version__
-        print "Checking GL capabilities        ",
+            print('[FAIL]')
+            print('OpenGL module version should be at least 3.1.0')
+        print('OpenGL module version is         [%s]' % OpenGL.__version__)
+        print("Checking GL capabilities        ", end=' ')
         app = QApplication([])
 
         if not QGLFormat.hasOpenGL():
-            print '[FAIL]'
+            print('[FAIL]')
         else:
-            print '[OK]'
-            print 'GL Version at least 3.3         ',
+            print('[OK]')
+            print('GL Version at least 3.3         ', end=' ')
             try:
                 f = QGLFormat()
                 f.setVersion(3, 3)
@@ -97,37 +98,37 @@ if qt:
                 test.show()
 
                 if GLTest.gl_version >= 3.3:
-                    print "[OK]"
+                    print("[OK]")
                     glhw = True
                 else:
-                    print "[FAIL]"
+                    print("[FAIL]")
 
-                print "Supported GL version             [%.1f]" % GLTest.gl_version
+                print("Supported GL version             [%.1f]" % GLTest.gl_version)
             except:
-                print '[FAIL]'
-                print 'Could not determine GL version'
+                print('[FAIL]')
+                print('Could not determine GL version')
 
-print "Checking for pygame             ",
+print("Checking for pygame             ", end=' ')
 try:
     import pygame
 except ImportError:
-    print '[FAIL]'
+    print('[FAIL]')
 else:
     pg = True
-    print '[OK]'
+    print('[OK]')
 
-print
+print()
 if np and sp and mpl:
     canrunqt = (qt and gl and glhw)
     canrunpg = pg
     if canrunpg or canrunqt:
-        print 'You have all the required libraries to run BlueSky. You can use',
+        print('You have all the required libraries to run BlueSky. You can use', end=' ')
     if canrunpg and canrunqt:
-        print 'both the QTGL and the pygame versions.'
+        print('both the QTGL and the pygame versions.')
     else:
-        print 'only the %s version.' % ('pygame' if canrunpg else 'QTGL')
+        print('only the %s version.' % ('pygame' if canrunpg else 'QTGL'))
 
-print "Checking bluesky modules"
+print("Checking bluesky modules")
 try:
     from bluesky import *
     from bluesky.ui import *
@@ -136,11 +137,10 @@ try:
     from bluesky.traf import *
     from bluesky.traf.asas import *
     from bluesky.traf.metric import *
-    from bluesky.traf.params import *
     from bluesky.traf.perf import *
     from bluesky.navdb import *
-except Exception, err:
-    print traceback.format_exc()
-    print "One or more BlueSky modules are not working properly, check the above error for more detail."
+except Exception as err:
+    print(traceback.format_exc())
+    print("One or more BlueSky modules are not working properly, check the above error for more detail.")
 else:
-    print "Successfully loaded all BlueSky modules. Start BlueSky by running BlueSky.py."
+    print("Successfully loaded all BlueSky modules. Start BlueSky by running BlueSky.py.")

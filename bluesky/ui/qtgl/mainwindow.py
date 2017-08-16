@@ -1,3 +1,6 @@
+""" Main window for the QTGL gui."""
+import platform
+import os
 try:
     from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel, QSize
     from PyQt5.QtGui import QPixmap, QIcon
@@ -10,17 +13,22 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from ...sim.qtgl import PanZoomEvent, MainManager as manager
-from ...settings import data_path, stack_text_color as fg, stack_background_color as bg
-import platform
+from bluesky.sim.qtgl import StackTextEvent, PanZoomEvent, MainManager as manager
+from bluesky import settings
+
 
 is_osx = platform.system() == 'Darwin'
 
+# Register settings defaults
+settings.set_variable_defaults(gfx_path='data/graphics', stack_text_color=(0, 255, 0), stack_background_color=(102, 102, 102))
+
+fg = settings.stack_text_color
+bg = settings.stack_background_color
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super(Splash, self).__init__(QPixmap(data_path + '/graphics/splash.gif'), Qt.WindowStaysOnTopHint)
+        super(Splash, self).__init__(QPixmap(os.path.join(settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
 
 
 class MainWindow(QMainWindow):
@@ -30,11 +38,11 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.app = app
         if is_osx:
-            self.app.setWindowIcon(QIcon(data_path + "/graphics/bluesky.icns"))
+            self.app.setWindowIcon(QIcon(os.path.join(settings.gfx_path, 'bluesky.icns')))
         else:
-            self.app.setWindowIcon(QIcon(data_path + "/graphics/icon.gif"))
+            self.app.setWindowIcon(QIcon(os.path.join(settings.gfx_path, 'icon.gif')))
 
-        uic.loadUi(data_path + "/graphics/mainwindow.ui", self)
+        uic.loadUi(os.path.join(settings.gfx_path, 'mainwindow.ui'), self)
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
@@ -58,10 +66,10 @@ class MainWindow(QMainWindow):
                     self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked],
                     self.shownodes :  ['nodes.svg', 'Show/hide node list', self.buttonClicked]}
 
-        for b in buttons.iteritems():
+        for b in buttons.items():
             # Set icon
             if not b[1][0] is None:
-                icon = QIcon(data_path + '/graphics/icons/' + b[1][0])
+                icon = QIcon(os.path.join(settings.gfx_path, 'icons/' + b[1][0]))
                 b[0].setIcon(icon)
             # Set tooltip
             if not b[1][1] is None:
@@ -100,7 +108,8 @@ class MainWindow(QMainWindow):
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
 
     def keyPressEvent(self, event):
-        if event.modifiers() & Qt.ShiftModifier:
+        if event.modifiers() & Qt.ShiftModifier \
+                and event.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
             if event.key() == Qt.Key_Up:
@@ -150,7 +159,7 @@ class MainWindow(QMainWindow):
             btn.setFlat(True)
             btn.setStyleSheet('font-weight:bold')
 
-            btn.setIcon(QIcon(data_path + '/graphics/icons/addnode.svg'))
+            btn.setIcon(QIcon(os.path.join(settings.gfx_path, 'icons/addnode.svg')))
             btn.setIconSize(QSize(24, 16))
             btn.setLayoutDirection(Qt.RightToLeft)
             btn.setMaximumHeight(16)
@@ -201,15 +210,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
-            self.app.stack('IC IC')
+            manager.sendEvent(StackTextEvent(cmdtext='IC IC'))
         elif self.sender() == self.hold:
-            self.app.stack('HOLD')
+            manager.sendEvent(StackTextEvent(cmdtext='HOLD'))
         elif self.sender() == self.op:
-            self.app.stack('OP')
+            manager.sendEvent(StackTextEvent(cmdtext='OP'))
         elif self.sender() == self.fast:
-            self.app.stack('FF')
+            manager.sendEvent(StackTextEvent(cmdtext='FF'))
         elif self.sender() == self.fast10:
-            self.app.stack('FF 0:0:10')
+            manager.sendEvent(StackTextEvent(cmdtext='FF 0:0:10'))
         elif self.sender() == self.showac:
             self.radarwidget.show_traf = not self.radarwidget.show_traf
         elif self.sender() == self.showpz:
@@ -229,4 +238,4 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
         elif self.sender() == self.action_Save:
-            self.app.stack('SAVEIC')
+            manager.sendEvent(StackTextEvent(cmdtext='SAVEIC'))

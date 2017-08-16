@@ -1,3 +1,3 @@
-from simulation import Simulation
-from mainmanager import MainManager
-from simevents import *
+from .simevents import *
+from .mainmanager import MainManager
+from . import nodemanager
