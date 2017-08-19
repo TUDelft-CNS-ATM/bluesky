@@ -62,10 +62,10 @@ class Pilot(DynamicArrays):
 
     def FlightEnvelope(self):
         # check for the flight envelope
-        bs.traf.delalt = bs.traf.apalt - bs.traf.alt  # [m]
+        bs.traf.delalt = bs.traf.selalt - bs.traf.alt  # [m]
         bs.traf.perf.limits()
 
-        #print self.aspd[0]/kts
+        #print self.selspd[0]/kts
 
         # Update desired sates with values within the flight envelope
         # To do: add const Mach const CAS mode
@@ -83,7 +83,7 @@ class Pilot(DynamicArrays):
         # climb/descend above crossover: Ma = const, else CAS = const
         # ama is fixed when above crossover
         bs.traf.ama = np.where(bs.traf.abco * (bs.traf.ama == 0.),
-                                 vcas2mach(bs.traf.aspd, bs.traf.alt), bs.traf.ama)
+                                 vcas2mach(bs.traf.selspd, bs.traf.alt), bs.traf.ama)
 
         # ama is deleted when below crossover
         bs.traf.ama = np.where(bs.traf.belco, 0.0, bs.traf.ama)
