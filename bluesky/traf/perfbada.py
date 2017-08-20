@@ -3,17 +3,17 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
 from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
-from performance import esf, phases, calclimits, PHASE
+from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
 settings.set_variable_defaults(perf_path_bada='data/coefficients/BADA', verbose=False)
 
-import bada_coeff
+from . import bada_coeff
 if not bada_coeff.init(settings.perf_path_bada):
     raise ImportError('BADA performance model: Error loading BADA files from ' + settings.perf_path_bada + '!')
 else:
-    print 'Using BADA performance model.'
+    print('Using BADA performance model.')
 
 
 class PerfBADA(DynamicArrays):
@@ -182,10 +182,10 @@ class PerfBADA(DynamicArrays):
 
             if not settings.verbose:
                 if not self.warned:
-                    print "Aircraft is using default B747-400 performance."
+                    print("Aircraft is using default B747-400 performance.")
                     self.warned = True
             else:
-                print "Flight " + bs.traf.id[-n:] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
+                print("Flight " + bs.traf.id[-n:] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance.")
 
         # designate aicraft to its aircraft type
         self.jet[-n:]       = 1 if coeff.engtype == 'Jet' else 0
@@ -344,7 +344,7 @@ class PerfBADA(DynamicArrays):
         self.phase, self.bank = \
         phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
         bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
-        bs.traf.hdgsel, swbada)
+        bs.traf.swhdgsel, swbada)
 
         # AERODYNAMICS
         # Lift
@@ -466,12 +466,12 @@ class PerfBADA(DynamicArrays):
         cpred = 1-cred*((self.mmax-self.mass)/(self.mmax-self.mmin))
 
 
-        # switch for given vertical speed avs
-        if (bs.traf.avs.any()>0) or (bs.traf.avs.any()<0):
-            # thrust = f(avs)
-            T = ((bs.traf.avs!=0)*(((bs.traf.pilot.vs*self.mass*g0)/     \
+        # switch for given vertical speed selvs
+        if (bs.traf.selvs.any()>0.) or (bs.traf.selvs.any()<0.):
+            # thrust = f(selvs)
+            T = ((bs.traf.selvs!=0)*(((bs.traf.pilot.vs*self.mass*g0)/     \
                       (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
-                      + self.D)) + ((bs.traf.avs==0)*T)
+                      + self.D)) + ((bs.traf.selvs==0)*T)
 
         self.Thr = T
 

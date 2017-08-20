@@ -3,8 +3,8 @@ from bluesky import sim, scr, stack
 from bluesky.ui.pygame import Keyboard, splash
 from bluesky.tools import plugin
 if __name__ == "__main__":
-    print "   *****   BlueSky Open ATM simulator *****"
-    print "Distributed under GNU General Public License v3"
+    print("   *****   BlueSky Open ATM simulator *****")
+    print("Distributed under GNU General Public License v3")
 
 
 def MainLoop():
@@ -30,7 +30,7 @@ def MainLoop():
     # After the simulation is done, close the gui
     sim.stop()
     pg.quit()
-    print 'BlueSky normal end.'
+    print('BlueSky normal end.')
     return
 
 #==============================================================================

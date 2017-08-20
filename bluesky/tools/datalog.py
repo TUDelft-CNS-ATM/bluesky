@@ -4,18 +4,12 @@
 
 import os
 import numbers
-import collections
 from datetime import datetime
 import numpy as np
 from bluesky import settings, stack
 
 # Register settings defaults
 settings.set_variable_defaults(log_path='output')
-
-# Check if logdir exists, and if not, create it.
-if not os.path.exists(settings.log_path):
-    print 'Creating log path [' + settings.log_path + ']'
-    os.makedirs(settings.log_path)
 
 logprecision = '%.8f'
 
@@ -55,7 +49,7 @@ def preupdate(simt):
 def postupdate():
     """ This function writes to files of all periodic logs by calling the appropriate
     functions for each type of periodic log, at the approriate update time. """
-    for key, log in periodicloggers.iteritems():
+    for key, log in periodicloggers.items():
         log.log()
 
 
@@ -66,7 +60,7 @@ def reset():
     CSVLogger.simt = 0.0
 
     # Close all logs and remove reference to its file object
-    for key, log in allloggers.iteritems():
+    for key, log in allloggers.items():
         log.reset()
 
 
@@ -160,7 +154,7 @@ class CSVLogger:
         self.selvars = []
         for logset in self.allvars:
             # Create a list of member variables in logset that are in the selection
-            cursel    = filter(lambda el: el.upper() in selection, logset[1])
+            cursel    = [el for el in logset[1] if el.upper() in selection]
             if len(cursel) > 0:
                 # Add non-empty result with parent object to selected log variables
                 self.selvars.append((logset[0], list(cursel)))
@@ -182,7 +176,7 @@ class CSVLogger:
         return self.file is not None
 
     def log(self, *additional_vars):
-        if self.file and len(self.selvars) > 0 and self.simt >= self.tlog:
+        if self.file and self.simt >= self.tlog:
             # Set the next log timestep
             self.tlog += self.dt
 
@@ -190,14 +184,14 @@ class CSVLogger:
             varlist = [v[0].__dict__.get(vname) for v in self.selvars for vname in v[1]]
             varlist += additional_vars
 
-            # Convert numeric arrays to text, leave text arrays untouched
-            if isinstance(varlist[0], collections.Container):
+            # Convert (numeric) arrays to text, leave text arrays untouched
+            if isinstance(varlist[0], str):
+                txtdata = [str(self.simt)] + [num2txt(col) for col in varlist]
+            else:
                 nrows = len(varlist[0])
                 if nrows == 0:
                     return
                 txtdata = [nrows * [str(self.simt)]] + [col2txt(col) for col in varlist]
-            else:
-                txtdata = [str(self.simt)] + [num2txt(col) for col in varlist]
 
             # log the data to file
             np.savetxt(self.file, np.vstack(txtdata).T, delimiter=',', newline='\n', fmt='%s')

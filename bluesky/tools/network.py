@@ -2,7 +2,7 @@
 import time
 import socket
 import threading
-from bluesky import settings, stack
+from bluesky import settings
 
 if settings.gui == 'qtgl':
     try:
@@ -23,15 +23,15 @@ if settings.gui == 'qtgl':
 
         @pyqtSlot()
         def onError(self):
-            print self.socket.errorString()
+            print(self.socket.errorString())
 
         @pyqtSlot()
         def onConnected(self):
-            print 'TcpClient connected'
+            print('TcpClient connected')
 
         @pyqtSlot()
         def onDisconnected(self):
-            print 'TcpClient disconnected'
+            print('TcpClient disconnected')
 
         def isConnected(self):
             return (self.state() == self.ConnectedState)
@@ -42,7 +42,7 @@ if settings.gui == 'qtgl':
 
         def processData(self, data):
             # Placeholder function; override it with your own implementation
-            print 'TcpSocket received', data
+            print('TcpSocket received', data)
 
 
     class TcpServer(QTcpServer):
@@ -64,7 +64,7 @@ if settings.gui == 'qtgl':
 
         def processData(self, sender_id, data):
             # Placeholder function; override it with your own implementation
-            print 'TcpServer received', data, 'from sender no', sender_id
+            print('TcpServer received', data, 'from sender no', sender_id)
 
 
 elif settings.gui == 'pygame':
@@ -84,19 +84,19 @@ elif settings.gui == 'pygame':
                 self.sock.settimeout(10)    # 10 second timeout
                 self.sock.connect((ip, port))       # connecting
                 self.is_connected = True
-                print "Server connected. HOST: %s, PORT: %s" % (ip, port)
-            except Exception, err:
+                print("Server connected. HOST: %s, PORT: %s" % (ip, port))
+            except Exception as err:
                 self.is_connected = False
-                print "Connection Error: %s" % err
+                print("Connection Error: %s" % err)
                 pass
 
         def disconnectFromHost(self):
             try:
                 self.sock.close()
                 self.is_connected = False
-                print "Server disconnected."
-            except Exception, err:
-                print "Disconnection Error: %s" % err
+                print("Server disconnected.")
+            except Exception as err:
+                print("Disconnection Error: %s" % err)
                 pass
 
         def isConnected(self):
@@ -112,13 +112,13 @@ elif settings.gui == 'pygame':
                     data = self.sock.recv(self.buffer_size)
                     self.processData(data)
                     time.sleep(0.1)
-                except Exception, err:
-                    print "Revecier Error: %s" % err
+                except Exception as err:
+                    print("Receiver Error: %s" % err)
                     time.sleep(1.0)
 
         def processData(self, data):
             # rewrite this function
-            print "parsing data..."
+            print("parsing data...")
 
     class TcpServer(object):
         def __init__(self):
@@ -132,8 +132,16 @@ elif settings.gui == 'pygame':
 
 
 class StackTelnetServer(TcpServer):
+    @staticmethod
+    def dummy_process(cmd):
+        pass
+
     def __init__(self):
         super(StackTelnetServer, self).__init__()
+        self.process = StackTelnetServer.dummy_process
+
+    def connect(self, fun):
+        self.process = fun
 
     def processData(self, sender_id, data):
-        stack.stack(str(data).strip())
+        self.process(bytearray(data).decode(encoding='ascii', errors='ignore').strip())

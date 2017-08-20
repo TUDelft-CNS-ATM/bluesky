@@ -30,7 +30,7 @@ from bluesky.tools.position import txt2pos, islat
 from bluesky import settings
 
 # Temporary fix for synthetic
-import synthetic as syn
+from . import synthetic as syn
 # Register settings defaults
 settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario')
 
@@ -164,7 +164,7 @@ def init():
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
-            bs.traf.ap.selalt,
+            bs.traf.ap.selaltcmd,
             "Altitude command (autopilot)"
         ],
         "AREA": [
@@ -200,7 +200,7 @@ def init():
         "BOX": [
             "BOX name,lat,lon,lat,lon,[top,bottom]",
             "txt,latlon,latlon,[alt,alt]",
-            lambda name, *coords: areafilter.defineArea(name, 'BOX', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'BOX', coords[:4], *coords[4:]),
             "Define a box-shaped area"
         ],
         "CALC": [
@@ -218,7 +218,7 @@ def init():
         "CIRCLE": [
             "CIRCLE name,lat,lon,radius,[top,bottom]",
             "txt,latlon,float,[alt,alt]",
-            lambda name, *coords: areafilter.defineArea(name, 'CIRCLE', coords),
+            lambda name, *coords: areafilter.defineArea(name, 'CIRCLE', coords[:3], *coords[3:]),
             "Define a circle-shaped area"
         ],
         "CRE": [
@@ -359,7 +359,7 @@ def init():
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
-            bs.traf.ap.selhdg,
+            bs.traf.ap.selhdgcmd,
             "Heading command (autopilot)"
         ],
         "HELP": [
@@ -416,12 +416,12 @@ def init():
             bs.traf.mcreate,
             "Multiple random create of n aircraft in current view"
         ],
-        "METRIC": [
-            "METRIC OFF/0/1/2, [dt]",
-            "onoff/int,[float]",
-            bs.sim.metric.toggle,
-            "Complexity metrics module"
-        ],
+        # "METRIC": [
+        #     "METRIC OFF/0/1/2, [dt]",
+        #     "onoff/int,[float]",
+        #     bs.sim.metric.toggle,
+        #     "Complexity metrics module"
+        # ],
         "MOVE": [
             "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
             "acid,latlon,[alt,hdg,spd,vspd]",
@@ -489,9 +489,9 @@ def init():
             "Define a polygon-shaped area"
         ],
         "POLYALT": [
-            "POLY name,top,bottom,lat,lon,lat,lon, ...",
+            "POLYALT name,top,bottom,lat,lon,lat,lon, ...",
             "txt,alt,alt,latlon,...",
-            lambda name, *coords: areafilter.defineArea(name, 'POLYALT', coords),
+            lambda name, top, bottom, *coords: areafilter.defineArea(name, 'POLYALT', coords, top, bottom),
             "Define a polygon-shaped area in 3D: between two altitudes"
         ],
         "POS": [
@@ -593,12 +593,12 @@ def init():
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
             "acid,spd",
-            bs.traf.ap.selspd,
+            bs.traf.ap.selspdcmd,
             "Speed command (autopilot)"
         ],
         "SSD": [
-            "SSD acid/ALL/OFF",
-            "txt",
+            "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
+            "txt,[...]",
             bs.scr.showssd,
             "Show state-space diagram (=conflict prevention display/predictive ASAS)"
         ],
@@ -648,7 +648,7 @@ def init():
         "VS": [
             "VS acid,vspd (ft/min)",
             "acid,vspd",
-            bs.traf.ap.selvspd,
+            bs.traf.ap.selvspdcmd,
             "Vertical speed command (autopilot)"
         ],
         "WIND": [
@@ -786,7 +786,7 @@ def showhelp(cmd=''):
         table = []  # for alphabetical sort use a table
 
         # Get info for all commands
-        for item, lst in cmddict.iteritems():
+        for item, lst in cmddict.items():
             line = item + "\t"
             if len(lst) > 3:
                 line = line + lst[3]
@@ -897,7 +897,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     # The entire filename, possibly with added path and extension
     scenfile = os.path.join(path, scenname + ext)
 
-    print "Opening ", scenfile
+    print("Opening ", scenfile)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
@@ -929,7 +929,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 except:
                     if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
-                        print "except this:", line
+                        print("except this:", line)
                     pass  # nice try, we will just ignore this syntax error
 
     if mergeWithExisting:
@@ -1078,7 +1078,6 @@ def saveic(fname):
 
 def process():
     """process and empty command stack"""
-    global cmdstack
 
     # Process stack of commands
     for line in cmdstack:
@@ -1109,10 +1108,10 @@ def process():
         # First check command synonyms list, then in dictionary
         #----------------------------------------------------------------------
         orgcmd = cmd  # save for string cutting out of line and use of synonyms
-        if cmd in cmdsynon.keys():
+        if cmd in list(cmdsynon.keys()):
             cmd    = cmdsynon[cmd]
 
-        if cmd in cmddict.keys():
+        if cmd in list(cmddict.keys()):
             # Look up command in dictionary to get string with argtypes andhelp texts
             helptext, argtypelist, function = cmddict[cmd][:3]
 
@@ -1191,8 +1190,8 @@ def process():
                                 bs.scr.echo('Syntax error processing "' + args[curarg] + '":')
                                 bs.scr.echo(errors)
                                 bs.scr.echo(helptext)
-                                print "Error in processing arguments:"
-                                print line
+                                print("Error in processing arguments:")
+                                print(line)
 
                     curtype += 1
 
@@ -1245,7 +1244,7 @@ def process():
         #**********************************************************************
 
     # End of for-loop of cmdstack
-    cmdstack = []
+    del cmdstack[:]
     return
 
 
@@ -1511,7 +1510,7 @@ def makedoc():
     re_args = re.compile(r'\w+')
     if not os.path.isdir('tmp'):
         os.mkdir('tmp')
-    for name, lst in cmddict.iteritems():
+    for name, lst in cmddict.items():
         if not os.path.isfile('data/html/%s.html' % name.lower()):
             with open('tmp/%s.md' % name.lower(), 'w') as f:
                 f.write('# %s: %s\n' % (name, name.capitalize()) +

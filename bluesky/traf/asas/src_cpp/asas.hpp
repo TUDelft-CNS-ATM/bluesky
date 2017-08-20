@@ -31,7 +31,7 @@ struct Dbconf {
         PyObject_SetAttrString(self, "altowncpa", altowncpa.attr);
         PyObject_SetAttrString(self, "confpairs", confpairs.attr);
         PyObject_SetAttrString(self, "iconf", iconf.attr);
-        PyObject_SetAttrString(self, "nconf", PyInt_FromLong(nconf));
+        PyObject_SetAttrString(self, "nconf", PyLong_FromLong(nconf));
     }
 };
 

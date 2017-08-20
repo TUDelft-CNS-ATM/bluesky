@@ -58,7 +58,7 @@ class Area:
 
         # start by checking if the first argument is a string -> then it is an area name
         if isinstance(args[0], str) and len(args)==1:
-            if args[0] in areafilter.areas:
+            if areafilter.hasArea(args[0]):
                 # switch on Area, set it to the shape name
                 self.name = args[0]
                 self.active = True
@@ -76,7 +76,7 @@ class Area:
         elif (isinstance(args[0],float) or isinstance(args[0],int)) and 4<=len(args)<=6:
             self.active = True
             self.name = 'DELAREA'
-            areafilter.defineArea(self.name, 'BOX', args)
+            areafilter.defineArea(self.name, 'BOX', args[:4], args[4:])
             return True, "Area is ON. Area name is: " + str(self.name)
         else:
             return False,  "Incorrect arguments" + \

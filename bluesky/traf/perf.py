@@ -1,17 +1,18 @@
 """ BlueSky aircraft performance calculations."""
 import os
-import numpy as np
+
 from xml.etree import ElementTree
 from math import *
+import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 
-from performance import esf, phases, calclimits, PHASE
+from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(data_path='data', verbose=False)
+settings.set_variable_defaults(perf_path='data/coefficients', verbose=False)
 
 class CoeffBS:
     """
@@ -45,7 +46,7 @@ class CoeffBS:
         else:
             converted = float(value)
             if not self.warned:
-                print "traf/perf.py convert function: Unit mismatch. Could not find ", unit
+                print("traf/perf.py convert function: Unit mismatch. Could not find ", unit)
                 self.warned = True
 
         return converted
@@ -108,10 +109,10 @@ class CoeffBS:
 
         # parse AC files
 
-        path = settings.data_path + '/coefficients/BS_aircraft/'
+        path = os.path.join(settings.perf_path, 'BS_aircraft')
         files = os.listdir(path)
-        for file in files:
-            acdoc = ElementTree.parse(path + file)
+        for fname in files:
+            acdoc = ElementTree.parse(os.path.join(path, fname))
 
             #actype = doc.find('ac_type')
             self.atype.append(acdoc.find('ac_type').text)
@@ -288,10 +289,10 @@ class CoeffBS:
         self.PSFC_CR     = [] # SFC cruise
 
         # parse engine files
-        path = settings.data_path + '/coefficients/BS_engines/'
+        path = os.path.join(settings.perf_path, 'BS_engines/')
         files = os.listdir(path)
-        for filename in files:
-            endoc = ElementTree.parse(path + filename)
+        for fname in files:
+            endoc = ElementTree.parse(os.path.join(path, fname))
             self.enlist.append(endoc.find('engines/engine').text)
 
             # thrust
@@ -438,10 +439,10 @@ class Perf():
             self.coeffidx = 0
             if not settings.verbose:
                 if not self.warned:
-                    print "Aircraft is using default B747-400 performance."
+                    print("Aircraft is using default B747-400 performance.")
                     self.warned = True
             else:
-                print "Flight " + bs.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
+                print("Flight " + bs.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance.")
 
         self.coeffidxlist = np.append(self.coeffidxlist, self.coeffidx)
         self.mass         = np.append(self.mass, coeffBS.MTOW[self.coeffidx]) # aircraft weight
@@ -497,7 +498,7 @@ class Perf():
             else:
                 self.propengidx = 0
                 if not Perf.warned2:
-                    print "prop aircraft is using standard engine. Please check valid engine types per aircraft type"
+                    print("prop aircraft is using standard engine. Please check valid engine types per aircraft type")
                     Perf.warned2 = True
 
             self.P       = np.append(self.P, coeffBS.P[self.propengidx]*coeffBS.n_eng[self.coeffidx])
@@ -525,7 +526,7 @@ class Perf():
             else:
                 self.jetengidx = 0
                 if not self.warned2:
-                    print " jet aircraft is using standard engine. Please check valid engine types per aircraft type"
+                    print(" jet aircraft is using standard engine. Please check valid engine types per aircraft type")
                     self.warned2 = True
 
             self.rThr    = np.append(self.rThr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx])  # rated thrust (all engines)
@@ -626,7 +627,7 @@ class Perf():
         self.phase, self.bank = \
            phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
            bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
-           bs.traf.hdgsel,swbada)
+           bs.traf.swhdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)

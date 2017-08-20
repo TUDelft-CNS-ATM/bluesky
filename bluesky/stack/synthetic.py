@@ -136,14 +136,14 @@ def process(*cmdargs):
                 idxl = bs.traf.id.index(acidl)
                 idxh = bs.traf.id.index(acidh)
 
-                bs.traf.vs[idxl]=vs
-                bs.traf.vs[idxh]=-vs
+                bs.traf.vs[idxl]     =  vs
+                bs.traf.vs[idxh]     = -vs
 
-                bs.traf.avs[idxl]=vs
-                bs.traf.avs[idxh]=-vs
+                bs.traf.selvs[idxl]  =  vs
+                bs.traf.selvs[idxh]  = -vs
 
-                bs.traf.aalt[idxl]=highalt
-                bs.traf.aalt[idxh]=lowalt
+                bs.traf.selalt[idxl] = highalt
+                bs.traf.selalt[idxh] = lowalt
 
             if savescenarios:
                 fname="sphere"+str(numac)
@@ -226,8 +226,8 @@ def process(*cmdargs):
         hseplat=hsep/mperdeg*floorsep
         bs.traf.create("OWNSHIP","FLOOR",-1,0,90, (20000+altdif)*ft, 200)
         idx = bs.traf.id.index("OWNSHIP")
-        bs.traf.avs[idx]=-10
-        bs.traf.aalt[idx]=20000-altdif
+        bs.traf.selvs[idx]=-10
+        bs.traf.selalt[idx]=20000-altdif
         for i in range(20):
             acid="OTH"+str(i)
             bs.traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,200)

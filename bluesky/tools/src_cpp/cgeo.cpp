@@ -121,7 +121,7 @@ static PyObject* cgeo_qdrdist_matrix(PyObject* self, PyObject* args)
 
     // Determine sizes
     npy_intp  size  = PyArray_SIZE(lat1);
-    
+
     int i = 0, j = 0;
 
     // Create ll2 data for efficient nested loop
@@ -244,7 +244,7 @@ static PyObject* cgeo_latlondist_matrix(PyObject* self, PyObject* args)
 
     // Determine sizes
     npy_intp  size  = PyArray_SIZE(lat1);
-    
+
     int i = 0, j = 0;
 
     // Create ll2 data for efficient nested loop
@@ -356,7 +356,7 @@ static PyObject* cgeo_qdrpos(PyObject* self, PyObject* args)
 
         // Determine sizes
         npy_intp  size  = PyArray_SIZE(arr1);
-        
+
         // Create output matrices
         PyObject *lat2  = PyArray_SimpleNew(1, &size, NPY_DOUBLE),
                  *lon2  = PyArray_SimpleNew(1, &size, NPY_DOUBLE);
@@ -463,7 +463,7 @@ static PyObject* cgeo_kwikdist_matrix(PyObject* self, PyObject* args)
 
     // Determine sizes
     npy_intp  size  = PyArray_SIZE(lat1);
-    
+
     // Create output matrices
     npy_intp shape[] = {size, size};
     PyObject* dst = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
@@ -595,7 +595,7 @@ static PyObject* cgeo_kwikqdrdist_matrix(PyObject* self, PyObject* args)
 
     // Determine sizes
     npy_intp  size  = PyArray_SIZE(lat1);
-    
+
     // Create output matrices
     npy_intp shape[] = {size, size};
     PyObject *qdr  = PyArray_SimpleNew(2, shape, NPY_DOUBLE),
@@ -673,8 +673,26 @@ static struct PyMethodDef methods[] = {
 #ifndef PyMODINIT_FUNC  /* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
+
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef cgeodef =
+{
+    PyModuleDef_HEAD_INIT,
+    "cgeo",      /* name of module */
+    "",          /* module documentation, may be NULL */
+    -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    methods
+};
+
+PyMODINIT_FUNC PyInit_cgeo(void)
+{
+    import_array();
+    return PyModule_Create(&cgeodef);
+};
+#else
 PyMODINIT_FUNC initcgeo()
 {
     Py_InitModule("cgeo", methods);
     import_array();
 };
+#endif

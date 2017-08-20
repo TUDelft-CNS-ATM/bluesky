@@ -8,12 +8,12 @@ import time
 
 # Local imports
 import bluesky as bs
-import nodemanager as manager
-from screenio import ScreenIO
-from simevents import StackTextEventType, BatchEventType, BatchEvent, \
+from . import nodemanager as manager
+from .screenio import ScreenIO
+from .simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
 from bluesky import settings, stack
-from bluesky.traf import Metric
+# from bluesky.traf import Metric
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
 
@@ -24,7 +24,7 @@ settings.set_variable_defaults(simdt=0.05)
 
 class Simulation(QObject):
     # simulation modes
-    init, op, hold, end = range(4)
+    init, op, hold, end = list(range(4))
 
     # =========================================================================
     # Functions
@@ -63,14 +63,14 @@ class Simulation(QObject):
         self.ffstop      = None
 
         # Additional modules
-        self.metric      = Metric()
+        # self.metric      = Metric()
 
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
         self.fixdt = self.simdt
 
         # Send list of stack functions available in this sim to gui at start
-        stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.iteritems()}
+        stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
         manager.sendEvent(StackInitEvent(stackdict))
 
         while self.running:
@@ -102,7 +102,7 @@ class Simulation(QObject):
                 bs.traf.update(self.simt, self.simdt)
 
                 # Update metrics
-                self.metric.update()
+                # self.metric.update()
 
                 # Update plugins
                 plugin.update(self.simt)

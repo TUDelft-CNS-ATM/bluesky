@@ -54,12 +54,11 @@ class Route():
         """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"""
 
 #        print "addwptStack:",args
-
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
         if len(args) == 1:
 
             isflyby = args[0].replace('-', '')
-
+ 
             if isflyby == "FLYBY":
                 self.swflyby = True
                 return True
@@ -547,6 +546,7 @@ class Route():
                         self.wpalt[-2]  = alt
                         self.wpspd[-2]  = spd
                         self.wptype[-2] = wptype
+                        self.wpflyby[-2] = self.swflyby
 
                         # Update pointers and report whether we are ok
                         self.nwp = len(self.wplat)
@@ -616,7 +616,7 @@ class Route():
 
                 # When already in VNAV: fly it
                 if bs.traf.swvnav[idx]:
-                    bs.traf.aspd[idx]=cas
+                    bs.traf.selspd[idx]=cas
 
             # No speed specified for next leg
             else:

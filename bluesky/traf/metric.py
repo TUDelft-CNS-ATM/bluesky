@@ -117,12 +117,12 @@ class metric_Area():
 
     def area_of_polygon(self,x, y):
         area = 0.0
-        for i in xrange(-1, len(x) - 1):
+        for i in range(-1, len(x) - 1):
             area += x[i] * (y[i + 1] - y[i - 1])
         return area / 2.0
 
     def centroid_of_polygon(self,points):
-        area = self.area_of_polygon(*zip(*points))
+        area = self.area_of_polygon(*list(zip(*points)))
 
         result_x = 0
         result_y = 0
@@ -152,7 +152,7 @@ class metric_Area():
         fir.append((fir_lat[-1],fir_lon[-1]))
 
         fir = fir[0]
-        fir = zip(fir[0],fir[1])
+        fir = list(zip(fir[0],fir[1]))
         fir_centroid = self.centroid_of_polygon(fir)
 
         return fir_centroid
@@ -319,7 +319,7 @@ class metric_CoCa():
     def cellPlot(self):
         cell = [floor(x/12) for x in bs.traf.cell]
         count = collections.Counter(cell)
-        count = np.array(count.items())
+        count = np.array(list(count.items()))
 
         flcells = count
         if np.size(count)>0:
@@ -441,8 +441,8 @@ class metric_CoCa():
                 self.cocametric[name][l][4] = self.precocametric[name][l][4] / self.precocametric[name][l][0]
                 self.cocametric[name][l][0] = self.cocametric[name][l][1] * (self.cocametric[name][l][2] + self.cocametric[name][l][3] + self.cocametric[name][l][4])
 
-        print "Iteration number: "+str(self.iteration+1)
-        print "Reset time = "+str(self.resettime)
+        print("Iteration number: "+str(self.iteration+1))
+        print("Reset time = "+str(self.resettime))
         return
 
 
@@ -493,8 +493,8 @@ class metric_CoCa():
                     self.cells[name][j][0] = bs.traf.id[i]
                     self.cells[name][j][1] = time
                     self.cells[name][j][2] = bs.traf.ahdg[i]
-                    self.cells[name][j][3] = eas2tas(bs.traf.aspd[i],bs.traf.aalt[i])/kts
-                    self.cells[name][j][4] = bs.traf.avs[i]/fpm
+                    self.cells[name][j][3] = eas2tas(bs.traf.selspd[i],bs.traf.selalt[i])/kts
+                    self.cells[name][j][4] = bs.traf.selvs[i]/fpm
                     self.cells[name][j][5] = time
                 if len(index) == 1:
                     createtime = float(self.cells[name][index[0]][5])
@@ -618,7 +618,7 @@ class metric_HB():
         # Vectors CPA_dist and CPA_time
         self.apply_twoCircleMethod()
         time2 = time()
-        print "Time to Complete Calculation: " + str(time2-time1)
+        print("Time to Complete Calculation: " + str(time2-time1))
 
         bs.sim.start()
         return
@@ -803,12 +803,12 @@ class metric_HB():
             if np.isnan(ac_score[str(k)]):
                 ac_score[str(k)] = 0
 
-        ac_totalscore =  sum(ac_score.itervalues())
+        ac_totalscore =  sum(ac_score.values())
 
         self.complexity[self.step][0] = ac_totalscore #/ self.ntraf
         self.complexity[self.step][1] = ac_totalscore / max(1,self.ntraf)
 
-        print "Complexity per Aircraft: " + str(self.complexity[self.step][1])
+        print("Complexity per Aircraft: " + str(self.complexity[self.step][1]))
         return
 
 
@@ -1012,7 +1012,7 @@ class metric_HB():
         ntraf = np.repeat(np.array(self.ntraf),len(trk))
         ntraf = np.array(ntraf).reshape(-1,).tolist()
 
-        data = izip(acid,lat,lon,alt,spd,trk,ntraf,compl)
+        data = zip(acid,lat,lon,alt,spd,trk,ntraf,compl)
 
         step = str(self.step).zfill(3)
         fname = settings.log_path + "/Metric-HB/"+step+"-BlueSky.csv"
@@ -1399,7 +1399,7 @@ class Metric():
         if self.metricstime == 0:
             self.tbegin = bs.sim.simt
             self.metricstime = 1
-            print "METRICS STARTED"
+            print("METRICS STARTED")
             # FIR_circle(bs.navdb,self.fir_number)
             # cmd.stack("AREA "+str(self.cellarea[2][0])+","+str(self.cellarea[2][1])+ \
             #   ","+str(self.cellarea[0][0])+","+str(self.cellarea[0][1]))
@@ -1411,17 +1411,17 @@ class Metric():
             elif self.metric_number == 1:
                 self.metric[self.metric_number].applymetric()
 
-        print "Number of Aircraft in Research Area (FIR):" + str(self.metric[self.metric_number].ntraf)
+        print("Number of Aircraft in Research Area (FIR):" + str(self.metric[self.metric_number].ntraf))
 
         deleteAC = []
         for i in range(0,bs.traf.ntraf):
-            if bs.traf.avs[i] <= 0 and (bs.traf.aalt[i]/ft) < 750 and bs.traf.aspd[i] < 300:
+            if bs.traf.selvs[i] <= 0 and (bs.traf.selalt[i]/ft) < 750 and bs.traf.selspd[i] < 300:
                 deleteAC.append(bs.traf.id[i])
 
-            elif bs.traf.avs[i] <=0 and (bs.traf.aalt[i]/ft) < 10:
+            elif bs.traf.selvs[i] <=0 and (bs.traf.selalt[i]/ft) < 10.:
                 deleteAC.append(bs.traf.id[i])
 
-            if bs.traf.avs[i] <=0 and bs.traf.aspd[i] < 10:
+            if bs.traf.selvs[i] <=0 and bs.traf.selspd[i] < 10.:
                 deleteAC.append(bs.traf.id[i])
 
         for i in range(0,len(deleteAC)):
