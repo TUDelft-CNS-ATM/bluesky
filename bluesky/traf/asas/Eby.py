@@ -5,7 +5,7 @@ Created on Tue Mar 03 16:50:19 2015
 @author: Jerom Maas
 """
 import numpy as np
-from ...tools.aero import vtas2eas
+from bluesky.tools.aero import vtas2eas
 
 
 def start(dbconf):
@@ -52,18 +52,18 @@ def resolve(dbconf, traf):
     newtrack=(np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
     newgs=np.sqrt(newv[0,:]**2+newv[1,:]**2)
     neweas=vtas2eas(newgs,traf.alt)
-    
+
     # Cap the velocity
     neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
-    
+
     # now assign in the traf class
     dbconf.hdg=newtrack
     dbconf.spd=neweascapped
     dbconf.vs=newv[2,:]
     dbconf.alt=np.sign(dbconf.vs)*1e5
-    
+
 #=================================== Eby Method ===============================
-        
+
     # Resolution: Eby method assuming aircraft move straight forward, solving algebraically, only horizontally
 def Eby_straight(traf, dbconf, id1, id2):
     traf=traf
@@ -79,12 +79,12 @@ def Eby_straight(traf, dbconf, id1, id2):
     # find track in radians
     t1=np.radians(traf.trk[id1])
     t2=np.radians(traf.trk[id2])
-        
-    # write velocities as vectors and find relative velocity vector              
+
+    # write velocities as vectors and find relative velocity vector
     v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
     v2=np.array([np.sin(t2)*traf.tas[id2],np.cos(t2)*traf.tas[id2],traf.vs[id2]])
-    v=np.array(v2-v1) 
-    # bear in mind: the definition of vr (relative velocity) is opposite to 
+    v=np.array(v2-v1)
+    # bear in mind: the definition of vr (relative velocity) is opposite to
     # the velocity vector in the LOS_nominal method, this just has consequences
     # for the derivation of tstar following Eby method, not more
     """
@@ -103,13 +103,13 @@ def Eby_straight(traf, dbconf, id1, id2):
     d2=np.dot(d,d) # distance vector length squared
     v2=np.dot(v,v) # velocity vector length squared
     dv=np.dot(d,v) # dot product of distance and velocity
-    
+
     # Solving the quadratic formula
     a=R2*v2 - dv**2
     b=2*dv* (R2 - d2)
     c=R2*d2 - d2**2
     discrim=b**2 - 4*a*c
-    
+
     if discrim<0: # if the discriminant is negative, we're done as taking the square root will result in an error
         discrim=0
     time1=(-b+np.sqrt(discrim))/(2*a)
@@ -121,7 +121,7 @@ def Eby_straight(traf, dbconf, id1, id2):
     #find drel and absolute distance at tstar
     drelstar=d+v*tstar
     dstarabs=np.linalg.norm(drelstar)
-    #exception: if the two aircraft are on exact collision course 
+    #exception: if the two aircraft are on exact collision course
     #(passing eachother within 10 meter), change drelstar
     exactcourse=10 #10 meter
     dif=exactcourse-dstarabs
@@ -129,7 +129,7 @@ def Eby_straight(traf, dbconf, id1, id2):
         vperp=np.array([-v[1],v[0],0]) #rotate velocity 90 degrees in horizontal plane
         drelstar+=dif*vperp/np.linalg.norm(vperp) #normalize to 10 m and add to drelstar
         dstarabs=np.linalg.norm(drelstar)
-        
+
     #intrusion at tstar
     i=dbconf.Rm-dstarabs
 

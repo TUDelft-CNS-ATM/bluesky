@@ -1,9 +1,9 @@
+""" BlueSky implementation of a timer that can periodically trigger functions."""
+import time
 try:
     from PyQt5.QtCore import QObject, pyqtSignal
 except ImportError:
     from PyQt4.QtCore import QObject, pyqtSignal
-
-import time
 
 
 class Timer(QObject):

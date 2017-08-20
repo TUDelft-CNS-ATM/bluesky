@@ -1,41 +1,51 @@
+""" Definition of data content to be transferred between GUI and Sim tasks,
+    these defintions are used on both sides of the communication """
 try:
     from PyQt5.QtCore import QEvent
 except ImportError:
     from PyQt4.QtCore import QEvent
 
 NUMEVENTS = 16
-SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, PanZoomEventType, ACDataEventType, \
-    SimInfoEventType, StackTextEventType, StackInitEventType, ShowDialogEventType, \
-    DisplayFlagEventType, RouteDataEventType, DisplayShapeEventType, \
-    SimQuitEventType, AMANEventType = range(1000, 1000 + NUMEVENTS)
+SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, \
+    PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, \
+    StackInitEventType, ShowDialogEventType, DisplayFlagEventType, \
+    RouteDataEventType, DisplayShapeEventType, \
+    SimQuitEventType, AMANEventType = list(range(1000, 1000 + NUMEVENTS))
 
-""" Definition of data content to be transferred between GUI and Sim tasks,
-    these defintions are used on both sides of the communication """
+class EventBase(QEvent):
+    def __init__(self, eventtype):
+        super(EventBase, self).__init__(eventtype)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
 
 
-class SimStateEvent(QEvent):
-    init, op, hold, end = range(4)
+class SimStateEvent(EventBase):
+    init, op, hold, end = list(range(4))
 
     def __init__(self, state):
         super(SimStateEvent, self).__init__(SimStateEventType)
         self.state = state
 
 
-class BatchEvent(QEvent):
+class BatchEvent(EventBase):
     def __init__(self, scentime, scencmd):
         super(BatchEvent, self).__init__(BatchEventType)
         self.scentime = scentime
         self.scencmd  = scencmd
 
 
-class DisplayFlagEvent(QEvent):
+class DisplayFlagEvent(EventBase):
     def __init__(self, switch='', argument=''):
         super(DisplayFlagEvent, self).__init__(DisplayFlagEventType)
         self.switch = switch
         self.argument = argument
 
 
-class SimInfoEvent(QEvent):
+class SimInfoEvent(EventBase):
     def __init__(self, sys_freq, simdt, simt, simtclock, n_ac, mode, scenname):
         super(SimInfoEvent, self).__init__(SimInfoEventType)
         self.sys_freq  = sys_freq
@@ -47,20 +57,20 @@ class SimInfoEvent(QEvent):
         self.scenname  = scenname
 
 
-class StackTextEvent(QEvent):
+class StackTextEvent(EventBase):
     def __init__(self, disptext='', cmdtext=''):
         super(StackTextEvent, self).__init__(StackTextEventType)
         self.disptext = disptext
         self.cmdtext = cmdtext
 
 
-class StackInitEvent(QEvent):
+class StackInitEvent(EventBase):
     def __init__(self, stackdict):
         super(StackInitEvent, self).__init__(StackInitEventType)
         self.stackdict = stackdict
 
 
-class ShowDialogEvent(QEvent):
+class ShowDialogEvent(EventBase):
     # Types of dialog
     filedialog_type = 0
     docwin_type = 1
@@ -71,7 +81,7 @@ class ShowDialogEvent(QEvent):
         self.__dict__.update(extraattr)
 
 
-class RouteDataEvent(QEvent):
+class RouteDataEvent(EventBase):
     aclat = aclon = wplat = wplon = wpalt = wpspd = wpname = []
     iactwp = -1
     acid = ""
@@ -80,7 +90,7 @@ class RouteDataEvent(QEvent):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
 
 
-class DisplayShapeEvent(QEvent):
+class DisplayShapeEvent(EventBase):
     name = ''
     data = None
 
@@ -90,7 +100,7 @@ class DisplayShapeEvent(QEvent):
         self.data = data
 
 
-class ACDataEvent(QEvent):
+class ACDataEvent(EventBase):
     lat = lon = alt = tas = trk = iconf = confcpalat = confcpalon = id = []
     nconf_tot = nlos_tot  = nconf_exp = nlos_exp  = nconf_cur = nlos_cur = 0
 
@@ -98,14 +108,14 @@ class ACDataEvent(QEvent):
         super(ACDataEvent, self).__init__(ACDataEventType)
 
 
-class AMANEvent(QEvent):
+class AMANEvent(EventBase):
     ids = iafs = eats = etas = delays = rwys = spdratios = []
 
     def __init__(self):
         super(AMANEvent, self).__init__(AMANEventType)
 
 
-class PanZoomEvent(QEvent):
+class PanZoomEvent(EventBase):
     def __init__(self, pan=None, zoom=None, origin=None, absolute=False):
         super(PanZoomEvent, self).__init__(PanZoomEventType)
         self.pan      = pan
@@ -114,6 +124,6 @@ class PanZoomEvent(QEvent):
         self.absolute = absolute
 
 
-class SimQuitEvent(QEvent):
+class SimQuitEvent(EventBase):
     def __init__(self):
         super(SimQuitEvent, self).__init__(SimQuitEventType)

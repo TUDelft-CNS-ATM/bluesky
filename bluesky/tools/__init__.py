@@ -1,10 +1,13 @@
-from ..settings import prefer_compiled
-if prefer_compiled:
-    try:
-        import cgeo as geo
-    except ImportError:
-        import geo
-else:
-    import geo
+from bluesky import settings
+# Register settings defaults
+settings.set_variable_defaults(prefer_compiled=False)
 
-from dynamicarrays import RegisterElementParameters, DynamicArrays
+if settings.prefer_compiled:
+    try:
+        from . import cgeo as geo
+    except ImportError:
+        from . import geo
+else:
+    from . import geo
+
+from .dynamicarrays import RegisterElementParameters, DynamicArrays

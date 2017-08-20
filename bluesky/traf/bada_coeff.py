@@ -1,7 +1,3 @@
-from glob import glob
-from os import path
-import re
-from ..tools.fwparser import FixedWidthParser
 '''BADA Coefficient file loader
 
    This module provides access to the performance data contained in the various
@@ -11,6 +7,10 @@ from ..tools.fwparser import FixedWidthParser
    report: EEC Technical/Scientific Report No. 14/04/24-44. This report can be obtained here:
    https://www.eurocontrol.int/sites/default/files/field_tabs/content/documents/sesar/user-manual-bada-3-12.pdf
 '''
+from glob import glob
+from os import path
+import re
+from bluesky.tools.fwparser import FixedWidthParser
 
 # File formats of BADA data files. Uses fortran-like notation
 # Adapted from the BADA manual format lines. (page 61-81 in the BADA manual)
@@ -102,19 +102,19 @@ def init(bada_path=''):
 
                 if 'Unknown' not in (release_date, bada_version):
                     break
-        print 'Found BADA version %s (release date %s)' % (bada_version, release_date)
+        print('Found BADA version %s (release date %s)' % (bada_version, release_date))
     else:
-        print 'No BADA release summary found: can not determine version.'
+        print('No BADA release summary found: can not determine version.')
 
     synonymfile = path.join(path.normpath(bada_path), 'SYNONYM.NEW')
     if not path.isfile(synonymfile):
-        print 'SYNONYM.NEW not found in BADA path, could not load BADA.'
+        print('SYNONYM.NEW not found in BADA path, could not load BADA.')
         return False
     data = syn_parser.parse(synonymfile)
     for line in data:
         syn = Synonym(line)
         synonyms[syn.accode] = syn
-    print '%d aircraft entries loaded' % len(synonyms)
+    print('%d aircraft entries loaded' % len(synonyms))
 
     # Load aircraft coefficient data
     for file in glob(path.join(path.normpath(bada_path), '*.OPF')):
@@ -125,7 +125,7 @@ def init(bada_path=''):
             ac.setAPFData(apf_parser.parse(file[:-4] + '.APF'))
 
         accoeffs[ac.actype] = ac
-    print '%d unique aircraft coefficient sets loaded' % len(accoeffs)
+    print('%d unique aircraft coefficient sets loaded' % len(accoeffs))
     return (len(synonyms) > 0 and len(accoeffs) > 0)
 
 
@@ -189,7 +189,7 @@ class ACData(object):
         # and descent. xx1=low mass, xx2=high mass
         self.CAScl1, self.CAScl2, self.Mcl, \
             self.CAScr1, self.CAScr2, self.Mcr, \
-            self.Mdes, self.CASdes2, self.CASdes1 = zip(*data[1:])  # swap rows/columns
+            self.Mdes, self.CASdes2, self.CASdes1 = list(zip(*data[1:]))  # swap rows/columns
 
         # Mach numbers are multiplied by 100 in the BADA files
         self.Mcl  = [m / 100.0 for m in self.Mcl]

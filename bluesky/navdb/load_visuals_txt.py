@@ -1,7 +1,13 @@
-from ..settings import gui, data_path
-import numpy as np
+''' Load visual data from text files.'''
+import os
 from math import cos, radians, degrees, sqrt, atan2, sin, asin
 from zipfile import ZipFile
+import numpy as np
+from bluesky import settings
+
+## Default settings
+settings.set_variable_defaults(navdata_path='data/navdata')
+
 REARTH_INV = 1.56961231e-7
 
 
@@ -11,8 +17,8 @@ def load_coastline_txt():
     # coastlines to numpy arrays with lat/lon
     coast = []
     clat = clon = 0.0
-    with open(data_path + '/global/coastlines.dat', 'r') as f:
-        print "Reading coastlines.dat"
+    with open(os.path.join(settings.navdata_path, 'coastlines.dat'), 'r') as f:
+        print("Reading coastlines.dat")
         for line in f:
             line = line.strip()
             if not (line == "" or line[0] == '#'):
@@ -29,12 +35,12 @@ def load_coastline_txt():
     coastlon = coastvertices[:, 1]
     for i in range(0, 360):
         coastindices[i] = np.searchsorted(coastlon, i - 180) * 2
-    coastvertices.resize((coastvertices.size / 2, 2))
+    coastvertices.resize((int(coastvertices.size / 2), 2))
     del coast
     return coastvertices, coastindices
 
 
-if gui == 'qtgl':
+if settings.gui == 'qtgl':
     import OpenGL.GLU as glu
     try:
         from PyQt5.QtCore import Qt
@@ -53,7 +59,7 @@ if gui == 'qtgl':
         def __init__(self, text):
             if QApplication.instance() is None:
                 self.dialog = None
-                print text
+                print(text)
             else:
                 self.dialog = QProgressDialog(text, 'Cancel', 0, 100)
                 self.dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -64,7 +70,7 @@ if gui == 'qtgl':
                 self.dialog.setValue(value)
                 QApplication.processEvents()
             else:
-                print 'Progress: %.2f%% done' % value
+                print('Progress: %.2f%% done' % value)
 
         def close(self):
             if self.dialog:
@@ -193,9 +199,9 @@ if gui == 'qtgl':
         apt_bb        = BoundingBox()
         count         = 0
         bytecount     = 0
-        zfile         = ZipFile(data_path + '/global/apt.zip')
+        zfile         = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
         fsize         = float(zfile.getinfo('apt.dat').file_size)
-        print "Reading apt.dat from apt.zip"
+        print("Reading apt.dat from apt.zip")
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
                 bytecount += len(line)
@@ -204,7 +210,7 @@ if gui == 'qtgl':
                 if count % 1000 == 0:
                     pb.update((bytecount / fsize * 100.0))
 
-                elems = line.strip().split()
+                elems = line.decode(encoding="ascii", errors="ignore").strip().split()
                 if len(elems) == 0:
                     continue
 
@@ -221,9 +227,9 @@ if gui == 'qtgl':
                     if asphalt.bufsize() > start_indices[0] or concrete.bufsize() > start_indices[1]:
                         apt_indices.append( [
                                                 start_indices[0],
-                                                asphalt.bufsize() / 2 - start_indices[0],
+                                                int(asphalt.bufsize() / 2) - start_indices[0],
                                                 start_indices[1],
-                                                concrete.bufsize() / 2 - start_indices[1]
+                                                int(concrete.bufsize() / 2) - start_indices[1]
                                             ])
 
                         center = apt_bb.center()
@@ -329,9 +335,9 @@ if gui == 'qtgl':
         if asphalt.bufsize() > start_indices[0] or concrete.bufsize() > start_indices[1]:
             apt_indices.append( [
                                     start_indices[0],
-                                    asphalt.bufsize() / 2 - start_indices[0],
+                                    int(asphalt.bufsize() / 2) - start_indices[0],
                                     start_indices[1],
-                                    concrete.bufsize() / 2 - start_indices[1]
+                                    int(concrete.bufsize() / 2) - start_indices[1]
                                 ])
 
             center = apt_bb.center()
@@ -358,8 +364,8 @@ else:
     def pygame_load_rwythresholds():
         rwythresholds = dict()
         curthresholds = None
-        zfile = ZipFile(data_path + '/global/apt.zip')
-        print "Reading apt.dat from apt.zip"
+        zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
+        print("Reading apt.dat from apt.zip")
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
                 elems = line.strip().split()

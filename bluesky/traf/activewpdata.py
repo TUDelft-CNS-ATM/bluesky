@@ -1,13 +1,12 @@
 import numpy as np
-from ..tools.dynamicarrays import DynamicArrays, RegisterElementParameters
-from ..tools.aero import nm, g0
-from ..tools.misc import degto180
+import bluesky as bs
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.aero import nm, g0
+from bluesky.tools.misc import degto180
 
 
 class ActiveWaypoint(DynamicArrays):
-    def __init__(self, traf):
-        self.traf = traf
-
+    def __init__(self):
         with RegisterElementParameters(self):
             self.lat      = np.array([])  # Active WP latitude
             self.lon      = np.array([])  # Active WP longitude
@@ -27,23 +26,25 @@ class ActiveWaypoint(DynamicArrays):
         self.flyby[-n:]     = 1.0   # Flyby/fly-over switch
         self.next_qdr[-n:]  = -999.0    # bearing next leg
 
-    def Reached(self, qdr, dist):
+    def Reached(self, qdr, dist, flyby):
         # Calculate distance before waypoint where to start the turn
         # Turn radius:      R = V2 tan phi / g
         # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
         # using default bank angle per flight phase
-        turnrad = self.traf.tas * self.traf.tas / np.maximum(self.traf.eps, np.tan(self.traf.bank) * g0 * nm)  # [nm]
+        turnrad = bs.traf.tas * bs.traf.tas / \
+                      np.maximum(bs.traf.eps, np.tan(bs.traf.bank) * g0 * nm)  # [nm]
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
         # Avoid circling
-        away = np.abs(degto180(self.traf.trk - next_qdr)+180.)>90.
+#        away = np.abs(degto180(bs.traf.trk - next_qdr)+180.)>90.
+        away = np.abs(degto180(bs.traf.trk - next_qdr))>90.
         incircle = dist<turnrad*1.01
         circling = away*incircle
 
 
         # distance to turn initialisation point
-        self.turndist = np.minimum(100., np.abs(turnrad *
-            np.tan(np.radians(0.5 * np.abs(degto180(qdr - next_qdr))))))
+        self.turndist = (flyby<0.5)*np.minimum(100., np.abs(turnrad *
+            np.tan(np.radians(0.5 * np.abs(degto180(qdr%360. - next_qdr%360.))))))
 
         # Check whether shift based dist [nm] is required, set closer than WP turn distanc
-        return np.where(self.traf.swlnav * ((dist < self.turndist)+circling))[0]
+        return np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]

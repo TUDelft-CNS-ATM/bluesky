@@ -5,10 +5,15 @@ from math import degrees
 import collections
 from collections import defaultdict
 import itertools as IT
-from ..tools import geo
-from ..tools.misc import tim2txt
-from ..tools.aero import *
-from ..settings import log_path
+
+import bluesky as bs
+from bluesky.tools import geo
+from bluesky.tools.misc import tim2txt
+from bluesky.tools.aero import *
+from bluesky import settings
+
+# Register settings defaults
+settings.set_variable_defaults(log_path='output')
 
 """
     This module seems to work as follows:
@@ -57,23 +62,23 @@ class metric_Area():
         self.distance = 20
         self.ncells = 18
         self.nlevels = 12
- 
-        self.regions = np.array([0,0,0])   
-    
+
+        self.regions = np.array([0,0,0])
+
     def addbox(self,lat,lon):
-        
+
         lat_0 = lat
         lat_00 = lat
         lon_0 = lon
         londiviser = 1
         for i in range(1,self.ncells+1):
-            for j in range(1,self.ncells+1):                
+            for j in range(1,self.ncells+1):
                 for k in range(self.fll,self.flu+self.deltaFL,self.deltaFL):
                     box = np.array([lat,lon,k])
                     self.regions = np.vstack([self.regions,box])
-            
+
                 if i == 1:
-                    
+
                     lat,lon = geo.qdrpos(lat,lon,self.bearingE,self.distance)
                     lat = degrees(lat)
                     lon = degrees(lon)
@@ -82,15 +87,15 @@ class metric_Area():
                     lat,lon = geo.qdrpos(lat,lon,self.bearingE,self.distance)
                     lat = degrees(lat)
                     lon = lon_0 + londiviser * j
-            
-            lat_0 = lat_00            
+
+            lat_0 = lat_00
             lat,lon = geo.qdrpos(lat_0,lon_0,self.bearingS,self.distance*i)
             lat = degrees(lat)
             lon = degrees(lon)
             lat_0 = lat
 
         return
-        
+
     def cellArea(self):
         point1 = [self.regions[0,0],self.regions[0,1]]
         point2 = [self.regions[self.ncells*self.nlevels-1,0],self.regions[self.ncells*self.nlevels-1,1]]
@@ -98,33 +103,33 @@ class metric_Area():
         point4 = [self.regions[self.ncells*self.ncells*self.nlevels-1,0],self.regions[self.ncells*self.ncells*self.nlevels-1,1]]
         self.cellarea = np.array([point4,point2,point1,point3])
         #print self.cellarea
-        return self.cellarea    
-    
+        return self.cellarea
+
     def makeRegions(self):
         lat = self.lat
         lon = self.lon
-          
+
         self.addbox(lat,lon)
         self.regions = np.delete(self.regions, (0), axis=0)
-        
+
         return self.regions
 
 
     def area_of_polygon(self,x, y):
         area = 0.0
-        for i in xrange(-1, len(x) - 1):
+        for i in range(-1, len(x) - 1):
             area += x[i] * (y[i + 1] - y[i - 1])
         return area / 2.0
-    
+
     def centroid_of_polygon(self,points):
-        area = self.area_of_polygon(*zip(*points))
-        
+        area = self.area_of_polygon(*list(zip(*points)))
+
         result_x = 0
         result_y = 0
         N = len(points)
-        
+
         points = IT.cycle(points)
-        
+
         x1, y1 = next(points)
         for i in range(N):
             x0, y0 = x1, y1
@@ -135,56 +140,56 @@ class metric_Area():
         result_x /= (area * 6.0)
         result_y /= (area * 6.0)
         return (result_x, result_y)
-        
-        
-    def FIR_circle(self,navdb,fir_number):
+
+
+    def FIR_circle(self, fir_number):
         fir_lat = []
         fir_lon = []
         fir = []
 
-        fir_lat.append(navdb.fir[fir_number][1])
-        fir_lon.append(navdb.fir[fir_number][2])
+        fir_lat.append(bs.navdb.fir[fir_number][1])
+        fir_lon.append(bs.navdb.fir[fir_number][2])
         fir.append((fir_lat[-1],fir_lon[-1]))
-        
+
         fir = fir[0]
-        fir = zip(fir[0],fir[1])
+        fir = list(zip(fir[0],fir[1]))
         fir_centroid = self.centroid_of_polygon(fir)
-        
+
         return fir_centroid
 
 class metric_CoCa():
-    
+
     def __init__(self,regions):
-        
-        
+
+
         self.region = regions
-        self.oldaircraft = np.zeros((1000,1), dtype = [('callsign','|S10'),('cellnumber',int), ('time',int),('totaltime',int)])       
+        self.oldaircraft = np.zeros((1000,1), dtype = [('callsign','|S10'),('cellnumber',int), ('time',int),('totaltime',int)])
         self.newaircraft = np.zeros((1000,1), dtype = [('callsign','|S10'),('cellnumber',int), ('time',int),('totaltime',int)])
         # self.cells = np.zeros((self.region.nlevels*self.region.ncells*self.region.ncells,1), dtype = [('cellnumber',int),('interactions',int),('ntraf',int)])
         # for i in range(0,len(self.cells)):
         #    self.cells['cellnumber'][i] = i + 1
         #        plt.close()
-        
+
         self.numberofcells = self.region.ncells*self.region.ncells*self.region.nlevels
-        
+
         names = []
         for i in range(0,self.numberofcells):
             names.append("cell"+str(i))
-            
+
         formats = []
         for i in range(0,self.numberofcells):
             formats.append("|S10")
-            
+
         ndtype = {'names':names, 'formats':formats}
         self.cells = np.zeros((500,6), dtype = ndtype)
         self.resettime = 5 #seconds
         self.deltaresettime = self.resettime
         self.iteration = 0
-        
+
         formats = []
         for i in range(0,self.numberofcells):
             formats.append(float)
-            
+
         ndtype = {'names':names, 'formats':formats}
         oneday = 86400 # second in one day
         numberofrows = oneday / self.resettime
@@ -193,17 +198,17 @@ class metric_CoCa():
         self.cocametric = np.zeros((numberofrows,6), dtype = ndtype)
         plt.ion()
         self.ntraf = 0
-        
+
         # plt.colorbar()
         # self.plotntraf,= plt.plot([], [])
         # self.plotbar, = plt.bar([],[])
         return
-    
+
     def findCell(self,cells,lat,lon,fl):
         i = 0
         j = 0
         k = 0
-        
+
         for i in range(0,len(cells),self.region.ncells*self.region.nlevels):
             if (cells[0,0]) <= lat < (cells[0,0]+0.6):
                 break
@@ -211,9 +216,9 @@ class metric_CoCa():
                 break
             else:
                 i = -10000
-        
+
         if i > -1 :
-            
+
             for j in range(0,self.region.ncells*self.region.nlevels,self.region.nlevels):
 
                 if cells[i+j,1] > lon and lon < (cells[-1,1]+0.6) and lon > cells[0,1]:
@@ -223,37 +228,37 @@ class metric_CoCa():
                     break
                 else:
                     j = -10000
-   
+
             if j > - 1:
                 for k in range(0,self.region.nlevels,1):
                     if cells[i+j+k,2] > fl and fl < (cells[-1,2]+self.region.deltaFL) and fl > cells[0,2]:
                         k = k -1
-                        break                
+                        break
                     else:
                         k = -10000
-                                                      
+
         if (i+j+k) < 0:
             i=-1
             j=0
             k=0
-        
+
         return i+j+k
-    
-       
+
+
     # def update_line(self,ntraf,t):
     #     if t < 0.1:
-           
+
     #        self.__init__()
 
     #     t = int(t)
     #     self.plotntraf.set_xdata(np.append(self.plotntraf.get_xdata(), t))
     #     self.plotntraf.set_ydata(np.append(self.plotntraf.get_ydata(), ntraf))
     #     plt.plot(t,ntraf,'b--o')
-    #     ax = plt.gca()        
+    #     ax = plt.gca()
     #     ax.relim()
     #     ax.autoscale_view()
     #     return
-        
+
     # def update_bar(self,trafcell,t):
     #    if t < 0.1:
     #        self.__init__
@@ -261,11 +266,11 @@ class metric_CoCa():
     #    self.plotbar.set_xdata(np.append(self.plotbar.get_xdata(), t))
     #    self.plotbar.set_ydata(np.append(self.plotbar.get_ydata(), trafcell))
     #    plt.plot(t,ntraf,'b--o')
-    #    ax = plt.gca()        
+    #    ax = plt.gca()
     #    ax.relim()
     #    ax.autoscale_view()
-    #    return    
-    
+    #    return
+
     # def plot_interactions(self):
     #      plotcells = np.sort(self.cells, axis = 0, order='interactions')[-3:]
     #      label = np.vstack(plotcells['cellnumber'])
@@ -274,16 +279,16 @@ class metric_CoCa():
     #      colLabels=("Interactions","")
     #      nrows, ncols = len(x)+1, len(colLabels)
     #      hcell, wcell = 0.3, 0.5
-    #      hpad, wpad = 0, 0.5    
+    #      hpad, wpad = 0, 0.5
     #      fig1=plt.figure(num = 1, figsize=(ncols*wcell+wpad, nrows*hcell+hpad))
     #      ax = fig1.add_subplot(111)
     #      ax.axis('off')
-    #      ax.table(cellText=y1,colLabels=colLabels, rowLabels = label ,loc='center')        
+    #      ax.table(cellText=y1,colLabels=colLabels, rowLabels = label ,loc='center')
     #      plt.bar(x,y)
     #      plt.xticks(x,str(label))
     #      plt.show()
     #     return
-    
+
     # def cell_interactions(self,cellN):
     #    # Interactions
     #    itemscount = np.array(collections.Counter(cellN).items())
@@ -296,68 +301,68 @@ class metric_CoCa():
     #                self.cells['interactions'][number] = itemscount[j,1]*(itemscount[j,1]-1)
     #        self.plot_interactions()
     #    return
-   
-   
+
+
     # def celltime(self,time):
     #     for i in range(0,len(self.newaircraft)):
     #         j = np.where(self.oldaircraft['callsign'] == self.newaircraft['callsign'][i])[0]
     #         if np.size(j) == 1:
     #             if self.oldaircraft['cellnumber'][j] == self.newaircraft['cellnumber'][i]:
-    #                 self.newaircraft['time'][i] = time - self.oldaircraft['totaltime'][i]                   
+    #                 self.newaircraft['time'][i] = time - self.oldaircraft['totaltime'][i]
     #             else:
     #                 self.newaircraft['totaltime'][i] = time - self.oldaircraft['totaltime'][i]
     #                 self.cells['ntraf'][i] = self.cells['ntraf'][i] + 1
     #     self.oldaircraft = self.newaircraft
-    #     return self.newaircraft  
-    
+    #     return self.newaircraft
 
-    def cellPlot(self,traf):
-        cell = [floor(x/12) for x in sim.traf.cell]
+
+    def cellPlot(self):
+        cell = [floor(x/12) for x in bs.traf.cell]
         count = collections.Counter(cell)
-        count = np.array(count.items())
-        
+        count = np.array(list(count.items()))
+
         flcells = count
-        if np.size(count)>0:        
-            flcells = count[:,0]    
-    
+        if np.size(count)>0:
+            flcells = count[:,0]
+
         z = np.array([0])
         for number in range(0,self.region.ncells*self.region.ncells):
-            i = np.where(flcells == (number))           
-            
+            i = np.where(flcells == (number))
+
             if np.size(i) == 0:
                 z = np.append(z,0)
             else:
                 i = i[0]
                 z = np.append(z,count[i,1])
-                
-        z = np.delete(z, (0), axis=0)    
+
+        z = np.delete(z, (0), axis=0)
         zdata = np.reshape(z,(-1,self.region.ncells))
         fig = plt.figure(1)
         ax = fig.add_subplot(1, 1, 1)
         ax.imshow(zdata, interpolation='nearest')
         plt.show()
         return
-        
+
     def applyMetric(self):
         for i in range(0,self.numberofcells):
             name = 'cell'+str(i)
-            
-            l = self.iteration                        
-                        
+
+            l = self.iteration
+
             times = []
             headings = []
             speeds = []
             vspeeds = []
             actimes = []
-            
+
             for j in range(0,len(self.cells[name])):
-                if self.cells[name][j][1] != "":                  
+                if self.cells[name][j][1] != "":
                     times.append(float(self.cells[name][j][1]))
                     headings.append(float(self.cells[name][j][2]))
                     speeds.append(float(self.cells[name][j][3]))
                     vspeeds.append(float(self.cells[name][j][4]))
                     actimes.append(float(self.cells[name][j][1]))
-            
+
             indices = np.argsort(times)
             times.sort()
 
@@ -365,8 +370,8 @@ class metric_CoCa():
             speeds = [speeds[y] for y in indices]
             vspeeds = [vspeeds[x] for x in indices]
             actimes = [actimes[w] for w in indices]
-            
-            
+
+
             for w in range(0,len(vspeeds)):
                 if vspeeds[w] <= 500 and vspeeds[w] >= (-500):
                     vspeeds[w] = 0
@@ -375,11 +380,11 @@ class metric_CoCa():
                 elif vspeeds[w] < (-500):
                     vspeeds[w] = -1
 
-            
+
 
             self.precocametric[name][l][0] = (sum(times)/self.deltaresettime)
-            
-            acinteractions = []            
+
+            acinteractions = []
             spdinteractions = []
             hdginteractions = []
             vspdinteractions = []
@@ -387,38 +392,38 @@ class metric_CoCa():
             if len(times) > 1:
                 for k in range(0,len(times)):
                     aircraft = len(times)
-                    
+
                     time = times[0]/self.deltaresettime
                     actime = actimes[0]/self.deltaresettime
                     acinteractions.append(aircraft*(aircraft-1)*(actime**aircraft))
-                    
-                   
+
+
                     counter = 0
                     for t in range(0,1):
                         for u in range(t+1,len(speeds)):
                             if abs(speeds[t]-speeds[u]) > 35:
-                                counter = counter + 1  
+                                counter = counter + 1
                     spdinteractions.append(2*counter*(time**(counter+1)))
-                    
+
 
                     counter = 0
                     for t in range(0,1):
                         for u in range(t+1,len(headings)):
                             if abs(headings[t]-headings[u]) > 20:
-                                counter = counter + 1 
+                                counter = counter + 1
                     hdginteractions.append(2*counter*(time**(counter+1)))
-                                        
-                    
+
+
                     counter = 0
                     for t in range(0,1):
                         for u in range(t+1,len(vspeeds)):
                             if vspeeds[t] != vspeeds[u]:
                                 counter = counter + 1
                     vspdinteractions.append(2*counter*(time**(counter+1)))
-                    
+
                     for x in range(1,len(actimes)):
                         actimes[x] = actimes[x] - actimes[0]
-                    
+
                     del actimes[0]
                     del times[0]
                     del vspeeds[0]
@@ -429,84 +434,84 @@ class metric_CoCa():
                 self.precocametric[name][l][2] = sum(spdinteractions)
                 self.precocametric[name][l][3] = sum(hdginteractions)
                 self.precocametric[name][l][4] = sum(vspdinteractions)
-                
+
                 self.cocametric[name][l][1] = self.precocametric[name][l][1] / self.precocametric[name][l][0]
                 self.cocametric[name][l][2] = self.precocametric[name][l][2] / self.precocametric[name][l][0]
                 self.cocametric[name][l][3] = self.precocametric[name][l][3] / self.precocametric[name][l][0]
                 self.cocametric[name][l][4] = self.precocametric[name][l][4] / self.precocametric[name][l][0]
                 self.cocametric[name][l][0] = self.cocametric[name][l][1] * (self.cocametric[name][l][2] + self.cocametric[name][l][3] + self.cocametric[name][l][4])
-            
-        print "Iteration number: "+str(self.iteration+1)
-        print "Reset time = "+str(self.resettime)
+
+        print("Iteration number: "+str(self.iteration+1))
+        print("Reset time = "+str(self.resettime))
         return
-    
+
 
     def reset(self):
         names = []
         for i in range(0,self.numberofcells):
             names.append("cell"+str(i))
-            
+
         formats = []
         for i in range(0,self.numberofcells):
             formats.append("|S10")
-            
+
         ndtype = {'names':names, 'formats':formats}
         self.cells = np.zeros((500,6), dtype = ndtype)
-        
+
         return
-    
-    def AircraftCell(self,traf,cells,time,sim):
+
+    def AircraftCell(self,cells,time):
         if floor(time) >= self.resettime:
-            sim.pause()            
+            bs.sim.pause()
             self.reset()
             self.resettime = self.resettime + self.deltaresettime
             self.iteration = self.iteration + 1
-            filedata = log_path + "/coca_20120727-78am-1hour.npy"
+            filedata = settings.log_path + "/coca_20120727-78am-1hour.npy"
             # self.cellPlot(traf)
             # np.save(filedata,self.cocametric)
-            sim.start()
-        
-        sim.traf.cell = []
+            bs.sim.start()
 
-        for i in range(sim.traf.ntraf):
-            lat = sim.traf.lat[i]
-            lon = sim.traf.lon[i]
-            fl = sim.traf.alt[i]/ft
+        bs.traf.cell = []
+
+        for i in range(bs.traf.ntraf):
+            lat = bs.traf.lat[i]
+            lon = bs.traf.lon[i]
+            fl = bs.traf.alt[i]/ft
             cellN = self.findCell(cells,lat,lon,fl)
-            
+
             if cellN > 0:
-                sim.traf.cell = np.append(sim.traf.cell, cellN)
+                bs.traf.cell = np.append(bs.traf.cell, cellN)
                 name = 'cell'+str(cellN)
 
-                index = np.where(sim.traf.id[i] == self.cells[name][:,[0]])[0]                
+                index = np.where(bs.traf.id[i] == self.cells[name][:,[0]])[0]
                 if len(index) != 1:
 
                     j = 0
                     for j in range(0,len(self.cells[name])):
                         if self.cells[name][j][0] == "":
                             break
-                    self.cells[name][j][0] = sim.traf.id[i]
+                    self.cells[name][j][0] = bs.traf.id[i]
                     self.cells[name][j][1] = time
-                    self.cells[name][j][2] = sim.traf.ahdg[i]
-                    self.cells[name][j][3] = eas2tas(sim.traf.aspd[i],sim.traf.aalt[i])/kts
-                    self.cells[name][j][4] = sim.traf.avs[i]/fpm
+                    self.cells[name][j][2] = bs.traf.ahdg[i]
+                    self.cells[name][j][3] = eas2tas(bs.traf.selspd[i],bs.traf.selalt[i])/kts
+                    self.cells[name][j][4] = bs.traf.selvs[i]/fpm
                     self.cells[name][j][5] = time
                 if len(index) == 1:
                     createtime = float(self.cells[name][index[0]][5])
                     self.cells[name][index[0]][1] = str(time - createtime)
 
-                # self.newaircraft['callsign'][i] = traf.id[i]
-                # self.newaircraft['cellnumber'][i] = 
+                # self.newaircraft['callsign'][i] = bs.traf.id[i]
+                # self.newaircraft['cellnumber'][i] =
         return
 
 
 class metric_HB():
-    
+
     def __init__(self,area):
         self.initiallat = area[3][0]
         self.initiallon = area[3][1]
         self.dist_range = 5.0 #nm
-       
+
         self.alt_range = 1000.0 #ft
         self.t_cpa = 0
         self.dist_cpa = 0
@@ -519,7 +524,7 @@ class metric_HB():
         self.alt_dif = 0
         self.alt = 0
         self.id = []
-        
+
         self.complexity = defaultdict(lambda:defaultdict(int))
         self.rel_trk = np.array([])
         self.step = -1
@@ -530,53 +535,53 @@ class metric_HB():
         self.ntraf = 0
         self.compl_ac = 0
         self.time_lookahead = 1800 #seconds
-        
+
         self.selected_area = ([area[0][0],area[0][1]],[area[1][0],area[1][1]],[area[2][0],area[2][1]],[area[3][0],area[3][1]])
 
         return
 
-    def selectTraffic(self,sim):
-        
-        traf_selected_lat = np.array([])        
-        traf_selected_lon = np.array([]) 
-        traf_selected_alt = np.array([]) 
-        traf_selected_tas = np.array([]) 
-        traf_selected_trk = np.array([]) 
+    def selectTraffic(self):
+
+        traf_selected_lat = np.array([])
+        traf_selected_lon = np.array([])
+        traf_selected_alt = np.array([])
+        traf_selected_tas = np.array([])
+        traf_selected_trk = np.array([])
         traf_selected_ntraf = 0
-        # RECTANGLE AREA 
-        # for i in range(0,traf.ntraf):
-        #     if nx.pnpoly(traf.lat[i],traf.lon[i],self.selected_area) == 1:
-        #         traf_selected_lat = np.append(traf_selected_lat,traf.lat[i])
-        #         traf_selected_lon = np.append(traf_selected_lon,traf.lon[i])
-        #         traf_selected_alt = np.append(traf_selected_alt,traf.alt[i])
-        #         traf_selected_tas = np.append(traf_selected_tas,traf.tas[i])
-        #         traf_selected_trk = np.append( traf_selected_trk,traf.trk[i])
+        # RECTANGLE AREA
+        # for i in range(0,bs.traf.ntraf):
+        #     if nx.pnpoly(bs.traf.lat[i],bs.traf.lon[i],self.selected_area) == 1:
+        #         traf_selected_lat = np.append(traf_selected_lat,bs.traf.lat[i])
+        #         traf_selected_lon = np.append(traf_selected_lon,bs.traf.lon[i])
+        #         traf_selected_alt = np.append(traf_selected_alt,bs.traf.alt[i])
+        #         traf_selected_tas = np.append(traf_selected_tas,bs.traf.tas[i])
+        #         traf_selected_trk = np.append( traf_selected_trk,bs.traf.trk[i])
         #         traf_selected_ntraf = traf_selected_ntraf + 1
-       
+
         # CIRCLE AREA (FIR Circle)
-        for i in range(0,sim.traf.ntraf):
-            
-            dist = latlondist(sim.metric.fir_circle_point[0],\
-                              sim.metric.fir_circle_point[1],\
-                              sim.traf.lat[i],sim.traf.lon[i])
-            
-            if  dist/nm < sim.metric.fir_circle_radius:
-                traf_selected_lat = np.append(traf_selected_lat,sim.traf.lat[i])
-                traf_selected_lon = np.append(traf_selected_lon,sim.traf.lon[i])
-                traf_selected_alt = np.append(traf_selected_alt,sim.traf.alt[i])
-                traf_selected_tas = np.append(traf_selected_tas,sim.traf.tas[i])
-                traf_selected_trk = np.append( traf_selected_trk,sim.traf.trk[i])
+        for i in range(0,bs.traf.ntraf):
+
+            dist = latlondist(bs.sim.metric.fir_circle_point[0],\
+                              bs.sim.metric.fir_circle_point[1],\
+                              bs.traf.lat[i],bs.traf.lon[i])
+
+            if  dist/nm < bs.sim.metric.fir_circle_radius:
+                traf_selected_lat = np.append(traf_selected_lat,bs.traf.lat[i])
+                traf_selected_lon = np.append(traf_selected_lon,bs.traf.lon[i])
+                traf_selected_alt = np.append(traf_selected_alt,bs.traf.alt[i])
+                traf_selected_tas = np.append(traf_selected_tas,bs.traf.tas[i])
+                traf_selected_trk = np.append( traf_selected_trk,bs.traf.trk[i])
                 traf_selected_ntraf = traf_selected_ntraf + 1
-        
-        
+
+
         return traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf
 
 
-    def applymetric(self,sim):
+    def applymetric(self):
         time1 = time()
-        sim.pause()
+        bs.sim.pause()
         self.doubleconflict = 0
-        # relative pos x and pos y   
+        # relative pos x and pos y
         self.step = self.step + 1
         self.pos = np.array([])
         self.lat = np.array([])
@@ -585,14 +590,14 @@ class metric_HB():
         self.id = []
         self.alt_dif = 0
 
-        traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf = self.selectTraffic(sim)
- 
+        traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf = self.selectTraffic()
+
 
         [self.rel_trk, self.pos] = geo.qdrdist_matrix(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
         # self.lat = np.append(self.lat,traf.lat)
         # self.lon = np.append(self.lon,traf.lon)
-        self.id = sim.traf.id
-        
+        self.id = bs.traf.id
+
         # Position x and y wrt to initial position
         self.pos = np.mat(self.pos)
         anglex = np.cos(np.radians(90-self.rel_trk))
@@ -600,7 +605,7 @@ class metric_HB():
 
         self.posx = np.mat(np.array(self.pos) * np.array(anglex)) #nm
         self.posy = np.mat(np.array(self.pos) * np.array(angley)) #nm
-        
+
         self.lat = traf_selected_lat
         self.lon = traf_selected_lon
 
@@ -608,16 +613,16 @@ class metric_HB():
         self.spd = traf_selected_tas/nm #nm/s
         self.trk = traf_selected_trk
         self.ntraf = traf_selected_ntraf
-        
+
         self.alt_dif = self.alt-self.alt.T
         # Vectors CPA_dist and CPA_time
         self.apply_twoCircleMethod()
         time2 = time()
-        print "Time to Complete Calculation: " + str(time2-time1)
-        
-        sim.start()
-        return        
-    
+        print("Time to Complete Calculation: " + str(time2-time1))
+
+        bs.sim.start()
+        return
+
 
     def rel_matrixs(self):
         self.alt_dif = self.alt-self.alt.T
@@ -626,7 +631,7 @@ class metric_HB():
         hdgy = np.sin(np.radians(90-self.trk))
 
         spdu = np.mat(self.spd * hdgx.T).T #nm/s
-        spdv = np.mat(self.spd * hdgy.T).T #nm/s 
+        spdv = np.mat(self.spd * hdgy.T).T #nm/s
 
         # distances pos and spd
         distx = np.array(self.posx.T - self.posx) #nm
@@ -640,13 +645,13 @@ class metric_HB():
 
         # predicted distance to CPA
         relcpax = self.t_cpa*np.array(spdu.T)
-        relcpay = self.t_cpa*np.array(spdv.T)        
-        cpax = self.posx.T + relcpax 
+        relcpay = self.t_cpa*np.array(spdv.T)
+        cpax = self.posx.T + relcpax
         cpay = self.posy.T + relcpay
         distcpax = np.array(cpax-cpax.T)
         distcpay = np.array(cpay-cpay.T)
         self.dist_cpa = (distcpax**2+distcpay**2)**0.5
-        
+
         return
 
     def apply_altfilter(self,S0):
@@ -654,20 +659,20 @@ class metric_HB():
         # self.t_cpa = np.where(condition,self.t_cpa, np.nan)
         # self.dist_cpa = np.where(condition,self.dist_cpa, np.nan)
         S0 = np.where(condition,S0,np.nan)
-        return S0         
-        
+        return S0
+
     def apply_distfilter(self,H0):
         condition = self.dist_cpa<self.dist_range*3
         self.dist_cpa = np.where(condition,self.dist_cpa,np.nan)
         self.t_cpa = np.where(condition,self.t_cpa,np.nan)
         H0 = np.where(condition,H0,np.nan)
-        return H0     
-        
+        return H0
+
     def apply_timefilter(self):
         condition = self.t_cpa>0#(self.t_cpa<(self.time_range+20) * (self.t_cpa>0))
         self.t_cpa = np.where(condition,self.t_cpa,np.nan)
         self.dist_cpa = np.where(condition,self.dist_cpa,np.nan)
-        return       
+        return
 
     def apply_before_filter(self,S0,Va):
         Vb = Va.T
@@ -676,13 +681,13 @@ class metric_HB():
         condition2 = np.divide(S0,Va_Vb)>self.time_lookahead #seconds
         condition = np.multiply(condition1,condition2)
         condition = np.invert(condition)
-        S0 = np.where(condition,S0,np.nan)      
+        S0 = np.where(condition,S0,np.nan)
         return S0
 
     def merge(self,times):
             if len(times) > 0:
                 saved = list(times[0])
-                
+
                 for st, en in sorted([(t) for t in times]):
                     if st <= saved[1]:
                         saved[1] = max(saved[1], en)
@@ -693,43 +698,43 @@ class metric_HB():
                 yield list(saved)
             else:
                 yield list(times)
-    
+
     def apply_twoCircleMethod(self):
         Va = np.mat(self.spd)
         Ha = np.radians(self.trk)
 
         Vb = np.add(Va,0.0000001)
         VaVa = np.multiply(Va,Va)
-        
+
         Hb = Ha
-        
+
         [H0,S0] = geo.qdrdist_matrix(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
         S0 = np.where(S0 > 0, S0, np.nan)
-        
+
         S0 = self.apply_before_filter(S0,Va)
         S0 = self.apply_altfilter(S0)
 
         H0 = np.radians(H0.T)
-        
+
         R_S0 = np.divide(self.dist_range,S0)
         arcsin = np.arcsin(R_S0)
-        
+
         ha_new11,ha_new21,ha_new12,ha_new22,t1d1,t1d2,t2d1,t2d2 = self.calc_angles(Vb,Hb,VaVa,H0,arcsin,S0)
-        
+
         R_S0 = None
         arcsin = None
-       
-        ha_1 = np.degrees(ha_new11)        
+
+        ha_1 = np.degrees(ha_new11)
         ha_3 = np.degrees(ha_new21)
-        
-        ha_2 = np.degrees(ha_new12)        
+
+        ha_2 = np.degrees(ha_new12)
         ha_4 = np.degrees(ha_new22)
 
         t1 = t1d1
         t2 = t1d2
         t3 = t2d1
         t4 = t2d2
-        
+
         ha_new11 = None
         ha_new21 = None
         ha_new12 = None
@@ -740,7 +745,7 @@ class metric_HB():
         t2d2 = None
 
         ha_1,ha_2,ha_3,ha_4,t1,t2,t3,t4 = self.conditions(ha_1,ha_2,ha_3,ha_4,t1,t2,t3,t4,Va,Vb,Ha,Hb)
-        
+
         ## Condition where S0 < self.dist_range
         condition = np.multiply(S0<self.dist_range,S0>0)
 
@@ -798,14 +803,14 @@ class metric_HB():
             if np.isnan(ac_score[str(k)]):
                 ac_score[str(k)] = 0
 
-        ac_totalscore =  sum(ac_score.itervalues())
+        ac_totalscore =  sum(ac_score.values())
 
         self.complexity[self.step][0] = ac_totalscore #/ self.ntraf
         self.complexity[self.step][1] = ac_totalscore / max(1,self.ntraf)
-        
-        print "Complexity per Aircraft: " + str(self.complexity[self.step][1])
+
+        print("Complexity per Aircraft: " + str(self.complexity[self.step][1]))
         return
-        
+
 
     def calc_angles(self,Vb,Hb,VaVa,H0,arcsin,S0):
         wx = np.multiply(Vb,np.sin(Hb))
@@ -847,23 +852,23 @@ class metric_HB():
 
         t1d1 = np.minimum(t01d1,t02d1)
         t2d1 = np.maximum(t01d1,t02d1)
-        
+
         xpt1d1 = np.add(xc1,np.multiply(wx.T,t1d1))
         xpt2d1 = np.add(xc1,np.multiply(wx.T,t2d1))
-        
+
         ypt1d1 = np.add(yc1,np.multiply(wy.T,t1d1))
         ypt2d1 = np.add(yc1,np.multiply(wy.T,t2d1))
 
         xc1 = None
         yc1 = None
-        
+
         H0_arcsin = np.add(H0,arcsin)
         xc2 = np.multiply(S0,np.sin(H0_arcsin))
         yc2 = np.multiply(S0,np.cos(H0_arcsin))
 
         xc2xc2 = np.multiply(xc2,xc2)
         yc2yc2 = np.multiply(yc2,yc2)
-        
+
         wxT = wx.T
         wyT = wy.T
         xc2_wx = np.multiply(xc2,wxT)
@@ -959,7 +964,7 @@ class metric_HB():
         t3 = np.where(condition,t3new,t4new)
         ha_4 = np.where(condition,ha_4new,ha_2)
         t4 = np.where(condition,t4new,t2)
-        
+
         # condition Va < Vb and t2,t4 negatif
         t2_neg = np.invert(t2_nan)
         t4_neg = np.invert(t4_nan)
@@ -971,7 +976,7 @@ class metric_HB():
 
         # TBD More than 90-degree turns!
         Ha = np.degrees(Ha)
-        Hb = np.degrees(Hb)        
+        Hb = np.degrees(Hb)
 
         # Lookahead time
         t1_lht = t1 > self.time_lookahead
@@ -1007,10 +1012,10 @@ class metric_HB():
         ntraf = np.repeat(np.array(self.ntraf),len(trk))
         ntraf = np.array(ntraf).reshape(-1,).tolist()
 
-        data = izip(acid,lat,lon,alt,spd,trk,ntraf,compl)
+        data = zip(acid,lat,lon,alt,spd,trk,ntraf,compl)
 
         step = str(self.step).zfill(3)
-        fname = log_path + "/Metric-HB/"+step+"-BlueSky.csv"
+        fname = settings.log_path + "/Metric-HB/"+step+"-BlueSky.csv"
         f = csv.writer(open(fname, "wb"))
         for row in data:
             f.writerow(row)
@@ -1035,16 +1040,16 @@ class metric_HB():
         plt.draw()
         return
 
-    
+
         #    def heading_range(self,i,ac1_conflict,ac2_conflict,lat0_ac1,lon0_ac1,lat0_ac2,lon0_ac2):
-        #        
+        #
         #        h_range = np.arange(int(self.trk[ac1_conflict[i]])-90,int(self.trk[ac1_conflict[i]])+90,1)
         #        h_range = np.append(h_range,self.trk[ac2_conflict[i]])
-        #        
+        #
         #
         #        hdgx = np.cos(np.radians(90-h_range))
         #        hdgy = np.sin(np.radians(90-h_range))
-        #        
+        #
         #        spd = np.array([])
         #        posy = np.array([])
         #        posx = np.array([])
@@ -1052,11 +1057,11 @@ class metric_HB():
         #            posy = np.append(posy,self.posy[ac1_conflict[i]])
         #            posx = np.append(posx,self.posx[ac1_conflict[i]])
         #            spd = np.append(spd,self.spd[ac1_conflict[i]])
-        #        
+        #
         #        spd = np.append(spd,self.spd[ac2_conflict[i]])
-        #        
+        #
         #        spdu = np.mat(spd * hdgx).T #nm/s
-        #        spdv = np.mat(spd * hdgy).T #nm/s    
+        #        spdv = np.mat(spd * hdgy).T #nm/s
         #        posy = np.append(posy,self.posy[ac2_conflict[i]])
         #        posx = np.append(posx,self.posx[ac2_conflict[i]])
         #        posx = np.mat(posx).T
@@ -1070,101 +1075,101 @@ class metric_HB():
         #
         #        ## predicted time to CPA
         #        t_heading = -(distu*distx+distv*disty)/      \
-        #         (distu*distu+distv*distv+np.array(np.eye(distu[:,0].size)))        
-        #        
+        #         (distu*distu+distv*distv+np.array(np.eye(distu[:,0].size)))
+        #
         #        t_heading = self.apply_timefilter(t_heading)
-        #        
+        #
         #        relcpax = t_heading*np.array(spdu.T)
-        #        relcpay = t_heading*np.array(spdv.T)        
-        #        cpax = posx.T + relcpax 
+        #        relcpay = t_heading*np.array(spdv.T)
+        #        cpax = posx.T + relcpax
         #        cpay = posy.T + relcpay
         #        distcpax = np.array(cpax-cpax.T)
         #        distcpay = np.array(cpay-cpay.T)
         #        distcpa = (distcpax**2+distcpay**2)**0.5
-        #        
+        #
         #        n_headings = np.where(distcpa>self.dist_range)
         #        headings = np.array([])
-        #        
+        #
         #        for z in range(0,len(n_headings[0])/2):
         #            headings = np.append(headings,h_range[n_headings[0][z]])
-        #            
-        #        
         #
-        #        
+        #
+        #
+        #
         #        #check if flightid is same, so multiple conflicts per id
         #        if self.id[ac1_conflict[i]] == self.id_previous:
         #            headings = np.intersect1d(self.headings_previous,headings)
-        #            n_fault_headings = len(h_range)-len(headings)    
+        #            n_fault_headings = len(h_range)-len(headings)
         #            ratio = float(float(n_fault_headings)/float(len(h_range)))
         #            add_complexity = [self.id[ac1_conflict[i]],ratio,headings]
         #            self.complexity[self.step][i-self.doubleconflict-1] = add_complexity
         #            self.doubleconflict = self.doubleconflict + 1
         #        else:
-        #            n_fault_headings = len(h_range)-len(headings)    
+        #            n_fault_headings = len(h_range)-len(headings)
         #            ratio = float(float(n_fault_headings)/float(len(h_range)))
         #            add_complexity = [self.id[ac1_conflict[i]],ratio,headings]
         #            self.complexity[self.step][i-self.doubleconflict] = add_complexity
         #
-        #        
+        #
         #        self.id_previous = self.id[ac1_conflict[i]]
         #        self.headings_previous = headings
-        #    
+        #
         #        return
-        #    
-        #    
-        #    
-        #    def apply_precisetime(self,range_t,delta_t,heading_range):        
-        #        
+        #
+        #
+        #
+        #    def apply_precisetime(self,range_t,delta_t,heading_range):
+        #
         #        ac_conflict = np.where(self.t_cpa>0)
         #        conflicts = np.size(ac_conflict)/2
-        #        
+        #
         #        if conflicts > 0:
         #            ac1_conflict = ac_conflict[0]
         #            ac2_conflict = ac_conflict[1]
-        #    
-        #            
+        #
+        #
         #            t_cpa_precise = np.array([])
         #            plat_ac1 = np.array([])
         #            plat_ac2 = np.array([])
         #            plon_ac1 = np.array([])
         #            plon_ac2 = np.array([])
-        #            
+        #
         #            for i in range(0,conflicts):
         #                lat0_ac1 = self.lat[ac1_conflict[i]]
         #                lat0_ac2 = self.lat[ac2_conflict[i]]
         #                lon0_ac1 = self.lon[ac1_conflict[i]]
         #                lon0_ac2 = self.lon[ac2_conflict[i]]
-        #                
+        #
         #                # DETAILED CPA
         ##                t_cpa_ac1ac2 = self.t_cpa[ac1_conflict[i]][ac2_conflict[i]]
         ##                t_cpa_range = np.arange(t_cpa_ac1ac2-range_t,t_cpa_ac1ac2+range_t,delta_t)
         ##                dist_ac1 = t_cpa_precise*self.spd[ac1_conflict[i]]*nm
         ##                dist_ac2 = t_cpa_precise*self.spd[ac2_conflict[i]]*nm
-        ##                
-        ##                
+        ##
+        ##
         ##                plat_ac1 = np.append(plat_ac1,lat0_ac1 + \
-        ##                             np.degrees(dist_ac1*np.cos(np.radians(self.trk[ac1_conflict[i]]))/Rearth))            
+        ##                             np.degrees(dist_ac1*np.cos(np.radians(self.trk[ac1_conflict[i]]))/Rearth))
         ##                plat_ac2 = np.append(plat_ac2,lat0_ac2 + \
-        ##                             np.degrees(dist_ac2*np.cos(np.radians(self.trk[ac2_conflict[i]]))/Rearth)) 
+        ##                             np.degrees(dist_ac2*np.cos(np.radians(self.trk[ac2_conflict[i]]))/Rearth))
         ##                plon_ac1 = np.append(plon_ac1,lon0_ac1 + \
         ##                                   np.degrees(dist_ac1*np.sin(np.radians(self.trk[ac1_conflict[i]])) \
-        ##                                     /np.cos(np.radians(lat0_ac1))/Rearth)) 
+        ##                                     /np.cos(np.radians(lat0_ac1))/Rearth))
         ##                plon_ac2 = np.append(plon_ac2,lon0_ac2 + \
         ##                                   np.degrees(dist_ac2*np.sin(np.radians(self.trk[ac2_conflict[i]])) \
-        ##                                       /np.cos(np.radians(lat0_ac2))/Rearth)) 
-        ##                
+        ##                                       /np.cos(np.radians(lat0_ac2))/Rearth))
+        ##
         ##                dist_ac1ac2 = np.array([])
         ##                for j in range(0,np.size(t_cpa_range)):
         ##                    dist_ac1ac2 = np.append(dist_ac1ac2,(latlondist(plat_ac1[j],plon_ac1[j],plat_ac2[j],plon_ac2[j]))/nm)
-        ##                
+        ##
         ##                index_new_t_cpa = np.argmin(dist_ac1ac2)
         ##                self.dist_cpa[ac1_conflict[i]][ac2_conflict[i]] = dist_ac1ac2[index_new_t_cpa]
-        ##    
+        ##
         ##                self.t_cpa[ac1_conflict[i]][ac2_conflict[i]] = t_cpa_precise[index_new_t_cpa]
-        #                               
+        #
         #                if heading_range == 1:
         #                    self.heading_range(i,ac1_conflict,ac2_conflict,lat0_ac1,lon0_ac1,lat0_ac2,lon0_ac2)
-        #            
+        #
         #        return
 
     def apply_heading_range(self):
@@ -1186,7 +1191,7 @@ class metric_HB():
 
         H0 = np.radians(H0.T)
         R_S0 = np.divide(R,S0)
-        arcsin = np.arcsin(R_S0) 
+        arcsin = np.arcsin(R_S0)
         Hr_new1 = H0 - arcsin
         Hr_new2 = H0 + arcsin
         Vb_Va = np.divide(Vb.T,Va)
@@ -1223,13 +1228,13 @@ class metric_HB():
         condition11 = np.multiply(condition11a,condition11b)
         condition11 = np.invert(condition11)
         Ha_new11 = np.where(condition11,Ha_new11,Heading_1)
-                
+
         # Heading_new21
         condition21a = Ha_new21 > Heading_2
         condition21 = np.multiply(condition21a,condition11b)
         condition21 = np.invert(condition21)
         Ha_new21 = np.where(condition21,Ha_new21,Heading_2)
-    
+
         # Condition where Va>Vb and angle_rel does not include in H0_limits
         va_sxa = np.multiply(Va,np.sin(Ha))
         vb_sxb = va_sxa
@@ -1258,8 +1263,8 @@ class metric_HB():
 
         # S0_S0 = np.multiply(S0,S0)
         # d_sep = self.dist_range**2
-        # aaa = np.multiply(2,np.multiply(S0,self.dist_range))        
-        # d_min = H0        
+        # aaa = np.multiply(2,np.multiply(S0,self.dist_range))
+        # d_min = H0
         # condition = np.abs(np.subtract(H0,x_rel)) < np.radians(90)
         # d_min = np.where(condition,d_min,np.multiply(H0,np.sin(np.subtract(H0,x_rel))))
         # cos_b = np.arcsin(np.divide(d_min,self.dist_range)) - np.abs(np.subtract(H0,x_rel))
@@ -1275,7 +1280,7 @@ class metric_HB():
         # v_rel = np.sqrt(np.subtract(Va_Va_Vb_Vb,mult))
         # print v_rel
         # t_fls = np.divide(upper,v_rel)
-        # print t_fls        
+        # print t_fls
 
         diff_11_21 = np.subtract(Ha_new11,Ha_new21)
         diff_11_21 = np.abs((diff_11_21 + 180) % 360 - 180)
@@ -1304,7 +1309,7 @@ class metric_HB():
 
 
 class Metric():
-    """ 
+    """
     Metric class definition : traffic metrics
 
     Methods:
@@ -1312,27 +1317,27 @@ class Metric():
 
         update()                : add a command to the command stack
         close()                 : close file
-       
+
     Created by  : Jacco M. Hoekstra (TU Delft)
 
     GitHub Metric, full collaborator MICHON-BS!!
     """
-    
-    def __init__(self):    
+
+    def __init__(self):
         # Create metrics file
-        # fname = log_path + \
+        # fname = settings.log_path + \
         #     strftime("%Y-%m-%d-%H-%M-%S-BlueSky-Metrics.txt", gmtime())
         # self.file = open(fname,"w")
 
         # Write header
-#        self.write(0.0,"Header info tbd")        
-        
-        # Last time for which Metrics.update was called 
+#        self.write(0.0,"Header info tbd")
+
+        # Last time for which Metrics.update was called
         self.t0 = -9999   # force first time call
 
         # Set time interval in seconds
         self.dt = 1  # [seconds]
-        
+
         self.name = ("CoCa-Metric","HB-Metric","Delete AC")
         self.metric_number = -1
         self.fir_circle_point = [0.,0.]
@@ -1340,17 +1345,17 @@ class Metric():
         self.fir_number = 0
         self.metricstime = 0
         self.tbegin = 0
-        
+
         self.metric_Area = metric_Area()
-        
+
         self.cells = self.metric_Area.makeRegions()
-        
+
         self.cellarea = self.metric_Area.cellArea()
         self.metric = (metric_CoCa(self.metric_Area),metric_HB(self.cellarea))
 
         return
 
-    def toggle(self, traf, flag, dt=None):
+    def toggle(self, flag, dt=None):
         """ Toggle metrics module from stack """
         if type(flag) == bool and not flag:
             # Can toggle metrics off with 'OFF'
@@ -1363,7 +1368,7 @@ class Metric():
             if flag > len(self.name):
                 return False, "No such metric"
 
-            if not traf.area == "Circle":
+            if not bs.traf.area == "Circle":
                 return False, "First define AREA for metric"
 
             if dt:
@@ -1379,61 +1384,60 @@ class Metric():
         Adds time stamp and ';'
         """
         self.file.write(tim2txt(t)+";"+line+chr(13)+chr(10))
-        return        
+        return
 
-    def update(self,sim):
+    def update(self):
         #check if configured and there is actual traffic
-        if self.metric_number == -1 or sim.traf.ntraf < 1:
+        if self.metric_number == -1 or bs.traf.ntraf < 1:
             return
-            
-        """Update: to call for regular logging & runtime analysis"""        
-        # Only do something when time is there 
-        if abs(sim.simt-self.t0)<self.dt:
+
+        """Update: to call for regular logging & runtime analysis"""
+        # Only do something when time is there
+        if abs(bs.sim.simt-self.t0)<self.dt:
             return
-        self.t0 = sim.simt  # Update time for scheduler
+        self.t0 = bs.sim.simt  # Update time for scheduler
         if self.metricstime == 0:
-            self.tbegin = sim.simt
+            self.tbegin = bs.sim.simt
             self.metricstime = 1
-            print "METRICS STARTED"
-            # FIR_circle(traf.navdb,self.fir_number)
+            print("METRICS STARTED")
+            # FIR_circle(bs.navdb,self.fir_number)
             # cmd.stack("AREA "+str(self.cellarea[2][0])+","+str(self.cellarea[2][1])+ \
             #   ","+str(self.cellarea[0][0])+","+str(self.cellarea[0][1]))
-        
-        # A lot of smart Michon-code here, probably using numpy arrays etc.
-        if sim.simt >= 0:
-            if self.metric_number == 0:
-                self.metric[self.metric_number].AircraftCell(sim.traf,self.cells,sim.t-self.tbegin,sim)
-            elif self.metric_number == 1:
-                self.metric[self.metric_number].applymetric(sim)
-            
-        print "Number of Aircraft in Research Area (FIR):" + str(self.metric[self.metric_number].ntraf)
-        
-        deleteAC = []
-        for i in range(0,sim.traf.ntraf):
-            if sim.traf.avs[i] <= 0 and (sim.traf.aalt[i]/ft) < 750 and sim.traf.aspd[i] < 300:
-                deleteAC.append(sim.traf.id[i])
 
-            elif sim.traf.avs[i] <=0 and (sim.traf.aalt[i]/ft) < 10:
-                deleteAC.append(sim.traf.id[i])
-            
-            if sim.traf.avs[i] <=0 and sim.traf.aspd[i] < 10:
-                deleteAC.append(sim.traf.id[i])
-        
+        # A lot of smart Michon-code here, probably using numpy arrays etc.
+        if bs.sim.simt >= 0:
+            if self.metric_number == 0:
+                self.metric[self.metric_number].AircraftCell(self.cells,bs.sim.t-self.tbegin)
+            elif self.metric_number == 1:
+                self.metric[self.metric_number].applymetric()
+
+        print("Number of Aircraft in Research Area (FIR):" + str(self.metric[self.metric_number].ntraf))
+
+        deleteAC = []
+        for i in range(0,bs.traf.ntraf):
+            if bs.traf.selvs[i] <= 0 and (bs.traf.selalt[i]/ft) < 750 and bs.traf.selspd[i] < 300:
+                deleteAC.append(bs.traf.id[i])
+
+            elif bs.traf.selvs[i] <=0 and (bs.traf.selalt[i]/ft) < 10.:
+                deleteAC.append(bs.traf.id[i])
+
+            if bs.traf.selvs[i] <=0 and bs.traf.selspd[i] < 10.:
+                deleteAC.append(bs.traf.id[i])
+
         for i in range(0,len(deleteAC)):
-            sim.traf.delete(deleteAC[i])
+            bs.traf.delete(deleteAC[i])
 
         # Heartbeat for test
-        self.write(sim.simt,"NTRAF;"+str(sim.traf.ntraf))
+        self.write(bs.sim.simt,"NTRAF;"+str(bs.traf.ntraf))
         return
-    
+
     def plot(self):
         # Pause simulation
-        sim.pause()
-        
+        bs.sim.pause()
+
         # Open a plot window attached to a command?
         #    plot, showplot and other matplotlib commands
 
         # Continue simulation
-        sim.start()
-        return      
-    
+        bs.sim.start()
+        return

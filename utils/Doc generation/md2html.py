@@ -31,7 +31,7 @@ for file in files:
 
     path, fname = os.path.split(file.lower())
     fileout     = os.path.splitext(fname)[0] + ".html"
-    print file, '->', fileout
+    print(file, '->', fileout)
     p = Popen('pandoc -o html/' + fileout + ' --template template.html --css doc.css -f markdown_github', stdin=PIPE, shell=True)
     p.communicate(lines)
 

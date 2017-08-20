@@ -1,13 +1,18 @@
+""" BlueSky aircraft performance calculations."""
 import os
-import numpy as np
+
 from xml.etree import ElementTree
 from math import *
-from ..tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
+import numpy as np
+import bluesky as bs
+from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 
-from performance import esf, phases, calclimits, PHASE
-from ..settings import data_path
-from ..settings import verbose
+from .performance import esf, phases, calclimits, PHASE
+from bluesky import settings
+
+# Register settings defaults
+settings.set_variable_defaults(perf_path='data/coefficients', verbose=False)
 
 class CoeffBS:
     """
@@ -41,7 +46,7 @@ class CoeffBS:
         else:
             converted = float(value)
             if not self.warned:
-                print "traf/perf.py convert function: Unit mismatch. Could not find ", unit
+                print("traf/perf.py convert function: Unit mismatch. Could not find ", unit)
                 self.warned = True
 
         return converted
@@ -104,10 +109,10 @@ class CoeffBS:
 
         # parse AC files
 
-        path = data_path + '/coefficients/BS_aircraft/'
+        path = os.path.join(settings.perf_path, 'BS_aircraft')
         files = os.listdir(path)
-        for file in files:
-            acdoc = ElementTree.parse(path + file)
+        for fname in files:
+            acdoc = ElementTree.parse(os.path.join(path, fname))
 
             #actype = doc.find('ac_type')
             self.atype.append(acdoc.find('ac_type').text)
@@ -284,10 +289,10 @@ class CoeffBS:
         self.PSFC_CR     = [] # SFC cruise
 
         # parse engine files
-        path = data_path + '/coefficients/BS_engines/'
+        path = os.path.join(settings.perf_path, 'BS_engines/')
         files = os.listdir(path)
-        for filename in files:
-            endoc = ElementTree.parse(path + filename)
+        for fname in files:
+            endoc = ElementTree.parse(os.path.join(path, fname))
             self.enlist.append(endoc.find('engines/engine').text)
 
             # thrust
@@ -335,10 +340,7 @@ class Perf():
     warned  = False        # Flag: Did we warn for default perf parameters yet?
     warned2 = False    # Flag: Use of piston engine aircraft?
 
-    def __init__(self, traf):
-        # assign needed data from CTraffic
-        self.traf = traf
-
+    def __init__(self):
         # create empty database
         self.reset()
 
@@ -391,7 +393,7 @@ class Perf():
         self.qS           = np.array([])
 
         # engines
-        self.traf.engines = [] # avaliable engine type per aircraft type
+        self.engines      = [] # avaliable engine type per aircraft type
         self.etype        = np.array([]) # jet /turboprop
 
         # jet engines:
@@ -426,7 +428,7 @@ class Perf():
 
 
     def create(self, n=1):
-        actype = self.traf.type[-1]
+        actype = bs.traf.type[-1]
         """Create new aircraft"""
         # note: coefficients are initialized in SI units
         if actype in coeffBS.atype:
@@ -435,18 +437,18 @@ class Perf():
             # engine
         else:
             self.coeffidx = 0
-            if not verbose:
+            if not settings.verbose:
                 if not self.warned:
-                    print "Aircraft is using default B747-400 performance."
+                    print("Aircraft is using default B747-400 performance.")
                     self.warned = True
             else:
-                print "Flight " + self.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance."
+                print("Flight " + bs.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance.")
 
         self.coeffidxlist = np.append(self.coeffidxlist, self.coeffidx)
         self.mass         = np.append(self.mass, coeffBS.MTOW[self.coeffidx]) # aircraft weight
         self.Sref         = np.append(self.Sref, coeffBS.Sref[self.coeffidx]) # wing surface reference area
         self.etype        = np.append(self.etype, coeffBS.etype[self.coeffidx]) # engine type of current aircraft
-        self.traf.engines.append(coeffBS.engines[self.coeffidx]) # avaliable engine type per aircraft type
+        self.engines.append(coeffBS.engines[self.coeffidx]) # avaliable engine type per aircraft type
 
         # speeds
         self.refma        = np.append(self.refma, coeffBS.cr_Ma[self.coeffidx]) # nominal cruise Mach at 35000 ft
@@ -496,7 +498,7 @@ class Perf():
             else:
                 self.propengidx = 0
                 if not Perf.warned2:
-                    print "prop aircraft is using standard engine. Please check valid engine types per aircraft type"
+                    print("prop aircraft is using standard engine. Please check valid engine types per aircraft type")
                     Perf.warned2 = True
 
             self.P       = np.append(self.P, coeffBS.P[self.propengidx]*coeffBS.n_eng[self.coeffidx])
@@ -524,7 +526,7 @@ class Perf():
             else:
                 self.jetengidx = 0
                 if not self.warned2:
-                    print " jet aircraft is using standard engine. Please check valid engine types per aircraft type"
+                    print(" jet aircraft is using standard engine. Please check valid engine types per aircraft type")
                     self.warned2 = True
 
             self.rThr    = np.append(self.rThr, coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[self.coeffidx])  # rated thrust (all engines)
@@ -548,7 +550,7 @@ class Perf():
     def delete(self, idx):
         """Delete removed aircraft"""
 
-        del self.traf.engines[idx]
+        del self.engines[idx]
 
         self.coeffidxlist = np.delete(self.coeffidxlist, idx)
         self.mass         = np.delete(self.mass, idx)    # aircraft weight
@@ -623,13 +625,13 @@ class Perf():
 
         # allocate aircraft to their flight phase
         self.phase, self.bank = \
-           phases(self.traf.alt, self.traf.gs, self.traf.delalt, \
-           self.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, self.traf.bank, self.traf.bphase, \
-           self.traf.hdgsel,swbada)
+           phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
+           bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
+           bs.traf.swhdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)
-        self.qS = 0.5*self.traf.rho*np.maximum(1.,self.traf.tas)*np.maximum(1.,self.traf.tas)*self.Sref
+        self.qS = 0.5*bs.traf.rho*np.maximum(1.,bs.traf.tas)*np.maximum(1.,bs.traf.tas)*self.Sref
 
         cl = self.mass*g0/(self.qS*np.cos(self.bank))*(self.phase!=6)+ 0.*(self.phase==6)
 
@@ -639,8 +641,8 @@ class Perf():
                (self.phase==2)*(self.etype==1)*coeffBS.d_CD0j[1]  + \
                (self.phase==3)*(self.etype==1)*coeffBS.d_CD0j[2] + \
                (self.phase==4)*(self.etype==1)*coeffBS.d_CD0j[3] + \
-               (self.phase==5)*(self.etype==1)*(self.traf.alt>=450)*coeffBS.d_CD0j[4] + \
-               (self.phase==5)*(self.etype==1)*(self.traf.alt<450)*coeffBS.d_CD0j[5] + \
+               (self.phase==5)*(self.etype==1)*(bs.traf.alt>=450)*coeffBS.d_CD0j[4] + \
+               (self.phase==5)*(self.etype==1)*(bs.traf.alt<450)*coeffBS.d_CD0j[5] + \
                (self.phase==1)*(self.etype==2)*coeffBS.d_CD0t[0] + \
                (self.phase==2)*(self.etype==2)*coeffBS.d_CD0t[1]  + \
                (self.phase==3)*(self.etype==2)*coeffBS.d_CD0t[2] + \
@@ -652,14 +654,14 @@ class Perf():
                (self.phase==2)*(self.etype==1)*coeffBS.d_kj[1]  + \
                (self.phase==3)*(self.etype==1)*coeffBS.d_kj[2] + \
                (self.phase==4)*(self.etype==1)*coeffBS.d_kj[3] + \
-               (self.phase==5)*(self.etype==1)*(self.traf.alt>=450)*coeffBS.d_kj[4] + \
-               (self.phase==5)*(self.etype==1)*(self.traf.alt<450)*coeffBS.d_kj[5] + \
+               (self.phase==5)*(self.etype==1)*(bs.traf.alt>=450)*coeffBS.d_kj[4] + \
+               (self.phase==5)*(self.etype==1)*(bs.traf.alt<450)*coeffBS.d_kj[5] + \
                (self.phase==1)*(self.etype==2)*coeffBS.d_kt[0] + \
                (self.phase==2)*(self.etype==2)*coeffBS.d_kt[1]  + \
                (self.phase==3)*(self.etype==2)*coeffBS.d_kt[2] + \
                (self.phase==4)*(self.etype==2)*coeffBS.d_kt[3] + \
-               (self.phase==5)*(self.etype==2)*(self.traf.alt>=450)*coeffBS.d_kt[4] + \
-               (self.phase==5)*(self.etype==2)*(self.traf.alt<450)*coeffBS.d_kt[5]
+               (self.phase==5)*(self.etype==2)*(bs.traf.alt>=450)*coeffBS.d_kt[4] + \
+               (self.phase==5)*(self.etype==2)*(bs.traf.alt<450)*coeffBS.d_kt[5]
 
 
         # drag coefficient
@@ -669,27 +671,27 @@ class Perf():
         self.D = cd*self.qS
 
         # energy share factor and crossover altitude
-        epsalt = np.array([0.001]*self.traf.ntraf)
-        self.climb = np.array(self.traf.delalt > epsalt)
-        self.descent = np.array(self.traf.delalt< -epsalt)
+        epsalt = np.array([0.001]*bs.traf.ntraf)
+        self.climb = np.array(bs.traf.delalt > epsalt)
+        self.descent = np.array(bs.traf.delalt< -epsalt)
 
 
         # crossover altitiude
-        self.traf.abco = np.array(self.traf.alt>self.atrans)
-        self.traf.belco = np.array(self.traf.alt<self.atrans)
+        bs.traf.abco = np.array(bs.traf.alt>self.atrans)
+        bs.traf.belco = np.array(bs.traf.alt<self.atrans)
 
         # energy share factor
-        self.ESF = esf(self.traf.abco, self.traf.belco, self.traf.alt, self.traf.M,\
-                  self.climb, self.descent, self.traf.delspd)
+        self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
+                  self.climb, self.descent, bs.traf.delspd)
 
         # determine thrust
-        self.Thr = (((self.traf.vs*self.mass*g0)/(self.ESF*np.maximum(self.traf.eps, self.traf.tas))) + self.D)
+        self.Thr = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
 
         # maximum thrust jet (Bruenig et al., p. 66):
-        mt_jet = self.rThr*(self.traf.rho/rho0)**0.75
+        mt_jet = self.rThr*(bs.traf.rho/rho0)**0.75
 
         # maximum thrust prop (Raymer, p.36):
-        mt_prop = self.P*self.eta/np.maximum(self.traf.eps, self.traf.tas)
+        mt_prop = self.P*self.eta/np.maximum(bs.traf.eps, bs.traf.tas)
 
         # merge
         self.maxthr = mt_jet*(self.etype==1) + mt_prop*(self.etype==2)
@@ -711,10 +713,10 @@ class Perf():
         # to be refined - f(spd)
         # CRUISE-ALTITUDE!!!
         # above cruise altitude: PSFC_CR
-        PSFC = (((self.PSFC_CR - self.PSFC_TO) / 20000.0)*self.traf.alt + self.PSFC_TO)*(self.traf.alt<20.000) + \
-                self.PSFC_CR*(self.traf.alt >= 20.000)
+        PSFC = (((self.PSFC_CR - self.PSFC_TO) / 20000.0)*bs.traf.alt + self.PSFC_TO)*(bs.traf.alt<20.000) + \
+                self.PSFC_CR*(bs.traf.alt >= 20.000)
 
-        TSFC = PSFC*self.traf.tas/(550.0*self.eta)
+        TSFC = PSFC*bs.traf.tas/(550.0*self.eta)
 
         # formula p.36 Raymer is missing here!
         ff_prop = self.Thr*TSFC*(self.etype==2)
@@ -726,8 +728,8 @@ class Perf():
         # update mass
         #self.mass = self.mass - self.ff*self.dt/60. # Use fuelflow in kg/min
 
-        # print self.traf.id, self.phase, self.traf.alt/ft, self.traf.tas/kts, self.traf.cas/kts, self.traf.M,  \
-        # self.Thr, self.D, self.ff,  cl, cd, self.traf.vs/fpm, self.ESF,self.atrans, self.maxthr, \
+        # print bs.traf.id, self.phase, bs.traf.alt/ft, bs.traf.tas/kts, bs.traf.cas/kts, bs.traf.M,  \
+        # self.Thr, self.D, self.ff,  cl, cd, bs.traf.vs/fpm, self.ESF,self.atrans, self.maxthr, \
         # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
         # CD0f, kf, self.hmaxact
 
@@ -737,10 +739,10 @@ class Perf():
         self.post_flight = np.where(self.descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
-        self.traf.pilot.spd = np.where((self.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, self.traf.pilot.spd)
+        bs.traf.pilot.spd = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.spd)
         # the impulse for reducing the speed to 0 should only be given once,
         # otherwise taxiing will be impossible afterwards
-        self.pf_flag = np.where ((self.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
+        self.pf_flag = np.where ((bs.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
 
         return
 
@@ -749,38 +751,39 @@ class Perf():
 
         # combine minimum speeds and flight phases. Phases initial climb, cruise
         # and approach use the same CLmax and thus the same function for Vmin
-        self.vmto = self.vm_to*np.sqrt(self.mass/self.traf.rho)
-        self.vmic = np.sqrt(2*self.mass*g0/(self.traf.rho*self.clmaxcr*self.Sref))
+        self.vmto = self.vm_to*np.sqrt(self.mass/bs.traf.rho)
+        self.vmic = np.sqrt(2*self.mass*g0/(bs.traf.rho*self.clmaxcr*self.Sref))
         self.vmcr = self.vmic
         self.vmap = self.vmic
-        self.vmld = self.vm_ld*np.sqrt(self.mass/self.traf.rho)
+        self.vmld = self.vm_ld*np.sqrt(self.mass/bs.traf.rho)
 
         # summarize and convert to cas
         # note: aircraft on ground may be pushed back
-        self.vmin = (self.phase==1)*vtas2cas(self.vmto, self.traf.alt) + \
-                        ((self.phase==2) + (self.phase==3) + (self.phase==4))*vtas2cas(self.vmcr, self.traf.alt) + \
-                            (self.phase==5)*vtas2cas(self.vmld, self.traf.alt) + (self.phase==6)*-10.0
+        self.vmin = (self.phase==1)*vtas2cas(self.vmto, bs.traf.alt) + \
+                        ((self.phase==2) + (self.phase==3) + (self.phase==4))*vtas2cas(self.vmcr, bs.traf.alt) + \
+                            (self.phase==5)*vtas2cas(self.vmld, bs.traf.alt) + (self.phase==6)*-10.0
 
 
         # forwarding to tools
-        self.traf.limspd,          \
-        self.traf.limspd_flag,     \
-        self.traf.limalt,          \
-        self.traf.limvs,           \
-        self.traf.limvs_flag  =  calclimits(self.traf.pilot.spd, \
-                                        self.traf.gs,            \
+        bs.traf.limspd,          \
+        bs.traf.limspd_flag,     \
+        bs.traf.limalt,          \
+        bs.traf.limvs,           \
+        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.spd, \
+                                        bs.traf.gs,            \
                                         self.vmto,               \
                                         self.vmin,               \
                                         self.vmo,                \
                                         self.mmo,                \
-                                        self.traf.M,             \
-                                        self.traf.alt,           \
+                                        bs.traf.M,             \
+                                        bs.traf.alt,           \
                                         self.hmaxact,            \
-                                        self.traf.pilot.alt,     \
+                                        bs.traf.pilot.alt,     \
+                                        bs.traf.pilot.vs,      \
                                         self.maxthr,             \
                                         self.Thr,                \
                                         self.D,                  \
-                                        self.traf.tas,           \
+                                        bs.traf.tas,           \
                                         self.mass,               \
                                         self.ESF)
 
@@ -793,11 +796,11 @@ class Perf():
 
         ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
                      (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \
-                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.traf.ax) + \
+                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), bs.traf.ax) + \
              ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight))      \
-                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_acc) +  \
+                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), self.gr_acc) +  \
               (self.phase==PHASE['GD'])*self.post_flight                                        \
-                 * np.minimum(abs(self.traf.delspd / max(1e-8,simdt)), self.gr_dec)
+                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), self.gr_dec)
 
 
         return ax
@@ -806,10 +809,10 @@ class Perf():
     def engchange(self, idx, engid=None):
         """change of engines - for jet aircraft only!"""
         if not engid:
-            disptxt = "available engine types:\n" + '\n'.join(self.traf.engines[idx]) + \
+            disptxt = "available engine types:\n" + '\n'.join(self.engines[idx]) + \
                       "\nChange engine with ENG acid engine_id"
             return False, disptxt
-        engidx = self.traf.engines[idx].index(engid)
+        engidx = self.engines[idx].index(engid)
         self.jetengidx = coeffBS.jetenlist.index(coeffBS.engines[idx][engidx])
 
         # exchange engine parameters

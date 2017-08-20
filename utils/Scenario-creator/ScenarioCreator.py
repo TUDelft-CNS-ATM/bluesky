@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-import Tkinter
-from Tkinter import *
+import tkinter
+from tkinter import *
 
 from FileFrame import FileFrame
 
 
-class ScencarioCreator(Tkinter.Tk):
+class ScencarioCreator(tkinter.Tk):
     def __init__(self, parent):
-        Tkinter.Tk.__init__(self, parent)
+        tkinter.Tk.__init__(self, parent)
         self.parent = parent
         self.initialize()
 
@@ -42,7 +42,7 @@ class ScencarioCreator(Tkinter.Tk):
 
     # This method changes the number of files which are going to be selected
     def changeNumberOfFiles(self):
-        print self.numberOfFiles.get()
+        print(self.numberOfFiles.get())
         i = 0
         if self.firstRun == True:
 

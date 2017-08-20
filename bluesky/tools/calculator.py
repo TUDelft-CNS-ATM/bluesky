@@ -1,14 +1,16 @@
-# Functions below are imported for use in eval-function!
+""" Basic implementation of a calculator.
+    These functions are imported for use in eval-function for the calculator
+    functionality in the BlueSky console."""
 
 from math import *      # Make all math function available for calculator
 
 # Cater for use of some geo functions
-from geo import latlondist as dist
-from geo import rwgs84 as wgs84
-from geo import kwikdist,kwikqdrdist,qdrdist,qdrpos,rwgs84,latlondist
+from .geo import latlondist as dist
+from .geo import rwgs84 as wgs84
+from .geo import kwikdist,kwikqdrdist,qdrdist,qdrpos,rwgs84,latlondist
 
 # And for conversion lat/lon formats
-from misc import latlon2txt,lat2txt,lon2txt
+from .misc import latlon2txt,lat2txt,lon2txt
 
 # Some special functions for calculator:
 
@@ -24,7 +26,7 @@ def tand(x):
 def rad(d,m,s):
     return radians(float(d)+float(m)/60.+float(s)/3600.)
 def deg(d,m,s):
-    return float(d)+float(m)/60.+float(s)/3600.                        
+    return float(d)+float(m)/60.+float(s)/3600.
 
 # Short-hand for sqrt()
 def v(x):

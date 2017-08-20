@@ -1,26 +1,32 @@
+""" Airborne Separation Assurance System. Implements CD&R functionality together with
+    separate conflict detection and conflict resolution modules."""
 import numpy as np
-from ... import settings
-from ...tools.aero import ft, nm
-from ...tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+import bluesky as bs
+from bluesky import settings
+from bluesky.tools.aero import ft, nm
+from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
+# Register settings defaults
+settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0, asas_dtlookahead=300.0, asas_mar=1.2, asas_pzr=5.0, asas_pzh=1000.0)
 
 # Import default CD methods
 StateBasedCD = False
 if settings.prefer_compiled:
     try:
-        import casas as StateBasedCD
-        print 'StateBasedCD: using compiled version'
+        from . import casas as StateBasedCD
+        print('StateBasedCD: using compiled version.')
     except ImportError:
-        print 'StateBasedCD: using default Python version, no compiled version for this platform.'
+        print('StateBasedCD: using default Python version, no compiled version for this platform.')
 
 if not StateBasedCD:
-    import StateBasedCD
+    print('StateBasedCD: using Python version.')
+    from . import StateBasedCD
 
 # Import default CR methods
-import DoNothing
-import Eby
-import MVP
-import Swarm
+from . import DoNothing
+from . import Eby
+from . import MVP
+from . import Swarm
 
 
 class ASAS(DynamicArrays):
@@ -41,8 +47,7 @@ class ASAS(DynamicArrays):
     def addCRMethod(asas, name, module):
         asas.CRmethods[name] = module
 
-    def __init__(self, traf):
-        self.traf = traf
+    def __init__(self):
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
             self.iconf    = []            # index in 'conflicting' aircraft database
@@ -103,6 +108,16 @@ class ASAS(DynamicArrays):
         self.latowncpa    = np.array([])
         self.lonowncpa    = np.array([])
         self.altowncpa    = np.array([])
+        self.tcpa         = np.array([])
+        self.tinconf      = np.array([])
+        self.toutconf     = np.array([])
+        self.qdr          = np.array([])
+        self.dist         = np.array([])
+        self.dx           = np.array([])
+        self.dy           = np.array([])
+        self.dalt         = np.array([])
+        self.u            = np.array([])
+        self.v            = np.array([])
 
         self.conflist_all = []  # List of all Conflicts
         self.LOSlist_all  = []  # List of all Losses Of Separation
@@ -125,9 +140,9 @@ class ASAS(DynamicArrays):
     def SetCDmethod(self, method=""):
         if method is "":
             return True, ("Current CD method: " + self.cd_name +
-                        "\nAvailable CD methods: " + str.join(", ", ASAS.CDmethods.keys()))
+                        "\nAvailable CD methods: " + str.join(", ", list(ASAS.CDmethods.keys())))
         if method not in ASAS.CDmethods:
-            return False, (method + " doesn't exist.\nAvailable CD methods: " + str.join(", ", ASAS.CDmethods.keys()))
+            return False, (method + " doesn't exist.\nAvailable CD methods: " + str.join(", ", list(ASAS.CDmethods.keys())))
 
         self.cd_name = method
         self.cd = ASAS.CDmethods[method]
@@ -135,9 +150,9 @@ class ASAS(DynamicArrays):
     def SetCRmethod(self, method=""):
         if method is "":
             return True, ("Current CR method: " + self.cr_name +
-                        "\nAvailable CR methods: " + str.join(", ", ASAS.CRmethods.keys()))
+                        "\nAvailable CR methods: " + str.join(", ", list(ASAS.CRmethods.keys())))
         if method not in ASAS.CRmethods:
-            return False, (method + " doesn't exist.\nAvailable CR methods: " + str.join(", ", ASAS.CRmethods.keys()))
+            return False, (method + " doesn't exist.\nAvailable CR methods: " + str.join(", ", list(ASAS.CRmethods.keys())))
 
         self.cr_name = method
         self.cr = ASAS.CRmethods[method]
@@ -300,7 +315,7 @@ class ASAS(DynamicArrays):
         # delete aircraft from this list.
         # Else, add them to self.noresolst. Nobody will avoid these aircraft
         if set(acids) <= set(self.noresolst):
-            self.noresolst = filter(lambda x: x not in set(acids), self.noresolst)
+            self.noresolst = [x for x in self.noresolst if x not in set(acids)]
         else:
             self.noresolst.extend(acids)
 
@@ -320,7 +335,7 @@ class ASAS(DynamicArrays):
         # delete aircraft from this list.
         # Else, add them to self.resoofflst. These aircraft will not avoid anybody
         if set(acids) <= set(self.resoofflst):
-            self.resoofflst = filter(lambda x: x not in set(acids), self.resoofflst)
+            self.resoofflst = [x for x in self.resoofflst if x not in set(acids)]
         else:
             self.resoofflst.extend(acids)
 
@@ -330,9 +345,9 @@ class ASAS(DynamicArrays):
     def create(self, n=1):
         super(ASAS, self).create(n)
 
-        self.trk[-n:] = self.traf.trk[-n:]
-        self.spd[-n:] = self.traf.tas[-n:]
-        self.alt[-n:] = self.traf.alt[-n:]
+        self.trk[-n:] = bs.traf.trk[-n:]
+        self.spd[-n:] = bs.traf.tas[-n:]
+        self.alt[-n:] = bs.traf.alt[-n:]
 
     def update(self, simt):
         iconf0 = np.array(self.iconf)
@@ -342,11 +357,11 @@ class ASAS(DynamicArrays):
             self.tasas += self.dtasas
 
             # Conflict detection and resolution
-            self.cd.detect(self, self.traf, simt)
-            self.cr.resolve(self, self.traf)
+            self.cd.detect(self, bs.traf, simt)
+            self.cr.resolve(self, bs.traf)
 
         # Change labels in interface
         if settings.gui == "pygame":
-            for i in range(self.traf.ntraf):
+            for i in range(bs.traf.ntraf):
                 if np.any(iconf0[i] != self.iconf[i]):
-                    self.traf.label[i] = [" ", " ", " ", " "]
+                    bs.traf.label[i] = [" ", " ", " ", " "]

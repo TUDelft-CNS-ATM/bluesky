@@ -1,1 +1,1 @@
-from asas import ASAS
+from .asas import ASAS

@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="doc.css" type="text/css" />
+</head>
+<body>
+    <div class="container">
+    <div class="row">
+            <div class="span12">
+            <h1 id="snaplog-periodic-data-logger">SNAPLOG: Periodic data logger</h1>
+<p>Snaplog is a periodic logger with a default update interval of 30 seconds. A standard set of variables is logged, but the user can manually select the variables of interest. The output is automatically saved in the output folder of BlueSky.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>SNAPLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn</code></pre>
+<p><strong>Arguments:</strong></p>
+<table>
+<colgroup>
+<col width="12%" />
+<col width="9%" />
+<col width="5%" />
+<col width="72%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ON/OFF</td>
+<td>bool</td>
+<td>yes</td>
+<td>Toggle logging on or off.</td>
+</tr>
+<tr class="even">
+<td>dt</td>
+<td>float</td>
+<td>no</td>
+<td>Manually change the logging time-step in seconds. Default setting is 30 seconds.</td>
+</tr>
+<tr class="odd">
+<td>LISTVARS</td>
+<td>txt</td>
+<td>yes</td>
+<td>Prints the variable names that are available for logging.</td>
+</tr>
+<tr class="even">
+<td>SELECTVARS</td>
+<td>txt</td>
+<td>yes</td>
+<td>Change the selection of variables to be logged in the snaplog.</td>
+</tr>
+<tr class="odd">
+<td>var1,...,varn</td>
+<td>txt</td>
+<td>yes</td>
+<td>List of names of variables to be logged.</td>
+</tr>
+</tbody>
+</table>
+<p><a href="Command-Reference.html">Back to command reference.</a></p>
+            </div>
+    </div>
+  </div>
+</body>
+</html>
