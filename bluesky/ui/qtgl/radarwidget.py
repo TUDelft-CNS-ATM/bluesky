@@ -664,6 +664,7 @@ class RadarWidget(QGLWidget):
             data.trk = data.trk[idx]
             data.alt = data.alt[idx]
             data.tas = data.tas[idx]
+            data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
 
         if self.naircraft == 0:
@@ -687,11 +688,12 @@ class RadarWidget(QGLWidget):
             color    = np.empty((self.naircraft, 4), dtype=np.uint8)
             selssd   = np.zeros(self.naircraft, dtype=np.uint8)
             for i, acid in enumerate(data.id):
+                vs = 127 if data.vs[i] > 0.25 else 128 if data.vs[i] < -0.25 else 32
                 # Make label: 3 lines of 8 characters per aircraft
                 if data.alt[i] <= 4500. * ft:
-                    rawlabel += '%-8s%-5d   %-8d' % (acid[:8], int(data.alt[i]/ft  +0.5), int(data.cas[i] / kts+0.5))
+                    rawlabel += '%-8s%-5d%1s  %-8d' % (acid[:8], int(data.alt[i]/ft  +0.5), chr(vs), int(data.cas[i] / kts+0.5))
                 else:
-                    rawlabel += '%-8sFL%03d   %-8d' % (acid[:8], int(data.alt[i]/ft/100.+0.5), int(data.cas[i] / kts+0.5))
+                    rawlabel += '%-8sFL%03d%1s  %-8d' % (acid[:8], int(data.alt[i]/ft/100.+0.5), chr(vs), int(data.cas[i] / kts+0.5))
                 confindices = data.iconf[i]
                 if len(confindices) > 0:
                     if self.ssd_conflicts:
