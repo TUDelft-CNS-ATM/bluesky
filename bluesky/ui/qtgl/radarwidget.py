@@ -696,7 +696,7 @@ class RadarWidget(QGLWidget):
             color    = np.empty((self.naircraft, 4), dtype=np.uint8)
             selssd   = np.zeros(self.naircraft, dtype=np.uint8)
             for i, acid in enumerate(data.id):
-                vs = 127 if data.vs[i] > 0.25 else 128 if data.vs[i] < -0.25 else 32
+                vs = 30 if data.vs[i] > 0.25 else 31 if data.vs[i] < -0.25 else 32
                 # Make label: 3 lines of 8 characters per aircraft
                 if self.show_lbl >= 1:
                     rawlabel += '%-8s' % acid[:8]
