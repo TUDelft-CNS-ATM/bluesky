@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
                 self.radarwidget.event(PanZoomEvent(pan=(0.0, dlon)))
 
         elif event.key() == Qt.Key_Escape:
-                self.app.quit()
+            self.app.quit()
 
         elif event.key() == Qt.Key_F11:  # F11 = Toggle Full Screen mode
             if not self.isFullScreen():
