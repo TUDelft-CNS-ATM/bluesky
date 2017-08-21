@@ -1,0 +1,24 @@
+# ASAS test
+# Synthetic scenarios
+# Good for checking multi-aircraft conflict resolution
+
+00:00:00.00>SYN SUPER 3
+# 00:00:00.00>SYN SUPER 8
+# 00:00:00.00>SYN WALL
+
+00:00:00.00>PAN 0. 0. 
+00:00:00.00>ASAS ON
+00:00:00.00>RESO MVP
+00:00:00.00>symbol
+
+# 00:00:00.00>RMETHH ON
+# 00:00:00.00>RMETHH BOTH
+# 00:00:00.00>RMETHH SPD
+# 00:00:00.00>RMETHH HDG
+
+00:00:00.00>RMETHV ON
+00:00:00.00>RMETHV V/S 
+
+
+
+

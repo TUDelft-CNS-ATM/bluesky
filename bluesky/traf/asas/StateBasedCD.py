@@ -8,20 +8,20 @@ from bluesky.tools import geo
 from bluesky.tools.aero import nm
 
 
-def detect(dbconf, traf, simt):
-    if not dbconf.swasas:
+def detect(asas, traf, simt):
+    if not asas.swasas:
         return
 
     # Reset lists before new CD
-    dbconf.iconf        = [[] for ac in range(traf.ntraf)]
-    dbconf.nconf        = 0
-    dbconf.confpairs    = []
-    dbconf.latowncpa    = []
-    dbconf.lonowncpa    = []
-    dbconf.altowncpa    = []
+    asas.iconf        = [[] for ac in range(traf.ntraf)]
+    asas.nconf        = 0
+    asas.confpairs    = []
+    asas.latowncpa    = []
+    asas.lonowncpa    = []
+    asas.altowncpa    = []
 
-    dbconf.LOSlist_now  = []
-    dbconf.conflist_now = []
+    asas.LOSlist_now  = []
+    asas.conflist_now = []
 
     # Horizontal conflict ---------------------------------------------------------
 
@@ -30,62 +30,62 @@ def detect(dbconf, traf, simt):
                                np.mat(traf.adsb.lat), np.mat(traf.adsb.lon))
 
     # Convert results from mat-> array
-    dbconf.qdr  = np.array(qdlst[0])  # degrees
+    asas.qdr  = np.array(qdlst[0])  # degrees
     I           = np.eye(traf.ntraf)  # Identity matric of order ntraf
-    dbconf.dist = np.array(qdlst[1]) * nm + 1e9 * I  # meters i to j
+    asas.dist = np.array(qdlst[1]) * nm + 1e9 * I  # meters i to j
 
     # Transmission noise
     if traf.adsb.transnoise:
         # error in the determined bearing between two a/c
-        bearingerror = np.random.normal(0, traf.adsb.transerror[0], dbconf.qdr.shape)  # degrees
-        dbconf.qdr += bearingerror
+        bearingerror = np.random.normal(0, traf.adsb.transerror[0], asas.qdr.shape)  # degrees
+        asas.qdr += bearingerror
         # error in the perceived distance between two a/c
-        disterror = np.random.normal(0, traf.adsb.transerror[1], dbconf.dist.shape)  # meters
-        dbconf.dist += disterror
+        disterror = np.random.normal(0, traf.adsb.transerror[1], asas.dist.shape)  # meters
+        asas.dist += disterror
 
     # Calculate horizontal closest point of approach (CPA)
-    qdrrad    = np.radians(dbconf.qdr)
-    dbconf.dx = dbconf.dist * np.sin(qdrrad)  # is pos j rel to i
-    dbconf.dy = dbconf.dist * np.cos(qdrrad)  # is pos j rel to i
+    qdrrad    = np.radians(asas.qdr)
+    asas.dx = asas.dist * np.sin(qdrrad)  # is pos j rel to i
+    asas.dy = asas.dist * np.cos(qdrrad)  # is pos j rel to i
 
     trkrad   = np.radians(traf.trk)
-    dbconf.u = traf.gs * np.sin(trkrad).reshape((1, len(trkrad)))  # m/s
-    dbconf.v = traf.gs * np.cos(trkrad).reshape((1, len(trkrad)))  # m/s
+    asas.u = traf.gs * np.sin(trkrad).reshape((1, len(trkrad)))  # m/s
+    asas.v = traf.gs * np.cos(trkrad).reshape((1, len(trkrad)))  # m/s
 
     # parameters received through ADSB
     adsbtrkrad = np.radians(traf.adsb.trk)
     adsbu = traf.adsb.gs * np.sin(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
     adsbv = traf.adsb.gs * np.cos(adsbtrkrad).reshape((1, len(adsbtrkrad)))  # m/s
 
-    du = dbconf.u - adsbu.T  # Speed du[i,j] is perceived eastern speed of i to j
-    dv = dbconf.v - adsbv.T  # Speed dv[i,j] is perceived northern speed of i to j
+    du = asas.u - adsbu.T  # Speed du[i,j] is perceived eastern speed of i to j
+    dv = asas.v - adsbv.T  # Speed dv[i,j] is perceived northern speed of i to j
 
     dv2 = du * du + dv * dv
     dv2 = np.where(np.abs(dv2) < 1e-6, 1e-6, dv2)  # limit lower absolute value
 
     vrel = np.sqrt(dv2)
 
-    dbconf.tcpa = -(du * dbconf.dx + dv * dbconf.dy) / dv2 + 1e9 * I
+    asas.tcpa = -(du * asas.dx + dv * asas.dy) / dv2 + 1e9 * I
 
     # Calculate CPA positions
-    # xcpa = dbconf.tcpa * du
-    # ycpa = dbconf.tcpa * dv
+    # xcpa = asas.tcpa * du
+    # ycpa = asas.tcpa * dv
 
     # Calculate distance^2 at CPA (minimum distance^2)
-    dcpa2 = dbconf.dist * dbconf.dist - dbconf.tcpa * dbconf.tcpa * dv2
+    dcpa2 = asas.dist * asas.dist - asas.tcpa * asas.tcpa * dv2
 
     # Check for horizontal conflict
-    R2 = dbconf.R * dbconf.R
+    R2 = asas.R * asas.R
     swhorconf = dcpa2 < R2  # conflict or not
 
     # Calculate times of entering and leaving horizontal conflict
     dxinhor = np.sqrt(np.maximum(0., R2 - dcpa2))  # half the distance travelled inzide zone
     dtinhor = dxinhor / vrel
 
-    tinhor = np.where(swhorconf, dbconf.tcpa - dtinhor, 1e8)  # Set very large if no conf
+    tinhor = np.where(swhorconf, asas.tcpa - dtinhor, 1e8)  # Set very large if no conf
 
-    touthor = np.where(swhorconf, dbconf.tcpa + dtinhor, -1e8)  # set very large if no conf
-    # swhorconf = swhorconf*(touthor>0)*(tinhor<dbconf.dtlook)
+    touthor = np.where(swhorconf, asas.tcpa + dtinhor, -1e8)  # set very large if no conf
+    # swhorconf = swhorconf*(touthor>0)*(tinhor<asas.dtlook)
 
     # Vertical conflict -----------------------------------------------------------
 
@@ -97,7 +97,7 @@ def detect(dbconf, traf, simt):
         alterror = np.random.normal(0, traf.adsb.transerror[2], traf.alt.shape)  # degrees
         adsbalt += alterror
 
-    dbconf.dalt = alt - adsbalt.T
+    asas.dalt = alt - adsbalt.T
 
 
     vs = traf.vs.reshape(1, len(traf.vs))
@@ -109,19 +109,19 @@ def detect(dbconf, traf, simt):
 
     # Check for passing through each others zone
     dvs = np.where(np.abs(dvs) < 1e-6, 1e-6, dvs)  # prevent division by zero
-    tcrosshi = (dbconf.dalt + dbconf.dh) / -dvs
-    tcrosslo = (dbconf.dalt - dbconf.dh) / -dvs
+    tcrosshi = (asas.dalt + asas.dh) / -dvs
+    tcrosslo = (asas.dalt - asas.dh) / -dvs
 
     tinver = np.minimum(tcrosshi, tcrosslo)
     toutver = np.maximum(tcrosshi, tcrosslo)
 
     # Combine vertical and horizontal conflict-------------------------------------
-    dbconf.tinconf = np.maximum(tinver, tinhor)
+    asas.tinconf = np.maximum(tinver, tinhor)
 
-    dbconf.toutconf = np.minimum(toutver, touthor)
+    asas.toutconf = np.minimum(toutver, touthor)
 
-    swconfl = swhorconf * (dbconf.tinconf <= dbconf.toutconf) * \
-        (dbconf.toutconf > 0.) * (dbconf.tinconf < dbconf.dtlookahead) \
+    swconfl = swhorconf * (asas.tinconf <= asas.toutconf) * \
+        (asas.toutconf > 0.) * (asas.tinconf < asas.dtlookahead) \
         * (1. - I)
 
     # ----------------------------------------------------------------------
@@ -137,32 +137,32 @@ def detect(dbconf, traf, simt):
     ioth                = confidxs[1]
 
     # Store result
-    dbconf.nconf        = len(confidxs[0])
+    asas.nconf        = len(confidxs[0])
 
-    for idx in range(dbconf.nconf):
+    for idx in range(asas.nconf):
         i = iown[idx]
         j = ioth[idx]
         if i == j:
             continue
 
-        dbconf.iconf[i].append(idx)
-        dbconf.confpairs.append((traf.id[i], traf.id[j]))
+        asas.iconf[i].append(idx)
+        asas.confpairs.append((traf.id[i], traf.id[j]))
 
-        rng        = dbconf.tcpa[i, j] * traf.gs[i] / nm
+        rng        = asas.tcpa[i, j] * traf.gs[i] / nm
         lato, lono = geo.qdrpos(traf.lat[i], traf.lon[i], traf.trk[i], rng)
-        alto       = traf.alt[i] + dbconf.tcpa[i, j] * traf.vs[i]
+        alto       = traf.alt[i] + asas.tcpa[i, j] * traf.vs[i]
 
-        dbconf.latowncpa.append(lato)
-        dbconf.lonowncpa.append(lono)
-        dbconf.altowncpa.append(alto)
+        asas.latowncpa.append(lato)
+        asas.lonowncpa.append(lono)
+        asas.altowncpa.append(alto)
 
         dx = (traf.lat[i] - traf.lat[j]) * 111319.
         dy = (traf.lon[i] - traf.lon[j]) * 111319.
 
         hdist2 = dx**2 + dy**2
-        hLOS   = hdist2 < dbconf.R**2
+        hLOS   = hdist2 < asas.R**2
         vdist  = abs(traf.alt[i] - traf.alt[j])
-        vLOS   = vdist < dbconf.dh
+        vLOS   = vdist < asas.dh
         LOS    = (hLOS & vLOS)
 
         # Add to Conflict and LOSlist, to count total conflicts and LOS
@@ -174,61 +174,61 @@ def detect(dbconf, traf, simt):
         experimenttime = simt > 2100 and simt < 5700  # These parameters may be
         # changed to count only conflicts within a given expirement time window
 
-        if combi not in dbconf.conflist_all and combi2 not in dbconf.conflist_all:
-            dbconf.conflist_all.append(combi)
+        if combi not in asas.conflist_all and combi2 not in asas.conflist_all:
+            asas.conflist_all.append(combi)
 
-        if combi not in dbconf.conflist_exp and combi2 not in dbconf.conflist_exp and experimenttime:
-            dbconf.conflist_exp.append(combi)
+        if combi not in asas.conflist_exp and combi2 not in asas.conflist_exp and experimenttime:
+            asas.conflist_exp.append(combi)
 
-        if combi not in dbconf.conflist_now and combi2 not in dbconf.conflist_now:
-            dbconf.conflist_now.append(combi)
+        if combi not in asas.conflist_now and combi2 not in asas.conflist_now:
+            asas.conflist_now.append(combi)
 
         if LOS:
-            if combi not in dbconf.LOSlist_all and combi2 not in dbconf.LOSlist_all:
-                dbconf.LOSlist_all.append(combi)
-                dbconf.LOSmaxsev.append(0.)
-                dbconf.LOShmaxsev.append(0.)
-                dbconf.LOSvmaxsev.append(0.)
+            if combi not in asas.LOSlist_all and combi2 not in asas.LOSlist_all:
+                asas.LOSlist_all.append(combi)
+                asas.LOSmaxsev.append(0.)
+                asas.LOShmaxsev.append(0.)
+                asas.LOSvmaxsev.append(0.)
 
-            if combi not in dbconf.LOSlist_exp and combi2 not in dbconf.LOSlist_exp and experimenttime:
-                dbconf.LOSlist_exp.append(combi)
+            if combi not in asas.LOSlist_exp and combi2 not in asas.LOSlist_exp and experimenttime:
+                asas.LOSlist_exp.append(combi)
 
-            if combi not in dbconf.LOSlist_now and combi2 not in dbconf.LOSlist_now:
-                dbconf.LOSlist_now.append(combi)
+            if combi not in asas.LOSlist_now and combi2 not in asas.LOSlist_now:
+                asas.LOSlist_now.append(combi)
 
             # Now, we measure intrusion and store it if it is the most severe
-            Ih = 1.0 - np.sqrt(hdist2) / dbconf.R
-            Iv = 1.0 - vdist / dbconf.dh
+            Ih = 1.0 - np.sqrt(hdist2) / asas.R
+            Iv = 1.0 - vdist / asas.dh
             severity = min(Ih, Iv)
 
             try:  # Only continue if combi is found in LOSlist (and not combi2)
-                idx = dbconf.LOSlist_all.index(combi)
+                idx = asas.LOSlist_all.index(combi)
             except:
                 idx = -1
 
             if idx >= 0:
-                if severity > dbconf.LOSmaxsev[idx]:
-                    dbconf.LOSmaxsev[idx]  = severity
-                    dbconf.LOShmaxsev[idx] = Ih
-                    dbconf.LOSvmaxsev[idx] = Iv
+                if severity > asas.LOSmaxsev[idx]:
+                    asas.LOSmaxsev[idx]  = severity
+                    asas.LOShmaxsev[idx] = Ih
+                    asas.LOSvmaxsev[idx] = Iv
 
     # Convert to numpy arrays for vectorisation
-    dbconf.latowncpa = np.array(dbconf.latowncpa)
-    dbconf.lonowncpa = np.array(dbconf.lonowncpa)
-    dbconf.altowncpa = np.array(dbconf.altowncpa)
+    asas.latowncpa = np.array(asas.latowncpa)
+    asas.lonowncpa = np.array(asas.lonowncpa)
+    asas.altowncpa = np.array(asas.altowncpa)
 
     # Calculate whether ASAS or A/P commands should be followed
-    APorASAS(dbconf, traf)
+    APorASAS(asas, traf)
 
 
-def APorASAS(dbconf, traf):
+def APorASAS(asas, traf):
     """ Decide for each aircraft in the conflict list whether the ASAS
         should be followed or not, based on if the aircraft pairs passed
         their CPA. """
-    dbconf.active.fill(False)
+    asas.active.fill(False)
 
     # Look at all conflicts, also the ones that are solved but CPA is yet to come
-    for conflict in dbconf.conflist_all:
+    for conflict in asas.conflist_all:
         ac1, ac2 = conflict.split(" ")
         id1, id2 = traf.id2idx(ac1), traf.id2idx(ac2)
         if id1 >= 0 and id2 >= 0:
@@ -249,21 +249,21 @@ def APorASAS(dbconf, traf):
             dx = (traf.lat[id1] - traf.lat[id2]) * 111319.
             dy = (traf.lon[id1] - traf.lon[id2]) * 111319.
             hdist2 = dx**2 + dy**2
-            hLOS   = hdist2 < dbconf.R**2
+            hLOS   = hdist2 < asas.R**2
 
             # Bouncing conflicts:
             # If two aircraft are getting in and out of conflict continously,
             # then they it is a bouncing conflict. ASAS should stay active until
             # the bouncing stops.
-            bouncingConflict = (abs(traf.trk[id1] - traf.trk[id2]) < 30.) & (hdist2<dbconf.Rm**2)
+            bouncingConflict = (abs(traf.trk[id1] - traf.trk[id2]) < 30.) & (hdist2<asas.Rm**2)
 
             # Decide if conflict is over or not.
             # If not over, turn active to true.
             # If over, then initiate recovery
             if not pastCPA or hLOS or bouncingConflict:
                 # Aircraft haven't passed their CPA: must follow their ASAS
-                dbconf.active[id1] = True
-                dbconf.active[id2] = True
+                asas.active[id1] = True
+                asas.active[id2] = True
 
             else:
                 # Waypoint recovery after conflict
@@ -280,7 +280,7 @@ def APorASAS(dbconf, traf):
                 # This is so that if a conflict between this pair of aircraft
                 # occurs again, then that new conflict should be detected, logged
                 # and solved (if reso is on)
-                dbconf.conflist_all.remove(conflict)
+                asas.conflist_all.remove(conflict)
 
         # If aircraft id1 cannot be found in traffic because it has finished its
         # flight (and has been deleted), start trajectory recovery for aircraft id2
@@ -289,7 +289,7 @@ def APorASAS(dbconf, traf):
              iwpid2 = traf.ap.route[id2].findact(id2)
              if iwpid2 != -1: # To avoid problems if there are no waypoints
                  traf.ap.route[id2].direct(id2, traf.ap.route[id2].wpname[iwpid2])
-             dbconf.conflist_all.remove(conflict)
+             asas.conflist_all.remove(conflict)
 
         # If aircraft id2 cannot be found in traffic because it has finished its
         # flight (and has been deleted) start trajectory recovery for aircraft id1
@@ -298,9 +298,9 @@ def APorASAS(dbconf, traf):
             iwpid1 = traf.ap.route[id1].findact(id1)
             if iwpid1 != -1: # To avoid problems if there are no waypoints
                 traf.ap.route[id1].direct(id1, traf.ap.route[id1].wpname[iwpid1])
-            dbconf.conflist_all.remove(conflict)
+            asas.conflist_all.remove(conflict)
 
         # if both ids are unknown, then delete this conflict, because both aircraft
         # have completed their flights (and have been deleted)
         else:
-            dbconf.conflist_all.remove(conflict)
+            asas.conflist_all.remove(conflict)
