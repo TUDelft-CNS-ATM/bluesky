@@ -646,7 +646,8 @@ class RadarWidget(QGLWidget):
                         txt += "%03d " % int(round(spd / kts))
 
                 wpname += txt
-            update_buffer(self.routelblbuf, np.array(wpname))
+            update_buffer(self.routelblbuf, np.array( 
+                            wpname.encode('ascii', 'ignore')))
         else:
             self.route.set_vertex_count(0)
 
