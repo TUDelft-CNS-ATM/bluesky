@@ -54,7 +54,7 @@ class Route():
         """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp]"""
 
 #        print "addwptStack:",args
-        # Check FLYBY or FLYOVER switch, instead of adding a waypoint
+        # Check FLYBY or FLYOVER switch, instead of adding a waypoint       
         if len(args) == 1:
 
             isflyby = args[0].replace('-', '')
@@ -590,8 +590,10 @@ class Route():
             wpidx = self.wpname.index(name)
             self.iactwp = wpidx
 
-            bs.traf.actwp.lat[idx] = self.wplat[wpidx]
-            bs.traf.actwp.lon[idx] = self.wplon[wpidx]
+            bs.traf.actwp.lat[idx]   = self.wplat[wpidx]
+            bs.traf.actwp.lon[idx]   = self.wplon[wpidx]
+            bs.traf.actwp.flyby[idx] = self.wpflyby[wpidx]
+
 
             self.calcfp()
             bs.traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx])
@@ -628,7 +630,8 @@ class Route():
 
             turnrad = bs.traf.tas[idx]*bs.traf.tas[idx]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
 
-            bs.traf.actwp.turndist[idx] = turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
+            bs.traf.actwp.turndist[idx] = (bs.traf.actwp.flyby > 0.5)  *   \
+                     turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
                         self.wpdirfrom[self.iactwp]))))))
 
             bs.traf.swlnav[idx] = True
@@ -737,6 +740,8 @@ class Route():
             (self.wptype[self.iactwp] ==5 and self.wptype[self.iactwp + 1] == 3):
 
             self.flag_landed_runway = True
+
+#        print ("getnextwp:",self.wpname[self.iactwp])
 
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
