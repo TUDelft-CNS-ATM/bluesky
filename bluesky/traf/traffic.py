@@ -503,8 +503,6 @@ class Traffic(DynamicArrays):
         self.lat = self.lat + np.degrees(simdt * self.gsnorth / Rearth)
         self.coslat = np.cos(np.deg2rad(self.lat))
         self.lon = self.lon + np.degrees(simdt * self.gseast / self.coslat / Rearth)
-        
-        
 
     def id2idx(self, acid):
         """Find index of aircraft id"""
