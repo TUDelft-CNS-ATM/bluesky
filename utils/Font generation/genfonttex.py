@@ -16,3 +16,7 @@ from subprocess import call
 
 for i in range(32, 127):
     call('./msdfgen msdf -font source-code-pro/SourceCodePro-Regular.otf %d -o font/%d.png -size 26 32 -pxrange 4 -autoframe' % (i, i), shell=True)
+
+# Arrows
+call('./msdfgen msdf -font source-code-pro/SourceCodePro-Regular.otf 0x2191 -o font/127.png -size 26 32 -pxrange 4 -autoframe', shell=True)
+call('./msdfgen msdf -font source-code-pro/SourceCodePro-Regular.otf 0x2193 -o font/128.png -size 26 32 -pxrange 4 -autoframe', shell=True)
