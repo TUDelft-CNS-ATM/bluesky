@@ -43,8 +43,8 @@ def resolve(dbconf, traf):
 
     # Find desired speed vector after Collision Avoidance or Autopilot
     ca_trk = dbconf.active * dbconf.trk + (1 - dbconf.active) * traf.ap.trk
-    ca_cas = dbconf.active * dbconf.spd + (1 - dbconf.active) * traf.aspd
-    ca_vs = dbconf.active * dbconf.vs + (1 - dbconf.active) * traf.avs
+    ca_cas = dbconf.active * dbconf.spd + (1 - dbconf.active) * traf.selspd
+    ca_vs = dbconf.active * dbconf.vs + (1 - dbconf.active) * traf.selvs
 
     # Add factor of Velocity Alignment to speed vector
     hspeed = np.ones((traf.ntraf, traf.ntraf)) * traf.cas

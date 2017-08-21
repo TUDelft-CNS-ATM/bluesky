@@ -616,7 +616,7 @@ class Route():
 
                 # When already in VNAV: fly it
                 if bs.traf.swvnav[idx]:
-                    bs.traf.aspd[idx]=cas
+                    bs.traf.selspd[idx]=cas
 
             # No speed specified for next leg
             else:

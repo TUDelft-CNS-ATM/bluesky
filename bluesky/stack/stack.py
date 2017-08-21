@@ -164,7 +164,7 @@ def init():
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
-            bs.traf.ap.selalt,
+            bs.traf.ap.selaltcmd,
             "Altitude command (autopilot)"
         ],
         "AREA": [
@@ -359,7 +359,7 @@ def init():
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
-            bs.traf.ap.selhdg,
+            bs.traf.ap.selhdgcmd,
             "Heading command (autopilot)"
         ],
         "HELP": [
@@ -593,7 +593,7 @@ def init():
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
             "acid,spd",
-            bs.traf.ap.selspd,
+            bs.traf.ap.selspdcmd,
             "Speed command (autopilot)"
         ],
         "SSD": [
@@ -648,7 +648,7 @@ def init():
         "VS": [
             "VS acid,vspd (ft/min)",
             "acid,vspd",
-            bs.traf.ap.selvspd,
+            bs.traf.ap.selvspdcmd,
             "Vertical speed command (autopilot)"
         ],
         "WIND": [

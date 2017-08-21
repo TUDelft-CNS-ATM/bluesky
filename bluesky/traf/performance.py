@@ -43,7 +43,7 @@ PHASE = {"None":0,
 
 
 def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
-           vmcr, vmld, bank, bphase, hdgsel, bada):
+           vmcr, vmld, bank, bphase, swhdgsel, bada):
     # flight phases: TO (1), IC (2), CR (3), AP(4), LD(5), GD (6)
     #--> no holding phase yet
     #-------------------------------------------------
@@ -139,8 +139,8 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
     bank[gd2] = bphase[5]
 
     # not turning aircraft do not have a bank angle.
-    #hdgsel == True: Aircraft is turning
-    noturn = np.array(hdgsel) * 100.0
+    #swhdgsel == True: Aircraft is turning
+    noturn = np.array(swhdgsel) * 100.0
     bank   = np.minimum(noturn, bank)
 
     return (phase, bank)

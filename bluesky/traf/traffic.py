@@ -98,11 +98,11 @@ class Traffic(DynamicArrays):
                 self.dtemp   = np.array([])  # delta t for non-ISA conditions
 
                 # Traffic autopilot settings
-                self.aspd   = np.array([])  # selected spd(CAS) [m/s]
+                self.selspd = np.array([])  # selected spd(CAS) [m/s]
                 self.aptas  = np.array([])  # just for initializing
                 self.ama    = np.array([])  # selected spd above crossover altitude (Mach) [-]
-                self.apalt  = np.array([])  # selected alt[m]
-                self.avs    = np.array([])  # selected vertical speed [m/s]
+                self.selalt = np.array([])  # selected alt[m]
+                self.selvs  = np.array([])  # selected vertical speed [m/s]
 
             # Whether to perform LNAV and VNAV
             self.swlnav   = np.array([], dtype=np.bool)
@@ -117,11 +117,11 @@ class Traffic(DynamicArrays):
             self.actwp  = ActiveWaypoint()
 
             # Traffic performance data
-            self.avsdef = np.array([])  # [m/s]default vertical speed of autopilot
-            self.aphi   = np.array([])  # [rad] bank angle setting of autopilot
-            self.ax     = np.array([])  # [m/s2] absolute value of longitudinal accelleration
-            self.bank   = np.array([])  # nominal bank angle, [radian]
-            self.hdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
+            self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
+            self.aphi     = np.array([])  # [rad] bank angle setting of autopilot
+            self.ax       = np.array([])  # [m/s2] absolute value of longitudinal accelleration
+            self.bank     = np.array([])  # nominal bank angle, [radian]
+            self.swhdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
             # Crossover altitude
             self.abco   = np.array([])
@@ -227,19 +227,19 @@ class Traffic(DynamicArrays):
 
         # Traffic performance data
         #(temporarily default values)
-        self.avsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
-        self.aphi[-n:]   = np.radians(25.)  # bank angle setting of autopilot
-        self.ax[-n:]     = kts           # absolute value of longitudinal accelleration
-        self.bank[-n:]   = np.radians(25.)
+        self.apvsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
+        self.aphi[-n:]    = np.radians(25.)  # bank angle setting of autopilot
+        self.ax[-n:]      = kts           # absolute value of longitudinal accelleration
+        self.bank[-n:]    = np.radians(25.)
 
         # Crossover altitude
         self.abco[-n:]   = 0  # not necessary to overwrite 0 to 0, but leave for clarity
         self.belco[-n:]  = 1
 
         # Traffic autopilot settings
-        self.aspd[-n:]  = self.cas[-n:]
-        self.aptas[-n:] = self.tas[-n:]
-        self.apalt[-n:] = self.alt[-n:]
+        self.selspd[-n:] = self.cas[-n:]
+        self.aptas[-n:]  = self.tas[-n:]
+        self.selalt[-n:] = self.alt[-n:]
 
         # Display information on label
         self.label[-n:] = ['', '', '', 0]
@@ -316,7 +316,7 @@ class Traffic(DynamicArrays):
 
         # Traffic performance data
         #(temporarily default values)
-        self.avsdef[-1] = 1500. * fpm   # default vertical speed of autopilot
+        self.apvsdef[-1] = 1500. * fpm   # default vertical speed of autopilot
         self.aphi[-1]   = radians(25.)  # bank angle setting of autopilot
         self.ax[-1]     = kts           # absolute value of longitudinal accelleration
         self.bank[-1]   = radians(25.)
@@ -326,9 +326,9 @@ class Traffic(DynamicArrays):
         self.belco[-1]  = 1
 
         # Traffic autopilot settings
-        self.aspd[-1]  = self.cas[-1]
-        self.aptas[-1] = self.tas[-1]
-        self.apalt[-1] = self.alt[-1]
+        self.selspd[-1] = self.cas[-1]
+        self.aptas[-1]  = self.tas[-1]
+        self.selalt[-1] = self.alt[-1]
 
         # Display information on label
         self.label[-1] = ['', '', '', 0]
@@ -470,10 +470,10 @@ class Traffic(DynamicArrays):
         # Turning
         turnrate = np.degrees(g0 * np.tan(self.bank) / np.maximum(self.tas, self.eps))
         delhdg   = (self.pilot.hdg - self.hdg + 180.) % 360 - 180.  # [deg]
-        self.hdgsel = np.abs(delhdg) > np.abs(2. * simdt * turnrate)
+        self.swhdgsel = np.abs(delhdg) > np.abs(2. * simdt * turnrate)
 
         # Update heading
-        self.hdg = (self.hdg + simdt * turnrate * self.hdgsel * np.sign(delhdg)) % 360.
+        self.hdg = (self.hdg + simdt * turnrate * self.swhdgsel * np.sign(delhdg)) % 360.
 
         # Update vertical speed
         delalt   = self.pilot.alt - self.alt
@@ -530,15 +530,15 @@ class Traffic(DynamicArrays):
         self.lon[idx]      = lon
 
         if alt:
-            self.alt[idx]   = alt
-            self.apalt[idx] = alt
+            self.alt[idx]    = alt
+            self.selalt[idx] = alt
 
         if hdg:
             self.hdg[idx]  = hdg
             self.ap.trk[idx] = hdg
 
         if casmach:
-            self.tas[idx], self.aspd[-1], dummy = casormach(casmach, alt)
+            self.tas[idx], self.selspd[-1], dummy = casormach(casmach, alt)
 
         if vspd:
             self.vs[idx]       = vspd

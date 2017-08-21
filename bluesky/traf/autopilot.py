@@ -103,11 +103,11 @@ class Autopilot(DynamicArrays):
                 if bs.traf.swvnav[i] and oldspd > 0.0:
                     destalt = alt if alt > 0.0 else bs.traf.alt[i]
                     if oldspd<2.0:
-                        bs.traf.aspd[i] = mach2cas(oldspd, destalt)
-                        bs.traf.ama[i]  = oldspd
+                        bs.traf.selspd[i] = mach2cas(oldspd, destalt)
+                        bs.traf.ama[i]    = oldspd
                     else:
-                        bs.traf.aspd[i] = oldspd
-                        bs.traf.ama[i]  = cas2mach(oldspd, destalt)
+                        bs.traf.selspd[i] = oldspd
+                        bs.traf.ama[i]    = cas2mach(oldspd, destalt)
 
                 # VNAV = FMS ALT/SPD mode
                 self.ComputeVNAV(i, toalt, xtoalt)
@@ -137,20 +137,21 @@ class Autopilot(DynamicArrays):
             self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
 
-            # self.vs = np.where(self.swvnavvs, self.vnavvs, bs.traf.avsdef * bs.traf.limvs_flag)
-            avs = np.where(abs(bs.traf.avs) > 0.1, bs.traf.avs, bs.traf.avsdef) # m/s
-            self.vs = np.where(self.swvnavvs, self.vnavvs, avs * bs.traf.limvs_flag)
+            # self.vs = np.where(self.swvnavvs, self.vnavvs, bs.traf.apvsdef * bs.traf.limvs_flag)
+            selvs = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, bs.traf.apvsdef) # m/s
+            self.vs = np.where(self.swvnavvs, self.vnavvs, selvs * bs.traf.limvs_flag)
 
-            self.alt = np.where(self.swvnavvs, bs.traf.actwp.alt, bs.traf.apalt)
+            self.alt = np.where(self.swvnavvs, bs.traf.actwp.alt, bs.traf.selalt)
 
             # When descending or climbing in VNAV also update altitude command of select/hold mode
-            bs.traf.apalt = np.where(self.swvnavvs,bs.traf.actwp.alt,bs.traf.apalt)
+            bs.traf.selalt = np.where(self.swvnavvs,bs.traf.actwp.alt,bs.traf.selalt)
 
             # LNAV commanded track angle
             self.trk = np.where(bs.traf.swlnav, qdr, self.trk)
 
         # Below crossover altitude: CAS=const, above crossover altitude: MA = const
-        self.tas = vcas2tas(bs.traf.aspd, bs.traf.alt) * bs.traf.belco + vmach2tas(bs.traf.ama, bs.traf.alt) * bs.traf.abco
+        self.tas = bs.traf.belco *vcas2tas(bs.traf.selspd, bs.traf.alt)  + \
+                      bs.traf.abco*vmach2tas(bs.traf.ama, bs.traf.alt)
 
     def ComputeVNAV(self, idx, toalt, xtoalt):
         if not (toalt >= 0 and bs.traf.swvnav[idx]):
@@ -242,35 +243,34 @@ class Autopilot(DynamicArrays):
 
         return
 
-    def selalt(self, idx, alt, vspd=None):
+    def selaltcmd(self, idx, alt, vspd=None):
         """ Select altitude command: ALT acid, alt, [vspd] """
         if idx < 0 or idx >= bs.traf.ntraf:
             return False, "ALT: Aircraft does not exist"
 
-        bs.traf.apalt[idx]    = alt
+        bs.traf.selalt[idx]    = alt
         bs.traf.swvnav[idx]   = False
 
         # Check for optional VS argument
         if vspd:
-            bs.traf.avs[idx] = vspd
+            bs.traf.selvs[idx] = vspd
         else:
             delalt        = alt - bs.traf.alt[idx]
             # Check for VS with opposite sign => use default vs
             # by setting autopilot vs to zero
-            if bs.traf.avs[idx] * delalt < 0. and abs(bs.traf.avs[idx]) > 0.01:
-                bs.traf.avs[idx] = 0.
+            if bs.traf.selvs[idx] * delalt < 0. and abs(bs.traf.selvs[idx]) > 0.01:
+                bs.traf.selvs[idx] = 0.
 
-    def selvspd(self, idx, vspd):
+    def selvspdcmd(self, idx, vspd):
         """ Vertical speed autopilot command: VS acid vspd """
-
         if idx < 0 or idx >= bs.traf.ntraf:
             return False, "VS: Aircraft does not exist"
 
-        bs.traf.avs[idx] = vspd
+        bs.traf.selvs[idx] = vspd
         # bs.traf.vs[idx] = vspd
         bs.traf.swvnav[idx] = False
 
-    def selhdg(self, idx, hdg):  # HDG command
+    def selhdgcmd(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
 
         if idx<0 or idx>=bs.traf.ntraf:
@@ -293,7 +293,7 @@ class Autopilot(DynamicArrays):
         # Everything went ok!
         return True
 
-    def selspd(self, idx, casmach):  # SPD command
+    def selspdcmd(self, idx, casmach):  # SPD command
         """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
 
         if idx<0 or idx>=bs.traf.ntraf:
@@ -301,11 +301,11 @@ class Autopilot(DynamicArrays):
 
         # convert input speed to cas and mach depending on the magnitude of input
         if 0.0<= casmach <= 2.0:
-            bs.traf.aspd[idx] = mach2cas(casmach, bs.traf.alt[idx])
-            bs.traf.ama[idx]  = casmach
+            bs.traf.selspd[idx] = mach2cas(casmach, bs.traf.alt[idx])
+            bs.traf.ama[idx]    = casmach
         else:
-            bs.traf.aspd[idx] = casmach
-            bs.traf.ama[idx]  = cas2mach(casmach, bs.traf.alt[idx])
+            bs.traf.selspd[idx] = casmach
+            bs.traf.ama[idx]    = cas2mach(casmach, bs.traf.alt[idx])
 
 
         # Switch off VNAV: SPD command overrides

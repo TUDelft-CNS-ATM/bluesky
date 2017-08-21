@@ -144,10 +144,10 @@ def resolve(dbconf, traf):
     dbconf.alt[altCondition] = asasalttemp[altCondition]
 
     # If resolutions are limited in the horizontal direction, then asasalt should
-    # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed
-    # using the auto pilot vertical speed (traf.avs) using the code in line 106 (asasalttemp) when only
+    # be equal to auto pilot alt (selalt). This is to prevent a new asasalt being computed
+    # using the auto pilot vertical speed (traf.selvs) using the code in line 106 (asasalttemp) when only
     # horizontal resolutions are allowed.
-    dbconf.alt = dbconf.alt*(1-dbconf.swresohoriz) + traf.apalt*dbconf.swresohoriz
+    dbconf.alt = dbconf.alt*(1-dbconf.swresohoriz) + traf.selalt*dbconf.swresohoriz
 
 
 #=================================== Modified Voltage Potential ===============
