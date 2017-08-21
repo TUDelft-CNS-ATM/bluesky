@@ -42,16 +42,6 @@ def init():
             configfile = sys.argv[i + 1]
             break
 
-    # Create default directories if they don't exist yet
-    for d in (outdir, cachedir):
-        if not os.path.isdir(d):
-            print('Creating directory "%s"' % d)
-            os.makedirs(d)
-    for d in [(badasrc, badadir), (scnsrc, scndir), (plgsrc, plgdir)]:
-        if not os.path.isdir(d[1]):
-            print('Creating directory "%s", and copying default files' % d[1])
-            shutil.copytree(*d)
-
     # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
     # was started with BlueSky.py
     if not os.path.isfile(configfile):
@@ -108,6 +98,20 @@ def init():
         globals()['gui'] = gui
     elif 'gui' not in globals():
         globals()['gui'] = 'qtgl'
+
+    # Update cachedir with python version-specific subfolder
+    cachedir = os.path.join(cachedir, 'py%d' % sys.version_info[0])
+    globals()['cache_path'] = cachedir
+
+    # Create default directories if they don't exist yet
+    for d in (outdir, cachedir):
+        if not os.path.isdir(d):
+            print('Creating directory "%s"' % d)
+            os.makedirs(d)
+    for d in [(badasrc, badadir), (scnsrc, scndir), (plgsrc, plgdir)]:
+        if not os.path.isdir(d[1]):
+            print('Creating directory "%s", and copying default files' % d[1])
+            shutil.copytree(*d)
 
     return True
 
