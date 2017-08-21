@@ -75,7 +75,8 @@ class Autopilot(DynamicArrays):
                 oldspd = bs.traf.actwp.spd[i]
 
                 # Get next wp (lnavon = False if no more waypoints)
-                lat, lon, alt, spd, xtoalt, toalt, lnavon, flyby, bs.traf.actwp.next_qdr[i] =  \
+                lat, lon, alt, spd, bs.traf.actwp.xtoalt, toalt, \
+                          lnavon, flyby, bs.traf.actwp.next_qdr[i] =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
                 # End of route/no more waypoints: switch off LNAV
@@ -110,7 +111,7 @@ class Autopilot(DynamicArrays):
                         bs.traf.ama[i]    = cas2mach(oldspd, destalt)
 
                 # VNAV = FMS ALT/SPD mode
-                self.ComputeVNAV(i, toalt, xtoalt)
+                self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt)
 
             #=============== End of Waypoint switching loop ===================
 
@@ -130,9 +131,9 @@ class Autopilot(DynamicArrays):
             #    Use 100 nm (185.2 m) circle in case turndist might be zero
             self.swvnavvs = np.where(bs.traf.swlnav, startdescent, dist <= np.maximum(185.2,bs.traf.actwp.turndist))
 
-            #Recalculate V/S based on current altitude and distance
-            t2go = dist2wp/np.maximum(0.5,bs.traf.gs)
-            bs.traf.actwp.vs = (bs.traf.actwp.alt-bs.traf.alt)/np.maximum(1.0,t2go)
+            #Recalculate V/S based on current altitude and distance to next alt constraint
+            t2go2alt = (dist2wp+bs.traf.actwp.xtoalt) / np.maximum(0.5,bs.traf.gs)
+            bs.traf.actwp.vs = (bs.traf.actwp.alt-bs.traf.alt)/np.maximum(1.0,t2go2alt)
 
             self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
@@ -213,7 +214,7 @@ class Autopilot(DynamicArrays):
             if legdist < self.dist2vs[idx]:
                 self.alt[idx] = bs.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
 
-                t2go         = max(0.1, legdist) / max(0.01, bs.traf.gs[idx])
+                t2go         = max(0.1, legdist + xtoalt) / max(0.01, bs.traf.gs[idx])
                 bs.traf.actwp.vs[idx]  = (bs.traf.actwp.alt[idx] - bs.traf.alt[idx]) / t2go
 
             else:
@@ -234,9 +235,8 @@ class Autopilot(DynamicArrays):
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])
             dx = (bs.traf.actwp.lon[idx] - bs.traf.lon[idx]) * bs.traf.coslat[idx]
             legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)
-            t2go = max(0.1, legdist) / max(0.01, bs.traf.gs[idx])
+            t2go = max(0.1, legdist+xtoalt) / max(0.01, bs.traf.gs[idx])
             bs.traf.actwp.vs[idx]  = (bs.traf.actwp.alt[idx] - bs.traf.alt[idx]) / t2go
-
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
