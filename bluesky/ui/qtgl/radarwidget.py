@@ -152,7 +152,7 @@ class RadarWidget(QGLWidget):
         self.show_coast     = True
         self.show_traf      = True
         self.show_pz        = False
-        self.show_lbl       = True
+        self.show_lbl       = 2
         self.show_wpt       = 1
         self.show_apt       = 1
 
@@ -646,7 +646,7 @@ class RadarWidget(QGLWidget):
                         txt += "%03d " % int(round(spd / kts))
 
                 wpname += txt
-            update_buffer(self.routelblbuf, np.array( 
+            update_buffer(self.routelblbuf, np.array(
                             wpname.encode('ascii', 'ignore')))
         else:
             self.route.set_vertex_count(0)
@@ -690,10 +690,16 @@ class RadarWidget(QGLWidget):
             for i, acid in enumerate(data.id):
                 vs = 127 if data.vs[i] > 0.25 else 128 if data.vs[i] < -0.25 else 32
                 # Make label: 3 lines of 8 characters per aircraft
-                if data.alt[i] <= 4500. * ft:
-                    rawlabel += '%-8s%-5d%1s  %-8d' % (acid[:8], int(data.alt[i]/ft  +0.5), chr(vs), int(data.cas[i] / kts+0.5))
-                else:
-                    rawlabel += '%-8sFL%03d%1s  %-8d' % (acid[:8], int(data.alt[i]/ft/100.+0.5), chr(vs), int(data.cas[i] / kts+0.5))
+                if self.show_lbl >= 1:
+                    rawlabel += '%-8s' % acid[:8]
+                    if self.show_lbl == 2:
+                        if data.alt[i] <= 4500. * ft:
+                            rawlabel += '%-5d' % int(data.alt[i]/ft  + 0.5)
+                        else:
+                            rawlabel += 'FL%03d' % int(data.alt[i]/ft/100.+0.5)
+                        rawlabel += '%1s  %-8d' % (chr(vs), int(data.cas[i] / kts+0.5))
+                    else:
+                        rawlabel += 16 * ' '
                 confindices = data.iconf[i]
                 if len(confindices) > 0:
                     if self.ssd_conflicts:
