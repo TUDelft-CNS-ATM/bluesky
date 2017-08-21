@@ -630,9 +630,10 @@ class Route():
 
             turnrad = bs.traf.tas[idx]*bs.traf.tas[idx]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
 
-            bs.traf.actwp.turndist[idx] = (bs.traf.actwp.flyby > 0.5)  *   \
+            bs.traf.actwp.turndist[idx] = (bs.traf.actwp.flyby[idx] > 0.5)  *   \
                      turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
                         self.wpdirfrom[self.iactwp]))))))
+            
 
             bs.traf.swlnav[idx] = True
             return True
