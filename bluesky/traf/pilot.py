@@ -23,7 +23,7 @@ class Pilot(DynamicArrays):
         self.hdg[-n:] = bs.traf.hdg[-n:]
         self.trk[-n:] = bs.traf.trk[-n:]
 
-    def FMSOrAsas(self):
+    def APorASAS(self):
         #--------- Input to Autopilot settings to follow: destination or ASAS ----------
         # Convert the ASAS commanded speed from ground speed to TAS
         if bs.traf.wind.winddim > 0:

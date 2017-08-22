@@ -433,7 +433,7 @@ class Traffic(DynamicArrays):
         #---------- Fly the Aircraft --------------------------
         self.ap.update(simt)
         self.asas.update(simt)
-        self.pilot.FMSOrAsas()
+        self.pilot.APorASAS()
 
         #---------- Limit Speeds ------------------------------
         self.pilot.FlightEnvelope()
