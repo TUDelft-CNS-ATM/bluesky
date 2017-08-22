@@ -1,4 +1,13 @@
 scenario/ic.scn
+data/cache
+data/coefficients/BADA/*
+!/data/coefficients/BADA/README.md
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
 
 .DS_Store
 settings.cfg
@@ -57,13 +66,3 @@ coverage.xml
 
 # Django stuff:
 *.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-data/cache
-data/coefficients/BADA/*
-!/data/coefficients/BADA/README
