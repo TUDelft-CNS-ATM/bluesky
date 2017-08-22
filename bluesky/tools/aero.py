@@ -391,3 +391,12 @@ def casormach(spd,h):
         cas = spd
         m   = cas2mach(spd, h)
     return tas, cas, m
+
+def casormach2tas(spd,h):
+    if 0.1 < spd < 2.0:
+        # Interpret spd as Mach number
+        tas = mach2tas(spd, h)
+    else:
+        # Interpret spd as CAS
+        tas = cas2tas(spd,h)
+    return tas

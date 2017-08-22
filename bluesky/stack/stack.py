@@ -947,9 +947,6 @@ def ic(filename=''):
     if filename == '':
         filename = bs.scr.show_file_dialog()
         
-#    elif filename == "IC": # use file from buffer
-#        filename = scenfile
-
     # Clean up filename
     filename = filename.strip()
 
@@ -957,12 +954,13 @@ def ic(filename=''):
     if len(filename) > 0:
         bs.sim.reset()
         result = openfile(filename)
+    
         if result is True:
             scenfile    = filename
             scenname, _ = os.path.splitext(os.path.basename(filename)) 
             # Remember this filename in IC.scn in scenario folder
             keepicfile = open(settings.scenario_path+"/"+"ic.scn","w")
-            keepicfile.write("# This file ise used by BlueSky to keep recent scenario file\n")
+            keepicfile.write("# This file is used by BlueSky to save the last used scenario file\n")
             keepicfile.write("# So in the console type 'IC IC' to restart the previously used scenario file\n")
             keepicfile.write("00:00:00.00>IC "+filename+"\n")                
             keepicfile.close()

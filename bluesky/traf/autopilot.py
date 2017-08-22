@@ -4,7 +4,8 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach,mach2cas
+from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach, \
+     mach2cas, casormach2tas
 from .route import Route
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -102,6 +103,7 @@ class Autopilot(TrafficArrays):
 
                 # VNAV spd mode: use speed of this waypoint as commanded speed
                 # while passing waypoint and save next speed for passing next wp
+                # Speed is now from speed! Next speed is ready in wpdata
                 if bs.traf.swvnav[i] and oldspd > 0.0:
                     destalt = alt if alt > 0.0 else bs.traf.alt[i]
                     if oldspd<2.0:
@@ -154,6 +156,15 @@ class Autopilot(TrafficArrays):
             # LNAV commanded track angle
             self.trk = np.where(bs.traf.swlnav, qdr, self.trk)
 
+            # FMS speed guidance: anticipate accel distance
+
+            # Actual distance it takes to decelerate
+            tasdiff  = casormach2tas(bs.traf.actwp.spd,bs.traf.alt) - bs.traf.tas # [m/s]
+            dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax))
+            dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg**2 + bs.traf.tas*dtspdchg
+            
+            bs.traf.selspd = np.where(dist2wp < dxspdchg, bs.traf.actwp.spd , bs.traf.selspd)
+            
         # Below crossover altitude: CAS=const, above crossover altitude: MA = const
         self.tas = bs.traf.belco *vcas2tas(bs.traf.selspd, bs.traf.alt)  + \
                       bs.traf.abco*vmach2tas(bs.traf.ama, bs.traf.alt)
