@@ -1,10 +1,9 @@
 import numpy as np
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
-
-class Perf(TrafficArrays):
+class PerfBase(TrafficArrays):
     def __init__(self):
-        super(Perf, self).__init__()
+        super().__init__()
 
         with RegisterElementParameters(self):
             # --- fixed parameters ---
@@ -22,32 +21,23 @@ class Perf(TrafficArrays):
             self.drag = np.array([])  # drag
             self.fuelflow = np.array([])  # fuel flow
 
-    def create(self):
-        raise RuntimeError("function not implemented.")
+    def create(self, n):
+        super().create(n)
 
-    def delete(self):
-        raise RuntimeError("function not implemented.")
+    def delete(self, idx):
+        super().delete(idx)
 
-    def thrust(self):
-        raise RuntimeError("function not implemented.")
+    def reset(self):
+        super().reset()
 
-    def drag(self):
-        raise RuntimeError("function not implemented.")
+    def update(self):
+        """implement this methods"""
+        pass
 
-    def fuelflow(self):
-        raise RuntimeError("function not implemented.")
-
-    def esf(self):
-        raise RuntimeError("function not implemented.")
-
-    def bank(self):
-        raise RuntimeError("function not implemented.")
-
-    def update(self, simt):
-        raise RuntimeError("function not implemented.")
-
-    def limit(self, *args):
-        raise RuntimeError("function not implemented.")
+    def apply_limits(self):
+        """implement this methods"""
+        pass
 
     def engchange(self):
-        raise RuntimeError("function not implemented.")
+        """implement this methods"""
+        pass

@@ -336,7 +336,7 @@ class CoeffBS:
 coeffBS = CoeffBS()
 
 
-class PerfBS():
+class Perf():
     warned  = False        # Flag: Did we warn for default perf parameters yet?
     warned2 = False    # Flag: Use of piston engine aircraft?
 
