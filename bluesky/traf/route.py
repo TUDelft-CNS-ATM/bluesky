@@ -993,8 +993,8 @@ class Route():
                 else:
                     xtoalt = 0.0
 
-            self.wpialt[i] = ialt
-            self.wptoalt[i] = toalt   #[m]
+            self.wpialt[i]   = ialt
+            self.wptoalt[i]  = toalt   #[m]
             self.wpxtoalt[i] = xtoalt  #[m]
 
         return
