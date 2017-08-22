@@ -164,9 +164,9 @@ class Autopilot(TrafficArrays):
             dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax))
             dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg
             
-            spdcon         = bs.traf.actwp.spd > 0.
-            bs.traf.selspd = np.where(spdcon*(dist2wp < dxspdchg)*bs.traf.swvnav, nextcas, bs.traf.selspd)
-            bs.traf.ama    = np.where(spdcon*(dist2wp < dxspdchg)*bs.traf.swvnav, nextmach, bs.traf.ama)
+            usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spd > 0.)*bs.traf.swvnav
+            bs.traf.selspd = np.where(usespdcon, nextcas, bs.traf.selspd)
+            bs.traf.ama    = np.where(usespdcon, nextmach, bs.traf.ama)        
            
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = bs.traf.belco *vcas2tas(bs.traf.selspd, bs.traf.alt)  + \

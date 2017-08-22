@@ -452,7 +452,9 @@ class Traffic(TrafficArrays):
         ax = self.perf.acceleration(simdt)
 
         # Update velocities
-        self.tas = self.tas + swspdsel * ax * np.sign(self.delspd) * simdt
+        self.tas = np.where(swspdsel, \
+                            self.tas + swspdsel * ax * np.sign(self.delspd) * simdt,\
+                            self.pilot.spd)
 
         self.cas = vtas2cas(self.tas, self.alt)
         self.M   = vtas2mach(self.tas, self.alt)
