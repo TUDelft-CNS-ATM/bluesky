@@ -493,8 +493,8 @@ class metric_CoCa():
                     self.cells[name][j][0] = bs.traf.id[i]
                     self.cells[name][j][1] = time
                     self.cells[name][j][2] = bs.traf.ahdg[i]
-                    self.cells[name][j][3] = eas2tas(bs.traf.aspd[i],bs.traf.aalt[i])/kts
-                    self.cells[name][j][4] = bs.traf.avs[i]/fpm
+                    self.cells[name][j][3] = eas2tas(bs.traf.selspd[i],bs.traf.selalt[i])/kts
+                    self.cells[name][j][4] = bs.traf.selvs[i]/fpm
                     self.cells[name][j][5] = time
                 if len(index) == 1:
                     createtime = float(self.cells[name][index[0]][5])
@@ -1415,13 +1415,13 @@ class Metric():
 
         deleteAC = []
         for i in range(0,bs.traf.ntraf):
-            if bs.traf.avs[i] <= 0 and (bs.traf.aalt[i]/ft) < 750 and bs.traf.aspd[i] < 300:
+            if bs.traf.selvs[i] <= 0 and (bs.traf.selalt[i]/ft) < 750 and bs.traf.selspd[i] < 300:
                 deleteAC.append(bs.traf.id[i])
 
-            elif bs.traf.avs[i] <=0 and (bs.traf.aalt[i]/ft) < 10:
+            elif bs.traf.selvs[i] <=0 and (bs.traf.selalt[i]/ft) < 10.:
                 deleteAC.append(bs.traf.id[i])
 
-            if bs.traf.avs[i] <=0 and bs.traf.aspd[i] < 10:
+            if bs.traf.selvs[i] <=0 and bs.traf.selspd[i] < 10.:
                 deleteAC.append(bs.traf.id[i])
 
         for i in range(0,len(deleteAC)):

@@ -344,7 +344,7 @@ class PerfBADA(DynamicArrays):
         self.phase, self.bank = \
         phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
         bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
-        bs.traf.hdgsel, swbada)
+        bs.traf.swhdgsel, swbada)
 
         # AERODYNAMICS
         # Lift
@@ -466,12 +466,12 @@ class PerfBADA(DynamicArrays):
         cpred = 1-cred*((self.mmax-self.mass)/(self.mmax-self.mmin))
 
 
-        # switch for given vertical speed avs
-        if (bs.traf.avs.any()>0) or (bs.traf.avs.any()<0):
-            # thrust = f(avs)
-            T = ((bs.traf.avs!=0)*(((bs.traf.pilot.vs*self.mass*g0)/     \
+        # switch for given vertical speed selvs
+        if (bs.traf.selvs.any()>0.) or (bs.traf.selvs.any()<0.):
+            # thrust = f(selvs)
+            T = ((bs.traf.selvs!=0)*(((bs.traf.pilot.vs*self.mass*g0)/     \
                       (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
-                      + self.D)) + ((bs.traf.avs==0)*T)
+                      + self.D)) + ((bs.traf.selvs==0)*T)
 
         self.Thr = T
 

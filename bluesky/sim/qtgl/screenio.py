@@ -250,6 +250,7 @@ class ScreenIO(QObject):
             data.confcpalat = bs.traf.asas.latowncpa
             data.confcpalon = bs.traf.asas.lonowncpa
             data.trk        = bs.traf.hdg
+            data.vs         = bs.traf.vs
 
             # Trails, send only new line segments to be added
             data.swtrails  = bs.traf.trails.active

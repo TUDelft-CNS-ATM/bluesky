@@ -83,7 +83,7 @@ class Circle:
 
 class Poly:
     def __init__(self, coordinates, top=1e9, bottom=-1e9):
-        self.border = Path(np.reshape(coordinates, (len(coordinates) / 2, 2)))
+        self.border = Path(np.reshape(coordinates, (len(coordinates) // 2, 2)))
         self.top    = top
         self.bottom = bottom
 

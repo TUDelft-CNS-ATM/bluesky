@@ -627,7 +627,7 @@ class Perf():
         self.phase, self.bank = \
            phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
            bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
-           bs.traf.hdgsel,swbada)
+           bs.traf.swhdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)

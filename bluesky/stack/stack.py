@@ -164,7 +164,7 @@ def init():
         "ALT": [
             "ALT acid, alt, [vspd]",
             "acid,alt,[vspd]",
-            bs.traf.ap.selalt,
+            bs.traf.ap.selaltcmd,
             "Altitude command (autopilot)"
         ],
         "AREA": [
@@ -359,7 +359,7 @@ def init():
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
-            bs.traf.ap.selhdg,
+            bs.traf.ap.selhdgcmd,
             "Heading command (autopilot)"
         ],
         "HELP": [
@@ -593,7 +593,7 @@ def init():
         "SPD": [
             "SPD acid,spd (CAS-kts/Mach)",
             "acid,spd",
-            bs.traf.ap.selspd,
+            bs.traf.ap.selspdcmd,
             "Speed command (autopilot)"
         ],
         "SSD": [
@@ -648,7 +648,7 @@ def init():
         "VS": [
             "VS acid,vspd (ft/min)",
             "acid,vspd",
-            bs.traf.ap.selvspd,
+            bs.traf.ap.selvspdcmd,
             "Vertical speed command (autopilot)"
         ],
         "WIND": [
@@ -897,7 +897,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     # The entire filename, possibly with added path and extension
     scenfile = os.path.join(path, scenname + ext)
 
-    print("Opening ", scenfile)
+    print("Opening "+scenfile)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
@@ -929,7 +929,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 except:
                     if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
-                        print("except this:", line)
+                        print("except this:"+line)
                     pass  # nice try, we will just ignore this syntax error
 
     if mergeWithExisting:
@@ -946,8 +946,9 @@ def ic(filename=''):
     # Get the filename of new scenario
     if filename == '':
         filename = bs.scr.show_file_dialog()
-    elif filename == "IC":
-        filename = scenfile
+        
+#    elif filename == "IC": # use file from buffer
+#        filename = scenfile
 
     # Clean up filename
     filename = filename.strip()
@@ -958,8 +959,15 @@ def ic(filename=''):
         result = openfile(filename)
         if result is True:
             scenfile    = filename
-            scenname, _ = os.path.splitext(os.path.basename(filename))
+            scenname, _ = os.path.splitext(os.path.basename(filename)) 
+            # Remember this filename in IC.scn in scenario folder
+            keepicfile = open(settings.scenario_path+"/"+"ic.scn","w")
+            keepicfile.write("# This file ise used by BlueSky to keep recent scenario file\n")
+            keepicfile.write("# So in the console type 'IC IC' to restart the previously used scenario file\n")
+            keepicfile.write("00:00:00.00>IC "+filename+"\n")                
+            keepicfile.close()
             return True, "Opened " + filename
+        
         else:
             return result
 
