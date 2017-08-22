@@ -30,7 +30,9 @@ def check_plugin(fname):
     with open(fname, 'rb') as f:
         source         = f.read()
         tree           = ast.parse(source)
-        retnames       = ['', '']
+
+        ret_dicts      = []
+        ret_names      = ['', '']
         for item in tree.body:
             if isinstance(item, ast.FunctionDef) and item.name == 'init_plugin':
                 # This is the initialization function of a bluesky plugin. Parse the contents
@@ -40,21 +42,27 @@ def check_plugin(fname):
                     # Return value of init_plugin should always be a tuple of two dicts
                     # The first dict is the plugin config dict, the second dict is the stack function dict
                     if isinstance(iitem, ast.Return):
-                        retnames = [el.id for el in iitem.value.elts]
+                        ret_dicts = iitem.value.elts
+                        if not len(ret_dicts) == 2:
+                            print(fname + " looks like a plugin, but init_plugin() doesn't return two dicts")
+                            return None
+                        ret_names = [el.id if isinstance(el, ast.Name) else '' for el in ret_dicts]
 
                     # Check if this is the assignment of one of the return values
                     if isinstance(iitem, ast.Assign) and isinstance(iitem.value, ast.Dict):
-                        # Is this the config dict?
-                        if iitem.targets[0].id == retnames[0]:
-                            cfgdict = {k.s:v for k,v in zip(iitem.value.keys, iitem.value.values)}
-                            plugin.plugin_name = cfgdict['plugin_name'].s
-                            plugin.plugin_type = cfgdict['plugin_type'].s
+                        for i in range(2):
+                            if iitem.targets[0].id == ret_names[i]:
+                                ret_dicts[i] = iitem.value
 
-                        # Is this the stack function dict?
-                        if iitem.targets[0].id == retnames[1]:
-                            stack_keys       = [el.s for el in iitem.value.keys]
-                            stack_docs       = [el.elts[-1].s for el in iitem.value.values]
-                            plugin.plugin_stack = list(zip(stack_keys, stack_docs))
+                # Parse the config dict
+                cfgdict = {k.s:v for k,v in zip(ret_dicts[0].keys, ret_dicts[0].values)}
+                plugin.plugin_name = cfgdict['plugin_name'].s
+                plugin.plugin_type = cfgdict['plugin_type'].s
+
+                # Parse the stack function dict
+                stack_keys       = [el.s for el in ret_dicts[1].keys]
+                stack_docs       = [el.elts[-1].s for el in ret_dicts[1].values]
+                plugin.plugin_stack = list(zip(stack_keys, stack_docs))
     return plugin
 
 def manage(cmd, plugin_name=''):
