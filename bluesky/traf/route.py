@@ -348,12 +348,12 @@ class Route():
 
     def addwpt(self, iac, name, wptype, lat, lon, alt=-999., spd=-999., afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
-#        print "addwpt:"
-#        print "iac = ",iac
-#        print "name = ",name
-#        print "alt = ",alt
-#        print "spd = ",spd
-#        print "afterwp =",afterwp
+#        print ("addwpt:")
+#        print ("iac = ",iac)
+#        print ("name = "+name)
+#        print ("alt = ",alt)
+#        print ("spd = ",spd)
+#        print ("afterwp ="+afterwp)
 #        print
         self.iac = iac    # a/c to which this route belongs
         # For safety
@@ -993,8 +993,8 @@ class Route():
                 else:
                     xtoalt = 0.0
 
-            self.wpialt[i] = ialt
-            self.wptoalt[i] = toalt   #[m]
+            self.wpialt[i]   = ialt
+            self.wptoalt[i]  = toalt   #[m]
             self.wpxtoalt[i] = xtoalt  #[m]
 
         return
