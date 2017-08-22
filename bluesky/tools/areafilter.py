@@ -14,10 +14,6 @@ def hasArea(areaname):
 
 def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
     """Define a new area"""
-    # When top is skipped in stack, None is entered instead. Replace with 1e9
-    if coordinates[-2] is None:
-        coordinates[-2] = 1e9
-
     if areatype == 'BOX':
         areas[areaname] = Box(coordinates, top, bottom)
     elif areatype == 'CIRCLE':
@@ -52,10 +48,10 @@ class Box:
         self.top    = top
         self.bottom = bottom
         # Sort the order of the corner points
-        self.lat0 = min(coordinates[0],coordinates[2])
-        self.lon0 = min(coordinates[1],coordinates[3])
-        self.lat1 = max(coordinates[0],coordinates[2])
-        self.lon1 = max(coordinates[1],coordinates[3])
+        self.lat0 = min(coordinates[0], coordinates[2])
+        self.lon0 = min(coordinates[1], coordinates[3])
+        self.lat1 = max(coordinates[0], coordinates[2])
+        self.lon1 = max(coordinates[1], coordinates[3])
 
     def checkInside(self, lat, lon, alt):
         inside = ((self.lat0 <=  lat) & ( lat <= self.lat1)) & \
