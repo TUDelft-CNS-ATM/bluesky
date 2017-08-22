@@ -132,8 +132,11 @@ class Autopilot(DynamicArrays):
             self.swvnavvs = np.where(bs.traf.swlnav, startdescent, dist <= np.maximum(185.2,bs.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance to next alt constraint
-            t2go2alt = (dist2wp+bs.traf.actwp.xtoalt) / np.maximum(0.5,bs.traf.gs)
-            bs.traf.actwp.vs = (bs.traf.actwp.alt-bs.traf.alt)/np.maximum(1.0,t2go2alt)
+            t2go2alt = np.maximum(0.,(dist2wp + bs.traf.actwp.xtoalt - bs.traf.actwp.turndist*nm)) \
+                                        / np.maximum(0.5,bs.traf.gs)
+                                        
+            bs.traf.actwp.vs = np.maximum(self.steepness*bs.traf.gs, \
+                                   np.abs((bs.traf.actwp.alt-bs.traf.alt))/np.maximum(1.0,t2go2alt))
 
             self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
@@ -202,7 +205,8 @@ class Autopilot(DynamicArrays):
 
 
             # Dist to waypoint where descent should start
-            self.dist2vs[idx] = (bs.traf.alt[idx] - bs.traf.actwp.alt[idx]) / self.steepness
+            self.dist2vs[idx] = bs.traf.actwp.turndist[idx]*nm + \
+                               (bs.traf.alt[idx] - bs.traf.actwp.alt[idx]) / self.steepness
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])
@@ -210,7 +214,7 @@ class Autopilot(DynamicArrays):
             legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
 
-            # If descent is urgent, descent with maximum steepness
+            # If the descent is urgent, descend with maximum steepness
             if legdist < self.dist2vs[idx]:
                 self.alt[idx] = bs.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
 
@@ -228,15 +232,16 @@ class Autopilot(DynamicArrays):
 
 
             bs.traf.actwp.alt[idx] = toalt
-            self.alt[idx]    = bs.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
-            self.dist2vs[idx]  = 9999.
+            self.alt[idx]          = bs.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
+            self.dist2vs[idx]      = 9999.
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])
             dx = (bs.traf.actwp.lon[idx] - bs.traf.lon[idx]) * bs.traf.coslat[idx]
-            legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)
+            legdist = 60. * nm * np.sqrt(dx * dx + dy * dy) # [m]
             t2go = max(0.1, legdist+xtoalt) / max(0.01, bs.traf.gs[idx])
-            bs.traf.actwp.vs[idx]  = (bs.traf.actwp.alt[idx] - bs.traf.alt[idx]) / t2go
+            bs.traf.actwp.vs[idx]  = np.maximum(self.steepness*bs.traf.gs[idx], \
+                            (bs.traf.actwp.alt[idx] - bs.traf.alt[idx])/ t2go) # [m/s]
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.

@@ -45,8 +45,8 @@ class ActiveWaypoint(DynamicArrays):
         circling = away*incircle
 
 
-        # distance to turn initialisation point
-        self.turndist = (flyby > 0.5)*np.minimum(100., np.abs(turnrad *
+        # distance to turn initialisation point [nm]
+        self.turndist = flyby*np.minimum(100., np.abs(turnrad *
             np.tan(np.radians(0.5 * np.abs(degto180(qdr%360. - next_qdr%360.))))))
    
          
