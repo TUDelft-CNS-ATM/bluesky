@@ -19,7 +19,6 @@ from .pilot import Pilot
 from .autopilot import Autopilot
 from .activewpdata import ActiveWaypoint
 from .turbulence import Turbulence
-from .area import Area
 
 from bluesky import settings
 
@@ -125,7 +124,6 @@ class Traffic(TrafficArrays):
             self.adsb   = ADSB()
             self.trails = Trails()
             self.actwp  = ActiveWaypoint()
-            self.area   = Area()
             self.perf   = Perf()
 
             # Traffic performance data
@@ -167,7 +165,7 @@ class Traffic(TrafficArrays):
         # Reset models
         self.wind.clear()
 
-        # Build new modules for area and turbulence
+        # Build new modules for turbulence
         self.turbulence.reset()
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
@@ -441,7 +439,6 @@ class Traffic(TrafficArrays):
 
         #---------- Aftermath ---------------------------------
         self.trails.update(simt)
-        self.area.check(simt)
         return
 
     def UpdateAirSpeed(self, simdt, simt):
