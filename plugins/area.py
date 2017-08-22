@@ -57,7 +57,7 @@ def init_plugin():
         'plugin_type':     'sim',
 
         # Update interval in seconds.
-        'update_interval': 5.0,
+        'update_interval': area.dt,
 
         # The update function is called after traffic is updated.
         'update':          area.update,
@@ -87,7 +87,6 @@ class Area(TrafficArrays):
         # Parameters of area
         self.active = False
         self.dt     = 5.0     # [s] frequency of area check (simtime)
-        self.t0     = -100.   # last time checked
         self.name   = None
         self.swtaxi = False  # Default OFF: Doesn't do anything. See comments of setTaxi fucntion below.
 
@@ -109,9 +108,9 @@ class Area(TrafficArrays):
         # Update flight efficiency metrics
         # 2D and 3D distance [m], and work done (force*distance) [J]
         resultantspd = np.sqrt(traf.gs * traf.gs + traf.vs * traf.vs)
-        self.distance2D += sim.simdt * traf.gs
-        self.distance3D += sim.simdt * resultantspd
-        self.work += (traf.perf.Thr * sim.simdt * resultantspd)
+        self.distance2D += self.dt * traf.gs
+        self.distance3D += self.dt * resultantspd
+        self.work += (traf.perf.Thr * self.dt * resultantspd)
 
         # ToDo: Add autodelete for descending with swTaxi:
         if self.swtaxi:
@@ -119,7 +118,7 @@ class Area(TrafficArrays):
 
         # Find out which aircraft are currently inside the experiment area, and
         # determine which aircraft need to be deleted.
-        inside = areafilter.checkInside(self.name, bs.traf.lat, bs.traf.lon, bs.traf.alt)
+        inside = areafilter.checkInside(self.name, traf.lat, traf.lon, traf.alt)
         delidx = np.intersect1d(np.where(np.array(self.inside)==True), np.where(np.array(inside)==False))
         self.inside = inside
 
@@ -150,8 +149,8 @@ class Area(TrafficArrays):
             )
 
         # delete all aicraft in self.delidx
-        for acid in [bs.traf.id[idx] for idx in self.delidx]:
-            bs.traf.delete(acid)
+        for acid in [traf.id[idx] for idx in self.delidx]:
+            traf.delete(acid)
 
     def setArea(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
