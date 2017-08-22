@@ -181,7 +181,7 @@ def vcasormach(spd, h):
 
     tas = np.where(np.abs(spd) < 2.0, vmach2tas(spd, h), vcas2tas(spd, h))
     cas = np.where(np.abs(spd) < 2.0, vmach2cas(spd, h), spd)
-    m = np.where(np.abs(spd) < 2.0, spd, vcas2mach(spd, h))
+    m   = np.where(np.abs(spd) < 2.0, spd, vcas2mach(spd, h))
 
     return tas, cas, m
 

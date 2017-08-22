@@ -5,7 +5,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach, \
-     mach2cas, casormach
+     mach2cas, vcasormach
 from .route import Route
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -159,12 +159,12 @@ class Autopilot(TrafficArrays):
             # FMS speed guidance: anticipate accel distance
 
             # Actual distance it takes to decelerate
-            nexttas, nextcas, nextmach = casormach(bs.traf.actwp.spd,bs.traf.alt) 
+            nexttas, nextcas, nextmach = vcasormach(bs.traf.actwp.spd,bs.traf.alt) 
             tasdiff  = nexttas - bs.traf.tas # [m/s]
             dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax))
             dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg
             
-            spdcon         = bs.traf.actwp.spd>0.
+            spdcon         = bs.traf.actwp.spd > 0.
             bs.traf.selspd = np.where(spdcon*(dist2wp < dxspdchg)*bs.traf.swvnav, nextcas, bs.traf.selspd)
             bs.traf.ama    = np.where(spdcon*(dist2wp < dxspdchg)*bs.traf.swvnav, nextmach, bs.traf.ama)
            
