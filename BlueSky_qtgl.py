@@ -42,9 +42,9 @@ def MainLoop():
         # Create gui and simulation objects
         # ======================================================================
         global gui
-        manager   = MainManager()
-        gui       = Gui()
         telnet_in = StackTelnetServer()
+        manager   = MainManager(telnet_in)
+        gui       = Gui()
 
         # Initialize the gui (loading graphics data, etc.)
         gui.init()

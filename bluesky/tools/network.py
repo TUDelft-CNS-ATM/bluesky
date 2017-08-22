@@ -4,26 +4,29 @@ import socket
 import threading
 from bluesky import settings
 
+SIZEOF_UINT16 = 2
+
 if settings.gui == 'qtgl':
     try:
-        from PyQt5.QtCore import pyqtSlot
+        from PyQt5.QtCore import \
+            pyqtSlot, QByteArray, QDataStream, QIODevice, QString
         from PyQt5.QtNetwork import QTcpServer, QTcpSocket
     except ImportError:
-        from PyQt4.QtCore import pyqtSlot
+        from PyQt4.QtCore import \
+            pyqtSlot, QByteArray, QDataStream, QIODevice, QString
         from PyQt4.QtNetwork import QTcpServer, QTcpSocket
 
 
     class TcpSocket(QTcpSocket):
         def __init__(self, parent=None):
             super(TcpSocket, self).__init__(parent)
-            if parent is None:
-                self.error.connect(self.onError)
-                self.connected.connect(self.onConnected)
-                self.disconnected.connect(self.onDisconnected)
+            self.error.connect(self.onError)
+            self.connected.connect(self.onConnected)
+            self.disconnected.connect(self.onDisconnected)
 
         @pyqtSlot()
         def onError(self):
-            print(self.socket.errorString())
+            print(self.errorString())
 
         @pyqtSlot()
         def onConnected(self):
@@ -31,6 +34,7 @@ if settings.gui == 'qtgl':
 
         @pyqtSlot()
         def onDisconnected(self):
+            del self.parent().connections[id(self)]
             print('TcpClient disconnected')
 
         def isConnected(self):
@@ -40,6 +44,9 @@ if settings.gui == 'qtgl':
         def onReadyRead(self):
             self.processData(self.readAll())
 
+        def sendReply(self, msg):
+            self.writeData('{}\n'.format(msg))
+
         def processData(self, data):
             # Placeholder function; override it with your own implementation
             print('TcpSocket received', data)
@@ -48,19 +55,23 @@ if settings.gui == 'qtgl':
     class TcpServer(QTcpServer):
         def __init__(self, parent=None):
             super(TcpServer, self).__init__(parent)
-            self.connections = list()
+            self.connections = dict()
 
         def incomingConnection(self, socketDescriptor):
             newconn = TcpSocket(self)
             newconn.setSocketDescriptor(socketDescriptor)
             newconn.readyRead.connect(self.onReadyRead)
-            self.connections.append(newconn)
+            self.connections[id(newconn)] = newconn
 
         @pyqtSlot()
         def onReadyRead(self):
-            sender_id = self.connections.index(self.sender())
+            sender_id = id(self.sender())
             data      = self.sender().readAll()
-            self.processData(sender_id, data)
+            self.processData(data, sender_id)
+
+        def sendReply(self, event):
+            if event.sender_id:
+                self.connections[event.sender_id].sendReply(event.disptext)
 
         def processData(self, sender_id, data):
             # Placeholder function; override it with your own implementation
@@ -124,16 +135,19 @@ elif settings.gui == 'pygame':
         def __init__(self):
             pass
 
+        def sendReply(self, event):
+            pass
+
         def start(self):
             pass
 
-        def processData(self, sender_id, data):
+        def processData(self, data, sender_id):
             pass
 
 
 class StackTelnetServer(TcpServer):
     @staticmethod
-    def dummy_process(cmd):
+    def dummy_process(cmd, sender_id):
         pass
 
     def __init__(self):
@@ -143,5 +157,7 @@ class StackTelnetServer(TcpServer):
     def connect(self, fun):
         self.process = fun
 
-    def processData(self, sender_id, data):
-        self.process(bytearray(data).decode(encoding='ascii', errors='ignore').strip())
+    def processData(self, data, sender_id):
+        self.process(
+            bytearray(data).decode(encoding='ascii', errors='ignore').strip(),
+            sender_id)
