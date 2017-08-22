@@ -83,8 +83,8 @@ class Pilot(TrafficArrays):
         # below crossover altitude: CAS=const, above crossover altitude: MA = const
         # climb/descend above crossover: Ma = const, else CAS = const
         # ama is fixed when above crossover
-        bs.traf.ama = np.where(bs.traf.abco * (bs.traf.ama == 0.),
-                                 vcas2mach(bs.traf.selspd, bs.traf.alt), bs.traf.ama)
+#        bs.traf.ama = np.where(bs.traf.abco * (bs.traf.ama == 0.),
+#                                 vcas2mach(bs.traf.selspd, bs.traf.alt), bs.traf.ama)
 
         # ama is deleted when below crossover
-        bs.traf.ama = np.where(bs.traf.belco, 0.0, bs.traf.ama)
+#        bs.traf.ama = np.where(bs.traf.belco, 0.0, bs.traf.ama)

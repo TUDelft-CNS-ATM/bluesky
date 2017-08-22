@@ -5,7 +5,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach, \
-     mach2cas, casormach2tas
+     mach2cas, casormach
 from .route import Route
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -159,15 +159,19 @@ class Autopilot(TrafficArrays):
             # FMS speed guidance: anticipate accel distance
 
             # Actual distance it takes to decelerate
-            tasdiff  = casormach2tas(bs.traf.actwp.spd,bs.traf.alt) - bs.traf.tas # [m/s]
+            nexttas, nextcas, nextmach = casormach(bs.traf.actwp.spd,bs.traf.alt) 
+            tasdiff  = nexttas - bs.traf.tas # [m/s]
             dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax))
-            dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg**2 + bs.traf.tas*dtspdchg
+            dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg
             
-            bs.traf.selspd = np.where(dist2wp < dxspdchg, bs.traf.actwp.spd , bs.traf.selspd)
-            
-        # Below crossover altitude: CAS=const, above crossover altitude: MA = const
+            spdcon         = bs.traf.actwp.spd>0.
+            bs.traf.selspd = np.where(spdcon*(dist2wp < dxspdchg)*bs.traf.swvnav, nextcas, bs.traf.selspd)
+            bs.traf.ama    = np.where(spdcon*(dist2wp < dxspdchg)*bs.traf.swvnav, nextmach, bs.traf.ama)
+           
+        # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = bs.traf.belco *vcas2tas(bs.traf.selspd, bs.traf.alt)  + \
                       bs.traf.abco*vmach2tas(bs.traf.ama, bs.traf.alt)
+
 
     def ComputeVNAV(self, idx, toalt, xtoalt):
         if not (toalt >= 0 and bs.traf.swvnav[idx]):
