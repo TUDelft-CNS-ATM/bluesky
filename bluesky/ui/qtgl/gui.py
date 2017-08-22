@@ -95,11 +95,14 @@ class Gui(QApplication):
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
-    def start(self):
+    def prestart(self):
         self.win.show()
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
+
+    def start(self):
+        self.prestart()
         self.exec_()
 
     def quit(self):
