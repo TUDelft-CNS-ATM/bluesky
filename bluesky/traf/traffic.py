@@ -9,10 +9,9 @@ from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
                          vatmos,  vtas2cas, vtas2mach, casormach, vcasormach
 
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 from .windsim import WindSim
-
 from .trails import Trails
 from .adsbmodel import ADSB
 from .asas import ASAS
@@ -41,7 +40,7 @@ except ImportError as err:
     from .perf import Perf
 
 
-class Traffic(DynamicArrays):
+class Traffic(TrafficArrays):
     """
     Traffic class definition    : Traffic data
     Methods:
@@ -59,7 +58,13 @@ class Traffic(DynamicArrays):
     """
 
     def __init__(self):
+        super(Traffic, self).__init__()
+
+        # Traffic is the toplevel trafficarrays object
+        TrafficArrays.SetRoot(self)
+
         self.wind = WindSim()
+        self.turbulence = Turbulence()
 
         # Define the periodic loggers
         # ToDo: explain what these line sdo in comments (type of logs?)
@@ -115,6 +120,8 @@ class Traffic(DynamicArrays):
             self.adsb   = ADSB()
             self.trails = Trails()
             self.actwp  = ActiveWaypoint()
+            self.area   = Area()
+            self.perf   = Perf()
 
             # Traffic performance data
             self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
@@ -156,17 +163,10 @@ class Traffic(DynamicArrays):
         self.wind.clear()
 
         # Build new modules for area and turbulence
-        self.area       = Area()
-        self.Turbulence = Turbulence()
+        self.turbulence.reset()
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
-
-        # Default: BlueSky internal performance model.
-        # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
-        # for working with EUROCONTROL`s Base of Aircraft Data revision 3.12
-        self.perf    = Perf()
-        self.trails.reset()
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None):
         """ Create multiple random aircraft in a specified area """
@@ -248,15 +248,9 @@ class Traffic(DynamicArrays):
         self.coslat[-n:] = np.cos(np.radians(aclats))  # Cosine of latitude for flat-earth aproximations
         self.eps[-n:] = 0.01
 
-        # ----- Submodules of Traffic -----
-        self.ap.create(n)
-        self.actwp.create(n)
-        self.pilot.create(n)
-        self.adsb.create(n)
-        self.area.create(n)
-        self.asas.create(n)
-        self.perf.create(n)
-        self.trails.create(n)
+        # Finally call create for child TrafficArrays. This only needs to be done
+        # manually in Traffic.
+        self.create_children(n)
 
     def create(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
         """Create an aircraft"""
@@ -337,15 +331,9 @@ class Traffic(DynamicArrays):
         self.coslat[-1] = cos(radians(aclat))  # Cosine of latitude for flat-earth aproximations
         self.eps[-1] = 0.01
 
-        # ----- Submodules of Traffic -----
-        self.ap.create()
-        self.actwp.create()
-        self.pilot.create()
-        self.adsb.create()
-        self.area.create()
-        self.asas.create()
-        self.perf.create()
-        self.trails.create()
+        # Finally call create for child TrafficArrays. This only needs to be done
+        # manually in Traffic.
+        self.create_children()
 
         return True
 
@@ -414,9 +402,6 @@ class Traffic(DynamicArrays):
         # Delete all aircraft parameters
         super(Traffic, self).delete(idx)
 
-        # ----- Submodules of Traffic -----
-        self.perf.delete(idx)
-        self.area.delete(idx)
         return True
 
     def update(self, simt, simdt):
@@ -447,7 +432,7 @@ class Traffic(DynamicArrays):
         self.perf.perf(simt)
 
         #---------- Simulate Turbulence -----------------------
-        self.Turbulence.Woosh(simdt)
+        self.turbulence.Woosh(simdt)
 
         #---------- Aftermath ---------------------------------
         self.trails.update(simt)
@@ -514,9 +499,9 @@ class Traffic(DynamicArrays):
     def setNoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
         if noise is None:
-            return True, "Noise is currently " + ("on" if self.Turbulence.active else "off")
+            return True, "Noise is currently " + ("on" if self.turbulence.active else "off")
 
-        self.Turbulence.SetNoise(noise)
+        self.turbulence.SetNoise(noise)
         self.adsb.SetNoise(noise)
         return True
 

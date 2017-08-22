@@ -10,4 +10,4 @@ if settings.prefer_compiled:
 else:
     from . import geo
 
-from .dynamicarrays import RegisterElementParameters, DynamicArrays
+from .trafficarrays import RegisterElementParameters, TrafficArrays

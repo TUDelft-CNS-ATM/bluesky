@@ -2,7 +2,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
@@ -16,7 +16,7 @@ else:
     print('Using BADA performance model.')
 
 
-class PerfBADA(DynamicArrays):
+class PerfBADA(TrafficArrays):
     """
     Aircraft performance implementation based on BADA.
     Methods:
@@ -33,6 +33,7 @@ class PerfBADA(DynamicArrays):
         EEC Technical/Scientific Report No. 14/04/24-44 edition, 2014.
     """
     def __init__(self):
+        super(PerfBADA, self).__init__()
         self.warned = False     # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 

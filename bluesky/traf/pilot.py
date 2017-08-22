@@ -2,11 +2,12 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import vtas2eas, vcas2tas, vcas2mach
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
-class Pilot(DynamicArrays):
+class Pilot(TrafficArrays):
     def __init__(self):
+        super(Pilot, self).__init__()
         with RegisterElementParameters(self):
             # Desired aircraft states
             self.alt = np.array([])  # desired altitude [m]

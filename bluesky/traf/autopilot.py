@@ -6,11 +6,12 @@ from bluesky.tools import geo
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach,mach2cas
 from .route import Route
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
-class Autopilot(DynamicArrays):
+class Autopilot(TrafficArrays):
     def __init__(self):
+        super(Autopilot, self).__init__()
         # Scheduling of FMS and ASAS
         self.t0 = -999.  # last time fms was called
         self.dt = 1.01   # interval for fms

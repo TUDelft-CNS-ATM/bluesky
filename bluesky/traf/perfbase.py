@@ -1,9 +1,10 @@
 import numpy as np
-from bluesky.tools import RegisterElementParameters, DynamicArrays
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
-class PerfBase(DynamicArrays):
+class PerfBase(TrafficArrays):
     def __init__(self):
+        super(PerfBase, self).__init__()
         with RegisterElementParameters(self):
             # engine
             self.etype       = np.array([])  # jet, turboprop or piston

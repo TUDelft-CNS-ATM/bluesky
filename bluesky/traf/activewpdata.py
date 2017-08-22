@@ -1,12 +1,13 @@
 import numpy as np
 import bluesky as bs
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools.aero import nm, g0
 from bluesky.tools.misc import degto180
 
 
-class ActiveWaypoint(DynamicArrays):
+class ActiveWaypoint(TrafficArrays):
     def __init__(self):
+        super(ActiveWaypoint, self).__init__()
         with RegisterElementParameters(self):
             self.lat      = np.array([])  # Active WP latitude
             self.lon      = np.array([])  # Active WP longitude
@@ -48,7 +49,7 @@ class ActiveWaypoint(DynamicArrays):
         # distance to turn initialisation point
         self.turndist = (flyby > 0.5)*np.minimum(100., np.abs(turnrad *
             np.tan(np.radians(0.5 * np.abs(degto180(qdr%360. - next_qdr%360.))))))
-   
-         
+
+
         # Check whether shift based dist [nm] is required, set closer than WP turn distanc
         return np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]

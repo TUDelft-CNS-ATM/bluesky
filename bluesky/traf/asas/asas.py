@@ -4,7 +4,7 @@ import numpy as np
 import bluesky as bs
 from bluesky import settings
 from bluesky.tools.aero import ft, nm
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 # Register settings defaults
 settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0, asas_dtlookahead=300.0, asas_mar=1.2, asas_pzr=5.0, asas_pzh=1000.0)
@@ -29,7 +29,7 @@ from . import MVP
 from . import Swarm
 
 
-class ASAS(DynamicArrays):
+class ASAS(TrafficArrays):
     """ Central class for ASAS conflict detection and resolution.
         Maintains a confict database, and links to external CD and CR methods."""
 
@@ -48,6 +48,7 @@ class ASAS(DynamicArrays):
         asas.CRmethods[name] = module
 
     def __init__(self):
+        super(ASAS, self).__init__()
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
             self.iconf    = []            # index in 'conflicting' aircraft database

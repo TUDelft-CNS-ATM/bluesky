@@ -1,10 +1,11 @@
 """ Traffic area: delete traffic when it leaves this area (so not when outside)"""
 import numpy as np
 import bluesky as bs
-from bluesky.tools import areafilter
+from bluesky.tools import areafilter, TrafficArrays, RegisterElementParameters
 
-class Area:
+class Area(TrafficArrays):
     def __init__(self):
+        super(Area, self).__init__()
         """ Traffic area: delete traffic when it leaves this area (so not when outside)"""
 
         # Parameters of area
@@ -13,17 +14,15 @@ class Area:
         self.t0     = -100.   # last time checked
         self.name   = None
 
-        # Boolean array whether aircraft are in circle or not
-        self.inside = np.array([],dtype = np.bool) # In test area or not
+        # Boolean array whether aircraft are in area or not
+        with RegisterElementParameters(self):
+            self.inside = np.array([],dtype = np.bool) # In test area or not
+
+        # List of indices of aircraft to be deleted in the current timestep
+        self.delidx = []
 
         # Taxi switch
         self.swtaxi = False  # Default OFF: Doesn't do anything. See comments of setTaxi fucntion below.
-
-    def create(self, n=1):
-        self.inside = np.append(self.inside,False)
-
-    def delete(self,idx):
-        self.inside = np.delete(self.inside,idx)
 
     def check(self,t):
         # ToDo: Add autodelete for descending with swTaxi:
@@ -38,13 +37,13 @@ class Area:
             inside = areafilter.checkInside(self.name, bs.traf.lat, bs.traf.lon, bs.traf.alt)
 
             # Determine the aircraft indexes that should be deleted
-            delAircraftidx = np.intersect1d(np.where(np.array(self.inside)==True), np.where(np.array(inside)==False))
+            self.delidx = np.intersect1d(np.where(np.array(self.inside)==True), np.where(np.array(inside)==False))
 
             # Update self.inside with the new inside
             self.inside = inside
 
-            # delete all aicraft in delAircraftidx and log their flight statistics
-            for acid in [bs.traf.id[idx] for idx in delAircraftidx]:
+            # delete all aicraft in self.delidx
+            for acid in [bs.traf.id[idx] for idx in self.delidx]:
                 bs.traf.delete(acid)
 
     def setArea(self, *args):
@@ -76,7 +75,7 @@ class Area:
         elif (isinstance(args[0],float) or isinstance(args[0],int)) and 4<=len(args)<=6:
             self.active = True
             self.name = 'DELAREA'
-            areafilter.defineArea(self.name, 'BOX', args[:4], args[4:])
+            areafilter.defineArea(self.name, 'BOX', args[:4], *args[4:])
             return True, "Area is ON. Area name is: " + str(self.name)
         else:
             return False,  "Incorrect arguments" + \
