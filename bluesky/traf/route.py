@@ -668,10 +668,12 @@ class Route():
                     txt = txt+str(int(round(self.wpalt[i] / ft))) + "/"
 
                 # Speed
-                if self.wpspd[i] < 0:
+                if self.wpspd[i] < 0.:
                     txt = txt+"---"
-                else:
+                elif self.wpspd[i]>2.0:
                     txt = txt+str(int(round(self.wpspd[i] / kts)))
+                else:
+                    txt = txt + "M"+str(self.wpspd[i])
 
                 # Type
                 if self.wptype[i] == self.orig:
