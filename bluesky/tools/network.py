@@ -77,9 +77,6 @@ if settings.gui == 'qtgl':
             # Placeholder function; override it with your own implementation
             print('TcpServer received', data, 'from sender no', sender_id)
 
-        def getConnections(self):
-            return self.connections
-
         def numConnections(self):
             return len(self.connections.keys())
 

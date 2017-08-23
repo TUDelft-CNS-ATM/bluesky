@@ -34,7 +34,7 @@ def printrecv(data, stackpos = 2):
 def wait_for(test, iters, period):
     """
     Performs up to `iters` iterations of a `test`, stopping when `test` is True.
-    Employs an exponentially increasing wait between test iterations.
+    Employs an exponentially increasing wait time between test iterations.
     Args:
         test: The test to perform
         iters: The number of iterations of `test`
