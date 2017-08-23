@@ -62,7 +62,6 @@ if settings.gui == 'qtgl':
             newconn.setSocketDescriptor(socketDescriptor)
             newconn.readyRead.connect(self.onReadyRead)
             self.connections[id(newconn)] = newconn
-            print "Connections3! " + str(self.connections)
 
         @pyqtSlot()
         def onReadyRead(self):
@@ -137,9 +136,6 @@ elif settings.gui == 'pygame':
         def processData(self, data):
             # rewrite this function
             print("parsing data...")
-
-        def getConnections(self):
-            return None
 
         def numConnections(self):
             return None

@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+""" OpenGL BlueSky start script """
+from __future__ import print_function
 import sys
 import traceback
 from bluesky import settings
@@ -32,9 +35,9 @@ sys.excepthook = exception_handler
 
 
 def start():
-    # ======================================================================
-    # Create gui and simulation objects
-    # ======================================================================
+    """
+    Start BlueSky: Create gui and simulation objects
+    """
     global gui
     telnet_in = StackTelnetServer()
     manager = MainManager(telnet_in)
@@ -55,19 +58,24 @@ def start():
     return telnet_in, manager
 
 
-def gui_start():
-    gui.start()
-
-
 def gui_prestart():
+    """
+    Set up running of GUI
+    """
     gui.prestart()
 
 
 def gui_exec():
+    """
+    Execute running of GUI
+    """
     gui.exec_()
 
 
 def stop(telnet_in, manager):
+    """
+    Tear-down BlueSky
+    """
     print('Stopping telnet server.')
     telnet_in.close()
 
@@ -93,7 +101,7 @@ def mainloop():
 
     else:
         telnet_in, manager = start()
-        gui_start()
+        gui.start()
         stop(telnet_in, manager)
 
 
