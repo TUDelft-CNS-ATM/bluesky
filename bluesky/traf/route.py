@@ -138,7 +138,7 @@ class Route():
                     if self.wptype[i] == self.runway:
                         rwyrteidx = i
                     i = i + 1
-                print ("rwyrteidx =",rwyrteidx) 
+#                print ("rwyrteidx =",rwyrteidx) 
                 # We find a runway in the route, so use it
                 if rwyrteidx>0:
                     rwlat   = self.wplat[rwyrteidx]
