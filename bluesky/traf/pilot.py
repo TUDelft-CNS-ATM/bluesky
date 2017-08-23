@@ -72,8 +72,8 @@ class Pilot(TrafficArrays):
         self.tas = np.where(bs.traf.limspd_flag, vcas2tas(bs.traf.limspd, bs.traf.alt), self.tas)
 
         # Autopilot selected altitude [m]
-        self.alt = np.where(bs.traf.limalt > -900., bs.traf.limalt, self.alt)
+        self.alt = np.where(bs.traf.limalt_flag, bs.traf.limalt, self.alt)
 
         # Autopilot selected vertical speed (V/S)
-        self.vs = np.where(bs.traf.limvs > -9000., bs.traf.limvs, self.vs)
+        self.vs = np.where(bs.traf.limvs_flag, bs.traf.limvs, self.vs)
 
