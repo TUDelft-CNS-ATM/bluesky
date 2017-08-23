@@ -128,16 +128,19 @@ class Route():
         # Take off waypoint: positioned 20% of the runway length after the runway
         else:
 
+            # Look up runway in route
             rwyrteidx = -1
+            i      = 0
+            while i<self.nwp and rwyrteidx<0:
+                if self.wpname[i].count("/") >0:
+#                    print (self.wpname[i])
+                    rwyrteidx = i
+                i = i + 1
+
             # Only TAKEOFF is specified wihtou a waypoint/runway
             if len(args)==1 or args[1]=="" or args[1]==None: 
+                            # No runway given: use first in route or current position
 
-                # No runway given: use first in route or current position
-                i      = 0
-                while i<self.nwp and rwyrteidx<0:
-                    if self.wptype[i] == self.runway:
-                        rwyrteidx = i
-                    i = i + 1
 #                print ("rwyrteidx =",rwyrteidx) 
                 # We find a runway in the route, so use it
                 if rwyrteidx>0:
@@ -163,11 +166,12 @@ class Route():
                 if args[1].count("/")>0:
                     aptid,rwname = args[1].split("/")
                     rwyid = rwname.replace("RWY","").replace("RW","")# take away RW or RWY
-                    print ("apt,rwy=",aptid,rwyid)
+#                    print ("apt,rwy=",aptid,rwyid)
                 else:    
                 # Runway specified
                     aptid = args[1]
                     rwyid = args[2].replace("RWY","").replace("RW","")# take away RW or RWY
+                # TDO: Add fingind the runway heading with rwyrteidx>0 and navdb!!!
                 # Try to get it from the database    
                 try:
                     rwyhdg = bs.navdb.rwythresholds[aptid][rwname][2]
@@ -200,8 +204,10 @@ class Route():
             # Add after the runwy in the route
             if rwyrteidx>0:
                 afterwp = self.wpname[rwyrteidx]
+
             elif self.wptype[0]==self.orig:
                 afterwp = self.wpname[0]
+
             else:
                 # Assume we're called before other waypoints are added
                 afterwp = ""
