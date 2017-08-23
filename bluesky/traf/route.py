@@ -55,6 +55,7 @@ class Route():
 
 #        print "addwptStack:",args
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint       
+
         if len(args) == 1:
 
             isflyby = args[0].replace('-', '')
@@ -126,9 +127,11 @@ class Route():
 
         # Take off waypoint: positioned 20% of the runway length after the runway
         else:
+
             rwyrteidx = -1
             # Only TAKEOFF is specified wihtou a waypoint/runway
             if len(args)==1 or args[1]=="" or args[1]==None: 
+
                 # No runway given: use first in route or current position
                 i      = 0
                 while i<self.nwp and rwyrteidx<0:
@@ -156,11 +159,11 @@ class Route():
                     rwyhdg = bs.traf.trk[idx]
             
             elif args[1].count("/")>0 or not (args[2]=="" or args[2]==None): # we need apt,rwy
-
                 # Take care of both EHAM/RW06 as well as EHAM,RWY18L (so /&, and RW/RWY)                
                 if args[1].count("/")>0:
                     aptid,rwname = args[1].split("/")
                     rwyid = rwname.replace("RWY","").replace("RW","")# take away RW or RWY
+                    print ("apt,rwy=",aptid,rwyid)
                 else:    
                 # Runway specified
                     aptid = args[1]
@@ -169,13 +172,13 @@ class Route():
                 try:
                     rwyhdg = bs.navdb.rwythresholds[aptid][rwname][2]
                 except:
-                    rwdir = rwname.replace("L","").replace("R","").replace("C","")
+                    rwdir = rwyid.replace("L","").replace("R","").replace("C","")
                     try:
                         rwyhdg = float(rwdir)*10.
                     except:
                         return False,name+" not found."
                     
-                success, posobj = txt2pos(args[1]+"/"+args[2], reflat, reflon)
+                success, posobj = txt2pos(aptid+"/RW"+rwyid, reflat, reflon)
                 if success:
                     rwlat,rwlon = posobj.lat,posobj.lon
                 else:

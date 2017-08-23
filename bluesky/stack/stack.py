@@ -137,8 +137,8 @@ def init():
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER),[alt,spd,afterwp]",
-            "acid,wpt,[alt,spd,wpinroute]",
+            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
+            "acid,wpt,[alt/txt,spd,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
