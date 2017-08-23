@@ -101,7 +101,7 @@ class Area(TrafficArrays):
             self.create_time = np.array([])
 
     def create(self, n=1):
-        super(FLST, self).create(n)
+        super(Area, self).create(n)
         self.create_time[-n:] = sim.simt
 
     def update(self):
@@ -149,7 +149,7 @@ class Area(TrafficArrays):
             )
 
         # delete all aicraft in self.delidx
-        for acid in [traf.id[idx] for idx in self.delidx]:
+        for acid in [traf.id[idx] for idx in delidx]:
             traf.delete(acid)
 
     def setArea(self, *args):
