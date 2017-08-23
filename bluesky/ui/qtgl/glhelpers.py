@@ -307,16 +307,16 @@ class Font(object):
         # Set-up the texture array
         self.tex_id = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.tex_id)
-        gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8, imgsize[0], imgsize[1], 129 - 32, 0, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, None)
+        gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8, imgsize[0], imgsize[1], 127 - 30, 0, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, None)
         gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
         gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
         gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
         # We're using the ASCII range 32-126; space, uppercase, lower case, numbers, brackets, punctuation marks
-        for i in range(32, 129):
+        for i in range(30, 127):
             img = QImage(os.path.join(settings.gfx_path, 'font/%d.png' % i)).convertToFormat(QImage.Format_ARGB32)
             ptr = c_void_p(int(img.constBits()))
-            gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 32, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
+            gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 30, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 
     @staticmethod
     def char(x, y, w, h, c=32):

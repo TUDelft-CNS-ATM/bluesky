@@ -9,10 +9,9 @@ from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
                          vatmos,  vtas2cas, vtas2mach, casormach, vcasormach
 
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 from .windsim import WindSim
-
 from .trails import Trails
 from .adsbmodel import ADSB
 from .asas import ASAS
@@ -20,7 +19,6 @@ from .pilot import Pilot
 from .autopilot import Autopilot
 from .activewpdata import ActiveWaypoint
 from .turbulence import Turbulence
-from .area import Area
 
 from bluesky import settings
 
@@ -30,18 +28,23 @@ settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1
 try:
     if settings.performance_model == 'bluesky':
         print('Using BlueSky performance model')
-        from .perf import Perf
+        from .performance.legacy.perfbs import PerfBS as Perf
 
     elif settings.performance_model == 'bada':
-        from .perfbada import PerfBADA as Perf
+        from .performance.legacy.perfbada import PerfBADA as Perf
+
+    elif settings.performance_model == 'nap':
+        print('Using Nifty Aircarft Perfromance (NAP) model')
+        from .performance.nap import PerfNAP as Perf
+
 
 except ImportError as err:
     print(err.args[0])
     print('Falling back to BlueSky performance model')
-    from .perf import Perf
+    from .performance.legacy.perfbs import PerfBS as Perf
 
 
-class Traffic(DynamicArrays):
+class Traffic(TrafficArrays):
     """
     Traffic class definition    : Traffic data
     Methods:
@@ -59,7 +62,13 @@ class Traffic(DynamicArrays):
     """
 
     def __init__(self):
+        super(Traffic, self).__init__()
+
+        # Traffic is the toplevel trafficarrays object
+        TrafficArrays.SetRoot(self)
+
         self.wind = WindSim()
+        self.turbulence = Turbulence()
 
         # Define the periodic loggers
         # ToDo: explain what these line sdo in comments (type of logs?)
@@ -98,9 +107,8 @@ class Traffic(DynamicArrays):
                 self.dtemp   = np.array([])  # delta t for non-ISA conditions
 
                 # Traffic autopilot settings
-                self.selspd = np.array([])  # selected spd(CAS) [m/s]
+                self.selspd = np.array([])  # selected spd(CAS or Mach) [m/s or -]
                 self.aptas  = np.array([])  # just for initializing
-                self.ama    = np.array([])  # selected spd above crossover altitude (Mach) [-]
                 self.selalt = np.array([])  # selected alt[m]
                 self.selvs  = np.array([])  # selected vertical speed [m/s]
 
@@ -115,6 +123,7 @@ class Traffic(DynamicArrays):
             self.adsb   = ADSB()
             self.trails = Trails()
             self.actwp  = ActiveWaypoint()
+            self.perf   = Perf()
 
             # Traffic performance data
             self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
@@ -131,8 +140,9 @@ class Traffic(DynamicArrays):
             self.limspd      = np.array([])  # limit speed
             self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
             self.limalt      = np.array([])  # limit altitude
+            self.limalt_flag = np.array([])  # A need to limit altitude has been detected
             self.limvs       = np.array([])  # limit vertical speed due to thrust limitation
-            self.limvs_flag  = np.array([])
+            self.limvs_flag  = np.array([])  # A need to limit V/S detected
 
             # Display information on label
             self.label       = []  # Text and bitmap of traffic label
@@ -155,18 +165,11 @@ class Traffic(DynamicArrays):
         # Reset models
         self.wind.clear()
 
-        # Build new modules for area and turbulence
-        self.area       = Area()
-        self.Turbulence = Turbulence()
+        # Build new modules for turbulence
+        self.turbulence.reset()
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
-
-        # Default: BlueSky internal performance model.
-        # Insert your BADA files to the folder "BlueSky/data/coefficients/BADA"
-        # for working with EUROCONTROL`s Base of Aircraft Data revision 3.12
-        self.perf    = Perf()
-        self.trails.reset()
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None):
         """ Create multiple random aircraft in a specified area """
@@ -242,21 +245,15 @@ class Traffic(DynamicArrays):
         self.selalt[-n:] = self.alt[-n:]
 
         # Display information on label
-        self.label[-n:] = ['', '', '', 0]
+        self.label[-n:] = n*[['', '', '', 0]]
 
         # Miscallaneous
         self.coslat[-n:] = np.cos(np.radians(aclats))  # Cosine of latitude for flat-earth aproximations
         self.eps[-n:] = 0.01
 
-        # ----- Submodules of Traffic -----
-        self.ap.create(n)
-        self.actwp.create(n)
-        self.pilot.create(n)
-        self.adsb.create(n)
-        self.area.create(n)
-        self.asas.create(n)
-        self.perf.create(n)
-        self.trails.create(n)
+        # Finally call create for child TrafficArrays. This only needs to be done
+        # manually in Traffic.
+        self.create_children(n)
 
     def create(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
         """Create an aircraft"""
@@ -316,10 +313,10 @@ class Traffic(DynamicArrays):
 
         # Traffic performance data
         #(temporarily default values)
-        self.apvsdef[-1] = 1500. * fpm   # default vertical speed of autopilot
-        self.aphi[-1]   = radians(25.)  # bank angle setting of autopilot
-        self.ax[-1]     = kts           # absolute value of longitudinal accelleration
-        self.bank[-1]   = radians(25.)
+        self.apvsdef[-1] = 1500. * fpm  # default vertical speed of autopilot
+        self.aphi[-1]    = radians(25.)  # bank angle setting of autopilot
+        self.ax[-1]      = 1.0*kts       # absolute value of longitudinal accelleration
+        self.bank[-1]    = radians(25.)
 
         # Crossover altitude
         self.abco[-1]   = 0  # not necessary to overwrite 0 to 0, but leave for clarity
@@ -337,15 +334,9 @@ class Traffic(DynamicArrays):
         self.coslat[-1] = cos(radians(aclat))  # Cosine of latitude for flat-earth aproximations
         self.eps[-1] = 0.01
 
-        # ----- Submodules of Traffic -----
-        self.ap.create()
-        self.actwp.create()
-        self.pilot.create()
-        self.adsb.create()
-        self.area.create()
-        self.asas.create()
-        self.perf.create()
-        self.trails.create()
+        # Finally call create for child TrafficArrays. This only needs to be done
+        # manually in Traffic.
+        self.create_children()
 
         return True
 
@@ -414,9 +405,6 @@ class Traffic(DynamicArrays):
         # Delete all aircraft parameters
         super(Traffic, self).delete(idx)
 
-        # ----- Submodules of Traffic -----
-        self.perf.delete(idx)
-        self.area.delete(idx)
         return True
 
     def update(self, simt, simdt):
@@ -447,22 +435,23 @@ class Traffic(DynamicArrays):
         self.perf.perf(simt)
 
         #---------- Simulate Turbulence -----------------------
-        self.Turbulence.Woosh(simdt)
+        self.turbulence.Woosh(simdt)
 
         #---------- Aftermath ---------------------------------
         self.trails.update(simt)
-        self.area.check(simt)
         return
 
     def UpdateAirSpeed(self, simdt, simt):
         # Acceleration
-        self.delspd = self.pilot.spd - self.tas
+        self.delspd = self.pilot.tas - self.tas
 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = self.perf.acceleration(simdt)
 
         # Update velocities
-        self.tas = self.tas + swspdsel * ax * np.sign(self.delspd) * simdt
+        self.tas = np.where(swspdsel, \
+                            self.tas + swspdsel * ax * np.sign(self.delspd) * simdt,\
+                            self.pilot.tas)
 
         self.cas = vtas2cas(self.tas, self.alt)
         self.M   = vtas2mach(self.tas, self.alt)
@@ -514,9 +503,9 @@ class Traffic(DynamicArrays):
     def setNoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
         if noise is None:
-            return True, "Noise is currently " + ("on" if self.Turbulence.active else "off")
+            return True, "Noise is currently " + ("on" if self.turbulence.active else "off")
 
-        self.Turbulence.SetNoise(noise)
+        self.turbulence.SetNoise(noise)
         self.adsb.SetNoise(noise)
         return True
 

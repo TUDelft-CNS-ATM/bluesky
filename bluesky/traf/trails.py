@@ -3,11 +3,10 @@ from math import *
 import numpy as np
 import bluesky as bs
 from bluesky import settings
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
 
-
-class Trails(DynamicArrays):
+class Trails(TrafficArrays):
     """
     Traffic trails class definition    : Data for trails
 
@@ -20,6 +19,7 @@ class Trails(DynamicArrays):
     """
 
     def __init__(self,dttrail=10.):
+        super(Trails, self).__init__()
         self.active = False  # Wether or not to show trails
         self.dt = dttrail    # Resolution of trail pieces in time
 

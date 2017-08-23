@@ -4,13 +4,15 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, vcas2tas, vtas2cas, vmach2tas, cas2mach,mach2cas
+from bluesky.tools.aero import ft, nm, vtas2cas, cas2mach, \
+     mach2cas, vcasormach2tas
 from .route import Route
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
-class Autopilot(DynamicArrays):
+class Autopilot(TrafficArrays):
     def __init__(self):
+        super(Autopilot, self).__init__()
         # Scheduling of FMS and ASAS
         self.t0 = -999.  # last time fms was called
         self.dt = 1.01   # interval for fms
@@ -47,7 +49,6 @@ class Autopilot(DynamicArrays):
         self.tas[-n:] = bs.traf.tas[-n:]
         self.trk[-n:] = bs.traf.trk[-n:]
         self.alt[-n:] = bs.traf.alt[-n:]
-        self.spd[-n:] = vtas2cas(self.tas[-n:], self.alt[-n:])
 
         # VNAV Variables
         self.dist2vs[-n:] = -999.
@@ -91,24 +92,29 @@ class Autopilot(DynamicArrays):
 
                 # User has entered an altitude for this waypoint
                 if alt >= 0.:
-                    bs.traf.actwp.alt[i] = alt
+                    bs.traf.actwp.nextaltco[i] = alt
 
                 if spd > 0. and bs.traf.swlnav[i] and bs.traf.swvnav[i]:
+
                     # Valid speed and LNAV and VNAV ap modes are on
-                    bs.traf.actwp.spd[i] = spd
+                    # Depending on crossover altitude we fix CAS or Mach
+                    if bs.traf.abco[i] and spd>2.0:
+                        bs.traf.actwp.spd[i] = cas2mach(spd,bs.traf.alt[i])
+                    
+                    elif bs.traf.belco[i] and spd<=2.0:
+                        bs.traf.actwp.spd[i] = mach2cas(spd,bs.traf.alt[i])
+                  
+                    else:  
+                        bs.traf.actwp.spd[i] = spd
+
                 else:
                     bs.traf.actwp.spd[i] = -999.
 
                 # VNAV spd mode: use speed of this waypoint as commanded speed
                 # while passing waypoint and save next speed for passing next wp
+                # Speed is now from speed! Next speed is ready in wpdata
                 if bs.traf.swvnav[i] and oldspd > 0.0:
-                    destalt = alt if alt > 0.0 else bs.traf.alt[i]
-                    if oldspd<2.0:
-                        bs.traf.selspd[i] = mach2cas(oldspd, destalt)
-                        bs.traf.ama[i]    = oldspd
-                    else:
                         bs.traf.selspd[i] = oldspd
-                        bs.traf.ama[i]    = cas2mach(oldspd, destalt)
 
                 # VNAV = FMS ALT/SPD mode
                 self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt)
@@ -122,7 +128,7 @@ class Autopilot(DynamicArrays):
             dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
             # VNAV logic: descend as late as possible, climb as soon as possible
-            startdescent = bs.traf.swvnav * ((dist2wp < self.dist2vs)+(bs.traf.actwp.alt > bs.traf.alt))
+            startdescent = bs.traf.swvnav * ((dist2wp < self.dist2vs)+(bs.traf.actwp.nextaltco > bs.traf.alt))
 
             # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
             #    (because there are no more waypoints). This is needed
@@ -132,27 +138,41 @@ class Autopilot(DynamicArrays):
             self.swvnavvs = np.where(bs.traf.swlnav, startdescent, dist <= np.maximum(185.2,bs.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance to next alt constraint
-            t2go2alt = (dist2wp+bs.traf.actwp.xtoalt) / np.maximum(0.5,bs.traf.gs)
-            bs.traf.actwp.vs = (bs.traf.actwp.alt-bs.traf.alt)/np.maximum(1.0,t2go2alt)
+            t2go2alt = np.maximum(0.,(dist2wp + bs.traf.actwp.xtoalt - bs.traf.actwp.turndist*nm)) \
+                                        / np.maximum(0.5,bs.traf.gs)
+                                        
+            bs.traf.actwp.vs = np.maximum(self.steepness*bs.traf.gs, \
+                                   np.abs((bs.traf.actwp.nextaltco-bs.traf.alt))/np.maximum(1.0,t2go2alt))
 
             self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
 
             # self.vs = np.where(self.swvnavvs, self.vnavvs, bs.traf.apvsdef * bs.traf.limvs_flag)
             selvs = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, bs.traf.apvsdef) # m/s
-            self.vs = np.where(self.swvnavvs, self.vnavvs, selvs * bs.traf.limvs_flag)
+            self.vs = np.where(self.swvnavvs, self.vnavvs, selvs)
 
-            self.alt = np.where(self.swvnavvs, bs.traf.actwp.alt, bs.traf.selalt)
+            self.alt = np.where(self.swvnavvs, bs.traf.actwp.nextaltco, bs.traf.selalt)
 
             # When descending or climbing in VNAV also update altitude command of select/hold mode
-            bs.traf.selalt = np.where(self.swvnavvs,bs.traf.actwp.alt,bs.traf.selalt)
+            bs.traf.selalt = np.where(self.swvnavvs,bs.traf.actwp.nextaltco,bs.traf.selalt)
 
             # LNAV commanded track angle
             self.trk = np.where(bs.traf.swlnav, qdr, self.trk)
 
-        # Below crossover altitude: CAS=const, above crossover altitude: MA = const
-        self.tas = bs.traf.belco *vcas2tas(bs.traf.selspd, bs.traf.alt)  + \
-                      bs.traf.abco*vmach2tas(bs.traf.ama, bs.traf.alt)
+            # FMS speed guidance: anticipate accel distance
+
+            # Actual distance it takes to decelerate
+            nexttas  = vcasormach2tas(bs.traf.actwp.spd,bs.traf.alt) 
+            tasdiff  = nexttas - bs.traf.tas # [m/s]
+            dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax))
+            dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg
+            
+            usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spd > 0.)*bs.traf.swvnav
+            bs.traf.selspd = np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd)
+           
+        # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
+        self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
+
 
     def ComputeVNAV(self, idx, toalt, xtoalt):
         if not (toalt >= 0 and bs.traf.swvnav[idx]):
@@ -160,7 +180,7 @@ class Autopilot(DynamicArrays):
             return
 
         # So: somewhere there is an altitude constraint ahead
-        # Compute proper values for bs.traf.actwp.alt, self.dist2vs, self.alt, bs.traf.actwp.vs
+        # Compute proper values for bs.traf.actwp.nextaltco, self.dist2vs, self.alt, bs.traf.actwp.vs
         # Descent VNAV mode (T/D logic)
         #
         # xtoalt =  distance to go to next altitude constraint at a waypoinit in the route
@@ -198,11 +218,12 @@ class Autopilot(DynamicArrays):
 
 
             #Calculate max allowed altitude at next wp (above toalt)
-            bs.traf.actwp.alt[idx] = min(bs.traf.alt[idx],toalt + xtoalt * self.steepness)
+            bs.traf.actwp.nextaltco[idx] = min(bs.traf.alt[idx],toalt + xtoalt * self.steepness)
 
 
             # Dist to waypoint where descent should start
-            self.dist2vs[idx] = (bs.traf.alt[idx] - bs.traf.actwp.alt[idx]) / self.steepness
+            self.dist2vs[idx] = bs.traf.actwp.turndist[idx]*nm + \
+                               (bs.traf.alt[idx] - bs.traf.actwp.nextaltco[idx]) / self.steepness
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])
@@ -210,12 +231,12 @@ class Autopilot(DynamicArrays):
             legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
 
-            # If descent is urgent, descent with maximum steepness
+            # If the descent is urgent, descend with maximum steepness
             if legdist < self.dist2vs[idx]:
-                self.alt[idx] = bs.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
+                self.alt[idx] = bs.traf.actwp.nextaltco[idx]  # dial in altitude of next waypoint as calculated
 
                 t2go         = max(0.1, legdist + xtoalt) / max(0.01, bs.traf.gs[idx])
-                bs.traf.actwp.vs[idx]  = (bs.traf.actwp.alt[idx] - bs.traf.alt[idx]) / t2go
+                bs.traf.actwp.vs[idx]  = (bs.traf.actwp.nextaltco[idx] - bs.traf.alt[idx]) / t2go
 
             else:
                 # Calculate V/S using self.steepness,
@@ -227,16 +248,17 @@ class Autopilot(DynamicArrays):
         elif bs.traf.alt[idx] < toalt - 10. * ft:
 
 
-            bs.traf.actwp.alt[idx] = toalt
-            self.alt[idx]    = bs.traf.actwp.alt[idx]  # dial in altitude of next waypoint as calculated
-            self.dist2vs[idx]  = 9999.
+            bs.traf.actwp.nextaltco[idx] = toalt
+            self.alt[idx]          = bs.traf.actwp.nextaltco[idx]  # dial in altitude of next waypoint as calculated
+            self.dist2vs[idx]      = 9999.
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])
             dx = (bs.traf.actwp.lon[idx] - bs.traf.lon[idx]) * bs.traf.coslat[idx]
-            legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)
+            legdist = 60. * nm * np.sqrt(dx * dx + dy * dy) # [m]
             t2go = max(0.1, legdist+xtoalt) / max(0.01, bs.traf.gs[idx])
-            bs.traf.actwp.vs[idx]  = (bs.traf.actwp.alt[idx] - bs.traf.alt[idx]) / t2go
+            bs.traf.actwp.vs[idx]  = np.maximum(self.steepness*bs.traf.gs[idx], \
+                            (bs.traf.actwp.nextaltco[idx] - bs.traf.alt[idx])/ t2go) # [m/s]
         # Level leg: never start V/S
         else:
             self.dist2vs[idx] = -999.
@@ -299,14 +321,17 @@ class Autopilot(DynamicArrays):
         if idx<0 or idx>=bs.traf.ntraf:
             return False,"SPD: Aircraft does not exist"
 
-        # convert input speed to cas and mach depending on the magnitude of input
-        if 0.0<= casmach <= 2.0:
-            bs.traf.selspd[idx] = mach2cas(casmach, bs.traf.alt[idx])
-            bs.traf.ama[idx]    = casmach
-        else:
+        # Depending on or position relative to crossover altitude, 
+        # we will maintain CAS or Mach when altitude changes
+        # We will convert values when needed
+        if bs.traf.abco[idx] and casmach>2.0:
+            bs.traf.selspd[idx] = cas2mach(casmach,bs.traf.alt[idx])
+        
+        elif bs.traf.belco[idx] and casmach<=2.0:
+            bs.traf.selspd[idx] = mach2cas(casmach,bs.traf.alt[idx])
+      
+        else: # User uses correct Mach/CAS 
             bs.traf.selspd[idx] = casmach
-            bs.traf.ama[idx]    = cas2mach(casmach, bs.traf.alt[idx])
-
 
         # Switch off VNAV: SPD command overrides
         bs.traf.swvnav[idx]   = False
@@ -355,10 +380,10 @@ class Autopilot(DynamicArrays):
                                lat, lon, 0.0, bs.traf.cas[idx])
             # If only waypoint: activate
             if (iwp == 0) or (self.orig[idx] != "" and route.nwp == 2):
-                bs.traf.actwp.lat[idx] = route.wplat[iwp]
-                bs.traf.actwp.lon[idx] = route.wplon[iwp]
-                bs.traf.actwp.alt[idx] = route.wpalt[iwp]
-                bs.traf.actwp.spd[idx] = route.wpspd[iwp]
+                bs.traf.actwp.lat[idx]       = route.wplat[iwp]
+                bs.traf.actwp.lon[idx]       = route.wplon[iwp]
+                bs.traf.actwp.nextaltco[idx] = route.wpalt[iwp]
+                bs.traf.actwp.spd[idx]       = route.wpspd[iwp]
 
                 bs.traf.swlnav[idx] = True
                 bs.traf.swvnav[idx] = True

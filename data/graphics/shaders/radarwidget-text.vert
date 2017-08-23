@@ -32,7 +32,7 @@ void main() {
     // Pass color and texture coordinates to the fragment shader
     color_fs = color_in;
     texcoords_fs = texcoords_in;
-    texcoords_fs.p -= 32.0;
+    texcoords_fs.p -= 30.0;
 
     vec2 vAR = vec2(1.0, float(screen_width) / float(screen_height));
     vec2 flat_earth = vec2(cos(radians(panlat)), 1.0);
@@ -52,7 +52,7 @@ void main() {
 
     // When text_dims is non-zero we are drawing instanced
     if (block_size[0] > 0) {
-        texcoords_fs.p = texdepth_in - 32.0;
+        texcoords_fs.p = texdepth_in - 30.0;
         vertex.x += float(gl_InstanceID%block_size[0]) * char_size.x;
         vertex.y -= floor(float((gl_InstanceID%(block_size[0]*block_size[1])))/block_size[0]) * char_size.y;
     }

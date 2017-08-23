@@ -12,22 +12,22 @@ from bluesky.tools.aero import nm, ft
 from . import MVP
 
 
-def start(dbconf):
-    dbconf.Rswarm = 7.5 * nm  # [m]
-    dbconf.dhswarm = 1500 * ft  # [m]
+def start(asas):
+    asas.Rswarm = 7.5 * nm  # [m]
+    asas.dhswarm = 1500 * ft  # [m]
 
-    dbconf.Swarmweights = np.array([10, 3, 1])
+    asas.Swarmweights = np.array([10, 3, 1])
     pass
 
 
-def resolve(dbconf, traf):
+def resolve(asas, traf):
     # Find matrix of neighbouring aircraft withing swarm distance
-    dx = dbconf.dx
-    dy = dbconf.dy - np.eye(traf.ntraf) * 1e9  # setting distance of A/C to itself to 0,\
+    dx = asas.dx
+    dy = asas.dy - np.eye(traf.ntraf) * 1e9  # setting distance of A/C to itself to 0,\
     # correcting the distance from CASAS line 109
 
-    close = np.logical_and(dx**2 + dy**2 < dbconf.Rswarm**2,
-                           np.abs(dbconf.dalt) < dbconf.dhswarm)
+    close = np.logical_and(dx**2 + dy**2 < asas.Rswarm**2,
+                           np.abs(asas.dalt) < asas.dhswarm)
 
     trkdif = traf.trk.reshape(1, traf.ntraf) - traf.trk.reshape(traf.ntraf, 1)
     dtrk = (trkdif + 180) % 360 - 180
@@ -39,12 +39,12 @@ def resolve(dbconf, traf):
     Swarming = np.logical_or(selected, own)
 
     # First do conflict resolution following MVP
-    MVP.resolve(dbconf, traf)
+    MVP.resolve(asas, traf)
 
     # Find desired speed vector after Collision Avoidance or Autopilot
-    ca_trk = dbconf.active * dbconf.trk + (1 - dbconf.active) * traf.ap.trk
-    ca_cas = dbconf.active * dbconf.spd + (1 - dbconf.active) * traf.selspd
-    ca_vs = dbconf.active * dbconf.vs + (1 - dbconf.active) * traf.selvs
+    ca_trk = asas.active * asas.trk + (1 - asas.active) * traf.ap.trk
+    ca_cas = asas.active * asas.tas + (1 - asas.active) * traf.selspd
+    ca_vs = asas.active * asas.vs + (1 - asas.active) * traf.selvs
 
     # Add factor of Velocity Alignment to speed vector
     hspeed = np.ones((traf.ntraf, traf.ntraf)) * traf.cas
@@ -57,8 +57,8 @@ def resolve(dbconf, traf):
     va_trk = traf.trk + avgdtrk
 
     # Add factor of Flock Centering to speed vector
-    dxflock = dx + np.eye(traf.ntraf) * dbconf.u / 100.
-    dyflock = dy + np.eye(traf.ntraf) * dbconf.v / 100.
+    dxflock = dx + np.eye(traf.ntraf) * asas.u / 100.
+    dyflock = dy + np.eye(traf.ntraf) * asas.v / 100.
 
     fc_dx = np.average(dxflock, axis=1, weights=Swarming)
     fc_dy = np.average(dyflock, axis=1, weights=Swarming)
@@ -80,20 +80,20 @@ def resolve(dbconf, traf):
     vxs = cass * np.sin(trksrad)
     vys = cass * np.cos(trksrad)
 
-    Swarmvx = np.average(vxs, axis=0, weights=dbconf.Swarmweights)
-    Swarmvy = np.average(vys, axis=0, weights=dbconf.Swarmweights)
+    Swarmvx = np.average(vxs, axis=0, weights=asas.Swarmweights)
+    Swarmvy = np.average(vys, axis=0, weights=asas.Swarmweights)
     Swarmhdg = np.degrees(np.arctan2(Swarmvx, Swarmvy))
-    Swarmcas = np.average(cass, axis=0, weights=dbconf.Swarmweights)
-    Swarmvs = np.average(vss, axis=0, weights=dbconf.Swarmweights)
+    Swarmcas = np.average(cass, axis=0, weights=asas.Swarmweights)
+    Swarmvs = np.average(vss, axis=0, weights=asas.Swarmweights)
 
     # Cap the velocity
-    Swarmcascapped = np.maximum(dbconf.vmin, np.minimum(dbconf.vmax, Swarmcas))
+    Swarmcascapped = np.maximum(asas.vmin, np.minimum(asas.vmax, Swarmcas))
     # Assign Final Swarming directions to traffic
-    dbconf.hdg = Swarmhdg
-    dbconf.spd = Swarmcascapped
-    dbconf.vs = Swarmvs
-    dbconf.alt = np.sign(Swarmvs) * 1e5
+    asas.hdg = Swarmhdg
+    asas.tas = Swarmcascapped
+    asas.vs = Swarmvs
+    asas.alt = np.sign(Swarmvs) * 1e5
 
     # Make sure that all aircraft follow these directions
-    dbconf.active.fill(True)
+    asas.active.fill(True)
     pass

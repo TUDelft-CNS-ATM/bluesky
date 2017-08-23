@@ -11,6 +11,12 @@ if settings.gui == 'qtgl':
 else:
     from .load_visuals_txt import pygame_load_rwythresholds
 
+# Cache versions: increment these to the current date if the source data is updated
+# or other reasons why the cache needs to be updated
+coast_version = 'v20170101'
+navdb_version = 'v20170101'
+aptsurf_version = 'v20170101'
+
 ## Default settings
 settings.set_variable_defaults(navdata_path='data/navdata', cache_path='data/cache')
 
@@ -18,81 +24,88 @@ sourcedir = settings.navdata_path
 cachedir  = settings.cache_path
 
 
-def check_cache(cachefile, *sources):
-    if not path.isfile(cachefile):
-        return False
-    cachetm = path.getmtime(cachefile)
-    for source in sources:
-        if path.isfile(source) and path.getmtime(source) > cachetm:
-            print('Cache file out of date: ' + cachefile)
-            return False
-    try:
-        with open(cachefile, 'rb') as f:
-            pickle.load(f)
-            return True
-    except:
-        print('Could not read cache file: ' + cachefile)
-        return False
+class CacheFile():
+    def __init__(self, fname, version_ref):
+        print('cachefile constructor')
+        self.fname = fname
+        self.version_ref = version_ref
+        self.file = None
 
+    def check_cache(self):
+        if not path.isfile(self.fname):
+            raise Exception('Cachefile not found: ' + self.fname)
+
+        self.file = open(self.fname, 'rb')
+        version = pickle.load(self.file)
+        # Version check
+        if not isinstance(version, str):
+            self.file.close()
+            self.file = None
+            raise Exception('Could not read cache file: ' + self.fname)
+        if not version == self.version_ref:
+            self.file.close()
+            self.file = None
+            raise Exception('Cache file out of date: ' + self.fname)
+        print('Reading cache: ' + self.fname)
+
+    def load(self):
+        if self.file is None:
+            self.check_cache()
+        return pickle.load(self.file)
+
+    def dump(self, var):
+        if self.file is None:
+            self.file = open(self.fname, 'wb')
+            pickle.dump(self.version_ref, self.file, pickle.HIGHEST_PROTOCOL)
+            print("Writing cache: " + self.fname)
+        pickle.dump(var, self.file, pickle.HIGHEST_PROTOCOL)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.file:
+            self.file.close()
 
 def load_coastlines():
     # Check whether anything changed which requires rewriting the cache
-    cachefile = path.join(cachedir, 'coastlines.p')
-    cache_ok = check_cache(cachefile, path.join(sourcedir, 'coastlines.dat'),
-                           'bluesky/navdb/load_visuals_txt.py')
-
-    # If cache up to date, use it
-    if cache_ok:
-        with open(cachefile, 'rb') as f:
-            print("Reading cache: coastlines.p")
-            coastvertices = pickle.load(f)
-            coastindices  = pickle.load(f)
-
-    # else read original file, and write new cache file
-    else:
-        coastvertices, coastindices = load_coastline_txt()
-        with open(cachefile, 'wb') as f:
-            print("Writing cache: coastlines.p")
-            pickle.dump(coastvertices, f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(coastindices, f, pickle.HIGHEST_PROTOCOL)
+    with CacheFile(path.join(cachedir, 'coastlines.p'), coast_version) as cache:
+        try:
+            coastvertices = cache.load()
+            coastindices = cache.load()
+        except Exception as e:
+            print(e.args[0])
+            coastvertices, coastindices = load_coastline_txt()
+            cache.dump(coastvertices)
+            cache.dump(coastindices)
 
     return coastvertices, coastindices
 
 
 def load_aptsurface():
     # Check whether anything changed which requires rewriting the cache
-    cachefile = path.join(cachedir, 'aptsurface.p')
-    cache_ok = check_cache(cachefile, path.join(sourcedir, 'apt.zip'),
-                           'bluesky/navdb/load_visuals_txt.py')
-
-    # If cache up to date, use it
-    if cache_ok:
-        with open(cachefile, 'rb') as f:
-            print("Reading cache: aptsurface.p")
-            vbuf_asphalt  = pickle.load(f)
-            vbuf_concrete = pickle.load(f)
-            vbuf_runways  = pickle.load(f)
-            vbuf_rwythr   = pickle.load(f)
-            apt_ctr_lat   = pickle.load(f)
-            apt_ctr_lon   = pickle.load(f)
-            apt_indices   = pickle.load(f)
-            rwythresholds = pickle.load(f)
-
-    # else read original files, and write new cache file
-    else:
-        print(cachefile)
-        vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, \
-            apt_indices, rwythresholds = load_aptsurface_txt()
-        with open(cachefile, 'wb') as f:
-            print("Writing cache: aptsurface.p")
-            pickle.dump(vbuf_asphalt, f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(vbuf_concrete, f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(vbuf_runways , f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(vbuf_rwythr , f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(apt_ctr_lat  , f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(apt_ctr_lon  , f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(apt_indices  , f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(rwythresholds, f, pickle.HIGHEST_PROTOCOL)
+    with CacheFile(path.join(cachedir, 'aptsurface.p'), aptsurf_version) as cache:
+        try:
+            vbuf_asphalt  = cache.load()
+            vbuf_concrete = cache.load()
+            vbuf_runways  = cache.load()
+            vbuf_rwythr   = cache.load()
+            apt_ctr_lat   = cache.load()
+            apt_ctr_lon   = cache.load()
+            apt_indices   = cache.load()
+            rwythresholds = cache.load()
+        except Exception as e:
+            print(e.args[0])
+            vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, \
+            apt_ctr_lon, apt_indices, rwythresholds = load_aptsurface_txt()
+            cache.dump(vbuf_asphalt)
+            cache.dump(vbuf_concrete)
+            cache.dump(vbuf_runways)
+            cache.dump(vbuf_rwythr)
+            cache.dump(apt_ctr_lat)
+            cache.dump(apt_ctr_lon)
+            cache.dump(apt_indices)
+            cache.dump(rwythresholds)
 
     return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \
         apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds
@@ -100,37 +113,30 @@ def load_aptsurface():
 
 def load_navdata():
     # Check whether anything changed which requires rewriting the cache
-    cachefile = path.join(cachedir, 'navdata.p')
-    sources   = [path.join(sourcedir, f + '.dat') for f in ['nav', 'fix', 'awy', 'airports', 'icao-countries']]
-    sources  += [path.join(sourcedir, 'fir', f) for f in listdir(path.join(sourcedir, 'fir'))]
-    sources  += 'bluesky/navdb/load_navdata_txt.py'
-    cache_ok  = check_cache(cachefile, *sources)
+    with CacheFile(path.join(cachedir, 'navdata.p'), navdb_version) as cache:
+        try:
+            wptdata       = cache.load()
+            awydata       = cache.load()
+            aptdata       = cache.load()
+            firdata       = cache.load()
+            codata        = cache.load()
+            rwythresholds = cache.load()
+        except Exception as e:
+            print(e.args[0])
 
-    if not cache_ok:
-        wptdata, aptdata, awydata, firdata, codata = load_navdata_txt()
-        if settings.gui == 'qtgl':
-            vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \
-                apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds = load_aptsurface()
+            wptdata, aptdata, awydata, firdata, codata = load_navdata_txt()
+            if settings.gui == 'qtgl':
+                vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \
+                    apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds = load_aptsurface()
 
-        else:
-            rwythresholds = pygame_load_rwythresholds()
+            else:
+                rwythresholds = pygame_load_rwythresholds()
 
-        with open(path.join(cachedir, 'navdata.p'), 'wb') as f:
-            print("Writing cache: navdata.p")
-            pickle.dump(wptdata,       f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(awydata,       f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(aptdata,       f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(firdata,       f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(codata,        f, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(rwythresholds, f, pickle.HIGHEST_PROTOCOL)
-    else:
-        with open(path.join(cachedir, 'navdata.p'), 'rb') as f:
-            print("Reading cache: navdata.p")
-            wptdata       = pickle.load(f)
-            awydata       = pickle.load(f)
-            aptdata       = pickle.load(f)
-            firdata       = pickle.load(f)
-            codata        = pickle.load(f)
-            rwythresholds = pickle.load(f)
+            cache.dump(wptdata)
+            cache.dump(awydata)
+            cache.dump(aptdata)
+            cache.dump(firdata)
+            cache.dump(codata)
+            cache.dump(rwythresholds)
 
     return wptdata, aptdata, awydata, firdata, codata, rwythresholds

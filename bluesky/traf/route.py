@@ -55,6 +55,7 @@ class Route():
 
 #        print "addwptStack:",args
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint       
+
         if len(args) == 1:
 
             isflyby = args[0].replace('-', '')
@@ -85,62 +86,151 @@ class Route():
                 reflat = self.wplat[-2]
                 reflon = self.wplon[-2]
 
-        success, posobj = txt2pos(name, reflat, reflon)
-        if success:
-            lat      = posobj.lat
-            lon      = posobj.lon
+        # Is it aspecial take-off waypoint?        
+        takeoffwpt = name.upper().strip()=="TAKEOFF" or name.upper().strip()=="TAKE-OFF" 
 
-            if posobj.type == "nav" or posobj.type == "apt":
-                wptype = self.wpnav
+        # Normal waypoint (no take-off waypoint => see else)
+        if not takeoffwpt: 
 
-            elif posobj.type == "rwy":
-                wptype  = self.runway
-
-            else:  # treat as lat/lon
-                name    = bs.traf.id[idx]
-                wptype  = self.wplatlon
-
-            # Default altitude, speed and afterwp if not given
-            alt     = -999.  if len(args) < 2 else args[1]
-            spd     = -999.  if len(args) < 3 else args[2]
-            afterwp = ""     if len(args) < 4 else args[3]
-
-            #Catch empty arguments (None)
-            if alt == "" or alt is None:
-                alt = -999
-
-            if spd == "" or spd is None:
-                spd = -999
-
-            if afterwp is None:
-                afterwp = ""
-
-            # Add waypoint
-            wpidx = self.addwpt(idx, name, wptype, lat, lon, alt, spd, afterwp)
-
-            # Check for success by checking insetred locaiton in flight plan >= 0
-            if wpidx < 0:
-                return False, "Waypoint " + name + " not added."
-
-            # chekc for presence of orig/dest
-            norig = int(bs.traf.ap.orig[idx] != "")
-            ndest = int(bs.traf.ap.dest[idx] != "")
-
-            # Check whether this is first 'real' wayppint (not orig & dest),
-            # And if so, make active
-            if self.nwp - norig - ndest == 1:  # first waypoint: make active
-                self.direct(idx, self.wpname[norig])  # 0 if no orig
-                bs.traf.swlnav[idx] = True
-
-            if afterwp and self.wpname.count(afterwp) == 0:
-                return True, "Waypoint " + afterwp + " not found" + \
-                    "waypoint added at end of route"
+            # Get waypoint position
+            success, posobj = txt2pos(name, reflat, reflon)
+            if success:
+                lat      = posobj.lat
+                lon      = posobj.lon
+    
+                if posobj.type == "nav" or posobj.type == "apt":
+                    wptype = self.wpnav
+    
+                elif posobj.type == "rwy":
+                    wptype  = self.runway
+    
+                else:  # treat as lat/lon
+                    name    = bs.traf.id[idx]
+                    wptype  = self.wplatlon
+    
+                # Default altitude, speed and afterwp if not given
+                alt     = -999.  if len(args) < 2 else args[1]
+                spd     = -999.  if len(args) < 3 else args[2]
+                afterwp = ""     if len(args) < 4 else args[3]
+    
+                #Catch empty arguments (None)
+                if alt == "" or alt is None:
+                    alt = -999.
+    
+                if spd == "" or spd is None:
+                    spd = -999.
+    
+                if afterwp is None:
+                    afterwp = ""
             else:
-                return True
+                return False, "Waypoint " + name + " not found."
 
+        # Take off waypoint: positioned 20% of the runway length after the runway
         else:
-            return False, "Waypoint " + name + " not found."
 
+            rwyrteidx = -1
+            # Only TAKEOFF is specified wihtou a waypoint/runway
+            if len(args)==1 or args[1]=="" or args[1]==None: 
+
+                # No runway given: use first in route or current position
+                i      = 0
+                while i<self.nwp and rwyrteidx<0:
+                    if self.wptype[i] == self.runway:
+                        rwyrteidx = i
+                    i = i + 1
+#                print ("rwyrteidx =",rwyrteidx) 
+                # We find a runway in the route, so use it
+                if rwyrteidx>0:
+                    rwlat   = self.wplat[rwyrteidx]
+                    rwlon   = self.wplon[rwyrteidx]
+                    aptidx  = bs.navdb.getapinear(rwlat,rwlon)
+                    aptname = bs.navdb.aptname[aptidx]
+                    
+                    if self.wpname[rwyrteidx].count("/")>1:
+                        rwname = self.wpname[rwyrteidx].split("/")[1]
+                    else:
+                        rwname = self.wpname[rwyrteidx]
+                    rwyid = rwname.replace("RWY","").replace("RW","")
+                    rwyhdg = bs.navdb.rwythresholds[aptname][rwyid][2]
+                    
+                else:
+                    rwlat  = bs.traf.lat[idx]
+                    rwlon  = bs.traf.lon[idx]
+                    rwyhdg = bs.traf.trk[idx]
+            
+            elif args[1].count("/")>0 or not (args[2]=="" or args[2]==None): # we need apt,rwy
+                # Take care of both EHAM/RW06 as well as EHAM,RWY18L (so /&, and RW/RWY)                
+                if args[1].count("/")>0:
+                    aptid,rwname = args[1].split("/")
+                    rwyid = rwname.replace("RWY","").replace("RW","")# take away RW or RWY
+                    print ("apt,rwy=",aptid,rwyid)
+                else:    
+                # Runway specified
+                    aptid = args[1]
+                    rwyid = args[2].replace("RWY","").replace("RW","")# take away RW or RWY
+                # Try to get it from the database    
+                try:
+                    rwyhdg = bs.navdb.rwythresholds[aptid][rwname][2]
+                except:
+                    rwdir = rwyid.replace("L","").replace("R","").replace("C","")
+                    try:
+                        rwyhdg = float(rwdir)*10.
+                    except:
+                        return False,name+" not found."
+                    
+                success, posobj = txt2pos(aptid+"/RW"+rwyid, reflat, reflon)
+                if success:
+                    rwlat,rwlon = posobj.lat,posobj.lon
+                else:
+                    rwlat = bs.traf.lat[idx]
+                    rwlon = bs.traf.lon[idx]
+                
+            else:
+                return False,"Use ADDWPT TAKEOFF,AIRPORTID,RWYNAME"
+            
+            # Create a waypoint 2 nm away from current point
+            rwydist = 2.0 # [nm] use default distance away from threshold
+            lat,lon = geo.qdrpos(rwlat, rwlon, rwyhdg, rwydist) #[deg,deg
+            wptype  = self.wplatlon
+
+            # No altitude or speed constraint
+            alt     = -999.   
+            spd     = -999.
+            
+            # Add after the runwy in the route
+            if rwyrteidx>0:
+                afterwp = self.wpname[rwyrteidx]
+            elif self.wptype[0]==self.orig:
+                afterwp = self.wpname[0]
+            else:
+                # Assume we're called before other waypoints are added
+                afterwp = ""
+                
+            name = "T/O-"+bs.traf.id[idx] # Use lat/lon naming convention
+        # Add waypoint
+        wpidx = self.addwpt(idx, name, wptype, lat, lon, alt, spd, afterwp)
+
+        # Check for success by checking insetred locaiton in flight plan >= 0
+        if wpidx < 0:
+            return False, "Waypoint " + name + " not added."
+
+        # chekc for presence of orig/dest
+        norig = int(bs.traf.ap.orig[idx] != "")
+        ndest = int(bs.traf.ap.dest[idx] != "")
+
+        # Check whether this is first 'real' wayppint (not orig & dest),
+        # And if so, make active
+        if self.nwp - norig - ndest == 1:  # first waypoint: make active
+            self.direct(idx, self.wpname[norig])  # 0 if no orig
+            bs.traf.swlnav[idx] = True
+
+        if afterwp and self.wpname.count(afterwp) == 0:
+            return True, "Waypoint " + afterwp + " not found" + \
+                "waypoint added at end of route"
+        else:
+            return True
+
+       
     def afteraddwptStack(self, idx, *args):  # args: all arguments of addwpt
 
         # AFTER acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]"
@@ -348,12 +438,12 @@ class Route():
 
     def addwpt(self, iac, name, wptype, lat, lon, alt=-999., spd=-999., afterwp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
-#        print "addwpt:"
-#        print "iac = ",iac
-#        print "name = ",name
-#        print "alt = ",alt
-#        print "spd = ",spd
-#        print "afterwp =",afterwp
+#        print ("addwpt:")
+#        print ("iac = ",iac)
+#        print ("name = "+name)
+#        print ("alt = ",alt)
+#        print ("spd = ",spd)
+#        print ("afterwp ="+afterwp)
 #        print
         self.iac = iac    # a/c to which this route belongs
         # For safety
@@ -668,10 +758,12 @@ class Route():
                     txt = txt+str(int(round(self.wpalt[i] / ft))) + "/"
 
                 # Speed
-                if self.wpspd[i] < 0:
+                if self.wpspd[i] < 0.:
                     txt = txt+"---"
-                else:
+                elif self.wpspd[i]>2.0:
                     txt = txt+str(int(round(self.wpspd[i] / kts)))
+                else:
+                    txt = txt + "M"+str(self.wpspd[i])
 
                 # Type
                 if self.wptype[i] == self.orig:
@@ -993,8 +1085,8 @@ class Route():
                 else:
                     xtoalt = 0.0
 
-            self.wpialt[i] = ialt
-            self.wptoalt[i] = toalt   #[m]
+            self.wpialt[i]   = ialt
+            self.wptoalt[i]  = toalt   #[m]
             self.wpxtoalt[i] = xtoalt  #[m]
 
         return
