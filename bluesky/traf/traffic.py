@@ -28,7 +28,7 @@ settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1
 try:
     if settings.performance_model == 'bluesky':
         print('Using BlueSky performance model')
-        from .performance.legacy.perf import Perf as Perf
+        from .performance.legacy.perfbs import PerfBS as Perf
 
     elif settings.performance_model == 'bada':
         from .performance.legacy.perfbada import PerfBADA as Perf
@@ -41,7 +41,7 @@ try:
 except ImportError as err:
     print(err.args[0])
     print('Falling back to BlueSky performance model')
-    from .performance.bs import PerfBS as Perf
+    from .performance.legacy.perfbs import PerfBS as Perf
 
 
 class Traffic(TrafficArrays):
@@ -140,8 +140,9 @@ class Traffic(TrafficArrays):
             self.limspd      = np.array([])  # limit speed
             self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
             self.limalt      = np.array([])  # limit altitude
+            self.limalt_flag = np.array([])  # A need to limit altitude has been detected
             self.limvs       = np.array([])  # limit vertical speed due to thrust limitation
-            self.limvs_flag  = np.array([])
+            self.limvs_flag  = np.array([])  # A need to limit V/S detected
 
             # Display information on label
             self.label       = []  # Text and bitmap of traffic label
@@ -244,7 +245,7 @@ class Traffic(TrafficArrays):
         self.selalt[-n:] = self.alt[-n:]
 
         # Display information on label
-        self.label[-n:] = ['', '', '', 0]
+        self.label[-n:] = n*[['', '', '', 0]]
 
         # Miscallaneous
         self.coslat[-n:] = np.cos(np.radians(aclats))  # Cosine of latitude for flat-earth aproximations
