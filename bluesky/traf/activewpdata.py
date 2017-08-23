@@ -9,15 +9,15 @@ class ActiveWaypoint(TrafficArrays):
     def __init__(self):
         super(ActiveWaypoint, self).__init__()
         with RegisterElementParameters(self):
-            self.lat      = np.array([])  # Active WP latitude
-            self.lon      = np.array([])  # Active WP longitude
-            self.alt      = np.array([])  # Altitude to arrive at after distance xtoalt
-            self.xtoalt   = np.array([])  # Distance to next altitude constraint
-            self.spd      = np.array([])  # Active WP speed
-            self.vs       = np.array([])  # Active vertical speed to use
-            self.turndist = np.array([])  # Distance when to turn to next waypoint
-            self.flyby    = np.array([])  # Distance when to turn to next waypoint
-            self.next_qdr = np.array([])  # bearing next leg
+            self.lat       = np.array([])  # Active WP latitude
+            self.lon       = np.array([])  # Active WP longitude
+            self.nextaltco = np.array([])  # Altitude to arrive at after distance xtoalt
+            self.xtoalt    = np.array([])  # Distance to next altitude constraint
+            self.spd       = np.array([])  # Active WP speed
+            self.vs        = np.array([])  # Active vertical speed to use
+            self.turndist  = np.array([])  # Distance when to turn to next waypoint
+            self.flyby     = np.array([])  # Distance when to turn to next waypoint
+            self.next_qdr  = np.array([])  # bearing next leg
 
     def create(self, n=1):
         super(ActiveWaypoint, self).create(n)

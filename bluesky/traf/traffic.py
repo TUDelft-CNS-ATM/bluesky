@@ -106,9 +106,8 @@ class Traffic(TrafficArrays):
                 self.dtemp   = np.array([])  # delta t for non-ISA conditions
 
                 # Traffic autopilot settings
-                self.selspd = np.array([])  # selected spd(CAS) [m/s]
+                self.selspd = np.array([])  # selected spd(CAS or Mach) [m/s or -]
                 self.aptas  = np.array([])  # just for initializing
-                self.ama    = np.array([])  # selected spd above crossover altitude (Mach) [-]
                 self.selalt = np.array([])  # selected alt[m]
                 self.selvs  = np.array([])  # selected vertical speed [m/s]
 
@@ -442,7 +441,7 @@ class Traffic(TrafficArrays):
 
     def UpdateAirSpeed(self, simdt, simt):
         # Acceleration
-        self.delspd = self.pilot.spd - self.tas
+        self.delspd = self.pilot.tas - self.tas
 
         swspdsel = np.abs(self.delspd) > 0.4  # <1 kts = 0.514444 m/s
         ax = self.perf.acceleration(simdt)
@@ -450,7 +449,7 @@ class Traffic(TrafficArrays):
         # Update velocities
         self.tas = np.where(swspdsel, \
                             self.tas + swspdsel * ax * np.sign(self.delspd) * simdt,\
-                            self.pilot.spd)
+                            self.pilot.tas)
 
         self.cas = vtas2cas(self.tas, self.alt)
         self.M   = vtas2mach(self.tas, self.alt)

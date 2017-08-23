@@ -55,7 +55,7 @@ class ASAS(TrafficArrays):
 
             self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
             self.trk      = np.array([])  # heading provided by the ASAS [deg]
-            self.spd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
+            self.tas      = np.array([])  # speed provided by the ASAS (eas) [m/s]
             self.alt      = np.array([])  # speed alt by the ASAS [m]
             self.vs       = np.array([])  # speed vspeed by the ASAS [m/s]
 
@@ -347,7 +347,7 @@ class ASAS(TrafficArrays):
         super(ASAS, self).create(n)
 
         self.trk[-n:] = bs.traf.trk[-n:]
-        self.spd[-n:] = bs.traf.tas[-n:]
+        self.tas[-n:] = bs.traf.tas[-n:]
         self.alt[-n:] = bs.traf.alt[-n:]
 
     def update(self, simt):
