@@ -10,7 +10,8 @@ class ActiveWaypoint(DynamicArrays):
         with RegisterElementParameters(self):
             self.lat      = np.array([])  # Active WP latitude
             self.lon      = np.array([])  # Active WP longitude
-            self.alt      = np.array([])  # Active WP altitude to arrive at
+            self.alt      = np.array([])  # Active WP altitude to arrive at after xtoalt
+            self.xtoalt   = np.array([])  # Distance to next al constraint
             self.spd      = np.array([])  # Active WP speed
             self.vs       = np.array([])  # Active vertical speed to use
             self.turndist = np.array([])  # Distance when to turn to next waypoint
