@@ -178,7 +178,7 @@ class Area(TrafficArrays):
                 # shape name is unknown
                 return False, "Shapename unknown. Please create shapename first or shapename is misspelled!"
         # if first argument is a float -> then make a box with the arguments
-        elif (isinstance(args[0],float) or isinstance(args[0],int)) and 4<=len(args)<=6:
+        elif isinstance(args[0],(float, int)) and 4<=len(args)<=6:
             self.active = True
             self.name = 'DELAREA'
             areafilter.defineArea(self.name, 'BOX', args[:4], *args[4:])
