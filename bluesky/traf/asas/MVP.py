@@ -8,16 +8,16 @@ import numpy as np
 from bluesky.tools.aero import ft,fpm,kts
 
 
-def start(dbconf):
+def start(asas):
     pass
 
-def resolve(dbconf, traf):
+def resolve(asas, traf):
     """ Resolve all current conflicts """
 
     # Premble------------------------------------------------------------------
 
     # Check if ASAS is ON first!
-    if not dbconf.swasas:
+    if not asas.swasas:
         return
 
     # Initialize an array to store the resolution velocity vector for all A/C
@@ -31,7 +31,7 @@ def resolve(dbconf, traf):
     # If possible, solve conflicts once and copy results for symmetrical conflicts
     # If that is not possible, solve each conflict twice, once for each A/C
     if not traf.adsb.truncated and not traf.adsb.transnoise:
-        for conflict in dbconf.conflist_now:
+        for conflict in asas.conflist_now:
 
             # Determine ac indexes from callsigns
             ac1, ac2 = conflict.split(" ")
@@ -41,15 +41,15 @@ def resolve(dbconf, traf):
             # Then use the MVP computed resolution to subtract and add dv_mvp
             # to id1 and id2, respectively
             if id1 > -1 and id2 > -1:
-                dv_mvp, tsolV = MVP(traf, dbconf, id1, id2)
+                dv_mvp, tsolV = MVP(traf, asas, id1, id2)
                 if tsolV < timesolveV[id1]:
                     timesolveV[id1] = tsolV
                 if tsolV < timesolveV[id2]:
                     timesolveV[id2] = tsolV  
 
                 # Use priority rules if activated
-                if dbconf.swprio:
-                    dv[id1], dv[id2] = prioRules(traf, dbconf.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
+                if asas.swprio:
+                    dv[id1], dv[id2] = prioRules(traf, asas.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
                 else:
                     # since cooperative, the vertical resolution component can be halved, and then dv_mvp can be added
                     dv_mvp[2] = dv_mvp[2]/2.0
@@ -58,23 +58,23 @@ def resolve(dbconf, traf):
 
                 # Check the noreso aircraft. Nobody avoids noreso aircraft.
                 # But noreso aircraft will avoid other aircraft
-                if dbconf.swnoreso:
-                    if ac1 in dbconf.noresolst: # -> Then id2 does not avoid id1.
+                if asas.swnoreso:
+                    if ac1 in asas.noresolst: # -> Then id2 does not avoid id1.
                         dv[id2] = dv[id2] - dv_mvp
-                    if ac2 in dbconf.noresolst: # -> Then id1 does not avoid id2.
+                    if ac2 in asas.noresolst: # -> Then id1 does not avoid id2.
                         dv[id1] = dv[id1] + dv_mvp
 
                 # Check the resooff aircraft. These aircraft will not do resolutions.
-                if dbconf.swresooff:
-                    if ac1 in dbconf.resoofflst: # -> Then id1 does not do any resolutions
+                if asas.swresooff:
+                    if ac1 in asas.resoofflst: # -> Then id1 does not do any resolutions
                         dv[id1] = 0.0
-                    if ac2 in dbconf.resoofflst: # -> Then id2 does not do any resolutions
+                    if ac2 in asas.resoofflst: # -> Then id2 does not do any resolutions
                         dv[id2] = 0.0
 
 
     else:
-        for i in range(dbconf.nconf):
-            confpair = dbconf.confpairs[i]
+        for i in range(asas.nconf):
+            confpair = asas.confpairs[i]
             ac1      = confpair[0]
             ac2      = confpair[1]
             id1      = traf.id.index(ac1)
@@ -83,13 +83,13 @@ def resolve(dbconf, traf):
             # If A/C indexes are found, then apply MVP on this conflict pair
             # Because ADSB is ON, this is done for each aircraft separately
             if id1 >-1 and id2 > -1:
-                dv_mvp   = MVP(traf, dbconf, id1, id2)
+                dv_mvp   = MVP(traf, asas, id1, id2)
                 if tsolV < timesolveV[id1]:
                     timesolveV[id1] = tsolV
 
                 # Use priority rules if activated
-                if dbconf.swprio:
-                    dv[id1], _ = prioRules(traf, dbconf.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
+                if asas.swprio:
+                    dv[id1], _ = prioRules(traf, asas.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
                 else:
                     # since cooperative, the vertical resolution component can be halved, and then dv_mvp can be added
                     dv_mvp[2] = dv_mvp[2]/2.0
@@ -97,13 +97,13 @@ def resolve(dbconf, traf):
 
                 # Check the noreso aircraft. Nobody avoids noreso aircraft.
                 # But noreso aircraft will avoid other aircraft
-                if dbconf.swnoreso:
-                    if ac2 in dbconf.noresolst: # -> Then id1 does not avoid id2.
+                if asas.swnoreso:
+                    if ac2 in asas.noresolst: # -> Then id1 does not avoid id2.
                         dv[id1] = dv[id1] + dv_mvp
 
                 # Check the resooff aircraft. These aircraft will not do resolutions.
-                if dbconf.swresooff:
-                    if ac1 in dbconf.resoofflst: # -> Then id1 does not do any resolutions
+                if asas.swresooff:
+                    if ac1 in asas.resoofflst: # -> Then id1 does not do any resolutions
                         dv[id1] = 0.0
 
 
@@ -121,12 +121,12 @@ def resolve(dbconf, traf):
     # Limit resolution direction if required-----------------------------------
 
     # Compute new speed vector in polar coordinates based on desired resolution
-    if dbconf.swresohoriz: # horizontal resolutions
-        if dbconf.swresospd and not dbconf.swresohdg: # SPD only
+    if asas.swresohoriz: # horizontal resolutions
+        if asas.swresospd and not asas.swresohdg: # SPD only
             newtrack = traf.trk
             newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
             newvs    = traf.vs
-        elif dbconf.swresohdg and not dbconf.swresospd: # HDG only
+        elif asas.swresohdg and not asas.swresospd: # HDG only
             newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
             newgs    = traf.gs
             newvs    = traf.vs
@@ -134,7 +134,7 @@ def resolve(dbconf, traf):
             newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
             newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
             newvs    = traf.vs
-    elif dbconf.swresovert: # vertical resolutions
+    elif asas.swresovert: # vertical resolutions
         newtrack = traf.trk
         newgs    = traf.gs
         newvs    = newv[2,:]
@@ -146,42 +146,42 @@ def resolve(dbconf, traf):
     # Determine ASAS module commands for all aircraft--------------------------
 
     # Cap the velocity
-    newgscapped = np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,newgs))
+    newgscapped = np.maximum(asas.vmin,np.minimum(asas.vmax,newgs))
 
     # Cap the vertical speed
-    vscapped = np.maximum(dbconf.vsmin,np.minimum(dbconf.vsmax,newvs))
+    vscapped = np.maximum(asas.vsmin,np.minimum(asas.vsmax,newvs))
 
     # Now assign resolutions to variables in the ASAS class
-    dbconf.trk = newtrack
-    dbconf.tas = newgscapped
-    dbconf.vs  = vscapped
+    asas.trk = newtrack
+    asas.tas = newgscapped
+    asas.vs  = vscapped
 
     # To compute asas alt, timesolveV is used. timesolveV is a really big value (1e9)
     # when there is no conflict. Therefore asas alt is only updated when its 
     # value is less than the look-ahead time, because for those aircraft are in conflict
-    altCondition               = np.logical_and(timesolveV<dbconf.dtlookahead, np.abs(dv[2,:])>0.0)
-    asasalttemp                = dbconf.vs*timesolveV + traf.alt
-    dbconf.alt[altCondition]   = asasalttemp[altCondition] 
+    altCondition               = np.logical_and(timesolveV<asas.dtlookahead, np.abs(dv[2,:])>0.0)
+    asasalttemp                = asas.vs*timesolveV + traf.alt
+    asas.alt[altCondition]   = asasalttemp[altCondition] 
     
     # If resolutions are limited in the horizontal direction, then asasalt should
     # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed 
     # using the auto pilot vertical speed (traf.avs) using the code in line 106 (asasalttemp) when only
     # horizontal resolutions are allowed.
-    dbconf.alt = dbconf.alt*(1-dbconf.swresohoriz) + traf.selalt*dbconf.swresohoriz
+    asas.alt = asas.alt*(1-asas.swresohoriz) + traf.selalt*asas.swresohoriz
 
 
 #======================= Modified Voltage Potential ===========================
 
 
-def MVP(traf, dbconf, id1, id2):
+def MVP(traf, asas, id1, id2):
     """Modified Voltage Potential (MVP) resolution method"""
     
     
     # Preliminary calculations-------------------------------------------------
     
     # Get distance and qdr between id1 and id2
-    dist = dbconf.dist[id1,id2]
-    qdr  = dbconf.qdr[id1,id2]
+    dist = asas.dist[id1,id2]
+    qdr  = asas.qdr[id1,id2]
     
     # Convert qdr from degrees to radians
     qdr = np.radians(qdr)
@@ -200,14 +200,14 @@ def MVP(traf, dbconf, id1, id2):
     # Horizontal resolution----------------------------------------------------
     
     # Get the time to solve conflict horizontally -> tcpa
-    tcpa = dbconf.tcpa[id1,id2] 
+    tcpa = asas.tcpa[id1,id2] 
     
     # Find horizontal distance at the tcpa (min horizontal distance)
     dcpa  = drel + vrel*tcpa
     dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
         
     # Compute horizontal intrusion
-    iH = dbconf.Rm - dabsH
+    iH = asas.Rm - dabsH
     
     # Exception handlers for head-on conflicts
     # This is done to prevent division by zero in the next step
@@ -223,8 +223,8 @@ def MVP(traf, dbconf, id1, id2):
     
     # If intruder is outside the ownship PZ, then apply extra factor
     # to make sure that resolution does not graze IPZ
-    if dbconf.Rm<dist and dabsH<dist:
-        erratum=np.cos(np.arcsin(dbconf.Rm/dist)-np.arcsin(dabsH/dist))
+    if asas.Rm<dist and dabsH<dist:
+        erratum=np.cos(np.arcsin(asas.Rm/dist)-np.arcsin(dabsH/dist))
         dv1 = dv1/erratum
         dv2 = dv2/erratum
         
@@ -233,17 +233,17 @@ def MVP(traf, dbconf, id1, id2):
     
     # Compute the  vertical intrusion
     # Amount of vertical intrusion dependent on vertical relative velocity
-    iV = dbconf.dhm if abs(vrel[2])>0.0 else dbconf.dhm-abs(drel[2])
+    iV = asas.dhm if abs(vrel[2])>0.0 else asas.dhm-abs(drel[2])
     
     # Get the time to solve the conflict vertically - tsolveV
-    tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else dbconf.tinconf[id1,id2]
+    tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else asas.tinconf[id1,id2]
     
     # If the time to solve the conflict vertically is longer than the look-ahead time,
     # because the the relative vertical speed is very small, then solve the intrusion
     # within tinconf
-    if tsolV>dbconf.dtlookahead:
-        tsolV = dbconf.tinconf[id1,id2]
-        iV    = dbconf.dhm
+    if tsolV>asas.dtlookahead:
+        tsolV = asas.tinconf[id1,id2]
+        iV    = asas.dhm
     
     # Compute the resolution velocity vector in the vertical direction
     # The direction of the vertical resolution is such that the aircraft with
