@@ -313,9 +313,9 @@ class Traffic(TrafficArrays):
         # Traffic performance data
         #(temporarily default values)
         self.apvsdef[-1] = 1500. * fpm  # default vertical speed of autopilot
-        self.aphi[-1]   = radians(25.)  # bank angle setting of autopilot
-        self.ax[-1]     = 1.0*kts       # absolute value of longitudinal accelleration
-        self.bank[-1]   = radians(25.)
+        self.aphi[-1]    = radians(25.)  # bank angle setting of autopilot
+        self.ax[-1]      = 1.0*kts       # absolute value of longitudinal accelleration
+        self.bank[-1]    = radians(25.)
 
         # Crossover altitude
         self.abco[-1]   = 0  # not necessary to overwrite 0 to 0, but leave for clarity
