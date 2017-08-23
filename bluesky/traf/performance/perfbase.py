@@ -3,7 +3,7 @@ from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 class PerfBase(TrafficArrays):
     def __init__(self):
-        super().__init__()
+        super(PerfBase, self).__init__()
 
         with RegisterElementParameters(self):
             # --- fixed parameters ---
@@ -22,19 +22,19 @@ class PerfBase(TrafficArrays):
             self.fuelflow = np.array([])  # fuel flow
 
     def create(self, n):
-        super().create(n)
+        super(PerfBase, self).create(n)
 
     def delete(self, idx):
-        super().delete(idx)
+        super(PerfBase, self).delete(idx)
 
     def reset(self):
-        super().reset()
+        super(PerfBase, self).reset()
 
     def update(self):
         """implement this methods"""
         pass
 
-    def apply_limits(self):
+    def limits(self, indent_v, indent_vs, indent_h):
         """implement this methods"""
         pass
 

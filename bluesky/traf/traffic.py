@@ -28,14 +28,15 @@ settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1
 try:
     if settings.performance_model == 'bluesky':
         print('Using BlueSky performance model')
-        from .performance.bs import Perf as Perf
+        from .performance.legacy.perf import Perf as Perf
+
+    elif settings.performance_model == 'bada':
+        from .performance.legacy.perfbada import PerfBADA as Perf
 
     elif settings.performance_model == 'nap':
         print('Using Nifty Aircarft Perfromance (NAP) model')
         from .performance.nap import PerfNAP as Perf
 
-    elif settings.performance_model == 'bada':
-        from .performance.bada import PerfBADA as Perf
 
 except ImportError as err:
     print(err.args[0])
