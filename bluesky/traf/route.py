@@ -227,7 +227,7 @@ class Route():
                         elif self.wptype[wpidx] == self.dest:
                             txt = txt + "[dest]"
 
-                    return True, txt
+                    return bs.SIMPLE_ECHO, txt
 
                 elif args[1].count("/")==1:
                     # acid AT wpinroute alt"/"spd

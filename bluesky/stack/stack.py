@@ -1208,7 +1208,6 @@ def process():
             # text: optional error message
             if not synerr:
                 results = function(*arglist)  # * = unpack list to call arguments
-
                 if isinstance(results, bool):  # Only flag is returned
                     synerr = not results
                     if synerr:
@@ -1217,15 +1216,17 @@ def process():
                         else:
                             bs.scr.echo("Syntax error: " + helptext, sender_id)
 
-                elif isinstance(results, (tuple, list)) and len(results) > 0:
+                elif isinstance(results, tuple) and len(results) > 0:
                     synerr = not results[0]
                     if synerr:
                         bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""), sender_id)
                     # Maybe there is also an error/info message returned?
                     if len(results) >= 2:
-                        bs.scr.echo(cmd + ":" + results[1], sender_id)
+                        prefix = "" if results[0] == bs.SIMPLE_ECHO \
+                            else "{}: ".format(cmd)
+                        bs.scr.echo("{}{}".format(prefix, results[1]), sender_id)
 
-                synerr =  False  # Prevent further nagging
+                bs.scr.echo(bs.MSG_OK, sender_id)
 
             else:  # synerr:
                 bs.scr.echo("Syntax error: " + helptext, sender_id)
@@ -1508,7 +1509,7 @@ class Argparser:
 def distcalc(lat0, lon0, lat1, lon1):
     try:
         qdr, dist = geo.qdrdist(lat0, lon0, lat1, lon1)
-        return True, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
+        return bs.SIMPLE_ECHO, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
     except:
         return False, 'Error in dist calculation.'
 

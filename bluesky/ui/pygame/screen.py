@@ -1167,7 +1167,6 @@ class Screen:
         return
 
     def showacinfo(self, acid, infotext):
-        self.echo(infotext)
         self.showroute(acid)
         return True
 

@@ -2,7 +2,7 @@
 import time
 import socket
 import threading
-from bluesky import settings
+from bluesky import settings, CMD_TCP_CONNS
 
 SIZEOF_UINT16 = 2
 
@@ -62,6 +62,7 @@ if settings.gui == 'qtgl':
             newconn.setSocketDescriptor(socketDescriptor)
             newconn.readyRead.connect(self.onReadyRead)
             self.connections[id(newconn)] = newconn
+            print "Connections3! " + str(self.connections)
 
         @pyqtSlot()
         def onReadyRead(self):
@@ -76,6 +77,12 @@ if settings.gui == 'qtgl':
         def processData(self, sender_id, data):
             # Placeholder function; override it with your own implementation
             print('TcpServer received', data, 'from sender no', sender_id)
+
+        def getConnections(self):
+            return self.connections
+
+        def numConnections(self):
+            return len(self.connections.keys())
 
 
 elif settings.gui == 'pygame':
@@ -131,6 +138,12 @@ elif settings.gui == 'pygame':
             # rewrite this function
             print("parsing data...")
 
+        def getConnections(self):
+            return None
+
+        def numConnections(self):
+            return None
+
     class TcpServer(object):
         def __init__(self):
             pass
@@ -158,6 +171,10 @@ class StackTelnetServer(TcpServer):
         self.process = fun
 
     def processData(self, data, sender_id):
-        self.process(
-            bytearray(data).decode(encoding='ascii', errors='ignore').strip(),
-            sender_id)
+        msg = bytearray(data).decode(encoding='ascii', errors='ignore').strip()
+
+        if msg.startswith(CMD_TCP_CONNS):
+            self.connections[sender_id].sendReply(
+                str(self.numConnections()))
+        else:
+            self.process(msg, sender_id)

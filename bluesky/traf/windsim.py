@@ -1,6 +1,8 @@
 from numpy import arctan2,degrees,array,sqrt # to allow arrays, their functions and types
 from .windfield import *
 from bluesky.tools.aero import kts
+import bluesky as bs
+
 
 class WindSim(Windfield):
     def add(self, *arg):
@@ -48,4 +50,4 @@ class WindSim(Windfield):
 
         txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,wdir,wspd/kts)
 
-        return True,txt
+        return bs.SIMPLE_ECHO, txt

@@ -1,4 +1,3 @@
 .PHONY: test
 test:
-	@python -m pytest
-
+	@python -m pytest bluesky/test
