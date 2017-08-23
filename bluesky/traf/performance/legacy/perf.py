@@ -739,7 +739,7 @@ class Perf():
         self.post_flight = np.where(self.descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
-        bs.traf.pilot.spd = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.spd)
+        bs.traf.pilot.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.tas)
         # the impulse for reducing the speed to 0 should only be given once,
         # otherwise taxiing will be impossible afterwards
         self.pf_flag = np.where ((bs.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
@@ -769,7 +769,7 @@ class Perf():
         bs.traf.limspd_flag,     \
         bs.traf.limalt,          \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.spd, \
+        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.tas, \
                                         bs.traf.gs,            \
                                         self.vmto,               \
                                         self.vmin,               \

@@ -1,25 +1,26 @@
 """ Pilot logic."""
 import numpy as np
 import bluesky as bs
-from bluesky.tools.aero import vtas2eas, vcas2tas, vcas2mach
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.aero import vtas2eas, vcas2tas, vcas2mach, vtas2cas
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
-class Pilot(DynamicArrays):
+class Pilot(TrafficArrays):
     def __init__(self):
+        super(Pilot, self).__init__()
         with RegisterElementParameters(self):
             # Desired aircraft states
             self.alt = np.array([])  # desired altitude [m]
             self.hdg = np.array([])  # desired heading [deg]
             self.trk = np.array([])  # desired track angle [deg]
             self.vs  = np.array([])  # desired vertical speed [m/s]
-            self.spd = np.array([])  # desired speed [m/s]
+            self.tas = np.array([])  # desired speed [m/s]
 
     def create(self, n=1):
         super(Pilot, self).create(n)
 
         self.alt[-n:] = bs.traf.alt[-n:]
-        self.spd[-n:] = vtas2eas(bs.traf.tas[-n:], bs.traf.alt[-n:])
+        self.tas[-n:] = bs.traf.tas[-n:]
         self.hdg[-n:] = bs.traf.hdg[-n:]
         self.trk[-n:] = bs.traf.trk[-n:]
 
@@ -28,16 +29,16 @@ class Pilot(DynamicArrays):
         # Convert the ASAS commanded speed from ground speed to TAS
         if bs.traf.wind.winddim > 0:
             vwn, vwe     = bs.traf.wind.getdata(bs.traf.lat, bs.traf.lon, bs.traf.alt)
-            asastasnorth = bs.traf.asas.spd * np.cos(np.radians(bs.traf.asas.trk)) - vwn
-            asastaseast  = bs.traf.asas.spd * np.sin(np.radians(bs.traf.asas.trk)) - vwe
+            asastasnorth = bs.traf.asas.tas * np.cos(np.radians(bs.traf.asas.trk)) - vwn
+            asastaseast  = bs.traf.asas.tas * np.sin(np.radians(bs.traf.asas.trk)) - vwe
             asastas      = np.sqrt(asastasnorth**2 + asastaseast**2)
         # no wind, then ground speed = TAS
         else:
-            asastas = bs.traf.asas.spd
+            asastas = bs.traf.asas.tas # TAS [m/s]
 
         # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on.
         self.trk = np.where(bs.traf.asas.active, bs.traf.asas.trk, bs.traf.ap.trk)
-        self.spd = np.where(bs.traf.asas.active, asastas, bs.traf.ap.tas)
+        self.tas = np.where(bs.traf.asas.active, asastas, bs.traf.ap.tas)
         self.alt = np.where(bs.traf.asas.active, bs.traf.asas.alt, bs.traf.ap.alt)
         self.vs  = np.where(bs.traf.asas.active, bs.traf.asas.vs, bs.traf.ap.vs)
 
@@ -63,14 +64,12 @@ class Pilot(DynamicArrays):
     def FlightEnvelope(self):
         # check for the flight envelope
         bs.traf.delalt = bs.traf.selalt - bs.traf.alt  # [m]
-        bs.traf.perf.limits()
-
-        #print self.selspd[0]/kts
+        bs.traf.perf.limits() # Sets limspd_flag and limspd when it needs to be limited
 
         # Update desired sates with values within the flight envelope
-        # To do: add const Mach const CAS mode
+        # When CAs is limited, it needs to be converted to TAS as only this TAS is used later on!
 
-        self.spd = np.where(bs.traf.limspd_flag, vcas2tas(bs.traf.limspd, bs.traf.alt), self.spd)
+        self.tas = np.where(bs.traf.limspd_flag, vcas2tas(bs.traf.limspd, bs.traf.alt), self.tas)
 
         # Autopilot selected altitude [m]
         self.alt = np.where(bs.traf.limalt > -900., bs.traf.limalt, self.alt)
@@ -78,12 +77,3 @@ class Pilot(DynamicArrays):
         # Autopilot selected vertical speed (V/S)
         self.vs = np.where(bs.traf.limvs > -9000., bs.traf.limvs, self.vs)
 
-        # To be discussed: Following change in VNAV mode only?
-        # below crossover altitude: CAS=const, above crossover altitude: MA = const
-        # climb/descend above crossover: Ma = const, else CAS = const
-        # ama is fixed when above crossover
-        bs.traf.ama = np.where(bs.traf.abco * (bs.traf.ama == 0.),
-                                 vcas2mach(bs.traf.selspd, bs.traf.alt), bs.traf.ama)
-
-        # ama is deleted when below crossover
-        bs.traf.ama = np.where(bs.traf.belco, 0.0, bs.traf.ama)

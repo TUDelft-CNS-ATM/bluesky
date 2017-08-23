@@ -650,9 +650,10 @@ class RadarWidget(QGLWidget):
                     # Speed
                     if spd < 0:
                         txt += "--- "
-                    else:
+                    elif spd>2.0:
                         txt += "%03d " % int(round(spd / kts))
-
+                    else:
+                        txt += "M"+str(spd) # Mach number
                 wpname += txt
             update_buffer(self.routelblbuf, np.array(
                             wpname.encode('ascii', 'ignore')))

@@ -57,28 +57,28 @@ def resolve(dbconf, traf):
     neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
 
     # now assign in the traf class
-    dbconf.hdg=newtrack
-    dbconf.spd=neweascapped
-    dbconf.vs=newv[2,:]
-    dbconf.alt=np.sign(dbconf.vs)*1e5
+    dbconf.hdg = newtrack
+    dbconf.tas = neweascapped
+    dbconf.vs  = newv[2,:]
+    dbconf.alt = np.sign(dbconf.vs)*1e5
 
 #=================================== Eby Method ===============================
 
     # Resolution: Eby method assuming aircraft move straight forward, solving algebraically, only horizontally
 def Eby_straight(traf, dbconf, id1, id2):
-    traf=traf
-    dist=dbconf.dist[id1,id2]
-    qdr=dbconf.qdr[id1,id2]
+    traf = traf
+    dist = dbconf.dist[id1,id2]
+    qdr  = dbconf.qdr[id1,id2]
     # from degrees to radians
-    qdr=np.radians(qdr)
+    qdr  = np.radians(qdr)
     # relative position vector
-    d=np.array([np.sin(qdr)*dist, \
-        np.cos(qdr)*dist, \
-        traf.alt[id2]-traf.alt[id1] ])
+    d    = np.array([np.sin(qdr)*dist, \
+           np.cos(qdr)*dist, \
+           traf.alt[id2]-traf.alt[id1] ])
 
     # find track in radians
-    t1=np.radians(traf.trk[id1])
-    t2=np.radians(traf.trk[id2])
+    t1 = np.radians(traf.trk[id1])
+    t2 = np.radians(traf.trk[id2])
 
     # write velocities as vectors and find relative velocity vector
     v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])

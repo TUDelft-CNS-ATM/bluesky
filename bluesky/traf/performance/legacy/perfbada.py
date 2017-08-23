@@ -2,7 +2,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
@@ -16,7 +16,7 @@ else:
     print('Using BADA performance model.')
 
 
-class PerfBADA(DynamicArrays):
+class PerfBADA(TrafficArrays):
     """
     Aircraft performance implementation based on BADA.
     Methods:
@@ -33,6 +33,7 @@ class PerfBADA(DynamicArrays):
         EEC Technical/Scientific Report No. 14/04/24-44 edition, 2014.
     """
     def __init__(self):
+        super(PerfBADA, self).__init__()
         self.warned = False     # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
@@ -558,7 +559,7 @@ class PerfBADA(DynamicArrays):
         self.post_flight = np.where(self.descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
-        bs.traf.pilot.spd = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.spd)
+        bs.traf.pilot.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.tas)
 
 
         # otherwise taxiing will be impossible afterwards
@@ -595,7 +596,7 @@ class PerfBADA(DynamicArrays):
         bs.traf.limspd_flag,     \
         bs.traf.limalt,          \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.spd, \
+        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.tas, \
                                         bs.traf.gs,            \
                                         self.vmto,               \
                                         self.vmin,               \

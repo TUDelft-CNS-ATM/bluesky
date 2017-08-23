@@ -153,7 +153,7 @@ def resolve(dbconf, traf):
 
     # Now assign resolutions to variables in the ASAS class
     dbconf.trk = newtrack
-    dbconf.spd = newgscapped
+    dbconf.tas = newgscapped
     dbconf.vs  = vscapped
 
     # To compute asas alt, timesolveV is used. timesolveV is a really big value (1e9)

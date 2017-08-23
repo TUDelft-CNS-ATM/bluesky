@@ -1,4 +1,4 @@
-""" Classes that derive from DynamicArrays (like Traffic) get automated create,
+""" Classes that derive from TrafficArrays (like Traffic) get automated create,
     delete, and reset functionality for all registered child arrays."""
 # -*- coding: utf-8 -*-
 import numpy as np
@@ -21,29 +21,44 @@ class RegisterElementParameters():
         self.parent.MakeParameterLists(set(self.parent.__dict__.keys()) - self.keys0)
 
 
-class DynamicArrays(object):
+class TrafficArrays(object):
     """ Parent class to use separate arrays and lists to allow
         vectorizing but still maintain and object like benefits
         for creation and deletion of an element for all paramters"""
 
+    # The TrafficArrays class keeps track of all of the constructed
+    # TrafficArray objects
+    root = None
+
+    @classmethod
+    def SetRoot(cls, obj):
+        ''' This function is used to set the root of the tree of TrafficArray
+            objects (which is the traffic object.)'''
+        cls.root = obj
+
+    def __init__(self):
+        self.parent   = TrafficArrays.root
+        if self.parent:
+            self.parent.children.append(self)
+        self.children = []
+        self.ArrVars  = []
+        self.LstVars  = []
+        self.Vars     = self.__dict__
+
+    def reparent(self, newparent):
+        # Remove myself from the parent list of children, and add to new parent
+        self.parent.children.pop(self.parent.children.index(self))
+        newparent.children.append(self)
+        self.parent = newparent
+
     def MakeParameterLists(self, keys):
-        self.Vars = self.__dict__
-        ArrVars   = []
-        Lsts      = []
-        DynArrs   = []
-
         for key in keys:
-            if type(self.Vars[key]) == list:
-                Lsts.append(key)
-            elif type(self.Vars[key]) == np.ndarray:
-                ArrVars.append(key)
-            elif isinstance(self.Vars[key], DynamicArrays):
-                DynArrs.append(key)
-
-        # Only define self.ArrVars & LstVars AFTER the loop, or else they are part of self.__dict__!
-        self.ArrVars = ArrVars
-        self.LstVars = Lsts
-        self.DynArrs = DynArrs
+            if isinstance(self.Vars[key], list):
+                self.LstVars.append(key)
+            elif isinstance(self.Vars[key], np.ndarray):
+                self.ArrVars.append(key)
+            elif isinstance(self.Vars[key], TrafficArrays):
+                self.Vars[key].reparent(self)
 
     def create(self, n=1):
         # Append one element (aircraft) to all lists and arrays
@@ -77,12 +92,10 @@ class DynamicArrays(object):
 
             self.Vars[v] = np.append(self.Vars[v], defaultvalue)
 
-        for v in self.DynArrs:
-            pass
-            # The dynamic arrays refer to traf.parameter[-1] in their
-            # .create functions, so first set all traf.parameter[-1]
-            # to the right value and AFTER that perform create for all
-            # dynamic arrays manually
+    def create_children(self, n=1):
+        for child in self.children:
+            child.create(n)
+            child.create_children(n)
 
     def delete(self, idx):
         # Remove element (aircraft) idx from all lists and arrays
@@ -92,8 +105,8 @@ class DynamicArrays(object):
         for v in self.ArrVars:
             self.Vars[v] = np.delete(self.Vars[v], idx)
 
-        for v in self.DynArrs:
-            self.Vars[v].delete(idx)
+        for child in self.children:
+            child.delete(idx)
 
     def reset(self):
         # Delete all elements from arrays and start at 0 aircraft
@@ -103,5 +116,5 @@ class DynamicArrays(object):
         for v in self.ArrVars:
             self.Vars[v] = np.array([], dtype=self.Vars[v].dtype)
 
-        for v in self.DynArrs:
-            self.Vars[v].reset()
+        for child in self.children:
+            child.reset()

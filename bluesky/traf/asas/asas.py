@@ -4,7 +4,7 @@ import numpy as np
 import bluesky as bs
 from bluesky import settings
 from bluesky.tools.aero import ft, nm
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 # Register settings defaults
 settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0, asas_dtlookahead=300.0, asas_mar=1.2, asas_pzr=5.0, asas_pzh=1000.0)
@@ -29,7 +29,7 @@ from . import MVP
 from . import Swarm
 
 
-class ASAS(DynamicArrays):
+class ASAS(TrafficArrays):
     """ Central class for ASAS conflict detection and resolution.
         Maintains a confict database, and links to external CD and CR methods."""
 
@@ -48,13 +48,14 @@ class ASAS(DynamicArrays):
         asas.CRmethods[name] = module
 
     def __init__(self):
+        super(ASAS, self).__init__()
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
             self.iconf    = []            # index in 'conflicting' aircraft database
 
             self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
             self.trk      = np.array([])  # heading provided by the ASAS [deg]
-            self.spd      = np.array([])  # speed provided by the ASAS (eas) [m/s]
+            self.tas      = np.array([])  # speed provided by the ASAS (eas) [m/s]
             self.alt      = np.array([])  # speed alt by the ASAS [m]
             self.vs       = np.array([])  # speed vspeed by the ASAS [m/s]
 
@@ -346,7 +347,7 @@ class ASAS(DynamicArrays):
         super(ASAS, self).create(n)
 
         self.trk[-n:] = bs.traf.trk[-n:]
-        self.spd[-n:] = bs.traf.tas[-n:]
+        self.tas[-n:] = bs.traf.tas[-n:]
         self.alt[-n:] = bs.traf.alt[-n:]
 
     def update(self, simt):
