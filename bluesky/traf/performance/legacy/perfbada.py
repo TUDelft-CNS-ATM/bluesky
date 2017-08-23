@@ -476,6 +476,7 @@ class PerfBADA(TrafficArrays):
 
         self.Thr = T
 
+
         # Fuel consumption
         # thrust specific fuel consumption - jet
         # thrust
@@ -595,24 +596,25 @@ class PerfBADA(TrafficArrays):
         bs.traf.limspd,          \
         bs.traf.limspd_flag,     \
         bs.traf.limalt,          \
+        bs.traf.limalt_flag,      \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.tas, \
+        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.tas,   \
                                         bs.traf.gs,            \
-                                        self.vmto,               \
-                                        self.vmin,               \
-                                        self.vmo,                \
-                                        self.mmo,                \
+                                        self.vmto,             \
+                                        self.vmin,             \
+                                        self.vmo,              \
+                                        self.mmo,              \
                                         bs.traf.M,             \
                                         bs.traf.alt,           \
-                                        self.hmaxact,            \
                                         bs.traf.pilot.alt,     \
+                                        self.hmaxact,          \
                                         bs.traf.pilot.vs,      \
-                                        self.maxthr,             \
-                                        self.Thr,                \
-                                        self.D,                  \
+                                        self.maxthr,           \
+                                        self.D,                \
                                         bs.traf.tas,           \
-                                        self.mass,               \
-                                        self.ESF)
+                                        self.mass,             \
+                                        self.ESF,              \
+                                        self.phase)
 
         return
 
@@ -620,6 +622,7 @@ class PerfBADA(TrafficArrays):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,
         # landing aircraft use ground deceleration, others use standard acceleration
         # --> BADA uses the same value for ground acceleration as for deceleration
+    
 
         ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
                      (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \

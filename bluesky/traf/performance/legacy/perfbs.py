@@ -87,6 +87,7 @@ class PerfBS(TrafficArrays):
             self.PSFC_CR      = np.array([]) # specific fuel consumption cruise
 
             self.Thr          = np.array([]) # Thrust
+            self.Thr_pilot	 = np.array([])   # thrust required for pilot settings
             self.D            = np.array([]) # Drag
             self.ESF          = np.array([]) # Energy share factor according to EUROCONTROL
 
@@ -190,6 +191,7 @@ class PerfBS(TrafficArrays):
 
         self.rThr[-n:]      = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # rated thrust (all engines)
         self.Thr[-n:]       = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # initialize thrust with rated thrust
+        self.Thr_pilot[-n:] = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # initialize thrust with rated thrust        
         self.maxthr[-n:]    = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx]*1.2)  # maximum thrust - initialize with 1.2*rThr
         self.SFC[-n:]       = np.where(turboprops, 1. , coeffBS.SFC[jetidx] )
         self.ffto[-n:]      = np.where(turboprops, 1. , coeffBS.ffto[jetidx]*coeffBS.n_eng[coeffidx])
@@ -278,6 +280,9 @@ class PerfBS(TrafficArrays):
 
         # determine thrust
         self.Thr = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
+        
+        # determine thrust required to fulfill requests from pilot
+        self.Thr_pilot = (((bs.traf.pilot.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.pilot.tas))) + self.D)
 
         # maximum thrust jet (Bruenig et al., p. 66):
         mt_jet = self.rThr*(bs.traf.rho/rho0)**0.75
@@ -360,24 +365,26 @@ class PerfBS(TrafficArrays):
         bs.traf.limspd,          \
         bs.traf.limspd_flag,     \
         bs.traf.limalt,          \
+        bs.traf.limalt_flag,     \
         bs.traf.limvs,           \
         bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.tas, \
-                                        bs.traf.gs,            \
-                                        self.vmto,               \
-                                        self.vmin,               \
-                                        self.vmo,                \
-                                        self.mmo,                \
-                                        bs.traf.M,             \
-                                        bs.traf.alt,           \
-                                        self.hmaxact,            \
-                                        bs.traf.pilot.alt,     \
-                                        bs.traf.pilot.vs,      \
-                                        self.maxthr,             \
-                                        self.Thr,                \
-                                        self.D,                  \
-                                        bs.traf.tas,           \
-                                        self.mass,               \
-                                        self.ESF)
+                                        bs.traf.gs,          \
+                                        self.vmto,           \
+                                        self.vmin,           \
+                                        self.vmo,            \
+                                        self.mmo,            \
+                                        bs.traf.M,           \
+                                        bs.traf.alt,         \
+                                        self.hmaxact,        \
+                                        bs.traf.pilot.alt,   \
+                                        bs.traf.pilot.vs,    \
+                                        self.maxthr,         \
+                                        self.Thr_pilot,      \
+                                        self.D,              \
+                                        bs.traf.tas,         \
+                                        self.mass,           \
+                                        self.ESF,            \
+                                        self.phase)
 
 
         return
