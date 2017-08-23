@@ -2,14 +2,14 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
-class ADSB(DynamicArrays):
+class ADSB(TrafficArrays):
     """ ADS-B model. Implements real-life limitations of ADS-B communication."""
 
     def __init__(self):
-
+        super(ADSB, self).__init__()
         # From here, define object arrays
         with RegisterElementParameters(self):
             # Most recent broadcast data

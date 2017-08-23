@@ -137,8 +137,8 @@ def init():
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER),[alt,spd,afterwp]",
-            "acid,wpt,[alt,spd,wpinroute]",
+            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
+            "acid,wpt,[alt/txt,spd,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
@@ -166,12 +166,6 @@ def init():
             "acid,alt,[vspd]",
             bs.traf.ap.selaltcmd,
             "Altitude command (autopilot)"
-        ],
-        "AREA": [
-            "AREA Shapename/OFF or AREA lat,lon,lat,lon,[top,bottom]",
-            "[float/txt,float,float,float,alt,alt]",
-            bs.traf.area.setArea,
-            "Define experiment area (area of interest)"
         ],
         "ASAS": [
             "ASAS ON/OFF",
@@ -621,12 +615,6 @@ def init():
             syn.process,
             "Macro for generating synthetic (geometric) traffic scenarios"
         ],
-        "TAXI": [
-            "TAXI ON/OFF : OFF auto deletes traffic below 1500 ft",
-            "onoff",
-            bs.traf.area.setTaxi,
-            "Switch on/off ground/low altitude mode, prevents auto-delete at 1500 ft"
-        ],
         "TIME": [
             "TIME RUN(default) / HH:MM:SS.hh / REAL / UTC ",
             "[txt]",
@@ -946,9 +934,6 @@ def ic(filename=''):
     # Get the filename of new scenario
     if filename == '':
         filename = bs.scr.show_file_dialog()
-        
-#    elif filename == "IC": # use file from buffer
-#        filename = scenfile
 
     # Clean up filename
     filename = filename.strip()
@@ -957,17 +942,18 @@ def ic(filename=''):
     if len(filename) > 0:
         bs.sim.reset()
         result = openfile(filename)
+
         if result is True:
             scenfile    = filename
-            scenname, _ = os.path.splitext(os.path.basename(filename)) 
+            scenname, _ = os.path.splitext(os.path.basename(filename))
             # Remember this filename in IC.scn in scenario folder
             keepicfile = open(settings.scenario_path+"/"+"ic.scn","w")
-            keepicfile.write("# This file ise used by BlueSky to keep recent scenario file\n")
+            keepicfile.write("# This file is used by BlueSky to save the last used scenario file\n")
             keepicfile.write("# So in the console type 'IC IC' to restart the previously used scenario file\n")
-            keepicfile.write("00:00:00.00>IC "+filename+"\n")                
+            keepicfile.write("00:00:00.00>IC "+filename+"\n")
             keepicfile.close()
             return True, "Opened " + filename
-        
+
         else:
             return result
 

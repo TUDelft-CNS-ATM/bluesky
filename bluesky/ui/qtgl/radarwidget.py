@@ -250,7 +250,7 @@ class RadarWidget(QGLWidget):
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
-        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 20, usage=gl.GL_DYNAMIC_DRAW)
+        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 2*12, usage=gl.GL_DYNAMIC_DRAW)
 
         self.custwplatbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
         self.custwplonbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
@@ -315,7 +315,7 @@ class RadarWidget(QGLWidget):
 
         # ------- Aircraft Route -------------------------
         self.route = RenderObject(gl.GL_LINES, vertex=self.routebuf, color=palette.route)
-        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (10, 2), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        self.routelbl = self.font.prepare_text_instanced(self.routelblbuf, (12, 2), self.routewplatbuf, self.routewplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         self.routelbl.bind_color(palette.route)
         rwptvertices = np.array([(-0.2 * wpt_size, -0.2 * wpt_size),
                                  ( 0.0,            -0.8 * wpt_size),
@@ -636,9 +636,9 @@ class RadarWidget(QGLWidget):
             wpname = ''
             for wp, alt, spd in zip(data.wpname, data.wpalt, data.wpspd):
                 if alt < 0. and spd < 0.:
-                    txt = wp[:10].ljust(20)
+                    txt = wp[:12].ljust(24) # No second line
                 else:
-                    txt = wp[:10].ljust(10)
+                    txt = wp[:12].ljust(12) # Two lines
                     if alt < 0:
                         txt += "-----/"
                     elif alt > 4500 * ft:
@@ -650,10 +650,12 @@ class RadarWidget(QGLWidget):
                     # Speed
                     if spd < 0:
                         txt += "--- "
+                    elif spd>2.0:
+                        txt += "%03d" % int(round(spd / kts))
                     else:
-                        txt += "%03d " % int(round(spd / kts))
-
-                wpname += txt
+                        txt += "M{:.2f}".format(spd) # Mach number
+                    
+                wpname += txt.ljust(24) # Fill out with spaces
             update_buffer(self.routelblbuf, np.array(
                             wpname.encode('ascii', 'ignore')))
         else:

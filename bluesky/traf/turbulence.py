@@ -7,6 +7,9 @@ from bluesky.tools.aero import Rearth
 class Turbulence:
     """ Simple turbulence implementation."""
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.active = False
         self.SetStandards([0, 0.1, 0.1])
 

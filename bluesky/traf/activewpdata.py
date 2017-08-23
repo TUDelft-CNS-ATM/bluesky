@@ -1,22 +1,23 @@
 import numpy as np
 import bluesky as bs
-from bluesky.tools.dynamicarrays import DynamicArrays, RegisterElementParameters
+from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools.aero import nm, g0
 from bluesky.tools.misc import degto180
 
 
-class ActiveWaypoint(DynamicArrays):
+class ActiveWaypoint(TrafficArrays):
     def __init__(self):
+        super(ActiveWaypoint, self).__init__()
         with RegisterElementParameters(self):
-            self.lat      = np.array([])  # Active WP latitude
-            self.lon      = np.array([])  # Active WP longitude
-            self.alt      = np.array([])  # Active WP altitude to arrive at after xtoalt
-            self.xtoalt   = np.array([])  # Distance to next al constraint
-            self.spd      = np.array([])  # Active WP speed
-            self.vs       = np.array([])  # Active vertical speed to use
-            self.turndist = np.array([])  # Distance when to turn to next waypoint
-            self.flyby    = np.array([])  # Distance when to turn to next waypoint
-            self.next_qdr = np.array([])  # bearing next leg
+            self.lat       = np.array([])  # Active WP latitude
+            self.lon       = np.array([])  # Active WP longitude
+            self.nextaltco = np.array([])  # Altitude to arrive at after distance xtoalt
+            self.xtoalt    = np.array([])  # Distance to next altitude constraint
+            self.spd       = np.array([])  # Active WP speed
+            self.vs        = np.array([])  # Active vertical speed to use
+            self.turndist  = np.array([])  # Distance when to turn to next waypoint
+            self.flyby     = np.array([])  # Distance when to turn to next waypoint
+            self.next_qdr  = np.array([])  # bearing next leg
 
     def create(self, n=1):
         super(ActiveWaypoint, self).create(n)
@@ -45,10 +46,10 @@ class ActiveWaypoint(DynamicArrays):
         circling = away*incircle
 
 
-        # distance to turn initialisation point
-        self.turndist = (flyby > 0.5)*np.minimum(100., np.abs(turnrad *
+        # distance to turn initialisation point [nm]
+        self.turndist = flyby*np.minimum(100., np.abs(turnrad *
             np.tan(np.radians(0.5 * np.abs(degto180(qdr%360. - next_qdr%360.))))))
-   
-         
+
+
         # Check whether shift based dist [nm] is required, set closer than WP turn distanc
         return np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]

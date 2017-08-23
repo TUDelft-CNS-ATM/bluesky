@@ -8,12 +8,12 @@ import numpy as np
 from bluesky.tools.aero import vtas2eas
 
 
-def start(dbconf):
+def start(asas):
     pass
 
 
-def resolve(dbconf, traf):
-    if not dbconf.swasas:
+def resolve(asas, traf):
+    if not asas.swasas:
         return
 
     # required change in velocity
@@ -22,20 +22,20 @@ def resolve(dbconf, traf):
     #if possible, solve conflicts once and copy results for symmetrical conflicts,
     #if that is not possible, solve each conflict twice, once for each A/C
     if not traf.ADSBtrunc and not traf.ADSBtransnoise:
-        for conflict in dbconf.conflist_now:
-            id1, id2 = dbconf.ConflictToIndices(conflict)
+        for conflict in asas.conflist_now:
+            id1, id2 = asas.ConflictToIndices(conflict)
             if id1 != "Fail" and id2 != "Fail":
-                dv_eby = Eby_straight(traf, dbconf, id1, id2)
+                dv_eby = Eby_straight(traf, asas, id1, id2)
                 dv[id1] -= dv_eby
                 dv[id2] += dv_eby
     else:
-        for i in range(dbconf.nconf):
-            confpair = dbconf.confpairs[i]
+        for i in range(asas.nconf):
+            confpair = asas.confpairs[i]
             ac1      = confpair[0]
             ac2      = confpair[1]
             id1      = traf.id.index(ac1)
             id2      = traf.id.index(ac2)
-            dv_eby   = Eby_straight(dbconf, id1, id2)
+            dv_eby   = Eby_straight(asas, id1, id2)
             dv[id1] -= dv_eby
 
     # now we have the change in speed vector for each aircraft.
@@ -54,31 +54,31 @@ def resolve(dbconf, traf):
     neweas=vtas2eas(newgs,traf.alt)
 
     # Cap the velocity
-    neweascapped=np.maximum(dbconf.vmin,np.minimum(dbconf.vmax,neweas))
+    neweascapped=np.maximum(asas.vmin,np.minimum(asas.vmax,neweas))
 
     # now assign in the traf class
-    dbconf.hdg=newtrack
-    dbconf.spd=neweascapped
-    dbconf.vs=newv[2,:]
-    dbconf.alt=np.sign(dbconf.vs)*1e5
+    asas.hdg = newtrack
+    asas.tas = neweascapped
+    asas.vs  = newv[2,:]
+    asas.alt = np.sign(asas.vs)*1e5
 
 #=================================== Eby Method ===============================
 
     # Resolution: Eby method assuming aircraft move straight forward, solving algebraically, only horizontally
-def Eby_straight(traf, dbconf, id1, id2):
-    traf=traf
-    dist=dbconf.dist[id1,id2]
-    qdr=dbconf.qdr[id1,id2]
+def Eby_straight(traf, asas, id1, id2):
+    traf = traf
+    dist = asas.dist[id1,id2]
+    qdr  = asas.qdr[id1,id2]
     # from degrees to radians
-    qdr=np.radians(qdr)
+    qdr  = np.radians(qdr)
     # relative position vector
-    d=np.array([np.sin(qdr)*dist, \
-        np.cos(qdr)*dist, \
-        traf.alt[id2]-traf.alt[id1] ])
+    d    = np.array([np.sin(qdr)*dist, \
+           np.cos(qdr)*dist, \
+           traf.alt[id2]-traf.alt[id1] ])
 
     # find track in radians
-    t1=np.radians(traf.trk[id1])
-    t2=np.radians(traf.trk[id2])
+    t1 = np.radians(traf.trk[id1])
+    t2 = np.radians(traf.trk[id2])
 
     # write velocities as vectors and find relative velocity vector
     v1=np.array([np.sin(t1)*traf.tas[id1],np.cos(t1)*traf.tas[id1],traf.vs[id1]])
@@ -99,7 +99,7 @@ def Eby_straight(traf, dbconf, id1, id2):
     -Solve using the quadratic formula
     """
     # These terms are used to construct a,b,c of the quadratic formula
-    R2=dbconf.Rm**2 # in meters
+    R2=asas.Rm**2 # in meters
     d2=np.dot(d,d) # distance vector length squared
     v2=np.dot(v,v) # velocity vector length squared
     dv=np.dot(d,v) # dot product of distance and velocity
@@ -131,7 +131,7 @@ def Eby_straight(traf, dbconf, id1, id2):
         dstarabs=np.linalg.norm(drelstar)
 
     #intrusion at tstar
-    i=dbconf.Rm-dstarabs
+    i=asas.Rm-dstarabs
 
     #desired change in the plane's speed vector:
     dv=i*drelstar/(dstarabs*tstar)

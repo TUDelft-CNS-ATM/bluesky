@@ -154,11 +154,11 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
 #-----------------------------------------------------------------------------
 def esf(abco, belco, alt, M, climb, descent, delspd):
 
-    # avoid wrong allocation due to infinitissimal speed changes
-    cspd  = np.array((delspd <= 0.4) & (delspd >= -0.4))
+    # test for acceleration / deceleration
+    cspd  = np.array((delspd <= 0.0) & (delspd >= -0.0))
     # accelerating or decelerating
-    acc   = np.array(delspd > 0.4)
-    dec   = np.array(delspd < -0.4)
+    acc   = np.array(delspd > 0.0)
+    dec   = np.array(delspd < -0.0)
 
     # tropopause
     abtp  = np.array(alt > 11000.0)
@@ -212,7 +212,7 @@ def esf(abco, belco, alt, M, climb, descent, delspd):
 #
 #------------------------------------------------------------------------------
 def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
-           desalt, desvs, maxthr, Thr, D, tas, mass, ESF):
+           desalt, desvs, maxthr, Thr, D, tas, mass, ESF, phase):
 
     # minimum CAS - below crossover (we do not check for minimum Mach)
     limspd      = np.where((desspd < vmin), vmin, -999.)
@@ -234,26 +234,36 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
 
     # set altitude to max. possible altitude if alt>Hmax
     limalt = np.where((desalt>hmaxact), hmaxact -1.0, -999.)
+    limalt_flag = np.where((desalt>hmaxact), True, False)
 
     # remove non-needed limits
     limalt = np.where((np.abs(desalt-hmaxact)<0.1), -999., limalt)
+    limalt_flag = np.where((np.abs(desalt-hmaxact)<0.1), False, limalt_flag)
 
     # thrust and vertical speed
-    Thr   = np.where((Thr>maxthr-1.0), maxthr-1., Thr)
-    limvs = np.where((Thr>maxthr-1.0), ((Thr - D) * tas) / (mass * g0)* ESF, -9999.0)
+    Thr_corrected   = np.where((Thr > maxthr-1.0), maxthr-1., Thr)
+    limvs = np.where((Thr >maxthr-1.0), ((Thr_corrected - D) * tas) / (mass * g0)* ESF, -9999.0)
+    limvs_flag = np.where(limvs > -9999.0 , True, False)
+
 
     # aircraft can only take-off as soon as their speed is above v_rotate
     # True means that current speed is below rotation speed
     # limit vertical speed is thrust limited and thus should only be
     # applied for aircraft that are climbing
-    limvs       = np.where((desvs > 0.) & (gs<to_spd), 0.0, limvs)
-    limvs_flag  = np.where ((desvs > 0.) & (gs<to_spd), False, True)
+    limvs       = np.where((desvs > 0.) & (gs<to_spd) & (phase == 6), 0.0, limvs)
+    limvs_flag  = np.where ((desvs > 0.) & (gs<to_spd) & (phase == 6), True, limvs_flag)
 
+
+    # remove takeoff limit
+    limvs      = np.where ((np.abs(to_spd - gs) < 0.1) & ((phase == 6) | (phase == 1)), -9999.,  limvs)
+    limvs_flag = np.where((np.abs(to_spd - gs) < 0.1) & ((phase == 6) | (phase == 1)), True, limvs_flag)
+
+    
+    
     # remove non-needed limits
     Thr        = np.where((maxthr-Thr< 2.), -9999., Thr)
     limvs      = np.where((maxthr-Thr< 2.), -9999., limvs)
-    limvs      = np.where ((np.abs(to_spd - gs) < 0.1), -9999., limvs)
-    limvs_flag = np.where((np.abs(to_spd - gs) < 0.1), True, limvs_flag)
+    limvs_flag = np.where((limvs< -999.), False, limvs_flag)
 
 
-    return limspd, limspd_flag, limalt, limvs, limvs_flag
+    return limspd, limspd_flag, limalt, limalt_flag, limvs, limvs_flag

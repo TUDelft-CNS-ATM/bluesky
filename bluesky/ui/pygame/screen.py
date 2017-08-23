@@ -687,8 +687,10 @@ class Screen:
 
 
                 # Check for changes in traffic label text
-                if not label[:3] == bs.traf.label[i][:3] or \
-                                             type(bs.traf.label[i][3])==str:
+                if  not (type(bs.traf.label[i])==list) or \
+                      not (type(bs.traf.label[i][3])==str) or \
+                        not (label[:3] == bs.traf.label[i][:3]):
+                            
                     bs.traf.label[i] = []
                     labelbmp = pg.Surface((100, 60), 0, self.win)
                     if len(bs.traf.asas.iconf[i]) == 0:

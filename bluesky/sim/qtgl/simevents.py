@@ -83,9 +83,14 @@ class ShowDialogEvent(EventBase):
 
 
 class RouteDataEvent(EventBase):
-    aclat = aclon = wplat = wplon = wpalt = wpspd = wpname = []
+    aclat  = []
+    wplat  = []
+    wplon  = []
+    wpalt  = []
+    wpspd  = []
+    wpname = []
     iactwp = -1
-    acid = ""
+    acid  = ""
 
     def __init__(self):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
