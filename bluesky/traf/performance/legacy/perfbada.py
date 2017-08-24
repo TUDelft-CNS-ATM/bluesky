@@ -606,6 +606,7 @@ class PerfBADA(TrafficArrays):
                                         self.mmo,              \
                                         bs.traf.M,             \
                                         bs.traf.alt,           \
+                                        self.hmaxact,          \
                                         bs.traf.pilot.alt,     \
                                         self.hmaxact,          \
                                         bs.traf.pilot.vs,      \
