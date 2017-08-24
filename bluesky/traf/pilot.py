@@ -3,6 +3,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import vtas2eas, vcas2tas, vcas2mach, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky import settings
 
 
 class Pilot(TrafficArrays):
@@ -61,19 +62,21 @@ class Pilot(TrafficArrays):
         else:
             self.hdg = self.trk % 360.
 
-    def FlightEnvelope(self):
+    def applylimits(self):
         # check for the flight envelope
-        bs.traf.delalt = bs.traf.selalt - bs.traf.alt  # [m]
-        bs.traf.perf.limits() # Sets limspd_flag and limspd when it needs to be limited
+        if settings.performance_model == 'nap':
+            self.tas, self.vs, self.alt = bs.traf.perf.limits(self.tas, self.vs, self.alt)
+        else:
+            bs.traf.delalt = bs.traf.selalt - bs.traf.alt  # [m]
+            bs.traf.perf.limits() # Sets limspd_flag and limspd when it needs to be limited
 
-        # Update desired sates with values within the flight envelope
-        # When CAs is limited, it needs to be converted to TAS as only this TAS is used later on!
+            # Update desired sates with values within the flight envelope
+            # When CAs is limited, it needs to be converted to TAS as only this TAS is used later on!
 
-        self.tas = np.where(bs.traf.limspd_flag, vcas2tas(bs.traf.limspd, bs.traf.alt), self.tas)
+            self.tas = np.where(bs.traf.limspd_flag, vcas2tas(bs.traf.limspd, bs.traf.alt), self.tas)
 
-        # Autopilot selected altitude [m]
-        self.alt = np.where(bs.traf.limalt_flag, bs.traf.limalt, self.alt)
+            # Autopilot selected altitude [m]
+            self.alt = np.where(bs.traf.limalt_flag, bs.traf.limalt, self.alt)
 
-        # Autopilot selected vertical speed (V/S)
-        self.vs = np.where(bs.traf.limvs_flag, bs.traf.limvs, self.vs)
-
+            # Autopilot selected vertical speed (V/S)
+            self.vs = np.where(bs.traf.limvs_flag, bs.traf.limvs, self.vs)

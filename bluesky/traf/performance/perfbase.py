@@ -7,7 +7,7 @@ class PerfBase(TrafficArrays):
 
         with RegisterElementParameters(self):
             # --- fixed parameters ---
-            self.actype = np.array([])  # aircraft type
+            self.actype = np.array([], dtype=str)  # aircraft type
             self.Sref = np.array([])  # wing reference surface area [m^2]
             self.engtype = np.array([])  # integer, aircraft.ENG_TF...
 
@@ -30,7 +30,7 @@ class PerfBase(TrafficArrays):
     def reset(self):
         super(PerfBase, self).reset()
 
-    def update(self):
+    def update(self, simt):
         """implement this methods"""
         pass
 

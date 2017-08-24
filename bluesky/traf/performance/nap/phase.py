@@ -3,10 +3,12 @@ import numpy as np
 NA = 0  # Unknown phase
 TO = 1  # Take-off
 IC = 2  # Initial climb
-ER = 3  # Cruise
-AP = 5  # Approach
-LD = 6  # Landing
-GD = 7  # Ground, Taxiing
+CL = 3  # Climb
+CR = 4  # Cruise
+DE = 5  # Descent
+AP = 6  # Approach
+LD = 7  # Landing
+GD = 8  # Ground, Taxiing
 
 
 def get(spd, roc, alt, unit="SI"):
@@ -27,18 +29,18 @@ def get(spd, roc, alt, unit="SI"):
         raise RuntimeError('wrong unit type')
 
 
-    if unit == 'EP':
-        spd = spd * 0.514444
-        roc = roc * 0.00508
-        alt = alt * 0.3048
+    if unit == 'SI':
+        spd = spd / 0.514444
+        roc = roc / 0.00508
+        alt = alt / 0.3048
 
     PH = np.zeros(len(spd), dtype=int)
 
-    PH[np.where(alt<10) & (roc<100) & (roc>-100)] = GD
-    PH[np.where((alt>=10) & (roc>100) & (alt<1000))] = IC
-    PH[np.where((alt>=10) & (roc>100) & (alt>1000))] = CL
-    PH[np.where((alt>=10) & (roc<-100) & (alt>1000))] = DE
-    PH[np.where((alt>=10) & (roc<-100) & (alt<1000))] = FA
-    PH[np.where((alt>=10) & (roc<-100) & (alt>1000))] = DE
+    PH[(alt<10) & (roc<100) & (roc>-100)] = GD
+    PH[(alt>0) & (alt<1000) & (roc>0)] = IC
+    PH[(alt>0) & (alt<1000) & (roc<0)] = AP
+    PH[(alt>=1000) & (roc>100)] = CL
+    PH[(alt>=1000) & (roc<-100)] = DE
+    PH[(alt>=5000) & (roc<100) & (roc>-100)] = CR
 
     return PH

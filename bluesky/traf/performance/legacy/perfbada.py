@@ -622,7 +622,7 @@ class PerfBADA(TrafficArrays):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,
         # landing aircraft use ground deceleration, others use standard acceleration
         # --> BADA uses the same value for ground acceleration as for deceleration
-    
+
 
         ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
                      (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \

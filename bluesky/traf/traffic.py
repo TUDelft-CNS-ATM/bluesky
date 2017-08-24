@@ -31,6 +31,7 @@ try:
         from .performance.legacy.perfbs import PerfBS as Perf
 
     elif settings.performance_model == 'bada':
+        print('Using BADA Perfromance model')
         from .performance.legacy.perfbada import PerfBADA as Perf
 
     elif settings.performance_model == 'nap':
@@ -423,16 +424,21 @@ class Traffic(TrafficArrays):
         self.asas.update(simt)
         self.pilot.APorASAS()
 
+        #---------- NAP Performance Update ------------------------
+        if settings.performance_model == 'nap':
+            self.perf.update(simt)
+
         #---------- Limit Speeds ------------------------------
-        self.pilot.FlightEnvelope()
+        self.pilot.applylimits()
 
         #---------- Kinematics --------------------------------
         self.UpdateAirSpeed(simdt, simt)
         self.UpdateGroundSpeed(simdt)
         self.UpdatePosition(simdt)
 
-        #---------- Performance Update ------------------------
-        self.perf.perf(simt)
+        #---------- Legacy Performance Update ------------------------
+        if settings.performance_model in ['bluesky', 'bada']:
+            self.perf.perf(simt)
 
         #---------- Simulate Turbulence -----------------------
         self.turbulence.Woosh(simdt)
