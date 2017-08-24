@@ -142,13 +142,13 @@ class Area(TrafficArrays):
                 traf.tas[delidx],
                 traf.vs[delidx],
                 traf.hdg[delidx],
-                traf.ap.origlat[delidx],
-                traf.ap.origlon[delidx],
-                traf.ap.destlat[delidx],
-                traf.ap.destlon[delidx],
+                # traf.ap.origlat[delidx],
+                # traf.ap.origlon[delidx],
+                # traf.ap.destlat[delidx],
+                # traf.ap.destlon[delidx],
                 traf.asas.active[delidx],
                 traf.pilot.alt[delidx],
-                traf.pilot.spd[delidx],
+                traf.pilot.tas[delidx],
                 traf.pilot.vs[delidx],
                 traf.pilot.hdg[delidx]
             )
