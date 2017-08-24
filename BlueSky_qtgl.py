@@ -94,7 +94,7 @@ def stop(telnet_in, manager):
 # =============================================================================
 # Start the mainloop (and possible other threads)
 # =============================================================================
-def mainloop():
+def main_loop():
     if settings.node_only:
         from bluesky.sim.qtgl import nodemanager as manager
         manager.run()
@@ -107,4 +107,4 @@ def mainloop():
 
 if __name__ == "__main__":
     # Run mainloop if BlueSky-qtgl is called directly
-    mainloop()
+    main_loop()

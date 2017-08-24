@@ -17,4 +17,4 @@ else:
 
 # Start the main loop. When debugging in python interactive mode,
 # relevant objects are available in bs namespace (e.g., bs.gui, bs.sim)
-bs.mainloop()
+bs.main_loop()

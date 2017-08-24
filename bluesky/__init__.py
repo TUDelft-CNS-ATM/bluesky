@@ -18,6 +18,5 @@ sim   = _sim.sim
 scr   = _scr.scr
 
 SIMPLE_ECHO = 'simple_echo'
-MSG_OK = "ok."
-CMD_TCP_CONNS = "TCP_CONNS"
-
+MSG_OK = 'ok.'
+CMD_TCP_CONNS = 'TCP_CONNS'

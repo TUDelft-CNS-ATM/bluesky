@@ -10,7 +10,7 @@ if __name__ == "__main__":
     print("Distributed under GNU General Public License v3")
 
 
-def mainloop():
+def main_loop():
     # =============================================================================
     # Start the mainloop (and possible other threads)
     # =============================================================================
@@ -41,4 +41,4 @@ def mainloop():
 # Run mainloop if BlueSky_pygame is called directly
 
 if __name__ == '__main__':
-    mainloop()
+    main_loop()
