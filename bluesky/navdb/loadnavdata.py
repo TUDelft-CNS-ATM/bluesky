@@ -26,7 +26,6 @@ cachedir  = settings.cache_path
 
 class CacheFile():
     def __init__(self, fname, version_ref):
-        print('cachefile constructor')
         self.fname = fname
         self.version_ref = version_ref
         self.file = None
