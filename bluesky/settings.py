@@ -14,7 +14,9 @@ def init():
     srcdir = ''
     # Determine gui preference from whether bluesky was started with
     # BlueSky.py, BlueSky_qtgl.py, or BlueSky_pygame.py
-    gui = 'pygame' if 'pygame' in sys.argv[0] else ('qtgl' if 'qtgl' in sys.argv[0] else 'ask')
+    gui = 'pygame' if 'pygame' in sys.argv[0] \
+        else ('qtgl' if 'qtgl' in sys.argv[0] or 'pytest' in sys.argv[0]
+              else 'ask')
 
     # If BlueSky is run from a compiled bundle instead of from source, adjust the startup path
     # and change the path of configurable files to $home/bluesky
