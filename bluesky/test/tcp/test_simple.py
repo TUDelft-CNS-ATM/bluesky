@@ -70,7 +70,7 @@ def test_create_success(sock):
     Tests that creating an aircraft properly yields an 'ok.' response.
     """
     sock_, blue, blue_test = sock
-    sock_.send("CRE KL204, B744,52,4,180,2000,220\n")
+    sock_.send("CRE KL204, B744, 52, 4, 180, 2000, 220\n")
     data = sock_.recv(BUFFER_SIZE).strip().split("\n")
     blue_test.printrecv(data)
     assert len(data) == 1
