@@ -9,8 +9,8 @@ from bluesky import settings
 # Register settings defaults
 settings.set_variable_defaults(perf_path_bada='data/coefficients/BADA', verbose=False)
 
-from . import bada_coeff
-if not bada_coeff.init(settings.perf_path_bada):
+from . import coeff_bada
+if not coeff_bada.init(settings.perf_path_bada):
     raise ImportError('BADA performance model: Error loading BADA files from ' + settings.perf_path_bada + '!')
 else:
     print('Using BADA performance model.')
@@ -174,11 +174,11 @@ class PerfBADA(TrafficArrays):
         # general
         # designate aircraft to its aircraft type
         for actype in actypes:
-            syn, coeff = bada_coeff.getCoefficients(actype)
+            syn, coeff = coeff_bada.getCoefficients(actype)
             if syn:
                 continue
 
-            syn, coeff = bada_coeff.getCoefficients('B744')
+            syn, coeff = coeff_bada.getCoefficients('B744')
             bs.traf.type[-n:] = syn.accode
 
             if not settings.verbose:
