@@ -136,8 +136,7 @@ try:
     from bluesky.sim import *
     from bluesky.traf import *
     from bluesky.traf.asas import *
-    from bluesky.traf.metric import *
-    from bluesky.traf.perf import *
+    from bluesky.traf.performance import *
     from bluesky.navdb import *
 except Exception as err:
     print(traceback.format_exc())
