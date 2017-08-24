@@ -4,8 +4,6 @@ import socket
 import threading
 from bluesky import settings, CMD_TCP_CONNS
 
-SIZEOF_UINT16 = 2
-
 if settings.gui == 'qtgl':
     try:
         from PyQt5.QtCore import \

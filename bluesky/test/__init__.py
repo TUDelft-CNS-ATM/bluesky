@@ -1,6 +1,11 @@
 """
+Copyright (c) 2017 SPARKL Limited. All Rights Reserved.
+For inclusion with BlueSky upstream code:
+https://github.com/ProfHoekstra/bluesky/, distributed under
+GNU General Public License v3.
+
+Author <ahfarrell@sparkl.com> Andrew Farrell
 Common test functionality.
-- Andrew Farrell, SPARKL.
 """
 from __future__ import print_function
 import inspect
@@ -21,7 +26,7 @@ def funname(stackpos):
     return inspect.stack()[stackpos][3]
 
 
-def printrecv(data, stackpos = 2):
+def printrecv(data, stackpos=2):
     """
     Prints the data received by test from bluesky.
     Also prints the calling test function, for context.
