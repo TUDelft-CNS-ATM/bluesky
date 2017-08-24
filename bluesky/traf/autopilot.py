@@ -76,7 +76,7 @@ class Autopilot(TrafficArrays):
                 oldspd = bs.traf.actwp.spd[i]
 
                 # Get next wp (lnavon = False if no more waypoints)
-                lat, lon, alt, spd, bs.traf.actwp.xtoalt, toalt, \
+                lat, lon, alt, spd, bs.traf.actwp.xtoalt[i], toalt, \
                           lnavon, flyby, bs.traf.actwp.next_qdr[i] =  \
                        self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
