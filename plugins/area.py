@@ -6,6 +6,7 @@ import numpy as np
 from bluesky import traf, sim  #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import datalog, areafilter, \
     TrafficArrays, RegisterElementParameters
+from bluesky import settings
 
 # Log parameters for the flight statistics log
 header = \
@@ -110,7 +111,11 @@ class Area(TrafficArrays):
         resultantspd = np.sqrt(traf.gs * traf.gs + traf.vs * traf.vs)
         self.distance2D += self.dt * traf.gs
         self.distance3D += self.dt * resultantspd
-        self.work += (traf.perf.Thr * self.dt * resultantspd)
+
+        if settings.performance_model == 'nap':
+            self.work += (traf.perf.thrust * self.dt * resultantspd)
+        else:
+            self.work += (traf.perf.Thr * self.dt * resultantspd)
 
         # ToDo: Add autodelete for descending with swTaxi:
         if self.swtaxi:
