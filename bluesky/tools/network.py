@@ -6,12 +6,10 @@ from bluesky import settings, CMD_TCP_CONNS
 
 if settings.gui == 'qtgl':
     try:
-        from PyQt5.QtCore import \
-            pyqtSlot, QByteArray, QDataStream, QIODevice, QString
+        from PyQt5.QtCore import pyqtSlot
         from PyQt5.QtNetwork import QTcpServer, QTcpSocket
     except ImportError:
-        from PyQt4.QtCore import \
-            pyqtSlot, QByteArray, QDataStream, QIODevice, QString
+        from PyQt4.QtCore import pyqtSlot
         from PyQt4.QtNetwork import QTcpServer, QTcpSocket
 
 
