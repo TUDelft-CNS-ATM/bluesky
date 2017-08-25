@@ -216,7 +216,7 @@ class Simulation(QObject):
 
         if event.type() == StackTextEventType:
             # We received a single stack command. Add it to the existing stack
-            stack.stack(event.cmdtext)
+            stack.stack(event.cmdtext, event.sender_id)
             event_processed = True
 
         elif event.type() == BatchEventType:

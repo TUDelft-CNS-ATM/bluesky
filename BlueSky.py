@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+""" Overall BlueSky start script """
+from __future__ import print_function
 from bluesky import settings
 
 print("   *****   BlueSky Open ATM simulator *****")
@@ -14,4 +17,4 @@ else:
 
 # Start the main loop. When debugging in python interactive mode,
 # relevant objects are available in bs namespace (e.g., bs.gui, bs.sim)
-bs.MainLoop()
+bs.main_loop()

@@ -72,9 +72,10 @@ class ScreenIO(QObject):
         # Communicate reset to gui
         manager.sendEvent(DisplayFlagEvent('RESET', 'ALL'))
 
-    def echo(self, text):
+
+    def echo(self, text, sender_id=None):
         if manager.isActive():
-            manager.sendEvent(StackTextEvent(disptext=text))
+            manager.sendEvent(StackTextEvent(disptext=text, sender_id=sender_id))
 
     def cmdline(self, text):
         if manager.isActive():
@@ -130,7 +131,6 @@ class ScreenIO(QObject):
         return True
 
     def showacinfo(self, acid, infotext):
-        self.echo(infotext)
         self.showroute(acid)
         return True
 

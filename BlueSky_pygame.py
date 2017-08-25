@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+""" Pygame BlueSky start script """
+from __future__ import print_function
 import pygame as pg
 from bluesky import sim, scr, stack
 from bluesky.ui.pygame import Keyboard, splash
@@ -7,7 +10,7 @@ if __name__ == "__main__":
     print("Distributed under GNU General Public License v3")
 
 
-def MainLoop():
+def main_loop():
     # =============================================================================
     # Start the mainloop (and possible other threads)
     # =============================================================================
@@ -38,4 +41,4 @@ def MainLoop():
 # Run mainloop if BlueSky_pygame is called directly
 
 if __name__ == '__main__':
-    MainLoop()
+    main_loop()
