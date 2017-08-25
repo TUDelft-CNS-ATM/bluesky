@@ -135,18 +135,13 @@ class Coefficient():
         unique_ac_mdls = np.unique(actypes)
 
         for mdl in unique_ac_mdls:
-            if mdl not in list(self.acs.keys()):
-                selmdl = 'A320'
-            else:
-                selmdl = mdl
-
-            allengs = list(self.acs[selmdl]['engines'].keys())
-            params[:, 0] = np.where(actypes==mdl, self.acs[selmdl]['wa'], params[:, 0])
-            params[:, 1] = np.where(actypes==mdl, self.acs[selmdl]['oew'], params[:, 1])
-            params[:, 2] = np.where(actypes==mdl, self.acs[selmdl]['mtow'], params[:, 2])
-            params[:, 3] = np.where(actypes==mdl, self.acs[selmdl]['n_engines'], params[:, 3])
-            params[:, 4] = np.where(actypes==mdl, engtypes[self.acs[selmdl]['engine_type']], params[:, 4])
-            params[:, 5] = np.where(actypes==mdl, self.acs[selmdl]['engines'][allengs[0]]['thr'], params[:, 5])
-            params[:, 6] = np.where(actypes==mdl, self.acs[selmdl]['engines'][allengs[0]]['bpr'], params[:, 6])
+            allengs = list(self.acs[mdl]['engines'].keys())
+            params[:, 0] = np.where(actypes==mdl, self.acs[mdl]['wa'], params[:, 0])
+            params[:, 1] = np.where(actypes==mdl, self.acs[mdl]['oew'], params[:, 1])
+            params[:, 2] = np.where(actypes==mdl, self.acs[mdl]['mtow'], params[:, 2])
+            params[:, 3] = np.where(actypes==mdl, self.acs[mdl]['n_engines'], params[:, 3])
+            params[:, 4] = np.where(actypes==mdl, engtypes[self.acs[mdl]['engine_type']], params[:, 4])
+            params[:, 5] = np.where(actypes==mdl, self.acs[mdl]['engines'][allengs[0]]['thr'], params[:, 5])
+            params[:, 6] = np.where(actypes==mdl, self.acs[mdl]['engines'][allengs[0]]['bpr'], params[:, 6])
 
         return params

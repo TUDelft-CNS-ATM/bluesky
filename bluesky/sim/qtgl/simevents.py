@@ -58,10 +58,11 @@ class SimInfoEvent(EventBase):
 
 
 class StackTextEvent(EventBase):
-    def __init__(self, disptext='', cmdtext=''):
+    def __init__(self, disptext='', cmdtext='', sender_id=None):
         super(StackTextEvent, self).__init__(StackTextEventType)
         self.disptext = disptext
         self.cmdtext = cmdtext
+        self.sender_id = sender_id
 
 
 class StackInitEvent(EventBase):

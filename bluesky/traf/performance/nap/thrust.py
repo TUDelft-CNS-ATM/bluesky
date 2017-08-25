@@ -1,7 +1,8 @@
 import numpy as np
 from bluesky.tools import aero
+from bluesky.traf.performance.nap import phase as ph
 
-def compute_thrust_ratio(phase, bpr, spd, alt, unit='SI'):
+def compute_thrust_ratio(phase, bpr, v, h, unit='SI'):
     """Computer the dynamic thrust based on engine bypass-ratio, static maximum
     thrust, aircraft true airspeed, and aircraft altitude
 
@@ -9,8 +10,8 @@ def compute_thrust_ratio(phase, bpr, spd, alt, unit='SI'):
         phase (int or 1D-array): phase of flight, option: phase.[NA, TO, IC, CL,
             CR, DE, FA, LD, GD]
         bpr (int or 1D-array): engine bypass ratio
-        tas (int or 1D-array): aircraft true airspeed (kt)
-        alt (int or 1D-array): aircraft altitude (ft)
+        v (int or 1D-array): aircraft true airspeed
+        h (int or 1D-array): aircraft altitude
 
     Returns:
         int or 1D-array: thust in N
@@ -19,14 +20,13 @@ def compute_thrust_ratio(phase, bpr, spd, alt, unit='SI'):
     n = len(phase)
 
     if unit == 'EP':
-        spd = spd * aero.kts
-        roc = roc * aero.pfm
-        alt = alt * aero.ft
+        v = v * aero.kts
+        h = h * aero.ft
 
     G0 = 0.0606 * bpr + 0.6337
-    Mach = aero.tas2mach(v, h)
+    Mach = aero.vtas2mach(v, h)
     P0 = aero.p0
-    P = aero.pressure(H)
+    P = aero.vpressure(h)
     PP = P / P0
 
     # thrust ratio at take off
@@ -47,38 +47,30 @@ def compute_thrust_ratio(phase, bpr, spd, alt, unit='SI'):
     # thrust ratio array
     #   LD and GN assume ZERO thrust
     tr = np.zeros(n)
-    tr = np.where(phase==ph.TO, ratio_takeoff, 0)
-    tr = np.where(phase==ph.IC or phase==ph.CL or phase==ph.CR,
-                  ratio_inflight, 0)
-    tr = np.where(phase==ph.DE or phase==ph.FA,
-                  ratio_idle, 0)
+    tr = np.where(phase==ph.TO, ratio_takeoff, tr)
+    tr = np.where((phase==ph.IC) | (phase==ph.CL) | (phase==ph.CR), ratio_inflight, tr)
+    tr = np.where(phase==ph.DE, ratio_idle, tr)
 
     return tr
 
 
-def compute_fuel_flow(thrust_ratio, n_engines, fficao):
+def compute_fuel_flow(thrust_ratio, n_engines, ffidl, ffapp, ffco, ffto):
     """Compute fuel flow based on engine icao fuel flow model
 
     Args:
         thrust_ratio (1D-array): thrust ratio between 0 and 1
         n_engines (1D-array): number of engines on the aircraft
-        fficao (2D-array): rows are
-            ff_idl : fuel flow - idle thrust
-            ff_ap : fuel flow - approach
-            ff_co : fuel flow - climb out
-            ff_to : fuel flow - takeoff
+        ff_idl (1D-array): fuel flow - idle thrust
+        ff_app (1D-array): fuel flow - approach
+        ff_co (1D-array): fuel flow - climb out
+        ff_to (1D-array): fuel flow - takeoff
 
     Returns:
         float or 1D-array: Fuel flow in kg
     """
 
-    ff_idl = fficao[:, 0]
-    ff_ap = fficao[:, 1]
-    ff_co = fficao[:, 2]
-    ff_to = fficao[:, 3]
-
     # standard fuel flow at test thrust ratios
-    y = [np.zeros(ff_idl.shape), ff_idl, ff_ap, ff_co, ff_to]
+    y = [np.zeros(ffidl.shape), ffidl, ffapp, ffco, ffto]
     x = [0, 0.07, 0.3, 0.85, 1.0]  # test thrust ratios
 
     ff_model = np.poly1d(np.polyfit(x, y, 2))      # fuel flow model f(T/T0)

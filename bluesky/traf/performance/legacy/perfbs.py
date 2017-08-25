@@ -11,11 +11,11 @@ from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
-from . import bs_coeff
+from . import coeff_bs
 
 # Register settings defaults
 settings.set_variable_defaults(perf_path='data/coefficients', verbose=False)
-coeffBS = bs_coeff.CoeffBS()
+coeffBS = coeff_bs.CoeffBS()
 
 
 class PerfBS(TrafficArrays):
@@ -30,7 +30,7 @@ class PerfBS(TrafficArrays):
         # Flight performance scheduling
         self.dt  = 0.1           # [s] update interval of performance limits
         self.t0  = -self.dt  # [s] last time checked (in terms of simt)
-        
+
         with RegisterElementParameters(self):
             # index of aircraft types in library
             self.coeffidxlist = np.array([])
@@ -80,7 +80,7 @@ class PerfBS(TrafficArrays):
             self.ffcr         = np.array([]) # fuel flow cruise
             self.ffid         = np.array([]) # fuel flow idle
             self.ffap         = np.array([]) # fuel flow approach
-            
+
             # turboprop engines
             self.P            = np.array([]) # avaliable power at takeoff conditions
             self.PSFC_TO      = np.array([]) # specific fuel consumption takeoff
@@ -122,7 +122,7 @@ class PerfBS(TrafficArrays):
                 else:
                     print("Flight " + bs.traf.id[-1] + " has an unknown aircraft type, " + actype + ", BlueSky then uses default B747-400 performance.")
         coeffidx = np.array(coeffidx)
-        
+
         # note: coefficients are initialized in SI units
 
         self.coeffidxlist[-n:]      = coeffidx
@@ -163,13 +163,13 @@ class PerfBS(TrafficArrays):
         # flight phase
         self.pf_flag[-n:]           = 1
         # self.phase/bank/post_flight are initialised as 0 by super.create
-        
+
         # engines
         self.n_eng[-n:]              = coeffBS.n_eng[coeffidx] # Number of engines
         turboprops = self.etype[-n:] == 2
 
         propidx = []
-        jetidx  = [] 
+        jetidx  = []
 
         for engine in self.engines[-n:]:
             if engine in coeffBS.propenlist:
@@ -191,7 +191,7 @@ class PerfBS(TrafficArrays):
 
         self.rThr[-n:]      = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # rated thrust (all engines)
         self.Thr[-n:]       = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # initialize thrust with rated thrust
-        self.Thr_pilot[-n:] = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # initialize thrust with rated thrust        
+        self.Thr_pilot[-n:] = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # initialize thrust with rated thrust
         self.maxthr[-n:]    = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx]*1.2)  # maximum thrust - initialize with 1.2*rThr
         self.SFC[-n:]       = np.where(turboprops, 1. , coeffBS.SFC[jetidx] )
         self.ffto[-n:]      = np.where(turboprops, 1. , coeffBS.ffto[jetidx]*coeffBS.n_eng[coeffidx])
@@ -280,7 +280,7 @@ class PerfBS(TrafficArrays):
 
         # determine thrust
         self.Thr = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
-        
+
         # determine thrust required to fulfill requests from pilot
         self.Thr_pilot = (((bs.traf.pilot.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.pilot.tas))) + self.D)
 

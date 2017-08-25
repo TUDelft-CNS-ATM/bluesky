@@ -6,6 +6,7 @@ import numpy as np
 from bluesky import traf, sim  #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import datalog, areafilter, \
     TrafficArrays, RegisterElementParameters
+from bluesky import settings
 
 # Log parameters for the flight statistics log
 header = \
@@ -101,7 +102,7 @@ class Area(TrafficArrays):
             self.create_time = np.array([])
 
     def create(self, n=1):
-        super(FLST, self).create(n)
+        super(Area, self).create(n)
         self.create_time[-n:] = sim.simt
 
     def update(self):
@@ -110,7 +111,11 @@ class Area(TrafficArrays):
         resultantspd = np.sqrt(traf.gs * traf.gs + traf.vs * traf.vs)
         self.distance2D += self.dt * traf.gs
         self.distance3D += self.dt * resultantspd
-        self.work += (traf.perf.Thr * self.dt * resultantspd)
+
+        if settings.performance_model == 'nap':
+            self.work += (traf.perf.thrust * self.dt * resultantspd)
+        else:
+            self.work += (traf.perf.Thr * self.dt * resultantspd)
 
         # ToDo: Add autodelete for descending with swTaxi:
         if self.swtaxi:
@@ -137,19 +142,19 @@ class Area(TrafficArrays):
                 traf.tas[delidx],
                 traf.vs[delidx],
                 traf.hdg[delidx],
-                traf.ap.origlat[delidx],
-                traf.ap.origlon[delidx],
-                traf.ap.destlat[delidx],
-                traf.ap.destlon[delidx],
+                # traf.ap.origlat[delidx],
+                # traf.ap.origlon[delidx],
+                # traf.ap.destlat[delidx],
+                # traf.ap.destlon[delidx],
                 traf.asas.active[delidx],
                 traf.pilot.alt[delidx],
-                traf.pilot.spd[delidx],
+                traf.pilot.tas[delidx],
                 traf.pilot.vs[delidx],
                 traf.pilot.hdg[delidx]
             )
 
         # delete all aicraft in self.delidx
-        for acid in [traf.id[idx] for idx in self.delidx]:
+        for acid in [traf.id[idx] for idx in delidx]:
             traf.delete(acid)
 
     def setArea(self, *args):

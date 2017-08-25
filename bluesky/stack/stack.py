@@ -838,12 +838,12 @@ def reset():
     scenname = ''
 
 
-def stack(cmdline):
+def stack(cmdline, sender_id=None):
     # Stack one or more commands separated by ";"
     cmdline = cmdline.strip()
     if len(cmdline) > 0:
         for line in cmdline.split(';'):
-            cmdstack.append(line)
+            cmdstack.append((line, sender_id))
 
 
 def sched_cmd(time, args, relative=False):
@@ -1074,7 +1074,7 @@ def process():
     """process and empty command stack"""
 
     # Process stack of commands
-    for line in cmdstack:
+    for (line, sender_id) in cmdstack:
         #debug       print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
@@ -1131,9 +1131,9 @@ def process():
             if False in argisopt:
                 minargs = len(argisopt) - argisopt[::-1].index(False)
                 if numargs < minargs:
-                    bs.scr.echo("Syntax error: Too few arguments")
-                    bs.scr.echo(line)
-                    bs.scr.echo(helptext)
+                    bs.scr.echo("Syntax error: Too few arguments", sender_id)
+                    bs.scr.echo(line, sender_id)
+                    bs.scr.echo(helptext, sender_id)
                     continue
 
             # Special case: single text string argument: case sensitive,
@@ -1166,7 +1166,7 @@ def process():
                             # No value = None when this is allowed because it is an optional argument
                             if parser.result[0] is None and argisopt[curtype] is False:
                                 synerr = True
-                                bs.scr.echo('No value given for mandatory argument ' + argtypes[curtype])
+                                bs.scr.echo('No value given for mandatory argument ' + argtypes[curtype], sender_id)
                                 break
                             arglist += parser.result
                             curarg  += parser.argstep
@@ -1181,9 +1181,9 @@ def process():
                             else:
                                 # No more types to check: print error message
                                 synerr = True
-                                bs.scr.echo('Syntax error processing "' + args[curarg] + '":')
-                                bs.scr.echo(errors)
-                                bs.scr.echo(helptext)
+                                bs.scr.echo('Syntax error processing "' + args[curarg] + '":', sender_id)
+                                bs.scr.echo(errors, sender_id)
+                                bs.scr.echo(helptext, sender_id)
                                 print("Error in processing arguments:")
                                 print(line)
 
@@ -1194,27 +1194,29 @@ def process():
             # text: optional error message
             if not synerr:
                 results = function(*arglist)  # * = unpack list to call arguments
-
                 if isinstance(results, bool):  # Only flag is returned
                     synerr = not results
                     if synerr:
                         if numargs <= 0 or curarg < len(args) and args[curarg] == "?":
-                            bs.scr.echo(helptext)
+                            bs.scr.echo(helptext, sender_id)
                         else:
-                            bs.scr.echo("Syntax error: " + helptext)
+                            bs.scr.echo("Syntax error: " + helptext, sender_id)
 
-                elif isinstance(results, (tuple, list)) and len(results) > 0:
+                elif isinstance(results, tuple) and len(results) > 0:
                     synerr = not results[0]
                     if synerr:
-                        bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""))
+                        bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""), sender_id)
                     # Maybe there is also an error/info message returned?
                     if len(results) >= 2:
-                        bs.scr.echo(cmd + ":" + results[1])
+                        prefix = "" if results[0] == bs.SIMPLE_ECHO \
+                            else "{}: ".format(cmd)
+                        bs.scr.echo("{}{}".format(prefix, results[1]), sender_id)
 
-                synerr =  False  # Prevent further nagging
+                if results:
+                    bs.scr.echo(bs.MSG_OK, sender_id)
 
             else:  # synerr:
-                bs.scr.echo("Syntax error: " + helptext)
+                bs.scr.echo("Syntax error: " + helptext, sender_id)
 
         #----------------------------------------------------------------------
         # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -1229,9 +1231,9 @@ def process():
         #-------------------------------------------------------------------
         else:
             if numargs == 0:
-                bs.scr.echo("Unknown command or aircraft: " + cmd)
+                bs.scr.echo("Unknown command or aircraft: " + cmd, sender_id)
             else:
-                bs.scr.echo("Unknown command: " + cmd)
+                bs.scr.echo("Unknown command: " + cmd, sender_id)
 
         #**********************************************************************
         #======================  End of command branches ======================
@@ -1494,7 +1496,7 @@ class Argparser:
 def distcalc(lat0, lon0, lat1, lon1):
     try:
         qdr, dist = geo.qdrdist(lat0, lon0, lat1, lon1)
-        return True, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
+        return bs.SIMPLE_ECHO, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
     except:
         return False, 'Error in dist calculation.'
 

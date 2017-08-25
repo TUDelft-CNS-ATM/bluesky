@@ -14,7 +14,7 @@ except ImportError:
 # Local imports
 from bluesky import settings
 from .simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
-    BatchEvent, StackTextEvent, SimQuitEvent, SetNodeIdType, \
+    BatchEvent, StackTextEvent, StackTextEventType, SimQuitEvent, SetNodeIdType, \
     SetActiveNodeType, AddNodeType
 
 Listener.fileno = lambda self: self._listener._socket.fileno()
@@ -44,7 +44,7 @@ class MainManager(QObject):
     def actnode(cls):
         return cls.instance.activenode
 
-    def __init__(self):
+    def __init__(self, telnet_in):
         super(MainManager, self).__init__()
         print('Initializing multi-process simulation')
         MainManager.instance = self
@@ -57,6 +57,7 @@ class MainManager(QObject):
         self.sender_id       = None
         self.stopping        = False
         self.listener        = Listener(('localhost', 6000), authkey=b'bluesky')
+        self.telnet_in       = telnet_in
 
     def receiveFromNodes(self):
         # Only look for incoming data if we're not quitting
@@ -134,6 +135,10 @@ class MainManager(QObject):
                         reqd_nnodes = min(len(self.scenarios), max(0, self.max_nnodes - len(self.localnodes)))
                         for n in range(reqd_nnodes):
                             self.addNode()
+
+                elif event.type() == StackTextEventType:
+                    self.telnet_in.sendReply(event)
+                    qapp.sendEvent(qapp.instance(), event)
 
                 else:
                     # The event is meant for the gui

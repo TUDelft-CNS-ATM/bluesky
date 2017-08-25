@@ -9,8 +9,8 @@ from bluesky import settings
 # Register settings defaults
 settings.set_variable_defaults(perf_path_bada='data/coefficients/BADA', verbose=False)
 
-from . import bada_coeff
-if not bada_coeff.init(settings.perf_path_bada):
+from . import coeff_bada
+if not coeff_bada.init(settings.perf_path_bada):
     raise ImportError('BADA performance model: Error loading BADA files from ' + settings.perf_path_bada + '!')
 else:
     print('Using BADA performance model.')
@@ -174,11 +174,11 @@ class PerfBADA(TrafficArrays):
         # general
         # designate aircraft to its aircraft type
         for actype in actypes:
-            syn, coeff = bada_coeff.getCoefficients(actype)
+            syn, coeff = coeff_bada.getCoefficients(actype)
             if syn:
                 continue
 
-            syn, coeff = bada_coeff.getCoefficients('B744')
+            syn, coeff = coeff_bada.getCoefficients('B744')
             bs.traf.type[-n:] = syn.accode
 
             if not settings.verbose:
@@ -607,7 +607,7 @@ class PerfBADA(TrafficArrays):
                                         bs.traf.M,             \
                                         bs.traf.alt,           \
                                         self.hmaxact,          \
-                                        self.traf.pilot.alt,   \
+                                        bs.traf.pilot.alt,     \
                                         bs.traf.pilot.vs,      \
                                         self.maxthr,           \
                                         self.Thr,              \
@@ -623,7 +623,7 @@ class PerfBADA(TrafficArrays):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,
         # landing aircraft use ground deceleration, others use standard acceleration
         # --> BADA uses the same value for ground acceleration as for deceleration
-    
+
 
         ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
                      (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \
