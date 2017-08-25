@@ -598,7 +598,7 @@ class PerfBADA(TrafficArrays):
         bs.traf.limalt,          \
         bs.traf.limalt_flag,      \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.pilot.cas, bs.traf.alt),   \
+        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.pilot.tas, bs.traf.alt),   \
                                         bs.traf.gs,            \
                                         self.vmto,             \
                                         self.vmin,             \
