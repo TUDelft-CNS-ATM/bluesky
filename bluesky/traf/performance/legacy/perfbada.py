@@ -1,7 +1,7 @@
 """ BlueSky aircraft performance calculations using BADA 3.xx."""
 import numpy as np
 import bluesky as bs
-from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R
+from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
@@ -598,7 +598,7 @@ class PerfBADA(TrafficArrays):
         bs.traf.limalt,          \
         bs.traf.limalt_flag,      \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.tas,   \
+        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.pilot.cas, bs.traf.alt),   \
                                         bs.traf.gs,            \
                                         self.vmto,             \
                                         self.vmin,             \
@@ -608,11 +608,11 @@ class PerfBADA(TrafficArrays):
                                         bs.traf.alt,           \
                                         self.hmaxact,          \
                                         bs.traf.pilot.alt,     \
-                                        self.hmaxact,          \
                                         bs.traf.pilot.vs,      \
                                         self.maxthr,           \
+                                        self.Thr,              \
                                         self.D,                \
-                                        bs.traf.tas,           \
+                                        bs.traf.cas,           \
                                         self.mass,             \
                                         self.ESF,              \
                                         self.phase)

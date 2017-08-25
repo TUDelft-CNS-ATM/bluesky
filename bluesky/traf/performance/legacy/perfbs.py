@@ -367,7 +367,7 @@ class PerfBS(TrafficArrays):
         bs.traf.limalt,          \
         bs.traf.limalt_flag,     \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(bs.traf.pilot.tas, \
+        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.pilot.tas, bs.traf.alt), \
                                         bs.traf.gs,          \
                                         self.vmto,           \
                                         self.vmin,           \
@@ -381,7 +381,7 @@ class PerfBS(TrafficArrays):
                                         self.maxthr,         \
                                         self.Thr_pilot,      \
                                         self.D,              \
-                                        bs.traf.tas,         \
+                                        bs.traf.cas,         \
                                         self.mass,           \
                                         self.ESF,            \
                                         self.phase)
