@@ -436,7 +436,7 @@ class Autopilot(TrafficArrays):
                 return False, ("LNAV " + bs.traf.id[idx] + ": no waypoints or destination specified")
             elif not bs.traf.swlnav[idx]:
                bs.traf.swlnav[idx] = True
-               route.direct(bs.traf, idx, route.wpname[route.findact(idx)])
+               route.direct(idx, route.wpname[route.findact(idx)])
         else:
             bs.traf.swlnav[idx] = False
 

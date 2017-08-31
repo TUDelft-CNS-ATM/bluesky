@@ -1005,14 +1005,15 @@ class Route():
             if name[i][:2]=="T/":
 
                 # Find place in flight plan to insert T/C or T/D
+                j = nvwp-1
                 while dist2go[j]<x[i] and j>1:
                     j=j-1
 
                 # Interpolation factor for position on leg
                 f   = (x[i]-dist2go[j+1])/(dist2go[j]-dist2go[j+1])
 
-                lat = f*self.wplat[j]+(1.-f)*wplat[j+1]
-                lon = f*self.wplon[j]+(1.-f)*wplon[j+1]
+                lat = f*self.wplat[j]+(1.-f)*self.wplat[j+1]
+                lon = f*self.wplon[j]+(1.-f)*self.wplon[j+1]
 
                 self.wpname.insert(j,name[i])
                 self.wptype.insert(j,self.calcwp)
