@@ -1,5 +1,8 @@
 from os import path, listdir
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 from bluesky import settings
 
