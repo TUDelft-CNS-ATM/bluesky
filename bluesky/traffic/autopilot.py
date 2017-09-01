@@ -117,7 +117,7 @@ class Autopilot(TrafficArrays):
                         bs.traf.selspd[i] = oldspd
 
                 # VNAV = FMS ALT/SPD mode
-                self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt)
+                self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i])
 
             #=============== End of Waypoint switching loop ===================
 
