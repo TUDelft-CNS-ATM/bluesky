@@ -9,7 +9,7 @@ import time
 # Local imports
 import bluesky as bs
 from bluesky import settings, stack
-# from bluesky.traf import Metric
+# from bluesky.traffic import Metric
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
 from . import nodemanager as manager

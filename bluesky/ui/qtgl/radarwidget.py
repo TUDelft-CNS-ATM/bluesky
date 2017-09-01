@@ -17,8 +17,8 @@ import bluesky as bs
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
-from bluesky.sim.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
-from bluesky.navdb import load_aptsurface, load_coastlines
+from bluesky.simulation.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
+from bluesky.navdatabase import load_aptsurface, load_coastlines
 from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
     update_buffer, create_empty_buffer
 
@@ -654,7 +654,7 @@ class RadarWidget(QGLWidget):
                         txt += "%03d" % int(round(spd / kts))
                     else:
                         txt += "M{:.2f}".format(spd) # Mach number
-                    
+
                 wpname += txt.ljust(24) # Fill out with spaces
             update_buffer(self.routelblbuf, np.array(
                             wpname.encode('ascii', 'ignore')))

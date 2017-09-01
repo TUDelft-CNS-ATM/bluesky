@@ -8,8 +8,8 @@ except ImportError:
 
 from . import autocomplete
 from bluesky.tools.misc import cmdsplit
-from bluesky.sim.qtgl import MainManager as manager
-from bluesky.sim.qtgl import StackTextEvent
+from bluesky.simulation.qtgl import MainManager as manager
+from bluesky.simulation.qtgl import StackTextEvent
 
 
 node_stacks = dict()

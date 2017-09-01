@@ -13,8 +13,8 @@ except ImportError:
 from bluesky.ui.radarclick import radarclick
 from bluesky.tools.misc import tim2txt
 from bluesky import settings
-from bluesky.sim.qtgl import MainManager as manager
-from bluesky.sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
+from bluesky.simulation.qtgl import MainManager as manager
+from bluesky.simulation.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \

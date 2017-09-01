@@ -2,9 +2,9 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.traf.performance.perfbase import PerfBase
-from bluesky.traf.performance.nap import coeff, thrust
-from bluesky.traf.performance.nap import phase as ph
+from bluesky.traffic.performance.perfbase import PerfBase
+from bluesky.traffic.performance.nap import coeff, thrust
+from bluesky.traffic.performance.nap import phase as ph
 
 class PerfNAP(PerfBase):
     """

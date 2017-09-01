@@ -22,7 +22,7 @@ import os.path
 import subprocess
 import numpy as np
 import bluesky as bs
-from bluesky.tools import geo, areafilter, plugin
+from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import txt2alt, cmdsplit
 from bluesky.tools.calculator import calculator
@@ -469,6 +469,12 @@ def init():
             "txt,[txt]",
             lambda *args: openfile(*args, mergeWithExisting=True),
             "Call commands in another scenario file"
+        ],
+        "PLOT": [
+            "PLOT x, y [,dt,color,figure]",
+            "txt,txt,[txt,txt,txt]",
+            plotter.plot,
+            "Create a graph of variables x versus y."
         ],
         "PLUGINS": [
             "PLUGINS LIST or LOAD plugin or REMOVE plugin",

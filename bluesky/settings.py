@@ -3,9 +3,6 @@ import os
 import sys
 import shutil
 
-# This file is used to start the gui mainloop or a single node simulation loop
-node_only = ('--node' in sys.argv)
-
 def init():
     '''Initialize configuration.
        Import config settings from settings.cfg if this exists, if it doesn't
@@ -132,4 +129,10 @@ def set_variable_defaults(**kwargs):
             globals()[key] = value
 
 # Call settings.init() at creation
+gui = ''
 initialized = init()
+
+# This file is used to start the gui mainloop, a single node simulation loop,
+# or, in case of the pygame version, both.
+is_sim = ('--node' in sys.argv) or gui == 'pygame'
+is_gui = ('--node' not in sys.argv) or gui == 'pygame'

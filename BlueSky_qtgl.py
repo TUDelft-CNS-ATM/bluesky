@@ -3,10 +3,10 @@
 from __future__ import print_function
 import sys
 import traceback
-from bluesky import settings
+import bluesky as bs
 
-if not settings.node_only:
-    from bluesky.sim.qtgl.mainmanager import MainManager
+if bs.settings.is_gui:
+    from bluesky.simulation.qtgl.mainmanager import MainManager
     from bluesky.ui.qtgl import Gui
     from bluesky.tools.network import StackTelnetServer
     if __name__ == "__main__":
@@ -18,7 +18,7 @@ if not settings.node_only:
 gui = None
 
 # Register settings defaults
-settings.set_variable_defaults(telnet_port=8888)
+bs.settings.set_variable_defaults(telnet_port=8888)
 
 # Create custom system-wide exception handler. For now it replicates python's
 # default traceback message. This was added to counter a new PyQt5.5 feature
@@ -53,7 +53,7 @@ def start():
     manager.start()
 
     # Start the telnet input server for stack commands
-    telnet_in.listen(port=settings.telnet_port)
+    telnet_in.listen(port=bs.settings.telnet_port)
 
     return telnet_in, manager
 
@@ -95,8 +95,11 @@ def stop(telnet_in, manager):
 # Start the mainloop (and possible other threads)
 # =============================================================================
 def main_loop():
-    if settings.node_only:
-        from bluesky.sim.qtgl import nodemanager as manager
+    # Initialize bluesky modules
+    bs.init()
+
+    if bs.settings.is_sim:
+        from bluesky.simulation.qtgl import nodemanager as manager
         manager.run()
 
     else:

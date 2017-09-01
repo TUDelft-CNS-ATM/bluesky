@@ -1,6 +1,6 @@
 import numpy as np
 from bluesky.tools import aero
-from bluesky.traf.performance.nap import phase as ph
+from bluesky.traffic.performance.nap import phase as ph
 
 def compute_thrust_ratio(phase, bpr, v, h, unit='SI'):
     """Computer the dynamic thrust based on engine bypass-ratio, static maximum

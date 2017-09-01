@@ -3,7 +3,7 @@ import bluesky as bs
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim,tim2txt
 from bluesky import stack
-from bluesky.traf.metric import Metric
+from bluesky.traffic.metric import Metric
 from bluesky.tools.network import StackTelnetServer
 
 onedayinsec = 24*3600 # [s] time of one day in seconds for clock time

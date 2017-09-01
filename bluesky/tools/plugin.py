@@ -94,7 +94,7 @@ def init():
     # Add plugin path to module search path
     sys.path.append(path.abspath(settings.plugin_path))
     # Set plugin type for this instance of BlueSky
-    if settings.node_only or settings.gui == 'pygame':
+    if settings.is_sim:
         req_type = 'sim'
     else:
         req_type = 'gui'
@@ -114,7 +114,7 @@ def init():
             success = load(pname, p)
             print(success[1])
 
-if settings.node_only or settings.gui == 'pygame':
+if settings.is_sim:
     # Sim implementation of plugin management
     preupdate_funs = dict()
     update_funs    = dict()
