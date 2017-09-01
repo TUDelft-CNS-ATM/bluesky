@@ -8,14 +8,14 @@ import time
 
 # Local imports
 import bluesky as bs
-from . import nodemanager as manager
-from .screenio import ScreenIO
-from .simevents import StackTextEventType, BatchEventType, BatchEvent, \
-    SimStateEvent, SimQuitEventType, StackInitEvent
 from bluesky import settings, stack
 # from bluesky.traf import Metric
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
+from . import nodemanager as manager
+from .simevents import StackTextEventType, BatchEventType, BatchEvent, \
+    SimStateEvent, SimQuitEventType, StackInitEvent
+
 
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
@@ -260,5 +260,3 @@ class Simulation(QObject):
             return False, "Time syntax error"
 
         return True, "Time is now " + tim2txt(self.simtclock)
-
-sim = Simulation()

@@ -313,6 +313,3 @@ class ScreenIO(QObject):
             # data.spdratios  = bs.traf.AMAN.
             # manager.sendEvent(data)
             pass
-
-# Singleton instance of ScreenIO
-scr = ScreenIO()

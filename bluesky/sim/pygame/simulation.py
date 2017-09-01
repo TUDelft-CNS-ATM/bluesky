@@ -215,5 +215,3 @@ class Simulation:
 
 
         return True,"Time is now "+tim2txt(self.simtclock)
-
-sim = Simulation()

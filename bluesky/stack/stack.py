@@ -1212,9 +1212,6 @@ def process():
                             else "{}: ".format(cmd)
                         bs.scr.echo("{}{}".format(prefix, results[1]), sender_id)
 
-                if results:
-                    bs.scr.echo(bs.MSG_OK, sender_id)
-
             else:  # synerr:
                 bs.scr.echo("Syntax error: " + helptext, sender_id)
 

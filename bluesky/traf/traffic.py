@@ -743,6 +743,3 @@ class Traffic(TrafficArrays):
                 return bs.SIMPLE_ECHO, lines[:-1]  # exclude final newline
             else:
                 return False,"No airway legs found for ",key
-
-# Traffic singleton object
-traf = Traffic()

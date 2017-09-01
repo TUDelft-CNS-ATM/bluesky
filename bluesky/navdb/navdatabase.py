@@ -375,6 +375,3 @@ class Navdatabase:
                     connect.append(newitem)
 
         return connect # return list of [awid,wpid]
-
-# Singleton instance of the navigation database
-navdb = Navdatabase()
