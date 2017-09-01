@@ -137,8 +137,8 @@ def init():
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
-            "acid,wpt,[alt/txt,spd,wpinroute]",
+            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp,beforewp]",
+            "acid,wpt,[alt/txt,spd,wpinroute,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
@@ -184,6 +184,12 @@ def init():
             "string",
             bs.sim.batch,
             "Start a scenario file as batch simulation"
+        ],
+        "BEFORE": [
+            "acid BEFORE beforewp ADDWPT (wpname/lat,lon),[alt,spd]",
+            "acid,wpinroute,txt,wpt,[alt,spd]",
+            lambda idx, *args: bs.traf.ap.route[idx].beforeaddwptStack(idx, *args),
+            "Before waypoint, add a waypoint to route of aircraft (FMS)"
         ],
         "BENCHMARK": [
             "BENCHMARK [scenfile,time]",
@@ -1188,7 +1194,7 @@ def process():
                                 # No more types to check: print error message
                                 synerr = True
                                 bs.scr.echo('Syntax error processing "' + args[curarg] + '":', sender_id)
-                                bs.scr.echo(errors, sender_id)
+                                bs.scr.echo(errors[:-1], sender_id) # leave out last newline
                                 bs.scr.echo(helptext, sender_id)
                                 print("Error in processing arguments:")
                                 print(line)
