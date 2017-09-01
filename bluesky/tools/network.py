@@ -2,9 +2,9 @@
 import time
 import socket
 import threading
-from bluesky import settings, CMD_TCP_CONNS
+import bluesky as bs
 
-if settings.gui == 'qtgl':
+if bs.settings.gui == 'qtgl':
     try:
         from PyQt5.QtCore import pyqtSlot
         from PyQt5.QtNetwork import QTcpServer, QTcpSocket
@@ -77,7 +77,7 @@ if settings.gui == 'qtgl':
             return len(self.connections.keys())
 
 
-elif settings.gui == 'pygame':
+elif bs.settings.gui == 'pygame':
     class TcpSocket(object):
         """A TCP Client receving message from server, analysing the data, and """
         def __init__(self):
@@ -162,7 +162,7 @@ class StackTelnetServer(TcpServer):
     def processData(self, data, sender_id):
         msg = bytearray(data).decode(encoding='ascii', errors='ignore').strip()
 
-        if msg.startswith(CMD_TCP_CONNS):
+        if msg.startswith(bs.CMD_TCP_CONNS):
             self.connections[sender_id].sendReply(
                 str(self.numConnections()))
         else:
