@@ -68,13 +68,13 @@ def init_plugin():
         "AREA": [
             "AREA Shapename/OFF or AREA lat,lon,lat,lon,[top,bottom]",
             "[float/txt,float,float,float,alt,alt]",
-            area.setArea,
+            area.set_area,
             "Define experiment area (area of interest)"
         ],
         "TAXI": [
             "TAXI ON/OFF : OFF auto deletes traffic below 1500 ft",
             "onoff",
-            area.setTaxi,
+            area.set_taxi,
             "Switch on/off ground/low altitude mode, prevents auto-delete at 1500 ft"
         ]
     }
@@ -89,7 +89,7 @@ class Area(TrafficArrays):
         self.active = False
         self.dt     = 5.0     # [s] frequency of area check (simtime)
         self.name   = None
-        self.swtaxi = False  # Default OFF: Doesn't do anything. See comments of setTaxi fucntion below.
+        self.swtaxi = False  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
 
         # The FLST logger
         self.logger = datalog.defineLogger('FLSTLOG', header)
@@ -106,8 +106,11 @@ class Area(TrafficArrays):
         self.create_time[-n:] = sim.simt
 
     def update(self):
-        # Update flight efficiency metrics
-        # 2D and 3D distance [m], and work done (force*distance) [J]
+        ''' Update flight efficiency metrics
+            2D and 3D distance [m], and work done (force*distance) [J] '''
+        if not self.active:
+            return
+
         resultantspd = np.sqrt(traf.gs * traf.gs + traf.vs * traf.vs)
         self.distance2D += self.dt * traf.gs
         self.distance3D += self.dt * resultantspd
@@ -157,12 +160,12 @@ class Area(TrafficArrays):
         for acid in [traf.id[idx] for idx in delidx]:
             traf.delete(acid)
 
-    def setArea(self, *args):
+    def set_area(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
         Input can be exisiting shape name, or a box with optional altitude constrainsts.'''
 
         # if all args are empty, then print out the current area status
-        if len(args)==0:
+        if not args:
             return True, "Area is currently " + ("ON" if self.active else "OFF") + \
                          "\nCurrent Area name is: " + str(self.name)
 
@@ -173,26 +176,28 @@ class Area(TrafficArrays):
                 self.name = args[0]
                 self.active = True
                 return True, "Area is set to " + str(self.name)
-            elif args[0]=='OFF' or args[0]=='OF':
+            if args[0]=='OFF' or args[0]=='OF':
                 # switch off the area
                 areafilter.deleteArea(self.name)
                 self.active = False
                 self.name = None
                 return True, "Area is switched OFF"
-            else:
-                # shape name is unknown
-                return False, "Shapename unknown. Please create shapename first or shapename is misspelled!"
+
+            # shape name is unknown
+            return False, "Shapename unknown. " + \
+                "Please create shapename first or shapename is misspelled!"
         # if first argument is a float -> then make a box with the arguments
-        elif isinstance(args[0],(float, int)) and 4<=len(args)<=6:
+        if isinstance(args[0],(float, int)) and 4<=len(args)<=6:
             self.active = True
             self.name = 'DELAREA'
             areafilter.defineArea(self.name, 'BOX', args[:4], *args[4:])
             return True, "Area is ON. Area name is: " + str(self.name)
-        else:
-            return False,  "Incorrect arguments" + \
-                           "\nAREA Shapename/OFF or\n Area lat,lon,lat,lon,[top,bottom]"
 
-    def setTaxi(self, flag):
-        """ If you want to delete below 1500ft, make an box with the bottom at 1500ft and set it to Area.
-            This is because taxi does nothing """
+        return False,  "Incorrect arguments" + \
+                       "\nAREA Shapename/OFF or\n Area lat,lon,lat,lon,[top,bottom]"
+
+    def set_taxi(self, flag):
+        """ If you want to delete below 1500ft,
+            make an box with the bottom at 1500ft and set it to Area.
+            This is because taxi does nothing. """
         self.swtaxi = flag
