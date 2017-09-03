@@ -68,6 +68,7 @@ class Traffic(TrafficArrays):
         # Traffic is the toplevel trafficarrays object
         TrafficArrays.SetRoot(self)
 
+        self.ntraf = 0
         self.wind = WindSim()
         self.turbulence = Turbulence()
 
@@ -391,12 +392,10 @@ class Traffic(TrafficArrays):
 
     def delete(self, idx):
         """Delete an aircraft"""
-        print('Index =', idx)
         super(Traffic, self).delete(idx)
 
         # Decrease number of aircraft
         self.ntraf = self.ntraf - 1
-
         return True
 
     def update(self, simt, simdt):
