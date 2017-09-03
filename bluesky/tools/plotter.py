@@ -1,8 +1,8 @@
 ''' Sim-side implementation of graphical data plotter in BlueSky.'''
 from numbers import Number
-import numpy as np
 from collections import OrderedDict
 import re
+import numpy as np
 import bluesky as bs
 
 # Globals
@@ -12,6 +12,7 @@ varlist = OrderedDict()
 plots = list()
 
 def init():
+    ''' Plotter initialization function. Is called in bluesky.init() '''
     # Add the default sources to plot
     varlist.update([('sim', getvarsfromobj(bs.sim)), ('traf', getvarsfromobj(bs.traf))])
 
@@ -24,10 +25,13 @@ def plot(*args):
         return False, e.args[0]
 
 def update(simt):
+    ''' Periodic update function for the plotter. '''
     pass
 
 def getvarsfromobj(obj):
+    ''' Return a list with the numeric variables of the passed object.'''
     def is_num(o):
+        ''' py3 replacement of operator.isNumberType.'''
         return isinstance(o, Number) or \
             (isinstance(o, np.ndarray) and o.dtype.kind not in 'OSUV')
     return (obj, [name for name in vars(obj) if is_num(vars(obj)[name])])
@@ -41,7 +45,7 @@ def findvar(varname):
         '''
     try:
         # Find a string matching 'a.b.c[d]', where everything except a is optional
-        varset = re.findall(r'(\w+)(?<=.)*(?:\[(\w+)\])?', varname)
+        varset = re.findall(r'(\w+)(?<=.)*(?:\[(\w+)\])?', varname.lower())
         # The actual variable is always the last
         name, index = varset[-1]
         # is a parent object passed? (e.g., traf.lat instead of just lat)
@@ -67,6 +71,9 @@ def findvar(varname):
 
 
 class Plot(object):
+    ''' A plot object.
+        Each plot object is used to manage the plot of one variable
+        on the sim side.'''
     def __init__(self, varx='', vary='', dt=1.0, color=None, fig=None):
         self.x = findvar(varx)
         self.y = findvar(vary)
