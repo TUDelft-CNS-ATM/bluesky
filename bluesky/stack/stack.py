@@ -241,8 +241,8 @@ def init():
         ],
         "DEL": [
             "DEL acid/WIND/shape",
-            "txt",
-            lambda a:   bs.traf.delete(a)    if bs.traf.id.count(a) > 0 \
+            "acid/txt",
+            lambda a:   bs.traf.delete(a)    if isinstance(a, int) \
                    else bs.traf.wind.clear() if a == "WIND" \
                    else areafilter.deleteArea(a),
             "Delete command (aircraft, wind, area)"

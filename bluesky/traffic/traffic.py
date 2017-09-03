@@ -258,11 +258,6 @@ class Traffic(TrafficArrays):
 
     def create(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
         """Create an aircraft"""
-
-        # Check if not already exist
-        if self.id.count(acid.upper()) > 0:
-            return False, acid + " already exists."  # already exists do nothing
-
         # Catch missing acid, replace by a default
         if acid is None or acid == "*":
             acid = "KL204"
@@ -272,11 +267,13 @@ class Traffic(TrafficArrays):
                 acid = "KL" + str(flno)
 
         # Check for (other) missing arguments
-        if actype is None or aclat is None or aclon is None or achdg is None \
-                or acalt is None or casmach is None:
-
-            return False, "CRE: Missing one or more arguments:"\
+        if None in [actype, aclat, aclon, achdg, acalt, casmach]:
+            return False, "CRE: Missing one or more arguments:" \
                           "acid,actype,aclat,aclon,achdg,acalt,acspd"
+
+        # Check if not already exist
+        if self.id.count(acid.upper()) > 0:
+            return False, acid + " already exists."  # already exists do nothing
 
         super(Traffic, self).create()
 
@@ -392,19 +389,13 @@ class Traffic(TrafficArrays):
         self.ap.selalt(len(self.lat) - 1, altref, acvs)
         self.vs[-1] = acvs
 
-    def delete(self, acid):
+    def delete(self, idx):
         """Delete an aircraft"""
+        print('Index =', idx)
+        super(Traffic, self).delete(idx)
 
-        # Look up index of aircraft
-        idx = self.id2idx(acid)
-        # Do nothing if not found
-        if idx < 0:
-            return False
         # Decrease number of aircraft
         self.ntraf = self.ntraf - 1
-
-        # Delete all aircraft parameters
-        super(Traffic, self).delete(idx)
 
         return True
 
