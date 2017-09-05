@@ -796,7 +796,7 @@ class RadarWidget(QGLWidget):
 
         if manager.sender()[0] == self.iactconn:
             self.makeCurrent()
-            update_buffer(self.custwplblbuf, np.array(nact.custwplbl))
+            update_buffer(self.custwplblbuf, np.array(nact.custwplbl, dtype=np.string_))
             update_buffer(self.custwplatbuf, nact.custwplat)
             update_buffer(self.custwplonbuf, nact.custwplon)
             self.ncustwpts = len(nact.custwplat)
