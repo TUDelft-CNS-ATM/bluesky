@@ -85,6 +85,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
 
 
 cmdstack  = []
+sender_id   = None
 
 scenname  = ""
 scenfile  = ""
@@ -693,21 +694,33 @@ def init():
     stack("ZOOM 0.4")
 
 
+def sender():
+    ''' Return the sender of the currently executed stack command.
+        If there is no sender id (e.g., when the command originates
+        from a scenario file), None is returned. '''
+    return sender_id
+
 def get_scenname():
+    ''' Return the name of the current scenario.
+        This is either the name defined by the SCEN command,
+        or otherwise the filename of the scenario. '''
     return scenname
 
 
 def get_scendata():
+    ''' Return the scenario data that was loaded from a scenario file. '''
     return scentime, scencmd
 
 
 def set_scendata(newtime, newcmd):
+    ''' Set the scenario data. This is used by the batch logic. '''
     global scentime, scencmd
     scentime = newtime
     scencmd  = newcmd
 
 
 def scenarioinit(name):
+    ''' Implementation of the SCEN stack command. '''
     global scenname
     scenname = name
     return True, 'Starting scenario ' + name
@@ -838,11 +851,13 @@ def showhelp(cmd=''):
 
 
 def setSeed(value):
+    ''' Function that implements the SEED stack command. '''
     seed(value)
     np.random.seed(value)
 
 
 def reset():
+    ''' Reset the stack. '''
     global scentime, scencmd, scenname
 
     scentime = []
@@ -850,15 +865,16 @@ def reset():
     scenname = ''
 
 
-def stack(cmdline, sender_id=None):
-    # Stack one or more commands separated by ";"
+def stack(cmdline, cmdsender=None):
+    ''' Stack one or more commands separated by ";" '''
     cmdline = cmdline.strip()
-    if len(cmdline) > 0:
+    if cmdline:
         for line in cmdline.split(';'):
-            cmdstack.append((line, sender_id))
+            cmdstack.append((line, cmdsender))
 
 
 def sched_cmd(time, args, relative=False):
+    ''' Function that implements the SCHEDULE and DELAY commands. '''
     tostack = ','.join(args)
     # find spot in time list corresponding to passed time, get idx
     # insert time at idx in scentime, insert cmd at idx in scencmd
@@ -895,16 +911,16 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
         ext = '.scn'
 
     # The entire filename, possibly with added path and extension
-    scenfile = os.path.join(path, scenname + ext)
+    fname_full = os.path.join(path, scenname + ext)
 
-    print("Opening "+scenfile)
+    print("Opening " + fname_full)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
     t_offset = bs.sim.simt if absrel == 'REL' else 0.0
 
-    if not os.path.exists(scenfile):
-        return False, "Error: cannot find file: " + scenfile
+    if not os.path.exists(fname_full):
+        return False, "Error: cannot find file: " + fname_full
 
     # Split scenario file line in times and commands
     if not mergeWithExisting:
@@ -914,7 +930,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
         scentime = []
         scencmd  = []
 
-    with open(scenfile, 'r') as fscen:
+    with open(fname_full, 'r') as fscen:
         for line in fscen:
             if len(line.strip()) > 12 and line[0] != "#":
                 # Try reading timestamp and command
@@ -941,21 +957,22 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
 
 
 def ic(filename=''):
+    ''' Function implementing the IC stack command. '''
     global scenfile, scenname
 
     # Get the filename of new scenario
-    if filename == '':
+    if not filename:
         filename = bs.scr.show_file_dialog()
 
     # Clean up filename
     filename = filename.strip()
 
     # Reset sim and open new scenario file
-    if len(filename) > 0:
+    if filename:
         bs.sim.reset()
         result = openfile(filename)
 
-        if result is True:
+        if result:
             scenfile    = filename
             scenname, _ = os.path.splitext(os.path.basename(filename))
             # Remember this filename in IC.scn in scenario folder
@@ -971,16 +988,15 @@ def ic(filename=''):
 
 
 def checkfile(simt):
-    # Empty command buffer when it's time
+    ''' Check if commands from the scenario buffer need to be stacked. '''
     while len(scencmd) > 0 and simt >= scentime[0]:
         stack(scencmd[0])
         del scencmd[0]
         del scentime[0]
 
-    return
-
 
 def saveic(fname):
+    ''' Save the current traffic realization in a scenario file. '''
     # Add extension .scn if not already present
     if fname.lower().find(".scn") < 0:
         fname = fname + ".scn"
@@ -1084,13 +1100,13 @@ def saveic(fname):
 
 def process():
     """process and empty command stack"""
-
+    global sender_id
     # Process stack of commands
     for (line, sender_id) in cmdstack:
         #debug       print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
-        if len(line) == 0:
+        if not line:
             continue
 
         # Split command line into command and arguments, pass traf ids to check for
@@ -1143,9 +1159,9 @@ def process():
             if False in argisopt:
                 minargs = len(argisopt) - argisopt[::-1].index(False)
                 if numargs < minargs:
-                    bs.scr.echo("Syntax error: Too few arguments", sender_id)
-                    bs.scr.echo(line, sender_id)
-                    bs.scr.echo(helptext, sender_id)
+                    bs.scr.echo("Syntax error: Too few arguments")
+                    bs.scr.echo(line)
+                    bs.scr.echo(helptext)
                     continue
 
             # Special case: single text string argument: case sensitive,
@@ -1178,7 +1194,7 @@ def process():
                             # No value = None when this is allowed because it is an optional argument
                             if parser.result[0] is None and argisopt[curtype] is False:
                                 synerr = True
-                                bs.scr.echo('No value given for mandatory argument ' + argtypes[curtype], sender_id)
+                                bs.scr.echo('No value given for mandatory argument ' + argtypes[curtype])
                                 break
                             arglist += parser.result
                             curarg  += parser.argstep
@@ -1193,9 +1209,9 @@ def process():
                             else:
                                 # No more types to check: print error message
                                 synerr = True
-                                bs.scr.echo('Syntax error processing "' + args[curarg] + '":', sender_id)
-                                bs.scr.echo(errors[:-1], sender_id) # leave out last newline
-                                bs.scr.echo(helptext, sender_id)
+                                bs.scr.echo('Syntax error processing "' + args[curarg] + '":')
+                                bs.scr.echo(errors[:-1]) # leave out last newline
+                                bs.scr.echo(helptext)
                                 print("Error in processing arguments:")
                                 print(line)
 
@@ -1210,22 +1226,22 @@ def process():
                     synerr = not results
                     if synerr:
                         if numargs <= 0 or curarg < len(args) and args[curarg] == "?":
-                            bs.scr.echo(helptext, sender_id)
+                            bs.scr.echo(helptext)
                         else:
-                            bs.scr.echo("Syntax error: " + helptext, sender_id)
+                            bs.scr.echo("Syntax error: " + helptext)
 
                 elif isinstance(results, tuple) and len(results) > 0:
                     synerr = not results[0]
                     if synerr:
-                        bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""), sender_id)
+                        bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""))
                     # Maybe there is also an error/info message returned?
                     if len(results) >= 2:
                         prefix = "" if results[0] == bs.SIMPLE_ECHO \
                             else "{}: ".format(cmd)
-                        bs.scr.echo("{}{}".format(prefix, results[1]), sender_id)
+                        bs.scr.echo("{}{}".format(prefix, results[1]))
 
             else:  # synerr:
-                bs.scr.echo("Syntax error: " + helptext, sender_id)
+                bs.scr.echo("Syntax error: " + helptext)
 
         #----------------------------------------------------------------------
         # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -1240,9 +1256,9 @@ def process():
         #-------------------------------------------------------------------
         else:
             if numargs == 0:
-                bs.scr.echo("Unknown command or aircraft: " + cmd, sender_id)
+                bs.scr.echo("Unknown command or aircraft: " + cmd)
             else:
-                bs.scr.echo("Unknown command: " + cmd, sender_id)
+                bs.scr.echo("Unknown command: " + cmd)
 
         #**********************************************************************
         #======================  End of command branches ======================

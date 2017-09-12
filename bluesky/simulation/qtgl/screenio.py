@@ -70,16 +70,16 @@ class ScreenIO(QObject):
         self.prevtime    = 0.0
 
         # Communicate reset to gui
-        manager.sendEvent(DisplayFlagEvent('RESET', 'ALL'))
+        manager.send_event(DisplayFlagEvent('RESET', 'ALL'))
 
 
-    def echo(self, text, sender_id=None):
+    def echo(self, text):
         if manager.isActive():
-            manager.sendEvent(StackTextEvent(disptext=text, sender_id=sender_id))
+            manager.send_event(StackTextEvent(disptext=text))
 
     def cmdline(self, text):
         if manager.isActive():
-            manager.sendEvent(StackTextEvent(cmdtext=text))
+            manager.send_event(StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
@@ -94,15 +94,15 @@ class ScreenIO(QObject):
                 self.scrzoom = zoom
             else:
                 self.scrzoom *= zoom
-            manager.sendEvent(PanZoomEvent(zoom=zoom, absolute=absolute))
+            manager.send_event(PanZoomEvent(zoom=zoom, absolute=absolute))
 
     def symbol(self):
         if manager.isActive():
-            manager.sendEvent(DisplayFlagEvent('SYM'))
+            manager.send_event(DisplayFlagEvent('SYM'))
 
     def trails(self,sw):
         if manager.isActive():
-            manager.sendEvent(DisplayFlagEvent('TRAIL',sw))
+            manager.send_event(DisplayFlagEvent('TRAIL',sw))
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
@@ -118,7 +118,7 @@ class ScreenIO(QObject):
             else:
                 self.ctrlat, self.ctrlon = args
 
-            manager.sendEvent(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
+            manager.send_event(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -127,7 +127,7 @@ class ScreenIO(QObject):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        manager.sendEvent(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
+        manager.send_event(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
         return True
 
     def showacinfo(self, acid, infotext):
@@ -138,23 +138,23 @@ class ScreenIO(QObject):
         ''' Conflict prevention display
             Show solution space diagram, indicating potential conflicts'''
         if manager.isActive():
-            manager.sendEvent(DisplayFlagEvent('SSD', param))
+            manager.send_event(DisplayFlagEvent('SSD', param))
 
     def show_file_dialog(self):
         if manager.isActive():
-            manager.sendEvent(ShowDialogEvent())
+            manager.send_event(ShowDialogEvent())
         return ''
 
     def show_cmd_doc(self, cmd=''):
         if manager.isActive():
-            manager.sendEvent(ShowDialogEvent(1, cmd=cmd))
+            manager.send_event(ShowDialogEvent(1, cmd=cmd))
 
     def feature(self, switch, argument=''):
         if manager.isActive():
-            manager.sendEvent(DisplayFlagEvent(switch, argument))
+            manager.send_event(DisplayFlagEvent(switch, argument))
 
     def filteralt(self, *args):
-        manager.sendEvent(DisplayFlagEvent('FILTERALT', args))
+        manager.send_event(DisplayFlagEvent('FILTERALT', args))
 
     def objappend(self, objtype, objname, data_in):
         """Add a drawing object to the radar screen using the following inpouts:
@@ -210,9 +210,9 @@ class ScreenIO(QObject):
             data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
             data[1::2] = lonCircle
 
-        manager.sendEvent(DisplayShapeEvent(objname, data))
+        manager.send_event(DisplayShapeEvent(objname, data))
 
-    def event(self, event):
+    def event(self, event, sender_id):
         if event.type() == PanZoomEventType:
             self.ctrlat  = event.pan[0]
             self.ctrlon  = event.pan[1]
@@ -229,7 +229,7 @@ class ScreenIO(QObject):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
-        manager.sendEvent(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
+        manager.send_event(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
             bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
@@ -271,7 +271,7 @@ class ScreenIO(QObject):
             data.nconf_cur  = len(bs.traf.asas.conflist_now)
             data.nlos_cur   = len(bs.traf.asas.LOSlist_now)
 
-            manager.sendEvent(data)
+            manager.send_event(data)
 
     @pyqtSlot()
     def send_route_data(self):
@@ -295,7 +295,7 @@ class ScreenIO(QObject):
 
                 data.wpname    = route.wpname
 
-            manager.sendEvent(data)  # Send route data to GUI
+            manager.send_event(data)  # Send route data to GUI
             # Empty route acid string means no longer send route data
             if len(self.route_acid) == 0:
                 self.route_acid = None
@@ -311,5 +311,5 @@ class ScreenIO(QObject):
             # data.delays     = bs.traf.AMAN.
             # data.rwys       = bs.traf.AMAN.
             # data.spdratios  = bs.traf.AMAN.
-            # manager.sendEvent(data)
+            # manager.send_event(data)
             pass
