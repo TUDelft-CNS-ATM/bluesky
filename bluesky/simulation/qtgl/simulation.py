@@ -159,6 +159,7 @@ class Simulation(QObject):
         self.simtclock = self.simt
         self.state     = Simulation.init
         self.ffmode    = False
+        plugin.reset()
         bs.navdb.reset()
         bs.traf.reset()
         stack.reset()

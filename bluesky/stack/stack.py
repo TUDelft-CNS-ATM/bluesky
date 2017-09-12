@@ -1,6 +1,5 @@
 """
 Commandstack module definition : command stack & processing module
-
 Methods:
     Commandstack()          :  constructor
     stack(cmdline)          : add a command to the command stack
@@ -10,9 +9,7 @@ Methods:
                               scenario file scenname.SCN
     checkfile(t)            : check whether commands need to be
                               processed from scenario file
-
     process()               : central command processing method
-
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
 from math import *
@@ -484,7 +481,7 @@ def init():
         ],
         "PLUGINS": [
             "PLUGINS LIST or LOAD plugin or REMOVE plugin",
-            "txt,[txt]",
+            "[txt,txt]",
             plugin.manage,
             "List all plugins, load a plugin, or remove a loaded plugin."
         ],
@@ -1272,7 +1269,6 @@ class Argparser:
 
     def parse(self, argtype, argidx, args):
         """ Parse one or more arguments.
-
             Returns True if parse was successful. When not successful, False is
             returned, and the error message is stored in self.error """
 
