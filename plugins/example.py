@@ -31,7 +31,11 @@ def init_plugin():
         # function to provide settings that need to be used by traffic in the current
         # timestep. Examples are ASAS, which can give autopilot commands to resolve
         # a conflict.
-        'preupdate':       preupdate
+        'preupdate':       preupdate,
+
+        # If your plugin has a state, you will probably need a reset function to
+        # clear the state in between simulations.
+        'reset':         reset
         }
 
     stackfunctions = {
@@ -62,6 +66,9 @@ def update():
     stack.stack('MCRE 1')
 
 def preupdate():
+    pass
+
+def reset():
     pass
 
 ### Other functions of your plugin
