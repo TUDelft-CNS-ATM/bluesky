@@ -135,7 +135,7 @@ if settings.is_sim:
                 reset_funs[name]     = rstfun
             # Add the plugin's stack functions to the stack
             bs.stack.append_commands(stackfuns)
-            return True, 'Successfully loaded %s' % name
+            return True, 'Successfully loaded plugin %s' % name
         except ImportError as e:
             print('BlueSky plugin system failed to load', name, ':', e)
             return False, 'Failed to load %s' % name
@@ -157,7 +157,7 @@ if settings.is_sim:
 
     def preupdate(simt):
         ''' Update function executed before traffic update.'''
-        for fun in list(preupdate_funs.values()):
+        for fun in preupdate_funs.values():
             # Call function if its update interval has passed
             if simt >= fun[0]:
                 # Set the next triggering time for this function
@@ -167,7 +167,7 @@ if settings.is_sim:
 
     def update(simt):
         ''' Update function executed after traffic update.'''
-        for fun in list(update_funs.values()):
+        for fun in update_funs.values():
             # Call function if its update interval has passed
             if simt >= fun[0]:
                 # Set the next triggering time for this function
@@ -177,6 +177,12 @@ if settings.is_sim:
 
     def reset():
         ''' Reset all plugins.'''
+        # Reset trigger times
+        for fun in preupdate_funs.values():
+            fun[0] = fun[1]
+        for fun in update_funs.values():
+            fun[0] = fun[1]
+        # Call plugin reset for plugins that have one
         for fun in reset_funs.values():
             fun()
 

@@ -91,7 +91,7 @@ class Autopilot(TrafficArrays):
                 bs.traf.actwp.flyby[i] = int(flyby)  # 1.0 in case of fly by, else fly over
 
                 # User has entered an altitude for this waypoint
-                if alt >= 0.:
+                if alt >= -0.01:
                     bs.traf.actwp.nextaltco[i] = alt
 
                 if spd > 0. and bs.traf.swlnav[i] and bs.traf.swvnav[i]:
@@ -122,27 +122,38 @@ class Autopilot(TrafficArrays):
             #=============== End of Waypoint switching loop ===================
 
             #================= Continuous FMS guidance ========================
+            
+            # Waypoint switching in the loop above was scalar (per a/c with index i)
+            # Code below is vectorized, with arrays for all aircraft
+            
             # Do VNAV start of descent check
             dy = (bs.traf.actwp.lat - bs.traf.lat)
             dx = (bs.traf.actwp.lon - bs.traf.lon) * bs.traf.coslat
             dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy)
 
             # VNAV logic: descend as late as possible, climb as soon as possible
-            startdescent = bs.traf.swvnav * ((dist2wp < self.dist2vs)+(bs.traf.actwp.nextaltco > bs.traf.alt))
+            startdescent = bs.traf.swvnav * ((dist2wp < self.dist2vs) + \
+                                             (bs.traf.actwp.nextaltco > bs.traf.alt))
 
             # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
             #    Use 100 nm (185.2 m) circle in case turndist might be zero
-            self.swvnavvs = np.where(bs.traf.swlnav, startdescent, dist <= np.maximum(185.2,bs.traf.actwp.turndist))
+            self.swvnavvs = np.where(bs.traf.swlnav, startdescent, 
+                                         dist <= np.maximum(185.2,bs.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance to next alt constraint
+            # How much time do we have before we need to descend?
+            
             t2go2alt = np.maximum(0.,(dist2wp + bs.traf.actwp.xtoalt - bs.traf.actwp.turndist*nm)) \
                                         / np.maximum(0.5,bs.traf.gs)
-                                        
+            
+            # use steepness to calculate V/S unless we need to descend faster
             bs.traf.actwp.vs = np.maximum(self.steepness*bs.traf.gs, \
-                                   np.abs((bs.traf.actwp.nextaltco-bs.traf.alt))/np.maximum(1.0,t2go2alt))
+                                   np.abs((bs.traf.actwp.nextaltco-bs.traf.alt))  \
+                                   /np.maximum(1.0,t2go2alt))
+
 
             self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
