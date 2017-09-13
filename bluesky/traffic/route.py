@@ -762,11 +762,11 @@ class Route():
             qdr, dist = geo.qdrdist(bs.traf.lat[idx], bs.traf.lon[idx],
                                 bs.traf.actwp.lat[idx], bs.traf.actwp.lon[idx])
 
-            turnrad = bs.traf.tas[idx]*bs.traf.tas[idx]/tan(radians(25.)) / g0 / nm  # default bank angle 25 deg
+            turnrad = bs.traf.tas[idx]*bs.traf.tas[idx]/tan(radians(25.)) / g0 / nm  # [nm]default bank angle 25 deg
 
             bs.traf.actwp.turndist[idx] = (bs.traf.actwp.flyby[idx] > 0.5)  *   \
                      turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
-                        self.wpdirfrom[self.iactwp]))))))
+                        self.wpdirfrom[self.iactwp]))))))    # [nm]
             
 
             bs.traf.swlnav[idx] = True

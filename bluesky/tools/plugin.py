@@ -135,7 +135,7 @@ if settings.is_sim:
                 reset_funs[name]     = rstfun
             # Add the plugin's stack functions to the stack
             bs.stack.append_commands(stackfuns)
-            return True, 'Successfully loaded %s' % name
+            return True, 'Successfully loaded plugin %s' % name
         except ImportError as e:
             print('BlueSky plugin system failed to load', name, ':', e)
             return False, 'Failed to load %s' % name
