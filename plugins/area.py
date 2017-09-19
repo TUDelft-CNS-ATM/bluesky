@@ -131,7 +131,7 @@ class Area(TrafficArrays):
         self.inside = inside
 
         # Log flight statistics when for deleted aircraft
-        if delidx:
+        if len(delidx) > 0:
             self.logger.log(
                 np.array(traf.id)[delidx],
                 self.create_time[delidx],
@@ -157,8 +157,8 @@ class Area(TrafficArrays):
             )
 
         # delete all aicraft in self.delidx
-        for acid in [traf.id[idx] for idx in delidx]:
-            traf.delete(acid)
+        for idx in delidx:
+            traf.delete(idx)
 
     def set_area(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
