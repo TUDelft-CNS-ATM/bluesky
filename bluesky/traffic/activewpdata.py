@@ -34,7 +34,8 @@ class ActiveWaypoint(TrafficArrays):
         # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
         # using default bank angle per flight phase
         turnrad = bs.traf.tas * bs.traf.tas /     \
-                      np.maximum(bs.traf.eps, np.tan(bs.traf.bank) * g0 * nm)  # [nm]
+                      (np.maximum(bs.traf.eps, np.tan(bs.traf.bank) * g0)  \
+                      / nm)  # Convert to turnradius in [nm]
 
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
@@ -42,7 +43,9 @@ class ActiveWaypoint(TrafficArrays):
 #        away = np.abs(degto180(bs.traf.trk - next_qdr)+180.)>90.
 #        away     = np.abs(degto180(bs.traf.trk - next_qdr))>90.
         away     = np.abs(degto180(bs.traf.trk%360. - qdr%360.))>90.
-        incircle = dist<turnrad*1.01
+        # Ratio between distance close enough to switch to next wp when flying away
+        proxf    = 1.01 # Turnradius scales this contant , factor => [turnrad]
+        incircle = dist<turnrad*proxf
         circling = away*incircle
 
 
