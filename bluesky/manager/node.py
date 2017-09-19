@@ -21,7 +21,7 @@ class MainThread(object):
 
     def poll(self):
         try:
-            poll_socks = dict(mainthread.poller.poll(0))
+            poll_socks = dict(self.poller.poll(0))
             return poll_socks.get(self.event) == zmq.POLLIN
         except zmq.ZMQError:
             return None
@@ -104,7 +104,7 @@ def run():
         bs.sim.step()
 
         # Process timers
-        Timer.updateTimers()
+        Timer.update_timers()
 
     # Send quit event to the worker thread and wait for it to close.
     mainthread.stop()

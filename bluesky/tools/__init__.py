@@ -2,6 +2,8 @@ from bluesky import settings
 # Register settings defaults
 settings.set_variable_defaults(prefer_compiled=False)
 
+from .trafficarrays import RegisterElementParameters, TrafficArrays
+from .signal import Signal
 if settings.prefer_compiled:
     try:
         from . import cgeo as geo
@@ -9,5 +11,3 @@ if settings.prefer_compiled:
         from . import geo
 else:
     from . import geo
-
-from .trafficarrays import RegisterElementParameters, TrafficArrays
