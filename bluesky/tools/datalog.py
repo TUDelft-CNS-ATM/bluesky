@@ -162,15 +162,15 @@ class CSVLogger:
     def open(self, fname):
         if self.file:
             self.file.close()
-        self.file       = open(fname, 'w')
+        self.file       = open(fname, 'wb')
         # Write the header
         for line in self.header:
-            self.file.write('# ' + line + '\n')
+            self.file.write(bytes('# ' + line + '\n', 'ascii'))
         # Write the column contents
         columns = ['simt']
         for logset in self.selvars:
             columns += logset[1]
-        self.file.write('# ' + str.join(', ', columns) + '\n')
+        self.file.write(bytes('# ' + str.join(', ', columns) + '\n', 'ascii'))
 
     def isopen(self):
         return self.file is not None
@@ -195,6 +195,11 @@ class CSVLogger:
 
             # log the data to file
             np.savetxt(self.file, np.vstack(txtdata).T, delimiter=',', newline='\n', fmt='%s')
+
+    def start(self):
+        ''' Start this logger. '''
+        self.tlog = self.simt
+        self.open(makeLogfileName(self.name))
 
     def reset(self):
         self.dt         = self.default_dt
@@ -221,15 +226,12 @@ class CSVLogger:
                 '\nUsage: ' + self.name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn'
             return True, text
         elif args[0] == 'ON':
-            self.tlog = self.simt
-            # Set log dt if passed
             if len(args) > 1:
                 if type(args[1]) is float:
                     self.dt = args[1]
                 else:
                     return False, 'Turn ' + self.name + ' on with optional dt'
-
-            self.open(makeLogfileName(self.name))
+            self.start()
 
         elif args[0] == 'OFF':
             self.reset()
