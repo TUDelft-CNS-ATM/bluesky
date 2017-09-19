@@ -175,10 +175,12 @@ class Area(TrafficArrays):
                 # switch on Area, set it to the shape name
                 self.name = args[0]
                 self.active = True
+                self.logger.start()
                 return True, "Area is set to " + str(self.name)
             if args[0]=='OFF' or args[0]=='OF':
                 # switch off the area
                 areafilter.deleteArea(self.name)
+                self.logger.reset()
                 self.active = False
                 self.name = None
                 return True, "Area is switched OFF"
@@ -191,6 +193,7 @@ class Area(TrafficArrays):
             self.active = True
             self.name = 'DELAREA'
             areafilter.defineArea(self.name, 'BOX', args[:4], *args[4:])
+            self.logger.start()
             return True, "Area is ON. Area name is: " + str(self.name)
 
         return False,  "Incorrect arguments" + \
