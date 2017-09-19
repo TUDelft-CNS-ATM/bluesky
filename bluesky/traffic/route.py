@@ -827,7 +827,7 @@ class Route():
         """Go to next waypoint and return data"""
 
 
-        if self.flag_landed_runway == True:
+        if self.flag_landed_runway:
 
             # when landing, LNAV is switched off
             lnavon = False
