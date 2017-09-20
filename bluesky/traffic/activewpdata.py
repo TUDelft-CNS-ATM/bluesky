@@ -34,25 +34,28 @@ class ActiveWaypoint(TrafficArrays):
         # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
         # using default bank angle per flight phase
         turnrad = bs.traf.tas * bs.traf.tas /     \
-                      (np.maximum(bs.traf.eps, np.tan(bs.traf.bank) * g0)  \
-                      / nm)  # Convert to turnradius in [nm]
+                      (np.maximum(bs.traf.eps, np.tan(bs.traf.bank)) * g0)  \
+                       # Turn radius in meters!
 
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
-        # Avoid circling
-#        away = np.abs(degto180(bs.traf.trk - next_qdr)+180.)>90.
-#        away     = np.abs(degto180(bs.traf.trk - next_qdr))>90.
+        # Avoid circling by checking for flying away
         away     = np.abs(degto180(bs.traf.trk%360. - qdr%360.))>90.
+
         # Ratio between distance close enough to switch to next wp when flying away
-        proxf    = 1.01 # Turnradius scales this contant , factor => [turnrad]
-        incircle = dist<turnrad*proxf
-        circling = away*incircle
+        # When within pro1 nm and flying away: switch also
+        proxfact = 1.01 # Turnradius scales this contant , factor => [turnrad]
+        incircle = dist<turnrad*proxfact
+        circling = away*incircle # [True/False] passed wp,used for flyover as well
 
 
-        # distance to turn initialisation point [nm]
-        self.turndist = flyby*np.minimum(0.01, np.abs(turnrad *
-            np.tan(np.radians(0.5 * np.abs(degto180(qdr%360. - next_qdr%360.))))))
+        # distance to turn initialisation point [m]
+        self.turndist = flyby*np.abs(turnrad *
+            np.tan(np.radians(0.5 * np.abs(degto180(qdr%360. - next_qdr%360.)))))
 
 
-        # Check whether shift based dist [nm] is required, set closer than WP turn distanc
-        return np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]
+        # Check whether shift based dist is required, set closer than WP turn distance
+        swreached = np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]
+
+        # Return True/1.0 for a/c where we have reached waypoint
+        return swreached

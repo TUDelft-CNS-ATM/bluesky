@@ -867,7 +867,7 @@ class Route():
         else:
             lnavon = False
 
-        nextqdr= self.getnextqdr()
+        nextqdr = self.getnextqdr()
 
         # in case that there is a runway, the aircraft should remain on it
         # instead of deviating to the airport centre

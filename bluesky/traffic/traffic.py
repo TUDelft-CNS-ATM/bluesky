@@ -314,7 +314,7 @@ class Traffic(TrafficArrays):
         #(temporarily default values)
         self.apvsdef[-1] = 1500. * fpm  # default vertical speed of autopilot
         self.aphi[-1]    = radians(25.)  # bank angle setting of autopilot
-        self.ax[-1]      = 1.0*kts       # absolute value of longitudinal accelleration
+        self.ax[-1]      = 1.0*kts       # absolute value of longitudinal acceleration
         self.bank[-1]    = radians(25.)
 
         # Crossover altitude
@@ -531,7 +531,7 @@ class Traffic(TrafficArrays):
 
     def nom(self, idx):
         """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
-        self.ax[idx] = kts
+        self.ax[idx] = kts #[m/s2]
 
     def poscommand(self, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
         """POS command: Show info or an aircraft, airport, waypoint or navaid"""
