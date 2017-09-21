@@ -65,6 +65,7 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
     # Split command line into command and arguments, pass traf ids to check for
     # switched acid and command
     cmd, args = cmdsplit(cmdline, acdata.id)
+    cmd = cmd.upper()
     numargs   = len(args)
 
     # -------- Process click --------
