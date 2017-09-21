@@ -22,7 +22,7 @@ def reset():
 
 def complete(cmd):
     """ Command line IC + filename completion function """
-    lcmd = cmd.split()
+    lcmd = cmd.upper().split()
     newcmd = cmd
     displaytext = ''
 

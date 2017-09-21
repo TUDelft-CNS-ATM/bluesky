@@ -69,7 +69,7 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
 
     # -------- Process click --------
     # Double click on aircraft = POS command
-    if numargs == 0 and acdata.id.count(cmd) > 0:
+    if numargs == 0 and acdata.id.count(cmd.upper()) > 0:
         todisplay = "\n"          # Clear the current command
         tostack   = "POS " + cmd  # And send a pos command to the stack
 
@@ -78,11 +78,11 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
 
         # Check for synonyms (dictionary is imported from stack)
         if cmd in cmdsynon:
-           cmd = cmdsynon[cmd]
+           cmd = cmdsynon[cmd.upper()]
 
         # Try to find command in clickcmd dictionary
         try:
-            lookup = clickcmd[cmd]
+            lookup = clickcmd[cmd.upper()]
 
         except KeyError:
             # When command was not found in dictionary:
