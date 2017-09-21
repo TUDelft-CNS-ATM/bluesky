@@ -2,7 +2,7 @@
 from matplotlib.path import Path
 import numpy as np
 import bluesky as bs
-from bluesky.tools.geo import kwikdist_matrix
+from bluesky.tools.geo import kwikdist
 
 areas = dict()
 
@@ -61,19 +61,16 @@ class Box:
 
 
 class Circle:
-    def __init__(self, center, radius, top=1e9, bottom=-1e9):
-        self.clat   = center[0]
-        self.clon   = center[1]
-        self.r      = radius
-        self.top    = top
-        self.bottom = bottom
+    def __init__(self, coordinates, top=1e9, bottom=-1e9):
+        self.clat   = coordinates[0]
+        self.clon   = coordinates[1]
+        self.r      = coordinates[2]
+        self.top    = np.maximum(bottom,top)
+        self.bottom = np.minimum(bottom,top)
 
     def checkInside(self, lat, lon, alt):
-        clat     = np.array([self.clat]*len( lat))
-        clon     = np.array([self.clon]*len( lat))
-        r        = np.array([self.r]*len( lat))
-        distance = kwikdist_matrix(clat, clon,  lat, lon)  # [NM]
-        inside   = (distance <= r) & (self.bottom <= alt) & (alt <= self.top)
+        distance = kwikdist(self.clat, self.clon, lat, lon)  # [NM]
+        inside   = (distance <= self.r) & (self.bottom <= alt) & (alt <= self.top)
         return inside
 
 

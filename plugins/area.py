@@ -131,7 +131,7 @@ class Area(TrafficArrays):
         self.inside = inside
 
         # Log flight statistics when for deleted aircraft
-        if delidx:
+        if len(delidx) > 0:
             self.logger.log(
                 np.array(traf.id)[delidx],
                 self.create_time[delidx],
@@ -157,8 +157,8 @@ class Area(TrafficArrays):
             )
 
         # delete all aicraft in self.delidx
-        for acid in [traf.id[idx] for idx in delidx]:
-            traf.delete(acid)
+        for idx in delidx:
+            traf.delete(idx)
 
     def set_area(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
@@ -175,10 +175,12 @@ class Area(TrafficArrays):
                 # switch on Area, set it to the shape name
                 self.name = args[0]
                 self.active = True
+                self.logger.start()
                 return True, "Area is set to " + str(self.name)
             if args[0]=='OFF' or args[0]=='OF':
                 # switch off the area
                 areafilter.deleteArea(self.name)
+                self.logger.reset()
                 self.active = False
                 self.name = None
                 return True, "Area is switched OFF"
@@ -191,6 +193,7 @@ class Area(TrafficArrays):
             self.active = True
             self.name = 'DELAREA'
             areafilter.defineArea(self.name, 'BOX', args[:4], *args[4:])
+            self.logger.start()
             return True, "Area is ON. Area name is: " + str(self.name)
 
         return False,  "Incorrect arguments" + \
