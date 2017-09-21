@@ -65,7 +65,7 @@ class Console(QWidget):
         hintline = ''
         allhints = node_stacks.get(manager.actnode())
         if allhints:
-            hint = allhints.get(self.cmd)
+            hint = allhints.get(self.cmd.upper())
             if hint:
                 if len(self.args) > 0:
                     hintargs = hint.split(',')
@@ -111,7 +111,7 @@ class Console(QWidget):
                     self.echo(displaytext)
 
         elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
-            newcmd += str(event.text()).upper()
+            newcmd += str(event.text())#.upper()
 
         else:
             super(Console, self).keyPressEvent(event)

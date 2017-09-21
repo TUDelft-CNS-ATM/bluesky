@@ -47,6 +47,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
+             "DEBUG": "CALC",
              "DELETE": "DEL",
              "DELWP": "DELWPT",
              "DELROUTE": "DELRTE",
@@ -116,7 +117,8 @@ def init():
     #
     #   float     = plain float
     #   int       = integer
-    #   txt       = string
+    #   txt       = text will be converted to upper case (for navaids, flags, waypoints,acid etc)
+    #   string    = string with lower/uppercase intact and spaces
     #   on/off    = text => boolean
     #
     #   latlon    = converts acid, wpt, airport etc => lat,lon (deg) so 2 args!
@@ -247,7 +249,7 @@ def init():
         ],
         "DELAY": [
             "DELAY time offset, COMMAND+ARGS",
-            "time,txt,...",
+            "time,string",
             lambda time,*args: sched_cmd(time, args, relative=True),
             "Add a delayed command to stack"
         ],
@@ -578,7 +580,7 @@ def init():
         ],
         "SCHEDULE": [
             "SCHEDULE time, COMMAND+ARGS",
-            "time,txt,...",
+            "time,string",
             lambda time, *args: sched_cmd(time, args, relative=False),
             "Schedule a stack command at a given time"
         ],
