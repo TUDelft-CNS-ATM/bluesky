@@ -202,7 +202,7 @@ class CSVLogger:
     def reset(self):
         self.dt         = self.default_dt
         self.tlog       = 0.0
-        self.selvars    = self.allvars
+        self.selvars    = list(self.allvars)
         if self.file:
             self.file.close()
             self.file   = None
