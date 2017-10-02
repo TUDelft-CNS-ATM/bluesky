@@ -1211,14 +1211,11 @@ class Argparser:
     reflon    = -999.  # Reference longitude for searching in nav db
                        # in case of duplicate names
 
-    def __init__(self, argtypes, argisopt, args):
+    def __init__(self, argtypes, argisopt, argstring):
         self.argtypes   = argtypes
         self.argisopt   = argisopt
-        self.args       = args
-        self.numargs    = 0
+        self.argstring  = argstring
         self.arglist    = []
-        self.result     = []  # The outcome of a parsed argument is stored here
-        self.argstep    = 0   # The number of arguments that were parsed
         self.error      = ''  # Potential parsing error messages are stored here
         self.additional = {}  # Sometimes a parse can generate extra arguments
                               # that can be used to fill future empty arguments.
@@ -1229,7 +1226,7 @@ class Argparser:
     def parse(self):
         curtype = 0
         # Iterate over list of argument types & arguments
-        while curtype < len(self.argtypes) and self.args:
+        while curtype < len(self.argtypes) and self.argstring:
             # Optional repeat with "...", e.g. for lat/lon list for polygon
             if self.argtypes[curtype][:3] == '...':
                 repeatsize = len(self.argtypes) - curtype
@@ -1242,15 +1239,15 @@ class Argparser:
             for i, argtypei in enumerate(argtype):
                 # Try to parse the argument for the given argument type
                 # First successful parsing is used!
-                if self.parse_arg(argtypei):
+                result = self.parse_arg(argtypei)
+                if result:
                     # No value = None when this is allowed because it is an optional argument
-                    if self.result[0] is None and not self.argisopt[curtype]:
-                        self.errpr = 'No value given for mandatory argument ' + \
+                    if result[0] is None and not self.argisopt[curtype]:
+                        self.error = 'No value given for mandatory argument ' + \
                             self.argtypes[curtype]
                         return False
 
-                    self.arglist += self.result
-                    self.numargs += self.argstep
+                    self.arglist += result
                     break
                 # No success yet with this type (maybe we can try other ones)
                 else:
@@ -1261,18 +1258,16 @@ class Argparser:
                     else:
                         # No more types to check: print error message
                         self.error = 'Syntax error processing argument %d:\n' % \
-                            (self.numargs + 1) + self.error[:-1]
+                            (curtype + 1) + self.error[:-1]
                         return False
 
             curtype += 1
 
         # Check if at least the number of mandatory arguments is given,
         # by finding the last argument that is not optional.
-        if False in self.argisopt:
-            minargs = len(self.argisopt) - self.argisopt[::-1].index(False)
-            if self.numargs < minargs:
-                self.error = "Syntax error: Too few arguments"
-                return False
+        if False in self.argisopt[curtype:]:
+            self.error = "Syntax error: Too few arguments"
+            return False
 
         return True
 
@@ -1281,29 +1276,28 @@ class Argparser:
             Returns True if parse was successful. When not successful, False is
             returned, and the error message is stored in self.error """
 
-        # First reset outcome values
-        self.result  = []
-        self.argstep = 1
+        # Results are returned in a list
+        result  = []
 
         # Get next argument from command string
-        curarg, args = getnextarg(self.args)
+        curarg, args = getnextarg(self.argstring)
         curarg = curarg.upper()
 
         if argtype == "txt":  # simple text
-            self.result  = [curarg]
+            result  = [curarg]
 
         elif argtype == "string":
-            self.result = [self.args]
-            self.args = ''
+            result = [self.argstring]
+            self.argstring = ''
 
         # Empty arg or wildcard
         elif curarg == "" or curarg == "*":
             # If there was a matching additional argument stored previously use that one
             if argtype in self.additional and curarg == "*":
-                self.result  = [self.additional[argtype]]
+                result  = [self.additional[argtype]]
             else:
                 # Otherwise result is None
-                self.result  = [None]
+                result  = [None]
 
         elif argtype == "acid":  # aircraft id => parse index
             idx = bs.traf.id2idx(curarg)
@@ -1315,34 +1309,34 @@ class Argparser:
             Argparser.reflat = bs.traf.lat[idx]
             Argparser.reflon = bs.traf.lon[idx]
             self.refac   = idx
-            self.result  = [idx]
+            result  = [idx]
 
         elif argtype == "wpinroute":  # return text in upper case
             wpname = curarg
             if self.refac >= 0 and wpname not in bs.traf.ap.route[self.refac].wpname:
                 self.error += 'There is no waypoint ' + wpname + ' in route of ' + bs.traf.id[self.refac]
                 return False
-            self.result  = [wpname]
+            result  = [wpname]
 
         elif argtype == "float":  # float number
             try:
-                self.result  = [float(curarg)]
+                result  = [float(curarg)]
             except ValueError:
                 self.error += 'Argument "' + curarg + '" is not a float'
                 return False
 
         elif argtype == "int":   # integer
             try:
-                self.result  = [int(curarg)]
+                result  = [int(curarg)]
             except ValueError:
                 self.error += 'Argument "' + curarg + '" is not an int'
                 return False
 
         elif argtype == "onoff" or argtype == "bool":
             if curarg in ["ON", "TRUE", "YES", "1"]:
-                self.result  = [True]
+                result  = [True]
             elif curarg in ["OFF", "FALSE", "NO", "0"]:
-                self.result  = [False]
+                result  = [False]
             else:
                 self.error += 'Argument "' + curarg + '" is not a bool'
                 return False
@@ -1369,19 +1363,17 @@ class Argparser:
                 # lat,lon ? Combine into one string with a comma
                 nextarg, args = getnextarg(args)
                 name = curarg + "," + nextarg
-                self.argstep = 2   # we used two arguments
 
             # apt,runway ? Combine into one string with a slash as separator
-            elif self.args[:2].upper() == "RW" and curarg in bs.navdb.aptid:
+            elif self.argstring[:2].upper() == "RW" and curarg in bs.navdb.aptid:
                 nextarg, args = getnextarg(args)
                 name = curarg + "/" + nextarg.upper()
-                self.argstep = 2   # we used two arguments
 
             # Return something different for the two argtypes:
 
             # wpt argument type: simply return positiontext, no need it look up nw
             if argtype == "wpt":
-                self.result = [name]
+                result = [name]
 
             # lat/lon argument type we also need to it up:
             elif argtype == "latlon":
@@ -1406,7 +1398,7 @@ class Argparser:
                     Argparser.reflat = posobj.lat
                     Argparser.reflon = posobj.lon
 
-                    self.result = [posobj.lat, posobj.lon]
+                    result = [posobj.lat, posobj.lon]
 
                 else:
                     self.error += posobj  # contains error message if txt2pos was no success
@@ -1416,7 +1408,7 @@ class Argparser:
         elif argtype == "pandir":
             pandir = curarg
             if pandir in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
-                self.result  = pandir
+                result  = pandir
             else:
                 self.error += pandir + ' is not a valid pan argument'
                 return False
@@ -1429,7 +1421,7 @@ class Argparser:
 
                 if not (0.1 < spd < 1.0 or curarg.count("M") > 0):
                     spd = spd * kts
-                self.result  = [spd]
+                result  = [spd]
             except ValueError:
                 self.error += 'Could not parse "' + curarg + '" as speed'
                 return False
@@ -1437,7 +1429,7 @@ class Argparser:
         # Vertical speed: convert fpm to in m/s
         elif argtype == "vspd":
             try:
-                self.result  = [fpm * float(curarg)]
+                result  = [fpm * float(curarg)]
             except ValueError:
                 self.error += 'Could not parse "' + curarg + '" as vertical speed'
                 return False
@@ -1446,7 +1438,7 @@ class Argparser:
         elif argtype == "alt":  # alt: FL250 or 25000 [ft]
             alt = txt2alt(curarg)
             if alt > -1e8:
-                self.result  = [alt * ft]
+                result  = [alt * ft]
             else:
                 self.error += 'Could not parse "' + curarg + '" as altitude'
                 return False
@@ -1456,7 +1448,7 @@ class Argparser:
             try:
                 # TODO: take care of difference between magnetic/true heading
                 hdg = float(curarg.replace('T', '').replace('M', ''))
-                self.result  = [hdg]
+                result  = [hdg]
             except ValueError:
                 self.error += 'Could not parse "' + curarg + '" as heading'
                 return False
@@ -1469,9 +1461,9 @@ class Argparser:
                     ihr  = int(ttxt[0]) * 3600.0
                     imin = int(ttxt[1]) * 60.0
                     xsec = float(ttxt[2])
-                    self.result = [ihr + imin + xsec]
+                    result = [ihr + imin + xsec]
                 else:
-                    self.result = [float(curarg)]
+                    result = [float(curarg)]
             except ValueError:
                 self.error += 'Could not parse "' + curarg + '" as time'
                 return False
@@ -1480,8 +1472,8 @@ class Argparser:
             self.error += 'Unknown argument type: ' + argtype
             return False
 
-        self.args = args
-        return True
+        self.argstring = args
+        return result
 
 def distcalc(lat0, lon0, lat1, lon1):
     try:
