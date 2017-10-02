@@ -84,6 +84,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
 
 
 cmdstack  = []
+sender_id = None
 
 scenname  = ""
 scenfile  = ""
@@ -692,21 +693,34 @@ def init():
     stack("ZOOM 0.4")
 
 
+def sender():
+    ''' Return the sender of the currently executed stack command.
+        If there is no sender id (e.g., when the command originates
+        from a scenario file), None is returned. '''
+    return sender_id
+
+
 def get_scenname():
+    ''' Return the name of the current scenario.
+        This is either the name defined by the SCEN command,
+        or otherwise the filename of the scenario. '''
     return scenname
 
 
 def get_scendata():
+    ''' Return the scenario data that was loaded from a scenario file. '''
     return scentime, scencmd
 
 
 def set_scendata(newtime, newcmd):
+    ''' Set the scenario data. This is used by the batch logic. '''
     global scentime, scencmd
     scentime = newtime
     scencmd  = newcmd
 
 
 def scenarioinit(name):
+    ''' Implementation of the SCEN stack command. '''
     global scenname
     scenname = name
     return True, 'Starting scenario ' + name
@@ -854,11 +868,13 @@ def showhelp(cmd=''):
 
 
 def setSeed(value):
+    ''' Function that implements the SEED stack command. '''
     seed(value)
     np.random.seed(value)
 
 
 def reset():
+    ''' Reset the stack. '''
     global scentime, scencmd, scenname
 
     scentime = []
@@ -866,15 +882,16 @@ def reset():
     scenname = ''
 
 
-def stack(cmdline, sender_id=None):
-    # Stack one or more commands separated by ";"
+def stack(cmdline, cmdsender=None):
+    ''' Stack one or more commands separated by ";" '''
     cmdline = cmdline.strip()
-    if len(cmdline) > 0:
+    if cmdline:
         for line in cmdline.split(';'):
-            cmdstack.append((line, sender_id))
+            cmdstack.append((line, cmdsender))
 
 
 def sched_cmd(time, args, relative=False):
+    ''' Function that implements the SCHEDULE and DELAY commands. '''
     tostack = ','.join(args)
     # find spot in time list corresponding to passed time, get idx
     # insert time at idx in scentime, insert cmd at idx in scencmd
@@ -911,16 +928,16 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
         ext = '.scn'
 
     # The entire filename, possibly with added path and extension
-    scenfile = os.path.join(path, scenname + ext)
+    fname_full = os.path.join(path, scenname + ext)
 
-    print("Opening "+scenfile)
+    print("Opening " + fname_full)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
     t_offset = bs.sim.simt if absrel == 'REL' else 0.0
 
-    if not os.path.exists(scenfile):
-        return False, "Error: cannot find file: " + scenfile
+    if not os.path.exists(fname_full):
+        return False, "Error: cannot find file: " + fname_full
 
     # Split scenario file line in times and commands
     if not mergeWithExisting:
@@ -930,7 +947,7 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
         scentime = []
         scencmd  = []
 
-    with open(scenfile, 'r') as fscen:
+    with open(fname_full, 'r') as fscen:
         for line in fscen:
             if len(line.strip()) > 12 and line[0] != "#":
                 # Try reading timestamp and command
@@ -957,10 +974,11 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
 
 
 def ic(filename=''):
+    ''' Function implementing the IC stack command. '''
     global scenfile, scenname
 
     # Get the filename of new scenario
-    if filename == '':
+    if not filename:
         filename = bs.scr.show_file_dialog()
 
     # Clean up filename
@@ -986,16 +1004,15 @@ def ic(filename=''):
 
 
 def checkfile(simt):
-    # Empty command buffer when it's time
+    ''' Check if commands from the scenario buffer need to be stacked. '''
     while len(scencmd) > 0 and simt >= scentime[0]:
         stack(scencmd[0])
         del scencmd[0]
         del scentime[0]
 
-    return
-
 
 def saveic(fname):
+    ''' Save the current traffic realization in a scenario file. '''
     # Add extension .scn if not already present
     if fname.lower().find(".scn") < 0:
         fname = fname + ".scn"
@@ -1115,6 +1132,7 @@ def getnextarg(line):
 
 def process():
     """process and empty command stack"""
+    global sender_id
 
     # Process stack of commands
     for (line, sender_id) in cmdstack:
