@@ -1200,7 +1200,7 @@ def process():
         #**********************************************************************
 
     # End of for-loop of cmdstack
-    cmdstack.clear()
+    del cmdstack[:]
     return
 
 
