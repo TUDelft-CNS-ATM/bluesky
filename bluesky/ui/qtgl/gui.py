@@ -1,3 +1,4 @@
+""" QTGL Gui for BlueSky."""
 try:
     from PyQt5.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
@@ -9,24 +10,23 @@ except ImportError:
     from PyQt4.QtOpenGL import QGLFormat
 
 # Local imports
-from ..radarclick import radarclick
-from mainwindow import MainWindow, Splash
-from docwindow import DocWindow
-# from aman import AMANDisplay
-from ...sim.qtgl import MainManager as manager
-from ...sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
+from bluesky.ui.radarclick import radarclick
+from bluesky.tools.misc import tim2txt
+from bluesky import settings
+from bluesky.simulation.qtgl import MainManager as manager
+from bluesky.simulation.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
                      DisplayShapeEventType, StackInitEventType, \
                      AMANEventType, NUMEVENTS
-from radarwidget import RadarWidget
-from nd import ND
+from .mainwindow import MainWindow, Splash
+from .docwindow import DocWindow
+from .radarwidget import RadarWidget
+from .infowindow import InfoWindow
+from .nd import ND
 
-from ...tools.misc import tim2txt
-from ...settings import scenario_path
-
-print('Using Qt ' + QT_VERSION_STR + ' for windows and widgets')
+print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
 # Qt smaller than 5.6.2 needs a different approach to pinch gestures
 correct_pinch = False
@@ -34,6 +34,8 @@ if QT_VERSION <= 0x050600:
     import platform
     correct_pinch = platform.system() == 'Darwin'
 
+# Register settings defaults
+settings.set_variable_defaults(scenario_path='scenario')
 
 class Gui(QApplication):
     modes = ['Init', 'Operate', 'Hold', 'End']
@@ -42,7 +44,6 @@ class Gui(QApplication):
         super(Gui, self).__init__([])
         self.acdata          = ACDataEvent()
         self.routedata       = RouteDataEvent()
-        self.navdb           = None
         self.radarwidget     = None
         self.mousedragged    = False
         self.mousepos        = (0, 0)
@@ -54,7 +55,7 @@ class Gui(QApplication):
         for etype in range(1000, 1000 + NUMEVENTS):
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
-                print('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype))
+                print(('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype)))
 
         self.splash = Splash()
         self.splash.show()
@@ -72,33 +73,42 @@ class Gui(QApplication):
             f.setProfile(QGLFormat.CoreProfile)
             f.setDoubleBuffer(True)
             QGLFormat.setDefaultFormat(f)
-            print('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion()))
+            print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION >= 0x050000:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
-    def init(self, navdb):
+    def init(self):
         self.splash.showMessage('Constructing main window')
         self.processEvents()
         # Create the main window and related widgets
-        self.navdb       = navdb
-        self.radarwidget = RadarWidget(navdb)
+        self.radarwidget = RadarWidget()
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
-        self.docwin      = DocWindow(self)
+        # self.infowin     = InfoWindow()
+        try:
+            self.docwin      = DocWindow(self)
+        except Exception as e:
+            print('Couldnt make docwindow:', e)
         # self.aman = AMANDisplay()
-
         gltimer          = QTimer(self)
         gltimer.timeout.connect(self.radarwidget.updateGL)
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
-    def start(self):
+    def prestart(self):
         self.win.show()
+        # self.infowin.show()
+        # self.infowin.addPlotTab()
+        # for i in range(10):
+            # self.infowin.plottab.addPlot()
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
+
+    def start(self):
+        self.prestart()
         self.exec_()
 
     def quit(self):
@@ -212,6 +222,14 @@ class Gui(QApplication):
                 elif event.switch == "DEFWPT":
                     self.radarwidget.defwpt(event.argument)
 
+                elif event.switch == "FILTERALT":
+                    # First argument is an on/off flag
+                    nact = self.radarwidget.nodedata[manager.sender()[0]]
+                    if event.argument[0]:
+                        nact.filteralt = event.argument[1:]
+                    else:
+                        nact.filteralt = False
+
                 return True
 
             elif event.type() == AMANEventType:
@@ -276,7 +294,7 @@ class Gui(QApplication):
             elif event.type() == QEvent.MouseButtonRelease and event.button() & Qt.LeftButton and not self.mousedragged:
                 event_processed = True
                 lat, lon  = self.radarwidget.pixelCoordsToLatLon(event.x(), event.y())
-                tostack, tocmdline = radarclick(self.win.console.command_line, lat, lon, self.acdata, self.navdb, self.routedata)
+                tostack, tocmdline = radarclick(self.win.console.command_line, lat, lon, self.acdata, self.routedata)
                 if len(tocmdline) > 0:
                     if '\n' in tocmdline:
                         self.win.console.setCmdline('')
@@ -316,17 +334,17 @@ class Gui(QApplication):
         # If we haven't processed the event: call Base Class Method to Continue Normal Event Processing
         if not event_processed:
             return super(Gui, self).notify(receiver, event)
-
-        if self.win.console.cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+        cmd = self.win.console.cmd.upper()
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYALT', 'POLYGON', 'CIRCLE', 'LINE']:
             if self.mousepos != self.prevmousepos and len(self.win.console.args) >= 2:
                 self.prevmousepos = self.mousepos
                 try:
                     # get the largest even number of points
-                    start = 0 if self.win.console.cmd == 'AREA' else 1
-                    end   = ((len(self.win.console.args) - start) / 2) * 2 + start
+                    start = 0 if cmd == 'AREA' else 3 if cmd == 'POLYALT' else 1
+                    end   = ((len(self.win.console.args) - start) // 2) * 2 + start
                     data  = [float(v) for v in self.win.console.args[start:end]]
                     data += self.radarwidget.pixelCoordsToLatLon(*self.mousepos)
-                    self.radarwidget.previewpoly(self.win.console.cmd, data)
+                    self.radarwidget.previewpoly(cmd, data)
 
                 except ValueError:
                     pass
@@ -335,7 +353,7 @@ class Gui(QApplication):
         return True
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', scenario_path, 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', settings.scenario_path, 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:

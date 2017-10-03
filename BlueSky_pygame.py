@@ -1,54 +1,38 @@
-from bluesky import settings
+#!/usr/bin/env python
+""" Pygame BlueSky start script """
+from __future__ import print_function
+import pygame as pg
+import bluesky as bs
+from bluesky.ui.pygame import splash
+
 if __name__ == "__main__":
-    print "   *****   BlueSky Open ATM simulator *****"
-    print "Distributed under GNU General Public License v3"
-    settings.init('pygame')
-
-from bluesky.navdb import Navdatabase
-from bluesky.ui.pygame import Gui
-from bluesky.sim.pygame import Simulation
+    print("   *****   BlueSky Open ATM simulator *****")
+    print("Distributed under GNU General Public License v3")
 
 
-# Global navdb, gui, and sim objects for easy access in interactive python shell
-navdb = None
-gui   = None
-sim   = None
-
-
-def MainLoop():
-    # =============================================================================
-    # Create gui and simulation objects
-    # =============================================================================
-    global navdb, gui, sim
-    navdb = Navdatabase('global')   # Read database from specified folder
-    gui   = Gui(navdb)
-    sim   = Simulation(gui, navdb)
-
+def main_loop():
     # =============================================================================
     # Start the mainloop (and possible other threads)
     # =============================================================================
-    sim.start()
+    splash.show()
+    bs.init()
+    bs.sim.start()
+    bs.scr.init()
 
     # Main loop for tmx object
-    while not sim.mode == sim.end:
-        sim.update(gui.scr)  # Update sim
-        gui.update(sim)      # Update GUI
+    while not bs.sim.mode == bs.sim.end:
+        bs.sim.update()   # Update sim
+        bs.scr.update()   # GUI update
 
         # Restart traffic simulation:
-        if sim.mode == sim.init:
-            sim.reset()
-            gui.reset()
+        if bs.sim.mode == bs.sim.init:
+            bs.sim.reset()
+            bs.scr.objdel()     # Delete user defined objects
 
     # After the simulation is done, close the gui
-    sim.stop()
-    gui.close()
-    # =============================================================================
-    # Clean up before exit. Comment this out when debugging for checking variables
-    # in the shell.
-    # =============================================================================
-    del gui
-    #-debug del sim
-    print 'BlueSky normal end.'
+    bs.sim.stop()
+    pg.quit()
+    print('BlueSky normal end.')
     return
 
 #==============================================================================
@@ -56,4 +40,4 @@ def MainLoop():
 # Run mainloop if BlueSky_pygame is called directly
 
 if __name__ == '__main__':
-    MainLoop()
+    main_loop()

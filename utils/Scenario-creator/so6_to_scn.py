@@ -105,7 +105,7 @@ class readFile:
                     self.writeFile.write(line)
                 if k == 5:
                     long = self.lon
-                    line = 'Longitude; ' + str(long) + '\n'
+                    line = 'Longitude; ' + str(int) + '\n'
                     self.writeFile.write(line)
                 if k == 6:
                     lat = self.lat
@@ -153,5 +153,5 @@ class readFile:
     def time2s(self, time):
         time = [ time[i:i + 2] for i in range(0, len(time), 2) ]
         t = int(time[0]) * 3600 + int(time[1]) * 60 + int(time[2])
-        print t
+        print(t)
         return t

@@ -43,7 +43,7 @@ void main() {
     // Pass color and texture coordinates to the fragment shader
     color_fs = color_in;
     texcoords_fs.st = texcoords[gl_VertexID % 6];
-    texcoords_fs.p  = texcoords_in.p - 32.0;
+    texcoords_fs.p  = texcoords_in.p - 30.0;
 
     vec2 flat_earth = vec2(cos(radians(ownlat)), 1.0);
     mat2 ownrot     = mat2(cos(radians(ownhdg)), sin(radians(ownhdg)),
@@ -55,7 +55,7 @@ void main() {
     vec2 vertex   = vertex_in; //vcoords[gl_VertexID%6] * char_size + vec2(float(gl_VertexID/6) * char_size[0], 0.0);
 
     if (block_size[0] > 0) {
-        texcoords_fs.p = texdepth_in - 32.0;
+        texcoords_fs.p = texdepth_in - 30.0;
         vertex.x += float(gl_InstanceID%block_size[0]) * char_size.x;
         vertex.y -= floor(float((gl_InstanceID%(block_size[0]*block_size[1])))/block_size[0]) * char_size.y;
     }

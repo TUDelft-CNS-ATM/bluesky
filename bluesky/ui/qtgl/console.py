@@ -1,3 +1,4 @@
+""" Console interface for the QTGL implementation."""
 try:
     from PyQt5.QtCore import Qt, pyqtSignal
     from PyQt5.QtWidgets import QWidget, QTextEdit
@@ -5,10 +6,10 @@ except ImportError:
     from PyQt4.QtCore import Qt, pyqtSignal
     from PyQt4.QtGui import QWidget, QTextEdit
 
-import autocomplete
-from ...tools.misc import cmdsplit
-from ...sim.qtgl import MainManager as manager
-from ...sim.qtgl import StackTextEvent
+from . import autocomplete
+from bluesky.tools.misc import cmdsplit
+from bluesky.simulation.qtgl import MainManager as manager
+from bluesky.simulation.qtgl import StackTextEvent
 
 
 node_stacks = dict()
@@ -36,11 +37,12 @@ class Console(QWidget):
             self.initialized = True
             self.lineEdit.setHtml('>>')
 
-    def stack(self, text):
+    def stack(self, text, sender_id = None):
         # Add command to the command history
         self.command_history.append(text)
+        self.echo(text)
         # Send stack command to sim process
-        manager.sendEvent(StackTextEvent(cmdtext=text))
+        manager.sendEvent(StackTextEvent(cmdtext=text, sender_id=sender_id))
         self.cmdline_stacked.emit(self.cmd, self.args)
         # reset commandline and the autocomplete history
         self.setCmdline('')
@@ -63,7 +65,7 @@ class Console(QWidget):
         hintline = ''
         allhints = node_stacks.get(manager.actnode())
         if allhints:
-            hint = allhints.get(self.cmd)
+            hint = allhints.get(self.cmd.upper())
             if hint:
                 if len(self.args) > 0:
                     hintargs = hint.split(',')
@@ -106,10 +108,10 @@ class Console(QWidget):
             if len(newcmd) > 0:
                 newcmd, displaytext = autocomplete.complete(newcmd)
                 if len(displaytext) > 0:
-                    self.display_stack(displaytext)
+                    self.echo(displaytext)
 
         elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
-            newcmd += str(event.text()).upper()
+            newcmd += str(event.text())#.upper()
 
         else:
             super(Console, self).keyPressEvent(event)

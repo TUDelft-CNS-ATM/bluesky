@@ -1,5 +1,5 @@
 import pygame as pg
-from fastfont import Fastfont
+from .fastfont import Fastfont
 
 black = (0, 0, 0)
 white    = (255,255,255)
@@ -53,7 +53,7 @@ class Console:
         self.xedit = 0
         # self.printeditwin('Testing 1,2,3')
         self.bmpdy = self.nlin*self.fontedit.linedy
-        self.bmpdx = self.nch*self.fontedit.linedy*10/17 + 2 # Guess max aspect ratio
+        self.bmpdx = int(self.nch*self.fontedit.linedy*10/17) + 2 # Guess max aspect ratio
         self.bmp = pg.Surface([self.bmpdx,self.bmpdy],
                                    pg.SRCALPHA, 32)
                                    
@@ -69,7 +69,7 @@ class Console:
         """print a message to console window"""
         if self.xedit==self.xcursor:
             self.insert(msg)
-            j = self.xcursor/self.nch        
+            j = int(self.xcursor/self.nch)      
             self.xcursor = (j+1)*self.nch
             self.xedit = self.xcursor
     
@@ -86,7 +86,7 @@ class Console:
 
     def insert(self,message):
         i = self.xcursor%self.nch
-        j = self.xcursor/self.nch
+        j = int(self.xcursor/self.nch)
         for ich in range(len(message)):
             self.content[j][i]=message[ich]
             i = i+1
@@ -107,7 +107,7 @@ class Console:
             self.xcursor = self.xcursor-1
         self.redraw = True
         i = self.xcursor%self.nch
-        j = self.xcursor/self.nch
+        j = int(self.xcursor/self.nch)
         self.content[j][i]=" "
         return
 
@@ -115,12 +115,12 @@ class Console:
         line = ""
         for idx in range(self.xedit,self.xcursor):        
             i = idx%self.nch
-            j = idx/self.nch
+            j = int(idx/self.nch)
             line = line+self.content[j][i]
         return line
 
     def enter(self):           
-        j = self.xcursor/self.nch        
+        j = int(self.xcursor/self.nch)        
         self.xcursor = (j+1)*self.nch
         self.xedit = self.xcursor
 
@@ -154,17 +154,17 @@ class Console:
             for j in range(self.nlin):
                 for i in range(self.nch):
                     if True or self.content[j][i] != self.content0[j][i]:
-                        x = i*self.fontedit.linedy*10/17 + 1
-                        y = j*self.fontedit.linedy+self.fontedit.linedy/6
+                        x = i*int(self.fontedit.linedy*10/17) + 1
+                        y = j*self.fontedit.linedy+int(self.fontedit.linedy/6)
                         self.fontedit.printat(self.bmp,
                                               x,y,
                                               self.content[j][i])
                         self.content0[j][i]=self.content[j][i]
             # Draw cursor
             i = self.xcursor%self.nch
-            j = self.xcursor/self.nch
-            x = i*self.fontedit.linedy*10/17
-            y = j*self.fontedit.linedy+self.fontedit.linedy/6
+            j = int(self.xcursor/self.nch)
+            x = i*int(self.fontedit.linedy*10/17)
+            y = j*self.fontedit.linedy+int(self.fontedit.linedy/6)
             self.fontedit.printat(self.bmp,x,y,"_")
             self.bmp.set_alpha(127)    
             self.redraw = False

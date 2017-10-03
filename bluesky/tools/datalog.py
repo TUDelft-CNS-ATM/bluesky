@@ -4,16 +4,13 @@
 
 import os
 import numbers
-import collections
 from datetime import datetime
 import numpy as np
-from .. import settings
-from .. import stack
+from bluesky import settings, stack
+import bluesky as bs
 
-# Check if logdir exists, and if not, create it.
-if not os.path.exists(settings.log_path):
-    print 'Creating log path [' + settings.log_path + ']'
-    os.makedirs(settings.log_path)
+# Register settings defaults
+settings.set_variable_defaults(log_path='output')
 
 logprecision = '%.8f'
 
@@ -47,13 +44,13 @@ def definePeriodicLogger(name, header, logdt):
 
 
 def preupdate(simt):
-    CSVLogger.simt = simt
+    pass
 
 
 def postupdate():
     """ This function writes to files of all periodic logs by calling the appropriate
     functions for each type of periodic log, at the approriate update time. """
-    for key, log in periodicloggers.iteritems():
+    for key, log in periodicloggers.items():
         log.log()
 
 
@@ -64,7 +61,7 @@ def reset():
     CSVLogger.simt = 0.0
 
     # Close all logs and remove reference to its file object
-    for key, log in allloggers.iteritems():
+    for key, log in allloggers.items():
         log.reset()
 
 
@@ -74,30 +71,24 @@ def makeLogfileName(logname):
     return settings.log_path + '/' + fname
 
 
-def col2txt(col):
-    if isinstance(col[0], numbers.Integral):
-        return np.char.mod('%d', col)
-    elif isinstance(col[0], numbers.Number):
-        return np.char.mod(logprecision, col)
-
+def col2txt(col, nrows):
+    if isinstance(col, (list, np.ndarray)):
+        if isinstance(col[0], numbers.Integral):
+            return np.char.mod('%d', col)
+        elif isinstance(col[0], numbers.Number):
+            return np.char.mod(logprecision, col)
+        else:
+            return col
+    else:
+        if isinstance(col, numbers.Integral):
+            return nrows * ['%d' % col]
+        if isinstance(col, numbers.Number):
+            return nrows * [logprecision % col]
     # The input is not a number
-    return col
-
-
-def num2txt(num):
-    if isinstance(num, numbers.Integral):
-        return '%d' % num
-    elif isinstance(num, numbers.Number):
-        return logprecision % num
-
-    # The input is not a number
-    return num
+    return nrows * [col]
 
 
 class CSVLogger:
-    # Simulation time is static, shared between all loggers
-    simt = 0.0
-
     def __init__(self, name):
         self.name        = name
         self.file        = None
@@ -158,7 +149,7 @@ class CSVLogger:
         self.selvars = []
         for logset in self.allvars:
             # Create a list of member variables in logset that are in the selection
-            cursel    = filter(lambda el: el.upper() in selection, logset[1])
+            cursel    = [el for el in logset[1] if el.upper() in selection]
             if len(cursel) > 0:
                 # Add non-empty result with parent object to selected log variables
                 self.selvars.append((logset[0], list(cursel)))
@@ -166,44 +157,52 @@ class CSVLogger:
     def open(self, fname):
         if self.file:
             self.file.close()
-        self.file       = open(fname, 'w')
+        self.file       = open(fname, 'wb')
         # Write the header
         for line in self.header:
-            self.file.write('# ' + line + '\n')
+            self.file.write(bytes('# ' + line + '\n', 'ascii'))
         # Write the column contents
         columns = ['simt']
         for logset in self.selvars:
             columns += logset[1]
-        self.file.write('# ' + str.join(', ', columns) + '\n')
+        self.file.write(bytes('# ' + str.join(', ', columns) + '\n', 'ascii'))
 
     def isopen(self):
         return self.file is not None
 
     def log(self, *additional_vars):
-        if self.file and len(self.selvars) > 0 and self.simt >= self.tlog:
+        if self.file and bs.sim.simt >= self.tlog:
             # Set the next log timestep
             self.tlog += self.dt
 
             # Make the variable reference list
-            varlist = [v[0].__dict__.get(vname) for v in self.selvars for vname in v[1]]
+            varlist  = [bs.sim.simt]
+            varlist += [v[0].__dict__.get(vname) for v in self.selvars for vname in v[1]]
             varlist += additional_vars
 
-            # Convert numeric arrays to text, leave text arrays untouched
-            if isinstance(varlist[0], collections.Container):
-                nrows = len(varlist[0])
-                if nrows == 0:
-                    return
-                txtdata = [nrows * [str(self.simt)]] + [col2txt(col) for col in varlist]
-            else:
-                txtdata = [str(self.simt)] + [num2txt(col) for col in varlist]
+            # Get the number of rows from the first array/list
+            nrows = 0
+            for v in varlist:
+                if isinstance(v, (list, np.ndarray)):
+                    nrows = len(v)
+                    break
+            if nrows == 0:
+                return
+            # Convert (numeric) arrays to text, leave text arrays untouched
+            txtdata = [col2txt(col, nrows) for col in varlist]
 
             # log the data to file
             np.savetxt(self.file, np.vstack(txtdata).T, delimiter=',', newline='\n', fmt='%s')
 
+    def start(self):
+        ''' Start this logger. '''
+        self.tlog = bs.sim.simt
+        self.open(makeLogfileName(self.name))
+
     def reset(self):
         self.dt         = self.default_dt
         self.tlog       = 0.0
-        self.selvars    = self.allvars
+        self.selvars    = list(self.allvars)
         if self.file:
             self.file.close()
             self.file   = None
@@ -225,15 +224,12 @@ class CSVLogger:
                 '\nUsage: ' + self.name + ' ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn'
             return True, text
         elif args[0] == 'ON':
-            self.tlog = self.simt
-            # Set log dt if passed
             if len(args) > 1:
                 if type(args[1]) is float:
                     self.dt = args[1]
                 else:
                     return False, 'Turn ' + self.name + ' on with optional dt'
-
-            self.open(makeLogfileName(self.name))
+            self.start()
 
         elif args[0] == 'OFF':
             self.reset()

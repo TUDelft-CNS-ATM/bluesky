@@ -12,7 +12,7 @@ Created by  : Jacco M. Hoekstra
 
 from numpy import *
 from time import strftime, gmtime
-from aero import cas2tas, mach2tas, kts
+from .aero import cas2tas, mach2tas, kts
 
 
 def txt2alt(txt):
@@ -46,22 +46,21 @@ def txt2tim(txt):
     # HH
     if len(timlst[0])>0 and timlst[0].isdigit():
         t = t+3600.*int(timlst[0])
-        
+
     # MM
     if len(timlst)>1 and len(timlst[1])>0 and timlst[1].isdigit():
         t = t+60.*int(timlst[1])
-    
+
     # SS.hh
     if len(timlst)>2 and len(timlst[2])>0:
         if timlst[2].replace(".","0").isdigit():
             t = t + float(timlst[2])
-    
+
     return t
-    
+
 def i2txt(i, n):
     """Convert integer to string with leading zeros to make it n chars long"""
-    itxt = str(i)
-    return "0" * (n - len(itxt)) + itxt
+    return '{:0{}d}'.format(i, n)
 
 
 def txt2spd(txt, h):
@@ -170,8 +169,8 @@ def txt2lat(lattxt):
                     lat = lat + f * abs(float(xtxt)) / float(div)
                     div = div * 60
                 except:
-                    print "txt2lat value error:",lattxt
-                    return 0.0                    
+                    print("txt2lat value error:",lattxt)
+                    return 0.0
     else:
         lat = float(txt)
     return lat
@@ -182,12 +181,12 @@ def txt2lon(lontxt):
     """txt2lat: input txt: N52'14'13.5 or N52"""
     # It should first be checked if lontxt is a regular float, to avoid removing
     # the 'e' in a scientific-notation number.
-    try: 
+    try:
         lon = float(lontxt)
 
     # Leading E will trigger error ansd means simply East,just as  W = West = Negative
     except:
-        
+
         txt = lontxt.upper().replace("E", "").replace("W", "-")  # East positive, West negative
         neg = txt.count("-") > 0
 
@@ -207,11 +206,11 @@ def txt2lon(lontxt):
                     try:
                        lon = lon + f * abs(float(xtxt)) / float(div)
                     except:
-                       print "txt2lon value error:",lontxt
-                       return 0.0 
+                       print("txt2lon value error:",lontxt)
+                       return 0.0
 
                 div = div * 60
-        else:  # Cope with "W65"without "'" or '"', also "-65" or "--65" 
+        else:  # Cope with "W65"without "'" or '"', also "-65" or "--65"
             try:
                 neg = txt.count("-") > 0
                 if neg:
@@ -220,8 +219,8 @@ def txt2lon(lontxt):
                     f = 1.
                 lon = f*abs(float(txt))
             except:
-                print "txt2lon value error:",lontxt
-                return 0.0 
+                print("txt2lon value error:",lontxt)
+                return 0.0
 
     return lon
 
@@ -230,7 +229,7 @@ def lat2txt(lat):
     return "NS"[lat<0] + "%02d'%02d'"%(int(d),int(m))+str(s)+'"'
 
 def lon2txt(lon):
-    d,m,s = float2degminsec(abs(lon))    
+    d,m,s = float2degminsec(abs(lon))
     return "EW"[lon<0] + "%03d'%02d'"%(int(d),int(m))+str(s)+'"'
 
 def latlon2txt(lat,lon):

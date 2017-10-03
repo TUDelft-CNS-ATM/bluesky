@@ -1,1 +1,0 @@
-from asas import ASAS

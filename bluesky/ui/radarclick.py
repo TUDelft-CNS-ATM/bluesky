@@ -1,13 +1,15 @@
 from math import cos, atan2, radians, degrees
 from numpy import array
-from ..stack.stack import cmdsynon
+import bluesky as bs
+from bluesky.stack import cmdsynon
 
-from ..tools import geo
-from ..tools.misc import findnearest, cmdsplit
+from bluesky.tools import geo
+from bluesky.tools.misc import findnearest, cmdsplit
 
 
-def radarclick(cmdline, lat, lon, traf, navdb, route=None):
+def radarclick(cmdline, lat, lon, acdata=None, route=None):
     """Process lat,lon as clicked in radar window"""
+
     # Specify which argument can be clicked, and how, in this dictionary
     # and when it's the last, also add ENTER
 
@@ -41,9 +43,10 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                 "ORIG": "acid,apt",
                 "PAN": "latlon",
                 "POLY": "-,latlon,...",
+                "POLYALT": "-,-,-,latlon,...",
                 "POLYGON": "-,latlon,...",
                 "POS": "acid",
-                "SSD": "acid",
+                "SSD": "acid,...",
                 "SPD": "acid,-",
                 "TRAIL":"acid,-",
                 "VNAV": "acid,-",
@@ -54,27 +57,33 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
     todisplay = ""  # Result of click is added here
     tostack   = ""  # If it is the last argument we will pass whole line to the stack
 
+    # The pygame version has access to the complete traffic object. This gets
+    # passed to radarclick in the QtGL version.
+    if acdata is None:
+        acdata = bs.traf
+
     # Split command line into command and arguments, pass traf ids to check for
     # switched acid and command
-    cmd, args = cmdsplit(cmdline, traf.id)
+    cmd, args = cmdsplit(cmdline, acdata.id)
+    cmd = cmd.upper()
     numargs   = len(args)
 
     # -------- Process click --------
     # Double click on aircraft = POS command
-    if numargs == 0 and traf.id.count(cmd) > 0:
+    if numargs == 0 and acdata.id.count(cmd.upper()) > 0:
         todisplay = "\n"          # Clear the current command
         tostack   = "POS " + cmd  # And send a pos command to the stack
 
     # Insert: nearest aircraft id
     else:
-        
+
         # Check for synonyms (dictionary is imported from stack)
         if cmd in cmdsynon:
-           cmd = cmdsynon[cmd]
+           cmd = cmdsynon[cmd.upper()]
 
         # Try to find command in clickcmd dictionary
         try:
-            lookup = clickcmd[cmd]
+            lookup = clickcmd[cmd.upper()]
 
         except KeyError:
             # When command was not found in dictionary:
@@ -102,9 +111,9 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                 clicktype = clickargs[curarg]
 
                 if clicktype == "acid":
-                    idx = findnearest(lat, lon, traf.lat, traf.lon)
+                    idx = findnearest(lat, lon, acdata.lat, acdata.lon)
                     if idx >= 0:
-                        todisplay += traf.id[idx] + " "
+                        todisplay += acdata.id[idx] + " "
 
                 elif clicktype == "latlon":
                     todisplay += str(round(lat, 6)) + "," + str(round(lon, 6)) + " "
@@ -114,20 +123,20 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                     todisplay += str(round(geo.kwikdist(latref, lonref, lat, lon), 6))
 
                 elif clicktype == "apt":
-                    idx = findnearest(lat, lon, navdb.aptlat, navdb.aptlon)
+                    idx = findnearest(lat, lon, bs.navdb.aptlat, bs.navdb.aptlon)
                     if idx >= 0:
-                        todisplay += navdb.aptid[idx] + " "
+                        todisplay += bs.navdb.aptid[idx] + " "
 
                 elif clicktype == "wpinroute":  # Find nearest waypoint in route
-                    if traf.id.count(args[0]) > 0:
-                        itraf      = traf.id.index(args[0])
+                    if acdata.id.count(args[0]) > 0:
+                        itraf      = acdata.id.index(args[0])
                         synerr = False
-                        reflat = traf.lat[itraf]
-                        reflon = traf.lon[itraf]
+                        reflat = acdata.lat[itraf]
+                        reflon = acdata.lon[itraf]
                         # The pygame version can get the route directly from traf
                         # otherwise the route is passed to this function
                         if route is None:
-                            route = traf.ap.route[itraf]
+                            route = acdata.ap.route[itraf]
 
                         if len(route.wplat) > 0:
                             iwp = findnearest(lat, lon,
@@ -156,10 +165,10 @@ def radarclick(cmdline, lat, lon, traf, navdb, route=None):
                         except:
                             synerr = True
                     else:
-                        if traf.id.count(args[0]) > 0:
-                            idx    = traf.id.index(args[0])
-                            reflat = traf.lat[idx]
-                            reflon = traf.lon[idx]
+                        if acdata.id.count(args[0]) > 0:
+                            idx    = acdata.id.index(args[0])
+                            reflat = acdata.lat[idx]
+                            reflon = acdata.lon[idx]
                             synerr = False
                         else:
                             synerr = True

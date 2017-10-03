@@ -20,15 +20,18 @@ By            :
 Date          :
 ------------------------------------------------------------------
 """
+import os
+from ctypes import c_void_p, pointer, sizeof
 try:
     from PyQt5.QtGui import QImage
 except ImportError:
     from PyQt4.QtGui import QImage
 import OpenGL.GL as gl
 import numpy as np
-from ctypes import c_void_p, pointer, sizeof
-from ... import settings
+from bluesky import settings
 
+# Register settings defaults
+settings.set_variable_defaults(gfx_path='data/graphics')
 
 def load_texture(fname):
     img = QImage(fname)
@@ -133,7 +136,7 @@ class BlueSkyProgram():
 class RenderObject(object):
     # Attribute locations
     attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, \
-        attrib_orientation, attrib_color, attrib_texdepth = range(7)
+        attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
     bound_vao = -1
 
     def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0, n_instances=0, vertex=None, texcoords=None, color=None):
@@ -156,7 +159,7 @@ class RenderObject(object):
             self.colorbuf = self.bind_color(color)
 
     def set_vertex_count(self, count):
-        self.vertex_count = count
+        self.vertex_count = int(count)
 
     def set_first_vertex(self, vertex):
         self.first_vertex = vertex
@@ -194,11 +197,11 @@ class RenderObject(object):
         return buf_id
 
     def bind_texcoords(self, data, *args, **kwargs):
-        size = kwargs['size'] if 'size' in kwargs else data.size / self.vertex_count
+        size = kwargs['size'] if 'size' in kwargs else int(data.size / self.vertex_count)
         self.bind_attrib(self.attrib_texcoords, size, data, *args, **kwargs)
 
     def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
-        self.vertex_count = np.size(data) / 2 if vertex_count == 0 else vertex_count
+        self.vertex_count = int(np.size(data) / 2) if vertex_count == 0 else vertex_count
         self.bind_attrib(self.attrib_vertex, 2, data, *args, **kwargs)
 
     def bind_color(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0):
@@ -257,11 +260,11 @@ class RenderObject(object):
 
         # Bind the same attributes for the new renderobject
         # [size, buf_id, instance_divisor, datatype]
-        for attrib, params in original.enabled_attributes.iteritems():
+        for attrib, params in original.enabled_attributes.items():
             new.bind_attrib(attrib, params[0], params[1], instance_divisor=params[2], datatype=params[3])
 
         # Copy possible object attributes that were added to the renderobject
-        for attr, val in original.__dict__.iteritems():
+        for attr, val in original.__dict__.items():
             if attr not in new.__dict__:
                 setattr(new, attr, val)
 
@@ -270,7 +273,7 @@ class RenderObject(object):
 
 class Font(object):
     # Attribute locations
-    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = range(7)
+    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
 
     def __init__(self, tex_id=0, char_ar=1.0):
         self.tex_id         = tex_id
@@ -297,23 +300,23 @@ class Font(object):
 
     def create_font_array(self):
         # Load the first image to get font size
-        img          = QImage(settings.data_path + '/graphics/font/32.png')
+        img          = QImage(os.path.join(settings.gfx_path, 'font/32.png'))
         imgsize      = (img.width(), img.height())
         self.char_ar = float(imgsize[1]) / imgsize[0]
 
         # Set-up the texture array
         self.tex_id = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.tex_id)
-        gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8, imgsize[0], imgsize[1], 127 - 32, 0, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, None)
+        gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8, imgsize[0], imgsize[1], 127 - 30, 0, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, None)
         gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
         gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
         gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
         # We're using the ASCII range 32-126; space, uppercase, lower case, numbers, brackets, punctuation marks
-        for i in range(32, 127):
-            img = QImage(settings.data_path + '/graphics/font/%d.png' % i).convertToFormat(QImage.Format_ARGB32)
+        for i in range(30, 127):
+            img = QImage(os.path.join(settings.gfx_path, 'font/%d.png' % i)).convertToFormat(QImage.Format_ARGB32)
             ptr = c_void_p(int(img.constBits()))
-            gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 32, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
+            gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 30, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 
     @staticmethod
     def char(x, y, w, h, c=32):
@@ -328,8 +331,8 @@ class Font(object):
         vertices, texcoords = [], []
         w, h = char_size, char_size * self.char_ar
         x, y = vertex_offset
-        for i in range(len(text_string)):
-            v, t = self.char(x + i * w, y, w, h, ord(text_string[i]))
+        for i, c in enumerate(text_string):
+            v, t = self.char(x + i * w, y, w, h, ord(c))
             vertices  += v
             texcoords += t
 
