@@ -1265,7 +1265,7 @@ class Argparser:
 
         # Check if at least the number of mandatory arguments is given,
         # by finding the last argument that is not optional.
-        if False in self.argisopt[curtype:]:
+        if False in self.argisopt[curtype:] and not self.argtypes[curtype] == '...':
             self.error = "Syntax error: Too few arguments"
             return False
 
