@@ -334,17 +334,17 @@ class Gui(QApplication):
         # If we haven't processed the event: call Base Class Method to Continue Normal Event Processing
         if not event_processed:
             return super(Gui, self).notify(receiver, event)
-
-        if self.win.console.cmd in ['AREA', 'BOX', 'POLY', 'POLYALT', 'POLYGON', 'CIRCLE', 'LINE']:
+        cmd = self.win.console.cmd.upper()
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYALT', 'POLYGON', 'CIRCLE', 'LINE']:
             if self.mousepos != self.prevmousepos and len(self.win.console.args) >= 2:
                 self.prevmousepos = self.mousepos
                 try:
                     # get the largest even number of points
-                    start = 0 if self.win.console.cmd == 'AREA' else 3 if self.win.console.cmd == 'POLYALT' else 1
+                    start = 0 if cmd == 'AREA' else 3 if cmd == 'POLYALT' else 1
                     end   = ((len(self.win.console.args) - start) // 2) * 2 + start
                     data  = [float(v) for v in self.win.console.args[start:end]]
                     data += self.radarwidget.pixelCoordsToLatLon(*self.mousepos)
-                    self.radarwidget.previewpoly(self.win.console.cmd, data)
+                    self.radarwidget.previewpoly(cmd, data)
 
                 except ValueError:
                     pass
