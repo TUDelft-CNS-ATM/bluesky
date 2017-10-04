@@ -27,6 +27,7 @@ from . import DoNothing
 from . import Eby
 from . import MVP
 from . import Swarm
+from . import SSD
 
 
 class ASAS(TrafficArrays):
@@ -38,6 +39,9 @@ class ASAS(TrafficArrays):
 
     # Dictionary of CR methods
     CRmethods = {"OFF": DoNothing, "MVP": MVP, "EBY": Eby, "SWARM": Swarm}
+    # If pyclipper is installed add it to CRmethods-dict
+    if SSD.loaded_pyclipper():
+        CRmethods["SSD"] = SSD
 
     @classmethod
     def addCDMethod(asas, name, module):
@@ -81,8 +85,8 @@ class ASAS(TrafficArrays):
         self.swasas       = True                       # [-] whether to perform CD&R
         self.tasas        = 0.0                        # Next time ASAS should be called
 
-        self.vmin         = 51.4                       # [m/s] Minimum ASAS velocity (100 kts)
-        self.vmax         = 308.6                      # [m/s] Maximum ASAS velocity (600 kts)
+        self.vmin         = 200. * nm / 3600.          # [m/s] Minimum ASAS velocity (200 kts)
+        self.vmax         = 600. * nm / 3600.          # [m/s] Maximum ASAS velocity (600 kts)
         self.vsmin        = -3000. / 60. * ft          # [m/s] Minimum ASAS vertical speed
         self.vsmax        = 3000. / 60. * ft           # [m/s] Maximum ASAS vertical speed
 
@@ -131,6 +135,11 @@ class ASAS(TrafficArrays):
         self.LOSmaxsev    = []
         self.LOShmaxsev   = []
         self.LOSvmaxsev   = []
+        
+        # ASAS-visualization on SSD 		
+        self.asasn        = np.array([])               # [m/s] North resolution speed from ASAS		
+        self.asase        = np.array([])               # [m/s] East resolution speed from ASAS		
+        self.asaseval     = False                      # [-] Whether target resolution is calculated or not 
 
     def toggle(self, flag=None):
         if flag is None:
@@ -285,17 +294,35 @@ class ASAS(TrafficArrays):
 
     def SetPrio(self, flag=None, priocode="FF1"):
         '''Set the prio switch and the type of prio '''
-        options = ["FF1", "FF2", "FF3", "LAY1", "LAY2"]
+        if self.cr_name == "SSD":
+            options = ["FF1","FF2","FF3","FF4","FF5","FF6","FF7","FF8","FF9"]
+        else:
+            options = ["FF1", "FF2", "FF3", "LAY1", "LAY2"]
         if flag is None:
-            return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
-                         "\nAvailable priority codes: " + \
-                         "\n     FF1:  Free Flight Primary (No Prio) " + \
-                         "\n     FF2:  Free Flight Secondary (Cruising has priority)" + \
-                         "\n     FF3:  Free Flight Tertiary (Climbing/descending has priority)" + \
-                         "\n     LAY1: Layers Primary (Cruising has priority + horizontal resolutions)" + \
-                         "\n     LAY2: Layers Secondary (Climbing/descending has priority + horizontal resolutions)" + \
-                         "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
-                         "\nPriority code is currently: " + str(self.priocode)
+            if self.cr_name == "SSD":
+                return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
+                             "\nAvailable priority codes: " + \
+                             "\n     FF1:  Shortest way out" + \
+                             "\n     FF2:  Clockwise turning" + \
+                             "\n     FF3:  Rules of the air" + \
+                             "\n     FF4:  Shortest from target" + \
+                             "\n     FF5:  Heading first, FF1 second" + \
+                             "\n     FF6:  Speed first, FF1 second" + \
+                             "\n     FF7:  Counterclockwise turning" + \
+                             "\n     FF8:  Sequential FF1" + \
+                             "\n     FF9:  Sequential FF4" + \
+                             "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
+                             "\nPriority code is currently: " + str(self.priocode) 
+            else:
+                return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
+                             "\nAvailable priority codes: " + \
+                             "\n     FF1:  Free Flight Primary (No Prio) " + \
+                             "\n     FF2:  Free Flight Secondary (Cruising has priority)" + \
+                             "\n     FF3:  Free Flight Tertiary (Climbing/descending has priority)" + \
+                             "\n     LAY1: Layers Primary (Cruising has priority + horizontal resolutions)" + \
+                             "\n     LAY2: Layers Secondary (Climbing/descending has priority + horizontal resolutions)" + \
+                             "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
+                             "\nPriority code is currently: " + str(self.priocode)
         self.swprio = flag
         if priocode not in options:
             return False, "Priority code Not Understood. Available Options: " + str(options)
