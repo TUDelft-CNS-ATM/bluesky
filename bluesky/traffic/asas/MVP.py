@@ -22,6 +22,9 @@ def resolve(asas, traf):
 
     # Initialize an array to store the resolution velocity vector for all A/C
     dv = np.zeros((traf.ntraf, 3))
+    # Stores resolution vector, also used in visualization
+    asas.asasn        = np.zeros(traf.ntraf, dtype=np.float32)
+    asas.asase        = np.zeros(traf.ntraf, dtype=np.float32)
 
     # Initialize an array to store time needed to resolve vertically
     timesolveV = np.ones(traf.ntraf)*1e9
@@ -118,6 +121,9 @@ def resolve(asas, traf):
     # The new speed vector, cartesian coordinates
     newv = dv+v
 
+    # Get indices of aircraft that have a resolution
+    ids = dv[0,:] ** 2 + dv[1,:] ** 2 > 0
+
     # Limit resolution direction if required-----------------------------------
 
     # Compute new speed vector in polar coordinates based on desired resolution
@@ -155,6 +161,13 @@ def resolve(asas, traf):
     asas.trk = newtrack
     asas.tas = newgscapped
     asas.vs  = vscapped
+
+    # Stores resolution vector
+    asas.asase[ids] = asas.tas[ids] * np.sin(asas.trk[ids] / 180 * np.pi)
+    asas.asasn[ids] = asas.tas[ids] * np.cos(asas.trk[ids] / 180 * np.pi)
+    # asaseval should be set to True now
+    if not asas.asaseval:
+        asas.asaseval = True
 
     # Calculate if Autopilot selected altitude should be followed. This avoids ASAS from
     # climbing or descending longer than it needs to if the autopilot leveloff
