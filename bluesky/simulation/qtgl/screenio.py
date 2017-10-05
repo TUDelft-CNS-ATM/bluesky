@@ -271,6 +271,14 @@ class ScreenIO(QObject):
             data.nconf_cur  = len(bs.traf.asas.conflist_now)
             data.nlos_cur   = len(bs.traf.asas.LOSlist_now)
 
+            # ASAS resolutions for visualization. Only send when evaluated
+            if bs.traf.asas.asaseval:
+                data.asasn  = bs.traf.asas.asasn
+                data.asase  = bs.traf.asas.asase
+            else:
+                data.asasn  = np.zeros(bs.traf.ntraf, dtype=np.float32)
+                data.asase  = np.zeros(bs.traf.ntraf, dtype=np.float32)
+
             manager.sendEvent(data)
 
     @pyqtSlot()

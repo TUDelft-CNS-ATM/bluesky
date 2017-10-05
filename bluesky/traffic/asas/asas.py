@@ -75,41 +75,41 @@ class ASAS(TrafficArrays):
         self.cd           = ASAS.CDmethods[self.cd_name]
         self.cr           = ASAS.CRmethods[self.cr_name]
 
-        self.dtasas       = settings.asas_dt           # interval for ASAS
-        self.dtlookahead  = settings.asas_dtlookahead  # [s] lookahead time
-        self.mar          = settings.asas_mar          # [-] Safety margin for evasion
-        self.R            = settings.asas_pzr * nm     # [m] Horizontal separation minimum for detection
-        self.dh           = settings.asas_pzh * ft     # [m] Vertical separation minimum for detection
-        self.Rm           = self.R * self.mar          # [m] Horizontal separation minimum for resolution
-        self.dhm          = self.dh * self.mar         # [m] Vertical separation minimum for resolution
-        self.swasas       = True                       # [-] whether to perform CD&R
-        self.tasas        = 0.0                        # Next time ASAS should be called
+        self.dtasas       = settings.asas_dt                # interval for ASAS
+        self.dtlookahead  = settings.asas_dtlookahead       # [s] lookahead time
+        self.mar          = settings.asas_mar               # [-] Safety margin for evasion
+        self.R            = settings.asas_pzr * nm          # [m] Horizontal separation minimum for detection
+        self.dh           = settings.asas_pzh * ft          # [m] Vertical separation minimum for detection
+        self.Rm           = self.R * self.mar               # [m] Horizontal separation minimum for resolution
+        self.dhm          = self.dh * self.mar              # [m] Vertical separation minimum for resolution
+        self.swasas       = True                            # [-] whether to perform CD&R
+        self.tasas        = 0.0                             # Next time ASAS should be called
 
-        self.vmin         = 200. * nm / 3600.          # [m/s] Minimum ASAS velocity (200 kts)
-        self.vmax         = 600. * nm / 3600.          # [m/s] Maximum ASAS velocity (600 kts)
-        self.vsmin        = -3000. / 60. * ft          # [m/s] Minimum ASAS vertical speed
-        self.vsmax        = 3000. / 60. * ft           # [m/s] Maximum ASAS vertical speed
+        self.vmin         = settings.asas_vmin * nm / 3600. # [m/s] Minimum ASAS velocity (200 kts)
+        self.vmax         = settings.asas_vmax * nm / 3600. # [m/s] Maximum ASAS velocity (600 kts)
+        self.vsmin        = -3000. / 60. * ft               # [m/s] Minimum ASAS vertical speed
+        self.vsmax        = 3000. / 60. * ft                # [m/s] Maximum ASAS vertical speed
 
-        self.swresohoriz  = False                      # [-] switch to limit resolution to the horizontal direction
-        self.swresospd    = False                      # [-] switch to use only speed resolutions (works with swresohoriz = True)
-        self.swresohdg    = False                      # [-] switch to use only heading resolutions (works with swresohoriz = True)
-        self.swresovert   = False                      # [-] switch to limit resolution to the vertical direction
-        self.swresocoop   = False                      # [-] switch to limit resolution magnitude to half (cooperative resolutions)
+        self.swresohoriz  = False                           # [-] switch to limit resolution to the horizontal direction
+        self.swresospd    = False                           # [-] switch to use only speed resolutions (works with swresohoriz = True)
+        self.swresohdg    = False                           # [-] switch to use only heading resolutions (works with swresohoriz = True)
+        self.swresovert   = False                           # [-] switch to limit resolution to the vertical direction
+        self.swresocoop   = False                           # [-] switch to limit resolution magnitude to half (cooperative resolutions)
 
-        self.swprio       = False                      # [-] switch to activate priority rules for conflict resolution
-        self.priocode     = "FF1"                      # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
+        self.swprio       = False                           # [-] switch to activate priority rules for conflict resolution
+        self.priocode     = "FF1"                           # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
 
-        self.swnoreso     = False                      # [-] switch to activate the NORESO command. Nobody will avoid conflicts with  NORESO aircraft
-        self.noresolst    = []                         # [-] list for NORESO command. Nobody will avoid conflicts with aircraft in this list
+        self.swnoreso     = False                           # [-] switch to activate the NORESO command. Nobody will avoid conflicts with  NORESO aircraft
+        self.noresolst    = []                              # [-] list for NORESO command. Nobody will avoid conflicts with aircraft in this list
 
-        self.swresooff    = False                      # [-] switch to active the RESOOFF command. RESOOFF aircraft will NOT avoid other aircraft. Opposite of NORESO command.
-        self.resoofflst   = []                         # [-] list for the RESOOFF command. These aircraft will not do conflict resolutions.
+        self.swresooff    = False                           # [-] switch to active the RESOOFF command. RESOOFF aircraft will NOT avoid other aircraft. Opposite of NORESO command.
+        self.resoofflst   = []                              # [-] list for the RESOOFF command. These aircraft will not do conflict resolutions.
 
-        self.resoFacH     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
-        self.resoFacV     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
+        self.resoFacH     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
+        self.resoFacV     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
 
-        self.confpairs    = []                         # Start with emtpy database: no conflicts
-        self.nconf        = 0                          # Number of detected conflicts
+        self.confpairs    = []                              # Start with emtpy database: no conflicts
+        self.nconf        = 0                               # Number of detected conflicts
         self.latowncpa    = np.array([])
         self.lonowncpa    = np.array([])
         self.altowncpa    = np.array([])
