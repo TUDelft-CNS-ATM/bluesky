@@ -250,6 +250,8 @@ class ScreenIO(QObject):
             data.confcpalon = bs.traf.asas.lonowncpa
             data.trk        = bs.traf.hdg
             data.vs         = bs.traf.vs
+            data.vmin       = bs.traf.asas.vmin
+            data.vmax       = bs.traf.asas.vmax
 
             # Trails, send only new line segments to be added
             data.swtrails  = bs.traf.trails.active

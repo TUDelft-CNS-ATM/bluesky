@@ -370,6 +370,15 @@ class ASAS(TrafficArrays):
         # active the switch, if there are acids in the list
         self.swresooff = len(self.resoofflst) > 0
 
+    def SetVLimits(self, flag=None, spd=None):
+        # Input is in knots
+        if flag is None:
+            return True, "ASAS limits in kts are currently [" + str(self.vmin * 3600 / 1852) + ";" + str(self.vmax * 3600 / 1852) + "]"
+        if flag == "MAX":
+            self.vmax = spd * nm / 3600.
+        else:
+            self.vmin = spd * nm / 3600.
+    
     def create(self, n=1):
         super(ASAS, self).create(n)
 

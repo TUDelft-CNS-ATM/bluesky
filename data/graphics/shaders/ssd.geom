@@ -248,7 +248,7 @@ void main()
 	if (gs_in[0].int_id == n_ac - 1) {
 		float dasasreso = gs_in[0].asasreso[0] * gs_in[0].asasreso[0] + gs_in[0].asasreso[1] * gs_in[0].asasreso[1];
 		// Only draw when the asasresolution point is within the velocity limits
-		if (dasasreso > Vlimits[0]) {
+		if (dasasreso > Vlimits[0] - 200) {
 			// Yellow color
 			color_fs = vec4(1.0, 1.0, 0.0, 1.0);
 			// Size

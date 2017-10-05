@@ -151,9 +151,11 @@ class RadarWidget(QGLWidget):
         self.ssd_ownship    = set()
         self.apt_inrange    = np.array([])
         self.ssd_all        = False
-        self.ssd_conflicts   = False
+        self.ssd_conflicts  = False
         self.iactconn       = 0
         self.nodedata       = list()
+        self.asas_vmin      = settings.asas_vmin
+        self.asas_vmax      = settings.asas_vmax
 
         # Display flags
         self.show_map       = True
@@ -581,11 +583,7 @@ class RadarWidget(QGLWidget):
         # SSD
         if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
             self.ssd_shader.use()
-            # Velocity-limits
-            if hasattr(bs.traf, 'asas'):
-                gl.glUniform3f(self.ssd_shader.loc_vlimits, bs.traf.asas.vmin ** 2, bs.traf.asas.vmax ** 2, bs.traf.asas.vmax)
-            else:
-                gl.glUniform3f(self.ssd_shader.loc_vlimits, (settings.asas_vmin / 3600 * nm) ** 2, (settings.asas_vmax / 3600 * nm) ** 2, settings.asas_vmax / 3600 * 1852)
+            gl.glUniform3f(self.ssd_shader.loc_vlimits, self.asas_vmin ** 2, self.asas_vmax ** 2, self.asas_vmax)
             gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
             self.ssd.draw(vertex_count=self.naircraft, n_instances=self.naircraft)
 
@@ -684,6 +682,8 @@ class RadarWidget(QGLWidget):
             data.tas = data.tas[idx]
             data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
+        self.asas_vmin = data.vmin
+        self.asas_vmax = data.vmax
 
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
@@ -780,6 +780,7 @@ class RadarWidget(QGLWidget):
             return
 
         self.makeCurrent()
+
         if 'ALL' in arg:
             self.ssd_all      = True
             self.ssd_conflicts = False

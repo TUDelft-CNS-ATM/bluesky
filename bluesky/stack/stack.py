@@ -168,10 +168,16 @@ def init():
             "Altitude command (autopilot)"
         ],
         "ASAS": [
-            "ASAS ON/OFF",
+            "ASAS ON/OFF/VMIN/VMAX",
             "[onoff]",
             bs.traf.asas.toggle,
             "Airborne Separation Assurance System switch"
+        ],
+        "ASASV": [
+            "ASASV MAX/MIN SPD (TAS in kts)",
+            "[txt,float]",
+            bs.traf.asas.SetVLimits,
+            "Airborne Separation Assurance System Speed"
         ],
         "AT": [
             "acid AT wpname [DEL] SPD/ALT [spd/alt]",
@@ -240,9 +246,10 @@ def init():
             "Define a waypoint only for this scenario/run"
         ],
         "DEL": [
-            "DEL acid/WIND/shape",
+            "DEL acid/ALL/WIND/shape",
             "acid/txt",
             lambda a:   bs.traf.delete(a)    if isinstance(a, int) \
+                   else bs.traf.delete_all   if a == "ALL"\
                    else bs.traf.wind.clear() if a == "WIND" \
                    else areafilter.deleteArea(a),
             "Delete command (aircraft, wind, area)"
