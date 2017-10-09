@@ -12,7 +12,7 @@ from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/coefficients', verbose=False)
+settings.set_variable_defaults(perf_path='data/performance', verbose=False)
 
 class CoeffBS:
     """

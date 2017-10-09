@@ -7,7 +7,7 @@ from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path_bada='data/coefficients/BADA', verbose=False)
+settings.set_variable_defaults(perf_path_bada='data/performance/BADA', verbose=False)
 
 from . import coeff_bada
 if not coeff_bada.init(settings.perf_path_bada):

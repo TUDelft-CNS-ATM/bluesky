@@ -1,7 +1,7 @@
 scenario/ic.scn
 data/cache
-data/coefficients/BADA/*
-!/data/coefficients/BADA/README.md
+data/performance/BADA/*
+!/data/performance/BADA/README.md
 
 # Sphinx documentation
 docs/_build/
