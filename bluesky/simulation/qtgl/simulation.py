@@ -1,9 +1,3 @@
-try:
-    # Try Qt5 first
-    from PyQt5.QtCore import QThread, QObject
-except ImportError:
-    # Else PyQt4 imports
-    from PyQt4.QtCore import QThread, QObject
 import time
 
 # Local imports
@@ -12,17 +6,20 @@ from bluesky import settings, stack
 # from bluesky.traffic import Metric
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
-from . import nodemanager as manager
+import bluesky.manager as manager
 from .simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
 
+
+# Minimum sleep interval
+MINSLEEP = 2e-3
 
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
 # Register settings defaults
 settings.set_variable_defaults(simdt=0.05)
 
-class Simulation(QObject):
+class Simulation(object):
     # simulation modes
     init, op, hold, end = list(range(4))
 
@@ -76,9 +73,10 @@ class Simulation(QObject):
         # When running at a fixed rate, or when in hold/init,
         # increment system time with sysdt and calculate remainder to sleep.
         if not self.ffmode or not self.state == Simulation.op:
-            remainder = self.syst - int(1000.0 * time.time())
-            if remainder > 0:
-                QThread.msleep(remainder)
+            # TODO: python sleep is floating point seconds
+            remainder = self.syst / 1000.0 - time.time()
+            if remainder > MINSLEEP:
+                time.sleep(remainder)
 
         elif self.ffstop is not None and self.simt >= self.ffstop:
             if self.benchdt > 0.0:
@@ -92,8 +90,6 @@ class Simulation(QObject):
         if self.state == Simulation.op:
             # Plugins pre-update
             plugin.preupdate(self.simt)
-            # Datalog pre-update (communicate current sim time to loggers)
-            datalog.preupdate(self.simt)
 
         # Update screen logic
         bs.scr.update()

@@ -1158,7 +1158,7 @@ class Screen:
             self.acidrte = ""  # Click twice on same: route disappear
         else:
             self.acidrte = acid  # Show this route
-        return
+        return True
 
 
     def addnavwpt(self,name,lat,lon): # Draw new navdb waypoint
@@ -1167,10 +1167,6 @@ class Screen:
         self.wplabel.append(0) # Add cell to buffer
         self.redrawradbg = True  # redraw background
         return
-
-    def showacinfo(self, acid, infotext):
-        self.showroute(acid)
-        return True
 
     def getviewlatlon(self): # Return current viewing area in lat, lon
         return self.lat0, self.lat1, self.lon0, self.lon1

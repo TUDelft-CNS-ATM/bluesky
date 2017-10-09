@@ -580,7 +580,7 @@ class Traffic(TrafficArrays):
 
             # Show a/c info and highlight route of aircraft in radar window
             # and pan to a/c (to show route)
-            bs.scr.showacinfo(acid, lines)
+            bs.scr.showroute(acid)
             return bs.SIMPLE_ECHO, lines
 
         # Waypoint: airport, navaid or fix

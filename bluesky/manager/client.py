@@ -1,39 +1,53 @@
 import zmq
+from bluesky.tools import Signal
 
 
-def run():
-    ctx = zmq.Context()
+class Client(object):
+    def __init__(self):
+        ctx = zmq.Context.instance()
+        self.event_io  = ctx.socket(zmq.DEALER)
+        self.stream_in = ctx.socket(zmq.SUB)
+        self.poller    = zmq.Poller()
+        self.host_id   = ''
+        self.client_id = 0
 
-    event_io = ctx.socket(zmq.DEALER)
-    stream_in = ctx.socket(zmq.SUB)
+        # Signals
+        self.event_received  = Signal()
+        self.stream_received = Signal()
 
-    event_io.connect('tcp://localhost:9000')
-    event_io.send('REGISTER')
-    msg = event_io.recv()
-    print('Hostid =', msg[:4], 'myid =', ord(msg[-1]) - 100)
-    stream_in.setsockopt(zmq.SUBSCRIBE, b'')
-    stream_in.connect('tcp://localhost:9001')
-    # event_io.send('target', flags=zmq.SNDMORE)
-    # event_io.send_pyobj(['iets anders', 'teststring'])
+    def connect(self):
+        self.event_io.connect('tcp://localhost:9000')
+        self.event_io.send('REGISTER')
+        msg = self.event_io.recv()
+        self.client_id = ord(msg[-1]) - 100
+        self.host_id   = msg[:4]
+        print('Client {} connected to host {}'.format(self.client_id, self.host_id))
+        self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
+        self.stream_in.connect('tcp://localhost:9001')
 
-    poller = zmq.Poller()
-    poller.register(event_io, zmq.POLLIN)
-    poller.register(stream_in, zmq.POLLIN)
+        self.poller.register(self.event_io, zmq.POLLIN)
+        self.poller.register(self.stream_in, zmq.POLLIN)
 
-    while True:
+    def receive(self):
+        ''' Poll for incoming data from Manager, and receive if avaiable. '''
         try:
-            events = dict(poller.poll(None))
-        except zmq.ZMQError:
-            break  # interrupted
-        except KeyboardInterrupt:
-            print("Interrupt received, stopping")
-            break
-        if event_io in events:
-            msg = event_io.recv_multipart()
-            print('Event from worker', ord(msg[0][-1]) - 100, ':', msg[-1])
-        if stream_in in events:
-            msg = stream_in.recv_multipart()
-            print(msg)
+            socks = dict(self.poller.poll(0))
+            if socks.get(self.event_io) == zmq.POLLIN:
+                sender_id = self.event_io.recv()
+                data      = self.event_io.recv_pyobj()
+                self.event_received.emit(data, sender_id)
 
-if __name__ == '__main__':
-    run()
+            if socks.get(self.stream_in) == zmq.POLLIN:
+                stream_name = self.stream_in.recv()
+                data        = self.stream_in.recv_pyobj()
+                self.stream_received.emit(data, stream_name)
+        except zmq.ZMQError:
+            return False
+
+    def send_event(self, data, target=None):
+        # On the sim side, target is obtained from the currently-parsed stack command
+        self.event_io.send(target or '*', zmq.SNDMORE)
+        self.event_io.send_pyobj(data)
+
+    def send_stream(self, data, name):
+        pass

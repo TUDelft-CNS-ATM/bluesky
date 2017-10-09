@@ -1,36 +1,13 @@
 import os
+from threading import Thread
 import zmq
 
 
-class Manager(object):
+class Manager(Thread):
     def __init__(self):
+        super(Manager, self).__init__()
         self.host_id = b'\x00' + os.urandom(4)
-        self.clients = dict()
-        self.workers = dict()
 
-        # Prepare ZMQ context
-        self.ctx = zmq.Context()
-
-        # Create connection points for clients
-        self.fe_event  = self.ctx.socket(zmq.ROUTER)
-        self.fe_stream = self.ctx.socket(zmq.XPUB)
-        self.fe_event.bind('tcp://*:9000')
-        self.fe_stream.bind('tcp://*:9001')
-
-
-        # Create connection points for sim workers
-        self.be_event  = self.ctx.socket(zmq.ROUTER)
-        self.be_stream = self.ctx.socket(zmq.XSUB)
-
-        self.be_event.bind('tcp://*:10000')
-        self.be_stream.bind('tcp://*:10001')
-
-        # Create poller for both event connection points and the stream reader
-        self.poller = zmq.Poller()
-        self.poller.register(self.fe_event, zmq.POLLIN)
-        self.poller.register(self.be_event, zmq.POLLIN)
-        self.poller.register(self.be_stream, zmq.POLLIN)
-        self.poller.register(self.fe_stream, zmq.POLLIN)
 
     def forward_event(self, src, dest, srcnames, destnames):
         msg = src.recv_multipart()
@@ -56,25 +33,58 @@ class Manager(object):
                 dest.send_multipart(msg)
 
     def run(self):
+        # Keep track of all clients and workers
+        clients = dict()
+        workers = dict()
+
+        # Get ZMQ context
+        ctx = zmq.Context.instance()
+
+        # Create connection points for clients
+        fe_event  = ctx.socket(zmq.ROUTER)
+        fe_stream = ctx.socket(zmq.XPUB)
+        fe_event.bind('tcp://*:9000')
+        fe_stream.bind('tcp://*:9001')
+
+
+        # Create connection points for sim workers
+        be_event  = ctx.socket(zmq.ROUTER)
+        be_stream = ctx.socket(zmq.XSUB)
+
+        be_event.bind('tcp://*:10000')
+        be_stream.bind('tcp://*:10001')
+
+        # Create poller for both event connection points and the stream reader
+        poller = zmq.Poller()
+        poller.register(fe_event, zmq.POLLIN)
+        poller.register(be_event, zmq.POLLIN)
+        poller.register(be_stream, zmq.POLLIN)
+        poller.register(fe_stream, zmq.POLLIN)
+
         while True:
             try:
-                events = dict(self.poller.poll(None))
+                events = dict(poller.poll(None))
             except zmq.ZMQError:
                 break  # interrupted
-            except KeyboardInterrupt:
-                print("Interrupt received, stopping")
-                break
+
             # The socket with incoming data
             for sock in events:
-                if sock == self.fe_event:
-                    self.forward_event(self.fe_event, self.be_event, self.clients, self.workers)
-                elif sock == self.be_event:
-                    self.forward_event(self.be_event, self.fe_event, self.workers, self.clients)
-                elif sock == self.be_stream:
-                    self.fe_stream.send_multipart(sock.recv_multipart())
-                elif sock == self.fe_stream:
-                    self.be_stream.send_multipart(sock.recv_multipart())
+                if sock == fe_event:
+                    self.forward_event(fe_event, be_event, clients, workers)
+                elif sock == be_event:
+                    self.forward_event(be_event, fe_event, workers, clients)
+                elif sock == be_stream:
+                    fe_stream.send_multipart(sock.recv_multipart())
+                elif sock == fe_stream:
+                    be_stream.send_multipart(sock.recv_multipart())
 
-if __name__ == '__main__':
-    mgr = Manager()
-    mgr.run()
+    def send_event(self, event, target=None):
+        ''' Send event placeholder. In the main process, data should be sent with
+            a Client. '''
+        raise RuntimeError('Data cannot be sent directly using the main process manager, use a Client instead.')
+
+
+    def send_stream(self, data, name):
+        ''' Send stream placeholder. In the main process, data should be sent with
+            a Client. '''
+        raise RuntimeError('Data cannot be sent directly using the main process manager, use a Client instead.')

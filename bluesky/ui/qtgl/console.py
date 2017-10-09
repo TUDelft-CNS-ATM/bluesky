@@ -6,11 +6,10 @@ except ImportError:
     from PyQt4.QtCore import Qt, pyqtSignal
     from PyQt4.QtGui import QWidget, QTextEdit
 
-from . import autocomplete
 from bluesky.tools.misc import cmdsplit
-from bluesky.simulation.qtgl import MainManager as manager
 from bluesky.simulation.qtgl import StackTextEvent
-
+from . import io_client
+from . import autocomplete
 
 node_stacks = dict()
 
@@ -42,7 +41,7 @@ class Console(QWidget):
         self.command_history.append(text)
         self.echo(text)
         # Send stack command to sim process
-        manager.sendEvent(StackTextEvent(cmdtext=text, sender_id=sender_id))
+        io_client.send_event(StackTextEvent(cmdtext=text, sender_id=sender_id))
         self.cmdline_stacked.emit(self.cmd, self.args)
         # reset commandline and the autocomplete history
         self.setCmdline('')
@@ -63,7 +62,7 @@ class Console(QWidget):
         self.cmd, self.args = cmdsplit(self.command_line)
 
         hintline = ''
-        allhints = node_stacks.get(manager.actnode())
+        allhints = node_stacks.get(io_client.actnode())
         if allhints:
             hint = allhints.get(self.cmd.upper())
             if hint:

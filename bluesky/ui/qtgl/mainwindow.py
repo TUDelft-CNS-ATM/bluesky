@@ -15,7 +15,7 @@ except ImportError:
 # Local imports
 from bluesky.simulation.qtgl import StackTextEvent, PanZoomEvent, MainManager as manager
 from bluesky import settings
-
+from . import io_client
 
 is_osx = platform.system() == 'Darwin'
 
@@ -86,8 +86,8 @@ class MainWindow(QMainWindow):
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
         # Connect to manager's nodelist changed signal
-        manager.instance.nodes_changed.connect(self.nodesChanged)
-        manager.instance.activenode_changed.connect(self.actnodeChanged)
+        io_client.nodes_changed.connect(self.nodesChanged)
+        io_client.activenode_changed.connect(self.actnodeChanged)
         # Connect widgets with each other
         self.console.cmdline_stacked.connect(self.radarwidget.cmdline_stacked)
 

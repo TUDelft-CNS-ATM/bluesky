@@ -1,13 +1,11 @@
 """ QTGL Gui for BlueSky."""
 try:
     from PyQt5.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
-    from PyQt5.QtWidgets import QApplication, QFileDialog, QErrorMessage
-    from PyQt5.QtOpenGL import QGLFormat
+    from PyQt5.QtWidgets import QApplication, QFileDialog
 
 except ImportError:
     from PyQt4.QtCore import Qt, QEvent, QTimer, QT_VERSION, QT_VERSION_STR
-    from PyQt4.QtGui import QApplication, QFileDialog, QErrorMessage
-    from PyQt4.QtOpenGL import QGLFormat
+    from PyQt4.QtGui import QApplication, QFileDialog
 
 # Local imports
 from bluesky.ui.radarclick import radarclick
@@ -19,8 +17,8 @@ from bluesky.simulation.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
                      DisplayShapeEventType, StackInitEventType, \
-                     AMANEventType, NUMEVENTS
-from .mainwindow import MainWindow, Splash
+                     AMANEventType
+from .mainwindow import MainWindow
 from .docwindow import DocWindow
 from .radarwidget import RadarWidget
 from .infowindow import InfoWindow
@@ -45,44 +43,21 @@ class Gui(QApplication):
         self.acdata          = ACDataEvent()
         self.routedata       = RouteDataEvent()
         self.radarwidget     = None
+        self.win             = None
+        self.nd              = None
+        self.docwin          = None
         self.mousedragged    = False
         self.mousepos        = (0, 0)
         self.prevmousepos    = (0, 0)
         self.panzoomchanged  = False
         self.simt            = 0.0
 
-        # Register our custom pan/zoom event
-        for etype in range(1000, 1000 + NUMEVENTS):
-            reg_etype = QEvent.registerEventType(etype)
-            if reg_etype != etype:
-                print(('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype)))
-
-        self.splash = Splash()
-        self.splash.show()
-
-        # Install error message handler
-        handler = QErrorMessage.qtHandler()
-        handler.setWindowFlags(Qt.WindowStaysOnTopHint)
-
-        # Check and set OpenGL capabilities
-        if not QGLFormat.hasOpenGL():
-            raise RuntimeError('No OpenGL support detected for this system!')
-        else:
-            f = QGLFormat()
-            f.setVersion(3, 3)
-            f.setProfile(QGLFormat.CoreProfile)
-            f.setDoubleBuffer(True)
-            QGLFormat.setDefaultFormat(f)
-            print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
-
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION >= 0x050000:
             self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     def init(self):
-        self.splash.showMessage('Constructing main window')
-        self.processEvents()
-        # Create the main window and related widgets
+        ''' Create the main window and related widgets. '''
         self.radarwidget = RadarWidget()
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
@@ -97,18 +72,13 @@ class Gui(QApplication):
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
-    def prestart(self):
         self.win.show()
         # self.infowin.show()
         # self.infowin.addPlotTab()
         # for i in range(10):
             # self.infowin.plottab.addPlot()
-        self.splash.showMessage('Done!')
-        self.processEvents()
-        self.splash.finish(self.win)
 
     def start(self):
-        self.prestart()
         self.exec_()
 
     def quit(self):

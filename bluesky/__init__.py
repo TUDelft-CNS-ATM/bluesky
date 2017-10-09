@@ -19,6 +19,10 @@ def init():
     global navdb
     navdb = Navdatabase()
 
+    if settings.gui != 'pygame':
+        import bluesky.manager as manager
+        manager.init()
+
     # The remaining objects are only instantiated in the sim nodes
     if settings.is_sim:
         from bluesky.traffic import Traffic
