@@ -160,12 +160,12 @@ class CSVLogger:
         self.file       = open(fname, 'wb')
         # Write the header
         for line in self.header:
-            self.file.write(bytes('# ' + line + '\n', 'ascii'))
+            self.file.write(bytearray('# ' + line + '\n', 'ascii'))
         # Write the column contents
         columns = ['simt']
         for logset in self.selvars:
             columns += logset[1]
-        self.file.write(bytes('# ' + str.join(', ', columns) + '\n', 'ascii'))
+        self.file.write(bytearray('# ' + str.join(', ', columns) + '\n', 'ascii'))
 
     def isopen(self):
         return self.file is not None
