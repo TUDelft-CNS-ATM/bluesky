@@ -80,6 +80,8 @@ class nodeData(object):
         self.traillat1 = []
         self.traillon1 = []
 
+        # Reset transition level
+        self.translvl = 4500.*ft
 
 class radarUBO(UniformBuffer):
     class Data(Structure):
@@ -641,7 +643,7 @@ class RadarWidget(QGLWidget):
                     txt = wp[:12].ljust(12) # Two lines
                     if alt < 0:
                         txt += "-----/"
-                    elif alt > data.translvl:
+                    elif alt > self.translvl:
                         FL = int(round((alt / (100. * ft))))
                         txt += "FL%03d/" % FL
                     else:
@@ -676,6 +678,7 @@ class RadarWidget(QGLWidget):
             data.tas = data.tas[idx]
             data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
+        self.translvl  = data.translvl
 
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)

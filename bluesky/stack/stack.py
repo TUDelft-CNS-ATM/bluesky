@@ -1144,10 +1144,9 @@ def process():
         cmd       = cmdsynon.get(orgcmd) or orgcmd
         stackfun  = cmddict.get(cmd)
         # If no function is found for 'cmd', check if cmd is actually an aircraft id
-        if not stackfun and cmd in bs.traf.id:
+        if (not stackfun) and (cmd in bs.traf.id):
             cmd, args = getnextarg(args)
             args = orgcmd + ' ' + args
-            # When no other args are parsed, command is POS
             stackfun = cmddict.get(cmd.upper() or 'POS')
 
         if stackfun:
