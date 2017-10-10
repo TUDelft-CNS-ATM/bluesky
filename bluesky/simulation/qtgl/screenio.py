@@ -270,6 +270,9 @@ class ScreenIO(QObject):
             data.nlos_exp   = len(bs.traf.asas.LOSlist_exp)
             data.nconf_cur  = len(bs.traf.asas.conflist_now)
             data.nlos_cur   = len(bs.traf.asas.LOSlist_now)
+            
+            # Transition level as defined in traf
+            data.translvl   = bs.traf.translvl
 
             manager.sendEvent(data)
 
