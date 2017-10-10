@@ -245,7 +245,10 @@ class ScreenIO(object):
         data.nconf_cur  = len(bs.traf.asas.conflist_now)
         data.nlos_cur   = len(bs.traf.asas.LOSlist_now)
 
-        manager.send_event(data)
+        # Transition level as defined in traf
+        data.translvl   = bs.traf.translvl
+
+        manager.sendEvent(data)
 
     def send_route_data(self):
         if self.route_acid:

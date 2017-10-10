@@ -22,9 +22,9 @@ def init():
         rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
 
     cachedir   = os.path.join(rundir, 'data/cache')
-    badadir    = os.path.join(rundir, 'data/coefficients/BADA')
-    badasrc    = os.path.join(srcdir, 'data/coefficients/BADA')
-    perfdir    = os.path.join(srcdir, 'data/coefficients')
+    badadir    = os.path.join(rundir, 'data/performance/BADA')
+    badasrc    = os.path.join(srcdir, 'data/performance/BADA')
+    perfdir    = os.path.join(srcdir, 'data/performance')
     gfxdir     = os.path.join(srcdir, 'data/graphics')
     navdir     = os.path.join(srcdir, 'data/navdata')
     scnsrc     = os.path.join(srcdir, 'scenario')
