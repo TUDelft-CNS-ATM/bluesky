@@ -1365,7 +1365,7 @@ class Argparser:
                 name = curarg + "," + nextarg
 
             # apt,runway ? Combine into one string with a slash as separator
-            elif self.argstring[:2].upper() == "RW" and curarg in bs.navdb.aptid:
+            elif args[:2].upper() == "RW" and curarg in bs.navdb.aptid:
                 nextarg, args = getnextarg(args)
                 name = curarg + "/" + nextarg.upper()
 
