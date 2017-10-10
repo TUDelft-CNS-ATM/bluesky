@@ -71,6 +71,7 @@ class Traffic(TrafficArrays):
         self.ntraf = 0
         self.wind = WindSim()
         self.turbulence = Turbulence()
+        self.translvl = 5000.*ft # [m] Defauilt transition level 
 
         # Define the periodic loggers
         # ToDo: explain what these line sdo in comments (type of logs?)
@@ -172,6 +173,9 @@ class Traffic(TrafficArrays):
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
+        
+        # Reset transition level to default value
+        self.translvl = 5000.*ft
 
     def mcreate(self, count, actype=None, alt=None, spd=None, dest=None):
         """ Create multiple random aircraft in a specified area """
@@ -733,3 +737,21 @@ class Traffic(TrafficArrays):
                 return bs.SIMPLE_ECHO, lines[:-1]  # exclude final newline
             else:
                 return False,"No airway legs found for ",key
+ 
+    def settrans(self,alt=-999.):
+        """ Set or show transition level"""
+
+        # in case a valid value is ginve set it
+        if alt>-900.:
+            if alt>0.:
+                self.translvl = alt
+                return True
+            else:
+                return False,"Transition level needs to be ft/FL and larger than zero"
+
+        # In case no value is given, show it
+        else:
+            tlvl = int(round(self.translvl/ft))
+            return True,"Transition level = " + \
+                          str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
+        

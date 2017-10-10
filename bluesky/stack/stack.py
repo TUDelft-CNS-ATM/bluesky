@@ -639,6 +639,13 @@ def init():
             bs.traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
+        "TRANS": [
+            "TRANS [altitude/FL]",
+            "[alt]",
+            bs.traf.settrans,
+            "Set transition level (FL/ft)"
+        ],
+
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
@@ -1141,7 +1148,7 @@ def process():
             cmd, args = getnextarg(args)
             args = orgcmd + ' ' + args
             # When no other args are parsed, command is POS
-            stackfun = cmddict.get(cmd or 'POS')
+            stackfun = cmddict.get(cmd.upper() or 'POS')
 
         if stackfun:
             # Look up command in dictionary to get string with argtypes andhelp texts
