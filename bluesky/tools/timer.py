@@ -1,6 +1,6 @@
 """ BlueSky implementation of a timer that can periodically trigger functions."""
 import time
-from bluesky.tools import Signal
+from bluesky.tools.signal import Signal
 
 
 class Timer(object):

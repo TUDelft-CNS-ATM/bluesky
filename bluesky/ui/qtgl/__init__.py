@@ -59,4 +59,5 @@ def init():
 
 
 def start():
+    init()
     gui.start()

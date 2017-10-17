@@ -5,8 +5,7 @@ import numpy as np
 # Local imports
 import bluesky as bs
 from bluesky import stack
-import bluesky.manager as manager
-from bluesky.manager import Timer
+from bluesky.tools import Timer
 from .simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
                         SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
                         PanZoomEventType, DisplayShapeEvent
@@ -52,7 +51,7 @@ class ScreenIO(object):
         self.fast_timer.start(int(1000 / self.acupdate_rate))
 
     def update(self):
-        if bs.sim.state == bs.sim.op:
+        if bs.sim.state == bs.OP:
             self.samplecount += 1
 
     def reset(self):
@@ -61,14 +60,14 @@ class ScreenIO(object):
         self.prevtime    = 0.0
 
         # Communicate reset to gui
-        manager.send_event(DisplayFlagEvent('RESET', 'ALL'))
+        bs.sim.send_event(DisplayFlagEvent('RESET', 'ALL'))
 
 
     def echo(self, text):
-        manager.send_event(StackTextEvent(disptext=text))
+        bs.sim.send_event(StackTextEvent(disptext=text))
 
     def cmdline(self, text):
-        manager.send_event(StackTextEvent(cmdtext=text))
+        bs.sim.send_event(StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
@@ -82,13 +81,13 @@ class ScreenIO(object):
             self.scrzoom = zoom
         else:
             self.scrzoom *= zoom
-        manager.send_event(PanZoomEvent(zoom=zoom, absolute=absolute))
+        bs.sim.send_event(PanZoomEvent(zoom=zoom, absolute=absolute))
 
     def symbol(self):
-        manager.send_event(DisplayFlagEvent('SYM'))
+        bs.sim.send_event(DisplayFlagEvent('SYM'))
 
     def trails(self,sw):
-        manager.send_event(DisplayFlagEvent('TRAIL',sw))
+        bs.sim.send_event(DisplayFlagEvent('TRAIL',sw))
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
@@ -103,7 +102,7 @@ class ScreenIO(object):
         else:
             self.ctrlat, self.ctrlon = args
 
-        manager.send_event(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
+        bs.sim.send_event(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -112,26 +111,26 @@ class ScreenIO(object):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        manager.send_event(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
+        bs.sim.send_event(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
         return True
 
     def showssd(self, *param):
         ''' Conflict prevention display
             Show solution space diagram, indicating potential conflicts'''
-        manager.send_event(DisplayFlagEvent('SSD', param))
+        bs.sim.send_event(DisplayFlagEvent('SSD', param))
 
     def show_file_dialog(self):
-        manager.send_event(ShowDialogEvent())
+        bs.sim.send_event(ShowDialogEvent())
         return ''
 
     def show_cmd_doc(self, cmd=''):
-        manager.send_event(ShowDialogEvent(1, cmd=cmd))
+        bs.sim.send_event(ShowDialogEvent(1, cmd=cmd))
 
     def feature(self, switch, argument=''):
-        manager.send_event(DisplayFlagEvent(switch, argument))
+        bs.sim.send_event(DisplayFlagEvent(switch, argument))
 
     def filteralt(self, *args):
-        manager.send_event(DisplayFlagEvent('FILTERALT', args))
+        bs.sim.send_event(DisplayFlagEvent('FILTERALT', args))
 
     def objappend(self, objtype, objname, data_in):
         """Add a drawing object to the radar screen using the following inpouts:
@@ -187,7 +186,7 @@ class ScreenIO(object):
             data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
             data[1::2] = lonCircle
 
-        manager.send_event(DisplayShapeEvent(objname, data))
+        bs.sim.send_event(DisplayShapeEvent(objname, data))
 
     def event(self, event, sender_id):
         if event.type() == PanZoomEventType:
@@ -205,7 +204,7 @@ class ScreenIO(object):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
-        manager.send_event(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
+        bs.sim.send_event(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
             bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
@@ -248,7 +247,7 @@ class ScreenIO(object):
         # Transition level as defined in traf
         data.translvl   = bs.traf.translvl
 
-        manager.sendEvent(data)
+        bs.sim.sendEvent(data)
 
     def send_route_data(self):
         if self.route_acid:
@@ -271,4 +270,4 @@ class ScreenIO(object):
 
                 data.wpname    = route.wpname
 
-            manager.send_event(data)  # Send route data to GUI
+            bs.sim.send_event(data)  # Send route data to GUI

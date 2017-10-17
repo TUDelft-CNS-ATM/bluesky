@@ -8,7 +8,7 @@ except ImportError:
 
 from bluesky.tools.misc import cmdsplit
 from bluesky.simulation.qtgl import StackTextEvent
-from . import io_client
+from . import guiio as io
 from . import autocomplete
 
 node_stacks = dict()
@@ -41,7 +41,7 @@ class Console(QWidget):
         self.command_history.append(text)
         self.echo(text)
         # Send stack command to sim process
-        io_client.send_event(StackTextEvent(cmdtext=text, sender_id=sender_id))
+        io.send_event(StackTextEvent(cmdtext=text, sender_id=sender_id))
         self.cmdline_stacked.emit(self.cmd, self.args)
         # reset commandline and the autocomplete history
         self.setCmdline('')
@@ -62,7 +62,7 @@ class Console(QWidget):
         self.cmd, self.args = cmdsplit(self.command_line)
 
         hintline = ''
-        allhints = node_stacks.get(io_client.actnode())
+        allhints = node_stacks.get(io.actnode())
         if allhints:
             hint = allhints.get(self.cmd.upper())
             if hint:

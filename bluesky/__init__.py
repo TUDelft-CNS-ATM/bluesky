@@ -7,11 +7,15 @@ SIMPLE_ECHO = 'simple_echo'
 MSG_OK = 'ok.'
 CMD_TCP_CONNS = 'TCP_CONNS'
 
+# simulation states
+INIT, OP, HOLD, END = list(range(4))
+
 ### Main singleton objects in BlueSky
-traf  = None
-navdb = None
-sim   = None
-scr   = None
+traf      = None
+navdb     = None
+sim       = None
+scr       = None
+iomanager = None
 
 def init():
     # Both sim and gui need a navdatabase in all versions of BlueSky
@@ -19,9 +23,11 @@ def init():
     global navdb
     navdb = Navdatabase()
 
-    if settings.gui != 'pygame':
-        import bluesky.manager as manager
-        manager.init()
+    if settings.is_gui and settings.gui != 'pygame':
+        global iomanager
+        from bluesky.io import IOManager
+        iomanager = IOManager()
+        iomanager.start()
 
     # The remaining objects are only instantiated in the sim nodes
     if settings.is_sim:

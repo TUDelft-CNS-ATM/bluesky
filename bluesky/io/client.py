@@ -10,21 +10,17 @@ class Client(object):
         self.poller    = zmq.Poller()
         self.host_id   = ''
         self.client_id = 0
-        self.sender_id = ''
 
         # Signals
         self.event_received  = Signal()
         self.stream_received = Signal()
 
-    def sender(self):
-        return self.sender_id
-
     def connect(self):
         self.event_io.connect('tcp://localhost:9000')
-        self.event_io.send('REGISTER')
+        self.event_io.send(b'REGISTER')
         msg = self.event_io.recv()
-        self.client_id = ord(msg[-1]) - 100
-        self.host_id   = msg[:4]
+        self.client_id = 256 * msg[-2] + msg[-1]
+        self.host_id   = msg[:5]
         print('Client {} connected to host {}'.format(self.client_id, self.host_id))
         self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
         self.stream_in.connect('tcp://localhost:9001')
@@ -37,14 +33,16 @@ class Client(object):
         try:
             socks = dict(self.poller.poll(0))
             if socks.get(self.event_io) == zmq.POLLIN:
-                self.sender_id = self.event_io.recv()
-                data           = self.event_io.recv_pyobj()
-                self.event_received.emit(data, self.sender_id)
+                sender_id = self.event_io.recv()
+                data      = self.event_io.recv_pyobj()
+                self.event_received.emit(data, sender_id)
 
             if socks.get(self.stream_in) == zmq.POLLIN:
-                stream_name = self.stream_in.recv()
+                nameandid   = self.stream_in.recv()
+                stream_name = nameandid[:-6]
+                sender_id   = nameandid[-6:]
                 data        = self.stream_in.recv_pyobj()
-                self.stream_received.emit(data, stream_name)
+                self.stream_received.emit(data, stream_name, sender_id)
         except zmq.ZMQError:
             return False
 

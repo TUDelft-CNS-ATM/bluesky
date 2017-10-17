@@ -3,17 +3,19 @@ from threading import Thread
 import zmq
 
 
-class Manager(Thread):
+class IOManager(Thread):
     def __init__(self):
-        super(Manager, self).__init__()
-        self.host_id = b'\x00' + os.urandom(4)
+        super(IOManager, self).__init__()
+        self.host_id = b'\x00' + os.urandom(5)
 
 
     def forward_event(self, src, dest, srcnames, destnames):
         msg = src.recv_multipart()
-        if msg[-1] == 'REGISTER':
+        if msg[-1] == b'REGISTER':
             # This is a registration message for a new connection
-            connid = self.host_id + chr(100 + len(srcnames))
+            # The connection ID consists of the host id plus the index of the
+            # new connection encoded in two bytes.
+            connid = self.host_id + bytearray((len(srcnames) // 256, len(srcnames) % 256))
             srcnames[msg[0]] = connid
             # Send reply with connection ID
             src.send_multipart([msg[0], connid])
@@ -21,7 +23,7 @@ class Manager(Thread):
         else:
             # This is a message that should be forwarded
             # Swap sender and target so that msg is sent to target
-            sender = srcnames.get(msg[0]) or 'unknown'
+            sender = srcnames.get(msg[0]) or b'unknown'
             target = msg[1]
             msg[:2] = target, sender
             if target == '*':
@@ -77,14 +79,3 @@ class Manager(Thread):
                     fe_stream.send_multipart(sock.recv_multipart())
                 elif sock == fe_stream:
                     be_stream.send_multipart(sock.recv_multipart())
-
-    def send_event(self, event, target=None):
-        ''' Send event placeholder. In the main process, data should be sent with
-            a Client. '''
-        raise RuntimeError('Data cannot be sent directly using the main process manager, use a Client instead.')
-
-
-    def send_stream(self, data, name):
-        ''' Send stream placeholder. In the main process, data should be sent with
-            a Client. '''
-        raise RuntimeError('Data cannot be sent directly using the main process manager, use a Client instead.')

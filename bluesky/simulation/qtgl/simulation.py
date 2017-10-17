@@ -6,10 +6,9 @@ from bluesky import settings, stack
 # from bluesky.traffic import Metric
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
-import bluesky.manager as manager
+from bluesky.io import Node
 from .simevents import StackTextEventType, BatchEventType, BatchEvent, \
     SimStateEvent, SimQuitEventType, StackInitEvent
-
 
 # Minimum sleep interval
 MINSLEEP = 2e-3
@@ -19,17 +18,11 @@ onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 # Register settings defaults
 settings.set_variable_defaults(simdt=0.05)
 
-class Simulation(object):
-    # simulation modes
-    init, op, hold, end = list(range(4))
-
-    # =========================================================================
-    # Functions
-    # =========================================================================
+class Simulation(Node):
+    ''' The simulation object. '''
     def __init__(self):
         super(Simulation, self).__init__()
-        self.running     = True
-        self.state       = Simulation.init
+        self.state       = bs.INIT
         self.prevstate   = None
 
         # Set starting system time [milliseconds]
@@ -62,17 +55,19 @@ class Simulation(object):
         # Additional modules
         # self.metric      = Metric()
 
-    def prepare(self):
+    def init(self):
+        super(Simulation, self).init()
+
         # Send list of stack functions available in this sim to gui at start
         stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
-        manager.send_event(StackInitEvent(stackdict))
+        self.send_event(StackInitEvent(stackdict))
         self.syst = int(time.time() * 1000.0)
 
     def step(self):
         ''' Perform a simulation timestep. '''
         # When running at a fixed rate, or when in hold/init,
         # increment system time with sysdt and calculate remainder to sleep.
-        if not self.ffmode or not self.state == Simulation.op:
+        if not self.ffmode or not self.state == bs.OP:
             # TODO: python sleep is floating point seconds
             remainder = self.syst / 1000.0 - time.time()
             if remainder > MINSLEEP:
@@ -85,9 +80,9 @@ class Simulation(object):
                 self.benchdt = -1.0
                 self.pause()
             else:
-                self.start()
+                self.op()
 
-        if self.state == Simulation.op:
+        if self.state == bs.OP:
             # Plugins pre-update
             plugin.preupdate(self.simt)
 
@@ -95,20 +90,20 @@ class Simulation(object):
         bs.scr.update()
 
         # Simulation starts as soon as there is traffic, or pending commands
-        if self.state == Simulation.init:
+        if self.state == bs.INIT:
             if bs.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
-                self.start()
+                self.op()
                 if self.benchdt > 0.0:
                     self.fastforward(self.benchdt)
                     self.bencht = time.time()
 
-        if self.state == Simulation.op:
+        if self.state == bs.OP:
             stack.checkfile(self.simt)
 
         # Always update stack
         stack.process()
 
-        if self.state == Simulation.op:
+        if self.state == bs.OP:
 
             bs.traf.update(self.simt, self.simdt)
 
@@ -133,22 +128,22 @@ class Simulation(object):
             self.prevstate = self.state
 
     def stop(self):
-        self.state = Simulation.end
+        self.state = bs.END
         datalog.reset()
 
-    def start(self):
+    def op(self):
         self.syst   = int(time.time() * 1000.0)
         self.ffmode = False
-        self.state  = Simulation.op
+        self.state  = bs.OP
 
     def pause(self):
-        self.state = Simulation.hold
+        self.state = bs.HOLD
 
     def reset(self):
         self.simt      = 0.0
         self.deltclock = 0.0
         self.simtclock = self.simt
-        self.state     = Simulation.init
+        self.state     = bs.INIT
         self.ffmode    = False
         plugin.reset()
         bs.navdb.reset()
@@ -157,9 +152,6 @@ class Simulation(object):
         datalog.reset()
         areafilter.reset()
         bs.scr.reset()
-
-    def quit(self):
-        self.running = False
 
     def setDt(self, dt):
         self.simdt = abs(dt)
@@ -173,7 +165,7 @@ class Simulation(object):
         if flag:
             self.fastforward(nsec)
         else:
-            self.start()
+            self.op()
 
     def fastforward(self, nsec=None):
         self.ffmode = True
@@ -188,17 +180,19 @@ class Simulation(object):
         self.benchdt = dt
 
     def sendState(self):
-        manager.send_event(SimStateEvent(self.state))
+        self.send_event(SimStateEvent(self.state))
 
     def addNodes(self, count):
-        manager.addNodes(count)
+        # TODO Addnodes function
+        pass
+        # self.addNodes(count)
 
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
         result = stack.openfile(filename)
         scentime, scencmd = stack.get_scendata()
         if result is True:
-            manager.send_event(BatchEvent(scentime, scencmd))
+            self.send_event(BatchEvent(scentime, scencmd))
         self.reset()
         return result
 
@@ -215,7 +209,7 @@ class Simulation(object):
             # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
             self.reset()
             stack.set_scendata(event.scentime, event.scencmd)
-            self.start()
+            self.op()
             event_processed     = True
         elif event.type() == SimQuitEventType:
             # BlueSky is quitting

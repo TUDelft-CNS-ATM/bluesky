@@ -16,7 +16,7 @@ def start():
     # =============================================================================
     splash.show()
     bs.init()
-    bs.sim.start()
+    bs.sim.op()
     bs.scr.init()
 
     # Main loop for tmx object

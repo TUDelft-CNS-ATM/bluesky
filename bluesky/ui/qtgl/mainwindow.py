@@ -13,9 +13,10 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from bluesky.simulation.qtgl import StackTextEvent, PanZoomEvent, MainManager as manager
+from bluesky.simulation.qtgl import StackTextEvent, PanZoomEvent
 from bluesky import settings
-from . import io_client
+
+from . import guiio as io
 
 is_osx = platform.system() == 'Darwin'
 
@@ -85,9 +86,9 @@ class MainWindow(QMainWindow):
         self.radarwidget = radarwidget
         radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, radarwidget, 1)
-        # Connect to manager's nodelist changed signal
-        io_client.nodes_changed.connect(self.nodesChanged)
-        io_client.activenode_changed.connect(self.actnodeChanged)
+        # Connect to io client's nodelist changed signal
+        io.nodes_changed.connect(self.nodesChanged)
+        io.activenode_changed.connect(self.actnodeChanged)
         # Connect widgets with each other
         self.console.cmdline_stacked.connect(self.radarwidget.cmdline_stacked)
 
@@ -99,7 +100,7 @@ class MainWindow(QMainWindow):
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
         self.hosts = list()
-        self.nodes = list()
+        self.nodes = dict()
 
         fgcolor = '#%02x%02x%02x' % fg
         bgcolor = '#%02x%02x%02x' % bg
@@ -137,13 +138,12 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self.app.quit()
 
-    @pyqtSlot(tuple, int)
-    def actnodeChanged(self, nodeid, connidx):
+    def actnodeChanged(self, nodeid):
         self.nodelabel.setText('<b>Node</b> %d:%d' % nodeid)
-        self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
+        # self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
 
-    @pyqtSlot(str, tuple, int)
-    def nodesChanged(self, address, nodeid, connidx):
+    def nodesChanged(self, address, nodeid):
+        pass
         if nodeid[0] < len(self.hosts):
             host = self.hosts[nodeid[0]]
         else:
@@ -163,19 +163,18 @@ class MainWindow(QMainWindow):
             btn.setIconSize(QSize(24, 16))
             btn.setLayoutDirection(Qt.RightToLeft)
             btn.setMaximumHeight(16)
-            btn.clicked.connect(manager.instance.addNode)
+            # btn.clicked.connect(manager.instance.addNode)
             self.nodetree.setItemWidget(host, 0, btn)
             self.hosts.append(host)
 
         node = QTreeWidgetItem(host)
         node.setText(0, '%d:%d <init>' % nodeid)
         node.setText(1, '00:00:00')
-        node.connidx = connidx
         node.nodeid  = nodeid
-        self.nodes.append(node)
+        self.nodes[nodeid] = node
 
-    def setNodeInfo(self, connidx, time, scenname):
-        node = self.nodes[connidx]
+    def setNodeInfo(self, connid, time, scenname):
+        node = self.nodes[connid]
         node.setText(0, '%d:%d <'  % node.nodeid + scenname + '>')
         node.setText(1, time)
 
@@ -187,7 +186,7 @@ class MainWindow(QMainWindow):
             connidx = item.child(0).connidx
         else:
             connidx = item.connidx
-        manager.instance.setActiveNode(connidx)
+        io.actnode(connidx)
 
     @pyqtSlot()
     def buttonClicked(self):
@@ -210,15 +209,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
-            manager.sendEvent(StackTextEvent(cmdtext='IC IC'))
+            io.send_event(StackTextEvent(cmdtext='IC IC'))
         elif self.sender() == self.hold:
-            manager.sendEvent(StackTextEvent(cmdtext='HOLD'))
+            io.send_event(StackTextEvent(cmdtext='HOLD'))
         elif self.sender() == self.op:
-            manager.sendEvent(StackTextEvent(cmdtext='OP'))
+            io.send_event(StackTextEvent(cmdtext='OP'))
         elif self.sender() == self.fast:
-            manager.sendEvent(StackTextEvent(cmdtext='FF'))
+            io.send_event(StackTextEvent(cmdtext='FF'))
         elif self.sender() == self.fast10:
-            manager.sendEvent(StackTextEvent(cmdtext='FF 0:0:10'))
+            io.send_event(StackTextEvent(cmdtext='FF 0:0:10'))
         elif self.sender() == self.showac:
             self.radarwidget.show_traf = not self.radarwidget.show_traf
         elif self.sender() == self.showpz:
@@ -240,4 +239,4 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
         elif self.sender() == self.action_Save:
-            manager.sendEvent(StackTextEvent(cmdtext='SAVEIC'))
+            io.send_event(StackTextEvent(cmdtext='SAVEIC'))

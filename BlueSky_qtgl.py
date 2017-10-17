@@ -30,9 +30,8 @@ def start():
     """
     Start BlueSky: Create gui and simulation objects
     """
-    # Initialize bluesky modules, and start manager
+    # Initialize bluesky modules
     bs.init()
-    bs.manager.start()
 
     # Start gui if this is the main process
     if bs.settings.is_gui:
@@ -45,7 +44,7 @@ def cleanup():
     Tear-down BlueSky
     """
     # Close the manager, stop all nodes
-    bs.manager.stop()
+    # bs.manager.stop()
     print('BlueSky normal end.')
 
 

@@ -1,9 +1,8 @@
 """ Node encapsulates the sim process, and manages process I/O. """
 from threading import Thread
 import zmq
-import bluesky as bs
 from bluesky import stack
-from .timer import Timer
+from bluesky.tools import Timer
 
 
 class IOThread(Thread):
@@ -17,7 +16,7 @@ class IOThread(Thread):
         be_stream = ctx.socket(zmq.PAIR)
         fe_event.connect('tcp://localhost:10000')
         fe_stream.connect('tcp://localhost:10001')
-        fe_event.send('REGISTER')
+        fe_event.send(b'REGISTER')
         be_event.send(fe_event.recv())
 
         be_event.connect('inproc://event')
@@ -47,40 +46,58 @@ class IOThread(Thread):
 class Node(object):
     def __init__(self):
         self.nodeid = ''
+        self.running = True
         ctx = zmq.Context.instance()
-        self.event = ctx.socket(zmq.PAIR)
-        self.stream = ctx.socket(zmq.PAIR)
+        self.event_io = ctx.socket(zmq.PAIR)
+        self.stream_out = ctx.socket(zmq.PAIR)
         self.poller = zmq.Poller()
+        self.iothread = IOThread()
 
-    def start(self):
-        ''' Final initialization and starting of main loop. '''
+    def init(self):
+        ''' Final initialization. '''
         # Initialization of sockets.
-        self.event.bind('inproc://event')
-        self.stream.bind('inproc://stream')
-        self.poller.register(self.event, zmq.POLLIN)
+        self.event_io.bind('inproc://event')
+        self.stream_out.bind('inproc://stream')
+        self.poller.register(self.event_io, zmq.POLLIN)
 
         # Start the I/O thread, and receive from it this node's ID
-        iothread = IOThread()
-        iothread.start()
-        self.nodeid = self.event.recv()
+        self.iothread.start()
+        self.nodeid = self.event_io.recv()
 
-        bs.sim.prepare()
+    def event(self, data, sender_id):
+        ''' Event data handler. Reimplemented in Simulation. '''
+        print('Received data from {}'.format(sender_id))
+
+    def step(self):
+        ''' Perform one iteration step. Reimplemented in Simulation. '''
+        pass
+
+    def start(self):
+        ''' Starting of main loop. '''
+        # Final Initialization
+        self.init()
+
+        # run() implements the main loop
         self.run()
 
         # Send quit event to the worker thread and wait for it to close.
-        self.event.send('QUIT')
-        iothread.join()
+        self.event_io.send('QUIT')
+        self.iothread.join()
+
+    def quit(self):
+        ''' Quit the simulation process. '''
+        self.running = False
 
     def run(self):
         ''' Start the main loop of this node. '''
-        while bs.sim.running:
+        while self.running:
             # Get new events from the I/O thread
             while self.poll():
-                sender_id = self.event.recv()
-                data      = self.event.recv_pyobj()
-                bs.sim.event(data, sender_id)
+                sender_id = self.event_io.recv()
+                data      = self.event_io.recv_pyobj()
+                self.event(data, sender_id)
             # Perform a simulation step
-            bs.sim.step()
+            self.step()
 
             # Process timers
             Timer.update_timers()
@@ -89,15 +106,15 @@ class Node(object):
         ''' Poll for incoming data from I/O thread '''
         try:
             poll_socks = dict(self.poller.poll(0))
-            return poll_socks.get(self.event) == zmq.POLLIN
+            return poll_socks.get(self.event_io) == zmq.POLLIN
         except zmq.ZMQError:
             return None
 
     def send_event(self, data, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event.send(stack.sender() or '*', zmq.SNDMORE)
-        self.event.send_pyobj(data)
+        self.event_io.send(stack.sender() or '*', zmq.SNDMORE)
+        self.event_io.send_pyobj(data)
 
     def send_stream(self, data, name):
-        self.stream.send(name + self.nodeid, zmq.SNDMORE)
-        self.stream.send_pyobj(data)
+        self.stream_out.send(name + self.nodeid, zmq.SNDMORE)
+        self.stream_out.send_pyobj(data)

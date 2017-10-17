@@ -1,20 +1,21 @@
 ''' I/O Client implementation for the QtGL gui. '''
-from bluesky.manager import Client
+from bluesky.io import Client
 from bluesky.tools import Signal
 
+# Globals
+_act    = ''
+_client = Client()
 
 # Signals
 nodes_changed      = Signal()
 activenode_changed = Signal()
+event_received     = _client.event_received
+stream_received    = _client.stream_received
 
-# Globals
-_act    = ''
-_client = None
-
+def sender():
+    return _client.sender_id
 
 def init():
-    global _client
-    _client = Client()
     _client.connect()
 
 def send_event(data, target=None):

@@ -456,7 +456,7 @@ def init():
         "OP": [
             "OP",
             "",
-            bs.sim.start,
+            bs.sim.op,
             "Start/Run simulation or continue after pause"
         ],
         "ORIG": [
