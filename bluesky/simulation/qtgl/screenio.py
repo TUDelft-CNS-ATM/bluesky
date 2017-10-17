@@ -204,8 +204,8 @@ class ScreenIO(object):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
-        bs.sim.send_event(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
-            bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
+        bs.sim.send_stream(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
+            bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()), 'SIMINFO')
         self.prevtime  = t
         self.prevcount = self.samplecount
 
@@ -247,7 +247,7 @@ class ScreenIO(object):
         # Transition level as defined in traf
         data.translvl   = bs.traf.translvl
 
-        bs.sim.sendEvent(data)
+        bs.sim.send_stream(data, 'ACDATA')
 
     def send_route_data(self):
         if self.route_acid:
@@ -270,4 +270,4 @@ class ScreenIO(object):
 
                 data.wpname    = route.wpname
 
-            bs.sim.send_event(data)  # Send route data to GUI
+            bs.sim.send_stream(data, 'ACROUTE')  # Send route data to GUI

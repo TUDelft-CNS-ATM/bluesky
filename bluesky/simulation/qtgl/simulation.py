@@ -190,10 +190,10 @@ class Simulation(Node):
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack
         result = stack.openfile(filename)
-        scentime, scencmd = stack.get_scendata()
-        if result is True:
+        if result:
+            scentime, scencmd = stack.get_scendata()
             self.send_event(BatchEvent(scentime, scencmd))
-        self.reset()
+            self.reset()
         return result
 
     def event(self, event, sender_id):

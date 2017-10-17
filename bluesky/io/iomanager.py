@@ -1,5 +1,7 @@
 import os
+import sys
 from threading import Thread
+from subprocess import Popen
 import zmq
 
 
@@ -7,6 +9,8 @@ class IOManager(Thread):
     def __init__(self):
         super(IOManager, self).__init__()
         self.host_id = b'\x00' + os.urandom(5)
+        self.localnodes = list()
+        self.running = True
 
 
     def forward_event(self, src, dest, srcnames, destnames):
@@ -19,6 +23,17 @@ class IOManager(Thread):
             srcnames[msg[0]] = connid
             # Send reply with connection ID
             src.send_multipart([msg[0], connid])
+
+        elif msg[-1] == b'ADDNODES':
+            # This is a request to start new nodes.
+            count = msg[-2]
+            for i in range(count):
+                p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
+                self.localnodes.append(p)
+
+        elif msg[-1] == b'QUIT':
+            # TODO: send quit to all
+            self.running = False
 
         else:
             # This is a message that should be forwarded
@@ -63,7 +78,7 @@ class IOManager(Thread):
         poller.register(be_stream, zmq.POLLIN)
         poller.register(fe_stream, zmq.POLLIN)
 
-        while True:
+        while self.running:
             try:
                 events = dict(poller.poll(None))
             except zmq.ZMQError:
@@ -79,3 +94,7 @@ class IOManager(Thread):
                     fe_stream.send_multipart(sock.recv_multipart())
                 elif sock == fe_stream:
                     be_stream.send_multipart(sock.recv_multipart())
+
+        # Wait for all nodes to finish
+        for n in self.localnodes:
+            n.wait()

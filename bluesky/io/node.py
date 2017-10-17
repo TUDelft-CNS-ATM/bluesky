@@ -110,11 +110,15 @@ class Node(object):
         except zmq.ZMQError:
             return None
 
+    def addnodes(self, count=1):
+        self.event_io.send(bytearray((count,)), zmq.SNDMORE)
+        self.event_io.send(b'ADDNODES')
+
     def send_event(self, data, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send(stack.sender() or '*', zmq.SNDMORE)
+        self.event_io.send(bytearray(stack.sender() or '*'), zmq.SNDMORE)
         self.event_io.send_pyobj(data)
 
     def send_stream(self, data, name):
-        self.stream_out.send(name + self.nodeid, zmq.SNDMORE)
+        self.stream_out.send(bytearray(name + self.nodeid), zmq.SNDMORE)
         self.stream_out.send_pyobj(data)

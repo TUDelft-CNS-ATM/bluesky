@@ -39,12 +39,16 @@ class Client(object):
 
             if socks.get(self.stream_in) == zmq.POLLIN:
                 nameandid   = self.stream_in.recv()
-                stream_name = nameandid[:-6]
-                sender_id   = nameandid[-6:]
+                stream_name = nameandid[:-8]
+                sender_id   = nameandid[-8:]
                 data        = self.stream_in.recv_pyobj()
                 self.stream_received.emit(data, stream_name, sender_id)
         except zmq.ZMQError:
             return False
+
+    def addnodes(self, count=1):
+        self.event_io.send(bytearray((count,)), zmq.SNDMORE)
+        self.event_io.send(b'ADDNODES')
 
     def send_event(self, data, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command

@@ -283,7 +283,7 @@ class Gui(QApplication):
             # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
-                io.sendEvent(PanZoomEvent( pan=(self.radarwidget.panlat, self.radarwidget.panlon),
+                io.send_event(PanZoomEvent( pan=(self.radarwidget.panlat, self.radarwidget.panlon),
                                                 zoom=self.radarwidget.zoom, absolute=True))
 
             # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
