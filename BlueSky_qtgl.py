@@ -37,6 +37,8 @@ def start():
     if bs.settings.is_gui:
         from bluesky.ui import qtgl
         qtgl.start()
+    else:
+        bs.sim.start()
 
 
 def cleanup():

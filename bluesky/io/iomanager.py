@@ -27,9 +27,7 @@ class IOManager(Thread):
         elif msg[-1] == b'ADDNODES':
             # This is a request to start new nodes.
             count = msg[-2]
-            for i in range(count):
-                p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
-                self.localnodes.append(p)
+            self.addnodes(count)
 
         elif msg[-1] == b'QUIT':
             # TODO: send quit to all
@@ -48,6 +46,11 @@ class IOManager(Thread):
                     dest.send_multipart(msg)
             else:
                 dest.send_multipart(msg)
+
+    def addnodes(self, count=1):
+        for i in range(count):
+            p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
+            self.localnodes.append(p)
 
     def run(self):
         # Keep track of all clients and workers
@@ -77,6 +80,9 @@ class IOManager(Thread):
         poller.register(be_event, zmq.POLLIN)
         poller.register(be_stream, zmq.POLLIN)
         poller.register(fe_stream, zmq.POLLIN)
+
+        # Start the first simulation node
+        self.addnodes()
 
         while self.running:
             try:

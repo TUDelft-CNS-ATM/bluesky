@@ -52,7 +52,7 @@ class Client(object):
 
     def send_event(self, data, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send(target or '*', zmq.SNDMORE)
+        self.event_io.send(bytearray(target or '*', 'ascii'), zmq.SNDMORE)
         self.event_io.send_pyobj(data)
 
     def send_stream(self, data, name):

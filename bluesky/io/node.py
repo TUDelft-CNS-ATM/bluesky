@@ -116,9 +116,9 @@ class Node(object):
 
     def send_event(self, data, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send(bytearray(stack.sender() or '*'), zmq.SNDMORE)
+        self.event_io.send(bytearray(stack.sender() or '*', 'ascii'), zmq.SNDMORE)
         self.event_io.send_pyobj(data)
 
     def send_stream(self, data, name):
-        self.stream_out.send(bytearray(name + self.nodeid), zmq.SNDMORE)
+        self.stream_out.send(bytearray(name + self.nodeid, 'ascii'), zmq.SNDMORE)
         self.stream_out.send_pyobj(data)

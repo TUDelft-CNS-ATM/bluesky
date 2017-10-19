@@ -189,6 +189,7 @@ class ScreenIO(object):
         bs.sim.send_event(DisplayShapeEvent(objname, data))
 
     def event(self, event, sender_id):
+        print('Received event from {}'.format(sender_id))
         if event.type() == PanZoomEventType:
             self.ctrlat  = event.pan[0]
             self.ctrlon  = event.pan[1]
