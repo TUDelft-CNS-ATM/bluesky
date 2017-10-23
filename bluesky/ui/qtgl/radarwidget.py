@@ -603,7 +603,7 @@ class RadarWidget(QGLWidget):
         origin = (width / 2, height / 2)
 
         # Update width, height, and aspect ratio
-        self.width, self.height = int(width / pixel_ratio), int(height / pixel_ratio)
+        self.width, self.height = width // pixel_ratio, height // pixel_ratio
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
 
