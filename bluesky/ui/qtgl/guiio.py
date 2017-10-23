@@ -1,10 +1,17 @@
 ''' I/O Client implementation for the QtGL gui. '''
+try:
+    from PyQt5.QtCore import QTimer
+
+except ImportError:
+    from PyQt4.QtCore import QTimer
+
 from bluesky.io import Client
 from bluesky.tools import Signal
 
 # Globals
 _act    = ''
 _client = Client()
+_timer  = None
 
 # Signals
 nodes_changed      = Signal()
@@ -17,6 +24,10 @@ def sender():
 
 def init():
     _client.connect()
+    global _timer
+    _timer = QTimer()
+    _timer.timeout.connect(_client.receive)
+    _timer.start(10)
 
 def send_event(data, target=None):
     _client.send_event(data, target or _act or '*')

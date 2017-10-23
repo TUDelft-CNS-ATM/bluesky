@@ -16,8 +16,6 @@ class IOThread(Thread):
         be_stream = ctx.socket(zmq.PAIR)
         fe_event.connect('tcp://localhost:10000')
         fe_stream.connect('tcp://localhost:10001')
-        fe_event.send(b'REGISTER')
-        be_event.send(fe_event.recv())
 
         be_event.connect('inproc://event')
         be_stream.connect('inproc://stream')
@@ -25,6 +23,9 @@ class IOThread(Thread):
         poller.register(fe_event, zmq.POLLIN)
         poller.register(be_event, zmq.POLLIN)
         poller.register(be_stream, zmq.POLLIN)
+
+        fe_event.send(b'REGISTER')
+        be_event.send(fe_event.recv())
 
         while True:
             try:
@@ -63,6 +64,7 @@ class Node(object):
         # Start the I/O thread, and receive from it this node's ID
         self.iothread.start()
         self.nodeid = self.event_io.recv()
+        print('Node started, id={}'.format(self.nodeid))
 
     def event(self, data, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
@@ -108,7 +110,7 @@ class Node(object):
             poll_socks = dict(self.poller.poll(0))
             return poll_socks.get(self.event_io) == zmq.POLLIN
         except zmq.ZMQError:
-            return None
+            return False
 
     def addnodes(self, count=1):
         self.event_io.send(bytearray((count,)), zmq.SNDMORE)
@@ -120,5 +122,6 @@ class Node(object):
         self.event_io.send_pyobj(data)
 
     def send_stream(self, data, name):
-        self.stream_out.send(bytearray(name + self.nodeid, 'ascii'), zmq.SNDMORE)
+        # self.stream_out.send(bytearray(name + self.nodeid, 'ascii'), zmq.SNDMORE)
+        self.stream_out.send(bytearray(name, 'ascii') + self.nodeid, zmq.SNDMORE)
         self.stream_out.send_pyobj(data)

@@ -55,9 +55,7 @@ class Simulation(Node):
         # Additional modules
         # self.metric      = Metric()
 
-    def init(self):
-        super(Simulation, self).init()
-
+    def prepare(self):
         # Send list of stack functions available in this sim to gui at start
         stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
         self.send_event(StackInitEvent(stackdict))

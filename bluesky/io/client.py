@@ -22,8 +22,8 @@ class Client(object):
         self.client_id = 256 * msg[-2] + msg[-1]
         self.host_id   = msg[:5]
         print('Client {} connected to host {}'.format(self.client_id, self.host_id))
-        self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
         self.stream_in.connect('tcp://localhost:9001')
+        self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
 
         self.poller.register(self.event_io, zmq.POLLIN)
         self.poller.register(self.stream_in, zmq.POLLIN)
@@ -35,6 +35,8 @@ class Client(object):
             if socks.get(self.event_io) == zmq.POLLIN:
                 sender_id = self.event_io.recv()
                 data      = self.event_io.recv_pyobj()
+                print('received event data')
+                print(data)
                 self.event_received.emit(data, sender_id)
 
             if socks.get(self.stream_in) == zmq.POLLIN:
@@ -42,6 +44,8 @@ class Client(object):
                 stream_name = nameandid[:-8]
                 sender_id   = nameandid[-8:]
                 data        = self.stream_in.recv_pyobj()
+                print('received stream data {}'.format(stream_name))
+                print(data)
                 self.stream_received.emit(data, stream_name, sender_id)
         except zmq.ZMQError:
             return False
