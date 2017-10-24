@@ -74,6 +74,6 @@ docs/_build/
 target/
 
 data/cache
-data/coefficients/BADA/*
-!/data/coefficients/BADA/README
+data/performance/BADA/*
+!/data/performance/BADA/README
 ssd.obj

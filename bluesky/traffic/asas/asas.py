@@ -7,7 +7,10 @@ from bluesky.tools.aero import ft, nm
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 # Register settings defaults
-settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0, asas_dtlookahead=300.0, asas_mar=1.2, asas_pzr=5.0, asas_pzh=1000.0)
+settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0,
+                               asas_dtlookahead=300.0, asas_mar=1.2,
+                               asas_pzr=5.0, asas_pzh=1000.0,
+                               asas_vmin=200.0, asas_vmax=500.0)
 
 # Import default CD methods
 StateBasedCD = False
@@ -135,11 +138,11 @@ class ASAS(TrafficArrays):
         self.LOSmaxsev    = []
         self.LOShmaxsev   = []
         self.LOSvmaxsev   = []
-        
-        # ASAS-visualization on SSD 		
-        self.asasn        = np.array([])               # [m/s] North resolution speed from ASAS		
-        self.asase        = np.array([])               # [m/s] East resolution speed from ASAS		
-        self.asaseval     = False                      # [-] Whether target resolution is calculated or not 
+
+        # ASAS-visualization on SSD
+        self.asasn        = np.array([])               # [m/s] North resolution speed from ASAS
+        self.asase        = np.array([])               # [m/s] East resolution speed from ASAS
+        self.asaseval     = False                      # [-] Whether target resolution is calculated or not
 
     def toggle(self, flag=None):
         if flag is None:
@@ -312,7 +315,7 @@ class ASAS(TrafficArrays):
                              "\n     RS8:  Sequential RS5" + \
                              "\n     RS9:  Counterclockwise turning" + \
                              "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
-                             "\nPriority code is currently: " + str(self.priocode) 
+                             "\nPriority code is currently: " + str(self.priocode)
             else:
                 return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
                              "\nAvailable priority codes: " + \
@@ -378,7 +381,7 @@ class ASAS(TrafficArrays):
             self.vmax = spd * nm / 3600.
         else:
             self.vmin = spd * nm / 3600.
-    
+
     def create(self, n=1):
         super(ASAS, self).create(n)
 

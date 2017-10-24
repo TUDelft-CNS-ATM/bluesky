@@ -26,7 +26,8 @@ from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
 settings.set_variable_defaults(
     gfx_path='data/graphics',
     text_size=13, apt_size=10,
-    wpt_size=10, ac_size=16)
+    wpt_size=10, ac_size=16,
+    asas_vmin=200.0, asas_vmax=500.0)
 
 palette.set_default_colours(
     aircraft=(0,255,0),
