@@ -90,7 +90,7 @@ class ASAS(TrafficArrays):
         self.vsmin        = -3000. / 60. * ft               # [m/s] Minimum ASAS vertical speed
         self.vsmax        = 3000. / 60. * ft                # [m/s] Maximum ASAS vertical speed
 
-        self.swresohoriz  = False                           # [-] switch to limit resolution to the horizontal direction
+        self.swresohoriz  = True                            # [-] switch to limit resolution to the horizontal direction
         self.swresospd    = False                           # [-] switch to use only speed resolutions (works with swresohoriz = True)
         self.swresohdg    = False                           # [-] switch to use only heading resolutions (works with swresohoriz = True)
         self.swresovert   = False                           # [-] switch to limit resolution to the vertical direction
@@ -295,22 +295,22 @@ class ASAS(TrafficArrays):
     def SetPrio(self, flag=None, priocode="FF1"):
         '''Set the prio switch and the type of prio '''
         if self.cr_name == "SSD":
-            options = ["FF1","FF2","FF3","FF4","FF5","FF6","FF7","FF8","FF9"]
+            options = ["RS1","RS2","RS3","RS4","RS5","RS6","RS7","RS8","RS9"]
         else:
             options = ["FF1", "FF2", "FF3", "LAY1", "LAY2"]
         if flag is None:
             if self.cr_name == "SSD":
                 return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
                              "\nAvailable priority codes: " + \
-                             "\n     FF1:  Shortest way out" + \
-                             "\n     FF2:  Clockwise turning" + \
-                             "\n     FF3:  Rules of the air" + \
-                             "\n     FF4:  Shortest from target" + \
-                             "\n     FF5:  Heading first, FF1 second" + \
-                             "\n     FF6:  Speed first, FF1 second" + \
-                             "\n     FF7:  Counterclockwise turning" + \
-                             "\n     FF8:  Sequential FF1" + \
-                             "\n     FF9:  Sequential FF4" + \
+                             "\n     RS1:  Shortest way out" + \
+                             "\n     RS2:  Clockwise turning" + \
+                             "\n     RS3:  Heading first, RS1 second" + \
+                             "\n     RS4:  Speed first, RS1 second" + \
+                             "\n     RS5:  Shortest from target" + \
+                             "\n     RS6:  Rules of the air" + \
+                             "\n     RS7:  Sequential RS1" + \
+                             "\n     RS8:  Sequential RS5" + \
+                             "\n     RS9:  Counterclockwise turning" + \
                              "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
                              "\nPriority code is currently: " + str(self.priocode) 
             else:

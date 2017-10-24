@@ -50,10 +50,10 @@ def resolve(asas, traf):
         asas.inconf = np.array([len(ids) > 0 for ids in asas.iconf])
 
     # Construct the SSD (twice in sequential methods)
-    if asas.priocode == "FF8":
-        constructSSD(asas, traf, "FF1")
-    if asas.priocode == "FF9":
-        constructSSD(asas, traf, "FF4")
+    if asas.priocode == "RS7":
+        constructSSD(asas, traf, "RS1")
+    if asas.priocode == "RS8":
+        constructSSD(asas, traf, "RS5")
     constructSSD(asas, traf, asas.priocode)
 
     # Get resolved speed-vector
@@ -87,7 +87,7 @@ def initializeSSD(asas, ntraf):
     asas.ARV_calc     = [None] * ntraf
     asas.inrange      = [None] * ntraf
     asas.inconf       = np.zeros(ntraf, dtype=bool)
-    # Index 2 for sequential solutions (FF8, FF9)
+    # Index 2 for sequential solutions (RS7, RS8)
     asas.ARV_calc2    = [None] * ntraf
     asas.inrange2     = [None] * ntraf
     asas.inconf2      = np.zeros(ntraf, dtype=bool)
@@ -101,7 +101,7 @@ def initializeSSD(asas, ntraf):
 
 
 # asas is an object of the ASAS class defined in asas.py
-def constructSSD(asas, traf, priocode = "FF1"):
+def constructSSD(asas, traf, priocode = "RS1"):
     """ Calculates the FRV and ARV of the SSD """
     N = 0
     # Parameters
@@ -113,9 +113,9 @@ def constructSSD(asas, traf, priocode = "FF1"):
     hsepm   = hsep * margin         # [m] Horizontal separation with safety margin
     alpham  = 0.4999 * np.pi        # [rad] Maximum half-angle for VO
     betalos = np.pi / 4             # [rad] Minimum divertion angle for LOS (45 deg seems optimal)
-    adsbmax = 80. * nm              # [m] Maximum ADS-B range
+    adsbmax = 65. * nm              # [m] Maximum ADS-B range
     beta    =  np.pi/4 + betalos/2
-    if priocode == "FF8" or priocode == "FF9":
+    if priocode == "RS7" or priocode == "RS8":
         adsbmax /= 2
 
     # Relevant info from traf
@@ -228,8 +228,8 @@ def constructSSD(asas, traf, priocode = "FF1"):
                 # Now account for ADS-B range in indices of other aircraft (i_other)
                 ind = ind[ac_adsb]
                 i_other = i_other[ac_adsb]
-                if not priocode == "FF8" and not priocode == "FF9":
-                    # Put it in class-object (not for FF8 and FF9)
+                if not priocode == "RS7" and not priocode == "RS8":
+                    # Put it in class-object (not for RS7 and RS8)
                     asas.inrange[i]  = i_other
                 else:
                     asas.inrange2[i] = i_other
@@ -261,7 +261,7 @@ def constructSSD(asas, traf, priocode = "FF1"):
                 pc.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
 
                 # Extra stuff needed for RotA
-                if priocode == "FF3":
+                if priocode == "RS6":
                     # Make another clipper object for RotA
                     pc_rota = pyclipper.Pyclipper()
                     pc_rota.AddPaths(pyclipper.scale_to_clipper(circle_tup), pyclipper.PT_SUBJECT, True)
@@ -299,18 +299,18 @@ def constructSSD(asas, traf, priocode = "FF1"):
                     # Add scaled VO to clipper
                     pc.AddPath(VO, pyclipper.PT_CLIP, True)
                     # For RotA it is possible to ignore
-                    if priocode == "FF3":
+                    if priocode == "RS6":
                         if brg_own[j] >= -20. and brg_own[j] <= 110.:
                             # Head-on or converging from right
                             pc_rota.AddPath(VO, pyclipper.PT_CLIP, True)
                         elif brg_other[j] <= -110. or brg_other[j] >= 110.:
                             # In overtaking position
                             pc_rota.AddPath(VO, pyclipper.PT_CLIP, True)
-                    # Detect conflicts for smaller layer in FF8
-                    if priocode == "FF8" or priocode == "FF9":
+                    # Detect conflicts for smaller layer in RS7 and RS8
+                    if priocode == "RS7" or priocode == "RS8":
                         if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((gseast[i],gsnorth[i])),VO):
                             asas.inconf2[i] = True
-                    if priocode == "FF4":
+                    if priocode == "RS5":
                         if pyclipper.PointInPolygon(pyclipper.scale_to_clipper((apeast[i],apnorth[i])),VO):
                             asas.ap_free[i] = False
 
@@ -319,11 +319,11 @@ def constructSSD(asas, traf, priocode = "FF1"):
 
                 ARV = pc.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
 
-                if not priocode == "FF1" and not priocode == "FF4" and not priocode == "FF8" and not priocode == "FF9":
+                if not priocode == "RS1" and not priocode == "RS5" and not priocode == "RS7" and not priocode == "RS8":
                     # Make another clipper object for extra intersections
                     pc2 = pyclipper.Pyclipper()
                     # When using RotA clip with pc_rota
-                    if priocode == "FF3":
+                    if priocode == "RS6":
                         # Calculate ARV for RotA
                         ARV_rota = pc_rota.Execute(pyclipper.CT_DIFFERENCE, pyclipper.PFT_NONZERO, pyclipper.PFT_NONZERO)
                         if len(ARV_rota) > 0:
@@ -371,32 +371,32 @@ def constructSSD(asas, traf, priocode = "FF1"):
                     ARV_area_loc[i] = area(ARV)
 
                     # For resolution purposes sometimes extra intersections are wanted
-                    if priocode == "FF2" or priocode == "FF7" or priocode == "FF3" or priocode == "FF5" or priocode == "FF6":
+                    if priocode == "RS2" or priocode == "RS9" or priocode == "RS6" or priocode == "RS3" or priocode == "RS4":
                         # Make a box that covers right or left of SSD
                         own_hdg = hdg[i] * np.pi / 180
                         # Efficient calculation of box, see notes
-                        if priocode == "FF2" or priocode == "FF3":
+                        if priocode == "RS2" or priocode == "RS6":
                             # CW or right-turning
                             sin_table = np.array([[1,0],[-1,0],[-1,-1],[1,-1]], dtype=np.float64)
                             cos_table = np.array([[0,1],[0,-1],[1,-1],[1,1]], dtype=np.float64)
-                        elif priocode == "FF7":
+                        elif priocode == "RS9":
                             # CCW or left-turning
                             sin_table = np.array([[1,0],[1,1],[-1,1],[-1,0]], dtype=np.float64)
                             cos_table = np.array([[0,1],[-1,1],[-1,-1],[0,-1]], dtype=np.float64)
                         # Overlay a part of the full SSD
-                        if priocode == "FF2" or priocode == "FF7" or priocode == "FF3":
+                        if priocode == "RS2" or priocode == "RS9" or priocode == "RS6":
                             # Normalized coordinates of box
                             xyp = np.sin(own_hdg) * sin_table + np.cos(own_hdg) * cos_table
                             # Scale with vmax (and some factor) and put in tuple
                             part = pyclipper.scale_to_clipper(tuple(map(tuple, 1.1 * vmax * xyp)))
                             pc2.AddPath(part, pyclipper.PT_SUBJECT, True)
-                        elif priocode == "FF5":
+                        elif priocode == "RS3":
                             # Small ring
                             xyp = (tuple(map(tuple, np.flipud(xyc * min(vmax,gs_ap[i] + 0.1)))), tuple(map(tuple , xyc * max(vmin,gs_ap[i] - 0.1))))
                             part = pyclipper.scale_to_clipper(xyp)
                             pc2.AddPaths(part, pyclipper.PT_SUBJECT, True)
-                        elif priocode == "FF6":
-                            hdg_sel = hdg_ap[i] * np.pi / 180
+                        elif priocode == "RS4":
+                            hdg_sel = hdg[i] * np.pi / 180
                             xyp = np.array([[np.sin(hdg_sel-0.0087),np.cos(hdg_sel-0.0087)],
                                             [0,0],
                                             [np.sin(hdg_sel+0.0087),np.cos(hdg_sel+0.0087)]],
@@ -420,7 +420,7 @@ def constructSSD(asas, traf, priocode = "FF1"):
                     ARV_calc_loc[i] = ARV_calc
 
     # If sequential approach, the local should go elsewhere
-    if not priocode == "FF8" and not priocode == "FF9":
+    if not priocode == "RS7" and not priocode == "RS8":
         asas.FRV          = FRV_loc
         asas.ARV          = ARV_loc
         asas.ARV_calc     = ARV_calc_loc
@@ -436,10 +436,10 @@ def calculate_resolution(asas, traf):
     # It's just linalg, however credits to: http://stackoverflow.com/a/1501725
     # Variables
     ARV = asas.ARV_calc
-    if asas.priocode == "FF8" or asas.priocode == "FF9":
+    if asas.priocode == "RS7" or asas.priocode == "RS8":
         ARV2 = asas.ARV_calc2
     # Select AP-setting as reference point for closest to target rulesets
-    if asas.priocode == "FF4" or asas.priocode == "FF9":
+    if asas.priocode == "RS5" or asas.priocode == "RS8":
         gsnorth = np.cos(traf.ap.trk / 180 * np.pi) * traf.ap.tas
         gseast  = np.sin(traf.ap.trk / 180 * np.pi) * traf.ap.tas
     else:
@@ -452,7 +452,7 @@ def calculate_resolution(asas, traf):
         # Only those that are in conflict need to resolve
         if asas.inconf[i] and len(ARV[i]) > 0:
             # First check if AP-setting is free
-            if asas.ap_free[i] and asas.priocode == "FF4":
+            if asas.ap_free[i] and asas.priocode == "RS5":
                 asas.asase[i] = gseast[i]
                 asas.asasn[i] = gsnorth[i]
             else:
@@ -485,7 +485,7 @@ def calculate_resolution(asas, traf):
                 x1  = x1[ind]
                 y1  = y1[ind]
 
-                if asas.priocode == "FF8" or asas.priocode == "FF9" and asas.inconf2[i]:
+                if asas.priocode == "RS7" or asas.priocode == "RS8" and asas.inconf2[i]:
                     # Loop through all exteriors and append. Afterwards concatenate
                     p = []
                     q = []
@@ -517,7 +517,7 @@ def calculate_resolution(asas, traf):
                     d2  = d2[ind]
 
                 # Store result in asas
-                if not asas.inconf2[i] or not asas.priocode == "FF8" and not asas.priocode == "FF9":
+                if not asas.inconf2[i] or not asas.priocode == "RS7" and not asas.priocode == "RS8":
                     asas.asase[i] = x1[0]
                     asas.asasn[i] = y1[0]
                 else:
@@ -531,7 +531,7 @@ def calculate_resolution(asas, traf):
                         # results in lower TLOS
                         asas.asase[i] = x1[0]
                         asas.asasn[i] = y1[0]
-                        # dv2 for the FF1-solution
+                        # dv2 for the RS1-solution
                         dist12 = (x1[0] - gseast[i]) ** 2 + (y1[0] - gsnorth[i]) ** 2
                         # distances for the partial layer solution stored in d2
                         ind = d2 < dist12
