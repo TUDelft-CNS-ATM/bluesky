@@ -981,15 +981,14 @@ def ic(filename=''):
             scenfile    = filename
             scenname, _ = os.path.splitext(os.path.basename(filename))
             # Remember this filename in IC.scn in scenario folder
-            keepicfile = open(settings.scenario_path+"/"+"ic.scn","w")
-            keepicfile.write("# This file is used by BlueSky to save the last used scenario file\n")
-            keepicfile.write("# So in the console type 'IC IC' to restart the previously used scenario file\n")
-            keepicfile.write("00:00:00.00>IC "+filename+"\n")
-            keepicfile.close()
+            with open(settings.scenario_path+"/"+"ic.scn","w") as keepicfile:
+                keepicfile.write("# This file is used by BlueSky to save the last used scenario file\n")
+                keepicfile.write("# So in the console type 'IC IC' to restart the previously used scenario file\n")
+                keepicfile.write("00:00:00.00>IC "+filename+"\n")
+
             return True, "Opened " + filename
 
-        else:
-            return result
+        return result
 
 
 def checkfile(simt):
@@ -1144,9 +1143,11 @@ def process():
         cmd       = cmdsynon.get(orgcmd) or orgcmd
         stackfun  = cmddict.get(cmd)
         # If no function is found for 'cmd', check if cmd is actually an aircraft id
-        if not stackfun and cmd in bs.traf.id:
+        if not stackfun and orgcmd in bs.traf.id:
             cmd, args = getnextarg(args)
-            args = orgcmd + ' ' + args
+            args      = orgcmd + ' ' + args
+            orgcmd    = cmd.upper()
+            cmd       = cmdsynon.get(orgcmd) or orgcmd
             # When no other args are parsed, command is POS
             stackfun = cmddict.get(cmd or 'POS')
 
@@ -1371,7 +1372,7 @@ class Argparser:
                 name = curarg + "," + nextarg
 
             # apt,runway ? Combine into one string with a slash as separator
-            elif self.argstring[:2].upper() == "RW" and curarg in bs.navdb.aptid:
+            elif args[:2].upper() == "RW" and curarg in bs.navdb.aptid:
                 nextarg, args = getnextarg(args)
                 name = curarg + "/" + nextarg.upper()
 

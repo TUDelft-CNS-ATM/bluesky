@@ -286,7 +286,7 @@ class Screen:
         self.apswbmp = len(bs.navdb.aptlat) * [False]
         self.aplabel = len(bs.navdb.aptlat) * [0]
 
-    def echo(self, msg):
+    def echo(self, msg, sender_id=0):
         msgs = msg.split('\n')
         for m in msgs:
             self.editwin.echo(m)
@@ -676,7 +676,10 @@ class Screen:
                 else:
                     label.append(" ")
                 if self.swlabel > 1:
-                    label.append(str(int(bs.traf.alt[i] / ft)))  # Line 2 of label: altitude
+                    if bs.traf.alt[i]>bs.traf.translvl:
+                        label.append("FL"+str(int(round(bs.traf.alt[i] / (100.*ft)))))  # Line 2 of label: altitude
+                    else:    
+                        label.append(str(int(round(bs.traf.alt[i] / ft))))  # Line 2 of label: altitude
                 else:
                     label.append(" ")
                 if self.swlabel > 2:

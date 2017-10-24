@@ -1,0 +1,87 @@
+<!--Created on Tue Jan 13 11:52:49 2015 @author: Isabel A320 aircraft coefficient file - TEST -->
+
+<!--accepted units
+masses: kg ;
+lbs distances: m; ft, inch
+areas: sqm, sqft
+speeds: m/s ; kts 
+-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+
+<aircraft_file>
+    <ac_type>A320</ac_type>
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <num_eng>2.</num_eng> <!--Jane's-->
+        <eng id="1">V2500-A1</eng> <!--Jane's - V2527-A5 to be precise--> 
+        <eng id="2">V2527-A5</eng> <!--Jane's - V2527-A5 to be precise--> 
+        <eng id="3">CFM56-5-A1</eng> <!--Jane's - CFM56-54B/P to be precise-->
+        <eng id="3">CFM56-5A3</eng> <!--Jane's - CFM56-54B/P to be precise-->
+    </engine>
+
+    <weights>
+	<OEW unit="kg">0.0</OEW> <!--  -->
+	<MZFW unit="kg">61000.0</MZFW> <!-- max. zero fuel weight, Jane's - option "basic"-->
+	<MRW unit="kg">73900.0</MRW>  <!-- max. ramp weight, Jane's - option "basic"-->
+	<MFW unit = "kg">24240.0</MFW> <!-- max. fuel weight, Jane's -->
+	<MPL unit="kg">20400.0</MPL> <!-- max. payload, Jane's, value for CFM-56 - V2500: 20300kg - -->
+      <MTOW unit="kg">64000.0</MTOW> <!--Jane's - option "basic": 73500kg / currently BADA value-->
+      <MLW unit ="kg">64500.0</MLW> <!--Jane's - option "basic"-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">35.8</span> <!--Jane's - value includes sharklets-->
+        <wing_area unit = "sqm">122.4</wing_area> <!--Jane's-->
+        <wetted_area unit = "sqft">8438.0</wetted_area> <!-- estimate from Obert, p.531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">145.0</to_spd> <!-- Skybrary, IAS assumed to be equal to CAS -->
+        <ld_spd unit = "m/s">70.83</ld_spd>  <!--Kreuzer, p. 18-->
+        <cr_MA>0.78</cr_MA>  <!--Jane's-->
+        <cr_spd unit ="kts">450.0</cr_spd>  <!--Skybrary-->
+    </speeds>
+    
+    <cr_alt unit = "m">11280.0</cr_alt>  <!--Jane's-->
+
+
+    <limits>
+	<roc unit="fpm">500.</roc>		<!--Jane's-->
+        <max_alt unit = "ft">39800.</max_alt>    <!--Jane's-->
+        <max_spd unit = "kts">350.</max_spd>    <!--Jane's-->
+        <max_MA>0.82</max_MA> <!--Jane's-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.00283</Cfe> <!--estimate from Obert, p. 531--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>2.4</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby--> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from Gill & La Rocca and Eshelby--> 
+        <clmax_ld>3.4</clmax_ld> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby-->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!--"Jane's" refers to https://janes.ihs.com/CustomPages/Janes/DisplayPage.aspx?DocType=Reference&ItemId=+++1342548, 
+updated on 26 September 2014 and retreived on 03 February 2015 -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to http://www.skybrary.aero/index.php/A320, retreived on 2 March 2015 -->

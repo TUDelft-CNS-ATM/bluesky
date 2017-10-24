@@ -1,19 +1,20 @@
+''' NAP performance library. '''
 import os
 import json
 import numpy as np
 import pandas as pd
-# from bluesky import settings
-# settings.set_variable_defaults(perf_path_nap="data/coefficients/NAP")
-nap_path = os.path.dirname(os.path.realpath(__file__)) \
-            + '/../../../../data/coefficients/NAP/'
+from bluesky import settings
+settings.set_variable_defaults(perf_path_nap="data/performance/NAP")
+# nap_path = os.path.dirname(os.path.realpath(__file__)) \
+            # + '/../../../../data/performance/NAP/'
 
 ENG_TF = 1
 ENG_TP = 2
 ENG_PS = 3
 
-db_aircraft = nap_path + "/aircraft.json"
-db_engine = nap_path + "/engines.csv"
-envelope_dir = nap_path + "/envelop/"
+db_aircraft = settings.perf_path_nap + "/aircraft.json"
+db_engine = settings.perf_path_nap + "/engines.csv"
+envelope_dir = settings.perf_path_nap + "/envelop/"
 
 
 class Coefficient():

@@ -80,6 +80,8 @@ class nodeData(object):
         self.traillat1 = []
         self.traillon1 = []
 
+        # Reset transition level
+        self.translvl = 4500.*ft
 
 class radarUBO(UniformBuffer):
     class Data(Structure):
@@ -607,7 +609,7 @@ class RadarWidget(QGLWidget):
         origin = (width / 2, height / 2)
 
         # Update width, height, and aspect ratio
-        self.width, self.height = int(width / pixel_ratio), int(height / pixel_ratio)
+        self.width, self.height = width // pixel_ratio, height // pixel_ratio
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
 
@@ -647,7 +649,7 @@ class RadarWidget(QGLWidget):
                     txt = wp[:12].ljust(12) # Two lines
                     if alt < 0:
                         txt += "-----/"
-                    elif alt > 4500 * ft:
+                    elif alt > self.translvl:
                         FL = int(round((alt / (100. * ft))))
                         txt += "FL%03d/" % FL
                     else:
@@ -684,6 +686,7 @@ class RadarWidget(QGLWidget):
         self.naircraft = len(data.lat)
         self.asas_vmin = data.vmin
         self.asas_vmax = data.vmax
+        self.translvl  = data.translvl
 
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
@@ -713,7 +716,7 @@ class RadarWidget(QGLWidget):
                 if self.show_lbl >= 1:
                     rawlabel += '%-8s' % acid[:8]
                     if self.show_lbl == 2:
-                        if data.alt[i] <= 4500. * ft:
+                        if data.alt[i] <= data.translvl:
                             rawlabel += '%-5d' % int(data.alt[i]/ft  + 0.5)
                         else:
                             rawlabel += 'FL%03d' % int(data.alt[i]/ft/100.+0.5)
