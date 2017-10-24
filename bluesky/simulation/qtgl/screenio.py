@@ -250,6 +250,8 @@ class ScreenIO(QObject):
             data.confcpalon = bs.traf.asas.lonowncpa
             data.trk        = bs.traf.hdg
             data.vs         = bs.traf.vs
+            data.vmin       = bs.traf.asas.vmin
+            data.vmax       = bs.traf.asas.vmax
 
             # Trails, send only new line segments to be added
             data.swtrails  = bs.traf.trails.active
@@ -273,6 +275,14 @@ class ScreenIO(QObject):
             
             # Transition level as defined in traf
             data.translvl   = bs.traf.translvl
+
+            # ASAS resolutions for visualization. Only send when evaluated
+            if bs.traf.asas.asaseval:
+                data.asasn  = bs.traf.asas.asasn
+                data.asase  = bs.traf.asas.asase
+            else:
+                data.asasn  = np.zeros(bs.traf.ntraf, dtype=np.float32)
+                data.asase  = np.zeros(bs.traf.ntraf, dtype=np.float32)
 
             manager.sendEvent(data)
 

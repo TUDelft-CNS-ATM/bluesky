@@ -26,7 +26,8 @@ from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
 settings.set_variable_defaults(
     gfx_path='data/graphics',
     text_size=13, apt_size=10,
-    wpt_size=10, ac_size=16)
+    wpt_size=10, ac_size=16,
+    asas_vmin=200.0, asas_vmax=500.0)
 
 palette.set_default_colours(
     aircraft=(0,255,0),
@@ -60,7 +61,7 @@ REARTH_INV            = 1.56961231e-7
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = list(range(7))
-ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = list(range(11))
+ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1, ATTRIB_ASASN, ATTRIB_ASASE = list(range(13))
 
 
 class nodeData(object):
@@ -153,9 +154,11 @@ class RadarWidget(QGLWidget):
         self.ssd_ownship    = set()
         self.apt_inrange    = np.array([])
         self.ssd_all        = False
-        self.ssd_conflicts   = False
+        self.ssd_conflicts  = False
         self.iactconn       = 0
         self.nodedata       = list()
+        self.asas_vmin      = settings.asas_vmin
+        self.asas_vmax      = settings.asas_vmax
 
         # Display flags
         self.show_map       = True
@@ -246,6 +249,8 @@ class RadarWidget(QGLWidget):
         self.aclblbuf      = create_empty_buffer(MAX_NAIRCRAFT * 24, usage=gl.GL_STREAM_DRAW)
         self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 16, usage=gl.GL_STREAM_DRAW)
         self.trailbuf      = create_empty_buffer(MAX_TRAILLEN * 16, usage=gl.GL_STREAM_DRAW)
+        self.asasnbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.asasebuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
 
         self.polyprevbuf   = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
@@ -295,6 +300,8 @@ class RadarWidget(QGLWidget):
         self.ssd.bind_attrib(ATTRIB_ALT1, 1, self.acaltbuf)
         self.ssd.bind_attrib(ATTRIB_TAS1, 1, self.actasbuf)
         self.ssd.bind_attrib(ATTRIB_TRK1, 1, self.achdgbuf)
+        self.ssd.bind_attrib(ATTRIB_ASASN, 1, self.asasnbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_ASASE, 1, self.asasebuf, instance_divisor=1)
 
         # ------- Protected Zone -------------------------
         circlevertices = np.transpose(np.array((2.5 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle)), 2.5 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle))), dtype=np.float32))
@@ -579,7 +586,7 @@ class RadarWidget(QGLWidget):
         # SSD
         if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
             self.ssd_shader.use()
-            gl.glUniform3f(self.ssd_shader.loc_vlimits, 4e4, 25e4, 500.0)
+            gl.glUniform3f(self.ssd_shader.loc_vlimits, self.asas_vmin ** 2, self.asas_vmax ** 2, self.asas_vmax)
             gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
             self.ssd.draw(vertex_count=self.naircraft, n_instances=self.naircraft)
 
@@ -678,6 +685,8 @@ class RadarWidget(QGLWidget):
             data.tas = data.tas[idx]
             data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
+        self.asas_vmin = data.vmin
+        self.asas_vmax = data.vmax
         self.translvl  = data.translvl
 
         if self.naircraft == 0:
@@ -689,6 +698,8 @@ class RadarWidget(QGLWidget):
             update_buffer(self.achdgbuf, np.array(data.trk, dtype=np.float32))
             update_buffer(self.acaltbuf, np.array(data.alt, dtype=np.float32))
             update_buffer(self.actasbuf, np.array(data.tas, dtype=np.float32))
+            update_buffer(self.asasnbuf, np.array(data.asasn, dtype=np.float32))
+            update_buffer(self.asasebuf, np.array(data.asase, dtype=np.float32))
 
             # CPA lines to indicate conflicts
             ncpalines = len(data.confcpalat)
@@ -773,6 +784,7 @@ class RadarWidget(QGLWidget):
             return
 
         self.makeCurrent()
+
         if 'ALL' in arg:
             self.ssd_all      = True
             self.ssd_conflicts = False

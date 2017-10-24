@@ -12,6 +12,7 @@ in GSData {
     vec2 vAR;
     vec4 ownship;
     vec4 intruder;
+	vec2 asasreso;
     float dH;
     int own_id;
     int int_id;
@@ -242,5 +243,30 @@ void main()
         gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
         EmitVertex();
         EndPrimitive();
+    }
+	// After the last VO draw the asasresolution point by ASAS
+	if (gs_in[0].int_id == n_ac - 1) {
+		float dasasreso = gs_in[0].asasreso[0] * gs_in[0].asasreso[0] + gs_in[0].asasreso[1] * gs_in[0].asasreso[1];
+		// Only draw when the asasresolution point is within the velocity limits
+		if (dasasreso > Vlimits[0] - 200) {
+			// Yellow color
+			color_fs = vec4(1.0, 1.0, 0.0, 1.0);
+			// Size
+			float PSCALE = 20.0;
+
+			ssd_coord = gs_in[0].asasreso + PSCALE * vec2(-1.000,  0.000);
+			gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
+			EmitVertex();
+			ssd_coord = gs_in[0].asasreso + PSCALE * vec2( 0.000, -1.000);
+			gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
+			EmitVertex();
+			ssd_coord = gs_in[0].asasreso + PSCALE * vec2( 0.000,  1.000);
+			gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
+			EmitVertex();
+			ssd_coord = gs_in[0].asasreso + PSCALE * vec2( 1.000,  0.000);
+			gl_Position = gl_in[0].gl_Position + VSCALE * vec4(gs_in[0].vAR * ssd_coord, 0.0, 0.0);
+			EmitVertex();
+			EndPrimitive();
+		}
     }
 }

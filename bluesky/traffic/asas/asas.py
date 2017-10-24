@@ -7,7 +7,10 @@ from bluesky.tools.aero import ft, nm
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 # Register settings defaults
-settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0, asas_dtlookahead=300.0, asas_mar=1.2, asas_pzr=5.0, asas_pzh=1000.0)
+settings.set_variable_defaults(prefer_compiled=False, asas_dt=1.0,
+                               asas_dtlookahead=300.0, asas_mar=1.2,
+                               asas_pzr=5.0, asas_pzh=1000.0,
+                               asas_vmin=200.0, asas_vmax=500.0)
 
 # Import default CD methods
 StateBasedCD = False
@@ -27,6 +30,7 @@ from . import DoNothing
 from . import Eby
 from . import MVP
 from . import Swarm
+from . import SSD
 
 
 class ASAS(TrafficArrays):
@@ -38,6 +42,9 @@ class ASAS(TrafficArrays):
 
     # Dictionary of CR methods
     CRmethods = {"OFF": DoNothing, "MVP": MVP, "EBY": Eby, "SWARM": Swarm}
+    # If pyclipper is installed add it to CRmethods-dict
+    if SSD.loaded_pyclipper():
+        CRmethods["SSD"] = SSD
 
     @classmethod
     def addCDMethod(asas, name, module):
@@ -71,41 +78,41 @@ class ASAS(TrafficArrays):
         self.cd           = ASAS.CDmethods[self.cd_name]
         self.cr           = ASAS.CRmethods[self.cr_name]
 
-        self.dtasas       = settings.asas_dt           # interval for ASAS
-        self.dtlookahead  = settings.asas_dtlookahead  # [s] lookahead time
-        self.mar          = settings.asas_mar          # [-] Safety margin for evasion
-        self.R            = settings.asas_pzr * nm     # [m] Horizontal separation minimum for detection
-        self.dh           = settings.asas_pzh * ft     # [m] Vertical separation minimum for detection
-        self.Rm           = self.R * self.mar          # [m] Horizontal separation minimum for resolution
-        self.dhm          = self.dh * self.mar         # [m] Vertical separation minimum for resolution
-        self.swasas       = True                       # [-] whether to perform CD&R
-        self.tasas        = 0.0                        # Next time ASAS should be called
+        self.dtasas       = settings.asas_dt                # interval for ASAS
+        self.dtlookahead  = settings.asas_dtlookahead       # [s] lookahead time
+        self.mar          = settings.asas_mar               # [-] Safety margin for evasion
+        self.R            = settings.asas_pzr * nm          # [m] Horizontal separation minimum for detection
+        self.dh           = settings.asas_pzh * ft          # [m] Vertical separation minimum for detection
+        self.Rm           = self.R * self.mar               # [m] Horizontal separation minimum for resolution
+        self.dhm          = self.dh * self.mar              # [m] Vertical separation minimum for resolution
+        self.swasas       = True                            # [-] whether to perform CD&R
+        self.tasas        = 0.0                             # Next time ASAS should be called
 
-        self.vmin         = 51.4                       # [m/s] Minimum ASAS velocity (100 kts)
-        self.vmax         = 308.6                      # [m/s] Maximum ASAS velocity (600 kts)
-        self.vsmin        = -3000. / 60. * ft          # [m/s] Minimum ASAS vertical speed
-        self.vsmax        = 3000. / 60. * ft           # [m/s] Maximum ASAS vertical speed
+        self.vmin         = settings.asas_vmin * nm / 3600. # [m/s] Minimum ASAS velocity (200 kts)
+        self.vmax         = settings.asas_vmax * nm / 3600. # [m/s] Maximum ASAS velocity (600 kts)
+        self.vsmin        = -3000. / 60. * ft               # [m/s] Minimum ASAS vertical speed
+        self.vsmax        = 3000. / 60. * ft                # [m/s] Maximum ASAS vertical speed
 
-        self.swresohoriz  = False                      # [-] switch to limit resolution to the horizontal direction
-        self.swresospd    = False                      # [-] switch to use only speed resolutions (works with swresohoriz = True)
-        self.swresohdg    = False                      # [-] switch to use only heading resolutions (works with swresohoriz = True)
-        self.swresovert   = False                      # [-] switch to limit resolution to the vertical direction
-        self.swresocoop   = False                      # [-] switch to limit resolution magnitude to half (cooperative resolutions)
+        self.swresohoriz  = True                            # [-] switch to limit resolution to the horizontal direction
+        self.swresospd    = False                           # [-] switch to use only speed resolutions (works with swresohoriz = True)
+        self.swresohdg    = False                           # [-] switch to use only heading resolutions (works with swresohoriz = True)
+        self.swresovert   = False                           # [-] switch to limit resolution to the vertical direction
+        self.swresocoop   = False                           # [-] switch to limit resolution magnitude to half (cooperative resolutions)
 
-        self.swprio       = False                      # [-] switch to activate priority rules for conflict resolution
-        self.priocode     = "FF1"                      # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
+        self.swprio       = False                           # [-] switch to activate priority rules for conflict resolution
+        self.priocode     = "FF1"                           # [-] Code of the priority rule that is to be used (FF1, FF2, FF3, LAY1, LAY2)
 
-        self.swnoreso     = False                      # [-] switch to activate the NORESO command. Nobody will avoid conflicts with  NORESO aircraft
-        self.noresolst    = []                         # [-] list for NORESO command. Nobody will avoid conflicts with aircraft in this list
+        self.swnoreso     = False                           # [-] switch to activate the NORESO command. Nobody will avoid conflicts with  NORESO aircraft
+        self.noresolst    = []                              # [-] list for NORESO command. Nobody will avoid conflicts with aircraft in this list
 
-        self.swresooff    = False                      # [-] switch to active the RESOOFF command. RESOOFF aircraft will NOT avoid other aircraft. Opposite of NORESO command.
-        self.resoofflst   = []                         # [-] list for the RESOOFF command. These aircraft will not do conflict resolutions.
+        self.swresooff    = False                           # [-] switch to active the RESOOFF command. RESOOFF aircraft will NOT avoid other aircraft. Opposite of NORESO command.
+        self.resoofflst   = []                              # [-] list for the RESOOFF command. These aircraft will not do conflict resolutions.
 
-        self.resoFacH     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
-        self.resoFacV     = 1.0                        # [-] set horizontal resolution factor (1.0 = 100%)
+        self.resoFacH     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
+        self.resoFacV     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
 
-        self.confpairs    = []                         # Start with emtpy database: no conflicts
-        self.nconf        = 0                          # Number of detected conflicts
+        self.confpairs    = []                              # Start with emtpy database: no conflicts
+        self.nconf        = 0                               # Number of detected conflicts
         self.latowncpa    = np.array([])
         self.lonowncpa    = np.array([])
         self.altowncpa    = np.array([])
@@ -131,6 +138,11 @@ class ASAS(TrafficArrays):
         self.LOSmaxsev    = []
         self.LOShmaxsev   = []
         self.LOSvmaxsev   = []
+
+        # ASAS-visualization on SSD
+        self.asasn        = np.array([])               # [m/s] North resolution speed from ASAS
+        self.asase        = np.array([])               # [m/s] East resolution speed from ASAS
+        self.asaseval     = False                      # [-] Whether target resolution is calculated or not
 
     def toggle(self, flag=None):
         if flag is None:
@@ -285,17 +297,35 @@ class ASAS(TrafficArrays):
 
     def SetPrio(self, flag=None, priocode="FF1"):
         '''Set the prio switch and the type of prio '''
-        options = ["FF1", "FF2", "FF3", "LAY1", "LAY2"]
+        if self.cr_name == "SSD":
+            options = ["RS1","RS2","RS3","RS4","RS5","RS6","RS7","RS8","RS9"]
+        else:
+            options = ["FF1", "FF2", "FF3", "LAY1", "LAY2"]
         if flag is None:
-            return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
-                         "\nAvailable priority codes: " + \
-                         "\n     FF1:  Free Flight Primary (No Prio) " + \
-                         "\n     FF2:  Free Flight Secondary (Cruising has priority)" + \
-                         "\n     FF3:  Free Flight Tertiary (Climbing/descending has priority)" + \
-                         "\n     LAY1: Layers Primary (Cruising has priority + horizontal resolutions)" + \
-                         "\n     LAY2: Layers Secondary (Climbing/descending has priority + horizontal resolutions)" + \
-                         "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
-                         "\nPriority code is currently: " + str(self.priocode)
+            if self.cr_name == "SSD":
+                return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
+                             "\nAvailable priority codes: " + \
+                             "\n     RS1:  Shortest way out" + \
+                             "\n     RS2:  Clockwise turning" + \
+                             "\n     RS3:  Heading first, RS1 second" + \
+                             "\n     RS4:  Speed first, RS1 second" + \
+                             "\n     RS5:  Shortest from target" + \
+                             "\n     RS6:  Rules of the air" + \
+                             "\n     RS7:  Sequential RS1" + \
+                             "\n     RS8:  Sequential RS5" + \
+                             "\n     RS9:  Counterclockwise turning" + \
+                             "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
+                             "\nPriority code is currently: " + str(self.priocode)
+            else:
+                return True, "PRIORULES [ON/OFF] [PRIOCODE]"  + \
+                             "\nAvailable priority codes: " + \
+                             "\n     FF1:  Free Flight Primary (No Prio) " + \
+                             "\n     FF2:  Free Flight Secondary (Cruising has priority)" + \
+                             "\n     FF3:  Free Flight Tertiary (Climbing/descending has priority)" + \
+                             "\n     LAY1: Layers Primary (Cruising has priority + horizontal resolutions)" + \
+                             "\n     LAY2: Layers Secondary (Climbing/descending has priority + horizontal resolutions)" + \
+                             "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
+                             "\nPriority code is currently: " + str(self.priocode)
         self.swprio = flag
         if priocode not in options:
             return False, "Priority code Not Understood. Available Options: " + str(options)
@@ -342,6 +372,15 @@ class ASAS(TrafficArrays):
 
         # active the switch, if there are acids in the list
         self.swresooff = len(self.resoofflst) > 0
+
+    def SetVLimits(self, flag=None, spd=None):
+        # Input is in knots
+        if flag is None:
+            return True, "ASAS limits in kts are currently [" + str(self.vmin * 3600 / 1852) + ";" + str(self.vmax * 3600 / 1852) + "]"
+        if flag == "MAX":
+            self.vmax = spd * nm / 3600.
+        else:
+            self.vmin = spd * nm / 3600.
 
     def create(self, n=1):
         super(ASAS, self).create(n)
