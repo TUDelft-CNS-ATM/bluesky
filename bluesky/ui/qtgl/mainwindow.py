@@ -139,11 +139,12 @@ class MainWindow(QMainWindow):
         self.app.quit()
 
     def actnodeChanged(self, nodeid):
-        self.nodelabel.setText('<b>Node</b> %d:%d' % nodeid)
+        pass
+        # self.nodelabel.setText('<b>Node</b> %d:%d' % nodeid)
         # self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
 
-    def nodesChanged(self, address, nodeid):
-        pass
+    def nodesChanged(self, nodeid):
+        return
         if nodeid[0] < len(self.hosts):
             host = self.hosts[nodeid[0]]
         else:
@@ -174,6 +175,7 @@ class MainWindow(QMainWindow):
         self.nodes[nodeid] = node
 
     def setNodeInfo(self, connid, time, scenname):
+        return
         node = self.nodes[connid]
         node.setText(0, '%d:%d <'  % node.nodeid + scenname + '>')
         node.setText(1, time)

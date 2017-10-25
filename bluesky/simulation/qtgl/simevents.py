@@ -1,9 +1,9 @@
 """ Definition of data content to be transferred between GUI and Sim tasks,
     these defintions are used on both sides of the communication """
-try:
-    from PyQt5.QtCore import QEvent
-except ImportError:
-    from PyQt4.QtCore import QEvent
+# try:
+#     from PyQt5.QtCore import QEvent
+# except ImportError:
+#     from PyQt4.QtCore import QEvent
 
 NUMEVENTS = 16
 SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, \
@@ -12,9 +12,10 @@ SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType
     RouteDataEventType, DisplayShapeEventType, \
     SimQuitEventType, AMANEventType = list(range(1000, 1000 + NUMEVENTS))
 
-class EventBase(QEvent):
+class EventBase(object):
     def __init__(self, eventtype):
-        super(EventBase, self).__init__(eventtype)
+        # super(EventBase, self).__init__(eventtype)
+        self.eventtype = eventtype
 
     def __getstate__(self):
         return self.__dict__
@@ -22,6 +23,11 @@ class EventBase(QEvent):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
+    def type(self):
+        return self.eventtype
+
+    def accept(self):
+        print('Accept called for event with type {}'.format(self.eventtype))
 
 class SimStateEvent(EventBase):
     init, op, hold, end = list(range(4))

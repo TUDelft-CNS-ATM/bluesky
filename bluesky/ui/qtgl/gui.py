@@ -52,6 +52,7 @@ class Gui(QApplication):
         self.prevmousepos    = (0, 0)
         self.panzoomchanged  = False
         self.simt            = 0.0
+        self.initialized     = False
 
         # Enable HiDPI support (Qt5 only)
         if QT_VERSION >= 0x050000:
@@ -82,6 +83,7 @@ class Gui(QApplication):
         # self.infowin.addPlotTab()
         # for i in range(10):
             # self.infowin.plottab.addPlot()
+        self.initialized = True
 
     def start(self):
         self.exec_()
@@ -91,6 +93,14 @@ class Gui(QApplication):
 
     def on_simevent_received(self, event, sender_id):
         ''' Processing of events from simulation nodes. '''
+        # initialization order problem: TODO
+        if not self.initialized:
+            return
+        # temp: set actnode
+        if not io.actnode():
+            io.nodes_changed.emit(sender_id)
+            io.actnode(sender_id)
+
         if event.type() == PanZoomEventType:
             if event.zoom is not None:
                 event.origin = (self.radarwidget.width / 2, self.radarwidget.height / 2)
@@ -162,7 +172,7 @@ class Gui(QApplication):
                 self.radarwidget.show_pz = not self.radarwidget.show_pz
 
             elif event.switch == "DEFWPT":
-                self.radarwidget.defwpt(event.argument, sender_id)
+                self.radarwidget.defwpt(event.argument)
 
             elif event.switch == "FILTERALT":
                 # First argument is an on/off flag
@@ -173,6 +183,11 @@ class Gui(QApplication):
                     nact.filteralt = False
 
     def on_simstream_received(self, data, streamname, sender_id):
+        # temp: set actnode
+        if not io.actnode():
+            io.nodes_changed.emit(sender_id)
+            io.actnode(sender_id)
+
         if data.type() == ACDataEventType:
             self.acdata = data
             self.radarwidget.update_aircraft_data(data)

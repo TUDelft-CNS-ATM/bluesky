@@ -34,10 +34,12 @@ class IOThread(Thread):
                 break  # interrupted
 
             if poll_socks.get(fe_event) == zmq.POLLIN:
+                print('iothread received event from outside')
                 be_event.send_multipart(fe_event.recv_multipart())
             if poll_socks.get(be_event) == zmq.POLLIN:
+                print('iothread received event from inside')
                 msg = be_event.recv_multipart()
-                if msg[0] == 'QUIT':
+                if msg[0] == b'QUIT':
                     break
                 fe_event.send_multipart(msg)
             if poll_socks.get(be_stream) == zmq.POLLIN:
@@ -97,6 +99,7 @@ class Node(object):
             while self.poll():
                 sender_id = self.event_io.recv()
                 data      = self.event_io.recv_pyobj()
+                print('Node received event')
                 self.event(data, sender_id)
             # Perform a simulation step
             self.step()
@@ -118,7 +121,7 @@ class Node(object):
 
     def send_event(self, data, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send(bytearray(stack.sender() or '*', 'ascii'), zmq.SNDMORE)
+        self.event_io.send(stack.sender() or b'*', zmq.SNDMORE)
         self.event_io.send_pyobj(data)
 
     def send_stream(self, data, name):

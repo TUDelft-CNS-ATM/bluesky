@@ -37,9 +37,10 @@ class IOManager(Thread):
             # This is a message that should be forwarded
             # Swap sender and target so that msg is sent to target
             sender = srcnames.get(msg[0]) or b'unknown'
-            target = msg[1]
+            target = destnames.get(msg[1]) or b'*'
             msg[:2] = target, sender
-            if target == '*':
+            print('event in manager, m0 =', msg[0], 's =', sender, 't =', target)
+            if target == b'*':
                 # This is a send-to-all message
                 for name in destnames:
                     msg[0] = name

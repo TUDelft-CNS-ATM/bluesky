@@ -8,8 +8,9 @@ class Client(object):
         self.event_io  = ctx.socket(zmq.DEALER)
         self.stream_in = ctx.socket(zmq.SUB)
         self.poller    = zmq.Poller()
-        self.host_id   = ''
+        self.host_id   = b''
         self.client_id = 0
+        self.sender_id = b''
 
         # Signals
         self.event_received  = Signal()
@@ -33,19 +34,17 @@ class Client(object):
         try:
             socks = dict(self.poller.poll(0))
             if socks.get(self.event_io) == zmq.POLLIN:
-                sender_id = self.event_io.recv()
+                self.sender_id = self.event_io.recv()
                 data      = self.event_io.recv_pyobj()
                 print('received event data')
                 print(data)
-                self.event_received.emit(data, sender_id)
+                self.event_received.emit(data, self.sender_id)
 
             if socks.get(self.stream_in) == zmq.POLLIN:
                 nameandid   = self.stream_in.recv()
                 stream_name = nameandid[:-8]
                 sender_id   = nameandid[-8:]
                 data        = self.stream_in.recv_pyobj()
-                print('received stream data {}'.format(stream_name))
-                print(data)
                 self.stream_received.emit(data, stream_name, sender_id)
         except zmq.ZMQError:
             return False
@@ -56,7 +55,7 @@ class Client(object):
 
     def send_event(self, data, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send(bytearray(target or '*', 'ascii'), zmq.SNDMORE)
+        self.event_io.send(target or b'*', zmq.SNDMORE)
         self.event_io.send_pyobj(data)
 
     def send_stream(self, data, name):
