@@ -74,7 +74,7 @@ class Simulation(Node):
         elif self.ffstop is not None and self.simt >= self.ffstop:
             if self.benchdt > 0.0:
                 bs.scr.echo('Benchmark complete: %d samples in %.3f seconds.' % \
-                            (self.screenio.samplecount, time.time() - self.bencht))
+                            (bs.scr.samplecount, time.time() - self.bencht))
                 self.benchdt = -1.0
                 self.pause()
             else:
