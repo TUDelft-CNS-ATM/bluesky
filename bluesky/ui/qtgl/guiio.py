@@ -9,7 +9,7 @@ from bluesky.io import Client
 from bluesky.tools import Signal
 
 # Globals
-_act    = ''
+_act    = b''
 _client = Client()
 _timer  = None
 
@@ -30,7 +30,7 @@ def init():
     _timer.start(10)
 
 def send_event(data, target=None):
-    _client.send_event(data, target or _act or '*')
+    _client.send_event(data, target or _act)
 
 def actnode(newact=None):
     if newact is not None:
