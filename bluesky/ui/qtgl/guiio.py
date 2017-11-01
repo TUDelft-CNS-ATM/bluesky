@@ -14,8 +14,8 @@ _client = Client()
 _timer  = None
 
 # Signals
-nodes_changed      = Signal()
 activenode_changed = Signal()
+nodes_changed      = _client.nodes_changed
 event_received     = _client.event_received
 stream_received    = _client.stream_received
 
@@ -29,8 +29,8 @@ def init():
     _timer.timeout.connect(_client.receive)
     _timer.start(10)
 
-def send_event(data, target=None):
-    _client.send_event(data, target or _act)
+def send_event(name, data=None, target=None):
+    _client.send_event(name, data, target or _act)
 
 def actnode(newact=None):
     if newact is not None:

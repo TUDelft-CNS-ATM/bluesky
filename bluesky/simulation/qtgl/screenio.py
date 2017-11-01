@@ -60,14 +60,14 @@ class ScreenIO(object):
         self.prevtime    = 0.0
 
         # Communicate reset to gui
-        bs.sim.send_event(DisplayFlagEvent('RESET', 'ALL'))
+        bs.sim.send_event(b'RESET', b'ALL')
 
 
     def echo(self, text):
-        bs.sim.send_event(StackTextEvent(disptext=text))
+        bs.sim.send_event(b'ECHO', text)
 
     def cmdline(self, text):
-        bs.sim.send_event(StackTextEvent(cmdtext=text))
+        bs.sim.send_event(b'CMDLINE', text)
 
     def getviewlatlon(self):
         lat0 = self.ctrlat - 1.0 / self.scrzoom
@@ -81,13 +81,7 @@ class ScreenIO(object):
             self.scrzoom = zoom
         else:
             self.scrzoom *= zoom
-        bs.sim.send_event(PanZoomEvent(zoom=zoom, absolute=absolute))
-
-    def symbol(self):
-        bs.sim.send_event(DisplayFlagEvent('SYM'))
-
-    def trails(self,sw):
-        bs.sim.send_event(DisplayFlagEvent('TRAIL',sw))
+        bs.sim.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
@@ -102,7 +96,16 @@ class ScreenIO(object):
         else:
             self.ctrlat, self.ctrlon = args
 
-        bs.sim.send_event(PanZoomEvent(pan=(self.ctrlat, self.ctrlon), absolute=True))
+        bs.sim.send_event(b'PANZOOM', dict(pan=(self.ctrlat, self.ctrlon), absolute=True))
+
+    def symbol(self):
+        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='SYM'))
+
+    def feature(self, switch, argument=None):
+        bs.sim.send_event(b'DISPLAYFLAG', dict(switch=switch, args=argument))
+
+    def trails(self,sw):
+        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='TRAIL', args=sw))
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -111,26 +114,18 @@ class ScreenIO(object):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        bs.sim.send_event(DisplayFlagEvent('DEFWPT', (name, lat, lon)))
+        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='DEFWPT', args=(name, lat, lon)))
         return True
 
-    def showssd(self, *param):
-        ''' Conflict prevention display
-            Show solution space diagram, indicating potential conflicts'''
-        bs.sim.send_event(DisplayFlagEvent('SSD', param))
-
     def show_file_dialog(self):
-        bs.sim.send_event(ShowDialogEvent())
+        bs.sim.send_event(b'SHOWDIALOG', dict(dialog='OPENFILE'))
         return ''
 
     def show_cmd_doc(self, cmd=''):
-        bs.sim.send_event(ShowDialogEvent(1, cmd=cmd))
-
-    def feature(self, switch, argument=''):
-        bs.sim.send_event(DisplayFlagEvent(switch, argument))
+        bs.sim.send_event(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
 
     def filteralt(self, *args):
-        bs.sim.send_event(DisplayFlagEvent('FILTERALT', args))
+        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='FILTERALT', args=args))
 
     def objappend(self, objtype, objname, data_in):
         """Add a drawing object to the radar screen using the following inpouts:
@@ -186,14 +181,14 @@ class ScreenIO(object):
             data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
             data[1::2] = lonCircle
 
-        bs.sim.send_event(DisplayShapeEvent(objname, data))
+        bs.sim.send_event(b'ADDSHAPE', dict(name=objname, data=data))
 
-    def event(self, event, sender_id):
+    def event(self, eventname, eventdata, sender_id):
         print('Received event from {}'.format(sender_id))
-        if event.type() == PanZoomEventType:
-            self.ctrlat  = event.pan[0]
-            self.ctrlon  = event.pan[1]
-            self.scrzoom = event.zoom
+        if eventname == b'PANZOOM':
+            self.ctrlat  = eventdata['pan'][0]
+            self.ctrlon  = eventdata['pan'][1]
+            self.scrzoom = eventdata['zoom']
             return True
 
         return False
@@ -205,70 +200,70 @@ class ScreenIO(object):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
-        bs.sim.send_stream(SimInfoEvent(speed, bs.sim.simdt, bs.sim.simt,
-            bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()), 'SIMINFO')
+        bs.sim.send_stream(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
+            bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
 
     def send_aircraft_data(self):
-        data            = ACDataEvent()
-        data.simt       = bs.sim.simt
-        data.id         = bs.traf.id
-        data.lat        = bs.traf.lat
-        data.lon        = bs.traf.lon
-        data.alt        = bs.traf.alt
-        data.tas        = bs.traf.tas
-        data.cas        = bs.traf.cas
-        data.iconf      = bs.traf.asas.iconf
-        data.confcpalat = bs.traf.asas.latowncpa
-        data.confcpalon = bs.traf.asas.lonowncpa
-        data.trk        = bs.traf.hdg
-        data.vs         = bs.traf.vs
+        data               = dict()
+        data['simt']       = bs.sim.simt
+        data['id']         = bs.traf.id
+        data['lat']        = bs.traf.lat
+        data['lon']        = bs.traf.lon
+        data['alt']        = bs.traf.alt
+        data['tas']        = bs.traf.tas
+        data['cas']        = bs.traf.cas
+        data['iconf']      = bs.traf.asas.iconf
+        data['confcpalat'] = bs.traf.asas.latowncpa
+        data['confcpalon'] = bs.traf.asas.lonowncpa
+        data['trk']        = bs.traf.hdg
+        data['vs']         = bs.traf.vs
 
         # Trails, send only new line segments to be added
-        data.swtrails  = bs.traf.trails.active
-        data.traillat0 = bs.traf.trails.newlat0
-        data.traillon0 = bs.traf.trails.newlon0
-        data.traillat1 = bs.traf.trails.newlat1
-        data.traillon1 = bs.traf.trails.newlon1
+        data['swtrails']  = bs.traf.trails.active
+        data['traillat0'] = bs.traf.trails.newlat0
+        data['traillon0'] = bs.traf.trails.newlon0
+        data['traillat1'] = bs.traf.trails.newlat1
+        data['traillon1'] = bs.traf.trails.newlon1
         bs.traf.trails.clearnew()
 
         # Last segment which is being built per aircraft
-        data.traillastlat   = bs.traf.trails.lastlat
-        data.traillastlon   = bs.traf.trails.lastlon
+        data['traillastlat']   = bs.traf.trails.lastlat
+        data['traillastlon']   = bs.traf.trails.lastlon
 
         # Conflict statistics
-        data.nconf_tot  = len(bs.traf.asas.conflist_all)
-        data.nlos_tot   = len(bs.traf.asas.LOSlist_all)
-        data.nconf_exp  = len(bs.traf.asas.conflist_exp)
-        data.nlos_exp   = len(bs.traf.asas.LOSlist_exp)
-        data.nconf_cur  = len(bs.traf.asas.conflist_now)
-        data.nlos_cur   = len(bs.traf.asas.LOSlist_now)
+        data['nconf_tot']  = len(bs.traf.asas.conflist_all)
+        data['nlos_tot']   = len(bs.traf.asas.LOSlist_all)
+        data['nconf_exp']  = len(bs.traf.asas.conflist_exp)
+        data['nlos_exp']   = len(bs.traf.asas.LOSlist_exp)
+        data['nconf_cur']  = len(bs.traf.asas.conflist_now)
+        data['nlos_cur']   = len(bs.traf.asas.LOSlist_now)
 
         # Transition level as defined in traf
-        data.translvl   = bs.traf.translvl
+        data['translvl']   = bs.traf.translvl
 
-        bs.sim.send_stream(data, 'ACDATA')
+        bs.sim.send_stream(b'ACDATA', data)
 
     def send_route_data(self):
         if self.route_acid:
-            data               = RouteDataEvent()
-            data.acid          = self.route_acid
+            data               = dict()
+            data['acid']       = self.route_acid
             idx   = bs.traf.id2idx(self.route_acid)
             if idx >= 0:
                 route          = bs.traf.ap.route[idx]
-                data.iactwp    = route.iactwp
+                data['iactwp'] = route.iactwp
 
                 # We also need the corresponding aircraft position
-                data.aclat     = bs.traf.lat[idx]
-                data.aclon     = bs.traf.lon[idx]
+                data['aclat']  = bs.traf.lat[idx]
+                data['aclon']  = bs.traf.lon[idx]
 
-                data.wplat     = route.wplat
-                data.wplon     = route.wplon
+                data['wplat']  = route.wplat
+                data['wplon']  = route.wplon
 
-                data.wpalt     = route.wpalt
-                data.wpspd     = route.wpspd
+                data['wpalt']  = route.wpalt
+                data['wpspd']  = route.wpspd
 
-                data.wpname    = route.wpname
+                data['wpname'] = route.wpname
 
-            bs.sim.send_stream(data, 'ACROUTE')  # Send route data to GUI
+            bs.sim.send_stream(b'ROUTEDATA', data)  # Send route data to GUI

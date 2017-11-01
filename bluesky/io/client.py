@@ -1,27 +1,31 @@
 import zmq
+import msgpack
 from bluesky.tools import Signal
+from bluesky.io.npcodec import encode_ndarray, decode_ndarray
 
 
 class Client(object):
     def __init__(self):
         ctx = zmq.Context.instance()
-        self.event_io  = ctx.socket(zmq.DEALER)
-        self.stream_in = ctx.socket(zmq.SUB)
-        self.poller    = zmq.Poller()
-        self.host_id   = b''
-        self.client_id = 0
-        self.sender_id = b''
+        self.event_io    = ctx.socket(zmq.DEALER)
+        self.stream_in   = ctx.socket(zmq.SUB)
+        self.poller      = zmq.Poller()
+        self.host_id     = b''
+        self.client_id   = 0
+        self.sender_id   = b''
+        self.known_nodes = dict()
 
         # Signals
+        self.nodes_changed   = Signal()
         self.event_received  = Signal()
         self.stream_received = Signal()
 
     def connect(self):
         self.event_io.connect('tcp://localhost:9000')
-        self.event_io.send(b'REGISTER')
-        msg = self.event_io.recv()
-        self.client_id = 256 * msg[-2] + msg[-1]
-        self.host_id   = msg[:5]
+        self.send_event(b'REGISTER')
+        data = self.event_io.recv_multipart()[-1]
+        self.client_id = 256 * data[-2] + data[-1]
+        self.host_id   = data[:5]
         print('Client {} connected to host {}'.format(self.client_id, self.host_id))
         self.stream_in.connect('tcp://localhost:9001')
         self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
@@ -34,29 +38,34 @@ class Client(object):
         try:
             socks = dict(self.poller.poll(0))
             if socks.get(self.event_io) == zmq.POLLIN:
-                self.sender_id = self.event_io.recv()
-                data      = self.event_io.recv_pyobj()
-                print('received event data')
+                res = self.event_io.recv_multipart()
+                self.sender_id = res[0]
+                name = res[1]
+                data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
+                if name == b'NODESCHANGED':
+                    self.known_nodes.update(data)
+                    self.nodes_changed.emit(data)
+
+                print('received {} event data'.format(name))
                 print(data)
-                self.event_received.emit(data, self.sender_id)
+                self.event_received.emit(name, data, self.sender_id)
 
             if socks.get(self.stream_in) == zmq.POLLIN:
-                nameandid   = self.stream_in.recv()
-                stream_name = nameandid[:-8]
-                sender_id   = nameandid[-8:]
-                data        = self.stream_in.recv_pyobj()
-                self.stream_received.emit(data, stream_name, sender_id)
+                res = self.stream_in.recv_multipart()
+
+                name      = res[0][:-8]
+                sender_id = res[0][-8:]
+                data      = msgpack.unpackb(res[1], object_hook=decode_ndarray, encoding='utf-8')
+                self.stream_received.emit(name, data, sender_id)
         except zmq.ZMQError:
             return False
 
     def addnodes(self, count=1):
-        self.event_io.send(bytearray((count,)), zmq.SNDMORE)
-        self.event_io.send(b'ADDNODES')
+        self.send_event(b'ADDNODES', count)
 
-    def send_event(self, data, target=None):
+    def send_event(self, name, data=None, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send(target or b'*', zmq.SNDMORE)
-        self.event_io.send_pyobj(data)
+        self.event_io.send_multipart([target or b'*', name, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
 
-    def send_stream(self, data, name):
+    def send_stream(self, name, data):
         pass

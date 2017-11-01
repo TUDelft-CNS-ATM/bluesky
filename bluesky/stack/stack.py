@@ -432,7 +432,7 @@ def init():
         "ND": [
             "ND acid",
             "txt",
-            lambda acid: bs.scr.feature("ND", acid),
+            lambda acid: bs.scr.feature('ND', acid),
             "Show navigation display with CDTI"
         ],
         "NOISE": [
@@ -606,7 +606,7 @@ def init():
         "SSD": [
             "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
             "txt,[...]",
-            bs.scr.showssd,
+            lambda *args: bs.scr.feature('SSD', args),
             "Show state-space diagram (=conflict prevention display/predictive ASAS)"
         ],
         "SWRAD": [

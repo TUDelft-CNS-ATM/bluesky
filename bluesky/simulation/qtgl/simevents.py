@@ -89,17 +89,20 @@ class ShowDialogEvent(EventBase):
 
 
 class RouteDataEvent(EventBase):
-    aclat  = []
-    wplat  = []
-    wplon  = []
-    wpalt  = []
-    wpspd  = []
-    wpname = []
-    iactwp = -1
-    acid  = ""
-
-    def __init__(self):
+    def __init__(self, data=None):
         super(RouteDataEvent, self).__init__(RouteDataEventType)
+        self.aclat  = []
+        self.wplat  = []
+        self.wplon  = []
+        self.wpalt  = []
+        self.wpspd  = []
+        self.wpname = []
+        self.iactwp = -1
+        self.acid   = ''
+
+        # Update values
+        if data:
+            self.__dict__.update(data)
 
 
 class DisplayShapeEvent(EventBase):
@@ -113,12 +116,29 @@ class DisplayShapeEvent(EventBase):
 
 
 class ACDataEvent(EventBase):
-    lat = lon = alt = tas = trk = vs = iconf = confcpalat = confcpalon = id = []
-    nconf_tot = nlos_tot  = nconf_exp = nlos_exp  = nconf_cur = nlos_cur = 0
-
-    def __init__(self):
+    def __init__(self, data=None):
         super(ACDataEvent, self).__init__(ACDataEventType)
+        self.lat        = []
+        self.lon        = []
+        self.alt        = []
+        self.tas        = []
+        self.trk        = []
+        self.vs         = []
+        self.iconf      = []
+        self.confcpalat = []
+        self.confcpalon = []
+        self.id         = []
+        self.nconf_tot  = 0
+        self.nlos_tot   = 0
+        self.nconf_exp  = 0
+        self.nlos_exp   = 0
+        self.nconf_cur  = 0
+        self.nlos_cur   = 0
+        self.translvl   = 0.0
 
+        # Update values
+        if data:
+            self.__dict__.update(data)
 
 class AMANEvent(EventBase):
     ids = iafs = eats = etas = delays = rwys = spdratios = []

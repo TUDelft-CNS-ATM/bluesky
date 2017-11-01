@@ -11,7 +11,7 @@ CMD_TCP_CONNS = 'TCP_CONNS'
 INIT, OP, HOLD, END = list(range(4))
 
 NUMEVENTS = 16
-SetNodeIdType, SetActiveNodeType, AddNodeType, SimStateEventType, BatchEventType, \
+SetNodeIdType, SetActiveNodeType, NodesChanged, SimStateEventType, BatchEventType, \
     PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, \
     StackInitEventType, ShowDialogEventType, DisplayFlagEventType, \
     RouteDataEventType, DisplayShapeEventType, \

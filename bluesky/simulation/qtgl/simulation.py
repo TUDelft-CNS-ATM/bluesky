@@ -56,9 +56,9 @@ class Simulation(Node):
         # self.metric      = Metric()
 
     def prepare(self):
-        # Send list of stack functions available in this sim to gui at start
-        stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
-        self.send_event(StackInitEvent(stackdict))
+        # TODO Send list of stack functions available in this sim to gui at start
+        # stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
+        # self.send_event(b'STACKINIT', stackdict)
         self.syst = int(time.time() * 1000.0)
 
     def step(self):
@@ -178,7 +178,7 @@ class Simulation(Node):
         self.benchdt = dt
 
     def sendState(self):
-        self.send_event(SimStateEvent(self.state))
+        self.send_event(b'STATECHANGE', self.state)
 
     def addNodes(self, count):
         # TODO Addnodes function
@@ -190,31 +190,31 @@ class Simulation(Node):
         result = stack.openfile(filename)
         if result:
             scentime, scencmd = stack.get_scendata()
-            self.send_event(BatchEvent(scentime, scencmd))
+            self.send_event(b'BATCH', dict(scentime=scentime, scencmd=scencmd))
             self.reset()
         return result
 
-    def event(self, event, sender_id):
+    def event(self, eventname, eventdata, sender_id):
         # Keep track of event processing
         event_processed = False
 
-        if event.type() == StackTextEventType:
+        if eventname == b'STACKCMD':
             # We received a single stack command. Add it to the existing stack
-            stack.stack(event.cmdtext, sender_id)
+            stack.stack(eventdata, sender_id)
             event_processed = True
 
-        elif event.type() == BatchEventType:
+        elif eventname == b'BATCH':
             # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
             self.reset()
-            stack.set_scendata(event.scentime, event.scencmd)
+            stack.set_scendata(eventdata['scentime'], eventdata['scencmd'])
             self.op()
             event_processed     = True
-        elif event.type() == SimQuitEventType:
+        elif eventname == b'QUIT':
             # BlueSky is quitting
             self.quit()
         else:
             # This is either an unknown event or a gui event.
-            event_processed = bs.scr.event(event, sender_id)
+            event_processed = bs.scr.event(eventname, eventdata, sender_id)
 
         return event_processed
 

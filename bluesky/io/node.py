@@ -1,9 +1,10 @@
 """ Node encapsulates the sim process, and manages process I/O. """
 from threading import Thread
 import zmq
+import msgpack
 from bluesky import stack
 from bluesky.tools import Timer
-
+from bluesky.io.npcodec import encode_ndarray, decode_ndarray
 
 class IOThread(Thread):
     ''' Separate thread for node I/O. '''
@@ -23,9 +24,6 @@ class IOThread(Thread):
         poller.register(fe_event, zmq.POLLIN)
         poller.register(be_event, zmq.POLLIN)
         poller.register(be_stream, zmq.POLLIN)
-
-        fe_event.send(b'REGISTER')
-        be_event.send(fe_event.recv())
 
         while True:
             try:
@@ -65,12 +63,13 @@ class Node(object):
 
         # Start the I/O thread, and receive from it this node's ID
         self.iothread.start()
-        self.nodeid = self.event_io.recv()
+        self.send_event(b'REGISTER')
+        self.nodeid = self.event_io.recv_multipart()[-1]
         print('Node started, id={}'.format(self.nodeid))
 
-    def event(self, data, sender_id):
+    def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
-        print('Received data from {}'.format(sender_id))
+        print('Received {} data from {}'.format(eventname, sender_id))
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''
@@ -85,7 +84,7 @@ class Node(object):
         self.run()
 
         # Send quit event to the worker thread and wait for it to close.
-        self.event_io.send('QUIT')
+        self.event_io.send(b'QUIT')
         self.iothread.join()
 
     def quit(self):
@@ -97,10 +96,12 @@ class Node(object):
         while self.running:
             # Get new events from the I/O thread
             while self.poll():
-                sender_id = self.event_io.recv()
-                data      = self.event_io.recv_pyobj()
+                res = self.event_io.recv_multipart()
+                sender_id = res[0]
+                name = res[1]
+                data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
                 print('Node received event')
-                self.event(data, sender_id)
+                self.event(name, data, sender_id)
             # Perform a simulation step
             self.step()
 
@@ -116,15 +117,11 @@ class Node(object):
             return False
 
     def addnodes(self, count=1):
-        self.event_io.send(bytearray((count,)), zmq.SNDMORE)
-        self.event_io.send(b'ADDNODES')
+        self.send_event(b'ADDNODES', count)
 
-    def send_event(self, data, target=None):
+    def send_event(self, name, data=None, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send(stack.sender() or b'*', zmq.SNDMORE)
-        self.event_io.send_pyobj(data)
+        self.event_io.send_multipart([stack.sender() or b'*', name, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
 
-    def send_stream(self, data, name):
-        # self.stream_out.send(bytearray(name + self.nodeid, 'ascii'), zmq.SNDMORE)
-        self.stream_out.send(bytearray(name, 'ascii') + self.nodeid, zmq.SNDMORE)
-        self.stream_out.send_pyobj(data)
+    def send_stream(self, name, data):
+        self.stream_out.send_multipart([name + self.nodeid, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])

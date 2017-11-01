@@ -3,34 +3,37 @@ import sys
 from threading import Thread
 from subprocess import Popen
 import zmq
+import msgpack
 
 
 class IOManager(Thread):
     def __init__(self):
         super(IOManager, self).__init__()
-        self.localnodes = list()
+        self.spawned_processes = list()
         self.running = True
+        self.nodes = dict()
 
     def addnodes(self, count=1):
         for _ in range(count):
             p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
-            self.localnodes.append(p)
+            self.spawned_processes.append(p)
 
     def run(self):
         # Get ZMQ context
         ctx = zmq.Context.instance()
 
-        # Convenience class for event connection handling
         class EventConn:
+            ''' Convenience class for event connection handling. '''
             # Generate one host ID for this host
-            host_id = b'\x00' + os.urandom(5)
+            host_id = b'\x00' + os.urandom(4)
 
-            def __init__(self, endpoint):
+            def __init__(self, endpoint, connection_key):
                 self.sock = ctx.socket(zmq.ROUTER)
                 self.sock.bind(endpoint)
                 self.namefromid = dict()
                 self.idfromname = dict()
                 self.conn_count = 0
+                self.conn_key   = connection_key
 
             def __eq__(self, sock):
                 # Compare own socket to socket returned from poller.poll
@@ -40,22 +43,26 @@ class IOManager(Thread):
                 # The connection ID consists of the host id plus the index of the
                 # new connection encoded in two bytes.
                 self.conn_count += 1
-                name = self.host_id + bytearray((self.conn_count // 256, self.conn_count % 256))
+                name = self.host_id + self.conn_key + \
+                    bytearray((self.conn_count // 256, self.conn_count % 256))
                 self.namefromid[connid] = name
                 self.idfromname[name] = connid
                 return name
 
 
         # Create connection points for clients
-        fe_event  = EventConn('tcp://*:9000')
+        fe_event  = EventConn('tcp://*:9000', b'c')
         fe_stream = ctx.socket(zmq.XPUB)
         fe_stream.bind('tcp://*:9001')
 
 
         # Create connection points for sim workers
-        be_event  = EventConn('tcp://*:10000')
+        be_event  = EventConn('tcp://*:10000', b'w')
         be_stream = ctx.socket(zmq.XSUB)
         be_stream.bind('tcp://*:10001')
+
+        # We start with zero nodes
+        self.nodes[EventConn.host_id] = 0
 
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
@@ -88,19 +95,31 @@ class IOManager(Thread):
                     be_stream.send_multipart(msg)
                 else:
                     # Select the correct source and destination
-                    src, dest = (fe_event, be_event) if sock == fe_event else (be_event, fe_event)
+                    srcisclient = (sock == fe_event)
+                    src, dest = (fe_event, be_event) if srcisclient else (be_event, fe_event)
 
-                    if msg[-1] == b'REGISTER':
+                    # Message format: [sender, target, name, data]
+                    sender, target, eventname, data = msg
+
+                    if eventname == b'REGISTER':
                         # This is a registration message for a new connection
                         # Send reply with connection name
-                        sock.send_multipart([msg[0], src.register(msg[0])])
+                        msg[-1] = src.register(msg[0])
+                        src.sock.send_multipart(msg)
+                        if srcisclient:
+                            src.sock.send_multipart([msg[0], src.host_id, b'NODESCHANGED', msgpack.packb(self.nodes, use_bin_type=True)])
+                        else:
+                            self.nodes[src.host_id] += 1
+                            data = msgpack.packb({src.host_id : self.nodes[src.host_id]}, use_bin_type=True)
+                            for connid in dest.namefromid:
+                                dest.sock.send_multipart([connid, src.host_id, b'NODESCHANGED', data])
 
-                    elif msg[-1] == b'ADDNODES':
+                    elif msg[2] == b'ADDNODES':
                         # This is a request to start new nodes.
-                        count = msg[-2]
+                        count = msgpack.unpackb(msg[3])
                         self.addnodes(count)
 
-                    elif msg[-1] == b'QUIT':
+                    elif msg[2] == b'QUIT':
                         # TODO: send quit to all
                         self.running = False
 
@@ -119,5 +138,5 @@ class IOManager(Thread):
                             dest.sock.send_multipart(msg)
 
         # Wait for all nodes to finish
-        for n in self.localnodes:
+        for n in self.spawned_processes:
             n.wait()

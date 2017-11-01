@@ -211,15 +211,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
-            io.send_event(StackTextEvent(cmdtext='IC IC'))
+            io.send_event(b'STACKCMD', 'IC IC')
         elif self.sender() == self.hold:
-            io.send_event(StackTextEvent(cmdtext='HOLD'))
+            io.send_event(b'STACKCMD', 'HOLD')
         elif self.sender() == self.op:
-            io.send_event(StackTextEvent(cmdtext='OP'))
+            io.send_event(b'STACKCMD', 'OP')
         elif self.sender() == self.fast:
-            io.send_event(StackTextEvent(cmdtext='FF'))
+            io.send_event(b'STACKCMD', 'FF')
         elif self.sender() == self.fast10:
-            io.send_event(StackTextEvent(cmdtext='FF 0:0:10'))
+            io.send_event(b'STACKCMD', 'FF 0:0:10')
         elif self.sender() == self.showac:
             self.radarwidget.show_traf = not self.radarwidget.show_traf
         elif self.sender() == self.showpz:
@@ -241,4 +241,4 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             self.radarwidget.show_map = not self.radarwidget.show_map
         elif self.sender() == self.action_Save:
-            io.send_event(StackTextEvent(cmdtext='SAVEIC'))
+            io.send_event(b'STACKCMD', 'SAVEIC')

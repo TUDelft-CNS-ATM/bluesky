@@ -36,12 +36,12 @@ class Console(QWidget):
             self.initialized = True
             self.lineEdit.setHtml('>>')
 
-    def stack(self, text, sender_id = None):
+    def stack(self, text):
         # Add command to the command history
         self.command_history.append(text)
         self.echo(text)
         # Send stack command to sim process
-        io.send_event(StackTextEvent(cmdtext=text, sender_id=sender_id))
+        io.send_event(b'STACKCMD', text)
         self.cmdline_stacked.emit(self.cmd, self.args)
         # reset commandline and the autocomplete history
         self.setCmdline('')
