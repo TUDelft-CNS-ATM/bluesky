@@ -46,8 +46,6 @@ class Client(object):
                     self.known_nodes.update(data)
                     self.nodes_changed.emit(data)
 
-                print('received {} event data'.format(name))
-                print(data)
                 self.event_received.emit(name, data, self.sender_id)
 
             if socks.get(self.stream_in) == zmq.POLLIN:

@@ -6,9 +6,6 @@ import numpy as np
 import bluesky as bs
 from bluesky import stack
 from bluesky.tools import Timer
-from .simevents import ACDataEvent, RouteDataEvent, PanZoomEvent, \
-                        SimInfoEvent, StackTextEvent, ShowDialogEvent, DisplayFlagEvent, \
-                        PanZoomEventType, DisplayShapeEvent
 
 
 class ScreenIO(object):

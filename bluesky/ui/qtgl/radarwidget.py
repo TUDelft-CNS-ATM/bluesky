@@ -17,7 +17,7 @@ import bluesky as bs
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
-from bluesky.simulation.qtgl import PanZoomEvent, PanZoomEventType
+from bluesky.ui.qtgl.customevents import PanZoomEvent, PanZoomEventType
 from bluesky.navdatabase import load_aptsurface, load_coastlines
 from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
     update_buffer, create_empty_buffer

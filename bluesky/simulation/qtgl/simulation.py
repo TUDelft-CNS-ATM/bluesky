@@ -7,8 +7,6 @@ from bluesky import settings, stack
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
 from bluesky.io import Node
-from .simevents import StackTextEventType, BatchEventType, BatchEvent, \
-    SimStateEvent, SimQuitEventType, StackInitEvent
 
 # Minimum sleep interval
 MINSLEEP = 2e-3

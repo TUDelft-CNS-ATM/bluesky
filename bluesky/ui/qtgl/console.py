@@ -7,7 +7,6 @@ except ImportError:
     from PyQt4.QtGui import QWidget, QTextEdit
 
 from bluesky.tools.misc import cmdsplit
-from bluesky.simulation.qtgl import StackTextEvent
 from . import guiio as io
 from . import autocomplete
 

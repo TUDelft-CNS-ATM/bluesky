@@ -9,13 +9,12 @@ except ImportError:
     from PyQt4.QtGui import QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
 
-from .gui import Gui
-from . import guiio
-from .mainwindow import MainWindow, Splash
-from .radarwidget import RadarWidget
-from .glhelpers import BlueSkyProgram, RenderObject
-
-from bluesky.simulation.qtgl import NUMEVENTS
+from bluesky.ui.qtgl.gui import Gui
+from bluesky.ui.qtgl import guiio
+from bluesky.ui.qtgl.mainwindow import MainWindow, Splash
+from bluesky.ui.qtgl.radarwidget import RadarWidget
+from bluesky.ui.qtgl.glhelpers import BlueSkyProgram, RenderObject
+from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
 gui = None
 
@@ -26,7 +25,7 @@ def init():
         splash = Splash()
 
         # Register our custom pan/zoom event
-        for etype in range(1000, 1000 + NUMEVENTS):
+        for etype in range(1000, 1000 + NUMCUSTOMEVENTS):
             reg_etype = QEvent.registerEventType(etype)
             if reg_etype != etype:
                 print(('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype)))

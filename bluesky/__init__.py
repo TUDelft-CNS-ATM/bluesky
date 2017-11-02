@@ -10,13 +10,6 @@ CMD_TCP_CONNS = 'TCP_CONNS'
 # simulation states
 INIT, OP, HOLD, END = list(range(4))
 
-NUMEVENTS = 16
-SetNodeIdType, SetActiveNodeType, NodesChanged, SimStateEventType, BatchEventType, \
-    PanZoomEventType, ACDataEventType, SimInfoEventType, StackTextEventType, \
-    StackInitEventType, ShowDialogEventType, DisplayFlagEventType, \
-    RouteDataEventType, DisplayShapeEventType, \
-    SimQuitEventType, AMANEventType = list(range(1000, 1000 + NUMEVENTS))
-
 ### Main singleton objects in BlueSky
 traf      = None
 navdb     = None

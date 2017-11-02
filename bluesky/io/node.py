@@ -32,10 +32,8 @@ class IOThread(Thread):
                 break  # interrupted
 
             if poll_socks.get(fe_event) == zmq.POLLIN:
-                print('iothread received event from outside')
                 be_event.send_multipart(fe_event.recv_multipart())
             if poll_socks.get(be_event) == zmq.POLLIN:
-                print('iothread received event from inside')
                 msg = be_event.recv_multipart()
                 if msg[0] == b'QUIT':
                     break
@@ -100,7 +98,6 @@ class Node(object):
                 sender_id = res[0]
                 name = res[1]
                 data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
-                print('Node received event')
                 self.event(name, data, sender_id)
             # Perform a simulation step
             self.step()

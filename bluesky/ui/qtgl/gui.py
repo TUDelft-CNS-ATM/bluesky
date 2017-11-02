@@ -11,17 +11,13 @@ except ImportError:
 from bluesky.ui.radarclick import radarclick
 from bluesky.tools.misc import tim2txt
 from bluesky import settings
-from bluesky.simulation.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
-                     PanZoomEventType, ACDataEventType, SimInfoEventType,  \
-                     StackTextEventType, ShowDialogEventType, \
-                     DisplayFlagEventType, RouteDataEventType, \
-                     DisplayShapeEventType, StackInitEventType, \
-                     AMANEventType
-from .mainwindow import MainWindow
-from .docwindow import DocWindow
-from .radarwidget import RadarWidget
-from .infowindow import InfoWindow
-from .nd import ND
+
+from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
+from bluesky.ui.qtgl.mainwindow import MainWindow
+from bluesky.ui.qtgl.docwindow import DocWindow
+from bluesky.ui.qtgl.radarwidget import RadarWidget
+from bluesky.ui.qtgl.infowindow import InfoWindow
+from bluesky.ui.qtgl.nd import ND
 
 from . import guiio as io
 
@@ -124,46 +120,46 @@ class Gui(QApplication):
             flag = eventdata.get('switch')
             args = eventdata.get('args')
             # Switch/toggle/cycle radar screen features e.g. from SWRAD command
-            if flag == "SYM":
+            if flag == 'SYM':
                 # For now only toggle PZ
                 self.radarwidget.show_pz = not self.radarwidget.show_pz
             # Coastlines
-            elif flag == "GEO":
+            elif flag == 'GEO':
                 self.radarwidget.show_coast = not self.radarwidget.show_coast
 
             # FIR boundaries
-            elif flag == "FIR":
+            elif flag == 'FIR':
                 self.radarwidget.showfir = not self.radarwidget.showfir
 
             # Airport: 0 = None, 1 = Large, 2= All
-            elif flag == "APT":
+            elif flag == 'APT':
                 self.radarwidget.show_apt = not self.radarwidget.show_apt
 
             # Waypoint: 0 = None, 1 = VOR, 2 = also WPT, 3 = Also terminal area wpts
-            elif flag == "VOR" or flag == "WPT" or flag == "WP" or flag == "NAV":
+            elif flag == 'VOR' or flag == 'WPT' or flag == 'WP' or flag == 'NAV':
                 self.radarwidget.show_wpt = not self.radarwidget.show_wpt
 
             # Satellite image background on/off
-            elif flag == "SAT":
+            elif flag == 'SAT':
                 self.radarwidget.show_map = not self.radarwidget.show_map
 
             # Satellite image background on/off
-            elif flag == "TRAF":
+            elif flag == 'TRAF':
                 self.radarwidget.show_traf = not self.radarwidget.show_traf
 
             # ND window for selected aircraft
-            elif flag == "ND":
+            elif flag == 'ND':
                 if args:
                     self.nd.setAircraftID(args)
                 self.nd.setVisible(not self.nd.isVisible())
 
-            elif flag == "SSD":
+            elif flag == 'SSD':
                 self.radarwidget.show_ssd(args)
 
-            elif flag == "DEFWPT":
+            elif flag == 'DEFWPT':
                 self.radarwidget.defwpt(args)
 
-            elif flag == "FILTERALT":
+            elif flag == 'FILTERALT':
                 # First argument is an on/off flag
                 nact = self.radarwidget.nodedata[sender_id]
                 if args[0]:
@@ -185,9 +181,6 @@ class Gui(QApplication):
         # TODO stack init
         # elif event.type() == StackInitEventType:
         #     self.win.console.addStackHelp(sender_id, event.stackdict)
-
-
-
 
 
     def on_simstream_received(self, streamname, data, sender_id):

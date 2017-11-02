@@ -13,7 +13,7 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from bluesky.simulation.qtgl import StackTextEvent, PanZoomEvent
+from bluesky.simulation.qtgl import PanZoomEvent
 from bluesky import settings
 
 from . import guiio as io
