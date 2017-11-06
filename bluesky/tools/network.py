@@ -3,6 +3,28 @@ import time
 import socket
 import threading
 import bluesky as bs
+import sys
+
+
+def encode(msg):
+    """
+    Encodes strings to bytes.
+    """
+    if sys.version_info.major == 3:
+        return msg.encode('utf-8')
+    else:
+        return msg
+
+
+def decode(msg):
+    """
+        Decodes strings from bytes.
+    """
+    if sys.version_info.major == 3:
+        return msg.decode('utf-8').strip()
+    else:
+        return msg
+
 
 if bs.settings.gui == 'qtgl':
     try:
@@ -41,7 +63,9 @@ if bs.settings.gui == 'qtgl':
             self.processData(self.readAll())
 
         def sendReply(self, msg):
-            self.writeData('{}\n'.format(msg))
+            self.writeData(
+                encode(
+                    '{}\n'.format(msg)))
 
         def processData(self, data):
             # Placeholder function; override it with your own implementation
@@ -160,7 +184,7 @@ class StackTelnetServer(TcpServer):
         self.process = fun
 
     def processData(self, data, sender_id):
-        msg = bytearray(data).decode(encoding='ascii', errors='ignore').strip()
+        msg = decode(data)
 
         if msg.startswith(bs.CMD_TCP_CONNS):
             self.connections[sender_id].sendReply(
