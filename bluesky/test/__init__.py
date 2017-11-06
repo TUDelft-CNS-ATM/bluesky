@@ -134,7 +134,10 @@ def sock(pytestconfig):
         parent = psutil.Process(parent_pid)
         children = parent.children(recursive=True)
         for child in children:
-            child.send_signal(signal.SIGKILL)
+            try:
+                child.send_signal(signal.SIGKILL)
+            except psutil.NoSuchProcess:
+                pass
     else:
         subprocess.call([os.environ['PYEXEC'], BLUESKY])
 
