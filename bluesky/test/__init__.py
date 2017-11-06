@@ -6,6 +6,9 @@ GNU General Public License v3.
 
 Author <ahfarrell@sparkl.com> Andrew Farrell
 Common test functionality.
+
+NOTE - The test suite is written in Python3 only.
+It tests BlueSky running in either Python2 or 3.
 """
 from __future__ import print_function
 import inspect
@@ -17,7 +20,7 @@ import os
 import psutil
 import subprocess
 import signal
-from bluesky.tools.network import encode, decode
+from bluesky.tools.network import as_bytes
 
 
 BUFFER_SIZE = 1024
@@ -68,7 +71,6 @@ def wait_for(test, iters, period):
     time.sleep(period)  # front-load a sleep
 
     success = test()
-    print("Success? " + str(success))
     if not success:
         wait_for(test, iters - 1, 2 * period)
 
@@ -97,14 +99,14 @@ def sock_send(socket_, msg):
         Sends data across socket.
     """
     socket_.send(
-        encode(msg + "\n"))
+        as_bytes(msg + "\n"))
 
 
 def sock_receive(socket_):
     """
         Gets data from socket.
     """
-    data = decode(socket_.recv(BUFFER_SIZE)).rstrip()
+    data = bytes(socket_.recv(BUFFER_SIZE)).decode('utf8').rstrip()
     printrecv(data)
     return data
 
