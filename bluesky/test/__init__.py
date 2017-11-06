@@ -10,6 +10,20 @@ Common test functionality.
 from __future__ import print_function
 import inspect
 import time
+import pytest
+import sys
+import socket
+import os
+import psutil
+import subprocess
+import signal
+from bluesky.tools.network import encode, decode
+
+
+BUFFER_SIZE = 1024
+BLUESKY = "BlueSky_qtgl.py"
+TCP_HOST = "127.0.0.1"
+TCP_PORT = 8888
 
 
 def funname(stackpos):
@@ -51,10 +65,76 @@ def wait_for(test, iters, period):
     if iter == 0:
         raise BlueSkyTestException()
 
+    time.sleep(period)  # front-load a sleep
+
     success = test()
+    print("Success? " + str(success))
     if not success:
-        time.sleep(period)
         wait_for(test, iters - 1, 2 * period)
+
+
+def sock_connect(socket_, host, port):
+    """
+    Attempts a socket connection, and returns success boolean.
+
+    Args:
+        socket_: the socket, created with 'socket' method
+        host:: the host
+        port: the port
+
+    Returns:
+        whether socket is connected
+    """
+    try:
+        socket_.connect((host, port))
+        return True
+    except ConnectionRefusedError:
+        return False
+
+
+def sock_send(socket_, msg):
+    """
+        Sends data across socket.
+    """
+    socket_.send(
+        encode(msg + "\n"))
+
+
+def sock_receive(socket_):
+    """
+        Gets data from socket.
+    """
+    data = decode(socket_.recv(BUFFER_SIZE)).rstrip()
+    printrecv(data)
+    return data
+
+
+@pytest.fixture(scope="module")
+def sock(pytestconfig):
+    """
+    Suite-level setup and teardown function, for those test functions
+    naming `sock` in their parameter lists.
+    """
+    rootdir = str(pytestconfig.rootdir)
+    sys.path.append(rootdir)
+    import bluesky
+    from bluesky.test import printrecv, wait_for
+
+    newpid = os.fork()
+
+    if newpid != 0:
+        sock_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        wait_for(
+            lambda: sock_connect(sock_, TCP_HOST, TCP_PORT), -1, 5)
+        yield sock_, bluesky
+        sock_.close()
+        parent_pid = os.getpid()
+        parent = psutil.Process(parent_pid)
+        children = parent.children(recursive=True)
+        for child in children:
+            child.send_signal(signal.SIGKILL)
+    else:
+        subprocess.call([os.environ['PYEXEC'], BLUESKY])
 
 
 class BlueSkyTestException(Exception):
