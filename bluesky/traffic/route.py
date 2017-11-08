@@ -883,7 +883,7 @@ class Route():
         # Look up waypoint
         idx = -1
         i = len(self.wpname)
-        while idx == -1 and i > 1:
+        while idx == -1 and i > 0:
             i = i-1
             if self.wpname[i].upper() == delwpname.upper():
                 idx = i
