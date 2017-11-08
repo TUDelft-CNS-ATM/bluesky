@@ -95,14 +95,17 @@ class ScreenIO(object):
 
         bs.sim.send_event(b'PANZOOM', dict(pan=(self.ctrlat, self.ctrlon), absolute=True))
 
+    def shownd(self, acid):
+        bs.sim.send_event(b'SHOWND', acid)
+
     def symbol(self):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='SYM'))
+        bs.sim.send_event(b'DISPLAYFLAG', dict(flag='SYM'))
 
     def feature(self, switch, argument=None):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(switch=switch, args=argument))
+        bs.sim.send_event(b'DISPLAYFLAG', dict(flag=switch, args=argument))
 
     def trails(self,sw):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='TRAIL', args=sw))
+        bs.sim.send_event(b'DISPLAYFLAG', dict(flag='TRAIL', args=sw))
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -111,7 +114,7 @@ class ScreenIO(object):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='DEFWPT', args=(name, lat, lon)))
+        bs.sim.send_event(b'DEFWPT', dict(name=name, lat=lat, lon=lon))
         return True
 
     def show_file_dialog(self):
@@ -122,7 +125,7 @@ class ScreenIO(object):
         bs.sim.send_event(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
 
     def filteralt(self, *args):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(switch='FILTERALT', args=args))
+        bs.sim.send_event(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
 
     def objappend(self, objtype, objname, data_in):
         """Add a drawing object to the radar screen using the following inpouts:
@@ -178,7 +181,7 @@ class ScreenIO(object):
             data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
             data[1::2] = lonCircle
 
-        bs.sim.send_event(b'ADDSHAPE', dict(name=objname, data=data))
+        bs.sim.send_event(b'POLY', dict(name=objname, data=data))
 
     def event(self, eventname, eventdata, sender_id):
         print('Received event from {}'.format(sender_id))

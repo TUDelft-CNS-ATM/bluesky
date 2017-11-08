@@ -8,9 +8,10 @@ except ImportError:
     from PyQt4.QtOpenGL import QGLWidget
     QT_VERSION = 4
 
+from ctypes import c_float, c_int, Structure
 import numpy as np
 import OpenGL.GL as gl
-from ctypes import c_float, c_int, Structure
+
 
 # Local imports
 import bluesky as bs
@@ -64,26 +65,6 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = list(range(7))
 ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = list(range(11))
 
-
-class nodeData(object):
-    def __init__(self):
-        self.polynames = dict()
-        self.polydata  = np.array([], dtype=np.float32)
-        self.custwplbl = ''
-        self.custwplat = np.array([], dtype=np.float32)
-        self.custwplon = np.array([], dtype=np.float32)
-
-        # Filteralt settings
-        self.filteralt = False
-
-        # Create trail data
-        self.traillat0 = []
-        self.traillon0 = []
-        self.traillat1 = []
-        self.traillon1 = []
-
-        # Reset transition level
-        self.translvl = 4500.*ft
 
 class radarUBO(UniformBuffer):
     class Data(Structure):
@@ -152,51 +133,42 @@ class RadarWidget(QGLWidget):
         self.ncustwpts      = 0
         self.nairports      = 0
         self.route_acid     = ""
-        self.ssd_ownship    = set()
         self.apt_inrange    = np.array([])
-        self.ssd_all        = False
-        self.ssd_conflicts   = False
-        self.nodedata       = dict()
-        self.translvl       = 0
-        # Display flags
-        self.show_map       = True
-        self.show_coast     = True
-        self.show_traf      = True
-        self.show_pz        = False
-        self.show_lbl       = 2
-        self.show_wpt       = 1
-        self.show_apt       = 1
 
         self.initialized    = False
 
-        # Connect to the io client's nodelist changed and activenode changed signal
-        io.nodes_changed.connect(self.nodesChanged)
-        io.activenode_changed.connect(self.actnodeChanged)
+        # Connect to the io client's activenode changed signal
+        io.actnodedata_changed.connect(self.actnodedataChanged)
 
         # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices, rwythr = load_aptsurface()
 
-    def nodesChanged(self, nodeid):
-        # For each node we have to keep data such as the visible polygons, etc.
-        self.nodedata[nodeid] = nodeData()
-
-    def actnodeChanged(self, nodeid):
-        nact = self.nodedata[nodeid]
+    def actnodedataChanged(self, nodeid, nodedata, changed_elems):
+        ''' Update buffers when a different node is selected, or when
+            the data of the current node is updated. '''
         self.makeCurrent()
 
-        # Polygon data change after node change
-        if nact.polydata:
-            update_buffer(self.allpolysbuf, nact.polydata)
+        # Polygon data change
+        if 'POLY' in changed_elems:
+            if len(nodedata.polydata):
+                update_buffer(self.allpolysbuf, nodedata.polydata)
+            self.allpolys.set_vertex_count(len(nodedata.polydata) // 2)
 
-        self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
+        # Trail data change
+        if 'TRAILS' in changed_elems:
+            if len(nodedata.traillat0):
+                update_buffer(self.trailbuf, np.array(
+                    list(zip(nodedata.traillat0, nodedata.traillon0,
+                             nodedata.traillat1, nodedata.traillon1)), dtype=np.float32))
+            self.traillines.set_vertex_count(4 * len(nodedata.traillat0))
 
-        # Update trail buffer after node change
-        update_buffer(self.trailbuf, np.array(
-            list(zip(nact.traillat0, nact.traillon0,
-                     nact.traillat1, nact.traillon1)), dtype=np.float32))
-
-        self.traillines.set_vertex_count(4 * len(nact.traillat0))
+        if 'CUSTWPT' in changed_elems:
+            if nodedata.custwplbl:
+                update_buffer(self.custwplblbuf, np.array(nodedata.custwplbl, dtype=np.string_))
+                update_buffer(self.custwplatbuf, nodedata.custwplat)
+                update_buffer(self.custwplonbuf, nodedata.custwplon)
+            self.ncustwpts = len(nodedata.custwplat)
 
     def create_objects(self):
         if not self.isValid():
@@ -449,6 +421,9 @@ class RadarWidget(QGLWidget):
         if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized and self.isVisible()):
             return
 
+        # Get data for active node
+        actdata = io.get_nodedata()
+
         # Set the viewport and clear the framebuffer
         gl.glViewport(*self.viewport)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
@@ -460,7 +435,7 @@ class RadarWidget(QGLWidget):
         # Map and coastlines: don't wrap around in the shader
         self.globaldata.enable_wrap(False)
 
-        if self.show_map:
+        if actdata.show_map:
             # Select the texture shader
             self.texture_shader.use()
 
@@ -473,7 +448,7 @@ class RadarWidget(QGLWidget):
         self.color_shader.use()
 
         # Draw coastlines
-        if self.show_coast:
+        if actdata.show_coast:
             if self.wrapdir == 0:
                 # Normal case, no wrap around
                 self.coastlines.draw(first_vertex=0, vertex_count=self.vcount_coast)
@@ -498,7 +473,7 @@ class RadarWidget(QGLWidget):
         self.allpolys.draw()
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
-        if self.show_traf:
+        if actdata.show_traf:
             self.route.draw()
             self.cpalines.draw()
             self.traillines.draw()
@@ -516,66 +491,66 @@ class RadarWidget(QGLWidget):
         self.globaldata.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if self.naircraft > 0 and self.show_traf and self.show_pz and self.zoom >= 0.15:
+        if self.naircraft > 0 and actdata.show_traf and actdata.show_pz and self.zoom >= 0.15:
             self.globaldata.set_vertex_scale_type(VERTEX_IS_METERS)
             self.protectedzone.draw(n_instances=self.naircraft)
 
         self.globaldata.set_vertex_scale_type(VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
-        if self.naircraft > 0 and self.show_traf:
+        if self.naircraft > 0 and actdata.show_traf:
             self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.ac_symbol.draw(n_instances=self.naircraft)
 
-        if self.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
+        if self.zoom >= 0.5 and actdata.show_apt == 1 or actdata.show_apt == 2:
             nairports = self.nairports[2]
-        elif self.zoom  >= 0.25 and self.show_apt == 1 or self.show_apt == 3:
+        elif self.zoom  >= 0.25 and actdata.show_apt == 1 or actdata.show_apt == 3:
             nairports = self.nairports[1]
         else:
             nairports = self.nairports[0]
 
-        if self.zoom >= 3 and self.show_wpt == 1 or self.show_wpt == 2:
+        if self.zoom >= 3 and actdata.show_wpt == 1 or actdata.show_wpt == 2:
             nwaypoints = self.nwaypoints
         else:
             nwaypoints = self.nnavaids
 
         # Draw waypoint symbols
-        if self.show_wpt:
+        if actdata.show_wpt:
             self.waypoints.draw(n_instances=nwaypoints)
             if self.ncustwpts > 0:
                 self.customwp.draw(n_instances=self.ncustwpts)
 
         # Draw airport symbols
-        if self.show_apt:
+        if actdata.show_apt:
             self.airports.draw(n_instances=nairports)
 
         if self.do_text:
             self.text_shader.use()
             self.font.use()
 
-            if self.show_apt:
+            if actdata.show_apt:
                 self.font.set_char_size(self.aptlabels.char_size)
                 self.font.set_block_size(self.aptlabels.block_size)
                 self.aptlabels.draw(n_instances=nairports)
-            if self.show_wpt:
+            if actdata.show_wpt:
                 self.font.set_char_size(self.wptlabels.char_size)
                 self.font.set_block_size(self.wptlabels.block_size)
                 self.wptlabels.draw(n_instances=nwaypoints)
                 if self.ncustwpts > 0:
                     self.customwplbl.draw(n_instances=self.ncustwpts)
 
-            if self.show_traf and self.route.vertex_count > 1:
+            if actdata.show_traf and self.route.vertex_count > 1:
                 self.font.set_char_size(self.routelbl.char_size)
                 self.font.set_block_size(self.routelbl.block_size)
                 self.routelbl.draw()
 
-            if self.naircraft > 0 and self.show_traf and self.show_lbl:
+            if self.naircraft > 0 and actdata.show_traf and actdata.show_lbl:
                 self.font.set_char_size(self.aclabels.char_size)
                 self.font.set_block_size(self.aclabels.block_size)
                 self.aclabels.draw(n_instances=self.naircraft)
 
         # SSD
-        if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
+        if actdata.ssd_all or actdata.ssd_conflicts or len(actdata.ssd_ownship) > 0:
             self.ssd_shader.use()
             gl.glUniform3f(self.ssd_shader.loc_vlimits, 4e4, 25e4, 500.0)
             gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
@@ -614,6 +589,7 @@ class RadarWidget(QGLWidget):
         if not self.initialized:
             return
         self.makeCurrent()
+        actdata = io.get_nodedata()
 
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
@@ -641,7 +617,7 @@ class RadarWidget(QGLWidget):
                     txt = wp[:12].ljust(12) # Two lines
                     if alt < 0:
                         txt += "-----/"
-                    elif alt > self.translvl:
+                    elif alt > actdata.translvl:
                         FL = int(round((alt / (100. * ft))))
                         txt += "FL%03d/" % FL
                     else:
@@ -666,7 +642,7 @@ class RadarWidget(QGLWidget):
             return
 
         self.makeCurrent()
-        curnode = self.nodedata[io.actnode()]
+        curnode = io.get_nodedata()
         if curnode.filteralt:
             idx = np.where((data.alt >= curnode.filteralt[0]) * (data.alt <= curnode.filteralt[1]))
             data.lat = data.lat[idx]
@@ -676,7 +652,7 @@ class RadarWidget(QGLWidget):
             data.tas = data.tas[idx]
             data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
-        self.translvl  = data.translvl
+        curnode.translvl = data.translvl
 
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
@@ -697,13 +673,16 @@ class RadarWidget(QGLWidget):
             # Labels and colors
             rawlabel = ''
             color    = np.empty((self.naircraft, 4), dtype=np.uint8)
-            selssd   = np.zeros(self.naircraft, dtype=np.uint8)
+            if curnode.ssd_all:
+                selssd   = np.ones(self.naircraft, dtype=np.uint8)
+            else:
+                selssd   = np.zeros(self.naircraft, dtype=np.uint8)
             for i, acid in enumerate(data.id):
                 vs = 30 if data.vs[i] > 0.25 else 31 if data.vs[i] < -0.25 else 32
                 # Make label: 3 lines of 8 characters per aircraft
-                if self.show_lbl >= 1:
+                if curnode.show_lbl >= 1:
                     rawlabel += '%-8s' % acid[:8]
-                    if self.show_lbl == 2:
+                    if curnode.show_lbl == 2:
                         if data.alt[i] <= data.translvl:
                             rawlabel += '%-5d' % int(data.alt[i]/ft  + 0.5)
                         else:
@@ -713,7 +692,7 @@ class RadarWidget(QGLWidget):
                         rawlabel += 16 * ' '
                 confindices = data.iconf[i]
                 if len(confindices) > 0:
-                    if self.ssd_conflicts:
+                    if curnode.ssd_conflicts:
                         selssd[i] = 255
                     color[i, :] = palette.conflict + (255,)
                     for confidx in confindices:
@@ -723,12 +702,11 @@ class RadarWidget(QGLWidget):
                     color[i, :] = palette.aircraft + (255,)
 
                 #  Check if aircraft is selected to show SSD
-                if acid in self.ssd_ownship:
+                if acid in curnode.ssd_ownship:
                     selssd[i] = 255
 
-            if len(self.ssd_ownship) > 0 or self.ssd_conflicts:
-                update_buffer(self.ssd.selssdbuf, selssd)
 
+            update_buffer(self.ssd.selssdbuf, selssd)
             update_buffer(self.confcpabuf, cpalines)
             update_buffer(self.accolorbuf, color)
             update_buffer(self.aclblbuf, np.array(rawlabel.encode('utf8'), dtype=np.string_))
@@ -763,96 +741,6 @@ class RadarWidget(QGLWidget):
                 curnode.traillon1 = []
 
                 self.traillines.set_vertex_count(0)
-
-    def show_ssd(self, arg):
-        if not self.initialized:
-            return
-
-        self.makeCurrent()
-        if 'ALL' in arg:
-            self.ssd_all      = True
-            self.ssd_conflicts = False
-            update_buffer(self.ssd.selssdbuf, np.ones(MAX_NAIRCRAFT, dtype=np.uint8))
-        elif 'CONFLICTS' in arg:
-            self.ssd_all      = False
-            self.ssd_conflicts = True
-        elif 'OFF' in arg:
-            self.ssd_all      = False
-            self.ssd_conflicts = False
-            self.ssd_ownship = set()
-            update_buffer(self.ssd.selssdbuf, np.zeros(MAX_NAIRCRAFT, dtype=np.uint8))
-        else:
-            remove = self.ssd_ownship.intersection(arg)
-            self.ssd_ownship = self.ssd_ownship.union(arg) - remove
-
-    def defwpt(self, wpdata):
-        if not self.initialized:
-            return
-        nact = self.nodedata[io.sender()]
-        nact.custwplbl += wpdata[0].ljust(5)
-        nact.custwplat = np.append(nact.custwplat, np.float32(wpdata[1]))
-        nact.custwplon = np.append(nact.custwplon, np.float32(wpdata[2]))
-
-        if io.sender() == io.actnode():
-            self.makeCurrent()
-            update_buffer(self.custwplblbuf, np.array(nact.custwplbl, dtype=np.string_))
-            update_buffer(self.custwplatbuf, nact.custwplat)
-            update_buffer(self.custwplonbuf, nact.custwplon)
-            self.ncustwpts = len(nact.custwplat)
-
-    def clearNodeData(self, sender_id):
-        if not self.initialized:
-            return
-
-        # Clear all data for sender node
-        nact = self.nodedata[sender_id]
-        nact.polynames.clear()
-        nact.polydata  = np.array([], dtype=np.float32)
-        nact.custwplbl = ''
-        nact.custwplat = np.array([], dtype=np.float32)
-        nact.custwplon = np.array([], dtype=np.float32)
-
-        # Clear trail data
-        nact.traillat0 = []
-        nact.traillon0 = []
-        nact.traillat1 = []
-        nact.traillon1 = []
-
-        # If the updated polygon buffer is also currently viewed, also send
-        # updates to the gpu buffer
-        if sender_id == io.actnode():
-            self.allpolys.set_vertex_count(0)
-            self.traillines.set_vertex_count(0)
-            self.ncustwpts = 0
-
-    def updatePolygon(self, name, data_in):
-        if not self.initialized:
-            return
-
-        nact = self.nodedata[io.sender()]
-        if name in nact.polynames:
-            # We're either updating a polygon, or deleting it. In both cases
-            # we remove the current one.
-            nact.polydata = np.delete(nact.polydata, list(range(*nact.polynames[name])))
-            del nact.polynames[name]
-
-        # Break up polyline list of (lat,lon)s into separate line segments
-        if data_in is not None:
-            nact.polynames[name] = (len(nact.polydata), 2 * len(data_in))
-            newbuf = np.empty(2 * len(data_in), dtype=np.float32)
-            newbuf[0::4]   = data_in[0::2]  # lat
-            newbuf[1::4]   = data_in[1::2]  # lon
-            newbuf[2:-2:4] = data_in[2::2]  # lat
-            newbuf[3:-3:4] = data_in[3::2]  # lon
-            newbuf[-2:]    = data_in[0:2]
-            nact.polydata  = np.append(nact.polydata, newbuf)
-
-        # If the updated polygon buffer is also currently viewed, also send
-        # updates to the gpu buffer
-        if io.sender() == io.actnode():
-            self.makeCurrent()
-            update_buffer(self.allpolysbuf, nact.polydata)
-            self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
 
     def cmdline_stacked(self, cmd, args):
         if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
@@ -909,7 +797,7 @@ class RadarWidget(QGLWidget):
             return super(RadarWidget, self).event(event)
 
         if event.type() == PanZoomEventType:
-            if event.pan is not None:
+            if event.pan:
                 # Absolute pan operation
                 if event.absolute:
                     self.panlat = event.pan[0]
@@ -927,7 +815,7 @@ class RadarWidget(QGLWidget):
                 self.flat_earth = np.cos(np.deg2rad(self.panlat))
                 self.zoom = max(self.zoom, 1.0 / (180.0 * self.flat_earth))
 
-            if event.zoom is not None:
+            if event.zoom:
                 if event.absolute:
                     # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
                     self.zoom = max(event.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))

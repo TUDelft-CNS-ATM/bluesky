@@ -432,7 +432,7 @@ def init():
         "ND": [
             "ND acid",
             "txt",
-            lambda acid: bs.scr.feature('ND', acid),
+            bs.scr.shownd,
             "Show navigation display with CDTI"
         ],
         "NOISE": [

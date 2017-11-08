@@ -12,7 +12,7 @@ from bluesky.ui.radarclick import radarclick
 from bluesky.tools.misc import tim2txt
 from bluesky import settings
 
-from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
+from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent, PanZoomEvent
 from bluesky.ui.qtgl.mainwindow import MainWindow
 from bluesky.ui.qtgl.docwindow import DocWindow
 from bluesky.ui.qtgl.radarwidget import RadarWidget
@@ -84,6 +84,8 @@ class Gui(QApplication):
         self.exec_()
 
     def quit(self):
+        # Send quit to manager
+        io.send_event(b'QUIT')
         self.closeAllWindows()
 
     def on_simevent_received(self, eventname, eventdata, sender_id):
@@ -91,14 +93,7 @@ class Gui(QApplication):
         # initialization order problem: TODO
         if not self.initialized:
             return
-        # temp: set actnode
-        if not io.actnode():
-            io.nodes_changed.emit(sender_id)
-            io.actnode(sender_id)
 
-        if eventname == b'RESET':
-            # Clear data for this sender
-            self.radarwidget.clearNodeData(sender_id)
         elif eventname == b'ECHO':
             self.win.console.echo(eventdata)
         elif eventname == b'CMDLINE':
@@ -116,56 +111,11 @@ class Gui(QApplication):
             # send the pan/zoom event to the radarwidget
             self.radarwidget.event(event)
 
-        elif eventname == 'DISPLAYFLAG':
-            flag = eventdata.get('switch')
-            args = eventdata.get('args')
-            # Switch/toggle/cycle radar screen features e.g. from SWRAD command
-            if flag == 'SYM':
-                # For now only toggle PZ
-                self.radarwidget.show_pz = not self.radarwidget.show_pz
-            # Coastlines
-            elif flag == 'GEO':
-                self.radarwidget.show_coast = not self.radarwidget.show_coast
-
-            # FIR boundaries
-            elif flag == 'FIR':
-                self.radarwidget.showfir = not self.radarwidget.showfir
-
-            # Airport: 0 = None, 1 = Large, 2= All
-            elif flag == 'APT':
-                self.radarwidget.show_apt = not self.radarwidget.show_apt
-
-            # Waypoint: 0 = None, 1 = VOR, 2 = also WPT, 3 = Also terminal area wpts
-            elif flag == 'VOR' or flag == 'WPT' or flag == 'WP' or flag == 'NAV':
-                self.radarwidget.show_wpt = not self.radarwidget.show_wpt
-
-            # Satellite image background on/off
-            elif flag == 'SAT':
-                self.radarwidget.show_map = not self.radarwidget.show_map
-
-            # Satellite image background on/off
-            elif flag == 'TRAF':
-                self.radarwidget.show_traf = not self.radarwidget.show_traf
-
-            # ND window for selected aircraft
-            elif flag == 'ND':
-                if args:
-                    self.nd.setAircraftID(args)
-                self.nd.setVisible(not self.nd.isVisible())
-
-            elif flag == 'SSD':
-                self.radarwidget.show_ssd(args)
-
-            elif flag == 'DEFWPT':
-                self.radarwidget.defwpt(args)
-
-            elif flag == 'FILTERALT':
-                # First argument is an on/off flag
-                nact = self.radarwidget.nodedata[sender_id]
-                if args[0]:
-                    nact.filteralt = args[1:]
-                else:
-                    nact.filteralt = False
+        # ND window for selected aircraft
+        elif eventname == b'SHOWND':
+            if eventdata:
+                self.nd.setAircraftID(eventdata)
+            self.nd.setVisible(not self.nd.isVisible())
 
         elif eventname == b'SHOWDIALOG':
             dialog = eventdata.get('dialog')
@@ -175,19 +125,14 @@ class Gui(QApplication):
             elif dialog == 'DOC':
                 self.show_doc_window(args)
 
-        elif eventname == b'ADDSHAPE':
-            self.radarwidget.updatePolygon(eventdata['name'], eventdata['data'])
-
         # TODO stack init
         # elif event.type() == StackInitEventType:
         #     self.win.console.addStackHelp(sender_id, event.stackdict)
 
 
     def on_simstream_received(self, streamname, data, sender_id):
-        # temp: set actnode
-        if not io.actnode():
-            io.nodes_changed.emit(sender_id)
-            io.actnode(sender_id)
+        if not self.initialized:
+            return
 
         if streamname == b'SIMINFO':
             speed, simdt, simt, simtclock, ntraf, state, scenname = data

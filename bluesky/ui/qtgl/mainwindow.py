@@ -13,7 +13,7 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from bluesky.simulation.qtgl import PanZoomEvent
+from bluesky.ui.qtgl.customevents import PanZoomEvent
 from bluesky import settings
 
 from . import guiio as io
@@ -21,7 +21,9 @@ from . import guiio as io
 is_osx = platform.system() == 'Darwin'
 
 # Register settings defaults
-settings.set_variable_defaults(gfx_path='data/graphics', stack_text_color=(0, 255, 0), stack_background_color=(102, 102, 102))
+settings.set_variable_defaults(gfx_path='data/graphics',
+                               stack_text_color=(0, 255, 0),
+                               stack_background_color=(102, 102, 102))
 
 fg = settings.stack_text_color
 bg = settings.stack_background_color
@@ -47,7 +49,7 @@ class MainWindow(QMainWindow):
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
-        buttons = { self.zoomin  :    ['zoomin.svg', 'Zoom in', self.buttonClicked],
+        buttons = { self.zoomin :     ['zoomin.svg', 'Zoom in', self.buttonClicked],
                     self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked],
                     self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked],
                     self.panright :   ['panright.svg', 'Pan right', self.buttonClicked],
@@ -88,7 +90,7 @@ class MainWindow(QMainWindow):
         self.verticalLayout.insertWidget(0, radarwidget, 1)
         # Connect to io client's nodelist changed signal
         io.nodes_changed.connect(self.nodesChanged)
-        io.activenode_changed.connect(self.actnodeChanged)
+        io.actnodedata_changed.connect(self.actnodedataChanged)
         # Connect widgets with each other
         self.console.cmdline_stacked.connect(self.radarwidget.cmdline_stacked)
 
@@ -99,7 +101,7 @@ class MainWindow(QMainWindow):
         self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
-        self.hosts = list()
+        self.hosts = dict()
         self.nodes = dict()
 
         fgcolor = '#%02x%02x%02x' % fg
@@ -138,47 +140,49 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self.app.quit()
 
-    def actnodeChanged(self, nodeid):
-        pass
-        # self.nodelabel.setText('<b>Node</b> %d:%d' % nodeid)
+    def actnodedataChanged(self, nodeid, nodedata, changed_elems):
+        self.nodelabel.setText('<b>Node</b> {}'.format(nodeid[-2]*256 + nodeid[-1]))
         # self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
 
-    def nodesChanged(self, nodeid):
-        return
-        if nodeid[0] < len(self.hosts):
-            host = self.hosts[nodeid[0]]
-        else:
-            host = QTreeWidgetItem(self.nodetree)
-            hostname = address
-            if address in ['127.0.0.1', 'localhost']:
-                hostname = 'This computer'
-            f = host.font(0)
-            f.setBold(True)
-            host.setExpanded(True)
-            btn = QPushButton(self.nodetree)
-            btn.setText(hostname)
-            btn.setFlat(True)
-            btn.setStyleSheet('font-weight:bold')
+    def nodesChanged(self, data):
+        print ('win nodeschanged,', data)
+        for host_id, node_ids in data.items():
+            host = self.hosts.get(host_id)
+            if not host:
+                host = QTreeWidgetItem(self.nodetree)
+                hostname = 'This computer' if host_id == io.get_hostid() else host_id
+                f = host.font(0)
+                f.setBold(True)
+                host.setExpanded(True)
+                btn = QPushButton(self.nodetree)
+                btn.setText(hostname)
+                btn.setFlat(True)
+                btn.setStyleSheet('font-weight:bold')
 
-            btn.setIcon(QIcon(os.path.join(settings.gfx_path, 'icons/addnode.svg')))
-            btn.setIconSize(QSize(24, 16))
-            btn.setLayoutDirection(Qt.RightToLeft)
-            btn.setMaximumHeight(16)
-            # btn.clicked.connect(manager.instance.addNode)
-            self.nodetree.setItemWidget(host, 0, btn)
-            self.hosts.append(host)
+                btn.setIcon(QIcon(os.path.join(settings.gfx_path, 'icons/addnode.svg')))
+                btn.setIconSize(QSize(24, 16))
+                btn.setLayoutDirection(Qt.RightToLeft)
+                btn.setMaximumHeight(16)
+                # btn.clicked.connect(manager.instance.addNode)
+                self.nodetree.setItemWidget(host, 0, btn)
+                self.hosts[host_id] = host
 
-        node = QTreeWidgetItem(host)
-        node.setText(0, '%d:%d <init>' % nodeid)
-        node.setText(1, '00:00:00')
-        node.nodeid  = nodeid
-        self.nodes[nodeid] = node
+            for node_id in node_ids:
+                if node_id not in self.nodes:
+                    node_num = node_id[-2] * 256 + node_id[-1]
+                    node = QTreeWidgetItem(host)
+                    node.setText(0, '{} <init>'.format(node_num))
+                    node.setText(1, '00:00:00')
+                    node.node_id  = node_id
+                    node.node_num = node_num
+
+                    self.nodes[node_id] = node
 
     def setNodeInfo(self, connid, time, scenname):
-        return
-        node = self.nodes[connid]
-        node.setText(0, '%d:%d <'  % node.nodeid + scenname + '>')
-        node.setText(1, time)
+        node = self.nodes.get(connid)
+        if node:
+            node.setText(0, '{} <{}>'.format(node.node_num, scenname))
+            node.setText(1, time)
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
@@ -192,6 +196,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def buttonClicked(self):
+        actdata = io.get_nodedata()
         if self.sender() == self.shownodes:
             vis = not self.nodetree.isVisible()
             self.nodetree.setVisible(vis)
@@ -221,24 +226,24 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.fast10:
             io.send_event(b'STACKCMD', 'FF 0:0:10')
         elif self.sender() == self.showac:
-            self.radarwidget.show_traf = not self.radarwidget.show_traf
+            actdata.show_traf = not actdata.show_traf
         elif self.sender() == self.showpz:
-            self.radarwidget.show_pz = not self.radarwidget.show_pz
+            actdata.show_pz = not actdata.show_pz
         elif self.sender() == self.showapt:
-            if self.radarwidget.show_apt < 3:
-                self.radarwidget.show_apt += 1
+            if actdata.show_apt < 3:
+                actdata.show_apt += 1
             else:
-                self.radarwidget.show_apt = 0
+                actdata.show_apt = 0
         elif self.sender() == self.showwpt:
-            if self.radarwidget.show_wpt < 2:
-                self.radarwidget.show_wpt += 1
+            if actdata.show_wpt < 2:
+                actdata.show_wpt += 1
             else:
-                self.radarwidget.show_wpt = 0
+                actdata.show_wpt = 0
         elif self.sender() == self.showlabels:
-            self.radarwidget.show_lbl -= 1
-            if self.radarwidget.show_lbl < 0:
-                self.radarwidget.show_lbl = 2
+            actdata.show_lbl -= 1
+            if actdata.show_lbl < 0:
+                actdata.show_lbl = 2
         elif self.sender() == self.showmap:
-            self.radarwidget.show_map = not self.radarwidget.show_map
+            actdata.show_map = not actdata.show_map
         elif self.sender() == self.action_Save:
             io.send_event(b'STACKCMD', 'SAVEIC')

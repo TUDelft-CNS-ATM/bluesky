@@ -62,7 +62,7 @@ class IOManager(Thread):
         be_stream.bind('tcp://*:10001')
 
         # We start with zero nodes
-        self.nodes[EventConn.host_id] = 0
+        self.nodes[EventConn.host_id] = []
 
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
@@ -104,23 +104,27 @@ class IOManager(Thread):
                     if eventname == b'REGISTER':
                         # This is a registration message for a new connection
                         # Send reply with connection name
-                        msg[-1] = src.register(msg[0])
+                        newid = src.register(sender)
+                        msg[-1] = newid
                         src.sock.send_multipart(msg)
+                        # Notify clients of this change
                         if srcisclient:
-                            src.sock.send_multipart([msg[0], src.host_id, b'NODESCHANGED', msgpack.packb(self.nodes, use_bin_type=True)])
+                            src.sock.send_multipart([sender, src.host_id, b'NODESCHANGED', msgpack.packb(self.nodes, use_bin_type=True)])
                         else:
-                            self.nodes[src.host_id] += 1
+                            self.nodes[src.host_id].append(newid)
                             data = msgpack.packb({src.host_id : self.nodes[src.host_id]}, use_bin_type=True)
                             for connid in dest.namefromid:
                                 dest.sock.send_multipart([connid, src.host_id, b'NODESCHANGED', data])
 
-                    elif msg[2] == b'ADDNODES':
+                    elif eventname == b'ADDNODES':
                         # This is a request to start new nodes.
-                        count = msgpack.unpackb(msg[3])
+                        count = msgpack.unpackb(data)
                         self.addnodes(count)
 
-                    elif msg[2] == b'QUIT':
-                        # TODO: send quit to all
+                    elif eventname == b'QUIT':
+                        # Send quit to all nodes
+                        for connid in be_event.namefromid:
+                            be_event.sock.send_multipart([connid, be_event.host_id, b'QUIT', b''])
                         self.running = False
 
                     else:

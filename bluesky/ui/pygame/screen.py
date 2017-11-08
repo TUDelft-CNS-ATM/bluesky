@@ -279,6 +279,11 @@ class Screen:
         self.updateNavBuffers()
         return
 
+    def shownd(self, acid):
+        if acid:
+            self.ndacid = acid
+        self.swnavdisp = not self.swnavdisp
+
     def updateNavBuffers(self):
         self.wpswbmp = len(bs.navdb.wplat) * [False]
         self.wplabel = len(bs.navdb.wplat) * [0]
@@ -678,7 +683,7 @@ class Screen:
                 if self.swlabel > 1:
                     if bs.traf.alt[i]>bs.traf.translvl:
                         label.append("FL"+str(int(round(bs.traf.alt[i] / (100.*ft)))))  # Line 2 of label: altitude
-                    else:    
+                    else:
                         label.append(str(int(round(bs.traf.alt[i] / ft))))  # Line 2 of label: altitude
                 else:
                     label.append(" ")

@@ -97,8 +97,11 @@ class Node(object):
                 res = self.event_io.recv_multipart()
                 sender_id = res[0]
                 name = res[1]
-                data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
-                self.event(name, data, sender_id)
+                if name == b'QUIT':
+                    self.quit()
+                else:
+                    data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
+                    self.event(name, data, sender_id)
             # Perform a simulation step
             self.step()
 

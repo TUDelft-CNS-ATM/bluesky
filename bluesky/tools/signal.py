@@ -6,6 +6,9 @@ class Signal(object):
     def __init__(self):
         self.__subscribers = []
 
+    def get_subs(self):
+        return self.__subscribers
+
     def emit(self, *args, **kwargs):
         """ Trigger the registered functions with passed arguments. """
         for subs in self.__subscribers:

@@ -1,6 +1,5 @@
 import zmq
 import msgpack
-from bluesky.tools import Signal
 from bluesky.io.npcodec import encode_ndarray, decode_ndarray
 
 
@@ -15,10 +14,23 @@ class Client(object):
         self.sender_id   = b''
         self.known_nodes = dict()
 
-        # Signals
-        self.nodes_changed   = Signal()
-        self.event_received  = Signal()
-        self.stream_received = Signal()
+    def get_hostid(self):
+        return self.host_id
+
+    def event(self, name, data, sender_id):
+        ''' Default event handler for Client. Override or monkey-patch this function
+            to implement actual event handling. '''
+        print('Client {} received event {} from {}'.format(self.client_id, name, sender_id))
+
+    def stream(self, name, data, sender_id):
+        ''' Default stream handler for Client. Override or monkey-patch this function
+            to implement actual stream handling. '''
+        print('Client {} received stream {} from {}'.format(self.client_id, name, sender_id))
+
+    def nodes_changed(self, data):
+        ''' Default node change handler for Client. Override or monkey-patch this function
+            to implement actual node change handling. '''
+        print('Client received node change info.')
 
     def connect(self):
         self.event_io.connect('tcp://localhost:9000')
@@ -34,7 +46,7 @@ class Client(object):
         self.poller.register(self.stream_in, zmq.POLLIN)
 
     def receive(self):
-        ''' Poll for incoming data from Manager, and receive if avaiable. '''
+        ''' Poll for incoming data from Manager, and receive if available. '''
         try:
             socks = dict(self.poller.poll(0))
             if socks.get(self.event_io) == zmq.POLLIN:
@@ -44,9 +56,9 @@ class Client(object):
                 data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
                 if name == b'NODESCHANGED':
                     self.known_nodes.update(data)
-                    self.nodes_changed.emit(data)
-
-                self.event_received.emit(name, data, self.sender_id)
+                    self.nodes_changed(data)
+                else:
+                    self.event(name, data, self.sender_id)
 
             if socks.get(self.stream_in) == zmq.POLLIN:
                 res = self.stream_in.recv_multipart()
@@ -54,7 +66,7 @@ class Client(object):
                 name      = res[0][:-8]
                 sender_id = res[0][-8:]
                 data      = msgpack.unpackb(res[1], object_hook=decode_ndarray, encoding='utf-8')
-                self.stream_received.emit(name, data, sender_id)
+                self.stream(name, data, sender_id)
         except zmq.ZMQError:
             return False
 

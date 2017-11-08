@@ -47,11 +47,11 @@ def init():
             QGLFormat.setDefaultFormat(f)
             print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
-        guiio.init()
 
         splash.showMessage('Constructing main window')
         gui.processEvents()
         gui.init()
+        guiio.init()
         splash.showMessage('Done!')
         gui.processEvents()
         splash.finish(gui.win)
