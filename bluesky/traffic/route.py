@@ -318,10 +318,6 @@ class Route():
 
                     # Use parse from stack.py to interpret alt & speed
                     alttxt, spdtxt = args[1].split('/')
-                    # parser  = Argparser(['alt', 'spd'], [False]*2, args[1].replace('/', ','))
-                    # islash = args[1].index("/")
-                    # swalt  = islash>0
-                    # swspd  = islash<len(args[1])-2 #at keast one char after slash
 
                     # Edit waypoint altitude constraint
                     if alttxt.count('-') > 1: # "----" = delete
