@@ -8,7 +8,7 @@ Author <ahfarrell@sparkl.com> Andrew Farrell
 Tests TCP interface.
 """
 import socket
-from .. import sock, TCP_HOST, TCP_PORT, wait_for, sock_receive, sock_send
+from .. import TCP_HOST, TCP_PORT, wait_for, sock_receive, sock_send
 
 
 def test_create_fail(sock):
