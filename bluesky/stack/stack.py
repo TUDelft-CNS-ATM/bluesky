@@ -1157,7 +1157,7 @@ def process():
             helptext, argtypes, argisopt, function = stackfun[:4]
 
             # Start with a fresh argument parser for each command
-            parser  = Argparser(argtypes, argisopt, args)
+            parser  = Argparser(argtypes, argisopt, args, function.__defaults__)
 
             # Call function return flag,text
             # flag: indicates sucess
@@ -1220,17 +1220,18 @@ class Argparser:
     reflon    = -999.  # Reference longitude for searching in nav db
                        # in case of duplicate names
 
-    def __init__(self, argtypes, argisopt, argstring):
-        self.argtypes   = argtypes
-        self.argisopt   = argisopt
-        self.argstring  = argstring
-        self.arglist    = []
-        self.error      = ''  # Potential parsing error messages are stored here
-        self.additional = {}  # Sometimes a parse can generate extra arguments
-                              # that can be used to fill future empty arguments.
-                              # E.g., a runway gives a lat/lon, but also a heading.
-        self.refac      = -1  # Stored aircraft idx when an argument is parsed
-                              # for a function that acts on an aircraft.
+    def __init__(self, argtypes, argisopt, argstring, argdefaults=None):
+        self.argtypes    = argtypes
+        self.argisopt    = argisopt
+        self.argdefaults = list(argdefaults or [])
+        self.argstring   = argstring
+        self.arglist     = []
+        self.error       = ''  # Potential parsing error messages are stored here
+        self.additional  = {}  # Sometimes a parse can generate extra arguments
+                               # that can be used to fill future empty arguments.
+                               # E.g., a runway gives a lat/lon, but also a heading.
+        self.refac       = -1  # Stored aircraft idx when an argument is parsed
+                               # for a function that acts on an aircraft.
 
     def parse(self):
         curtype = 0
@@ -1251,10 +1252,18 @@ class Argparser:
                 result = self.parse_arg(argtypei)
                 if result:
                     # No value = None when this is allowed because it is an optional argument
-                    if result[0] is None and not self.argisopt[curtype]:
-                        self.error = 'No value given for mandatory argument ' + \
-                            self.argtypes[curtype]
-                        return False
+                    if None in result:
+                        if not self.argisopt[curtype]:
+                            self.error = 'No value given for mandatory argument ' + \
+                                self.argtypes[curtype]
+                            return False
+                        # If we have other default values than None, use those
+                        for i, v in enumerate(result):
+                            if v is None and self.argdefaults:
+                                result[i] = self.argdefaults[0]
+                                print('using default value from function: {}'.format(result[i]))
+                                self.argdefaults.pop(0)
+
 
                     self.arglist += result
                     break
