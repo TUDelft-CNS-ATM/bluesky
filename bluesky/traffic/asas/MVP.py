@@ -86,7 +86,7 @@ def resolve(asas, traf):
             # If A/C indexes are found, then apply MVP on this conflict pair
             # Because ADSB is ON, this is done for each aircraft separately
             if id1 >-1 and id2 > -1:
-                dv_mvp   = MVP(traf, asas, id1, id2)
+                dv_mvp,tsolV   = MVP(traf, asas, id1, id2)
                 if tsolV < timesolveV[id1]:
                     timesolveV[id1] = tsolV
 
@@ -133,7 +133,7 @@ def resolve(asas, traf):
             newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
             newvs    = traf.vs
         elif asas.swresohdg and not asas.swresospd: # HDG only
-            newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
+            newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) % 360
             newgs    = traf.gs
             newvs    = traf.vs
         else: # SPD + HDG

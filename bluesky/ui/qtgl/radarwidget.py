@@ -347,17 +347,16 @@ class RadarWidget(QGLWidget):
         self.waypoints = RenderObject(gl.GL_LINE_LOOP, vertex=wptvertices, color=palette.wptsymbol, n_instances=self.nwaypoints)
         # Sort based on id string length
         llid = sorted(zip(bs.navdb.wpid, bs.navdb.wplat, bs.navdb.wplon), key=lambda i: len(i[0]) > 3)
-        wplat = [lat for (wpid, lat, lon) in llid]
-        wplon = [lon for (wpid, lat, lon) in llid]
+        wpidlst, wplat, wplon = zip(*llid)
         self.wptlatbuf = self.waypoints.bind_attrib(ATTRIB_LAT, 1, np.array(wplat, dtype=np.float32), instance_divisor=1)
         self.wptlonbuf = self.waypoints.bind_attrib(ATTRIB_LON, 1, np.array(wplon, dtype=np.float32), instance_divisor=1)
         wptids = ''
         self.nnavaids = 0
-        for wptid in llid:
-            if len(wptid[0]) <= 3:
+        for wptid in wpidlst:
+            if len(wptid) <= 3:
                 self.nnavaids += 1
-            wptids += wptid[0].ljust(5)
-        npwpids = np.array(wptids.encode(encoding="ascii", errors="ignore"), dtype=np.string_)
+            wptids += wptid[:5].ljust(5)
+        npwpids = np.array(wptids, dtype=np.string_)
         self.wptlabels = self.font.prepare_text_instanced(npwpids, (5, 1), self.wptlatbuf, self.wptlonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         self.wptlabels.bind_color(palette.wptlabel)
         del wptids
