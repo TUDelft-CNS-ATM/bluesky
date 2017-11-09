@@ -116,7 +116,7 @@ class IOManager(Thread):
                             for connid in dest.namefromid:
                                 dest.sock.send_multipart([connid, src.host_id, b'NODESCHANGED', data])
 
-                    elif eventname == b'ADDNODES':
+                    elif eventname == b'ADDNODES' and target == fe_event.host_id:
                         # This is a request to start new nodes.
                         count = msgpack.unpackb(data)
                         self.addnodes(count)

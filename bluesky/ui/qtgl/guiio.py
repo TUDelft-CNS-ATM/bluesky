@@ -169,16 +169,22 @@ class GuiClient(Client):
             for node_id in node_ids:
                 if node_id not in self.nodedata:
                     self.nodedata[node_id] = nodeData()
-                    if not self.act:
-                        self.act = node_id
+
         nodes_changed.emit(data)
+        # If this is the first known node, select it as active node
+        if not self.act:
+            self.actnode(node_id)
 
     def actnode(self, newact=None):
         if newact is not None:
+            # Unsubscribe from previous node, subscribe to new one.
+            if self.act:
+                self.unsubscribe(b'ACDATA', self.act)
+            self.subscribe(b'ACDATA', newact)
+
             self.act = newact
             actdata = self.nodedata.get(newact)
             actnodedata_changed.emit(newact, actdata, UPDATE_ALL)
-            # TODO: unsubscribe from previous node, subscribe to new one.
         return self.act
 
     def send_event(self, name, data=None, target=None):

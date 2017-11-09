@@ -32,6 +32,14 @@ class Client(object):
             to implement actual node change handling. '''
         print('Client received node change info.')
 
+    def subscribe(self, streamname, node_id=b''):
+        ''' Subscribe to a stream. '''
+        self.stream_in.setsockopt(zmq.SUBSCRIBE, streamname + node_id)
+
+    def unsubscribe(self, streamname, node_id=b''):
+        ''' Unsubscribe from a stream. '''
+        self.stream_in.setsockopt(zmq.UNSUBSCRIBE, streamname + node_id)
+
     def connect(self):
         self.event_io.connect('tcp://localhost:9000')
         self.send_event(b'REGISTER')
@@ -40,7 +48,7 @@ class Client(object):
         self.host_id   = data[:5]
         print('Client {} connected to host {}'.format(self.client_id, self.host_id))
         self.stream_in.connect('tcp://localhost:9001')
-        self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
+        # self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
 
         self.poller.register(self.event_io, zmq.POLLIN)
         self.poller.register(self.stream_in, zmq.POLLIN)

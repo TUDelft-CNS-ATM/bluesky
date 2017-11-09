@@ -101,8 +101,9 @@ class MainWindow(QMainWindow):
         self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
-        self.hosts = dict()
-        self.nodes = dict()
+        self.maxhostnum = 0
+        self.hosts      = dict()
+        self.nodes      = dict()
 
         fgcolor = '#%02x%02x%02x' % fg
         bgcolor = '#%02x%02x%02x' % bg
@@ -142,19 +143,22 @@ class MainWindow(QMainWindow):
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         self.nodelabel.setText('<b>Node</b> {}'.format(nodeid[-2]*256 + nodeid[-1]))
-        # self.nodetree.setCurrentItem(self.hosts[nodeid[0]].child(nodeid[1]), 0, QItemSelectionModel.ClearAndSelect)
+        self.nodetree.setCurrentItem(self.nodes[nodeid], 0, QItemSelectionModel.ClearAndSelect)
 
     def nodesChanged(self, data):
-        print ('win nodeschanged,', data)
         for host_id, node_ids in data.items():
             host = self.hosts.get(host_id)
             if not host:
                 host = QTreeWidgetItem(self.nodetree)
+                self.maxhostnum += 1
+                host.host_num = self.maxhostnum
+                host.host_id = host_id
                 hostname = 'This computer' if host_id == io.get_hostid() else host_id
                 f = host.font(0)
                 f.setBold(True)
                 host.setExpanded(True)
                 btn = QPushButton(self.nodetree)
+                btn.host_id = host_id
                 btn.setText(hostname)
                 btn.setFlat(True)
                 btn.setStyleSheet('font-weight:bold')
@@ -163,7 +167,7 @@ class MainWindow(QMainWindow):
                 btn.setIconSize(QSize(24, 16))
                 btn.setLayoutDirection(Qt.RightToLeft)
                 btn.setMaximumHeight(16)
-                # btn.clicked.connect(manager.instance.addNode)
+                btn.clicked.connect(self.buttonClicked)
                 self.nodetree.setItemWidget(host, 0, btn)
                 self.hosts[host_id] = host
 
@@ -171,28 +175,29 @@ class MainWindow(QMainWindow):
                 if node_id not in self.nodes:
                     node_num = node_id[-2] * 256 + node_id[-1]
                     node = QTreeWidgetItem(host)
-                    node.setText(0, '{} <init>'.format(node_num))
+                    node.setText(0, '{}:{} <init>'.format(host.host_num, node_num))
                     node.setText(1, '00:00:00')
                     node.node_id  = node_id
                     node.node_num = node_num
+                    node.host_num = host.host_num
 
                     self.nodes[node_id] = node
 
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
         if node:
-            node.setText(0, '{} <{}>'.format(node.node_num, scenname))
+            node.setText(0, '{}:{} <{}>'.format(node.node_num, node.host_num, scenname))
             node.setText(1, time)
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
-        if item in self.hosts:
+        if item in self.hosts.values():
             item.setSelected(False)
             item.child(0).setSelected(True)
-            connidx = item.child(0).connidx
+            io.actnode(item.child(0).node_id)
         else:
-            connidx = item.connidx
-        io.actnode(connidx)
+            io.actnode(item.node_id)
+
 
     @pyqtSlot()
     def buttonClicked(self):
@@ -247,3 +252,6 @@ class MainWindow(QMainWindow):
             actdata.show_map = not actdata.show_map
         elif self.sender() == self.action_Save:
             io.send_event(b'STACKCMD', 'SAVEIC')
+        elif hasattr(self.sender(), 'host_id'):
+            print(self.sender())
+            io.send_event(b'ADDNODES', 1, target=self.sender().host_id)
