@@ -86,11 +86,11 @@ class Route():
                 reflat = self.wplat[-2]
                 reflon = self.wplon[-2]
 
-        # Default altitude, speed and afterwp if not given
-        alt     = -999.  if len(args) < 2 else args[1]
-        spd     = -999.  if len(args) < 3 else args[2]
-        afterwp = ""     if len(args) < 4 else args[3]
-        beforewp = ""    if len(args) < 5 else args[4]
+        # Default altitude, speed and afterwp
+        alt     = -999.
+        spd     = -999.
+        afterwp = ""
+        beforewp = ""
 
         # Is it aspecial take-off waypoint?
         takeoffwpt = name.upper().strip()=="TAKEOFF" or name.upper().strip()=="TAKE-OFF"
@@ -112,6 +112,18 @@ class Route():
                 else:  # treat as lat/lon
                     name    = bs.traf.id[idx]
                     wptype  = self.wplatlon
+
+                if len(args) > 1 and args[1]:
+                    alt = args[1]
+
+                if len(args) > 2 and args[2]:
+                    spd = args[2]
+
+                if len(args) > 3 and args[3]:
+                    afterwp = args[3]
+
+                if len(args) > 4 and args[4]:
+                    beforewp = args[4]
 
             else:
                 return False, "Waypoint " + name + " not found."
