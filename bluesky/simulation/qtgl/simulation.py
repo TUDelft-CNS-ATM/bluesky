@@ -67,7 +67,6 @@ class Simulation(QObject):
 
     def doWork(self):
         self.syst  = int(time.time() * 1000.0)
-        self.fixdt = self.simdt
 
         # Send list of stack functions available in this sim to gui at start
         stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
@@ -119,7 +118,8 @@ class Simulation(QObject):
             # Process Qt events
             manager.processEvents()
 
-            # When running at a fixed rate, or when in hold/init, increment system time with sysdt and calculate remainder to sleep
+            # When running at a fixed rate, or when in hold/init, increment
+            # system time with sysdt and calculate remainder to sleep
             if not self.ffmode or not self.state == Simulation.op:
                 self.syst += self.sysdt
                 remainder = self.syst - int(1000.0 * time.time())
@@ -127,7 +127,11 @@ class Simulation(QObject):
                 if remainder > 0:
                     QThread.msleep(remainder)
 
+            # If running in fast-time with an end-time that has passed, go back to
+            # real-time running.
             elif self.ffstop is not None and self.simt >= self.ffstop:
+                # If this fast-time section was part of a benchmark, send
+                # message with benchmark results
                 if self.benchdt > 0.0:
                     bs.scr.echo('Benchmark complete: %d samples in %.3f seconds.' % (bs.scr.samplecount, time.time() - self.bencht))
                     self.benchdt = -1.0
