@@ -40,7 +40,7 @@ class ActiveWaypoint(TrafficArrays):
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
 
         # Avoid circling by checking for flying away
-        away     = np.abs(degto180(bs.traf.trk%360. - qdr%360.))>90.
+        away     = np.abs(degto180(bs.traf.trk%360. - qdr%360.)) > 90. # difference large than 90
 
         # Ratio between distance close enough to switch to next wp when flying away
         # When within pro1 nm and flying away: switch also
@@ -56,6 +56,9 @@ class ActiveWaypoint(TrafficArrays):
 
         # Check whether shift based dist is required, set closer than WP turn distance
         swreached = np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]
+
+        #print ("Swreached",swreached," qdr=",qdr," next_qdr",next_qdr,"  turndist",self.turndist," away",away)
+
 
         # Return True/1.0 for a/c where we have reached waypoint
         return swreached

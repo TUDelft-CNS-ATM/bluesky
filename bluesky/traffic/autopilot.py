@@ -134,15 +134,14 @@ class Autopilot(TrafficArrays):
             dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy) # [m]
 
             # VNAV logic: descend as late as possible, climb as soon as possible
-            startdescent = bs.traf.swvnav * ((dist2wp < self.dist2vs) + \
-                                             (bs.traf.actwp.nextaltco > bs.traf.alt))
+            startdescent = (dist2wp < self.dist2vs) + (bs.traf.actwp.nextaltco > bs.traf.alt)
 
             # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
             #    (because there are no more waypoints). This is needed
             #    to continue descending when you get into a conflict
             #    while descending to the destination (the last waypoint)
             #    Use 0.1 nm (185.2 m) circle in case turndist might be zero
-            self.swvnavvs = np.where(bs.traf.swlnav, startdescent, 
+            self.swvnavvs = bs.traf.swvnav * np.where(bs.traf.swlnav, startdescent,
                                          dist <= np.maximum(185.2,bs.traf.actwp.turndist))
 
             #Recalculate V/S based on current altitude and distance to next alt constraint
@@ -188,7 +187,8 @@ class Autopilot(TrafficArrays):
 
 
     def ComputeVNAV(self, idx, toalt, xtoalt):
-        if not (toalt >= 0 and bs.traf.swvnav[idx]):
+        # Check if there is a target altitude and VNAV is on, else return doing nothing
+        if toalt < 0 or not bs.traf.swvnav[idx]:
             self.dist2vs[idx] = -999
             return
 
@@ -236,7 +236,7 @@ class Autopilot(TrafficArrays):
 
             # Dist to waypoint where descent should start [m]
             self.dist2vs[idx] = bs.traf.actwp.turndist[idx] + \
-                               (bs.traf.alt[idx] - bs.traf.actwp.nextaltco[idx]) / self.steepness
+                               np.abs(bs.traf.alt[idx] - bs.traf.actwp.nextaltco[idx]) / self.steepness
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])   # [deg lat = 60. nm]

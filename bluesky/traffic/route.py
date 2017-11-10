@@ -260,8 +260,8 @@ class Route():
     def atwptStack(self, idx, *args):  # args: all arguments of addwpt
 
         # AT acid, wpinroute [DEL] ALT/SPD spd/alt"
-
         # args = wpname,SPD/ALT, spd/alt(string)
+
         if len(args) < 1:
             return False, "AT needs at least an aicraft id and a waypoint name"
 
@@ -825,11 +825,9 @@ class Route():
         lnavon = self.iactwp +1 < self.nwp
         if lnavon:
             self.iactwp = self.iactwp + 1
-            lnavon = True
-        else:
-            lnavon = False
 
         nextqdr = self.getnextqdr()
+        print ("nextqdr: ",nextqdr)
 
         # in case that there is a runway, the aircraft should remain on it
         # instead of deviating to the airport centre
