@@ -827,7 +827,6 @@ class Route():
             self.iactwp = self.iactwp + 1
 
         nextqdr = self.getnextqdr()
-        print ("nextqdr: ",nextqdr)
 
         # in case that there is a runway, the aircraft should remain on it
         # instead of deviating to the airport centre
@@ -1153,7 +1152,7 @@ class Route():
 
     def getnextqdr(self):
         # get qdr for next leg
-        if self.iactwp+1<self.nwp:
+        if -1 < self.iactwp < self.nwp - 1:
             nextqdr, dist = geo.qdrdist(\
                         self.wplat[self.iactwp],  self.wplon[self.iactwp],\
                         self.wplat[self.iactwp+1],self.wplon[self.iactwp+1])

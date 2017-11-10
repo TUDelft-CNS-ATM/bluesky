@@ -57,8 +57,5 @@ class ActiveWaypoint(TrafficArrays):
         # Check whether shift based dist is required, set closer than WP turn distance
         swreached = np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]
 
-        #print ("Swreached",swreached," qdr=",qdr," next_qdr",next_qdr,"  turndist",self.turndist," away",away)
-
-
         # Return True/1.0 for a/c where we have reached waypoint
         return swreached
