@@ -12,6 +12,7 @@ Methods:
     process()               : central command processing method
 Created by  : Jacco M. Hoekstra (TU Delft)
 """
+from __future__ import print_function
 from math import *
 from random import seed
 import re
@@ -1164,8 +1165,11 @@ def process():
             # text: optional error message
             if parser.parse():
                 results = function(*parser.arglist)  # * = unpack list to call arguments
+
                 if isinstance(results, bool):  # Only flag is returned
-                    if not results:
+                    if results:
+                        bs.scr.echo(bs.MSG_OK, sender_id)
+                    else:
                         if not args:
                             bs.scr.echo(helptext, sender_id)
                         else:

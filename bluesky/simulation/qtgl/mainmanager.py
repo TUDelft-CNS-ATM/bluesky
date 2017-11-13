@@ -1,4 +1,5 @@
 """ MainManager manages I/O with the simulation processes on the GUI side. """
+from __future__ import print_function
 import select
 import sys
 from subprocess import Popen
@@ -12,7 +13,7 @@ except ImportError:
         QCoreApplication as qapp
 
 # Local imports
-from bluesky import settings
+from bluesky import settings, MSG_OK
 from .simevents import SimStateEventType, SimQuitEventType, BatchEventType, \
     BatchEvent, StackTextEvent, StackTextEventType, SimQuitEvent, SetNodeIdType, \
     SetActiveNodeType, AddNodeType
@@ -138,7 +139,9 @@ class MainManager(QObject):
 
                 elif event.type() == StackTextEventType:
                     self.telnet_in.sendReply(event)
-                    qapp.sendEvent(qapp.instance(), event)
+
+                    if not event.disptext == MSG_OK:
+                        qapp.sendEvent(qapp.instance(), event)
 
                 else:
                     # The event is meant for the gui
