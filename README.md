@@ -36,4 +36,3 @@ containing the same commands with a time stamp before the command ("HH:MM:SS.hh>
 ## Contributions
 BlueSky is still under heavy development. We would like to encourage anyone with a strong interest in
 ATM and/or Python to join us. Please feel free to comment, criticise, and contribute to this project.
-# bluesky_json_http
