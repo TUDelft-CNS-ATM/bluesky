@@ -16,6 +16,7 @@ import time
 from bluesky.tools.network import as_bytes
 
 
+BLUESKY = "BlueSky_qtgl.py"
 BUFFER_SIZE = 1024
 TCP_HOST = "127.0.0.1"
 TCP_PORT = 8888
@@ -69,6 +70,10 @@ def funname(stackpos):
         Stack frame function name.
     """
     return inspect.stack()[stackpos][3]
+
+
+def funname_message(message):
+    return funname(2) + ":" + str(message)
 
 
 def printrecv(data, stackpos=2):

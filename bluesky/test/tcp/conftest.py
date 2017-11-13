@@ -18,9 +18,8 @@ import os
 import psutil
 import subprocess
 import signal
-from . import sock_connect, wait_for, TCP_HOST, TCP_PORT
-
-BLUESKY = "BlueSky_qtgl.py"
+import bluesky
+from .. import sock_connect, wait_for, TCP_HOST, TCP_PORT, BLUESKY
 
 
 @pytest.fixture(scope="session")
@@ -29,12 +28,7 @@ def sock(pytestconfig):
     Suite-level setup and teardown function, for those test functions
     naming `sock` in their parameter lists.
     """
-    rootdir = str(pytestconfig.rootdir)
-    sys.path.append(rootdir)
-    import bluesky
-
     newpid = os.fork()
-
     if newpid != 0:
         sock_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         wait_for(
