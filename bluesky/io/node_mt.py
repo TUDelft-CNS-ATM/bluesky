@@ -6,6 +6,41 @@ from bluesky import stack
 from bluesky.tools import Timer
 from bluesky.io.npcodec import encode_ndarray, decode_ndarray
 
+class IOThread(Thread):
+    ''' Separate thread for node I/O. '''
+    def run(self):
+        ''' Implementation of the I/O loop. '''
+        ctx = zmq.Context.instance()
+        fe_event = ctx.socket(zmq.DEALER)
+        fe_stream = ctx.socket(zmq.PUB)
+        be_event = ctx.socket(zmq.PAIR)
+        be_stream = ctx.socket(zmq.PAIR)
+        fe_event.connect('tcp://localhost:10000')
+        fe_stream.connect('tcp://localhost:10001')
+
+        be_event.connect('inproc://event')
+        be_stream.connect('inproc://stream')
+        poller = zmq.Poller()
+        poller.register(fe_event, zmq.POLLIN)
+        poller.register(be_event, zmq.POLLIN)
+        poller.register(be_stream, zmq.POLLIN)
+
+        while True:
+            try:
+                poll_socks = dict(poller.poll(None))
+            except zmq.ZMQError:
+                break  # interrupted
+
+            if poll_socks.get(fe_event) == zmq.POLLIN:
+                be_event.send_multipart(fe_event.recv_multipart())
+            if poll_socks.get(be_event) == zmq.POLLIN:
+                msg = be_event.recv_multipart()
+                if msg[0] == b'QUIT':
+                    break
+                fe_event.send_multipart(msg)
+            if poll_socks.get(be_stream) == zmq.POLLIN:
+                fe_stream.send_multipart(be_stream.recv_multipart())
+
 
 class Node(object):
     def __init__(self):
@@ -13,9 +48,10 @@ class Node(object):
         self.node_id = b''
         self.running = True
         ctx = zmq.Context.instance()
-        self.event_io = ctx.socket(zmq.DEALER)
-        self.stream_out = ctx.socket(zmq.PUB)
+        self.event_io = ctx.socket(zmq.PAIR)
+        self.stream_out = ctx.socket(zmq.PAIR)
         self.poller = zmq.Poller()
+        self.iothread = IOThread()
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
@@ -29,11 +65,12 @@ class Node(object):
         ''' Starting of main loop. '''
         # Final Initialization
         # Initialization of sockets.
-        self.event_io.connect('tcp://localhost:10000')
-        self.stream_out.connect('tcp://localhost:10001')
+        self.event_io.bind('inproc://event')
+        self.stream_out.bind('inproc://stream')
         self.poller.register(self.event_io, zmq.POLLIN)
 
-        # Start communication, and receive this node's ID
+        # Start the I/O thread, and receive from it this node's ID
+        self.iothread.start()
         self.send_event(b'REGISTER')
         self.node_id = self.event_io.recv_multipart()[-1]
         self.host_id = self.node_id[:5]
@@ -41,6 +78,10 @@ class Node(object):
 
         # run() implements the main loop
         self.run()
+
+        # Send quit event to the worker thread and wait for it to close.
+        self.event_io.send(b'QUIT')
+        self.iothread.join()
 
     def quit(self):
         ''' Quit the simulation process. '''
