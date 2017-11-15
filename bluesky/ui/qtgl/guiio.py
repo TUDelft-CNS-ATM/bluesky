@@ -12,7 +12,7 @@ from bluesky.tools import Signal
 from bluesky.tools.aero import ft
 
 # Globals
-UPDATE_ALL = ['POLY', 'TRAILS', 'CUSTWPT']
+UPDATE_ALL = ['POLY', 'TRAILS', 'CUSTWPT', 'PANZOOM']
 
 # Signals
 actnodedata_changed = Signal()
@@ -56,6 +56,14 @@ class nodeData(object):
         self.ssd_all       = False
         self.ssd_conflicts = False
         self.ssd_ownship   = set()
+
+        # Display pan and zoom
+        self.pan           = (0.0, 0.0)
+        self.zoom          = 1.0
+
+    def panzoom(self, pan, zoom):
+        self.pan  = pan
+        self.zoom = zoom
 
     def update_poly_data(self, name, data=None):
         if name in self.polynames:
@@ -165,6 +173,7 @@ class GuiClient(Client):
         stream_received.emit(name, data, sender_id)
 
     def nodes_changed(self, data):
+        node_id = b''
         for node_ids in data.values():
             for node_id in node_ids:
                 if node_id not in self.nodedata:
@@ -172,7 +181,7 @@ class GuiClient(Client):
 
         nodes_changed.emit(data)
         # If this is the first known node, select it as active node
-        if not self.act:
+        if not self.act and node_id:
             self.actnode(node_id)
 
     def actnode(self, newact=None):

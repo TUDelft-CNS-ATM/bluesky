@@ -13,7 +13,6 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from bluesky.ui.qtgl.customevents import PanZoomEvent
 from bluesky import settings
 
 from . import guiio as io
@@ -117,13 +116,13 @@ class MainWindow(QMainWindow):
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
             if event.key() == Qt.Key_Up:
-                self.radarwidget.event(PanZoomEvent(pan=(dlat, 0.0)))
+                self.radarwidget.panzoom(pan=(dlat, 0.0))
             elif event.key() == Qt.Key_Down:
-                self.radarwidget.event(PanZoomEvent(pan=(-dlat, 0.0)))
+                self.radarwidget.panzoom(pan=(-dlat, 0.0))
             elif event.key() == Qt.Key_Left:
-                self.radarwidget.event(PanZoomEvent(pan=(0.0, -dlon)))
+                self.radarwidget.panzoom(pan=(0.0, -dlon))
             elif event.key() == Qt.Key_Right:
-                self.radarwidget.event(PanZoomEvent(pan=(0.0, dlon)))
+                self.radarwidget.panzoom(pan=(0.0, dlon))
 
         elif event.key() == Qt.Key_Escape:
             self.app.quit()
@@ -207,17 +206,17 @@ class MainWindow(QMainWindow):
             self.nodetree.setVisible(vis)
             self.shownodes.setText('>' if vis else '<')
         if self.sender() == self.zoomin:
-            self.app.notify(self.app, PanZoomEvent(zoom=1.4142135623730951))
+            self.radarwidget.panzoom(zoom=1.4142135623730951)
         elif self.sender() == self.zoomout:
-            self.app.notify(self.app, PanZoomEvent(zoom=0.70710678118654746))
+            self.radarwidget.panzoom(zoom=0.70710678118654746)
         elif self.sender() == self.pandown:
-            self.app.notify(self.app, PanZoomEvent(pan=(-0.5,  0.0)))
+            self.radarwidget.panzoom(pan=(-0.5,  0.0))
         elif self.sender() == self.panup:
-            self.app.notify(self.app, PanZoomEvent(pan=( 0.5,  0.0)))
+            self.radarwidget.panzoom(pan=( 0.5,  0.0))
         elif self.sender() == self.panleft:
-            self.app.notify(self.app, PanZoomEvent(pan=( 0.0, -0.5)))
+            self.radarwidget.panzoom(pan=( 0.0, -0.5))
         elif self.sender() == self.panright:
-            self.app.notify(self.app, PanZoomEvent(pan=( 0.0,  0.5)))
+            self.radarwidget.panzoom(pan=( 0.0,  0.5))
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
