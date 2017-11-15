@@ -1426,7 +1426,7 @@ class Argparser:
         elif argtype == "pandir":
             pandir = curarg
             if pandir in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
-                result  = pandir
+                result  = [pandir]
             else:
                 self.error += pandir + ' is not a valid pan argument'
                 return False
