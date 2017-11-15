@@ -1,5 +1,5 @@
 Command	Description	Usage	Argument types	Function
-ADDNODES	Add a simulation instance/node	ADDNODES number	int	 Simulation.addNodes of bluesky.sim.qtgl.simulation.Simulation object
+ADDNODES	Add a simulation instance/node	ADDNODES number	int	 Simulation.addnodes of bluesky.sim.qtgl.simulation.Simulation object
 ADDWPT	Add a waypoint to route of aircraft (FMS)	ADDWPT acid, (wpname/lat,lon),[alt,spd,afterwp]	acid,wpt,[alt,spd,wpinroute]	
 AFTER	After waypoint, add a waypoint to route of aircraft (FMS)	acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]	acid,wpinroute,txt,wpt,[alt,spd]	
 ALT	Altitude command (autopilot)	ALT acid, alt, [vspd]	acid,alt,[vspd]	 Autopilot.selalt of bluesky.traf.autopilot.Autopilot object

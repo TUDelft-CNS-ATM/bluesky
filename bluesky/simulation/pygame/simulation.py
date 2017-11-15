@@ -136,7 +136,7 @@ class Simulation:
         return False, "Batch comand not available in Pygame version," + \
                  "use Qt-version for batch simulations"
 
-    def addNodes(self, count):
+    def addnodes(self, count):
         return
 
     def pause(self):  # Hold mode

@@ -9,7 +9,7 @@ from bluesky.tools.misc import txt2tim, tim2txt
 from bluesky.io import Node
 
 # Minimum sleep interval
-MINSLEEP = 2e-3
+MINSLEEP = 1e-3
 
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
@@ -24,7 +24,7 @@ class Simulation(Node):
         self.prevstate   = None
 
         # Set starting system time [milliseconds]
-        self.syst        = 0.0
+        self.syst        = -1.0
 
         # Benchmark time and timespan [seconds]
         self.bencht      = 0.0
@@ -53,11 +53,12 @@ class Simulation(Node):
         # Additional modules
         # self.metric      = Metric()
 
-    def prepare(self):
+    # def init(self):
+    #     super(Simulation, self).init()
         # TODO Send list of stack functions available in this sim to gui at start
         # stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
         # self.send_event(b'STACKINIT', stackdict)
-        self.syst = int(time.time() * 1000.0)
+
 
     def step(self):
         ''' Perform a simulation timestep. '''
@@ -87,6 +88,9 @@ class Simulation(Node):
 
         # Simulation starts as soon as there is traffic, or pending commands
         if self.state == bs.INIT:
+            if self.syst < 0.0:
+                self.syst = int(time.time() * 1000.0)
+
             if bs.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
                 self.op()
                 if self.benchdt > 0.0:
@@ -177,11 +181,6 @@ class Simulation(Node):
 
     def sendState(self):
         self.send_event(b'STATECHANGE', self.state)
-
-    def addNodes(self, count):
-        # TODO Addnodes function
-        pass
-        # self.addNodes(count)
 
     def batch(self, filename):
         # The contents of the scenario file are meant as a batch list: send to manager and clear stack

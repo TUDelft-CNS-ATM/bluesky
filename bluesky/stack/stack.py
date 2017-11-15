@@ -134,7 +134,7 @@ def init():
         "ADDNODES": [
             "ADDNODES number",
             "int",
-            bs.sim.addNodes,
+            bs.sim.addnodes,
             "Add a simulation instance/node"
         ],
         "ADDWPT": [

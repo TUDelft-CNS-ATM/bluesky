@@ -44,26 +44,14 @@ class IOThread(Thread):
 
 class Node(object):
     def __init__(self):
-        self.nodeid = ''
+        self.host_id = b''
+        self.node_id = b''
         self.running = True
         ctx = zmq.Context.instance()
         self.event_io = ctx.socket(zmq.PAIR)
         self.stream_out = ctx.socket(zmq.PAIR)
         self.poller = zmq.Poller()
         self.iothread = IOThread()
-
-    def init(self):
-        ''' Final initialization. '''
-        # Initialization of sockets.
-        self.event_io.bind('inproc://event')
-        self.stream_out.bind('inproc://stream')
-        self.poller.register(self.event_io, zmq.POLLIN)
-
-        # Start the I/O thread, and receive from it this node's ID
-        self.iothread.start()
-        self.send_event(b'REGISTER')
-        self.nodeid = self.event_io.recv_multipart()[-1]
-        print('Node started, id={}'.format(self.nodeid))
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
@@ -76,7 +64,17 @@ class Node(object):
     def start(self):
         ''' Starting of main loop. '''
         # Final Initialization
-        self.init()
+        # Initialization of sockets.
+        self.event_io.bind('inproc://event')
+        self.stream_out.bind('inproc://stream')
+        self.poller.register(self.event_io, zmq.POLLIN)
+
+        # Start the I/O thread, and receive from it this node's ID
+        self.iothread.start()
+        self.send_event(b'REGISTER')
+        self.node_id = self.event_io.recv_multipart()[-1]
+        self.host_id = self.node_id[:5]
+        print('Node started, id={}'.format(self.node_id))
 
         # run() implements the main loop
         self.run()
@@ -124,4 +122,4 @@ class Node(object):
         self.event_io.send_multipart([stack.sender() or b'*', name, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
 
     def send_stream(self, name, data):
-        self.stream_out.send_multipart([name + self.nodeid, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
+        self.stream_out.send_multipart([name + self.node_id, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
