@@ -29,6 +29,14 @@ class Console(QWidget):
         self.command_line    = ''
         self.initialized     = False
 
+        # Connect to the io client's activenode changed signal
+        io.actnodedata_changed.connect(self.actnodedataChanged)
+
+    def actnodedataChanged(self, nodeid, nodedata, changed_elems):
+        if 'ECHOTEXT' in changed_elems:
+            self.stackText.setPlainText(nodedata.echo_text)
+            self.stackText.verticalScrollBar().setValue(self.stackText.verticalScrollBar().maximum())
+
     def addStackHelp(self, nodeid, stackdict):
         node_stacks[nodeid] = stackdict
         if not self.initialized:
@@ -47,6 +55,8 @@ class Console(QWidget):
         autocomplete.reset()
 
     def echo(self, text):
+        actdata = io.get_nodedata()
+        actdata.echo(text)
         self.stackText.append(text)
         self.stackText.verticalScrollBar().setValue(self.stackText.verticalScrollBar().maximum())
 

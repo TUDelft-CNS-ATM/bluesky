@@ -12,7 +12,7 @@ from bluesky.tools import Signal
 from bluesky.tools.aero import ft
 
 # Globals
-UPDATE_ALL = ['POLY', 'TRAILS', 'CUSTWPT', 'PANZOOM']
+UPDATE_ALL = ['POLY', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT']
 
 # Signals
 actnodedata_changed = Signal()
@@ -61,9 +61,14 @@ class nodeData(object):
         self.pan           = (0.0, 0.0)
         self.zoom          = 1.0
 
-    def panzoom(self, pan, zoom):
-        self.pan  = pan
-        self.zoom = zoom
+        # Stack window
+        self.echo_text     = ''
+
+    def panzoom(self, pan=None, zoom=None, absolute=True):
+        if pan:
+            self.pan  = pan
+        if zoom:
+            self.zoom = zoom
 
     def update_poly_data(self, name, data=None):
         if name in self.polynames:
@@ -127,6 +132,9 @@ class nodeData(object):
             else:
                 self.filteralt = False
 
+    def echo(self, text):
+        self.echo_text += ('\n' + text)
+
     def show_ssd(self, arg):
         if 'ALL' in arg:
             self.ssd_all      = True
@@ -153,21 +161,31 @@ class GuiClient(Client):
 
     def event(self, name, data, sender_id):
         sender_data = self.nodedata.get(sender_id)
+        data_changed = []
         if not sender_data:
             sender_data = self.nodedata[sender_id] = nodeData()
         if name == b'RESET':
             sender_data.clear_scen_data()
-            actnodedata_changed.emit(sender_id, sender_data, UPDATE_ALL)
+            data_changed = list(UPDATE_ALL)
         elif name == b'POLY':
             sender_data.update_poly_data(**data)
-            actnodedata_changed.emit(sender_id, sender_data, ['POLY'])
+            data_changed.append('POLY')
         elif name == b'DEFWPT':
             sender_data.defwpt(**data)
-            actnodedata_changed.emit(sender_id, sender_data, ['CUSTWPT'])
+            data_changed.append('CUSTWPT')
         elif name == b'DISPLAYFLAG':
             sender_data.setflag(**data)
+        elif name == b'ECHO':
+            sender_data.echo(data)
+            data_changed.append('ECHOTEXT')
+        elif name == b'PANZOOM':
+            sender_data.panzoom(**data)
+            data_changed.append('PANZOOM')
         else:
             event_received.emit(name, data, sender_id)
+
+        if sender_id == self.act and data_changed:
+            actnodedata_changed.emit(sender_id, sender_data, data_changed)
 
     def stream(self, name, data, sender_id):
         stream_received.emit(name, data, sender_id)

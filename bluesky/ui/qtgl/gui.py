@@ -94,14 +94,8 @@ class Gui(QApplication):
         if not self.initialized:
             return
 
-        elif eventname == b'ECHO':
-            self.win.console.echo(eventdata)
         elif eventname == b'CMDLINE':
             self.win.console.setCmdline(eventdata)
-
-        elif eventname == b'PANZOOM':
-            # send the pan/zoom event to the radarwidget
-            self.radarwidget.panzoom(**eventdata)
 
         # ND window for selected aircraft
         elif eventname == b'SHOWND':
