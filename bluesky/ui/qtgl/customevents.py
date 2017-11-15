@@ -4,10 +4,9 @@ try:
 except ImportError:
     from PyQt4.QtCore import QEvent
 
-NUMCUSTOMEVENTS    = 3
-PanZoomEventType   = 1000
-ACDataEventType    = 1001
-RouteDataEventType = 1002
+NUMCUSTOMEVENTS    = 2
+ACDataEventType    = 1000
+RouteDataEventType = 1001
 
 
 class RouteDataEvent(QEvent):
@@ -51,12 +50,3 @@ class ACDataEvent(QEvent):
         # Update values
         if data:
             self.__dict__.update(data)
-
-
-class PanZoomEvent(QEvent):
-    def __init__(self, pan=None, zoom=None, origin=None, absolute=False):
-        super(PanZoomEvent, self).__init__(PanZoomEventType)
-        self.pan      = pan
-        self.origin   = origin
-        self.zoom     = zoom
-        self.absolute = absolute

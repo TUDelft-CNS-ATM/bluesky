@@ -12,7 +12,7 @@ from bluesky.ui.radarclick import radarclick
 from bluesky.tools.misc import tim2txt
 from bluesky import settings
 
-from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent, PanZoomEvent
+from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.ui.qtgl.mainwindow import MainWindow
 from bluesky.ui.qtgl.docwindow import DocWindow
 from bluesky.ui.qtgl.radarwidget import RadarWidget
@@ -100,16 +100,8 @@ class Gui(QApplication):
             self.win.console.setCmdline(eventdata)
 
         elif eventname == b'PANZOOM':
-            event = PanZoomEvent(**eventdata)
-            if event.zoom is not None:
-                event.origin = (self.radarwidget.width / 2, self.radarwidget.height / 2)
-
-            if event.pan is not None and not event.absolute:
-                event.pan = (2.0 * event.pan[0] / (self.radarwidget.zoom * self.radarwidget.ar),
-                             2.0 * event.pan[1] / (self.radarwidget.zoom * self.radarwidget.flat_earth))
-
             # send the pan/zoom event to the radarwidget
-            self.radarwidget.event(event)
+            self.radarwidget.panzoom(**eventdata)
 
         # ND window for selected aircraft
         elif eventname == b'SHOWND':
@@ -179,14 +171,16 @@ class Gui(QApplication):
                             zoom *= (1.0 + 0.001 * event.angleDelta().y())
                     except:
                         zoom *= (1.0 + 0.001 * event.delta())
-                    panzoom = PanZoomEvent(zoom=zoom, origin=origin)
+                    self.panzoomchanged = True
+                    return self.radarwidget.panzoom(zoom=zoom, origin=origin)
 
                 # For touchpad scroll (2D) is used for panning
                 else:
                     try:
                         dlat =  0.01 * event.pixelDelta().y() / (self.radarwidget.zoom * self.radarwidget.ar)
                         dlon = -0.01 * event.pixelDelta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
-                        panzoom = PanZoomEvent(pan=(dlat, dlon))
+                        self.panzoomchanged = True
+                        return self.radarwidget.panzoom(pan=(dlat, dlon))
                     except:
                         pass
 
@@ -209,7 +203,8 @@ class Gui(QApplication):
                             dlon -= 0.005 * g.delta().x() / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                             pan = (dlat, dlon)
                 if pan is not None or zoom is not None:
-                    panzoom = PanZoomEvent(pan, zoom, self.mousepos)
+                    self.panzoomchanged = True
+                    return self.radarwidget.panzoom(pan, zoom, self.mousepos)
 
             elif event.type() == QEvent.MouseButtonPress and event.button() & Qt.LeftButton:
                 event_processed   = True
@@ -239,18 +234,14 @@ class Gui(QApplication):
                     dlat = 0.003 * (event.y() - self.prevmousepos[1]) / (self.radarwidget.zoom * self.radarwidget.ar)
                     dlon = 0.003 * (self.prevmousepos[0] - event.x()) / (self.radarwidget.zoom * self.radarwidget.flat_earth)
                     self.prevmousepos = (event.x(), event.y())
-                    panzoom = PanZoomEvent(pan=(dlat, dlon))
+                    self.panzoomchanged = True
+                    return self.radarwidget.panzoom(pan=(dlat, dlon))
 
             # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
                 io.send_event(b'PANZOOM', dict(pan=(self.radarwidget.panlat, self.radarwidget.panlon),
                                                zoom=self.radarwidget.zoom, absolute=True))
-
-            # If we've just processed a change to pan and/or zoom, send the event to the radarwidget
-            if panzoom is not None:
-                self.panzoomchanged = True
-                return self.radarwidget.event(panzoom)
 
         # Send all key presses directly to the main window
         if event.type() == QEvent.KeyPress:
