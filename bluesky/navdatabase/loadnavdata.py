@@ -18,7 +18,7 @@ else:
 # or other reasons why the cache needs to be updated
 coast_version = 'v20170101'
 navdb_version = 'v20170101'
-aptsurf_version = 'v20170101'
+aptsurf_version = 'v20171116'
 
 ## Default settings
 settings.set_variable_defaults(navdata_path='data/navdata', cache_path='data/cache')

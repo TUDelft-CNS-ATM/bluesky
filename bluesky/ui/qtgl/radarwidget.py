@@ -122,7 +122,7 @@ class RadarWidget(QGLWidget):
         self.wraplon = int(-999)
         self.wrapdir = int(0)
 
-        invalid_count = 0
+        self.invalid_count  = 0
 
         self.map_texture    = 0
         self.naircraft      = 0
@@ -482,6 +482,7 @@ class RadarWidget(QGLWidget):
         # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------
         self.runways.draw()
         self.thresholds.draw()
+
         if self.zoom >= 1.0:
             for idx in self.apt_inrange:
                 self.taxiways.draw(first_vertex=idx[0], vertex_count=idx[1])
@@ -836,9 +837,7 @@ class RadarWidget(QGLWidget):
             # Airports may be visible when zoom > 1: in this case, update the list of indicates
             # of airports that need to be drawn
             ll_range = max(1.5 / self.zoom, 1.0)
-            indices = np.logical_and.reduce((self.apt_ctrlat >= self.panlat - ll_range, self.apt_ctrlat <= self.panlat + ll_range,
-                                             self.apt_ctrlon >= self.panlon - ll_range, self.apt_ctrlon <= self.panlon + ll_range))
-
+            indices = np.logical_and(np.abs(self.apt_ctrlat - self.panlat) <= ll_range, np.abs(self.apt_ctrlon - self.panlon) <= ll_range)
             self.apt_inrange = self.apt_indices[indices]
 
         # Check for necessity wrap-around in x-direction
