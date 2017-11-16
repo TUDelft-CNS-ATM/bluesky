@@ -158,9 +158,8 @@ def detect(asas, traf, simt):
 
         dx = (traf.lat[i] - traf.lat[j]) * 111319.
         dy = (traf.lon[i] - traf.lon[j]) * 111319.
-
-        hdist2 = dx**2 + dy**2
-        hLOS   = hdist2 < asas.R**2
+        hdist  = asas.dist[id1,id2]
+        hLOS   = hdist < asas.R
         vdist  = abs(traf.alt[i] - traf.alt[j])
         vLOS   = vdist < asas.dh
         LOS    = (hLOS & vLOS)
@@ -197,7 +196,7 @@ def detect(asas, traf, simt):
                 asas.LOSlist_now.append(combi)
 
             # Now, we measure intrusion and store it if it is the most severe
-            Ih = 1.0 - np.sqrt(hdist2) / asas.R
+            Ih = 1.0 - hdist / asas.R
             Iv = 1.0 - vdist / asas.dh
             severity = min(Ih, Iv)
 
@@ -228,7 +227,7 @@ def ResumeNav(asas, traf):
     asas.active.fill(False)
 
     # Look at all conflicts, also the ones that are solved but CPA is yet to come
-    for conflict in asas.conflist_all:
+    for conflict in list(asas.conflist_all):
         ac1, ac2 = conflict.split(" ")
         id1, id2 = traf.id2idx(ac1), traf.id2idx(ac2)
         if id1 >= 0 and id2 >= 0:
@@ -248,14 +247,14 @@ def ResumeNav(asas, traf):
             # are used.
             dx = (traf.lat[id1] - traf.lat[id2]) * 111319.
             dy = (traf.lon[id1] - traf.lon[id2]) * 111319.
-            hdist2 = dx**2 + dy**2
-            hLOS   = hdist2 < asas.R**2
+            hdist = asas.dist[id1,id2]
+            hLOS   = hdist < asas.R
 
             # Bouncing conflicts:
             # If two aircraft are getting in and out of conflict continously,
             # then they it is a bouncing conflict. ASAS should stay active until
             # the bouncing stops.
-            bouncingConflict = (abs(traf.trk[id1] - traf.trk[id2]) < 30.) & (hdist2<asas.Rm**2)
+            bouncingConflict = (abs(traf.trk[id1] - traf.trk[id2]) < 30.) & (hdist<asas.Rm)
 
             # Decide if conflict is over or not.
             # If not over, turn active to true.
