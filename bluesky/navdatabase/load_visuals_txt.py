@@ -215,21 +215,21 @@ if settings.gui == 'qtgl':
                     continue
 
                 # 1: AIRPORT
-                if elems[0] == '1':
+                if elems[0] in ['1', '16', '17']: # 1=airport, 16=seaplane base, 17=heliport
                     cur_poly.end()
                     # Store the starting vertices for this apt, [0, 0] if this is the first apt
-                    if len(apt_indices):
+                    if apt_indices:
                         start_indices = [apt_indices[-1][0] + apt_indices[-1][1],
                                          apt_indices[-1][2] + apt_indices[-1][3]]
                     else:
                         start_indices = [0, 0]
 
-                    if asphalt.bufsize() > start_indices[0] or concrete.bufsize() > start_indices[1]:
+                    if asphalt.bufsize() // 2 > start_indices[0] or concrete.bufsize() // 2 > start_indices[1]:
                         apt_indices.append( [
                                                 start_indices[0],
-                                                int(asphalt.bufsize() / 2) - start_indices[0],
+                                                asphalt.bufsize() // 2 - start_indices[0],
                                                 start_indices[1],
-                                                int(concrete.bufsize() / 2) - start_indices[1]
+                                                concrete.bufsize() // 2 - start_indices[1]
                                             ])
 
                         center = apt_bb.center()
