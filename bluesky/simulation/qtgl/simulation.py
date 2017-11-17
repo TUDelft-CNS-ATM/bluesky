@@ -23,7 +23,7 @@ class Simulation(Node):
         self.state       = bs.INIT
         self.prevstate   = None
 
-        # Set starting system time [milliseconds]
+        # Set starting system time [seconds]
         self.syst        = -1.0
 
         # Benchmark time and timespan [seconds]
@@ -43,8 +43,8 @@ class Simulation(Node):
         self.deltclock   = 0.0
         self.simtclock   = self.simt
 
-        # System timestep [milliseconds]
-        self.sysdt       = int(self.simdt / self.dtmult * 1000)
+        # System timestep [seconds]
+        self.sysdt       = self.simdt / self.dtmult
 
         # Flag indicating running at fixed rate or fast time
         self.ffmode      = False
@@ -65,9 +65,10 @@ class Simulation(Node):
         # When running at a fixed rate, or when in hold/init,
         # increment system time with sysdt and calculate remainder to sleep.
         if not self.ffmode or not self.state == bs.OP:
-            # TODO: python sleep is floating point seconds
-            remainder = self.syst / 1000.0 - time.time()
+            remainder = self.syst - time.time()
             if remainder > MINSLEEP:
+                if remainder > 1.0:
+                    print('remainder =', remainder)
                 time.sleep(remainder)
 
         elif self.ffstop is not None and self.simt >= self.ffstop:
@@ -89,7 +90,7 @@ class Simulation(Node):
         # Simulation starts as soon as there is traffic, or pending commands
         if self.state == bs.INIT:
             if self.syst < 0.0:
-                self.syst = int(time.time() * 1000.0)
+                self.syst = time.time()
 
             if bs.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
                 self.op()
@@ -132,11 +133,13 @@ class Simulation(Node):
         datalog.reset()
 
     def op(self):
-        self.syst   = int(time.time() * 1000.0)
+        self.syst   = time.time()
         self.ffmode = False
         self.state  = bs.OP
+        self.setDtMultiplier(1.0)
 
     def pause(self):
+        self.syst  = time.time()
         self.state = bs.HOLD
 
     def reset(self):
@@ -145,6 +148,7 @@ class Simulation(Node):
         self.simtclock = self.simt
         self.state     = bs.INIT
         self.ffmode    = False
+        self.setDtMultiplier(1.0)
         plugin.reset()
         bs.navdb.reset()
         bs.traf.reset()
@@ -155,11 +159,11 @@ class Simulation(Node):
 
     def setDt(self, dt):
         self.simdt = abs(dt)
-        self.sysdt = int(self.simdt / self.dtmult * 1000)
+        self.sysdt = self.simdt / self.dtmult
 
     def setDtMultiplier(self, mult):
         self.dtmult = mult
-        self.sysdt  = int(self.simdt / self.dtmult * 1000)
+        self.sysdt  = self.simdt / self.dtmult
 
     def setFixdt(self, flag, nsec=None):
         if flag:
@@ -187,7 +191,7 @@ class Simulation(Node):
         result = stack.openfile(filename)
         if result:
             scentime, scencmd = stack.get_scendata()
-            self.send_event(b'BATCH', dict(scentime=scentime, scencmd=scencmd))
+            self.send_event(b'BATCH', (scentime, scencmd))
             self.reset()
         return result
 
