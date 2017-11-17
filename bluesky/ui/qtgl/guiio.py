@@ -22,6 +22,14 @@ stream_received     = Signal()
 
 class nodeData(object):
     def __init__(self):
+        # Stack window
+        self.echo_text     = ''
+
+        # Display pan and zoom
+        self.pan           = (0.0, 0.0)
+        self.zoom          = 1.0
+
+        # Per-scenario data
         self.clear_scen_data()
 
     def clear_scen_data(self):
@@ -57,12 +65,6 @@ class nodeData(object):
         self.ssd_conflicts = False
         self.ssd_ownship   = set()
 
-        # Display pan and zoom
-        self.pan           = (0.0, 0.0)
-        self.zoom          = 1.0
-
-        # Stack window
-        self.echo_text     = ''
 
     def panzoom(self, pan=None, zoom=None, absolute=True):
         if pan:

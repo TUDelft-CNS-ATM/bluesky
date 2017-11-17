@@ -5,13 +5,30 @@ from subprocess import Popen
 import zmq
 import msgpack
 
+# Local imports
+from bluesky import settings
+
+
+# Register settings defaults
+settings.set_variable_defaults(max_nnodes=os.cpu_count())
+
+def split_scenarios(scentime, scencmd):
+    start = 0
+    for i in range(1, len(scencmd) + 1):
+        if i == len(scencmd) or scencmd[i][:4] == 'SCEN':
+            scenname = scencmd[start].split()[1].strip()
+            yield (scenname, scentime[start:i], scencmd[start:i])
+            start = i
+
 
 class IOManager(Thread):
     def __init__(self):
         super(IOManager, self).__init__()
         self.spawned_processes = list()
-        self.running = True
-        self.nodes = dict()
+        self.running           = True
+        self.nodes             = dict()
+        self.max_nnodes        = min(os.cpu_count(), settings.max_nnodes)
+        self.scenarios         = []
 
     def addnodes(self, count=1):
         for _ in range(count):
@@ -115,31 +132,52 @@ class IOManager(Thread):
                             data = msgpack.packb({src.host_id : self.nodes[src.host_id]}, use_bin_type=True)
                             for connid in dest.namefromid:
                                 dest.sock.send_multipart([connid, src.host_id, b'NODESCHANGED', data])
+                        continue # No message needs to be forwarded
 
                     elif eventname == b'ADDNODES' and target == fe_event.host_id:
                         # This is a request to start new nodes.
                         count = msgpack.unpackb(data)
                         self.addnodes(count)
+                        continue # No message needs to be forwarded
 
                     elif eventname == b'QUIT':
                         # Send quit to all nodes
-                        for connid in be_event.namefromid:
-                            be_event.sock.send_multipart([connid, be_event.host_id, b'QUIT', b''])
+                        target = b'*'
                         self.running = False
 
-                    else:
-                        # This is a regular message that should be forwarded
-                        # Swap sender and target so that msg is sent to target
-                        sender = src.namefromid.get(msg[0]) or b'unknown'
-                        target = dest.idfromname.get(msg[1]) or b'*'
-                        msg[:2] = target, sender
-                        if target == b'*':
-                            # This is a send-to-all message
-                            for connid in dest.namefromid:
-                                msg[0] = connid
-                                dest.sock.send_multipart(msg)
+                    elif eventname == b'BATCH':
+                        scentime, scencmd = msgpack.unpackb(data, encoding='utf-8')
+                        self.scenarios = [scen for scen in split_scenarios(scentime, scencmd)]
+                        # Check if the batch list contains scenarios
+                        if len(self.scenarios) == 0:
+                            echomsg = 'No scenarios defined in batch file!'
                         else:
+                            echomsg = 'Found {} scenarios in batch'.format(len(self.scenarios))
+                            # # Available nodes (nodes that are in init or hold mode):
+                            # av_nodes = [n for n, conn in enumerate(self.connections) if conn[2] in [0, 2]]
+                            # for i in range(min(len(av_nodes), len(self.scenarios))):
+                            #     self.sendScenario(self.connections[i])
+                            # # If there are still scenarios left, determine and start the required number of local nodes
+                            # reqd_nnodes = min(len(self.scenarios), max(0, self.max_nnodes - len(self.localnodes)))
+                            # for n in range(reqd_nnodes):
+                            #     self.addNode()
+                        # ECHO the results to the calling client
+                        eventname = b'ECHO'
+                        data = msgpack.packb(echomsg, use_bin_type=True)
+
+                    # ============================================================
+                    # If we get here there is a message that needs to be forwarded
+                    # Swap sender and target so that msg is sent to target
+                    sender = src.namefromid.get(msg[0]) or b'unknown'
+                    target = dest.idfromname.get(msg[1]) or b'*'
+                    msg    = [target, sender, eventname, data]
+                    if target == b'*':
+                        # This is a send-to-all message
+                        for connid in dest.namefromid:
+                            msg[0] = connid
                             dest.sock.send_multipart(msg)
+                    else:
+                        dest.sock.send_multipart(msg)
 
         # Wait for all nodes to finish
         for n in self.spawned_processes:
