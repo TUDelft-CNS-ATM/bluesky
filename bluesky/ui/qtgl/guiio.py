@@ -224,7 +224,7 @@ class GuiClient(Client):
         self.connect()
         self.timer = QTimer()
         self.timer.timeout.connect(self.receive)
-        self.timer.start(10)
+        self.timer.start(20)
 
 # Globals
 _client = GuiClient()
