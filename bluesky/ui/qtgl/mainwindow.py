@@ -141,8 +141,9 @@ class MainWindow(QMainWindow):
         self.app.quit()
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
-        self.nodelabel.setText('<b>Node</b> {}'.format(nodeid[-2]*256 + nodeid[-1]))
-        self.nodetree.setCurrentItem(self.nodes[nodeid], 0, QItemSelectionModel.ClearAndSelect)
+        node = self.nodes[nodeid]
+        self.nodelabel.setText('<b>Node</b> {}:{}'.format(node.host_num, node.node_num))
+        self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
 
     def nodesChanged(self, data):
         for host_id, node_ids in data.items():

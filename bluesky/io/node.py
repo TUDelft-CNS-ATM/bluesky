@@ -15,7 +15,6 @@ class Node(object):
         ctx = zmq.Context.instance()
         self.event_io = ctx.socket(zmq.DEALER)
         self.stream_out = ctx.socket(zmq.PUB)
-        self.poller = zmq.Poller()
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
@@ -31,7 +30,6 @@ class Node(object):
         # Initialization of sockets.
         self.event_io.connect('tcp://localhost:10000')
         self.stream_out.connect('tcp://localhost:10001')
-        self.poller.register(self.event_io, zmq.POLLIN)
 
         # Start communication, and receive this node's ID
         self.send_event(b'REGISTER')
@@ -50,7 +48,7 @@ class Node(object):
         ''' Start the main loop of this node. '''
         while self.running:
             # Get new events from the I/O thread
-            while self.poll():
+            while self.event_io.poll(0):
                 res = self.event_io.recv_multipart()
                 sender_id = res[0]
                 name = res[1]
@@ -64,14 +62,6 @@ class Node(object):
 
             # Process timers
             Timer.update_timers()
-
-    def poll(self):
-        ''' Poll for incoming data from I/O thread '''
-        try:
-            poll_socks = dict(self.poller.poll(0))
-            return poll_socks.get(self.event_io) == zmq.POLLIN
-        except zmq.ZMQError:
-            return False
 
     def addnodes(self, count=1):
         self.send_event(b'ADDNODES', count)

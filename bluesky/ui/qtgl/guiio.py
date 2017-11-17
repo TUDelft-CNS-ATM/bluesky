@@ -225,6 +225,7 @@ class GuiClient(Client):
         self.timer = QTimer()
         self.timer.timeout.connect(self.receive)
         self.timer.start(20)
+        self.subscribe(b'SIMINFO')
 
 # Globals
 _client = GuiClient()
