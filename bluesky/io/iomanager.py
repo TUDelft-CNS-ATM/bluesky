@@ -1,4 +1,5 @@
 import os
+from multiprocessing import cpu_count
 import sys
 from threading import Thread
 from subprocess import Popen
@@ -10,7 +11,7 @@ from bluesky import settings
 
 
 # Register settings defaults
-settings.set_variable_defaults(max_nnodes=os.cpu_count())
+settings.set_variable_defaults(max_nnodes=cpu_count())
 
 def split_scenarios(scentime, scencmd):
     start = 0
@@ -27,7 +28,7 @@ class IOManager(Thread):
         self.spawned_processes = list()
         self.running           = True
         self.nodes             = dict()
-        self.max_nnodes        = min(os.cpu_count(), settings.max_nnodes)
+        self.max_nnodes        = min(cpu_count(), settings.max_nnodes)
         self.scenarios         = []
 
     def addnodes(self, count=1):
@@ -60,8 +61,8 @@ class IOManager(Thread):
                 # The connection ID consists of the host id plus the index of the
                 # new connection encoded in two bytes.
                 self.conn_count += 1
-                name = self.host_id + self.conn_key + \
-                    bytearray((self.conn_count // 256, self.conn_count % 256))
+                name = bytes(self.host_id + self.conn_key + \
+                    bytearray((self.conn_count // 256, self.conn_count % 256)))
                 self.namefromid[connid] = name
                 self.idfromname[name] = connid
                 return name
@@ -139,6 +140,10 @@ class IOManager(Thread):
                         count = msgpack.unpackb(data)
                         self.addnodes(count)
                         continue # No message needs to be forwarded
+
+                    elif eventname == b'STATECHANGE':
+                        state = msgpack.unpackb(data)
+                        continue
 
                     elif eventname == b'QUIT':
                         # Send quit to all nodes
