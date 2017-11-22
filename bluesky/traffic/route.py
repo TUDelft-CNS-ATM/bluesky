@@ -1110,7 +1110,7 @@ class Route():
         # Find closest
         wplat  = array(self.wplat)
         wplon  = array(self.wplon)
-        dy = wplat - bs.traf.lat[i]
+        dy = (wplat - bs.traf.lat[i])
         dx = (wplon - bs.traf.lon[i]) * bs.traf.coslat[i]
         dist2 = dx*dx + dy*dy
         iwpnear = argmin(dist2)
@@ -1123,7 +1123,7 @@ class Route():
             # we only turn to the first waypoint if we can reach the required
             # heading before reaching the waypoint
             time_turn = max(0.01,bs.traf.tas[i])*radians(delhdg)/(g0*tan(bs.traf.bank[i]))
-            time_straight= dist2[iwpnear]*nm/max(0.01,bs.traf.tas[i])
+            time_straight= sqrt(dist2[iwpnear])*60.*nm/max(0.01,bs.traf.tas[i])
 
             if time_turn >time_straight:
                 iwpnear = iwpnear+1
