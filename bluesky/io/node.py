@@ -48,7 +48,8 @@ class Node(object):
         ''' Start the main loop of this node. '''
         while self.running:
             # Get new events from the I/O thread
-            while self.event_io.poll(0):
+            # while self.event_io.poll(0):
+            if self.event_io.getsockopt(zmq.EVENTS) & zmq.POLLIN:
                 res = self.event_io.recv_multipart()
                 sender_id = res[0]
                 name = res[1]
