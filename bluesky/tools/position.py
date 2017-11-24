@@ -5,6 +5,13 @@ from .misc import txt2lat, txt2lon
 
 
 def txt2pos(name, reflat, reflon):
+    """
+    Converts a 'name' (lat/lon, wpt, apt, etc) into a position.
+    Returns the tuple:
+    - True, Position object if successful
+    - False, Reason if unsuccessful
+    """
+
     pos = Position(name.upper().strip(), reflat, reflon)
     if not pos.error:
         return True, pos
@@ -12,16 +19,35 @@ def txt2pos(name, reflat, reflon):
         return False, name + " not found in database"
 
 
-def islatlon(txt, lat=True):
-    # Is it a latitude-like format or not?
+def islat(txt):
+    """
+    Determines whether 'txt' looks like a latitude value.
+    """
+    return islatlon(txt, ["N", "S"])
 
-    # Take out non-digit chars which are allowed
-    testtxt = txt.upper().strip(" -+\n").replace(",", "").replace('"', "").\
-        replace("'", "").replace(".", "").replace('E', '').replace('W', '')
+
+def islon(txt):
+    """
+    Determines whether 'txt' looks like a longitude value.
+    """
+    return islatlon(txt, ["E", "W"])
+
+
+def islatlon(txt, dirs):
+    """
+    Determines whether the passed value looks like a lat or lon value,
+    or a compound lat,lon value.
+    """
+
+    # Take out non-digit chars which are allowed,  We split in case this is
+    # a compound lat/lon value.
+    #
+    testtxt = txt.upper().\
+        strip(" -+\n").\
+        split(",")[0].replace('"', "").replace("'", "").replace(".", "")
 
     # Take away one leading N, S / E, W if present before other chars
-    if (testtxt[0] in ["N", "S"] and lat or testtxt[0] in ["E", "W"]) and \
-            len(testtxt) > 1:
+    if testtxt[0] in dirs and len(testtxt) > 1:
         testtxt = testtxt[1:]
 
     try:
@@ -33,7 +59,8 @@ def islatlon(txt, lat=True):
 
 class Position:
 
-    """ Position class: container for position data
+    """
+    Position class: container for position data
     """
 
     # position types
@@ -53,7 +80,7 @@ class Position:
         # lat,lon type ?
         if name.count(",") > 0:  # lat,lon or apt,rwy type
             txtlat, txtlon = name.split(",")
-            if islatlon(txtlat) and islatlon(txtlon, False):
+            if islat(txtlat) and islon(txtlon):
                 self.lat = txt2lat(txtlat)
                 self.lon = txt2lon(txtlon)
                 self.name = ""

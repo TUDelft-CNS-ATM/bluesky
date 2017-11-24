@@ -25,7 +25,7 @@ from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import txt2alt
 from bluesky.tools.calculator import calculator
-from bluesky.tools.position import txt2pos, islatlon
+from bluesky.tools.position import txt2pos, islatlon, Position
 from bluesky import settings
 
 # Temporary fix for synthetic
@@ -1407,7 +1407,7 @@ class Argparser:
 
                 if success:
                     # for runway type, get heading as default optional argument for command line
-                    if posobj.type == "rwy":
+                    if posobj.type == Position.runway:
                         aptname, rwyname = name.split('/RW')
                         rwyname = rwyname.lstrip('Y')
                         try:
