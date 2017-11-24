@@ -152,7 +152,9 @@ def cmdsplit(cmdline, trafids=None):
 
 def txt2lat(lattxt):
     """txt2lat: input txt: N52'14'13.5 or N52"""
-    txt = lattxt.upper().replace("N", "").replace("S", "-")  # North positive, South negative
+    txt = lattxt.upper().replace("N", "").replace("S", "-")
+    # North positive, South negative
+
     neg = txt.count("-") > 0
     if txt.count("'") > 0 or txt.count('"') > 0:
         txt = txt.replace('"', "'")  # replace " by '

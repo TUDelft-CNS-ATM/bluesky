@@ -66,8 +66,10 @@ class TrafficArrays(object):
         for v in self.LstVars:  # Lists (mostly used for strings)
 
             # Get type
-            if len(v) > 0:
-                vartype = str(type(v[0])).strip("<type '").strip("'>")
+            vartype = None
+            lst = self.__dict__.get(v)
+            if len(lst) > 0:
+                vartype = str(type(lst[0])).split("'")[1]
 
             if vartype in defaults:
                 defaultvalue = [defaults[vartype]] * n
