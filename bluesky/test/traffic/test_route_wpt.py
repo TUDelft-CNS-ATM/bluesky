@@ -7,6 +7,7 @@ GNU General Public License v3.
 Author <ahfarrell@sparkl.com> Andrew Farrell
 Tests route module, wpt functionality
 """
+from . import assert_fl
 
 
 def print_route(route):
@@ -190,8 +191,8 @@ def test_add_wp_normal(traffic_, route_):
     assert succ
     assert idx == 0
 
-    assert int(route.wplat[0]) == 53
-    assert int(route.wplon[0]) == -5
+    assert_fl(route.wplat[0], 53.48)
+    assert_fl(route.wplon[0], -5.5)
     assert route.wpalt == [3000., 1000., 2000.]
     assert route.wpspd == [300., 100., 200.]
     assert route.wpname == ['LIFFY', 'BAZ', 'BAZ01']
@@ -202,8 +203,8 @@ def test_add_wp_normal(traffic_, route_):
     assert succ
     assert idx == 3
 
-    assert int(route.wplat[3]) == 51
-    assert int(route.wplon[3]) == 0
+    assert_fl(route.wplat[3], 51.14)
+    assert_fl(route.wplon[3], -0.19)
     assert route.wpalt == [3000., 1000., 2000., 50.]
     assert route.wpspd == [300., 100., 200., 50.]
     assert route.wpname == ['LIFFY', 'BAZ', 'BAZ01', 'EGKK']
@@ -247,8 +248,8 @@ def test_addwpt_stack_takeoffwp(traffic_, route_):
     assert succ
     assert route.nwp == 1
 
-    assert int(route.wplat[0]) == 51
-    assert int(route.wplon[0]) == 0
+    assert_fl(route.wplat[0], 51.15)
+    assert_fl(route.wplon[0], -0.15)
     assert route.wpalt == [-999.]
     assert route.wpspd == [-999.]
     assert route.wpname == ['T/O-BA222']
@@ -266,8 +267,8 @@ def test_addwpt_stack(traffic_):
     succ = route.addwptStack(idx, *args)
     assert succ
 
-    assert int(route.wplat[1]) == 53
-    assert int(route.wplon[1]) == -5
+    assert_fl(route.wplat[1], 53.48)
+    assert_fl(route.wplon[1], -5.5)
     assert route.wpalt[1] == 3000.
     assert route.wpspd[1] == 300.
     assert route.wpname[1] == 'LIFFY'
