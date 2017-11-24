@@ -81,7 +81,10 @@ class Route:
         return False, None
 
     def addwptStack(self, idx, *args):  # args: all arguments of addwpt
-        """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp],[beforewp]"""
+        """
+        Adds a waypoint, using ADDWPT command from stack, given as (idx, args).
+        ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp],[beforewp]
+        """
 
 #        print "addwptStack:",args
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
@@ -248,8 +251,11 @@ class Route:
             return True
 
     def afteraddwptStack(self, idx, *args):  # args: all arguments of addwpt
-
-        # AFTER acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]"
+        """
+        Adds a waypoint after another,
+        using AFTER command from stack, given as (idx, args).
+        AFTER acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]
+        """
         if len(args) < 3:
             return False, "AFTER needs more arguments"
 
@@ -292,7 +298,9 @@ class Route:
 
     def addwpt_data(self, overwrt, wpidx, wpname_, wplat_, wplon_, wptype_,
                     wpalt_, wpspd_, swflyby_):
-
+        """
+        Overwrites or inserts information for a waypoint
+        """
         wplat_ = (wplat_ + 90.) % 180. - 90.
         wplon_ = (wplon_ + 180.) % 360. - 180.
 
@@ -314,6 +322,9 @@ class Route:
             self.wpflyby.insert(wpidx, swflyby_)
 
     def addwpt_orig_dest(self, name_, wprtename, wptype, lat, lon, alt, spd):
+        """
+        Adds an origin or dest waypoint
+        """
         if not wptype == Route.orig and not wptype == Route.dest:
             return False, -1
 
@@ -356,6 +367,9 @@ class Route:
 
     def addwpt_normal(self, idx, name_, wprtename, wptype, lat, lon,
                       alt, spd, afterwp, beforewp):
+        """
+        Adds a normal waypoint
+        """
         wplat = lat
         wplon = lon
         wpok = True

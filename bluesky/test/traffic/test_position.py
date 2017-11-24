@@ -8,21 +8,21 @@ Author <ahfarrell@sparkl.com> Andrew Farrell
 Tests position module
 """
 
-from bluesky.tools.position import islatlon, Position
+from bluesky.tools.position import islat, islon, Position
 
 
 def test_route_is_lat():
     lat = 'N51\'08\'52.0"'
-    assert islatlon(lat)
+    assert islat(lat)
 
     lat = 'N51\'08\'52.0",W001\'0\'0.0"'
-    assert islatlon(lat)
+    assert islat(lat)
 
     lat = 'P51\'08\'52.0"'
-    assert not islatlon(lat)
+    assert not islat(lat)
 
     lon = 'W001\'0\'0.0"'
-    assert islatlon(lon, False)
+    assert islon(lon)
 
 
 def test_route_latlon(traffic_):
