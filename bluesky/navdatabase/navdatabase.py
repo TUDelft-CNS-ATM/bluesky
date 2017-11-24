@@ -234,7 +234,7 @@ class Navdatabase:
 
     def getapinear(self, lat, lon):  # lat,lon in degrees
         """Get closest airport index"""
-        return self.getinear(self.aptlat, self.aplon, lat, lon)
+        return self.getinear(self.aptlat, self.aptlon, lat, lon)
 
     def getinside(self, wlat, wlon, lat0, lat1, lon0, lon1):
         """Get indices inside given box"""

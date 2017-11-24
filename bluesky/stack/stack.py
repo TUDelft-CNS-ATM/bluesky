@@ -25,7 +25,7 @@ from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import txt2alt
 from bluesky.tools.calculator import calculator
-from bluesky.tools.position import txt2pos, islat
+from bluesky.tools.position import txt2pos, islatlon
 from bluesky import settings
 
 # Temporary fix for synthetic
@@ -1380,7 +1380,7 @@ class Argparser:
                 name     = str(bs.traf.lat[idx]) + "," + str(bs.traf.lon[idx])
 
             # Check if lat/lon combination
-            elif islat(curarg):
+            elif islatlon(curarg):
                 # lat,lon ? Combine into one string with a comma
                 nextarg, args = getnextarg(args)
                 name = curarg + "," + nextarg
