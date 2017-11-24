@@ -276,7 +276,11 @@ class Route:
         return result
 
     def beforeaddwptStack(self, idx, *args):  # args: all arguments of addwpt
-        # BEFORE acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]"
+        """
+            Adds a waypoint before another,
+            using BEFORE command from stack, given as (idx, args).
+            BEFORE acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]
+        """
         if len(args) < 3:
             return False, "BEFORE needs more arguments"
 
