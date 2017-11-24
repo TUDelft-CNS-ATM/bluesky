@@ -716,10 +716,10 @@ class Route:
 
                 elif self.wpalt[i] > 4500 * ft:
                     fl = int(round((self.wpalt[i] / (100. * ft))))
-                    txt = txt + "FL" + str(fl) + "/"
+                    txt += "FL" + str(fl) + "/"
 
                 else:
-                    txt = txt + str(int(round(self.wpalt[i] / ft))) + "/"
+                    txt += str(int(round(self.wpalt[i] / ft))) + "/"
 
                 # Speed
                 if self.wpspd[i] < 0.:
@@ -727,7 +727,7 @@ class Route:
                 elif self.wpspd[i] > 2.0:
                     txt += str(int(round(self.wpspd[i] / kts)))
                 else:
-                    txt = txt + "M" + str(self.wpspd[i])
+                    txt += "M" + str(self.wpspd[i])
 
                 # Type
                 if self.wptype[i] == Route.orig:
