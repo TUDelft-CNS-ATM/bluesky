@@ -497,11 +497,13 @@ class Route:
         if wptype == Route.orig or wptype == Route.dest:
             orig = wptype == Route.orig
             wpidx = 0 if orig else -1
+            suffix = "ORIG" if orig else "DEST"
 
-            i = bs.navdb.getaptidx(name)
-            if i >= 0:
-                wplat = bs.navdb.aptlat[i]
-                wplon = bs.navdb.aptlon[i]
+            if not name == bs.traf.id[iac] + suffix:  # published identifier
+                i = bs.navdb.getaptidx(name)
+                if i >= 0:
+                    wplat = bs.navdb.aptlat[i]
+                    wplon = bs.navdb.aptlon[i]
 
             # Overwrite existing origin/dest
             if self.nwp > 0 and self.wptype[wpidx] == wptype:
