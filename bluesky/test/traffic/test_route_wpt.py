@@ -70,8 +70,12 @@ def test_addwpt_data(route_):
     assert route.wpflyby == [True, True]
 
 
-def test_add_wp_orig(route_):
+def test_add_wp_orig(traffic_, route_):
+    traffic_.create(
+        'BA111', 'A320', 0., 0., 90, 1000., 100.)
+    acidx = traffic_.id2idx('BA111')
     route = route_.Route()
+    traffic_.ap.route[acidx] = route
 
     # Add some dummy data
     #
@@ -83,21 +87,19 @@ def test_add_wp_orig(route_):
     #
     # Insert new orig as one does not exist already
     #
-    succ, idx = route.addwpt(
-        0, 'BAR', route.orig, 52.29, 4.74, 50, 100, '', '')
-    assert succ
+    idx = route.addwpt(
+        acidx, 'BAR', route.orig, 52.29, 4.74, 50, 100, '', '')
+    assert idx == 0
     assert route.wptype[idx] == route.orig
     assert route.nwp == 3
-    assert idx == 0
     assert route.wpname[idx] == 'BAR01'
     assert route.iactwp == 2
 
     #
     # Overwrite existing orig
     #
-    succ, idx = route.addwpt(
-        0, 'BAR', route.orig, 52.29, 4.74, 50, 100)
-    assert succ
+    idx = route.addwpt(
+        acidx, 'BAR', route.orig, 52.29, 4.74, 50, 100)
     assert idx == 0
     assert route.wptype[idx] == route.orig
     assert route.nwp == 3
@@ -105,49 +107,45 @@ def test_add_wp_orig(route_):
     assert route.iactwp == 2
 
 
-def test_add_wp_dest(route_):
-    route = route_.Route()
+def test_add_wp_dest(traffic_, route_):
+    acidx = traffic_.id2idx('BA111')
+    route = traffic_.ap.route[acidx]
 
     #
-    # Insert new dest as one does not exist already
+    # Insert dest
     #
-    succ, idx = route.addwpt(
-        0, 'BAR', route.dest, 52.29, 4.74, 50, 100, '', '')
-    assert succ
+    idx = route.addwpt(
+        acidx, 'BAR', route.dest, 52.29, 4.74, 50, 100, '', '')
+
+    assert idx == 3
     assert route.wptype[idx] == route.dest
-    assert route.nwp == 1
-    assert idx == 0
-    assert route.wpname[idx] == 'BAR'
-    assert route.iactwp == 0
-
-    route.addwpt_data(False, 0, 'BIN', 20., -20., 0, 2000., 200., True)
-    route.addwpt_data(False, 1, 'BON', 30., -30., 0, 3000., 300., True)
-    route.nwp = 3
+    assert route.nwp == 4
+    assert route.wpname[idx] == 'BAR01'
+    assert route.iactwp == 2
 
     #
     # Overwrite existing orig/dest
     #
-    succ, idx = route.addwpt(
-        0, 'BAR', route.dest, 52.29, 4.74, 50, 100)
-    assert succ
-    assert idx == 2
+    idx = route.addwpt(
+        acidx, 'BAR', route.dest, 52.29, 4.74, 50, 100)
+    assert idx == 3
     assert route.wptype[idx] == route.dest
-    assert route.nwp == 3
-    assert route.wpname[idx] == 'BAR01'
-    assert route.iactwp == 0
+    assert route.nwp == 4
+    assert route.wpname[idx] == 'BAR03'
+    assert route.iactwp == 2
 
 
 def test_add_wp_normal(traffic_, route_):
     traffic_.create(
-        'BA111', 'A320', 0., 0., 90, 1000., 100.)
-    idx = traffic_.id2idx('BA111')
+        'BA222', 'A320', 0., 0., 90, 1000., 100.)
+    idx = traffic_.id2idx('BA222')
     route = route_.Route()
 
-    succ, idx = route.addwpt(
+    idx = route.addwpt(
         idx, 'BAZ', route.wplatlon, 10., -10., 1000., 100., '', '')
-    assert succ
-    assert route.nwp == 1
+
     assert idx == 0
+    assert route.nwp == 1
 
     assert route.wplat == [10.]
     assert route.wplon == [-10.]
@@ -156,9 +154,8 @@ def test_add_wp_normal(traffic_, route_):
     assert route.wpname == ['BAZ']
     assert route.wptype == [0]
 
-    succ, idx = route.addwpt(    # don't worry too much re numbers here
+    idx = route.addwpt(    # don't worry too much re numbers here
         idx, 'BAZ', route.runway, 20., -20., 2000., 200., 'BAZ', '')
-    assert succ
     assert idx == 1
 
     assert route.wplat == [10., 20.]
@@ -168,13 +165,12 @@ def test_add_wp_normal(traffic_, route_):
     assert route.wpname == ['BAZ', 'BAZ01']
     assert route.wptype == [0, 5]
 
-    succ, idx = route.addwpt(  # don't worry too much re numbers here
+    idx = route.addwpt(  # don't worry too much re numbers here
         idx, 'FANBAN', route.wpnav, 30., -30., 3000., 300., '', 'BAZ')
-    assert not succ
+    assert idx == -1
 
-    succ, idx = route.addwpt(  # don't worry too much re numbers here
+    idx = route.addwpt(  # don't worry too much re numbers here
         idx, 'LIFFY', route.wpnav, 30., -30., 3000., 300., '', 'BAZ')
-    assert succ
     assert idx == 0
 
     assert_fl(route.wplat[0], 53.48)
@@ -184,9 +180,8 @@ def test_add_wp_normal(traffic_, route_):
     assert route.wpname == ['LIFFY', 'BAZ', 'BAZ01']
     assert route.wptype == [1, 0, 5]
 
-    succ, idx = route.addwpt(  # don't worry too much re numbers here
+    idx = route.addwpt(  # don't worry too much re numbers here
         idx, 'EGKK', route.wpnav, 0., 0., 50., 50., '', '')
-    assert succ
     assert idx == 3
 
     assert_fl(route.wplat[3], 51.14)
@@ -197,7 +192,7 @@ def test_add_wp_normal(traffic_, route_):
     assert route.wptype == [1, 0, 5, 1]
 
 
-def test_addwpt_stack_setflyby(route_):
+def test_addwpt_stack_setflyby(traffic_, route_):
     route = route_.Route()
     route.swflyby = False
 
@@ -236,7 +231,7 @@ def test_addwpt_stack_takeoffwp(traffic_, route_):
 
     assert_fl(route.wplat[0], 51.15)
     assert_fl(route.wplon[0], -0.15)
-    assert route.wpalt == [-999.]
+    assert route.wpalt == [0.0]
     assert route.wpspd == [-999.]
     assert route.wpname == ['T/O-BA222']
     assert route.wptype == [0]
