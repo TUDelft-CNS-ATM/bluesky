@@ -133,12 +133,11 @@ try:
     from bluesky import *
     from bluesky.ui import *
     from bluesky.stack import *
-    from bluesky.sim import *
-    from bluesky.traf import *
-    from bluesky.traf.asas import *
-    from bluesky.traf.metric import *
-    from bluesky.traf.perf import *
-    from bluesky.navdb import *
+    from bluesky.simulation import *
+    from bluesky.traffic import *
+    from bluesky.traffic.asas import *
+    from bluesky.traffic.performance import *
+    from bluesky.navdatabase import *
 except Exception as err:
     print(traceback.format_exc())
     print("One or more BlueSky modules are not working properly, check the above error for more detail.")

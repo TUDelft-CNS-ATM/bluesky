@@ -65,36 +65,30 @@ def check_plugin(fname):
                 plugin.plugin_stack = list(zip(stack_keys, stack_docs))
     return plugin
 
-def manage(cmd, plugin_name=''):
+def manage(cmd='LIST', plugin_name=''):
+    ''' Stack function interaction for plugin system.'''
     if cmd == 'LIST':
         running   = set(active_plugins.keys())
         available = set(plugin_descriptions.keys()) - running
         text  = '\nCurrently running plugins: %s' % ', '.join(running)
-        if len(available) > 0:
+        if available:
             text += '\nAvailable plugins: %s' % ', '.join(available)
         else:
             text += '\nNo additional plugins available.'
         return True, text
-    if cmd not in ['LOAD', 'REMOVE']:
-        return False
-    p = plugin_descriptions.get(plugin_name)
-    if not p:
-        return False, 'Plugin %s not found'
+
     if cmd == 'LOAD':
-        if plugin_name in active_plugins:
-            return False, 'Plugin %s already loaded' % plugin_name
-        return load(plugin_name, p)
+        return load(plugin_name)
     if cmd == 'REMOVE':
-        if plugin_name not in active_plugins:
-            return False, 'Plugin %s not loaded' % plugin_name
-        return remove(plugin_name, p)
+        return remove(plugin_name)
     return False
 
 def init():
+    ''' Initialization function of the plugin system.'''
     # Add plugin path to module search path
     sys.path.append(path.abspath(settings.plugin_path))
     # Set plugin type for this instance of BlueSky
-    if settings.node_only or settings.gui == 'pygame':
+    if settings.is_sim:
         req_type = 'sim'
     else:
         req_type = 'gui'
@@ -106,21 +100,23 @@ def init():
             plugin_descriptions[p.plugin_name.upper()] = p
     # Load plugins selected in config
     for pname in settings.enabled_plugins:
-        pname = pname.upper()
-        p = plugin_descriptions.get(pname)
-        if not p:
-            print('Error loading plugin: plugin %s not found.' % pname)
-        else:
-            success = load(pname, p)
-            print(success[1])
+        success = load(pname.upper())
+        print(success[1])
 
-if settings.node_only or settings.gui == 'pygame':
+if settings.is_sim:
     # Sim implementation of plugin management
     preupdate_funs = dict()
     update_funs    = dict()
+    reset_funs     = dict()
 
-    def load(name, descr):
+    def load(name):
+        ''' Load a plugin. '''
         try:
+            if name in active_plugins:
+                return False, 'Plugin %s already loaded' % name
+            descr  = plugin_descriptions.get(name)
+            if not descr:
+                return False, 'Error loading plugin: plugin %s not found.' % name
             # Load the plugin
             mod    = imp.find_module(descr.module_name, [descr.module_path])
             plugin = imp.load_module(descr.module_name, *mod)
@@ -128,28 +124,40 @@ if settings.node_only or settings.gui == 'pygame':
             config, stackfuns    = plugin.init_plugin()
             active_plugins[name] = plugin
             dt     = max(config.get('update_interval', 0.0), bs.sim.simdt)
-            prefun = config.get('preupdate', None)
-            updfun = config.get('update', None)
+            prefun = config.get('preupdate')
+            updfun = config.get('update')
+            rstfun = config.get('reset')
             if prefun:
                 preupdate_funs[name] = [bs.sim.simt + dt, dt, prefun]
             if updfun:
                 update_funs[name]    = [bs.sim.simt + dt, dt, updfun]
+            if rstfun:
+                reset_funs[name]     = rstfun
             # Add the plugin's stack functions to the stack
             bs.stack.append_commands(stackfuns)
-            return True, 'Successfully loaded %s' % name
+            return True, 'Successfully loaded plugin %s' % name
         except ImportError as e:
             print('BlueSky plugin system failed to load', name, ':', e)
             return False, 'Failed to load %s' % name
 
-    def remove(name, descr):
-        cmds, docs = list(zip(*descr.plugin_stack))
+    def remove(name):
+        ''' Remove a loaded plugin. '''
+        if name not in active_plugins:
+            return False, 'Plugin %s not loaded' % name
+        preset = reset_funs.pop(name, None)
+        if preset:
+            # Call module reset first to clear plugin state just in case.
+            preset()
+        descr  = plugin_descriptions.get(name)
+        cmds, _ = list(zip(*descr.plugin_stack))
         bs.stack.remove_commands(cmds)
         active_plugins.pop(name)
         preupdate_funs.pop(name)
         update_funs.pop(name)
 
     def preupdate(simt):
-        for fun in list(preupdate_funs.values()):
+        ''' Update function executed before traffic update.'''
+        for fun in preupdate_funs.values():
             # Call function if its update interval has passed
             if simt >= fun[0]:
                 # Set the next triggering time for this function
@@ -158,7 +166,8 @@ if settings.node_only or settings.gui == 'pygame':
                 fun[2]()
 
     def update(simt):
-        for fun in list(update_funs.values()):
+        ''' Update function executed after traffic update.'''
+        for fun in update_funs.values():
             # Call function if its update interval has passed
             if simt >= fun[0]:
                 # Set the next triggering time for this function
@@ -167,11 +176,15 @@ if settings.node_only or settings.gui == 'pygame':
                 fun[2]()
 
     def reset():
-        for fun in list(preupdate_funs.values()):
-            fun[0] = 0.0
-
-        for fun in update_funs:
-            fun[0] = 0.0
+        ''' Reset all plugins.'''
+        # Reset trigger times
+        for fun in preupdate_funs.values():
+            fun[0] = fun[1]
+        for fun in update_funs.values():
+            fun[0] = fun[1]
+        # Call plugin reset for plugins that have one
+        for fun in reset_funs.values():
+            fun()
 
 else:
     def load(name, descr):

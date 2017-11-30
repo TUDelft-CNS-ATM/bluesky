@@ -4,16 +4,20 @@
 
 from math import *      # Make all math function available for calculator
 
+# Allow using bluesky variables in expression
+
+import bluesky as bs
+
 # Cater for use of some geo functions
 from .geo import latlondist as dist
 from .geo import rwgs84 as wgs84
-from .geo import kwikdist,kwikqdrdist,qdrdist,qdrpos,rwgs84,latlondist
+from .geo import *
+from .aero import *
 
 # And for conversion lat/lon formats
 from .misc import latlon2txt,lat2txt,lon2txt
 
 # Some special functions for calculator:
-
 # Degree variant of sin,cos,tan:
 def sind(x):
     return sin(radians(x))
@@ -39,12 +43,15 @@ def qdr(lata,lona,latb,lonb):
 def calculator(txt):
     # Simple calculator which can use math functions
     try:
-        expr = txt.lower().replace("^","**") # Allow ^ for power
-        x = eval(expr)
+        x = eval(txt) ## First try direct
     except:
-        return False,"Error in calculating "+txt+"\n"+ \
-        "Use math functions, pi, e and/or sind() cosd()"\
-            +" tand() deg(d,m,s) rad(d,m,s)\n"      +   \
-        " or geo functions: dist,qdr,qdrdist,qdrpos,rwgs84," \
-         +"kwikdist,latlondist,lat2txt,lon2txt,latlon2txt"
+        try:
+            expr = txt.lower().replace("^","**") # Allow ^ for power
+            x = eval(expr)
+        except:
+            return False,"Error in calculating "+txt+"\n"+ \
+            "Use math functions, pi, e and/or sind() cosd()"\
+                +" tand() deg(d,m,s) rad(d,m,s)\n"      +   \
+            " or geo functions: dist,qdr,qdrdist,qdrpos,rwgs84," \
+             +"kwikdist,latlondist,lat2txt,lon2txt,latlon2txt"
     return True, str(x)

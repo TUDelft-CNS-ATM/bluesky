@@ -1,0 +1,84 @@
+<!--Created on Tue Jan 13 11:52:49 2015 @author: Isabel Airbus A330-300 aircraft coefficient file - TEST -->
+
+<!--accepted units masses: kg ;lbs distances: m; ft, inchareas: sqm, sqft speeds: m/s ; kts -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<aircraft_file>
+    <ac_type>A333</ac_type>
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <num_eng>2.</num_eng> <!--Jane's-->
+        <eng id="1">CF6-80E1A2</eng><!--Jane's-->
+        <eng id="2">CF6-80E1A3</eng> <!--Jane's-->
+        <eng id="3">PW4168A-1D</eng>     <!--Jane's-->
+        <eng id="4">Trent 772</eng>    <!--Jane's-->
+        <eng id="7">Trent 768</eng>     <!--Jane's-->
+    </engine>
+
+    <weights>
+	<OEW unit="kg">124500.0</OEW> <!-- operating empty weight, Jane's, value for CF-6-A3, value for PW4168A: 125100kg, value for Trent772B: 124600kg - -->
+	<MZFW unit="kg">173000.0</MZFW> <!-- max. zero fuel weight, Jane's - option "basic"-->
+	<MRW unit="kg">230900.0</MRW>  <!-- max. ramp weight, Jane's - option "basic"-->
+	<MFW unit = "kg">78025.0</MFW> <!-- max. fuel weight, Jane's -->
+	<MPL unit="kg">48500.0</MPL> <!-- max. payload, Jane's, value for CF-6-A3, value for PW4168A: 47900kg, value for Trent772B: 48400kg - -->
+        <MTOW unit="kg">174000.0</MTOW> <!--Jane's, value for basic version: 230000 / current:BADA value-->
+        <MLW unit ="kg">180000.0</MLW> <!--Jane's, value for basic version-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">60.30</span> <!--Jane's-->
+        <wing_area unit = "sqm">361.6</wing_area> <!--Jane's-->
+        <wetted_area unit = "sqft">21563.0</wetted_area> <!--Obert, p.531, value for A330-200-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">145.0</to_spd> <!--Skybrary, IAS assumed to be equal to CAS -->
+        <ld_spd unit = "m/s">72.22</ld_spd> <!--Kreuzer, p. 24-->
+        <cr_MA>0.82</cr_MA> <!--Jane's-->
+        <cr_spd unit ="kts">475.0</cr_spd> <!--Skybrary-->
+    </speeds>
+
+    <cr_alt unit = "m">0.0</cr_alt> 
+
+    <limits>
+	<roc unit="fpm">0.</roc>		<!--Jane's-->
+        <max_alt unit = "m">12600.0</max_alt> <!--Jane's-->
+        <max_spd unit = "m/s">244.44</max_spd> <!--Mueller, p. 28-->
+        <max_MA>0.86</max_MA> <!--Jane's-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0026</Cfe> <!--estimate from Obert, p. 531, value for A330-200--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>2.25</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby--> 
+        <clmax_cr>1.45</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
+        <clmax_ld>2.5</clmax_ld> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Eshelby-->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers to https://janes.ihs.com/CustomPages/Janes/DisplayPage.aspx?DocType=Reference&ItemId=+++1342554,
+updated on 7 February 2014 and retreived on 4 February, 2015 -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Mueller" refers to C. Mueller. Flugzeuge der Welt 2013. Stuttgart, Germany, Motorbuch Verlag, 2013 -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to  http://www.skybrary.aero/index.php/A333, retreived on 2 March 2015-->

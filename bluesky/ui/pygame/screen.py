@@ -286,7 +286,7 @@ class Screen:
         self.apswbmp = len(bs.navdb.aptlat) * [False]
         self.aplabel = len(bs.navdb.aptlat) * [0]
 
-    def echo(self, msg):
+    def echo(self, msg, sender_id=0):
         msgs = msg.split('\n')
         for m in msgs:
             self.editwin.echo(m)
@@ -676,7 +676,10 @@ class Screen:
                 else:
                     label.append(" ")
                 if self.swlabel > 1:
-                    label.append(str(int(bs.traf.alt[i] / ft)))  # Line 2 of label: altitude
+                    if bs.traf.alt[i]>bs.traf.translvl:
+                        label.append("FL"+str(int(round(bs.traf.alt[i] / (100.*ft)))))  # Line 2 of label: altitude
+                    else:    
+                        label.append(str(int(round(bs.traf.alt[i] / ft))))  # Line 2 of label: altitude
                 else:
                     label.append(" ")
                 if self.swlabel > 2:
@@ -690,7 +693,7 @@ class Screen:
                 if  not (type(bs.traf.label[i])==list) or \
                       not (type(bs.traf.label[i][3])==str) or \
                         not (label[:3] == bs.traf.label[i][:3]):
-                            
+
                     bs.traf.label[i] = []
                     labelbmp = pg.Surface((100, 60), 0, self.win)
                     if len(bs.traf.asas.iconf[i]) == 0:
@@ -1169,7 +1172,6 @@ class Screen:
         return
 
     def showacinfo(self, acid, infotext):
-        self.echo(infotext)
         self.showroute(acid)
         return True
 
@@ -1253,5 +1255,3 @@ class Screen:
 
         os.chdir(curdir)
         return True,"HTML window opened"
-
-scr = Screen()

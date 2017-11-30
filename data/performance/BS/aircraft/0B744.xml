@@ -1,0 +1,83 @@
+<!--B744-4 aircraft coefficient file -->
+
+
+<aircraft_file>
+    <ac_type>B744</ac_type>
+    
+    <engine>
+        <eng_type>1</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <num_eng>4.</num_eng> <!--Jane's-->
+        <eng id="1">CF6-80C2B1F</eng> <!--Jane's--> 
+        <eng id="2">PW4062</eng> <!--Jane's-->
+        <eng id="3">RB211-22B</eng>     <!--Jane's-->
+    </engine>
+
+    <weights>
+	<OEW unit="kg">180485</OEW> <!-- operating empty weight, Jane's, CF6-80C2B1F -->
+	<MZFW unit="kg">242670</MZFW> <!-- max. zero fuel weight, Jane's, CF6-80C2B1F-->
+	<MRW unit="kg">364235</MRW>  <!-- max. ramp weight, Jane's, CF6-80C2B1F-->
+	<MFW unit = "kg">162580</MFW> <!-- max. fuel weight, Jane's, CF6-80C2B1F -->
+	<MPL unit="kg">16840</MPL> <!-- max. payload, Jane's, CF6-80C2B1F - -->
+      <MTOW unit="kg">285700</MTOW> <!--Boeing_online: 396890.0 / currently BADA Value-->
+      <MLW unit ="kg">260360</MLW> <!-- max. landing weight, Jane's, CF6-80C2B1F -->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">64.4</span> <!--Boeing_online-->
+        <wing_area unit = "sqm">541.16</wing_area> <!--Jane's-->
+        <wetted_area unit = "sqm">2694.2</wetted_area> <!--Obert, p.531-->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">185.0</to_spd> <!--Skybrary - IAS, assumed to be equal to CAS -->
+        <ld_spd unit = "m/s">72.2</ld_spd> <!--British Airways online, approach speed from janes possible -->
+        <cr_MA>0.85</cr_MA> <!--35000 ft for Boeing 744, Boeing_online: 0.85-->
+        <cr_spd unit ="kts">510.0</cr_spd> <!--Skybrary-->
+    </speeds>
+
+    <cr_alt unit = "m">10288</cr_alt>  <!--Jane's - mean value between different engine types-->
+
+    <limits>
+	<roc unit="fpm"></roc>
+        <max_alt unit = "ft">45100.0</max_alt>    <!--FAA certification sheet -->
+        <max_spd unit = "m/s">274.444</max_spd>    <!--British Airways online: 988km/h -->
+        <max_MA>0.92</max_MA> <!--British Airways online -->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0026</Cfe> <!--Obert, p. 531. Value for 747-100--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>2.4</clmax_to> <!--Obert, p. 324--> 
+        <clmax_cr>1.35</clmax_cr>  <!--Obert, p. 324--> 
+        <clmax_ld>3.4</clmax_ld> <!--Obert, p. 324-->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+<!-- "Boeing_online" refers to http://www.boeing.com/boeing/commercial/747family/pf/pf_400_prod.page,
+ retreived on January 15, 2015-->
+
+<!-- "Britis Airways online" refers to http://www.britishairways.com/en-gb/information/about-ba/fleet-facts/boeing747-400, 
+retreived on January 15, 2015 -->
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!-- "Jane's" refers tohttps://janes.ihs.com/CustomPages/Janes/DisplayPage.aspx?DocType=Reference&ItemId=+++1343236,
+updated on 22 July 2010 and retreived on January 15, 2015 -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to http://www.skybrary.aero/index.php/B744, retreived on 2 March 2015  -->

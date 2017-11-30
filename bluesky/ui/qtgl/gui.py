@@ -13,8 +13,8 @@ except ImportError:
 from bluesky.ui.radarclick import radarclick
 from bluesky.tools.misc import tim2txt
 from bluesky import settings
-from bluesky.sim.qtgl import MainManager as manager
-from bluesky.sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
+from bluesky.simulation.qtgl import MainManager as manager
+from bluesky.simulation.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
                      PanZoomEventType, ACDataEventType, SimInfoEventType,  \
                      StackTextEventType, ShowDialogEventType, \
                      DisplayFlagEventType, RouteDataEventType, \
@@ -23,6 +23,7 @@ from bluesky.sim.qtgl import PanZoomEvent, ACDataEvent, RouteDataEvent, \
 from .mainwindow import MainWindow, Splash
 from .docwindow import DocWindow
 from .radarwidget import RadarWidget
+from .infowindow import InfoWindow
 from .nd import ND
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
@@ -85,6 +86,7 @@ class Gui(QApplication):
         self.radarwidget = RadarWidget()
         self.win         = MainWindow(self, self.radarwidget)
         self.nd          = ND(shareWidget=self.radarwidget)
+        # self.infowin     = InfoWindow()
         try:
             self.docwin      = DocWindow(self)
         except Exception as e:
@@ -95,11 +97,18 @@ class Gui(QApplication):
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
-    def start(self):
+    def prestart(self):
         self.win.show()
+        # self.infowin.show()
+        # self.infowin.addPlotTab()
+        # for i in range(10):
+            # self.infowin.plottab.addPlot()
         self.splash.showMessage('Done!')
         self.processEvents()
         self.splash.finish(self.win)
+
+    def start(self):
+        self.prestart()
         self.exec_()
 
     def quit(self):
@@ -325,17 +334,17 @@ class Gui(QApplication):
         # If we haven't processed the event: call Base Class Method to Continue Normal Event Processing
         if not event_processed:
             return super(Gui, self).notify(receiver, event)
-
-        if self.win.console.cmd in ['AREA', 'BOX', 'POLY', 'POLYALT', 'POLYGON', 'CIRCLE', 'LINE']:
+        cmd = self.win.console.cmd.upper()
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYALT', 'POLYGON', 'CIRCLE', 'LINE']:
             if self.mousepos != self.prevmousepos and len(self.win.console.args) >= 2:
                 self.prevmousepos = self.mousepos
                 try:
                     # get the largest even number of points
-                    start = 0 if self.win.console.cmd == 'AREA' else 3 if self.win.console.cmd == 'POLYALT' else 1
+                    start = 0 if cmd == 'AREA' else 3 if cmd == 'POLYALT' else 1
                     end   = ((len(self.win.console.args) - start) // 2) * 2 + start
                     data  = [float(v) for v in self.win.console.args[start:end]]
                     data += self.radarwidget.pixelCoordsToLatLon(*self.mousepos)
-                    self.radarwidget.previewpoly(self.win.console.cmd, data)
+                    self.radarwidget.previewpoly(cmd, data)
 
                 except ValueError:
                     pass

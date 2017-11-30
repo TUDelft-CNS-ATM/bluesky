@@ -3,9 +3,6 @@ import os
 import sys
 import shutil
 
-# This file is used to start the gui mainloop or a single node simulation loop
-node_only = ('--node' in sys.argv)
-
 def init():
     '''Initialize configuration.
        Import config settings from settings.cfg if this exists, if it doesn't
@@ -14,7 +11,9 @@ def init():
     srcdir = ''
     # Determine gui preference from whether bluesky was started with
     # BlueSky.py, BlueSky_qtgl.py, or BlueSky_pygame.py
-    gui = 'pygame' if 'pygame' in sys.argv[0] else ('qtgl' if 'qtgl' in sys.argv[0] else 'ask')
+    gui = 'pygame' if 'pygame' in sys.argv[0] \
+        else ('qtgl' if 'qtgl' in sys.argv[0] or 'pytest' in sys.argv[0]
+              else 'ask')
 
     # If BlueSky is run from a compiled bundle instead of from source, adjust the startup path
     # and change the path of configurable files to $home/bluesky
@@ -23,9 +22,9 @@ def init():
         rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
 
     cachedir   = os.path.join(rundir, 'data/cache')
-    badadir    = os.path.join(rundir, 'data/coefficients/BADA')
-    badasrc    = os.path.join(srcdir, 'data/coefficients/BADA')
-    perfdir    = os.path.join(srcdir, 'data/coefficients')
+    badadir    = os.path.join(rundir, 'data/performance/BADA')
+    badasrc    = os.path.join(srcdir, 'data/performance/BADA')
+    perfdir    = os.path.join(srcdir, 'data/performance')
     gfxdir     = os.path.join(srcdir, 'data/graphics')
     navdir     = os.path.join(srcdir, 'data/navdata')
     scnsrc     = os.path.join(srcdir, 'scenario')
@@ -130,4 +129,10 @@ def set_variable_defaults(**kwargs):
             globals()[key] = value
 
 # Call settings.init() at creation
+gui = ''
 initialized = init()
+
+# This file is used to start the gui mainloop, a single node simulation loop,
+# or, in case of the pygame version, both.
+is_sim = ('--node' in sys.argv) or gui == 'pygame'
+is_gui = ('--node' not in sys.argv) or gui == 'pygame'

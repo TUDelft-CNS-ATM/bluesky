@@ -196,8 +196,8 @@ class ND(QGLWidget):
     def resizeGL(self, width, height):
         # paint within the largest possible rectangular area in the window
         w = h = min(width, height)
-        x = max(0, (width - w) / 2)
-        y = max(0, (height - h) / 2)
+        x = max(0, (width - w) // 2)
+        y = max(0, (height - h) // 2)
         self.viewport = (x, y, w, h)
 
     def paintGL(self):

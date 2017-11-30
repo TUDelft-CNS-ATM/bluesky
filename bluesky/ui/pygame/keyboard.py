@@ -44,7 +44,7 @@ class Keyboard:
 
                 # Alphanumeric key
                 if event.key>31 and event.key<127:
-                    bs.scr.editwin.insert(str(event.unicode).upper())
+                    bs.scr.editwin.insert(str(event.unicode))  #.upper())
 
                 elif event.key==13: # ENTER
                     cmdline = bs.scr.editwin.getline()
@@ -60,7 +60,7 @@ class Keyboard:
                     bs.sim.stop()
 
                 elif event.key ==pg.K_F3: # F3: Insert last command
-                    bs.scr.editwin.insert(self.lastcmd.strip().upper()+" ")
+                    bs.scr.editwin.insert(self.lastcmd.strip()+" ") # strip().upper()+" ")
 
                 # Display keys
                 elif event.key == 269: # Num lock minus

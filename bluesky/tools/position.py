@@ -22,7 +22,11 @@ def islat(txt):
     if (testtxt[0]=="N" or testtxt[0]=="S") and len(testtxt)>1:
         testtxt =testtxt[1:]
 
-    return testtxt.isdigit()
+    try:
+        float(testtxt)
+    except ValueError:
+        return False
+    return True
 
 class Position():
     """ Position class: container for position data

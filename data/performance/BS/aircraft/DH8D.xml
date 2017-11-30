@@ -1,0 +1,84 @@
+<!--Created on Tue Jan 13 11:52:49 2015 @author: Isabel Dash 8 - Q400 aircraft coefficient file - TEST -->
+
+<!--accepted units
+masses: kg ;
+lbs distances: m; ft, inch
+areas: sqm, sqft
+speeds: m/s ; kts 
+-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+
+<aircraft_file>
+    <ac_type>DH8D</ac_type>
+    
+    <engine>
+        <eng_type>2</eng_type> <!-- jets: 1, turboprops: 2 -->
+        <num_eng>2.</num_eng> <!--Jane's-->
+        <eng id="1">PW150A</eng> <!--Jane's --> 
+    </engine>
+
+    <weights>
+	<OEW unit="kg">39284.0</OEW> <!--  -->
+	<MZFW unit="kg">25174.0</MZFW> <!-- max. zero fuel weight, Jane's - option "basic"-->
+	<MRW unit="kg">29665.0</MRW>  <!-- max. ramp weight, Jane's - option "basic"-->
+	<MFW unit = "kg">0.0</MFW> <!-- max. fuel weight, Jane's -->
+	<MPL unit="kg">7355.0</MPL> <!-- max. payload, Jane's, option "basic" -->
+      <MTOW unit="kg">26000.0</MTOW> <!--Jane's - option "basic": 27987 kg-->
+      <MLW unit ="kg">27442.0</MLW> <!--Jane's - option "basic"-->
+    </weights>
+
+    <dimensions>
+        <span unit = "m">28.42</span> <!--Jane's - value includes sharklets-->
+        <wing_area unit = "sqm">63.08</wing_area> <!--Jane's-->
+        <wetted_area unit = "sqft">5000.</wetted_area> <!-- estimate from Obert, p.531, currently interpolation between S2000 and F100 -->
+    </dimensions>
+    
+    <speeds>
+        <to_spd unit = "kts">138.0</to_spd> <!-- Value for E170, which comes closest to DH8D in terms of geometry --> 
+        <ld_spd unit = "km/h">190.0</ld_spd> <!--Kreuzer, p. 24-->
+        <cr_MA>0.62</cr_MA> <!--Skybrary-->
+        <cr_spd unit ="kts">360</cr_spd> <!--Skybrary: 360kts TAS-->
+    </speeds>
+
+    
+    <cr_alt unit = "m"></cr_alt>  <!--Jane's-->
+
+
+    <limits>
+	<roc unit="fpm"></roc>		<!--Jane's-->
+        <max_alt unit = "m">7620.</max_alt>    <!--Jane's-->
+        <max_spd unit = "kts">360.</max_spd>    <!--Jane's-->
+        <max_MA>0.6</max_MA> <!--if unknown: 0.6 for turboprop, 0.8 for narrow-body turbofan, 0.85 for widebody turbo-fan-->
+    </limits>
+    
+    <aerodynamics>
+        <Cfe>0.0035</Cfe> <!--estimate from Obert, p. 531, interpolation between S2000 and F100--> 
+        <oswald>0.0</oswald>   
+        <clmax_to>1.785</clmax_to> <!--estimate from Raymer (0.6-0.8 clmaxLD) and Obert--> 
+        <clmax_cr>1.35</clmax_cr>  <!--estimate from La Rocca and Eshelby--> 
+        <clmax_ld>2.55</clmax_ld> <!--estimate from Raymer and Eshelby-->
+    </aerodynamics>
+
+
+</aircraft_file>
+
+<!-- References: -->
+
+<!-- "Eshelby" refers to M.E. Eshelby. Aircraft Performance. Theory and Practice. Elsevier Ltd, Oxford, UK, 2000 --> 
+
+<!-- "Gill & La Rocca" refer to E. Gill and G. La Rocca. Wing Design. Retrieved from TU Delft Aerospace Design and
+Systems Engineering Elements II (AE2101), 2010. -->
+
+<!--"Jane's" refers to , updated on January 30, 2014 and retreived on February 13, 2015 -->
+
+<!-- "Kreuzer" refers to H. Kreuzer. Am Start. Moderne Verkehrsflugzeuge & Business Jets. Atesiadruck, Bozen, Germany,
+2002. -->
+
+<!-- "Obert" refers to E. Obert. Aerodynamic Design of Transport Aircraft. Delft University Press. IOS Press BV,
+Amsterdam, The Netherlands, 2009. -->
+
+<!-- "Raymer" refers to D.P. Raymer. Aircraft Design: A Conceptual Approach. AIAA Education Series. American
+Institute of Aeronautics and Astronautics, Inc., Reston, U.S, fifth edition, 2012. -->
+
+<!-- "Skybrary" refers to http://www.skybrary.aero/index.php/DH8D --> 
