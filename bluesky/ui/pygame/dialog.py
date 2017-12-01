@@ -7,9 +7,13 @@ try:
     from tkinter import *
     import tkinter.filedialog as filedialog
 except:
-    from Tkinter import *
-    import Tkinter.filedialog as filedialog
-    
+    try:
+        from Tkinter import *
+        import Tkinter.tkFileDialog as filedialog
+    except:
+        from Tkinter import *
+        import Tkinter.filedialog as filedialog
+        
 import os
 from bluesky import settings
 
