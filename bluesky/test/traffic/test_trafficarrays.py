@@ -21,6 +21,7 @@ def t_a(pytestconfig):
     """
 
     class TestChild(ta.TrafficArrays):
+
         def __init__(self):
             super(TestChild, self).__init__()
 
@@ -28,8 +29,8 @@ def t_a(pytestconfig):
                 self.np_array_bool = np.array([], dtype=np.bool)
                 self.np_array_int = np.array([], dtype=np.int)
 
-
     class TestRoot(ta.TrafficArrays):
+
         def __init__(self):
             super(TestRoot, self).__init__()
 
@@ -51,7 +52,7 @@ def test_trafficarrays_init(t_a):
     root, tcclass = t_a
 
     assert len(root.children) == 1
-    assert len(root.ArrVars) == 0
+    assert not root.ArrVars
 
     assert root.children[0].__class__.__name__ == tcclass
     assert len({'str_list', 'bool_list', 'fl_list', 'int_list'}.intersection(
@@ -81,10 +82,10 @@ def test_trafficarrays_create(t_a):
 
     assert root.fl_list[-1] == 0.0
     assert root.int_list[-1] == 0
-    assert root.bool_list[-1] == False
+    assert not root.bool_list[-1]
     assert root.str_list[-1] == ""
 
-    assert root.children[0].np_array_bool[-1] == False
+    assert not root.children[0].np_array_bool[-1]
     assert root.children[0].np_array_int[-1] == 0
 
 
@@ -103,5 +104,5 @@ def test_trafficarrays_reset(t_a):
 
     root.reset()
 
-    assert len(root.fl_list) == 0
-    assert len(root.children[0].np_array_bool) == 0
+    assert not root.fl_list
+    assert not root.children[0].np_array_bool

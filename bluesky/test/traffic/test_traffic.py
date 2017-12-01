@@ -45,9 +45,9 @@ def validate_create(traffic_, result,
 def validate_lengths(traffic_, len_):
     assert traffic_.ntraf == len_
     assert len(traffic_.id) == len(traffic_.type) == len(traffic_.lat) == \
-           len(traffic_.lon) == len(traffic_.lon) == len(traffic_.alt) == \
-           len(traffic_.hdg) == len(traffic_.trk) == len(traffic_.tas) == \
-           len(traffic_.cas) == len(traffic_.M) == len_  # etc
+        len(traffic_.lon) == len(traffic_.lon) == len(traffic_.alt) == \
+        len(traffic_.hdg) == len(traffic_.trk) == len(traffic_.tas) == \
+        len(traffic_.cas) == len(traffic_.M) == len_  # etc
 
     # check that one of the children
     assert len(traffic_.children) == 8

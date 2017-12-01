@@ -16,7 +16,7 @@ import bluesky
 
 
 @pytest.fixture(scope="session")
-def traffic_(pytestconfig):
+def traffic_():
     """
     Suite-level setup and teardown function, for those test functions
     naming `traffic_` in their parameter lists.
@@ -27,7 +27,7 @@ def traffic_(pytestconfig):
 
 
 @pytest.fixture(scope="session")
-def route_(pytestconfig, traffic_):
+def route_(traffic_):
     """
     Suite-level setup and teardown function, for those test functions
     naming `route_` in their parameter lists.

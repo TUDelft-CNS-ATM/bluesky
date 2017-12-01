@@ -12,5 +12,5 @@ It tests BlueSky running in either Python2 or 3.
 """
 
 
-def assert_fl(result, reference, threshold = 0.49):
+def assert_fl(result, reference, threshold=0.49):
     assert abs(result - reference) < threshold
