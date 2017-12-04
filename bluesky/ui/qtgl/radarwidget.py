@@ -175,9 +175,6 @@ class RadarWidget(QGLWidget):
         manager.instance.nodes_changed.connect(self.nodesChanged)
         manager.instance.activenode_changed.connect(self.actnodeChanged)
 
-        # Load vertex data
-        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
-            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices, rwythr = load_aptsurface()
 
     @pyqtSlot(str, tuple, int)
     def nodesChanged(self, address, nodeid, connidx):
@@ -232,6 +229,10 @@ class RadarWidget(QGLWidget):
                 print('Loading texture ' + fname)
                 self.map_texture = self.bindTexture(fname)
                 break
+
+        # Load vertex data
+        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
+            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices, rwythr = load_aptsurface()
 
         # Create initial empty buffers for aircraft position, orientation, label, and color
         # usage flag indicates drawing priority:
@@ -444,10 +445,8 @@ class RadarWidget(QGLWidget):
             return
 
         # create all vertex array objects
-        self.create_objects()
         try:
-            pass
-            # self.create_objects()
+            self.create_objects()
         except Exception as e:
             print('Error while creating RadarWidget objects: ' + e.args[0])
 
