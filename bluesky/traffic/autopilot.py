@@ -102,11 +102,11 @@ class Autopilot(TrafficArrays):
                     # Depending on crossover altitude we fix CAS or Mach
                     if bs.traf.abco[i] and spd>2.0:
                         bs.traf.actwp.spd[i] = cas2mach(spd,bs.traf.alt[i])
-                    
+
                     elif bs.traf.belco[i] and spd<=2.0:
                         bs.traf.actwp.spd[i] = mach2cas(spd,bs.traf.alt[i])
-                  
-                    else:  
+
+                    else:
                         bs.traf.actwp.spd[i] = spd
 
                 else:
@@ -124,10 +124,10 @@ class Autopilot(TrafficArrays):
             #=============== End of Waypoint switching loop ===================
 
             #================= Continuous FMS guidance ========================
-            
+
             # Waypoint switching in the loop above was scalar (per a/c with index i)
             # Code below is vectorized, with arrays for all aircraft
-            
+
             # Do VNAV start of descent check
             dy = (bs.traf.actwp.lat - bs.traf.lat)  #[deg lat = 60 nm]
             dx = (bs.traf.actwp.lon - bs.traf.lon) * bs.traf.coslat #[corrected deg lon = 60 nm]
@@ -146,10 +146,10 @@ class Autopilot(TrafficArrays):
 
             #Recalculate V/S based on current altitude and distance to next alt constraint
             # How much time do we have before we need to descend?
-            
+
             t2go2alt = np.maximum(0.,(dist2wp + bs.traf.actwp.xtoalt - bs.traf.actwp.turndist)) \
                                         / np.maximum(0.5,bs.traf.gs)
-            
+
             # use steepness to calculate V/S unless we need to descend faster
             bs.traf.actwp.vs = np.maximum(self.steepness*bs.traf.gs, \
                                    np.abs((bs.traf.actwp.nextaltco-bs.traf.alt))  \
@@ -162,7 +162,6 @@ class Autopilot(TrafficArrays):
             # self.vs = np.where(self.swvnavvs, self.vnavvs, bs.traf.apvsdef * bs.traf.limvs_flag)
             selvs = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, bs.traf.apvsdef) # m/s
             self.vs = np.where(self.swvnavvs, self.vnavvs, selvs)
-
             self.alt = np.where(self.swvnavvs, bs.traf.actwp.nextaltco, bs.traf.selalt)
 
             # When descending or climbing in VNAV also update altitude command of select/hold mode
@@ -174,14 +173,14 @@ class Autopilot(TrafficArrays):
             # FMS speed guidance: anticipate accel distance
 
             # Actual distance it takes to decelerate
-            nexttas  = vcasormach2tas(bs.traf.actwp.spd,bs.traf.alt) 
+            nexttas  = vcasormach2tas(bs.traf.actwp.spd,bs.traf.alt)
             tasdiff  = nexttas - bs.traf.tas # [m/s]
             dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax)) #[s]
             dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg #[m]
-            
+
             usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spd > 0.)*bs.traf.swvnav
             bs.traf.selspd = np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd)
-           
+
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
 
@@ -334,16 +333,16 @@ class Autopilot(TrafficArrays):
         if idx<0 or idx>=bs.traf.ntraf:
             return False,"SPD: Aircraft does not exist"
 
-        # Depending on or position relative to crossover altitude, 
+        # Depending on or position relative to crossover altitude,
         # we will maintain CAS or Mach when altitude changes
         # We will convert values when needed
         if bs.traf.abco[idx] and casmach>2.0:
             bs.traf.selspd[idx] = cas2mach(casmach,bs.traf.alt[idx])
-        
+
         elif bs.traf.belco[idx] and casmach<=2.0:
             bs.traf.selspd[idx] = mach2cas(casmach,bs.traf.alt[idx])
-      
-        else: # User uses correct Mach/CAS 
+
+        else: # User uses correct Mach/CAS
             bs.traf.selspd[idx] = casmach
 
         # Switch off VNAV: SPD command overrides
