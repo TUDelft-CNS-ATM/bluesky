@@ -138,13 +138,6 @@ class RadarWidget(QGLWidget):
     invalid_count = 0
 
     def __init__(self, shareWidget=None):
-        super(RadarWidget, self).__init__(shareWidget=shareWidget)
-        self.setAttribute(Qt.WA_AcceptTouchEvents, True)
-        self.grabGesture(Qt.PanGesture)
-        self.grabGesture(Qt.PinchGesture)
-        # self.grabGesture(Qt.SwipeGesture)
-
-        # The number of aircraft in the simulation
         self.map_texture    = 0
         self.naircraft      = 0
         self.nwaypoints     = 0
@@ -170,6 +163,19 @@ class RadarWidget(QGLWidget):
         self.show_apt       = 1
 
         self.initialized    = False
+
+        # Load vertex data
+        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
+            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
+        self.coastvertices, self.coastindices = load_coastlines()
+
+        # Only initialize super class after loading data to avoid Qt starting things
+        # before we are ready.
+        super(RadarWidget, self).__init__(shareWidget=shareWidget)
+        self.setAttribute(Qt.WA_AcceptTouchEvents, True)
+        self.grabGesture(Qt.PanGesture)
+        self.grabGesture(Qt.PinchGesture)
+        # self.grabGesture(Qt.SwipeGesture)
 
         # Connect to manager's nodelist changed and activenode changed signal
         manager.instance.nodes_changed.connect(self.nodesChanged)
@@ -230,10 +236,6 @@ class RadarWidget(QGLWidget):
                 self.map_texture = self.bindTexture(fname)
                 break
 
-        # Load vertex data
-        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
-            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices, rwythr = load_aptsurface()
-
         # Create initial empty buffers for aircraft position, orientation, label, and color
         # usage flag indicates drawing priority:
         #
@@ -270,11 +272,9 @@ class RadarWidget(QGLWidget):
         self.map    = RenderObject(gl.GL_TRIANGLE_FAN, vertex=mapvertices, texcoords=texcoords)
 
         # ------- Coastlines -----------------------------
-        coastvertices, coastindices = load_coastlines()
-        self.coastlines   = RenderObject(gl.GL_LINES, vertex=coastvertices, color=palette.coastlines)
-        self.vcount_coast = len(coastvertices)
-        self.coastindices = coastindices
-        del coastvertices
+        self.coastlines   = RenderObject(gl.GL_LINES, vertex=self.coastvertices, color=palette.coastlines)
+        self.vcount_coast = len(self.coastvertices)
+        del self.coastvertices
 
         # ------- Airport graphics -----------------------
         self.runways    = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_runways, color=palette.runways)

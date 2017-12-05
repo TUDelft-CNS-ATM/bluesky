@@ -186,8 +186,6 @@ if settings.gui == 'qtgl':
         """ Read airport data from navigation database files"""
         pb = ProgressBar('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.')
 
-        rwythresholds = dict()
-        curthresholds = None
         runways       = []
         rwythr        = []
         asphalt       = PolygonSet()
@@ -211,7 +209,7 @@ if settings.gui == 'qtgl':
                     pb.update((bytecount / fsize * 100.0))
 
                 elems = line.decode(encoding="ascii", errors="ignore").strip().split()
-                if len(elems) == 0:
+                if not elems:
                     continue
 
                 # 1: AIRPORT
@@ -235,10 +233,6 @@ if settings.gui == 'qtgl':
                         center = apt_bb.center()
                         apt_ctr_lat.append(center[0])
                         apt_ctr_lon.append(center[1])
-
-                    # Add airport to runway threshold database
-                    curthresholds = dict()
-                    rwythresholds[elems[4]] = curthresholds
 
                     # Reset the boundingbox
                     apt_bb = BoundingBox()
@@ -274,8 +268,6 @@ if settings.gui == 'qtgl':
 
                     thr0, vertices0 = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0)
                     thr1, vertices1 = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1)
-                    curthresholds[elems[8]]  = thr0
-                    curthresholds[elems[17]] = thr1
                     rwythr.extend(vertices0)
                     rwythr.extend(vertices1)
 
@@ -357,11 +349,11 @@ if settings.gui == 'qtgl':
         pb.close()
 
         # return the data
-        return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds
+        return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices
 
 
-# Runway threshold loader for pygame version
-def pygame_load_rwythresholds():
+# Runway threshold loader for navdatabase
+def navdata_load_rwythresholds():
     rwythresholds = dict()
     curthresholds = None
     zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
