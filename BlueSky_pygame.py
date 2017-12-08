@@ -34,6 +34,8 @@ def cleanup():
     bs.sim.stop()
     pg.quit()
 
+    print('BlueSky normal end.')
+
 
 if __name__ == '__main__':
     # Run mainloop if BlueSky_pygame is called directly
@@ -41,5 +43,3 @@ if __name__ == '__main__':
 
     # Cleanup after returning from start()
     cleanup()
-
-    print('BlueSky normal end.')

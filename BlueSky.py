@@ -21,4 +21,3 @@ else:
 start()
 
 cleanup()
-print('BlueSky normal end.')

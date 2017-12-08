@@ -56,5 +56,3 @@ if __name__ == "__main__":
 
     # Cleanup after returning from start()
     cleanup()
-
-    print('BlueSky normal end.')
