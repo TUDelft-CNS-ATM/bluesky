@@ -1,3 +1,4 @@
+''' BlueSky I/O manager. '''
 import os
 from multiprocessing import cpu_count
 import sys
@@ -14,6 +15,7 @@ from bluesky import settings
 settings.set_variable_defaults(max_nnodes=cpu_count())
 
 def split_scenarios(scentime, scencmd):
+    ''' Split the contents of a batch file into individual scenarios. '''
     start = 0
     for i in range(1, len(scencmd) + 1):
         if i == len(scencmd) or scencmd[i][:4] == 'SCEN':
@@ -23,69 +25,48 @@ def split_scenarios(scentime, scencmd):
 
 
 class IOManager(Thread):
+    ''' Implementation of the BlueSky I/O manager server. '''
     def __init__(self):
         super(IOManager, self).__init__()
         self.spawned_processes = list()
         self.running           = True
-        self.nodes             = dict()
         self.max_nnodes        = min(cpu_count(), settings.max_nnodes)
         self.scenarios         = []
+        self.host_id           = b'\x00' + os.urandom(4)
+        self.clients           = []
+        self.workers           = []
+        self.servers           = {self.host_id : dict(route=[], nodes=self.workers)}
 
     def addnodes(self, count=1):
+        ''' Add [count] nodes to this server. '''
         for _ in range(count):
             p = Popen([sys.executable, 'BlueSky_qtgl.py', '--node'])
             self.spawned_processes.append(p)
 
     def run(self):
+        ''' The main loop of this server. '''
         # Get ZMQ context
         ctx = zmq.Context.instance()
 
-        class EventConn:
-            ''' Convenience class for event connection handling. '''
-            # Generate one host ID for this host
-            host_id = b'\x00' + os.urandom(4)
-
-            def __init__(self, endpoint, connection_key):
-                self.sock = ctx.socket(zmq.ROUTER)
-                self.sock.bind(endpoint)
-                self.namefromid = dict()
-                self.idfromname = dict()
-                self.conn_count = 0
-                self.conn_key   = connection_key
-
-            def __eq__(self, sock):
-                # Compare own socket to socket returned from poller.poll
-                return self.sock == sock
-
-            def register(self, connid):
-                # The connection ID consists of the host id plus the index of the
-                # new connection encoded in two bytes.
-                self.conn_count += 1
-                name = bytes(self.host_id + self.conn_key + \
-                    bytearray((self.conn_count // 256, self.conn_count % 256)))
-                self.namefromid[connid] = name
-                self.idfromname[name] = connid
-                return name
-
-
         # Create connection points for clients
-        fe_event  = EventConn('tcp://*:9000', b'c')
+        fe_event  = ctx.socket(zmq.ROUTER)
+        fe_event.setsockopt(zmq.IDENTITY, self.host_id)
+        fe_event.bind('tcp://*:9000')
         fe_stream = ctx.socket(zmq.XPUB)
         fe_stream.bind('tcp://*:9001')
 
 
         # Create connection points for sim workers
-        be_event  = EventConn('tcp://*:10000', b'w')
+        be_event  = ctx.socket(zmq.ROUTER)
+        be_event.setsockopt(zmq.IDENTITY, self.host_id)
+        be_event.bind('tcp://*:10000')
         be_stream = ctx.socket(zmq.XSUB)
         be_stream.bind('tcp://*:10001')
 
-        # We start with zero nodes
-        self.nodes[EventConn.host_id] = []
-
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
-        poller.register(fe_event.sock, zmq.POLLIN)
-        poller.register(be_event.sock, zmq.POLLIN)
+        poller.register(fe_event, zmq.POLLIN)
+        poller.register(be_event, zmq.POLLIN)
         poller.register(be_stream, zmq.POLLIN)
         poller.register(fe_stream, zmq.POLLIN)
 
@@ -116,26 +97,40 @@ class IOManager(Thread):
                     srcisclient = (sock == fe_event)
                     src, dest = (fe_event, be_event) if srcisclient else (be_event, fe_event)
 
-                    # Message format: [sender, target, name, data]
-                    sender, target, eventname, data = msg
+                    # Message format: [route0, ..., routen, name, data]
+                    route, eventname, data = msg[:-2], msg[-2], msg[-1]
+                    sender_id = route[0]
 
                     if eventname == b'REGISTER':
                         # This is a registration message for a new connection
-                        # Send reply with connection name
-                        newid = src.register(sender)
-                        msg[-1] = newid
-                        src.sock.send_multipart(msg)
+                        # Reply with our host ID
+                        src.send_multipart([sender_id, self.host_id, b'REGISTER', b''])
                         # Notify clients of this change
                         if srcisclient:
-                            src.sock.send_multipart([sender, src.host_id, b'NODESCHANGED', msgpack.packb(self.nodes, use_bin_type=True)])
+                            self.clients.append(sender_id)
+                            # If the new connection is a client, send it our server list
+                            src.send_multipart(route + [b'NODESCHANGED', msgpack.packb(self.servers, use_bin_type=True)])
                         else:
-                            self.nodes[src.host_id].append(newid)
-                            data = msgpack.packb({src.host_id : self.nodes[src.host_id]}, use_bin_type=True)
-                            for connid in dest.namefromid:
-                                dest.sock.send_multipart([connid, src.host_id, b'NODESCHANGED', data])
+                            self.workers.append(sender_id)
+                            data = msgpack.packb({self.host_id : self.servers[self.host_id]}, use_bin_type=True)
+                            for client_id in self.clients:
+                                dest.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
                         continue # No message needs to be forwarded
 
-                    elif eventname == b'ADDNODES' and target == fe_event.host_id:
+                    elif eventname == b'NODESCHANGED':
+                        servers_upd = msgpack.unpackb(data, encoding='utf-8')
+                        # Update the route with a hop to the originating server
+                        for server in servers_upd.values():
+                            server['route'].insert(0, sender_id)
+                        self.servers.update(servers_upd)
+                        # Notify own clients of this change
+                        data = msgpack.packb(servers_upd, use_bin_type=True)
+                        for client_id in self.clients:
+                            # Skip sender to avoid infinite message loop
+                            if client_id != sender_id:
+                                fe_event.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
+
+                    elif eventname == b'ADDNODES':
                         # This is a request to start new nodes.
                         count = msgpack.unpackb(data)
                         self.addnodes(count)
@@ -147,14 +142,14 @@ class IOManager(Thread):
 
                     elif eventname == b'QUIT':
                         # Send quit to all nodes
-                        target = b'*'
+                        target_id = b'*'
                         self.running = False
 
                     elif eventname == b'BATCH':
                         scentime, scencmd = msgpack.unpackb(data, encoding='utf-8')
                         self.scenarios = [scen for scen in split_scenarios(scentime, scencmd)]
                         # Check if the batch list contains scenarios
-                        if len(self.scenarios) == 0:
+                        if not self.scenarios:
                             echomsg = 'No scenarios defined in batch file!'
                         else:
                             echomsg = 'Found {} scenarios in batch'.format(len(self.scenarios))
@@ -172,17 +167,17 @@ class IOManager(Thread):
 
                     # ============================================================
                     # If we get here there is a message that needs to be forwarded
-                    # Swap sender and target so that msg is sent to target
-                    sender = src.namefromid.get(msg[0]) or b'unknown'
-                    target = dest.idfromname.get(msg[1]) or b'*'
-                    msg    = [target, sender, eventname, data]
-                    if target == b'*':
+                    # Cycle the route by one step to get the next hop in the route
+                    # (or the destination)
+                    route.append(route.pop(0))
+                    msg    = route + [eventname, data]
+                    if route[0] == b'*':
                         # This is a send-to-all message
-                        for connid in dest.namefromid:
+                        for connid in self.clients if srcisclient else self.workers:
                             msg[0] = connid
-                            dest.sock.send_multipart(msg)
+                            dest.send_multipart(msg)
                     else:
-                        dest.sock.send_multipart(msg)
+                        dest.send_multipart(msg)
 
         # Wait for all nodes to finish
         for n in self.spawned_processes:

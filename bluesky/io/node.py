@@ -1,5 +1,5 @@
 """ Node encapsulates the sim process, and manages process I/O. """
-from threading import Thread
+import os
 import zmq
 import msgpack
 from bluesky import stack
@@ -9,8 +9,8 @@ from bluesky.io.npcodec import encode_ndarray, decode_ndarray
 
 class Node(object):
     def __init__(self):
+        self.node_id = b'\x00' + os.urandom(4)
         self.host_id = b''
-        self.node_id = b''
         self.running = True
         ctx = zmq.Context.instance()
         self.event_io = ctx.socket(zmq.DEALER)
@@ -18,7 +18,7 @@ class Node(object):
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
-        print('Received {} data from {}'.format(eventname, sender_id))
+        print('Node {} received {} data from {}'.format(self.node_id, eventname, sender_id))
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''
@@ -28,13 +28,13 @@ class Node(object):
         ''' Starting of main loop. '''
         # Final Initialization
         # Initialization of sockets.
+        self.event_io.setsockopt(zmq.IDENTITY, self.node_id)
         self.event_io.connect('tcp://localhost:10000')
         self.stream_out.connect('tcp://localhost:10001')
 
         # Start communication, and receive this node's ID
         self.send_event(b'REGISTER')
-        self.node_id = self.event_io.recv_multipart()[-1]
-        self.host_id = self.node_id[:5]
+        self.host_id = self.event_io.recv_multipart()[0]
         print('Node started, id={}'.format(self.node_id))
 
         # run() implements the main loop
@@ -50,14 +50,15 @@ class Node(object):
             # Get new events from the I/O thread
             # while self.event_io.poll(0):
             if self.event_io.getsockopt(zmq.EVENTS) & zmq.POLLIN:
-                res = self.event_io.recv_multipart()
-                sender_id = res[0]
-                name = res[1]
-                if name == b'QUIT':
+                msg = self.event_io.recv_multipart()
+                route, eventname, data = msg[:-2], msg[-2], msg[-1]
+                # route back to sender is acquired by reversing the incoming route
+                route.reverse()
+                if eventname == b'QUIT':
                     self.quit()
                 else:
-                    data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
-                    self.event(name, data, sender_id)
+                    pydata = msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8')
+                    self.event(eventname, pydata, route)
             # Perform a simulation step
             self.step()
 
@@ -67,9 +68,11 @@ class Node(object):
     def addnodes(self, count=1):
         self.send_event(b'ADDNODES', count)
 
-    def send_event(self, name, data=None, target=None):
+    def send_event(self, eventname, data=None, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send_multipart([stack.sender() or b'*', name, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
+        target = stack.sender() or [b'*']
+        pydata = msgpack.packb(data, default=encode_ndarray, use_bin_type=True)
+        self.event_io.send_multipart(target + [eventname, pydata])
 
     def send_stream(self, name, data):
         self.stream_out.send_multipart([name + self.node_id, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])

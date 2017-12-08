@@ -146,14 +146,14 @@ class MainWindow(QMainWindow):
         self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
 
     def nodesChanged(self, data):
-        for host_id, node_ids in data.items():
+        for host_id, host_data in data.items():
             host = self.hosts.get(host_id)
             if not host:
                 host = QTreeWidgetItem(self.nodetree)
                 self.maxhostnum += 1
                 host.host_num = self.maxhostnum
                 host.host_id = host_id
-                hostname = 'This computer' if host_id == io.get_hostid() else host_id
+                hostname = 'This computer' if host_id == io.get_hostid() else str(host_id)
                 f = host.font(0)
                 f.setBold(True)
                 host.setExpanded(True)
@@ -171,7 +171,7 @@ class MainWindow(QMainWindow):
                 self.nodetree.setItemWidget(host, 0, btn)
                 self.hosts[host_id] = host
 
-            for node_id in node_ids:
+            for node_id in host_data['nodes']:
                 if node_id not in self.nodes:
                     node_num = node_id[-2] * 256 + node_id[-1]
                     node = QTreeWidgetItem(host)
@@ -254,4 +254,4 @@ class MainWindow(QMainWindow):
             io.send_event(b'STACKCMD', 'SAVEIC')
         elif hasattr(self.sender(), 'host_id'):
             print(self.sender())
-            io.send_event(b'ADDNODES', 1, target=self.sender().host_id)
+            io.send_event(b'ADDNODES', 1)

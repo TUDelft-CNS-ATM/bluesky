@@ -1,3 +1,5 @@
+''' BlueSky client base class. '''
+import os
 import zmq
 import msgpack
 from bluesky.io.npcodec import encode_ndarray, decode_ndarray
@@ -10,14 +12,14 @@ class Client(object):
         self.stream_in   = ctx.socket(zmq.SUB)
         self.poller      = zmq.Poller()
         self.host_id     = b''
-        self.client_id   = 0
+        self.client_id   = b'\x00' + os.urandom(4)
         self.sender_id   = b''
         self.known_nodes = dict()
 
     def get_hostid(self):
         return self.host_id
 
-    def event(self, name, data, sender_id):
+    def event(self, name, data, sender_id, sender_route):
         ''' Default event handler for Client. Override or monkey-patch this function
             to implement actual event handling. '''
         print('Client {} received event {} from {}'.format(self.client_id, name, sender_id))
@@ -41,11 +43,10 @@ class Client(object):
         self.stream_in.setsockopt(zmq.UNSUBSCRIBE, streamname + node_id)
 
     def connect(self):
+        self.event_io.setsockopt(zmq.IDENTITY, self.client_id)
         self.event_io.connect('tcp://localhost:9000')
         self.send_event(b'REGISTER')
-        data = self.event_io.recv_multipart()[-1]
-        self.client_id = 256 * data[-2] + data[-1]
-        self.host_id   = data[:5]
+        self.host_id = self.event_io.recv_multipart()[0]
         print('Client {} connected to host {}'.format(self.client_id, self.host_id))
         self.stream_in.connect('tcp://localhost:9001')
         # self.stream_in.setsockopt(zmq.SUBSCRIBE, b'')
@@ -58,23 +59,24 @@ class Client(object):
         try:
             socks = dict(self.poller.poll(0))
             if socks.get(self.event_io) == zmq.POLLIN:
-                res = self.event_io.recv_multipart()
-                self.sender_id = res[0]
-                name = res[1]
-                data = msgpack.unpackb(res[2], object_hook=decode_ndarray, encoding='utf-8')
-                if name == b'NODESCHANGED':
-                    self.known_nodes.update(data)
-                    self.nodes_changed(data)
+                msg = self.event_io.recv_multipart()
+                route, eventname, data = msg[:-2], msg[-2], msg[-1]
+                self.sender_id = route[0]
+                route.reverse()
+                pydata = msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8')
+                if eventname == b'NODESCHANGED':
+                    self.known_nodes.update(pydata)
+                    self.nodes_changed(pydata)
                 else:
-                    self.event(name, data, self.sender_id)
+                    self.event(eventname, pydata, self.sender_id, route)
 
             if socks.get(self.stream_in) == zmq.POLLIN:
-                res = self.stream_in.recv_multipart()
+                msg = self.stream_in.recv_multipart()
 
-                name      = res[0][:-8]
-                sender_id = res[0][-8:]
-                data      = msgpack.unpackb(res[1], object_hook=decode_ndarray, encoding='utf-8')
-                self.stream(name, data, sender_id)
+                strmname  = msg[0][:-5]
+                sender_id = msg[0][-5:]
+                pydata    = msgpack.unpackb(msg[1], object_hook=decode_ndarray, encoding='utf-8')
+                self.stream(strmname, pydata, sender_id)
         except zmq.ZMQError:
             return False
 
@@ -82,8 +84,8 @@ class Client(object):
         self.send_event(b'ADDNODES', count)
 
     def send_event(self, name, data=None, target=None):
-        # On the sim side, target is obtained from the currently-parsed stack command
-        self.event_io.send_multipart([target or b'*', name, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
+        route = target or [b'*']
+        self.event_io.send_multipart(route + [name, msgpack.packb(data, default=encode_ndarray, use_bin_type=True)])
 
     def send_stream(self, name, data):
         pass

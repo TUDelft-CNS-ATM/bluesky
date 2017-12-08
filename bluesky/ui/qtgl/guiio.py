@@ -21,16 +21,19 @@ event_received      = Signal()
 stream_received     = Signal()
 
 class nodeData(object):
-    def __init__(self):
+    def __init__(self, route=None):
         # Stack window
-        self.echo_text     = ''
+        self.echo_text = ''
 
         # Display pan and zoom
-        self.pan           = (0.0, 0.0)
-        self.zoom          = 1.0
+        self.pan       = (0.0, 0.0)
+        self.zoom      = 1.0
 
         # Per-scenario data
         self.clear_scen_data()
+
+        # Network route to this node
+        self._route    = route
 
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node
@@ -158,14 +161,15 @@ class GuiClient(Client):
     def __init__(self):
         super(GuiClient, self).__init__()
         self.act = b''
+        self.actroute = []
         self.nodedata = dict()
         self.timer = None
 
-    def event(self, name, data, sender_id):
+    def event(self, name, data, sender_id, sender_route):
         sender_data = self.nodedata.get(sender_id)
         data_changed = []
         if not sender_data:
-            sender_data = self.nodedata[sender_id] = nodeData()
+            sender_data = self.nodedata[sender_id] = nodeData(sender_route)
         if name == b'RESET':
             sender_data.clear_scen_data()
             data_changed = list(UPDATE_ALL)
@@ -194,10 +198,11 @@ class GuiClient(Client):
 
     def nodes_changed(self, data):
         node_id = b''
-        for node_ids in data.values():
-            for node_id in node_ids:
+        for server in data.values():
+            for node_id in server['nodes']:
                 if node_id not in self.nodedata:
-                    self.nodedata[node_id] = nodeData()
+                    route = server['route'] + [node_id]
+                    self.nodedata[node_id] = nodeData(route)
 
         nodes_changed.emit(data)
         # If this is the first known node, select it as active node
@@ -206,18 +211,22 @@ class GuiClient(Client):
 
     def actnode(self, newact=None):
         if newact is not None:
+            actdata = self.nodedata.get(newact)
+            if actdata is None:
+                print('Error selecting active node (unknown node)')
+                return
             # Unsubscribe from previous node, subscribe to new one.
             if self.act:
                 self.unsubscribe(b'ACDATA', self.act)
             self.subscribe(b'ACDATA', newact)
 
             self.act = newact
-            actdata = self.nodedata.get(newact)
+            self.actroute = actdata._route
             actnodedata_changed.emit(newact, actdata, UPDATE_ALL)
         return self.act
 
     def send_event(self, name, data=None, target=None):
-        super(GuiClient, self).send_event(name, data, target or self.act)
+        super(GuiClient, self).send_event(name, data, target or self.actroute)
 
     def get_nodedata(self, nodeid=None):
         return self.nodedata.get(nodeid or self.act, self.default_data)
