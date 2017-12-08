@@ -245,7 +245,6 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
     limvs = np.where((Thr >maxthr-1.0), ((Thr_corrected - D) * tas) / (mass * g0)* ESF, -9999.0)
     limvs_flag = np.where(limvs > -9999.0 , True, False)
 
-
     # aircraft can only take-off as soon as their speed is above v_rotate
     # True means that current speed is below rotation speed
     # limit vertical speed is thrust limited and thus should only be
@@ -258,8 +257,8 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
     limvs      = np.where ((np.abs(to_spd - gs) < 0.1) & ((phase == 6) | (phase == 1)), -9999.,  limvs)
     limvs_flag = np.where((np.abs(to_spd - gs) < 0.1) & ((phase == 6) | (phase == 1)), True, limvs_flag)
 
-    
-    
+
+
     # remove non-needed limits
     Thr        = np.where((maxthr-Thr< 2.), -9999., Thr)
     limvs      = np.where((maxthr-Thr< 2.), -9999., limvs)
