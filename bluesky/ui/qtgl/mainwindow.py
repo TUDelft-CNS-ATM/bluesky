@@ -171,9 +171,9 @@ class MainWindow(QMainWindow):
                 self.nodetree.setItemWidget(host, 0, btn)
                 self.hosts[host_id] = host
 
-            for node_id in host_data['nodes']:
+            for node_num, node_id in enumerate(host_data['nodes']):
                 if node_id not in self.nodes:
-                    node_num = node_id[-2] * 256 + node_id[-1]
+                    # node_num = node_id[-2] * 256 + node_id[-1]
                     node = QTreeWidgetItem(host)
                     node.setText(0, '{}:{} <init>'.format(host.host_num, node_num))
                     node.setText(1, '00:00:00')

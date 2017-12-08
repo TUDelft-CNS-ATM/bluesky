@@ -142,7 +142,7 @@ class IOManager(Thread):
 
                     elif eventname == b'QUIT':
                         # Send quit to all nodes
-                        target_id = b'*'
+                        route = [self.host_id, b'*']
                         self.running = False
 
                     elif eventname == b'BATCH':
@@ -173,7 +173,7 @@ class IOManager(Thread):
                     msg    = route + [eventname, data]
                     if route[0] == b'*':
                         # This is a send-to-all message
-                        for connid in self.clients if srcisclient else self.workers:
+                        for connid in self.workers if srcisclient else self.clients:
                             msg[0] = connid
                             dest.send_multipart(msg)
                     else:
