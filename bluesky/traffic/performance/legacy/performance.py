@@ -105,7 +105,7 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
     ap   = np.maximum.reduce([apa, apb]) * 4
 
     #-------------------------------------------------
-    # phase LD[5]: alt<3000, Speed between Vmcr+10 and Vmap+10, vs<0
+    # phase LD[5]: alt<3000, Speed below vmap (i.e. minimum approach speed) + 10kt
     Lalt = np.array(alt <= (3000.0 * ft))
     if bada:
         Lspd = np.array(cas < (vmap + 10.0 * kts))
