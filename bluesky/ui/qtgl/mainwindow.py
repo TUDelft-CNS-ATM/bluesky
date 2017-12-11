@@ -175,10 +175,10 @@ class MainWindow(QMainWindow):
                 if node_id not in self.nodes:
                     # node_num = node_id[-2] * 256 + node_id[-1]
                     node = QTreeWidgetItem(host)
-                    node.setText(0, '{}:{} <init>'.format(host.host_num, node_num))
+                    node.setText(0, '{}:{} <init>'.format(host.host_num, node_num + 1))
                     node.setText(1, '00:00:00')
                     node.node_id  = node_id
-                    node.node_num = node_num
+                    node.node_num = node_num + 1
                     node.host_num = host.host_num
 
                     self.nodes[node_id] = node
@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
         if node:
-            node.setText(0, '{}:{} <{}>'.format(node.node_num, node.host_num, scenname))
+            node.setText(0, '{}:{} <{}>'.format(node.host_num, node.node_num, scenname))
             node.setText(1, time)
 
     @pyqtSlot(QTreeWidgetItem, int)

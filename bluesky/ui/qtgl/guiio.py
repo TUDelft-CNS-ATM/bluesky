@@ -195,10 +195,13 @@ class GuiClient(Client):
         nodes_changed.emit(data)
 
     def actnode_changed(self, newact):
-        actnodedata_changed.emit(newact, get_nodedata(newact), UPDATE_ALL)
+        actnodedata_changed.emit(newact, self.get_nodedata(newact), UPDATE_ALL)
 
     def get_nodedata(self, nodeid=None):
-        return self.nodedata.get(nodeid or self.act) or nodeData()
+        data = self.nodedata.get(nodeid or self.act)
+        if not data:
+            self.nodedata[nodeid or self.act] = data = nodeData()
+        return data
 
     def init(self):
         self.connect()
