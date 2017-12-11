@@ -447,7 +447,6 @@ class Route:
         """
         wplat = (wplat + 90.) % 180. - 90.
         wplon = (wplon + 180.) % 360. - 180.
-        wpalt = max(0., wpalt)  # Use h=0 as default value
 
         if overwrt:
             self.wpname[wpidx] = wpname
@@ -504,6 +503,9 @@ class Route:
                 if i >= 0:
                     wplat = bs.navdb.aptlat[i]
                     wplon = bs.navdb.aptlon[i]
+
+            if not orig and alt < 0:
+                alt = 0
 
             # Overwrite existing origin/dest
             if self.nwp > 0 and self.wptype[wpidx] == wptype:
