@@ -84,7 +84,7 @@ class Gui(QApplication):
         self.exec_()
 
     def quit(self):
-        # Send quit to manager
+        # Send quit to server
         io.send_event(b'QUIT')
         self.closeAllWindows()
 

@@ -45,8 +45,6 @@ def cleanup():
     """
     Tear-down BlueSky
     """
-    # Close the manager, stop all nodes
-    # bs.manager.stop()
     print('BlueSky normal end.')
 
 

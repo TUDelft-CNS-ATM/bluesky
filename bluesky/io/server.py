@@ -1,4 +1,4 @@
-''' BlueSky I/O manager. '''
+''' BlueSky simulation server. '''
 import os
 from multiprocessing import cpu_count
 import sys
@@ -24,10 +24,10 @@ def split_scenarios(scentime, scencmd):
             start = i
 
 
-class IOManager(Thread):
-    ''' Implementation of the BlueSky I/O manager server. '''
+class Server(Thread):
+    ''' Implementation of the BlueSky simulation server. '''
     def __init__(self):
-        super(IOManager, self).__init__()
+        super(Server, self).__init__()
         self.spawned_processes = list()
         self.running           = True
         self.max_nnodes        = min(cpu_count(), settings.max_nnodes)
@@ -109,7 +109,8 @@ class IOManager(Thread):
                         if srcisclient:
                             self.clients.append(sender_id)
                             # If the new connection is a client, send it our server list
-                            src.send_multipart(route + [b'NODESCHANGED', msgpack.packb(self.servers, use_bin_type=True)])
+                            data = msgpack.packb(self.servers, use_bin_type=True)
+                            src.send_multipart([sender_id, self.host_id, b'NODESCHANGED', data])
                         else:
                             self.workers.append(sender_id)
                             data = msgpack.packb({self.host_id : self.servers[self.host_id]}, use_bin_type=True)

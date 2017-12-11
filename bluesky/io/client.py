@@ -62,7 +62,7 @@ class Client(object):
         self.poller.register(self.stream_in, zmq.POLLIN)
 
     def receive(self):
-        ''' Poll for incoming data from Manager, and receive if available. '''
+        ''' Poll for incoming data from Server, and receive if available. '''
         try:
             socks = dict(self.poller.poll(0))
             if socks.get(self.event_io) == zmq.POLLIN:

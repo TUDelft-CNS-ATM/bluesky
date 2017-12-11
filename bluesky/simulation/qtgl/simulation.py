@@ -187,7 +187,7 @@ class Simulation(Node):
         self.send_event(b'STATECHANGE', self.state)
 
     def batch(self, filename):
-        # The contents of the scenario file are meant as a batch list: send to manager and clear stack
+        # The contents of the scenario file are meant as a batch list: send to server and clear stack
         result = stack.openfile(filename)
         if result:
             scentime, scencmd = stack.get_scendata()

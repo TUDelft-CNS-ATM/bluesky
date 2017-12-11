@@ -15,7 +15,7 @@ traf      = None
 navdb     = None
 sim       = None
 scr       = None
-iomanager = None
+server    = None
 
 def init():
     # Both sim and gui need a navdatabase in all versions of BlueSky
@@ -24,10 +24,10 @@ def init():
     navdb = Navdatabase()
 
     if settings.is_gui and settings.gui != 'pygame':
-        global iomanager
-        from bluesky.io import IOManager
-        iomanager = IOManager()
-        iomanager.start()
+        global server
+        from bluesky.io import Server
+        server = Server()
+        server.start()
 
     # The remaining objects are only instantiated in the sim nodes
     if settings.is_sim:
