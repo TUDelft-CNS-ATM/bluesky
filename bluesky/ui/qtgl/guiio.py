@@ -13,6 +13,7 @@ from bluesky.tools.aero import ft
 
 # Globals
 UPDATE_ALL = ['POLY', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT']
+ACTNODE_TOPICS = [b'ACDATA']
 
 # Signals
 actnodedata_changed = Signal()
@@ -156,20 +157,14 @@ class nodeData(object):
             self.ssd_ownship = self.ssd_ownship.union(arg) - remove
 
 class GuiClient(Client):
-    default_data = nodeData()
-
     def __init__(self):
-        super(GuiClient, self).__init__()
-        self.act = b''
-        self.actroute = []
+        super(GuiClient, self).__init__(ACTNODE_TOPICS)
         self.nodedata = dict()
         self.timer = None
 
-    def event(self, name, data, sender_id, sender_route):
-        sender_data = self.nodedata.get(sender_id)
+    def event(self, name, data, sender_id):
+        sender_data = self.get_nodedata(sender_id)
         data_changed = []
-        if not sender_data:
-            sender_data = self.nodedata[sender_id] = nodeData(sender_route)
         if name == b'RESET':
             sender_data.clear_scen_data()
             data_changed = list(UPDATE_ALL)
@@ -197,39 +192,13 @@ class GuiClient(Client):
         stream_received.emit(name, data, sender_id)
 
     def nodes_changed(self, data):
-        node_id = b''
-        for server in data.values():
-            for node_id in server['nodes']:
-                if node_id not in self.nodedata:
-                    route = server['route'] + [node_id]
-                    self.nodedata[node_id] = nodeData(route)
-
         nodes_changed.emit(data)
-        # If this is the first known node, select it as active node
-        if not self.act and node_id:
-            self.actnode(node_id)
 
-    def actnode(self, newact=None):
-        if newact is not None:
-            actdata = self.nodedata.get(newact)
-            if actdata is None:
-                print('Error selecting active node (unknown node)')
-                return
-            # Unsubscribe from previous node, subscribe to new one.
-            if self.act:
-                self.unsubscribe(b'ACDATA', self.act)
-            self.subscribe(b'ACDATA', newact)
-
-            self.act = newact
-            self.actroute = actdata._route
-            actnodedata_changed.emit(newact, actdata, UPDATE_ALL)
-        return self.act
-
-    def send_event(self, name, data=None, target=None):
-        super(GuiClient, self).send_event(name, data, target or self.actroute)
+    def actnode_changed(self, newact):
+        actnodedata_changed.emit(newact, get_nodedata(newact), UPDATE_ALL)
 
     def get_nodedata(self, nodeid=None):
-        return self.nodedata.get(nodeid or self.act, self.default_data)
+        return self.nodedata.get(nodeid or self.act) or nodeData()
 
     def init(self):
         self.connect()
