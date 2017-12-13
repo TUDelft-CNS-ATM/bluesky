@@ -31,7 +31,7 @@ from bluesky import settings
 # Temporary fix for synthetic
 from . import synthetic as syn
 # Register settings defaults
-settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario')
+settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario', scenfile='')
 
 # Global variables
 cmddict   = dict()  # Defined in stack.init
@@ -699,6 +699,10 @@ def init():
     # Pan to initial location
     stack('PAN ' + settings.start_location)
     stack("ZOOM 0.4")
+
+    # Load initial scenario if passed
+    if settings.scenfile:
+        openfile(settings.scenfile)
 
 
 def get_scenname():
