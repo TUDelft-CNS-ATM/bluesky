@@ -818,7 +818,7 @@ def showhelp(cmd=''):
             line = line + "\t" + lst[0] + "\t" + str(lst[1]) + "\t"
 
             # Clean up string with function name and add if not a lambda function
-            funct = str(lst[2]).replace("<", "").replace(">", "")
+            funct = str(lst[3]).replace("<", "").replace(">", "")
 
             # Lambda function give no info, also remove hex address and "method" text
             if funct.count("lambda") == 0:
