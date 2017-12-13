@@ -779,7 +779,7 @@ def showhelp(cmd=''):
         if len(cmddict) <= 3:
             return cmddict[cmd][0]
         else:
-            return cmddict[cmd][0] + "\n" + cmddict[cmd][3]
+            return cmddict[cmd][0] + "\n" + cmddict[cmd][4]
 
     # Show help line for equivalent command
     elif cmd in cmdsynon:
@@ -788,7 +788,7 @@ def showhelp(cmd=''):
         if len(cmddict[cmdsynon[cmd]]) <= 3:
             return cmddict[cmdsynon[cmd]][0]
         else:
-            return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][3]
+            return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][4]
 
     # Write command reference to tab-delimited text file
     elif cmd[0] == ">":
