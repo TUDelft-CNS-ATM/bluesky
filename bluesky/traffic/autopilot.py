@@ -54,7 +54,7 @@ class Autopilot(TrafficArrays):
         self.dist2vs[-n:] = -999.
 
         # Route objects
-        self.route.extend([Route()] * n)
+        self.route.extend([Route() for _ in range(n)])
 
     def delete(self, idx):
         super(Autopilot, self).delete(idx)
