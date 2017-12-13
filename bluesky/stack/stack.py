@@ -757,7 +757,7 @@ def showhelp(cmd=''):
         when command is >filename
     """
     # No command given: show all
-    if len(cmd) == 0:
+    if not cmd:
         return "There are different ways to get help:\n" + \
                " HELP PDF  gives an overview of the existing commands\n" + \
                " HELP cmd  gives a help line on the command (syntax)\n"  + \
@@ -920,15 +920,13 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
     global scentime, scencmd
 
     # Split the incoming filename into a path, a filename and an extension
-    path, fname   = os.path.split(os.path.normpath(fname))
-    scenname, ext = os.path.splitext(fname)
-    if len(path) == 0:
-        path = os.path.normpath(settings.scenario_path)
-    if len(ext) == 0:
-        ext = '.scn'
+    path, fname = os.path.split(os.path.normpath(fname))
+    base, ext = os.path.splitext(fname)
+    path = path or os.path.normpath(settings.scenario_path)
+    ext  = ext  or '.scn'
 
     # The entire filename, possibly with added path and extension
-    fname_full = os.path.join(path, scenname + ext)
+    fname_full = os.path.join(path, base + ext)
 
     print("Opening " + fname_full)
 
