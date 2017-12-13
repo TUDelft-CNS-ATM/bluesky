@@ -814,7 +814,7 @@ def showhelp(cmd=''):
         for item, lst in cmddict.items():
             line = item + "\t"
             if len(lst) > 3:
-                line = line + lst[3]
+                line = line + lst[4]
             line = line + "\t" + lst[0] + "\t" + str(lst[1]) + "\t"
 
             # Clean up string with function name and add if not a lambda function
@@ -844,7 +844,7 @@ def showhelp(cmd=''):
         table = []  # for alphabetical sort use table
         for item in cmdsynon:
             if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]]) >= 3:
-                table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][3])
+                table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][4])
             else:
                 table.append(item + "\t" + cmdsynon[item] + "\t")
 
