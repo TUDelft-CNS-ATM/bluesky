@@ -1024,7 +1024,7 @@ def saveic(fname):
     # Write files
     timtxt = "00:00:00.00>"
 
-    for i in range(bs.traf.nbs.traf):
+    for i in range(bs.traf.ntraf):
         # CRE acid,type,lat,lon,hdg,alt,spd
         cmdline = "CRE " + bs.traf.id[i] + "," + bs.traf.type[i] + "," + \
                   repr(bs.traf.lat[i]) + "," + repr(bs.traf.lon[i]) + "," + \
