@@ -923,7 +923,7 @@ def openfile(fname, *args, mergeWithExisting=False):
         else:
             arglst = []
     else:
-        absrel = "ABS"
+        absrel = "REL" # default relative to the time of call
         arglst = args
 
     # Collect arguments to be used in called scenario file
