@@ -480,10 +480,10 @@ def init():
             "Pan screen (move view) to a waypoint, direction or aircraft"
         ],
         "PCALL": [
-            "PCALL filename [REL/ABS]",
-            "txt,[txt]",
+            "PCALL filename [REL/ABS/args]",
+            "txt,[txt,...]",
             lambda *args: openfile(*args, mergeWithExisting=True),
-            "Call commands in another scenario file"
+            "Call commands in another scenario file, %0, %1 etc specify arguments in called file"
         ],
         "PLOT": [
             "PLOT x, y [,dt,color,figure]",
@@ -912,8 +912,22 @@ def sched_cmd(time, args, relative=False):
     return True
 
 
-def openfile(fname, absrel='ABS', mergeWithExisting=False):
+def openfile(fname, *args, mergeWithExisting=False):
     global scentime, scencmd
+
+
+    if len(args)>0 and (args[0]=="ABS" or args[0]=="REL"):
+        absrel = args[0]
+        if len(args)>1:
+            arglst = args[1:]
+        else:
+            arglst = []
+    else:
+        absrel = "ABS"
+        arglst = args
+
+    # Collect arguments to be used in called scenario file
+
 
     # Split the incoming filename into a path, a filename and an extension
     path, fname   = os.path.split(os.path.normpath(fname))
@@ -945,6 +959,12 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
 
     with open(scenfile, 'r') as fscen:
         for line in fscen:
+
+            # Replace arguments if specified: %0 by first argument, %1 by seconds, %2
+            for iarg, txtarg in enumerate(arglst):
+                line = line.replace("%"+str(iarg),arglst[iarg])
+
+            # Skip emtpy lines and comments
             if len(line.strip()) > 12 and line[0] != "#":
                 # Try reading timestamp and command
                 try:
