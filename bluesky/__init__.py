@@ -8,7 +8,7 @@ MSG_OK = 'ok.'
 CMD_TCP_CONNS = 'TCP_CONNS'
 
 # simulation states
-INIT, OP, HOLD, END = list(range(4))
+INIT, HOLD, OP, END = list(range(4))
 
 ### Main singleton objects in BlueSky
 traf      = None

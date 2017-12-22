@@ -8,11 +8,11 @@ import zmq
 import msgpack
 
 # Local imports
-from bluesky import settings
+import bluesky as bs
 
 
 # Register settings defaults
-settings.set_variable_defaults(max_nnodes=cpu_count())
+bs.settings.set_variable_defaults(max_nnodes=cpu_count())
 
 def split_scenarios(scentime, scencmd):
     ''' Split the contents of a batch file into individual scenarios. '''
@@ -20,7 +20,7 @@ def split_scenarios(scentime, scencmd):
     for i in range(1, len(scencmd) + 1):
         if i == len(scencmd) or scencmd[i][:4] == 'SCEN':
             scenname = scencmd[start].split()[1].strip()
-            yield (scenname, scentime[start:i], scencmd[start:i])
+            yield dict(name=scenname, scentime=scentime[start:i], scencmd=scencmd[start:i])
             start = i
 
 
@@ -30,12 +30,20 @@ class Server(Thread):
         super(Server, self).__init__()
         self.spawned_processes = list()
         self.running           = True
-        self.max_nnodes        = min(cpu_count(), settings.max_nnodes)
+        self.max_nnodes        = min(cpu_count(), bs.settings.max_nnodes)
         self.scenarios         = []
         self.host_id           = b'\x00' + os.urandom(4)
         self.clients           = []
         self.workers           = []
         self.servers           = {self.host_id : dict(route=[], nodes=self.workers)}
+        self.avail_workers     = dict()
+
+    def sendScenario(self, worker_id):
+        # Send a new scenario to the target sim process
+        scen = self.scenarios.pop(0)
+        # qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='Starting scenario ' + scen[0] + ' on node (%d, %d)' % conn[1]))
+        data = msgpack.packb(scen)
+        self.be_event.send_multipart([worker_id, self.host_id, b'BATCH', data])
 
     def addnodes(self, count=1):
         ''' Add [count] nodes to this server. '''
@@ -49,26 +57,25 @@ class Server(Thread):
         ctx = zmq.Context.instance()
 
         # Create connection points for clients
-        fe_event  = ctx.socket(zmq.ROUTER)
-        fe_event.setsockopt(zmq.IDENTITY, self.host_id)
-        fe_event.bind('tcp://*:9000')
-        fe_stream = ctx.socket(zmq.XPUB)
-        fe_stream.bind('tcp://*:9001')
-
+        self.fe_event  = ctx.socket(zmq.ROUTER)
+        self.fe_event.setsockopt(zmq.IDENTITY, self.host_id)
+        self.fe_event.bind('tcp://*:9000')
+        self.fe_stream = ctx.socket(zmq.XPUB)
+        self.fe_stream.bind('tcp://*:9001')
 
         # Create connection points for sim workers
-        be_event  = ctx.socket(zmq.ROUTER)
-        be_event.setsockopt(zmq.IDENTITY, self.host_id)
-        be_event.bind('tcp://*:10000')
-        be_stream = ctx.socket(zmq.XSUB)
-        be_stream.bind('tcp://*:10001')
+        self.be_event  = ctx.socket(zmq.ROUTER)
+        self.be_event.setsockopt(zmq.IDENTITY, self.host_id)
+        self.be_event.bind('tcp://*:10000')
+        self.be_stream = ctx.socket(zmq.XSUB)
+        self.be_stream.bind('tcp://*:10001')
 
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
-        poller.register(fe_event, zmq.POLLIN)
-        poller.register(be_event, zmq.POLLIN)
-        poller.register(be_stream, zmq.POLLIN)
-        poller.register(fe_stream, zmq.POLLIN)
+        poller.register(self.fe_event, zmq.POLLIN)
+        poller.register(self.be_event, zmq.POLLIN)
+        poller.register(self.be_stream, zmq.POLLIN)
+        poller.register(self.fe_stream, zmq.POLLIN)
 
         # Start the first simulation node
         self.addnodes()
@@ -88,14 +95,14 @@ class Server(Thread):
                 # Receive the message
                 msg = sock.recv_multipart()
                 # First check if this is a stream message: these should be forwarded unprocessed.
-                if sock == be_stream:
-                    fe_stream.send_multipart(msg)
-                elif sock == fe_stream:
-                    be_stream.send_multipart(msg)
+                if sock == self.be_stream:
+                    self.fe_stream.send_multipart(msg)
+                elif sock == self.fe_stream:
+                    self.be_stream.send_multipart(msg)
                 else:
                     # Select the correct source and destination
-                    srcisclient = (sock == fe_event)
-                    src, dest = (fe_event, be_event) if srcisclient else (be_event, fe_event)
+                    srcisclient = (sock == self.fe_event)
+                    src, dest = (self.fe_event, self.be_event) if srcisclient else (self.be_event, self.fe_event)
 
                     # Message format: [route0, ..., routen, name, data]
                     route, eventname, data = msg[:-2], msg[-2], msg[-1]
@@ -129,7 +136,7 @@ class Server(Thread):
                         for client_id in self.clients:
                             # Skip sender to avoid infinite message loop
                             if client_id != sender_id:
-                                fe_event.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
+                                self.fe_event.send_multipart([client_id, self.host_id, b'NODESCHANGED', data])
 
                     elif eventname == b'ADDNODES':
                         # This is a request to start new nodes.
@@ -139,6 +146,16 @@ class Server(Thread):
 
                     elif eventname == b'STATECHANGE':
                         state = msgpack.unpackb(data)
+                        if state < bs.OP:
+                            # If we have batch scenarios waiting, send
+                            # the worker a new scenario, otherwise store it in
+                            # the available worker list
+                            if self.scenarios:
+                                self.sendScenario(sender_id)
+                            else:
+                                self.avail_workers[sender_id] = route
+                        else:
+                            self.avail_workers.pop(route[0], None)
                         continue
 
                     elif eventname == b'QUIT':
@@ -154,14 +171,16 @@ class Server(Thread):
                             echomsg = 'No scenarios defined in batch file!'
                         else:
                             echomsg = 'Found {} scenarios in batch'.format(len(self.scenarios))
-                            # # Available nodes (nodes that are in init or hold mode):
-                            # av_nodes = [n for n, conn in enumerate(self.connections) if conn[2] in [0, 2]]
-                            # for i in range(min(len(av_nodes), len(self.scenarios))):
-                            #     self.sendScenario(self.connections[i])
-                            # # If there are still scenarios left, determine and start the required number of local nodes
-                            # reqd_nnodes = min(len(self.scenarios), max(0, self.max_nnodes - len(self.localnodes)))
-                            # for n in range(reqd_nnodes):
-                            #     self.addNode()
+                            # Send scenario to available nodes (nodes that are in init or hold mode):
+                            while self.avail_workers and self.scenarios:
+                                worker_id = next(iter(self.avail_workers))
+                                self.sendScenario(worker_id)
+                                self.avail_workers.pop(worker_id)
+
+                            # If there are still scenarios left, determine and
+                            # start the required number of local nodes
+                            reqd_nnodes = min(len(self.scenarios), max(0, self.max_nnodes - len(self.workers)))
+                            self.addnodes(reqd_nnodes)
                         # ECHO the results to the calling client
                         eventname = b'ECHO'
                         data = msgpack.packb(echomsg, use_bin_type=True)
@@ -174,6 +193,7 @@ class Server(Thread):
                     msg    = route + [eventname, data]
                     if route[0] == b'*':
                         # This is a send-to-all message
+                        msg.insert(0, b'')
                         for connid in self.workers if srcisclient else self.clients:
                             msg[0] = connid
                             dest.send_multipart(msg)
