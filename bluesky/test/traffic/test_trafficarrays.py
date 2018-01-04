@@ -21,8 +21,17 @@ def t_a(pytestconfig):
     """
 
     class TestChild(ta.TrafficArrays):
+        """
+        Test class for testing TrafficArrays class, esp.
+        handling of new children objects.
+        """
 
         def __init__(self):
+            """
+            Initialises TestChild class registering
+            and initialising two numpy arrays (one for booleans,
+            one for integers)
+            """
             super(TestChild, self).__init__()
 
             with ta.RegisterElementParameters(self):
@@ -30,8 +39,16 @@ def t_a(pytestconfig):
                 self.np_array_int = np.array([], dtype=np.int)
 
     class TestRoot(ta.TrafficArrays):
+        """
+        Test class for testing TrafficArrays class, esp.
+        handling of TrafficArrays root elements.
+        """
 
         def __init__(self):
+            """
+            Initialises TestRoot class setting itself as root
+            and registering a number of arrays.
+            """
             super(TestRoot, self).__init__()
 
             # Traffic is the toplevel trafficarrays object
@@ -45,10 +62,14 @@ def t_a(pytestconfig):
 
                 self.test_child = TestChild()
 
+    # Return initialised TestRoot object and name of TestChild class
     yield TestRoot(), TestChild.__name__
 
 
 def test_trafficarrays_init(t_a):
+    """
+    Test initial conditions of TrafficArrays object.
+    """
     root, tcclass = t_a
 
     assert len(root.children) == 1
@@ -62,6 +83,11 @@ def test_trafficarrays_init(t_a):
 
 
 def test_trafficarrays_create(t_a):
+    """
+    Tests creation of new TrafficArrays object.
+
+    Creates two new objects.
+    """
     root, _tcclass = t_a
     root.create()
     root.create_children()
@@ -90,6 +116,11 @@ def test_trafficarrays_create(t_a):
 
 
 def test_trafficarrays_delete(t_a):
+    """
+    Tests deletion of TrafficArrays object.
+    Expects index of object to be removed from
+    int_list.
+    """
     root, _tcclass = t_a
 
     root.int_list = [0, 1, 2]
@@ -100,6 +131,11 @@ def test_trafficarrays_delete(t_a):
 
 
 def test_trafficarrays_reset(t_a):
+    """
+    Tests reset method which must dispose
+    of all TrafficArrays objects, including all
+    children and root.
+    """
     root, _tcclass = t_a
 
     root.reset()

@@ -12,12 +12,42 @@ from bluesky.tools.aero import casormach
 
 
 def test_traffic_create_missingarg_fail(traffic_):
-    ok, msg = traffic_.create()
+    """
+    Test create command without arguments.
+    Expect error message.
+    """
+    ok, _msg = traffic_.create()
     assert not ok
 
 
 def validate_create(traffic_, result,
                     len_, acid, actype, aclat, aclon, achdg, acalt, casmach):
+    """
+    Generic test for validating successful creation
+    of a new aircraft.
+        - traffic_:
+            The current traffic object directory
+        - result:
+            The result of the create command (True | False)
+        - len_:
+            The number of expected traffic objects
+        - acid:
+            The callsign of the created aircraft
+        - actype:
+            The type of the created aircraft
+        - aclat/aclon:
+            The position of the created aircraft
+        - achdg:
+            Current heading of the created aircraft
+        - acalt:
+            Current altitude of the created aircraft
+        - casmach:
+            Current speed of the created aircraft
+            Based on casmach and altitude you can calculate:
+                - TAS (True airspeed in knots)
+                - CAS (Calibrated airspeed in knots)
+                - M (Mach)
+    """
 
     assert isinstance(result, bool)
     assert result
@@ -43,6 +73,11 @@ def validate_create(traffic_, result,
 
 
 def validate_lengths(traffic_, len_):
+    """
+    Generic function to test number of
+    traffic objects is as expected and traffic objects have
+    all expected attributes.
+    """
     assert traffic_.ntraf == len_
     assert len(traffic_.id) == len(traffic_.type) == len(traffic_.lat) == \
         len(traffic_.lon) == len(traffic_.lon) == len(traffic_.alt) == \
@@ -57,6 +92,14 @@ def validate_lengths(traffic_, len_):
 
 
 def test_traffic_create(traffic_):
+    """
+    Test creation of new aircraft by successively creating
+    three new aircraft.
+
+    First two uses default callsign (KL204+) and aircraft type (B744).
+
+    Expects new aircraft to be added correctly.
+    """
     ntraf = traffic_.ntraf
 
     result = traffic_.create(
@@ -79,6 +122,12 @@ def test_traffic_create(traffic_):
 
 
 def test_traffic_delete(traffic_):
+    """
+    Test deletion of existing aircraft using index.
+
+    Still BA1 must be the last traffic object, number of traffic objects
+    must decrease by one.
+    """
     ntraf = traffic_.ntraf
     result = traffic_.delete(1)
 
@@ -88,6 +137,11 @@ def test_traffic_delete(traffic_):
 
 
 def test_traffic_reset(traffic_):
+    """
+    Test reset command.
+
+    Expects zero aircraft after reset.
+    """
     traffic_.reset()
     validate_lengths(traffic_, 0)
 

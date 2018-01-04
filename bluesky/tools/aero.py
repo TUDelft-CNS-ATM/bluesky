@@ -407,3 +407,19 @@ def casormach2tas(spd,h):
         # Interpret spd as CAS
         tas = cas2tas(spd,h)
     return tas
+
+
+def metres_to_feet_rounded(metres):
+    """
+    Converts metres to feet.
+    Returns feet as rounded integer.
+    """
+    return int(round(metres / ft))
+
+
+def metric_spd_to_knots_rounded(speed):
+    """
+    Converts speed in m/s to knots.
+    Returns knots as rounded integer.
+    """
+    return int(round(speed / kts))

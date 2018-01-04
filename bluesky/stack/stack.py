@@ -756,7 +756,7 @@ def showhelp(cmd=''):
         when command is >filename
     """
     # No command given: show all
-    if len(cmd) == 0:
+    if not cmd:
         return "There are different ways to get help:\n" + \
                " HELP PDF  gives an overview of the existing commands\n" + \
                " HELP cmd  gives a help line on the command (syntax)\n"  + \
@@ -780,10 +780,10 @@ def showhelp(cmd=''):
     elif cmd in cmddict:
 
         # Check whether description is available, then show it as well
-        if len(cmddict) <= 3:
+        if len(cmddict[cmd]) <= 3:
             return cmddict[cmd][0]
         else:
-            return cmddict[cmd][0] + "\n" + cmddict[cmd][4]
+            return cmddict[cmd][0] + "\n" + cmddict[cmd][3]
 
     # Show help line for equivalent command
     elif cmd in cmdsynon:
@@ -792,7 +792,7 @@ def showhelp(cmd=''):
         if len(cmddict[cmdsynon[cmd]]) <= 3:
             return cmddict[cmdsynon[cmd]][0]
         else:
-            return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][4]
+            return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][3]
 
     # Write command reference to tab-delimited text file
     elif cmd[0] == ">":
@@ -818,11 +818,11 @@ def showhelp(cmd=''):
         for item, lst in cmddict.items():
             line = item + "\t"
             if len(lst) > 3:
-                line = line + lst[4]
+                line = line + lst[3]
             line = line + "\t" + lst[0] + "\t" + str(lst[1]) + "\t"
 
             # Clean up string with function name and add if not a lambda function
-            funct = str(lst[3]).replace("<", "").replace(">", "")
+            funct = str(lst[2]).replace("<", "").replace(">", "")
 
             # Lambda function give no info, also remove hex address and "method" text
             if funct.count("lambda") == 0:
@@ -848,7 +848,7 @@ def showhelp(cmd=''):
         table = []  # for alphabetical sort use table
         for item in cmdsynon:
             if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]]) >= 3:
-                table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][4])
+                table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][3])
             else:
                 table.append(item + "\t" + cmdsynon[item] + "\t")
 

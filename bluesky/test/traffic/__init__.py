@@ -13,4 +13,10 @@ It tests BlueSky running in either Python2 or 3.
 
 
 def assert_fl(result, reference, threshold=0.49):
+    """
+    Tests whether the absolute (i.e. distance from zero) difference
+    between a result and a reference value is less than a provided threshold.
+
+    If not provided, the default threshold of 0.49 is used.
+    """
     assert abs(result - reference) < threshold
