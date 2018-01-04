@@ -308,7 +308,7 @@ def test_addwpt_stack_takeoffwp(traffic_, route_):
 
     assert_fl(route.wplat[0], 51.15)
     assert_fl(route.wplon[0], -0.15)
-    assert route.wpalt == [0.0]
+    assert route.wpalt == [-999.]
     assert route.wpspd == [-999.]
     assert route.wpname == ['T/O-BA222']
     assert route.wptype == [0]
