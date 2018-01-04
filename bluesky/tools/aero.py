@@ -411,7 +411,7 @@ def casormach2tas(spd,h):
 
 def metres_to_feet_rounded(metres):
     """
-    Convertes metres to feet.
+    Converts metres to feet.
     Returns feet as rounded integer.
     """
     return int(round(metres / ft))
@@ -419,7 +419,7 @@ def metres_to_feet_rounded(metres):
 
 def metric_spd_to_knots_rounded(speed):
     """
-    Convertes speed in m/s to knots.
+    Converts speed in m/s to knots.
     Returns knots as rounded integer.
     """
     return int(round(speed / kts))
