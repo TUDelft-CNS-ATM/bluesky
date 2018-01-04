@@ -756,7 +756,7 @@ def showhelp(cmd=''):
         when command is >filename
     """
     # No command given: show all
-    if len(cmd) == 0:
+    if not cmd:
         return "There are different ways to get help:\n" + \
                " HELP PDF  gives an overview of the existing commands\n" + \
                " HELP cmd  gives a help line on the command (syntax)\n"  + \
@@ -780,7 +780,7 @@ def showhelp(cmd=''):
     elif cmd in cmddict:
 
         # Check whether description is available, then show it as well
-        if len(cmddict) <= 3:
+        if len(cmddict[cmd]) <= 4:
             return cmddict[cmd][0]
         else:
             return cmddict[cmd][0] + "\n" + cmddict[cmd][4]
@@ -789,7 +789,7 @@ def showhelp(cmd=''):
     elif cmd in cmdsynon:
 
         # Check whether description is available, then show it as well
-        if len(cmddict[cmdsynon[cmd]]) <= 3:
+        if len(cmddict[cmdsynon[cmd]]) <= 4:
             return cmddict[cmdsynon[cmd]][0]
         else:
             return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][4]
@@ -817,7 +817,7 @@ def showhelp(cmd=''):
         # Get info for all commands
         for item, lst in cmddict.items():
             line = item + "\t"
-            if len(lst) > 3:
+            if len(lst) > 4:
                 line = line + lst[4]
             line = line + "\t" + lst[0] + "\t" + str(lst[1]) + "\t"
 
@@ -847,7 +847,7 @@ def showhelp(cmd=''):
 
         table = []  # for alphabetical sort use table
         for item in cmdsynon:
-            if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]]) >= 3:
+            if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]]) >= 4:
                 table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][4])
             else:
                 table.append(item + "\t" + cmdsynon[item] + "\t")
