@@ -11,6 +11,10 @@ from . import assert_fl
 
 
 def print_route(route):
+    """
+    Prints all components of a waypoint.
+    E.g. its name, lat/long, etc.
+    """
     print(route.wpname)
     print(route.wplat)
     print(route.wplon)
@@ -21,6 +25,12 @@ def print_route(route):
 
 
 def test_route_get_available_name(route_):
+    """
+    Test get_available_name function.
+
+    Expects function to correctly append
+    names already in use.
+    """
     data = ['aname', 'aname01', 'bname', 'cname']
     name = route_.Route.get_available_name(data, 'aname')
     assert name == 'aname02'
@@ -37,11 +47,42 @@ def test_route_get_available_name(route_):
 
 
 def test_addwpt_data(route_):
+    """
+    Tests the insertion/modification of waypoints.
+
+    The addwpt_data function expects:
+        - Overwrites (existing waypoint):
+            True | False
+        - Waypoint index:
+            Integer
+        - Waypoint name:
+            String
+        - Waypoint latitude:
+            String
+        - Waypoint longitude:
+            String
+        - Waypoint type:
+            0 - Lat/long waypoint
+            1 - VOR/NAV waypoint
+            2 - Origin airport
+            3 - Destination airport
+            4 - Calculated waypoint
+            5 - Runway
+        - Altitude constraint:
+            Integer
+        - Speed constraint:
+            Integer
+        - Flyby (aircraft flies over or not):
+            True | False
+    """
+    # Init route
     route = route_.Route()
 
+    # All init values must be empty lists
     assert route.wpname == route.wplat == route.wplon == route.wpalt == \
         route.wpspd == route.wptype == route.wpflyby == []
 
+    # Add new waypoint and check if added correctly
     route.addwpt_data(False, 0, 'FOO', 10., -10., 0, 1000., 100., False)
     assert route.wpname == ['FOO']
     assert route.wplat == [10.]
@@ -51,6 +92,7 @@ def test_addwpt_data(route_):
     assert route.wptype == [0]
     assert route.wpflyby == [False]
 
+    # Add another waypoint, see if both this and previous are in list
     route.addwpt_data(False, 0, 'BAZ', 20., -20., 0, 2000., 200., True)
     assert route.wpname == ['BAZ', 'FOO']
     assert route.wplat == [20., 10.]
@@ -60,6 +102,7 @@ def test_addwpt_data(route_):
     assert route.wptype == [0, 0]
     assert route.wpflyby == [True, False]
 
+    # This waypoint must overwrite FOO (which was previously at index 1)
     route.addwpt_data(True, 1, 'BAR', 30., -30., 0, 3000., 300., True)
     assert route.wpname == ['BAZ', 'BAR']
     assert route.wplat == [20., 30.]
@@ -71,9 +114,19 @@ def test_addwpt_data(route_):
 
 
 def test_add_wp_orig(traffic_, route_):
+    """
+    Tests addition of origin waypoint.
+
+    Expects new origin waypoints to be added
+    correctly to list of waypoints (route).
+    """
+
+    # Create test aircraft and get its index
     traffic_.create(
         'BA111', 'A320', 0., 0., 90, 1000., 100.)
     acidx = traffic_.id2idx('BA111')
+
+    # Init route of new aircraft
     route = route_.Route()
     traffic_.ap.route[acidx] = route
 
@@ -108,6 +161,12 @@ def test_add_wp_orig(traffic_, route_):
 
 
 def test_add_wp_dest(traffic_, route_):
+    """
+    Tests addition of destination waypoint.
+
+    Expects new destination waypoints to be added
+    correctly to list of waypoints (route).
+    """
     acidx = traffic_.id2idx('BA111')
     route = traffic_.ap.route[acidx]
 
@@ -136,6 +195,10 @@ def test_add_wp_dest(traffic_, route_):
 
 
 def test_add_wp_normal(traffic_, route_):
+    """
+    Tests insertion of en-route waypoints
+    (i.e. not dest or origin).
+    """
     traffic_.create(
         'BA222', 'A320', 0., 0., 90, 1000., 100.)
     idx = traffic_.id2idx('BA222')
@@ -193,6 +256,13 @@ def test_add_wp_normal(traffic_, route_):
 
 
 def test_addwpt_stack_setflyby(traffic_, route_):
+    """
+    Tests Fly-By and Fly-over modes of
+    addwpt.
+
+    Expects only one or the other to be
+    set at a time.
+    """
     route = route_.Route()
     route.swflyby = False
 
@@ -218,6 +288,13 @@ def test_addwpt_stack_setflyby(traffic_, route_):
 
 
 def test_addwpt_stack_takeoffwp(traffic_, route_):
+    """
+    Test takeoff argument of addwpt command.
+
+    Expect success with takeoff waypoint added to route.
+
+    Created aircraft is persisted for subsequent tests.
+    """
     traffic_.create(
         'BA222', 'A320', 0., 0., 90, 2000., 200.)
     idx = traffic_.id2idx('BA222')
@@ -240,6 +317,12 @@ def test_addwpt_stack_takeoffwp(traffic_, route_):
 
 
 def test_addwpt_stack(traffic_):
+    """
+    Test addition of multiple waypoints with altitude/speed constraints.
+
+    Expect waypoints to be inserted into route with correct constraints
+    and in correct order.
+    """
     idx = traffic_.id2idx('BA222')
     route = traffic_.ap.route[idx]
 
@@ -269,6 +352,14 @@ def test_addwpt_stack(traffic_):
 
 
 def test_after_addwpt_stack(traffic_):
+    """
+    Test after command - i.e. adding a waypoint
+    after an already specified one.
+
+    Expects waypoint to ba added correctly.
+    Since the waypoint is not a pre-defined one (must be added as lat/lng),
+    the waypoint is named after the callsign.
+    """
     idx = traffic_.id2idx('BA222')
     route = traffic_.ap.route[idx]
 
@@ -287,6 +378,12 @@ def test_after_addwpt_stack(traffic_):
 
 
 def test_before_addwpt_stack(traffic_):
+    """
+    Test inserting a waypoint before an already
+    specified waypoint.
+
+    Expect waypoint to be inserted correctly before LIFFY.
+    """
     idx = traffic_.id2idx('BA222')
     route = traffic_.ap.route[idx]
 
