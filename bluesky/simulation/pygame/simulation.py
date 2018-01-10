@@ -181,6 +181,7 @@ class Simulation:
     def reset(self):
         self.simt = 0.0
         self.mode = self.init
+        plugin.reset()
         bs.navdb.reset()
         bs.traf.reset()
         datalog.reset()
