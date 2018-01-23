@@ -71,7 +71,7 @@ class Traffic(TrafficArrays):
         self.ntraf = 0
         self.wind = WindSim()
         self.turbulence = Turbulence()
-        self.translvl = 5000.*ft # [m] Defauilt transition level 
+        self.translvl = 5000.*ft # [m] Default transition level
 
         # Define the periodic loggers
         # ToDo: explain what these line sdo in comments (type of logs?)
@@ -173,58 +173,72 @@ class Traffic(TrafficArrays):
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
         self.setNoise(False)
-        
+
         # Reset transition level to default value
         self.translvl = 5000.*ft
 
-    def mcreate(self, count, actype=None, alt=None, spd=None, dest=None):
+    def create(self, n=1, actype="B744", acalt=None, acspd=None, dest=None,
+                aclat=None, aclon=None, achdg=None, acid=None):
         """ Create multiple random aircraft in a specified area """
         area = bs.scr.getviewlatlon()
-        idbase = chr(randint(65, 90)) + chr(randint(65, 90))
-        if actype is None:
-            actype = 'B744'
+        if not acid:
+            idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
+            acid = idtmp.format(1) if n == 1 else [idtmp.format(i) for i in range(n)]
+        elif isinstance(acid, str):
+            # Check if not already exist
+            if self.id.count(acid.upper()) > 0:
+                return False, acid + " already exists."  # already exists do nothing
+            acid = [acid]
 
-        n = count
         super(Traffic, self).create(n)
 
         # Increase number of aircraft
-        self.ntraf = self.ntraf + count
+        self.ntraf += n
 
-        acids = []
-        aclats = []
-        aclons = []
-        achdgs = []
-        acalts = []
-        acspds = []
+        if aclat is None:
+            aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
 
-        for i in range(count):
-            acids.append((idbase + '%05d' % i).upper())
-            aclats.append(random() * (area[1] - area[0]) + area[0])
-            aclons.append(random() * (area[3] - area[2]) + area[2])
-            achdgs.append(float(randint(1, 360)))
-            acalts.append((randint(2000, 39000) * ft) if alt is None else alt)
-            acspds.append((randint(250, 450) * kts) if spd is None else spd)
+        if aclon is None:
+            aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
+
+        # Limit longitude to [-180.0, 180.0]
+        if n == 1:
+            aclon = aclon - 360 if aclon > 180 else \
+                    aclon + 360 if aclon < -180.0 else aclon
+        else:
+            aclon[aclon > 180.0] -= 360.0
+            aclon[aclon < -180.0] += 360.0
+
+        if achdg is None:
+            achdg = np.random.randint(1, 360, n)
+
+        if acalt is None:
+            acalt = np.random.randint(2000, 39000, n) * ft
+
+        if acspd is None:
+            acspd = np.random.randint(250, 450, n) * kts
 
         # Aircraft Info
-        self.id[-n:]   = acids
+        self.id[-n:]   = acid
         self.type[-n:] = [actype] * n
 
         # Positions
-        self.lat[-n:]  = aclats
-        self.lon[-n:]  = aclons
-        self.alt[-n:]  = acalts
+        self.lat[-n:]  = aclat
+        self.lon[-n:]  = aclon
+        self.alt[-n:]  = acalt
 
-        self.hdg[-n:]  = achdgs
-        self.trk[-n:]  = achdgs
+        self.hdg[-n:]  = achdg
+        self.trk[-n:]  = achdg
 
         # Velocities
-        self.tas[-n:], self.cas[-n:], self.M[-n:] = vcasormach(acspds, acalts)
+        self.tas[-n:], self.cas[-n:], self.M[-n:] = vcasormach(acspd, acalt)
         self.gs[-n:]      = self.tas[-n:]
-        self.gsnorth[-n:] = self.tas[-n:] * np.cos(np.radians(self.hdg[-n:]))
-        self.gseast[-n:]  = self.tas[-n:] * np.sin(np.radians(self.hdg[-n:]))
+        hdgrad = np.radians(achdg)
+        self.gsnorth[-n:] = self.tas[-n:] * np.cos(hdgrad)
+        self.gseast[-n:]  = self.tas[-n:] * np.sin(hdgrad)
 
         # Atmosphere
-        self.p[-n:], self.rho[-n:], self.Temp[-n:] = vatmos(acalts)
+        self.p[-n:], self.rho[-n:], self.Temp[-n:] = vatmos(acalt)
 
         # Wind
         if self.wind.winddim > 0:
@@ -254,14 +268,14 @@ class Traffic(TrafficArrays):
         self.label[-n:] = n*[['', '', '', 0]]
 
         # Miscallaneous
-        self.coslat[-n:] = np.cos(np.radians(aclats))  # Cosine of latitude for flat-earth aproximations
+        self.coslat[-n:] = np.cos(np.radians(aclat))  # Cosine of latitude for flat-earth aproximations
         self.eps[-n:] = 0.01
 
         # Finally call create for child TrafficArrays. This only needs to be done
         # manually in Traffic.
         self.create_children(n)
 
-    def create(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
+    def oldcreate(self, acid=None, actype="B744", aclat=None, aclon=None, achdg=None, acalt=None, casmach=None):
         """Create an aircraft"""
         # Catch missing acid, replace by a default
         if acid is None or acid == "*":
@@ -737,7 +751,7 @@ class Traffic(TrafficArrays):
                 return bs.SIMPLE_ECHO, lines[:-1]  # exclude final newline
             else:
                 return False,"No airway legs found for ",key
- 
+
     def settrans(self,alt=-999.):
         """ Set or show transition level"""
 
@@ -754,4 +768,3 @@ class Traffic(TrafficArrays):
             tlvl = int(round(self.translvl/ft))
             return True,"Transition level = " + \
                           str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
-        
