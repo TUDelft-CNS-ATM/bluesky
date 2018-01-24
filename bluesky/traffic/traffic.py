@@ -412,8 +412,8 @@ class Traffic(TrafficArrays):
         """Delete an aircraft"""
         super(Traffic, self).delete(idx)
 
-        # Decrease number of aircraft
-        self.ntraf = self.ntraf - 1
+        # Update number of aircraft
+        self.ntraf = len(self.lat)
         return True
 
     def update(self, simt, simdt):
@@ -541,10 +541,10 @@ class Traffic(TrafficArrays):
             self.ap.trk[idx] = hdg
 
         if casmach:
-            self.tas[idx], self.selspd[-1], dummy = casormach(casmach, alt)
+            self.tas[idx], self.selspd[idx], _ = vcasormach(casmach, alt)
 
         if vspd:
-            self.vs[idx]       = vspd
+            self.vs[idx]     = vspd
             self.swvnav[idx] = False
 
     def nom(self, idx):
