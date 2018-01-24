@@ -102,29 +102,36 @@ class TrafficArrays(object):
 
     def delete(self, idx):
         # Remove element (aircraft) idx from all lists and arrays
-        if isinstance(idx, np.ndarray) and idx.dtype == np.bool:
-            for v in self.LstVars:
-                self.Vars[v] = [val for val, cond in zip(self.Vars[v], idx) if not cond]
-        elif isinstance(idx, collections.Collection):
-            for v in self.LstVars:
-                self.Vars[v] = [val for i, val in enumerate(self.Vars[v]) if i not in idx]
-        else:
-            for v in self.LstVars:
-                del self.Vars[v][idx]
+        for child in self.children:
+            child.delete(idx)
 
         for v in self.ArrVars:
             self.Vars[v] = np.delete(self.Vars[v], idx)
 
-        for child in self.children:
-            child.delete(idx)
+        if self.LstVars:
+            if isinstance(idx, collections.Collection):
+                if isinstance(idx, np.ndarray):
+                    if idx.dtype == np.bool:
+                        idx = np.where(idx)
+                    else:
+                        idx = np.sort(idx)
+                else:
+                    idx = sorted(idx)
+
+                for i in reversed(idx):
+                    for v in self.LstVars:
+                        del self.Vars[v][i]
+            else:
+                for v in self.LstVars:
+                    del self.Vars[v][idx]
 
     def reset(self):
         # Delete all elements from arrays and start at 0 aircraft
-        for v in self.LstVars:
-            self.Vars[v] = []
+        for child in self.children:
+            child.reset()
 
         for v in self.ArrVars:
             self.Vars[v] = np.array([], dtype=self.Vars[v].dtype)
 
-        for child in self.children:
-            child.reset()
+        for v in self.LstVars:
+            self.Vars[v] = []

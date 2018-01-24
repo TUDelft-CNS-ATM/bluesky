@@ -39,8 +39,8 @@ class Autopilot(TrafficArrays):
             self.orig = []  # Four letter code of origin airport
             self.dest = []  # Four letter code of destination airport
 
-        # Route objects
-        self.route = []
+            # Route objects
+            self.route = []
 
     def create(self, n=1):
         super(Autopilot, self).create(n)
@@ -54,12 +54,7 @@ class Autopilot(TrafficArrays):
         self.dist2vs[-n:] = -999.
 
         # Route objects
-        self.route.extend([Route() for _ in range(n)])
-
-    def delete(self, idx):
-        super(Autopilot, self).delete(idx)
-        # Route objects
-        del self.route[idx]
+        self.route[-n:] = [Route() for _ in range(n)]
 
     def update(self, simt):
         # Scheduling: when dt has passed or restart
@@ -457,7 +452,3 @@ class Autopilot(TrafficArrays):
                 return False, ("VNAV " + bs.traf.id[idx] + ": no waypoints or destination specified")
         else:
             bs.traf.swvnav[idx] = False
-
-    def reset(self):
-        super(Autopilot,self).reset()
-        self.route = []
