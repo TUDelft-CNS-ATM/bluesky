@@ -532,18 +532,18 @@ class Traffic(TrafficArrays):
         self.lat[idx]      = lat
         self.lon[idx]      = lon
 
-        if alt:
+        if alt is not None:
             self.alt[idx]    = alt
             self.selalt[idx] = alt
 
-        if hdg:
+        if hdg is not None:
             self.hdg[idx]  = hdg
             self.ap.trk[idx] = hdg
 
-        if casmach:
+        if casmach is not None:
             self.tas[idx], self.selspd[idx], _ = vcasormach(casmach, alt)
 
-        if vspd:
+        if vspd is not None:
             self.vs[idx]     = vspd
             self.swvnav[idx] = False
 
