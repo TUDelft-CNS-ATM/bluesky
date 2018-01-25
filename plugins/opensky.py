@@ -84,6 +84,7 @@ class OpenSkyListener(TrafficArrays):
         if not self.connected:
             return
 
+        # t1 = time.time()
         # Get states from OpenSky. If all states fails try getting own states only.
         states = self.get_states()
         if states is None:
@@ -106,7 +107,8 @@ class OpenSkyListener(TrafficArrays):
         hdg = np.array(hdg, dtype=np.float64)
         vspd = np.array(vspd, dtype=np.float64)
         spd = np.array(spd, dtype=np.float64)
-        idx = np.array([traf.id2idx(acidi) for acidi in acid])
+
+        idx = np.array(traf.id2idx(acid))
 
         # Split between already existing and new aircraft
         newac = idx == -1
@@ -120,6 +122,8 @@ class OpenSkyListener(TrafficArrays):
         n_new = np.count_nonzero(newac)
         n_oth = np.count_nonzero(other)
 
+        # t2 = time.time()
+
         # Create new aircraft
         if n_new:
             newacid = [newid for newid, isnew in zip(acid, newac) if isnew]
@@ -127,17 +131,24 @@ class OpenSkyListener(TrafficArrays):
                         lat[newac], lon[newac], hdg[newac], newacid)
             self.my_ac[-n_new:] = True
 
+        # t3 = time.time()
+
         # Update the rest
         if n_oth:
             traf.move(idx[other], lat[other], lon[other], alt[other], hdg[other], \
                       spd[other], vspd[other])
             self.upd_time[idx[other]] = curtime
 
+        # t4 = time.time()
+
         # remove aircraft with no message for less than 1 minute
         # opensky already filters
-        delidx = np.where(np.logical_and(self.my_ac, curtime - self.upd_time > 60))[0]
+        delidx = np.where(np.logical_and(self.my_ac, curtime - self.upd_time > 10))[0]
         if len(delidx) > 0:
             traf.delete(delidx)
+
+        # t5 = time.time()
+        # print('req={}, mod={}, cre={}, mov={}, del={}, ncre={}, nmov={}, ndel={}'.format(curtime-t1, t2-curtime, t3-t2, t4-t3, t5-t4, n_new, n_oth, len(delidx)))
 
     def toggle(self, flag=None):
         if flag:
