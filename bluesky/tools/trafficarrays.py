@@ -110,14 +110,6 @@ class TrafficArrays(object):
 
         if self.LstVars:
             if isinstance(idx, collections.Collection):
-                if isinstance(idx, np.ndarray):
-                    if idx.dtype == np.bool:
-                        idx = np.where(idx)
-                    else:
-                        idx = np.sort(idx)
-                else:
-                    idx = sorted(idx)
-
                 for i in reversed(idx):
                     for v in self.LstVars:
                         del self.Vars[v][i]

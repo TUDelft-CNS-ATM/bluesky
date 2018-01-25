@@ -1,5 +1,6 @@
 """ BlueSky traffic implementation."""
 from __future__ import print_function
+import collections
 import numpy as np
 from math import *
 from random import random, randint
@@ -410,6 +411,11 @@ class Traffic(TrafficArrays):
 
     def delete(self, idx):
         """Delete an aircraft"""
+        # if this is a multiple delete, sort first for list delete
+        if isinstance(idx, collections.Collection):
+            idx.sort()
+
+        # Call the actual delete function
         super(Traffic, self).delete(idx)
 
         # Update number of aircraft
