@@ -515,10 +515,16 @@ class Traffic(TrafficArrays):
 
     def id2idx(self, acid):
         """Find index of aircraft id"""
-        try:
-            return self.id.index(acid.upper())
-        except:
-            return -1
+        if not isinstance(acid, str):
+            # id2idx is called for multiple id's
+            # Fast way of finding indices of all ACID's in a given list
+            tmp = dict((v, i) for i, v in enumerate(self.id))
+            return [tmp.get(acidi, -1) for acidi in acid]
+        else:
+            try:
+                return self.id.index(acid.upper())
+            except:
+                return -1
 
     def setNoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
