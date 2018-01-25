@@ -135,10 +135,9 @@ class OpenSkyListener(TrafficArrays):
 
         # remove aircraft with no message for less than 1 minute
         # opensky already filters
-        delidx = np.logical_and(self.my_ac, curtime - self.upd_time > 60)
-        if np.any(delidx):
+        delidx = np.where(np.logical_and(self.my_ac, curtime - self.upd_time > 60))[0]
+        if len(delidx) > 0:
             traf.delete(delidx)
-            scr.echo('Deleting {} aircraft'.format(np.count_nonzero(delidx)))
 
     def toggle(self, flag=None):
         if flag:
