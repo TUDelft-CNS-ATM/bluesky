@@ -22,6 +22,7 @@ settings.set_variable_defaults(opensky_user=None, opensky_password=None)
 
 # Globals
 reader = None
+actypes = dict()
 
 def init_plugin():
     global reader
@@ -44,6 +45,14 @@ def init_plugin():
 
     return config, stackfunctions
 
+def get_actypedb():
+    ''' Get aircraft type database from web. '''
+    global actypes
+    import io, zipfile
+    f = requests.get('https://junzisun.com/adb/download')
+    zfile = zipfile.ZipFile(io.BytesIO(f.content))
+    with zfile.open('aircraft_db.csv', 'r') as dbfile:
+        actypes = dict([line.split(b',')[0:3:2] for line in dbfile])
 
 class OpenSkyListener(TrafficArrays):
     def __init__(self):
