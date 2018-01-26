@@ -15,12 +15,18 @@ Joost Ellerbroek, 2018
 import time
 import requests
 import numpy as np
+from os import path
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 from bluesky import stack, settings, traf, scr
-from bluesky.tools import RegisterElementParameters, TrafficArrays
+from bluesky.tools import RegisterElementParameters, TrafficArrays, cachefile
 settings.set_variable_defaults(opensky_user=None, opensky_password=None)
 
 # Globals
+actypedb_version = 'v20180126'
 reader = None
 actypes = dict()
 
@@ -28,10 +34,13 @@ def init_plugin():
     global reader
     reader = OpenSkyListener()
 
+    # Load aircraft type database
+    get_actypedb()
+
     config = {
         'plugin_name': 'OPENSKY',
         'plugin_type': 'sim',
-        'update_interval': 3.0,
+        'update_interval': 6.0,
         'preupdate': reader.update
     }
 
@@ -46,13 +55,21 @@ def init_plugin():
     return config, stackfunctions
 
 def get_actypedb():
-    ''' Get aircraft type database from web. '''
+    ''' Get aircraft type database from cache or web. '''
     global actypes
-    import io, zipfile
-    f = requests.get('https://junzisun.com/adb/download')
-    zfile = zipfile.ZipFile(io.BytesIO(f.content))
-    with zfile.open('aircraft_db.csv', 'r') as dbfile:
-        actypes = dict([line.split(b',')[0:3:2] for line in dbfile])
+    with cachefile.openfile('actypedb.p', actypedb_version) as cache:
+        try:
+            actypes = cache.load()
+        except (pickle.PickleError, cachefile.CacheError) as e:
+            print(e.args[0])
+            import io, zipfile
+            f = requests.get('https://junzisun.com/adb/download')
+            with zipfile.ZipFile(io.BytesIO(f.content)) as zfile:
+                with zfile.open('aircraft_db.csv', 'r') as dbfile:
+                    actypes = dict([line.decode().split(',')[0:3:2] for line in dbfile])
+
+            cache.dump(actypes)
+
 
 class OpenSkyListener(TrafficArrays):
     def __init__(self):
@@ -116,6 +133,8 @@ class OpenSkyListener(TrafficArrays):
         hdg = np.array(hdg, dtype=np.float64)
         vspd = np.array(vspd, dtype=np.float64)
         spd = np.array(spd, dtype=np.float64)
+        acid = np.array([i.strip() for i in acid], dtype=np.str_)
+        icao24 = np.array(icao24, dtype=np.str_)
 
         idx = np.array(traf.id2idx(acid))
 
@@ -135,9 +154,9 @@ class OpenSkyListener(TrafficArrays):
 
         # Create new aircraft
         if n_new:
-            newacid = [newid for newid, isnew in zip(acid, newac) if isnew]
-            traf.create(n_new, 'B744', alt[newac], spd[newac], None,
-                        lat[newac], lon[newac], hdg[newac], newacid)
+            actype = [actypes.get(str(i), 'B744') for i in icao24[newac]]
+            traf.create(n_new, actype, alt[newac], spd[newac], None,
+                        lat[newac], lon[newac], hdg[newac], acid[newac])
             self.my_ac[-n_new:] = True
 
         # t3 = time.time()
