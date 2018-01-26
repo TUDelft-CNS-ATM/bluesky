@@ -6,7 +6,7 @@ except ImportError:
     import pickle
 
 from bluesky import settings
-
+from bluesky.tools import cachefile
 from .load_navdata_txt import load_navdata_txt
 from .load_visuals_txt import load_coastline_txt, navdata_load_rwythresholds
 
@@ -21,67 +21,17 @@ navdb_version = 'v20170101'
 aptsurf_version = 'v20171205'
 
 ## Default settings
-settings.set_variable_defaults(navdata_path='data/navdata', cache_path='data/cache')
+settings.set_variable_defaults(navdata_path='data/navdata')
 
 sourcedir = settings.navdata_path
-cachedir  = settings.cache_path
-
-class CacheError(Exception):
-    ''' Exception class for CacheFile errors. '''
-    pass
-
-
-class CacheFile():
-    ''' Convenience class for loading and saving pickle cache files. '''
-    def __init__(self, fname, version_ref):
-        self.fname = fname
-        self.version_ref = version_ref
-        self.file = None
-
-    def check_cache(self):
-        ''' Check whether the cachefile exists, and is of the correct version. '''
-        if not path.isfile(self.fname):
-            raise CacheError('Cachefile not found: ' + self.fname)
-
-        self.file = open(self.fname, 'rb')
-        version = pickle.load(self.file)
-
-        # Version check
-        if not version == self.version_ref:
-            self.file.close()
-            self.file = None
-            raise CacheError('Cache file out of date: ' + self.fname)
-        print('Reading cache: ' + self.fname)
-
-    def load(self):
-        ''' Load a variable from the cache file. '''
-        if self.file is None:
-            self.check_cache()
-
-        return pickle.load(self.file)
-
-    def dump(self, var):
-        ''' Dump a variable to the cache file. '''
-        if self.file is None:
-            self.file = open(self.fname, 'wb')
-            pickle.dump(self.version_ref, self.file, pickle.HIGHEST_PROTOCOL)
-            print("Writing cache: " + self.fname)
-        pickle.dump(var, self.file, pickle.HIGHEST_PROTOCOL)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.file:
-            self.file.close()
 
 def load_coastlines():
     ''' Load coastline data for gui. '''
-    with CacheFile(path.join(cachedir, 'coastlines.p'), coast_version) as cache:
+    with cachefile.openfile('coastlines.p', coast_version) as cache:
         try:
             coastvertices = cache.load()
             coastindices = cache.load()
-        except (pickle.PickleError, CacheError) as e:
+        except (pickle.PickleError, cachefile.CacheError) as e:
             print(e.args[0])
             coastvertices, coastindices = load_coastline_txt()
             cache.dump(coastvertices)
@@ -92,7 +42,7 @@ def load_coastlines():
 
 def load_aptsurface():
     ''' Load airport surface polygons for gui. '''
-    with CacheFile(path.join(cachedir, 'aptsurface.p'), aptsurf_version) as cache:
+    with cachefile.openfile('aptsurface.p', aptsurf_version) as cache:
         try:
             vbuf_asphalt  = cache.load()
             vbuf_concrete = cache.load()
@@ -101,7 +51,7 @@ def load_aptsurface():
             apt_ctr_lat   = cache.load()
             apt_ctr_lon   = cache.load()
             apt_indices   = cache.load()
-        except (pickle.PickleError, CacheError) as e:
+        except (pickle.PickleError, cachefile.CacheError) as e:
             print(e.args[0])
             vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, \
             apt_ctr_lon, apt_indices = load_aptsurface_txt()
@@ -119,7 +69,7 @@ def load_aptsurface():
 
 def load_navdata():
     ''' Load navigation database. '''
-    with CacheFile(path.join(cachedir, 'navdata.p'), navdb_version) as cache:
+    with cachefile.openfile('navdata.p', navdb_version) as cache:
         try:
             wptdata       = cache.load()
             awydata       = cache.load()
@@ -127,7 +77,7 @@ def load_navdata():
             firdata       = cache.load()
             codata        = cache.load()
             rwythresholds = cache.load()
-        except (pickle.PickleError, CacheError) as e:
+        except (pickle.PickleError, cachefile.CacheError) as e:
             print(e.args[0])
 
             wptdata, aptdata, awydata, firdata, codata = load_navdata_txt()
