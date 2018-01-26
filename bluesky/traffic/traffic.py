@@ -182,7 +182,7 @@ class Traffic(TrafficArrays):
                 aclat=None, aclon=None, achdg=None, acid=None):
         """ Create multiple random aircraft in a specified area """
         area = bs.scr.getviewlatlon()
-        if not acid:
+        if acid is None:
             idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
             acid = idtmp.format(1) if n == 1 else [idtmp.format(i) for i in range(n)]
         elif isinstance(acid, str):
@@ -190,6 +190,9 @@ class Traffic(TrafficArrays):
             if self.id.count(acid.upper()) > 0:
                 return False, acid + " already exists."  # already exists do nothing
             acid = [acid]
+
+        if isinstance(actype, str):
+            actype = n * [actype]
 
         super(Traffic, self).create(n)
 
@@ -221,7 +224,7 @@ class Traffic(TrafficArrays):
 
         # Aircraft Info
         self.id[-n:]   = acid
-        self.type[-n:] = [actype] * n
+        self.type[-n:] = actype
 
         # Positions
         self.lat[-n:]  = aclat
