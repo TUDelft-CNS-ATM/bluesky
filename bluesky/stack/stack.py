@@ -66,6 +66,9 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "LOAD": "IC",
              "OPEN": "IC",
              "PAUSE": "HOLD",
+             "PLUGIN": "PLUGINS",
+             "PLUG-IN": "PLUGINS",
+             "PLUG-INS": "PLUGINS",
              "Q": "QUIT",
              "RTF": "DTMULT",
              "STOP": "QUIT",
@@ -493,7 +496,7 @@ def init():
             "Create a graph of variables x versus y."
         ],
         "PLUGINS": [
-            "PLUGINS LIST or LOAD plugin or REMOVE plugin",
+            "PLUGINS LIST or PLUGINS LOAD/REMOVE plugin ",
             "[txt,txt]",
             plugin.manage,
             "List all plugins, load a plugin, or remove a loaded plugin."
