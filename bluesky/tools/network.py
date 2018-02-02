@@ -3,6 +3,18 @@ import time
 import socket
 import threading
 import bluesky as bs
+import sys
+
+
+def as_bytes(msg):
+    """
+    Encodes strings to bytes.
+    """
+    if sys.version_info.major == 3:
+        return msg.encode('utf-8')
+    else:
+        return msg
+
 
 if bs.settings.gui == 'qtgl':
     try:
@@ -41,7 +53,9 @@ if bs.settings.gui == 'qtgl':
             self.processData(self.readAll())
 
         def sendReply(self, msg):
-            self.writeData('{}\n'.format(msg))
+            self.writeData(
+                as_bytes(
+                    '{}\n'.format(msg)))
 
         def processData(self, data):
             # Placeholder function; override it with your own implementation

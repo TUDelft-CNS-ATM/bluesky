@@ -15,7 +15,10 @@ from subprocess import call
 
 
 for i in range(32, 127):
-    call('./msdfgen msdf -font source-code-pro/SourceCodePro-Regular.otf %d -o font/%d.png -size 26 32 -pxrange 4 -autoframe' % (i, i), shell=True)
+    if i in [ord(c) for c in ["'", '"', ',', '.']]:
+        call('./msdfgen msdf -font source-code-pro/SourceCodePro-Regular.otf %d -o font/%d.png -size 26 32 -pxrange 4 -scale 2.25882352941 -range 1.77083333333 -translate 1.03645833333 1.95833333333' % (i, i), shell=True)
+    else:
+        call('./msdfgen msdf -font source-code-pro/SourceCodePro-Regular.otf %d -o font/%d.png -size 26 32 -pxrange 4 -autoframe' % (i, i), shell=True)
 
 # Arrows: use ascii code 30 and 31
 call('./msdfgen msdf -font source-code-pro/SourceCodePro-Regular.otf 0x2191 -o font/30.png -size 26 32 -pxrange 4 -autoframe', shell=True)
