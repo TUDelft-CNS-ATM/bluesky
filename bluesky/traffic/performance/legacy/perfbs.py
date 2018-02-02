@@ -98,7 +98,7 @@ class PerfBS(TrafficArrays):
                                               #taxi prior of after flight
             self.pf_flag      = np.array([])
 
-        self.engines      = []           # avaliable engine type per aircraft type
+            self.engines      = []           # avaliable engine type per aircraft type
         self.eta          = 0.8          # propeller efficiency according to Raymer
         self.Thr_s        = np.array([1., 0.85, 0.07, 0.3 ]) # Thrust settings per flight phase according to ICAO
 
@@ -129,10 +129,7 @@ class PerfBS(TrafficArrays):
         self.mass[-n:]              = coeffBS.MTOW[coeffidx] # aircraft weight
         self.Sref[-n:]              = coeffBS.Sref[coeffidx] # wing surface reference area
         self.etype[-n:]             = coeffBS.etype[coeffidx] # engine type of current aircraft
-
-        #self.engines is a list of list, not part of the RegisterElementParameters
-        for c in coeffidx:
-            self.engines.append(coeffBS.engines[c]) # avaliable engine type per aircraft type
+        self.engines[-n:]           = [coeffBS.engines[c] for c in coeffidx]
 
         # speeds
         self.refma[-n:]             = coeffBS.cr_Ma[coeffidx] # nominal cruise Mach at 35000 ft
@@ -200,14 +197,6 @@ class PerfBS(TrafficArrays):
         self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx])
         self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx])
         return
-
-    def delete(self,idx):
-        super(PerfBS,self).delete(idx)
-        del self.engines[idx]
-
-    def reset(self):
-        super(PerfBS,self).reset()
-        self.engines = []
 
     def perf(self,simt):
         if abs(simt - self.t0) >= self.dt:

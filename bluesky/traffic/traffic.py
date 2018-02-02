@@ -1,5 +1,6 @@
 """ BlueSky traffic implementation."""
 from __future__ import print_function
+import collections
 import numpy as np
 from math import *
 from random import random, randint
@@ -181,7 +182,7 @@ class Traffic(TrafficArrays):
                 aclat=None, aclon=None, achdg=None, acid=None):
         """ Create multiple random aircraft in a specified area """
         area = bs.scr.getviewlatlon()
-        if not acid:
+        if acid is None:
             idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
             acid = idtmp.format(1) if n == 1 else [idtmp.format(i) for i in range(n)]
         elif isinstance(acid, str):
@@ -189,6 +190,9 @@ class Traffic(TrafficArrays):
             if self.id.count(acid.upper()) > 0:
                 return False, acid + " already exists."  # already exists do nothing
             acid = [acid]
+
+        if isinstance(actype, str):
+            actype = n * [actype]
 
         super(Traffic, self).create(n)
 
@@ -220,7 +224,7 @@ class Traffic(TrafficArrays):
 
         # Aircraft Info
         self.id[-n:]   = acid
-        self.type[-n:] = [actype] * n
+        self.type[-n:] = actype
 
         # Positions
         self.lat[-n:]  = aclat
@@ -410,10 +414,15 @@ class Traffic(TrafficArrays):
 
     def delete(self, idx):
         """Delete an aircraft"""
+        # if this is a multiple delete, sort first for list delete
+        if isinstance(idx, collections.Collection):
+            idx.sort()
+
+        # Call the actual delete function
         super(Traffic, self).delete(idx)
 
-        # Decrease number of aircraft
-        self.ntraf = self.ntraf - 1
+        # Update number of aircraft
+        self.ntraf = len(self.lat)
         return True
 
     def update(self, simt, simdt):
@@ -509,10 +518,16 @@ class Traffic(TrafficArrays):
 
     def id2idx(self, acid):
         """Find index of aircraft id"""
-        try:
-            return self.id.index(acid.upper())
-        except:
-            return -1
+        if not isinstance(acid, str):
+            # id2idx is called for multiple id's
+            # Fast way of finding indices of all ACID's in a given list
+            tmp = dict((v, i) for i, v in enumerate(self.id))
+            return [tmp.get(acidi, -1) for acidi in acid]
+        else:
+            try:
+                return self.id.index(acid.upper())
+            except:
+                return -1
 
     def setNoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
@@ -532,19 +547,19 @@ class Traffic(TrafficArrays):
         self.lat[idx]      = lat
         self.lon[idx]      = lon
 
-        if alt:
+        if alt is not None:
             self.alt[idx]    = alt
             self.selalt[idx] = alt
 
-        if hdg:
+        if hdg is not None:
             self.hdg[idx]  = hdg
             self.ap.trk[idx] = hdg
 
-        if casmach:
-            self.tas[idx], self.selspd[-1], dummy = casormach(casmach, alt)
+        if casmach is not None:
+            self.tas[idx], self.selspd[idx], _ = vcasormach(casmach, alt)
 
-        if vspd:
-            self.vs[idx]       = vspd
+        if vspd is not None:
+            self.vs[idx]     = vspd
             self.swvnav[idx] = False
 
     def nom(self, idx):

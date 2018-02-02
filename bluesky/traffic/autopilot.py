@@ -39,8 +39,8 @@ class Autopilot(TrafficArrays):
             self.orig = []  # Four letter code of origin airport
             self.dest = []  # Four letter code of destination airport
 
-        # Route objects
-        self.route = []
+            # Route objects
+            self.route = []
 
     def create(self, n=1):
         super(Autopilot, self).create(n)
@@ -54,12 +54,7 @@ class Autopilot(TrafficArrays):
         self.dist2vs[-n:] = -999.
 
         # Route objects
-        self.route.extend([Route() for _ in range(n)])
-
-    def delete(self, idx):
-        super(Autopilot, self).delete(idx)
-        # Route objects
-        del self.route[idx]
+        self.route[-n:] = [Route() for _ in range(n)]
 
     def update(self, simt):
         # Scheduling: when dt has passed or restart
@@ -297,24 +292,16 @@ class Autopilot(TrafficArrays):
 
     def selvspdcmd(self, idx, vspd):
         """ Vertical speed autopilot command: VS acid vspd """
-        if idx < 0 or idx >= bs.traf.ntraf:
-            return False, "VS: Aircraft does not exist"
-
         bs.traf.selvs[idx] = vspd
         # bs.traf.vs[idx] = vspd
         bs.traf.swvnav[idx] = False
 
     def selhdgcmd(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
-
-        if idx<0 or idx>=bs.traf.ntraf:
-            return False,"HDG: Aircraft does not exist"
-
-
         # If there is wind, compute the corresponding track angle
         if bs.traf.wind.winddim > 0:
-            tasnorth = bs.traf.tas[idx] * cos(radians(hdg))
-            taseast  = bs.traf.tas[idx] * sin(radians(hdg))
+            tasnorth = bs.traf.tas[idx] * np.cos(np.radians(hdg))
+            taseast  = bs.traf.tas[idx] * np.sin(np.radians(hdg))
             vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[idx], bs.traf.lon[idx], bs.traf.alt[idx])
             gsnorth    = tasnorth + vnwnd
             gseast     = taseast  + vewnd
@@ -329,21 +316,11 @@ class Autopilot(TrafficArrays):
 
     def selspdcmd(self, idx, casmach):  # SPD command
         """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
-
-        if idx<0 or idx>=bs.traf.ntraf:
-            return False,"SPD: Aircraft does not exist"
-
         # Depending on or position relative to crossover altitude,
         # we will maintain CAS or Mach when altitude changes
         # We will convert values when needed
-        if bs.traf.abco[idx] and casmach>2.0:
-            bs.traf.selspd[idx] = cas2mach(casmach,bs.traf.alt[idx])
-
-        elif bs.traf.belco[idx] and casmach<=2.0:
-            bs.traf.selspd[idx] = mach2cas(casmach,bs.traf.alt[idx])
-
-        else: # User uses correct Mach/CAS
-            bs.traf.selspd[idx] = casmach
+        _, cas, m = vcasormach(casmach, bs.traf.alt[idx])
+        bs.traf.selspd[idx] = np.where(bs.traf.abco[idx], m, cas)
 
         # Switch off VNAV: SPD command overrides
         bs.traf.swvnav[idx]   = False
@@ -475,7 +452,3 @@ class Autopilot(TrafficArrays):
                 return False, ("VNAV " + bs.traf.id[idx] + ": no waypoints or destination specified")
         else:
             bs.traf.swvnav[idx] = False
-
-    def reset(self):
-        super(Autopilot,self).reset()
-        self.route = []
