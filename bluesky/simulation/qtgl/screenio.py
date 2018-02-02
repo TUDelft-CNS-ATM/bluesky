@@ -29,6 +29,7 @@ class ScreenIO(object):
         self.ctrlat      = 0.0
         self.ctrlon      = 0.0
         self.scrzoom     = 1.0
+        self.scrar       = 1.0
 
         self.route_acid  = None
 
@@ -67,10 +68,10 @@ class ScreenIO(object):
         bs.sim.send_event(b'CMDLINE', text)
 
     def getviewlatlon(self):
-        lat0 = self.ctrlat - 1.0 / self.scrzoom
-        lat1 = self.ctrlat + 1.0 / self.scrzoom
-        lon0 = self.ctrlon - 1.0 / self.scrzoom
-        lon1 = self.ctrlon + 1.0 / self.scrzoom
+        lat0 = self.ctrlat - 1.0 / (self.scrzoom * self.scrar)
+        lat1 = self.ctrlat + 1.0 / (self.scrzoom * self.scrar)
+        lon0 = self.ctrlon - 1.0 / (self.scrzoom * np.cos(np.radians(self.ctrlat)))
+        lon1 = self.ctrlon + 1.0 / (self.scrzoom * np.cos(np.radians(self.ctrlat)))
         return lat0, lat1, lon0, lon1
 
     def zoom(self, zoom, absolute=True):
@@ -184,11 +185,11 @@ class ScreenIO(object):
         bs.sim.send_event(b'POLY', dict(name=objname, data=data))
 
     def event(self, eventname, eventdata, sender_id):
-        print('Received event from {}'.format(sender_id))
         if eventname == b'PANZOOM':
             self.ctrlat  = eventdata['pan'][0]
             self.ctrlon  = eventdata['pan'][1]
             self.scrzoom = eventdata['zoom']
+            self.scrar   = eventdata['ar']
             return True
 
         return False
@@ -219,6 +220,8 @@ class ScreenIO(object):
         data['confcpalon'] = bs.traf.asas.lonowncpa
         data['trk']        = bs.traf.hdg
         data['vs']         = bs.traf.vs
+        data['vmin']       = bs.traf.asas.vmin
+        data['vmax']       = bs.traf.asas.vmax
 
         # Trails, send only new line segments to be added
         data['swtrails']  = bs.traf.trails.active
@@ -242,6 +245,14 @@ class ScreenIO(object):
 
         # Transition level as defined in traf
         data['translvl']   = bs.traf.translvl
+
+        # ASAS resolutions for visualization. Only send when evaluated
+        if bs.traf.asas.asaseval:
+            data['asasn']  = bs.traf.asas.asasn
+            data['asase']  = bs.traf.asas.asase
+        else:
+            data['asasn']  = np.zeros(bs.traf.ntraf, dtype=np.float32)
+            data['asase']  = np.zeros(bs.traf.ntraf, dtype=np.float32)
 
         bs.sim.send_stream(b'ACDATA', data)
 

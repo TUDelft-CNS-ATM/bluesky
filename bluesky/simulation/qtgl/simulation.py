@@ -3,7 +3,6 @@ import time
 # Local imports
 import bluesky as bs
 from bluesky import settings, stack
-# from bluesky.traffic import Metric
 from bluesky.tools import datalog, areafilter, plugin
 from bluesky.tools.misc import txt2tim, tim2txt
 from bluesky.io import Node
@@ -50,11 +49,6 @@ class Simulation(Node):
         self.ffmode      = False
         self.ffstop      = None
 
-        # Additional modules
-        # self.metric      = Metric()
-
-    # def init(self):
-    #     super(Simulation, self).init()
         # TODO Send list of stack functions available in this sim to gui at start
         # stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
         # self.send_event(b'STACKINIT', stackdict)
