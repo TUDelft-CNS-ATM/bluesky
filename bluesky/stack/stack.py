@@ -31,7 +31,7 @@ from bluesky import settings
 # Temporary fix for synthetic
 from . import synthetic as syn
 # Register settings defaults
-settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario')
+settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario', scenfile='')
 
 # Global variables
 cmddict   = dict()  # Defined in stack.init
@@ -481,10 +481,10 @@ def init():
             "Pan screen (move view) to a waypoint, direction or aircraft"
         ],
         "PCALL": [
-            "PCALL filename [REL/ABS]",
-            "txt,[txt]",
+            "PCALL filename [REL/ABS/args]",
+            "txt,[txt,...]",
             lambda *args: openfile(*args, mergeWithExisting=True),
-            "Call commands in another scenario file"
+            "Call commands in another scenario file, %0, %1 etc specify arguments in called file"
         ],
         "PLOT": [
             "PLOT x, y [,dt,color,figure]",
@@ -701,6 +701,10 @@ def init():
     stack('PAN ' + settings.start_location)
     stack("ZOOM 0.4")
 
+    # Load initial scenario if passed
+    if settings.scenfile:
+        openfile(settings.scenfile)
+
 
 def sender():
     ''' Return the sender of the currently executed stack command.
@@ -793,7 +797,7 @@ def showhelp(cmd=''):
         if len(cmddict) <= 3:
             return cmddict[cmd][0]
         else:
-            return cmddict[cmd][0] + "\n" + cmddict[cmd][3]
+            return cmddict[cmd][0] + "\n" + cmddict[cmd][4]
 
     # Show help line for equivalent command
     elif cmd in cmdsynon:
@@ -802,7 +806,7 @@ def showhelp(cmd=''):
         if len(cmddict[cmdsynon[cmd]]) <= 3:
             return cmddict[cmdsynon[cmd]][0]
         else:
-            return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][3]
+            return cmddict[cmdsynon[cmd]][0] + "\n" + cmddict[cmdsynon[cmd]][4]
 
     # Write command reference to tab-delimited text file
     elif cmd[0] == ">":
@@ -828,11 +832,11 @@ def showhelp(cmd=''):
         for item, lst in cmddict.items():
             line = item + "\t"
             if len(lst) > 3:
-                line = line + lst[3]
+                line = line + lst[4]
             line = line + "\t" + lst[0] + "\t" + str(lst[1]) + "\t"
 
             # Clean up string with function name and add if not a lambda function
-            funct = str(lst[2]).replace("<", "").replace(">", "")
+            funct = str(lst[3]).replace("<", "").replace(">", "")
 
             # Lambda function give no info, also remove hex address and "method" text
             if funct.count("lambda") == 0:
@@ -858,7 +862,7 @@ def showhelp(cmd=''):
         table = []  # for alphabetical sort use table
         for item in cmdsynon:
             if cmdsynon[item] in cmddict and len(cmddict[cmdsynon[item]]) >= 3:
-                table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][3])
+                table.append(item + "\t" + cmdsynon[item] + "\t" + cmddict[cmdsynon[item]][4])
             else:
                 table.append(item + "\t" + cmdsynon[item] + "\t")
 
@@ -925,8 +929,22 @@ def sched_cmd(time, args, relative=False):
     return True
 
 
-def openfile(fname, absrel='ABS', mergeWithExisting=False):
+def openfile(fname, *args, mergeWithExisting=False):
     global scentime, scencmd
+
+
+    if len(args)>0 and (args[0]=="ABS" or args[0]=="REL"):
+        absrel = args[0]
+        if len(args)>1:
+            arglst = args[1:]
+        else:
+            arglst = []
+    else:
+        absrel = "ABS"
+        arglst = args
+
+    # Collect arguments to be used in called scenario file
+
 
     # Split the incoming filename into a path, a filename and an extension
     path, fname = os.path.split(os.path.normpath(fname))
@@ -956,6 +974,12 @@ def openfile(fname, absrel='ABS', mergeWithExisting=False):
 
     with open(fname_full, 'r') as fscen:
         for line in fscen:
+
+            # Replace arguments if specified: %0 by first argument, %1 by seconds, %2
+            for iarg, txtarg in enumerate(arglst):
+                line = line.replace("%"+str(iarg),arglst[iarg])
+
+            # Skip emtpy lines and comments
             if len(line.strip()) > 12 and line[0] != "#":
                 # Try reading timestamp and command
                 try:
@@ -1035,7 +1059,7 @@ def saveic(fname):
     # Write files
     timtxt = "00:00:00.00>"
 
-    for i in range(bs.traf.nbs.traf):
+    for i in range(bs.traf.ntraf):
         # CRE acid,type,lat,lon,hdg,alt,spd
         cmdline = "CRE " + bs.traf.id[i] + "," + bs.traf.type[i] + "," + \
                   repr(bs.traf.lat[i]) + "," + repr(bs.traf.lon[i]) + "," + \

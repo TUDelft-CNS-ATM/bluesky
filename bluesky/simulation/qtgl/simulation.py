@@ -125,6 +125,8 @@ class Simulation(Node):
     def stop(self):
         self.state = bs.END
         datalog.reset()
+        if settings.is_headless:
+            self.running = False
 
     def op(self):
         self.syst   = time.time()
