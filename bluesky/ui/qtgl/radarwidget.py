@@ -28,7 +28,8 @@ from . import guiio as io
 settings.set_variable_defaults(
     gfx_path='data/graphics',
     text_size=13, apt_size=10,
-    wpt_size=10, ac_size=16)
+    wpt_size=10, ac_size=16,
+    asas_vmin=200.0, asas_vmax=500.0)
 
 palette.set_default_colours(
     aircraft=(0,255,0),
@@ -64,7 +65,7 @@ VCOUNT_PZ             = 36
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = list(range(7))
-ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1 = list(range(11))
+ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1, ATTRIB_ASASN, ATTRIB_ASASE = list(range(13))
 
 
 class radarUBO(UniformBuffer):
@@ -131,7 +132,8 @@ class RadarWidget(QGLWidget):
         self.nairports      = 0
         self.route_acid     = ""
         self.apt_inrange    = np.array([])
-
+        self.asas_vmin      = settings.asas_vmin
+        self.asas_vmax      = settings.asas_vmax
         self.initialized    = False
 
         # Connect to the io client's activenode changed signal
@@ -217,6 +219,8 @@ class RadarWidget(QGLWidget):
         self.aclblbuf      = create_empty_buffer(MAX_NAIRCRAFT * 24, usage=gl.GL_STREAM_DRAW)
         self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 16, usage=gl.GL_STREAM_DRAW)
         self.trailbuf      = create_empty_buffer(MAX_TRAILLEN * 16, usage=gl.GL_STREAM_DRAW)
+        self.asasnbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.asasebuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
 
         self.polyprevbuf   = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
@@ -266,6 +270,8 @@ class RadarWidget(QGLWidget):
         self.ssd.bind_attrib(ATTRIB_ALT1, 1, self.acaltbuf)
         self.ssd.bind_attrib(ATTRIB_TAS1, 1, self.actasbuf)
         self.ssd.bind_attrib(ATTRIB_TRK1, 1, self.achdgbuf)
+        self.ssd.bind_attrib(ATTRIB_ASASN, 1, self.asasnbuf, instance_divisor=1)
+        self.ssd.bind_attrib(ATTRIB_ASASE, 1, self.asasebuf, instance_divisor=1)
 
         # ------- Protected Zone -------------------------
         circlevertices = np.transpose(np.array((2.5 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ)), 2.5 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ))), dtype=np.float32))
@@ -554,7 +560,7 @@ class RadarWidget(QGLWidget):
         # SSD
         if actdata.ssd_all or actdata.ssd_conflicts or len(actdata.ssd_ownship) > 0:
             self.ssd_shader.use()
-            gl.glUniform3f(self.ssd_shader.loc_vlimits, 4e4, 25e4, 500.0)
+            gl.glUniform3f(self.ssd_shader.loc_vlimits, self.asas_vmin ** 2, self.asas_vmax ** 2, self.asas_vmax)
             gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
             self.ssd.draw(vertex_count=self.naircraft, n_instances=self.naircraft)
 
@@ -578,7 +584,7 @@ class RadarWidget(QGLWidget):
         origin = (width / 2, height / 2)
 
         # Update width, height, and aspect ratio
-        self.width, self.height = int(width / pixel_ratio), int(height / pixel_ratio)
+        self.width, self.height = width // pixel_ratio, height // pixel_ratio
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
 
@@ -655,7 +661,8 @@ class RadarWidget(QGLWidget):
             data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
         actdata.translvl = data.translvl
-
+        self.asas_vmin = data.vmin
+        self.asas_vmax = data.vmax
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
         else:
@@ -665,6 +672,8 @@ class RadarWidget(QGLWidget):
             update_buffer(self.achdgbuf, np.array(data.trk, dtype=np.float32))
             update_buffer(self.acaltbuf, np.array(data.alt, dtype=np.float32))
             update_buffer(self.actasbuf, np.array(data.tas, dtype=np.float32))
+            update_buffer(self.asasnbuf, np.array(data.asasn, dtype=np.float32))
+            update_buffer(self.asasebuf, np.array(data.asase, dtype=np.float32))
 
             # CPA lines to indicate conflicts
             ncpalines = len(data.confcpalat)

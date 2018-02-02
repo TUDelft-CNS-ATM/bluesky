@@ -66,3 +66,14 @@ coverage.xml
 
 # Django stuff:
 *.log
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+data/cache
+data/performance/BADA/*
+!/data/performance/BADA/README
+ssd.obj
