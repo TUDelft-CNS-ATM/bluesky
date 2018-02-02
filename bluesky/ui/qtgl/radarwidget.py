@@ -738,7 +738,7 @@ class RadarWidget(QGLWidget):
                     selssd[i] = 255
 
             if len(self.ssd_ownship) > 0 or self.ssd_conflicts:
-                update_buffer(self.ssd.selssdbuf[:MAX_NAIRCRAFT], selssd)
+                update_buffer(self.ssd.selssdbuf, selssd[:MAX_NAIRCRAFT])
 
             update_buffer(self.confcpabuf, cpalines[:MAX_NCONFLICTS * 4])
             update_buffer(self.accolorbuf, color)
