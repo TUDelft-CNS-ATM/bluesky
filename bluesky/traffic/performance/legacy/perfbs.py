@@ -231,12 +231,14 @@ class PerfBS(TrafficArrays):
 
         # scaling factors for CD0 and CDi during flight phases according to FAA (2005): SAGE, V. 1.5, Technical Manual
 
+        # For takeoff (phase = 6) drag is assumed equal to the takeoff phase
         CD0f = (self.phase==1)*(self.etype==1)*coeffBS.d_CD0j[0] + \
                (self.phase==2)*(self.etype==1)*coeffBS.d_CD0j[1]  + \
                (self.phase==3)*(self.etype==1)*coeffBS.d_CD0j[2] + \
                (self.phase==4)*(self.etype==1)*coeffBS.d_CD0j[3] + \
-               (self.phase==5)*(self.etype==1)*(bs.traf.alt>=450)*coeffBS.d_CD0j[4] + \
-               (self.phase==5)*(self.etype==1)*(bs.traf.alt<450)*coeffBS.d_CD0j[5] + \
+               (self.phase==5)*(self.etype==1)*(bs.traf.alt>=450.0)*coeffBS.d_CD0j[4] + \
+               (self.phase==5)*(self.etype==1)*(bs.traf.alt<450.0)*coeffBS.d_CD0j[5] + \
+               (self.phase==6)*(self.etype==1)*coeffBS.d_CD0j[0] + \
                (self.phase==1)*(self.etype==2)*coeffBS.d_CD0t[0] + \
                (self.phase==2)*(self.etype==2)*coeffBS.d_CD0t[1]  + \
                (self.phase==3)*(self.etype==2)*coeffBS.d_CD0t[2] + \
@@ -244,12 +246,14 @@ class PerfBS(TrafficArrays):
                    # (self.phase==5)*(self.etype==2)*(self.alt>=450)*coeffBS.d_CD0t[4] + \
                    # (self.phase==5)*(self.etype==2)*(self.alt<450)*coeffBS.d_CD0t[5]
 
+        # For takeoff (phase = 6) induced drag is assumed equal to the takeoff phase
         kf =   (self.phase==1)*(self.etype==1)*coeffBS.d_kj[0] + \
                (self.phase==2)*(self.etype==1)*coeffBS.d_kj[1]  + \
                (self.phase==3)*(self.etype==1)*coeffBS.d_kj[2] + \
                (self.phase==4)*(self.etype==1)*coeffBS.d_kj[3] + \
                (self.phase==5)*(self.etype==1)*(bs.traf.alt>=450)*coeffBS.d_kj[4] + \
                (self.phase==5)*(self.etype==1)*(bs.traf.alt<450)*coeffBS.d_kj[5] + \
+               (self.phase==6)*(self.etype==1)*coeffBS.d_kj[0] + \
                (self.phase==1)*(self.etype==2)*coeffBS.d_kt[0] + \
                (self.phase==2)*(self.etype==2)*coeffBS.d_kt[1]  + \
                (self.phase==3)*(self.etype==2)*coeffBS.d_kt[2] + \
@@ -263,7 +267,6 @@ class PerfBS(TrafficArrays):
 
         # compute drag: CD = CD0 + CDi * CL^2 and D = rho/2*VTAS^2*CD*S
         self.D = cd*self.qS
-
         # energy share factor and crossover altitude
         epsalt = np.array([0.001]*bs.traf.ntraf)
         self.climb = np.array(bs.traf.delalt > epsalt)
@@ -280,9 +283,9 @@ class PerfBS(TrafficArrays):
 
         # determine thrust
         self.Thr = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
-
         # determine thrust required to fulfill requests from pilot
-        self.Thr_pilot = (((bs.traf.pilot.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.pilot.tas))) + self.D)
+        # self.Thr_pilot = (((bs.traf.pilot.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.pilot.tas))) + self.D)
+        self.Thr_pilot = (((bs.traf.ap.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.pilot.tas))) + self.D)
 
         # maximum thrust jet (Bruenig et al., p. 66):
         mt_jet = self.rThr*(bs.traf.rho/rho0)**0.75

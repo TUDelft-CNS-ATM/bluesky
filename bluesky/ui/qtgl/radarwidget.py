@@ -107,12 +107,6 @@ class radarUBO(UniformBuffer):
 
 class RadarWidget(QGLWidget):
     def __init__(self, shareWidget=None):
-        super(RadarWidget, self).__init__(shareWidget=shareWidget)
-        self.setAttribute(Qt.WA_AcceptTouchEvents, True)
-        self.grabGesture(Qt.PanGesture)
-        self.grabGesture(Qt.PinchGesture)
-        # self.grabGesture(Qt.SwipeGesture)
-
         self.width = self.height = 600
         self.viewport = (0, 0, 600, 600)
         self.panlat = 0.0
@@ -136,12 +130,22 @@ class RadarWidget(QGLWidget):
         self.asas_vmax      = settings.asas_vmax
         self.initialized    = False
 
+        # Load vertex data
+        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
+            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
+        self.coastvertices, self.coastindices = load_coastlines()
+
+        # Only initialize super class after loading data to avoid Qt starting things
+        # before we are ready.
+        super(RadarWidget, self).__init__(shareWidget=shareWidget)
+        self.setAttribute(Qt.WA_AcceptTouchEvents, True)
+        self.grabGesture(Qt.PanGesture)
+        self.grabGesture(Qt.PinchGesture)
+        # self.grabGesture(Qt.SwipeGesture)
+
         # Connect to the io client's activenode changed signal
         io.actnodedata_changed.connect(self.actnodedataChanged)
 
-        # Load vertex data
-        self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
-            self.apt_ctrlat, self.apt_ctrlon, self.apt_indices, rwythr = load_aptsurface()
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         ''' Update buffers when a different node is selected, or when
@@ -239,11 +243,9 @@ class RadarWidget(QGLWidget):
         self.map    = RenderObject(gl.GL_TRIANGLE_FAN, vertex=mapvertices, texcoords=texcoords)
 
         # ------- Coastlines -----------------------------
-        coastvertices, coastindices = load_coastlines()
-        self.coastlines   = RenderObject(gl.GL_LINES, vertex=coastvertices, color=palette.coastlines)
-        self.vcount_coast = len(coastvertices)
-        self.coastindices = coastindices
-        del coastvertices
+        self.coastlines   = RenderObject(gl.GL_LINES, vertex=self.coastvertices, color=palette.coastlines)
+        self.vcount_coast = len(self.coastvertices)
+        del self.coastvertices
 
         # ------- Airport graphics -----------------------
         self.runways    = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_runways, color=palette.runways)
@@ -414,10 +416,8 @@ class RadarWidget(QGLWidget):
             return
 
         # create all vertex array objects
-        self.create_objects()
         try:
-            pass
-            # self.create_objects()
+            self.create_objects()
         except Exception as e:
             print('Error while creating RadarWidget objects: ' + e.args[0])
 

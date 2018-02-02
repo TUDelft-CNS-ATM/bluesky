@@ -186,8 +186,6 @@ if settings.gui == 'qtgl':
         """ Read airport data from navigation database files"""
         pb = ProgressBar('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.')
 
-        rwythresholds = dict()
-        curthresholds = None
         runways       = []
         rwythr        = []
         asphalt       = PolygonSet()
@@ -211,7 +209,7 @@ if settings.gui == 'qtgl':
                     pb.update((bytecount / fsize * 100.0))
 
                 elems = line.decode(encoding="ascii", errors="ignore").strip().split()
-                if len(elems) == 0:
+                if not elems:
                     continue
 
                 # 1: AIRPORT
@@ -236,10 +234,6 @@ if settings.gui == 'qtgl':
                         apt_ctr_lat.append(center[0])
                         apt_ctr_lon.append(center[1])
 
-                    # Add airport to runway threshold database
-                    curthresholds = dict()
-                    rwythresholds[elems[4]] = curthresholds
-
                     # Reset the boundingbox
                     apt_bb = BoundingBox()
                     continue
@@ -261,7 +255,7 @@ if settings.gui == 'qtgl':
                     offset1 = float(elems[20])
 
                     # runway vertices
-                    runways.extend(dlatlon(lat0, lon0, lat1, lon1, width, REARTH_INV))
+                    runways.extend(dlatlon(lat0, lon0, lat1, lon1, width))
 
                     # threshold information: ICAO code airport, Runway identifier,
                     # latitude, longitude, bearing
@@ -272,10 +266,8 @@ if settings.gui == 'qtgl':
                     # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
                     # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
 
-                    thr0, vertices0 = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0, REARTH_INV)
-                    thr1, vertices1 = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1, REARTH_INV)
-                    curthresholds[elems[8]]  = thr0
-                    curthresholds[elems[17]] = thr1
+                    thr0, vertices0 = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0)
+                    thr1, vertices1 = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1)
                     rwythr.extend(vertices0)
                     rwythr.extend(vertices1)
 
@@ -357,68 +349,65 @@ if settings.gui == 'qtgl':
         pb.close()
 
         # return the data
-        return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices, rwythresholds
+        return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices
 
-else:
-    # Runway threshold loader for pygame version
-    def pygame_load_rwythresholds():
-        rwythresholds = dict()
-        curthresholds = None
-        zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
-        print("Reading apt.dat from apt.zip")
-        with zfile.open('apt.dat', 'r') as f:
-            for line in f:
-                elems = line.strip().split()
-                if len(elems) == 0:
+
+# Runway threshold loader for navdatabase
+def navdata_load_rwythresholds():
+    rwythresholds = dict()
+    curthresholds = None
+    zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
+    print("Reading apt.dat from apt.zip")
+    with zfile.open('apt.dat', 'r') as f:
+        for line in f:
+            elems = line.decode(encoding="ascii", errors="ignore").strip().split()
+            if len(elems) == 0:
+                continue
+
+            # 1: AIRPORT
+            if elems[0] == '1':
+                # Add airport to runway threshold database
+                curthresholds = dict()
+                rwythresholds[elems[4]] = curthresholds
+                continue
+
+            if elems[0] == '100':
+                # Only asphalt and concrete runways
+                if int(elems[2]) > 2:
                     continue
+                # rwy_lbl = (elems[8], elems[17])
 
-                # 1: AIRPORT
-                if elems[0] == '1':
-                    # Add airport to runway threshold database
-                    curthresholds = dict()
-                    rwythresholds[elems[4]] = curthresholds
-                    continue
+                lat0    = float(elems[9])
+                lon0    = float(elems[10])
+                offset0 = float(elems[11])
 
-                if elems[0] == '100':
-                    # Only asphalt and concrete runways
-                    if int(elems[2]) > 2:
-                        continue
-                    # rwy_lbl = (elems[8], elems[17])
+                lat1    = float(elems[18])
+                lon1    = float(elems[19])
+                offset1 = float(elems[20])
 
-                    lat0    = float(elems[9])
-                    lon0    = float(elems[10])
-                    offset0 = float(elems[11])
+                # threshold information: ICAO code airport, Runway identifier,
+                # latitude, longitude, bearing
+                # vertices: gives vertices of the box around the threshold
 
-                    lat1    = float(elems[18])
-                    lon1    = float(elems[19])
-                    offset1 = float(elems[20])
+                # opposite runways are on the same line. RWY1: 8-11, RWY2: 17-20
+                # Hence, there are two thresholds per line
+                # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
+                # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
 
-                    # threshold information: ICAO code airport, Runway identifier,
-                    # latitude, longitude, bearing
-                    # vertices: gives vertices of the box around the threshold
-
-                    # opposite runways are on the same line. RWY1: 8-11, RWY2: 17-20
-                    # Hence, there are two thresholds per line
-                    # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
-                    # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
-
-                    thr0, _ = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0, REARTH_INV)
-                    thr1, _ = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1, REARTH_INV)
-                    curthresholds[elems[8]]  = thr0
-                    curthresholds[elems[17]] = thr1
-                    continue
-        return rwythresholds
+                thr0, _ = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0)
+                thr1, _ = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1)
+                curthresholds[elems[8]]  = thr0
+                curthresholds[elems[17]] = thr1
+                continue
+    return rwythresholds
 
 
 # calculates the threshold points per runway
 # underlying equations can be found at
 # http://www.movable-type.co.uk/scripts/latlong.html
-def thresholds(lat1, lon1, lat2, lon2, offset, REARTH_INV):
-
-    # Earth radius [m]
-    REARTH    = 6371000.0
-    d         = offset / REARTH
-    d_box     = 20.0 / REARTH  # m
+def thresholds(lat1, lon1, lat2, lon2, offset):
+    d         = offset * REARTH_INV
+    d_box     = 20.0 * REARTH_INV  # m
     width_box = 30  # m
     deltal    = lon2 - lon1
 
@@ -442,7 +431,7 @@ def thresholds(lat1, lon1, lat2, lon2, offset, REARTH_INV):
 
     # calculate vertices of threshold box
     vertices = dlatlon(degrees(latbox0), degrees(lonbox0), degrees(latbox1),
-                       degrees(lonbox1), width_box, REARTH_INV)
+                       degrees(lonbox1), width_box)
 
     return (degrees(latthres), degrees(lonthres), degrees(bearing)), vertices
 
@@ -462,7 +451,7 @@ def thrpoints(lat1, lon1, d, bearing):
 
 
 # used for calculating the vertices of the runways as well as the threshold boxes
-def dlatlon(lat0, lon0, lat1, lon1, width, REARTH_INV):
+def dlatlon(lat0, lon0, lat1, lon1, width):
 
     # calculate distance between ends of runways / threshold boxes
     flat_earth = cos(0.5 * radians(lat0 + lat1))
