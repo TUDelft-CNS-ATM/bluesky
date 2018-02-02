@@ -13,6 +13,7 @@ from bluesky.tools import geo
 from bluesky.tools.areafilter import areas
 from bluesky.tools.aero import ft, kts, nm
 from bluesky.tools.misc import tim2txt
+from bluesky import MSG_OK
 from . import splash
 from .keyboard import Keyboard
 from .fastfont import Fastfont
@@ -292,9 +293,10 @@ class Screen:
         self.aplabel = len(bs.navdb.aptlat) * [0]
 
     def echo(self, msg, sender_id=0):
-        msgs = msg.split('\n')
-        for m in msgs:
-            self.editwin.echo(m)
+        if not msg==MSG_OK:
+            msgs = msg.split('\n')
+            for m in msgs:
+                self.editwin.echo(m)
         return
 
     def showssd(self, param):

@@ -109,6 +109,7 @@ def wait_for(test, iters, period):
 
 
 class BlueSkyTestException(Exception):
+
     """
     Simple base exception class for bluesky tests.
     """

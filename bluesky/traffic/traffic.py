@@ -268,7 +268,7 @@ class Traffic(TrafficArrays):
             acid = "KL204"
             flno = 204
             while self.id.count(acid) > 0:
-                flno = flno + 1
+                flno += 1
                 acid = "KL" + str(flno)
 
         # Check for (other) missing arguments
@@ -283,7 +283,7 @@ class Traffic(TrafficArrays):
         super(Traffic, self).create()
 
         # Increase number of aircraft
-        self.ntraf = self.ntraf + 1
+        self.ntraf += 1
 
         # Aircraft Info
         self.id[-1]   = acid.upper()
