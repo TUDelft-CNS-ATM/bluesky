@@ -235,7 +235,7 @@ class Gui(QApplication):
             elif (event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.TouchEnd) and self.panzoomchanged:
                 self.panzoomchanged = False
                 io.send_event(b'PANZOOM', dict(pan=(self.radarwidget.panlat, self.radarwidget.panlon),
-                                               zoom=self.radarwidget.zoom, absolute=True))
+                                               zoom=self.radarwidget.zoom, ar=self.radarwidget.ar, absolute=True))
 
         # Send all key presses directly to the main window
         if event.type() == QEvent.KeyPress:

@@ -666,13 +666,13 @@ class RadarWidget(QGLWidget):
             self.cpalines.set_vertex_count(0)
         else:
             # Update data in GPU buffers
-            update_buffer(self.aclatbuf, np.array(data.lat, dtype=np.float32))
-            update_buffer(self.aclonbuf, np.array(data.lon, dtype=np.float32))
-            update_buffer(self.achdgbuf, np.array(data.trk, dtype=np.float32))
-            update_buffer(self.acaltbuf, np.array(data.alt, dtype=np.float32))
-            update_buffer(self.actasbuf, np.array(data.tas, dtype=np.float32))
-            update_buffer(self.asasnbuf, np.array(data.asasn, dtype=np.float32))
-            update_buffer(self.asasebuf, np.array(data.asase, dtype=np.float32))
+            update_buffer(self.aclatbuf, np.array(data.lat[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.aclonbuf, np.array(data.lon[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.achdgbuf, np.array(data.trk[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.acaltbuf, np.array(data.alt[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.actasbuf, np.array(data.tas[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.asasnbuf, np.array(data.asasn[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.asasebuf, np.array(data.asase[:MAX_NAIRCRAFT], dtype=np.float32))
 
             # CPA lines to indicate conflicts
             ncpalines = len(data.confcpalat)
@@ -682,12 +682,9 @@ class RadarWidget(QGLWidget):
 
             # Labels and colors
             rawlabel = ''
-            color    = np.empty((self.naircraft, 4), dtype=np.uint8)
-            if actdata.ssd_all:
-                selssd   = np.ones(self.naircraft, dtype=np.uint8)
-            else:
-                selssd   = np.zeros(self.naircraft, dtype=np.uint8)
-            for i, acid in enumerate(data.id):
+            color    = np.empty((min(self.naircraft, MAX_NAIRCRAFT), 4), dtype=np.uint8)
+            selssd   = np.zeros(self.naircraft, dtype=np.uint8)
+            for i, acid in enumerate(data.id[:MAX_NAIRCRAFT]):
                 vs = 30 if data.vs[i] > 0.25 else 31 if data.vs[i] < -0.25 else 32
                 # Make label: 3 lines of 8 characters per aircraft
                 if actdata.show_lbl >= 1:
@@ -715,9 +712,10 @@ class RadarWidget(QGLWidget):
                 if acid in actdata.ssd_ownship:
                     selssd[i] = 255
 
+            if len(self.ssd_ownship) > 0 or self.ssd_conflicts:
+                update_buffer(self.ssd.selssdbuf[:MAX_NAIRCRAFT], selssd)
 
-            update_buffer(self.ssd.selssdbuf, selssd)
-            update_buffer(self.confcpabuf, cpalines)
+            update_buffer(self.confcpabuf, cpalines[:MAX_NCONFLICTS * 4])
             update_buffer(self.accolorbuf, color)
             update_buffer(self.aclblbuf, np.array(rawlabel.encode('utf8'), dtype=np.string_))
 

@@ -28,7 +28,7 @@ def checkInside(areaname, lat, lon, alt):
     """ Check if points with coordinates lat, lon, alt are inside area with name 'areaname'.
         Returns an array of booleans. True ==  Inside"""
     if areaname not in areas:
-        return []
+        return np.zeros(len(lat), dtype=np.bool)
     area = areas[areaname]
     return area.checkInside(lat, lon, alt)
 
