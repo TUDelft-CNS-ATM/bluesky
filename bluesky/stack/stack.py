@@ -1212,7 +1212,7 @@ def process():
 
                 if isinstance(results, bool):  # Only flag is returned
                     if results:
-                        bs.scr.echo(bs.MSG_OK, sender_id)
+                        bs.scr.echo(bs.MSG_OK)
                     else:
                         if not args:
                             bs.scr.echo(helptext)
