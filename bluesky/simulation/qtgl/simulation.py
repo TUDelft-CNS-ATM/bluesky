@@ -49,11 +49,6 @@ class Simulation(Node):
         self.ffmode      = False
         self.ffstop      = None
 
-        # TODO Send list of stack functions available in this sim to gui at start
-        # stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
-        # self.send_event(b'STACKINIT', stackdict)
-
-
     def step(self):
         ''' Perform a simulation timestep. '''
         # When running at a fixed rate, or when in hold/init,
@@ -61,8 +56,6 @@ class Simulation(Node):
         if not self.ffmode or not self.state == bs.OP:
             remainder = self.syst - time.time()
             if remainder > MINSLEEP:
-                if remainder > 1.0:
-                    print('remainder =', remainder)
                 time.sleep(remainder)
 
         elif self.ffstop is not None and self.simt >= self.ffstop:
@@ -209,6 +202,10 @@ class Simulation(Node):
         elif eventname == b'QUIT':
             # BlueSky is quitting
             self.quit()
+        elif eventname == b'GETSIMSTATE':
+            # Send list of stack functions available in this sim to gui at start
+            stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
+            self.send_event(b'SIMSTATE', stackdict, target=sender_id)
         else:
             # This is either an unknown event or a gui event.
             event_processed = bs.scr.event(eventname, eventdata, sender_id)

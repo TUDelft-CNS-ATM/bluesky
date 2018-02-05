@@ -70,7 +70,7 @@ class Node(object):
 
     def send_event(self, eventname, data=None, target=None):
         # On the sim side, target is obtained from the currently-parsed stack command
-        target = stack.sender() or [b'*']
+        target = target or stack.sender() or [b'*']
         pydata = msgpack.packb(data, default=encode_ndarray, use_bin_type=True)
         self.event_io.send_multipart(target + [eventname, pydata])
 

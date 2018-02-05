@@ -24,7 +24,8 @@ stream_received     = Signal()
 class nodeData(object):
     def __init__(self, route=None):
         # Stack window
-        self.echo_text = ''
+        self.echo_text  = ''
+        self.stack_help = dict()
 
         # Display pan and zoom
         self.pan       = (0.0, 0.0)
@@ -161,6 +162,7 @@ class GuiClient(Client):
         super(GuiClient, self).__init__(ACTNODE_TOPICS)
         self.nodedata = dict()
         self.timer = None
+        self.ref_nodedata = nodeData()
 
     def event(self, name, data, sender_id):
         sender_data = self.get_nodedata(sender_id)
@@ -182,6 +184,8 @@ class GuiClient(Client):
         elif name == b'PANZOOM':
             sender_data.panzoom(**data)
             data_changed.append('PANZOOM')
+        elif name == b'SIMSTATE':
+            sender_data.stack_help = data
         else:
             event_received.emit(name, data, sender_id)
 
@@ -198,9 +202,18 @@ class GuiClient(Client):
         actnodedata_changed.emit(newact, self.get_nodedata(newact), UPDATE_ALL)
 
     def get_nodedata(self, nodeid=None):
-        data = self.nodedata.get(nodeid or self.act)
+        nodeid = nodeid or self.act
+        if not nodeid:
+            return self.ref_nodedata
+
+        data = self.nodedata.get(nodeid)
         if not data:
-            self.nodedata[nodeid or self.act] = data = nodeData()
+            # If this is a node we haven't addressed yet: create dataset and
+            # request node settings
+            print('Not data: nodeid=', nodeid)
+            self.nodedata[nodeid] = data = nodeData()
+            self.send_event(b'GETSIMSTATE', target=nodeid)
+
         return data
 
     def init(self):

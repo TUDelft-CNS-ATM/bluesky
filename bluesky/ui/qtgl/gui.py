@@ -111,11 +111,6 @@ class Gui(QApplication):
             elif dialog == 'DOC':
                 self.show_doc_window(args)
 
-        # TODO stack init
-        # elif event.type() == StackInitEventType:
-        #     self.win.console.addStackHelp(sender_id, event.stackdict)
-
-
     def on_simstream_received(self, streamname, data, sender_id):
         if not self.initialized:
             return

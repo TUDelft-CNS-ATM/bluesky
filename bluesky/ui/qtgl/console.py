@@ -10,8 +10,6 @@ from bluesky.tools.misc import cmdsplit
 from . import guiio as io
 from . import autocomplete
 
-node_stacks = dict()
-
 
 class Console(QWidget):
     lineEdit        = None
@@ -37,11 +35,6 @@ class Console(QWidget):
             self.stackText.setPlainText(nodedata.echo_text)
             self.stackText.verticalScrollBar().setValue(self.stackText.verticalScrollBar().maximum())
 
-    def addStackHelp(self, nodeid, stackdict):
-        node_stacks[nodeid] = stackdict
-        if not self.initialized:
-            self.initialized = True
-            self.lineEdit.setHtml('>>')
 
     def stack(self, text):
         # Add command to the command history
@@ -67,11 +60,17 @@ class Console(QWidget):
         if self.command_line == text:
             return
 
+        # if not self.initialized:
+        #     self.initialized = True
+        #     self.lineEdit.setHtml('>>')
+
+        actdata = io.get_nodedata()
+
         self.command_line   = text
         self.cmd, self.args = cmdsplit(self.command_line)
 
         hintline = ''
-        allhints = node_stacks.get(io.actnode())
+        allhints = actdata.stack_help
         if allhints:
             hint = allhints.get(self.cmd.upper())
             if hint:
