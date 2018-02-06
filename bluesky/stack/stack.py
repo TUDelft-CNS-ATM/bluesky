@@ -1444,8 +1444,7 @@ class Argparser:
             elif argtype == "latlon":
                 # Set default reference lat,lon for duplicate name in navdb to screen
                 if Argparser.reflat < -180.:  # No reference avaiable yet: use screen center
-                    Argparser.reflat = bs.scr.ctrlat
-                    Argparser.reflon = bs.scr.ctrlon
+                    Argparser.reflat, Argparser.reflon = bs.scr.getviewctr()
 
                 success, posobj = txt2pos(name, Argparser.reflat, Argparser.reflon)
 

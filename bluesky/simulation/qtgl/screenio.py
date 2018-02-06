@@ -24,12 +24,13 @@ class ScreenIO(object):
     # Functions
     # =========================================================================
     def __init__(self):
-        # Keep track of the important parameters of the screen state
-        # (We receive these through events from the gui)
-        self.ctrlat      = 0.0
-        self.ctrlon      = 0.0
-        self.scrzoom     = 1.0
-        self.scrar       = 1.0
+        # Screen state defaults
+        self.def_pan     = (0.0, 0.0)
+        self.def_zoom    = 1.0
+        # Screen state overrides per client
+        self.client_pan  = dict()
+        self.client_zoom = dict()
+        self.client_ar   = dict()
 
         self.route_acid  = None
 
@@ -67,34 +68,61 @@ class ScreenIO(object):
     def cmdline(self, text):
         bs.sim.send_event(b'CMDLINE', text)
 
-    def getviewlatlon(self):
-        lat0 = self.ctrlat - 1.0 / (self.scrzoom * self.scrar)
-        lat1 = self.ctrlat + 1.0 / (self.scrzoom * self.scrar)
-        lon0 = self.ctrlon - 1.0 / (self.scrzoom * np.cos(np.radians(self.ctrlat)))
-        lon1 = self.ctrlon + 1.0 / (self.scrzoom * np.cos(np.radians(self.ctrlat)))
+    def getviewctr(self):
+        return self.client_pan.get(stack.sender()) or self.def_pan
+
+    def getviewbounds(self):
+        # Get appropriate lat/lon/zoom/aspect ratio
+        sender   = stack.sender()
+        lat, lon = self.client_pan.get(sender) or self.def_pan
+        zoom     = self.client_zoom.get(sender) or self.def_zoom
+        ar       = self.client_ar.get(sender) or 1.0
+
+        lat0 = lat - 1.0 / (zoom * ar)
+        lat1 = lat + 1.0 / (zoom * ar)
+        lon0 = lon - 1.0 / (zoom * np.cos(np.radians(lat)))
+        lon1 = lon + 1.0 / (zoom * np.cos(np.radians(lat)))
         return lat0, lat1, lon0, lon1
 
     def zoom(self, zoom, absolute=True):
-        if absolute:
-            self.scrzoom = zoom
+        sender    = stack.sender()
+        if sender == b'*':
+            self.def_zoom = zoom * (1.0 if absolute else self.def_zoom)
+            self.client_zoom.clear()
         else:
-            self.scrzoom *= zoom
+            if absolute:
+                self.client_zoom[sender] = zoom
+            else:
+                self.client_zoom[sender] = zoom * self.client_zoom.get(sender, self.def_zoom)
         bs.sim.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
+        lat, lon = 0, 0
+        absolute = False
         if args[0] == "LEFT":
-            self.ctrlon -= 0.5
+            lon = -0.5
         elif args[0] == "RIGHT":
-            self.ctrlon += 0.5
-        elif args[0] == "UP" or args[0] == "ABOVE":
-            self.ctrlat += 0.5
+            lon = 0.5
+        elif args[0] == "UP":
+            lat = 0.5
         elif args[0] == "DOWN":
-            self.ctrlat -= 0.5
+            lat = -0.5
         else:
-            self.ctrlat, self.ctrlon = args
+            absolute = True
+            lat, lon = args
 
-        bs.sim.send_event(b'PANZOOM', dict(pan=(self.ctrlat, self.ctrlon), absolute=True))
+        sender    = stack.sender()
+        if sender == b'*':
+            self.def_pan = (lat,lon) if absolute else (lat + self.def_pan[0],
+                                                       lon + self.def_pan[1])
+        else:
+            if absolute:
+                self.client_pan[sender] = (lat, lon)
+            else:
+                ll = self.client_pan.get(sender) or self.def_pan
+                self.client_pan[sender] = (lat + ll[0], lon + ll[1])
+        bs.sim.send_event(b'PANZOOM', dict(pan=(self.lat, self.lon), absolute=True))
 
     def shownd(self, acid):
         bs.sim.send_event(b'SHOWND', acid)
@@ -129,7 +157,7 @@ class ScreenIO(object):
         bs.sim.send_event(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
 
     def objappend(self, objtype, objname, data):
-        """Add a drawing object to the radar screen using the following inpouts:
+        """Add a drawing object to the radar screen using the following inputs:
            objtype: "LINE"/"POLY" /"BOX"/"CIRCLE" = string with type of object
            objname: string with a name as key for reference
            objdata: lat,lon data, depending on type:
@@ -141,10 +169,9 @@ class ScreenIO(object):
 
     def event(self, eventname, eventdata, sender_id):
         if eventname == b'PANZOOM':
-            self.ctrlat  = eventdata['pan'][0]
-            self.ctrlon  = eventdata['pan'][1]
-            self.scrzoom = eventdata['zoom']
-            self.scrar   = eventdata['ar']
+            self.client_pan[sender_id]  = eventdata['pan']
+            self.client_zoom[sender_id] = eventdata['zoom']
+            self.client_ar[sender_id]   = eventdata['ar']
             return True
 
         return False

@@ -1178,7 +1178,10 @@ class Screen:
         self.redrawradbg = True  # redraw background
         return
 
-    def getviewlatlon(self): # Return current viewing area in lat, lon
+    def getviewctr(self):
+        return (self.ctrlat, self.ctrlon)
+
+    def getviewbounds(self): # Return current viewing area in lat, lon
         return self.lat0, self.lat1, self.lon0, self.lon1
 
     def drawradbg(self): # redraw radar background

@@ -181,7 +181,7 @@ class Traffic(TrafficArrays):
     def create(self, n=1, actype="B744", acalt=None, acspd=None, dest=None,
                 aclat=None, aclon=None, achdg=None, acid=None):
         """ Create multiple random aircraft in a specified area """
-        area = bs.scr.getviewlatlon()
+        area = bs.scr.getviewbounds()
         if acid is None:
             idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
             acid = idtmp.format(1) if n == 1 else [idtmp.format(i) for i in range(n)]
@@ -621,8 +621,7 @@ class Traffic(TrafficArrays):
             wp = idxorwp.upper()
 
             # Reference position for finding nearest
-            reflat = bs.scr.ctrlat
-            reflon = bs.scr.ctrlon
+            reflat, reflon = bs.scr.getviewctr()
 
             lines = "Info on "+wp+":\n"
 
@@ -738,9 +737,7 @@ class Traffic(TrafficArrays):
 
     def airwaycmd(self,key=""):
         # Show conections of a waypoint
-
-        reflat = bs.scr.ctrlat
-        reflon = bs.scr.ctrlon
+        reflat, reflon = bs.scr.getviewctr()
 
         if key=="":
             return False,'AIRWAY needs waypoint or airway'
