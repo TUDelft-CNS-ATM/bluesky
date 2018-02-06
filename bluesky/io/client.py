@@ -67,6 +67,9 @@ class Client(object):
             socks = dict(self.poller.poll(0))
             if socks.get(self.event_io) == zmq.POLLIN:
                 msg = self.event_io.recv_multipart()
+                # Remove send-to-all flag if present
+                if msg[0] == b'*':
+                    msg.pop(0)
                 route, eventname, data = msg[:-2], msg[-2], msg[-1]
                 self.sender_id = route[0]
                 route.reverse()

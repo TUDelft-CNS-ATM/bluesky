@@ -251,7 +251,6 @@ class GuiClient(Client):
         if not data:
             # If this is a node we haven't addressed yet: create dataset and
             # request node settings
-            print('Not data: nodeid=', nodeid)
             self.nodedata[nodeid] = data = nodeData()
             self.send_event(b'GETSIMSTATE', target=nodeid)
 
