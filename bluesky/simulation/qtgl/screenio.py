@@ -114,9 +114,7 @@ class ScreenIO(object):
             lat, lon = args
 
         sender    = stack.sender()
-        print('pan called: ', args, sender)
         if sender:
-            print('sim pan, setting custom pan for client')
             if absolute:
                 self.client_pan[sender] = (lat, lon)
             else:
@@ -126,7 +124,6 @@ class ScreenIO(object):
             self.def_pan = (lat,lon) if absolute else (lat + self.def_pan[0],
                                                        lon + self.def_pan[1])
             self.client_pan.clear()
-            print('sim pan, clearing custom pans for client(s)')
 
         bs.sim.send_event(b'PANZOOM', dict(pan=(lat,lon), absolute=absolute))
 
