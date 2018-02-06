@@ -152,8 +152,8 @@ class RadarWidget(QGLWidget):
             the data of the current node is updated. '''
         self.makeCurrent()
 
-        # Polygon data change
-        if 'POLY' in changed_elems:
+        # Shape data change
+        if 'SHAPE' in changed_elems:
             if len(nodedata.polydata):
                 update_buffer(self.allpolysbuf, nodedata.polydata)
             self.allpolys.set_vertex_count(len(nodedata.polydata) // 2)

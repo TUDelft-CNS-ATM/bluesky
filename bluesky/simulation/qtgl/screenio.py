@@ -128,7 +128,7 @@ class ScreenIO(object):
     def filteralt(self, *args):
         bs.sim.send_event(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
 
-    def objappend(self, objtype, objname, data_in):
+    def objappend(self, objtype, objname, data):
         """Add a drawing object to the radar screen using the following inpouts:
            objtype: "LINE"/"POLY" /"BOX"/"CIRCLE" = string with type of object
            objname: string with a name as key for reference
@@ -137,52 +137,7 @@ class ScreenIO(object):
                     BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
                     CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
         """
-        if data_in is None:
-            # This is an object delete event
-            data = None
-
-        elif objtype == 'LINE' or objtype[:4] == 'POLY':
-            # Input data is laist or array: [lat0,lon0,lat1,lon1,lat2,lon2,lat3,lon3,..]
-            data = np.array(data_in, dtype=np.float32)
-
-        elif objtype == 'BOX':
-            # Convert box coordinates into polyline list
-            # BOX: 0 = lat0, 1 = lon0, 2 = lat1, 3 = lon1 , use bounding box
-            data = np.array([data_in[0], data_in[1],
-                             data_in[0], data_in[3],
-                             data_in[2], data_in[3],
-                             data_in[2], data_in[1]], dtype=np.float32)
-
-        elif objtype == 'CIRCLE':
-            # Input data is latctr,lonctr,radius[nm]
-            # Convert circle into polyline list
-
-            # Circle parameters
-            Rearth = 6371000.0             # radius of the Earth [m]
-            numPoints = 72                 # number of straight line segments that make up the circrle
-
-            # Inputs
-            lat0 = data_in[0]              # latitude of the center of the circle [deg]
-            lon0 = data_in[1]              # longitude of the center of the circle [deg]
-            Rcircle = data_in[2] * 1852.0  # radius of circle [NM]
-
-            # Compute flat Earth correction at the center of the experiment circle
-            coslatinv = 1.0 / np.cos(np.deg2rad(lat0))
-
-            # compute the x and y coordinates of the circle
-            angles    = np.linspace(0.0, 2.0 * np.pi, numPoints)   # ,endpoint=True) # [rad]
-
-            # Calculate the circle coordinates in lat/lon degrees.
-            # Use flat-earth approximation to convert from cartesian to lat/lon.
-            latCircle = lat0 + np.rad2deg(Rcircle * np.sin(angles) / Rearth)  # [deg]
-            lonCircle = lon0 + np.rad2deg(Rcircle * np.cos(angles) * coslatinv / Rearth)  # [deg]
-
-            # make the data array in the format needed to plot circle
-            data = np.empty(2 * numPoints, dtype=np.float32)  # Create empty array
-            data[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
-            data[1::2] = lonCircle
-
-        bs.sim.send_event(b'POLY', dict(name=objname, data=data))
+        bs.sim.send_event(b'SHAPE', dict(name=objname, shape=objtype, data=data))
 
     def event(self, eventname, eventdata, sender_id):
         if eventname == b'PANZOOM':

@@ -403,7 +403,7 @@ def init():
         "LINE": [
             "LINE name,lat,lon,lat,lon",
             "txt,latlon,latlon",
-            lambda name, *coords: bs.scr.objappend("LINE", name, coords),
+            lambda name, *coords: areafilter.defineArea(name, 'LINE', coords),
             "Draw a line on the radar screen"
         ],
         "LISTRTE": [

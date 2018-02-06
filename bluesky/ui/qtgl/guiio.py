@@ -12,7 +12,7 @@ from bluesky.tools import Signal
 from bluesky.tools.aero import ft
 
 # Globals
-UPDATE_ALL = ['POLY', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT']
+UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT']
 ACTNODE_TOPICS = [b'ACDATA']
 
 # Signals
@@ -77,7 +77,7 @@ class nodeData(object):
         if zoom:
             self.zoom = zoom
 
-    def update_poly_data(self, name, data=None):
+    def update_poly_data(self, name, shape='', data=None):
         if name in self.polynames:
             # We're either updating a polygon, or deleting it. In both cases
             # we remove the current one.
@@ -86,13 +86,54 @@ class nodeData(object):
 
         # Break up polyline list of (lat,lon)s into separate line segments
         if data is not None:
-            self.polynames[name] = (len(self.polydata), 2 * len(data))
-            newbuf = np.empty(2 * len(data), dtype=np.float32)
-            newbuf[0::4]   = data[0::2]  # lat
-            newbuf[1::4]   = data[1::2]  # lon
-            newbuf[2:-2:4] = data[2::2]  # lat
-            newbuf[3:-3:4] = data[3::2]  # lon
-            newbuf[-2:]    = data[0:2]
+            if shape == 'LINE' or shape[:4] == 'POLY':
+                # Input data is laist or array: [lat0,lon0,lat1,lon1,lat2,lon2,lat3,lon3,..]
+                newdata = np.array(data, dtype=np.float32)
+
+            elif shape == 'BOX':
+                # Convert box coordinates into polyline list
+                # BOX: 0 = lat0, 1 = lon0, 2 = lat1, 3 = lon1 , use bounding box
+                newdata = np.array([data[0], data[1],
+                                 data[0], data[3],
+                                 data[2], data[3],
+                                 data[2], data[1]], dtype=np.float32)
+
+            elif shape == 'CIRCLE':
+                # Input data is latctr,lonctr,radius[nm]
+                # Convert circle into polyline list
+
+                # Circle parameters
+                Rearth = 6371000.0             # radius of the Earth [m]
+                numPoints = 72                 # number of straight line segments that make up the circrle
+
+                # Inputs
+                lat0 = data[0]              # latitude of the center of the circle [deg]
+                lon0 = data[1]              # longitude of the center of the circle [deg]
+                Rcircle = data[2] * 1852.0  # radius of circle [NM]
+
+                # Compute flat Earth correction at the center of the experiment circle
+                coslatinv = 1.0 / np.cos(np.deg2rad(lat0))
+
+                # compute the x and y coordinates of the circle
+                angles    = np.linspace(0.0, 2.0 * np.pi, numPoints)   # ,endpoint=True) # [rad]
+
+                # Calculate the circle coordinates in lat/lon degrees.
+                # Use flat-earth approximation to convert from cartesian to lat/lon.
+                latCircle = lat0 + np.rad2deg(Rcircle * np.sin(angles) / Rearth)  # [deg]
+                lonCircle = lon0 + np.rad2deg(Rcircle * np.cos(angles) * coslatinv / Rearth)  # [deg]
+
+                # make the data array in the format needed to plot circle
+                newdata = np.empty(2 * numPoints, dtype=np.float32)  # Create empty array
+                newdata[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
+                newdata[1::2] = lonCircle
+
+            self.polynames[name] = (len(self.polydata), 2 * len(newdata))
+            newbuf = np.empty(2 * len(newdata), dtype=np.float32)
+            newbuf[0::4]   = newdata[0::2]  # lat
+            newbuf[1::4]   = newdata[1::2]  # lon
+            newbuf[2:-2:4] = newdata[2::2]  # lat
+            newbuf[3:-3:4] = newdata[3::2]  # lon
+            newbuf[-2:]    = newdata[0:2]
             self.polydata  = np.append(self.polydata, newbuf)
 
     def defwpt(self, name, lat, lon):
@@ -170,9 +211,9 @@ class GuiClient(Client):
         if name == b'RESET':
             sender_data.clear_scen_data()
             data_changed = list(UPDATE_ALL)
-        elif name == b'POLY':
+        elif name == b'SHAPE':
             sender_data.update_poly_data(**data)
-            data_changed.append('POLY')
+            data_changed.append('SHAPE')
         elif name == b'DEFWPT':
             sender_data.defwpt(**data)
             data_changed.append('CUSTWPT')

@@ -20,6 +20,8 @@ def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
         areas[areaname] = Circle(coordinates, top, bottom)
     elif areatype[:4] == 'POLY':
         areas[areaname] = Poly(coordinates, top, bottom)
+    elif areatype == 'LINE':
+        areas[areaname] = Line(coordinates)
 
     # Pass the shape on to the screen object
     bs.scr.objappend(areatype, areaname, coordinates)
@@ -41,6 +43,14 @@ def deleteArea(areaname):
 def reset():
     """ Clear all data. """
     areas.clear()
+
+
+class Line:
+    def __init__(self, coordinates):
+        self.coords = coordinates
+
+    def checkInside(self, lat, lon, alt):
+        return False
 
 
 class Box:
