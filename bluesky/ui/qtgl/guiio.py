@@ -25,7 +25,7 @@ class nodeData(object):
     def __init__(self, route=None):
         # Stack window
         self.echo_text  = ''
-        self.stack_help = dict()
+        self.stackcmds  = dict()
 
         # Display pan and zoom
         self.pan       = (0.0, 0.0)
@@ -71,13 +71,22 @@ class nodeData(object):
         self.ssd_ownship   = set()
 
 
+    def siminit(self, shapes, **kwargs):
+        self.__dict__.update(kwargs)
+        for shape in shapes:
+            self.update_poly_data(**shape)
+
     def panzoom(self, pan=None, zoom=None, absolute=True):
         if pan:
-            self.pan  = pan
+            if absolute:
+                self.pan  = pan
+            else:
+                self.pan[0] += pan[0]
+                self.pan[1] += pan[1]
         if zoom:
-            self.zoom = zoom
+            self.zoom = zoom * (1.0 if absolute else self.zoom)
 
-    def update_poly_data(self, name, shape='', data=None):
+    def update_poly_data(self, name, shape='', coordinates=None):
         if name in self.polynames:
             # We're either updating a polygon, or deleting it. In both cases
             # we remove the current one.
@@ -85,18 +94,18 @@ class nodeData(object):
             del self.polynames[name]
 
         # Break up polyline list of (lat,lon)s into separate line segments
-        if data is not None:
+        if coordinates is not None:
             if shape == 'LINE' or shape[:4] == 'POLY':
-                # Input data is laist or array: [lat0,lon0,lat1,lon1,lat2,lon2,lat3,lon3,..]
-                newdata = np.array(data, dtype=np.float32)
+                # Input data is list or array: [lat0,lon0,lat1,lon1,lat2,lon2,lat3,lon3,..]
+                newdata = np.array(coordinates, dtype=np.float32)
 
             elif shape == 'BOX':
                 # Convert box coordinates into polyline list
                 # BOX: 0 = lat0, 1 = lon0, 2 = lat1, 3 = lon1 , use bounding box
-                newdata = np.array([data[0], data[1],
-                                 data[0], data[3],
-                                 data[2], data[3],
-                                 data[2], data[1]], dtype=np.float32)
+                newdata = np.array([coordinates[0], coordinates[1],
+                                 coordinates[0], coordinates[3],
+                                 coordinates[2], coordinates[3],
+                                 coordinates[2], coordinates[1]], dtype=np.float32)
 
             elif shape == 'CIRCLE':
                 # Input data is latctr,lonctr,radius[nm]
@@ -107,9 +116,9 @@ class nodeData(object):
                 numPoints = 72                 # number of straight line segments that make up the circrle
 
                 # Inputs
-                lat0 = data[0]              # latitude of the center of the circle [deg]
-                lon0 = data[1]              # longitude of the center of the circle [deg]
-                Rcircle = data[2] * 1852.0  # radius of circle [NM]
+                lat0 = coordinates[0]              # latitude of the center of the circle [deg]
+                lon0 = coordinates[1]              # longitude of the center of the circle [deg]
+                Rcircle = coordinates[2] * 1852.0  # radius of circle [NM]
 
                 # Compute flat Earth correction at the center of the experiment circle
                 coslatinv = 1.0 / np.cos(np.deg2rad(lat0))
@@ -226,7 +235,8 @@ class GuiClient(Client):
             sender_data.panzoom(**data)
             data_changed.append('PANZOOM')
         elif name == b'SIMSTATE':
-            sender_data.stack_help = data
+            sender_data.siminit(**data)
+            data_changed = list(UPDATE_ALL)
         else:
             event_received.emit(name, data, sender_id)
 

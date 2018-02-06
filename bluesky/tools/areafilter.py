@@ -15,13 +15,13 @@ def hasArea(areaname):
 def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
     """Define a new area"""
     if areatype == 'BOX':
-        areas[areaname] = Box(coordinates, top, bottom)
+        areas[areaname] = Box(areaname, coordinates, top, bottom)
     elif areatype == 'CIRCLE':
-        areas[areaname] = Circle(coordinates, top, bottom)
+        areas[areaname] = Circle(areaname, coordinates, top, bottom)
     elif areatype[:4] == 'POLY':
-        areas[areaname] = Poly(coordinates, top, bottom)
+        areas[areaname] = Poly(areaname, coordinates, top, bottom)
     elif areatype == 'LINE':
-        areas[areaname] = Line(coordinates)
+        areas[areaname] = Line(areaname, coordinates)
 
     # Pass the shape on to the screen object
     bs.scr.objappend(areatype, areaname, coordinates)
@@ -44,17 +44,23 @@ def reset():
     """ Clear all data. """
     areas.clear()
 
+class Shape:
+    def __init__(self, shape, name, coordinates):
+        self.raw = dict(name=name, shape=shape, coordinates=coordinates)
 
-class Line:
-    def __init__(self, coordinates):
+
+class Line(Shape):
+    def __init__(self, name, coordinates):
+        super(Line, self).__init__('LINE', name, coordinates)
         self.coords = coordinates
 
     def checkInside(self, lat, lon, alt):
         return False
 
 
-class Box:
-    def __init__(self, coordinates, top=1e9, bottom=-1e9):
+class Box(Shape):
+    def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
+        super(Box, self).__init__('BOX', name, coordinates)
         self.top    = top
         self.bottom = bottom
         # Sort the order of the corner points
@@ -70,8 +76,9 @@ class Box:
         return inside
 
 
-class Circle:
-    def __init__(self, coordinates, top=1e9, bottom=-1e9):
+class Circle(Shape):
+    def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
+        super(Circle, self).__init__('CIRCLE', name, coordinates)
         self.clat   = coordinates[0]
         self.clon   = coordinates[1]
         self.r      = coordinates[2]
@@ -84,8 +91,9 @@ class Circle:
         return inside
 
 
-class Poly:
-    def __init__(self, coordinates, top=1e9, bottom=-1e9):
+class Poly(Shape):
+    def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
+        super(Poly, self).__init__('POLY', name, coordinates)
         self.border = Path(np.reshape(coordinates, (len(coordinates) // 2, 2)))
         self.top    = top
         self.bottom = bottom

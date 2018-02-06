@@ -168,13 +168,13 @@ class ScreenIO(object):
                     BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
                     CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
         """
-        bs.sim.send_event(b'SHAPE', dict(name=objname, shape=objtype, data=data))
+        bs.sim.send_event(b'SHAPE', dict(name=objname, shape=objtype, coordinates=data))
 
-    def event(self, eventname, eventdata, sender_id):
+    def event(self, eventname, eventdata, sender_rte):
         if eventname == b'PANZOOM':
-            self.client_pan[sender_id]  = eventdata['pan']
-            self.client_zoom[sender_id] = eventdata['zoom']
-            self.client_ar[sender_id]   = eventdata['ar']
+            self.client_pan[sender_rte[-1]]  = eventdata['pan']
+            self.client_zoom[sender_rte[-1]] = eventdata['zoom']
+            self.client_ar[sender_rte[-1]]   = eventdata['ar']
             return True
 
         return False

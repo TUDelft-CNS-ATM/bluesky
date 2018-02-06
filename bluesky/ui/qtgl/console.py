@@ -70,7 +70,7 @@ class Console(QWidget):
         self.cmd, self.args = cmdsplit(self.command_line)
 
         hintline = ''
-        allhints = actdata.stack_help
+        allhints = actdata.stackcmds
         if allhints:
             hint = allhints.get(self.cmd.upper())
             if hint:
