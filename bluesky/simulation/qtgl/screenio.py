@@ -86,14 +86,15 @@ class ScreenIO(object):
 
     def zoom(self, zoom, absolute=True):
         sender    = stack.sender()
-        if sender == b'*':
-            self.def_zoom = zoom * (1.0 if absolute else self.def_zoom)
-            self.client_zoom.clear()
-        else:
+        if sender:
             if absolute:
                 self.client_zoom[sender] = zoom
             else:
                 self.client_zoom[sender] = zoom * self.client_zoom.get(sender, self.def_zoom)
+        else:
+            self.def_zoom = zoom * (1.0 if absolute else self.def_zoom)
+            self.client_zoom.clear()
+
         bs.sim.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
 
     def pan(self, *args):
@@ -113,16 +114,21 @@ class ScreenIO(object):
             lat, lon = args
 
         sender    = stack.sender()
-        if sender == b'*':
-            self.def_pan = (lat,lon) if absolute else (lat + self.def_pan[0],
-                                                       lon + self.def_pan[1])
-        else:
+        print('pan called: ', args, sender)
+        if sender:
+            print('sim pan, setting custom pan for client')
             if absolute:
                 self.client_pan[sender] = (lat, lon)
             else:
                 ll = self.client_pan.get(sender) or self.def_pan
                 self.client_pan[sender] = (lat + ll[0], lon + ll[1])
-        bs.sim.send_event(b'PANZOOM', dict(pan=(self.lat, self.lon), absolute=True))
+        else:
+            self.def_pan = (lat,lon) if absolute else (lat + self.def_pan[0],
+                                                       lon + self.def_pan[1])
+            self.client_pan.clear()
+            print('sim pan, clearing custom pans for client(s)')
+
+        bs.sim.send_event(b'PANZOOM', dict(pan=(lat,lon), absolute=absolute))
 
     def shownd(self, acid):
         bs.sim.send_event(b'SHOWND', acid)

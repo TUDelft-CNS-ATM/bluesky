@@ -184,13 +184,13 @@ class Simulation(Node):
             self.reset()
         return result
 
-    def event(self, eventname, eventdata, sender_id):
+    def event(self, eventname, eventdata, sender_rte):
         # Keep track of event processing
         event_processed = False
 
         if eventname == b'STACKCMD':
             # We received a single stack command. Add it to the existing stack
-            stack.stack(eventdata, sender_id)
+            stack.stack(eventdata, sender_rte)
             event_processed = True
 
         elif eventname == b'BATCH':
@@ -205,10 +205,10 @@ class Simulation(Node):
         elif eventname == b'GETSIMSTATE':
             # Send list of stack functions available in this sim to gui at start
             stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
-            self.send_event(b'SIMSTATE', stackdict, target=sender_id)
+            self.send_event(b'SIMSTATE', stackdict, target=sender_rte)
         else:
             # This is either an unknown event or a gui event.
-            event_processed = bs.scr.event(eventname, eventdata, sender_id)
+            event_processed = bs.scr.event(eventname, eventdata, sender_rte)
 
         return event_processed
 

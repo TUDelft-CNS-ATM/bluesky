@@ -88,8 +88,8 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
             }
 
 
-cmdstack  = []
-sender_id = None
+cmdstack   = []
+sender_rte = None
 
 scenname  = ""
 scenfile  = ""
@@ -714,8 +714,14 @@ def sender():
     ''' Return the sender of the currently executed stack command.
         If there is no sender id (e.g., when the command originates
         from a scenario file), None is returned. '''
-    return sender_id
+    return sender_rte[-1] if sender_rte else None
 
+
+def routetosender():
+    ''' Return the route to the sender of the currently executed stack command.
+        If there is no sender id (e.g., when the command originates
+        from a scenario file), None is returned. '''
+    return sender_rte
 
 def get_scenname():
     ''' Return the name of the current scenario.
@@ -1166,10 +1172,10 @@ def getnextarg(line):
 
 def process():
     """process and empty command stack"""
-    global sender_id
+    global sender_rte
 
     # Process stack of commands
-    for (line, sender_id) in cmdstack:
+    for (line, sender_rte) in cmdstack:
         #debug       print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
