@@ -1,4 +1,5 @@
 """ Route implementation for the BlueSky FMS."""
+from os import path
 from numpy import *
 import bluesky as bs
 from bluesky.tools import geo
@@ -8,6 +9,8 @@ from bluesky.tools.position import txt2pos
 from bluesky import stack
 from bluesky.stack import Argparser
 
+# Register settings defaults
+bs.settings.set_variable_defaults(log_path='output')
 
 class Route:
     """
@@ -1076,7 +1079,7 @@ class Route:
     def dumpRoute(self, idx):
         acid = bs.traf.id[idx]
         # Open file in append mode, write header
-        with open("./output/routelog.txt", "a") as f:
+        with open(path.join(bs.settings.output, 'routelog.txt'), "a") as f:
             f.write("\nRoute "+acid+":\n")
             f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
             f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
