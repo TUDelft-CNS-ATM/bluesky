@@ -1076,7 +1076,7 @@ class Route:
     def dumpRoute(self, idx):
         acid = bs.traf.id[idx]
         # Open file in append mode, write header
-        with open("./data/output/routelog.txt", "a") as f:
+        with open("./output/routelog.txt", "a") as f:
             f.write("\nRoute "+acid+":\n")
             f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
             f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
