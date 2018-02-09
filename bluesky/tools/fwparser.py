@@ -52,14 +52,17 @@ class FixedWidthParser(object):
             linetypes = [self.types[t.lower()] for t in re_types.findall(line)]
             self.dformat.append((line_re, linetypes))
 
-    def parse(self, file):
+    def parse(self, fname):
         line_re, dtypes = self.dformat[0]
         data            = []
-        with open(file) as f:
-            for line in f:
+        with open(fname) as f:
+            for lineno, line in enumerate(f):
                 match = line_re.match(line)
                 if match:
-                    dline = [t(s.strip()) for t, s in zip(dtypes, match.groups())]
+                    try:
+                        dline = [t(s.strip()) for t, s in zip(dtypes, match.groups())]
+                    except:
+                        raise ParseError(fname, lineno + 1)
                     data.append(dline)
                     if not self.repeat:
                         # If we've extracted all datalines we can close the file
@@ -68,3 +71,9 @@ class FixedWidthParser(object):
                         # otherwise select the next dataline parser
                         line_re, dtypes = self.dformat[len(data)]
         return data
+
+class ParseError(Exception):
+    def __init__(self, fname, lineno):
+        super(ParseError, self).__init__()
+        self.fname = fname
+        self.lineno = lineno
