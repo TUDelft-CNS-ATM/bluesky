@@ -259,7 +259,7 @@ def process(*cmdargs):
         hseplat=hsep/mperdeg*floorsep
         bs.traf.create(acid="OWNSHIP", actype="FLOOR",
                        aclat=-1, aclon=0,
-                       achdg=90, acalt=(20000+altdif)*ft, 200)
+                       achdg=90, acalt=(20000+altdif)*ft, acspd=200)
         idx = bs.traf.id.index("OWNSHIP")
         bs.traf.selvs[idx]=-10
         bs.traf.selalt[idx]=20000-altdif
