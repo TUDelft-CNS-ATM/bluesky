@@ -45,8 +45,10 @@ def process(*cmdargs):
     elif command == "SIMPLE":
         bs.scr.isoalt = 0
         bs.traf.reset()
-        bs.traf.create("OWNSHIP", "GENERIC", -.5, 0, 0, 5000 * ft, 200)
-        bs.traf.create("INTRUDER", "GENERIC", 0, .5, 270, 5000 * ft, 200)
+        bs.traf.create(acid="OWNSHIP", actype="GENERIC", aclat=-.5, aclon=0,
+                       achdg=0, acalt=5000 * ft, acspd=200)
+        bs.traf.create(acid="INTRUDER", actype="GENERIC", aclat=0, aclon=.5,
+                       achdg=270, acalt=5000 * ft, acspd=200)
         return True
 
     #create a perpendicular conflict with slight deviations to aircraft speeds and places
@@ -55,8 +57,10 @@ def process(*cmdargs):
         bs.traf.reset()
         ds = random.uniform(0.92, 1.08)
         dd = random.uniform(0.92, 1.08)
-        bs.traf.create("OWNSHIP", "GENERIC", -.5 * dd, 0, 0, 20000 * ft, 200 * ds)
-        bs.traf.create("INTRUDER", "GENERIC", 0, .5 / dd, 270, 20000 * ft, 200 / ds)
+        bs.traf.create(acid="OWNSHIP", actype="GENERIC", aclat=-.5 * dd, aclon=0,
+                       achdg=0, acalt=20000 * ft, acspd=200 * ds)
+        bs.traf.create(acid="INTRUDER", actype="GENERIC", aclat=0, aclon=.5 / dd,
+                       achdg=270, acalt=20000 * ft, acspd=200 / ds)
         return True
 
     # used for testing the differential game resolution method
@@ -71,8 +75,10 @@ def process(*cmdargs):
             v_o=bs.traf.asas.v_o[int(float(cmdargs[3]))]
             v_w=bs.traf.asas.v_w[int(float(cmdargs[4]))]
             phi=np.degrees(bs.traf.asas.phi[int(float(cmdargs[5]))])
-            bs.traf.create("OWN", "GENERIC", 0, 0, 0, 5000*ft, v_o)
-            bs.traf.create("WRN", "GENERIC", y, x, phi, 5000*ft, v_w)
+            bs.traf.create(acid="OWN", actype="GENERIC", aclat=0, aclon=0,
+                           achdg=0, acalt=5000*ft, acspd=v_o)
+            bs.traf.create(acid="WRN", actype="GENERIC", aclat=y, aclon=x,
+                           achdg=phi, acalt=5000*ft, acspd=v_w)
             return True
 
     # create a superconflict of x aircraft in a circle towards the center
@@ -89,8 +95,11 @@ def process(*cmdargs):
             for i in range(numac):
                 angle=2*np.pi/numac*i
                 acid = "SUP" + str(i)
-                bs.traf.create(acid, "SUPER", distance * -np.cos(angle),
-                    distance * np.sin(angle), 360.0 - 360.0 / numac * i, alt, spd)
+                bs.traf.create(acid=acid, actype="SUPER",
+                               aclat=distance * -np.cos(angle),
+                               aclon=distance * np.sin(angle),
+                               achdg=360.0 - 360.0 / numac * i,
+                               acalt=alt, acspd=spd)
             if savescenarios:
                 fname="super"+str(numac)
                 # cmd.saveic(fname)
@@ -127,11 +136,14 @@ def process(*cmdargs):
                 track=np.degrees(-angle)
 
                 acidl="SPH"+str(i)+"LOW"
-                bs.traf.create(acidl,"SUPER",lat,lon,track,lowalt*ft,lospd)
+                bs.traf.create(acid=acidl, actype="SUPER",aclat=lat, aclon=lon,
+                               achdg=track, acalt=lowalt*ft, acspd=lospd)
                 acidm="SPH"+str(i)+"MID"
-                bs.traf.create(acidm,"SUPER",lat,lon,track,midalt*ft,mispd)
+                bs.traf.create(acid=acidm, actype="SUPER",aclat=lat, aclon=lon,
+                               achdg=track, acalt=midalt*ft, acspd=mispd)
                 acidh="SPH"+str(i)+"HIG"
-                bs.traf.create(acidh,"SUPER",lat,lon,track,highalt*ft,hispd)
+                bs.traf.create(acid=acidh, actype="SUPER",aclat=lat, aclon=lon,
+                               achdg=track, acalt=highalt*ft, acspd=hispd)
 
                 idxl = bs.traf.id.index(acidl)
                 idxh = bs.traf.id.index(acidh)
@@ -166,7 +178,10 @@ def process(*cmdargs):
             for i in range(numac):
                 angle=np.pi/2/numac*i+np.pi/4
                 acid="SUP"+str(i)
-                bs.traf.create(acid,"SUPER",distance*-np.cos(angle),distance*-np.sin(angle),90,alt,spd)
+                bs.traf.create(acid=acid, actype="SUPER",
+                               aclat=distance*-np.cos(angle),
+                               aclon=distance*-np.sin(angle),
+                               achdg=90, acalt=alt, acspd=spd)
 
             separation=bs.traf.asas.R*1.01 #[m] the factor 1.01 is so that the funnel doesn't collide with itself
             sepdeg=separation/np.sqrt(2.)/mperdeg #[deg]
@@ -178,8 +193,14 @@ def process(*cmdargs):
                     Rowdeg=sepdeg*row  #[deg]
                     acid1="FUNN"+str(row)+"-"+str(col)
                     acid2="FUNL"+str(row)+"-"+str(col)
-                    bs.traf.create(acid1,"FUNNEL", Coldeg+Rowdeg+opening,-Coldeg+Rowdeg+0.5,0,alt,0)
-                    bs.traf.create(acid2,"FUNNEL",-Coldeg-Rowdeg-opening,-Coldeg+Rowdeg+0.5,0,alt,0)
+                    bs.traf.create(acid=acid1, actype="FUNNEL",
+                                   aclat=Coldeg+Rowdeg+opening,
+                                   aclon=-Coldeg+Rowdeg+0.5,
+                                   achdg=0, acalt=alt, acspd=0)
+                    bs.traf.create(acid=acid2, actype="FUNNEL",
+                                   aclat=-Coldeg-Rowdeg-opening,
+                                   aclon=-Coldeg+Rowdeg+0.5,
+                                   achdg=0, acalt=alt, acspd=0)
 
             if savescenarios:
                 fname="funnel"+str(size)
@@ -202,13 +223,25 @@ def process(*cmdargs):
             extradist=(vel*1.1)*5*60/mperdeg #degrees latlon flown in 5 minutes
             for i in range(size):
                 acidn="NORTH"+str(i)
-                bs.traf.create(acidn,"MATRIX",hseplat*(size-1.)/2+extradist,(i-(size-1.)/2)*hseplat,180,20000*ft,vel)
+                bs.traf.create(acid=acidn, actype="MATRIX",
+                               aclat=hseplat*(size-1.)/2+extradist,
+                               aclon=(i-(size-1.)/2)*hseplat,
+                               achdg=180, acalt=20000*ft, acspd=vel)
                 acids="SOUTH"+str(i)
-                bs.traf.create(acids,"MATRIX",-hseplat*(size-1.)/2-extradist,(i-(size-1.)/2)*hseplat,0,20000*ft,vel)
+                bs.traf.create(acid=acids, actype="MATRIX",
+                               aclat=-hseplat*(size-1.)/2-extradist,
+                               aclon=(i-(size-1.)/2)*hseplat,
+                               achdg=0, acalt=20000*ft, acspd=vel)
                 acide="EAST"+str(i)
-                bs.traf.create(acide,"MATRIX",(i-(size-1.)/2)*hseplat,hseplat*(size-1.)/2+extradist,270,20000*ft,vel)
+                bs.traf.create(acid=acide, actype="MATRIX",
+                               aclat=(i-(size-1.)/2)*hseplat,
+                               aclon=hseplat*(size-1.)/2+extradist,
+                               achdg=270, acalt=20000*ft, acspd=vel)
                 acidw="WEST"+str(i)
-                bs.traf.create(acidw,"MATRIX",(i-(size-1.)/2)*hseplat,-hseplat*(size-1.)/2-extradist,90,20000*ft,vel)
+                bs.traf.create(acid=acidw, actype="MATRIX",
+                               aclat=(i-(size-1.)/2)*hseplat,
+                               aclon=-hseplat*(size-1.)/2-extradist,
+                               achdg=90, acalt=20000*ft, acspd=vel)
 
             if savescenarios:
                 fname="matrix"+str(size)
@@ -224,13 +257,17 @@ def process(*cmdargs):
         hsep=bs.traf.asas.R # [m] horizontal separation minimum
         floorsep=1.1 #factor of extra spacing in the floor
         hseplat=hsep/mperdeg*floorsep
-        bs.traf.create("OWNSHIP","FLOOR",-1,0,90, (20000+altdif)*ft, 200)
+        bs.traf.create(acid="OWNSHIP", actype="FLOOR",
+                       aclat=-1, aclon=0,
+                       achdg=90, acalt=(20000+altdif)*ft, 200)
         idx = bs.traf.id.index("OWNSHIP")
         bs.traf.selvs[idx]=-10
         bs.traf.selalt[idx]=20000-altdif
         for i in range(20):
             acid="OTH"+str(i)
-            bs.traf.create(acid,"FLOOR",-1,(i-10)*hseplat,90,20000*ft,200)
+            bs.traf.create(acid=acid, actype="FLOOR",
+                           aclat=-1, aclon=(i-10)*hseplat,
+                           achdg=90, acalt=20000*ft, acspd=200)
         if savescenarios:
             fname="floor"
             # cmd.saveic(fname)
@@ -250,7 +287,8 @@ def process(*cmdargs):
                 acid="OT"+str(v)
                 distancetofly=v*5*60 #m
                 degtofly=distancetofly/mperdeg
-                bs.traf.create(acid,"OT",0,-degtofly,90,20000*ft,v)
+                bs.traf.create(acid=acid, actype="OT", aclat=0, aclon=-degtofly,
+                               achdg=90, acalt=20000*ft, acspd=v)
             if savescenarios:
                 fname="takeover"+str(numac)
                 # cmd.saveic(fname)
@@ -265,10 +303,14 @@ def process(*cmdargs):
         hsep=bs.traf.asas.R # [m] horizontal separation minimum
         hseplat=hsep/mperdeg
         wallsep=1.1 #factor of extra space in the wall
-        bs.traf.create("OWNSHIP","WALL",0,-distance,90, 20000*ft, 200)
+        bs.traf.create(acid="OWNSHIP", actype="WALL",
+                       aclat=0, aclon=-distance,
+                       achdg=90, acalt=20000*ft, acspd=200)
         for i in range(20):
             acid="OTHER"+str(i)
-            bs.traf.create(acid,"WALL",(i-10)*hseplat*wallsep,distance,270,20000*ft,200)
+            bs.traf.create(acid=acid, actype="WALL",
+                           aclat=(i-10)*hseplat*wallsep, aclon=distance,
+                           achdg=270, acalt=20000*ft, acspd=200)
         if savescenarios:
             fname="wall"
             # cmd.saveic(fname)
@@ -301,8 +343,12 @@ def process(*cmdargs):
                 for i in range(int(cmdargs[1])): # Create a/c
                     aclat = aclat+i*latsep*alternate
                     aclon = aclon-i*lonsep*alternate
-                    bs.traf.create("ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt*ft, acspd)
-                    bs.traf.create("ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt*ft, acspd)
+                    bs.traf.create(acid="ANG"+str(i*2), actype=actype,
+                                   aclat=aclat, aclon=aclon,
+                                   achdg=180+ang, acalt=acalt*ft, acspd=acspd)
+                    bs.traf.create(acid="ANG"+str(i*2+1), actype=actype,
+                                   aclat=aclat, aclon=-aclon,
+                                   achdg=180-ang, acalt=acalt*ft, acspd=acspd)
                     alternate = alternate * -1
 
                 bs.scr.pan([0,0],True)
@@ -335,14 +381,22 @@ def process(*cmdargs):
                 latsep = abs(hseplat*np.cos(np.deg2rad(ang))) #[deg]
                 lonsep = abs(hseplat*np.sin(np.deg2rad(ang)))
 
-                bs.traf.create("ANG0", actype, aclat, aclon, 180+ang, acalt*ft, acspd)
-                bs.traf.create("ANG1", actype, aclat, -aclon, 180-ang, acalt*ft, acspd)
+                bs.traf.create(acid="ANG0", actype=actype,
+                               aclat=aclat, aclon=aclon,
+                               achdg=180+ang, acalt=acalt*ft, acspd=acspd)
+                bs.traf.create(acid="ANG1", actype=actype,
+                               aclat=aclat, aclon=-aclon,
+                               achdg=180-ang, acalt=acalt*ft, acspd=acspd)
 
                 for i in range(1,int(cmdargs[1])): # Create a/c
                     aclat = aclat+latsep
                     aclon = aclon+lonsep
-                    bs.traf.create("ANG"+str(i*2), actype, aclat, aclon, 180+ang, acalt*ft, acspd)
-                    bs.traf.create("ANG"+str(i*2+1), actype, aclat, -aclon, 180-ang, acalt*ft, acspd)
+                    bs.traf.create(acid="ANG"+str(i*2), actype=actype,
+                                   aclat=aclat, aclon=aclon,
+                                   achdg=180+ang, acalt=acalt*ft, acspd=acspd)
+                    bs.traf.create(acid="ANG"+str(i*2+1), actype=actype,
+                                   aclat=aclat, aclon=-aclon,
+                                   achdg=180-ang, acalt=acalt*ft, acspd=acspd)
 
                 bs.scr.pan([0,0],True)
                 return True
