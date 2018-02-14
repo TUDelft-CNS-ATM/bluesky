@@ -415,7 +415,7 @@ class Traffic(TrafficArrays):
     def delete(self, idx):
         """Delete an aircraft"""
         # if this is a multiple delete, sort first for list delete
-        if isinstance(idx, list):
+        if isinstance(idx, collections.abc.Collection):
             idx.sort()
 
         # Call the actual delete function
