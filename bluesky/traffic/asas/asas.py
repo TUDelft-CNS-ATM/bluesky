@@ -179,10 +179,7 @@ class ASAS(TrafficArrays):
 
         # Force change labels in interface
         if settings.gui == "pygame":
-            for i in range(bs.traf.ntraf):
-                if np.any(iconf0[i] != self.iconf[i]):
-                    bs.traf.label[i] = [" ", " ", " ", " "]
-
+            bs.traf.label = bs.traf.ntraf*[[" ", " ", " ", " "]]
 
         return
 
