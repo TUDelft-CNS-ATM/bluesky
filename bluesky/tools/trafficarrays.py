@@ -109,7 +109,7 @@ class TrafficArrays(object):
             self.Vars[v] = np.delete(self.Vars[v], idx)
 
         if self.LstVars:
-            if isinstance(idx, collections.Collection):
+            if isinstance(idx, collections.abc.Collection):
                 for i in reversed(idx):
                     for v in self.LstVars:
                         del self.Vars[v][i]

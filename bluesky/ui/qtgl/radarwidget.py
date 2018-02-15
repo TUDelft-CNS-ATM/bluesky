@@ -506,7 +506,8 @@ class RadarWidget(QGLWidget):
 
         # Draw traffic symbols
         if self.naircraft > 0 and actdata.show_traf:
-            self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
+            if self.routelbl.n_instances:
+                self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.ac_symbol.draw(n_instances=self.naircraft)
 
         if self.zoom >= 0.5 and actdata.show_apt == 1 or actdata.show_apt == 2:
@@ -643,6 +644,7 @@ class RadarWidget(QGLWidget):
                             wpname.encode('ascii', 'ignore')))
         else:
             self.route.set_vertex_count(0)
+            self.routelbl.n_instances = 0
 
     def update_aircraft_data(self, data):
         if not self.initialized:

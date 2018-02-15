@@ -46,6 +46,7 @@ class Console(QWidget):
         # reset commandline and the autocomplete history
         self.setCmdline('')
         autocomplete.reset()
+        self.history_pos = 0
 
     def echo(self, text):
         actdata = io.get_nodedata()
