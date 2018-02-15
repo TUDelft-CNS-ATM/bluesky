@@ -111,7 +111,7 @@ class ASAS(TrafficArrays):
         self.resoFacH     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
         self.resoFacV     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
 
-        self.confpairs    = []                              # Start with emtpy database: no conflicts
+        self.confpairs    = []                              # Start with empty database: no conflicts
         self.nconf        = 0                               # Number of detected conflicts
         self.latowncpa    = np.array([])
         self.lonowncpa    = np.array([])
@@ -148,7 +148,43 @@ class ASAS(TrafficArrays):
         if flag is None:
             return True, "ASAS is currently " + ("ON" if self.swasas else "OFF")
         self.swasas = flag
+
+        # Clear conflict list when switched off
+        if not self.swasas:
+            self.clearconfdb()
         return True
+
+    def clearconfdb(self):
+        """
+        Clear conflict database
+        """
+
+        self.iconf = bs.traf.ntraf*[[]]
+
+        self.confpairs = []  # Empty database: no conflicts
+        self.nconf = 0  # Number of detected conflicts
+        self.latowncpa = np.array([])
+        self.lonowncpa = np.array([])
+        self.altowncpa = np.array([])
+        self.tcpa = np.array([])
+        self.tinconf = np.array([])
+        self.toutconf = np.array([])
+        self.qdr = np.array([])
+        self.dist = np.array([])
+        self.dx = np.array([])
+        self.dy = np.array([])
+        self.dalt = np.array([])
+        self.u = np.array([])
+        self.v = np.array([])
+
+        # Force change labels in interface
+        if settings.gui == "pygame":
+            for i in range(bs.traf.ntraf):
+                if np.any(iconf0[i] != self.iconf[i]):
+                    bs.traf.label[i] = [" ", " ", " ", " "]
+
+
+        return
 
     def SetCDmethod(self, method=""):
         if method is "":
@@ -159,6 +195,9 @@ class ASAS(TrafficArrays):
 
         self.cd_name = method
         self.cd = ASAS.CDmethods[method]
+
+        # Clear conflcit database for new method
+        self.clearconfdb()
 
     def SetCRmethod(self, method=""):
         if method is "":
@@ -208,6 +247,7 @@ class ASAS(TrafficArrays):
             return True, ("DTLOOK [time]\nCurrent value: %.1f sec" % self.dtlookahead)
 
         self.dtlookahead = value
+        self.clearconfdb() # Clear current conflict database
 
     def SetDtNoLook(self, value=None):
         if value is None:
