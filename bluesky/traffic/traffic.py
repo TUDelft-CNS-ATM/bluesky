@@ -184,7 +184,7 @@ class Traffic(TrafficArrays):
         area = bs.scr.getviewlatlon()
         if acid is None:
             idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
-            acid = idtmp.format(1) if n == 1 else [idtmp.format(i) for i in range(n)]
+            acid = [idtmp.format(i) for i in range(n)]
         elif isinstance(acid, str):
             # Check if not already exist
             if self.id.count(acid.upper()) > 0:
