@@ -159,7 +159,7 @@ class ASAS(TrafficArrays):
         Clear conflict database
         """
 
-        self.iconf = bs.traf.ntraf*[[]]
+        self.iconf = [[] for i in range(bs.traf.ntraf)]
 
         self.confpairs = []  # Empty database: no conflicts
         self.nconf = 0  # Number of detected conflicts
@@ -179,7 +179,7 @@ class ASAS(TrafficArrays):
 
         # Force change labels in interface
         if settings.gui == "pygame":
-            bs.traf.label = bs.traf.ntraf*[[" ", " ", " ", " "]]
+            bs.traf.label = [[" ", " ", " ", " "] for i in range(bs.traf.ntraf)]
 
         return
 
