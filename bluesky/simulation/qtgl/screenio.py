@@ -62,8 +62,8 @@ class ScreenIO(object):
         bs.sim.send_event(b'RESET', b'ALL')
 
 
-    def echo(self, text):
-        bs.sim.send_event(b'ECHO', text)
+    def echo(self, text='', flags=0):
+        bs.sim.send_event(b'ECHO', dict(text=text, flags=flags))
 
     def cmdline(self, text):
         bs.sim.send_event(b'CMDLINE', text)

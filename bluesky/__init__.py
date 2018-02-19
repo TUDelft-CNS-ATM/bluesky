@@ -3,9 +3,10 @@
 from bluesky import settings
 
 ### Constants
-SIMPLE_ECHO = 'simple_echo'
-MSG_OK = 'ok.'
-CMD_TCP_CONNS = 'TCP_CONNS'
+BS_OK = 0
+BS_ARGERR = 1
+BS_FUNERR = 2
+BS_CMDERR = 4
 
 # simulation states
 INIT, HOLD, OP, END = list(range(4))

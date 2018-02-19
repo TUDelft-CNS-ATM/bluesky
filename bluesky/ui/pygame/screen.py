@@ -13,7 +13,6 @@ from bluesky.tools import geo
 from bluesky.tools.areafilter import areas
 from bluesky.tools.aero import ft, kts, nm
 from bluesky.tools.misc import tim2txt
-from bluesky import MSG_OK
 from . import splash
 from .keyboard import Keyboard
 from .fastfont import Fastfont
@@ -292,8 +291,8 @@ class Screen:
         self.apswbmp = len(bs.navdb.aptlat) * [False]
         self.aplabel = len(bs.navdb.aptlat) * [0]
 
-    def echo(self, msg, sender_id=0):
-        if not msg==MSG_OK:
+    def echo(self, msg='', flags=0):
+        if msg:
             msgs = msg.split('\n')
             for m in msgs:
                 self.editwin.echo(m)

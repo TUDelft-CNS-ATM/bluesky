@@ -189,8 +189,9 @@ class nodeData(object):
             else:
                 self.filteralt = False
 
-    def echo(self, text):
-        self.echo_text += ('\n' + text)
+    def echo(self, text='', flags=0):
+        if text:
+            self.echo_text += ('\n' + text)
 
     def show_ssd(self, arg):
         if 'ALL' in arg:
@@ -229,7 +230,7 @@ class GuiClient(Client):
         elif name == b'DISPLAYFLAG':
             sender_data.setflag(**data)
         elif name == b'ECHO':
-            sender_data.echo(data)
+            sender_data.echo(**data)
             data_changed.append('ECHOTEXT')
         elif name == b'PANZOOM':
             sender_data.panzoom(**data)

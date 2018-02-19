@@ -1182,6 +1182,10 @@ def process():
         if not line:
             continue
 
+        # Stack reply: text and flags
+        echotext  = ''
+        echoflags = 0
+
         #**********************************************************************
         #=====================  Start of command parsing  =====================
         #**********************************************************************
@@ -1215,31 +1219,29 @@ def process():
             # text: optional error message
             if parser.parse():
                 results = function(*parser.arglist)  # * = unpack list to call arguments
-
                 if isinstance(results, bool):  # Only flag is returned
-                    if results:
-                        bs.scr.echo(bs.MSG_OK)
-                    else:
+                    if not results:
                         if not args:
-                            bs.scr.echo(helptext)
+                            echotext = helptext
                         else:
-                            bs.scr.echo("Syntax error: " + helptext)
+                            echotext = "Syntax error: " + helptext
+                            echoflags = bs.BS_FUNERR
 
                 elif isinstance(results, tuple) and results:
                     if not results[0]:
-                        bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""))
+                        echoflags = bs.BS_FUNERR
+                        echotext = "Syntax error: " + (helptext if len(results) < 2 else "")
                     # Maybe there is also an error/info message returned?
                     if len(results) >= 2:
                         prefix = "" if results[0] == bs.SIMPLE_ECHO \
                             else "{}: ".format(cmd)
-                        bs.scr.echo("{}{}".format(prefix, results[1]))
+                        echotext += "{}{}".format(prefix, results[1])
 
             else:  # syntax error:
-                bs.scr.echo(parser.error)
-                bs.scr.echo(helptext)
+                echoflags = bs.BS_ARGERR
+                echotext = parser.error + '\n' + helptext
                 print("Error in processing arguments:")
                 print(line)
-                continue
 
         #----------------------------------------------------------------------
         # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -1253,18 +1255,20 @@ def process():
         # Command not found
         #-------------------------------------------------------------------
         else:
+            echoflags = bs.BS_CMDERR
             if not args:
-                bs.scr.echo("Unknown command or aircraft: " + cmd)
+                echotext = "Unknown command or aircraft: " + cmd
             else:
-                bs.scr.echo("Unknown command: " + cmd)
+                echotext = "Unknown command: " + cmd
 
+        # Always return on command
+        bs.scr.echo(echotext, echoflags)
         #**********************************************************************
         #======================  End of command branches ======================
         #**********************************************************************
 
     # End of for-loop of cmdstack
     del cmdstack[:]
-    return
 
 
 class Argparser:
