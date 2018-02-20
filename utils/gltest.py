@@ -40,13 +40,14 @@ class GLTest(QGLWidget):
         gl_version = float(gl.glGetString(gl.GL_VERSION)[:3])
         f.write('Supported OpenGL version: %.1f\n' % gl_version)
         if gl_version >= 2.0:
-            f.write('Supported GLSL version: ' + gl.glGetString(gl.GL_SHADING_LANGUAGE_VERSION) + '\n')
+            f.write('Supported GLSL version: ' +
+                    gl.glGetString(gl.GL_SHADING_LANGUAGE_VERSION).decode() + '\n')
             f.write('Context was valid in initializeGL? %d\n' % self.was_valid_in_init)
             numext = gl.glGetIntegerv(gl.GL_NUM_EXTENSIONS)
             f.write('Supported OpenGL extensions:' + '\n')
             extensions = ''
             for i in range(numext):
-                extensions += ', ' + gl.glGetStringi(gl.GL_EXTENSIONS, i)
+                extensions += ', ' + gl.glGetStringi(gl.GL_EXTENSIONS, i).decode()
             f.write(extensions)
         f.close()
         self.first = False
