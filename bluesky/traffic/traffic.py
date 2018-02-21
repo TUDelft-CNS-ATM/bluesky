@@ -614,7 +614,7 @@ class Traffic(TrafficArrays):
             # Show a/c info and highlight route of aircraft in radar window
             # and pan to a/c (to show route)
             bs.scr.showroute(acid)
-            return bs.SIMPLE_ECHO, lines
+            return True, lines
 
         # Waypoint: airport, navaid or fix
         else:
@@ -733,7 +733,7 @@ class Traffic(TrafficArrays):
                         return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
 
             # Show what we found on airport and navaid/waypoint
-            return bs.SIMPLE_ECHO, lines
+            return True, lines
 
     def airwaycmd(self,key=""):
         # Show conections of a waypoint
@@ -760,7 +760,7 @@ class Traffic(TrafficArrays):
                     if len(c)>=2:
                         # Add airway, direction, waypoint
                         lines = lines+ c[0]+": to "+c[1]+"\n"
-                return bs.SIMPLE_ECHO, lines[:-1]  # exclude final newline
+                return True, lines[:-1]  # exclude final newline
             else:
                 return False,"No airway legs found for ",key
 

@@ -20,11 +20,12 @@ server    = None
 
 def init():
     # Both sim and gui need a navdatabase in all versions of BlueSky
-    from bluesky.navdatabase import Navdatabase
-    global navdb
-    navdb = Navdatabase()
+    if settings.is_sim or settings.is_gui:
+        from bluesky.navdatabase import Navdatabase
+        global navdb
+        navdb = Navdatabase()
 
-    if settings.is_gui and settings.gui != 'pygame':
+    if settings.start_server:
         global server
         from bluesky.io import Server
         server = Server()

@@ -2,7 +2,6 @@
 import os
 from multiprocessing import cpu_count
 import sys
-from threading import Thread
 from subprocess import Popen
 import zmq
 import msgpack
@@ -10,6 +9,16 @@ import msgpack
 # Local imports
 import bluesky as bs
 
+if bs.settings.is_headless:
+    class ServerBase:
+        ''' Single-threaded implementation of server when running headless.'''
+        def run(self):
+            pass
+
+        def start(self):
+            self.run()
+else:
+    from threading import Thread as ServerBase
 
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count())
@@ -24,10 +33,11 @@ def split_scenarios(scentime, scencmd):
             start = i
 
 
-class Server(Thread):
+class Server(ServerBase):
     ''' Implementation of the BlueSky simulation server. '''
     def __init__(self):
         super(Server, self).__init__()
+        print('server ctor')
         self.spawned_processes = list()
         self.running           = True
         self.max_nnodes        = min(cpu_count(), bs.settings.max_nnodes)
@@ -52,6 +62,7 @@ class Server(Thread):
             self.spawned_processes.append(p)
 
     def run(self):
+        print('server run')
         ''' The main loop of this server. '''
         # Get ZMQ context
         ctx = zmq.Context.instance()

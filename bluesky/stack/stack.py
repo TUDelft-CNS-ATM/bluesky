@@ -1233,9 +1233,7 @@ def process():
                         echotext = "Syntax error: " + (helptext if len(results) < 2 else "")
                     # Maybe there is also an error/info message returned?
                     if len(results) >= 2:
-                        prefix = "" if results[0] == bs.SIMPLE_ECHO \
-                            else "{}: ".format(cmd)
-                        echotext += "{}{}".format(prefix, results[1])
+                        echotext += "{}: {}".format(cmd, results[1])
 
             else:  # syntax error:
                 echoflags = bs.BS_ARGERR
@@ -1552,7 +1550,7 @@ class Argparser:
 def distcalc(lat0, lon0, lat1, lon1):
     try:
         qdr, dist = geo.qdrdist(lat0, lon0, lat1, lon1)
-        return bs.SIMPLE_ECHO, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
+        return True, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
     except:
         return False, 'Error in dist calculation.'
 

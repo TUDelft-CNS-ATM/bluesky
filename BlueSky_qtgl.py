@@ -5,23 +5,18 @@ import sys
 import traceback
 import bluesky as bs
 
-if bs.settings.is_gui and __name__ == "__main__":
+if (bs.settings.is_gui or bs.settings.is_headless) and __name__ == "__main__":
     print("   *****   BlueSky Open ATM simulator *****")
     print("Distributed under GNU General Public License v3")
 
-# Register settings defaults
-bs.settings.set_variable_defaults(telnet_port=8888)
 
 # Create custom system-wide exception handler. For now it replicates python's
 # default traceback message. This was added to counter a new PyQt5.5 feature
 # where unhandled exceptions would result in a qFatal with a very uninformative
 # message.
-
-
 def exception_handler(exc_type, exc_value, exc_traceback):
     traceback.print_exception(exc_type, exc_value, exc_traceback)
     sys.exit()
-
 
 sys.excepthook = exception_handler
 
@@ -37,7 +32,7 @@ def start():
     if bs.settings.is_gui:
         from bluesky.ui import qtgl
         qtgl.start()
-    else:
+    elif bs.settings.is_sim:
         bs.sim.start()
 
 
