@@ -268,7 +268,7 @@ class GuiClient(Client):
         return data
 
     def init(self):
-        self.connect()
+        self.connect(event_port=9000, stream_port=9001)
         self.timer = QTimer()
         self.timer.timeout.connect(self.receive)
         self.timer.start(20)
