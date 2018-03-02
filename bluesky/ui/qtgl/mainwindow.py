@@ -90,8 +90,6 @@ class MainWindow(QMainWindow):
         # Connect to io client's nodelist changed signal
         io.nodes_changed.connect(self.nodesChanged)
         io.actnodedata_changed.connect(self.actnodedataChanged)
-        # Connect widgets with each other
-        self.console.cmdline_stacked.connect(self.radarwidget.cmdline_stacked)
 
         self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
