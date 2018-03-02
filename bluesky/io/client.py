@@ -50,13 +50,16 @@ class Client(object):
         ''' Unsubscribe from a stream. '''
         self.stream_in.setsockopt(zmq.UNSUBSCRIBE, streamname + node_id)
 
-    def connect(self):
+    def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
+        conbase = '{}://{}'.format(protocol, hostname)
+        econ = conbase + (':{}'.format(event_port) if event_port else '')
+        scon = conbase + (':{}'.format(stream_port) if stream_port else '')
         self.event_io.setsockopt(zmq.IDENTITY, self.client_id)
-        self.event_io.connect('tcp://localhost:9000')
+        self.event_io.connect(econ)
         self.send_event(b'REGISTER')
         self.host_id = self.event_io.recv_multipart()[0]
         print('Client {} connected to host {}'.format(self.client_id, self.host_id))
-        self.stream_in.connect('tcp://localhost:9001')
+        self.stream_in.connect(scon)
 
         self.poller.register(self.event_io, zmq.POLLIN)
         self.poller.register(self.stream_in, zmq.POLLIN)
@@ -79,9 +82,9 @@ class Client(object):
                     self.nodes_changed(pydata)
 
                     # If this is the first known node, select it as active node
-                    node_id = next(iter(pydata.values()))['nodes'][0]
-                    if not self.act and node_id:
-                        self.actnode(node_id)
+                    nodes_myserver = next(iter(pydata.values())).get('nodes')
+                    if not self.act and nodes_myserver:
+                        self.actnode(nodes_myserver[0])
                 else:
                     self.event(eventname, pydata, self.sender_id)
 
