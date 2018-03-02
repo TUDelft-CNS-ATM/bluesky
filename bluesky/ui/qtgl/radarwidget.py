@@ -1,12 +1,10 @@
 from os import path
 try:
-    from PyQt5.QtCore import Qt, qCritical, QTimer, pyqtSlot
+    from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
     from PyQt5.QtOpenGL import QGLWidget
-    QT_VERSION = 5
 except ImportError:
-    from PyQt4.QtCore import Qt, qCritical, QTimer, pyqtSlot
+    from PyQt4.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
     from PyQt4.QtOpenGL import QGLWidget
-    QT_VERSION = 4
 
 from ctypes import c_float, c_int, Structure
 import numpy as np
@@ -17,6 +15,9 @@ import OpenGL.GL as gl
 import bluesky as bs
 from bluesky import settings
 from bluesky.ui import palette
+from bluesky.ui.radarclick import radarclick
+from bluesky.ui.qtgl import console
+from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.tools.aero import ft, nm, kts
 from bluesky.navdatabase import load_aptsurface, load_coastlines
 from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
@@ -66,6 +67,12 @@ VCOUNT_PZ             = 36
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = list(range(7))
 ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1, ATTRIB_ASASN, ATTRIB_ASASE = list(range(13))
+
+# Qt smaller than 5.6.2 needs a different approach to pinch gestures
+CORRECT_PINCH = False
+if QT_VERSION <= 0x050600:
+    import platform
+    CORRECT_PINCH = platform.system() == 'Darwin'
 
 
 class radarUBO(UniformBuffer):
@@ -117,8 +124,6 @@ class RadarWidget(QGLWidget):
         self.wraplon = int(-999)
         self.wrapdir = int(0)
 
-        self.invalid_count  = 0
-
         self.map_texture    = 0
         self.naircraft      = 0
         self.nwaypoints     = 0
@@ -129,6 +134,14 @@ class RadarWidget(QGLWidget):
         self.asas_vmin      = settings.asas_vmin
         self.asas_vmax      = settings.asas_vmax
         self.initialized    = False
+
+        self.acdata         = ACDataEvent()
+        self.routedata      = RouteDataEvent()
+
+        self.panzoomchanged = False
+        self.mousedragged   = False
+        self.mousepos       = (0, 0)
+        self.prevmousepos   = (0, 0)
 
         # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
@@ -576,7 +589,7 @@ class RadarWidget(QGLWidget):
         # update the window size
         # Qt5 supports getting the device pixel ratio, which can be > 1 for HiDPI displays such as Mac Retina screens
         pixel_ratio = 1
-        if QT_VERSION >= 5:
+        if QT_VERSION >= 0x05:
             pixel_ratio = self.devicePixelRatio()
 
         # Calculate zoom so that the window resize doesn't affect the scale, but only enlarges or shrinks the view
@@ -594,6 +607,7 @@ class RadarWidget(QGLWidget):
         self.panzoom(zoom=zoom, origin=origin)
 
     def update_route_data(self, data):
+        self.routedata = data
         if not self.initialized:
             return
         self.makeCurrent()
@@ -647,6 +661,7 @@ class RadarWidget(QGLWidget):
             self.routelbl.n_instances = 0
 
     def update_aircraft_data(self, data):
+        self.acdata = data
         if not self.initialized:
             return
 
@@ -874,3 +889,107 @@ class RadarWidget(QGLWidget):
         io.get_nodedata().panzoom((self.panlat, self.panlon), self.zoom)
 
         return True
+
+    def event(self, event):
+        ''' Event handling for input events. '''
+        if event.type() == QEvent.Wheel:
+            # For mice we zoom with control/command and the scrolwheel
+            if event.modifiers() & Qt.ControlModifier:
+                origin = (event.pos().x(), event.pos().y())
+                zoom = 1.0
+                try:
+                    if event.pixelDelta():
+                        # High resolution scroll
+                        zoom *= (1.0 + 0.01 * event.pixelDelta().y())
+                    else:
+                        # Low resolution scroll
+                        zoom *= (1.0 + 0.001 * event.angleDelta().y())
+                except AttributeError:
+                    zoom *= (1.0 + 0.001 * event.delta())
+                self.panzoomchanged = True
+                return self.panzoom(zoom=zoom, origin=origin)
+
+            # For touchpad scroll (2D) is used for panning
+            else:
+                try:
+                    dlat = 0.01 * event.pixelDelta().y() / (self.zoom * self.ar)
+                    dlon = -0.01 * event.pixelDelta().x() / (self.zoom * self.flat_earth)
+                    self.panzoomchanged = True
+                    return self.panzoom(pan=(dlat, dlon))
+                except AttributeError:
+                    pass
+
+        # For touchpad, pinch gesture is used for zoom
+        elif event.type() == QEvent.Gesture:
+            pan = zoom = None
+            dlat = dlon = 0.0
+            for g in event.gestures():
+                if g.gestureType() == Qt.PinchGesture:
+                    zoom = g.scaleFactor() * (zoom or 1.0)
+                    if CORRECT_PINCH:
+                        print ('Correct pinch')
+                        zoom /= g.lastScaleFactor()
+                elif g.gestureType() == Qt.PanGesture:
+                    if abs(g.delta().y() + g.delta().x()) > 1e-1:
+                        dlat += 0.005 * g.delta().y() / (self.zoom * self.ar)
+                        dlon -= 0.005 * g.delta().x() / (self.zoom * self.flat_earth)
+                        pan = (dlat, dlon)
+            if pan is not None or zoom is not None:
+                self.panzoomchanged = True
+                return self.panzoom(pan, zoom, self.mousepos)
+
+        elif event.type() == QEvent.MouseButtonPress and event.button() & Qt.LeftButton:
+            self.mousedragged = False
+            # For mice we pan with control/command and mouse movement.
+            # Mouse button press marks the beginning of a pan
+            self.prevmousepos = (event.x(), event.y())
+
+        elif event.type() == QEvent.MouseButtonRelease and \
+             event.button() & Qt.LeftButton and not self.mousedragged:
+            lat, lon = self.pixelCoordsToLatLon(event.x(), event.y())
+            # TODO: acdata en routedata
+            tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
+                                            self.acdata, self.routedata)
+            if '\n' not in tocmdline:
+                console.append_cmdline(tocmdline)
+            if tostack:
+                console.stack(tostack)
+
+        elif event.type() == QEvent.MouseMove:
+            self.mousedragged = True
+            self.mousepos = (event.x(), event.y())
+            if event.buttons() & Qt.LeftButton:
+                dlat = 0.003 * (event.y() - self.prevmousepos[1]) / (self.zoom * self.ar)
+                dlon = 0.003 * (self.prevmousepos[0] - event.x()) / (self.zoom * self.flat_earth)
+                self.prevmousepos = (event.x(), event.y())
+                self.panzoomchanged = True
+                return self.panzoom(pan=(dlat, dlon))
+
+        # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
+        elif (event.type() == QEvent.MouseButtonRelease or
+              event.type() == QEvent.TouchEnd) and self.panzoomchanged:
+            self.panzoomchanged = False
+            io.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
+                                           zoom=self.zoom, ar=self.ar, absolute=True))
+
+        # If this is a mouse move event, check if we are updating a preview poly
+        if self.mousepos != self.prevmousepos:
+            cmd = console.get_cmd()
+            nargs = len(console.get_args())
+            if cmd in ['AREA', 'BOX', 'POLY',
+                       'POLYALT', 'POLYGON', 'CIRCLE', 'LINE'] and nargs >= 2:
+                self.prevmousepos = self.mousepos
+                try:
+                    # get the largest even number of points
+                    start = 0 if cmd == 'AREA' else 3 if cmd == 'POLYALT' else 1
+                    end = ((nargs - start) // 2) * 2 + start
+                    data = [float(v) for v in console.get_args()[start:end]]
+                    data += self.pixelCoordsToLatLon(*self.mousepos)
+                    self.previewpoly(cmd, data)
+
+                except ValueError:
+                    pass
+            return True
+
+        # For all other events call base class event handling
+        return super(RadarWidget, self).event(event)
