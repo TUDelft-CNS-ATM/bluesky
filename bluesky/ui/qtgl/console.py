@@ -1,21 +1,55 @@
 """ Console interface for the QTGL implementation."""
 try:
-    from PyQt5.QtCore import Qt, pyqtSignal
+    from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QWidget, QTextEdit
 except ImportError:
-    from PyQt4.QtCore import Qt, pyqtSignal
+    from PyQt4.QtCore import Qt
     from PyQt4.QtGui import QWidget, QTextEdit
 
 from bluesky.tools.misc import cmdsplit
+from bluesky.tools.signal import Signal
 from . import guiio as io
 from . import autocomplete
 
+cmdline_stacked = Signal()
+
+def get_cmd():
+    """ Return the current command in the console's command line."""
+    if not Console._instance:
+        return ''
+    return Console._instance.cmd.upper()
+
+
+def get_cmdline():
+    """ Return the current text in the console's command line."""
+    if not Console._instance:
+        return ''
+    return Console._instance.command_line
+
+
+def get_args():
+    """ Return the current command arguments in the console's command line."""
+    if not Console._instance:
+        return []
+    return Console._instance.args
+
+
+def stack(text):
+    assert Console._instance is not None, 'No console created yet: can only stack' + \
+        ' after main window is created.'
+    Console._instance.stack(text)
+
+
+def append_cmdline(text):
+    assert Console._instance is not None, 'No console created yet: can only change' + \
+        ' command line after main window is created.'
+    Console._instance.append_cmdline(text)
+
 
 class Console(QWidget):
-    lineEdit        = None
-    stackText       = None
-
-    cmdline_stacked = pyqtSignal(str, list)
+    lineEdit = None
+    stackText = None
+    _instance = None
 
     def __init__(self, parent=None):
         super(Console, self).__init__(parent)
@@ -30,6 +64,10 @@ class Console(QWidget):
         # Connect to the io client's activenode changed signal
         io.actnodedata_changed.connect(self.actnodedataChanged)
 
+        assert Console._instance is None, "Console constructor: console instance " + \
+            "already exists! Cannot have more than one console."
+        Console._instance = self
+
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:
             self.stackText.setPlainText(nodedata.echo_text)
@@ -42,9 +80,9 @@ class Console(QWidget):
         self.echo(text)
         # Send stack command to sim process
         io.send_event(b'STACKCMD', text)
-        self.cmdline_stacked.emit(self.cmd, self.args)
+        cmdline_stacked.emit(self.cmd, self.args)
         # reset commandline and the autocomplete history
-        self.setCmdline('')
+        self.set_cmdline('')
         autocomplete.reset()
         self.history_pos = 0
 
@@ -54,10 +92,10 @@ class Console(QWidget):
         self.stackText.append(text)
         self.stackText.verticalScrollBar().setValue(self.stackText.verticalScrollBar().maximum())
 
-    def appendCmdline(self, text):
-        self.setCmdline(self.command_line + text)
+    def append_cmdline(self, text):
+        self.set_cmdline(self.command_line + text)
 
-    def setCmdline(self, text):
+    def set_cmdline(self, text):
         if self.command_line == text:
             return
 
@@ -126,7 +164,7 @@ class Console(QWidget):
             return
 
         # Final processing of the command line
-        self.setCmdline(newcmd)
+        self.set_cmdline(newcmd)
 
 
 class Cmdline(QTextEdit):
