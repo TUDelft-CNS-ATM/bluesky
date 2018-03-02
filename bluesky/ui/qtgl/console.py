@@ -59,7 +59,6 @@ class Console(QWidget):
         self.history_pos     = 0
         self.command_mem     = ''
         self.command_line    = ''
-        self.initialized     = False
 
         # Connect to the io client's activenode changed signal
         io.actnodedata_changed.connect(self.actnodedataChanged)
@@ -99,13 +98,9 @@ class Console(QWidget):
         if self.command_line == text:
             return
 
-        # if not self.initialized:
-        #     self.initialized = True
-        #     self.lineEdit.setHtml('>>')
-
         actdata = io.get_nodedata()
 
-        self.command_line   = text
+        self.command_line = text
         self.cmd, self.args = cmdsplit(self.command_line)
 
         hintline = ''
@@ -122,14 +117,15 @@ class Console(QWidget):
         self.lineEdit.setHtml('>>' + self.command_line + '<font color="#aaaaaa">' + hintline + '</font>')
 
     def keyPressEvent(self, event):
+        ''' Handle keyboard input for bluesky. '''
         # Enter-key: enter command
         if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
-            if len(self.command_line) > 0:
+            if self.command_line:
                 # emit a signal with the command for the simulation thread
                 self.stack(self.command_line)
                 # Clear any shape command preview on the radar display
                 # self.radarwidget.previewpoly(None)
-                return
+                return True
 
         newcmd = self.command_line
         if event.key() == Qt.Key_Backspace:
@@ -151,27 +147,28 @@ class Console(QWidget):
                     newcmd = self.command_history[-self.history_pos]
 
         elif event.key() == Qt.Key_Tab:
-            if len(newcmd) > 0:
+            if newcmd:
                 newcmd, displaytext = autocomplete.complete(newcmd)
-                if len(displaytext) > 0:
+                if displaytext:
                     self.echo(displaytext)
 
         elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
-            newcmd += str(event.text())#.upper()
+            newcmd += str(event.text())
 
         else:
-            super(Console, self).keyPressEvent(event)
-            return
+            # Remaining keys are things like sole modifier keys, and function keys
+            return False
 
         # Final processing of the command line
         self.set_cmdline(newcmd)
-
+        return True
 
 class Cmdline(QTextEdit):
     def __init__(self, parent=None):
         super(Cmdline, self).__init__(parent)
         Console.lineEdit = self
         self.setFocusPolicy(Qt.NoFocus)
+        self.setHtml('>>')
 
 
 class Stackwin(QTextEdit):

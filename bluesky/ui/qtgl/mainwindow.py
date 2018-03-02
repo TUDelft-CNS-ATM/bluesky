@@ -133,10 +133,13 @@ class MainWindow(QMainWindow):
 
         else:
             # All other events go to the BlueSky console
-            self.console.keyPressEvent(event)
+            return self.console.keyPressEvent(event)
+
+        return True
 
     def closeEvent(self, event):
         self.app.quit()
+        return True
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         node = self.nodes[nodeid]
