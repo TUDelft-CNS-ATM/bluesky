@@ -17,49 +17,66 @@ timers     = []
 nodeid     = -1
 active     = True
 
+if bs.settings.is_headless:
+    def run():
+        bs.sim.doWork()
 
-def run():
-    global connection
-    connection = Client(('localhost', 6000), authkey=b'bluesky')
-    bs.sim.doWork()
-    connection.close()
-    print('Node', nodeid, 'stopped.')
+    def processEvents():
+        # Process timers
+        Timer.updateTimers()
 
+    def sendEvent(event):
+        pass
 
-def close():
-    connection.close()
+    def addNodes(count):
+        pass
 
+    def isActive():
+        return False
 
-def processEvents():
-    global nodeid, active
-    # Process incoming data, and send to sim
-    while connection.poll():
-        (eventtype, event) = connection.recv()
-        if eventtype == SetNodeIdType:
-            nodeid = event
-        elif eventtype == SetActiveNodeType:
-            active = event
-        else:
-            # Data over pipes is pickled/unpickled, this causes problems with
-            # inherited classes. Solution is to call the ancestor's init
-            QEvent.__init__(event, eventtype)
-            bs.sim.event(event)
-
-    # Process timers
-    Timer.updateTimers()
+else:
+    def run():
+        global connection
+        connection = Client(('localhost', 6000), authkey=b'bluesky')
+        bs.sim.doWork()
+        connection.close()
+        print('Node', nodeid, 'stopped.')
 
 
-def sendEvent(event):
-    # Send event to the main process
-    connection.send((int(event.type()), event))
+    def close():
+        connection.close()
 
 
-def addNodes(count):
-    connection.send((AddNodeType, count))
+    def processEvents():
+        global nodeid, active
+        # Process incoming data, and send to sim
+        while connection.poll():
+            (eventtype, event) = connection.recv()
+            if eventtype == SetNodeIdType:
+                nodeid = event
+            elif eventtype == SetActiveNodeType:
+                active = event
+            else:
+                # Data over pipes is pickled/unpickled, this causes problems with
+                # inherited classes. Solution is to call the ancestor's init
+                QEvent.__init__(event, eventtype)
+                bs.sim.event(event)
+
+        # Process timers
+        Timer.updateTimers()
 
 
-def isActive():
-    return active
+    def sendEvent(event):
+        # Send event to the main process
+        connection.send((int(event.type()), event))
+
+
+    def addNodes(count):
+        connection.send((AddNodeType, count))
+
+
+    def isActive():
+        return active
 
 
 if __name__ == '__main__':

@@ -11,3 +11,4 @@ else:
     from . import geo
 
 from .trafficarrays import RegisterElementParameters, TrafficArrays
+from . import cachefile

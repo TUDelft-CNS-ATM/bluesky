@@ -41,6 +41,7 @@ class ScreenIO(QObject):
         self.ctrlat      = 0.0
         self.ctrlon      = 0.0
         self.scrzoom     = 1.0
+        self.scrar       = 1.0
 
         self.route_acid  = None
 
@@ -82,10 +83,10 @@ class ScreenIO(QObject):
             manager.sendEvent(StackTextEvent(cmdtext=text))
 
     def getviewlatlon(self):
-        lat0 = self.ctrlat - 1.0 / self.scrzoom
-        lat1 = self.ctrlat + 1.0 / self.scrzoom
-        lon0 = self.ctrlon - 1.0 / self.scrzoom
-        lon1 = self.ctrlon + 1.0 / self.scrzoom
+        lat0 = self.ctrlat - 1.0 / (self.scrzoom * self.scrar)
+        lat1 = self.ctrlat + 1.0 / (self.scrzoom * self.scrar)
+        lon0 = self.ctrlon - 1.0 / (self.scrzoom * np.cos(np.radians(self.ctrlat)))
+        lon1 = self.ctrlon + 1.0 / (self.scrzoom * np.cos(np.radians(self.ctrlat)))
         return lat0, lat1, lon0, lon1
 
     def zoom(self, zoom, absolute=True):
@@ -217,6 +218,7 @@ class ScreenIO(QObject):
             self.ctrlat  = event.pan[0]
             self.ctrlon  = event.pan[1]
             self.scrzoom = event.zoom
+            self.scrar = event.ar
             return True
 
         return False
@@ -272,7 +274,7 @@ class ScreenIO(QObject):
             data.nlos_exp   = len(bs.traf.asas.LOSlist_exp)
             data.nconf_cur  = len(bs.traf.asas.conflist_now)
             data.nlos_cur   = len(bs.traf.asas.LOSlist_now)
-            
+
             # Transition level as defined in traf
             data.translvl   = bs.traf.translvl
 

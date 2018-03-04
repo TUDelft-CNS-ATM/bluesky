@@ -531,7 +531,8 @@ class RadarWidget(QGLWidget):
 
         # Draw traffic symbols
         if self.naircraft > 0 and self.show_traf:
-            self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
+            if self.routelbl.n_instances:
+                self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.ac_symbol.draw(n_instances=self.naircraft)
 
         if self.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
@@ -667,6 +668,7 @@ class RadarWidget(QGLWidget):
                             wpname.encode('ascii', 'ignore')))
         else:
             self.route.set_vertex_count(0)
+            self.routelbl.n_instances = 0
 
     def update_aircraft_data(self, data):
         if not self.initialized:
@@ -691,13 +693,13 @@ class RadarWidget(QGLWidget):
             self.cpalines.set_vertex_count(0)
         else:
             # Update data in GPU buffers
-            update_buffer(self.aclatbuf, np.array(data.lat, dtype=np.float32))
-            update_buffer(self.aclonbuf, np.array(data.lon, dtype=np.float32))
-            update_buffer(self.achdgbuf, np.array(data.trk, dtype=np.float32))
-            update_buffer(self.acaltbuf, np.array(data.alt, dtype=np.float32))
-            update_buffer(self.actasbuf, np.array(data.tas, dtype=np.float32))
-            update_buffer(self.asasnbuf, np.array(data.asasn, dtype=np.float32))
-            update_buffer(self.asasebuf, np.array(data.asase, dtype=np.float32))
+            update_buffer(self.aclatbuf, np.array(data.lat[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.aclonbuf, np.array(data.lon[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.achdgbuf, np.array(data.trk[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.acaltbuf, np.array(data.alt[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.actasbuf, np.array(data.tas[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.asasnbuf, np.array(data.asasn[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.asasebuf, np.array(data.asase[:MAX_NAIRCRAFT], dtype=np.float32))
 
             # CPA lines to indicate conflicts
             ncpalines = len(data.confcpalat)
@@ -707,9 +709,9 @@ class RadarWidget(QGLWidget):
 
             # Labels and colors
             rawlabel = ''
-            color    = np.empty((self.naircraft, 4), dtype=np.uint8)
+            color    = np.empty((min(self.naircraft, MAX_NAIRCRAFT), 4), dtype=np.uint8)
             selssd   = np.zeros(self.naircraft, dtype=np.uint8)
-            for i, acid in enumerate(data.id):
+            for i, acid in enumerate(data.id[:MAX_NAIRCRAFT]):
                 vs = 30 if data.vs[i] > 0.25 else 31 if data.vs[i] < -0.25 else 32
                 # Make label: 3 lines of 8 characters per aircraft
                 if self.show_lbl >= 1:
@@ -738,9 +740,9 @@ class RadarWidget(QGLWidget):
                     selssd[i] = 255
 
             if len(self.ssd_ownship) > 0 or self.ssd_conflicts:
-                update_buffer(self.ssd.selssdbuf, selssd)
+                update_buffer(self.ssd.selssdbuf, selssd[:MAX_NAIRCRAFT])
 
-            update_buffer(self.confcpabuf, cpalines)
+            update_buffer(self.confcpabuf, cpalines[:MAX_NCONFLICTS * 4])
             update_buffer(self.accolorbuf, color)
             update_buffer(self.aclblbuf, np.array(rawlabel.encode('utf8'), dtype=np.string_))
 
@@ -965,26 +967,29 @@ class RadarWidget(QGLWidget):
                 # Update flat-earth factor
                 self.flat_earth = np.cos(np.deg2rad(self.panlat))
 
+            # Limit longitudinal panning to [-180:180]
+            if self.panlon < -180.0:
+                self.panlon += 360.0
+            elif self.panlon > 180.0:
+                self.panlon -= 360.0
+
             if self.zoom >= 1.0:
                 self.airportsInRange()
             event.accept()
 
+            # Distance to the screen edge
+            edgdist = 1.0 / (self.zoom * self.flat_earth)
+
             # Check for necessity wrap-around in x-direction
-            self.wraplon  = -999.9
+            self.wraplon  = 0
             self.wrapdir  = 0
-            if self.panlon + 1.0 / (self.zoom * self.flat_earth) < -180.0:
-                # The left edge of the map has passed the right edge of the screen: we can just change the pan position
-                self.panlon += 360.0
-            elif self.panlon - 1.0 / (self.zoom * self.flat_earth) < -180.0:
+            if self.panlon - edgdist < -180.0:
                 # The left edge of the map has passed the left edge of the screen: we need to wrap around to the left
-                self.wraplon = float(np.ceil(360.0 + self.panlon - 1.0 / (self.zoom * self.flat_earth)))
+                self.wraplon = float(np.ceil(360.0 + self.panlon - edgdist))
                 self.wrapdir = -1
-            elif self.panlon - 1.0 / (self.zoom * self.flat_earth) > 180.0:
-                # The right edge of the map has passed the left edge of the screen: we can just change the pan position
-                self.panlon -= 360.0
-            elif self.panlon + 1.0 / (self.zoom * self.flat_earth) > 180.0:
+            elif self.panlon + edgdist > 180.0:
                 # The right edge of the map has passed the right edge of the screen: we need to wrap around to the right
-                self.wraplon = float(np.floor(-360.0 + self.panlon + 1.0 / (self.zoom * self.flat_earth)))
+                self.wraplon = float(np.floor(-360.0 + self.panlon + edgdist))
                 self.wrapdir = 1
 
             self.globaldata.set_wrap(self.wraplon, self.wrapdir)

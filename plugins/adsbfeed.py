@@ -42,7 +42,7 @@ class Modesbeast(TcpSocket):
     def __init__(self):
         super(Modesbeast, self).__init__()
         self.acpool         = {}
-        self.buffer         = ''
+        self.buffer         = b''
         self.default_ac_mdl = "B738"
 
     def processData(self, data):
@@ -52,7 +52,7 @@ class Modesbeast(TcpSocket):
             # process the buffer until the last divider <esc> 0x1a
             # then, reset the buffer with the remainder
 
-            bfdata = [ord(i) for i in self.buffer]
+            bfdata = self.buffer
             n = (len(bfdata) - 1) - bfdata[::-1].index(0x1a)
             data = bfdata[:n - 1]
             self.buffer = self.buffer[n:]

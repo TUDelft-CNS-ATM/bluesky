@@ -11,14 +11,13 @@ NOTE - The test suite is written in Python3 only.
 It tests BlueSky running in either Python2 or 3.
 """
 from __future__ import print_function
-import pytest
-import sys
 import socket
 import os
-import psutil
 import subprocess
 import signal
+import psutil
 import bluesky
+import pytest
 from .. import sock_connect, wait_for, TCP_HOST, TCP_PORT, BLUESKY
 
 

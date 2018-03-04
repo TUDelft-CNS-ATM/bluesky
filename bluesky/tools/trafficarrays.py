@@ -1,6 +1,7 @@
 """ Classes that derive from TrafficArrays (like Traffic) get automated create,
     delete, and reset functionality for all registered child arrays."""
 # -*- coding: utf-8 -*-
+import collections
 import numpy as np
 
 defaults = {"float": 0.0, "int": 0, "bool": False, "S": "", "str": ""}
@@ -66,8 +67,10 @@ class TrafficArrays(object):
         for v in self.LstVars:  # Lists (mostly used for strings)
 
             # Get type
-            if len(v) > 0:
-                vartype = str(type(v[0])).strip("<type '").strip("'>")
+            vartype = None
+            lst = self.__dict__.get(v)
+            if len(lst) > 0:
+                vartype = str(type(lst[0])).split("'")[1]
 
             if vartype in defaults:
                 defaultvalue = [defaults[vartype]] * n
@@ -99,22 +102,28 @@ class TrafficArrays(object):
 
     def delete(self, idx):
         # Remove element (aircraft) idx from all lists and arrays
-        for v in self.LstVars:
-            del self.Vars[v][idx]
+        for child in self.children:
+            child.delete(idx)
 
         for v in self.ArrVars:
             self.Vars[v] = np.delete(self.Vars[v], idx)
 
-        for child in self.children:
-            child.delete(idx)
+        if self.LstVars:
+            if isinstance(idx, collections.abc.Collection):
+                for i in reversed(idx):
+                    for v in self.LstVars:
+                        del self.Vars[v][i]
+            else:
+                for v in self.LstVars:
+                    del self.Vars[v][idx]
 
     def reset(self):
         # Delete all elements from arrays and start at 0 aircraft
-        for v in self.LstVars:
-            self.Vars[v] = []
+        for child in self.children:
+            child.reset()
 
         for v in self.ArrVars:
             self.Vars[v] = np.array([], dtype=self.Vars[v].dtype)
 
-        for child in self.children:
-            child.reset()
+        for v in self.LstVars:
+            self.Vars[v] = []

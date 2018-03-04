@@ -147,6 +147,8 @@ class Simulation(QObject):
     def stop(self):
         self.state = Simulation.end
         datalog.reset()
+        if settings.is_headless:
+            self.running = False
 
     def start(self):
         if self.ffmode:

@@ -16,7 +16,7 @@ def as_bytes(msg):
         return msg
 
 
-if bs.settings.gui == 'qtgl':
+if not bs.settings.is_sim:
     try:
         from PyQt5.QtCore import pyqtSlot
         from PyQt5.QtNetwork import QTcpServer, QTcpSocket
@@ -91,7 +91,7 @@ if bs.settings.gui == 'qtgl':
             return len(self.connections.keys())
 
 
-elif bs.settings.gui == 'pygame':
+else:
     class TcpSocket(object):
         """A TCP Client receving message from server, analysing the data, and """
         def __init__(self):

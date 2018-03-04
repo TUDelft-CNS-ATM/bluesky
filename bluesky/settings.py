@@ -37,9 +37,11 @@ def init():
 
     # Check if alternate config file is passed
     for i in range(len(sys.argv)):
-        if sys.argv[i] == '--config-file':
-            configfile = sys.argv[i + 1]
-            break
+        if len(sys.argv) > i + 1:
+            if sys.argv[i] == '--config-file':
+                configfile = sys.argv[i + 1]
+            elif sys.argv[i] == '--scenfile':
+                globals()['scenfile'] = sys.argv[i + 1]
 
     # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
     # was started with BlueSky.py
@@ -134,5 +136,6 @@ initialized = init()
 
 # This file is used to start the gui mainloop, a single node simulation loop,
 # or, in case of the pygame version, both.
-is_sim = ('--node' in sys.argv) or gui == 'pygame'
+is_headless = ('--headless' in sys.argv)
+is_sim = ('--node' in sys.argv) or is_headless or gui == 'pygame'
 is_gui = ('--node' not in sys.argv) or gui == 'pygame'

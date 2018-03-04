@@ -20,6 +20,7 @@ R   = 287.05287             # Used in wikipedia table: checked with 11000 m
 p0 = 101325.                # Pa     Sea level pressure ISA
 rho0 = 1.225                # kg/m3  Sea level density ISA
 T0   = 288.15               # K   Sea level temperature ISA
+Tstrat = 216.65             # K Stratosphere temperature (until alt=22km)
 gamma = 1.40                # cp/cv for air
 gamma1 =  0.2               # (gamma-1)/2 for air
 gamma2 = 3.5                # gamma/(gamma-1) for air
@@ -59,10 +60,8 @@ a0  = np.sqrt(gamma*R*T0)   # sea level speed of sound ISA
 # Vectorized aero functions
 # ------------------------------------------------------------------------------
 def vatmos(h):  # h in m
-    h = np.array(h)
-
     # Temp
-    T = np.maximum(288.15 - 0.0065 * h, 216.65)
+    T = vtemp(h)
 
     # Density
     rhotrop = 1.225 * (T / 288.15)**4.256848030018761
@@ -76,12 +75,7 @@ def vatmos(h):  # h in m
 
 
 def vtemp(h):         # h [m]
-    h = np.array(h)
-
-    # Temp
-    Tstrat = np.array(len(h) * [216.65])  # max 22 km!
     T = np.maximum(288.15 - 0.0065 * h, Tstrat)
-
     return T
 
 
@@ -105,8 +99,6 @@ def vvsound(h):  # Speed of sound for given altitude h [m]
 # ---------Speed conversions---h in [m]------------------
 def vtas2mach(tas, h):
     """ True airspeed (tas) to mach number conversion """
-    tas = np.array(tas)
-
     a = vvsound(h)
     M = tas / a
     return M
@@ -114,8 +106,6 @@ def vtas2mach(tas, h):
 
 def vmach2tas(M, h):
     """ True airspeed (tas) to mach number conversion """
-    M = np.array(M)
-
     a = vvsound(h)
     tas = M * a
     return tas
@@ -123,8 +113,6 @@ def vmach2tas(M, h):
 
 def veas2tas(eas, h):
     """ Equivalent airspeed to true airspeed """
-    eas = np.array(eas)
-
     rho = vdensity(h)
     tas = eas * np.sqrt(rho0 / rho)
     return tas
@@ -132,8 +120,6 @@ def veas2tas(eas, h):
 
 def vtas2eas(tas, h):
     """ True airspeed to equivent airspeed """
-    tas = np.array(tas)
-
     rho = vdensity(h)
     eas = tas*np.sqrt(rho / rho0)
     return eas
@@ -141,8 +127,6 @@ def vtas2eas(tas, h):
 
 def vcas2tas(cas, h):
     """ cas2tas conversion both m/s """
-    cas = np.array(cas)
-
     p, rho, T = vatmos(h)
     qdyn      = p0*((1.+rho0*cas*cas/(7.*p0))**3.5-1.)
     tas       = np.sqrt(7.*p/rho*((1.+qdyn/p)**(2./7.)-1.))
@@ -151,8 +135,6 @@ def vcas2tas(cas, h):
 
 def vtas2cas(tas, h):
     """ tas2cas conversion both m/s """
-    tas = np.array(tas)
-
     p, rho, T = vatmos(h)
     qdyn      = p*((1.+rho*tas*tas/(7.*p))**3.5-1.)
     cas       = np.sqrt(7.*p0/rho0*((qdyn/p0+1.)**(2./7.)-1.))
@@ -161,8 +143,6 @@ def vtas2cas(tas, h):
 
 def vmach2cas(M, h):
     """ Mach to CAS conversion """
-    M = np.array(M)
-
     tas = vmach2tas(M, h)
     cas = vtas2cas(tas, h)
     return cas
@@ -170,26 +150,19 @@ def vmach2cas(M, h):
 
 def vcas2mach(cas, h):
     """ CAS to Mach conversion """
-    cas = np.array(cas)
-
     tas = vcas2tas(cas, h)
     M   = vtas2mach(tas, h)
     return M
 
 def vcasormach(spd, h):
-    spd = np.array(spd)
-
-    tas = np.where(np.abs(spd) < 2.0, vmach2tas(spd, h), vcas2tas(spd, h))
-    cas = np.where(np.abs(spd) < 2.0, vmach2cas(spd, h), spd)
-    m   = np.where(np.abs(spd) < 2.0, spd, vcas2mach(spd, h))
-
+    ismach = np.logical_and(0.1 < spd, spd < 2.0)
+    tas = np.where(ismach, vmach2tas(spd, h), vcas2tas(spd, h))
+    cas = np.where(ismach, vtas2cas(tas, h), spd)
+    m   = np.where(ismach, spd, vtas2mach(tas, h))
     return tas, cas, m
 
 def vcasormach2tas(spd, h):
-    spd = np.array(spd)
-
     tas = np.where(np.abs(spd) < 2.0, vmach2tas(spd, h), vcas2tas(spd, h))
-
     return tas
 
 
@@ -407,3 +380,19 @@ def casormach2tas(spd,h):
         # Interpret spd as CAS
         tas = cas2tas(spd,h)
     return tas
+
+
+def metres_to_feet_rounded(metres):
+    """
+    Converts metres to feet.
+    Returns feet as rounded integer.
+    """
+    return int(round(metres / ft))
+
+
+def metric_spd_to_knots_rounded(speed):
+    """
+    Converts speed in m/s to knots.
+    Returns knots as rounded integer.
+    """
+    return int(round(speed / kts))

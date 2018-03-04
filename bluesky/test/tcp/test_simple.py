@@ -42,7 +42,7 @@ def test_pos(sock):
     """
     sock_, _bluesky = sock
 
-    sock_send(sock_,"POS KL204")
+    sock_send(sock_, "POS KL204")
     data = sock_receive(sock_)
 
     assert data.startswith("Info on KL204")
@@ -60,7 +60,7 @@ def test_disconnect(sock):
         Tests for appropriate number of connections
         as determined by `num_conns`
         """
-        sock_send(sock_,bluesky.CMD_TCP_CONNS)
+        sock_send(sock_, bluesky.CMD_TCP_CONNS)
         data = sock_receive(sock_)
         return num_conns == int(data)
 

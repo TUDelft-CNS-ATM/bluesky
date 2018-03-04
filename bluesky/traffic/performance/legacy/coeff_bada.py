@@ -10,7 +10,7 @@
 from glob import glob
 from os import path
 import re
-from bluesky.tools.fwparser import FixedWidthParser
+from bluesky.tools.fwparser import FixedWidthParser, ParseError
 
 # File formats of BADA data files. Uses fortran-like notation
 # Adapted from the BADA manual format lines. (page 61-81 in the BADA manual)
@@ -110,21 +110,33 @@ def init(bada_path=''):
     if not path.isfile(synonymfile):
         print('SYNONYM.NEW not found in BADA path, could not load BADA.')
         return False
-    data = syn_parser.parse(synonymfile)
+
+    try:
+        data = syn_parser.parse(synonymfile)
+    except ParseError as e:
+        print('Error reading synonym file {} on line {}'.format(e.fname, e.lineno))
+        return False
+
     for line in data:
         syn = Synonym(line)
         synonyms[syn.accode] = syn
     print('%d aircraft entries loaded' % len(synonyms))
 
     # Load aircraft coefficient data
-    for file in glob(path.join(path.normpath(bada_path), '*.OPF')):
+    for fname in glob(path.join(path.normpath(bada_path), '*.OPF')):
         ac = ACData()
-        ac.setOPFData(opf_parser.parse(file))
+        try:
+            ac.setOPFData(opf_parser.parse(fname))
 
-        if path.isfile(file[:-4] + '.APF'):
-            ac.setAPFData(apf_parser.parse(file[:-4] + '.APF'))
+            if path.isfile(fname[:-4] + '.APF'):
+                ac.setAPFData(apf_parser.parse(fname[:-4] + '.APF'))
 
-        accoeffs[ac.actype] = ac
+        except ParseError as e:
+            print('Error reading {} on line {}'.format(e.fname, e.lineno))
+            ac = None
+
+        if ac:
+            accoeffs[ac.actype] = ac
     print('%d unique aircraft coefficient sets loaded' % len(accoeffs))
     return (len(synonyms) > 0 and len(accoeffs) > 0)
 
