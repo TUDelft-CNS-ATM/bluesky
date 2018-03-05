@@ -4,7 +4,7 @@ import zmq
 import msgpack
 from bluesky import stack
 from bluesky.tools import Timer
-from bluesky.io.npcodec import encode_ndarray, decode_ndarray
+from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 class IOThread(Thread):
     ''' Separate thread for node I/O. '''

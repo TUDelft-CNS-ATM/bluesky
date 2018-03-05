@@ -23,7 +23,6 @@ from bluesky.navdatabase import load_aptsurface, load_coastlines
 from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
     update_buffer, create_empty_buffer
 
-from . import guiio as io
 
 # Register settings defaults
 settings.set_variable_defaults(
@@ -157,8 +156,8 @@ class RadarWidget(QGLWidget):
         # self.grabGesture(Qt.SwipeGesture)
 
         # Connect to the io client's activenode changed signal
-        io.actnodedata_changed.connect(self.actnodedataChanged)
-        io.stream_received.connect(self.on_simstream_received)
+        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        bs.net.stream_received.connect(self.on_simstream_received)
 
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
@@ -442,7 +441,7 @@ class RadarWidget(QGLWidget):
             return
 
         # Get data for active node
-        actdata = io.get_nodedata()
+        actdata = bs.net.get_nodedata()
 
         # Set the viewport and clear the framebuffer
         gl.glViewport(*self.viewport)
@@ -619,7 +618,7 @@ class RadarWidget(QGLWidget):
         if not self.initialized:
             return
         self.makeCurrent()
-        actdata = io.get_nodedata()
+        actdata = bs.net.get_nodedata()
 
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
@@ -673,7 +672,7 @@ class RadarWidget(QGLWidget):
             return
 
         self.makeCurrent()
-        actdata = io.get_nodedata()
+        actdata = bs.net.get_nodedata()
         if actdata.filteralt:
             idx = np.where((data.alt >= actdata.filteralt[0]) * (data.alt <= actdata.filteralt[1]))
             data.lat = data.lat[idx]
@@ -893,7 +892,7 @@ class RadarWidget(QGLWidget):
         # update pan and zoom on GPU for all shaders
         self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
         # Update pan and zoom in centralized nodedata
-        io.get_nodedata().panzoom((self.panlat, self.panlon), self.zoom)
+        bs.net.get_nodedata().panzoom((self.panlat, self.panlon), self.zoom)
 
         return True
 
@@ -976,7 +975,7 @@ class RadarWidget(QGLWidget):
         elif (event.type() == QEvent.MouseButtonRelease or
               event.type() == QEvent.TouchEnd) and self.panzoomchanged:
             self.panzoomchanged = False
-            io.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
+            bs.net.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
                                            zoom=self.zoom, ar=self.ar, absolute=True))
 
         # If this is a mouse move event, check if we are updating a preview poly

@@ -7,7 +7,7 @@ except ImportError:
 
 import numpy as np
 
-from bluesky.io import Client
+from bluesky.network import Client
 from bluesky.tools import Signal
 from bluesky.tools.aero import ft
 
@@ -15,11 +15,78 @@ from bluesky.tools.aero import ft
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT']
 ACTNODE_TOPICS = [b'ACDATA']
 
-# Signals
-actnodedata_changed = Signal()
-nodes_changed       = Signal()
-event_received      = Signal()
-stream_received     = Signal()
+
+class GuiClient(Client):
+    def __init__(self):
+        super(GuiClient, self).__init__(ACTNODE_TOPICS)
+        self.nodedata = dict()
+        self.timer = None
+        self.ref_nodedata = nodeData()
+
+        # Signals
+        self.actnodedata_changed = Signal()
+        self.event_received      = Signal()
+        self.stream_received     = Signal()
+
+    def event(self, name, data, sender_id):
+        sender_data = self.get_nodedata(sender_id)
+        data_changed = []
+        if name == b'RESET':
+            sender_data.clear_scen_data()
+            data_changed = list(UPDATE_ALL)
+        elif name == b'SHAPE':
+            sender_data.update_poly_data(**data)
+            data_changed.append('SHAPE')
+        elif name == b'DEFWPT':
+            sender_data.defwpt(**data)
+            data_changed.append('CUSTWPT')
+        elif name == b'DISPLAYFLAG':
+            sender_data.setflag(**data)
+        elif name == b'ECHO':
+            sender_data.echo(**data)
+            data_changed.append('ECHOTEXT')
+        elif name == b'PANZOOM':
+            sender_data.panzoom(**data)
+            data_changed.append('PANZOOM')
+        elif name == b'SIMSTATE':
+            sender_data.siminit(**data)
+            data_changed = list(UPDATE_ALL)
+        else:
+            self.event_received.emit(name, data, sender_id)
+
+        if sender_id == self.act and data_changed:
+            self.actnodedata_changed.emit(sender_id, sender_data, data_changed)
+
+    def stream(self, name, data, sender_id):
+        self.stream_received.emit(name, data, sender_id)
+
+    def actnode_changed(self, newact):
+        self.actnodedata_changed.emit(newact, self.get_nodedata(newact), UPDATE_ALL)
+
+    def get_nodedata(self, nodeid=None):
+        nodeid = nodeid or self.act
+        if not nodeid:
+            return self.ref_nodedata
+
+        data = self.nodedata.get(nodeid)
+        if not data:
+            # If this is a node we haven't addressed yet: create dataset and
+            # request node settings
+            self.nodedata[nodeid] = data = nodeData()
+            self.send_event(b'GETSIMSTATE', target=nodeid)
+
+        return data
+
+    def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
+        super(GuiClient, self).connect(hostname, event_port, stream_port, protocol)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.receive)
+        self.timer.start(20)
+        self.subscribe(b'SIMINFO')
+
+    def sender(self):
+        return self.sender_id
+
 
 class nodeData(object):
     def __init__(self, route=None):
@@ -207,81 +274,3 @@ class nodeData(object):
         else:
             remove = self.ssd_ownship.intersection(arg)
             self.ssd_ownship = self.ssd_ownship.union(arg) - remove
-
-class GuiClient(Client):
-    def __init__(self):
-        super(GuiClient, self).__init__(ACTNODE_TOPICS)
-        self.nodedata = dict()
-        self.timer = None
-        self.ref_nodedata = nodeData()
-
-    def event(self, name, data, sender_id):
-        sender_data = self.get_nodedata(sender_id)
-        data_changed = []
-        if name == b'RESET':
-            sender_data.clear_scen_data()
-            data_changed = list(UPDATE_ALL)
-        elif name == b'SHAPE':
-            sender_data.update_poly_data(**data)
-            data_changed.append('SHAPE')
-        elif name == b'DEFWPT':
-            sender_data.defwpt(**data)
-            data_changed.append('CUSTWPT')
-        elif name == b'DISPLAYFLAG':
-            sender_data.setflag(**data)
-        elif name == b'ECHO':
-            sender_data.echo(**data)
-            data_changed.append('ECHOTEXT')
-        elif name == b'PANZOOM':
-            sender_data.panzoom(**data)
-            data_changed.append('PANZOOM')
-        elif name == b'SIMSTATE':
-            sender_data.siminit(**data)
-            data_changed = list(UPDATE_ALL)
-        else:
-            event_received.emit(name, data, sender_id)
-
-        if sender_id == self.act and data_changed:
-            actnodedata_changed.emit(sender_id, sender_data, data_changed)
-
-    def stream(self, name, data, sender_id):
-        stream_received.emit(name, data, sender_id)
-
-    def nodes_changed(self, data):
-        nodes_changed.emit(data)
-
-    def actnode_changed(self, newact):
-        actnodedata_changed.emit(newact, self.get_nodedata(newact), UPDATE_ALL)
-
-    def get_nodedata(self, nodeid=None):
-        nodeid = nodeid or self.act
-        if not nodeid:
-            return self.ref_nodedata
-
-        data = self.nodedata.get(nodeid)
-        if not data:
-            # If this is a node we haven't addressed yet: create dataset and
-            # request node settings
-            self.nodedata[nodeid] = data = nodeData()
-            self.send_event(b'GETSIMSTATE', target=nodeid)
-
-        return data
-
-    def init(self):
-        self.connect(event_port=9000, stream_port=9001)
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.receive)
-        self.timer.start(20)
-        self.subscribe(b'SIMINFO')
-
-# Globals
-_client = GuiClient()
-
-actnode = _client.actnode
-send_event = _client.send_event
-get_nodedata = _client.get_nodedata
-get_hostid = _client.get_hostid
-init = _client.init
-
-def sender():
-    return _client.sender_id

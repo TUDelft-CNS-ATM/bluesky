@@ -6,9 +6,9 @@ except ImportError:
     from PyQt4.QtCore import Qt
     from PyQt4.QtGui import QWidget, QTextEdit
 
+import bluesky as bs
 from bluesky.tools.misc import cmdsplit
 from bluesky.tools.signal import Signal
-from . import guiio as io
 from . import autocomplete
 
 cmdline_stacked = Signal()
@@ -61,8 +61,8 @@ class Console(QWidget):
         self.command_line    = ''
 
         # Connect to the io client's activenode changed signal
-        io.event_received.connect(self.on_simevent_received)
-        io.actnodedata_changed.connect(self.actnodedataChanged)
+        bs.net.event_received.connect(self.on_simevent_received)
+        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
 
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
@@ -84,7 +84,7 @@ class Console(QWidget):
         self.command_history.append(text)
         self.echo(text)
         # Send stack command to sim process
-        io.send_event(b'STACKCMD', text)
+        bs.net.send_event(b'STACKCMD', text)
         cmdline_stacked.emit(self.cmd, self.args)
         # reset commandline and the autocomplete history
         self.set_cmdline('')
@@ -92,7 +92,7 @@ class Console(QWidget):
         self.history_pos = 0
 
     def echo(self, text):
-        actdata = io.get_nodedata()
+        actdata = bs.net.get_nodedata()
         actdata.echo(text)
         self.stackText.append(text)
         self.stackText.verticalScrollBar().setValue(self.stackText.verticalScrollBar().maximum())
@@ -104,7 +104,7 @@ class Console(QWidget):
         if self.command_line == text:
             return
 
-        actdata = io.get_nodedata()
+        actdata = bs.net.get_nodedata()
 
         self.command_line = text
         self.cmd, self.args = cmdsplit(self.command_line)

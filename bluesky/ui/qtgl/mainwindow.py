@@ -14,9 +14,8 @@ except ImportError:
     from PyQt4 import uic
 
 # Local imports
-from bluesky import settings
+import bluesky as bs
 from bluesky.tools.misc import tim2txt
-from bluesky.ui.qtgl import guiio as io
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -27,17 +26,17 @@ from bluesky.ui.qtgl.nd import ND
 is_osx = platform.system() == 'Darwin'
 
 # Register settings defaults
-settings.set_variable_defaults(gfx_path='data/graphics',
+bs.settings.set_variable_defaults(gfx_path='data/graphics',
                                stack_text_color=(0, 255, 0),
                                stack_background_color=(102, 102, 102))
 
-fg = settings.stack_text_color
-bg = settings.stack_background_color
+fg = bs.settings.stack_text_color
+bg = bs.settings.stack_background_color
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super(Splash, self).__init__(QPixmap(os.path.join(settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
+        super(Splash, self).__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
 
 
 class MainWindow(QMainWindow):
@@ -66,11 +65,11 @@ class MainWindow(QMainWindow):
         gltimer.start(50)
         self.app = app
         if is_osx:
-            self.app.setWindowIcon(QIcon(os.path.join(settings.gfx_path, 'bluesky.icns')))
+            self.app.setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'bluesky.icns')))
         else:
-            self.app.setWindowIcon(QIcon(os.path.join(settings.gfx_path, 'icon.gif')))
+            self.app.setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icon.gif')))
 
-        uic.loadUi(os.path.join(settings.gfx_path, 'mainwindow.ui'), self)
+        uic.loadUi(os.path.join(bs.settings.gfx_path, 'mainwindow.ui'), self)
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
@@ -97,7 +96,7 @@ class MainWindow(QMainWindow):
         for b in buttons.items():
             # Set icon
             if not b[1][0] is None:
-                icon = QIcon(os.path.join(settings.gfx_path, 'icons/' + b[1][0]))
+                icon = QIcon(os.path.join(bs.settings.gfx_path, 'icons/' + b[1][0]))
                 b[0].setIcon(icon)
             # Set tooltip
             if not b[1][1] is None:
@@ -113,10 +112,10 @@ class MainWindow(QMainWindow):
         self.radarwidget.setParent(self.centralwidget)
         self.verticalLayout.insertWidget(0, self.radarwidget, 1)
         # Connect to io client's nodelist changed signal
-        io.nodes_changed.connect(self.nodesChanged)
-        io.actnodedata_changed.connect(self.actnodedataChanged)
-        io.event_received.connect(self.on_simevent_received)
-        io.stream_received.connect(self.on_simstream_received)
+        bs.net.nodes_changed.connect(self.nodesChanged)
+        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        bs.net.event_received.connect(self.on_simevent_received)
+        bs.net.stream_received.connect(self.on_simstream_received)
 
         self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
@@ -183,7 +182,7 @@ class MainWindow(QMainWindow):
                 self.maxhostnum += 1
                 host.host_num = self.maxhostnum
                 host.host_id = host_id
-                hostname = 'This computer' if host_id == io.get_hostid() else str(host_id)
+                hostname = 'This computer' if host_id == bs.net.get_hostid() else str(host_id)
                 f = host.font(0)
                 f.setBold(True)
                 host.setExpanded(True)
@@ -193,7 +192,7 @@ class MainWindow(QMainWindow):
                 btn.setFlat(True)
                 btn.setStyleSheet('font-weight:bold')
 
-                btn.setIcon(QIcon(os.path.join(settings.gfx_path, 'icons/addnode.svg')))
+                btn.setIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icons/addnode.svg')))
                 btn.setIconSize(QSize(24, 16))
                 btn.setLayoutDirection(Qt.RightToLeft)
                 btn.setMaximumHeight(16)
@@ -235,7 +234,7 @@ class MainWindow(QMainWindow):
             simt = tim2txt(simt)[:-3]
             simtclock = tim2txt(simtclock)[:-3]
             self.setNodeInfo(sender_id, simt, scenname)
-            if sender_id == io.actnode():
+            if sender_id == bs.net.actnode():
                 self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
                     % (simt, simdt, speed, simtclock, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
         elif streamname == b'ACDATA':
@@ -255,14 +254,14 @@ class MainWindow(QMainWindow):
         if item in self.hosts.values():
             item.setSelected(False)
             item.child(0).setSelected(True)
-            io.actnode(item.child(0).node_id)
+            bs.net.actnode(item.child(0).node_id)
         else:
-            io.actnode(item.node_id)
+            bs.net.actnode(item.node_id)
 
 
     @pyqtSlot()
     def buttonClicked(self):
-        actdata = io.get_nodedata()
+        actdata = bs.net.get_nodedata()
         if self.sender() == self.shownodes:
             vis = not self.nodetree.isVisible()
             self.nodetree.setVisible(vis)
@@ -282,15 +281,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.app.show_file_dialog()
         elif self.sender() == self.sameic:
-            io.send_event(b'STACKCMD', 'IC IC')
+            bs.net.send_event(b'STACKCMD', 'IC IC')
         elif self.sender() == self.hold:
-            io.send_event(b'STACKCMD', 'HOLD')
+            bs.net.send_event(b'STACKCMD', 'HOLD')
         elif self.sender() == self.op:
-            io.send_event(b'STACKCMD', 'OP')
+            bs.net.send_event(b'STACKCMD', 'OP')
         elif self.sender() == self.fast:
-            io.send_event(b'STACKCMD', 'FF')
+            bs.net.send_event(b'STACKCMD', 'FF')
         elif self.sender() == self.fast10:
-            io.send_event(b'STACKCMD', 'FF 0:0:10')
+            bs.net.send_event(b'STACKCMD', 'FF 0:0:10')
         elif self.sender() == self.showac:
             actdata.show_traf = not actdata.show_traf
         elif self.sender() == self.showpz:
@@ -312,13 +311,13 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             actdata.show_map = not actdata.show_map
         elif self.sender() == self.action_Save:
-            io.send_event(b'STACKCMD', 'SAVEIC')
+            bs.net.send_event(b'STACKCMD', 'SAVEIC')
         elif hasattr(self.sender(), 'host_id'):
             print(self.sender())
-            io.send_event(b'ADDNODES', 1)
+            bs.net.send_event(b'ADDNODES', 1)
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', settings.scenario_path, 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:

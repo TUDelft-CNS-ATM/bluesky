@@ -12,11 +12,12 @@ BS_CMDERR = 4
 INIT, HOLD, OP, END = list(range(4))
 
 ### Main singleton objects in BlueSky
-traf      = None
-navdb     = None
-sim       = None
-scr       = None
-server    = None
+net = None
+traf = None
+navdb = None
+sim = None
+scr = None
+server = None
 
 def init():
     # Both sim and gui need a navdatabase in all versions of BlueSky
@@ -27,7 +28,7 @@ def init():
 
     if settings.start_server:
         global server
-        from bluesky.io import Server
+        from bluesky.network import Server
         server = Server()
         server.start()
 

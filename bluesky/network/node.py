@@ -2,9 +2,10 @@
 import os
 import zmq
 import msgpack
+import bluesky
 from bluesky import stack
 from bluesky.tools import Timer
-from bluesky.io.npcodec import encode_ndarray, decode_ndarray
+from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 
 class Node(object):
@@ -15,6 +16,9 @@ class Node(object):
         ctx = zmq.Context.instance()
         self.event_io = ctx.socket(zmq.DEALER)
         self.stream_out = ctx.socket(zmq.PUB)
+
+        # Tell bluesky that this client will manage the network I/O
+        bluesky.net = self
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''

@@ -11,7 +11,7 @@ except ImportError:
 
 # Local imports
 from bluesky import settings
-from bluesky.ui.qtgl import guiio
+from bluesky.ui.qtgl.guiclient import GuiClient
 from bluesky.ui.qtgl.mainwindow import MainWindow, Splash
 from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
@@ -22,9 +22,10 @@ print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 settings.set_variable_defaults(scenario_path='scenario')
 
 gui = None
+client = GuiClient()
 
 def init():
-    global gui
+    global gui, client
     if gui is None:
         gui = Gui()
         splash = Splash()
@@ -56,7 +57,7 @@ def init():
         splash.showMessage('Constructing main window')
         gui.processEvents()
         gui.init()
-        guiio.init()
+        client.connect(event_port=9000, stream_port=9001)
         splash.showMessage('Done!')
         gui.processEvents()
         splash.finish(gui.win)
@@ -88,7 +89,7 @@ class Gui(QApplication):
 
     def quit(self):
         # Send quit to server
-        guiio.send_event(b'QUIT')
+        client.send_event(b'QUIT')
         self.closeAllWindows()
 
     def notify(self, receiver, event):

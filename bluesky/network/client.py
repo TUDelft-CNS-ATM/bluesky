@@ -2,7 +2,9 @@
 import os
 import zmq
 import msgpack
-from bluesky.io.npcodec import encode_ndarray, decode_ndarray
+import bluesky
+from bluesky.tools import Signal
+from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 
 class Client(object):
@@ -19,6 +21,12 @@ class Client(object):
         self.actroute    = []
         self.acttopics   = actnode_topics
 
+        # Signals
+        self.nodes_changed = Signal()
+
+        # Tell bluesky that this client will manage the network I/O
+        bluesky.net = self
+
     def get_hostid(self):
         return self.host_id
 
@@ -31,11 +39,6 @@ class Client(object):
         ''' Default stream handler for Client. Override or monkey-patch this function
             to implement actual stream handling. '''
         print('Client {} received stream {} from {}'.format(self.client_id, name, sender_id))
-
-    def nodes_changed(self, data):
-        ''' Default node change handler for Client. Override or monkey-patch this function
-            to implement actual node change handling. '''
-        print('Client received node change info.')
 
     def actnode_changed(self, newact):
         ''' Default actnode change handler for Client. Override or monkey-patch this function
@@ -79,7 +82,7 @@ class Client(object):
                 pydata = msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8')
                 if eventname == b'NODESCHANGED':
                     self.servers.update(pydata)
-                    self.nodes_changed(pydata)
+                    self.nodes_changed.emit(pydata)
 
                     # If this is the first known node, select it as active node
                     nodes_myserver = next(iter(pydata.values())).get('nodes')
