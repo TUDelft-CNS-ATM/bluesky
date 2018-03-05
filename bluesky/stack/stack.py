@@ -84,8 +84,30 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "VMETH": "RMETHV",
              "VRESOM": "RMETHV",
              "VRESOMETH": "RMETHV",
+
+# Currently not implemented TMX comands trigger message on this
+             "BGPASAS": "TMX",
+             "DFFLEVEL": "TMX",
+             "FFLEVEL": "TMX",
+             "FILTCONF": "TMX",
+             "FILTTRED": "TMX",
+             "FILTTAMB": "TMX",
+             "GRAB": "TMX",
+             "HDGREF": "TMX",
+             "MOVIE": "TMX",
+             "NAVDB": "TMX",
+             "PREDASAS": "TMX",
+             "RENAME": "TMX",
+             "RETYPE": "TMX",
+             "SWNLRPASAS": "TMX",
+             "TRAFRECDT": "TMX",
+             "TRAFLOGDT": "TMX",
+             "TREACT": "TMX",
+             "WINDGRID": "TMX", # Use a scenario file with WIND commands to defin a grid and/or profiles
+
+# Question mark is Help
              "?": "HELP"
-            }
+}
 
 
 cmdstack  = []  # The actual stack: Current commands to be processed
@@ -105,7 +127,12 @@ saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded 
 # Note (P)CALL is always excluded! Commands in the called file are saved explicitly
 
 
+# Global version
+orgcmd = ""
+
 def init():
+    global orgcmd
+
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -655,12 +682,19 @@ def init():
             bs.sim.setclock,
             "Set simulated clock time"
         ],
+        "TMX": [
+            "TMX",
+            "",
+            lambda : bs.scr.echo("TMX command "+orgcmd+" not (yet?) implemented."),
+            "Stub for not implemented TMX commands"
+        ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
             "[acid/bool],[float/txt]",
             bs.traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
+
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
@@ -1217,7 +1251,7 @@ def getnextarg(line):
 
 
 def process():
-    global savefile,saveexcl
+    global savefile,saveexcl,orgcmd
 
     """process and empty command stack"""
 
