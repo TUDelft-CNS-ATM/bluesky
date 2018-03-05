@@ -2,12 +2,14 @@
 import platform
 import os
 try:
+    from PyQt5.QtWidgets import QApplication as app
     from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog
     from PyQt5 import uic
 except ImportError:
+    from PyQt4.QtGui import QApplication as app
     from PyQt4.QtCore import Qt, pyqtSlot, QTimer, QSize
     from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
         QItemSelectionModel, QTreeWidgetItem, QPushButton, QFileDialog
@@ -44,7 +46,7 @@ class MainWindow(QMainWindow):
 
     modes = ['Init', 'Hold', 'Operate', 'End']
 
-    def __init__(self, app):
+    def __init__(self):
         super(MainWindow, self).__init__()
         self.radarwidget = RadarWidget()
         self.nd = ND(shareWidget=self.radarwidget)
@@ -63,11 +65,11 @@ class MainWindow(QMainWindow):
         gltimer.timeout.connect(self.radarwidget.updateGL)
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
-        self.app = app
+
         if is_osx:
-            self.app.setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'bluesky.icns')))
+            app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'bluesky.icns')))
         else:
-            self.app.setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icon.gif')))
+            app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icon.gif')))
 
         uic.loadUi(os.path.join(bs.settings.gfx_path, 'mainwindow.ui'), self)
 
@@ -136,6 +138,8 @@ class MainWindow(QMainWindow):
 
         self.nconf_cur = self.nconf_tot = self.nlos_cur = self.nlos_tot = 0
 
+        # app.instance().aboutToQuit.connect(self.cleanUp)
+
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.ShiftModifier \
                 and event.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
@@ -151,7 +155,7 @@ class MainWindow(QMainWindow):
                 self.radarwidget.panzoom(pan=(0.0, dlon))
 
         elif event.key() == Qt.Key_Escape:
-            self.app.quit()
+            self.closeEvent()
 
         elif event.key() == Qt.Key_F11:  # F11 = Toggle Full Screen mode
             if not self.isFullScreen():
@@ -161,12 +165,12 @@ class MainWindow(QMainWindow):
 
         else:
             # All other events go to the BlueSky console
-            return self.console.keyPressEvent(event)
+            self.console.keyPressEvent(event)
 
-        return True
-
-    def closeEvent(self, event):
-        self.app.quit()
+    def closeEvent(self, event=None):
+        # Send quit to server
+        bs.net.send_event(b'QUIT')
+        app.instance().closeAllWindows()
         return True
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
@@ -279,7 +283,7 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.panright:
             self.radarwidget.panzoom(pan=( 0.0,  0.5))
         elif self.sender() == self.ic:
-            self.app.show_file_dialog()
+            self.show_file_dialog()
         elif self.sender() == self.sameic:
             bs.net.send_event(b'STACKCMD', 'IC IC')
         elif self.sender() == self.hold:

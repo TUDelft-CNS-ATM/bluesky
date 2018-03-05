@@ -131,7 +131,7 @@ class Console(QWidget):
                 self.stack(self.command_line)
                 # Clear any shape command preview on the radar display
                 # self.radarwidget.previewpoly(None)
-                return True
+                return
 
         newcmd = self.command_line
         if event.key() == Qt.Key_Backspace:
@@ -163,11 +163,10 @@ class Console(QWidget):
 
         else:
             # Remaining keys are things like sole modifier keys, and function keys
-            return False
+            super(Console, self).keyPressEvent(event)
 
         # Final processing of the command line
         self.set_cmdline(newcmd)
-        return True
 
 class Cmdline(QTextEdit):
     def __init__(self, parent=None):
