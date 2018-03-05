@@ -147,6 +147,10 @@ class Simulation(QObject):
     def stop(self):
         self.state = Simulation.end
         datalog.reset()
+
+        # Close savefile which may be open for recording
+        bs.stack.saveclose()  # Close reording file if it is on
+
         if settings.is_headless:
             self.running = False
 
@@ -175,6 +179,9 @@ class Simulation(QObject):
 
     def quit(self):
         self.running = False
+
+        # Close savefile which may be open for recording
+        bs.stack.saveclose()  # Close reording file if it is on
 
     def setDt(self, dt):
         self.simdt = abs(dt)
