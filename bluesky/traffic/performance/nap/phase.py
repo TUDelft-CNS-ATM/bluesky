@@ -1,4 +1,5 @@
 import numpy as np
+from bluesky.traffic.performance.nap import coeff
 
 NA = 0  # Unknown phase
 TO = 1  # Take-off
@@ -10,8 +11,25 @@ AP = 6  # Approach
 LD = 7  # Landing
 GD = 8  # Ground, Taxiing
 
+def get(lifttype, spd, roc, alt, unit="SI"):
+    ph = np.zeros(len(spd))
 
-def get(spd, roc, alt, unit="SI"):
+    # phase for fixwings
+    ph = np.where(
+        lifttype==coeff.LIFT_FIXWING,
+        get_fixwing(spd, roc, alt, unit),
+        ph
+    )
+
+    # phase for rotors
+    ph = np.where(
+        lifttype==coeff.LIFT_ROTOR,
+        get_rotor(spd, roc, alt, unit),
+        ph
+    )
+    return ph
+
+def get_fixwing(spd, roc, alt, unit="SI"):
     """Get the phase of flight base on aircraft state data
 
     Args:
@@ -34,13 +52,17 @@ def get(spd, roc, alt, unit="SI"):
         roc = roc / 0.00508
         alt = alt / 0.3048
 
-    PH = np.zeros(len(spd), dtype=int)
+    ph = np.zeros(len(spd), dtype=int)
 
-    PH[(alt<10) & (roc<100) & (roc>-100)] = GD
-    PH[(alt>0) & (alt<1000) & (roc>0)] = IC
-    PH[(alt>0) & (alt<1000) & (roc<0)] = AP
-    PH[(alt>=1000) & (roc>100)] = CL
-    PH[(alt>=1000) & (roc<-100)] = DE
-    PH[(alt>=5000) & (roc<100) & (roc>-100)] = CR
+    ph[(alt<10) & (roc<100) & (roc>-100)] = GD
+    ph[(alt>0) & (alt<1000) & (roc>0)] = IC
+    ph[(alt>0) & (alt<1000) & (roc<0)] = AP
+    ph[(alt>=1000) & (roc>100)] = CL
+    ph[(alt>=1000) & (roc<-100)] = DE
+    ph[(alt>=5000) & (roc<100) & (roc>-100)] = CR
 
-    return PH
+    return ph
+
+def get_rotor(spd, roc, alt, unit='SI'):
+    ph = np.ones(len(spd)) * NA
+    return ph

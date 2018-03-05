@@ -1,0 +1,34 @@
+{
+  "__comment": {
+    "name": "aircraft full name",
+    "n_engines": "number of engines",
+    "engine_type": "engine typer: TF, TP",
+    "mtow": "max take-of weight (kg)",
+    "oew": "operating empty weight (kg)",
+    "mfc": "max fuel capacity (L)",
+    "engines": "[( engine: power (kW) )]",
+    "emvelop": {
+      "va_max": "maximum speed (m/s)",
+      "vs_max": "maximum vertical speed (m/s)",
+      "h_max": "maximum altitude (m)",
+      "d_range_max": "maximum flight range (km)"
+    }
+  },
+  "EC35": {
+    "name": "Eurocopter EC135",
+    "n_engines": 2,
+    "engine_type": "TS",
+    "mtow": 2835,
+    "oew": 1490,
+    "mfc": 0,
+    "engines": [["PW206B", 463], ["Arrius-2B2", 472]],
+    "envelop": {
+      "v_min": -20,
+      "v_max": 71.95,
+      "vs_min": -7.62,
+      "vs_max": 7.62,
+      "h_max": 6096,
+      "d_range_max": 665
+    }
+  }
+}
