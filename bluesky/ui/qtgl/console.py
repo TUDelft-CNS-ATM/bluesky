@@ -61,11 +61,17 @@ class Console(QWidget):
         self.command_line    = ''
 
         # Connect to the io client's activenode changed signal
+        io.event_received.connect(self.on_simevent_received)
         io.actnodedata_changed.connect(self.actnodedataChanged)
 
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
         Console._instance = self
+
+    def on_simevent_received(self, eventname, eventdata, sender_id):
+        ''' Processing of events from simulation nodes. '''
+        if eventname == b'CMDLINE':
+            self.win.console.set_cmdline(eventdata)
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:

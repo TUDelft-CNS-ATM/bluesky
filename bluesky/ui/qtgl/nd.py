@@ -13,6 +13,7 @@ from math import sin, cos, radians
 import numpy as np
 from ctypes import c_float, c_int, Structure
 
+from . import guiio as io
 from .glhelpers import BlueSkyProgram, RenderObject, UniformBuffer
 
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN, VERTEX_IS_GLXY = list(range(4))
@@ -63,13 +64,23 @@ class ND(QGLWidget):
         self.viewport = (0, 0, 400, 400)
         self.resize(400, 400)
 
+        # Connect to incoming stream data
+        io.stream_received.connect(self.on_simstream_received)
+
+    def on_simstream_received(self, streamname, data, sender_id):
+        if streamname == b'ACDATA':
+            if self.ac_id in data['id']:
+                idx = data['id'].index(self.ac_id.upper())
+                lat = data['lat'][idx]
+                lon = data['lon'][idx]
+                trk = data['trk'][idx]
+                tas = data['tas'][idx]
+                self.n_aircraft = len(data['lat'])
+                self.globaldata.set_owndata(idx, lat, lon, trk)
+
     def setAircraftID(self, ac_id):
         self.ac_id = ac_id
         self.setWindowTitle(ac_id)
-
-    def update_aircraft_data(self, ownid, ownlat, ownlon, owntas, ownhdg, n_aircraft):
-        self.globaldata.set_owndata(ownid, ownlat, ownlon, ownhdg)
-        self.n_aircraft = n_aircraft
 
     def create_objects(self):
         if not (self.isValid() and self.shareWidget.initialized):

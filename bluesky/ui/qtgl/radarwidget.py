@@ -158,6 +158,7 @@ class RadarWidget(QGLWidget):
 
         # Connect to the io client's activenode changed signal
         io.actnodedata_changed.connect(self.actnodedataChanged)
+        io.stream_received.connect(self.on_simstream_received)
 
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
@@ -606,8 +607,15 @@ class RadarWidget(QGLWidget):
         # Update zoom
         self.panzoom(zoom=zoom, origin=origin)
 
+    def on_simstream_received(self, streamname, data, sender_id):
+        if streamname == b'ACDATA':
+            self.acdata = ACDataEvent(data)
+            self.update_aircraft_data(self.acdata)
+        elif streamname == b'ROUTEDATA':
+            self.routedata = RouteDataEvent(data)
+            self.update_route_data(self.routedata)
+
     def update_route_data(self, data):
-        self.routedata = data
         if not self.initialized:
             return
         self.makeCurrent()
@@ -621,7 +629,7 @@ class RadarWidget(QGLWidget):
             self.route.set_vertex_count(2 * nsegments)
             routedata = np.empty(4 * nsegments, dtype=np.float32)
             routedata[0:4] = [data.aclat, data.aclon,
-                data.wplat[data.iactwp], data.wplon[data.iactwp]]
+                              data.wplat[data.iactwp], data.wplon[data.iactwp]]
 
             routedata[4::4] = data.wplat[:-1]
             routedata[5::4] = data.wplon[:-1]
@@ -661,7 +669,6 @@ class RadarWidget(QGLWidget):
             self.routelbl.n_instances = 0
 
     def update_aircraft_data(self, data):
-        self.acdata = data
         if not self.initialized:
             return
 

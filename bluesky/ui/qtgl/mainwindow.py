@@ -2,20 +2,27 @@
 import platform
 import os
 try:
-    from PyQt5.QtCore import Qt, pyqtSlot, QItemSelectionModel, QSize
+    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
     from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, QPushButton
+    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
+        QPushButton, QFileDialog
     from PyQt5 import uic
 except ImportError:
-    from PyQt4.QtCore import Qt, pyqtSlot, QSize
+    from PyQt4.QtCore import Qt, pyqtSlot, QTimer, QSize
     from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
-        QItemSelectionModel, QTreeWidgetItem, QPushButton
+        QItemSelectionModel, QTreeWidgetItem, QPushButton, QFileDialog
     from PyQt4 import uic
 
 # Local imports
 from bluesky import settings
+from bluesky.tools.misc import tim2txt
+from bluesky.ui.qtgl import guiio as io
 
-from . import guiio as io
+# Child windows
+from bluesky.ui.qtgl.docwindow import DocWindow
+from bluesky.ui.qtgl.radarwidget import RadarWidget
+from bluesky.ui.qtgl.infowindow import InfoWindow
+from bluesky.ui.qtgl.nd import ND
 
 is_osx = platform.system() == 'Darwin'
 
@@ -34,10 +41,29 @@ class Splash(QSplashScreen):
 
 
 class MainWindow(QMainWindow):
-    """ Qt window process: from .ui file read UI window-definitionof main window """
+    """ Qt window process: from .ui file read UI window-definition of main window """
 
-    def __init__(self, app, radarwidget):
+    modes = ['Init', 'Hold', 'Operate', 'End']
+
+    def __init__(self, app):
         super(MainWindow, self).__init__()
+        self.radarwidget = RadarWidget()
+        self.nd = ND(shareWidget=self.radarwidget)
+        # self.infowin = InfoWindow()
+        # self.infowin.show()
+        # self.infowin.addPlotTab()
+        # for i in range(10):
+        # self.infowin.plottab.addPlot()
+
+        try:
+            self.docwin = DocWindow(self)
+        except Exception as e:
+            print('Couldnt make docwindow:', e)
+        # self.aman = AMANDisplay()
+        gltimer = QTimer(self)
+        gltimer.timeout.connect(self.radarwidget.updateGL)
+        gltimer.timeout.connect(self.nd.updateGL)
+        gltimer.start(50)
         self.app = app
         if is_osx:
             self.app.setWindowIcon(QIcon(os.path.join(settings.gfx_path, 'bluesky.icns')))
@@ -80,16 +106,17 @@ class MainWindow(QMainWindow):
             b[0].clicked.connect(b[1][2])
 
         # Link menubar buttons
-        self.action_Open.triggered.connect(app.show_file_dialog)
+        self.action_Open.triggered.connect(self.show_file_dialog)
         self.action_Save.triggered.connect(self.buttonClicked)
-        self.actionBlueSky_help.triggered.connect(app.show_doc_window)
+        self.actionBlueSky_help.triggered.connect(self.show_doc_window)
 
-        self.radarwidget = radarwidget
-        radarwidget.setParent(self.centralwidget)
-        self.verticalLayout.insertWidget(0, radarwidget, 1)
+        self.radarwidget.setParent(self.centralwidget)
+        self.verticalLayout.insertWidget(0, self.radarwidget, 1)
         # Connect to io client's nodelist changed signal
         io.nodes_changed.connect(self.nodesChanged)
         io.actnodedata_changed.connect(self.actnodedataChanged)
+        io.event_received.connect(self.on_simevent_received)
+        io.stream_received.connect(self.on_simstream_received)
 
         self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
@@ -107,6 +134,8 @@ class MainWindow(QMainWindow):
 
         self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
+
+        self.nconf_cur = self.nconf_tot = self.nlos_cur = self.nlos_tot = 0
 
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.ShiftModifier \
@@ -184,6 +213,37 @@ class MainWindow(QMainWindow):
 
                     self.nodes[node_id] = node
 
+    def on_simevent_received(self, eventname, eventdata, sender_id):
+        ''' Processing of events from simulation nodes. '''
+        # ND window for selected aircraft
+        if eventname == b'SHOWND':
+            if eventdata:
+                self.nd.setAircraftID(eventdata)
+            self.nd.setVisible(not self.nd.isVisible())
+
+        elif eventname == b'SHOWDIALOG':
+            dialog = eventdata.get('dialog')
+            args   = eventdata.get('args')
+            if dialog == 'OPENFILE':
+                self.show_file_dialog()
+            elif dialog == 'DOC':
+                self.show_doc_window(args)
+
+    def on_simstream_received(self, streamname, data, sender_id):
+        if streamname == b'SIMINFO':
+            speed, simdt, simt, simtclock, ntraf, state, scenname = data
+            simt = tim2txt(simt)[:-3]
+            simtclock = tim2txt(simtclock)[:-3]
+            self.setNodeInfo(sender_id, simt, scenname)
+            if sender_id == io.actnode():
+                self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
+                    % (simt, simdt, speed, simtclock, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
+        elif streamname == b'ACDATA':
+            self.nconf_cur = data['nconf_cur']
+            self.nconf_tot = data['nconf_tot']
+            self.nlos_cur = data['nlos_cur']
+            self.nlos_tot = data['nlos_tot']
+
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
         if node:
@@ -256,3 +316,16 @@ class MainWindow(QMainWindow):
         elif hasattr(self.sender(), 'host_id'):
             print(self.sender())
             io.send_event(b'ADDNODES', 1)
+
+    def show_file_dialog(self):
+        response = QFileDialog.getOpenFileName(self.win, 'Open file', settings.scenario_path, 'Scenario files (*.scn)')
+        if type(response) is tuple:
+            fname = response[0]
+        else:
+            fname = response
+        if len(fname) > 0:
+            self.win.console.stack('IC ' + str(fname))
+
+    def show_doc_window(self, cmd=''):
+        self.docwin.show_cmd_doc(cmd)
+        self.docwin.show()
