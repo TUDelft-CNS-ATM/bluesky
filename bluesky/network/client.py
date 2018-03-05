@@ -4,6 +4,7 @@ import zmq
 import msgpack
 import bluesky
 from bluesky.tools import Signal
+from bluesky.network.udplib import UDP
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 
@@ -20,12 +21,19 @@ class Client(object):
         self.act         = b''
         self.actroute    = []
         self.acttopics   = actnode_topics
+        self.discovery   = None
 
         # Signals
         self.nodes_changed = Signal()
+        self.server_discovered = Signal()
 
         # Tell bluesky that this client will manage the network I/O
         bluesky.net = self
+
+    def start_discovery(self):
+        self.discovery = UDP(11000)
+        self.poller.register(self.discovery.handle, zmq.POLLIN)
+        self.discovery.send(self.client_id)
 
     def get_hostid(self):
         return self.host_id
@@ -94,10 +102,16 @@ class Client(object):
             if socks.get(self.stream_in) == zmq.POLLIN:
                 msg = self.stream_in.recv_multipart()
 
-                strmname  = msg[0][:-5]
+                strmname = msg[0][:-5]
                 sender_id = msg[0][-5:]
-                pydata    = msgpack.unpackb(msg[1], object_hook=decode_ndarray, encoding='utf-8')
+                pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, encoding='utf-8')
                 self.stream(strmname, pydata, sender_id)
+
+            # If we are in discovery mode, parse this message
+            if self.discovery and socks.get(self.discovery.handle.fileno()):
+                msg, addr = self.discovery.recv(5)
+                if msg != self.client_id:
+                    self.server_discovered.emit(addr[0])
         except zmq.ZMQError:
             return False
 
@@ -112,7 +126,7 @@ class Client(object):
             route = self._getroute(newact)
             if route is None:
                 print('Error selecting active node (unknown node)')
-                return
+                return None
             # Unsubscribe from previous node, subscribe to new one.
             if newact != self.act:
                 for topic in self.acttopics:

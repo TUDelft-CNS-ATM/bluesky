@@ -10,23 +10,24 @@ except ImportError:
     from PyQt4.QtOpenGL import QGLFormat
 
 # Local imports
-from bluesky import settings
+import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
-from bluesky.ui.qtgl.mainwindow import MainWindow, Splash
+from bluesky.ui.qtgl.mainwindow import MainWindow, Splash, DiscoveryDialog
 from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
 # Register settings defaults
-settings.set_variable_defaults(scenario_path='scenario')
-
-client = GuiClient()
+bs.settings.set_variable_defaults(scenario_path='scenario')
 
 
 def start():
     # Start the Qt main object
     app = QApplication([])
+
+    # Start the bluesky network client
+    client = GuiClient()
 
     # Enable HiDPI support (Qt5 only)
     if QT_VERSION >= 0x050000:
@@ -62,10 +63,19 @@ def start():
     app.processEvents()
     win = MainWindow()
     win.show()
-    client.connect(event_port=9000, stream_port=9001)
     splash.showMessage('Done!')
     app.processEvents()
     splash.finish(win)
+    # If this instance of the gui is started in client-only mode, show
+    # server selection dialog
+    if bs.settings.is_client:
+        dialog = DiscoveryDialog(win)
+        dialog.show()
+        bs.net.start_discovery()
+
+    else:
+        client.connect(event_port=9000, stream_port=9001)
+
 
     # Start the Qt main loop
     app.exec_()

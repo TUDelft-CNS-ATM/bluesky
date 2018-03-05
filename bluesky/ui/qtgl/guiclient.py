@@ -1,7 +1,6 @@
 ''' I/O Client implementation for the QtGL gui. '''
 try:
     from PyQt5.QtCore import QTimer
-
 except ImportError:
     from PyQt4.QtCore import QTimer
 
@@ -22,6 +21,11 @@ class GuiClient(Client):
         self.nodedata = dict()
         self.timer = None
         self.ref_nodedata = nodeData()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.receive)
+        self.timer.start(20)
+        self.subscribe(b'SIMINFO')
 
         # Signals
         self.actnodedata_changed = Signal()
@@ -77,12 +81,9 @@ class GuiClient(Client):
 
         return data
 
-    def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
-        super(GuiClient, self).connect(hostname, event_port, stream_port, protocol)
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.receive)
-        self.timer.start(20)
-        self.subscribe(b'SIMINFO')
+    # def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
+    #     super(GuiClient, self).connect(hostname, event_port, stream_port, protocol)
+    #
 
     def sender(self):
         return self.sender_id

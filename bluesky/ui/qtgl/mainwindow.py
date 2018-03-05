@@ -6,18 +6,21 @@ try:
     from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
-        QPushButton, QFileDialog
+        QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
+        QDialogButtonBox
     from PyQt5 import uic
 except ImportError:
     from PyQt4.QtGui import QApplication as app
     from PyQt4.QtCore import Qt, pyqtSlot, QTimer, QSize
     from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
-        QItemSelectionModel, QTreeWidgetItem, QPushButton, QFileDialog
+        QItemSelectionModel, QTreeWidgetItem, QPushButton, QFileDialog, \
+        QDialog, QTreeWidget, QVBoxLayout, QDialogButtonBox
     from PyQt4 import uic
 
 # Local imports
 import bluesky as bs
 from bluesky.tools.misc import tim2txt
+from bluesky.network import get_ownip
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -39,6 +42,34 @@ class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
         super(Splash, self).__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
+
+
+class DiscoveryDialog(QDialog):
+    def __init__(self, parent=None):
+        super(DiscoveryDialog, self).__init__(parent)
+        self.setModal(True)
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        self.serverview = QTreeWidget()
+        layout.addWidget(self.serverview)
+        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(btns)
+        btns.accepted.connect(self.on_accept)
+        btns.rejected.connect(parent.closeEvent)
+
+        bs.net.server_discovered.connect(self.add_srv)
+
+    def add_srv(self, address):
+        host = QTreeWidgetItem(self.serverview)
+        host.ip_address = address
+        host.hostname = 'This computer' if address == get_ownip() else address
+        host.setText(0, host.hostname)
+
+    def on_accept(self):
+        hostname = self.serverview.currentItem().ip_address
+        bs.net.connect(hostname=hostname, event_port=9000, stream_port=9001)
+        self.close()
 
 
 class MainWindow(QMainWindow):
@@ -168,10 +199,11 @@ class MainWindow(QMainWindow):
             self.console.keyPressEvent(event)
 
     def closeEvent(self, event=None):
-        # Send quit to server
-        bs.net.send_event(b'QUIT')
+        # Send quit to server if we own the host
+        if not bs.settings.is_client:
+            bs.net.send_event(b'QUIT')
         app.instance().closeAllWindows()
-        return True
+        # return True
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         node = self.nodes[nodeid]

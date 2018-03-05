@@ -9,6 +9,8 @@ import msgpack
 # Local imports
 import bluesky as bs
 
+from .udplib import UDP
+
 if bs.settings.is_headless:
     class ServerBase:
         ''' Single-threaded implementation of server when running headless.'''
@@ -37,7 +39,6 @@ class Server(ServerBase):
     ''' Implementation of the BlueSky simulation server. '''
     def __init__(self):
         super(Server, self).__init__()
-        print('server ctor')
         self.spawned_processes = list()
         self.running           = True
         self.max_nnodes        = min(cpu_count(), bs.settings.max_nnodes)
@@ -62,7 +63,6 @@ class Server(ServerBase):
             self.spawned_processes.append(p)
 
     def run(self):
-        print('server run')
         ''' The main loop of this server. '''
         # Get ZMQ context
         ctx = zmq.Context.instance()
@@ -81,12 +81,15 @@ class Server(ServerBase):
         self.be_stream = ctx.socket(zmq.XSUB)
         self.be_stream.bind('tcp://*:10001')
 
+        self.discovery = UDP(11000)
+
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
         poller.register(self.fe_event, zmq.POLLIN)
         poller.register(self.be_event, zmq.POLLIN)
         poller.register(self.be_stream, zmq.POLLIN)
         poller.register(self.fe_stream, zmq.POLLIN)
+        poller.register(self.discovery.handle, zmq.POLLIN)
 
         # Start the first simulation node
         self.addnodes()
@@ -103,9 +106,19 @@ class Server(ServerBase):
                 if event != zmq.POLLIN:
                     # The event does not refer to incoming data: skip for now
                     continue
+
+                # First check if the poller was triggered by the discovery socket
+                if sock == self.discovery.handle.fileno():
+                    # This is a discovery message
+                    msg, addr = self.discovery.recv(5)
+                    if msg != self.host_id:
+                        self.discovery.send(self.host_id)
+                        print('receiving {} from {}'.format(msg, addr))
+                    continue
                 # Receive the message
                 msg = sock.recv_multipart()
-                # First check if this is a stream message: these should be forwarded unprocessed.
+
+                # Check if this is a stream message: these should be forwarded unprocessed.
                 if sock == self.be_stream:
                     self.fe_stream.send_multipart(msg)
                 elif sock == self.fe_stream:
