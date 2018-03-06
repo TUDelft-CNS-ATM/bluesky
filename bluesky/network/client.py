@@ -111,7 +111,7 @@ class Client(object):
             if self.discovery and socks.get(self.discovery.handle.fileno()):
                 dmsg = self.discovery.recv_reqreply()
                 if dmsg.conn_id != self.client_id and dmsg.is_server:
-                    self.server_discovered.emit(dmsg.conn_ip)
+                    self.server_discovered.emit(dmsg.conn_ip, dmsg.ports)
         except zmq.ZMQError:
             return False
 

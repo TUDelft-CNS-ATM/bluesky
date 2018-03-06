@@ -23,7 +23,7 @@ else:
     from threading import Thread as ServerBase
 
 # Register settings defaults
-bs.settings.set_variable_defaults(max_nnodes=cpu_count())
+bs.settings.set_variable_defaults(max_nnodes=cpu_count(), event_port=9000, stream_port=9001)
 
 def split_scenarios(scentime, scencmd):
     ''' Split the contents of a batch file into individual scenarios. '''
@@ -70,9 +70,9 @@ class Server(ServerBase):
         # Create connection points for clients
         self.fe_event  = ctx.socket(zmq.ROUTER)
         self.fe_event.setsockopt(zmq.IDENTITY, self.host_id)
-        self.fe_event.bind('tcp://*:9000')
+        self.fe_event.bind('tcp://*:{}'.format(bs.settings.event_port))
         self.fe_stream = ctx.socket(zmq.XPUB)
-        self.fe_stream.bind('tcp://*:9001')
+        self.fe_stream.bind('tcp://*:{}'.format(bs.settings.stream_port))
 
         # Create connection points for sim workers
         self.be_event  = ctx.socket(zmq.ROUTER)
@@ -108,15 +108,15 @@ class Server(ServerBase):
                     continue
 
                 # First check if the poller was triggered by the discovery socket
-                if sock == self.discovery.handle.fileno():
-                    print('poller triggered on discovery')
+                if self.discovery and sock == self.discovery.handle.fileno():
                     # This is a discovery message
-                    dmsg = self.discovery.recv_reqreply()                    
+                    dmsg = self.discovery.recv_reqreply()
                     print('Received', dmsg)
                     if dmsg.conn_id != self.host_id and dmsg.is_request:
                         # This is a request from someone else: send a reply
                         print('Sending reply')
-                        self.discovery.send_reply(9000, 9001)
+                        self.discovery.send_reply(bs.settings.event_port,
+                            bs.settings.stream_port)
                     continue
                 # Receive the message
                 msg = sock.recv_multipart()
