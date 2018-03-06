@@ -12,7 +12,7 @@ from bluesky.tools.aero import ft
 
 # Globals
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT']
-ACTNODE_TOPICS = [b'ACDATA']
+ACTNODE_TOPICS = [b'ACDATA', b'ROUTEDATA']
 
 
 class GuiClient(Client):
