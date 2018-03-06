@@ -988,8 +988,6 @@ def sched_cmd(time, args, relative=False):
 def openfile(fname, *args, mergeWithExisting=False):
     global scentime, scencmd
 
-    print ("openfile:",fname)
-
     orgfname = fname # Save original filename for if path spalitting fails (relative path)
 
     if len(args)>0 and (args[0]=="ABS" or args[0]=="REL"):
