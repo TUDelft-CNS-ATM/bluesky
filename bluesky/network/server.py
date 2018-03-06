@@ -109,10 +109,17 @@ class Server(ServerBase):
 
                 # First check if the poller was triggered by the discovery socket
                 if sock == self.discovery.handle.fileno():
+                    print('poller triggered on discovery')
                     # This is a discovery message
-                    msg, addr = self.discovery.recv(5)
-                    if msg != self.host_id:
-                        self.discovery.send(self.host_id)
+                    msg, addr = self.discovery.recv(10)
+                    is_request = (msg[6:] == b'rqst')
+                    if msg[5] == b'c':
+                        print('Received from client:')
+                    elif msg[5] == b's':
+                        print('Received from server:')
+                    print('msg =', msg, 'addr =', addr)
+                    if msg != self.host_id and is_request:
+                        self.discovery.send(self.host_id + b's' + bytearray(9000, 9001))
                         print('receiving {} from {}'.format(msg, addr))
                     continue
                 # Receive the message
