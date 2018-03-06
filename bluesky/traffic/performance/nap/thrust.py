@@ -54,7 +54,7 @@ def compute_thrust_ratio(phase, bpr, v, h, unit='SI'):
     return tr
 
 
-def compute_fuel_flow(thrust_ratio, n_engines, ffidl, ffapp, ffco, ffto):
+def compute_eng_ff_coeff(ffidl, ffapp, ffco, ffto):
     """Compute fuel flow based on engine icao fuel flow model
 
     Args:
@@ -66,13 +66,13 @@ def compute_fuel_flow(thrust_ratio, n_engines, ffidl, ffapp, ffco, ffto):
         ff_to (1D-array): fuel flow - takeoff
 
     Returns:
-        float or 1D-array: Fuel flow in kg
+        list of coeff: [a, b, c], fuel flow calc: ax^2 + bx + c
     """
 
     # standard fuel flow at test thrust ratios
-    y = [np.zeros(ffidl.shape), ffidl, ffapp, ffco, ffto]
-    x = [0, 0.07, 0.3, 0.85, 1.0]  # test thrust ratios
+    y = [0, ffidl, ffapp, ffco, ffto]
+    x = [0, 0.07, 0.3, 0.85, 1.0]
 
-    ff_model = np.poly1d(np.polyfit(x, y, 2))      # fuel flow model f(T/T0)
-    ff = ff_model(thrust_ratio) * n_engines
-    return ff
+    a, b, c = np.polyfit(x, y, 2)
+
+    return a, b, c

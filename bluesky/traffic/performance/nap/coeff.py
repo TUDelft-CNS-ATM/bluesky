@@ -28,6 +28,8 @@ class Coefficient():
         self.acs_rotor = self.__load_all_rotor_flavor()
         self.limits_rotor = self.__load_all_rotor_envelop()
 
+        self.actypes_fixwing = list(self.acs_fixwing.keys())
+        self.actypes_rotor = list(self.acs_rotor.keys())
 
     def __load_all_fixwing_flavor(self):
         import warnings
@@ -117,75 +119,3 @@ class Coefficient():
             limits_rotor[mdl]['vsmax'] = ac['envelop']['vs_max']
             limits_rotor[mdl]['hmax'] = ac['envelop']['h_max']
         return limits_rotor
-
-
-    def get_aircraft(self, mdl):
-        mdl = mdl.upper()
-        if mdl in self.acs_fixwing:
-            return acs[mdl]
-        elif mdl in self.acs_rotor:
-            return acs[mdl]
-        else:
-            raise RuntimeError('Aircraft data not found')
-
-
-    def get_engine(self, eng):
-        eng = eng.strip().upper()
-        selengine = self.engines_fixwing[self.engines_fixwing['name'].str.startswith(eng)]
-        if selengine.shape[0] == 0:
-            raise RuntimeError('Engine data not found')
-
-        if selengine.shape[0] > 1:
-            warnings.warn('Multiple engines data found, last one returned. \n\
-                          matching engines are: %s' % selengine.name.tolist())
-
-        return json.loads(selengine.iloc[-1, :].to_json())
-
-
-    def get_ac_default_engine(self, mdl):
-        ac = get_aircraft(mdl)
-        engnames = list(ac['engines'].key())
-        eng = ac['engines'][engnames[0]]
-        return eng
-
-
-    def get_initial_values(self, actypes, lifttype):
-        """construct a matrix of initial parameters"""
-        actypes = np.array(actypes)
-
-        if lifttype == LIFT_FIXWING:
-            engtypes = {
-                'TF': ENG_TYPE_TF,
-                'TP': ENG_TYPE_TP,
-                'TS': ENG_TYPE_TS,
-            }
-
-            n = len(actypes)
-            params = np.zeros((n, 7))
-
-            unique_ac_mdls = np.unique(actypes)
-
-            for mdl in unique_ac_mdls:
-                allengs = list(self.acs_fixwing[mdl]['engines'].keys())
-                params[:, 0] = np.where(actypes==mdl, self.acs_fixwing[mdl]['wa'], params[:, 0])
-                params[:, 1] = np.where(actypes==mdl, self.acs_fixwing[mdl]['oew'], params[:, 1])
-                params[:, 2] = np.where(actypes==mdl, self.acs_fixwing[mdl]['mtow'], params[:, 2])
-                params[:, 3] = np.where(actypes==mdl, self.acs_fixwing[mdl]['n_engines'], params[:, 3])
-                params[:, 4] = np.where(actypes==mdl, engtypes[self.acs_fixwing[mdl]['engine_type']], params[:, 4])
-                params[:, 5] = np.where(actypes==mdl, self.acs_fixwing[mdl]['engines'][allengs[0]]['thr'], params[:, 5])
-                params[:, 6] = np.where(actypes==mdl, self.acs_fixwing[mdl]['engines'][allengs[0]]['bpr'], params[:, 6])
-
-        elif lifttype == LIFT_ROTOR :
-            n = len(actypes)
-            params = np.zeros((n, 4))
-
-            unique_ac_mdls = np.unique(actypes)
-
-            for mdl in unique_ac_mdls:
-                # in order: wing span, operation empty weight, maximum takeoff weight, num of engines, engine power
-                params[:, 0] = np.where(actypes==mdl, self.acs_rotor[mdl]['oew'], params[:, 0])
-                params[:, 1] = np.where(actypes==mdl, self.acs_rotor[mdl]['mtow'], params[:, 1])
-                params[:, 2] = np.where(actypes==mdl, self.acs_rotor[mdl]['n_engines'], params[:, 2])
-                params[:, 3] = np.where(actypes==mdl, self.acs_rotor[mdl]['engines'][0][1], params[:, 3])
-
-        return params
