@@ -25,15 +25,33 @@ def start():
     """
     Start BlueSky: Create gui and simulation objects
     """
-    # Initialize bluesky modules
-    bs.init()
 
-    # Start gui if this is the main process
-    if bs.settings.is_gui:
-        from bluesky.ui import qtgl
-        qtgl.start()
-    elif bs.settings.is_sim:
-        bs.sim.start()
+    # When importerror gives different name than (pip) install needs
+    missingmodules = {"OpenGL":"pyopengl"}
+
+    # Catch import errors
+    try: 
+
+        # Initialize bluesky modules
+        bs.init()
+
+        # Start gui if this is the main process
+        if bs.settings.is_gui:
+            
+            from bluesky.ui import qtgl
+            qtgl.start()
+            
+        elif bs.settings.is_sim:
+            
+            bs.sim.start()
+
+    # Give info on missing module
+    except (ModuleNotFoundError,ImportError) as error:
+        
+        modulename = missingmodules.get(error.name) or error.name
+        print ("Bluesky needs",modulename)
+        print ("Install using e.g. pip install",modulename)
+
 
 
 def cleanup():
@@ -44,8 +62,9 @@ def cleanup():
 
 
 if __name__ == "__main__":
+
     # Run mainloop if BlueSky-qtgl is called directly
     start()
-
+ 
     # Cleanup after returning from start()
     cleanup()
