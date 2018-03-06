@@ -177,9 +177,8 @@ class PerfBADA(TrafficArrays):
             syn, coeff = coeff_bada.getCoefficients(actype)
             if syn:
                 continue
-
             syn, coeff = coeff_bada.getCoefficients('B744')
-            bs.traf.type[-n:] = syn.accode
+            bs.traf.type[-n:] = n * [syn.accode]
 
             if not settings.verbose:
                 if not self.warned:

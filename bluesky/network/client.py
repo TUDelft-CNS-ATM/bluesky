@@ -4,7 +4,7 @@ import zmq
 import msgpack
 import bluesky
 from bluesky.tools import Signal
-from bluesky.network.udplib import UDP
+from bluesky.network.discovery import Discovery
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 
@@ -31,9 +31,15 @@ class Client(object):
         bluesky.net = self
 
     def start_discovery(self):
-        self.discovery = UDP(11000)
-        self.poller.register(self.discovery.handle, zmq.POLLIN)
-        self.discovery.send(self.client_id + b'crqst')
+        if not self.discovery:
+            self.discovery = Discovery(self.client_id)
+            self.poller.register(self.discovery.handle, zmq.POLLIN)
+            self.discovery.send_request()
+
+    def stop_discovery(self):
+        if self.discovery:
+            self.poller.unregister(self.discovery.handle)
+            self.discovery = None
 
     def get_hostid(self):
         return self.host_id
@@ -109,9 +115,9 @@ class Client(object):
 
             # If we are in discovery mode, parse this message
             if self.discovery and socks.get(self.discovery.handle.fileno()):
-                msg, addr = self.discovery.recv(10)
-                if msg != self.client_id:
-                    self.server_discovered.emit(addr[0])
+                dmsg = self.discovery.recv_reqreply()
+                if dmsg.conn_id != self.client_id and dmsg.is_server:
+                    self.server_discovered.emit(dmsg.conn_ip, dmsg.ports)
         except zmq.ZMQError:
             return False
 

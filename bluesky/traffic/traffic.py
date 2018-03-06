@@ -70,6 +70,8 @@ class Traffic(TrafficArrays):
         TrafficArrays.SetRoot(self)
 
         self.ntraf = 0
+        self.lastcreid ="" # A/c id of last created aircraft (to be used as * or #)
+
         self.wind = WindSim()
         self.turbulence = Turbulence()
         self.translvl = 5000.*ft # [m] Default transition level
@@ -182,13 +184,20 @@ class Traffic(TrafficArrays):
                 aclat=None, aclon=None, achdg=None, acid=None):
         """ Create multiple random aircraft in a specified area """
         area = bs.scr.getviewbounds()
-        if acid is None:
+        if acid is None or acid=="*" or acid=="#":
             idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
             acid = [idtmp.format(i) for i in range(n)]
+            # Save last created a/c id (in case of cre *) to reused for other commands
+            self.lastcreid = acid[-1]
+
         elif isinstance(acid, str):
             # Check if not already exist
             if self.id.count(acid.upper()) > 0:
                 return False, acid + " already exists."  # already exists do nothing
+
+            # Save last created a/c id (in case of cre *) to reused for other commands
+            self.lastcreid = acid
+
             acid = [acid]
 
         if isinstance(actype, str):
@@ -519,11 +528,16 @@ class Traffic(TrafficArrays):
     def id2idx(self, acid):
         """Find index of aircraft id"""
         if not isinstance(acid, str):
+
             # id2idx is called for multiple id's
             # Fast way of finding indices of all ACID's in a given list
             tmp = dict((v, i) for i, v in enumerate(self.id))
             return [tmp.get(acidi, -1) for acidi in acid]
         else:
+             # Catch last created id (* or # symbol)
+            if (acid=="#" or acid=="*") and self.lastcreid in self.id:
+                return self.id.index(self.lastcreid)
+
             try:
                 return self.id.index(acid.upper())
             except:

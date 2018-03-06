@@ -49,10 +49,14 @@ class DiscoveryDialog(QDialog):
         super(DiscoveryDialog, self).__init__(parent)
         self.setModal(True)
         self.setMinimumSize(200,200) # To prevent Geometry error
-
+        self.hosts = []
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.serverview = QTreeWidget()
+        self.serverview.setHeaderLabels(['Server', 'Ports'])
+        self.serverview.setIndentation(0)
+        self.serverview.setStyleSheet('padding:0px')
+        self.serverview.header().resizeSection(0, 180)
         layout.addWidget(self.serverview)
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         layout.addWidget(btns)
@@ -61,16 +65,28 @@ class DiscoveryDialog(QDialog):
 
         bs.net.server_discovered.connect(self.add_srv)
 
-    def add_srv(self, address):
+    def add_srv(self, address, ports):
+        for host in self.hosts:
+            if address == host.address and ports == host.ports:
+                # We already know this server, skip
+                return
         host = QTreeWidgetItem(self.serverview)
-        host.ip_address = address
+        host.address = address
+        host.ports = ports
         host.hostname = 'This computer' if address == get_ownip() else address
         host.setText(0, host.hostname)
 
+        host.setText(1, '{},{}'.format(*ports))
+        self.hosts.append(host)
+
     def on_accept(self):
-        hostname = self.serverview.currentItem().ip_address
-        bs.net.connect(hostname=hostname, event_port=9000, stream_port=9001)
-        self.close()
+        host = self.serverview.currentItem()
+        if host:
+            bs.net.stop_discovery()
+            hostname = host.address
+            eport, sport = host.ports
+            bs.net.connect(hostname=hostname, event_port=eport, stream_port=sport)
+            self.close()
 
 
 class MainWindow(QMainWindow):
@@ -360,13 +376,13 @@ class MainWindow(QMainWindow):
             bs.net.send_event(b'ADDNODES', 1)
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:
             fname = response
         if len(fname) > 0:
-            self.win.console.stack('IC ' + str(fname))
+            self.console.stack('IC ' + str(fname))
 
     def show_doc_window(self, cmd=''):
         self.docwin.show_cmd_doc(cmd)

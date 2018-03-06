@@ -19,7 +19,8 @@ from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
 # Register settings defaults
-bs.settings.set_variable_defaults(scenario_path='scenario')
+bs.settings.set_variable_defaults(scenario_path='scenario',
+                                  event_port=9000, stream_port=9001)
 
 
 def start():
@@ -74,7 +75,8 @@ def start():
         bs.net.start_discovery()
 
     else:
-        client.connect(event_port=9000, stream_port=9001)
+        client.connect(event_port=bs.settings.event_port,
+                       stream_port=bs.settings.stream_port)
 
 
     # Start the Qt main loop
