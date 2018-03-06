@@ -75,7 +75,7 @@ class Position():
             self.type ="nav"
 
         # aircraft id?
-        elif name in bs.traf.id2idx:
+        elif name in bs.traf.id:
             idx = bs.traf.id2idx(name)
             self.name = ""
             self.type = "latlon"
