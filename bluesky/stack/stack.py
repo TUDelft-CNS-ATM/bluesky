@@ -1279,7 +1279,7 @@ def process():
 
     # Process stack of commands
     for (line, sender_rte) in cmdstack:
-        #debug       print "stack is processing:",line
+        # debug print ("stack is processing:",line)
         # Empty line: next command
         line = line.strip()
         if not line:
