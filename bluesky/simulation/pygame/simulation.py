@@ -16,7 +16,7 @@ class Simulation:
         Simulation()            : constructor
 
         update()                : update sim variables (like time)
-        start()                 : go from IC/HOLD to OPERATE mode
+        op()                    : go from IC/HOLD to OPERATE mode
         pause()                 : go to HOLD mode (pause)
         stop()                  : quit function
 
@@ -60,7 +60,7 @@ class Simulation:
         self.syst = time.clock()
 
         if self.mode == Simulation.init:
-            self.start()
+            self.op()
 
         # Closk for run(=op) mode
         if self.mode == Simulation.op:
@@ -136,7 +136,7 @@ class Simulation:
         return False, "Batch comand not available in Pygame version," + \
                  "use Qt-version for batch simulations"
 
-    def addNodes(self, count):
+    def addnodes(self, count):
         return
 
     def pause(self):  # Hold mode
@@ -152,7 +152,7 @@ class Simulation:
 #        datalog.save()
         return
 
-    def start(self):  # Back to op-mode: run after HOLD/PAUSE
+    def op(self):  # Back to op-mode: run after HOLD/PAUSE
         self.mode  = self.op
         self.syst  = time.clock()
         self.syst0 = self.syst-self.simt

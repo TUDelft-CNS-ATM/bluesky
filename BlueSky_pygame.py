@@ -10,13 +10,13 @@ if __name__ == "__main__":
     print("Distributed under GNU General Public License v3")
 
 
-def main_loop():
+def start():
     # =============================================================================
     # Start the mainloop (and possible other threads)
     # =============================================================================
     splash.show()
     bs.init()
-    bs.sim.start()
+    bs.sim.op()
     bs.scr.init()
 
     # Main loop for tmx object
@@ -29,15 +29,17 @@ def main_loop():
             bs.sim.reset()
             bs.scr.objdel()     # Delete user defined objects
 
+def cleanup():
     # After the simulation is done, close the gui
     bs.sim.stop()
     pg.quit()
+
     print('BlueSky normal end.')
-    return
 
-#==============================================================================
-
-# Run mainloop if BlueSky_pygame is called directly
 
 if __name__ == '__main__':
-    main_loop()
+    # Run mainloop if BlueSky_pygame is called directly
+    start()
+
+    # Cleanup after returning from start()
+    cleanup()

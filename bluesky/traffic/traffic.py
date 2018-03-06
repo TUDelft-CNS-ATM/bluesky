@@ -181,7 +181,7 @@ class Traffic(TrafficArrays):
     def create(self, n=1, actype="B744", acalt=None, acspd=None, dest=None,
                 aclat=None, aclon=None, achdg=None, acid=None):
         """ Create multiple random aircraft in a specified area """
-        area = bs.scr.getviewlatlon()
+        area = bs.scr.getviewbounds()
         if acid is None:
             idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
             acid = [idtmp.format(i) for i in range(n)]
@@ -613,16 +613,15 @@ class Traffic(TrafficArrays):
 
             # Show a/c info and highlight route of aircraft in radar window
             # and pan to a/c (to show route)
-            bs.scr.showacinfo(acid, lines)
-            return bs.SIMPLE_ECHO, lines
+            bs.scr.showroute(acid)
+            return True, lines
 
         # Waypoint: airport, navaid or fix
         else:
             wp = idxorwp.upper()
 
             # Reference position for finding nearest
-            reflat = bs.scr.ctrlat
-            reflon = bs.scr.ctrlon
+            reflat, reflon = bs.scr.getviewctr()
 
             lines = "Info on "+wp+":\n"
 
@@ -734,13 +733,11 @@ class Traffic(TrafficArrays):
                         return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
 
             # Show what we found on airport and navaid/waypoint
-            return bs.SIMPLE_ECHO, lines
+            return True, lines
 
     def airwaycmd(self,key=""):
         # Show conections of a waypoint
-
-        reflat = bs.scr.ctrlat
-        reflon = bs.scr.ctrlon
+        reflat, reflon = bs.scr.getviewctr()
 
         if key=="":
             return False,'AIRWAY needs waypoint or airway'
@@ -763,7 +760,7 @@ class Traffic(TrafficArrays):
                     if len(c)>=2:
                         # Add airway, direction, waypoint
                         lines = lines+ c[0]+": to "+c[1]+"\n"
-                return bs.SIMPLE_ECHO, lines[:-1]  # exclude final newline
+                return True, lines[:-1]  # exclude final newline
             else:
                 return False,"No airway legs found for ",key
 

@@ -33,7 +33,7 @@ def test_create_success(sock):
 
     sock_send(sock_, "CRE KL204, B744, 52, 4, 180, 2000, 220")
     data = sock_receive(sock_)
-    assert data == bluesky.MSG_OK
+    assert data == bluesky.BS_OK
 
 
 def test_pos(sock):

@@ -50,4 +50,4 @@ class WindSim(Windfield):
 
         txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,wdir,wspd/kts)
 
-        return bs.SIMPLE_ECHO, txt
+        return True, txt

@@ -1,26 +1,28 @@
 from os import path
 try:
-    from PyQt5.QtCore import Qt, qCritical, QTimer, pyqtSlot
+    from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
     from PyQt5.QtOpenGL import QGLWidget
-    QT_VERSION = 5
 except ImportError:
-    from PyQt4.QtCore import Qt, qCritical, QTimer, pyqtSlot
+    from PyQt4.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
     from PyQt4.QtOpenGL import QGLWidget
-    QT_VERSION = 4
 
+from ctypes import c_float, c_int, Structure
 import numpy as np
 import OpenGL.GL as gl
-from ctypes import c_float, c_int, Structure
+
 
 # Local imports
 import bluesky as bs
 from bluesky import settings
 from bluesky.ui import palette
+from bluesky.ui.radarclick import radarclick
+from bluesky.ui.qtgl import console
+from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.tools.aero import ft, nm, kts
-from bluesky.simulation.qtgl import PanZoomEvent, PanZoomEventType, MainManager as manager
 from bluesky.navdatabase import load_aptsurface, load_coastlines
 from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
     update_buffer, create_empty_buffer
+
 
 # Register settings defaults
 settings.set_variable_defaults(
@@ -59,30 +61,18 @@ MAX_TRAILLEN          = MAX_NAIRCRAFT * 1000
 
 REARTH_INV            = 1.56961231e-7
 
+VCOUNT_PZ             = 36
+
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 ATTRIB_VERTEX, ATTRIB_TEXCOORDS, ATTRIB_LAT, ATTRIB_LON, ATTRIB_ORIENTATION, ATTRIB_COLOR, ATTRIB_TEXDEPTH = list(range(7))
 ATTRIB_SELSSD, ATTRIB_LAT0, ATTRIB_LON0, ATTRIB_ALT0, ATTRIB_TAS0, ATTRIB_TRK0, ATTRIB_LAT1, ATTRIB_LON1, ATTRIB_ALT1, ATTRIB_TAS1, ATTRIB_TRK1, ATTRIB_ASASN, ATTRIB_ASASE = list(range(13))
 
+# Qt smaller than 5.6.2 needs a different approach to pinch gestures
+CORRECT_PINCH = False
+if QT_VERSION <= 0x050600:
+    import platform
+    CORRECT_PINCH = platform.system() == 'Darwin'
 
-class nodeData(object):
-    def __init__(self):
-        self.polynames = dict()
-        self.polydata  = np.array([], dtype=np.float32)
-        self.custwplbl = ''
-        self.custwplat = np.array([], dtype=np.float32)
-        self.custwplon = np.array([], dtype=np.float32)
-
-        # Filteralt settings
-        self.filteralt = False
-
-        # Create trail data
-        self.traillat0 = []
-        self.traillon0 = []
-        self.traillat1 = []
-        self.traillon1 = []
-
-        # Reset transition level
-        self.translvl = 4500.*ft
 
 class radarUBO(UniformBuffer):
     class Data(Structure):
@@ -122,47 +112,35 @@ class radarUBO(UniformBuffer):
 
 
 class RadarWidget(QGLWidget):
-    vcount_circle = 36
-    width = height = 600
-    viewport = (0, 0, width, height)
-    panlat = 0.0
-    panlon = 0.0
-    zoom = 1.0
-    ar = 1.0
-    flat_earth = 1.0
-    wraplon = int(-999)
-    wrapdir = int(0)
-    max_texture_size = 0
-
-    do_text = True
-    invalid_count = 0
-
     def __init__(self, shareWidget=None):
+        self.width = self.height = 600
+        self.viewport = (0, 0, 600, 600)
+        self.panlat = 0.0
+        self.panlon = 0.0
+        self.zoom = 1.0
+        self.ar = 1.0
+        self.flat_earth = 1.0
+        self.wraplon = int(-999)
+        self.wrapdir = int(0)
+
         self.map_texture    = 0
         self.naircraft      = 0
         self.nwaypoints     = 0
         self.ncustwpts      = 0
         self.nairports      = 0
         self.route_acid     = ""
-        self.ssd_ownship    = set()
         self.apt_inrange    = np.array([])
-        self.ssd_all        = False
-        self.ssd_conflicts  = False
-        self.iactconn       = 0
-        self.nodedata       = list()
         self.asas_vmin      = settings.asas_vmin
         self.asas_vmax      = settings.asas_vmax
-
-        # Display flags
-        self.show_map       = True
-        self.show_coast     = True
-        self.show_traf      = True
-        self.show_pz        = False
-        self.show_lbl       = 2
-        self.show_wpt       = 1
-        self.show_apt       = 1
-
         self.initialized    = False
+
+        self.acdata         = ACDataEvent()
+        self.routedata      = RouteDataEvent()
+
+        self.panzoomchanged = False
+        self.mousedragged   = False
+        self.mousepos       = (0, 0)
+        self.prevmousepos   = (0, 0)
 
         # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
@@ -177,34 +155,40 @@ class RadarWidget(QGLWidget):
         self.grabGesture(Qt.PinchGesture)
         # self.grabGesture(Qt.SwipeGesture)
 
-        # Connect to manager's nodelist changed and activenode changed signal
-        manager.instance.nodes_changed.connect(self.nodesChanged)
-        manager.instance.activenode_changed.connect(self.actnodeChanged)
+        # Connect to the io client's activenode changed signal
+        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        bs.net.stream_received.connect(self.on_simstream_received)
 
 
-    @pyqtSlot(str, tuple, int)
-    def nodesChanged(self, address, nodeid, connidx):
-        # For each node we have to keep data such as the visible polygons, etc.
-        self.nodedata.append(nodeData())
-
-    @pyqtSlot(tuple, int)
-    def actnodeChanged(self, nodeid, connidx):
-        self.iactconn = connidx
-        nact = self.nodedata[connidx]
+    def actnodedataChanged(self, nodeid, nodedata, changed_elems):
+        ''' Update buffers when a different node is selected, or when
+            the data of the current node is updated. '''
         self.makeCurrent()
 
-        # Polygon data change after node change
-        if len(nact.polydata) > 0:
-            update_buffer(self.allpolysbuf, nact.polydata)
+        # Shape data change
+        if 'SHAPE' in changed_elems:
+            if len(nodedata.polydata):
+                update_buffer(self.allpolysbuf, nodedata.polydata)
+            self.allpolys.set_vertex_count(len(nodedata.polydata) // 2)
 
-        self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
+        # Trail data change
+        if 'TRAILS' in changed_elems:
+            if len(nodedata.traillat0):
+                update_buffer(self.trailbuf, np.array(
+                    list(zip(nodedata.traillat0, nodedata.traillon0,
+                             nodedata.traillat1, nodedata.traillon1)), dtype=np.float32))
+            self.traillines.set_vertex_count(4 * len(nodedata.traillat0))
 
-        # Update trail buffer after node change
-        update_buffer(self.trailbuf, np.array(
-              list(zip(nact.traillat0, nact.traillon0,
-                  nact.traillat1, nact.traillon1)), dtype=np.float32))
+        if 'CUSTWPT' in changed_elems:
+            if nodedata.custwplbl:
+                update_buffer(self.custwplblbuf, np.array(nodedata.custwplbl, dtype=np.string_))
+                update_buffer(self.custwplatbuf, nodedata.custwplat)
+                update_buffer(self.custwplonbuf, nodedata.custwplon)
+            self.ncustwpts = len(nodedata.custwplat)
 
-        self.traillines.set_vertex_count(4 * len(nact.traillat0))
+        # Update pan/zoom
+        if 'PANZOOM' in changed_elems:
+            self.panzoom(pan=nodedata.pan, zoom=nodedata.zoom, absolute=True)
 
     def create_objects(self):
         if not self.isValid():
@@ -305,7 +289,7 @@ class RadarWidget(QGLWidget):
         self.ssd.bind_attrib(ATTRIB_ASASE, 1, self.asasebuf, instance_divisor=1)
 
         # ------- Protected Zone -------------------------
-        circlevertices = np.transpose(np.array((2.5 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle)), 2.5 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, self.vcount_circle))), dtype=np.float32))
+        circlevertices = np.transpose(np.array((2.5 * nm * np.cos(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ)), 2.5 * nm * np.sin(np.linspace(0.0, 2.0 * np.pi, VCOUNT_PZ))), dtype=np.float32))
         self.protectedzone = RenderObject(gl.GL_LINE_LOOP, vertex=circlevertices)
         self.protectedzone.bind_attrib(ATTRIB_LAT, 1, self.aclatbuf, instance_divisor=1)
         self.protectedzone.bind_attrib(ATTRIB_LON, 1, self.aclonbuf, instance_divisor=1)
@@ -456,6 +440,9 @@ class RadarWidget(QGLWidget):
         if not (gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE and self.initialized and self.isVisible()):
             return
 
+        # Get data for active node
+        actdata = bs.net.get_nodedata()
+
         # Set the viewport and clear the framebuffer
         gl.glViewport(*self.viewport)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
@@ -467,7 +454,7 @@ class RadarWidget(QGLWidget):
         # Map and coastlines: don't wrap around in the shader
         self.globaldata.enable_wrap(False)
 
-        if self.show_map:
+        if actdata.show_map:
             # Select the texture shader
             self.texture_shader.use()
 
@@ -480,7 +467,7 @@ class RadarWidget(QGLWidget):
         self.color_shader.use()
 
         # Draw coastlines
-        if self.show_coast:
+        if actdata.show_coast:
             if self.wrapdir == 0:
                 # Normal case, no wrap around
                 self.coastlines.draw(first_vertex=0, vertex_count=self.vcount_coast)
@@ -505,7 +492,7 @@ class RadarWidget(QGLWidget):
         self.allpolys.draw()
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
-        if self.show_traf:
+        if actdata.show_traf:
             self.route.draw()
             self.cpalines.draw()
             self.traillines.draw()
@@ -513,6 +500,7 @@ class RadarWidget(QGLWidget):
         # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------
         self.runways.draw()
         self.thresholds.draw()
+
         if self.zoom >= 1.0:
             for idx in self.apt_inrange:
                 self.taxiways.draw(first_vertex=idx[0], vertex_count=idx[1])
@@ -523,67 +511,67 @@ class RadarWidget(QGLWidget):
         self.globaldata.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if self.naircraft > 0 and self.show_traf and self.show_pz and self.zoom >= 0.15:
+        if self.naircraft > 0 and actdata.show_traf and actdata.show_pz and self.zoom >= 0.15:
             self.globaldata.set_vertex_scale_type(VERTEX_IS_METERS)
             self.protectedzone.draw(n_instances=self.naircraft)
 
         self.globaldata.set_vertex_scale_type(VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
-        if self.naircraft > 0 and self.show_traf:
+        if self.naircraft > 0 and actdata.show_traf:
             if self.routelbl.n_instances:
                 self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.ac_symbol.draw(n_instances=self.naircraft)
 
-        if self.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
+        if self.zoom >= 0.5 and actdata.show_apt == 1 or actdata.show_apt == 2:
             nairports = self.nairports[2]
-        elif self.zoom  >= 0.25 and self.show_apt == 1 or self.show_apt == 3:
+        elif self.zoom  >= 0.25 and actdata.show_apt == 1 or actdata.show_apt == 3:
             nairports = self.nairports[1]
         else:
             nairports = self.nairports[0]
 
-        if self.zoom >= 3 and self.show_wpt == 1 or self.show_wpt == 2:
+        if self.zoom >= 3 and actdata.show_wpt == 1 or actdata.show_wpt == 2:
             nwaypoints = self.nwaypoints
         else:
             nwaypoints = self.nnavaids
 
         # Draw waypoint symbols
-        if self.show_wpt:
+        if actdata.show_wpt:
             self.waypoints.draw(n_instances=nwaypoints)
             if self.ncustwpts > 0:
                 self.customwp.draw(n_instances=self.ncustwpts)
 
         # Draw airport symbols
-        if self.show_apt:
+        if actdata.show_apt:
             self.airports.draw(n_instances=nairports)
 
-        if self.do_text:
-            self.text_shader.use()
-            self.font.use()
+        # Text rendering
+        self.text_shader.use()
+        self.font.use()
 
-            if self.show_apt:
-                self.font.set_char_size(self.aptlabels.char_size)
-                self.font.set_block_size(self.aptlabels.block_size)
-                self.aptlabels.draw(n_instances=nairports)
-            if self.show_wpt:
-                self.font.set_char_size(self.wptlabels.char_size)
-                self.font.set_block_size(self.wptlabels.block_size)
-                self.wptlabels.draw(n_instances=nwaypoints)
-                if self.ncustwpts > 0:
-                    self.customwplbl.draw(n_instances=self.ncustwpts)
+        if actdata.show_apt:
+            self.font.set_char_size(self.aptlabels.char_size)
+            self.font.set_block_size(self.aptlabels.block_size)
+            self.aptlabels.draw(n_instances=nairports)
+        if actdata.show_wpt:
+            self.font.set_char_size(self.wptlabels.char_size)
+            self.font.set_block_size(self.wptlabels.block_size)
+            self.wptlabels.draw(n_instances=nwaypoints)
+            if self.ncustwpts > 0:
+                self.customwplbl.draw(n_instances=self.ncustwpts)
 
-            if self.show_traf and self.route.vertex_count > 1:
-                self.font.set_char_size(self.routelbl.char_size)
-                self.font.set_block_size(self.routelbl.block_size)
-                self.routelbl.draw()
+        if actdata.show_traf and self.route.vertex_count > 1:
+            self.font.set_char_size(self.routelbl.char_size)
+            self.font.set_block_size(self.routelbl.block_size)
+            self.routelbl.draw()
 
-            if self.naircraft > 0 and self.show_traf and self.show_lbl:
-                self.font.set_char_size(self.aclabels.char_size)
-                self.font.set_block_size(self.aclabels.block_size)
-                self.aclabels.draw(n_instances=self.naircraft)
+        if self.naircraft > 0 and actdata.show_traf and actdata.show_lbl:
+            self.font.set_char_size(self.aclabels.char_size)
+            self.font.set_block_size(self.aclabels.block_size)
+            self.aclabels.draw(n_instances=self.naircraft)
 
         # SSD
-        if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
+        if actdata.ssd_all or actdata.ssd_conflicts or len(actdata.ssd_ownship) > 0:
             self.ssd_shader.use()
             gl.glUniform3f(self.ssd_shader.loc_vlimits, self.asas_vmin ** 2, self.asas_vmax ** 2, self.asas_vmax)
             gl.glUniform1i(self.ssd_shader.loc_nac, self.naircraft)
@@ -601,7 +589,7 @@ class RadarWidget(QGLWidget):
         # update the window size
         # Qt5 supports getting the device pixel ratio, which can be > 1 for HiDPI displays such as Mac Retina screens
         pixel_ratio = 1
-        if QT_VERSION >= 5:
+        if QT_VERSION >= 0x05:
             pixel_ratio = self.devicePixelRatio()
 
         # Calculate zoom so that the window resize doesn't affect the scale, but only enlarges or shrinks the view
@@ -616,12 +604,21 @@ class RadarWidget(QGLWidget):
         self.viewport = (0, 0, width, height)
 
         # Update zoom
-        self.event(PanZoomEvent(zoom=zoom, origin=origin))
+        self.panzoom(zoom=zoom, origin=origin)
+
+    def on_simstream_received(self, streamname, data, sender_id):
+        if streamname == b'ACDATA':
+            self.acdata = ACDataEvent(data)
+            self.update_aircraft_data(self.acdata)
+        elif streamname == b'ROUTEDATA':
+            self.routedata = RouteDataEvent(data)
+            self.update_route_data(self.routedata)
 
     def update_route_data(self, data):
         if not self.initialized:
             return
         self.makeCurrent()
+        actdata = bs.net.get_nodedata()
 
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
@@ -631,7 +628,7 @@ class RadarWidget(QGLWidget):
             self.route.set_vertex_count(2 * nsegments)
             routedata = np.empty(4 * nsegments, dtype=np.float32)
             routedata[0:4] = [data.aclat, data.aclon,
-                data.wplat[data.iactwp], data.wplon[data.iactwp]]
+                              data.wplat[data.iactwp], data.wplon[data.iactwp]]
 
             routedata[4::4] = data.wplat[:-1]
             routedata[5::4] = data.wplon[:-1]
@@ -649,7 +646,7 @@ class RadarWidget(QGLWidget):
                     txt = wp[:12].ljust(12) # Two lines
                     if alt < 0:
                         txt += "-----/"
-                    elif alt > self.translvl:
+                    elif alt > actdata.translvl:
                         FL = int(round((alt / (100. * ft))))
                         txt += "FL%03d/" % FL
                     else:
@@ -675,9 +672,9 @@ class RadarWidget(QGLWidget):
             return
 
         self.makeCurrent()
-        curnode = self.nodedata[self.iactconn]
-        if curnode.filteralt:
-            idx = np.where((data.alt >= curnode.filteralt[0]) * (data.alt <= curnode.filteralt[1]))
+        actdata = bs.net.get_nodedata()
+        if actdata.filteralt:
+            idx = np.where((data.alt >= actdata.filteralt[0]) * (data.alt <= actdata.filteralt[1]))
             data.lat = data.lat[idx]
             data.lon = data.lon[idx]
             data.trk = data.trk[idx]
@@ -685,10 +682,9 @@ class RadarWidget(QGLWidget):
             data.tas = data.tas[idx]
             data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
+        actdata.translvl = data.translvl
         self.asas_vmin = data.vmin
         self.asas_vmax = data.vmax
-        self.translvl  = data.translvl
-
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
         else:
@@ -714,9 +710,9 @@ class RadarWidget(QGLWidget):
             for i, acid in enumerate(data.id[:MAX_NAIRCRAFT]):
                 vs = 30 if data.vs[i] > 0.25 else 31 if data.vs[i] < -0.25 else 32
                 # Make label: 3 lines of 8 characters per aircraft
-                if self.show_lbl >= 1:
+                if actdata.show_lbl >= 1:
                     rawlabel += '%-8s' % acid[:8]
-                    if self.show_lbl == 2:
+                    if actdata.show_lbl == 2:
                         if data.alt[i] <= data.translvl:
                             rawlabel += '%-5d' % int(data.alt[i]/ft  + 0.5)
                         else:
@@ -726,7 +722,7 @@ class RadarWidget(QGLWidget):
                         rawlabel += 16 * ' '
                 confindices = data.iconf[i]
                 if len(confindices) > 0:
-                    if self.ssd_conflicts:
+                    if actdata.ssd_conflicts:
                         selssd[i] = 255
                     color[i, :] = palette.conflict + (255,)
                     for confidx in confindices:
@@ -736,10 +732,10 @@ class RadarWidget(QGLWidget):
                     color[i, :] = palette.aircraft + (255,)
 
                 #  Check if aircraft is selected to show SSD
-                if acid in self.ssd_ownship:
+                if acid in actdata.ssd_ownship:
                     selssd[i] = 255
 
-            if len(self.ssd_ownship) > 0 or self.ssd_conflicts:
+            if len(actdata.ssd_ownship) > 0 or actdata.ssd_conflicts:
                 update_buffer(self.ssd.selssdbuf, selssd[:MAX_NAIRCRAFT])
 
             update_buffer(self.confcpabuf, cpalines[:MAX_NCONFLICTS * 4])
@@ -753,122 +749,29 @@ class RadarWidget(QGLWidget):
                     update_buffer(self.routebuf,
                                   np.array([data.lat[idx], data.lon[idx]], dtype=np.float32))
 
-            nact = self.nodedata[manager.sender()[0]]
-
             # Update trails database with new lines
             if data.swtrails:
-                nact.traillat0.extend(data.traillat0)
-                nact.traillon0.extend(data.traillon0)
-                nact.traillat1.extend(data.traillat1)
-                nact.traillon1.extend(data.traillon1)
+                actdata.traillat0.extend(data.traillat0)
+                actdata.traillon0.extend(data.traillon0)
+                actdata.traillat1.extend(data.traillat1)
+                actdata.traillon1.extend(data.traillon1)
                 update_buffer(self.trailbuf, np.array(
-                              list(zip(nact.traillat0, nact.traillon0,
-                                  nact.traillat1, nact.traillon1)) +
-                              list(zip(data.traillastlat, data.traillastlon,
-                                  list(data.lat), list(data.lon))),
-                                       dtype=np.float32))
+                    list(zip(actdata.traillat0, actdata.traillon0,
+                             actdata.traillat1, actdata.traillon1)) +
+                    list(zip(data.traillastlat, data.traillastlon,
+                             list(data.lat), list(data.lon))),
+                    dtype=np.float32))
 
-                self.traillines.set_vertex_count(2 * len(nact.traillat0) +
-                                  2 * len(data.lat))
+                self.traillines.set_vertex_count(2 * len(actdata.traillat0) +
+                                                 2 * len(data.lat))
 
             else:
-                nact.traillat0 = []
-                nact.traillon0 = []
-                nact.traillat1 = []
-                nact.traillon1 = []
+                actdata.traillat0 = []
+                actdata.traillon0 = []
+                actdata.traillat1 = []
+                actdata.traillon1 = []
 
                 self.traillines.set_vertex_count(0)
-
-    def show_ssd(self, arg):
-        if not self.initialized:
-            return
-
-        self.makeCurrent()
-
-        if 'ALL' in arg:
-            self.ssd_all      = True
-            self.ssd_conflicts = False
-            update_buffer(self.ssd.selssdbuf, np.ones(MAX_NAIRCRAFT, dtype=np.uint8))
-        elif 'CONFLICTS' in arg:
-            self.ssd_all      = False
-            self.ssd_conflicts = True
-        elif 'OFF' in arg:
-            self.ssd_all      = False
-            self.ssd_conflicts = False
-            self.ssd_ownship = set()
-            update_buffer(self.ssd.selssdbuf, np.zeros(MAX_NAIRCRAFT, dtype=np.uint8))
-        else:
-            remove = self.ssd_ownship.intersection(arg)
-            self.ssd_ownship = self.ssd_ownship.union(arg) - remove
-
-    def defwpt(self, wpdata):
-        if not self.initialized:
-            return
-        nact = self.nodedata[manager.sender()[0]]
-        nact.custwplbl += wpdata[0].ljust(5)
-        nact.custwplat = np.append(nact.custwplat, np.float32(wpdata[1]))
-        nact.custwplon = np.append(nact.custwplon, np.float32(wpdata[2]))
-
-        if manager.sender()[0] == self.iactconn:
-            self.makeCurrent()
-            update_buffer(self.custwplblbuf, np.array(nact.custwplbl, dtype=np.string_))
-            update_buffer(self.custwplatbuf, nact.custwplat)
-            update_buffer(self.custwplonbuf, nact.custwplon)
-            self.ncustwpts = len(nact.custwplat)
-
-    def clearNodeData(self):
-        if not self.initialized:
-            return
-
-        # Clear all data for sender node
-        nact = self.nodedata[manager.sender()[0]]
-        nact.polynames.clear()
-        nact.polydata  = np.array([], dtype=np.float32)
-        nact.custwplbl = ''
-        nact.custwplat = np.array([], dtype=np.float32)
-        nact.custwplon = np.array([], dtype=np.float32)
-
-        # Clear trail data
-        nact.traillat0 = []
-        nact.traillon0 = []
-        nact.traillat1 = []
-        nact.traillon1 = []
-
-        # If the updated polygon buffer is also currently viewed, also send
-        # updates to the gpu buffer
-        if manager.sender()[0] == self.iactconn:
-            self.allpolys.set_vertex_count(0)
-            self.traillines.set_vertex_count(0)
-            self.ncustwpts = 0
-
-    def updatePolygon(self, name, data_in):
-        if not self.initialized:
-            return
-
-        nact = self.nodedata[manager.sender()[0]]
-        if name in nact.polynames:
-            # We're either updating a polygon, or deleting it. In both cases
-            # we remove the current one.
-            nact.polydata = np.delete(nact.polydata, list(range(*nact.polynames[name])))
-            del nact.polynames[name]
-
-        # Break up polyline list of (lat,lon)s into separate line segments
-        if data_in is not None:
-            nact.polynames[name] = (len(nact.polydata), 2 * len(data_in))
-            newbuf = np.empty(2 * len(data_in), dtype=np.float32)
-            newbuf[0::4]   = data_in[0::2]  # lat
-            newbuf[1::4]   = data_in[1::2]  # lon
-            newbuf[2:-2:4] = data_in[2::2]  # lat
-            newbuf[3:-3:4] = data_in[3::2]  # lon
-            newbuf[-2:]    = data_in[0:2]
-            nact.polydata  = np.append(nact.polydata, newbuf)
-
-        # If the updated polygon buffer is also currently viewed, also send
-        # updates to the gpu buffer
-        if manager.sender()[0] == self.iactconn:
-            self.makeCurrent()
-            update_buffer(self.allpolysbuf, nact.polydata)
-            self.allpolys.set_vertex_count(int(len(nact.polydata) / 2))
 
     def cmdline_stacked(self, cmd, args):
         if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
@@ -894,13 +797,6 @@ class RadarWidget(QGLWidget):
         update_buffer(self.polyprevbuf, data)
         self.polyprev.set_vertex_count(int(len(data) / 2))
 
-    def airportsInRange(self):
-        ll_range = max(1.5 / self.zoom, 1.0)
-        indices = np.logical_and.reduce((self.apt_ctrlat >= self.panlat - ll_range, self.apt_ctrlat <= self.panlat + ll_range,
-                                         self.apt_ctrlon >= self.panlon - ll_range, self.apt_ctrlon <= self.panlon + ll_range))
-
-        self.apt_inrange = self.apt_indices[indices]
-
     def pixelCoordsToGLxy(self, x, y):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
         """
@@ -920,83 +816,186 @@ class RadarWidget(QGLWidget):
         lon = self.panlon + glx / (self.zoom * self.flat_earth)
         return lat, lon
 
-    def event(self, event):
+    def panzoom(self, pan=None, zoom=None, origin=None, absolute=False):
         if not self.initialized:
-            return super(RadarWidget, self).event(event)
+            return False
 
-        if event.type() == PanZoomEventType:
-            if event.pan is not None:
-                # Absolute pan operation
-                if event.absolute:
-                    self.panlat = event.pan[0]
-                    self.panlon = event.pan[1]
-                # Relative pan operation
-                else:
-                    self.panlat += event.pan[0]
-                    self.panlon += event.pan[1]
+        if pan:
+            # Absolute pan operation
+            if absolute:
+                self.panlat = pan[0]
+                self.panlon = pan[1]
+            # Relative pan operation
+            else:
+                self.panlat += pan[0]
+                self.panlon += pan[1]
 
-                # Don't pan further than the poles in y-direction
-                self.panlat = min(max(self.panlat, -90.0 + 1.0 /
-                      (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
+            # Don't pan further than the poles in y-direction
+            self.panlat = min(max(self.panlat, -90.0 + 1.0 /
+                  (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
 
-                # Update flat-earth factor and possibly zoom in case of very wide windows (> 2:1)
-                self.flat_earth = np.cos(np.deg2rad(self.panlat))
-                self.zoom = max(self.zoom, 1.0 / (180.0 * self.flat_earth))
+            # Update flat-earth factor and possibly zoom in case of very wide windows (> 2:1)
+            self.flat_earth = np.cos(np.deg2rad(self.panlat))
+            self.zoom = max(self.zoom, 1.0 / (180.0 * self.flat_earth))
 
-            if event.zoom is not None:
-                if event.absolute:
-                    # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
-                    self.zoom = max(event.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
-                else:
-                    prevzoom = self.zoom
-                    glx, gly = self.pixelCoordsToGLxy(*event.origin)
-                    self.zoom *= event.zoom
+        if zoom:
+            if absolute:
+                # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
+                self.zoom = max(zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
+            else:
+                prevzoom = self.zoom
+                glx, gly = self.pixelCoordsToGLxy(*origin) if origin else (0,0)
+                self.zoom *= zoom
 
-                    # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
-                    self.zoom = max(self.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
+                # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
+                self.zoom = max(self.zoom, 1.0 / min(90.0 * self.ar, 180.0 * self.flat_earth))
 
-                    # Correct pan so that zoom actions are around the mouse position, not around 0, 0
-                    # glxy / zoom1 - pan1 = glxy / zoom2 - pan2
-                    # pan2 = pan1 + glxy (1/zoom2 - 1/zoom1)
-                    self.panlon = self.panlon - glx * (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
-                    self.panlat = self.panlat - gly * (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
+                # Correct pan so that zoom actions are around the mouse position, not around 0, 0
+                # glxy / zoom1 - pan1 = glxy / zoom2 - pan2
+                # pan2 = pan1 + glxy (1/zoom2 - 1/zoom1)
+                self.panlon = self.panlon - glx * (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
+                self.panlat = self.panlat - gly * (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
 
-                # Don't pan further than the poles in y-direction
-                self.panlat = min(max(self.panlat, -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
+            # Don't pan further than the poles in y-direction
+            self.panlat = min(max(self.panlat, -90.0 + 1.0 / (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
 
-                # Update flat-earth factor
-                self.flat_earth = np.cos(np.deg2rad(self.panlat))
+            # Update flat-earth factor
+            self.flat_earth = np.cos(np.deg2rad(self.panlat))
 
-            # Limit longitudinal panning to [-180:180]
-            if self.panlon < -180.0:
-                self.panlon += 360.0
-            elif self.panlon > 180.0:
-                self.panlon -= 360.0
+        if self.zoom >= 1.0:
+            # Airports may be visible when zoom > 1: in this case, update the list of indicates
+            # of airports that need to be drawn
+            ll_range = max(1.5 / self.zoom, 1.0)
+            indices = np.logical_and(np.abs(self.apt_ctrlat - self.panlat) <= ll_range, np.abs(self.apt_ctrlon - self.panlon) <= ll_range)
+            self.apt_inrange = self.apt_indices[indices]
 
-            if self.zoom >= 1.0:
-                self.airportsInRange()
-            event.accept()
+        # Check for necessity wrap-around in x-direction
+        self.wraplon  = -999.9
+        self.wrapdir  = 0
+        if self.panlon + 1.0 / (self.zoom * self.flat_earth) < -180.0:
+            # The left edge of the map has passed the right edge of the screen: we can just change the pan position
+            self.panlon += 360.0
+        elif self.panlon - 1.0 / (self.zoom * self.flat_earth) < -180.0:
+            # The left edge of the map has passed the left edge of the screen: we need to wrap around to the left
+            self.wraplon = float(np.ceil(360.0 + self.panlon - 1.0 / (self.zoom * self.flat_earth)))
+            self.wrapdir = -1
+        elif self.panlon - 1.0 / (self.zoom * self.flat_earth) > 180.0:
+            # The right edge of the map has passed the left edge of the screen: we can just change the pan position
+            self.panlon -= 360.0
+        elif self.panlon + 1.0 / (self.zoom * self.flat_earth) > 180.0:
+            # The right edge of the map has passed the right edge of the screen: we need to wrap around to the right
+            self.wraplon = float(np.floor(-360.0 + self.panlon + 1.0 / (self.zoom * self.flat_earth)))
+            self.wrapdir = 1
 
-            # Distance to the screen edge
-            edgdist = 1.0 / (self.zoom * self.flat_earth)
+        self.globaldata.set_wrap(self.wraplon, self.wrapdir)
 
-            # Check for necessity wrap-around in x-direction
-            self.wraplon  = 0
-            self.wrapdir  = 0
-            if self.panlon - edgdist < -180.0:
-                # The left edge of the map has passed the left edge of the screen: we need to wrap around to the left
-                self.wraplon = float(np.ceil(360.0 + self.panlon - edgdist))
-                self.wrapdir = -1
-            elif self.panlon + edgdist > 180.0:
-                # The right edge of the map has passed the right edge of the screen: we need to wrap around to the right
-                self.wraplon = float(np.floor(-360.0 + self.panlon + edgdist))
-                self.wrapdir = 1
+        # update pan and zoom on GPU for all shaders
+        self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
+        # Update pan and zoom in centralized nodedata
+        bs.net.get_nodedata().panzoom((self.panlat, self.panlon), self.zoom)
 
-            self.globaldata.set_wrap(self.wraplon, self.wrapdir)
+        return True
 
-            # update pan and zoom on GPU for all shaders
-            self.globaldata.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
+    def event(self, event):
+        ''' Event handling for input events. '''
+        if event.type() == QEvent.Wheel:
+            # For mice we zoom with control/command and the scrolwheel
+            if event.modifiers() & Qt.ControlModifier:
+                origin = (event.pos().x(), event.pos().y())
+                zoom = 1.0
+                try:
+                    if event.pixelDelta():
+                        # High resolution scroll
+                        zoom *= (1.0 + 0.01 * event.pixelDelta().y())
+                    else:
+                        # Low resolution scroll
+                        zoom *= (1.0 + 0.001 * event.angleDelta().y())
+                except AttributeError:
+                    zoom *= (1.0 + 0.001 * event.delta())
+                self.panzoomchanged = True
+                return self.panzoom(zoom=zoom, origin=origin)
+
+            # For touchpad scroll (2D) is used for panning
+            else:
+                try:
+                    dlat = 0.01 * event.pixelDelta().y() / (self.zoom * self.ar)
+                    dlon = -0.01 * event.pixelDelta().x() / (self.zoom * self.flat_earth)
+                    self.panzoomchanged = True
+                    return self.panzoom(pan=(dlat, dlon))
+                except AttributeError:
+                    pass
+
+        # For touchpad, pinch gesture is used for zoom
+        elif event.type() == QEvent.Gesture:
+            pan = zoom = None
+            dlat = dlon = 0.0
+            for g in event.gestures():
+                if g.gestureType() == Qt.PinchGesture:
+                    zoom = g.scaleFactor() * (zoom or 1.0)
+                    if CORRECT_PINCH:
+                        print ('Correct pinch')
+                        zoom /= g.lastScaleFactor()
+                elif g.gestureType() == Qt.PanGesture:
+                    if abs(g.delta().y() + g.delta().x()) > 1e-1:
+                        dlat += 0.005 * g.delta().y() / (self.zoom * self.ar)
+                        dlon -= 0.005 * g.delta().x() / (self.zoom * self.flat_earth)
+                        pan = (dlat, dlon)
+            if pan is not None or zoom is not None:
+                self.panzoomchanged = True
+                return self.panzoom(pan, zoom, self.mousepos)
+
+        elif event.type() == QEvent.MouseButtonPress and event.button() & Qt.LeftButton:
+            self.mousedragged = False
+            # For mice we pan with control/command and mouse movement.
+            # Mouse button press marks the beginning of a pan
+            self.prevmousepos = (event.x(), event.y())
+
+        elif event.type() == QEvent.MouseButtonRelease and \
+             event.button() & Qt.LeftButton and not self.mousedragged:
+            lat, lon = self.pixelCoordsToLatLon(event.x(), event.y())
+            # TODO: acdata en routedata
+            tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
+                                            self.acdata, self.routedata)
+            if '\n' not in tocmdline:
+                console.append_cmdline(tocmdline)
+            if tostack:
+                console.stack(tostack)
+
+        elif event.type() == QEvent.MouseMove:
+            self.mousedragged = True
+            self.mousepos = (event.x(), event.y())
+            if event.buttons() & Qt.LeftButton:
+                dlat = 0.003 * (event.y() - self.prevmousepos[1]) / (self.zoom * self.ar)
+                dlon = 0.003 * (self.prevmousepos[0] - event.x()) / (self.zoom * self.flat_earth)
+                self.prevmousepos = (event.x(), event.y())
+                self.panzoomchanged = True
+                return self.panzoom(pan=(dlat, dlon))
+
+        # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
+        elif (event.type() == QEvent.MouseButtonRelease or
+              event.type() == QEvent.TouchEnd) and self.panzoomchanged:
+            self.panzoomchanged = False
+            bs.net.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
+                                           zoom=self.zoom, ar=self.ar, absolute=True))
+
+        # If this is a mouse move event, check if we are updating a preview poly
+        if self.mousepos != self.prevmousepos:
+            cmd = console.get_cmd()
+            nargs = len(console.get_args())
+            if cmd in ['AREA', 'BOX', 'POLY',
+                       'POLYALT', 'POLYGON', 'CIRCLE', 'LINE'] and nargs >= 2:
+                self.prevmousepos = self.mousepos
+                try:
+                    # get the largest even number of points
+                    start = 0 if cmd == 'AREA' else 3 if cmd == 'POLYALT' else 1
+                    end = ((nargs - start) // 2) * 2 + start
+                    data = [float(v) for v in console.get_args()[start:end]]
+                    data += self.pixelCoordsToLatLon(*self.mousepos)
+                    self.previewpoly(cmd, data)
+
+                except ValueError:
+                    pass
             return True
 
-        else:
-            return super(RadarWidget, self).event(event)
+        # For all other events call base class event handling
+        return super(RadarWidget, self).event(event)

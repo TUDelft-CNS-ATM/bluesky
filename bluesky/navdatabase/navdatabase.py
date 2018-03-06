@@ -105,8 +105,7 @@ class Navdatabase:
 
         # No data: give info on waypoint
         elif lat==None or lon==None:
-            reflat = bs.scr.ctrlat
-            reflon = bs.scr.ctrlon
+            reflat, reflon = bs.scr.getviewctr()
             if self.wpid.count(name.upper()) > 0:
                 i = self.getwpidx(name.upper(),reflat,reflon)
                 txt = self.wpid[i]+" : "+str(self.wplat[i])+","+str(self.wplon[i])
