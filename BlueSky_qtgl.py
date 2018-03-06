@@ -26,8 +26,8 @@ def start():
     Start BlueSky: Create gui and simulation objects
     """
 
-    # When importerror gives different name than (pip) install needs
-    missingmodules = {"OpenGL":"pyopengl"}
+    # When importerror gives different name than (pip) install needs, also advise latest version
+    missingmodules = {"OpenGL":"pyopengl-accelerate","PyQt4":"pyqt5"}
 
     # Catch import errors
     try: 

@@ -11,17 +11,17 @@ from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 class Client(object):
     def __init__(self, actnode_topics):
         ctx = zmq.Context.instance()
-        self.event_io    = ctx.socket(zmq.DEALER)
-        self.stream_in   = ctx.socket(zmq.SUB)
-        self.poller      = zmq.Poller()
-        self.host_id     = b''
-        self.client_id   = b'\x00' + os.urandom(4)
-        self.sender_id   = b''
-        self.servers     = dict()
-        self.act         = b''
-        self.actroute    = []
-        self.acttopics   = actnode_topics
-        self.discovery   = None
+        self.event_io = ctx.socket(zmq.DEALER)
+        self.stream_in = ctx.socket(zmq.SUB)
+        self.poller = zmq.Poller()
+        self.host_id = b''
+        self.client_id = b'\x00' + os.urandom(4)
+        self.sender_id = b''
+        self.servers = dict()
+        self.act = b''
+        self.actroute = []
+        self.acttopics = actnode_topics
+        self.discovery = None
 
         # Signals
         self.nodes_changed = Signal()
@@ -33,7 +33,7 @@ class Client(object):
     def start_discovery(self):
         self.discovery = UDP(11000)
         self.poller.register(self.discovery.handle, zmq.POLLIN)
-        self.discovery.send(self.client_id)
+        self.discovery.send(self.client_id + b'crqst')
 
     def get_hostid(self):
         return self.host_id
@@ -109,7 +109,7 @@ class Client(object):
 
             # If we are in discovery mode, parse this message
             if self.discovery and socks.get(self.discovery.handle.fileno()):
-                msg, addr = self.discovery.recv(5)
+                msg, addr = self.discovery.recv(10)
                 if msg != self.client_id:
                     self.server_discovered.emit(addr[0])
         except zmq.ZMQError:
