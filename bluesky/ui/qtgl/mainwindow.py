@@ -49,7 +49,7 @@ class DiscoveryDialog(QDialog):
         super(DiscoveryDialog, self).__init__(parent)
         self.setModal(True)
         self.setMinimumSize(200,200) # To prevent Geometry error
-
+        self.hosts = []
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.serverview = QTreeWidget()
@@ -370,13 +370,13 @@ class MainWindow(QMainWindow):
             bs.net.send_event(b'ADDNODES', 1)
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self.win, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
+        response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
         if type(response) is tuple:
             fname = response[0]
         else:
             fname = response
         if len(fname) > 0:
-            self.win.console.stack('IC ' + str(fname))
+            self.console.stack('IC ' + str(fname))
 
     def show_doc_window(self, cmd=''):
         self.docwin.show_cmd_doc(cmd)
