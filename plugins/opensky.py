@@ -23,7 +23,8 @@ except ImportError:
 
 from bluesky import stack, settings, traf, scr
 from bluesky.tools import RegisterElementParameters, TrafficArrays, cachefile
-settings.set_variable_defaults(opensky_user=None, opensky_password=None)
+settings.set_variable_defaults(opensky_user=None, opensky_password=None,
+                               opensky_ownonly=False)
 
 # Globals
 actypedb_version = 'v20180126'
@@ -111,13 +112,18 @@ class OpenSkyListener(TrafficArrays):
             return
 
         # t1 = time.time()
-        # Get states from OpenSky. If all states fails try getting own states only.
-        states = self.get_states()
-        if states is None:
-            if self.authenticated:
-                states = self.get_states(ownonly=True)
+        if settings.opensky_ownonly:
+            states = self.get_states(ownonly=True)
             if states is None:
                 return
+        else:
+        # Get states from OpenSky. If all states fails try getting own states only.
+            states = self.get_states()
+            if states is None:
+                if self.authenticated:
+                    states = self.get_states(ownonly=True)
+                if states is None:
+                    return
 
         # Current time
         curtime = time.time()

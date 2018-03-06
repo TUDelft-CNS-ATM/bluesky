@@ -148,6 +148,7 @@ class Simulation:
     def stop(self):  # Quit mode
         self.mode   = self.end
         datalog.reset()
+        bs.stack.saveclose() # Save close configuration
 #        datalog.save()
         return
 

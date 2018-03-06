@@ -5,7 +5,7 @@ Methods:
     stack(cmdline)          : add a command to the command stack
     openfile(scenname)      : start playing a scenario file scenname.SCN
                               from scenario folder
-    savefile(scenname)      : save current traffic situation as
+    saveic(scenname)      : save current traffic situation as
                               scenario file scenname.SCN
     checkfile(t)            : check whether commands need to be
                               processed from scenario file
@@ -23,7 +23,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
-from bluesky.tools.misc import txt2alt
+from bluesky.tools.misc import txt2alt, tim2txt, cmdsplit
 from bluesky.tools.calculator import calculator
 from bluesky.tools.position import txt2pos, islat
 from bluesky import settings
@@ -84,20 +84,56 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "VMETH": "RMETHV",
              "VRESOM": "RMETHV",
              "VRESOMETH": "RMETHV",
+
+# Currently not implemented TMX comands trigger message on this
+             "BGPASAS": "TMX",
+             "DFFLEVEL": "TMX",
+             "FFLEVEL": "TMX",
+             "FILTCONF": "TMX",
+             "FILTTRED": "TMX",
+             "FILTTAMB": "TMX",
+             "GRAB": "TMX",
+             "HDGREF": "TMX",
+             "MOVIE": "TMX",
+             "NAVDB": "TMX",
+             "PREDASAS": "TMX",
+             "RENAME": "TMX",
+             "RETYPE": "TMX",
+             "SWNLRPASAS": "TMX",
+             "TRAFRECDT": "TMX",
+             "TRAFLOGDT": "TMX",
+             "TREACT": "TMX",
+             "WINDGRID": "TMX", # Use a scenario file with WIND commands to defin a grid and/or profiles
+
+# Question mark is Help
              "?": "HELP"
-            }
+}
 
 
-cmdstack   = []
-sender_rte = None
+cmdstack  = []  # The actual stack: Current commands to be processed
 
-scenname  = ""
-scenfile  = ""
-scentime  = []
-scencmd   = []
+# Scenario file which is read
+scenfile  = "" # Currently used scenario file (for reading)
+scenname  = "" # Currently used scenario name (for reading)
+scentime  = [] # Times of the commands from the read scenario file
+scencmd   = [] # Commands from the scenario file
+sender_rte = None  # bs net route to sender
 
+# When SAVEIC is used, we will also have a recoding scenario file handle
+savefile = None # File object of recording scenario file
+defexcl = ["PAN","ZOOM","HOLD","POS","INSEDIT","SAVEIC","QUIT"] # Commands to be excluded, default
+saveexcl = defexcl
+saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
+
+# Note (P)CALL is always excluded! Commands in the called file are saved explicitly
+
+
+# Global version
+orgcmd = ""
 
 def init():
+    global orgcmd
+
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -587,10 +623,10 @@ def init():
             "Set horizontal radius of resolution zone in nm"
         ],
         "SAVEIC": [
-            "SAVEIC filename",
-            "string",
+            "SAVEIC filename/EXCEPT NONE/cmds",
+            "[string]",
             saveic,
-            "Save current situation as IC"
+            "Save current situation as IC in filename or specify commands to exclude (like default display commands)"
         ],
         "SCHEDULE": [
             "SCHEDULE time, COMMAND+ARGS",
@@ -647,12 +683,19 @@ def init():
             bs.sim.setclock,
             "Set simulated clock time"
         ],
+        "TMX": [
+            "TMX",
+            "",
+            lambda : bs.scr.echo("TMX command "+orgcmd+" not (yet?) implemented."),
+            "Stub for not implemented TMX commands"
+        ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
             "[acid/bool],[float/txt]",
             bs.traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
+
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
@@ -898,11 +941,14 @@ def setSeed(value):
 
 def reset():
     ''' Reset the stack. '''
-    global scentime, scencmd, scenname
+    global scentime, scencmd, scenname, saveexcl, defexcl
 
     scentime = []
     scencmd  = []
     scenname = ''
+
+    saveclose()
+    saveexcl = defexcl  # Commands to be excluded, set to default
 
 
 def stack(cmdline, cmdsender=None):
@@ -1051,15 +1097,48 @@ def checkfile(simt):
         del scentime[0]
 
 
-def saveic(fname):
+def saveic(fname=None):
     ''' Save the current traffic realization in a scenario file. '''
+    global savefile,saveexcl,saveict0
+
+    # No args? Give current status
+    if fname=="" or fname==None:
+        if savefile==None:
+            return False
+        else:
+            return True,"SAVEIC is already on\n"+"File: "+savefile.name
+
+
+    # Is it to modify exclude list?
+    if fname[:6].upper() == "CLOSE":
+        saveclose()
+        savefile = None
+        return True
+
+    elif fname[:6].upper() == "EXCEPT":
+        if len(fname.strip())==6: # Only except:
+            return True,"EXCEPT is now: "+" ".join(saveexcl)
+
+        key,newexclcmds = cmdsplit(fname[6:].upper())
+        if key.upper()=="NONE":
+            saveexcl = ["INSEDIT","SAVEIC"] # bare minimum
+        else:
+            newexclcmds.append(key)
+            saveexcl = newexclcmds
+        return True
+
+    # If recording is already on, give message
+    if savefile != None:
+        return False,"SAVEIC is already on\n"+"Savefile:  "+savefile.name
+
+
     # Add extension .scn if not already present
     if fname.lower().find(".scn") < 0:
         fname = fname + ".scn"
 
     # If it is with path don't touch it, else add path
     if fname.find("/") < 0:
-        scenfile = "./scenario/" + fname
+        scenfile = bs.settings.scenario_path +"/"+ fname
 
     try:
         f = open(scenfile, "w")
@@ -1067,7 +1146,8 @@ def saveic(fname):
         return False, "Error writing to file"
 
     # Write files
-    timtxt = "00:00:00.00>"
+    timtxt = "00:00:00.00>" # Current time will be zero
+    saveict0 = bs.sim.simt
 
     for i in range(bs.traf.ntraf):
         # CRE acid,type,lat,lon,hdg,alt,spd
@@ -1149,9 +1229,30 @@ def saveic(fname):
 
             f.write(timtxt + cmdline + "\n")
 
-    # Saveic: should close
-    f.close()
+    # Saveic: save file
+    savefile = f
     return True
+
+# Save a command line when recording is on
+def savecmd(cmdline):
+    global savefile,saveict0
+    if savefile==None:
+        return
+
+    # Write in format "HH:MM:SS.hh>
+    timtxt = tim2txt(bs.sim.simt - saveict0)
+    savefile.write(timtxt+">"+cmdline+"\n")
+
+    return
+
+def saveclose():
+    global savefile
+    if savefile!=None:
+        savefile.close()
+
+    savefile = None
+
+    return
 
 # Regular expression for argument parser
 # Reading the regular expression:
@@ -1171,6 +1272,8 @@ def getnextarg(line):
 
 
 def process():
+    global savefile,saveexcl,orgcmd
+
     """process and empty command stack"""
     global sender_rte
 
@@ -1208,6 +1311,10 @@ def process():
             stackfun = cmddict.get(cmd or 'POS')
 
         if stackfun:
+            # Recording of actual validated command unless in exclude list
+            if savefile!= None and cmd not in saveexcl and cmd!="PCALL":
+                savecmd(line)
+
             # Look up command in dictionary to get string with argtypes andhelp texts
             helptext, argtypes, argisopt, function = stackfun[:4]
 
@@ -1248,6 +1355,8 @@ def process():
             nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
             nmin  = cmd.count("-")
             bs.scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
+            if not "ZOOM" in saveexcl:
+                savecmd(line)
 
         #-------------------------------------------------------------------
         # Command not found

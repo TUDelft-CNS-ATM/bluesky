@@ -118,6 +118,10 @@ class Simulation(Node):
     def stop(self):
         self.state = bs.END
         datalog.reset()
+
+        # Close savefile which may be open for recording
+        bs.stack.saveclose()  # Close reording file if it is on
+
         if settings.is_headless:
             self.running = False
 
