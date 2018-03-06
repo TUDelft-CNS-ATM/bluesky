@@ -19,7 +19,10 @@ class UDP(object):
 
         # Ask operating system to let us do broadcasts from socket
         self.handle.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.handle.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        if hasattr(socket, 'SO_REUSEPORT'):
+            self.handle.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        else:
+            self.handle.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # Bind UDP socket to local port so we can receive pings
         self.handle.bind(('', port))
