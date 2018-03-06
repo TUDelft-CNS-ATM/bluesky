@@ -469,7 +469,7 @@ class metric_CoCa():
             filedata = settings.log_path + "/coca_20120727-78am-1hour.npy"
             # self.cellPlot(traf)
             # np.save(filedata,self.cocametric)
-            bs.sim.start()
+            bs.sim.op()
 
         bs.traf.cell = []
 
@@ -620,7 +620,7 @@ class metric_HB():
         time2 = time()
         print("Time to Complete Calculation: " + str(time2-time1))
 
-        bs.sim.start()
+        bs.sim.op()
         return
 
 
@@ -1439,5 +1439,5 @@ class Metric():
         #    plot, showplot and other matplotlib commands
 
         # Continue simulation
-        bs.sim.start()
+        bs.sim.op()
         return

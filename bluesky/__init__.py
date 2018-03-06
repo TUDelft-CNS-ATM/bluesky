@@ -3,21 +3,34 @@
 from bluesky import settings
 
 ### Constants
-SIMPLE_ECHO = 'simple_echo'
-MSG_OK = 'ok.'
-CMD_TCP_CONNS = 'TCP_CONNS'
+BS_OK = 0
+BS_ARGERR = 1
+BS_FUNERR = 2
+BS_CMDERR = 4
+
+# simulation states
+INIT, HOLD, OP, END = list(range(4))
 
 ### Main singleton objects in BlueSky
-traf  = None
+net = None
+traf = None
 navdb = None
-sim   = None
-scr   = None
+sim = None
+scr = None
+server = None
 
 def init():
     # Both sim and gui need a navdatabase in all versions of BlueSky
-    from bluesky.navdatabase import Navdatabase
-    global navdb
-    navdb = Navdatabase()
+    if settings.is_sim or settings.is_gui:
+        from bluesky.navdatabase import Navdatabase
+        global navdb
+        navdb = Navdatabase()
+
+    if settings.start_server:
+        global server
+        from bluesky.network import Server
+        server = Server()
+        server.start()
 
     # The remaining objects are only instantiated in the sim nodes
     if settings.is_sim:

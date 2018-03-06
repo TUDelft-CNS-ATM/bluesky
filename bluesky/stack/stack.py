@@ -5,7 +5,7 @@ Methods:
     stack(cmdline)          : add a command to the command stack
     openfile(scenname)      : start playing a scenario file scenname.SCN
                               from scenario folder
-    savefile(scenname)      : save current traffic situation as
+    saveic(scenname)      : save current traffic situation as
                               scenario file scenname.SCN
     checkfile(t)            : check whether commands need to be
                               processed from scenario file
@@ -23,7 +23,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
-from bluesky.tools.misc import txt2alt
+from bluesky.tools.misc import txt2alt, tim2txt, cmdsplit
 from bluesky.tools.calculator import calculator
 from bluesky.tools.position import txt2pos, islat
 from bluesky import settings
@@ -84,19 +84,56 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "VMETH": "RMETHV",
              "VRESOM": "RMETHV",
              "VRESOMETH": "RMETHV",
+
+# Currently not implemented TMX comands trigger message on this
+             "BGPASAS": "TMX",
+             "DFFLEVEL": "TMX",
+             "FFLEVEL": "TMX",
+             "FILTCONF": "TMX",
+             "FILTTRED": "TMX",
+             "FILTTAMB": "TMX",
+             "GRAB": "TMX",
+             "HDGREF": "TMX",
+             "MOVIE": "TMX",
+             "NAVDB": "TMX",
+             "PREDASAS": "TMX",
+             "RENAME": "TMX",
+             "RETYPE": "TMX",
+             "SWNLRPASAS": "TMX",
+             "TRAFRECDT": "TMX",
+             "TRAFLOGDT": "TMX",
+             "TREACT": "TMX",
+             "WINDGRID": "TMX", # Use a scenario file with WIND commands to defin a grid and/or profiles
+
+# Question mark is Help
              "?": "HELP"
-            }
+}
 
 
-cmdstack  = []
+cmdstack  = []  # The actual stack: Current commands to be processed
 
-scenname  = ""
-scenfile  = ""
-scentime  = []
-scencmd   = []
+# Scenario file which is read
+scenfile  = "" # Currently used scenario file (for reading)
+scenname  = "" # Currently used scenario name (for reading)
+scentime  = [] # Times of the commands from the read scenario file
+scencmd   = [] # Commands from the scenario file
+sender_rte = None  # bs net route to sender
 
+# When SAVEIC is used, we will also have a recoding scenario file handle
+savefile = None # File object of recording scenario file
+defexcl = ["PAN","ZOOM","HOLD","POS","INSEDIT","SAVEIC","QUIT"] # Commands to be excluded, default
+saveexcl = defexcl
+saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
+
+# Note (P)CALL is always excluded! Commands in the called file are saved explicitly
+
+
+# Global version
+orgcmd = ""
 
 def init():
+    global orgcmd
+
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -138,7 +175,7 @@ def init():
         "ADDNODES": [
             "ADDNODES number",
             "int",
-            bs.sim.addNodes,
+            bs.sim.addnodes,
             "Add a simulation instance/node"
         ],
         "ADDWPT": [
@@ -402,7 +439,7 @@ def init():
         "LINE": [
             "LINE name,lat,lon,lat,lon",
             "txt,latlon,latlon",
-            lambda name, *coords: bs.scr.objappend("LINE", name, coords),
+            lambda name, *coords: areafilter.defineArea(name, 'LINE', coords),
             "Draw a line on the radar screen"
         ],
         "LISTRTE": [
@@ -444,7 +481,7 @@ def init():
         "ND": [
             "ND acid",
             "txt",
-            lambda acid: bs.scr.feature("ND", acid),
+            bs.scr.shownd,
             "Show navigation display with CDTI"
         ],
         "NOISE": [
@@ -468,7 +505,7 @@ def init():
         "OP": [
             "OP",
             "",
-            bs.sim.start,
+            bs.sim.op,
             "Start/Run simulation or continue after pause"
         ],
         "ORIG": [
@@ -586,10 +623,10 @@ def init():
             "Set horizontal radius of resolution zone in nm"
         ],
         "SAVEIC": [
-            "SAVEIC filename",
-            "string",
+            "SAVEIC filename/EXCEPT NONE/cmds",
+            "[string]",
             saveic,
-            "Save current situation as IC"
+            "Save current situation as IC in filename or specify commands to exclude (like default display commands)"
         ],
         "SCHEDULE": [
             "SCHEDULE time, COMMAND+ARGS",
@@ -618,7 +655,7 @@ def init():
         "SSD": [
             "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
             "txt,[...]",
-            bs.scr.showssd,
+            lambda *args: bs.scr.feature('SSD', args),
             "Show state-space diagram (=conflict prevention display/predictive ASAS)"
         ],
         "SWRAD": [
@@ -646,12 +683,19 @@ def init():
             bs.sim.setclock,
             "Set simulated clock time"
         ],
+        "TMX": [
+            "TMX",
+            "",
+            lambda : bs.scr.echo("TMX command "+orgcmd+" not (yet?) implemented."),
+            "Stub for not implemented TMX commands"
+        ],
         "TRAIL": [
             "TRAIL ON/OFF, [dt] OR TRAIL acid color",
             "[acid/bool],[float/txt]",
             bs.traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
+
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
@@ -709,21 +753,40 @@ def init():
         openfile(settings.scenfile)
 
 
+def sender():
+    ''' Return the sender of the currently executed stack command.
+        If there is no sender id (e.g., when the command originates
+        from a scenario file), None is returned. '''
+    return sender_rte[-1] if sender_rte else None
+
+
+def routetosender():
+    ''' Return the route to the sender of the currently executed stack command.
+        If there is no sender id (e.g., when the command originates
+        from a scenario file), None is returned. '''
+    return sender_rte
+
 def get_scenname():
+    ''' Return the name of the current scenario.
+        This is either the name defined by the SCEN command,
+        or otherwise the filename of the scenario. '''
     return scenname
 
 
 def get_scendata():
+    ''' Return the scenario data that was loaded from a scenario file. '''
     return scentime, scencmd
 
 
 def set_scendata(newtime, newcmd):
+    ''' Set the scenario data. This is used by the batch logic. '''
     global scentime, scencmd
     scentime = newtime
     scencmd  = newcmd
 
 
 def scenarioinit(name):
+    ''' Implementation of the SCEN stack command. '''
     global scenname
     scenname = name
     return True, 'Starting scenario ' + name
@@ -871,27 +934,33 @@ def showhelp(cmd=''):
 
 
 def setSeed(value):
+    ''' Function that implements the SEED stack command. '''
     seed(value)
     np.random.seed(value)
 
 
 def reset():
-    global scentime, scencmd, scenname
+    ''' Reset the stack. '''
+    global scentime, scencmd, scenname, saveexcl, defexcl
 
     scentime = []
     scencmd  = []
     scenname = ''
 
+    saveclose()
+    saveexcl = defexcl  # Commands to be excluded, set to default
 
-def stack(cmdline, sender_id=None):
-    # Stack one or more commands separated by ";"
+
+def stack(cmdline, cmdsender=None):
+    ''' Stack one or more commands separated by ";" '''
     cmdline = cmdline.strip()
-    if len(cmdline) > 0:
+    if cmdline:
         for line in cmdline.split(';'):
-            cmdstack.append((line, sender_id))
+            cmdstack.append((line, cmdsender))
 
 
 def sched_cmd(time, args, relative=False):
+    ''' Function that implements the SCHEDULE and DELAY commands. '''
     tostack = ','.join(args)
     # find spot in time list corresponding to passed time, get idx
     # insert time at idx in scentime, insert cmd at idx in scencmd
@@ -934,24 +1003,22 @@ def openfile(fname, *args, mergeWithExisting=False):
 
 
     # Split the incoming filename into a path, a filename and an extension
-    path, fname   = os.path.split(os.path.normpath(fname))
-    scenname, ext = os.path.splitext(fname)
-    if len(path) == 0:
-        path = os.path.normpath(settings.scenario_path)
-    if len(ext) == 0:
-        ext = '.scn'
+    path, fname = os.path.split(os.path.normpath(fname))
+    base, ext = os.path.splitext(fname)
+    path = path or os.path.normpath(settings.scenario_path)
+    ext  = ext  or '.scn'
 
     # The entire filename, possibly with added path and extension
-    scenfile = os.path.join(path, scenname + ext)
+    fname_full = os.path.join(path, base + ext)
 
-    print("Opening "+scenfile)
+    print("Opening " + fname_full)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
     t_offset = bs.sim.simt if absrel == 'REL' else 0.0
 
-    if not os.path.exists(scenfile):
-        return False, "Error: cannot find file: " + scenfile
+    if not os.path.exists(fname_full):
+        return False, "Error: cannot find file: " + fname_full
 
     # Split scenario file line in times and commands
     if not mergeWithExisting:
@@ -961,7 +1028,7 @@ def openfile(fname, *args, mergeWithExisting=False):
         scentime = []
         scencmd  = []
 
-    with open(scenfile, 'r') as fscen:
+    with open(fname_full, 'r') as fscen:
         for line in fscen:
 
             # Replace arguments if specified: %0 by first argument, %1 by seconds, %2
@@ -994,10 +1061,11 @@ def openfile(fname, *args, mergeWithExisting=False):
 
 
 def ic(filename=''):
+    ''' Function implementing the IC stack command. '''
     global scenfile, scenname
 
     # Get the filename of new scenario
-    if filename == '':
+    if not filename:
         filename = bs.scr.show_file_dialog()
 
     # Clean up filename
@@ -1022,23 +1090,55 @@ def ic(filename=''):
 
 
 def checkfile(simt):
-    # Empty command buffer when it's time
+    ''' Check if commands from the scenario buffer need to be stacked. '''
     while len(scencmd) > 0 and simt >= scentime[0]:
         stack(scencmd[0])
         del scencmd[0]
         del scentime[0]
 
-    return
+
+def saveic(fname=None):
+    ''' Save the current traffic realization in a scenario file. '''
+    global savefile,saveexcl,saveict0
+
+    # No args? Give current status
+    if fname=="" or fname==None:
+        if savefile==None:
+            return False
+        else:
+            return True,"SAVEIC is already on\n"+"File: "+savefile.name
 
 
-def saveic(fname):
+    # Is it to modify exclude list?
+    if fname[:6].upper() == "CLOSE":
+        saveclose()
+        savefile = None
+        return True
+
+    elif fname[:6].upper() == "EXCEPT":
+        if len(fname.strip())==6: # Only except:
+            return True,"EXCEPT is now: "+" ".join(saveexcl)
+
+        key,newexclcmds = cmdsplit(fname[6:].upper())
+        if key.upper()=="NONE":
+            saveexcl = ["INSEDIT","SAVEIC"] # bare minimum
+        else:
+            newexclcmds.append(key)
+            saveexcl = newexclcmds
+        return True
+
+    # If recording is already on, give message
+    if savefile != None:
+        return False,"SAVEIC is already on\n"+"Savefile:  "+savefile.name
+
+
     # Add extension .scn if not already present
     if fname.lower().find(".scn") < 0:
         fname = fname + ".scn"
 
     # If it is with path don't touch it, else add path
     if fname.find("/") < 0:
-        scenfile = "./scenario/" + fname
+        scenfile = bs.settings.scenario_path +"/"+ fname
 
     try:
         f = open(scenfile, "w")
@@ -1046,7 +1146,8 @@ def saveic(fname):
         return False, "Error writing to file"
 
     # Write files
-    timtxt = "00:00:00.00>"
+    timtxt = "00:00:00.00>" # Current time will be zero
+    saveict0 = bs.sim.simt
 
     for i in range(bs.traf.ntraf):
         # CRE acid,type,lat,lon,hdg,alt,spd
@@ -1128,9 +1229,30 @@ def saveic(fname):
 
             f.write(timtxt + cmdline + "\n")
 
-    # Saveic: should close
-    f.close()
+    # Saveic: save file
+    savefile = f
     return True
+
+# Save a command line when recording is on
+def savecmd(cmdline):
+    global savefile,saveict0
+    if savefile==None:
+        return
+
+    # Write in format "HH:MM:SS.hh>
+    timtxt = tim2txt(bs.sim.simt - saveict0)
+    savefile.write(timtxt+">"+cmdline+"\n")
+
+    return
+
+def saveclose():
+    global savefile
+    if savefile!=None:
+        savefile.close()
+
+    savefile = None
+
+    return
 
 # Regular expression for argument parser
 # Reading the regular expression:
@@ -1150,15 +1272,22 @@ def getnextarg(line):
 
 
 def process():
+    global savefile,saveexcl,orgcmd
+
     """process and empty command stack"""
+    global sender_rte
 
     # Process stack of commands
-    for (line, sender_id) in cmdstack:
+    for (line, sender_rte) in cmdstack:
         #debug       print "stack is processing:",line
         # Empty line: next command
         line = line.strip()
         if not line:
             continue
+
+        # Stack reply: text and flags
+        echotext  = ''
+        echoflags = 0
 
         #**********************************************************************
         #=====================  Start of command parsing  =====================
@@ -1182,6 +1311,10 @@ def process():
             stackfun = cmddict.get(cmd or 'POS')
 
         if stackfun:
+            # Recording of actual validated command unless in exclude list
+            if savefile!= None and cmd not in saveexcl and cmd!="PCALL":
+                savecmd(line)
+
             # Look up command in dictionary to get string with argtypes andhelp texts
             helptext, argtypes, argisopt, function = stackfun[:4]
 
@@ -1193,31 +1326,27 @@ def process():
             # text: optional error message
             if parser.parse():
                 results = function(*parser.arglist)  # * = unpack list to call arguments
-
                 if isinstance(results, bool):  # Only flag is returned
-                    if results:
-                        bs.scr.echo(bs.MSG_OK, sender_id)
-                    else:
+                    if not results:
                         if not args:
-                            bs.scr.echo(helptext, sender_id)
+                            echotext = helptext
                         else:
-                            bs.scr.echo("Syntax error: " + helptext, sender_id)
+                            echotext = "Syntax error: " + helptext
+                            echoflags = bs.BS_FUNERR
 
                 elif isinstance(results, tuple) and results:
                     if not results[0]:
-                        bs.scr.echo("Syntax error: " + (helptext if len(results) < 2 else ""), sender_id)
+                        echoflags = bs.BS_FUNERR
+                        echotext = "Syntax error: " + (helptext if len(results) < 2 else "")
                     # Maybe there is also an error/info message returned?
                     if len(results) >= 2:
-                        prefix = "" if results[0] == bs.SIMPLE_ECHO \
-                            else "{}: ".format(cmd)
-                        bs.scr.echo("{}{}".format(prefix, results[1]), sender_id)
+                        echotext += "{}: {}".format(cmd, results[1])
 
             else:  # syntax error:
-                bs.scr.echo(parser.error)
-                bs.scr.echo(helptext, sender_id)
+                echoflags = bs.BS_ARGERR
+                echotext = parser.error + '\n' + helptext
                 print("Error in processing arguments:")
                 print(line)
-                continue
 
         #----------------------------------------------------------------------
         # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -1226,23 +1355,27 @@ def process():
             nplus = cmd.count("+") + cmd.count("=")  # = equals + (same key)
             nmin  = cmd.count("-")
             bs.scr.zoom(sqrt(2) ** (nplus - nmin), absolute=False)
+            if not "ZOOM" in saveexcl:
+                savecmd(line)
 
         #-------------------------------------------------------------------
         # Command not found
         #-------------------------------------------------------------------
         else:
+            echoflags = bs.BS_CMDERR
             if not args:
-                bs.scr.echo("Unknown command or aircraft: " + cmd, sender_id)
+                echotext = "Unknown command or aircraft: " + cmd
             else:
-                bs.scr.echo("Unknown command: " + cmd, sender_id)
+                echotext = "Unknown command: " + cmd
 
+        # Always return on command
+        bs.scr.echo(echotext, echoflags)
         #**********************************************************************
         #======================  End of command branches ======================
         #**********************************************************************
 
     # End of for-loop of cmdstack
     del cmdstack[:]
-    return
 
 
 class Argparser:
@@ -1428,8 +1561,7 @@ class Argparser:
             elif argtype == "latlon":
                 # Set default reference lat,lon for duplicate name in navdb to screen
                 if Argparser.reflat < -180.:  # No reference avaiable yet: use screen center
-                    Argparser.reflat = bs.scr.ctrlat
-                    Argparser.reflon = bs.scr.ctrlon
+                    Argparser.reflat, Argparser.reflon = bs.scr.getviewctr()
 
                 success, posobj = txt2pos(name, Argparser.reflat, Argparser.reflon)
 
@@ -1457,7 +1589,7 @@ class Argparser:
         elif argtype == "pandir":
             pandir = curarg
             if pandir in ["LEFT", "RIGHT", "UP", "ABOVE", "RIGHT", "DOWN"]:
-                result  = pandir
+                result  = [pandir]
             else:
                 self.error += pandir + ' is not a valid pan argument'
                 return False
@@ -1527,7 +1659,7 @@ class Argparser:
 def distcalc(lat0, lon0, lat1, lon1):
     try:
         qdr, dist = geo.qdrdist(lat0, lon0, lat1, lon1)
-        return bs.SIMPLE_ECHO, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
+        return True, "QDR = %.2f deg, Dist = %.3f nm" % (qdr % 360., dist)
     except:
         return False, 'Error in dist calculation.'
 

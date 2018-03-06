@@ -2,19 +2,22 @@
 """ Overall BlueSky start script """
 from __future__ import print_function
 from bluesky import settings
+import bluesky as bs
 
 print("   *****   BlueSky Open ATM simulator *****")
 print("Distributed under GNU General Public License v3")
 
 if settings.gui == 'pygame':
-    import BlueSky_pygame as bs
+    from BlueSky_pygame import start, cleanup
 elif settings.gui == 'qtgl':
-    import BlueSky_qtgl as bs
+    from BlueSky_qtgl import start, cleanup
 else:
     import sys
     print('Unknown gui type:', settings.gui)
     sys.exit(0)
 
 # Start the main loop. When debugging in python interactive mode,
-# relevant objects are available in bs namespace (e.g., bs.gui, bs.sim)
-bs.main_loop()
+# relevant objects are available in bs namespace (e.g., bs.scr, bs.sim)
+start()
+
+cleanup()

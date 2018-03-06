@@ -1,30 +1,26 @@
 """ BlueSky implementation of a timer that can periodically trigger functions."""
 import time
-try:
-    from PyQt5.QtCore import QObject, pyqtSignal
-except ImportError:
-    from PyQt4.QtCore import QObject, pyqtSignal
+from bluesky.tools.signal import Signal
 
 
-class Timer(QObject):
-    timeout = pyqtSignal()
-    timers  = None
+class Timer(object):
+    """ A timer can be used to periodically trigger functions."""
+    # A list with all of the instantiated timers
+    timers  = []
 
     def __init__(self):
         super(Timer, self).__init__()
-        self.interval = 0
+        self.timeout  = Signal()
+        self.interval = 0.0
         self.t_next   = 0.0
 
     def start(self, interval):
-        if Timer.timers is None:
-            Timer.timers = []
-
         Timer.timers.append(self)
         self.interval = float(interval) * 1e-3
         self.t_next   = time.time() + self.interval
 
     @classmethod
-    def updateTimers(cls):
+    def update_timers(cls):
         tcur = time.time()
         for timer in cls.timers:
             if tcur >= timer.t_next:
