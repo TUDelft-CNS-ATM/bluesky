@@ -134,6 +134,7 @@ def set_variable_defaults(**kwargs):
 gui = ''
 initialized = init()
 
+### Parse command-line arguments ###
 # This file is used to start the gui mainloop, a single node simulation loop,
 # or, in case of the pygame version, both.
 is_client = ('--client' in sys.argv)
@@ -141,3 +142,5 @@ is_headless = ('--headless' in sys.argv)
 is_sim = ('--node' in sys.argv) or gui == 'pygame'
 is_gui = not (is_sim or is_headless) or gui == 'pygame'
 start_server = not (is_client or is_sim or gui == 'pygame')
+if ('--discoverable' in sys.argv or is_headless):
+    enable_discovery = True

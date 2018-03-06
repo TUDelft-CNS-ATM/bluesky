@@ -23,7 +23,7 @@ else:
     from threading import Thread as ServerBase
 
 # Register settings defaults
-bs.settings.set_variable_defaults(max_nnodes=cpu_count(), event_port=9000, stream_port=9001)
+bs.settings.set_variable_defaults(max_nnodes=cpu_count(), event_port=9000, stream_port=9001, enable_discovery=False)
 
 def split_scenarios(scentime, scencmd):
     ''' Split the contents of a batch file into individual scenarios. '''
@@ -40,14 +40,15 @@ class Server(ServerBase):
     def __init__(self):
         super(Server, self).__init__()
         self.spawned_processes = list()
-        self.running           = True
-        self.max_nnodes        = min(cpu_count(), bs.settings.max_nnodes)
-        self.scenarios         = []
-        self.host_id           = b'\x00' + os.urandom(4)
-        self.clients           = []
-        self.workers           = []
-        self.servers           = {self.host_id : dict(route=[], nodes=self.workers)}
-        self.avail_workers     = dict()
+        self.running = True
+        self.max_nnodes = min(cpu_count(), bs.settings.max_nnodes)
+        self.scenarios = []
+        self.host_id = b'\x00' + os.urandom(4)
+        self.clients = []
+        self.workers = []
+        self.servers = {self.host_id : dict(route=[], nodes=self.workers)}
+        self.avail_workers = dict()
+        self.discovery = None
 
     def sendScenario(self, worker_id):
         # Send a new scenario to the target sim process
@@ -73,7 +74,8 @@ class Server(ServerBase):
         self.fe_event.bind('tcp://*:{}'.format(bs.settings.event_port))
         self.fe_stream = ctx.socket(zmq.XPUB)
         self.fe_stream.bind('tcp://*:{}'.format(bs.settings.stream_port))
-
+        print('Accepting event connections on port {}, and stream connections on port {}'.format(
+            bs.settings.event_port, bs.settings.stream_port))
         # Create connection points for sim workers
         self.be_event  = ctx.socket(zmq.ROUTER)
         self.be_event.setsockopt(zmq.IDENTITY, self.host_id)
@@ -81,15 +83,17 @@ class Server(ServerBase):
         self.be_stream = ctx.socket(zmq.XSUB)
         self.be_stream.bind('tcp://*:10001')
 
-        self.discovery = Discovery(self.host_id, is_client=False)
-
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
         poller.register(self.fe_event, zmq.POLLIN)
         poller.register(self.be_event, zmq.POLLIN)
         poller.register(self.be_stream, zmq.POLLIN)
         poller.register(self.fe_stream, zmq.POLLIN)
-        poller.register(self.discovery.handle, zmq.POLLIN)
+
+        if bs.settings.enable_discovery:
+            self.discovery = Discovery(self.host_id, is_client=False)
+            poller.register(self.discovery.handle, zmq.POLLIN)
+        print('Discovery is {}abled'.format('en' if bs.settings.enable_discovery else 'dis'))
 
         # Start the first simulation node
         self.addnodes()
