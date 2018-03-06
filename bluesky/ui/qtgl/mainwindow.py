@@ -3,7 +3,7 @@ import platform
 import os
 try:
     from PyQt5.QtWidgets import QApplication as app
-    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
+    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
@@ -11,7 +11,7 @@ try:
     from PyQt5 import uic
 except ImportError:
     from PyQt4.QtGui import QApplication as app
-    from PyQt4.QtCore import Qt, pyqtSlot, QTimer, QSize
+    from PyQt4.QtCore import Qt, pyqtSlot, QTimer, QSize, QEvent
     from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
         QItemSelectionModel, QTreeWidgetItem, QPushButton, QFileDialog, \
         QDialog, QTreeWidget, QVBoxLayout, QDialogButtonBox
@@ -32,8 +32,8 @@ is_osx = platform.system() == 'Darwin'
 
 # Register settings defaults
 bs.settings.set_variable_defaults(gfx_path='data/graphics',
-                               stack_text_color=(0, 255, 0),
-                               stack_background_color=(102, 102, 102))
+                                  stack_text_color=(0, 255, 0),
+                                  stack_background_color=(102, 102, 102))
 
 fg = bs.settings.stack_text_color
 bg = bs.settings.stack_background_color
@@ -169,9 +169,12 @@ class MainWindow(QMainWindow):
 
         self.nconf_cur = self.nconf_tot = self.nlos_cur = self.nlos_tot = 0
 
-        # app.instance().aboutToQuit.connect(self.cleanUp)
+        app.instance().installEventFilter(self)
 
-    def keyPressEvent(self, event):
+    def eventFilter(self, widget, event):
+        if event.type() != QEvent.KeyPress:
+            return False
+
         if event.modifiers() & Qt.ShiftModifier \
                 and event.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
@@ -197,6 +200,9 @@ class MainWindow(QMainWindow):
         else:
             # All other events go to the BlueSky console
             self.console.keyPressEvent(event)
+
+        event.accept()
+        return True
 
     def closeEvent(self, event=None):
         # Send quit to server if we own the host
