@@ -216,7 +216,7 @@ class Server(ServerBase):
                             self.addnodes(reqd_nnodes)
                         # ECHO the results to the calling client
                         eventname = b'ECHO'
-                        data = msgpack.packb(echomsg, use_bin_type=True)
+                        data = msgpack.packb(dict(text=echomsg, flags=0), use_bin_type=True)
 
                     # ============================================================
                     # If we get here there is a message that needs to be forwarded
