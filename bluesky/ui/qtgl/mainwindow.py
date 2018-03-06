@@ -66,18 +66,24 @@ class DiscoveryDialog(QDialog):
         bs.net.server_discovered.connect(self.add_srv)
 
     def add_srv(self, address, ports):
+        for host in self.hosts:
+            if address == host.address and ports == host.ports:
+                # We already know this server, skip
+                return
         host = QTreeWidgetItem(self.serverview)
-        host.ip_address = address
+        host.address = address
         host.ports = ports
         host.hostname = 'This computer' if address == get_ownip() else address
         host.setText(0, host.hostname)
 
         host.setText(1, '{},{}'.format(*ports))
+        self.hosts.append(host)
 
     def on_accept(self):
         host = self.serverview.currentItem()
         if host:
-            hostname = host.ip_address
+            bs.net.stop_discovery()
+            hostname = host.address
             eport, sport = host.ports
             bs.net.connect(hostname=hostname, event_port=eport, stream_port=sport)
             self.close()

@@ -21,7 +21,7 @@ class GuiClient(Client):
         self.nodedata = dict()
         self.timer = None
         self.ref_nodedata = nodeData()
-
+        self.discovery_timer = None
         self.timer = QTimer()
         self.timer.timeout.connect(self.receive)
         self.timer.start(20)
@@ -31,6 +31,17 @@ class GuiClient(Client):
         self.actnodedata_changed = Signal()
         self.event_received      = Signal()
         self.stream_received     = Signal()
+
+    def start_discovery(self):
+        super(GuiClient, self).start_discovery()
+        self.discovery_timer = QTimer()
+        self.discovery_timer.timeout.connect(self.discovery.send_request)
+        self.discovery_timer.start(3000)
+
+    def stop_discovery(self):
+        self.discovery_timer.stop()
+        self.discovery_timer = None
+        super(GuiClient, self).stop_discovery()
 
     def event(self, name, data, sender_id):
         sender_data = self.get_nodedata(sender_id)

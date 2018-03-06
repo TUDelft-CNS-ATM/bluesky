@@ -31,9 +31,15 @@ class Client(object):
         bluesky.net = self
 
     def start_discovery(self):
-        self.discovery = Discovery(self.client_id)
-        self.poller.register(self.discovery.handle, zmq.POLLIN)
-        self.discovery.send_request()
+        if not self.discovery:
+            self.discovery = Discovery(self.client_id)
+            self.poller.register(self.discovery.handle, zmq.POLLIN)
+            self.discovery.send_request()
+
+    def stop_discovery(self):
+        if self.discovery:
+            self.poller.unregister(self.discovery.handle)
+            self.discovery = None
 
     def get_hostid(self):
         return self.host_id
