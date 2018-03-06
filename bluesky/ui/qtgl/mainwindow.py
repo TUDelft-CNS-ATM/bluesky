@@ -48,6 +48,7 @@ class DiscoveryDialog(QDialog):
     def __init__(self, parent=None):
         super(DiscoveryDialog, self).__init__(parent)
         self.setModal(True)
+        self.setMinimumSize(200,200) # To prevent Geometry error
 
         layout = QVBoxLayout()
         self.setLayout(layout)
