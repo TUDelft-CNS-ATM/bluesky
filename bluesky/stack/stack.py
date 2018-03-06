@@ -1472,17 +1472,9 @@ class Argparser:
             result = [self.argstring]
             self.argstring = ''
 
-        # Empty arg or wildcard
-        elif curarg == "" or curarg == "*":
-            # If there was a matching additional argument stored previously use that one
-            if argtype in self.additional and curarg == "*":
-                result  = [self.additional[argtype]]
-            else:
-                # Otherwise result is None
-                result  = [None]
-
         elif argtype == "acid":  # aircraft id => parse index
             idx = bs.traf.id2idx(curarg)
+
             if idx < 0:
                 self.error += curarg + " not found"
                 return False
@@ -1492,6 +1484,16 @@ class Argparser:
             Argparser.reflon = bs.traf.lon[idx]
             self.refac   = idx
             result  = [idx]
+
+        # Empty arg or wildcard
+        elif curarg == "" or curarg == "*":
+            # If there was a matching additional argument stored previously use that one
+            if argtype in self.additional and curarg == "*":
+                result  = [self.additional[argtype]]
+            else:
+                # Otherwise result is None
+                result  = [None]
+
 
         elif argtype == "wpinroute":  # return text in upper case
             wpname = curarg
@@ -1536,7 +1538,11 @@ class Argparser:
             name         = curarg
 
             # Try aircraft first: translate a/c id into a valid position text with a lat,lon
-            idx = bs.traf.id2idx(name)
+            if name!="*":
+                idx = bs.traf.id2idx(name)
+            else:
+                idx = -1
+
             if idx >= 0:
                 name     = str(bs.traf.lat[idx]) + "," + str(bs.traf.lon[idx])
 
