@@ -9,7 +9,7 @@ import msgpack
 # Local imports
 import bluesky as bs
 
-from .udplib import UDP
+from .discovery import Discovery
 
 if bs.settings.is_headless:
     class ServerBase:
@@ -81,7 +81,7 @@ class Server(ServerBase):
         self.be_stream = ctx.socket(zmq.XSUB)
         self.be_stream.bind('tcp://*:10001')
 
-        self.discovery = UDP(11000)
+        self.discovery = Discovery(self.host_id, is_client=False)
 
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
@@ -111,16 +111,12 @@ class Server(ServerBase):
                 if sock == self.discovery.handle.fileno():
                     print('poller triggered on discovery')
                     # This is a discovery message
-                    msg, addr = self.discovery.recv(10)
-                    is_request = (msg[6:] == b'rqst')
-                    if msg[5] == b'c':
-                        print('Received from client:')
-                    elif msg[5] == b's':
-                        print('Received from server:')
-                    print('msg =', msg, 'addr =', addr)
-                    if msg != self.host_id and is_request:
-                        self.discovery.send(self.host_id + b's' + bytearray(9000, 9001))
-                        print('receiving {} from {}'.format(msg, addr))
+                    dmsg = self.discovery.recv_reqreply()                    
+                    print('Received', dmsg)
+                    if dmsg.conn_id != self.host_id and dmsg.is_request:
+                        # This is a request from someone else: send a reply
+                        print('Sending reply')
+                        self.discovery.send_reply(9000, 9001)
                     continue
                 # Receive the message
                 msg = sock.recv_multipart()
