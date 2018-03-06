@@ -1,0 +1,7 @@
+# VALKO departure from RW18L
+# Needs NAV-EHAM.scn to be called first for defintion of EHnnn waypoints
+
+00:00:00.00>%0 ADDWPT EH073
+00:00:00.00>%0 ADDWPT EH009,2500
+00:00:00.00>%0 ADDWPT EH050
+00:00:00.00>%0 ADDWPT VALKO,FL60

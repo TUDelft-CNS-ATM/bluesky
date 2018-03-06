@@ -988,6 +988,9 @@ def sched_cmd(time, args, relative=False):
 def openfile(fname, *args, mergeWithExisting=False):
     global scentime, scencmd
 
+    print ("openfile:",fname)
+
+    orgfname = fname # Save original filename for if path spalitting fails (relative path)
 
     if len(args)>0 and (args[0]=="ABS" or args[0]=="REL"):
         absrel = args[0]
@@ -999,8 +1002,7 @@ def openfile(fname, *args, mergeWithExisting=False):
         absrel = "REL" # default relative to the time of call
         arglst = args
 
-    # Collect arguments to be used in called scenario file
-
+    # Check whether file exists
 
     # Split the incoming filename into a path, a filename and an extension
     path, fname = os.path.split(os.path.normpath(fname))
@@ -1011,14 +1013,20 @@ def openfile(fname, *args, mergeWithExisting=False):
     # The entire filename, possibly with added path and extension
     fname_full = os.path.join(path, base + ext)
 
-    print("Opening " + fname_full)
-
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
     t_offset = bs.sim.simt if absrel == 'REL' else 0.0
 
+    # Check for relative path, then it contains a path but we need to prefix scenario folder
     if not os.path.exists(fname_full):
-        return False, "Error: cannot find file: " + fname_full
+        if not ".scn" in orgfname.lower():
+            orgfname = orgfname+".scn"
+
+        if os.path.exists(settings.scenario_path+"/"+orgfname):
+            fname_full = settings.scenario_path+"/"+orgfname
+        else:
+            print ("Openfile error: Cannot file",fname_full)
+            return False, "Error: cannot find file: " + fname_full
 
     # Split scenario file line in times and commands
     if not mergeWithExisting:
