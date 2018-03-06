@@ -24,7 +24,7 @@ class Simulation:
     """
 
     # simulation modes
-    init, op, hold, end = list(range(4))
+    init, hold, op, end = list(range(4))
 
     def __init__(self):
         # simmode
@@ -60,7 +60,7 @@ class Simulation:
         self.syst = time.clock()
 
         if self.mode == Simulation.init:
-            self.op()
+            self.operate()
 
         # Closk for run(=op) mode
         if self.mode == Simulation.op:
@@ -152,7 +152,7 @@ class Simulation:
 #        datalog.save()
         return
 
-    def op(self):  # Back to op-mode: run after HOLD/PAUSE
+    def operate(self):  # Back to op-mode: run after HOLD/PAUSE
         self.mode  = self.op
         self.syst  = time.clock()
         self.syst0 = self.syst-self.simt
