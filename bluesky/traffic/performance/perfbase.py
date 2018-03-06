@@ -34,7 +34,7 @@ class PerfBase(TrafficArrays):
         """implement this methods"""
         pass
 
-    def limits(self, indent_v, indent_vs, indent_h):
+    def limits(self, intent_v, intent_vs, intent_h):
         """implement this methods"""
         pass
 

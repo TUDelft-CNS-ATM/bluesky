@@ -26,6 +26,7 @@ class PerfNAP(PerfBase):
         self.coeff = coeff.Coefficient()
 
         with RegisterElementParameters(self):
+            self.actypes = np.array([], dtype=str)
             self.lifttype = np.array([])  # lift type, fixwing [1] or rotor [2]
             self.engnum = np.array([])  # number of engines
             self.engthrust = np.array([])  # static engine thrust
@@ -35,12 +36,31 @@ class PerfNAP(PerfBase):
             self.ffapp = np.array([])  # icao fuel flows appraoch
             self.ffco = np.array([])  # icao fuel flows climbout
             self.ffto = np.array([])  # icao fuel flows takeoff
+            self.engpower = np.array([])    # engine power, rotor ac
 
-    def create(self, n=1, lifttype='fixwing'):
+    def create(self, n=1):
         super(PerfNAP, self).create(n)
 
-        if lifttype.lower() == 'fixwing':
-            newactypes = []
+        actype = bs.traf.type[-n]  # cautious! considering mcreate same type
+
+        print(actype, self.coeff.acs_rotor.keys())
+
+        # check fixwing or rotor from ac cache
+        newactypes = []
+        if actype.upper() in list(self.coeff.acs_rotor.keys()):
+            for actype in bs.traf.type[-n:]:
+                # convert to known aircraft type - rotor
+                avaliable = list(self.coeff.acs_rotor.keys())
+                if actype not in avaliable:
+                    actype = 'EC35'
+                newactypes.append(actype)
+
+            params = self.coeff.get_initial_values(newactypes, lifttype=coeff.LIFT_ROTOR)
+            self.lifttype[-n:] = coeff.LIFT_ROTOR
+            self.mass[-n:] = 0.5 * (params[:, 0] + params[:, 1])
+            self.engnum[-n:] = params[:, 2].astype(int)
+            self.engpower[-n:] = params[:, 3]
+        else:
             fficaos = []
 
             for actype in bs.traf.type[-n:]:
@@ -57,7 +77,6 @@ class PerfNAP(PerfBase):
 
             params = self.coeff.get_initial_values(newactypes, lifttype=coeff.LIFT_FIXWING)
 
-            self.actype[-n:] = newactypes
             self.lifttype[-n:] = coeff.LIFT_FIXWING
 
             fficaos = np.array(fficaos)
@@ -74,21 +93,8 @@ class PerfNAP(PerfBase):
             self.engthrust[-n:] = params[:, 5]
             self.engbpr[-n:] = params[:, 6]
 
-        elif lifttype.lower() == 'rotor':
-            newactypes = []
-
-            for actype in bs.traf.type[-n:]:
-                # convert to known aircraft type - rotor
-                avaliable = list(self.coeff.acs_rotor.keys())
-                if actype not in avaliable:
-                    actype = 'EC35'
-                newactypes.append(actype)
-
-            params = self.coeff.get_initial_values(newactypes, lifttype=coeff.LIFT_ROTOR)
-            self.lifttype[-n:] = coeff.LIFT_ROTOR
-            self.mass[-n:] = 0.5 * (params[:, 1] + params[:, 2])
-            self.engnum[-n:] = params[:, 3].astype(int)
-            self.engpower[-n:] = params[:, 4]
+        # append update actypes, after removing unkown types
+        self.actypes[-n:] = newactypes
 
 
     def delete(self, idx):
@@ -102,7 +108,7 @@ class PerfNAP(PerfBase):
         self.phase = ph.get(self.lifttype, bs.traf.tas, bs.traf.vs, bs.traf.alt, unit='SI')
 
         # update limits, based on phase change
-        limits = self.__construct_lim_matrix(self.actype, self.phase)
+        limits = self.__construct_limit_matrix(self.actypes, self.phase)
         self.vmin = limits[:, 0]
         self.vmax = limits[:, 1]
         self.vsmin = limits[:, 2]
@@ -132,29 +138,33 @@ class PerfNAP(PerfBase):
 
         return None
 
-    def limits(self, indent_v, indent_vs, indent_h):
+    def limits(self, intent_v_tas, intent_vs, intent_h):
         """ apply limits on indent speed, vertical speed, and altitude """
-        super(PerfNAP, self).limits(indent_v, indent_vs, indent_h)
+        super(PerfNAP, self).limits(intent_v_tas, intent_vs, intent_h)
 
         # if isinstance(self.vmin, np.ndarray):
         #     pass
         # else:
         #     self.update()
 
-        indent_v = aero.vtas2cas(indent_v, indent_h)
-        allow_v = np.where(indent_v < self.vmin, self.vmin, indent_v)
-        allow_v = np.where(indent_v > self.vmax, self.vmax, indent_v)
-        allow_v = aero.vcas2tas(indent_v, indent_h)
+        allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
 
-        allow_vs = np.where(indent_vs < self.vsmin, self.vsmin, indent_vs)
-        allow_vs = np.where(indent_vs > self.vsmax, self.vsmax, indent_vs)
+        intent_v_cas = aero.vtas2cas(intent_v_tas, allow_h)
+        allow_v_cas = np.where(intent_v_cas < self.vmin, self.vmin, intent_v_cas)
+        allow_v_cas = np.where(intent_v_cas > self.vmax, self.vmax, allow_v_cas)
+        allow_v_tas = aero.vcas2tas(allow_v_cas, allow_h)
 
-        allow_h = np.where(indent_h > self.hmax, self.hmax, indent_h)
+        allow_vs = np.where(intent_vs < self.vsmin, self.vsmin, intent_vs)
+        allow_vs = np.where(intent_vs > self.vsmax, self.vsmax, allow_vs)
 
-        return allow_v, allow_vs, allow_h
+        # print(intent_h, allow_h, self.hmax)
+        # print(intent_v_cas, allow_v_cas, self.vmin, self.vmax)
+        # print(self.coeff.limits_rotor['EC35'])
+
+        return allow_v_tas, allow_vs, allow_h
 
 
-    def __construct_lim_matrix(self, actypes, phases):
+    def __construct_limit_matrix(self, actypes, phases):
         """Compute limitations base on aircraft model and phases
 
         Args:
@@ -205,7 +215,6 @@ class PerfNAP(PerfBase):
             limits[:, 2] = np.where((actypes==mdl), self.coeff.limits_rotor[mdl]['vsmin'], limits[:, 2])
             limits[:, 3] = np.where((actypes==mdl), self.coeff.limits_rotor[mdl]['vsmax'], limits[:, 3])
             limits[:, 4] = np.where((actypes==mdl), self.coeff.limits_rotor[mdl]['hmax'], limits[:, 4])
-
         return limits
 
     def engchange(self, acid, engid=None):

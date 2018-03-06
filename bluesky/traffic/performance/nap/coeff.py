@@ -113,7 +113,7 @@ class Coefficient():
             limits_rotor[mdl] = {}
             limits_rotor[mdl]['vmin'] = ac['envelop']['v_min']
             limits_rotor[mdl]['vmax'] = ac['envelop']['v_max']
-            limits_rotor[mdl]['vsmax'] = ac['envelop']['vs_min']
+            limits_rotor[mdl]['vsmin'] = ac['envelop']['vs_min']
             limits_rotor[mdl]['vsmax'] = ac['envelop']['vs_max']
             limits_rotor[mdl]['hmax'] = ac['envelop']['h_max']
         return limits_rotor
@@ -177,16 +177,15 @@ class Coefficient():
 
         elif lifttype == LIFT_ROTOR :
             n = len(actypes)
-            params = np.zeros((n, 5))
+            params = np.zeros((n, 4))
 
             unique_ac_mdls = np.unique(actypes)
 
             for mdl in unique_ac_mdls:
                 # in order: wing span, operation empty weight, maximum takeoff weight, num of engines, engine power
-                params[:, 0] = np.where(actypes==mdl, self.acs_fixwing[mdl]['ws'], params[:, 0])
-                params[:, 1] = np.where(actypes==mdl, self.acs_fixwing[mdl]['oew'], params[:, 1])
-                params[:, 2] = np.where(actypes==mdl, self.acs_fixwing[mdl]['mtow'], params[:, 2])
-                params[:, 3] = np.where(actypes==mdl, self.acs_fixwing[mdl]['n_engines'], params[:, 3])
-                params[:, 4] = np.where(actypes==mdl, self.acs_fixwing[mdl]['engines'][0][1], params[:, 4])
+                params[:, 0] = np.where(actypes==mdl, self.acs_rotor[mdl]['oew'], params[:, 0])
+                params[:, 1] = np.where(actypes==mdl, self.acs_rotor[mdl]['mtow'], params[:, 1])
+                params[:, 2] = np.where(actypes==mdl, self.acs_rotor[mdl]['n_engines'], params[:, 2])
+                params[:, 3] = np.where(actypes==mdl, self.acs_rotor[mdl]['engines'][0][1], params[:, 3])
 
         return params

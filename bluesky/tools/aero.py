@@ -128,16 +128,22 @@ def vtas2eas(tas, h):
 def vcas2tas(cas, h):
     """ cas2tas conversion both m/s """
     p, rho, T = vatmos(h)
-    qdyn      = p0*((1.+rho0*cas*cas/(7.*p0))**3.5-1.)
-    tas       = np.sqrt(7.*p/rho*((1.+qdyn/p)**(2./7.)-1.))
+    qdyn = p0*((1.+rho0*cas*cas/(7.*p0))**3.5-1.)
+    tas = np.sqrt(7.*p/rho*((1.+qdyn/p)**(2./7.)-1.))
+
+    # cope with negative speed
+    tas = np.where(cas<0, -1*tas, tas)
     return tas
 
 
 def vtas2cas(tas, h):
     """ tas2cas conversion both m/s """
     p, rho, T = vatmos(h)
-    qdyn      = p*((1.+rho*tas*tas/(7.*p))**3.5-1.)
-    cas       = np.sqrt(7.*p0/rho0*((qdyn/p0+1.)**(2./7.)-1.))
+    qdyn = p*((1.+rho*tas*tas/(7.*p))**3.5-1.)
+    cas = np.sqrt(7.*p0/rho0*((qdyn/p0+1.)**(2./7.)-1.))
+
+    # cope with negative speed
+    cas = np.where(tas<0, -1*cas, cas)
     return cas
 
 
@@ -333,16 +339,18 @@ def tas2eas(tas, h):
 def cas2tas(cas, h):
     """ cas2tas conversion both m/s h in m """
     p, rho, T = atmos(h)
-    qdyn      = p0*((1.+rho0*cas*cas/(7.*p0))**3.5-1.)
-    tas       = sqrt(7.*p/rho*((1.+qdyn/p)**(2./7.)-1.))
+    qdyn = p0*((1.+rho0*cas*cas/(7.*p0))**3.5-1.)
+    tas = sqrt(7.*p/rho*((1.+qdyn/p)**(2./7.)-1.))
+    tas = -1 * tas if cas < 0 else tas
     return tas
 
 
 def tas2cas(tas, h):
     """ tas2cas conversion both m/s """
     p, rho, T = atmos(h)
-    qdyn      = p*((1.+rho*tas*tas/(7.*p))**3.5-1.)
-    cas       = sqrt(7.*p0/rho0*((qdyn/p0+1.)**(2./7.)-1.))
+    qdyn = p*((1.+rho*tas*tas/(7.*p))**3.5-1.)
+    cas = sqrt(7.*p0/rho0*((qdyn/p0+1.)**(2./7.)-1.))
+    cas = -1 * cas if tas < 0 else cas
     return cas
 
 
