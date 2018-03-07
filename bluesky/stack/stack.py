@@ -1231,7 +1231,7 @@ def saveic(fname=None):
             cmdline = "ADDWPT " + bs.traf.id[i] + " "
             wpname = route.wpname[iwp]
             if wpname[:len(bs.traf.id[i])] == bs.traf.id[i]:
-                wpname = repr(route.lat[iwp]) + "," + repr(route.lon[iwp])
+                wpname = repr(route.wplat[iwp]) + "," + repr(route.wplon[iwp])
             cmdline = cmdline + wpname + ","
 
             if route.wpalt[iwp] >= 0.:

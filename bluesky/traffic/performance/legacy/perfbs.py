@@ -381,18 +381,13 @@ class PerfBS(TrafficArrays):
 
         return
 
-    def acceleration(self, simdt):
+    def acceleration(self):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,
         # landing aircraft use ground deceleration, others use standard acceleration
 
-        ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + \
-                     (self.phase==PHASE['AP']) + (self.phase==PHASE['LD']) )                         \
-                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), bs.traf.ax) + \
-             ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight))      \
-                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), self.gr_acc) +  \
-              (self.phase==PHASE['GD'])*self.post_flight                                        \
-                 * np.minimum(abs(bs.traf.delspd / max(1e-8,simdt)), self.gr_dec)
-
+        ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + (self.phase==PHASE['AP']) + (self.phase==PHASE['LD'])) * 0.5 \
+                + ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
+                +  (self.phase==PHASE['GD']) * self.post_flight * self.gr_dec
 
         return ax
 

@@ -73,10 +73,13 @@ class Condition():
         #print("addcondition: self.ncond",self.ncond)
 
     def delcondition(self,idelarray): # Delete conditions with indices in this list
-        print("delcondition: idelarray=", idelarray)
-        print("self.ncond=", self.ncond)
-        print("self.id =", self.id)
-        print("self.cmd=", self.cmd)
+        if self.ncond==0:
+            return
+
+        #print("delcondition: idelarray=", idelarray)
+        #print("self.ncond=", self.ncond)
+        #print("self.id =", self.id)
+        #print("self.cmd=", self.cmd)
 
         self.id       = np.delete(self.id, idelarray)
         self.idx      = np.delete(self.idx, idelarray)
@@ -94,7 +97,6 @@ class Condition():
         # Adjust number of conditions
         self.ncond = len(self.id)
 
-
         if self.ncond!=len(self.cmd):
             print ("self.ncond=",self.ncond)
             print ("self.cmd=",self.cmd)
@@ -104,6 +106,9 @@ class Condition():
 #        wrongidx = np.where(self.id!=np.chararray(bs.traf.id))
 
     def delac(self, acidx):
+        if self.ncond==0:
+            return
+
         # Check one or more?
         if type(acidx)==int:
             self.deloneac(acidx)
@@ -112,12 +117,13 @@ class Condition():
                 self.deloneac(idx)
 
     def deloneac(self,acidx): # Delete one aircraft from conditoon database
+
         # Take care of deleted aircraft condition
         idel = np.where(self.idx==acidx)[0]
 
         if len(idel)>0:
             self.delcondition(idel)
 
-        # Update indeces above
-        self.idx[self.idx<=acidx] -=1 # Reduce indices higer than deleted a/c by one
+        # Update indices above
+        self.idx = np.where(self.idx <= acidx, self.idx, self.idx - 1)
 
