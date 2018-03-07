@@ -53,7 +53,6 @@ def start():
         print ("Install using e.g. pip install",modulename)
 
 
-
 def cleanup():
     """
     Tear-down BlueSky
