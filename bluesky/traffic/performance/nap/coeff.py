@@ -92,7 +92,7 @@ class Coefficient():
                 limits_fixwing[mdl]['crosscl'] = df.loc['cl_h_mach_const']['opt']
                 limits_fixwing[mdl]['crossde'] = df.loc['de_h_cas_const']['opt']
 
-                limits_fixwing[mdl]['amaxhoriz'] = df.loc['to_acc_tof']['max']
+                limits_fixwing[mdl]['axmax'] = df.loc['to_acc_tof']['max']
 
                 limits_fixwing[mdl]['vsmax'] = max(df.loc['ic_vh_avg']['max'],
                                            df.loc['cl_vh_avg_pre_cas']['max'],

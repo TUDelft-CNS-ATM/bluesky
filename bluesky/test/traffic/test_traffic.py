@@ -16,7 +16,7 @@ def test_traffic_create_missingarg_fail(traffic_):
     Test create command without arguments.
     Expect error message.
     """
-    ok, _msg = traffic_.oldcreate()
+    ok, _msg = traffic_.create()
     assert not ok
 
 
@@ -102,19 +102,19 @@ def test_traffic_create(traffic_):
     """
     ntraf = traffic_.ntraf
 
-    result = traffic_.oldcreate(
+    result = traffic_.create(
         aclat=0.0, aclon=50.0, achdg=270, acalt=2000, casmach=200)
     validate_create(
         traffic_, result,
         ntraf + 1, 'KL204', 'B744', 0.0, 50.0, 270, 2000, 200)
 
-    result = traffic_.oldcreate(
+    result = traffic_.create(
         aclat=-10.0, aclon=60.0, achdg=180, acalt=1000, casmach=100)
     validate_create(
         traffic_, result,
         ntraf + 2, 'KL205', 'B744', -10.0, 60.0, 180, 1000, 100)
 
-    result = traffic_.oldcreate(
+    result = traffic_.create(
         'BA1', 'A320', 10.0, 55.0, 90, 3000, 300)
     validate_create(
         traffic_, result,
