@@ -91,7 +91,7 @@ class Autopilot(TrafficArrays):
                 if alt >= -0.01:
                     bs.traf.actwp.nextaltco[i] = alt #[m]
 
-                if spd > 0. and bs.traf.swlnav[i] and bs.traf.swvnav[i]:
+                if spd > -990. and bs.traf.swlnav[i] and bs.traf.swvnav[i]:
 
                     # Valid speed and LNAV and VNAV ap modes are on
                     # Depending on crossover altitude we fix CAS or Mach
