@@ -24,77 +24,63 @@ class PerfNAP(PerfBase):
         self.eng_warning = False        # aircraft engine to default warning
 
         self.coeff = coeff.Coefficient()
+        self.n_ac = 0
 
         with RegisterElementParameters(self):
             self.actypes = np.array([], dtype=str)
             self.lifttype = np.array([])  # lift type, fixwing [1] or rotor [2]
-            self.engnum = np.array([])  # number of engines
+            self.engnum = np.array([], dtype=int)  # number of engines
             self.engthrust = np.array([])  # static engine thrust
             self.engbpr = np.array([])  # engine bypass ratio
             self.thrustratio = np.array([])  # thrust ratio at current alt spd
-            self.ffidl = np.array([])  # icao fuel flows idle
-            self.ffapp = np.array([])  # icao fuel flows appraoch
-            self.ffco = np.array([])  # icao fuel flows climbout
-            self.ffto = np.array([])  # icao fuel flows takeoff
+            self.ff_coeff_a = np.array([])  # icao fuel flows coefficient a
+            self.ff_coeff_b = np.array([])  # icao fuel flows coefficient b
+            self.ff_coeff_c = np.array([])  # icao fuel flows coefficient c
             self.engpower = np.array([])    # engine power, rotor ac
 
     def create(self, n=1):
+        # cautious! considering multiple created aircraft with same type
+
         super(PerfNAP, self).create(n)
 
-        actype = bs.traf.type[-n]  # cautious! considering mcreate same type
+        actype = bs.traf.type[-n]
 
-        print(actype, self.coeff.acs_rotor.keys())
+        # check fixwing or rotor, default fixwing if not found
+        if actype in self.coeff.actypes_rotor:
 
-        # check fixwing or rotor from ac cache
-        newactypes = []
-        if actype.upper() in list(self.coeff.acs_rotor.keys()):
-            for actype in bs.traf.type[-n:]:
-                # convert to known aircraft type - rotor
-                avaliable = list(self.coeff.acs_rotor.keys())
-                if actype not in avaliable:
-                    actype = 'EC35'
-                newactypes.append(actype)
-
-            params = self.coeff.get_initial_values(newactypes, lifttype=coeff.LIFT_ROTOR)
             self.lifttype[-n:] = coeff.LIFT_ROTOR
-            self.mass[-n:] = 0.5 * (params[:, 0] + params[:, 1])
-            self.engnum[-n:] = params[:, 2].astype(int)
-            self.engpower[-n:] = params[:, 3]
+            self.mass[-n:] = 0.5 * (self.coeff.acs_rotor[actype]['oew'] + self.coeff.acs_rotor[actype]['mtow'])
+            self.engnum[-n:] = int(self.coeff.acs_rotor[actype]['n_engines'])
+            self.engpower[-n:] = self.coeff.acs_rotor[actype]['engines'][0][1]    # engine power (kW)
+
         else:
-            fficaos = []
+            # convert to known aircraft type
+            if actype not in self.coeff.actypes_fixwing:
+                actype = 'A320'
 
-            for actype in bs.traf.type[-n:]:
-                # convert to known aircraft type
-                avaliables = list(self.coeff.acs_fixwing.keys())
-                if actype not in avaliables:
-                    actype = 'A320'
-                newactypes.append(actype)
-
-                # populate fuel flow model
-                es = self.coeff.acs_fixwing[actype]['engines']
-                e = es[list(es.keys())[0]]
-                fficaos.append([e['ff_idl'], e['ff_app'], e['ff_co'], e['ff_to']])
-
-            params = self.coeff.get_initial_values(newactypes, lifttype=coeff.LIFT_FIXWING)
+            # populate fuel flow model
+            es = self.coeff.acs_fixwing[actype]['engines']
+            e = es[list(es.keys())[0]]
+            coeff_a, coeff_b, coeff_c = thrust.compute_eng_ff_coeff(e['ff_idl'], e['ff_app'], e['ff_co'], e['ff_to'])
 
             self.lifttype[-n:] = coeff.LIFT_FIXWING
 
-            fficaos = np.array(fficaos)
-            self.ffidl[-n:] = fficaos[:, 0]
-            self.ffapp[-n:] = fficaos[:, 1]
-            self.ffco[-n:] = fficaos[:, 2]
-            self.ffto[-n:] = fficaos[:, 3]
+            self.Sref[-n:] = self.coeff.acs_fixwing[actype]['wa']
+            self.mass[-n:] = 0.5 * (self.coeff.acs_fixwing[actype]['oew'] + self.coeff.acs_fixwing[actype]['mtow'])
 
-            self.Sref[-n:] = params[:, 0]
-            self.mass[-n:] = 0.5 * (params[:, 1] + params[:, 2])
+            self.engnum[-n:] = int(self.coeff.acs_fixwing[actype]['n_engines'])
 
-            self.engnum[-n:] = params[:, 3].astype(int)
-            self.engtype[-n:] = params[:, 4].astype(int)
-            self.engthrust[-n:] = params[:, 5]
-            self.engbpr[-n:] = params[:, 6]
+            self.ff_coeff_a[-n:] = np.ones(n) * coeff_a
+            self.ff_coeff_b[-n:] = np.ones(n) * coeff_b
+            self.ff_coeff_c[-n:] = np.ones(n) * coeff_c
+
+            all_ac_engs = list(self.coeff.acs_fixwing[actype]['engines'].keys())
+            self.engthrust[-n:] = self.coeff.acs_fixwing[actype]['engines'][all_ac_engs[0]]['thr']
+            self.engbpr[-n:] = self.coeff.acs_fixwing[actype]['engines'][all_ac_engs[0]]['bpr']
 
         # append update actypes, after removing unkown types
-        self.actypes[-n:] = newactypes
+        self.actypes[-n:] = [actype] * n
+        self.n_ac += n
 
 
     def delete(self, idx):
@@ -123,14 +109,14 @@ class PerfNAP(PerfBase):
         )
         self.thrust[idx_fixwing] = self.engnum[idx_fixwing] * self.engthrust[idx_fixwing] * self.thrustratio[idx_fixwing]
 
+        # compute fuel flow
+        self.fuelflow = self.engnum * (self.ff_coeff_a * self.thrustratio**2 \
+                                       + self.ff_coeff_b * self.thrustratio  \
+                                       + self.ff_coeff_c)
+
         # TODO: implement thrust computation for rotor aircraft
         # idx_rotor = np.where(self.lifttype==coeff.LIFT_ROTOR)[0]
         # self.thrust[idx_rotor] = 0
-
-        # compute fuel flow
-        # self.fuelflow = thrust.compute_fuel_flow(
-        #     self.thrustratio, self.engnum, self.ffidl, self.ffapp, self.ffco, self.ffto
-        # )
 
         # update bank angle, due to phase change
         self.bank = np.where((self.phase==ph.TO) | (self.phase==ph.LD), 15, self.bank)
@@ -218,8 +204,16 @@ class PerfNAP(PerfBase):
         return limits
 
     def engchange(self, acid, engid=None):
+        bs.scr.echo("Engine change not suppoerted in NAP model.")
         pass
 
     def acceleration(self, simdt):
-        # using a fix acceleration, to be modeled in future
-        return 1.5
+        # using fix accelerations depending on phase
+        acc_ground = 2
+        acc_air = 0.5
+
+        accs = np.zeros(self.n_ac)
+        accs[self.phase==ph.GD] = acc_ground
+        accs[self.phase!=ph.GD] = acc_air
+
+        return accs

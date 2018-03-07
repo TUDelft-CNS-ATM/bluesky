@@ -13,6 +13,7 @@ from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 from .windsim import WindSim
+from .conditional import Condition
 from .trails import Trails
 from .adsbmodel import ADSB
 from .asas import ASAS
@@ -72,6 +73,7 @@ class Traffic(TrafficArrays):
         self.ntraf = 0
         self.lastcreid ="" # A/c id of last created aircraft (to be used as * or #)
 
+        self.cond = Condition()  # Conditional commands list
         self.wind = WindSim()
         self.turbulence = Turbulence()
         self.translvl = 5000.*ft # [m] Default transition level
@@ -430,6 +432,9 @@ class Traffic(TrafficArrays):
         # Call the actual delete function
         super(Traffic, self).delete(idx)
 
+        # Update conditions list
+        self.cond.delac(idx)
+
         # Update number of aircraft
         self.ntraf = len(self.lat)
         return True
@@ -446,9 +451,9 @@ class Traffic(TrafficArrays):
         self.adsb.update(simt)
 
         #---------- Fly the Aircraft --------------------------
-        self.ap.update(simt)
-        self.asas.update(simt)
-        self.pilot.APorASAS()
+        self.ap.update(simt)     # Autopilot logic
+        self.asas.update(simt)   # Airboren Separation Assurance
+        self.pilot.APorASAS()    # Decide autopilot or ASAS
 
         #---------- NAP Performance Update ------------------------
         if settings.performance_model == 'nap':
@@ -468,6 +473,9 @@ class Traffic(TrafficArrays):
 
         #---------- Simulate Turbulence -----------------------
         self.turbulence.Woosh(simdt)
+
+        # Check whther new traffci state triggers conditional commands
+        self.cond.update()
 
         #---------- Aftermath ---------------------------------
         self.trails.update(simt)

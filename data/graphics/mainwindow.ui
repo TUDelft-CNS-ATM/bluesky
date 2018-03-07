@@ -1172,8 +1172,7 @@
     <property name="title">
      <string>Connections</string>
     </property>
-    <addaction name="actionConnect_to_ADS_B_server"/>
-    <addaction name="actionEnable_output_to_UDP"/>
+    <addaction name="actionConnect_servers"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -1205,14 +1204,9 @@
     <string>&amp;Reset view</string>
    </property>
   </action>
-  <action name="actionConnect_to_ADS_B_server">
+  <action name="actionConnect_servers">
    <property name="text">
-    <string>Connect to ADS-B server</string>
-   </property>
-  </action>
-  <action name="actionEnable_output_to_UDP">
-   <property name="text">
-    <string>Enable output to UDP</string>
+    <string>Connect servers</string>
    </property>
   </action>
   <action name="actionAbout_BlueSky">
