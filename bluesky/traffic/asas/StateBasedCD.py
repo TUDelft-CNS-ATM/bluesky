@@ -16,8 +16,10 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     qdr, dist = geo.qdrdist_matrix(np.mat(ownship.lat), np.mat(ownship.lon),
                                    np.mat(intruder.lat), np.mat(intruder.lon))
 
+    # Convert back to array to allow element-wise array multiplications later on
     # Convert to meters and add large value to own/own pairs
-    dist = dist * nm + 1e9 * I
+    qdr = np.array(qdr)
+    dist = np.array(dist) * nm + 1e9 * I
 
     # Calculate horizontal closest point of approach (CPA)
     qdrrad = np.radians(qdr)
@@ -72,25 +74,23 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     tinconf = np.maximum(tinver, tinhor)
     toutconf = np.minimum(toutver, touthor)
 
-    swconfl = np.logical_and.reduce((swhorconf,
-                                     tinconf <= toutconf,
-                                     toutconf > 0.0,
-                                     tinconf < tlookahead,
-                                     1.0 - I))
+    swconfl = np.array(swhorconf * (tinconf <= toutconf) * (toutconf > 0.0) * \
+        (tinconf < tlookahead) * (1.0 - I), dtype=np.bool)
 
     # --------------------------------------------------------------------------
     # Update conflict lists
     # --------------------------------------------------------------------------
-    # return True
+
     # Select conflicting pairs: each a/c gets their own record
-    swlos = np.logical_and(dist < RPZ, dalt < HPZ)
-    lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
     confpairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swconfl))]
     # bearing, dist, tcpa, tinconf, toutconf per conflict
-    qdr = np.squeeze(np.array(qdr[swconfl]))
-    dist = np.squeeze(np.array(dist[swconfl]))
-    tcpa = np.squeeze(np.array(tcpa[swconfl]))
-    tinconf = np.squeeze(np.array(tinconf[swconfl]))
-    toutconf = np.squeeze(np.array(toutconf[swconfl]))
-
-    return confpairs, lospairs, qdr, dist, tcpa, tinconf, toutconf
+    if confpairs:
+        swlos = (dist < RPZ) * (dalt < HPZ)
+        lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
+        qdr = np.squeeze(np.array(qdr[swconfl]))
+        dist = np.squeeze(np.array(dist[swconfl]))
+        tcpa = np.squeeze(np.array(tcpa[swconfl]))
+        tinconf = np.squeeze(np.array(tinconf[swconfl]))
+        toutconf = np.squeeze(np.array(toutconf[swconfl]))
+        return confpairs, lospairs, qdr, dist, tcpa, tinconf, toutconf
+    return [[]] * 7
