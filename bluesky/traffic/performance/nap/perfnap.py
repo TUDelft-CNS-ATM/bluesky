@@ -100,6 +100,7 @@ class PerfNAP(PerfBase):
         self.vsmin = limits[:, 2]
         self.vsmax = limits[:, 3]
         self.hmax = limits[:, 4]
+        self.axmax = limits[:, 5]
 
         # compute thrust
         #   = number of engines x engine static thrust x thrust ratio
@@ -124,8 +125,8 @@ class PerfNAP(PerfBase):
 
         return None
 
-    def limits(self, intent_v_tas, intent_vs, intent_h):
-        """ apply limits on indent speed, vertical speed, and altitude """
+    def limits(self, intent_v_tas, intent_vs, intent_h, ax):
+        """ apply limits on indent speed, vertical speed, and altitude (called in pilot module)"""
         super(PerfNAP, self).limits(intent_v_tas, intent_vs, intent_h)
 
         # if isinstance(self.vmin, np.ndarray):
@@ -140,8 +141,9 @@ class PerfNAP(PerfBase):
         allow_v_cas = np.where(intent_v_cas > self.vmax, self.vmax, allow_v_cas)
         allow_v_tas = aero.vcas2tas(allow_v_cas, allow_h)
 
-        allow_vs = np.where(intent_vs < self.vsmin, self.vsmin, intent_vs)
-        allow_vs = np.where(intent_vs > self.vsmax, self.vsmax, allow_vs)
+        vs_max_with_acc = (1 - ax / self.axmax) * self.vsmax
+        allow_vs = np.where(intent_vs > self.vsmax, vs_max_with_acc, intent_vs)
+        allow_vs = np.where(intent_vs < self.vsmin, self.vsmin, allow_vs)
 
         # print(intent_h, allow_h, self.hmax)
         # print(intent_v_cas, allow_v_cas, self.vmin, self.vmax)
@@ -163,7 +165,7 @@ class PerfNAP(PerfBase):
         """
 
         nrow = len(actypes)
-        ncol = 5
+        ncol = 6
 
         # initialize the n_actype x 5 matrix
         limits = np.zeros((nrow, ncol))
@@ -193,6 +195,8 @@ class PerfNAP(PerfBase):
 
             limits[:, 4] = np.where((actypes==mdl), self.coeff.limits_fixwing[mdl]['hmax'], limits[:, 4])
 
+            limits[:, 5] = np.where((actypes==mdl), self.coeff.limits_fixwing[mdl]['axmax'], limits[:, 5])
+
         idx_rotor = np.where(self.lifttype==coeff.LIFT_ROTOR)[0]
         unique_rotor_mdls = np.unique(actypes[idx_rotor])
         for mdl in unique_rotor_mdls:
@@ -207,7 +211,7 @@ class PerfNAP(PerfBase):
         bs.scr.echo("Engine change not suppoerted in NAP model.")
         pass
 
-    def acceleration(self, simdt):
+    def acceleration(self):
         # using fix accelerations depending on phase
         acc_ground = 2
         acc_air = 0.5

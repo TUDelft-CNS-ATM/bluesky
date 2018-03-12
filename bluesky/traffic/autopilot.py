@@ -91,19 +91,19 @@ class Autopilot(TrafficArrays):
                 if alt >= -0.01:
                     bs.traf.actwp.nextaltco[i] = alt #[m]
 
-                if spd > 0. and bs.traf.swlnav[i] and bs.traf.swvnav[i]:
+                if spd > -990. and bs.traf.swlnav[i] and bs.traf.swvnav[i]:
 
                     # Valid speed and LNAV and VNAV ap modes are on
                     # Depending on crossover altitude we fix CAS or Mach
-                    if bs.traf.abco[i] and spd>2.0:
+                    if bs.traf.abco[i] and spd>1.0:
                         bs.traf.actwp.spd[i] = cas2mach(spd,bs.traf.alt[i])
 
-                    elif bs.traf.belco[i] and spd<=2.0:
+                    elif bs.traf.belco[i] and 0. < spd<=1.0:
                         bs.traf.actwp.spd[i] = mach2cas(spd,bs.traf.alt[i])
 
                     else:
                         bs.traf.actwp.spd[i] = spd
-
+                        
                 else:
                     bs.traf.actwp.spd[i] = -999.
 
@@ -112,6 +112,7 @@ class Autopilot(TrafficArrays):
                 # Speed is now from speed! Next speed is ready in wpdata
                 if bs.traf.swvnav[i] and oldspd > 0.0:
                         bs.traf.selspd[i] = oldspd
+
 
                 # VNAV = FMS ALT/SPD mode
                 self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i])
@@ -173,11 +174,13 @@ class Autopilot(TrafficArrays):
             dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax)) #[s]
             dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg #[m]
 
-            usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spd > 0.)*bs.traf.swvnav
+            usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spd > -990.)*bs.traf.swvnav
             bs.traf.selspd = np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd)
+            
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
+
 
 
     def ComputeVNAV(self, idx, toalt, xtoalt):

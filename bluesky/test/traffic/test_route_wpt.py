@@ -122,7 +122,7 @@ def test_add_wp_orig(traffic_, route_):
     """
 
     # Create test aircraft and get its index
-    traffic_.oldcreate(
+    traffic_.create(
         'BA111', 'A320', 0., 0., 90, 1000., 100.)
     acidx = traffic_.id2idx('BA111')
 
@@ -199,7 +199,7 @@ def test_add_wp_normal(traffic_, route_):
     Tests insertion of en-route waypoints
     (i.e. not dest or origin).
     """
-    traffic_.oldcreate(
+    traffic_.create(
         'BA222', 'A320', 0., 0., 90, 1000., 100.)
     idx = traffic_.id2idx('BA222')
     route = route_.Route()
@@ -295,7 +295,7 @@ def test_addwpt_stack_takeoffwp(traffic_, route_):
 
     Created aircraft is persisted for subsequent tests.
     """
-    traffic_.oldcreate(
+    traffic_.create(
         'BA222', 'A320', 0., 0., 90, 2000., 200.)
     idx = traffic_.id2idx('BA222')
     route = route_.Route()

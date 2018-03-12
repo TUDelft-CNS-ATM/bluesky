@@ -227,6 +227,18 @@ def init():
             lambda idx, *args: bs.traf.ap.route[idx].atwptStack(idx, *args),
             "Edit, delete or show spd/alt constraints at a waypoint in the route"
         ],
+        "ATALT": [
+            "acid ATALT alt cmd ",
+            "acid,alt,string",
+            bs.traf.cond.ataltcmd,
+            "When a/c at given altitude , execute a command cmd"
+        ],
+        "ATSPD": [
+            "acid ATSPD spd cmd ",
+            "acid,spd,string",
+            bs.traf.cond.atspdcmd,
+            "When a/c reaches given speed, execute a command cmd"
+        ],
         "BATCH": [
             "BATCH filename",
             "string",
@@ -1219,7 +1231,7 @@ def saveic(fname=None):
             cmdline = "ADDWPT " + bs.traf.id[i] + " "
             wpname = route.wpname[iwp]
             if wpname[:len(bs.traf.id[i])] == bs.traf.id[i]:
-                wpname = repr(route.lat[iwp]) + "," + repr(route.lon[iwp])
+                wpname = repr(route.wplat[iwp]) + "," + repr(route.wplon[iwp])
             cmdline = cmdline + wpname + ","
 
             if route.wpalt[iwp] >= 0.:
