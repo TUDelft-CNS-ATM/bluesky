@@ -626,7 +626,7 @@ class PerfBADA(TrafficArrays):
 
         ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + (self.phase==PHASE['AP']) + (self.phase==PHASE['LD'])) * 0.5 \
                 + ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
-                +  (self.phase==PHASE['GD']) * self.post_flight * self.gr_dec
+                +  (self.phase==PHASE['GD']) * self.post_flight * self.gr_acc
 
         return ax
 
