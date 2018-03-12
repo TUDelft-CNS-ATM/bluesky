@@ -27,7 +27,7 @@ class ADSB(TrafficArrays):
     def SetNoise(self, n):
         self.transnoise = n
         self.truncated  = n
-        self.transerror = [1, 100, 100 * ft]  # [degree,m,m] standard bearing, distance, altitude error
+        self.transerror = [1e-4, 100 * ft]  # [degree,m] standard lat/lon distance, altitude error
         self.trunctime  = 0  # [s]
 
     def create(self, n=1):
@@ -43,9 +43,15 @@ class ADSB(TrafficArrays):
 
     def update(self, time):
         up = np.where(self.lastupdate + self.trunctime < time)
-        self.lat[up] = bs.traf.lat[up]
-        self.lon[up] = bs.traf.lon[up]
-        self.alt[up] = bs.traf.alt[up]
+        nup = len(up)
+        if self.transnoise:
+            self.lat[up] = bs.traf.lat[up] + np.random.normal(0, self.transerror[0], nup)
+            self.lon[up] = bs.traf.lon[up] + np.random.normal(0, self.transerror[0], nup)
+            self.alt[up] = bs.traf.alt[up] + np.random.normal(0, self.transerror[1], nup)
+        else:
+            self.lat[up] = bs.traf.lat[up]
+            self.lon[up] = bs.traf.lon[up]
+            self.alt[up] = bs.traf.alt[up]
         self.trk[up] = bs.traf.trk[up]
         self.tas[up] = bs.traf.tas[up]
         self.gs[up]  = bs.traf.gs[up]

@@ -720,8 +720,8 @@ class RadarWidget(QGLWidget):
                         rawlabel += '%1s  %-8d' % (chr(vs), int(data.cas[i] / kts+0.5))
                     else:
                         rawlabel += 16 * ' '
-                confindices = data.iconf[i]
-                if len(confindices) > 0:
+                # confindices = data.iconf[i]
+                if False:#len(confindices) > 0:
                     if actdata.ssd_conflicts:
                         selssd[i] = 255
                     color[i, :] = palette.conflict + (255,)

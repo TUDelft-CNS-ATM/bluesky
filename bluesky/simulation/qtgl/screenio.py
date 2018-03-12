@@ -200,9 +200,17 @@ class ScreenIO(object):
         data['alt']        = bs.traf.alt
         data['tas']        = bs.traf.tas
         data['cas']        = bs.traf.cas
-        data['iconf']      = bs.traf.asas.iconf
-        data['confcpalat'] = bs.traf.asas.latowncpa
-        data['confcpalon'] = bs.traf.asas.lonowncpa
+        data['gs']         = bs.traf.gs
+        # data['confpairs']  = bs.traf.asas.confpairs
+        # data['lospairs']   = bs.traf.asas.lospairs
+        # data['tcpa'] = bs.traf.asas.tcpa
+        data['iconf'] = []
+        data['confcpalat'] = []
+        data['confcpalon'] = []
+        data['nconf_cur'] = 0
+        data['nconf_tot'] = 0
+        data['nlos_cur'] = 0
+        data['nlos_tot'] = 0
         data['trk']        = bs.traf.hdg
         data['vs']         = bs.traf.vs
         data['vmin']       = bs.traf.asas.vmin
@@ -219,14 +227,6 @@ class ScreenIO(object):
         # Last segment which is being built per aircraft
         data['traillastlat']   = bs.traf.trails.lastlat
         data['traillastlon']   = bs.traf.trails.lastlon
-
-        # Conflict statistics
-        data['nconf_tot']  = len(bs.traf.asas.conflist_all)
-        data['nlos_tot']   = len(bs.traf.asas.LOSlist_all)
-        data['nconf_exp']  = len(bs.traf.asas.conflist_exp)
-        data['nlos_exp']   = len(bs.traf.asas.LOSlist_exp)
-        data['nconf_cur']  = len(bs.traf.asas.conflist_now)
-        data['nlos_cur']   = len(bs.traf.asas.LOSlist_now)
 
         # Transition level as defined in traf
         data['translvl']   = bs.traf.translvl

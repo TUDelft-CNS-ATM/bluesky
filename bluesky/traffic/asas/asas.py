@@ -58,7 +58,7 @@ class ASAS(TrafficArrays):
         super(ASAS, self).__init__()
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
-            self.iconf    = []            # index in 'conflicting' aircraft database
+            self.inconf    = np.array([], dtype=bool)  # In-conflict flag per aircraft
 
             self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
             self.trk      = np.array([])  # heading provided by the ASAS [deg]
@@ -111,38 +111,24 @@ class ASAS(TrafficArrays):
         self.resoFacH     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
         self.resoFacV     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
 
-        self.confpairs    = []                              # Start with empty database: no conflicts
-        self.nconf        = 0                               # Number of detected conflicts
-        self.latowncpa    = np.array([])
-        self.lonowncpa    = np.array([])
-        self.altowncpa    = np.array([])
-        self.tcpa         = np.array([])
-        self.tinconf      = np.array([])
-        self.toutconf     = np.array([])
-        self.qdr          = np.array([])
-        self.dist         = np.array([])
-        self.dx           = np.array([])
-        self.dy           = np.array([])
-        self.dalt         = np.array([])
-        self.u            = np.array([])
-        self.v            = np.array([])
-
-        self.conflist_all = []  # List of all Conflicts
-        self.LOSlist_all  = []  # List of all Losses Of Separation
-        self.conflist_exp = []  # List of all Conflicts in experiment time
-        self.LOSlist_exp  = []  # List of all Losses Of Separation in experiment time
-        self.conflist_now = []  # List of current Conflicts
-        self.LOSlist_now  = []  # List of current Losses Of Separation
-
-        # For keeping track of locations with most severe intrusions
-        self.LOSmaxsev    = []
-        self.LOShmaxsev   = []
-        self.LOSvmaxsev   = []
-
         # ASAS-visualization on SSD
         self.asasn        = np.array([])               # [m/s] North resolution speed from ASAS
         self.asase        = np.array([])               # [m/s] East resolution speed from ASAS
         self.asaseval     = False                      # [-] Whether target resolution is calculated or not
+
+        # Sets of pairs: conflict pairs, LoS pairs
+        self.confpairs = set()  # Conflict pairs detected in the current timestep (used for resolving)
+        self.resopairs = set()  # Resolved (when RESO is on) conflicts that are still before CPA
+        self.lospairs = set()  # Current loss of separation pairs
+        self.confpairs_all = list()  # All conflicts since simt=0
+        self.lospairs_all = list()  # All losses of separation since simt=0
+
+        # NxN matrices (N aircraft) per aircraft pair
+        self.tcpa         = np.array([])  # Time to CPA
+        self.tinconf      = np.array([])  # Time to start LoS
+        self.toutconf     = np.array([])  # Time to end of LoS
+        self.qdr          = np.array([])  # Bearing from ownship to intruder
+        self.dist         = np.array([])  # Horizontal distance between ""
 
     def toggle(self, flag=None):
         if flag is None:
@@ -184,11 +170,13 @@ class ASAS(TrafficArrays):
         return
 
     def SetCDmethod(self, method=""):
-        if method is "":
+        if not method:
             return True, ("Current CD method: " + self.cd_name +
-                        "\nAvailable CD methods: " + str.join(", ", list(ASAS.CDmethods.keys())))
+                          "\nAvailable CD methods: " +
+                          ", ".join(list(ASAS.CDmethods.keys())))
         if method not in ASAS.CDmethods:
-            return False, (method + " doesn't exist.\nAvailable CD methods: " + str.join(", ", list(ASAS.CDmethods.keys())))
+            return False, (method + " doesn't exist.\nAvailable CD methods: " +
+                           ", ".join(list(ASAS.CDmethods.keys())))
 
         self.cd_name = method
         self.cd = ASAS.CDmethods[method]
@@ -426,19 +414,123 @@ class ASAS(TrafficArrays):
         self.tas[-n:] = bs.traf.tas[-n:]
         self.alt[-n:] = bs.traf.alt[-n:]
 
+    def ResumeNav(self):
+        """ Decide for each aircraft in the conflict list whether the ASAS
+            should be followed or not, based on if the aircraft pairs passed
+            their CPA. """
+        self.active.fill(False)
+
+        # Conflict pairs to be deleted
+        delpairs = set()
+
+        # Look at all conflicts, also the ones that are solved but CPA is yet to come
+        for conflict in self.resopairs:
+            idx1, idx2 = bs.traf.id2idx(conflict)
+            if idx1 >= 0 and idx2 >= 0:
+                # Check if conflict is past CPA
+                dlatlon = np.array([bs.traf.lon[idx2] - bs.traf.lon[idx1],
+                                    bs.traf.lat[idx2] - bs.traf.lat[idx1]])
+
+                # write velocities as vectors
+                v1 = np.array([bs.traf.gseast[idx1], bs.traf.gsnorth[idx1]])
+                v2 = np.array([bs.traf.gseast[idx2], bs.traf.gsnorth[idx2]])
+
+                # Compute pastCPA
+                pastCPA = np.dot(dlatlon, v2 - v1) > 0.0
+
+                # hLOS:
+                # Aircraft should continue to resolve until there is no horizontal
+                # LOS. This is particularly relevant when vertical resolutions
+                # are used.
+                hdist = self.dist[idx1, idx2]
+                hLOS = hdist < self.R
+
+                # Bouncing conflicts:
+                # If two aircraft are getting in and out of conflict continously,
+                # then they it is a bouncing conflict. ASAS should stay active until
+                # the bouncing stops.
+                bouncingConflict = abs(bs.traf.trk[idx1] - bs.traf.trk[idx2]) < 30.0 and hdist < self.Rm
+
+                # Decide if conflict is over or not.
+                # If not over, turn active to true.
+                # If over, then initiate recovery
+                if not pastCPA or hLOS or bouncingConflict:
+                    # Aircraft haven't passed their CPA: must follow their ASAS
+                    self.active[idx1] = True
+                    self.active[idx2] = True
+
+                else:
+                    # Waypoint recovery after conflict
+                    # Find the next active waypoint and send the aircraft to that
+                    # waypoint.
+                    iwpid1 = bs.traf.ap.route[idx1].findact(idx1)
+                    if iwpid1 != -1: # To avoid problems if there are no waypoints
+                        bs.traf.ap.route[idx1].direct(idx1, bs.traf.ap.route[idx1].wpname[iwpid1])
+                    iwpid2 = bs.traf.ap.route[idx2].findact(idx2)
+                    if iwpid2 != -1: # To avoid problems if there are no waypoints
+                        bs.traf.ap.route[idx2].direct(idx2, bs.traf.ap.route[idx2].wpname[iwpid2])
+
+                    # If conflict is solved, remove it from conflist_all list
+                    # This is so that if a conflict between this pair of aircraft
+                    # occurs again, then that new conflict should be detected, logged
+                    # and solved (if reso is on)
+                    delpairs.add(conflict)
+
+            # If aircraft id1 cannot be found in traffic because it has finished its
+            # flight (and has been deleted), start trajectory recovery for aircraft id2
+            # And remove the conflict from the conflict_all list
+            elif idx1 < 0 and idx2 >= 0:
+                iwpid2 = bs.traf.ap.route[idx2].findact(idx2)
+                if iwpid2 != -1: # To avoid problems if there are no waypoints
+                    bs.traf.ap.route[idx2].direct(idx2, bs.traf.ap.route[idx2].wpname[iwpid2])
+                delpairs.add(conflict)
+
+            # If aircraft id2 cannot be found in traffic because it has finished its
+            # flight (and has been deleted) start trajectory recovery for aircraft id1
+            # And remove the conflict from the conflict_all list
+            elif idx2 < 0 and idx1 >= 0:
+                iwpid1 = bs.traf.ap.route[idx1].findact(idx1)
+                if iwpid1 != -1: # To avoid problems if there are no waypoints
+                    bs.traf.ap.route[idx1].direct(idx1, bs.traf.ap.route[idx1].wpname[iwpid1])
+                delpairs.add(conflict)
+
+            # if both ids are unknown, then delete this conflict, because both aircraft
+            # have completed their flights (and have been deleted)
+            else:
+                delpairs.add(conflict)
+
+        # Remove pairs from the list that are past CPA or have deleted aircraft
+        self.resopairs -= delpairs
+
     def update(self, simt):
-        iconf0 = np.array(self.iconf)
+        if not self.swasas or simt < self.tasas:
+            return
 
-        # Scheduling: update when dt has passed
-        if self.swasas and simt >= self.tasas:
-            self.tasas += self.dtasas
+        # increment trigger time for next ASAS step
+        self.tasas += self.dtasas
+        if bs.traf.ntraf:
+            # Conflict detection
+            ret = self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
 
-            # Conflict detection and resolution
-            self.cd.detect(self, bs.traf, simt)
-            self.cr.resolve(self, bs.traf)
+            # # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
+            # self.resopairs |= confpairs
+            # self.confpairs_all.extend(confpairs - self.confpairs)
+            # self.lospairs_all.extend(lospairs - self.lospairs)
+            #
+            # # Update confpairs and lospairs
+            # self.confpairs = confpairs
+            # self.lospairs = lospairs
+            #
+            # # Conflict resolution
+            # self.cr.resolve(self, bs.traf)
+            #
+            # self.ResumeNav()
+
+        # iconf0 = np.array(self.iconf)
+        #
 
         # Change labels in interface
-        if settings.gui == "pygame":
-            for i in range(bs.traf.ntraf):
-                if np.any(iconf0[i] != self.iconf[i]):
-                    bs.traf.label[i] = [" ", " ", " ", " "]
+        # if settings.gui == "pygame":
+        #     for i in range(bs.traf.ntraf):
+        #         if np.any(iconf0[i] != self.iconf[i]):
+        #             bs.traf.label[i] = [" ", " ", " ", " "]
