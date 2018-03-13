@@ -192,7 +192,7 @@ class ScreenIO(object):
         self.prevcount = self.samplecount
 
     def send_aircraft_data(self):
-        data               = dict()
+        data = dict()
         data['simt']       = bs.sim.simt
         data['id']         = bs.traf.id
         data['lat']        = bs.traf.lat
@@ -201,14 +201,13 @@ class ScreenIO(object):
         data['tas']        = bs.traf.tas
         data['cas']        = bs.traf.cas
         data['gs']         = bs.traf.gs
-        data['confpairs']  = bs.traf.asas.confpairs
-        data['lospairs']   = bs.traf.asas.lospairs
-        data['tcpa'] = bs.traf.asas.tcpa
+        data['inconf'] = bs.traf.asas.inconf
+        data['tcpamax'] = bs.traf.asas.tcpamax
         data['nconf_cur'] = len(bs.traf.asas.confpairs_unique)
         data['nconf_tot'] = len(bs.traf.asas.confpairs_all)
         data['nlos_cur'] = len(bs.traf.asas.lospairs_unique)
         data['nlos_tot'] = len(bs.traf.asas.lospairs_all)
-        data['trk']        = bs.traf.hdg
+        data['trk']        = bs.traf.trk
         data['vs']         = bs.traf.vs
         data['vmin']       = bs.traf.asas.vmin
         data['vmax']       = bs.traf.asas.vmax

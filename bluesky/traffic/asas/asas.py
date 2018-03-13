@@ -59,7 +59,7 @@ class ASAS(TrafficArrays):
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
             self.inconf    = np.array([], dtype=bool)  # In-conflict flag per aircraft
-
+            self.tcpamax = np.array([])  # Maximum time to CPA for aircraft in conflict
             self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
             self.trk      = np.array([])  # heading provided by the ASAS [deg]
             self.tas      = np.array([])  # speed provided by the ASAS (eas) [m/s]
@@ -127,8 +127,7 @@ class ASAS(TrafficArrays):
 
         # Conflict time and geometry data per conflict pair
         self.tcpa = np.array([])  # Time to CPA
-        self.tinconf = np.array([])  # Time to start LoS
-        self.toutconf = np.array([])  # Time to end of LoS
+        self.tLOS = np.array([])  # Time to start LoS
         self.qdr = np.array([])  # Bearing from ownship to intruder
         self.dist = np.array([])  # Horizontal distance between ""
 
@@ -156,8 +155,7 @@ class ASAS(TrafficArrays):
 
         # Conflict time and geometry data per conflict pair
         self.tcpa = np.array([])  # Time to CPA
-        self.tinconf = np.array([])  # Time to start LoS
-        self.toutconf = np.array([])  # Time to end of LoS
+        self.tLOS = np.array([])  # Time to start LoS
         self.qdr = np.array([])  # Bearing from ownship to intruder
         self.dist = np.array([])  # Horizontal distance between ""
 
@@ -456,7 +454,10 @@ class ASAS(TrafficArrays):
 
             # Start recovery for ownship if intruder is deleted, or if past CPA
             # and not in horizontal LOS or a bouncing conflict
-            if idx2 < 0 or (past_cpa and not(hor_los or is_bouncing)):
+            if idx2 > 0 and (not past_cpa or hor_los or is_bouncing):
+                # Enable ASAS for this aircraft
+                self.active[idx1] = True
+            else:
                 # Switch ASAS off for ownship
                 self.active[idx1] = False
 
@@ -480,12 +481,12 @@ class ASAS(TrafficArrays):
         self.tasas += self.dtasas
         if bs.traf.ntraf:
             # Conflict detection
-            self.confpairs, self.lospairs, self.qdr, self.dist, self.tcpa, \
-                self.tinconf, self.toutconf = \
+            self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
+                self.qdr, self.dist, self.tcpa, self.tLOS = \
                 self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
 
             # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
-            self.resopairs.union(self.confpairs)
+            self.resopairs.update(self.confpairs)
 
             # confpairs has conflicts observed from both sides (a, b) and (b, a)
             # confpairs_unique keeps only one of these

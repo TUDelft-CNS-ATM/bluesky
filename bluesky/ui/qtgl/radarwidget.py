@@ -699,7 +699,7 @@ class RadarWidget(QGLWidget):
             update_buffer(self.asasebuf, np.array(data.asase[:MAX_NAIRCRAFT], dtype=np.float32))
 
             # CPA lines to indicate conflicts
-            ncpalines = len(data.confpairs)
+            ncpalines = np.count_nonzero(data.inconf)
 
             cpalines  = np.zeros(4 * ncpalines, dtype=np.float32)
             self.cpalines.set_vertex_count(2 * ncpalines)
@@ -709,7 +709,10 @@ class RadarWidget(QGLWidget):
             color = np.empty((min(self.naircraft, MAX_NAIRCRAFT), 4), dtype=np.uint8)
             selssd = np.zeros(self.naircraft, dtype=np.uint8)
             confidx = 0
-            for i, (acid, trk, gs, cas, vs, alt, lat, lon) in enumerate(zip(data.id, data.trk, data.gs, data.cas, data.vs, data.alt, data.lat, data.lon)):
+
+            zdata = zip(data.id, data.inconf, data.tcpamax, data.trk, data.gs,
+                        data.cas, data.vs, data.alt, data.lat, data.lon)
+            for i, (acid, inconf, tcpa, trk, gs, cas, vs, alt, lat, lon) in enumerate(zdata):
                 if i >= MAX_NAIRCRAFT:
                     break
 
@@ -726,11 +729,10 @@ class RadarWidget(QGLWidget):
                     else:
                         rawlabel += 16 * ' '
 
-                if data.confpairs and acid == data.confpairs[confidx][0] and confidx < data.nconf_cur:
+                if inconf:
                     if actdata.ssd_conflicts:
                         selssd[i] = 255
                     color[i, :] = palette.conflict + (255,)
-                    tcpa = data.tcpa[confidx]
                     lat1, lon1 = geo.qdrpos(lat, lon, trk, tcpa * gs / nm)
                     cpalines[4 * confidx : 4 * confidx + 4] = [lat, lon, lat1, lon1]
                     confidx += 1

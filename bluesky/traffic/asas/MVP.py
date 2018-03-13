@@ -30,84 +30,35 @@ def resolve(asas, traf):
     timesolveV = np.ones(traf.ntraf)*1e9
 
     # Call MVP function to resolve conflicts-----------------------------------
+    for ((ac1, ac2), qdr, dist, tcpa, tLOS) in zip(asas.confpairs, asas.qdr, asas.dist, asas.tcpa, asas.tLOS):
+        id1 = traf.id.index(ac1)
+        id2 = traf.id.index(ac2)
 
-    # If possible, solve conflicts once and copy results for symmetrical conflicts
-    # If that is not possible, solve each conflict twice, once for each A/C
-    if not traf.adsb.truncated and not traf.adsb.transnoise:
-        for conflict in asas.conflist_now:
+        # If A/C indexes are found, then apply MVP on this conflict pair
+        # Because ADSB is ON, this is done for each aircraft separately
+        if id1 >-1 and id2 > -1:
+            dv_mvp, tsolV = MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2)
+            if tsolV < timesolveV[id1]:
+                timesolveV[id1] = tsolV
 
-            # Determine ac indexes from callsigns
-            ac1, ac2 = conflict.split(" ")
-            id1, id2 = traf.id2idx(ac1), traf.id2idx(ac2)
+            # Use priority rules if activated
+            if asas.swprio:
+                dv[id1], _ = prioRules(traf, asas.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
+            else:
+                # since cooperative, the vertical resolution component can be halved, and then dv_mvp can be added
+                dv_mvp[2] = 0.5 * dv_mvp[2]
+                dv[id1] = dv[id1] - dv_mvp
 
-            # If A/C indexes are found, then apply MVP on this conflict pair
-            # Then use the MVP computed resolution to subtract and add dv_mvp
-            # to id1 and id2, respectively
-            if id1 > -1 and id2 > -1:
-                dv_mvp, tsolV = MVP(traf, asas, id1, id2)
-                if tsolV < timesolveV[id1]:
-                    timesolveV[id1] = tsolV
-                if tsolV < timesolveV[id2]:
-                    timesolveV[id2] = tsolV
+            # Check the noreso aircraft. Nobody avoids noreso aircraft.
+            # But noreso aircraft will avoid other aircraft
+            if asas.swnoreso:
+                if ac2 in asas.noresolst: # -> Then id1 does not avoid id2.
+                    dv[id1] = dv[id1] + dv_mvp
 
-                # Use priority rules if activated
-                if asas.swprio:
-                    dv[id1], dv[id2] = prioRules(traf, asas.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
-                else:
-                    # since cooperative, the vertical resolution component can be halved, and then dv_mvp can be added
-                    dv_mvp[2] = dv_mvp[2]/2.0
-                    dv[id1] = dv[id1] - dv_mvp
-                    dv[id2] = dv[id2] + dv_mvp
-
-                # Check the noreso aircraft. Nobody avoids noreso aircraft.
-                # But noreso aircraft will avoid other aircraft
-                if asas.swnoreso:
-                    if ac1 in asas.noresolst: # -> Then id2 does not avoid id1.
-                        dv[id2] = dv[id2] - dv_mvp
-                    if ac2 in asas.noresolst: # -> Then id1 does not avoid id2.
-                        dv[id1] = dv[id1] + dv_mvp
-
-                # Check the resooff aircraft. These aircraft will not do resolutions.
-                if asas.swresooff:
-                    if ac1 in asas.resoofflst: # -> Then id1 does not do any resolutions
-                        dv[id1] = 0.0
-                    if ac2 in asas.resoofflst: # -> Then id2 does not do any resolutions
-                        dv[id2] = 0.0
-
-
-    else:
-        for i in range(asas.nconf):
-            confpair = asas.confpairs[i]
-            ac1      = confpair[0]
-            ac2      = confpair[1]
-            id1      = traf.id.index(ac1)
-            id2      = traf.id.index(ac2)
-
-            # If A/C indexes are found, then apply MVP on this conflict pair
-            # Because ADSB is ON, this is done for each aircraft separately
-            if id1 >-1 and id2 > -1:
-                dv_mvp,tsolV   = MVP(traf, asas, id1, id2)
-                if tsolV < timesolveV[id1]:
-                    timesolveV[id1] = tsolV
-
-                # Use priority rules if activated
-                if asas.swprio:
-                    dv[id1], _ = prioRules(traf, asas.priocode, dv_mvp, dv[id1], dv[id2], id1, id2)
-                else:
-                    # since cooperative, the vertical resolution component can be halved, and then dv_mvp can be added
-                    dv_mvp[2] = dv_mvp[2]/2.0
-                    dv[id1]    = dv[id1] - dv_mvp
-
-                # Check the noreso aircraft. Nobody avoids noreso aircraft.
-                # But noreso aircraft will avoid other aircraft
-                if asas.swnoreso:
-                    if ac2 in asas.noresolst: # -> Then id1 does not avoid id2.
-                        dv[id1] = dv[id1] + dv_mvp
-
-                # Check the resooff aircraft. These aircraft will not do resolutions.
-                if asas.swresooff:
-                    if ac1 in asas.resoofflst: # -> Then id1 does not do any resolutions
-                        dv[id1] = 0.0
+            # Check the resooff aircraft. These aircraft will not do resolutions.
+            if asas.swresooff:
+                if ac1 in asas.resoofflst: # -> Then id1 does not do any resolutions
+                    dv[id1] = 0.0
 
 
     # Determine new speed and limit resolution direction for all aicraft-------
@@ -195,15 +146,11 @@ def resolve(asas, traf):
 #======================= Modified Voltage Potential ===========================
 
 
-def MVP(traf, asas, id1, id2):
+def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
     """Modified Voltage Potential (MVP) resolution method"""
 
 
     # Preliminary calculations-------------------------------------------------
-
-    # Get distance and qdr between id1 and id2
-    dist = asas.dist[id1,id2]
-    qdr  = asas.qdr[id1,id2]
 
     # Convert qdr from degrees to radians
     qdr = np.radians(qdr)
@@ -220,9 +167,6 @@ def MVP(traf, asas, id1, id2):
 
 
     # Horizontal resolution----------------------------------------------------
-
-    # Get the time to solve conflict horizontally -> tcpa
-    tcpa = asas.tcpa[id1,id2]
 
     # Find horizontal distance at the tcpa (min horizontal distance)
     dcpa  = drel + vrel*tcpa
@@ -258,13 +202,13 @@ def MVP(traf, asas, id1, id2):
     iV = asas.dhm if abs(vrel[2])>0.0 else asas.dhm-abs(drel[2])
 
     # Get the time to solve the conflict vertically - tsolveV
-    tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else asas.tinconf[id1,id2]
+    tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else tLOS
 
     # If the time to solve the conflict vertically is longer than the look-ahead time,
     # because the the relative vertical speed is very small, then solve the intrusion
     # within tinconf
     if tsolV>asas.dtlookahead:
-        tsolV = asas.tinconf[id1,id2]
+        tsolV = tLOS
         iV    = asas.dhm
 
     # Compute the resolution velocity vector in the vertical direction

@@ -26,13 +26,18 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     dx = dist * np.sin(qdrrad)  # is pos j rel to i
     dy = dist * np.cos(qdrrad)  # is pos j rel to i
 
+    # Ownship track angle and speed
+    owntrkrad = np.radians(ownship.trk)
+    ownu = ownship.gs * np.sin(owntrkrad).reshape((1, ownship.ntraf))  # m/s
+    ownv = ownship.gs * np.cos(owntrkrad).reshape((1, ownship.ntraf))  # m/s
+
     # Intruder track angle and speed
     inttrkrad = np.radians(intruder.trk)
-    intu = intruder.gs * np.cos(inttrkrad).reshape((1, ownship.ntraf))  # m/s
-    intv = intruder.gs * np.sin(inttrkrad).reshape((1, ownship.ntraf))  # m/s
+    intu = intruder.gs * np.sin(inttrkrad).reshape((1, ownship.ntraf))  # m/s
+    intv = intruder.gs * np.cos(inttrkrad).reshape((1, ownship.ntraf))  # m/s
 
-    du = ownship.gsnorth.reshape((1, ownship.ntraf)) - intu.T  # Speed du[i,j] is perceived eastern speed of i to j
-    dv = ownship.gseast.reshape((1, ownship.ntraf)) - intv.T  # Speed dv[i,j] is perceived northern speed of i to j
+    du = ownu - intu.T  # Speed du[i,j] is perceived eastern speed of i to j
+    dv = ownv - intv.T  # Speed dv[i,j] is perceived northern speed of i to j
 
     dv2 = du * du + dv * dv
     dv2 = np.where(np.abs(dv2) < 1e-6, 1e-6, dv2)  # limit lower absolute value
@@ -80,17 +85,22 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     # --------------------------------------------------------------------------
     # Update conflict lists
     # --------------------------------------------------------------------------
+    # Ownship conflict flag and max tCPA
+    inconf = np.any(swconfl, 1)
+    tcpamax = np.max(tcpa * swconfl, 1)
 
     # Select conflicting pairs: each a/c gets their own record
     confpairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swconfl))]
+    swlos = (dist < RPZ) * (np.abs(dalt) < HPZ)
+    lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
+
     # bearing, dist, tcpa, tinconf, toutconf per conflict
     if confpairs:
-        swlos = (dist < RPZ) * (np.abs(dalt) < HPZ)
-        lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
         qdr = np.squeeze(np.array(qdr[swconfl]))
         dist = np.squeeze(np.array(dist[swconfl]))
         tcpa = np.squeeze(np.array(tcpa[swconfl]))
         tinconf = np.squeeze(np.array(tinconf[swconfl]))
-        toutconf = np.squeeze(np.array(toutconf[swconfl]))
-        return confpairs, lospairs, qdr, dist, tcpa, tinconf, toutconf
-    return [[]] * 7
+    else:
+        qdr, dist, tcpa, tinconf = [[]] * 4
+
+    return confpairs, lospairs, inconf, tcpamax, qdr, dist, tcpa, tinconf
