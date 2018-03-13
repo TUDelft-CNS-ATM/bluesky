@@ -58,7 +58,7 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
 
     # Vertical crossing of disk (-dh,+dh)
     dalt = ownship.alt.reshape((1, ownship.ntraf)) - \
-        intruder.alt.reshape((1, ownship.ntraf)).T
+        intruder.alt.reshape((1, ownship.ntraf)).T  + 1e9 * I
 
     dvs = ownship.vs.reshape(1, ownship.ntraf) - \
         intruder.vs.reshape(1, ownship.ntraf).T
@@ -85,7 +85,7 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     confpairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swconfl))]
     # bearing, dist, tcpa, tinconf, toutconf per conflict
     if confpairs:
-        swlos = (dist < RPZ) * (dalt < HPZ)
+        swlos = (dist < RPZ) * (np.abs(dalt) < HPZ)
         lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
         qdr = np.squeeze(np.array(qdr[swconfl]))
         dist = np.squeeze(np.array(dist[swconfl]))
