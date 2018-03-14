@@ -11,29 +11,25 @@
 
 static PyObject* casas_detect(PyObject* self, PyObject* args)
 {
-    PyObject *pyasas = NULL,
-             *traf   = NULL;
-    double   simt;
-    if (!PyArg_ParseTuple(args, "OOd", &pyasas, &traf, &simt))
+    PyObject *ownship = NULL,
+             *intruder = NULL;
+    double RPZ, HPZ, tlookahead;
+
+    if (!PyArg_ParseTuple(args, "OOddd", &ownship, &intruder, &RPZ, &HPZ, &tlookahead))
         return NULL;
 
-    PyAttr adsb(traf, "adsb");
+    PyDoubleArrayAttr lat1(ownship, "lat"),  lon1(ownship, "lon"),  trk1(ownship, "trk"),
+                      gs1 (ownship, "gs"),   alt1(ownship, "alt"),  vs1 (ownship, "vs"),
+                      lat2(intruder, "lat"), lon2(intruder, "lon"), trk2(intruder, "trk"),
+                      gs2 (intruder, "gs"),  alt2(intruder, "alt"), vs2 (intruder, "vs");
 
-    PyDoubleArrayAttr lat1(traf, "lat"),     lon1(traf, "lon"),     trk1(traf, "trk"),
-                      gs1 (traf, "gs"),      alt1(traf, "alt"),     vs1 (traf, "vs"),
-                      lat2(adsb, "lat"), lon2(adsb, "lon"), trk2(adsb, "trk"),
-                      gs2 (adsb, "gs"),  alt2(adsb, "alt"), vs2 (adsb, "vs");
-
-    PyListAttr  acid(traf, "id");
+    PyListAttr  acid(ownship, "id");
 
     // Only continue if all arrays exist
     if (lat1 && lon1 && trk1 && gs1  && alt1 && vs1  && lat2 && lon2 && trk2 && gs2  && alt2 && vs2)
     {
         // Assume all arrays are the same size; only get the size of lat1
         npy_intp  size  = lat1.size();
-
-        // Wrap dbconf in C struct
-        Dbconf dbconf(pyasas);
 
         // Loop over all combinations of aircraft to detect conflicts
         conflict confhor, confver;
@@ -42,7 +38,12 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         qdr_d_in ll1;
         std::vector<qdr_d_in> ll2(size);
         std::vector<qdr_d_in>::iterator pll2 = ll2.begin();
-        npy_bool asasactive = NPY_FALSE;
+        npy_bool acinconf = NPY_FALSE;
+        double tcpamax_ac = 0.0;
+
+        // Return values
+        PyDoubleArrayAttr inconf(size), tcpamax(size);
+        PyListAttr confpairs, lospairs, qdr, dist, tcpa, tinconf;
 
         // Pre-calculate intruder data
         for (unsigned int i = 0; i < size; ++i) {
@@ -53,46 +54,50 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         for (unsigned int i = 0; i < size; ++i) {
             ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
             pll2 = ll2.begin();
-            PyListAttr acconfids;
             for (unsigned int j = 0; j < size; ++j) {
                 if (i != j) {
                     // Vectical detection first
                     dalt = *alt1.ptr - *alt2.ptr;
                     dvs  = *vs1.ptr  - *vs2.ptr;
-                    if (detect_ver(dbconf, confver, dalt, dvs)) {
+                    if (detect_ver(confver, HPZ, tlookahead, dalt, dvs)) {
                         // Horizontal detection
-                        if (detect_hor(dbconf, confhor,
+                        if (detect_hor(confhor, RPZ, tlookahead,
                                        ll1,   *gs1.ptr, *trk1.ptr * DEG2RAD,
                                        *pll2, *gs2.ptr, *trk2.ptr * DEG2RAD)) {
                             tin  = std::max(confhor.tin, confver.tin);
                             tout = std::min(confhor.tout, confver.tout);
                             // Combined conflict?
-                            if (tin <= dbconf.dtlookahead && tin < tout && tout > 0.0) {
+                            if (tin <= tlookahead && tin < tout && tout > 0.0) {
                                 // Add AC id to conflict list
-                                dbconf.confpairs.append(PyTuple_Pack(2, acid[i], acid[j]));
-                                dbconf.latowncpa.append(confhor.latcpa * RAD2DEG);
-                                dbconf.lonowncpa.append(confhor.loncpa * RAD2DEG);
-
-                                // Keep index for current ownship and increase conflict count
-                                acconfids.append(dbconf.nconf);
-                                dbconf.nconf++;
-                                asasactive = NPY_TRUE;// ASAS should be active for this aircraft
+                                confpairs.append(PyTuple_Pack(2, acid[i], acid[j]));
+                                tcpamax_ac = std::max(confhor.tcpa, tcpamax_ac);
+                                acinconf = NPY_TRUE; // This aircraft is in conflict
+                                if (confver.LOS && confhor.LOS) {
+                                    // Add to lospairs if this is also a LoS
+                                    lospairs.append(PyTuple_Pack(2, acid[i], acid[j]));
+                                }
+                                qdr.append(confhor.q * RAD2DEG);
+                                dist.append(confhor.d);
+                                tcpa.append(confhor.tcpa);
+                                tinconf.append(tin);
                             }
                         }
                     }
                 }
                 pll2++; trk2.ptr++; gs2.ptr++; alt2.ptr++; vs2.ptr++;
             }
-            dbconf.iconf.append(acconfids.attr);
-            *dbconf.asasactive.ptr = asasactive;
-            dbconf.asasactive.ptr++;
-            asasactive = NPY_FALSE;
+            *inconf.ptr = acinconf;
+            *tcpamax.ptr = tcpamax_ac;
+            inconf.ptr++;
+            tcpamax.ptr++;
+            acinconf = NPY_FALSE;
+            tcpamax_ac = 0.0;
             trk2.ptr = trk2.ptr_start; gs2.ptr  = gs2.ptr_start;
             alt2.ptr = alt2.ptr_start; vs2.ptr  = vs2.ptr_start;
             lat1.ptr++; lon1.ptr++; trk1.ptr++; gs1.ptr++; alt1.ptr++; vs1.ptr++;
         }
-        // Copy new lists back to python dbconf object
-        dbconf.copyback();
+
+        return PyTuple_Pack(8, confpairs.attr, lospairs.attr, inconf.arr, tcpamax.arr, qdr.attr, dist.attr, tcpa.attr, tinconf.attr);
     }
 
     Py_INCREF(Py_None);
