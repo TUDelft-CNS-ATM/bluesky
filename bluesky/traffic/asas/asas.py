@@ -427,10 +427,11 @@ class ASAS(TrafficArrays):
 
             if idx2 >= 0:
                 # Distance vector using flat earth approximation
-                dist = np.array([(bs.traf.lon[idx2] - bs.traf.lon[idx1]) *
-                                 np.cos(0.5 * np.radians(bs.traf.lat[idx2] +
-                                                         bs.traf.lat[idx1])),
-                                 bs.traf.lat[idx2] - bs.traf.lat[idx1]])
+                re      = 6371000.
+                dist = re * np.array([np.radians(bs.traf.lon[idx2] - bs.traf.lon[idx1]) *
+                                      np.cos(0.5 * np.radians(bs.traf.lat[idx2] +
+                                                              bs.traf.lat[idx1])),
+                                      np.radians(bs.traf.lat[idx2] - bs.traf.lat[idx1])])
 
                 # Relative velocity vector
                 vrel = np.array([bs.traf.gseast[idx2] - bs.traf.gseast[idx1],
@@ -454,7 +455,7 @@ class ASAS(TrafficArrays):
 
             # Start recovery for ownship if intruder is deleted, or if past CPA
             # and not in horizontal LOS or a bouncing conflict
-            if idx2 > 0 and (not past_cpa or hor_los or is_bouncing):
+            if idx2 >= 0 and (not past_cpa or hor_los or is_bouncing):
                 # Enable ASAS for this aircraft
                 self.active[idx1] = True
             else:
@@ -485,6 +486,10 @@ class ASAS(TrafficArrays):
                 self.qdr, self.dist, self.tcpa, self.tLOS = \
                 self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
 
+            # Conflict resolution if there are conflicts
+            if self.confpairs:
+                self.cr.resolve(self, bs.traf)
+
             # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
             self.resopairs.update(self.confpairs)
 
@@ -499,9 +504,6 @@ class ASAS(TrafficArrays):
             # Update confpairs_unique and lospairs_unique
             self.confpairs_unique = confpairs_unique
             self.lospairs_unique = lospairs_unique
-
-            # Conflict resolution
-            self.cr.resolve(self, bs.traf)
 
             self.ResumeNav()
 

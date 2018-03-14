@@ -148,8 +148,6 @@ def resolve(asas, traf):
 
 def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
     """Modified Voltage Potential (MVP) resolution method"""
-
-
     # Preliminary calculations-------------------------------------------------
 
     # Convert qdr from degrees to radians
@@ -179,8 +177,8 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
     # This is done to prevent division by zero in the next step
     if dabsH <= 10.:
         dabsH = 10.
-        dcpa[0] = 10.
-        dcpa[1] = 10.
+        dcpa[0] = drel[1] / dist * dabsH
+        dcpa[1] = -drel[0] / dist * dabsH
 
     # Compute the resolution velocity vector in horizontal direction
     # abs(tcpa) because it bcomes negative during intrusion

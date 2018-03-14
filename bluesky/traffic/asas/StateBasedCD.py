@@ -95,12 +95,9 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
 
     # bearing, dist, tcpa, tinconf, toutconf per conflict
-    if confpairs:
-        qdr = np.squeeze(np.array(qdr[swconfl]))
-        dist = np.squeeze(np.array(dist[swconfl]))
-        tcpa = np.squeeze(np.array(tcpa[swconfl]))
-        tinconf = np.squeeze(np.array(tinconf[swconfl]))
-    else:
-        qdr, dist, tcpa, tinconf = [[]] * 4
+    qdr = qdr[swconfl]
+    dist = dist[swconfl]
+    tcpa = tcpa[swconfl]
+    tinconf = tinconf[swconfl]
 
     return confpairs, lospairs, inconf, tcpamax, qdr, dist, tcpa, tinconf
