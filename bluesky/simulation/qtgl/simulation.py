@@ -19,35 +19,35 @@ class Simulation(Node):
     ''' The simulation object. '''
     def __init__(self):
         super(Simulation, self).__init__()
-        self.state       = bs.INIT
-        self.prevstate   = None
+        self.state = bs.INIT
+        self.prevstate = None
 
         # Set starting system time [seconds]
-        self.syst        = -1.0
+        self.syst = -1.0
 
         # Benchmark time and timespan [seconds]
-        self.bencht      = 0.0
-        self.benchdt     = -1.0
+        self.bencht = 0.0
+        self.benchdt = -1.0
 
         # Starting simulation time [seconds]
-        self.simt        = 0.0
+        self.simt = 0.0
 
         # Simulation timestep [seconds]
-        self.simdt       = settings.simdt
+        self.simdt = settings.simdt
 
         # Simulation timestep multiplier: run sim at n x speed
-        self.dtmult      = 1.0
+        self.dtmult = 1.0
 
         # Simulated clock time
-        self.deltclock   = 0.0
-        self.simtclock   = self.simt
+        self.deltclock = 0.0
+        self.simtclock = self.simt
 
         # System timestep [seconds]
-        self.sysdt       = self.simdt / self.dtmult
+        self.sysdt = self.simdt / self.dtmult
 
         # Flag indicating running at fixed rate or fast time
-        self.ffmode      = False
-        self.ffstop      = None
+        self.ffmode = False
+        self.ffstop = None
 
     def step(self):
         ''' Perform a simulation timestep. '''
@@ -122,25 +122,24 @@ class Simulation(Node):
         # Close savefile which may be open for recording
         bs.stack.saveclose()  # Close reording file if it is on
 
-        if settings.is_headless:
-            self.running = False
-
     def op(self):
-        self.syst   = time.time()
+        self.syst = time.time()
         self.ffmode = False
-        self.state  = bs.OP
+        self.state = bs.OP
         self.setDtMultiplier(1.0)
 
     def pause(self):
-        self.syst  = time.time()
+        self.syst = time.time()
         self.state = bs.HOLD
 
     def reset(self):
-        self.simt      = 0.0
+        self.state = bs.INIT
+        self.syst = -1.0
+        self.simt = 0.0
+        self.simdt = settings.simdt
         self.deltclock = 0.0
         self.simtclock = self.simt
-        self.state     = bs.INIT
-        self.ffmode    = False
+        self.ffmode = False
         self.setDtMultiplier(1.0)
         plugin.reset()
         bs.navdb.reset()

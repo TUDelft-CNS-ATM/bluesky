@@ -953,7 +953,7 @@ def setSeed(value):
 
 def reset():
     ''' Reset the stack. '''
-    global scentime, scencmd, scenname, saveexcl, defexcl
+    global scentime, scencmd, scenname, saveexcl
 
     scentime = []
     scencmd  = []
