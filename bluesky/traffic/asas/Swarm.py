@@ -22,12 +22,16 @@ def start(asas):
 
 def resolve(asas, traf):
     # Find matrix of neighbouring aircraft withing swarm distance
-    dx = asas.dx
-    dy = asas.dy - np.eye(traf.ntraf) * 1e9  # setting distance of A/C to itself to 0,\
+    qdrrad = np.radians(asas.qdr)
+    dx = asas.dist * np.sin(qdrrad)
+    dy = asas.dist * np.cos(qdrrad)
+
+    dy = dy - np.eye(traf.ntraf) * 1e9  # setting distance of A/C to itself to 0,\
     # correcting the distance from CASAS line 109
 
+    dalt = traf.alt.reshape((1, traf.ntraf)) - traf.alt.reshape((1, traf.ntraf)).T
     close = np.logical_and(dx**2 + dy**2 < asas.Rswarm**2,
-                           np.abs(asas.dalt) < asas.dhswarm)
+                           np.abs(dalt) < asas.dhswarm)
 
     trkdif = traf.trk.reshape(1, traf.ntraf) - traf.trk.reshape(traf.ntraf, 1)
     dtrk = (trkdif + 180) % 360 - 180

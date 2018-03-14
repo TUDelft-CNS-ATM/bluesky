@@ -19,6 +19,7 @@ from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
 from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.tools.aero import ft, nm, kts
+from bluesky.tools import geo
 from bluesky.navdatabase import load_aptsurface, load_coastlines
 from .glhelpers import BlueSkyProgram, RenderObject, Font, UniformBuffer, \
     update_buffer, create_empty_buffer
@@ -698,36 +699,43 @@ class RadarWidget(QGLWidget):
             update_buffer(self.asasebuf, np.array(data.asase[:MAX_NAIRCRAFT], dtype=np.float32))
 
             # CPA lines to indicate conflicts
-            ncpalines = len(data.confcpalat)
+            ncpalines = np.count_nonzero(data.inconf)
 
             cpalines  = np.zeros(4 * ncpalines, dtype=np.float32)
             self.cpalines.set_vertex_count(2 * ncpalines)
 
             # Labels and colors
             rawlabel = ''
-            color    = np.empty((min(self.naircraft, MAX_NAIRCRAFT), 4), dtype=np.uint8)
-            selssd   = np.zeros(self.naircraft, dtype=np.uint8)
-            for i, acid in enumerate(data.id[:MAX_NAIRCRAFT]):
-                vs = 30 if data.vs[i] > 0.25 else 31 if data.vs[i] < -0.25 else 32
+            color = np.empty((min(self.naircraft, MAX_NAIRCRAFT), 4), dtype=np.uint8)
+            selssd = np.zeros(self.naircraft, dtype=np.uint8)
+            confidx = 0
+
+            zdata = zip(data.id, data.inconf, data.tcpamax, data.trk, data.gs,
+                        data.cas, data.vs, data.alt, data.lat, data.lon)
+            for i, (acid, inconf, tcpa, trk, gs, cas, vs, alt, lat, lon) in enumerate(zdata):
+                if i >= MAX_NAIRCRAFT:
+                    break
+
                 # Make label: 3 lines of 8 characters per aircraft
                 if actdata.show_lbl >= 1:
                     rawlabel += '%-8s' % acid[:8]
                     if actdata.show_lbl == 2:
-                        if data.alt[i] <= data.translvl:
-                            rawlabel += '%-5d' % int(data.alt[i]/ft  + 0.5)
+                        if alt <= data.translvl:
+                            rawlabel += '%-5d' % int(alt / ft  + 0.5)
                         else:
-                            rawlabel += 'FL%03d' % int(data.alt[i]/ft/100.+0.5)
-                        rawlabel += '%1s  %-8d' % (chr(vs), int(data.cas[i] / kts+0.5))
+                            rawlabel += 'FL%03d' % int(alt / ft / 100. + 0.5)
+                        vsarrow = 30 if vs > 0.25 else 31 if vs < -0.25 else 32
+                        rawlabel += '%1s  %-8d' % (chr(vsarrow), int(cas / kts + 0.5))
                     else:
                         rawlabel += 16 * ' '
-                confindices = data.iconf[i]
-                if len(confindices) > 0:
+
+                if inconf:
                     if actdata.ssd_conflicts:
                         selssd[i] = 255
                     color[i, :] = palette.conflict + (255,)
-                    for confidx in confindices:
-                        cpalines[4 * confidx : 4 * confidx + 4] = [ data.lat[i], data.lon[i],
-                                                                    data.confcpalat[confidx], data.confcpalon[confidx]]
+                    lat1, lon1 = geo.qdrpos(lat, lon, trk, tcpa * gs / nm)
+                    cpalines[4 * confidx : 4 * confidx + 4] = [lat, lon, lat1, lon1]
+                    confidx += 1
                 else:
                     color[i, :] = palette.aircraft + (255,)
 

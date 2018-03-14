@@ -27,6 +27,15 @@ struct PyArrayAttr: public PyAttr {
         PyAttr(parent, name) {init();}
     PyArrayAttr(PyObject* attr) : PyAttr(attr) {init();}
 
+    PyArrayAttr(const int length) : PyAttr(NULL) {
+        int nd = 1;
+        npy_intp dims[] = {length};
+        arr = (PyArrayObject*)PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+        if (arr != NULL) {
+            ptr_start = ptr = (T*)PyArray_DATA(arr);
+        }
+    }
+
     void init() {
         if (attr != NULL) {
             arr = (PyArrayObject*)PyArray_FROM_OTF(attr, atype<T>(), NPY_ARRAY_IN_ARRAY);

@@ -58,8 +58,8 @@ class ASAS(TrafficArrays):
         super(ASAS, self).__init__()
         with RegisterElementParameters(self):
             # ASAS info per aircraft:
-            self.iconf    = []            # index in 'conflicting' aircraft database
-
+            self.inconf    = np.array([], dtype=bool)  # In-conflict flag per aircraft
+            self.tcpamax = np.array([])  # Maximum time to CPA for aircraft in conflict
             self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
             self.trk      = np.array([])  # heading provided by the ASAS [deg]
             self.tas      = np.array([])  # speed provided by the ASAS (eas) [m/s]
@@ -111,38 +111,25 @@ class ASAS(TrafficArrays):
         self.resoFacH     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
         self.resoFacV     = 1.0                             # [-] set horizontal resolution factor (1.0 = 100%)
 
-        self.confpairs    = []                              # Start with empty database: no conflicts
-        self.nconf        = 0                               # Number of detected conflicts
-        self.latowncpa    = np.array([])
-        self.lonowncpa    = np.array([])
-        self.altowncpa    = np.array([])
-        self.tcpa         = np.array([])
-        self.tinconf      = np.array([])
-        self.toutconf     = np.array([])
-        self.qdr          = np.array([])
-        self.dist         = np.array([])
-        self.dx           = np.array([])
-        self.dy           = np.array([])
-        self.dalt         = np.array([])
-        self.u            = np.array([])
-        self.v            = np.array([])
-
-        self.conflist_all = []  # List of all Conflicts
-        self.LOSlist_all  = []  # List of all Losses Of Separation
-        self.conflist_exp = []  # List of all Conflicts in experiment time
-        self.LOSlist_exp  = []  # List of all Losses Of Separation in experiment time
-        self.conflist_now = []  # List of current Conflicts
-        self.LOSlist_now  = []  # List of current Losses Of Separation
-
-        # For keeping track of locations with most severe intrusions
-        self.LOSmaxsev    = []
-        self.LOShmaxsev   = []
-        self.LOSvmaxsev   = []
-
         # ASAS-visualization on SSD
         self.asasn        = np.array([])               # [m/s] North resolution speed from ASAS
         self.asase        = np.array([])               # [m/s] East resolution speed from ASAS
         self.asaseval     = False                      # [-] Whether target resolution is calculated or not
+
+        # Sets of pairs: conflict pairs, LoS pairs
+        self.confpairs = list()  # Conflict pairs detected in the current timestep (used for resolving)
+        self.confpairs_unique = set()  # Unique conflict pairs (a, b) = (b, a) are merged
+        self.resopairs = set()  # Resolved (when RESO is on) conflicts that are still before CPA
+        self.lospairs = list()  # Current loss of separation pairs
+        self.lospairs_unique = set()  # Unique LOS pairs (a, b) = (b, a) are merged
+        self.confpairs_all = list()  # All conflicts since simt=0
+        self.lospairs_all = list()  # All losses of separation since simt=0
+
+        # Conflict time and geometry data per conflict pair
+        self.tcpa = np.array([])  # Time to CPA
+        self.tLOS = np.array([])  # Time to start LoS
+        self.qdr = np.array([])  # Bearing from ownship to intruder
+        self.dist = np.array([])  # Horizontal distance between ""
 
     def toggle(self, flag=None):
         if flag is None:
@@ -158,37 +145,34 @@ class ASAS(TrafficArrays):
         """
         Clear conflict database
         """
+        self.confpairs = list()  # Conflict pairs detected in the current timestep (used for resolving)
+        self.confpairs_unique = set()  # Unique conflict pairs (a, b) = (b, a) are merged
+        self.resopairs = set()  # Resolved (when RESO is on) conflicts that are still before CPA
+        self.lospairs = list()  # Current loss of separation pairs
+        self.lospairs_unique = set()  # Unique LOS pairs (a, b) = (b, a) are merged
+        self.confpairs_all = list()  # All conflicts since simt=0
+        self.lospairs_all = list()  # All losses of separation since simt=0
 
-        self.iconf = [[] for i in range(bs.traf.ntraf)]
-
-        self.confpairs = []  # Empty database: no conflicts
-        self.nconf = 0  # Number of detected conflicts
-        self.latowncpa = np.array([])
-        self.lonowncpa = np.array([])
-        self.altowncpa = np.array([])
-        self.tcpa = np.array([])
-        self.tinconf = np.array([])
-        self.toutconf = np.array([])
-        self.qdr = np.array([])
-        self.dist = np.array([])
-        self.dx = np.array([])
-        self.dy = np.array([])
-        self.dalt = np.array([])
-        self.u = np.array([])
-        self.v = np.array([])
+        # Conflict time and geometry data per conflict pair
+        self.tcpa = np.array([])  # Time to CPA
+        self.tLOS = np.array([])  # Time to start LoS
+        self.qdr = np.array([])  # Bearing from ownship to intruder
+        self.dist = np.array([])  # Horizontal distance between ""
 
         # Force change labels in interface
-        if settings.gui == "pygame":
-            bs.traf.label = [[" ", " ", " ", " "] for i in range(bs.traf.ntraf)]
+        # if settings.gui == "pygame":
+        #     bs.traf.label = [[" ", " ", " ", " "] for i in range(bs.traf.ntraf)]
 
         return
 
     def SetCDmethod(self, method=""):
-        if method is "":
+        if not method:
             return True, ("Current CD method: " + self.cd_name +
-                        "\nAvailable CD methods: " + str.join(", ", list(ASAS.CDmethods.keys())))
+                          "\nAvailable CD methods: " +
+                          ", ".join(list(ASAS.CDmethods.keys())))
         if method not in ASAS.CDmethods:
-            return False, (method + " doesn't exist.\nAvailable CD methods: " + str.join(", ", list(ASAS.CDmethods.keys())))
+            return False, (method + " doesn't exist.\nAvailable CD methods: " +
+                           ", ".join(list(ASAS.CDmethods.keys())))
 
         self.cd_name = method
         self.cd = ASAS.CDmethods[method]
@@ -197,9 +181,9 @@ class ASAS(TrafficArrays):
         self.clearconfdb()
 
     def SetCRmethod(self, method=""):
-        if method is "":
+        if not method:
             return True, ("Current CR method: " + self.cr_name +
-                        "\nAvailable CR methods: " + str.join(", ", list(ASAS.CRmethods.keys())))
+                          "\nAvailable CR methods: " + str.join(", ", list(ASAS.CRmethods.keys())))
         if method not in ASAS.CRmethods:
             return False, (method + " doesn't exist.\nAvailable CR methods: " + str.join(", ", list(ASAS.CRmethods.keys())))
 
@@ -426,19 +410,108 @@ class ASAS(TrafficArrays):
         self.tas[-n:] = bs.traf.tas[-n:]
         self.alt[-n:] = bs.traf.alt[-n:]
 
+    def ResumeNav(self):
+        """ Decide for each aircraft in the conflict list whether the ASAS
+            should be followed or not, based on if the aircraft pairs passed
+            their CPA. """
+        # Conflict pairs to be deleted
+        delpairs = set()
+
+        # Look at all conflicts, also the ones that are solved but CPA is yet to come
+        for conflict in self.resopairs:
+            idx1, idx2 = bs.traf.id2idx(conflict)
+            # If the ownship aircraft is deleted remove its conflict from the list
+            if idx1 < 0:
+                delpairs.add(conflict)
+                continue
+
+            if idx2 >= 0:
+                # Distance vector using flat earth approximation
+                re      = 6371000.
+                dist = re * np.array([np.radians(bs.traf.lon[idx2] - bs.traf.lon[idx1]) *
+                                      np.cos(0.5 * np.radians(bs.traf.lat[idx2] +
+                                                              bs.traf.lat[idx1])),
+                                      np.radians(bs.traf.lat[idx2] - bs.traf.lat[idx1])])
+
+                # Relative velocity vector
+                vrel = np.array([bs.traf.gseast[idx2] - bs.traf.gseast[idx1],
+                                 bs.traf.gsnorth[idx2] - bs.traf.gsnorth[idx1]])
+
+                # Check if conflict is past CPA
+                past_cpa = np.dot(dist, vrel) > 0.0
+
+                # hor_los:
+                # Aircraft should continue to resolve until there is no horizontal
+                # LOS. This is particularly relevant when vertical resolutions
+                # are used.
+                hdist = np.linalg.norm(dist)
+                hor_los = hdist < self.R
+
+                # Bouncing conflicts:
+                # If two aircraft are getting in and out of conflict continously,
+                # then they it is a bouncing conflict. ASAS should stay active until
+                # the bouncing stops.
+                is_bouncing = abs(bs.traf.trk[idx1] - bs.traf.trk[idx2]) < 30.0 and hdist < self.Rm
+
+            # Start recovery for ownship if intruder is deleted, or if past CPA
+            # and not in horizontal LOS or a bouncing conflict
+            if idx2 >= 0 and (not past_cpa or hor_los or is_bouncing):
+                # Enable ASAS for this aircraft
+                self.active[idx1] = True
+            else:
+                # Switch ASAS off for ownship
+                self.active[idx1] = False
+
+                # Waypoint recovery after conflict: Find the next active waypoint
+                # and send the aircraft to that waypoint.
+                iwpid = bs.traf.ap.route[idx1].findact(idx1)
+                if iwpid != -1: # To avoid problems if there are no waypoints
+                    bs.traf.ap.route[idx1].direct(idx1, bs.traf.ap.route[idx1].wpname[iwpid])
+
+                # If conflict is solved, remove it from the resopairs list
+                delpairs.add(conflict)
+
+        # Remove pairs from the list that are past CPA or have deleted aircraft
+        self.resopairs -= delpairs
+
     def update(self, simt):
-        iconf0 = np.array(self.iconf)
+        if not self.swasas or simt < self.tasas:
+            return
 
-        # Scheduling: update when dt has passed
-        if self.swasas and simt >= self.tasas:
-            self.tasas += self.dtasas
+        # increment trigger time for next ASAS step
+        self.tasas += self.dtasas
+        if bs.traf.ntraf:
+            # Conflict detection
+            self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
+                self.qdr, self.dist, self.tcpa, self.tLOS = \
+                self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
 
-            # Conflict detection and resolution
-            self.cd.detect(self, bs.traf, simt)
-            self.cr.resolve(self, bs.traf)
+            # Conflict resolution if there are conflicts
+            if self.confpairs:
+                self.cr.resolve(self, bs.traf)
+
+            # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
+            self.resopairs.update(self.confpairs)
+
+            # confpairs has conflicts observed from both sides (a, b) and (b, a)
+            # confpairs_unique keeps only one of these
+            confpairs_unique = {frozenset(pair) for pair in self.confpairs}
+            lospairs_unique = {frozenset(pair) for pair in self.lospairs}
+
+            self.confpairs_all.extend(confpairs_unique - self.confpairs_unique)
+            self.lospairs_all.extend(lospairs_unique - self.lospairs_unique)
+
+            # Update confpairs_unique and lospairs_unique
+            self.confpairs_unique = confpairs_unique
+            self.lospairs_unique = lospairs_unique
+
+            self.ResumeNav()
+
+        # iconf0 = np.array(self.iconf)
+        #
 
         # Change labels in interface
-        if settings.gui == "pygame":
-            for i in range(bs.traf.ntraf):
-                if np.any(iconf0[i] != self.iconf[i]):
-                    bs.traf.label[i] = [" ", " ", " ", " "]
+        # if settings.gui == "pygame":
+        #     for i in range(bs.traf.ntraf):
+        #         if np.any(iconf0[i] != self.iconf[i]):
+        #             bs.traf.label[i] = [" ", " ", " ", " "]
