@@ -71,7 +71,6 @@ class Traffic(TrafficArrays):
         TrafficArrays.SetRoot(self)
 
         self.ntraf = 0
-        self.lastcreid ="" # A/c id of last created aircraft (to be used as * or #)
 
         self.cond = Condition()  # Conditional commands list
         self.wind = WindSim()
@@ -186,20 +185,14 @@ class Traffic(TrafficArrays):
                 aclat=None, aclon=None, achdg=None, acid=None):
         """ Create multiple random aircraft in a specified area """
         area = bs.scr.getviewbounds()
-        if acid is None or acid=="*" or acid=="#":
+        if acid is None:
             idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
             acid = [idtmp.format(i) for i in range(n)]
-            # Save last created a/c id (in case of cre *) to reused for other commands
-            self.lastcreid = acid[-1]
 
         elif isinstance(acid, str):
             # Check if not already exist
             if self.id.count(acid.upper()) > 0:
                 return False, acid + " already exists."  # already exists do nothing
-
-            # Save last created a/c id (in case of cre *) to reused for other commands
-            self.lastcreid = acid
-
             acid = [acid]
 
         if isinstance(actype, str):
@@ -463,8 +456,8 @@ class Traffic(TrafficArrays):
             return [tmp.get(acidi, -1) for acidi in acid]
         else:
              # Catch last created id (* or # symbol)
-            if (acid=="#" or acid=="*") and self.lastcreid in self.id:
-                return self.id.index(self.lastcreid)
+            if acid in ('#', '*'):
+                return self.ntraf - 1
 
             try:
                 return self.id.index(acid.upper())

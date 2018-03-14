@@ -953,7 +953,7 @@ def setSeed(value):
 
 def reset():
     ''' Reset the stack. '''
-    global scentime, scencmd, scenname, saveexcl, defexcl
+    global scentime, scencmd, scenname, saveexcl
 
     scentime = []
     scencmd  = []
@@ -1553,16 +1553,12 @@ class Argparser:
             # airport:   "EHAM"
             # runway:    "EHAM/RW06" "LFPG/RWY23"
             # Default values
-            name         = curarg
+            name = curarg
 
             # Try aircraft first: translate a/c id into a valid position text with a lat,lon
-            if name!="*":
-                idx = bs.traf.id2idx(name)
-            else:
-                idx = -1
-
+            idx = bs.traf.id2idx(name)
             if idx >= 0:
-                name     = str(bs.traf.lat[idx]) + "," + str(bs.traf.lon[idx])
+                name = str(bs.traf.lat[idx]) + "," + str(bs.traf.lon[idx])
 
             # Check if lat/lon combination
             elif islat(curarg):
