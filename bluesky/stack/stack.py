@@ -1050,11 +1050,12 @@ def openfile(fname, *args, mergeWithExisting=False):
         for line in fscen:
 
             # Replace arguments if specified: %0 by first argument, %1 by seconds, %2
-            for iarg, txtarg in enumerate(arglst):
-                line = line.replace("%"+str(iarg),arglst[iarg])
+            if len(arglst)>0 and line.find("%")>=0:
+                for iarg, txtarg in enumerate(arglst):
+                    line = line.replace("%"+str(iarg),arglst[iarg])
 
             # Skip emtpy lines and comments
-            if len(line.strip()) > 12 and line[0] != "#":
+            if len(line.strip()) > 12 and line.strip()[0] != "#":
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
