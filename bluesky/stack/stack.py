@@ -1459,8 +1459,8 @@ class Argparser:
                         continue
                     else:
                         # No more types to check: print error message
-                        self.error = 'Syntax error processing argument %d:\n' % \
-                            (curtype + 1) + self.error[:-1]
+                        self.error = "Syntax error processing argument " + \
+                                      str(curtype+1)+":\n"+self.error
                         return False
 
             curtype += 1
