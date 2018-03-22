@@ -69,13 +69,15 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                             // Combined conflict?
                             if (tin <= tlookahead && tin < tout && tout > 0.0) {
                                 // Add AC id to conflict list
-                                confpairs.append(PyTuple_Pack(2, acid[i], acid[j]));
+                                PyObject* pair = PyTuple_Pack(2, acid[i], acid[j]);
+                                confpairs.append(pair);
                                 tcpamax_ac = std::max(confhor.tcpa, tcpamax_ac);
                                 acinconf = NPY_TRUE; // This aircraft is in conflict
                                 if (confver.LOS && confhor.LOS) {
                                     // Add to lospairs if this is also a LoS
-                                    lospairs.append(PyTuple_Pack(2, acid[i], acid[j]));
+                                    lospairs.append(pair);
                                 }
+                                Py_DECREF(pair);
                                 qdr.append(confhor.q * RAD2DEG);
                                 dist.append(confhor.d);
                                 tcpa.append(confhor.tcpa);
@@ -100,8 +102,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         return PyTuple_Pack(8, confpairs.attr, lospairs.attr, inconf.arr, tcpamax.arr, qdr.attr, dist.attr, tcpa.attr, tinconf.attr);
     }
 
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 };
 
 static PyMethodDef methods[] = {
