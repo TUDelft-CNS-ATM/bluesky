@@ -48,6 +48,6 @@ class WindSim(Windfield):
         wdir = (degrees(arctan2(ve,vn))+180.)%360.
         wspd = sqrt(vn*vn+ve*ve)
 
-        txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,wdir,wspd/kts)
+        txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,round(wdir),round(wspd/kts))
 
         return True, txt

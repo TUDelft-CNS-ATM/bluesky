@@ -32,6 +32,7 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
                 "DIST": "latlon,-,latlon",
                 "DUMPRTE": "acid",
                 "ENG": "acid,-",
+                "GETWIND":"latlon,-",
                 "HDG": "acid,hdg",
                 "LINE": "-,latlon,-,latlon",
                 "LISTRTE": "acid,-",
@@ -50,7 +51,8 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
                 "SPD": "acid,-",
                 "TRAIL":"acid,-",
                 "VNAV": "acid,-",
-                "VS": "acid,-"
+                "VS": "acid,-",
+                "WIND":"latlon,-"
                 }
 
     # Default values, when nothing is found to be added based on click
