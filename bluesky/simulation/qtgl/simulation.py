@@ -3,7 +3,7 @@ import time
 # Local imports
 import bluesky as bs
 from bluesky import settings, stack
-from bluesky.tools import datalog, areafilter, plugin
+from bluesky.tools import datalog, areafilter, plugin, plotter
 from bluesky.tools.misc import txt2tim, tim2txt
 from bluesky.network import Node
 
@@ -97,6 +97,9 @@ class Simulation(Node):
 
             # Update plugins
             plugin.update(self.simt)
+
+            # Update Plotter
+            plotter.update(self.simt)
 
             # Update loggers
             datalog.postupdate()

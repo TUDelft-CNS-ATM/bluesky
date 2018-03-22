@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.radarwidget = RadarWidget()
         self.nd = ND(shareWidget=self.radarwidget)
-        # self.infowin = InfoWindow()
+        self.infowin = InfoWindow()
         # self.infowin.show()
         # self.infowin.addPlotTab()
         # for i in range(10):

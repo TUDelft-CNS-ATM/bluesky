@@ -539,8 +539,8 @@ def init():
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file"
         ],
         "PLOT": [
-            "PLOT x, y [,dt,color,figure]",
-            "txt,txt,[txt,txt,txt]",
+            "PLOT [x], y [,dt,color,figure]",
+            "txt,[txt,float,txt,int]",
             plotter.plot,
             "Create a graph of variables x versus y."
         ],

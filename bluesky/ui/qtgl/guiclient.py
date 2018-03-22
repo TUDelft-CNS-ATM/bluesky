@@ -26,6 +26,7 @@ class GuiClient(Client):
         self.timer.timeout.connect(self.receive)
         self.timer.start(20)
         self.subscribe(b'SIMINFO')
+        self.subscribe(b'PLOT' + self.client_id)
 
         # Signals
         self.actnodedata_changed = Signal()
