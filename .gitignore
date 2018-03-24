@@ -26,6 +26,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+__pycache__
 .Python
 env/
 build/
@@ -78,3 +79,7 @@ data/cache
 data/performance/BADA/*
 !/data/performance/BADA/README
 ssd.obj
+
+# IPython
+*-checkpoint.py
+*-checkpoint.ipynb
