@@ -959,8 +959,9 @@ def reset():
     scencmd  = []
     scenname = ''
 
+    # Close recording file and reset scenario recording settings
     saveclose()
-    saveexcl = defexcl  # Commands to be excluded, set to default
+    saveexcl = defexcl  # Commands to be excluded, set back to default
 
 
 def stack(cmdline, cmdsender=None):
@@ -972,6 +973,7 @@ def stack(cmdline, cmdsender=None):
 
 
 def sched_cmd(time, args, relative=False):
+    global scencmd
     ''' Function that implements the SCHEDULE and DELAY commands. '''
     tostack = ','.join(args)
     # find spot in time list corresponding to passed time, get idx
