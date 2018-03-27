@@ -93,13 +93,6 @@ class GuiClient(Client):
 
         return data
 
-    # def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
-    #     super(GuiClient, self).connect(hostname, event_port, stream_port, protocol)
-    #
-
-    def sender(self):
-        return self.sender_id
-
 
 class nodeData(object):
     def __init__(self, route=None):

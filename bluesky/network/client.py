@@ -44,6 +44,9 @@ class Client(object):
     def get_hostid(self):
         return self.host_id
 
+    def sender(self):
+        return self.sender_id
+
     def event(self, name, data, sender_id):
         ''' Default event handler for Client. Override or monkey-patch this function
             to implement actual event handling. '''
