@@ -973,28 +973,21 @@ def stack(cmdline, cmdsender=None):
 
 
 def sched_cmd(time, args, relative=False):
-    global scencmd
     ''' Function that implements the SCHEDULE and DELAY commands. '''
     tostack = ','.join(args)
-    # find spot in time list corresponding to passed time, get idx
-    # insert time at idx in scentime, insert cmd at idx in scencmd
     if relative:
         time += bs.sim.simt
-    # in case there is no scentime yet, only extend
 
-    if len(scentime) == 0:
-        scentime.extend([time])
-        scencmd.extend([tostack])
-    else:
-        try:
-            idx = scentime.index(next(sctime for sctime in scentime if sctime > time))
-
-            scentime.insert(idx, time)
-            scencmd.insert(idx, tostack)
-        except:
-            scentime.extend([time])
-            scencmd.extend([tostack])
-
+    try:
+        # Find index of first scentime greater than 'time'
+        idx = next(idx for idx, t in enumerate(scentime) if t > time)
+        # Insert time and cmd at position before idx
+        scentime.insert(idx, time)
+        scencmd.insert(idx, tostack)
+    except StopIteration:
+        # Append to end when reaching end or when scentime,scencmd are empty
+        scentime.append(time)
+        scencmd.append(tostack)
 
     return True
 
