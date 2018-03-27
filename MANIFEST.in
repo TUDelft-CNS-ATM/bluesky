@@ -1,0 +1,9 @@
+recursive-include bluesky/ *
+recursive-exclude bluesky/ *.pyc *-checkpoint.py
+include LICENSE
+include README.md
+include setup.py
+include BlueSky*.py
+include check.py
+include requirements.txt
+include Makefile
