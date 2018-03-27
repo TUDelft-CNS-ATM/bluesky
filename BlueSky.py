@@ -16,8 +16,9 @@ else:
     print('Unknown gui type:', settings.gui)
     sys.exit(0)
 
-# Start the main loop. When debugging in python interactive mode,
-# relevant objects are available in bs namespace (e.g., bs.scr, bs.sim)
-start()
+if __name__ == '__main__':
+    # Start the main loop. When debugging in python interactive mode,
+    # relevant objects are available in bs namespace (e.g., bs.scr, bs.sim)
+    start()
 
-cleanup()
+    cleanup()
