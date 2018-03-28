@@ -30,14 +30,14 @@ settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1
 # try:
 if settings.performance_model == 'bluesky':
     print('Using BlueSky performance model')
-    from .performance.legacy.perfbs import PerfBS as Perf
+    from .performance.BADA.perfbs import PerfBS as Perf
 
 elif settings.performance_model == 'bada':
     print('Using BADA Perfromance model')
-    from .performance.legacy.perfbada import PerfBADA as Perf
+    from .performance.BADA.perfbada import PerfBADA as Perf
 
 elif settings.performance_model == 'nap':
-    print('Using Nifty Aircarft Perfromance (NAP) model')
+    print('Using Nifty Aircrafft Perfromance (NAP) model')
     from .performance.nap import PerfNAP as Perf
 
 
@@ -378,7 +378,7 @@ class Traffic(TrafficArrays):
         self.UpdateGroundSpeed(simdt)
         self.UpdatePosition(simdt)
 
-        #---------- Legacy Performance Update ------------------------
+        #---------- Legacy and BADA Performance Update ------------------------
         if settings.performance_model in ['bluesky', 'bada']:
             self.perf.perf(simt)
 
