@@ -156,8 +156,8 @@ class Autopilot(TrafficArrays):
             #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
 
             # self.vs = np.where(self.swvnavvs, self.vnavvs, bs.traf.apvsdef * bs.traf.limvs_flag)
-            selvs = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, bs.traf.apvsdef) # m/s
-            self.vs = np.where(self.swvnavvs, self.vnavvs, selvs)
+            selvs    = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, bs.traf.apvsdef) # m/s
+            self.vs  = np.where(self.swvnavvs, self.vnavvs, selvs)
             self.alt = np.where(self.swvnavvs, bs.traf.actwp.nextaltco, bs.traf.selalt)
 
             # When descending or climbing in VNAV also update altitude command of select/hold mode
@@ -229,6 +229,7 @@ class Autopilot(TrafficArrays):
 
             #Calculate max allowed altitude at next wp (above toalt)
             bs.traf.actwp.nextaltco[idx] = min(bs.traf.alt[idx],toalt + xtoalt * self.steepness)
+            bs.traf.actwp.xtoalt[idx]    = xtoalt
 
 
             # Dist to waypoint where descent should start [m]
@@ -259,8 +260,9 @@ class Autopilot(TrafficArrays):
 
 
             bs.traf.actwp.nextaltco[idx] = toalt
+            bs.traf.actwp.xtoalt[idx]    = xtoalt
             self.alt[idx]          = bs.traf.actwp.nextaltco[idx]  # dial in altitude of next waypoint as calculated
-            self.dist2vs[idx]      = 9999. #[m]
+            self.dist2vs[idx]      = 99999.*nm #[m]
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])

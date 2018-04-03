@@ -765,8 +765,7 @@ class Route:
             stack.stack("HDG " + str(bs.traf.id[self.iac]) + " " + str(wphdg))
 
             # start decelerating
-            stack.stack("DELAY " + "10 " + "SPD " + str(
-                bs.traf.id[self.iac]) + " " + "10")
+            stack.stack("DELAY " + "10 " + "SPD " + str(bs.traf.id[self.iac]) + " " + "10")
 
             # delete aircraft
             stack.stack("DELAY " + "42 " + "DEL " + str(bs.traf.id[self.iac]))
@@ -1059,7 +1058,10 @@ class Route:
         dy = (wplat - bs.traf.lat[i])
         dx = (wplon - bs.traf.lon[i]) * bs.traf.coslat[i]
         dist2 = dx*dx + dy*dy
-        iwpnear = argmin(dist2)
+        # Note: the max() prevents walking back, even in cases when this might be apropriate,
+        # such as when previous waypoints have been deleted
+
+        iwpnear = max(self.iactwp,argmin(dist2))
 
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
