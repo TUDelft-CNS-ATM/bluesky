@@ -15,7 +15,7 @@ ENG_TYPE_TS = 3         # turboshlft, rotor
 
 fixwing_aircraft_db = settings.perf_path_openap + "/fixwing/aircraft.json"
 fixwing_engine_db = settings.perf_path_openap + "/fixwing/engines.csv"
-fixwing_envelops_dir = settings.perf_path_openap + "/fixwing/envelop/"
+fixwing_envelops_dir = settings.perf_path_openap + "/fixwing/wrap/"
 
 rotor_aircraft_db = settings.perf_path_openap + "/rotor/aircraft.json"
 
@@ -94,15 +94,15 @@ class Coefficient():
 
                 limits_fixwing[mdl]['axmax'] = df.loc['to_acc_tof']['max']
 
-                limits_fixwing[mdl]['vsmax'] = max(df.loc['ic_vh_avg']['max'],
-                                           df.loc['cl_vh_avg_pre_cas']['max'],
-                                           df.loc['cl_vh_avg_cas_const']['max'],
-                                           df.loc['cl_vh_avg_mach_const']['max'])
+                limits_fixwing[mdl]['vsmax'] = max(df.loc['ic_vz_avg']['max'],
+                                           df.loc['cl_vz_avg_pre_cas']['max'],
+                                           df.loc['cl_vz_avg_cas_const']['max'],
+                                           df.loc['cl_vz_avg_mach_const']['max'])
 
-                limits_fixwing[mdl]['vsmin'] = min(df.loc['ic_vh_avg']['min'],
-                                           df.loc['de_vh_avg_after_cas']['min'],
-                                           df.loc['de_vh_avg_cas_const']['min'],
-                                           df.loc['de_vh_avg_mach_const']['min'])
+                limits_fixwing[mdl]['vsmin'] = min(df.loc['ic_vz_avg']['min'],
+                                           df.loc['de_vz_avg_after_cas']['min'],
+                                           df.loc['de_vz_avg_cas_const']['min'],
+                                           df.loc['de_vz_avg_mach_const']['min'])
 
                 # limits_fixwing['amaxverti'] = None # max vertical acceleration (m/s2)
         return limits_fixwing
