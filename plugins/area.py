@@ -115,7 +115,7 @@ class Area(TrafficArrays):
         self.distance2D += self.dt * traf.gs
         self.distance3D += self.dt * resultantspd
 
-        if settings.performance_model == 'nap':
+        if settings.performance_model == 'openap':
             self.work += (traf.perf.thrust * self.dt * resultantspd)
         else:
             self.work += (traf.perf.Thr * self.dt * resultantspd)

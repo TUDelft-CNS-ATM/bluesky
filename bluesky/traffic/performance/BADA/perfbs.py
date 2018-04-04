@@ -14,7 +14,7 @@ from bluesky import settings
 from . import coeff_bs
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/performance', verbose=False)
+settings.set_variable_defaults(perf_path='data/performance/BS', verbose=False)
 coeffBS = coeff_bs.CoeffBS()
 
 

@@ -1,10 +1,10 @@
-''' NAP performance library. '''
+''' OpenAP performance library. '''
 import os
 import json
 import numpy as np
 import pandas as pd
 from bluesky import settings
-settings.set_variable_defaults(perf_path_nap="data/performance/NAP")
+settings.set_variable_defaults(perf_path_openap="data/performance/OpenAP")
 
 LIFT_FIXWING = 1     # fixwing aircraft
 LIFT_ROTOR = 2       # rotor aircraft
@@ -13,11 +13,11 @@ ENG_TYPE_TF = 1         # turbofan, fixwing
 ENG_TYPE_TP = 2         # turboprop, fixwing
 ENG_TYPE_TS = 3         # turboshlft, rotor
 
-fixwing_aircraft_db = settings.perf_path_nap + "/fixwing/aircraft.json"
-fixwing_engine_db = settings.perf_path_nap + "/fixwing/engines.csv"
-fixwing_envelops_dir = settings.perf_path_nap + "/fixwing/envelop/"
+fixwing_aircraft_db = settings.perf_path_openap + "/fixwing/aircraft.json"
+fixwing_engine_db = settings.perf_path_openap + "/fixwing/engines.csv"
+fixwing_envelops_dir = settings.perf_path_openap + "/fixwing/envelop/"
 
-rotor_aircraft_db = settings.perf_path_nap + "/rotor/aircraft.json"
+rotor_aircraft_db = settings.perf_path_openap + "/rotor/aircraft.json"
 
 class Coefficient():
     def __init__(self):

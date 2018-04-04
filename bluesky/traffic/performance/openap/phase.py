@@ -1,5 +1,5 @@
 import numpy as np
-from bluesky.traffic.performance.nap import coeff
+from bluesky.traffic.performance.openap import coeff
 
 NA = 0  # Unknown phase
 TO = 1  # Take-off

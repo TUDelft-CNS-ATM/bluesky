@@ -3,12 +3,12 @@ import bluesky as bs
 from bluesky.tools import aero
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.traffic.performance.perfbase import PerfBase
-from bluesky.traffic.performance.nap import coeff, thrust
-from bluesky.traffic.performance.nap import phase as ph
+from bluesky.traffic.performance.openap import coeff, thrust
+from bluesky.traffic.performance.openap import phase as ph
 
-class PerfNAP(PerfBase):
+class OpenAP(PerfBase):
     """
-    Open-source Nifty Aircraft Performance (NAP) Model
+    Open-source Aircraft Performance (OpenAP) Model
 
     Methods:
         create(): initialize new aircraft with performance parameters
@@ -16,7 +16,7 @@ class PerfNAP(PerfBase):
     """
 
     def __init__(self, min_update_dt=1):
-        super(PerfNAP, self).__init__()
+        super(OpenAP, self).__init__()
 
         self.min_update_dt = min_update_dt    # second, minimum update dt
         self.current_sim_time = 0       # last update simulation time
@@ -41,7 +41,7 @@ class PerfNAP(PerfBase):
     def create(self, n=1):
         # cautious! considering multiple created aircraft with same type
 
-        super(PerfNAP, self).create(n)
+        super(OpenAP, self).create(n)
 
         actype = bs.traf.type[-n]
 
@@ -84,11 +84,11 @@ class PerfNAP(PerfBase):
 
 
     def delete(self, idx):
-        super(PerfNAP, self).delete(idx)
+        super(OpenAP, self).delete(idx)
 
 
     def update(self, simt=1):
-        super(PerfNAP, self).update(simt)
+        super(OpenAP, self).update(simt)
 
         # update phase, infer from spd, roc, alt
         self.phase = ph.get(self.lifttype, bs.traf.tas, bs.traf.vs, bs.traf.alt, unit='SI')
@@ -127,7 +127,7 @@ class PerfNAP(PerfBase):
 
     def limits(self, intent_v_tas, intent_vs, intent_h, ax):
         """ apply limits on indent speed, vertical speed, and altitude (called in pilot module)"""
-        super(PerfNAP, self).limits(intent_v_tas, intent_vs, intent_h)
+        super(OpenAP, self).limits(intent_v_tas, intent_vs, intent_h)
 
         # if isinstance(self.vmin, np.ndarray):
         #     pass
@@ -208,7 +208,7 @@ class PerfNAP(PerfBase):
         return limits
 
     def engchange(self, acid, engid=None):
-        bs.scr.echo("Engine change not suppoerted in NAP model.")
+        bs.scr.echo("Engine change not suppoerted in OpenAP model.")
         pass
 
     def acceleration(self):

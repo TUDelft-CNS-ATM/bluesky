@@ -64,7 +64,7 @@ class Pilot(TrafficArrays):
 
     def applylimits(self):
         # check for the flight envelope
-        if settings.performance_model == 'nap':
+        if settings.performance_model == 'openap':
             self.tas, self.vs, self.alt = bs.traf.perf.limits(self.tas, self.vs, self.alt, bs.traf.ax)
         else:
             bs.traf.delalt = bs.traf.selalt - bs.traf.alt  # [m]

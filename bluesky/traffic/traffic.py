@@ -36,9 +36,9 @@ elif settings.performance_model == 'bada':
     print('Using BADA Perfromance model')
     from .performance.BADA.perfbada import PerfBADA as Perf
 
-elif settings.performance_model == 'nap':
-    print('Using Nifty Aircrafft Perfromance (NAP) model')
-    from .performance.nap import PerfNAP as Perf
+elif settings.performance_model == 'openap':
+    print('Using Open Aircrafft Perfromance (OpenAP) model')
+    from .performance.openap import OpenAP as Perf
 
 
 # except ImportError as err:
@@ -366,8 +366,8 @@ class Traffic(TrafficArrays):
         self.asas.update(simt)   # Airboren Separation Assurance
         self.pilot.APorASAS()    # Decide autopilot or ASAS
 
-        #---------- NAP Performance Update ------------------------
-        if settings.performance_model == 'nap':
+        #---------- OpenAP Performance Update ------------------------
+        if settings.performance_model == 'openap':
             self.perf.update(simt)
 
         #---------- Limit Speeds ------------------------------
