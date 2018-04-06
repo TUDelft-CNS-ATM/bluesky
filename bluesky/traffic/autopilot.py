@@ -69,8 +69,13 @@ class Autopilot(TrafficArrays):
 
             # Shift waypoints for aircraft i where necessary
             for i in bs.traf.actwp.Reached(qdr,dist,bs.traf.actwp.flyby):
-                # Save current wp speed
-                oldspd = bs.traf.actwp.spd[i]
+
+                # Save current wp speed for use on next leg when we pass this waypoint
+                # VNAV speeds are always FROM-speed, so we accelerate/decellerate at the waypoint
+                # where this speed is specified, so we need to save it for use now
+                # before getting the new data for the next waypoint
+
+                oldspd = bs.traf.actwp.spd[i] # Save speed as specified for the waypoint we pass
 
                 # Get next wp (lnavon = False if no more waypoints)
                 lat, lon, alt, spd, bs.traf.actwp.xtoalt[i], toalt, \
@@ -186,19 +191,21 @@ class Autopilot(TrafficArrays):
     def ComputeVNAV(self, idx, toalt, xtoalt):
         # Check if there is a target altitude and VNAV is on, else return doing nothing
         if toalt < 0 or not bs.traf.swvnav[idx]:
-            self.dist2vs[idx] = -999
+            self.dist2vs[idx] = -999. #dist to next wp will never be less than this, so VNAV will do nothing
             return
 
         # So: somewhere there is an altitude constraint ahead
         # Compute proper values for bs.traf.actwp.nextaltco, self.dist2vs, self.alt, bs.traf.actwp.vs
         # Descent VNAV mode (T/D logic)
         #
-        # xtoalt =  distance to go to next altitude constraint at a waypoinit in the route
+        # xtoalt  =  distance to go to next altitude constraint at a waypoinit in the route
         #           (could be beyond next waypoint)
         #
-        # toalt  = altitude at next waypoint with an altitude constraint
+        # toalt   = altitude at next waypoint with an altitude constraint
         #
-
+        # dist2vs = autopilot starts climb or descent when the distance to next waypoint is this distance
+        #
+        #
         # VNAV Guidance principle:
         #
         #
@@ -228,8 +235,8 @@ class Autopilot(TrafficArrays):
 
 
             #Calculate max allowed altitude at next wp (above toalt)
-            bs.traf.actwp.nextaltco[idx] = min(bs.traf.alt[idx],toalt + xtoalt * self.steepness)
-            bs.traf.actwp.xtoalt[idx]    = xtoalt
+            bs.traf.actwp.nextaltco[idx] = min(bs.traf.alt[idx],toalt + xtoalt * self.steepness) # [m] next alt constraint
+            bs.traf.actwp.xtoalt[idx]    = xtoalt # [m] distance to next alt constraint measured from next waypoint
 
 
             # Dist to waypoint where descent should start [m]
@@ -258,11 +265,11 @@ class Autopilot(TrafficArrays):
         # VNAV climb mode: climb as soon as possible (T/C logic)
         elif bs.traf.alt[idx] < toalt - 10. * ft:
 
-
-            bs.traf.actwp.nextaltco[idx] = toalt
-            bs.traf.actwp.xtoalt[idx]    = xtoalt
+            # Altitude we want to climb to: next alt constraint in our route (could be further down the route)
+            bs.traf.actwp.nextaltco[idx] = toalt   # [m]
+            bs.traf.actwp.xtoalt[idx]    = xtoalt  # [m] distance to next alt constraint measured from next waypoint
             self.alt[idx]          = bs.traf.actwp.nextaltco[idx]  # dial in altitude of next waypoint as calculated
-            self.dist2vs[idx]      = 99999.*nm #[m]
+            self.dist2vs[idx]      = 99999.*nm #[m] Forces immediate climb as current distance to next wp will be less
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])
