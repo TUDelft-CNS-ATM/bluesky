@@ -1,21 +1,20 @@
 """ BlueSky aircraft performance calculations."""
 import os
 
-from xml.etree import ElementTree
 from math import *
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from .performance import esf, phases, calclimits, PHASE
+from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
-from . import coeff_bs
+from bluesky.traffic.performance.legacy.coeff_bs import CoeffBS
 
 # Register settings defaults
 settings.set_variable_defaults(perf_path='data/performance/BS', verbose=False)
-coeffBS = coeff_bs.CoeffBS()
+coeffBS = CoeffBS()
 
 
 class PerfBS(TrafficArrays):

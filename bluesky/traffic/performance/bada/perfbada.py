@@ -3,7 +3,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from .performance import esf, phases, calclimits, PHASE
+from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults

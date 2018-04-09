@@ -27,24 +27,23 @@ from bluesky import settings
 # Register settings defaults
 settings.set_variable_defaults(performance_model='bluesky', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
 
-# try:
-if settings.performance_model == 'bluesky':
-    print('Using BlueSky performance model')
-    from .performance.BADA.perfbs import PerfBS as Perf
+try:
+    if settings.performance_model == 'bluesky':
+        print('Using BlueSky performance model')
+        from .performance.legacy.perfbs import PerfBS as Perf
 
-elif settings.performance_model == 'bada':
-    print('Using BADA Perfromance model')
-    from .performance.BADA.perfbada import PerfBADA as Perf
+    elif settings.performance_model == 'bada':
+        print('Using BADA Perfromance model')
+        from .performance.bada.perfbada import PerfBADA as Perf
 
-elif settings.performance_model == 'openap':
-    print('Using Open Aircrafft Perfromance (OpenAP) model')
-    from .performance.openap import OpenAP as Perf
+    elif settings.performance_model == 'openap':
+        print('Using Open Aircrafft Perfromance (OpenAP) model')
+        from .performance.openap import OpenAP as Perf
 
-
-# except ImportError as err:
-#     print(err.args[0])
-#     print('Falling back to BlueSky performance model')
-#     from .performance.legacy.perfbs import PerfBS as Perf
+except ImportError as err:
+    print(err.args[0])
+    print('Falling back to BlueSky performance model')
+    from .performance.legacy.perfbs import PerfBS as Perf
 
 
 class Traffic(TrafficArrays):
