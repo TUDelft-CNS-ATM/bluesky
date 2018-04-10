@@ -118,6 +118,20 @@ class Autopilot(TrafficArrays):
                 if bs.traf.swvnav[i] and oldspd > 0.0:
                         bs.traf.selspd[i] = oldspd
 
+                # Update qdr and turndist for this new waypoint for ComputeVNAV
+                dummy, qdr[i] = geo.qdrdist(bs.traf.lat[i], bs.traf.lon[i],
+                                                bs.traf.actwp.lat[i], bs.traf.actwp.lon[i])
+
+                # Update turndist so ComputeVNAV wokrs, is there a next leg direction or not?
+                if bs.traf.actwp.next_qdr[i] < -900.:
+                    local_next_qdr = qdr[i]
+                else:
+                    local_next_qdr = bs.traf.actwp.next_qdr[i]
+
+                # Calculate turn dist 9and radius which we do not use) now for scalar variable [i]
+                bs.traf.actwp.turndist[i],dummy = \
+                    bs.traf.actwp.calcturn(bs.traf.tas[i], bs.traf.bank[i],
+                                            qdr[i], local_next_qdr)# update turn distance for VNAV
 
                 # VNAV = FMS ALT/SPD mode
                 self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i])
@@ -133,6 +147,8 @@ class Autopilot(TrafficArrays):
             dy = (bs.traf.actwp.lat - bs.traf.lat)  #[deg lat = 60 nm]
             dx = (bs.traf.actwp.lon - bs.traf.lon) * bs.traf.coslat #[corrected deg lon = 60 nm]
             dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy) # [m]
+            #print("dist2wp =",dist2wp,"   self.dist2vs =",self.dist2vs)
+
 
             # VNAV logic: descend as late as possible, climb as soon as possible
             startdescent = (dist2wp < self.dist2vs) + (bs.traf.actwp.nextaltco > bs.traf.alt)
@@ -189,6 +205,7 @@ class Autopilot(TrafficArrays):
 
 
     def ComputeVNAV(self, idx, toalt, xtoalt):
+        # debug print ("ComputeVNAV for",bs.traf.id[idx],":",toalt/ft,"ft  ",xtoalt/nm,"nm")
         # Check if there is a target altitude and VNAV is on, else return doing nothing
         if toalt < 0 or not bs.traf.swvnav[idx]:
             self.dist2vs[idx] = -999. #dist to next wp will never be less than this, so VNAV will do nothing
@@ -203,7 +220,8 @@ class Autopilot(TrafficArrays):
         #
         # toalt   = altitude at next waypoint with an altitude constraint
         #
-        # dist2vs = autopilot starts climb or descent when the distance to next waypoint is this distance
+        # dist2vs = autopilot starts climb or descent when the remaining distance to next waypoint
+        #           is this distance
         #
         #
         # VNAV Guidance principle:
@@ -242,6 +260,7 @@ class Autopilot(TrafficArrays):
             # Dist to waypoint where descent should start [m]
             self.dist2vs[idx] = bs.traf.actwp.turndist[idx] + \
                                np.abs(bs.traf.alt[idx] - bs.traf.actwp.nextaltco[idx]) / self.steepness
+            #print("self.dist2vs=",self.dist2vs)
 
             # Flat earth distance to next wp
             dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])   # [deg lat = 60. nm]
