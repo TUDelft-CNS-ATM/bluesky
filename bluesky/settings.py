@@ -137,6 +137,7 @@ initialized = init()
 ### Parse command-line arguments ###
 # This file is used to start the gui mainloop, a single node simulation loop,
 # or, in case of the pygame version, both.
+is_detached = ('--detached' in sys.argv)
 is_client = ('--client' in sys.argv)
 is_headless = ('--headless' in sys.argv)
 is_sim = ('--sim' in sys.argv) or gui == 'pygame'
