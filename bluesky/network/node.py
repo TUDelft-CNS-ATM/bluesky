@@ -47,6 +47,7 @@ class Node(object):
     def quit(self):
         ''' Quit the simulation process. '''
         self.running = False
+        self.send_event(b'QUIT')
 
     def run(self):
         ''' Start the main loop of this node. '''

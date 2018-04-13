@@ -125,6 +125,8 @@ class Simulation(Node):
         # Close savefile which may be open for recording
         bs.stack.saveclose()  # Close reording file if it is on
 
+        self.quit()
+
     def op(self):
         self.syst = time.time()
         self.ffmode = False

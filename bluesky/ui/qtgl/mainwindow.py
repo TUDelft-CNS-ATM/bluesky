@@ -99,10 +99,6 @@ class MainWindow(QMainWindow):
         self.radarwidget = RadarWidget()
         self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
-        # self.infowin.show()
-        # self.infowin.addPlotTab()
-        # for i in range(10):
-        # self.infowin.plottab.addPlot()
 
         try:
             self.docwin = DocWindow(self)
@@ -166,6 +162,7 @@ class MainWindow(QMainWindow):
         bs.net.actnodedata_changed.connect(self.actnodedataChanged)
         bs.net.event_received.connect(self.on_simevent_received)
         bs.net.stream_received.connect(self.on_simstream_received)
+        bs.net.signal_quit.connect(self.closeEvent)
 
         self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
