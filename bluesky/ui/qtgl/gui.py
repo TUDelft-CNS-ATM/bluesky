@@ -1,11 +1,15 @@
 """ QTGL Gui for BlueSky."""
 try:
-    from PyQt5.QtCore import Qt, QEvent, QT_VERSION, QT_VERSION_STR
+    from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
+        QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
 
 except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, QT_VERSION, QT_VERSION_STR
+    from PyQt4.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
+        QT_VERSION, QT_VERSION_STR
     from PyQt4.QtGui import QApplication, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
 
@@ -23,7 +27,19 @@ bs.settings.set_variable_defaults(scenario_path='scenario',
                                   event_port=9000, stream_port=9001)
 
 
+def gui_msg_handler(msgtype, context, msg):
+    if msgtype == QtWarningMsg:
+        print('Qt gui warning:', msg)
+    elif msgtype == QtCriticalMsg:
+        print('Qt gui critical error:', msg)
+    if msgtype == QtFatalMsg:
+        print('Qt gui fatal error:', msg)
+        exit()
+
 def start():
+    # Install message handler for Qt messages
+    qInstallMessageHandler(gui_msg_handler)
+
     # Start the Qt main object
     app = QApplication([])
 
