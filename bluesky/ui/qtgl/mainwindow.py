@@ -27,6 +27,7 @@ from bluesky.ui.qtgl.docwindow import DocWindow
 from bluesky.ui.qtgl.radarwidget import RadarWidget
 from bluesky.ui.qtgl.infowindow import InfoWindow
 from bluesky.ui.qtgl.nd import ND
+from bluesky.ui.pygame.dialog import fileopen
 
 is_osx = platform.system() == 'Darwin'
 
@@ -373,11 +374,17 @@ class MainWindow(QMainWindow):
             bs.net.send_event(b'ADDNODES', 1)
 
     def show_file_dialog(self):
-        response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
-        if type(response) is tuple:
-            fname = response[0]
+        # Due to Qt5 bug in Windows, use temporarily Tkinter
+        if platform.system().lower()=="windows":
+            fname = fileopen()
         else:
-            fname = response
+            response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
+            if type(response) is tuple:
+                fname = response[0]
+            else:
+                fname = response
+
+        # Send IC command to stack with filename if selected, else do nothing
         if len(fname) > 0:
             self.console.stack('IC ' + str(fname))
 
