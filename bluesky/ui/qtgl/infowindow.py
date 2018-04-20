@@ -2,7 +2,6 @@ from collections.abc import Collection
 import numpy as np
 import matplotlib
 matplotlib.use('Qt5Agg')
-matplotlib.rcParams['backend.qt5'] = 'PyQt5'
 matplotlib.rcParams['font.size'] = 5
 
 from matplotlib.figure import Figure
