@@ -119,7 +119,7 @@ class Autopilot(TrafficArrays):
                         bs.traf.selspd[i] = oldspd
 
                 # Update qdr and turndist for this new waypoint for ComputeVNAV
-                dummy, qdr[i] = geo.qdrdist(bs.traf.lat[i], bs.traf.lon[i],
+                qdr[i],dummy = geo.qdrdist(bs.traf.lat[i], bs.traf.lon[i],
                                                 bs.traf.actwp.lat[i], bs.traf.actwp.lon[i])
 
                 # Update turndist so ComputeVNAV wokrs, is there a next leg direction or not?
