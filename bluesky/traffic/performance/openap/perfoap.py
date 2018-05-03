@@ -85,6 +85,7 @@ class OpenAP(PerfBase):
 
     def delete(self, idx):
         super(OpenAP, self).delete(idx)
+        self.n_ac -= 1 
 
 
     def update(self, simt=1):
