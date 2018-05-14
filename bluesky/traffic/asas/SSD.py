@@ -44,11 +44,6 @@ def resolve(asas, traf):
     # Initialize SSD variables with ntraf
     initializeSSD(asas, traf.ntraf)
 
-    # Check what CD-method is used
-    if not asas.cd_name == "SSD":
-        # Use STATEBASED CD then
-        asas.inconf = np.array([len(ids) > 0 for ids in asas.iconf])
-
     # Construct the SSD (twice in sequential methods)
     if asas.priocode == "RS7":
         constructSSD(asas, traf, "RS1")
