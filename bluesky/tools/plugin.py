@@ -6,6 +6,7 @@ from glob import glob
 import imp
 import bluesky as bs
 from bluesky import settings
+from bluesky.tools import plotter
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -135,6 +136,8 @@ if settings.is_sim:
                 reset_funs[name]     = rstfun
             # Add the plugin's stack functions to the stack
             bs.stack.append_commands(stackfuns)
+            # Add the plugin as data parent to the plotter
+            plotter.register_data_parent(plugin, name.lower())
             return True, 'Successfully loaded plugin %s' % name
         except ImportError as e:
             print('BlueSky plugin system failed to load', name, ':', e)
