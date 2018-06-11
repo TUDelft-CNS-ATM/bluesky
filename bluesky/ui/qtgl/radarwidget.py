@@ -155,8 +155,10 @@ class RadarWidget(QGLWidget):
         self.grabGesture(Qt.PanGesture)
         self.grabGesture(Qt.PinchGesture)
         # self.grabGesture(Qt.SwipeGesture)
+        self.setMouseTracking(True)
 
         # Connect to the io client's activenode changed signal
+        console.cmdline_stacked.connect(self.cmdline_stacked)
         bs.net.actnodedata_changed.connect(self.actnodedataChanged)
         bs.net.stream_received.connect(self.on_simstream_received)
 

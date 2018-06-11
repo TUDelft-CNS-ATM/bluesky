@@ -17,7 +17,7 @@ def get_cmd():
     """ Return the current command in the console's command line."""
     if not Console._instance:
         return ''
-    return Console._instance.cmd.upper()
+    return Console._instance.cmd
 
 
 def get_cmdline():
@@ -108,11 +108,12 @@ class Console(QWidget):
 
         self.command_line = text
         self.cmd, self.args = cmdsplit(self.command_line)
+        self.cmd = self.cmd.upper()
 
         hintline = ''
         allhints = actdata.stackcmds
         if allhints:
-            hint = allhints.get(self.cmd.upper())
+            hint = allhints.get(self.cmd)
             if hint:
                 if len(self.args) > 0:
                     hintargs = hint.split(',')
