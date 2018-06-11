@@ -36,6 +36,7 @@ def gui_msg_handler(msgtype, context, msg):
         print('Qt gui fatal error:', msg)
         exit()
 
+
 def start():
     # Install message handler for Qt messages
     qInstallMessageHandler(gui_msg_handler)
@@ -75,7 +76,6 @@ def start():
         QGLFormat.setDefaultFormat(f)
         print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
-
     splash.showMessage('Constructing main window')
     app.processEvents()
     win = MainWindow()
@@ -93,7 +93,6 @@ def start():
     else:
         client.connect(event_port=bs.settings.event_port,
                        stream_port=bs.settings.stream_port)
-
 
     # Start the Qt main loop
     app.exec_()

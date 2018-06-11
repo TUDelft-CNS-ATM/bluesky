@@ -17,7 +17,7 @@ def exception_handler(exc_type, exc_value, exc_traceback):
 sys.excepthook = exception_handler
 
 
-def start():
+def main():
     """
     Start BlueSky: Create gui and simulation objects
     """
@@ -43,11 +43,6 @@ def start():
         print("Bluesky needs", modulename)
         print("Install using e.g. pip install", modulename)
 
-
-def cleanup():
-    """
-    Tear-down BlueSky
-    """
     print('BlueSky normal end.')
 
 
@@ -56,7 +51,4 @@ if __name__ == "__main__":
         print("   *****   BlueSky Open ATM simulator *****")
         print("Distributed under GNU General Public License v3")
     # Run mainloop if BlueSky-qtgl is called directly
-    start()
-
-    # Cleanup after returning from start()
-    cleanup()
+    main()

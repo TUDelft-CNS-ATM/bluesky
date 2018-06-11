@@ -223,7 +223,7 @@ class Server(ServerBase):
                     # Cycle the route by one step to get the next hop in the route
                     # (or the destination)
                     route.append(route.pop(0))
-                    msg    = route + [eventname, data]
+                    msg = route + [eventname, data]
                     if route[0] == b'*':
                         # This is a send-to-all message
                         msg.insert(0, b'')

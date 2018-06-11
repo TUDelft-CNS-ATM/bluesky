@@ -50,7 +50,7 @@ setup(
     # platform.
     entry_points={
         'console_scripts': [
-            'BlueSky=bluesky:main',
+            'bluesky=BlueSky:main',
         ],
     },
 
