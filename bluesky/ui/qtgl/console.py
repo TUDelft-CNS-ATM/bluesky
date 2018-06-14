@@ -71,7 +71,7 @@ class Console(QWidget):
     def on_simevent_received(self, eventname, eventdata, sender_id):
         ''' Processing of events from simulation nodes. '''
         if eventname == b'CMDLINE':
-            self.win.console.set_cmdline(eventdata)
+            self.set_cmdline(eventdata)
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:
