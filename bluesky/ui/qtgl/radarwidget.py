@@ -54,7 +54,7 @@ palette.set_default_colours(
 # Static defines
 MAX_NAIRCRAFT         = 10000
 MAX_NCONFLICTS        = 25000
-MAX_ROUTE_LENGTH      = 100
+MAX_ROUTE_LENGTH      = 500
 MAX_POLYPREV_SEGMENTS = 100
 MAX_ALLPOLYS_SEGMENTS = 2000
 MAX_CUST_WPT          = 1000
@@ -603,7 +603,6 @@ class RadarWidget(QGLWidget):
         self.width, self.height = width // pixel_ratio, height // pixel_ratio
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
-
         self.viewport = (0, 0, width, height)
 
         # Update zoom
@@ -943,7 +942,6 @@ class RadarWidget(QGLWidget):
                 if g.gestureType() == Qt.PinchGesture:
                     zoom = g.scaleFactor() * (zoom or 1.0)
                     if CORRECT_PINCH:
-                        print ('Correct pinch')
                         zoom /= g.lastScaleFactor()
                 elif g.gestureType() == Qt.PanGesture:
                     if abs(g.delta().y() + g.delta().x()) > 1e-1:
@@ -1005,7 +1003,6 @@ class RadarWidget(QGLWidget):
 
                 except ValueError:
                     pass
-            return True
 
         # For all other events call base class event handling
         return super(RadarWidget, self).event(event)
