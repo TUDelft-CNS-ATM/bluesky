@@ -223,7 +223,7 @@ class nodeData(object):
         self.custwplat = np.append(self.custwplat, np.float32(lat))
         self.custwplon = np.append(self.custwplon, np.float32(lon))
 
-    def setflag(self, flag, args):
+    def setflag(self, flag, args=None):
         # Switch/toggle/cycle radar screen features e.g. from SWRAD command
         if flag == 'SYM':
             # For now only toggle PZ
