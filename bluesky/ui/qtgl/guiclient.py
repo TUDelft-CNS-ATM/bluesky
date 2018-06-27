@@ -112,8 +112,8 @@ class nodeData(object):
 
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node
-        self.polynames = dict()
-        self.polydata  = np.array([], dtype=np.float32)
+        self.polys = dict()
+        self.polydata = np.array([], dtype=np.float32)
         self.custwplbl = ''
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
@@ -160,11 +160,9 @@ class nodeData(object):
             self.zoom = zoom * (1.0 if absolute else self.zoom)
 
     def update_poly_data(self, name, shape='', coordinates=None):
-        if name in self.polynames:
-            # We're either updating a polygon, or deleting it. In both cases
-            # we remove the current one.
-            self.polydata = np.delete(self.polydata, list(range(*self.polynames[name])))
-            del self.polynames[name]
+        # We're either updating a polygon, or deleting it. In both cases
+        # we remove the current one.
+        self.polys.pop(name, None)
 
         # Break up polyline list of (lat,lon)s into separate line segments
         if coordinates is not None:
@@ -209,14 +207,21 @@ class nodeData(object):
                 newdata[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
                 newdata[1::2] = lonCircle
 
-            self.polynames[name] = (len(self.polydata), 2 * len(newdata))
             newbuf = np.empty(2 * len(newdata), dtype=np.float32)
             newbuf[0::4]   = newdata[0::2]  # lat
             newbuf[1::4]   = newdata[1::2]  # lon
             newbuf[2:-2:4] = newdata[2::2]  # lat
             newbuf[3:-3:4] = newdata[3::2]  # lon
             newbuf[-2:]    = newdata[0:2]
-            self.polydata  = np.append(self.polydata, newbuf)
+
+            # Store new or updated polygon by name, and concatenated with the
+            # other polys
+            self.polys[name] = newbuf
+
+        if self.polys:
+            self.polydata = np.concatenate(list(self.polys.values()))
+        else:
+            self.polydata = np.array([])
 
     def defwpt(self, name, lat, lon):
         self.custwplbl += name.ljust(5)

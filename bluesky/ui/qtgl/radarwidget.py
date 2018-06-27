@@ -1,9 +1,9 @@
 from os import path
 try:
-    from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
+    from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, QT_VERSION
     from PyQt5.QtOpenGL import QGLWidget
 except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
+    from PyQt4.QtCore import Qt, QEvent, qCritical, QTimer, QT_VERSION
     from PyQt4.QtOpenGL import QGLWidget
 
 from ctypes import c_float, c_int, Structure
