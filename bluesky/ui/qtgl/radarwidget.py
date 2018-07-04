@@ -170,9 +170,12 @@ class RadarWidget(QGLWidget):
 
         # Shape data change
         if 'SHAPE' in changed_elems:
-            if len(nodedata.polydata):
-                update_buffer(self.allpolysbuf, nodedata.polydata)
-            self.allpolys.set_vertex_count(len(nodedata.polydata) // 2)
+            if nodedata.polys:
+                buf = np.concatenate(list(nodedata.polys.values()))
+                update_buffer(self.allpolysbuf, buf)
+                self.allpolys.set_vertex_count(len(buf) // 2)
+            else:
+                self.allpolys.set_vertex_count(0)
 
         # Trail data change
         if 'TRAILS' in changed_elems:
