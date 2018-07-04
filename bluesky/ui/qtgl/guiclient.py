@@ -30,8 +30,6 @@ class GuiClient(Client):
 
         # Signals
         self.actnodedata_changed = Signal()
-        self.event_received      = Signal()
-        self.stream_received     = Signal()
 
     def start_discovery(self):
         super(GuiClient, self).start_discovery()
@@ -68,13 +66,10 @@ class GuiClient(Client):
             sender_data.siminit(**data)
             data_changed = list(UPDATE_ALL)
         else:
-            self.event_received.emit(name, data, sender_id)
+            super(GuiClient, self).event(name, data, sender_id)
 
         if sender_id == self.act and data_changed:
             self.actnodedata_changed.emit(sender_id, sender_data, data_changed)
-
-    def stream(self, name, data, sender_id):
-        self.stream_received.emit(name, data, sender_id)
 
     def actnode_changed(self, newact):
         self.actnodedata_changed.emit(newact, self.get_nodedata(newact), UPDATE_ALL)
@@ -113,7 +108,6 @@ class nodeData(object):
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node
         self.polys = dict()
-        self.polydata = np.array([], dtype=np.float32)
         self.custwplbl = ''
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
@@ -217,11 +211,6 @@ class nodeData(object):
             # Store new or updated polygon by name, and concatenated with the
             # other polys
             self.polys[name] = newbuf
-
-        if self.polys:
-            self.polydata = np.concatenate(list(self.polys.values()))
-        else:
-            self.polydata = np.array([])
 
     def defwpt(self, name, lat, lon):
         self.custwplbl += name.ljust(5)
