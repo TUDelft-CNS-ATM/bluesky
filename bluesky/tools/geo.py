@@ -374,10 +374,10 @@ def kwikpos(latd1, lond1, qdr, dist):
              latd2,lond2 [deg]
         Use for flat earth purposes e.g. flat display"""
 
-    dx = dist*sin(radians(qdr))
-    dy = dist*cos(radians(qdr))
+    dx = dist*np.sin(np.radians(qdr))
+    dy = dist*np.cos(np.radians(qdr))
     dlat = dy/60.
-    dlon = dx/(60.*cos(radians(latd1)))
+    dlon = dx/(np.maximum(0.01,60.*np.cos(np.radians(latd1))))
     latd2 = latd1 + dlat
     lond2 = lond1 + dlon
     return latd2,lond2
