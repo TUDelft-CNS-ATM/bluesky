@@ -362,3 +362,22 @@ def kwikqdrdist_matrix(lata, lona, latb, lonb):
     qdr     = np.degrees(np.arctan2(np.multiply(dlon, cavelat), dlat)) % 360.
 
     return qdr, dist
+
+def kwikpos(latd1, lond1, qdr, dist):
+    """ Fast, but quick and dirty, position calculation from vectors of reference position,
+        bearing and distance using flat earth approximation
+        In:
+             latd1,lond1  [deg]   ref position(s)
+             qdr          [deg]   bearing (vector) from 1 to 2
+             dist         [nm]    distance (vector) between 1 and 2
+        Out:
+             latd2,lond2 [deg]
+        Use for flat earth purposes e.g. flat display"""
+
+    dx = dist*sin(radians(qdr))
+    dy = dist*cos(radians(qdr))
+    dlat = dy/60.
+    dlon = dx/(60.*cos(radians(latd1)))
+    latd2 = latd1 + dlat
+    lond2 = lond1 + dlon
+    return latd2,lond2
