@@ -611,6 +611,9 @@ class RadarWidget(QGLWidget):
         # Update zoom
         self.panzoom(zoom=zoom, origin=origin)
 
+        # Force widget repaint
+        self.repaint()
+
     def on_simstream_received(self, streamname, data, sender_id):
         if streamname == b'ACDATA':
             self.acdata = ACDataEvent(data)
