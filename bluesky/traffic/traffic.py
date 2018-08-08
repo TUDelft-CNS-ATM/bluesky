@@ -1,14 +1,18 @@
 """ BlueSky traffic implementation."""
 from __future__ import print_function
-import collections
+try:
+    from collections.abc import Collection
+except ImportError:
+    # In python <3.3 collections.abc doesn't exist
+    from collections import Collection
 import numpy as np
 from math import *
-from random import random, randint
+from random import randint
 import bluesky as bs
 from bluesky.tools import datalog, geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
-                         vatmos,  vtas2cas, vtas2mach, casormach, vcasormach
+                         vatmos,  vtas2cas, vtas2mach, vcasormach
 
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -336,7 +340,7 @@ class Traffic(TrafficArrays):
     def delete(self, idx):
         """Delete an aircraft"""
         # if this is a multiple delete, sort first for list delete
-        if isinstance(idx, collections.abc.Collection):
+        if isinstance(idx, Collection):
             idx.sort()
 
         # Call the actual delete function

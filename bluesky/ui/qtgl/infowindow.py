@@ -1,4 +1,8 @@
-from collections.abc import Collection
+try:
+    from collections.abc import Collection
+except ImportError:
+    # In python <3.3 collections.abc doesn't exist
+    from collections import Collection
 import numpy as np
 import matplotlib
 matplotlib.use('Qt5Agg')
