@@ -535,7 +535,7 @@ def init():
         "PCALL": [
             "PCALL filename [REL/ABS/args]",
             "txt,[txt,...]",
-            lambda *args: openfile(*args, mergeWithExisting=True),
+            lambda *args: openfile(args, mergeWithExisting=True),
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file"
         ],
         "PLOT": [
@@ -992,20 +992,16 @@ def sched_cmd(time, args, relative=False):
     return True
 
 
-def openfile(fname, *args, mergeWithExisting=False):
+def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
     global scentime, scencmd
 
-    orgfname = fname # Save original filename for if path spalitting fails (relative path)
+    # Save original filename for if path splitting fails (relative path)
+    orgfname = fname
 
-    if len(args)>0 and (args[0]=="ABS" or args[0]=="REL"):
-        absrel = args[0]
-        if len(args)>1:
-            arglst = args[1:]
-        else:
-            arglst = []
-    else:
-        absrel = "REL" # default relative to the time of call
-        arglst = args
+    absrel = "REL"  # default relative to the time of call
+    if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
+        absrel = pcall_arglst[0]
+        pcall_arglst = pcall_arglst[1:]
 
     # Check whether file exists
 
@@ -1013,7 +1009,7 @@ def openfile(fname, *args, mergeWithExisting=False):
     path, fname = os.path.split(os.path.normpath(fname))
     base, ext = os.path.splitext(fname)
     path = path or os.path.normpath(settings.scenario_path)
-    ext  = ext  or '.scn'
+    ext = ext or '.scn'
 
     # The entire filename, possibly with added path and extension
     fname_full = os.path.join(path, base + ext)
@@ -1022,15 +1018,15 @@ def openfile(fname, *args, mergeWithExisting=False):
     # the current simtime to every timestamp
     t_offset = bs.sim.simt if absrel == 'REL' else 0.0
 
-    # Check for relative path, then it contains a path but we need to prefix scenario folder
+    # If this is a relative path we need to prefix scenario folder
     if not os.path.exists(fname_full):
-        if not ".scn" in orgfname.lower():
+        if ".scn" not in orgfname.lower():
             orgfname = orgfname+".scn"
 
-        if os.path.exists(settings.scenario_path+"/"+orgfname):
-            fname_full = settings.scenario_path+"/"+orgfname
+        if os.path.exists(settings.scenario_path + "/" + orgfname):
+            fname_full = settings.scenario_path + "/" + orgfname
         else:
-            print ("Openfile error: Cannot file",fname_full)
+            print("Openfile error: Cannot file", fname_full)
             return False, "Error: cannot find file: " + fname_full
 
     # Split scenario file line in times and commands
@@ -1044,26 +1040,26 @@ def openfile(fname, *args, mergeWithExisting=False):
     with open(fname_full, 'r') as fscen:
         for line in fscen:
 
-            # Replace arguments if specified: %0 by first argument, %1 by seconds, %2
-            if len(arglst)>0 and line.find("%")>=0:
-                for iarg, txtarg in enumerate(arglst):
-                    line = line.replace("%"+str(iarg),arglst[iarg])
+            # Replace possible arguments: %0 by first argument, %1 by second, ..
+            if pcall_arglst and line.find("%") >= 0:
+                for iarg, txtarg in enumerate(pcall_arglst):
+                    line = line.replace("%" + str(iarg), pcall_arglst[iarg])
 
             # Skip emtpy lines and comments
             if len(line.strip()) > 12 and line.strip()[0] != "#":
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
-                    tstamp   = line[:icmdline]
-                    ttxt     = tstamp.strip().split(':')
-                    ihr      = int(ttxt[0]) * 3600.0
-                    imin     = int(ttxt[1]) * 60.0
-                    xsec     = float(ttxt[2])
+                    tstamp = line[:icmdline]
+                    ttxt = tstamp.strip().split(':')
+                    ihr = int(ttxt[0]) * 3600.0
+                    imin = int(ttxt[1]) * 60.0
+                    xsec = float(ttxt[2])
                     scentime.append(ihr + imin + xsec + t_offset)
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 except:
                     if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
-                        print("except this:"+line)
+                        print("except this:" + line)
                     pass  # nice try, we will just ignore this syntax error
 
     if mergeWithExisting:
