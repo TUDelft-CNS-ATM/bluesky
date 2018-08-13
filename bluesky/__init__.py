@@ -1,8 +1,8 @@
 """ BlueSky: The open-source ATM simulator."""
-# from bluesky import settings  #, stack, tools
 from bluesky import settings
 
-### Constants
+
+# Constants
 BS_OK = 0
 BS_ARGERR = 1
 BS_FUNERR = 2
@@ -11,7 +11,11 @@ BS_CMDERR = 4
 # simulation states
 INIT, HOLD, OP, END = list(range(4))
 
-### Main singleton objects in BlueSky
+# Startup flags
+pygame = False
+startup_scnfile = ''
+
+# Main singleton objects in BlueSky
 net = None
 traf = None
 navdb = None
@@ -19,24 +23,42 @@ sim = None
 scr = None
 server = None
 
-def init():
-    # Both sim and gui need a navdatabase in all versions of BlueSky
-    if settings.is_sim or settings.is_gui:
+
+def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
+    """ Initialize bluesky modules.
+
+        Arguments:
+        - mode: can be 'sim', 'sim-detached', 'server-gui', 'server-headless',
+          or 'client'
+        - pygame: indicate if BlueSky is started with BlueSky_pygame.py
+        - discovery: Enable network discovery
+    """
+    # Initialize global settings first, possibly loading a custom config file
+    settings.init(cfgfile)
+
+    # Is this a server running headless?
+    headless = (mode[-8:] == 'headless')
+
+    # Load navdatabase in all versions of BlueSky
+    # Only the headless server doesn't need this
+    if not headless:
         from bluesky.navdatabase import Navdatabase
         global navdb
         navdb = Navdatabase()
 
-    if settings.start_server:
+    # If mode is server-gui or server-headless start the networking server
+    if mode[:6] == 'server':
         global server
         from bluesky.network import Server
-        server = Server()
-        server.start()
+        server = Server(headless)
 
     # The remaining objects are only instantiated in the sim nodes
-    if settings.is_sim:
+    if mode[:3] == 'sim':
+        # Check whether simulation node should run detached
+        detached = (mode[-8:] == 'detached')
         from bluesky.traffic import Traffic
 
-        if settings.gui == 'pygame':
+        if pygame:
             from bluesky.ui.pygame import Screen
             from bluesky.simulation.pygame import Simulation
         else:
@@ -47,11 +69,11 @@ def init():
 
         # Initialize singletons
         global traf, sim, scr
-        traf  = Traffic()
-        sim   = Simulation()
-        scr   = Screen()
+        traf = Traffic()
+        sim = Simulation(detached)
+        scr = Screen()
 
         # Initialize remaining modules
-        plugin.init()
+        plugin.init(mode)
         plotter.init()
         stack.init()

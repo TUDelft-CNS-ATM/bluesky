@@ -3,6 +3,7 @@ import os
 from math import cos, radians, degrees, sqrt, atan2, sin, asin
 from zipfile import ZipFile
 import numpy as np
+import bluesky as bs
 from bluesky import settings
 
 ## Default settings
@@ -40,7 +41,8 @@ def load_coastline_txt():
     return coastvertices, coastindices
 
 
-if settings.gui == 'qtgl':
+# Don't try this if BlueSky is started in pygame mode
+if not bs.pygame:
     import OpenGL.GLU as glu
     try:
         from PyQt5.QtCore import Qt

@@ -5,12 +5,14 @@ try:
 except ImportError:
     import pickle
 
+import bluesky as bs
 from bluesky import settings
 from bluesky.tools import cachefile
 from .load_navdata_txt import load_navdata_txt
 from .load_visuals_txt import load_coastline_txt, navdata_load_rwythresholds
 
-if settings.gui == 'qtgl':
+# Don't try this if BlueSky is started in pygame mode
+if not bs.pygame:
     from .load_visuals_txt import load_aptsurface_txt
 
 
