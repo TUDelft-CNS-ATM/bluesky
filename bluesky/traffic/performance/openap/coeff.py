@@ -16,6 +16,7 @@ ENG_TYPE_TS = 3         # turboshlft, rotor
 fixwing_aircraft_db = settings.perf_path_openap + "/fixwing/aircraft.json"
 fixwing_engine_db = settings.perf_path_openap + "/fixwing/engines.csv"
 fixwing_envelops_dir = settings.perf_path_openap + "/fixwing/wrap/"
+fixwing_dragpolar_db = settings.perf_path_openap + "/fixwing/dragpolar.csv"
 
 rotor_aircraft_db = settings.perf_path_openap + "/rotor/aircraft.json"
 
@@ -30,6 +31,11 @@ class Coefficient():
 
         self.actypes_fixwing = list(self.acs_fixwing.keys())
         self.actypes_rotor = list(self.acs_rotor.keys())
+
+        df = pd.read_csv(fixwing_dragpolar_db, index_col='mdl')
+        self.dragpolar_fixwing = df.to_dict(orient='index')
+        self.dragpolar_fixwing['NA'] = df.mean().to_dict()
+
 
     def __load_all_fixwing_flavor(self):
         import warnings

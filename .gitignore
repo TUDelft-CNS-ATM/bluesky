@@ -6,6 +6,9 @@ data/performance/BADA/*
 # Sphinx documentation
 docs/_build/
 
+# virtual environment
+venv
+
 # PyBuilder
 target/
 
