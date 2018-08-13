@@ -1,22 +1,57 @@
 #!/usr/bin/env python
-""" Overall BlueSky start script """
+""" Main BlueSky start script """
 from __future__ import print_function
-from bluesky import settings
+import sys
+import traceback
 import bluesky as bs
 
-print("   *****   BlueSky Open ATM simulator *****")
-print("Distributed under GNU General Public License v3")
 
-if settings.gui == 'pygame':
-    from BlueSky_pygame import main
-elif settings.gui == 'qtgl':
-    from BlueSky_qtgl import main
-else:
-    import sys
-    print('Unknown gui type:', settings.gui)
-    sys.exit(0)
+# Create custom system-wide exception handler. For now it replicates python's
+# default traceback message. This was added to counter a new PyQt5.5 feature
+# where unhandled exceptions would result in a qFatal with a very uninformative
+# message.
+def exception_handler(exc_type, exc_value, exc_traceback):
+    traceback.print_exception(exc_type, exc_value, exc_traceback)
+    sys.exit()
 
-if __name__ == '__main__':
-    # Start the main loop. When debugging in python interactive mode,
-    # relevant objects are available in bs namespace (e.g., bs.scr, bs.sim)
+
+sys.excepthook = exception_handler
+
+
+def main():
+    """
+    Start BlueSky: Create gui and simulation objects
+    """
+    # When importerror gives different name than (pip) install needs,
+    # also advise latest version
+    missingmodules = {"OpenGL": "pyopengl and pyopengl-accelerate",
+                      "PyQt4": "pyqt5"}
+
+    # Catch import errors
+    try:
+        # Initialize bluesky modules
+        bs.init()
+
+        # Start gui if this is the main process
+        if bs.settings.is_gui:
+            from bluesky.ui import qtgl
+            qtgl.start()
+
+        elif bs.settings.is_sim:
+            bs.sim.start()
+
+    # Give info on missing module
+    except ImportError as error:
+        modulename = missingmodules.get(error.name) or error.name
+        print("Bluesky needs", modulename)
+        print("Install using e.g. pip install", modulename)
+
+    print('BlueSky normal end.')
+
+
+if __name__ == "__main__":
+    if bs.settings.is_gui or bs.settings.is_headless:
+        print("   *****   BlueSky Open ATM simulator *****")
+        print("Distributed under GNU General Public License v3")
+    # Run mainloop if BlueSky-qtgl is called directly
     main()

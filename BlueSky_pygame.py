@@ -13,7 +13,7 @@ def main():
     bs.sim.operate()
     bs.scr.init()
 
-    # Main loop for tmx object
+    # Main loop for BlueSky
     while not bs.sim.mode == bs.sim.end:
         bs.sim.update()   # Update sim
         bs.scr.update()   # GUI update
