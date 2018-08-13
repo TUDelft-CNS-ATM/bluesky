@@ -151,11 +151,13 @@ def cmdsplit(cmdline, trafids=None):
 
 
 def txt2lat(lattxt):
-    """txt2lat: input txt: N52'14'13.5 or N52"""
+    """txt2lat: input txt: N52'14'13.5 or N52 or N52' """
     txt = lattxt.upper().replace("N", "").replace("S", "-")  # North positive, South negative
     neg = txt.count("-") > 0
-    if txt.count("'") > 0 or txt.count('"') > 0:
-        txt = txt.replace('"', "'")  # replace " by '
+
+    # Use of "'" and '"' as delimiter for degrees/minutes/seconds (also accept degree symbol chr(176))
+    if txt.count("'") > 0 or txt.count('"') > 0 or txt.count(chr(176)) > 0:
+        txt = txt.replace('"', "'").replace(chr(176),"'")# replace " or degree symbol and  by a '
         degs = txt.split("'")
         div = 1
         lat = 0
@@ -190,10 +192,10 @@ def txt2lon(lontxt):
         txt = lontxt.upper().replace("E", "").replace("W", "-")  # East positive, West negative
         neg = txt.count("-") > 0
 
-        # Use of "'" and '"' as degrees/minutes/seconds
-        # Also "N52'"
-        if txt.count("'") > 0 or txt.count('"') > 0:
-            txt = txt.replace('"', "'")  # replace " by '
+        # Use of "'" and '"' as delimiter for degrees/minutes/seconds (also accept degree symbol chr(176))
+        # Also "W002'"
+        if txt.count("'") > 0 or txt.count('"') or txt.count(chr(176))> 0:
+            txt = txt.replace('"', "'").replace(chr(176),"'")  # replace " or degree symbol and  by a '
             degs = txt.split("'")
             div = 1
             lon = 0.0
