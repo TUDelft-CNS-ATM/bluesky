@@ -294,6 +294,12 @@ def init():
             bs.traf.creconfs,
             "Create an aircraft that is in conflict with 'targetid'"
         ],
+        "DATE": [
+            "DATE [day,month,year]",
+            "[int,int,int]",
+            lambda *args: bs.sim.setdate(*args),
+            "Set simulation date"
+        ],
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
             "txt,latlon,[txt,txt,txt]",

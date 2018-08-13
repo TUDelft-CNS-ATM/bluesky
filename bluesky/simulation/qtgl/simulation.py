@@ -1,4 +1,4 @@
-import time
+import time, datetime
 
 # Local imports
 import bluesky as bs
@@ -44,6 +44,12 @@ class Simulation(Node):
         # Simulated clock time
         self.deltclock = 0.0
         self.simtclock = self.simt
+
+        # Simulation date
+        self.simtyear = 0
+        self.simtmonth = 0
+        self.simtday = 0
+        self.deltadays = 0
 
         # System timestep [seconds]
         self.sysdt = self.simdt / self.dtmult
@@ -112,6 +118,14 @@ class Simulation(Node):
 
             # Update clock
             self.simtclock = (self.deltclock + self.simt) % onedayinsec
+
+            if (self.deltclock + self.simt) // onedayinsec > self.deltadays:
+                now = datetime.datetime(self.simtyear, self.simtmonth, self.simtday)
+                now = now + datetime.timedelta(days=1)
+                self.simtyear = now.year
+                self.simtmonth = now.month
+                self.simtday = now.day
+                self.deltadays = (self.deltclock + self.simt) // onedayinsec
 
         # Always update syst
         self.syst += self.sysdt
@@ -224,6 +238,34 @@ class Simulation(Node):
             event_processed = bs.scr.event(eventname, eventdata, sender_rte)
 
         return event_processed
+
+    def setdate(self, *args):
+        """ Set simulation date"""
+        if len(args) == 0:
+            pass
+        elif len(args) == 1 and args[0] == "REAL":
+            now = time.localtime()
+            self.simtday = now.tm_day
+            self.simtmonth = now.tm_month
+            self.simtyear = now.tm_year
+        elif len(args) == 1 and args[0] == "UTC":
+            now = time.gmtime()
+            self.simtday = now.tm_day
+            self.simtmonth = now.tm_month
+            self.simtyear = now.tm_year
+        elif len(args) == 3:
+            day, month, year = args
+            try:
+                datetime.datetime(year, month, day)
+                self.simtday = day
+                self.simtmonth = month
+                self.simtyear = year
+            except:
+                return False, "Input date invalid."
+        else:
+            return False, "Date syntac error"
+
+        return True, "Simulation date %d/%d/%d" % (self.simtday, self.simtmonth, self.simtyear)
 
     def setclock(self, txt=""):
         """ Set simulated clock time offset"""
