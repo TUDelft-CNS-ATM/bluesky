@@ -323,7 +323,7 @@ class Autopilot(TrafficArrays):
 
     def selvspdcmd(self, idx, vspd):
         """ Vertical speed autopilot command: VS acid vspd """
-        bs.traf.selvs[idx] = vspd
+        bs.traf.selvs[idx] = vspd #[fpm]
         # bs.traf.vs[idx] = vspd
         bs.traf.swvnav[idx] = False
 
