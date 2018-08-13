@@ -170,7 +170,7 @@ def Simulation(detached):
 
         def setDtMultiplier(self, mult):
             self.dtmult = mult
-            self.sysdt  = self.simdt / self.dtmult
+            self.sysdt = self.simdt / self.dtmult
 
         def setFixdt(self, flag, nsec=None):
             if flag:
@@ -187,7 +187,7 @@ def Simulation(detached):
 
         def benchmark(self, fname='IC', dt=300.0):
             stack.ic(fname)
-            self.bencht  = 0.0  # Start time will be set at next sim cycle
+            self.bencht = 0.0  # Start time will be set at next sim cycle
             self.benchdt = dt
 
         def sendState(self):
