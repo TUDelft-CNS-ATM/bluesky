@@ -18,6 +18,7 @@ def init(cfgfile=''):
         srcdir = os.path.dirname(sys.executable)
         rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
 
+    datadir = os.path.join(rundir, 'data')
     cachedir = os.path.join(rundir, 'data/cache')
     badadir = os.path.join(rundir, 'data/performance/BADA')
     badasrc = os.path.join(srcdir, 'data/performance/BADA')
@@ -46,6 +47,8 @@ def init(cfgfile=''):
 
         with open(configsrc, 'r') as fin, open(cfgfile, 'w') as fout:
             for line in fin:
+                if line[:9] == 'data_path':
+                    line = "data_path = '" + datadir.replace('\\', '/') + "'\n"
                 if line[:10] == 'cache_path':
                     line = "cache_path = '" + cachedir.replace('\\', '/') + "'\n"
                 elif line[:8] == 'log_path':
