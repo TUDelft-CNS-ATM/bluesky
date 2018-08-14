@@ -1,5 +1,6 @@
 scenario/ic.scn
 data/cache
+data/grib
 data/performance/BADA/*
 !/data/performance/BADA/README.md
 

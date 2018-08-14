@@ -52,7 +52,8 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
                 "TRAIL":"acid,-",
                 "VNAV": "acid,-",
                 "VS": "acid,-",
-                "WIND":"latlon,-"
+                "WIND":"latlon,-",
+                "WINDGFS":"latlon,-,latlon,-"
                 }
 
     # Default values, when nothing is found to be added based on click
