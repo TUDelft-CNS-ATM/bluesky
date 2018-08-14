@@ -28,6 +28,7 @@ class OpenAP(PerfBase):
 
         with RegisterElementParameters(self):
             self.actypes = np.array([], dtype=str)
+            self.phase = np.array([])
             self.lifttype = np.array([])  # lift type, fixwing [1] or rotor [2]
             self.engnum = np.array([], dtype=int)  # number of engines
             self.engthrust = np.array([])  # static engine thrust
@@ -115,6 +116,10 @@ class OpenAP(PerfBase):
         self.n_ac -= 1
 
 
+    def reset(self):
+        super(OpenAP, self).reset()
+        self.n_ac = 0
+
     def update(self, simt=1):
         super(OpenAP, self).update(simt)
 
@@ -153,9 +158,12 @@ class OpenAP(PerfBase):
         # ----- compute thrust -----
         #  eq: number of engines x engine static thrust x thrust ratio
         self.thrustratio[idx_fixwing] = thrust.compute_thrust_ratio(
-            self.phase[idx_fixwing], self.engbpr[idx_fixwing], bs.traf.tas[idx_fixwing], bs.traf.alt[idx_fixwing]
+            self.phase[idx_fixwing], self.engbpr[idx_fixwing],
+            bs.traf.tas[idx_fixwing], bs.traf.alt[idx_fixwing],
+            bs.traf.vs[idx_fixwing], self.engnum[idx_fixwing]*self.engthrust[idx_fixwing]
+
         )
-        self.thrust[idx_fixwing] = self.engnum[idx_fixwing] * self.engthrust[idx_fixwing] * self.thrustratio[idx_fixwing]
+        self.thrust[idx_fixwing] = self.engnum[idx_fixwing]*self.engthrust[idx_fixwing] * self.thrustratio[idx_fixwing]
 
         # ----- compute duel flow -----
         self.fuelflow = self.engnum * (self.ff_coeff_a * self.thrustratio**2 \
@@ -170,6 +178,14 @@ class OpenAP(PerfBase):
         # update bank angle, due to phase change
         self.bank = np.where((self.phase==ph.TO) | (self.phase==ph.LD), 15, self.bank)
         self.bank = np.where((self.phase==ph.IC) | (self.phase==ph.CR) | (self.phase==ph.AP), 35, self.bank)
+
+        # ----- debug statements -----
+        # print(bs.traf.id)
+        # print(self.phase)
+        # print(self.thrust.astype(int))
+        # print(np.round(self.fuelflow, 2))
+        # print(self.drag.astype(int))
+        # print()
 
         return None
 

@@ -172,6 +172,9 @@ class Traffic(TrafficArrays):
         super(Traffic, self).reset()
         self.ntraf = 0
 
+        # reset performance model
+        self.perf.reset()
+
         # Reset models
         self.wind.clear()
 
