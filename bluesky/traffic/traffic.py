@@ -427,6 +427,7 @@ class Traffic(TrafficArrays):
         need_az = np.abs(delta_vs) > 300 * fpm   # small threshold
         self.az = need_az * np.sign(delta_vs) * (300 * fpm)   # fixed vertical acc approx 1.6 m/s^2
         self.vs = np.where(need_az, self.vs+self.az*simdt, target_vs)
+        self.vs = np.where(np.isfinite(self.vs), self.vs, 0)    # fix vs nan issue
 
     def UpdateGroundSpeed(self, simdt):
         # Compute ground speed and track from heading, airspeed and wind
@@ -528,7 +529,6 @@ class Traffic(TrafficArrays):
             route         = self.ap.route[idx]
 
             # Position report
-
             lines = "Info on %s %s index = %d\n" %(acid, actype, idx)     \
                   + "Pos: "+latlon+ "\n"                                  \
                   + "Hdg: %03d   Trk: %03d\n"        %(hdg, trk)              \

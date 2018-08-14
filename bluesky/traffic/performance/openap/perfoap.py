@@ -52,11 +52,10 @@ class OpenAP(PerfBase):
 
         super(OpenAP, self).create(n)
 
-        actype = bs.traf.type[-n]
+        actype = bs.traf.type[-1].upper()
 
         # check fixwing or rotor, default fixwing if not found
         if actype in self.coeff.actypes_rotor:
-
             self.lifttype[-n:] = coeff.LIFT_ROTOR
             self.mass[-n:] = 0.5 * (self.coeff.acs_rotor[actype]['oew'] + self.coeff.acs_rotor[actype]['mtow'])
             self.engnum[-n:] = int(self.coeff.acs_rotor[actype]['n_engines'])
