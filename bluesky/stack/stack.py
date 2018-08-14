@@ -677,7 +677,7 @@ def init():
             "Show state-space diagram (=conflict prevention display/predictive ASAS)"
         ],
         "SWRAD": [
-            "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]",
+            "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]",
             "txt,[float]",
             bs.scr.feature,
             "Switch on/off elements and background of map/radar view"

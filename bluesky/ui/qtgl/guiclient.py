@@ -134,6 +134,7 @@ class nodeData(object):
         self.show_lbl      = 2
         self.show_wpt      = 1
         self.show_apt      = 1
+        self.show_poly     = 1  # 0=invisible, 1=outline, 2=fill
         self.ssd_all       = False
         self.ssd_conflicts = False
         self.ssd_ownship   = set()
@@ -254,6 +255,9 @@ class nodeData(object):
         # Satellite image background on/off
         elif flag == 'TRAF':
             self.show_traf = not self.show_traf
+
+        elif flag == 'POLY':
+            self.show_poly = 0 if self.show_poly == 2 else self.show_poly + 1
 
         elif flag == 'SSD':
             self.show_ssd(args)

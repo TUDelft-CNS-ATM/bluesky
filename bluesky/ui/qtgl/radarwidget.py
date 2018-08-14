@@ -286,7 +286,7 @@ class RadarWidget(QGLWidget):
 
         # Fixed polygons
         self.allpolys = RenderObject(gl.GL_LINES, vertex=self.allpolysbuf, color=palette.polys)
-        self.allpfill = RenderObject(gl.GL_TRIANGLES, vertex=self.allpfillbuf, color=np.append(palette.polys, 100))
+        self.allpfill = RenderObject(gl.GL_TRIANGLES, vertex=self.allpfillbuf, color=np.append(palette.polys, 50))
 
         # ------- SSD object -----------------------------
         self.ssd = RenderObject(gl.GL_POINTS)
@@ -505,8 +505,10 @@ class RadarWidget(QGLWidget):
         self.polyprev.draw()
 
         # --- DRAW CUSTOM SHAPES (WHEN AVAILABLE) -----------------------------
-        self.allpolys.draw()
-        self.allpfill.draw()
+        if actdata.show_poly > 0:
+            self.allpolys.draw()
+            if actdata.show_poly > 1:
+                self.allpfill.draw()
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
         if actdata.show_traf:
