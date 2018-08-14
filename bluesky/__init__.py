@@ -76,4 +76,4 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
         # Initialize remaining modules
         plugin.init(mode)
         plotter.init()
-        stack.init()
+        stack.init(scnfile)
