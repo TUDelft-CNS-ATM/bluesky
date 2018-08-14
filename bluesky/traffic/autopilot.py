@@ -351,7 +351,7 @@ class Autopilot(TrafficArrays):
         # we will maintain CAS or Mach when altitude changes
         # We will convert values when needed
         _, cas, m = vcasormach(casmach, bs.traf.alt[idx])
-        bs.traf.selspd[idx] = np.where(bs.traf.abco[idx], m, cas)
+        bs.traf.selspd[idx] = np.where(bs.traf.abco[idx], m, cas) # [-,-,m/s]
 
         # Switch off VNAV: SPD command overrides
         bs.traf.swvnav[idx]   = False
