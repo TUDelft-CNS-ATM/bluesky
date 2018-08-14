@@ -6,6 +6,7 @@ except ImportError:
 
 import numpy as np
 
+from bluesky.ui.polytools import PolygonSet
 from bluesky.network import Client
 from bluesky.tools import Signal
 from bluesky.tools.aero import ft
@@ -201,16 +202,24 @@ class nodeData(object):
                 newdata[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
                 newdata[1::2] = lonCircle
 
-            newbuf = np.empty(2 * len(newdata), dtype=np.float32)
-            newbuf[0::4]   = newdata[0::2]  # lat
-            newbuf[1::4]   = newdata[1::2]  # lon
-            newbuf[2:-2:4] = newdata[2::2]  # lat
-            newbuf[3:-3:4] = newdata[3::2]  # lon
-            newbuf[-2:]    = newdata[0:2]
+            # Create polygon contour buffer
+            contourbuf = np.empty(2 * len(newdata), dtype=np.float32)
+            contourbuf[0::4]   = newdata[0::2]  # lat
+            contourbuf[1::4]   = newdata[1::2]  # lon
+            contourbuf[2:-2:4] = newdata[2::2]  # lat
+            contourbuf[3:-3:4] = newdata[3::2]  # lon
+            contourbuf[-2:]    = newdata[0:2]
 
+            # Create polygon fill buffer if this is not a line
+            if shape != 'LINE':
+                pset = PolygonSet()
+                pset.addContour(newdata)
+                fillbuf = np.array(pset.vbuf, dtype=np.float32)
+            else:
+                fillbuf = np.array([], dtype=np.float32)
             # Store new or updated polygon by name, and concatenated with the
             # other polys
-            self.polys[name] = newbuf
+            self.polys[name] = (contourbuf, fillbuf)
 
     def defwpt(self, name, lat, lon):
         self.custwplbl += name.ljust(5)
