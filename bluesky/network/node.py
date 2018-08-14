@@ -9,14 +9,15 @@ from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 
 class Node(object):
-    def __init__(self):
+    def __init__(self, event_port, stream_port):
         self.node_id = b'\x00' + os.urandom(4)
         self.host_id = b''
         self.running = True
         ctx = zmq.Context.instance()
         self.event_io = ctx.socket(zmq.DEALER)
         self.stream_out = ctx.socket(zmq.PUB)
-
+        self.event_port = event_port
+        self.stream_port = stream_port
         # Tell bluesky that this client will manage the network I/O
         bluesky.net = self
 
@@ -33,8 +34,8 @@ class Node(object):
         # Final Initialization
         # Initialization of sockets.
         self.event_io.setsockopt(zmq.IDENTITY, self.node_id)
-        self.event_io.connect('tcp://localhost:10000')
-        self.stream_out.connect('tcp://localhost:10001')
+        self.event_io.connect('tcp://localhost:{}'.format(self.event_port))
+        self.stream_out.connect('tcp://localhost:{}'.format(self.stream_port))
 
         # Start communication, and receive this node's ID
         self.send_event(b'REGISTER')

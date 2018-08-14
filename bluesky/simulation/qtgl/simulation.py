@@ -13,7 +13,7 @@ MINSLEEP = 1e-3
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
 # Register settings defaults
-settings.set_variable_defaults(simdt=0.05)
+settings.set_variable_defaults(simdt=0.05, simevent_port=10000, simstream_port=10001)
 
 
 def Simulation(detached):
@@ -28,7 +28,8 @@ def Simulation(detached):
     class SimulationClass(Node):
         ''' The simulation object. '''
         def __init__(self):
-            super(SimulationClass, self).__init__()
+            super(SimulationClass, self).__init__(settings.simevent_port,
+                                                  settings.simstream_port)
             self.state = bs.INIT
             self.prevstate = None
 

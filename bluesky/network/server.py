@@ -16,6 +16,7 @@ from .discovery import Discovery
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
                                   event_port=9000, stream_port=9001,
+                                  simevent_port=10000, simstream_port=10001,
                                   enable_discovery=False)
 
 def split_scenarios(scentime, scencmd):
@@ -77,9 +78,9 @@ class Server(Thread):
         # Create connection points for sim workers
         self.be_event  = ctx.socket(zmq.ROUTER)
         self.be_event.setsockopt(zmq.IDENTITY, self.host_id)
-        self.be_event.bind('tcp://*:10000')
+        self.be_event.bind('tcp://*:{}'.format(bs.settings.simevent_port))
         self.be_stream = ctx.socket(zmq.XSUB)
-        self.be_stream.bind('tcp://*:10001')
+        self.be_stream.bind('tcp://*:{}'.format(bs.settings.simstream_port))
 
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()
