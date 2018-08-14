@@ -31,7 +31,7 @@ from bluesky import settings
 # Temporary fix for synthetic
 from . import synthetic as syn
 # Register settings defaults
-settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario', scenfile='')
+settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario')
 
 # Global variables
 cmddict   = dict()  # Defined in stack.init
@@ -131,7 +131,7 @@ saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded 
 # Global version
 orgcmd = ""
 
-def init():
+def init(startup_scnfile):
     global orgcmd
 
     """ Initialization of the default stack commands. This function is called
@@ -767,8 +767,8 @@ def init():
     stack("ZOOM 0.4")
 
     # Load initial scenario if passed
-    if settings.scenfile:
-        openfile(settings.scenfile)
+    if startup_scnfile:
+        openfile(startup_scnfile)
 
 
 def sender():
