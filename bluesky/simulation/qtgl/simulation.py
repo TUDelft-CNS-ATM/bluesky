@@ -57,6 +57,7 @@ def Simulation(detached):
             self.simtmonth = 0
             self.simtday = 0
             self.deltadays = 0
+
             # System timestep [seconds]
             self.sysdt = self.simdt / self.dtmult
 
