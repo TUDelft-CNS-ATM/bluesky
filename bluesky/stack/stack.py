@@ -1437,10 +1437,12 @@ class Argparser:
                             if v is None and self.argdefaults:
                                 result[i] = self.argdefaults[0]
                                 print('using default value from function: {}'.format(result[i]))
-                                self.argdefaults.pop(0)
-
 
                     self.arglist += result
+
+                    if self.argdefaults:
+                        self.argdefaults.pop(0)
+
                     break
                 # No success yet with this type (maybe we can try other ones)
                 else:

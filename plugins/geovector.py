@@ -16,6 +16,7 @@ from bluesky.tools import areafilter
 from bluesky.tools.aero import tas2cas
 from bluesky.tools.misc import degto180
 
+
 import numpy as np
 
 def init_plugin():
@@ -49,10 +50,10 @@ def init_plugin():
     stackfunctions = {
         # Defining a geovector
         'GEOVECTOR': [
-            'GEOVECTOR area,[gsmin,gsmax,trkmin,trkmax,vsmin,vsmax]/RESET',
-            'txt,[speed,speed,hdg,hdg,vspd,vspd]',
+            'GEOVECTOR area,[gsmin,gsmax,trkmin,trkmax,vsmin,vsmax]',
+            'txt,[spd,spd,hdg,hdg,vspd,vspd]',
             defgeovec,
-            'Define a geovector for an area defined with the AREA command']
+            'Define a geovector for an area defined with the BOX,POLY(ALT) area commands']
         ,
         # Delete a geovector (same effect as using a geovector without  any values
         'DELGEOVECTOR': [
@@ -72,8 +73,8 @@ def preupdate(): # To be safe preupdate is used iso update
     # Apply each geovector
     for vec in geovecs:
         areaname = vec[0]
-        if areafilter.hasarea(areaname):
-            swinside = checkInside(areaname, traf.lat, traf.lon, traf.alt)
+        if areafilter.hasArea(areaname):
+            swinside = areafilter.checkInside(areaname, traf.lat, traf.lon, traf.alt)
             swoutside = np
             gsmin,gsmax,trkmin,trkmax,vsmin,vsmax = vec[1:]
 
@@ -81,12 +82,12 @@ def preupdate(): # To be safe preupdate is used iso update
             # For now assume no wind:  so use tas as gs
             if gsmin:
                 casmin = tas2cas(np.ones(traf.ntraf)*gsmin,traf.alt)
-                bs.traf.selspd = np.logical_not(swinside)*bs.traf.selspd +  \
-                        swinside*np.maximum(casmin,bs.traf.selspd)
+                traf.selspd = np.logical_not(swinside)*traf.selspd +  \
+                        swinside*np.maximum(casmin,traf.selspd)
             if gsmax:
                 casmax = tas2cas(np.ones(traf.ntraf)*gsmax,traf.alt)
-                bs.traf.selspd = np.logical_not(swinside) * bs.traf.selspd +  \
-                        swinside * np.minimum(casmax, bs.traf.selspd)
+                traf.selspd = np.logical_not(swinside) * traf.selspd +  \
+                        swinside * np.minimum(casmax, traf.selspd)
 
 
             #------ Limit Track(so hdg)
@@ -94,20 +95,20 @@ def preupdate(): # To be safe preupdate is used iso update
 
             if trkmin and trkmax:
                 # Use degto180 to avodi problems for e.g interval [350,30]
-                usemin = swinside&(degto180(bs.traf.trk - trkmin)<0) # Left of minimum
-                usemax = swinside&(degto180(bs.traf.trk - trkmax)>0) # Right of maximum
+                usemin = swinside&(degto180(traf.trk - trkmin)<0) # Left of minimum
+                usemax = swinside&(degto180(traf.trk - trkmax)>0) # Right of maximum
                 usetrk = np.logical_not(usemin&usemax)    # None of the above: use orig trk
 
-                bs.traf.ap.trk = usetrk*bs.traf.ap.trk + usemin*trkmin + usemax*trkmax
+                traf.ap.trk = usetrk*traf.ap.trk + usemin*trkmin + usemax*trkmax
 
 
             # -----Ground speed limiting
             # For now assume no wind:  so use tas as gs
             if vsmin:
-                bs.traf.selvs[swinside&(bs.traf.vs<vsmin)] = vsmin
+                traf.selvs[swinside&(traf.vs<vsmin)] = vsmin
 
             if vsmax:
-                bs.traf.selvs[swinside & (bs.traf.vs > vsmax)] = vsmax
+                traf.selvs[swinside & (traf.vs>vsmax)] = vsmax
 
 
     return
@@ -116,12 +117,15 @@ def update(): # Not used
     return
 
 def reset():
+    global geovecs
     geovecs = [] # [[area,gsmin,gsmax,trkin,trkmax,vsmin,vsmax]]
     return
 
 ### Other functions of your plug-in
 
-def defgeovec(area="", gsmin=None, gsmax=None, trkmin=None, trkmax=None, vsmin=None, vsmax=None):
+def defgeovec(area, gsmin=None, gsmax=None, trkmin=None, trkmax=None, vsmin=None, vsmax=None):
+    global geovecs
+    #print ("defgeovec input=",area,gsmin,gsmax,trkmin,trkmax,vsmin,vsmax,sep="|")
 
     # We need an area to do anything
     if area=="":
@@ -137,7 +141,7 @@ def defgeovec(area="", gsmin=None, gsmax=None, trkmin=None, trkmax=None, vsmin=N
 
     # Only add it if an interval is given
     if gsmin or gsmax or (trkmin and trkmax) or vsmin or vsmax:
-        geovecs.append(area,gsmin,gsmax,trkmin,trkmax,vsmin,vsmax)
+        geovecs.append([area,gsmin,gsmax,trkmin,trkmax,vsmin,vsmax])
 
     return True, ""
 
