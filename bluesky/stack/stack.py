@@ -1080,6 +1080,9 @@ def ic(filename=''):
     ''' Function implementing the IC stack command. '''
     global scenfile, scenname
 
+    # reset sim always
+    bs.sim.reset()
+
     # Get the filename of new scenario
     if not filename:
         filename = bs.scr.show_file_dialog()
@@ -1089,7 +1092,6 @@ def ic(filename=''):
 
     # Reset sim and open new scenario file
     if filename:
-        bs.sim.reset()
         result = openfile(filename)
         if result:
             scenfile    = filename
