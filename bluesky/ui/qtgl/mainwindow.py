@@ -95,8 +95,14 @@ class MainWindow(QMainWindow):
 
     modes = ['Init', 'Hold', 'Operate', 'End']
 
-    def __init__(self):
+    def __init__(self, mode):
         super(MainWindow, self).__init__()
+        # Running mode of this gui. Options:
+        #  - server-gui: Normal mode, starts bluesky server together with gui
+        #  - client: starts only gui in client mode, can connect to existing
+        #    server.
+        self.mode = mode
+        
         self.radarwidget = RadarWidget()
         self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
@@ -221,7 +227,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event=None):
         # Send quit to server if we own the host
-        if not bs.settings.is_client:
+        if self.mode != 'client':
             bs.net.send_event(b'QUIT')
         app.instance().closeAllWindows()
         # return True

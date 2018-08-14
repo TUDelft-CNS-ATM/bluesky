@@ -61,8 +61,8 @@ class Line(Shape):
 class Box(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
         super(Box, self).__init__('BOX', name, coordinates)
-        self.top    = top
-        self.bottom = bottom
+        self.top    = np.maximum(bottom,top)
+        self.bottom = np.minimum(bottom,top)
         # Sort the order of the corner points
         self.lat0 = min(coordinates[0], coordinates[2])
         self.lon0 = min(coordinates[1], coordinates[3])
@@ -95,8 +95,8 @@ class Poly(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
         super(Poly, self).__init__('POLY', name, coordinates)
         self.border = Path(np.reshape(coordinates, (len(coordinates) // 2, 2)))
-        self.top    = top
-        self.bottom = bottom
+        self.top    = np.maximum(bottom,top)
+        self.bottom = np.minimum(bottom,top)
 
     def checkInside(self, lat, lon, alt):
         points = np.vstack((lat,lon)).T

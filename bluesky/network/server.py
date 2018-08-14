@@ -1,6 +1,7 @@
 ''' BlueSky simulation server. '''
 import os
 from multiprocessing import cpu_count
+from threading import Thread
 import sys
 from subprocess import Popen
 import zmq
@@ -11,16 +12,6 @@ import bluesky as bs
 
 from .discovery import Discovery
 
-if bs.settings.is_headless:
-    class ServerBase:
-        ''' Single-threaded implementation of server when running headless.'''
-        def run(self):
-            pass
-
-        def start(self):
-            self.run()
-else:
-    from threading import Thread as ServerBase
 
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
@@ -37,9 +28,10 @@ def split_scenarios(scentime, scencmd):
             start = i
 
 
-class Server(ServerBase):
+class Server(Thread):
     ''' Implementation of the BlueSky simulation server. '''
-    def __init__(self):
+
+    def __init__(self, headless):
         super(Server, self).__init__()
         self.spawned_processes = list()
         self.running = True
@@ -50,12 +42,15 @@ class Server(ServerBase):
         self.workers = []
         self.servers = {self.host_id : dict(route=[], nodes=self.workers)}
         self.avail_workers = dict()
-        self.discovery = None
+
+        if bs.settings.enable_discovery or headless:
+            self.discovery = Discovery(self.host_id, is_client=False)
+        else:
+            self.discovery = None
 
     def sendScenario(self, worker_id):
         # Send a new scenario to the target sim process
         scen = self.scenarios.pop(0)
-        # qapp.sendEvent(qapp.instance(), StackTextEvent(disptext='Starting scenario ' + scen[0] + ' on node (%d, %d)' % conn[1]))
         data = msgpack.packb(scen)
         self.be_event.send_multipart([worker_id, self.host_id, b'BATCH', data])
 
@@ -71,13 +66,14 @@ class Server(ServerBase):
         ctx = zmq.Context.instance()
 
         # Create connection points for clients
-        self.fe_event  = ctx.socket(zmq.ROUTER)
+        self.fe_event = ctx.socket(zmq.ROUTER)
         self.fe_event.setsockopt(zmq.IDENTITY, self.host_id)
         self.fe_event.bind('tcp://*:{}'.format(bs.settings.event_port))
         self.fe_stream = ctx.socket(zmq.XPUB)
         self.fe_stream.bind('tcp://*:{}'.format(bs.settings.stream_port))
         print('Accepting event connections on port {}, and stream connections on port {}'.format(
             bs.settings.event_port, bs.settings.stream_port))
+
         # Create connection points for sim workers
         self.be_event  = ctx.socket(zmq.ROUTER)
         self.be_event.setsockopt(zmq.IDENTITY, self.host_id)
@@ -92,10 +88,9 @@ class Server(ServerBase):
         poller.register(self.be_stream, zmq.POLLIN)
         poller.register(self.fe_stream, zmq.POLLIN)
 
-        if bs.settings.enable_discovery:
-            self.discovery = Discovery(self.host_id, is_client=False)
+        if self.discovery:
             poller.register(self.discovery.handle, zmq.POLLIN)
-        print('Discovery is {}abled'.format('en' if bs.settings.enable_discovery else 'dis'))
+        print('Discovery is {}abled'.format('en' if self.discovery else 'dis'))
 
         # Start the first simulation node
         self.addnodes()

@@ -171,11 +171,19 @@ class RadarWidget(QGLWidget):
         # Shape data change
         if 'SHAPE' in changed_elems:
             if nodedata.polys:
-                buf = np.concatenate(list(nodedata.polys.values()))
+                contours, fills = zip(*nodedata.polys.values())
+                # Create contour buffer
+                buf = np.concatenate(contours)
                 update_buffer(self.allpolysbuf, buf)
                 self.allpolys.set_vertex_count(len(buf) // 2)
+
+                # Create fill buffer
+                buf = np.concatenate(fills)
+                update_buffer(self.allpfillbuf, buf)
+                self.allpfill.set_vertex_count(len(buf) // 2)
             else:
                 self.allpolys.set_vertex_count(0)
+                self.allpfill.set_vertex_count(0)
 
         # Trail data change
         if 'TRAILS' in changed_elems:
@@ -247,6 +255,7 @@ class RadarWidget(QGLWidget):
 
         self.polyprevbuf   = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.allpolysbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
+        self.allpfillbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 24, usage=gl.GL_DYNAMIC_DRAW)
         self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
@@ -277,6 +286,7 @@ class RadarWidget(QGLWidget):
 
         # Fixed polygons
         self.allpolys = RenderObject(gl.GL_LINES, vertex=self.allpolysbuf, color=palette.polys)
+        self.allpfill = RenderObject(gl.GL_TRIANGLES, vertex=self.allpfillbuf, color=np.append(palette.polys, 100))
 
         # ------- SSD object -----------------------------
         self.ssd = RenderObject(gl.GL_POINTS)
@@ -496,6 +506,7 @@ class RadarWidget(QGLWidget):
 
         # --- DRAW CUSTOM SHAPES (WHEN AVAILABLE) -----------------------------
         self.allpolys.draw()
+        self.allpfill.draw()
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
         if actdata.show_traf:

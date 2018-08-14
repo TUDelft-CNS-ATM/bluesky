@@ -26,7 +26,7 @@ class Simulation:
     # simulation modes
     init, hold, op, end = list(range(4))
 
-    def __init__(self):
+    def __init__(self, detached):
         # simmode
         self.mode   = self.init
 

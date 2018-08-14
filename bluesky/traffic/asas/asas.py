@@ -159,10 +159,6 @@ class ASAS(TrafficArrays):
         self.qdr = np.array([])  # Bearing from ownship to intruder
         self.dist = np.array([])  # Horizontal distance between ""
 
-        # Force change labels in interface
-        # if settings.gui == "pygame":
-        #     bs.traf.label = [[" ", " ", " ", " "] for i in range(bs.traf.ntraf)]
-
         return
 
     def SetCDmethod(self, method=""):
@@ -509,9 +505,3 @@ class ASAS(TrafficArrays):
 
         # iconf0 = np.array(self.iconf)
         #
-
-        # Change labels in interface
-        # if settings.gui == "pygame":
-        #     for i in range(bs.traf.ntraf):
-        #         if np.any(iconf0[i] != self.iconf[i]):
-        #             bs.traf.label[i] = [" ", " ", " ", " "]
