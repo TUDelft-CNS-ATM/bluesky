@@ -82,7 +82,7 @@
       "d_range_max": 10
    }
   },
-"Phan4": {
+   "Phan4": {
     "name": "DJI Phantom 4",
     "n_engines": 4,
     "engine_type": "TS",
@@ -99,7 +99,7 @@
       "d_range_max": 5
    }
   },
-"M100": {
+   "M100": {
     "name": "DJI Matrice 100",
     "n_engines": 4,
     "engine_type": "TS",
@@ -116,7 +116,7 @@
       "d_range_max": 5
    }
   },
-"M200": {
+   "M200": {
     "name": "DJI Matrice 200",
     "n_engines": 4,
     "engine_type": "TS",
@@ -133,7 +133,7 @@
       "d_range_max": 7      
    }
   },
-"Mavic": {
+   "Mavic": {
     "name": "DJI Mavic pro",
     "n_engines": 4,
     "engine_type": "TS",
@@ -150,7 +150,7 @@
       "d_range_max": 7      
    }
   },
-"Horsefly": {
+   "Horsefly": {
     "name": "Horsefly Gen 5.3",
     "n_engines": 8,
     "engine_type": "TS",
@@ -166,5 +166,6 @@
       "h_max": 2500,
       "d_range_max": 5      
    }
-  },   
+  }
+}  
       
