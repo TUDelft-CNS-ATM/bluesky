@@ -43,7 +43,8 @@ def load_coastline_txt():
 
 # Don't try this if BlueSky is started in pygame mode
 if not bs.pygame:
-    import OpenGL.GLU as glu
+    from bluesky.ui.polytools import PolygonSet, BoundingBox
+
     try:
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QApplication, QProgressDialog
@@ -78,129 +79,26 @@ if not bs.pygame:
             if self.dialog:
                 self.dialog.close()
 
-    tess = glu.gluNewTess()
-    glu.gluTessCallback(tess, glu.GLU_TESS_VERTEX_DATA, lambda vertex, vbuf: vbuf.extend(vertex[0:2]))
-    glu.gluTessCallback(tess, glu.GLU_EDGE_FLAG, lambda flag: None)
-    glu.gluTessCallback(tess, glu.GLU_TESS_COMBINE, lambda c, d, w: np.array(c))
 
     """ Load static data for GUI from files such as airport, shapes, etc."""
-
-    class PolygonSet:
-        in_poly    = False
-        in_contour = False
-
-        def __init__(self):
-            self.vbuf         = []
-            self.prevnode     = None
-            self.prevcp       = None
-            self.start_vertex = None
-            self.start_cp     = None
-
-        def bufsize(self):
-            return len(self.vbuf)
-
-        def begin(self):
-            self.end()
-            glu.gluTessBeginPolygon(tess, self.vbuf)
-            PolygonSet.in_poly = True
-
-        def end(self):
-            if PolygonSet.in_poly:
-                self.endContour()
-                glu.gluEndPolygon(tess)
-                PolygonSet.in_poly = False
-
-        def beginContour(self):
-            self.endContour()
-            if not PolygonSet.in_poly:
-                self.begin()
-            glu.gluTessBeginContour(tess)
-            PolygonSet.in_contour = True
-
-        def endContour(self):
-            if PolygonSet.in_contour:
-                if self.prevcp is not None or self.start_cp is not None:
-                    self.addVertex(self.start_vertex, self.start_cp)
-                glu.gluTessEndContour(tess)
-                PolygonSet.in_contour = False
-                self.prevcp           = None
-                self.prevnode         = None
-                self.start_vertex     = None
-                self.start_cp         = None
-
-        def addVertex(self, vertex, controlpoint=None):
-            if not PolygonSet.in_contour:
-                self.beginContour()
-                self.start_vertex = vertex
-                self.start_cp     = controlpoint
-                glu.gluTessVertex(tess, vertex, vertex)
-
-            elif abs(vertex[0] - self.prevnode[0]) >= 1e-7 or abs(vertex[1] - self.prevnode[1]) >= 1e-7:
-                if (controlpoint is None and self.prevcp is None):
-                    glu.gluTessVertex(tess, vertex, vertex)
-                else:
-                    if controlpoint is not None:
-                        if self.prevcp is not None:
-                            self.bezier2(vertex, 2 * vertex - controlpoint)
-                        else:
-                            self.bezier1(vertex, 2 * vertex - controlpoint)
-
-                    else:
-                        self.bezier1(vertex, self.prevcp)
-
-            self.prevnode = vertex
-            self.prevcp = controlpoint
-
-        def bezier1(self, vertex, controlpoint):
-            for fraction in [0.2, 0.4, 0.6, 0.8, 1.0]:
-                lnode1 = self.prevnode + fraction * (controlpoint - self.prevnode)
-                lnode2 = controlpoint + fraction * (vertex - controlpoint)
-
-                vnew   = lnode1 + fraction * (lnode2 - lnode1)
-                glu.gluTessVertex(tess, vnew, vnew)
-
-        def bezier2(self, vertex, controlpoint):
-            for fraction in [0.2, 0.4, 0.6, 0.8, 1.0]:
-                lnode1 = self.prevnode + fraction * (self.prevcp - self.prevnode)
-                lnode2 = self.prevcp + fraction * (controlpoint - self.prevcp)
-                lnode3 = controlpoint + fraction * (vertex - controlpoint)
-
-                lnode4 = lnode1 + fraction * (lnode2 - lnode1)
-                lnode5 = lnode2 + fraction * (lnode3 - lnode2)
-
-                vnew   = lnode4 + fraction * (lnode5 - lnode4)
-                glu.gluTessVertex(tess, vnew, vnew)
-
-    class BoundingBox:
-        def __init__(self):
-            self.corners = [999.9, -999.9, 999.9, -999.9]
-
-        def update(self, vertex):
-            self.corners[0] = min(self.corners[0], vertex[0])
-            self.corners[1] = max(self.corners[1], vertex[0])
-            self.corners[2] = min(self.corners[2], vertex[1])
-            self.corners[3] = max(self.corners[3], vertex[1])
-
-        def center(self):
-            return [0.5 * (self.corners[0] + self.corners[1]), 0.5 * (self.corners[2] + self.corners[3])]
 
     def load_aptsurface_txt():
         """ Read airport data from navigation database files"""
         pb = ProgressBar('Binary buffer file not found, or file out of date: Constructing vertex buffers from geo data.')
 
-        runways       = []
-        rwythr        = []
-        asphalt       = PolygonSet()
-        concrete      = PolygonSet()
-        cur_poly      = asphalt
-        apt_indices   = []
-        apt_ctr_lat   = []
-        apt_ctr_lon   = []
-        apt_bb        = BoundingBox()
-        count         = 0
-        bytecount     = 0
-        zfile         = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
-        fsize         = float(zfile.getinfo('apt.dat').file_size)
+        runways = []
+        rwythr = []
+        asphalt = PolygonSet()
+        concrete = PolygonSet()
+        cur_poly = asphalt
+        apt_indices = []
+        apt_ctr_lat = []
+        apt_ctr_lon = []
+        apt_bb = BoundingBox()
+        count = 0
+        bytecount = 0
+        zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
+        fsize = float(zfile.getinfo('apt.dat').file_size)
         print("Reading apt.dat from apt.zip")
         with zfile.open('apt.dat', 'r') as f:
             for line in f:
@@ -248,12 +146,12 @@ if not bs.pygame:
                         continue
                     # rwy_lbl = (elems[8], elems[17])
 
-                    lat0    = float(elems[9])
-                    lon0    = float(elems[10])
+                    lat0 = float(elems[9])
+                    lon0 = float(elems[10])
                     offset0 = float(elems[11])
 
-                    lat1    = float(elems[18])
-                    lon1    = float(elems[19])
+                    lat1 = float(elems[18])
+                    lon1 = float(elems[19])
                     offset1 = float(elems[20])
 
                     # runway vertices
@@ -339,13 +237,13 @@ if not bs.pygame:
             apt_ctr_lon.append(center[1])
 
         # Store in binary pickle file
-        vbuf_asphalt  = np.array(asphalt.vbuf, dtype=np.float32)
+        vbuf_asphalt = np.array(asphalt.vbuf, dtype=np.float32)
         vbuf_concrete = np.array(concrete.vbuf, dtype=np.float32)
-        vbuf_runways  = np.array(runways, dtype=np.float32)
-        vbuf_rwythr   = np.array(rwythr, dtype=np.float32)
-        apt_ctr_lat   = np.array(apt_ctr_lat)
-        apt_ctr_lon   = np.array(apt_ctr_lon)
-        apt_indices   = np.array(apt_indices)
+        vbuf_runways = np.array(runways, dtype=np.float32)
+        vbuf_rwythr = np.array(rwythr, dtype=np.float32)
+        apt_ctr_lat = np.array(apt_ctr_lat)
+        apt_ctr_lon = np.array(apt_ctr_lon)
+        apt_indices = np.array(apt_indices)
 
         # Close the progress dialog
         pb.close()
@@ -408,10 +306,10 @@ def navdata_load_rwythresholds():
 # underlying equations can be found at
 # http://www.movable-type.co.uk/scripts/latlong.html
 def thresholds(lat1, lon1, lat2, lon2, offset):
-    d         = offset * REARTH_INV
-    d_box     = 20.0 * REARTH_INV  # m
+    d = offset * REARTH_INV
+    d_box = 20.0 * REARTH_INV  # m
     width_box = 30  # m
-    deltal    = lon2 - lon1
+    deltal = lon2 - lon1
 
 # calculate runway bearing
     bearing = atan2(sin(deltal) * cos(lat2), (cos(lat1) * sin(lat2) -
@@ -457,13 +355,13 @@ def dlatlon(lat0, lon0, lat1, lon1, width):
 
     # calculate distance between ends of runways / threshold boxes
     flat_earth = cos(0.5 * radians(lat0 + lat1))
-    lx         = lat1 - lat0
-    ly         = (lon1 - lon0) * flat_earth
-    l          = sqrt(lx * lx + ly * ly)
-    wx         = ly / l * 0.5 * width
-    wy         = -lx / l * 0.5 * width
-    dlat       = degrees(wx * REARTH_INV)
-    dlon       = degrees(wy * REARTH_INV / flat_earth)
+    lx = lat1 - lat0
+    ly = (lon1 - lon0) * flat_earth
+    l = sqrt(lx * lx + ly * ly)
+    wx = ly / l * 0.5 * width
+    wy = -lx / l * 0.5 * width
+    dlat = degrees(wx * REARTH_INV)
+    dlon = degrees(wy * REARTH_INV / flat_earth)
 
     # store the vertice information per runway /threshold box
     vertices = [lat0 + dlat, lon0 + dlon,
