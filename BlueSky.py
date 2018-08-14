@@ -100,6 +100,8 @@ def main():
     # Give info on missing module
     except ImportError as error:
         modulename = missingmodules.get(error.name) or error.name
+        if modulename is None:
+            raise error
         print("Bluesky needs", modulename)
         print("Install using e.g. pip install", modulename)
 
