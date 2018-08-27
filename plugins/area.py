@@ -157,8 +157,7 @@ class Area(TrafficArrays):
             )
 
         # delete all aicraft in self.delidx
-        for idx in delidx:
-            traf.delete(idx)
+        traf.delete(delidx)
 
     def set_area(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
