@@ -853,7 +853,7 @@ class Screen:
             pg.draw.rect(self.win, white, pg.Rect(1, 1, self.width - 1, self.height - 1), 1)
 
             # Add debug line
-            self.fontsys.printat(self.win, 10, 2, tim2txt(bs.sim.simtclock))
+            self.fontsys.printat(self.win, 10, 2, str(bs.sim.utc.replace(microsecond=0)))
             self.fontsys.printat(self.win, 10, 18, tim2txt(bs.sim.simt))
             self.fontsys.printat(self.win, 10+80, 2, \
                                  "ntraf = " + str(bs.traf.ntraf))

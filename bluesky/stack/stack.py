@@ -297,7 +297,7 @@ def init(startup_scnfile):
         "DATE": [
             "DATE [day,month,year]",
             "[int,int,int]",
-            lambda *args: bs.sim.setdate(*args),
+            lambda *args: bs.sim.setutc(*args),
             "Set simulation date"
         ],
         "DEFWPT": [
@@ -698,7 +698,7 @@ def init(startup_scnfile):
         "TIME": [
             "TIME RUN(default) / HH:MM:SS.hh / REAL / UTC ",
             "[txt]",
-            bs.sim.setclock,
+            bs.sim.setutc,
             "Set simulated clock time"
         ],
         "TMX": [

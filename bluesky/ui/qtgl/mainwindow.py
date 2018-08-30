@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
         #  - client: starts only gui in client mode, can connect to existing
         #    server.
         self.mode = mode
-        
+
         self.radarwidget = RadarWidget()
         self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
@@ -293,13 +293,12 @@ class MainWindow(QMainWindow):
 
     def on_simstream_received(self, streamname, data, sender_id):
         if streamname == b'SIMINFO':
-            speed, simdt, simt, simtclock, ntraf, state, scenname = data
+            speed, simdt, simt, simutc, ntraf, state, scenname = data
             simt = tim2txt(simt)[:-3]
-            simtclock = tim2txt(simtclock)[:-3]
             self.setNodeInfo(sender_id, simt, scenname)
             if sender_id == bs.net.actnode():
                 self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                    % (simt, simdt, speed, simtclock, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
+                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
         elif streamname == b'ACDATA':
             self.nconf_cur = data['nconf_cur']
             self.nconf_tot = data['nconf_tot']

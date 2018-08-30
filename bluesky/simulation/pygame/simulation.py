@@ -36,14 +36,8 @@ class Simulation:
         self.simdt  = 0.0
         self.syst   = 0.0   # system time
 
-        self.deltclock = 0.0   # SImulated clock time at simt=0.
-        self.simtclock = 0.0
-
-        # Simulation date
-        self.simtyear = 0
-        self.simtmonth = 0
-        self.simtday = 0
-        self.deltadays = 0
+        # Simulated UTC clock time
+        self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Directories
         self.datadir = "./data/"
@@ -74,13 +68,14 @@ class Simulation:
             # Not fast forward: variable dt
             if not self.ffmode:
                 self.tprev = self.simt
-                self.simt  = self.syst - self.syst0
+                self.simt = self.syst - self.syst0
                 self.simdt = self.simt - self.tprev
 
                 # Protect against incidental dt's larger than 1 second,
                 # due to window moving, switch to/from full screen, etc.
                 if self.simdt > 1.0:
                     extra = self.simdt-1.0
+                    self.simdt = 1.0
                     self.simt = self.simt - extra
                     self.syst0 = self.syst-self.simt
 
@@ -93,16 +88,8 @@ class Simulation:
                     self.ffmode = False
                     self.mode = self.hold
 
-            # Update simulated clock time
-            self.simtclock = (self.simt + self.deltclock) % onedayinsec
-
-            if (self.deltclock + self.simt) // onedayinsec > self.deltadays:
-                now = datetime.datetime(self.simtyear, self.simtmonth, self.simtday)
-                now = now + datetime.timedelta(days=1)
-                self.simtyear = now.year
-                self.simtmonth = now.month
-                self.simtday = now.day
-                self.deltadays = (self.deltclock + self.simt) // onedayinsec
+            # Update UTC time
+            self.utc += datetime.timedelta(seconds=self.simdt)
 
             # Datalog pre-update (communicate current sim time to loggers)
             datalog.preupdate(self.simt)
@@ -201,61 +188,33 @@ class Simulation:
         bs.traf.reset()
         datalog.reset()
         areafilter.reset()
-        self.delclock  = 0.0   # SImulated clock time at simt=0.
-        self.simtclock = 0.0
+        self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
-    def setdate(self, *args):
-        """ Set simulation date"""
-        if len(args) == 0:
-            pass
-        elif len(args) == 1 and args[0] == "REAL":
-            now = time.localtime()
-            self.simtday = now.tm_day
-            self.simtmonth = now.tm_month
-            self.simtyear = now.tm_year
-        elif len(args) == 1 and args[0] == "UTC":
-            now = time.gmtime()
-            self.simtday = now.tm_day
-            self.simtmonth = now.tm_month
-            self.simtyear = now.tm_year
+    def setutc(self, *args):
+        """ Set simulated clock time offset"""
+        if not args:
+            pass  # avoid error message, just give time
+
+        elif len(args) == 1:
+            if args[0].upper() == "RUN":
+                self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+            elif args[0].upper() == "REAL":
+                self.utc = datetime.datetime.today().replace(microsecond=0)
+
+            elif args[0].upper() == "UTC":
+                self.utc = datetime.datetime.utcnow().replace(microsecond=0)
+
+            elif args[0].replace(":", "").replace(".", "").isdigit():
+                self.utc = datetime.datetime.strptime(args[0], '%H:%M:%S.%f')
+
         elif len(args) == 3:
             day, month, year = args
             try:
-                datetime.datetime(year, month, day)
-                self.simtday = day
-                self.simtmonth = month
-                self.simtyear = year
-            except:
+                self.utc = datetime.datetime(year, month, day)
+            except ValueError:
                 return False, "Input date invalid."
         else:
-            return False, "Date syntac error"
+            return False, "Syntax error"
 
-        return True, "Simulation date %d/%d/%d" % (self.simtday, self.simtmonth, self.simtyear)
-
-    def setclock(self,txt=""):
-        """ Set simulated clock time offset"""
-        if txt == "":
-            pass # avoid error message, just give time
-
-        elif txt.upper()== "RUN":
-            self.deltclock = 0.0
-            self.simtclock = self.simt
-
-        elif txt.upper()== "REAL":
-            tclock = time.localtime()
-            self.simtclock = tclock.tm_hour*3600. + tclock.tm_min*60. + tclock.tm_sec
-            self.deltclock = self.simtclock - self.simt
-
-        elif txt.upper()== "UTC":
-            utclock = time.gmtime()
-            self.simtclock = utclock.tm_hour*3600. + utclock.tm_min*60. + utclock.tm_sec
-            self.deltclock = self.simtclock - self.simt
-
-        elif txt.replace(":","").replace(".","").isdigit():
-            self.simtclock = txt2tim(txt)
-            self.deltclock = self.simtclock - self.simt
-        else:
-            return False,"Time syntax error"
-
-
-        return True,"Time is now "+tim2txt(self.simtclock)
+        return True, "Simulation UTC " + str(self.utc)

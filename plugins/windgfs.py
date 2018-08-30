@@ -147,8 +147,8 @@ class WindGFS():
 
         if len(args) == 4:
             self.lat0, self.lon0, self.lat1, self.lon1 =  args
-            self.year, self.month, self.day = bs.sim.simtyear, bs.sim.simtmonth, bs.sim.simtday
-            self.hour = round(bs.sim.simtclock / 3600)
+            self.year, self.month, self.day = bs.sim.utc.year, bs.sim.utc.month, bs.sim.utc.day
+            self.hour = bs.sim.utc.hour
 
         elif len(args) == 8:
             self.lat0, self.lon0, self.lat1, self.lon1, \
