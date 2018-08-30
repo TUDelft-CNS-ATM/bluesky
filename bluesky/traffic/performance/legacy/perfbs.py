@@ -311,7 +311,7 @@ class PerfBS(TrafficArrays):
 
 
         # combine
-        self.ff = ff_jet + ff_prop
+        self.ff = np.maximum(0.0,ff_jet + ff_prop)
 
         # update mass
         #self.mass = self.mass - self.ff*self.dt/60. # Use fuelflow in kg/min
