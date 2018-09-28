@@ -5,7 +5,7 @@ from bluesky.tools import Timer
 
 
 class Node(object):
-    def __init__(self):
+    def __init__(self, *args):
         self.node_id = b'\x00' + os.urandom(4)
         self.host_id = b''
         self.running = True
