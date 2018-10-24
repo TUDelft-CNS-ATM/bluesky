@@ -24,7 +24,6 @@ class OpenAP(PerfBase):
         self.eng_warning = False        # aircraft engine to default warning
 
         self.coeff = coeff.Coefficient()
-        self.n_ac = 0
 
         with RegisterElementParameters(self):
             self.actypes = np.array([], dtype=str)
@@ -107,22 +106,12 @@ class OpenAP(PerfBase):
 
         # append update actypes, after removing unkown types
         self.actypes[-n:] = [actype] * n
-        self.n_ac += n
-
-
-    def delete(self, idx):
-        super(OpenAP, self).delete(idx)
-        self.n_ac -= 1
-
-
-    def reset(self):
-        super(OpenAP, self).reset()
-        self.n_ac = 0
 
     def update(self, simt=1):
         super(OpenAP, self).update(simt)
 
         # update phase, infer from spd, roc, alt
+        lenph1 = len(self.phase)
         self.phase = ph.get(self.lifttype, bs.traf.tas, bs.traf.vs, bs.traf.alt, unit='SI')
 
         # update limits, based on phase change
@@ -279,7 +268,7 @@ class OpenAP(PerfBase):
         acc_ground = 2
         acc_air = 0.5
 
-        accs = np.zeros(self.n_ac)
+        accs = np.zeros(bs.traf.ntraf)
         accs[self.phase==ph.GD] = acc_ground
         accs[self.phase!=ph.GD] = acc_air
 
