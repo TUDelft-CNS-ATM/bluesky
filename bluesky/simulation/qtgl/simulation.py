@@ -244,13 +244,22 @@ def Simulation(detached):
                 elif args[0].upper() == "UTC":
                     self.utc = datetime.datetime.utcnow().replace(microsecond=0)
 
-                elif args[0].replace(":", "").replace(".", "").isdigit():
-                    self.utc = datetime.datetime.strptime(args[0], '%H:%M:%S.%f')
+                else:
+                    try:
+                        self.utc = datetime.datetime.strptime(args[0], '%H:%M:%S.%f')
+                    except ValueError:
+                        return False, "Input time invalid"
 
             elif len(args) == 3:
                 day, month, year = args
                 try:
                     self.utc = datetime.datetime(year, month, day)
+                except ValueError:
+                    return False, "Input date invalid."
+            elif len(args) == 4:
+                day, month, year, timestring = args
+                try:
+                    self.utc = datetime.datetime.strptime(f'{year},{month},{day},{timestring}', '%Y,%m,%d,%H:%M:%S.%f')
                 except ValueError:
                     return False, "Input date invalid."
             else:
