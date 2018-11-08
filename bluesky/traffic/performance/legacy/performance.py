@@ -56,7 +56,7 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
 
     #-------------------------------------------------
     # phase IC[2]: 400<alt<2000, vs>0
-    Ialt = np.array((alt >= (400. * ft)) & (alt < (2000. * ft)))
+    Ialt = np.array((alt >= (400. * ft)) and (alt < (2000. * ft)))
     Ivs  = np.array(delalt > 0.)
 
     ic   = Ialt*Ivs*2
@@ -88,14 +88,14 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
 
     #a. alt<8000, Speed between Vmcr+10 and Vmapp+10, v<>0
     #altitude check
-    Aaalt = np.array((alt > ft) & (alt <= (8000. * ft)))
+    Aaalt = np.array((alt > ft) and (alt <= (8000. * ft)))
     Aaspd = np.array(cas < (vmcr + 10. * kts))
     Aavs  = np.array(delalt <= 0.)
     apa   = np.logical_and.reduce([Aaalt, Aaspd , Aavs]) * 1
     #b. alt<3000ft, Vmcr+10>V>Vmap+10
-    Abalt = np.array((alt > ft) & (alt <= (3000. * ft)))
+    Abalt = np.array((alt > ft) and (alt <= (3000. * ft)))
     if bada:
-        Abspd = np.array((cas >= (vmap + 10. * kts)) & (cas < (vmcr + 10. * kts)))
+        Abspd = np.array((cas >= (vmap + 10. * kts)) and (cas < (vmcr + 10. * kts)))
     else:
         Abspd = np.array(cas >= (vmap + 10. * kts))
     Abvs = np.array(delalt <= 0.)
@@ -155,7 +155,7 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
 def esf(abco, belco, alt, M, climb, descent, delspd):
 
     # test for acceleration / deceleration
-    cspd  = np.array((delspd <= 0.0) & (delspd >= -0.0))
+    cspd  = np.array((delspd <= 0.0) and (delspd >= -0.0))
     # accelerating or decelerating
     acc   = np.array(delspd > 0.0)
     dec   = np.array(delspd < -0.0)
@@ -249,13 +249,13 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
     # True means that current speed is below rotation speed
     # limit vertical speed is thrust limited and thus should only be
     # applied for aircraft that are climbing
-    limvs       = np.where((desvs > 0.) & (gs<to_spd) & (phase == 6), 0.0, limvs)
-    limvs_flag  = np.where ((desvs > 0.) & (gs<to_spd) & (phase == 6), True, limvs_flag)
+    limvs       = np.where((desvs > 0.) and (gs<to_spd) and (phase == 6), 0.0, limvs)
+    limvs_flag  = np.where ((desvs > 0.) and (gs<to_spd) and (phase == 6), True, limvs_flag)
 
 
     # remove takeoff limit
-    limvs      = np.where ((np.abs(to_spd - gs) < 0.1) & ((phase == 6) | (phase == 1)), -9999.,  limvs)
-    limvs_flag = np.where((np.abs(to_spd - gs) < 0.1) & ((phase == 6) | (phase == 1)), True, limvs_flag)
+    limvs      = np.where ((np.abs(to_spd - gs) < 0.1) and ((phase == 6) or (phase == 1)), -9999.,  limvs)
+    limvs_flag = np.where((np.abs(to_spd - gs) < 0.1) and ((phase == 6) or (phase == 1)), True, limvs_flag)
 
 
 
