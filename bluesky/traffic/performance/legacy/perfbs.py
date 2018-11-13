@@ -168,12 +168,13 @@ class PerfBS(TrafficArrays):
         jetidx  = []
 
         for engine in self.engines[-n:]:
-            if engine in coeffBS.propenlist:
-                propidx.append(coeffBS.propenlist.index(engine))
+            # engine[0]: default to first engine in engine list for this aircraft
+            if engine[0] in coeffBS.propenlist:
+                propidx.append(coeffBS.propenlist.index(engine[0]))
             else:
                 propidx.append(0)
-            if engine in coeffBS.jetenlist:
-                jetidx.append(coeffBS.jetenlist.index(engine))
+            if engine[0] in coeffBS.jetenlist:
+                jetidx.append(coeffBS.jetenlist.index(engine[0]))
             else:
                 jetidx.append(0)
 
@@ -195,7 +196,6 @@ class PerfBS(TrafficArrays):
         self.ffcr[-n:]      = np.where(turboprops, 1. , coeffBS.ffcr[jetidx]*coeffBS.n_eng[coeffidx])
         self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx])
         self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx])
-        return
 
     def perf(self,simt):
         if abs(simt - self.t0) >= self.dt:
