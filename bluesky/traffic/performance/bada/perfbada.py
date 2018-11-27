@@ -173,12 +173,12 @@ class PerfBADA(TrafficArrays):
 
         # general
         # designate aircraft to its aircraft type
-        for actype in actypes:
+        for i, actype in enumerate(actypes):
             syn, coeff = coeff_bada.getCoefficients(actype)
             if syn:
                 continue
             syn, coeff = coeff_bada.getCoefficients('B744')
-            bs.traf.type[-n:] = n * [syn.accode]
+            bs.traf.type[-n + i] = syn.accode
 
             if not settings.verbose:
                 if not self.warned:
