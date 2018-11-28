@@ -17,7 +17,7 @@ setup(
     long_description=long_description,
     url='https://github.com/ProfHoekstra/bluesky',
     classifiers=[
-        'Development Status :: 3 - Beta',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Science/Research',
