@@ -6,6 +6,7 @@ except ImportError:
 
 import numpy as np
 
+from bluesky.ui.polytools import PolygonSet
 from bluesky.network import Client
 from bluesky.tools import Signal
 from bluesky.tools.aero import ft
@@ -30,8 +31,6 @@ class GuiClient(Client):
 
         # Signals
         self.actnodedata_changed = Signal()
-        self.event_received      = Signal()
-        self.stream_received     = Signal()
 
     def start_discovery(self):
         super(GuiClient, self).start_discovery()
@@ -68,13 +67,10 @@ class GuiClient(Client):
             sender_data.siminit(**data)
             data_changed = list(UPDATE_ALL)
         else:
-            self.event_received.emit(name, data, sender_id)
+            super(GuiClient, self).event(name, data, sender_id)
 
         if sender_id == self.act and data_changed:
             self.actnodedata_changed.emit(sender_id, sender_data, data_changed)
-
-    def stream(self, name, data, sender_id):
-        self.stream_received.emit(name, data, sender_id)
 
     def actnode_changed(self, newact):
         self.actnodedata_changed.emit(newact, self.get_nodedata(newact), UPDATE_ALL)
@@ -92,13 +88,6 @@ class GuiClient(Client):
             self.send_event(b'GETSIMSTATE', target=nodeid)
 
         return data
-
-    # def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
-    #     super(GuiClient, self).connect(hostname, event_port, stream_port, protocol)
-    #
-
-    def sender(self):
-        return self.sender_id
 
 
 class nodeData(object):
@@ -119,8 +108,7 @@ class nodeData(object):
 
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node
-        self.polynames = dict()
-        self.polydata  = np.array([], dtype=np.float32)
+        self.polys = dict()
         self.custwplbl = ''
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
@@ -146,6 +134,7 @@ class nodeData(object):
         self.show_lbl      = 2
         self.show_wpt      = 1
         self.show_apt      = 1
+        self.show_poly     = 1  # 0=invisible, 1=outline, 2=fill
         self.ssd_all       = False
         self.ssd_conflicts = False
         self.ssd_ownship   = set()
@@ -167,11 +156,9 @@ class nodeData(object):
             self.zoom = zoom * (1.0 if absolute else self.zoom)
 
     def update_poly_data(self, name, shape='', coordinates=None):
-        if name in self.polynames:
-            # We're either updating a polygon, or deleting it. In both cases
-            # we remove the current one.
-            self.polydata = np.delete(self.polydata, list(range(*self.polynames[name])))
-            del self.polynames[name]
+        # We're either updating a polygon, or deleting it. In both cases
+        # we remove the current one.
+        self.polys.pop(name, None)
 
         # Break up polyline list of (lat,lon)s into separate line segments
         if coordinates is not None:
@@ -216,21 +203,31 @@ class nodeData(object):
                 newdata[0::2] = latCircle  # Fill array lat0,lon0,lat1,lon1....
                 newdata[1::2] = lonCircle
 
-            self.polynames[name] = (len(self.polydata), 2 * len(newdata))
-            newbuf = np.empty(2 * len(newdata), dtype=np.float32)
-            newbuf[0::4]   = newdata[0::2]  # lat
-            newbuf[1::4]   = newdata[1::2]  # lon
-            newbuf[2:-2:4] = newdata[2::2]  # lat
-            newbuf[3:-3:4] = newdata[3::2]  # lon
-            newbuf[-2:]    = newdata[0:2]
-            self.polydata  = np.append(self.polydata, newbuf)
+            # Create polygon contour buffer
+            contourbuf = np.empty(2 * len(newdata), dtype=np.float32)
+            contourbuf[0::4]   = newdata[0::2]  # lat
+            contourbuf[1::4]   = newdata[1::2]  # lon
+            contourbuf[2:-2:4] = newdata[2::2]  # lat
+            contourbuf[3:-3:4] = newdata[3::2]  # lon
+            contourbuf[-2:]    = newdata[0:2]
+
+            # Create polygon fill buffer if this is not a line
+            if shape != 'LINE':
+                pset = PolygonSet()
+                pset.addContour(newdata)
+                fillbuf = np.array(pset.vbuf, dtype=np.float32)
+            else:
+                fillbuf = np.array([], dtype=np.float32)
+            # Store new or updated polygon by name, and concatenated with the
+            # other polys
+            self.polys[name] = (contourbuf, fillbuf)
 
     def defwpt(self, name, lat, lon):
         self.custwplbl += name.ljust(5)
         self.custwplat = np.append(self.custwplat, np.float32(lat))
         self.custwplon = np.append(self.custwplon, np.float32(lon))
 
-    def setflag(self, flag, args):
+    def setflag(self, flag, args=None):
         # Switch/toggle/cycle radar screen features e.g. from SWRAD command
         if flag == 'SYM':
             # For now only toggle PZ
@@ -258,6 +255,9 @@ class nodeData(object):
         # Satellite image background on/off
         elif flag == 'TRAF':
             self.show_traf = not self.show_traf
+
+        elif flag == 'POLY':
+            self.show_poly = 0 if self.show_poly == 2 else self.show_poly + 1
 
         elif flag == 'SSD':
             self.show_ssd(args)

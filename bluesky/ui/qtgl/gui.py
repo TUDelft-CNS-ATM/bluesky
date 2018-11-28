@@ -1,11 +1,15 @@
 """ QTGL Gui for BlueSky."""
 try:
-    from PyQt5.QtCore import Qt, QEvent, QT_VERSION, QT_VERSION_STR
+    from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
+        QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QErrorMessage
     from PyQt5.QtOpenGL import QGLFormat
 
 except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, QT_VERSION, QT_VERSION_STR
+    from PyQt4.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
+        QT_VERSION, QT_VERSION_STR
     from PyQt4.QtGui import QApplication, QErrorMessage
     from PyQt4.QtOpenGL import QGLFormat
 
@@ -23,7 +27,20 @@ bs.settings.set_variable_defaults(scenario_path='scenario',
                                   event_port=9000, stream_port=9001)
 
 
-def start():
+def gui_msg_handler(msgtype, context, msg):
+    if msgtype == QtWarningMsg:
+        print('Qt gui warning:', msg)
+    elif msgtype == QtCriticalMsg:
+        print('Qt gui critical error:', msg)
+    if msgtype == QtFatalMsg:
+        print('Qt gui fatal error:', msg)
+        exit()
+
+
+def start(mode):
+    # Install message handler for Qt messages
+    qInstallMessageHandler(gui_msg_handler)
+
     # Start the Qt main object
     app = QApplication([])
 
@@ -59,17 +76,16 @@ def start():
         QGLFormat.setDefaultFormat(f)
         print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
-
     splash.showMessage('Constructing main window')
     app.processEvents()
-    win = MainWindow()
+    win = MainWindow(mode)
     win.show()
     splash.showMessage('Done!')
     app.processEvents()
     splash.finish(win)
     # If this instance of the gui is started in client-only mode, show
     # server selection dialog
-    if bs.settings.is_client:
+    if mode == 'client':
         dialog = DiscoveryDialog(win)
         dialog.show()
         bs.net.start_discovery()
@@ -77,7 +93,6 @@ def start():
     else:
         client.connect(event_port=bs.settings.event_port,
                        stream_port=bs.settings.stream_port)
-
 
     # Start the Qt main loop
     app.exec_()

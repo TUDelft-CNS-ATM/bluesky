@@ -1,8 +1,6 @@
 # Always prefer setuptools over distutils
-from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
 from os import path
+from setuptools import setup, find_packages
 import glob
 
 here = path.abspath(path.dirname(__file__))
@@ -12,11 +10,11 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='bluesky-simulator',  # 'bluesky' package name already taken
+    name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
     version='0.0.1.dev2',
     description='The Open Air Traffic Simulator',
     long_description=long_description,
-    url='https://github.com/pypa/sampleproject',
+    url='https://github.com/ProfHoekstra/bluesky',
     classifiers=[
         'Development Status :: 3 - Beta',
 
@@ -29,17 +27,13 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
 
     # This field adds keywords for your project which will appear on the
-    keywords='atm aft transport simulation',
+    keywords='atm transport simulation aviation aircraft',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),  # Required
     install_requires=open(here + '/requirements.txt', 'r').readlines(),
     extras_require={
@@ -65,7 +59,7 @@ setup(
                   ('/share/bluesky/utils', [f for f in glob.glob('utils/**/*') if path.isfile(f)])],
     entry_points={
         'console_scripts': [
-            'BlueSky=bluesky:main',
+            'bluesky=BlueSky:main',
         ],
     },
 

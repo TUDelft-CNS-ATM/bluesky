@@ -1,0 +1,171 @@
+{
+  "__comment": {
+    "name": "aircraft full name",
+    "n_engines": "number of engines",
+    "engine_type": "engine typer: TF, TP",
+    "mtow": "max take-of weight (kg)",
+    "oew": "operating empty weight (kg)",
+    "mfc": "max fuel capacity (L)",
+    "engines": "[( engine: power (kW) )]",
+    "envelop": {
+      "va_max": "maximum speed (m/s)",
+      "vs_max": "maximum vertical speed (m/s)",
+      "h_max": "maximum altitude (m)",
+      "d_range_max": "maximum flight range (km)"
+    }
+  },
+  "EC35": {
+    "name": "Eurocopter EC135",
+    "n_engines": 2,
+    "engine_type": "TS",
+    "mtow": 2835,
+    "oew": 1490,
+    "mfc": 0,
+    "engines": [["PW206B", 463], ["Arrius-2B2", 472]],
+    "envelop": {
+      "v_min": -20,
+      "v_max": 71.95,
+      "vs_min": -7.62,
+      "vs_max": 7.62,
+      "h_max": 6096,
+      "d_range_max": 665
+    }
+  },
+  "M600": {
+    "name": "DJI Matrice 600",
+    "n_engines": 6,
+    "engine_type": "TS",
+    "mtow": 15.1,
+    "oew": 9.1,
+    "mfc": 0,
+    "engines": [["Motor-6010-1", 0.482], ["Motor-6010-2", 0.482], ["Motor-6010-3", 0.482], ["Motor-6010-4", 0.482], ["Motor-6010-5", 0.482], ["Motor-6010-6",0.482]],
+    "envelop": {
+      "v_min": -18,
+      "v_max": 18,
+      "vs_min": -5,
+      "vs_max": 5,
+      "h_max": 2500,
+      "d_range_max": 10
+    }
+  },
+   "Amzn": {
+    "name": "Amazon octocopter",
+    "n_engines": 8,
+    "engine_type": "TS",
+    "mtow": 20,
+    "oew": 9.1,
+    "mfc": 0,
+    "engines": [["Motor-6010-1", 0.482], ["Motor-6010-2", 0.482], ["Motor-6010-3", 0.482], ["Motor-6010-4", 0.482], ["Motor-6010-5", 0.482], ["Motor-6010-6", 0.482], ["Motor-6010-7", 0.482],["Motor-6010-8", 0.482]],
+    "envelop": {
+      "v_min": -44,
+      "v_max": 44,
+      "vs_min": -8,
+      "vs_max": 8,
+      "h_max": 2500,
+      "d_range_max": 80
+   }
+  },
+   "Mnet": {
+    "name": "Matternet quadrocopter",
+    "n_engines": 4,
+    "engine_type": "TS",
+    "mtow": 15.1,
+    "oew": 9.1,
+    "mfc": 0,
+    "engines": [["Motor-6010-1", 0.482], ["Motor-6010-2", 0.482], ["Motor-6010-3", 0.482], ["Motor-6010-4", 0.482]],
+    "envelop": {
+      "v_min": -11,
+      "v_max": 11,
+      "vs_min": -5,
+      "vs_max": 5,
+      "h_max": 2500,
+      "d_range_max": 10
+   }
+  },
+   "Phan4": {
+    "name": "DJI Phantom 4",
+    "n_engines": 4,
+    "engine_type": "TS",
+    "mtow": 1.4,
+    "oew": 0.92,
+    "mfc": 0,
+    "engines": [["Motor-E310-1", 0.0669], ["Motor-E310-2", 0.0669], ["Motor-E310-3", 0.0669], ["Motor-E310-4", 0.0669]],
+    "envelop": {
+      "v_min": -20,
+      "v_max": 20,
+      "vs_min": -4,
+      "vs_max": 6,
+      "h_max": 6000,
+      "d_range_max": 5
+   }
+  },
+   "M100": {
+    "name": "DJI Matrice 100",
+    "n_engines": 4,
+    "engine_type": "TS",
+    "mtow": 3.6,
+    "oew": 1.8,
+    "mfc": 0,
+    "engines": [["Motor-E800-1", 0.2], ["Motor-E800-2", 0.2], ["Motor-E800-3", 0.2], ["Motor-E800-4", 0.2]],
+    "envelop": {
+      "v_min": -22,
+      "v_max": 22,
+      "vs_min": -4,
+      "vs_max": 5,
+      "h_max": 3000,
+      "d_range_max": 5
+   }
+  },
+   "M200": {
+    "name": "DJI Matrice 200",
+    "n_engines": 4,
+    "engine_type": "TS",
+    "mtow": 6.14,
+    "oew": 3.645,
+    "mfc": 0,
+    "engines": [["Motor-E3515-1", 0.3], ["Motor-E3515-2", 0.3], ["Motor-E3515-3", 0.3], ["Motor-E3515-4", 0.3]],
+    "envelop": {
+      "v_min": -23,
+      "v_max": 23,
+      "vs_min": -3,
+      "vs_max": 5,
+      "h_max": 3000,
+      "d_range_max": 7      
+   }
+  },
+   "Mavic": {
+    "name": "DJI Mavic pro",
+    "n_engines": 4,
+    "engine_type": "TS",
+    "mtow": 0.734,
+    "oew": 0.494,
+    "mfc": 0,
+    "engines": [["Motor-E310-1", 0.0669], ["Motor-E310-2", 0.0669], ["Motor-E310-3", 0.0669], ["Motor-E310-4", 0.0669]],
+    "envelop": {
+      "v_min": -18,
+      "v_max": 18,
+      "vs_min": -3,
+      "vs_max": 5,
+      "h_max": 5000,
+      "d_range_max": 7      
+   }
+  },
+   "Horsefly": {
+    "name": "Horsefly Gen 5.3",
+    "n_engines": 8,
+    "engine_type": "TS",
+    "mtow": 8.80,
+    "oew": 4.30,
+    "mfc": 0,
+    "engines": [["Motor-1", 0.3], ["Motor-2", 0.3], ["Motor-3", 0.3], ["Motor-4", 0.3]],
+    "envelop": {
+      "v_min": -22.3,
+      "v_max": 22.3,
+      "vs_min": -8,
+      "vs_max": 8,
+      "h_max": 2500,
+      "d_range_max": 5      
+   }
+  }
+}  
+      

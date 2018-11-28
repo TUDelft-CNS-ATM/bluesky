@@ -1,21 +1,20 @@
 """ BlueSky aircraft performance calculations."""
 import os
 
-from xml.etree import ElementTree
 from math import *
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from .performance import esf, phases, calclimits, PHASE
+from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
-from . import coeff_bs
+from bluesky.traffic.performance.legacy.coeff_bs import CoeffBS
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/performance', verbose=False)
-coeffBS = coeff_bs.CoeffBS()
+settings.set_variable_defaults(perf_path='data/performance/BS', verbose=False)
+coeffBS = CoeffBS()
 
 
 class PerfBS(TrafficArrays):
@@ -169,12 +168,13 @@ class PerfBS(TrafficArrays):
         jetidx  = []
 
         for engine in self.engines[-n:]:
-            if engine in coeffBS.propenlist:
-                propidx.append(coeffBS.propenlist.index(engine))
+            # engine[0]: default to first engine in engine list for this aircraft
+            if engine[0] in coeffBS.propenlist:
+                propidx.append(coeffBS.propenlist.index(engine[0]))
             else:
                 propidx.append(0)
-            if engine in coeffBS.jetenlist:
-                jetidx.append(coeffBS.jetenlist.index(engine))
+            if engine[0] in coeffBS.jetenlist:
+                jetidx.append(coeffBS.jetenlist.index(engine[0]))
             else:
                 jetidx.append(0)
 
@@ -196,7 +196,6 @@ class PerfBS(TrafficArrays):
         self.ffcr[-n:]      = np.where(turboprops, 1. , coeffBS.ffcr[jetidx]*coeffBS.n_eng[coeffidx])
         self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx])
         self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx])
-        return
 
     def perf(self,simt):
         if abs(simt - self.t0) >= self.dt:
@@ -312,7 +311,7 @@ class PerfBS(TrafficArrays):
 
 
         # combine
-        self.ff = ff_jet + ff_prop
+        self.ff = np.maximum(0.0,ff_jet + ff_prop)
 
         # update mass
         #self.mass = self.mass - self.ff*self.dt/60. # Use fuelflow in kg/min

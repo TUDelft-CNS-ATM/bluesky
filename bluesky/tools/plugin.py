@@ -6,6 +6,7 @@ from glob import glob
 import imp
 import bluesky as bs
 from bluesky import settings
+from bluesky.tools import plotter
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -83,15 +84,13 @@ def manage(cmd='LIST', plugin_name=''):
         return remove(plugin_name)
     return False
 
-def init():
+def init(mode):
     ''' Initialization function of the plugin system.'''
     # Add plugin path to module search path
     sys.path.append(path.abspath(settings.plugin_path))
     # Set plugin type for this instance of BlueSky
-    if settings.is_sim:
-        req_type = 'sim'
-    else:
-        req_type = 'gui'
+    req_type = 'sim' if mode[:3] == 'sim' else 'gui'
+
     # Find available plugins
     for fname in glob(path.join(settings.plugin_path, '*.py')):
         p = check_plugin(fname)
@@ -103,92 +102,87 @@ def init():
         success = load(pname.upper())
         print(success[1])
 
-if settings.is_sim:
-    # Sim implementation of plugin management
-    preupdate_funs = dict()
-    update_funs    = dict()
-    reset_funs     = dict()
 
-    def load(name):
-        ''' Load a plugin. '''
-        try:
-            if name in active_plugins:
-                return False, 'Plugin %s already loaded' % name
-            descr  = plugin_descriptions.get(name)
-            if not descr:
-                return False, 'Error loading plugin: plugin %s not found.' % name
-            # Load the plugin
-            mod    = imp.find_module(descr.module_name, [descr.module_path])
-            plugin = imp.load_module(descr.module_name, *mod)
-            # Initialize the plugin
-            config, stackfuns    = plugin.init_plugin()
-            active_plugins[name] = plugin
-            dt     = max(config.get('update_interval', 0.0), bs.sim.simdt)
-            prefun = config.get('preupdate')
-            updfun = config.get('update')
-            rstfun = config.get('reset')
-            if prefun:
-                preupdate_funs[name] = [bs.sim.simt + dt, dt, prefun]
-            if updfun:
-                update_funs[name]    = [bs.sim.simt + dt, dt, updfun]
-            if rstfun:
-                reset_funs[name]     = rstfun
-            # Add the plugin's stack functions to the stack
-            bs.stack.append_commands(stackfuns)
-            return True, 'Successfully loaded plugin %s' % name
-        except ImportError as e:
-            print('BlueSky plugin system failed to load', name, ':', e)
-            return False, 'Failed to load %s' % name
+# Sim implementation of plugin management
+preupdate_funs = dict()
+update_funs    = dict()
+reset_funs     = dict()
 
-    def remove(name):
-        ''' Remove a loaded plugin. '''
-        if name not in active_plugins:
-            return False, 'Plugin %s not loaded' % name
-        preset = reset_funs.pop(name, None)
-        if preset:
-            # Call module reset first to clear plugin state just in case.
-            preset()
+def load(name):
+    ''' Load a plugin. '''
+    try:
+        if name in active_plugins:
+            return False, 'Plugin %s already loaded' % name
         descr  = plugin_descriptions.get(name)
-        cmds, _ = list(zip(*descr.plugin_stack))
-        bs.stack.remove_commands(cmds)
-        active_plugins.pop(name)
-        preupdate_funs.pop(name)
-        update_funs.pop(name)
+        if not descr:
+            return False, 'Error loading plugin: plugin %s not found.' % name
+        # Load the plugin
+        mod    = imp.find_module(descr.module_name, [descr.module_path])
+        plugin = imp.load_module(descr.module_name, *mod)
+        # Initialize the plugin
+        config, stackfuns    = plugin.init_plugin()
+        active_plugins[name] = plugin
+        dt     = max(config.get('update_interval', 0.0), bs.sim.simdt)
+        prefun = config.get('preupdate')
+        updfun = config.get('update')
+        rstfun = config.get('reset')
+        if prefun:
+            preupdate_funs[name] = [bs.sim.simt + dt, dt, prefun]
+        if updfun:
+            update_funs[name]    = [bs.sim.simt + dt, dt, updfun]
+        if rstfun:
+            reset_funs[name]     = rstfun
+        # Add the plugin's stack functions to the stack
+        bs.stack.append_commands(stackfuns)
+        # Add the plugin as data parent to the plotter
+        plotter.register_data_parent(plugin, name.lower())
+        return True, 'Successfully loaded plugin %s' % name
+    except ImportError as e:
+        print('BlueSky plugin system failed to load', name, ':', e)
+        return False, 'Failed to load %s' % name
 
-    def preupdate(simt):
-        ''' Update function executed before traffic update.'''
-        for fun in preupdate_funs.values():
-            # Call function if its update interval has passed
-            if simt >= fun[0]:
-                # Set the next triggering time for this function
-                fun[0] += fun[1]
-                # Call the function
-                fun[2]()
+def remove(name):
+    ''' Remove a loaded plugin. '''
+    if name not in active_plugins:
+        return False, 'Plugin %s not loaded' % name
+    preset = reset_funs.pop(name, None)
+    if preset:
+        # Call module reset first to clear plugin state just in case.
+        preset()
+    descr  = plugin_descriptions.get(name)
+    cmds, _ = list(zip(*descr.plugin_stack))
+    bs.stack.remove_commands(cmds)
+    active_plugins.pop(name)
+    preupdate_funs.pop(name)
+    update_funs.pop(name)
 
-    def update(simt):
-        ''' Update function executed after traffic update.'''
-        for fun in update_funs.values():
-            # Call function if its update interval has passed
-            if simt >= fun[0]:
-                # Set the next triggering time for this function
-                fun[0] += fun[1]
-                # Call the function
-                fun[2]()
+def preupdate(simt):
+    ''' Update function executed before traffic update.'''
+    for fun in preupdate_funs.values():
+        # Call function if its update interval has passed
+        if simt >= fun[0]:
+            # Set the next triggering time for this function
+            fun[0] += fun[1]
+            # Call the function
+            fun[2]()
 
-    def reset():
-        ''' Reset all plugins.'''
-        # Reset trigger times
-        for fun in preupdate_funs.values():
-            fun[0] = fun[1]
-        for fun in update_funs.values():
-            fun[0] = fun[1]
-        # Call plugin reset for plugins that have one
-        for fun in reset_funs.values():
-            fun()
+def update(simt):
+    ''' Update function executed after traffic update.'''
+    for fun in update_funs.values():
+        # Call function if its update interval has passed
+        if simt >= fun[0]:
+            # Set the next triggering time for this function
+            fun[0] += fun[1]
+            # Call the function
+            fun[2]()
 
-else:
-    def load(name, descr):
-        pass
-
-    def remove(name, descr):
-        pass
+def reset():
+    ''' Reset all plugins.'''
+    # Reset trigger times
+    for fun in preupdate_funs.values():
+        fun[0] = fun[1]
+    for fun in update_funs.values():
+        fun[0] = fun[1]
+    # Call plugin reset for plugins that have one
+    for fun in reset_funs.values():
+        fun()

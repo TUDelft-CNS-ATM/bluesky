@@ -138,16 +138,6 @@ def qdrdist_matrix(lat1, lon1, lat2, lon2):
     coslat1 = np.cos(np.radians(lat1))
     coslat2 = np.cos(np.radians(lat2))
 
-    sin10 = np.mat(np.abs(np.sin(sin1/2.)))
-    sin20 = np.mat(np.abs(np.sin(sin2/2.)))
-    sin1sin1 =  np.multiply(sin10, sin10)
-    sin2sin2 =  np.multiply(sin20, sin20)
-    sqrt =  sin1sin1+np.multiply((coslat1.T*coslat2), sin2sin2)
-
-    dist_c =  np.multiply(2., np.arctan2(np.sqrt(sqrt), np.sqrt(1-sqrt)))
-    dist = np.multiply(r/nm, dist_c)
-    #    dist = np.multiply(2.*r, np.arcsin(sqrt))
-
     sin21 = np.mat(np.sin(sin2))
     cos21 = np.mat(np.cos(sin2))
     y = np.multiply(sin21, coslat2)
@@ -159,6 +149,15 @@ def qdrdist_matrix(lat1, lon1, lat2, lon2):
     x = x1-x3
 
     qdr = np.degrees(np.arctan2(y, x))
+
+    sin10 = np.mat(np.abs(np.sin(sin1/2.)))
+    sin20 = np.mat(np.abs(np.sin(sin2/2.)))
+    sin1sin1 = np.multiply(sin10, sin10)
+    sin2sin2 = np.multiply(sin20, sin20)
+    sqrt = sin1sin1 + np.multiply((coslat1.T * coslat2), sin2sin2)
+    dist_c = np.multiply(2., np.arctan2(np.sqrt(sqrt), np.sqrt(1-sqrt)))
+    dist = np.multiply(r/nm, dist_c)
+    #    dist = np.multiply(2.*r, np.arcsin(sqrt))
 
     return qdr, dist
 
@@ -362,3 +361,22 @@ def kwikqdrdist_matrix(lata, lona, latb, lonb):
     qdr     = np.degrees(np.arctan2(np.multiply(dlon, cavelat), dlat)) % 360.
 
     return qdr, dist
+
+def kwikpos(latd1, lond1, qdr, dist):
+    """ Fast, but quick and dirty, position calculation from vectors of reference position,
+        bearing and distance using flat earth approximation
+        In:
+             latd1,lond1  [deg]   ref position(s)
+             qdr          [deg]   bearing (vector) from 1 to 2
+             dist         [nm]    distance (vector) between 1 and 2
+        Out:
+             latd2,lond2 [deg]
+        Use for flat earth purposes e.g. flat display"""
+
+    dx = dist*np.sin(np.radians(qdr))
+    dy = dist*np.cos(np.radians(qdr))
+    dlat = dy/60.
+    dlon = dx/(np.maximum(0.01,60.*np.cos(np.radians(latd1))))
+    latd2 = latd1 + dlat
+    lond2 = lond1 + dlon
+    return latd2,lond2

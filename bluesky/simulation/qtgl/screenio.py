@@ -187,7 +187,7 @@ class ScreenIO(object):
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
         bs.sim.send_stream(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
-            bs.sim.simtclock, bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
+            str(bs.sim.utc.replace(microsecond=0)), bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
 

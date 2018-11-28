@@ -1,10 +1,15 @@
+output
 scenario/ic.scn
 data/cache
+data/grib
 data/performance/BADA/*
 !/data/performance/BADA/README.md
 
 # Sphinx documentation
 docs/_build/
+
+# virtual environment
+venv
 
 # PyBuilder
 target/
@@ -84,3 +89,4 @@ ssd.obj
 # IPython
 *-checkpoint.py
 *-checkpoint.ipynb
+.ropeproject/config.py

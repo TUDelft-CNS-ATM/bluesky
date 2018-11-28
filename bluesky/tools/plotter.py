@@ -11,10 +11,17 @@ varlist = OrderedDict()
 # The list of plots
 plots = list()
 
+
 def init():
     ''' Plotter initialization function. Is called in bluesky.init() '''
     # Add the default sources to plot
-    varlist.update([('sim', getvarsfromobj(bs.sim)), ('traf', getvarsfromobj(bs.traf))])
+    varlist.update([('sim', getvarsfromobj(bs.sim)),
+                    ('traf', getvarsfromobj(bs.traf))])
+
+
+def register_data_parent(obj, name):
+    varlist[name] = getvarsfromobj(obj)
+
 
 def plot(*args):
     ''' Stack function to select a set of variables to plot.
@@ -24,6 +31,7 @@ def plot(*args):
         return True
     except IndexError as e:
         return False, e.args[0]
+
 
 def update(simt):
     ''' Periodic update function for the plotter. '''
@@ -36,6 +44,7 @@ def update(simt):
     for streamname, data in streamdata.items():
         bs.net.send_stream(streamname, data)
 
+
 def getvarsfromobj(obj):
     ''' Return a list with the numeric variables of the passed object.'''
     def is_num(o):
@@ -43,6 +52,7 @@ def getvarsfromobj(obj):
         return isinstance(o, Number) or \
             (isinstance(o, np.ndarray) and o.dtype.kind not in 'OSUV')
     return (obj, [name for name in vars(obj) if is_num(vars(obj)[name])])
+
 
 def findvar(varname):
     ''' Find a variable and its parent object in the registered varlist set, based
@@ -59,11 +69,12 @@ def findvar(varname):
         # is a parent object passed? (e.g., traf.lat instead of just lat)
         if len(varset) > 1:
             # The first object should be in the varlist of Plot
-            obj = varlist.get(varset[0][0])
-            for objname, _ in varset[1:-1]:
+            obj = varlist.get(varset[0][0])[0]
+            # Iterate over objectname,index pairs in varset
+            for pair in varset[1:-1]:
                 if obj is None:
                     break
-                obj = obj[objname] if obj in vars(obj) else None
+                obj = getattr(obj, pair[0], None)
 
             if obj and name in vars(obj):
                 return Variable(obj, name, index)
@@ -108,7 +119,7 @@ class Plot(object):
         self.color = color
         if not fig:
             fig = Plot.maxfig
-            Plot.maxfig +=1
+            Plot.maxfig += 1
         elif fig > Plot.maxfig:
             Plot.maxfig = fig
 

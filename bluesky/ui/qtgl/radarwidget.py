@@ -1,9 +1,9 @@
 from os import path
 try:
-    from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
+    from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, QT_VERSION
     from PyQt5.QtOpenGL import QGLWidget
 except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, qCritical, QTimer, pyqtSlot, QT_VERSION
+    from PyQt4.QtCore import Qt, QEvent, qCritical, QTimer, QT_VERSION
     from PyQt4.QtOpenGL import QGLWidget
 
 from ctypes import c_float, c_int, Structure
@@ -54,7 +54,7 @@ palette.set_default_colours(
 # Static defines
 MAX_NAIRCRAFT         = 10000
 MAX_NCONFLICTS        = 25000
-MAX_ROUTE_LENGTH      = 100
+MAX_ROUTE_LENGTH      = 500
 MAX_POLYPREV_SEGMENTS = 100
 MAX_ALLPOLYS_SEGMENTS = 2000
 MAX_CUST_WPT          = 1000
@@ -92,10 +92,10 @@ class radarUBO(UniformBuffer):
     def set_pan_and_zoom(self, panlat, panlon, zoom):
         self.data.panlat = panlat
         self.data.panlon = panlon
-        self.data.zoom   = zoom
+        self.data.zoom = zoom
 
     def set_win_width_height(self, w, h):
-        self.data.screen_width  = w
+        self.data.screen_width = w
         self.data.screen_height = h
 
     def enable_wrap(self, flag=True):
@@ -124,42 +124,43 @@ class RadarWidget(QGLWidget):
         self.wraplon = int(-999)
         self.wrapdir = int(0)
 
-        self.map_texture    = 0
-        self.naircraft      = 0
-        self.nwaypoints     = 0
-        self.ncustwpts      = 0
-        self.nairports      = 0
-        self.route_acid     = ""
-        self.apt_inrange    = np.array([])
-        self.asas_vmin      = settings.asas_vmin
-        self.asas_vmax      = settings.asas_vmax
-        self.initialized    = False
+        self.map_texture = 0
+        self.naircraft = 0
+        self.nwaypoints = 0
+        self.ncustwpts = 0
+        self.nairports = 0
+        self.route_acid = ""
+        self.apt_inrange = np.array([])
+        self.asas_vmin = settings.asas_vmin
+        self.asas_vmax = settings.asas_vmax
+        self.initialized = False
 
-        self.acdata         = ACDataEvent()
-        self.routedata      = RouteDataEvent()
+        self.acdata = ACDataEvent()
+        self.routedata = RouteDataEvent()
 
         self.panzoomchanged = False
-        self.mousedragged   = False
-        self.mousepos       = (0, 0)
-        self.prevmousepos   = (0, 0)
+        self.mousedragged = False
+        self.mousepos = (0, 0)
+        self.prevmousepos = (0, 0)
 
         # Load vertex data
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
         self.coastvertices, self.coastindices = load_coastlines()
 
-        # Only initialize super class after loading data to avoid Qt starting things
-        # before we are ready.
+        # Only initialize super class after loading data to avoid Qt starting
+        # things before we are ready.
         super(RadarWidget, self).__init__(shareWidget=shareWidget)
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.grabGesture(Qt.PanGesture)
         self.grabGesture(Qt.PinchGesture)
         # self.grabGesture(Qt.SwipeGesture)
+        self.setMouseTracking(True)
 
         # Connect to the io client's activenode changed signal
+        console.cmdline_stacked.connect(self.cmdline_stacked)
         bs.net.actnodedata_changed.connect(self.actnodedataChanged)
         bs.net.stream_received.connect(self.on_simstream_received)
-
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         ''' Update buffers when a different node is selected, or when
@@ -168,9 +169,20 @@ class RadarWidget(QGLWidget):
 
         # Shape data change
         if 'SHAPE' in changed_elems:
-            if len(nodedata.polydata):
-                update_buffer(self.allpolysbuf, nodedata.polydata)
-            self.allpolys.set_vertex_count(len(nodedata.polydata) // 2)
+            if nodedata.polys:
+                contours, fills = zip(*nodedata.polys.values())
+                # Create contour buffer
+                buf = np.concatenate(contours)
+                update_buffer(self.allpolysbuf, buf)
+                self.allpolys.set_vertex_count(len(buf) // 2)
+
+                # Create fill buffer
+                buf = np.concatenate(fills)
+                update_buffer(self.allpfillbuf, buf)
+                self.allpfill.set_vertex_count(len(buf) // 2)
+            else:
+                self.allpolys.set_vertex_count(0)
+                self.allpfill.set_vertex_count(0)
 
         # Trail data change
         if 'TRAILS' in changed_elems:
@@ -202,9 +214,9 @@ class RadarWidget(QGLWidget):
         self.makeCurrent()
 
         text_size = settings.text_size
-        apt_size  = settings.apt_size
-        wpt_size  = settings.wpt_size
-        ac_size   = settings.ac_size
+        apt_size = settings.apt_size
+        wpt_size = settings.wpt_size
+        ac_size = settings.ac_size
 
         # Initialize font for radar view with specified settings
         self.font = Font()
@@ -228,50 +240,52 @@ class RadarWidget(QGLWidget):
         # gl.GL_DYNAMIC_DRAW =  update
         # gl.GL_STATIC_DRAW  =  less frequent update
 
-        self.achdgbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclatbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclonbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.acaltbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.actasbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.accolorbuf    = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.aclblbuf      = create_empty_buffer(MAX_NAIRCRAFT * 24, usage=gl.GL_STREAM_DRAW)
-        self.confcpabuf    = create_empty_buffer(MAX_NCONFLICTS * 16, usage=gl.GL_STREAM_DRAW)
-        self.trailbuf      = create_empty_buffer(MAX_TRAILLEN * 16, usage=gl.GL_STREAM_DRAW)
-        self.asasnbuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
-        self.asasebuf      = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.achdgbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclatbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclonbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.acaltbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.actasbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.accolorbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.aclblbuf = create_empty_buffer(MAX_NAIRCRAFT * 24, usage=gl.GL_STREAM_DRAW)
+        self.confcpabuf = create_empty_buffer(MAX_NCONFLICTS * 16, usage=gl.GL_STREAM_DRAW)
+        self.trailbuf = create_empty_buffer(MAX_TRAILLEN * 16, usage=gl.GL_STREAM_DRAW)
+        self.asasnbuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
+        self.asasebuf = create_empty_buffer(MAX_NAIRCRAFT * 4, usage=gl.GL_STREAM_DRAW)
 
-        self.polyprevbuf   = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
-        self.allpolysbuf   = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
-        self.routebuf      = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.polyprevbuf = create_empty_buffer(MAX_POLYPREV_SEGMENTS * 8, usage=gl.GL_DYNAMIC_DRAW)
+        self.allpolysbuf = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 16, usage=gl.GL_DYNAMIC_DRAW)
+        self.allpfillbuf = create_empty_buffer(MAX_ALLPOLYS_SEGMENTS * 24, usage=gl.GL_DYNAMIC_DRAW)
+        self.routebuf = create_empty_buffer(MAX_ROUTE_LENGTH * 8, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplatbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
         self.routewplonbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 4, usage=gl.GL_DYNAMIC_DRAW)
-        self.routelblbuf   = create_empty_buffer(MAX_ROUTE_LENGTH * 2*12, usage=gl.GL_DYNAMIC_DRAW)
+        self.routelblbuf = create_empty_buffer(MAX_ROUTE_LENGTH * 2*12, usage=gl.GL_DYNAMIC_DRAW)
 
-        self.custwplatbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
-        self.custwplonbuf  = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
-        self.custwplblbuf  = create_empty_buffer(MAX_CUST_WPT * 5, usage=gl.GL_STATIC_DRAW)
+        self.custwplatbuf = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
+        self.custwplonbuf = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
+        self.custwplblbuf = create_empty_buffer(MAX_CUST_WPT * 5, usage=gl.GL_STATIC_DRAW)
 
         # ------- Map ------------------------------------
         mapvertices = np.array([(-90.0, 540.0), (-90.0, -540.0), (90.0, -540.0), (90.0, 540.0)], dtype=np.float32)
-        texcoords   = np.array([(1, 3), (1, 0), (0, 0), (0, 3)], dtype=np.float32)
-        self.map    = RenderObject(gl.GL_TRIANGLE_FAN, vertex=mapvertices, texcoords=texcoords)
+        texcoords = np.array([(1, 3), (1, 0), (0, 0), (0, 3)], dtype=np.float32)
+        self.map = RenderObject(gl.GL_TRIANGLE_FAN, vertex=mapvertices, texcoords=texcoords)
 
         # ------- Coastlines -----------------------------
-        self.coastlines   = RenderObject(gl.GL_LINES, vertex=self.coastvertices, color=palette.coastlines)
+        self.coastlines = RenderObject(gl.GL_LINES, vertex=self.coastvertices, color=palette.coastlines)
         self.vcount_coast = len(self.coastvertices)
         del self.coastvertices
 
         # ------- Airport graphics -----------------------
-        self.runways    = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_runways, color=palette.runways)
+        self.runways = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_runways, color=palette.runways)
         self.thresholds = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_rwythr, color=palette.thresholds)
-        self.taxiways   = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_asphalt, color=palette.taxiways)
-        self.pavement   = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_concrete, color=palette.pavement)
+        self.taxiways = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_asphalt, color=palette.taxiways)
+        self.pavement = RenderObject(gl.GL_TRIANGLES, vertex=self.vbuf_concrete, color=palette.pavement)
 
         # Polygon preview object
         self.polyprev = RenderObject(gl.GL_LINE_LOOP, vertex=self.polyprevbuf, color=palette.previewpoly)
 
         # Fixed polygons
         self.allpolys = RenderObject(gl.GL_LINES, vertex=self.allpolysbuf, color=palette.polys)
+        self.allpfill = RenderObject(gl.GL_TRIANGLES, vertex=self.allpfillbuf, color=np.append(palette.polys, 50))
 
         # ------- SSD object -----------------------------
         self.ssd = RenderObject(gl.GL_POINTS)
@@ -490,7 +504,10 @@ class RadarWidget(QGLWidget):
         self.polyprev.draw()
 
         # --- DRAW CUSTOM SHAPES (WHEN AVAILABLE) -----------------------------
-        self.allpolys.draw()
+        if actdata.show_poly > 0:
+            self.allpolys.draw()
+            if actdata.show_poly > 1:
+                self.allpfill.draw()
 
         # --- DRAW THE SELECTED AIRCRAFT ROUTE (WHEN AVAILABLE) ---------------
         if actdata.show_traf:
@@ -601,7 +618,6 @@ class RadarWidget(QGLWidget):
         self.width, self.height = width // pixel_ratio, height // pixel_ratio
         self.ar = float(width) / max(1, float(height))
         self.globaldata.set_win_width_height(self.width, self.height)
-
         self.viewport = (0, 0, width, height)
 
         # Update zoom
@@ -740,10 +756,10 @@ class RadarWidget(QGLWidget):
                     color[i, :] = palette.aircraft + (255,)
 
                 #  Check if aircraft is selected to show SSD
-                if acid in actdata.ssd_ownship:
+                if actdata.ssd_all or acid in actdata.ssd_ownship:
                     selssd[i] = 255
 
-            if len(actdata.ssd_ownship) > 0 or actdata.ssd_conflicts:
+            if len(actdata.ssd_ownship) > 0 or actdata.ssd_conflicts or actdata.ssd_all:
                 update_buffer(self.ssd.selssdbuf, selssd[:MAX_NAIRCRAFT])
 
             update_buffer(self.confcpabuf, cpalines[:MAX_NCONFLICTS * 4])
@@ -941,7 +957,6 @@ class RadarWidget(QGLWidget):
                 if g.gestureType() == Qt.PinchGesture:
                     zoom = g.scaleFactor() * (zoom or 1.0)
                     if CORRECT_PINCH:
-                        print ('Correct pinch')
                         zoom /= g.lastScaleFactor()
                 elif g.gestureType() == Qt.PanGesture:
                     if abs(g.delta().y() + g.delta().x()) > 1e-1:
@@ -1003,7 +1018,6 @@ class RadarWidget(QGLWidget):
 
                 except ValueError:
                     pass
-            return True
 
         # For all other events call base class event handling
         return super(RadarWidget, self).event(event)

@@ -197,8 +197,7 @@ class RenderObject(object):
         return buf_id
 
     def bind_texcoords(self, data, *args, **kwargs):
-        size = kwargs['size'] if 'size' in kwargs else int(data.size / self.vertex_count)
-        self.bind_attrib(self.attrib_texcoords, size, data, *args, **kwargs)
+        self.bind_attrib(self.attrib_texcoords, 2, data, *args, **kwargs)
 
     def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
         self.vertex_count = int(np.size(data) / 2) if vertex_count == 0 else vertex_count

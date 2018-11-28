@@ -4,20 +4,17 @@ import sys
 import shutil
 import site
 
-def init():
+
+def init(cfgfile=''):
     '''Initialize configuration.
        Import config settings from settings.cfg if this exists, if it doesn't
        create an initial config file'''
     rundir = ''
     srcdir = ''
-    # Determine gui preference from whether bluesky was started with
-    # BlueSky.py, BlueSky_qtgl.py, or BlueSky_pygame.py
-    gui = 'pygame' if 'pygame' in sys.argv[0] \
-        else ('qtgl' if 'qtgl' in sys.argv[0] or 'pytest' in sys.argv[0]
-              else 'ask')
 
-    # If BlueSky is run from a compiled bundle instead of from source, adjust the startup path
-    # and change the path of configurable files to $home/bluesky
+    # If BlueSky is run from a compiled bundle instead of from source,
+    # adjust the startup path and change the path of
+    # configurable files to $home/bluesky
     if getattr(sys, 'frozen', False):
         srcdir = os.path.dirname(sys.executable)
         rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
@@ -37,20 +34,24 @@ def init():
                 srcdir = dirpath
                 break
 
-    cachedir   = os.path.join(rundir, 'data/cache')
-    badadir    = os.path.join(rundir, 'data/performance/BADA')
-    badasrc    = os.path.join(srcdir, 'data/performance/BADA')
-    perfdir    = os.path.join(srcdir, 'data/performance')
-    gfxdir     = os.path.join(srcdir, 'data/graphics')
-    navdir     = os.path.join(srcdir, 'data/navdata')
-    scnsrc     = os.path.join(srcdir, 'scenario')
-    scndir     = os.path.join(rundir, 'scenario')
-    outdir     = os.path.join(rundir, 'output')
-    plgsrc     = os.path.join(srcdir, 'plugins')
-    plgdir     = os.path.join(rundir, 'plugins')
+    datadir = os.path.join(rundir, 'data')
+    cachedir = os.path.join(rundir, 'data/cache')
+    badadir = os.path.join(rundir, 'data/performance/BADA')
+    badasrc = os.path.join(srcdir, 'data/performance/BADA')
+    perfdir = os.path.join(srcdir, 'data/performance')
+    gfxdir = os.path.join(srcdir, 'data/graphics')
+    navdir = os.path.join(srcdir, 'data/navdata')
+    scnsrc = os.path.join(srcdir, 'scenario')
+    scndir = os.path.join(rundir, 'scenario')
+    outdir = os.path.join(rundir, 'output')
+    plgsrc = os.path.join(srcdir, 'plugins')
+    plgdir = os.path.join(rundir, 'plugins')
     configfile = os.path.join(rundir, 'settings.cfg')
-    configsrc  = os.path.join(srcdir, 'data/default.cfg')
+    configsrc = os.path.join(srcdir, 'data/default.cfg')
 
+    if not cfgfile:
+        cfgfile = os.path.join(rundir, 'settings.cfg')
+    
     # Check if alternate config file is passed
     for i in range(len(sys.argv)):
         if len(sys.argv) > i + 1:
@@ -61,34 +62,19 @@ def init():
 
     # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
     # was started with BlueSky.py
-    if not os.path.isfile(configfile):
+    if not os.path.isfile(cfgfile):
         print()
         print('No config file settings.cfg found in your BlueSky starting directory!')
         print()
         print('This config file contains several default settings related to the simulation loop and the graphics.')
         print('A default version will be generated, which you can change if necessary before the next time you run BlueSky.')
         print()
-        if gui == 'ask':
-            print('BlueSky has several user interfaces to choose from. Please select which one to start by default.')
-            print('You can always change this behavior by changing the settings.cfg file.')
-            print()
-            print('1. QtGL:    This is the most current interface of BlueSky, but requires a graphics card that supports at least OpenGL 3.3.')
-            print('2. Pygame:  Use this version if your pc doesn\'t support OpenGL 3.3.')
-            # print '3. Console: Run a console-only version of BlueSky. This is useful if you want to do batch simulations on a remote server.'
-            print()
-            ans = int(input('Default UI version: '))
-            if ans == 1:
-                gui = 'qtgl'
-            elif ans == 2:
-                gui = 'pygame'
-            # elif ans == 3:
-            #     gui = 'console'
 
-        with open(configsrc, 'r') as fin, open(configfile, 'w') as fout:
+        with open(configsrc, 'r') as fin, open(cfgfile, 'w') as fout:
             for line in fin:
-                if line[:3] == 'gui':
-                    line = "gui = '" + gui + "'\n"
-                elif line[:10] == 'cache_path':
+                if line[:9] == 'data_path':
+                    line = "data_path = '" + datadir.replace('\\', '/') + "'\n"
+                if line[:10] == 'cache_path':
                     line = "cache_path = '" + cachedir.replace('\\', '/') + "'\n"
                 elif line[:8] == 'log_path':
                     line = "log_path = '" + outdir.replace('\\', '/') + "'\n"
@@ -110,11 +96,7 @@ def init():
     else:
         print('Reading config from settings.cfg')
 
-    exec(compile(open(configfile).read(), configfile, 'exec'), globals())
-    if not gui == 'ask':
-        globals()['gui'] = gui
-    elif 'gui' not in globals():
-        globals()['gui'] = 'qtgl'
+    exec(compile(open(cfgfile).read(), cfgfile, 'exec'), globals())
 
     # Update cachedir with python version-specific subfolder
     cachedir = os.path.join(cachedir, 'py%d' % sys.version_info[0])
@@ -135,6 +117,7 @@ def init():
 
     return True
 
+
 def set_variable_defaults(**kwargs):
     ''' Register a default value for a configuration variable. Use this functionality
         in plugins to make sure that configuration variables are available upon usage.
@@ -148,18 +131,3 @@ def set_variable_defaults(**kwargs):
     for key, value in kwargs.items():
         if key not in globals():
             globals()[key] = value
-
-# Call settings.init() at creation
-gui = ''
-initialized = init()
-
-### Parse command-line arguments ###
-# This file is used to start the gui mainloop, a single node simulation loop,
-# or, in case of the pygame version, both.
-is_client = ('--client' in sys.argv)
-is_headless = ('--headless' in sys.argv)
-is_sim = ('--node' in sys.argv) or gui == 'pygame'
-is_gui = not (is_sim or is_headless) or gui == 'pygame'
-start_server = not (is_client or is_sim or gui == 'pygame')
-if ('--discoverable' in sys.argv or is_headless):
-    enable_discovery = True

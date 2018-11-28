@@ -31,7 +31,7 @@ from bluesky import settings
 # Temporary fix for synthetic
 from . import synthetic as syn
 # Register settings defaults
-settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario', scenfile='')
+settings.set_variable_defaults(start_location='EHAM', scenario_path='scenario')
 
 # Global variables
 cmddict   = dict()  # Defined in stack.init
@@ -131,7 +131,7 @@ saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded 
 # Global version
 orgcmd = ""
 
-def init():
+def init(startup_scnfile):
     global orgcmd
 
     """ Initialization of the default stack commands. This function is called
@@ -293,6 +293,12 @@ def init():
             "txt,txt,acid,hdg,float,time,[alt,time,spd]",
             bs.traf.creconfs,
             "Create an aircraft that is in conflict with 'targetid'"
+        ],
+        "DATE": [
+            "DATE [day,month,year,HH:MM:SS.hh]",
+            "[int,int,int,txt]",
+            lambda *args: bs.sim.setutc(*args),
+            "Set simulation date"
         ],
         "DEFWPT": [
             "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
@@ -535,7 +541,7 @@ def init():
         "PCALL": [
             "PCALL filename [REL/ABS/args]",
             "txt,[txt,...]",
-            lambda *args: openfile(*args, mergeWithExisting=True),
+            lambda fname, *args: openfile(fname, args, mergeWithExisting=True),
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file"
         ],
         "PLOT": [
@@ -671,7 +677,7 @@ def init():
             "Show state-space diagram (=conflict prevention display/predictive ASAS)"
         ],
         "SWRAD": [
-            "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL [dt]/[value]",
+            "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]",
             "txt,[float]",
             bs.scr.feature,
             "Switch on/off elements and background of map/radar view"
@@ -692,7 +698,7 @@ def init():
         "TIME": [
             "TIME RUN(default) / HH:MM:SS.hh / REAL / UTC ",
             "[txt]",
-            bs.sim.setclock,
+            bs.sim.setutc,
             "Set simulated clock time"
         ],
         "TMX": [
@@ -761,8 +767,8 @@ def init():
     stack("ZOOM 0.4")
 
     # Load initial scenario if passed
-    if settings.scenfile:
-        openfile(settings.scenfile)
+    if startup_scnfile:
+        openfile(startup_scnfile)
 
 
 def sender():
@@ -959,8 +965,9 @@ def reset():
     scencmd  = []
     scenname = ''
 
+    # Close recording file and reset scenario recording settings
     saveclose()
-    saveexcl = defexcl  # Commands to be excluded, set to default
+    saveexcl = defexcl  # Commands to be excluded, set back to default
 
 
 def stack(cmdline, cmdsender=None):
@@ -974,43 +981,33 @@ def stack(cmdline, cmdsender=None):
 def sched_cmd(time, args, relative=False):
     ''' Function that implements the SCHEDULE and DELAY commands. '''
     tostack = ','.join(args)
-    # find spot in time list corresponding to passed time, get idx
-    # insert time at idx in scentime, insert cmd at idx in scencmd
     if relative:
         time += bs.sim.simt
-    # in case there is no scentime yet, only extend
 
-    if len(scentime) == 0:
-        scentime.extend([time])
-        scencmd.extend([tostack])
-    else:
-        try:
-            idx = scentime.index(next(sctime for sctime in scentime if sctime > time))
-
-            scentime.insert(idx, time)
-            scencmd.insert(idx, tostack)
-        except:
-            scentime.extend([time])
-            scencmd.extend([tostack])
-
+    try:
+        # Find index of first scentime greater than 'time'
+        idx = next(idx for idx, t in enumerate(scentime) if t > time)
+        # Insert time and cmd at position before idx
+        scentime.insert(idx, time)
+        scencmd.insert(idx, tostack)
+    except StopIteration:
+        # Append to end when reaching end or when scentime,scencmd are empty
+        scentime.append(time)
+        scencmd.append(tostack)
 
     return True
 
 
-def openfile(fname, *args, mergeWithExisting=False):
+def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
     global scentime, scencmd
 
-    orgfname = fname # Save original filename for if path spalitting fails (relative path)
+    # Save original filename for if path splitting fails (relative path)
+    orgfname = fname
 
-    if len(args)>0 and (args[0]=="ABS" or args[0]=="REL"):
-        absrel = args[0]
-        if len(args)>1:
-            arglst = args[1:]
-        else:
-            arglst = []
-    else:
-        absrel = "REL" # default relative to the time of call
-        arglst = args
+    absrel = "REL"  # default relative to the time of call
+    if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
+        absrel = pcall_arglst[0]
+        pcall_arglst = pcall_arglst[1:]
 
     # Check whether file exists
 
@@ -1018,7 +1015,7 @@ def openfile(fname, *args, mergeWithExisting=False):
     path, fname = os.path.split(os.path.normpath(fname))
     base, ext = os.path.splitext(fname)
     path = path or os.path.normpath(settings.scenario_path)
-    ext  = ext  or '.scn'
+    ext = ext or '.scn'
 
     # The entire filename, possibly with added path and extension
     fname_full = os.path.join(path, base + ext)
@@ -1027,15 +1024,15 @@ def openfile(fname, *args, mergeWithExisting=False):
     # the current simtime to every timestamp
     t_offset = bs.sim.simt if absrel == 'REL' else 0.0
 
-    # Check for relative path, then it contains a path but we need to prefix scenario folder
+    # If this is a relative path we need to prefix scenario folder
     if not os.path.exists(fname_full):
-        if not ".scn" in orgfname.lower():
+        if ".scn" not in orgfname.lower():
             orgfname = orgfname+".scn"
 
-        if os.path.exists(settings.scenario_path+"/"+orgfname):
-            fname_full = settings.scenario_path+"/"+orgfname
+        if os.path.exists(settings.scenario_path + "/" + orgfname):
+            fname_full = settings.scenario_path + "/" + orgfname
         else:
-            print ("Openfile error: Cannot file",fname_full)
+            print("Openfile error: Cannot file", fname_full)
             return False, "Error: cannot find file: " + fname_full
 
     # Split scenario file line in times and commands
@@ -1049,26 +1046,26 @@ def openfile(fname, *args, mergeWithExisting=False):
     with open(fname_full, 'r') as fscen:
         for line in fscen:
 
-            # Replace arguments if specified: %0 by first argument, %1 by seconds, %2
-            if len(arglst)>0 and line.find("%")>=0:
-                for iarg, txtarg in enumerate(arglst):
-                    line = line.replace("%"+str(iarg),arglst[iarg])
+            # Replace possible arguments: %0 by first argument, %1 by second, ..
+            if pcall_arglst and line.find("%") >= 0:
+                for iarg, txtarg in enumerate(pcall_arglst):
+                    line = line.replace("%" + str(iarg), pcall_arglst[iarg])
 
             # Skip emtpy lines and comments
             if len(line.strip()) > 12 and line.strip()[0] != "#":
                 # Try reading timestamp and command
                 try:
                     icmdline = line.index('>')
-                    tstamp   = line[:icmdline]
-                    ttxt     = tstamp.strip().split(':')
-                    ihr      = int(ttxt[0]) * 3600.0
-                    imin     = int(ttxt[1]) * 60.0
-                    xsec     = float(ttxt[2])
+                    tstamp = line[:icmdline]
+                    ttxt = tstamp.strip().split(':')
+                    ihr = int(ttxt[0]) * 3600.0
+                    imin = int(ttxt[1]) * 60.0
+                    xsec = float(ttxt[2])
                     scentime.append(ihr + imin + xsec + t_offset)
                     scencmd.append(line[icmdline + 1:].strip("\n"))
                 except:
                     if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
-                        print("except this:"+line)
+                        print("except this:" + line)
                     pass  # nice try, we will just ignore this syntax error
 
     if mergeWithExisting:
@@ -1083,6 +1080,9 @@ def ic(filename=''):
     ''' Function implementing the IC stack command. '''
     global scenfile, scenname
 
+    # reset sim always
+    bs.sim.reset()
+
     # Get the filename of new scenario
     if not filename:
         filename = bs.scr.show_file_dialog()
@@ -1092,7 +1092,6 @@ def ic(filename=''):
 
     # Reset sim and open new scenario file
     if filename:
-        bs.sim.reset()
         result = openfile(filename)
         if result:
             scenfile    = filename
@@ -1446,10 +1445,12 @@ class Argparser:
                             if v is None and self.argdefaults:
                                 result[i] = self.argdefaults[0]
                                 print('using default value from function: {}'.format(result[i]))
-                                self.argdefaults.pop(0)
-
 
                     self.arglist += result
+
+                    if self.argdefaults:
+                        self.argdefaults.pop(0)
+
                     break
                 # No success yet with this type (maybe we can try other ones)
                 else:

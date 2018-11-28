@@ -57,14 +57,14 @@ class ASAS(TrafficArrays):
     def __init__(self):
         super(ASAS, self).__init__()
         with RegisterElementParameters(self):
-            # ASAS info per aircraft:
-            self.inconf    = np.array([], dtype=bool)  # In-conflict flag per aircraft
+            # ASAS info PER AIRCRAFT:
+            self.inconf = np.array([], dtype=bool)  # In-conflict flag
             self.tcpamax = np.array([])  # Maximum time to CPA for aircraft in conflict
-            self.active   = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
-            self.trk      = np.array([])  # heading provided by the ASAS [deg]
-            self.tas      = np.array([])  # speed provided by the ASAS (eas) [m/s]
-            self.alt      = np.array([])  # speed alt by the ASAS [m]
-            self.vs       = np.array([])  # speed vspeed by the ASAS [m/s]
+            self.active = np.array([], dtype=bool)  # whether the autopilot follows ASAS or not
+            self.trk = np.array([])  # heading provided by the ASAS [deg]
+            self.tas = np.array([])  # speed provided by the ASAS (eas) [m/s]
+            self.alt = np.array([])  # alt provided by the ASAS [m]
+            self.vs = np.array([])  # vspeed provided by the ASAS [m/s]
 
         # All ASAS variables are initialized in the reset function
         self.reset()
@@ -158,10 +158,6 @@ class ASAS(TrafficArrays):
         self.tLOS = np.array([])  # Time to start LoS
         self.qdr = np.array([])  # Bearing from ownship to intruder
         self.dist = np.array([])  # Horizontal distance between ""
-
-        # Force change labels in interface
-        # if settings.gui == "pygame":
-        #     bs.traf.label = [[" ", " ", " ", " "] for i in range(bs.traf.ntraf)]
 
         return
 
@@ -427,7 +423,7 @@ class ASAS(TrafficArrays):
 
             if idx2 >= 0:
                 # Distance vector using flat earth approximation
-                re      = 6371000.
+                re = 6371000.
                 dist = re * np.array([np.radians(bs.traf.lon[idx2] - bs.traf.lon[idx1]) *
                                       np.cos(0.5 * np.radians(bs.traf.lat[idx2] +
                                                               bs.traf.lat[idx1])),
@@ -465,7 +461,7 @@ class ASAS(TrafficArrays):
                 # Waypoint recovery after conflict: Find the next active waypoint
                 # and send the aircraft to that waypoint.
                 iwpid = bs.traf.ap.route[idx1].findact(idx1)
-                if iwpid != -1: # To avoid problems if there are no waypoints
+                if iwpid != -1:  # To avoid problems if there are no waypoints
                     bs.traf.ap.route[idx1].direct(idx1, bs.traf.ap.route[idx1].wpname[iwpid])
 
                 # If conflict is solved, remove it from the resopairs list
@@ -509,9 +505,3 @@ class ASAS(TrafficArrays):
 
         # iconf0 = np.array(self.iconf)
         #
-
-        # Change labels in interface
-        # if settings.gui == "pygame":
-        #     for i in range(bs.traf.ntraf):
-        #         if np.any(iconf0[i] != self.iconf[i]):
-        #             bs.traf.label[i] = [" ", " ", " ", " "]
