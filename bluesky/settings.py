@@ -2,6 +2,7 @@
 import os
 import sys
 import shutil
+import site
 
 def init():
     '''Initialize configuration.
@@ -20,6 +21,21 @@ def init():
     if getattr(sys, 'frozen', False):
         srcdir = os.path.dirname(sys.executable)
         rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
+
+    # If BlueSky is installed as a python package the location of the data files need to
+    # be adjusted so that importing will not fail when copying config file below
+    if not os.path.isfile(os.path.join(rundir, 'data/default.cfg')):
+        # collate list of possible data install roots
+        root_dirs = site.getusersitepackages()
+        root_dirs = [root_dirs] if type(root_dirs) is str else root_dirs
+        root_dirs += site.getsitepackages()
+
+        # search for bluesky shared data directory
+        for root_dir in root_dirs:
+            dirpath = os.path.join(root_dir, 'share', 'bluesky')
+            if os.path.exists(dirpath):
+                srcdir = dirpath
+                break
 
     cachedir   = os.path.join(rundir, 'data/cache')
     badadir    = os.path.join(rundir, 'data/performance/BADA')
@@ -112,7 +128,10 @@ def init():
     for d in [(badasrc, badadir), (scnsrc, scndir), (plgsrc, plgdir)]:
         if not os.path.isdir(d[1]):
             print('Creating directory "%s", and copying default files' % d[1])
-            shutil.copytree(*d)
+            try:
+                shutil.copytree(*d)
+            except FileNotFoundError:
+                print('Unable to copy "%s" files to "%s"' %(d[0], d[1]), file=sys.stderr)
 
     return True
 
