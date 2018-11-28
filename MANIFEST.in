@@ -3,7 +3,7 @@ recursive-include data/ *
 recursive-include utils/ *
 recursive-include plugins/ *
 recursive-exclude bluesky/ *.pyc *-checkpoint.py
-recursive-exclude *__pycache__
+recursive-exclude ./ __pycache__
 include LICENSE
 include README.md
 include setup.py

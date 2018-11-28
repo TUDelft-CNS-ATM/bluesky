@@ -1,6 +1,7 @@
 # Always prefer setuptools over distutils
 from os import path
 from setuptools import setup, find_packages
+from codecs import open
 import glob
 
 here = path.abspath(path.dirname(__file__))
@@ -27,6 +28,9 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
@@ -44,12 +48,6 @@ setup(
     package_data={
           'data': [f for f in glob.glob('data/**/*') if path.isfile(f)] + ['data/default.cfg']
     },
-    #     'scripts': [here + '/BlueSky_pygame.py', here + '/BlueSky_qtgl.py',
-    #                 here + '/utils/mkcustomnavdata/makescen.py'] + \
-    #                 glob.glob(here + '/utils/Scenario-creator/'),
-    #     '': glob.glob(here + '/plugins/*.py'),
-    #     '': glob.glob(here + '/data/**/*'),
-    # },
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # `pip` to create the appropriate form of executable for the target
@@ -63,7 +61,7 @@ setup(
         ],
     },
 
-    scripts=['BlueSky_pygame.py', 'BlueSky_qtgl.py'],
+    scripts=['BlueSky_pygame.py'],
 
     project_urls={
         'Source': 'https://github.com/ProfHoekstra/bluesky',
