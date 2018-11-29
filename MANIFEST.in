@@ -1,5 +1,9 @@
 recursive-include bluesky/ *
+recursive-include data/ *
+recursive-include utils/ *
+recursive-include plugins/ *
 recursive-exclude bluesky/ *.pyc *-checkpoint.py
+global-exclude *__pycache__*
 include LICENSE
 include README.md
 include setup.py
@@ -7,3 +11,7 @@ include BlueSky*.py
 include check.py
 include requirements.txt
 include Makefile
+
+# reduce package size for PyPI
+exclude data/graphics/world.8192x4096.dds
+exclude data/graphics/world.16384x8192.dds
