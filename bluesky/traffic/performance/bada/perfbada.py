@@ -348,8 +348,8 @@ class PerfBADA(TrafficArrays):
 
         # AERODYNAMICS
         # Lift
-        self.qS = 0.5*bs.traf.rho*np.maximum(1.,bs.traf.tas)*np.maximum(1.,bs.traf.tas)*self.Sref
-        cl = self.mass*g0/(self.qS*np.cos(self.bank))*(self.phase!=PHASE["GD"])+ 0.*(self.phase==PHASE["GD"])
+        qS = 0.5*bs.traf.rho*np.maximum(1.,bs.traf.tas)*np.maximum(1.,bs.traf.tas)*self.Sref
+        cl = self.mass*g0/(qS*np.cos(self.bank))*(self.phase!=PHASE["GD"])+ 0.*(self.phase==PHASE["GD"])
 
         # Drag
         # Drag Coefficient
@@ -373,26 +373,26 @@ class PerfBADA(TrafficArrays):
             + (self.phase==PHASE['AP'])*cdapp + (self.phase ==PHASE['LD'])*cdld
 
         # Drag:
-        self.D = cd*self.qS
+        self.D = cd*qS
 
         # energy share factor and crossover altitude
 
         # conditions
         epsalt = np.array([0.001]*bs.traf.ntraf)
-        self.climb = np.array(bs.traf.delalt > epsalt)
-        self.descent = np.array(bs.traf.delalt<-epsalt)
+        climb = np.array(bs.traf.delalt > epsalt)
+        descent = np.array(bs.traf.delalt<-epsalt)
         lvl = np.array(np.abs(bs.traf.delalt)<0.0001)*1
 
 
 
         # crossover altitiude
-        atrans = self.atranscl*self.climb + self.atransdes*(1-self.climb)
+        atrans = self.atranscl*climb + self.atransdes*(1-climb)
         bs.traf.abco = np.array(bs.traf.alt>atrans)
         bs.traf.belco = np.array(bs.traf.alt<atrans)
 
         # energy share factor
         self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
-                  self.climb, self.descent, bs.traf.delspd)
+                  climb, descent, bs.traf.delspd)
 
         # THRUST
         # 1. climb: max.climb thrust in ISA conditions (p. 32, BADA User Manual 3.12)
@@ -403,7 +403,7 @@ class PerfBADA(TrafficArrays):
         #            ThrISA = (1-self.ctct2*(self.dtemp-self.ctct1))
         # jet
         # condition
-        cljet = np.logical_and.reduce([self.climb, self.jet]) * 1
+        cljet = np.logical_and.reduce([climb, self.jet]) * 1
 
         # thrust
         Tj = self.ctcth1* (1-(bs.traf.alt/ft)/self.ctcth2+self.ctcth3*(bs.traf.alt/ft)*(bs.traf.alt/ft))
@@ -413,7 +413,7 @@ class PerfBADA(TrafficArrays):
 
         # turboprop
         # condition
-        clturbo = np.logical_and.reduce([self.climb, self.turbo]) * 1
+        clturbo = np.logical_and.reduce([climb, self.turbo]) * 1
 
         # thrust
         Tt = self.ctcth1/np.maximum(1.,bs.traf.tas/kts)*(1-(bs.traf.alt/ft)/self.ctcth2)+self.ctcth3
@@ -422,7 +422,7 @@ class PerfBADA(TrafficArrays):
         Ttc = clturbo*Tt # *ThrISA
 
         # piston
-        clpiston = np.logical_and.reduce([self.climb, self.piston])*1
+        clpiston = np.logical_and.reduce([climb, self.piston])*1
         Tp = self.ctcth1*(1-(bs.traf.alt/ft)/self.ctcth2)+self.ctcth3/np.maximum(1.,bs.traf.tas/kts)
         Tpc = clpiston*Tp
 
@@ -439,16 +439,16 @@ class PerfBADA(TrafficArrays):
 
         # above Hpdes:
         high = np.array(delh>0)
-        Tdesh = maxthr*self.ctdesh*np.logical_and.reduce([self.descent, high])
+        Tdesh = maxthr*self.ctdesh*np.logical_and.reduce([descent, high])
 
         # below Hpdes
         low = np.array(delh<0)
         # phase cruise
-        Tdeslc = maxthr*self.ctdesl*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['CR'])])
+        Tdeslc = maxthr*self.ctdesl*np.logical_and.reduce([descent, low, (self.phase==PHASE['CR'])])
         # phase approach
-        Tdesla = maxthr*self.ctdesa*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['AP'])])
+        Tdesla = maxthr*self.ctdesa*np.logical_and.reduce([descent, low, (self.phase==PHASE['AP'])])
         # phase landing
-        Tdesll = maxthr*self.ctdesld*np.logical_and.reduce([self.descent, low, (self.phase==PHASE['LD'])])
+        Tdesll = maxthr*self.ctdesld*np.logical_and.reduce([descent, low, (self.phase==PHASE['LD'])])
         # phase ground: minimum descent thrust as a first approach
         Tgd = np.minimum.reduce([Tdesh, Tdeslc])*(self.phase==PHASE['GD'])
 
@@ -461,7 +461,7 @@ class PerfBADA(TrafficArrays):
         # for climbs: reducing factor (reduced climb power) is multiplied
         # cred applies below 0.8*hmax and for climbing aircraft only
         hcred = np.array(bs.traf.alt < (self.hmaxact*0.8))
-        clh = np.logical_and.reduce([hcred, self.climb])
+        clh = np.logical_and.reduce([hcred, climb])
         cred = self.cred*clh
         cpred = 1-cred*((self.mmax-self.mass)/(self.mmax-self.mmin))
 
@@ -527,14 +527,14 @@ class PerfBADA(TrafficArrays):
         ffic = fnom*(self.phase==PHASE['IC'])/2
 
         # phase cruise and climb
-        cc = np.logical_and.reduce([self.climb, (self.phase==PHASE['CR'])])*1
+        cc = np.logical_and.reduce([climb, (self.phase==PHASE['CR'])])*1
         ffcc = fnom*cc
 
         # cruise and level
         ffcrl = fcr*lvl
 
         # descent cruise configuration
-        cd2 = np.logical_and.reduce ([self.descent, (self.phase==PHASE['CR'])])*1
+        cd2 = np.logical_and.reduce ([descent, (self.phase==PHASE['CR'])])*1
         ffcd = cd2*fmin
 
         # approach
@@ -556,7 +556,7 @@ class PerfBADA(TrafficArrays):
 
         # for aircraft on the runway and taxiways we need to know, whether they
         # are prior or after their flight
-        self.post_flight = np.where(self.descent, True, self.post_flight)
+        self.post_flight = np.where(descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
         bs.traf.pilot.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.tas)
