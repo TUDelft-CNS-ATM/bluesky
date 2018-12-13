@@ -41,8 +41,8 @@ def load_coastline_txt():
     return coastvertices, coastindices
 
 
-# Don't try this if BlueSky is started in pygame mode
-if not bs.pygame:
+# Only try this if BlueSky is started in qtgl gui mode
+if bs.gui_type == 'qtgl':
     from bluesky.ui.polytools import PolygonSet, BoundingBox
 
     try:

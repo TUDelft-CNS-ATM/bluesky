@@ -11,8 +11,8 @@ from bluesky.tools import cachefile
 from .load_navdata_txt import load_navdata_txt
 from .load_visuals_txt import load_coastline_txt, navdata_load_rwythresholds
 
-# Don't try this if BlueSky is started in pygame mode
-if not bs.pygame:
+# Only try this if BlueSky is started in qtgl gui mode
+if bs.gui_type == 'qtgl':
     from .load_visuals_txt import load_aptsurface_txt
 
 

@@ -12,7 +12,7 @@ BS_CMDERR = 4
 INIT, HOLD, OP, END = list(range(4))
 
 # Startup flags
-pygame = False
+gui_type = ''
 startup_scnfile = ''
 
 # Main singleton objects in BlueSky
@@ -38,6 +38,11 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
 
     # Is this a server running headless?
     headless = (mode[-8:] == 'headless')
+
+    # Keep track of the gui type.
+    global gui_type
+    gui_type = 'pygame' if pygame else \
+               'none' if headless or mode[:3] == 'sim' else 'qtgl'
 
     # Load navdatabase in all versions of BlueSky
     # Only the headless server doesn't need this
