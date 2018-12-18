@@ -180,8 +180,8 @@ class Screen:
             self.win = pg.display.set_mode(reso, pg.FULLSCREEN)
         else:
             # Windowed
-            self.height = int(min(self.height, di.current_h * 90 / 100))
-            self.width = int(min(self.width, di.current_w * 90 / 100))
+            self.height = int(min(self.height, int(di.current_h * 90 / 100)))
+            self.width = int(min(self.width, int(di.current_w * 90 / 100)))
             reso = (self.width, self.height)
             self.win = pg.display.set_mode(reso)
 
@@ -1079,8 +1079,8 @@ class Screen:
             self.win = pg.display.set_mode(reso, pg.FULLSCREEN | pg.HWSURFACE)
         else:
             # Windowed
-            self.height = min(self.height, di.current_h * 90 / 100)
-            self.width = min(self.width, di.current_w * 90 / 100)
+            self.height = min(self.height, int(di.current_h * 90 / 100))
+            self.width = min(self.width, int(di.current_w * 90 / 100))
             reso = (self.width, self.height)
             self.win = pg.display.set_mode(reso)
 
