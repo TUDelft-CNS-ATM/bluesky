@@ -1,0 +1,44 @@
+00:00:00.00>plugin load trafgen
+00:00:00.00>call EHAM/FIR-NL-EHAA
+
+# Define spawning circle SPAWN with centerlat[deg],centerlon[deg],radius[nm]
+00:00:00.00>TRAFGEN CIRCLE 52.6,5.4,230.0
+
+# Generate traffic with EHAM as source (SRC) of traffic
+# Define destinations of departing traffic stream at EHAM
+
+00:00:00.00>trafgen SRC EHAM RUNWAY RW24 RW18L
+
+# Define types using integers as relative quantity
+00:00:00.00>trafgen SRC EHAM TYPES B738:20 A320:20 B777:10 A333:10 B744:10 E190:10 AT45:5 AT75:2
+
+# Segments of spawn circle as destination (+ relative number (e.g. % of flights)
+00:00:00.00>trafgen SRC EHAM DEST SEG3  10 #Segment of spawn circle as destination
+00:00:00.00>trafgen SRC EHAM DEST SEG4  10 #Segment of spawn circle as destination
+00:00:00.00>trafgen SRC EHAM DEST SEG7  20 #Segment of spawn circle as destination
+00:00:00.00>trafgen SRC EHAM DEST SEG8  20 #Segment of spawn circle as destination
+00:00:00.00>trafgen SRC EHAM DEST SEG9  20 #Segment of spawn circle as destination
+00:00:00.00>trafgen SRC EHAM DEST SEG10 20 #Segment of spawn circle as destination
+
+# Start generating with a flow of 70 a/c per hour
+00:00:00.00>trafgen SRC EHAM FLOW 70
+
+# Generate traffic with EHAM as drain (SRC) of traffic
+# Define EHAM as drain of flights and origins arriving stream from EHAM
+# With 70 a/c arriving per hour
+
+00:00:00.00>trafgen DRN EHAM RUNWAY RW18R RW18C
+00:00:00.00>trafgen DRN EHAM TYPES B738:20 A320:20 B777:10 A333:10 B744:10 E190:10 AT45:5 AT75:2
+
+# Segments of spawn circle as destination (+ relative number (e.g. % of flights if totla is 100)
+00:00:00.00>trafgen DRN EHAM ORIG SEG1  10 #Segment of spawn circle as origin
+00:00:00.00>trafgen DRN EHAM ORIG SEG2  10 #Segment of spawn circle as origin
+00:00:00.00>trafgen DRN EHAM ORIG SEG3  20 #Segment of spawn circle as origin
+00:00:00.00>trafgen DRN EHAM ORIG SEG4  20 #Segment of spawn circle as origin
+00:00:00.00>trafgen DRN EHAM ORIG SEG11 20 #Segment of spawn circle as origin
+00:00:00.00>trafgen DRN EHAM ORIG SEG12 20 #Segment of spawn circle as origin
+
+# Start generating with a flow of 70 a/c per hour
+00:00:00.00>trafgen DRN EHAM FLOW 70
+
+
