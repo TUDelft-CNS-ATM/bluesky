@@ -2,7 +2,7 @@ import random
 
 from bluesky import stack,traf,sim,tools,navdb
 from bluesky.tools.position import txt2pos
-from bluesky.tools.geo import kwikqdrdist,kwikpos
+from bluesky.tools.geo import kwikqdrdist,kwikpos,latlondist
 
 # Default values
 ctrlat = 52.6
@@ -19,7 +19,7 @@ class Source():
     # Define a source or drain
     def __init__(self,name,cmd,cmdargs):
         self.name    = name.upper()
-        self.tupdate = sim.simt
+        self.tupdate = sim.simt-999.
         self.flow    = 0
 
         # Is location a circle segment or airport?
@@ -30,8 +30,6 @@ class Source():
 
         else:
             success, posobj = txt2pos(name,ctrlat,ctrlon)
-            self.pos = posobj
-            self.type = posobj.type
             if success:
                 # for runway type, get heading as default optional argument for command line
                 if posobj.type == "rwy":
@@ -46,12 +44,13 @@ class Source():
                     rwyhdg = None
 
 
-
                 self.lat,self.lon = posobj.lat, posobj.lon
+                self.type = posobj.type
 
             else:
                 print("ERROR: contestclass called for "+name+". Position not found")
                 self.lat,self.lon = 0.0,0.0
+
 
         # Aircraft types
         self.actypes = ["*"]
@@ -105,21 +104,22 @@ class Source():
         if not destname[:3]=="SEG":
             success,posobj = txt2pos(destname,self.lat,self.lon)
             if success:
-                self.desttype.append(posobj.type)
                 if posobj.type == "rwy":
                     for i in range(freq):
                         self.dest.append(destname)
                         self.destlat.append(posobj.lat)
-                        self.destlon.append(posobj.lon)
+                        self3.destlon.append(posobj.lon)
                         self.desthdg.append(None)
+                        self.desttype.append(posobj.type)
 
                 else:
                     for i in range(freq):
-                        aptname, rwyname = destname.split('/RW')
+                        aptname = destname
                         self.dest.append(destname)
                         self.destlat.append(posobj.lat)
                         self.destlon.append(posobj.lon)
-                        self.desthdg.append(navdb.rwythresholds[aptname][rwyname][2])
+                        self.desthdg.append(0)
+                        self.desttype.append(posobj.type)
         else:
             lat,lon,hdg = getseg(destname)
             self.dest.append(destname)
@@ -160,8 +160,8 @@ class Source():
                     gennow = False
 
                     # Find shortest line and put it in
-                    imin = self.rwyline.index(min(self.rwyline))
-                    self.rwyline[imin] = self.rwyline[imin] + 1
+                    isel = random.randint(0,len(self.runways)-1)
+                    self.rwyline[isel] = self.rwyline[isel] + 1
                 else:
                     # Yes we do need to generate one now
                     gennow = True
@@ -174,17 +174,28 @@ class Source():
             for i in range(len(self.runways)):
                 # Runway vacated and there is one waiting?
                 if sim.simt-self.rwytotime[i]>self.dtakeoff and self.rwyline[i]>0:
+                    self.rwytotime[i] = sim.simt
                     self.rwyline[i]=self.rwyline[i]-1
                     acid = randacname()
-                    stack.stack("CRE "+",".join([acid, random.choice(self.actypes),
+
+                    # Choose and aicraft type, chck for distance
+                    actype    = random.choice(self.actypes)
+                    idest = int(random.random() * len(self.dest))
+                    if self.desttype[idest]=="seg":
+                        lat,lon,hdg = getseg(self.dest[idest])
+                    else:
+                        success,posobj = txt2pos(self.dest[idest],ctrlat,ctrlon)
+                        lat,lon = posobj.lat,posobj.lon
+                    distroute = latlondist(self.lat,self.lon,lat,lon)
+                    actype = checkactype(actype,distroute,self.actypes)
+
+                    stack.stack("CRE "+",".join([acid, actype,
                                                  str(self.rwylat[i]),str(self.rwylon[i]),str(self.rwyhdg[i]),
                                                  "0.0","0.0"]))
                     stack.stack(" ".join([acid,"SPD","250"]))
                     stack.stack(" ".join([acid,"ALT","5000"]))
                     # Add waypoint for after take-off
 
-
-                    idest = int(random.random()*len(self.dest))
                     if self.desttype[idest]=="seg":
                         lat,lon,hdg = getseg(self.dest[idest])
                         brg,dist = kwikqdrdist(self.lat,self.lon,lat,lon)
@@ -203,13 +214,22 @@ class Source():
                 else:
                     hdg = random.random()*360.
                 acid = randacname()
+                if self.type=="apt" or "rwy":
+                    alt,spd = str(0),str(0)
+                else:
+                    alt,spd = "FL300", "350"
+
                 stack.stack("CRE " + ",".join([acid, random.choice(self.actypes),
-                                               str(self.lat[i]), str(self.lon[i]), str(int(hdg)),
-                                               "FL300", "350"]))
+                                               str(self.lat), str(self.lon), str(int(hdg)),
+                                               alt,spd]))
                 # Add destination
-                idest = random.random() * len(self.dest)
-                if self.desttype(idest) == "seg":
-                    lat, lon, hdg = getseg(self.dest)
+                idest = int(random.random() * len(self.dest))
+                if alt=="0" and spd =="0":
+                    stack.stack(" ".join([acid, "SPD", "250"]))
+                    stack.stack(" ".join([acid, "ALT", "5000"]))
+                    #stack.stack(acid+" LNAV ON")
+                if self.desttype[idest] == "seg":
+                    lat, lon, hdg = getseg(self.dest[idest])
                     brg, dist = kwikdist(self.lat, self.lon, lat, lon)
                     stack.stack(acid + " HDG " + str(brg))
                 else:
@@ -243,6 +263,13 @@ def randacname():
                 chr(ord("A") + int(random.random() * 26)) + \
                 chr(ord("A") + int(random.random() * 26))
 
+    acname = company+fltnr
+    i = 0
+    while (acname in traf.id):
+        fltnr = fltnr+str(i)
+        i     = i + 1
+        acname = company+ fltnr
+
     return company+fltnr
 
 def makefreqlist(txtlist):
@@ -273,9 +300,29 @@ def getseg(txt):
     return lat,lon,hdg
 
 
+def checkactype(curtype,dist,alltypes):
+    # Use lookup table/size/weight to match flight distance with a suitable aircraft type (if available)
+    # To avoid B744s flying to Eelde and PA28 to New York
+    newtype = curtype
 
+    # Temporary quick fix
+    # TBD
+    if curtype[0]=="A" or curtype[0]=="B": # Likely Airbus or Boeing? => no small distance < 300 nm
+        if dist<300:
+            # Try to find another one maxiumum 25 times
+            n = 25
+            while n>0 and newtype[0] in ["A","B"]:
+                n = n - 1
+                newtype = random.choice(alltypes)
+    else:
+        if dist > 500:
+            # Try to find another one maxiumum 25 times
+            n = 25
+            while n > 0 and not( newtype[0] in ["A", "B"]):
+                n = n - 1
+                newtype = random.choice(alltypes)
 
-
+    return newtype
 
 
 

@@ -10,12 +10,19 @@ Make sure scenario can be saved
 
 from bluesky import stack,traf,sim,tools  #, settings, navdb, traf, sim, scr, tools
 from trafgenclasses import Source, Drain, setcircle
+from bluesky.tools.position import txt2pos
 #from bluesky.tools import areafilter
 #from bluesky.tools.aero import vtas2cas,ft
 #from bluesky.tools.misc import degto180
 
 
 import numpy as np
+
+# Default values
+ctrlat = 52.6
+ctrlon = 5.4
+radius = 230.
+
 
 def init_plugin():
     print("Initialising contest scenario generator")
@@ -110,7 +117,7 @@ def trafgencmd(cmdline):
 
     cmd,args = splitline(cmdline)
 
-    print("TRAFGEN: cmd,args=",cmd,args)
+    #print("TRAFGEN: cmd,args=",cmd,args)
 
     if cmd=="CIRCLE" or cmd=="CIRC":
 
@@ -135,24 +142,46 @@ def trafgencmd(cmdline):
         cmd = args[1].upper()
         cmdargs = args[2:]
         if name not in sources:
-            sources[name] = Source(name,cmd,cmdargs)
+            success,posobj = txt2pos(name,ctrlat,ctrlon)
+            if success:
+                 sources[name] = Source(name,cmd,cmdargs)
         else:
+            success = True
+
+        if success:
             if cmd=="RUNWAY" or cmd=="RWY":
                 sources[name].addrunways(cmdargs)
             elif cmd=="DEST":
                 sources[name].adddest(cmdargs)
             elif cmd=="FLOW":
-                sources[name].setflow(args[2])
+                sources[name].setflow(cmdargs[0])
             elif cmd=="TYPES" or cmd=="TYPE":
-                sources[name].addactypes(args[2:])
+                sources[name].addactypes(cmdargs)
 
     elif cmd=="DRN": # Define drain of streams, give origins
         name = args[0].upper()
         cmd = args[1].upper()
         cmdargs = args[2:]
         if name not in drains:
-            drains[name] = Drain(name,cmd,cmdargs)
+            success,posobj = txt2pos(name,ctrlat,ctrlon)
+            if success:
+                drains[name] = Drain(name,cmd,cmdargs)
+        else:
+            success = True
 
+        if success:
+            if cmd=="RUNWAY" or cmd=="RWY":
+                pass
+                # drains.addrunways(cmdargs)
+            elif cmd=="ORIG":
+                pass
+                # drains.addorig(cmdargs)
+            elif cmd=="FLOW":
+                pass
+                # drains.setflow(cmdargs[0])
+            elif cmd=="TYPES" or cmd=="TYPE":
+                pass
+                #drains[name].addactypes(cmdargs)
 
     return True
 
