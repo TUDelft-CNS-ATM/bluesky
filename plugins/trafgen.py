@@ -9,7 +9,7 @@ Make sure scenario can be saved
 
 
 from bluesky import stack,traf,sim,tools  #, settings, navdb, traf, sim, scr, tools
-from trafgenclasses import Source, Drain, setcircle
+from trafgenclasses import Source, setcircle
 from bluesky.tools.position import txt2pos
 #from bluesky.tools import areafilter
 #from bluesky.tools.aero import vtas2cas,ft
@@ -55,17 +55,9 @@ def init_plugin():
             'string',
             trafgencmd,
             'CONTEST command']
- #       ,
- #       # Delete a geovector (same effect as using a geovector without  any values
- #       'DELGEOVECTOR': [
- #           'DELGEOVECTOR area',
- #           'txt',
- #           delgeovec,
- #           'Remove geovector from the area ']
         }
+
     # init_plugin() should always return these two dicts.
-
-
 
     return config, stackfunctions
 
@@ -75,6 +67,7 @@ def reset():
 
     # Set default parameters for spawning circle
 
+    swcircle = False
     ctrlat = 52.6  # [deg]
     ctrlon = 5.4  # [deg]
     radius = 230.0  # [nm]
@@ -86,8 +79,8 @@ def reset():
     dtsegment = 12 * [1.0]
 
     # drains: dictionary of drains
-    drains      = dict([])
     sources     = dict([])
+
     return
 
 
@@ -98,16 +91,10 @@ def reset():
 #    pass
 #    return
 
- 
-#    return
 
 def update(): # Update all sources and drain
     for src in sources:
         sources[src].update()
-
-
-    for drn in drains:
-        drains[drn].update()
 
     return
 
@@ -123,15 +110,14 @@ def trafgencmd(cmdline):
 
 
         # Draw circle
-        #try:
-        if True:
+        try:
+            swcircle = True
             ctrlat = float(args[0])
             ctrlon = float(args[1])
             radius = float(args[2])
             setcircle(ctrlat, ctrlon, radius)
-        #except:
-        else:
-            return False,'TRAFGEN ERROR while reading CIRCLE command arguments (lat,lon,radius):'+str(cmdargs)
+        except:
+            return False,'TRAFGEN ERROR while reading CIRCLE command arguments (lat,lon,radius):'+str(args)
         stack.stack("DEL SPAWN")
         stack.stack("CIRCLE SPAWN," + str(ctrlat) + "," + str(ctrlon) + "," + str(radius))
 
@@ -157,37 +143,15 @@ def trafgencmd(cmdline):
                 sources[name].setflow(cmdargs[0])
             elif cmd=="TYPES" or cmd=="TYPE":
                 sources[name].addactypes(cmdargs)
-
-    elif cmd=="DRN": # Define drain of streams, give origins
-        name = args[0].upper()
-        cmd = args[1].upper()
-        cmdargs = args[2:]
-        if name not in drains:
-            success,posobj = txt2pos(name,ctrlat,ctrlon)
-            if success:
-                drains[name] = Drain(name,cmd,cmdargs)
         else:
-            success = True
-
-        if success:
-            if cmd=="RUNWAY" or cmd=="RWY":
-                pass
-                # drains.addrunways(cmdargs)
-            elif cmd=="ORIG":
-                pass
-                # drains.addorig(cmdargs)
-            elif cmd=="FLOW":
-                pass
-                # drains.setflow(cmdargs[0])
-            elif cmd=="TYPES" or cmd=="TYPE":
-                pass
-                #drains[name].addactypes(cmdargs)
+            return False,"TRAFGEN SRC ERROR "+name+" NOT FOUND"
 
     return True
 
 def splitline(rawline):
     # Interpet string like a command with arguments
     # Replace multiple spaces by one space
+
     line = rawline.strip().upper()
     if line.count("#")>=1:
         icomment = line.index("#")
@@ -203,9 +167,10 @@ def splitline(rawline):
     while line.count(" ,") > 0:
         line = line.replace(" ,", ",")
 
-    # Replace remaining space by comma
+    # Replace remaining spaces, which are separators, by comma
     line = line.strip().replace(" ",",")
 
+    # Split using commas
     args = line.split(",")
     if len(args)>=1:
         cmd = args[0]

@@ -1,31 +1,39 @@
 import random
+from math import degrees,radians,cos,sin,atan2,sqrt
+
 
 from bluesky import stack,traf,sim,tools,navdb
 from bluesky.tools.position import txt2pos
-from bluesky.tools.geo import kwikqdrdist,kwikpos,latlondist
+from bluesky.tools.geo import kwikqdrdist,kwikpos,kwikdist,latlondist,qdrdist
+from bluesky.tools.misc import degto180
 
 # Default values
-ctrlat = 52.6
-ctrlon = 5.4
-radius = 230.
+swcircle = False
+ctrlat = 52.6 # [deg]
+ctrlon = 5.4  # [deg]
+radius = 230. # [nm]
 
 def setcircle(ictrlat,ictrlon,iradius):
-    global ctrlat,ctrlon,radius
+    global ctrlat,ctrlon,radius,swcircle
+    swcircle = True
     ctrlat, ctrlon, radius = ictrlat,ictrlon,iradius
     return
 
 
 class Source():
-    # Define a source or drain
+    # Define a source
     def __init__(self,name,cmd,cmdargs):
         self.name    = name.upper()
         self.tupdate = sim.simt-999.
         self.flow    = 0
+        self.incircle = True
+        self.segdir  = None  # Segment direction in degrees
 
-        # Is location a circle segment or airport?
-        if self.name[:3]=="SEG":
+        # Is location a circle segment?
+        if swcircle and self.name[:4]=="SEGM":
             self.type = "seg"
-            # TBD : Do we need this as we also have drains? Yes: segn to segn for crossing flights
+            self.lat,self.lon,brg = getseg(self.name)# TBD : Do we need this as we also have sorce outside cirle?
+            # Yes: segn to segn for crossing flights optional
             pass
 
         else:
@@ -47,6 +55,14 @@ class Source():
                 self.lat,self.lon = posobj.lat, posobj.lon
                 self.type = posobj.type
 
+                # If outside circle change lat,lon to edge of circle
+                self.incircle = incircle(self.lat,self.lon)
+                if not self.incircle:
+                    self.type = "seg"
+                    self.segdir,dist = qdrdist(ctrlat,ctrlon,posobj.lat,posobj.lon)
+                    segname = "SEGM"+str(int(round(self.segdir)))
+                    self.lat,self.lon,hdg = getseg(segname)
+
             else:
                 print("ERROR: contestclass called for "+name+". Position not found")
                 self.lat,self.lon = 0.0,0.0
@@ -63,14 +79,15 @@ class Source():
         self.rwyline    = [] # number of aircraft waiting in line
         self.rwytotime  = [] # time of last takeoff
 
-        self.dtakeoff = 90. # sec take-off interval on one runway
+        self.dtakeoff = 90. # sec take-off interval on one runway, default 90 sec
 
         # Destinations
-        self.dest     = []
-        self.destlat  = []
-        self.destlon  = []
-        self.desttype = [] # "apt","wpt","seg"
-        self.desthdg  = []  # if dest is a runway (for flights within FIR)
+        self.dest        = []
+        self.destlat     = []
+        self.destlon     = []
+        self.desttype    = [] # "apt","wpt","seg"
+        self.desthdg     = []  # if dest is a runway (for flights within FIR) or circle segment (source outside FIR)
+        self.destactypes = []   # Types for this destinations ([]=use defaults for this source)
 
 
 
@@ -96,21 +113,37 @@ class Source():
                 self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
                 self.rwyline.append(0)
                 self.rwytotime.append(-999.)
+                # TBD draw runways
 
     def adddest(self,cmdargs):
-        # Add destination with a given frequency
+        # Add destination with a given aicraft types
         destname = cmdargs[0]
         freq = int(cmdargs[1])
-        if not destname[:3]=="SEG":
+
+        # Get a/c types frequency list, if given
+        destactypes = []
+        if len(cmdargs) >= 2:  # also types are given for this destination
+            for c in cmdargs[2:]:
+                if c.count(":") > 0:
+                    actype, typefreq = c.split(":")
+                else:
+                    actype = c
+                    typefreq = "1"
+
+                for f in range(int(typefreq)):
+                    destactypes.append(actype)
+
+        if not destname[:4]=="SEGM":
             success,posobj = txt2pos(destname,self.lat,self.lon)
             if success:
                 if posobj.type == "rwy":
                     for i in range(freq):
                         self.dest.append(destname)
                         self.destlat.append(posobj.lat)
-                        self3.destlon.append(posobj.lon)
+                        self.destlon.append(posobj.lon)
                         self.desthdg.append(None)
                         self.desttype.append(posobj.type)
+                        self.destactypes.append(destactypes)
 
                 else:
                     for i in range(freq):
@@ -120,17 +153,17 @@ class Source():
                         self.destlon.append(posobj.lon)
                         self.desthdg.append(0)
                         self.desttype.append(posobj.type)
+                        self.destactypes.append(destactypes)
+
         else:
+            # Segment as destination, bearing from center = heading
             lat,lon,hdg = getseg(destname)
             self.dest.append(destname)
             self.destlat.append(lat)
             self.destlon.append(lon)
             self.desthdg.append(hdg)
             self.desttype.append("seg")
-
-
-
-
+            self.destactypes.append(destactypes)
 
     def setflow(self,flowtxt):
         self.flow = float(float(flowtxt)) #in a/c per hour, also starts flow as it by default zero
@@ -140,8 +173,7 @@ class Source():
         self.actypes = self.actypes + makefreqlist(actypelist)
 
     def update(self):
-        # Time stwp update of source
-
+        # Time step update of source
 
         # Get time step
         dt = sim.simt - self.tupdate
@@ -169,25 +201,33 @@ class Source():
                 gennow = False
 
             # Check for generating aircraft
-            # First check runways:
+            # First check runways for a/c already in line:
             txt = ""
             for i in range(len(self.runways)):
                 # Runway vacated and there is one waiting?
                 if sim.simt-self.rwytotime[i]>self.dtakeoff and self.rwyline[i]>0:
+                    #if self.name == "EHAM":
+                    #   print(sim.simt, self.runways[i], self.rwytotime[i])
                     self.rwytotime[i] = sim.simt
-                    self.rwyline[i]=self.rwyline[i]-1
-                    acid = randacname()
+                    self.rwyline[i]   = self.rwyline[i]-1
 
                     # Choose and aicraft type, chck for distance
-                    actype    = random.choice(self.actypes)
                     idest = int(random.random() * len(self.dest))
+
+                    acid = randacname(self.name,self.dest[idest])
+
                     if self.desttype[idest]=="seg":
                         lat,lon,hdg = getseg(self.dest[idest])
                     else:
                         success,posobj = txt2pos(self.dest[idest],ctrlat,ctrlon)
                         lat,lon = posobj.lat,posobj.lon
                     distroute = latlondist(self.lat,self.lon,lat,lon)
-                    actype = checkactype(actype,distroute,self.actypes)
+
+                    if self.destactypes[idest]==[]:
+                        actype = random.choice(self.actypes)
+                        actype = checkactype(actype,distroute,self.actypes)
+                    else:
+                        actype = random.choice(self.destactypes[idest])
 
                     stack.stack("CRE "+",".join([acid, actype,
                                                  str(self.rwylat[i]),str(self.rwylon[i]),str(self.rwyhdg[i]),
@@ -205,51 +245,49 @@ class Source():
                         stack.stack(acid+" LNAV OFF")
                         #stack.stack(acid+" VNAV ON")
 
-
-
             # Not runway, then define instantly at position with random heading or in case of segment inward heading
             if gennow:
-                if self.type=="seg":
-                    self.lat,self.lon,hdg = getseg(self.name)
+                if not self.incircle:
+                    lat,lon = kwikpos(ctrlat,ctrlon,self.segdir,radius)
+                    hdg = self.segdir-180
+                elif self.type=="seg":
+                    lat,lon,brg = getseg(self.name)
+                    hdg = (brg+180)%360
                 else:
                     hdg = random.random()*360.
-                acid = randacname()
-                if self.type=="apt" or "rwy":
+
+                if (self.type=="apt" or self.type=="rwy") and self.incircle:
                     alt,spd = str(0),str(0)
                 else:
-                    alt,spd = "FL300", "350"
+                    alt,spd = "FL"+str(random.randint(200,300)), str(random.randint(250,350))
+                # Add destination
+                idest = int(random.random() * len(self.dest))
+
+                acid = randacname(self.name,self.dest[idest])
 
                 stack.stack("CRE " + ",".join([acid, random.choice(self.actypes),
                                                str(self.lat), str(self.lon), str(int(hdg)),
                                                alt,spd]))
-                # Add destination
-                idest = int(random.random() * len(self.dest))
+
                 if alt=="0" and spd =="0":
                     stack.stack(" ".join([acid, "SPD", "250"]))
                     stack.stack(" ".join([acid, "ALT", "5000"]))
                     #stack.stack(acid+" LNAV ON")
-                if self.desttype[idest] == "seg":
-                    lat, lon, hdg = getseg(self.dest[idest])
-                    brg, dist = kwikdist(self.lat, self.lon, lat, lon)
-                    stack.stack(acid + " HDG " + str(brg))
                 else:
-                    stack.stack(acid + " DEST " + self.dest[idest])
-                    stack.stack(acid + " LNAV OFF")
-                    #stack.stack(acid + " VNAV ON")
+                    if self.desttype[idest] == "seg":
+                        lat, lon, hdg = getseg(self.dest[idest])
+                        brg, dist = kwikdist(self.lat, self.lon, lat, lon)
+                        stack.stack(acid + " HDG " + str(brg))
+                    else:
+                        stack.stack(acid + " DEST " + self.dest[idest])
+                        stack.stack(acid + " LNAV ON")
+                        #stack.stack(acid + " VNAV ON")
 
-
-
-class Drain(): # TBD
-    def __init__(self,name,cmd,cmdargs):
-        pass
-
-    def update(self):
-        pass
-
-
-def randacname():
+def randacname(orig,dest):
     companies = 70*["KL"]+30*["HV"]+10*["**"]+["PH"]
     company = random.choice(companies)
+    if dest[:2]=="EH" and orig[:2]=="EH":
+        company = "PH"
 
     if company=="**":
         company = chr(ord("A") + int(random.random()*26))+ \
@@ -274,7 +312,7 @@ def randacname():
 
 def makefreqlist(txtlist):
     # Expand freqlist
-    # Translate ["KL:3","HV:1","PH","MP:5"] into:
+    # Translate  arguments ["KL:3","HV:1","PH","MP:5"] into a pick list with the relative frequency:
     #           ["KL","KL","KL","HV","PH","MP","MP","MP","MP","MP"]
     lst = []
     for item in txtlist:
@@ -290,14 +328,13 @@ def makefreqlist(txtlist):
 def getseg(txt):
 
     # Get a random position on the segment with the heading inward
-    iseg = int(txt[3:])
+    # SEGMnnn is segment in direction nnn degrees from center circle
 
-    brg = (iseg-1)*30.+random.random()*30.
-    hdg = (brg+180)%360.
+    brg = float(txt[4:])
 
     lat,lon = kwikpos(ctrlat,ctrlon,brg,radius)
 
-    return lat,lon,hdg
+    return lat,lon,brg
 
 
 def checkactype(curtype,dist,alltypes):
@@ -324,5 +361,30 @@ def checkactype(curtype,dist,alltypes):
 
     return newtype
 
+def incircle(lat,lon): # Chekc whether position is inside circle definition
+    if not swcircle:
+        return True
+    else:
+        dist = latlondist(ctrlat,ctrlon,lat,lon)
+        return dist<=radius
 
 
+def crosscircle(xm,ym,r,xa,ya,xb,yb):
+    # Find crossing points of line throught a end b and circle around m with radius r
+    a1 = xb-xa
+    a2 = yb-ya
+    b1 = xb-xm
+    b2 = yb-ym
+    A = a1*a1+a2*a2
+    B = 2*a1*b1+2*a2*b2
+    C = b1*b1+b2*b2-r*r
+    D = B*B-4*A*C
+    if D<0:
+        return [None,None]
+    else:
+        VD = sqrt(D)
+        lam1 = (-B-VD)/(2*A)
+        x1,y1 = b1+lam1*a1+xm , b2+lam1*a2+ym
+        lam2 = (-B+VD)/(2*A)
+        x2, y2 = b1+lam2*a1+xm , b2+lam2*a2+ym
+        return [[x1,y1],[x2,y2]]
