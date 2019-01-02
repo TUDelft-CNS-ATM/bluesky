@@ -8,9 +8,10 @@ Make sure scenario can be saved
 """
 
 
-from bluesky import stack,traf,sim,tools  #, settings, navdb, traf, sim, scr, tools
+from bluesky import stack,traf,sim,tools,navdb  #, settings, navdb, traf, sim, scr, tools
 from trafgenclasses import Source, setcircle
 from bluesky.tools.position import txt2pos
+from bluesky.tools.geo import kwikpos
 #from bluesky.tools import areafilter
 #from bluesky.tools.aero import vtas2cas,ft
 #from bluesky.tools.misc import degto180
@@ -80,6 +81,7 @@ def reset():
 
     # drains: dictionary of drains
     sources     = dict([])
+    drains      = dict([])
 
     return
 
@@ -108,7 +110,6 @@ def trafgencmd(cmdline):
 
     if cmd=="CIRCLE" or cmd=="CIRC":
 
-
         # Draw circle
         try:
             swcircle = True
@@ -121,22 +122,26 @@ def trafgencmd(cmdline):
         stack.stack("DEL SPAWN")
         stack.stack("CIRCLE SPAWN," + str(ctrlat) + "," + str(ctrlon) + "," + str(radius))
 
-
-
-    elif cmd=="SRC": # Define streams by source, give destinations
+    elif cmd=="SRC" or cmd == 'SOURCE': # Define streams by source, give destinations
         name = args[0].upper()
         cmd = args[1].upper()
         cmdargs = args[2:]
         if name not in sources:
             success,posobj = txt2pos(name,ctrlat,ctrlon)
             if success:
-                 sources[name] = Source(name,cmd,cmdargs)
+                aptlat, aptlon = posobj.lat, posobj.lon
+                sources[name] = Source(name,cmd,cmdargs)
         else:
+            aptlat,aptlon = sources[name].lat,sources[name].lat
             success = True
 
         if success:
             if cmd=="RUNWAY" or cmd=="RWY":
                 sources[name].addrunways(cmdargs)
+                errormsg = drawrwy(name,cmdargs,aptlat,aptlon,drawdeprwy)
+                if len(errormsg) > 0:
+                    return False, "TRAFGEN SRC RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
+
             elif cmd=="DEST":
                 sources[name].adddest(cmdargs)
             elif cmd=="FLOW":
@@ -145,6 +150,27 @@ def trafgencmd(cmdline):
                 sources[name].addactypes(cmdargs)
         else:
             return False,"TRAFGEN SRC ERROR "+name+" NOT FOUND"
+
+    elif cmd=="DRN" or cmd=="DRAIN":
+        name = args[0].upper()
+        cmd = args[1].upper()
+        cmdargs = args[2:]
+        if name not in drains:
+            success, posobj = txt2pos(name, ctrlat, ctrlon)
+            if success:
+                drains[name] = [name,posobj.lat,posobj.lon]
+        else:
+            success = True
+
+
+        if success:
+            if cmd == "RUNWAY" or cmd == "RWY":
+                aptlat, aptlon = drains[name][1:3]
+                errormsg = drawrwy(name,cmdargs,aptlat,aptlon,drawapprwy)
+                if len(errormsg) > 0:
+                    return False, "TRAFGEN DRN RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
+        else:
+            return False, "TRAFGEN DRN ERROR " + name + " NOT FOUND"
 
     return True
 
@@ -178,3 +204,85 @@ def splitline(rawline):
         cmd = ""
     return cmd,args[1:]
 
+def drawrwy(name,cmdargs,aptlat,aptlon,drawfunction):
+    errormsg = []
+
+    for rwy in cmdargs:
+        if rwy[0] == "R":
+            success, rwyposobj = txt2pos(name + "/" + rwy, aptlat, aptlon)
+        else:
+            success, rwyposobj = txt2pos(name + "/RW" + rwy, aptlat, aptlon)
+        if success:
+            rwydigits = rwy.lstrip("RWY").lstrip("RW")
+
+            # Look up threshold position
+            try:
+                rwyhdg = navdb.rwythresholds[name][rwydigits][2]
+            except:
+                errormsg.append(name + "/RW" + rwydigits)
+
+            drawfunction(name, rwy, rwyposobj.lat, rwyposobj.lon, rwyhdg)
+        else:
+            errormsg.append(name + "/" + rwy)
+    return errormsg
+
+
+def drawapprwy(apt,rwy,rwylat,rwylon,rwyhdg):
+    # Draw approach ILS arrow
+    Lapp  =  7. # [nm] length of approach path drawn
+    phi   =  5. # [deg] angle of half the arrow
+
+    # Calculate arrow (T = Threshold runway):
+    #                               /------------- L   (left)
+    #                 /-----------/              /
+    #   T -------------------------------------- A    (approach)
+    #                 \-----------\              \
+    #                              \--------------R    (right)
+    #
+
+    applat,applon     = kwikpos(rwylat,rwylon,(rwyhdg+180)%360.,Lapp)
+    rightlat,rightlon = kwikpos(rwylat,rwylon,(rwyhdg+180-phi)%360,Lapp*1.1)
+    leftlat,leftlon   = kwikpos(rwylat,rwylon,(rwyhdg+180+phi)%360,Lapp*1.1)
+
+    # Make arguments for POLYLINE command
+    T = str(rwylat)+","+str(rwylon)
+    A = str(applat)+","+str(applon)
+    L = str(leftlat)+","+str(leftlon)
+    R = str(rightlat)+","+str(rightlon)
+
+    stack.stack("LINE "+apt+rwy+"-A1,"+",".join([T,A]))
+    stack.stack("LINE "+apt+rwy+"-A2,"+",".join([A,L]))
+    stack.stack("LINE "+apt+rwy+"-A3,"+",".join([L,T]))
+    stack.stack("LINE "+apt+rwy+"-A4,"+",".join([T,R]))
+    stack.stack("LINE "+apt+rwy+"-A5,"+",".join([R,A]))
+
+    return
+
+def drawdeprwy(apt,rwy,rwylat,rwylon,rwyhdg):
+    # Draw approach ILS arrow
+    Ldep  =  5. # [nm] length of approach path drawn
+    phi   =  3. # [deg] angle of half the arrow
+
+    # Calculate arrow (T = Threshold runway):
+    #                               /------------- L   (left)
+    #                 /-----------/              /
+    #   T -------------------------------------- A    (approach)
+    #                 \-----------\              \
+    #                              \--------------R    (right)
+    #
+
+    deplat,deplon     = kwikpos(rwylat,rwylon,rwyhdg%360.,Ldep*1.1)
+    rightlat,rightlon = kwikpos(rwylat,rwylon,(rwyhdg+phi)%360,Ldep)
+    leftlat,leftlon   = kwikpos(rwylat,rwylon,(rwyhdg-phi)%360,Ldep)
+
+    # Make arguments for POLYLINE command
+    T = str(rwylat)+","+str(rwylon)
+    D = str(deplat)+","+str(deplon)
+    L = str(leftlat)+","+str(leftlon)
+    R = str(rightlat)+","+str(rightlon)
+
+    stack.stack("LINE "+apt+rwy+"-D1,"+",".join([T,D]))
+    stack.stack("LINE "+apt+rwy+"-D2,"+",".join([L,D]))
+    stack.stack("LINE "+apt+rwy+"-D4,"+",".join([D,R]))
+
+    return

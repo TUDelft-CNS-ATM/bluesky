@@ -104,13 +104,19 @@ class Source():
 
     def addrunways(self,cmdargs):
         for runwayname in cmdargs:
-            success,rwyposobj = txt2pos(self.name+"/"+runwayname,self.lat,self.lon)
+            if runwayname[0] == "R":
+                success, rwyposobj = txt2pos(self.name + "/" + runwayname, self.lat, self.lon)
+            else:
+                success,rwyposobj = txt2pos(self.name+"/RW"+runwayname,self.lat,self.lon)
             if success:
                 self.runways.append(runwayname)
                 self.rwylat.append(rwyposobj.lat)
                 self.rwylon.append(rwyposobj.lon)
-                rwyname = runwayname.upper().strip('RWY').strip("RW")
-                self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
+                rwyname = runwayname.upper().lstrip('RWY').lstrip("RW")
+                try:
+                    self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
+                except:
+                    success = False
                 self.rwyline.append(0)
                 self.rwytotime.append(-999.)
                 # TBD draw runways
@@ -361,7 +367,7 @@ def checkactype(curtype,dist,alltypes):
 
     return newtype
 
-def incircle(lat,lon): # Chekc whether position is inside circle definition
+def incircle(lat,lon): # Check whether position is inside current circle definition
     if not swcircle:
         return True
     else:

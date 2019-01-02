@@ -13,16 +13,10 @@
 # Global gain (factor) for traffic generation/density
 00:00:00.00>TRAFGEN GAIN 1.0
 
-00:00:00.00>trafgen SRC EHAM RUNWAY RW24 RW18L
-00:00:00.00>trafgen SRC EHRD RUNWAY RW24
-#00:00:00.00>trafgen DRN EHAM RUNWAY 18R 18C
-#00:00:00.00>trafgen DRN EHAM RUNWAY RW24
-
-#00:00:00.00>trafgen DRN EHAM RUNWAY RW18R RW18C
+# Runways for South-Western wind (most common wind direction NL)
+00:00:00.00>CALL Contest/runwayuse-SWwind
 
 # TBD: Add Wave of F-35s moving through airspace
-
- 
 
 # Departing from EHAM 
 
