@@ -6,6 +6,7 @@ from bluesky import stack,traf,sim,tools,navdb
 from bluesky.tools.position import txt2pos
 from bluesky.tools.geo import kwikqdrdist,kwikpos,kwikdist,latlondist,qdrdist
 from bluesky.tools.misc import degto180
+from bluesky.tools.aero import nm
 
 # Default values
 swcircle = False
@@ -64,7 +65,7 @@ class Source():
                     self.lat,self.lon,hdg = getseg(segname)
 
             else:
-                print("ERROR: contestclass called for "+name+". Position not found")
+                print("ERROR: trafgen class Source called for "+name+". Position not found")
                 self.lat,self.lon = 0.0,0.0
 
 
@@ -92,14 +93,14 @@ class Source():
 
 
         # When this roucres is created it could be with runways or with destinations
-        if cmd == "RUNWAY" or cmd == "RWY":
-            self.addrunways(cmdargs)
-        elif cmd == "DEST":
-            self.adddest(cmdargs)
-        elif cmd =="TYPES":
-            self.addactypes(cmdargs)
-        elif cmd=="FLOW":
-            self.setflow(cmdargs[0])
+#        if cmd == "RUNWAY" or cmd == "RWY":
+#            self.addrunways(cmdargs)
+#        elif cmd == "DEST":
+#            self.adddest(cmdargs)
+#        elif cmd =="TYPES":
+#            self.addactypes(cmdargs)
+#        elif cmd=="FLOW":
+#            self.setflow(cmdargs[0])
         return
 
     def addrunways(self,cmdargs):
@@ -160,6 +161,16 @@ class Source():
                         self.desthdg.append(0)
                         self.desttype.append(posobj.type)
                         self.destactypes.append(destactypes)
+            else:
+                for i in range(freq):
+                    name = "SEGM" + str(int(random.random() * 360.))
+                    lat, lon, hdg = getseg(name)
+                    self.dest.append(name)
+                    self.destlat.append(lat)
+                    self.destlon.append(lon)
+                    self.desthdg.append(hdg)
+                    self.desttype.append("seg")
+                    self.destactypes.append(destactypes)
 
         else:
             # Segment as destination, bearing from center = heading
@@ -178,7 +189,7 @@ class Source():
     def addactypes(self,actypelist):
         self.actypes = self.actypes + makefreqlist(actypelist)
 
-    def update(self):
+    def update(self,gain):
         # Time step update of source
 
         # Get time step
@@ -189,7 +200,7 @@ class Source():
         if dt>0.0:
 
             # Calculate probability of a geberate occurring with flow
-            chances = 1.0-self.flow*dt/3600. #flow is in a/c per hour=360 seconds
+            chances = 1.0-gain*self.flow*dt/3600. #flow is in a/c per hour=360 seconds
             if random.random() >= chances:
 
                 # Runways defined? => use runway lines (queues)
@@ -227,7 +238,7 @@ class Source():
                     else:
                         success,posobj = txt2pos(self.dest[idest],ctrlat,ctrlon)
                         lat,lon = posobj.lat,posobj.lon
-                    distroute = latlondist(self.lat,self.lon,lat,lon)
+                    distroute = latlondist(self.lat,self.lon,lat,lon)/nm
 
                     if self.destactypes[idest]==[]:
                         actype = random.choice(self.actypes)
@@ -242,12 +253,14 @@ class Source():
                     stack.stack(" ".join([acid,"ALT","5000"]))
                     # Add waypoint for after take-off
 
+                    stack.stack(acid + " DEST " + self.dest[idest])
+                    stack.stack(acid + " ORIG " + self.name)
+
                     if self.desttype[idest]=="seg":
                         lat,lon,hdg = getseg(self.dest[idest])
                         brg,dist = kwikqdrdist(self.lat,self.lon,lat,lon)
                         #stack.stack(acid+" HDG "+str(brg))
                     else:
-                        stack.stack(acid+" DEST "+self.dest[idest])
                         stack.stack(acid+" LNAV OFF")
                         #stack.stack(acid+" VNAV ON")
 
@@ -263,19 +276,22 @@ class Source():
                     hdg = random.random()*360.
 
                 if (self.type=="apt" or self.type=="rwy") and self.incircle:
-                    alt,spd = str(0),str(0)
+                    alttxt,spdtxt = str(0),str(0)
                 else:
-                    alt,spd = "FL"+str(random.randint(200,300)), str(random.randint(250,350))
+                    alttxt,spdtxt = "FL"+str(random.randint(200,300)), str(random.randint(250,350))
                 # Add destination
                 idest = int(random.random() * len(self.dest))
 
                 acid = randacname(self.name,self.dest[idest])
 
                 stack.stack("CRE " + ",".join([acid, random.choice(self.actypes),
-                                               str(self.lat), str(self.lon), str(int(hdg)),
-                                               alt,spd]))
+                                               str(self.lat), str(self.lon), str(int(hdg%360)),
+                                               alttxt,spdtxt]))
 
-                if alt=="0" and spd =="0":
+                stack.stack(acid + " DEST " + self.dest[idest])
+                stack.stack(acid + " ORIG " + self.name)
+
+                if alttxt=="0" and spdtxt =="0":
                     stack.stack(" ".join([acid, "SPD", "250"]))
                     stack.stack(" ".join([acid, "ALT", "5000"]))
                     #stack.stack(acid+" LNAV ON")
@@ -285,9 +301,236 @@ class Source():
                         brg, dist = kwikdist(self.lat, self.lon, lat, lon)
                         stack.stack(acid + " HDG " + str(brg))
                     else:
-                        stack.stack(acid + " DEST " + self.dest[idest])
                         stack.stack(acid + " LNAV ON")
                         #stack.stack(acid + " VNAV ON")
+class Drain():
+    # Define a drain: destination within area, source outside
+    def __init__(self,name,cmd,cmdargs):
+        self.name    = name.upper()
+        self.tupdate = sim.simt-999.
+        self.flow    = 0
+        self.incircle = True
+        self.segdir  = None  # Segment direction in degrees
+
+        # Is location a circle segment?
+        if swcircle and self.name[:4]=="SEGM":
+            self.type = "seg"
+            self.lat,self.lon,brg = getseg(self.name) # For segmnnn to segmnnn for crossing flights optional
+            pass
+
+        else:
+            success, posobj = txt2pos(name,ctrlat,ctrlon)
+            if success:
+                # for runway type, get heading as default optional argument for command line
+                if posobj.type == "rwy":
+                    aptname, rwyname = name.split('/RW')
+                    rwyname = rwyname.lstrip('Y')
+                    try:
+                        rwyhdg = navdb.rwythresholds[aptname][rwyname][2]
+                    except:
+                        rwyhdg = None
+                        pass
+                else:
+                    rwyhdg = None
+
+
+                self.lat,self.lon = posobj.lat, posobj.lon
+                self.type = posobj.type
+
+                # If outside circle change lat,lon to edge of circle
+                self.incircle = incircle(self.lat,self.lon)
+                if not self.incircle:
+                    self.type = "seg"
+                    self.segdir,dist = qdrdist(ctrlat,ctrlon,posobj.lat,posobj.lon)
+                    segname = "SEGM"+str(int(round(self.segdir)))
+                    self.lat,self.lon,hdg = getseg(segname)
+
+            else:
+                print("ERROR: trafgen class Drain called for "+name+". Position not found")
+                self.lat,self.lon = 0.0,0.0
+
+
+        # Aircraft types
+        self.actypes = ["*"]
+
+        # Runways
+        self.runways    = [] # name
+        self.rwylat     = []
+        self.rwylon     = []
+        self.rwyhdg     = []
+        self.rwyline    = [] # number of aircraft waiting in line
+
+        #Origins
+        self.orig        = []
+        self.origlat     = []
+        self.origlon     = []
+        self.origtype    = [] # "apt","wpt","seg"
+        self.orighdg     = []  # if orig is a runway (for flights within FIR) or circle segment (drain outside FIR)
+        self.origactypes = []   # Types for this originations ([]=use defaults for this drain)
+        self.origincirc  = []
+
+
+
+        # When this roucres is created it could be with runways or with originations
+#        if cmd == "RUNWAY" or cmd == "RWY":
+#            self.addrunways(cmdargs)
+#        elif cmd == "ORIG":
+#            self.addorig(cmdargs)
+#        elif cmd =="TYPES":
+#            self.addactypes(cmdargs)
+#        elif cmd=="FLOW":
+#            self.setflow(cmdargs[0])
+        return
+
+    def addrunways(self,cmdargs):
+        for runwayname in cmdargs:
+            if runwayname[0] == "R":
+                success, rwyposobj = txt2pos(self.name + "/" + runwayname, self.lat, self.lon)
+            else:
+                success,rwyposobj = txt2pos(self.name+"/RW"+runwayname,self.lat,self.lon)
+            if success:
+                self.runways.append(runwayname)
+                self.rwylat.append(rwyposobj.lat)
+                self.rwylon.append(rwyposobj.lon)
+                rwyname = runwayname.upper().lstrip('RWY').lstrip("RW")
+                try:
+                    self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
+                except:
+                    success = False
+                # TBD draw runways
+
+    def addorig(self,cmdargs):
+        # Add origin with a given aicraft types
+        origname = cmdargs[0]
+        freq = int(cmdargs[1])
+
+        # Get a/c types frequency list, if given
+        origactypes = []
+        if len(cmdargs) >= 2:  # also types are given for this origin
+            for c in cmdargs[2:]:
+                if c.count(":") > 0:
+                    actype, typefreq = c.split(":")
+                else:
+                    actype = c
+                    typefreq = "1"
+
+                for f in range(int(typefreq)):
+                    origactypes.append(actype)
+
+        if not origname[:4]=="SEGM":
+            success,posobj = txt2pos(origname,self.lat,self.lon)
+            if success:
+                incirc = incircle(posobj.lat, posobj.lon)
+                if posobj.type == "rwy":
+                    for i in range(freq):
+                        self.orig.append(origname)
+                        self.origlat.append(posobj.lat)
+                        self.origlon.append(posobj.lon)
+                        self.orighdg.append(None)
+                        self.origtype.append(posobj.type)
+                        self.origactypes.append(origactypes)
+                        self.origincirc.append(incirc)
+
+                else:
+                    for i in range(freq):
+                        self.orig.append(origname)
+                        self.origlat.append(posobj.lat)
+                        self.origlon.append(posobj.lon)
+                        self.orighdg.append(0)
+                        self.origtype.append(posobj.type)
+                        self.origactypes.append(origactypes)
+                        self.origincirc.append(incirc)
+            else:
+                for i in range(freq):
+                    name = "SEGM" + str(int(random.random() * 360.))
+                    lat, lon, hdg = getseg(name)
+                    self.orig.append(name)
+                    self.origlat.append(lat)
+                    self.origlon.append(lon)
+                    self.orighdg.append(0)
+                    self.origtype.append("seg")
+                    self.origactypes.append(origactypes)
+                    self.origincirc.append(False)
+        else:
+            # Segment as origin, bearing from center = heading
+            lat,lon,hdg = getseg(origname)
+            self.orig.append(origname)
+            self.origlat.append(lat)
+            self.origlon.append(lon)
+            self.orighdg.append(hdg)
+            self.origtype.append("seg")
+            self.origactypes.append(origactypes)
+            self.origincirc.append(incircle(lat,lon))
+
+    def setflow(self,flowtxt):
+        self.flow = float(float(flowtxt)) #in a/c per hour, also starts flow as it by default zero
+
+
+    def addactypes(self,actypelist):
+        self.actypes = self.actypes + makefreqlist(actypelist)
+
+    def update(self,gain):
+        # Time step update of drain
+
+        # Get time step
+        dt = sim.simt - self.tupdate
+        self.tupdate = sim.simt
+
+        # Time for a new aircraft?
+        if dt>0.0:
+
+            # Calculate probability of a geberate occurring with flow
+            chances = 1.0-gain*self.flow*dt/3600. #flow is in a/c per hour=360 seconds
+            if random.random() >= chances:
+                # Calculate starting position using origin
+                if len(self.orig)>0:
+                    # Add origin
+                    iorig = int(random.random() * len(self.orig))
+                else:
+                    iorig = -1
+
+                if iorig>=0:
+                    incirc = self.origincirc[iorig]
+                    lat,lon = self.origlat[iorig],self.origlon[iorig]
+                    hdg,dist = qdrdist(lat,lon,self.lat,self.lon)
+                else:
+                    print("Warning update drain",self.name,"called with no origins present!")
+                    hdg = random.random()*360.
+                    print("using random segment",int(hdg+180)%360)
+
+                    incirc = False
+
+                if not incirc:
+                    lat,lon = kwikpos(ctrlat,ctrlon,(hdg+180)%360,radius)
+                elif self.type=="seg":
+                    lat,lon,brg = getseg(self.name)
+                    hdg = (brg+180)%360
+                else:
+                    hdg = random.random()*360.
+
+                if incirc and (self.origtype[iorig]=="apt" or self.origtype[iorig]=="rwy"):
+                    alttxt,spdtxt = str(0),str(0)
+                else:
+                    alttxt,spdtxt = "FL"+str(random.randint(200,300)), str(random.randint(250,350))
+
+                if iorig>=0:
+                    acid = randacname(self.orig[iorig], self.name)
+                else:
+                    acid = randacname("LFPG", self.name)
+
+                actype = random.choice(self.actypes)
+                stack.stack("CRE " + ",".join([acid,actype,str(lat), str(lon),
+                                               str(int(hdg%360)),alttxt,spdtxt]))
+                if iorig>=0:
+                    stack.stack(acid + " ORIG " + self.orig[iorig])
+                stack.stack(acid + " DEST " + self.name)
+                if alttxt=="0" and spdtxt =="0":
+                    stack.stack(" ".join([acid, "SPD", "250"]))
+                    stack.stack(" ".join([acid, "ALT", "5000"]))
+                    #stack.stack(acid+" LNAV ON")
+                else:
+                    stack.stack(acid + " LNAV ON")
+                    #stack.stack(acid + " VNAV ON") ATC discretion
 
 def randacname(orig,dest):
     companies = 70*["KL"]+30*["HV"]+10*["**"]+["PH"]
@@ -371,7 +614,7 @@ def incircle(lat,lon): # Check whether position is inside current circle definit
     if not swcircle:
         return True
     else:
-        dist = latlondist(ctrlat,ctrlon,lat,lon)
+        dist = latlondist(ctrlat,ctrlon,lat,lon)/nm
         return dist<=radius
 
 

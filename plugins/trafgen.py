@@ -9,7 +9,7 @@ Make sure scenario can be saved
 
 
 from bluesky import stack,traf,sim,tools,navdb  #, settings, navdb, traf, sim, scr, tools
-from trafgenclasses import Source, setcircle
+from trafgenclasses import Source, Drain, setcircle
 from bluesky.tools.position import txt2pos
 from bluesky.tools.geo import kwikpos
 #from bluesky.tools import areafilter
@@ -20,9 +20,11 @@ from bluesky.tools.geo import kwikpos
 import numpy as np
 
 # Default values
-ctrlat = 52.6
-ctrlon = 5.4
-radius = 230.
+swcircle   = False # No active circle
+ctrlat     = 52.6  # Default values to resolve navdb names
+ctrlon     = 5.4
+radius     = 230.
+globalgain = 1.0
 
 
 def init_plugin():
@@ -96,13 +98,16 @@ def reset():
 
 def update(): # Update all sources and drain
     for src in sources:
-        sources[src].update()
+        sources[src].update(globalgain)
+
+    for drn in drains:
+        drains[drn].update(globalgain)
 
     return
 
 ### Other functions of your plug-in
 def trafgencmd(cmdline):
-    global ctrlat,ctrlon,radius,dtsegment,drains,sources,rwsdep,rwsarr
+    global ctrlat,ctrlon,radius,dtsegment,drains,sources,rwsdep,rwsarr,globalgain
 
     cmd,args = splitline(cmdline)
 
@@ -121,6 +126,14 @@ def trafgencmd(cmdline):
             return False,'TRAFGEN ERROR while reading CIRCLE command arguments (lat,lon,radius):'+str(args)
         stack.stack("DEL SPAWN")
         stack.stack("CIRCLE SPAWN," + str(ctrlat) + "," + str(ctrlon) + "," + str(radius))
+
+    elif cmd=="GAIN" or cmd=="FACTOR":
+        # Set global gain on traffic density
+        try:
+            globalgain = float(args[0])
+        except:
+            return False, "TRAFGEN GAIN error: invalid value "+args[0]
+
 
     elif cmd=="SRC" or cmd == 'SOURCE': # Define streams by source, give destinations
         name = args[0].upper()
@@ -158,17 +171,26 @@ def trafgencmd(cmdline):
         if name not in drains:
             success, posobj = txt2pos(name, ctrlat, ctrlon)
             if success:
-                drains[name] = [name,posobj.lat,posobj.lon]
+                drains[name] = Drain(name,cmd,cmdargs)
         else:
             success = True
 
 
         if success:
             if cmd == "RUNWAY" or cmd == "RWY":
-                aptlat, aptlon = drains[name][1:3]
+                aptlat, aptlon = drains[name].lat,drains[name].lon
+                drains[name].addrunways(cmdargs)
                 errormsg = drawrwy(name,cmdargs,aptlat,aptlon,drawapprwy)
                 if len(errormsg) > 0:
                     return False, "TRAFGEN DRN RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
+
+            elif cmd=="ORIG":
+                drains[name].addorig(cmdargs)
+            elif cmd=="FLOW":
+                drains[name].setflow(cmdargs[0])
+            elif cmd=="TYPES" or cmd=="TYPE":
+                drains[name].addactypes(cmdargs)
+
         else:
             return False, "TRAFGEN DRN ERROR " + name + " NOT FOUND"
 
@@ -250,11 +272,12 @@ def drawapprwy(apt,rwy,rwylat,rwylon,rwyhdg):
     L = str(leftlat)+","+str(leftlon)
     R = str(rightlat)+","+str(rightlon)
 
-    stack.stack("LINE "+apt+rwy+"-A1,"+",".join([T,A]))
-    stack.stack("LINE "+apt+rwy+"-A2,"+",".join([A,L]))
-    stack.stack("LINE "+apt+rwy+"-A3,"+",".join([L,T]))
-    stack.stack("LINE "+apt+rwy+"-A4,"+",".join([T,R]))
-    stack.stack("LINE "+apt+rwy+"-A5,"+",".join([R,A]))
+    stack.stack("POLY "+apt+rwy+"-A,"+",".join([T,A,L,T,R,A]))
+    #stack.stack("LINE "+apt+rwy+"-A1,"+",".join([T,A]))
+    #stack.stack("LINE "+apt+rwy+"-A2,"+",".join([A,L]))
+    #stack.stack("LINE "+apt+rwy+"-A3,"+",".join([L,T]))
+    #stack.stack("LINE "+apt+rwy+"-A4,"+",".join([T,R]))
+    #stack.stack("LINE "+apt+rwy+"-A5,"+",".join([R,A]))
 
     return
 
@@ -281,8 +304,9 @@ def drawdeprwy(apt,rwy,rwylat,rwylon,rwyhdg):
     L = str(leftlat)+","+str(leftlon)
     R = str(rightlat)+","+str(rightlon)
 
-    stack.stack("LINE "+apt+rwy+"-D1,"+",".join([T,D]))
-    stack.stack("LINE "+apt+rwy+"-D2,"+",".join([L,D]))
-    stack.stack("LINE "+apt+rwy+"-D4,"+",".join([D,R]))
+    stack.stack("POLY " + apt + rwy + "-D," + ",".join([D,R,D,L,D,T]))
+    #stack.stack("LINE "+apt+rwy+"-D1,"+",".join([T,D]))
+    #stack.stack("LINE "+apt+rwy+"-D2,"+",".join([L,D]))
+    #stack.stack("LINE "+apt+rwy+"-D4,"+",".join([D,R]))
 
     return
