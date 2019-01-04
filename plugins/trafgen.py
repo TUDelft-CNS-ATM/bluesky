@@ -135,15 +135,24 @@ def trafgencmd(cmdline):
             return False, "TRAFGEN GAIN error: invalid value "+args[0]
 
 
-    elif cmd=="SRC" or cmd == 'SOURCE': # Define streams by source, give destinations
+    elif cmd=="SRC" or cmd == "SOURCE": # Define streams by source, give destinations
         name = args[0].upper()
         cmd = args[1].upper()
         cmdargs = args[2:]
         if name not in sources:
-            success,posobj = txt2pos(name,ctrlat,ctrlon)
-            if success:
-                aptlat, aptlon = posobj.lat, posobj.lon
-                sources[name] = Source(name,cmd,cmdargs)
+            if not name[:4] == "SEGM":
+                success,posobj = txt2pos(name,ctrlat,ctrlon)
+                if success:
+                    aptlat, aptlon = posobj.lat, posobj.lon
+                    sources[name] = Source(name,cmd,cmdargs)
+            else:
+                try:
+                    brg = int(name[4:])
+                    aptlat,aptlon = kwikpos(ctrlat,ctrlon,brg,radius)
+                    sources[name] = Source(name, cmd, cmdargs)
+                    success = True
+                except:
+                    success = False
         else:
             aptlat,aptlon = sources[name].lat,sources[name].lat
             success = True
@@ -156,11 +165,13 @@ def trafgencmd(cmdline):
                     return False, "TRAFGEN SRC RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
 
             elif cmd=="DEST":
-                sources[name].adddest(cmdargs)
+                success = sources[name].adddest(cmdargs)
             elif cmd=="FLOW":
-                sources[name].setflow(cmdargs[0])
+                success = sources[name].setflow(cmdargs[0])
             elif cmd=="TYPES" or cmd=="TYPE":
                 sources[name].addactypes(cmdargs)
+            if not success:
+                return False, "TRAFGEN SRC ERROR"+cmd+" ".join(cmdargs)
         else:
             return False,"TRAFGEN SRC ERROR "+name+" NOT FOUND"
 
@@ -168,12 +179,24 @@ def trafgencmd(cmdline):
         name = args[0].upper()
         cmd = args[1].upper()
         cmdargs = args[2:]
-        if name not in drains:
-            success, posobj = txt2pos(name, ctrlat, ctrlon)
-            if success:
-                drains[name] = Drain(name,cmd,cmdargs)
-        else:
+        if name in drains:
+            aptlat, aptlon = drains[name].lat, drains[name].lat
             success = True
+        else:
+            # name not in drains: New drain defined
+            if not name[:4]=="SEGM":
+                success, posobj = txt2pos(name, ctrlat, ctrlon)
+                aptlat,aptlon = posobj.lat,posobj.lon
+                if success:
+                    drains[name] = Drain(name,cmd,cmdargs)
+            else:
+                try:
+                    brg = int(name[:4])
+                    aptlat,aptlon = kwikpos(ctrlat,ctrlon,brg,radius)
+                    drains[name] = Drain(name, cmd, cmdargs)
+                    success = True
+                except:
+                    success = False
 
 
         if success:
@@ -185,11 +208,13 @@ def trafgencmd(cmdline):
                     return False, "TRAFGEN DRN RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
 
             elif cmd=="ORIG":
-                drains[name].addorig(cmdargs)
+                success = drains[name].addorig(cmdargs)
             elif cmd=="FLOW":
-                drains[name].setflow(cmdargs[0])
+                sucess = drains[name].setflow(cmdargs[0])
             elif cmd=="TYPES" or cmd=="TYPE":
                 drains[name].addactypes(cmdargs)
+            if not success:
+                return False, "TRAFGEN SRC ERROR"+cmd+" ".join(cmdargs)
 
         else:
             return False, "TRAFGEN DRN ERROR " + name + " NOT FOUND"

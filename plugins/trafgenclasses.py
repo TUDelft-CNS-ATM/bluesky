@@ -10,9 +10,9 @@ from bluesky.tools.aero import nm
 
 # Default values
 swcircle = False
-ctrlat = 52.6 # [deg]
-ctrlon = 5.4  # [deg]
-radius = 230. # [nm]
+ctrlat = 52.6   # [deg]
+ctrlon = 5.4    # [deg]
+radius = 230.   # [nm]
 
 def setcircle(ictrlat,ictrlon,iradius):
     global ctrlat,ctrlon,radius,swcircle
@@ -33,8 +33,7 @@ class Source():
         # Is location a circle segment?
         if swcircle and self.name[:4]=="SEGM":
             self.type = "seg"
-            self.lat,self.lon,brg = getseg(self.name)# TBD : Do we need this as we also have sorce outside cirle?
-            # Yes: segn to segn for crossing flights optional
+            self.lat,self.lon,brg = getseg(self.name)
             pass
 
         else:
@@ -123,9 +122,12 @@ class Source():
                 # TBD draw runways
 
     def adddest(self,cmdargs):
-        # Add destination with a given aicraft types
+        # Add destination with a given aircraft types
         destname = cmdargs[0]
-        freq = int(cmdargs[1])
+        try:
+            freq = int(cmdargs[1])
+        except:
+            freq = 1
 
         # Get a/c types frequency list, if given
         destactypes = []
@@ -162,6 +164,7 @@ class Source():
                         self.desttype.append(posobj.type)
                         self.destactypes.append(destactypes)
             else:
+                # Add random destination
                 for i in range(freq):
                     name = "SEGM" + str(int(random.random() * 360.))
                     lat, lon, hdg = getseg(name)
@@ -173,17 +176,24 @@ class Source():
                     self.destactypes.append(destactypes)
 
         else:
-            # Segment as destination, bearing from center = heading
-            lat,lon,hdg = getseg(destname)
-            self.dest.append(destname)
-            self.destlat.append(lat)
-            self.destlon.append(lon)
-            self.desthdg.append(hdg)
-            self.desttype.append("seg")
-            self.destactypes.append(destactypes)
+            for i in range(freq):
+                # Segment as destination, bearing from center = heading
+                lat,lon,hdg = getseg(destname)
+                self.dest.append(destname)
+                self.destlat.append(lat)
+                self.destlon.append(lon)
+                self.desthdg.append(hdg)
+                self.desttype.append("seg")
+                self.destactypes.append(destactypes)
+
+        return True
 
     def setflow(self,flowtxt):
-        self.flow = float(float(flowtxt)) #in a/c per hour, also starts flow as it by default zero
+        try:
+            self.flow = float(flowtxt) #in a/c per hour, also starts flow as it by default zero
+        except:
+            return False
+        return True
 
 
     def addactypes(self,actypelist):
@@ -251,10 +261,17 @@ class Source():
                                                  "0.0","0.0"]))
                     stack.stack(" ".join([acid,"SPD","250"]))
                     stack.stack(" ".join([acid,"ALT","5000"]))
-                    # Add waypoint for after take-off
+                    # TBD: Add waypoint for after take-off?
 
-                    stack.stack(acid + " DEST " + self.dest[idest])
-                    stack.stack(acid + " ORIG " + self.name)
+                    if self.name[:4] != "SEGM":
+                        stack.stack(acid + " DEST " + self.dest[idest])
+                    else:
+                        stack.stack(acid + " DEST " + str(self.destlat[idest])
+                                    + " " + str(self.destlon[idest]))
+                    if self.name[:4] != "SEGM":
+                        stack.stack(acid + " ORIG " + self.name)
+                    else:
+                        stack.stack(acid + " ORIG " + str(self.lat) + " " + str(self.lon))
 
                     if self.desttype[idest]=="seg":
                         lat,lon,hdg = getseg(self.dest[idest])
@@ -288,8 +305,15 @@ class Source():
                                                str(self.lat), str(self.lon), str(int(hdg%360)),
                                                alttxt,spdtxt]))
 
-                stack.stack(acid + " DEST " + self.dest[idest])
-                stack.stack(acid + " ORIG " + self.name)
+                if self.dest[idest][:4] != "SEGM":
+                    stack.stack(acid + " DEST " + self.dest[idest])
+                else:
+                    stack.stack(acid + " DEST " + str(self.destlat[idest])
+                                            +" "+str(self.destlon[idest]))
+                if self.name[:4] != "SEGM":
+                    stack.stack(acid + " ORIG " + self.name)
+                else:
+                    stack.stack(acid + " ORIG " + str(self.lat)+" "+str(self.lon))
 
                 if alttxt=="0" and spdtxt =="0":
                     stack.stack(" ".join([acid, "SPD", "250"]))
@@ -400,9 +424,12 @@ class Drain():
                 # TBD draw runways
 
     def addorig(self,cmdargs):
-        # Add origin with a given aicraft types
+        # Add origin with a given aircraft types
         origname = cmdargs[0]
-        freq = int(cmdargs[1])
+        try:
+            freq = int(cmdargs[1])
+        except:
+            freq = 1
 
         # Get a/c types frequency list, if given
         origactypes = []
@@ -461,10 +488,14 @@ class Drain():
             self.origtype.append("seg")
             self.origactypes.append(origactypes)
             self.origincirc.append(incircle(lat,lon))
+        return True
 
     def setflow(self,flowtxt):
-        self.flow = float(float(flowtxt)) #in a/c per hour, also starts flow as it by default zero
-
+        try:
+            self.flow = float(flowtxt) #in a/c per hour, also starts flow as it by default zero
+        except:
+            return False
+        return True
 
     def addactypes(self,actypelist):
         self.actypes = self.actypes + makefreqlist(actypelist)
@@ -522,8 +553,16 @@ class Drain():
                 stack.stack("CRE " + ",".join([acid,actype,str(lat), str(lon),
                                                str(int(hdg%360)),alttxt,spdtxt]))
                 if iorig>=0:
-                    stack.stack(acid + " ORIG " + self.orig[iorig])
-                stack.stack(acid + " DEST " + self.name)
+                    if self.orig[iorig][:4]!="SEGM":
+                        stack.stack(acid + " ORIG " + self.orig[iorig])
+                    else:
+                        stack.stack(acid + " ORIG " + str(self.origlat[iorig]) + " " +\
+                                    + str(self.origlat[iorig]))
+                if self.name[:4]!="SEGM":
+                    stack.stack(acid + " DEST " + self.name)
+                else:
+                    stack.stack(acid + " DEST " + str(self.lat) + " " + str(self.lon))
+
                 if alttxt=="0" and spdtxt =="0":
                     stack.stack(" ".join([acid, "SPD", "250"]))
                     stack.stack(" ".join([acid, "ALT", "5000"]))
