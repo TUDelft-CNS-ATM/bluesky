@@ -557,7 +557,7 @@ class Drain():
                         stack.stack(acid + " ORIG " + self.orig[iorig])
                     else:
                         stack.stack(acid + " ORIG " + str(self.origlat[iorig]) + " " +\
-                                    + str(self.origlat[iorig]))
+                                     str(self.origlat[iorig]))
                 if self.name[:4]!="SEGM":
                     stack.stack(acid + " DEST " + self.name)
                 else:
