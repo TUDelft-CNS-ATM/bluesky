@@ -1,7 +1,7 @@
 # Runways for South-Western wind (most common wind direction NL)
 
 # Runway use EHAM: SRC=departing/take-off, DRN = arriving/landing
-00:00:00.00>trafgen SRC EHAM RUNWAY RW24 RW18L
+00:00:00.00>trafgen SRC EHAM RUNWAY RW24
 00:00:00.00>trafgen DRN EHAM RUNWAY RW18R RW18C
 00:00:00.00>trafgen DRN EHAM RUNWAY RW22
 

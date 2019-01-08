@@ -46,6 +46,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "AIRPORT": "POS",
              "AIRWAYS": "AIRWAY",
              "CALL": "PCALL",
+             "CHDIR": "CD",
              "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
@@ -69,6 +70,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "PLUGIN": "PLUGINS",
              "PLUG-IN": "PLUGINS",
              "PLUG-INS": "PLUGINS",
+             "POLYGON":"POLY",
              "PRINT": "ECHO",
              "Q": "QUIT",
              "RTF": "DTMULT",
@@ -270,6 +272,12 @@ def init(startup_scnfile):
             "string",
             calculator,
             "Simple in-line math calculator, evaluates expression"
+        ],
+        "CD": [
+            "CD [path]",
+            "[txt]",
+            setscenpath,
+            "Change to a different scenario folder"
         ],
         "CDMETHOD": [
             "CDMETHOD [method]",
@@ -1074,6 +1082,27 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
         # If we are merging we need to sort the resulting command list
         scentime, scencmd = [list(x) for x in zip(*sorted(
             zip(scentime, scencmd), key=lambda pair: pair[0]))]
+
+    return True
+
+def setscenpath(newpath):
+
+    if len(newpath)==0:
+        return False,"Needs an absolute or relative path"
+
+    # Check whether path exists
+    relpath = newpath.count(":")==0 and not (newpath[0]=="/" or newpath[0]=="\\")
+    if relpath:
+        abspath = os.path.join(settings.scenario_path,newpath)
+    else:
+        abspath = newpath
+
+    # If this is a relative path we need to prefix scenario folder
+    if not os.path.exists(abspath):
+        return False, "Error: cannot find path: " + abspath
+
+    # Change path
+    settings.scenario_path = abspath
 
     return True
 
