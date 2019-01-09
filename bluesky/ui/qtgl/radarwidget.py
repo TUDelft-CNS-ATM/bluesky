@@ -818,6 +818,12 @@ class RadarWidget(QGLWidget):
             data[6:8] = data_in[0], data_in[3]
         else:
             data = np.array(data_in, dtype=np.float32)
+
+        if shape_type[-4:] == 'LINE':
+            self.polyprev.set_primitive_type(gl.GL_LINE_STRIP)
+        else:
+            self.polyprev.set_primitive_type(gl.GL_LINE_LOOP)
+
         update_buffer(self.polyprevbuf, data)
         self.polyprev.set_vertex_count(int(len(data) / 2))
 
@@ -1005,7 +1011,7 @@ class RadarWidget(QGLWidget):
         if self.mousepos != self.prevmousepos:
             cmd = console.get_cmd()
             nargs = len(console.get_args())
-            if cmd in ['AREA', 'BOX', 'POLY',
+            if cmd in ['AREA', 'BOX', 'POLY','POLYLINE',
                        'POLYALT', 'POLYGON', 'CIRCLE', 'LINE'] and nargs >= 2:
                 self.prevmousepos = self.mousepos
                 try:

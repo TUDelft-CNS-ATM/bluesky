@@ -204,20 +204,27 @@ class nodeData(object):
                 newdata[1::2] = lonCircle
 
             # Create polygon contour buffer
-            contourbuf = np.empty(2 * len(newdata), dtype=np.float32)
-            contourbuf[0::4]   = newdata[0::2]  # lat
-            contourbuf[1::4]   = newdata[1::2]  # lon
-            contourbuf[2:-2:4] = newdata[2::2]  # lat
-            contourbuf[3:-3:4] = newdata[3::2]  # lon
-            contourbuf[-2:]    = newdata[0:2]
-
-            # Create polygon fill buffer if this is not a line
-            if shape != 'LINE':
+            # Distinguish between an open and a closed contour.
+            # If this is a closed contour, add the first vertex again at the end
+            # and add a fill shape
+            if shape[-4:] == 'LINE':
+                contourbuf = np.empty(2 * len(newdata) - 4, dtype=np.float32)
+                contourbuf[0::4]   = newdata[0:-2:2]  # lat
+                contourbuf[1::4]   = newdata[1:-2:2]  # lon
+                contourbuf[2::4] = newdata[2::2]  # lat
+                contourbuf[3::4] = newdata[3::2]  # lon
+                fillbuf = np.array([], dtype=np.float32)
+            else:
+                contourbuf = np.empty(2 * len(newdata), dtype=np.float32)
+                contourbuf[0::4]   = newdata[0::2]  # lat
+                contourbuf[1::4]   = newdata[1::2]  # lon
+                contourbuf[2:-2:4] = newdata[2::2]  # lat
+                contourbuf[3:-3:4] = newdata[3::2]  # lon
+                contourbuf[-2:]    = newdata[0:2]
                 pset = PolygonSet()
                 pset.addContour(newdata)
                 fillbuf = np.array(pset.vbuf, dtype=np.float32)
-            else:
-                fillbuf = np.array([], dtype=np.float32)
+
             # Store new or updated polygon by name, and concatenated with the
             # other polys
             self.polys[name] = (contourbuf, fillbuf)

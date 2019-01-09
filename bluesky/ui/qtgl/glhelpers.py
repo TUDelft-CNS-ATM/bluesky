@@ -158,6 +158,9 @@ class RenderObject(object):
         if color is not None:
             self.colorbuf = self.bind_color(color)
 
+    def set_primitive_type(self, primitive_type):
+        self.primitive_type = primitive_type
+
     def set_vertex_count(self, count):
         self.vertex_count = int(count)
 

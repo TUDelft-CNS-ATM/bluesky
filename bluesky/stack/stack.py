@@ -578,6 +578,12 @@ def init(startup_scnfile):
             lambda name, top, bottom, *coords: areafilter.defineArea(name, 'POLYALT', coords, top, bottom),
             "Define a polygon-shaped area in 3D: between two altitudes"
         ],
+        "POLYLINE": [
+            "POLYLINE name,lat,lon,lat,lon,...",
+            "txt,latlon,...",
+            lambda name, *coords: areafilter.defineArea(name, 'LINE', coords),
+            "Draw a multi-segment line on the radar screen"
+        ],
         "POS": [
             "POS acid/waypoint",
             "acid/wpt",
