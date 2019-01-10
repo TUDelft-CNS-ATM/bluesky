@@ -137,7 +137,9 @@ class Area(TrafficArrays):
         # Find out which aircraft are currently inside the experiment area, and
         # determine which aircraft need to be deleted.
         inside = areafilter.checkInside(self.name, traf.lat, traf.lon, traf.alt)
-        delidx = np.intersect1d(np.where(np.array(self.inside)==True), np.where(np.array(inside)==False))
+        #delidx = np.intersect1d(np.where(np.array(self.inside)==True), np.where(np.array(inside)==False))
+        delidx = np.where(np.array(self.inside)*(np.array(inside) == False))[0]
+        self.inside = inside
 
         # Log flight statistics when for deleted aircraft
         if len(delidx) > 0:
