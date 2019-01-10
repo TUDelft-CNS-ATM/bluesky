@@ -260,7 +260,7 @@ class Source():
                     stack.stack(acid+" ALT FL100")
                     # TBD: Add waypoint for after take-off?
 
-                    if self.name[:4] != "SEGM":
+                    if self.dest[idest][:4] != "SEGM":
                         stack.stack(acid + " DEST " + self.dest[idest])
                     else:
                         stack.stack(acid + " DEST " + str(self.destlat[idest])
@@ -337,7 +337,7 @@ class Drain():
         self.segdir  = None  # Segment direction in degrees
 
         # Is location a circle segment?
-        if swcircle and self.name[:4]=="SEGM":
+        if self.name[:4]=="SEGM":
             self.type = "seg"
             self.lat,self.lon,brg = getseg(self.name) # For SEGMnnn to SEGMnnn for crossing flights optional
             pass
@@ -550,7 +550,7 @@ class Drain():
                     else:
                         stack.stack(acid + " ORIG " + str(self.origlat[iorig]) + " " +\
                                      str(self.origlat[iorig]))
-                if not self.name[:4]=="SEGM":
+                if not (self.name[:4]=="SEGM"):
                     stack.stack(acid + " DEST " + self.name)
                 else:
                     stack.stack(acid + " ADDWPT " + str(self.lat) + " " + str(self.lon))
@@ -573,20 +573,20 @@ def randacname(orig,dest):
         company = chr(ord("A") + int(random.random()*26))+ \
                   chr(ord("A") + int(random.random()*26))
 
+    if orig=="EHKD"
+
     # Make flight number or Dutch call sign for VFR traffic
-    if not (company=="PH"):
-        fltnr = str(int(random.random()*900+100))
-    else:
-        fltnr = "-" + chr(ord("A") + int(random.random()*26))+ \
+    firstx =  True
+    while firstx or (acname in traf.id):
+        if not (company=="PH"):
+            fltnr = str(int(random.random()*900+100))
+        else:
+            fltnr = "-" + chr(ord("A") + int(random.random()*26))+ \
                 chr(ord("A") + int(random.random() * 26)) + \
                 chr(ord("A") + int(random.random() * 26))
 
-    acname = company+fltnr
-    i = 0
-    while (acname in traf.id):
-        fltnr = fltnr+str(i)
-        i     = i + 1
-        acname = company+ fltnr
+        acname = company+fltnr
+        firstx = False
 
     return company+fltnr
 
