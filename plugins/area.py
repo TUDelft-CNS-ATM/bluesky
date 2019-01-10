@@ -87,7 +87,7 @@ class Area(TrafficArrays):
     def __init__(self):
         super(Area, self).__init__()
         # Parameters of area
-        self.active = True
+        self.active = False
         self.dt     = 0.5     # [s] frequency of area check (simtime)
         self.name   = None
         self.swtaxi = True  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
@@ -112,7 +112,7 @@ class Area(TrafficArrays):
     def update(self):
         ''' Update flight efficiency metrics
             2D and 3D distance [m], and work done (force*distance) [J] '''
-        if not self.active:
+        if self.swtaxi and not self.active:
             return
 
         resultantspd = np.sqrt(traf.gs * traf.gs + traf.vs * traf.vs)
@@ -217,4 +217,3 @@ class Area(TrafficArrays):
         """ Taxi ON/OFF to autodelete below a certain altitude if taxi is off"""
         self.swtaxi = flag # True =  taxi allowed, False = autodelete below swtaxialt
         self.swtaxialt = alt
-
