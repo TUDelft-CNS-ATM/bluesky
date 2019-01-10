@@ -124,10 +124,12 @@ class Area(TrafficArrays):
         else:
             self.work += (traf.perf.Thr * self.dt * resultantspd)
 
-        # ToDo: Add autodelete for descending with swTaxi:
-        if self.swtaxi:
-            delidxalt = (self.oldalt>self.swtaxialt)*(traf.alt<self.swtaxialt)
+        # Autodelete for descending with swTaxi:
+        if not self.swtaxi:
+            delidxalt = np.where(self.oldalt>self.swtaxialt)*(traf.alt<self.swtaxialt)
             self.oldalt = traf.alt
+        else:
+            delidxalt = []
 
         # Find out which aircraft are currently inside the experiment area, and
         # determine which aircraft need to be deleted.
@@ -160,8 +162,9 @@ class Area(TrafficArrays):
                 traf.pilot.hdg[delidx]
             )
 
-            # delete all aicraft in self.delidx
-            traf.delete(delidx)
+        # delete all aicraft in self.delidx
+        if len(delidx)+len(delidxalt)>0:
+            traf.delete(delidx+delidxalt)
 
     def set_area(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
@@ -202,9 +205,10 @@ class Area(TrafficArrays):
         return False,  "Incorrect arguments" + \
                        "\nAREA Shapename/OFF or\n Area lat,lon,lat,lon,[top,bottom]"
 
-    def set_taxi(self, flag,alt=1500):
+    def set_taxi(self, flag,alt=1500*ft):
         """ If you want to delete below 1500ft,
             make an box with the bottom at 1500ft and set it to Area.
             This is because taxi does nothing. """
         self.swtaxi = flag
-        self.swtaxialt = alt*ft
+        self.swtaxialt = alt
+
