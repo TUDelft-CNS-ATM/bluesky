@@ -87,10 +87,10 @@ class Area(TrafficArrays):
     def __init__(self):
         super(Area, self).__init__()
         # Parameters of area
-        self.active = False
+        self.active = True
         self.dt     = 0.5     # [s] frequency of area check (simtime)
         self.name   = None
-        self.swtaxi = False  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
+        self.swtaxi = True  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
         self.swtaxialt = 1500.  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
 
         # The FLST logger
@@ -126,10 +126,13 @@ class Area(TrafficArrays):
 
         # Autodelete for descending with swTaxi:
         if not self.swtaxi:
-            delidxalt = np.where(self.oldalt>self.swtaxialt)*(traf.alt<self.swtaxialt)
+            #delidxalt = np.where(traf.alt<self.swtaxialt)[0]
+            delidxalt = np.where((self.oldalt>=self.swtaxialt)*(traf.alt<self.swtaxialt))[0]
             self.oldalt = traf.alt
         else:
             delidxalt = []
+
+
 
         # Find out which aircraft are currently inside the experiment area, and
         # determine which aircraft need to be deleted.
@@ -161,10 +164,13 @@ class Area(TrafficArrays):
                 traf.pilot.vs[delidx],
                 traf.pilot.hdg[delidx]
             )
+            # delete all aicraft in self.delidx
+            traf.delete(delidx)
 
-        # delete all aicraft in self.delidx
-        if len(delidx)+len(delidxalt)>0:
-            traf.delete(delidx+delidxalt)
+
+        # delete all aicraft in self.delidxalt
+        if len(delidxalt)>0:
+            traf.delete(list(delidxalt))
 
     def set_area(self, *args):
         ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
@@ -206,9 +212,7 @@ class Area(TrafficArrays):
                        "\nAREA Shapename/OFF or\n Area lat,lon,lat,lon,[top,bottom]"
 
     def set_taxi(self, flag,alt=1500*ft):
-        """ If you want to delete below 1500ft,
-            make an box with the bottom at 1500ft and set it to Area.
-            This is because taxi does nothing. """
-        self.swtaxi = flag
+        """ Taxi ON/OFF to autodelete below a certain altitude if taxi is off"""
+        self.swtaxi = flag # True =  taxi allowed, False = autodelete below swtaxialt
         self.swtaxialt = alt
 
