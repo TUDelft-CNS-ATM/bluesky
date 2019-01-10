@@ -89,17 +89,6 @@ class Source():
         self.desthdg     = []  # if dest is a runway (for flights within FIR) or circle segment (source outside FIR)
         self.destactypes = []   # Types for this destinations ([]=use defaults for this source)
 
-
-
-        # When this roucres is created it could be with runways or with destinations
-#        if cmd == "RUNWAY" or cmd == "RWY":
-#            self.addrunways(cmdargs)
-#        elif cmd == "DEST":
-#            self.adddest(cmdargs)
-#        elif cmd =="TYPES":
-#            self.addactypes(cmdargs)
-#        elif cmd=="FLOW":
-#            self.setflow(cmdargs[0])
         return
 
     def addrunways(self,cmdargs):
@@ -243,7 +232,7 @@ class Source():
 
                     acid = randacname(self.name,self.dest[idest])
 
-                    if self.desttype[idest]=="seg":
+                    if self.desttype[idest]=="seg" or self.dest[idest][:4]=="SEGM":
                         lat,lon,hdg = getseg(self.dest[idest])
                     else:
                         success,posobj = txt2pos(self.dest[idest],ctrlat,ctrlon)
@@ -339,7 +328,7 @@ class Drain():
         # Is location a circle segment?
         if swcircle and self.name[:4]=="SEGM":
             self.type = "seg"
-            self.lat,self.lon,brg = getseg(self.name) # For segmnnn to segmnnn for crossing flights optional
+            self.lat,self.lon,brg = getseg(self.name) # For SEGMnnn to SEGMnnn for crossing flights optional
             pass
 
         else:
@@ -393,17 +382,6 @@ class Drain():
         self.origactypes = []   # Types for this originations ([]=use defaults for this drain)
         self.origincirc  = []
 
-
-
-        # When this roucres is created it could be with runways or with originations
-#        if cmd == "RUNWAY" or cmd == "RWY":
-#            self.addrunways(cmdargs)
-#        elif cmd == "ORIG":
-#            self.addorig(cmdargs)
-#        elif cmd =="TYPES":
-#            self.addactypes(cmdargs)
-#        elif cmd=="FLOW":
-#            self.setflow(cmdargs[0])
         return
 
     def addrunways(self,cmdargs):
@@ -421,7 +399,6 @@ class Drain():
                     self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
                 except:
                     success = False
-                # TBD draw runways
 
     def addorig(self,cmdargs):
         # Add origin with a given aircraft types
@@ -533,7 +510,7 @@ class Drain():
 
                 if not incirc:
                     lat,lon = kwikpos(ctrlat,ctrlon,(hdg+180)%360,radius)
-                elif self.type=="seg":
+                elif self.origtype=="seg":
                     lat,lon,brg = getseg(self.name)
                     hdg = (brg+180)%360
                 else:
@@ -558,10 +535,10 @@ class Drain():
                     else:
                         stack.stack(acid + " ORIG " + str(self.origlat[iorig]) + " " +\
                                      str(self.origlat[iorig]))
-                if self.name[:4]!="SEGM":
+                if not self.name[:4]=="SEGM":
                     stack.stack(acid + " DEST " + self.name)
                 else:
-                    stack.stack(acid + " DEST " + str(self.lat) + " " + str(self.lon))
+                    stack.stack(acid + " ADDWPT " + str(self.lat) + " " + str(self.lon))
 
                 if alttxt=="0" and spdtxt =="0":
                     stack.stack(" ".join([acid, "SPD", "250"]))
@@ -572,7 +549,7 @@ class Drain():
                     #stack.stack(acid + " VNAV ON") ATC discretion
 
 def randacname(orig,dest):
-    companies = 70*["KL"]+30*["HV"]+10*["**"]+["PH"]
+    companies = 70*["KLM"]+30*["TRA"]+10*["**"]+["PH"]
     company = random.choice(companies)
     if dest[:2]=="EH" and orig[:2]=="EH":
         company = "PH"

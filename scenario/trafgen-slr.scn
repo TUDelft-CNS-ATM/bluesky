@@ -1,8 +1,12 @@
 # Traffic generator scenario file made with an SLR file
 #
+00:00:00.00>SAVEIC contest01
 
 00:00:00.00>plugin load trafgen
-00:00:00.00>call EHAM/FIR-NL-EHAA
+00:00:00.00>POLYALT FIRNL2000, FL999,2000, N55'00'00.00",E005'00'00.00"E, N55'00'00.00",E006'30'00.00"E, N53'40'00.00",E006'30'00.00, N53'33'38.00", E006'36'24.00", N53'31'22.00", E006'40'20.00", N53'30'15.00", E006'44'30.00", N53'29'45.00", E006'48'59.00", N53'28'28.00", E006'51'49.00", N53'23'56.00", E006'56'58.00", N53'20'11.00", E06'59'37.00", N53'19'00.00", E007'01'30.00", N53'18'00.00", E007'11'30.00", N53'12'48.00", E007'13'01.00", N50'45'15.44", E006'01'15.63",  N51'22'22.76", E003'21'46.71", N51'30'00.00", E002'00'00.00"
+00:00:00.00>AREA FIRNL2000
+00:00:00.00>TAXI OFF 2000
+
 
 # Add more oil rigs
 00:00:00.00>DEFWPT EHFE, N54'59'07",E004'54'00"
@@ -13,10 +17,14 @@
 # Global gain (factor) for traffic generation/density
 00:00:00.00>TRAFGEN GAIN 1.0
 
-# Runways for South-Western wind (most common wind direction NL)
+# Runways for all airport except Schiphol EHAM South-Western wind (most common wind direction NL)
 00:00:00.00>CALL Contest/runwayuse-SWwind
 
-# TBD: Add Wave of F-35s moving through airspace
+
+# Runway use EHAM: SRC=departing/take-off, DRN = arriving/landing
+00:00:00.00>trafgen SRC EHAM RUNWAY RW24
+00:00:00.00>trafgen DRN EHAM RUNWAY RW18R RW18C
+00:00:00.00>trafgen DRN EHAM RUNWAY RW22
 
 
 # Departing from EHAM 
@@ -1057,3 +1065,16 @@
 00:00:00.00>trafgen DRN EHTE FLOW 0.08717310087173101
 00:00:00.00>trafgen DRN EHTX FLOW 0.08717310087173101
 00:00:00.00>trafgen DRN EHVK FLOW 0.523038605230386
+
+
+# Wave of JSFs coming throught
+# To exercise area over North Sea
+00:20:00.00>TRAFGEN SRC EHVK DEST SEGM330 1 FGTN:1
+00:20:00.00>TRAFGEN SRC EHVK FLOW 600
+00:20:30.00>TRAFGEN SRC EHVK FLOW 10
+
+
+# And they come back after 25 minutes
+00:45:00.00>TRAFGEN SRC SEGM330 DEST EHVK 1 FGTN:1
+00:45:00.00>TRAFGEN SRC SEGM330 FLOW 600
+00:45:30.00>TRAFGEN SRC SEGM330 FLOW 10
