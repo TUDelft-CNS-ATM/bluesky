@@ -125,7 +125,7 @@ sender_rte = None  # bs net route to sender
 # When SAVEIC is used, we will also have a recoding scenario file handle
 savefile = None # File object of recording scenario file
 defexcl = ["PAN","ZOOM","HOLD","POS","INSEDIT","SAVEIC","QUIT","PCALL","CALC","FF",
-           "IC","OP","HOLD","RESE","MCRE","CRE"] # Commands to be excluded, default
+           "IC","OP","HOLD","RESE","MCRE","CRE","TRAFGEN"] # Commands to be excluded, default
 saveexcl = defexcl
 saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
 
