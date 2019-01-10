@@ -29,6 +29,7 @@ class Source():
         self.flow    = 0
         self.incircle = True
         self.segdir  = None  # Segment direction in degrees
+        self.hdg     = None # When runway is used as separate airport
 
         # Is location a circle segment?
         if swcircle and self.name[:4]=="SEGM":
@@ -44,9 +45,9 @@ class Source():
                     aptname, rwyname = name.split('/RW')
                     rwyname = rwyname.lstrip('Y')
                     try:
-                        rwyhdg = navdb.rwythresholds[aptname][rwyname][2]
+                        self.hdg = navdb.rwythresholds[aptname][rwyname][2]
                     except:
-                        rwyhdg = None
+                        self.hdg = None
                         pass
                 else:
                     rwyhdg = None
@@ -91,7 +92,14 @@ class Source():
 
         return
 
-    def addrunways(self,cmdargs):
+    def setrunways(self,cmdargs):
+        self.runways   = []
+        self.rwylat    = []
+        self.rwylon    = []
+        self.rwyhdg    = []
+        self.rwyline   = []
+        self.rwytotime = []
+
         for runwayname in cmdargs:
             if runwayname[0] == "R":
                 success, rwyposobj = txt2pos(self.name + "/" + runwayname, self.lat, self.lon)
@@ -248,8 +256,8 @@ class Source():
                     stack.stack("CRE "+",".join([acid, actype,
                                                  str(self.rwylat[i]),str(self.rwylon[i]),str(self.rwyhdg[i]),
                                                  "0.0","0.0"]))
-                    stack.stack(" ".join([acid,"SPD","250"]))
-                    stack.stack(" ".join([acid,"ALT","5000"]))
+                    stack.stack(acid+" SPD 250")
+                    stack.stack(acid+" ALT FL100")
                     # TBD: Add waypoint for after take-off?
 
                     if self.name[:4] != "SEGM":
@@ -278,6 +286,9 @@ class Source():
                 elif self.type=="seg":
                     lat,lon,brg = getseg(self.name)
                     hdg = (brg+180)%360
+                elif self.type=="rwy":
+                    lat,lon = self.lat,self.lon
+                    hdg     = self.hdg # Runway heading
                 else:
                     hdg = random.random()*360.
 
@@ -305,8 +316,8 @@ class Source():
                     stack.stack(acid + " ORIG " + str(self.lat)+" "+str(self.lon))
 
                 if alttxt=="0" and spdtxt =="0":
-                    stack.stack(" ".join([acid, "SPD", "250"]))
-                    stack.stack(" ".join([acid, "ALT", "5000"]))
+                    stack.stack(acid+" SPD 250")
+                    stack.stack(acid+" ALT FL100")
                     #stack.stack(acid+" LNAV ON")
                 else:
                     if self.desttype[idest] == "seg":
@@ -384,7 +395,11 @@ class Drain():
 
         return
 
-    def addrunways(self,cmdargs):
+    def setrunways(self,cmdargs):
+        self.runways = []
+        self.rwylat  = []
+        self.rwylon  = []
+        self.rwyhdg  = []
         for runwayname in cmdargs:
             if runwayname[0] == "R":
                 success, rwyposobj = txt2pos(self.name + "/" + runwayname, self.lat, self.lon)
@@ -541,8 +556,8 @@ class Drain():
                     stack.stack(acid + " ADDWPT " + str(self.lat) + " " + str(self.lon))
 
                 if alttxt=="0" and spdtxt =="0":
-                    stack.stack(" ".join([acid, "SPD", "250"]))
-                    stack.stack(" ".join([acid, "ALT", "5000"]))
+                    stack.stack(acid+" SPD 250")
+                    stack.stack(acid+" ALT FL100")
                     #stack.stack(acid+" LNAV ON")
                 else:
                     stack.stack(acid + " LNAV ON")

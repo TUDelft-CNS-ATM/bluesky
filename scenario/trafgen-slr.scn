@@ -6,7 +6,6 @@
 00:00:00.00>CALL EHAM/FIR-NL-EHAA
 00:00:00.00>TAXI OFF 1800
 
-
 # Add more oil rigs
 00:00:00.00>DEFWPT EHFE, N54'59'07",E004'54'00"
 
@@ -22,8 +21,7 @@
 
 # Runway use EHAM: SRC=departing/take-off, DRN = arriving/landing
 00:00:00.01>trafgen SRC EHAM RUNWAY RW24
-00:00:00.01>trafgen DRN EHAM RUNWAY RW18R RW18C
-00:00:00.01>trafgen DRN EHAM RUNWAY RW22
+00:00:00.01>trafgen DRN EHAM RUNWAY RW18R RW18C RW22
 
 
 # Departing from EHAM 
