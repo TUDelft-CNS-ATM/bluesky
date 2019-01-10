@@ -573,7 +573,7 @@ def randacname(orig,dest):
         company = chr(ord("A") + int(random.random()*26))+ \
                   chr(ord("A") + int(random.random()*26))
 
-    if orig=="EHKD"
+    #if orig=="EHKD"
 
     # Make flight number or Dutch call sign for VFR traffic
     firstx =  True
