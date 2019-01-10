@@ -297,12 +297,7 @@ def drawapprwy(apt,rwy,rwylat,rwylon,rwyhdg):
     L = str(leftlat)+","+str(leftlon)
     R = str(rightlat)+","+str(rightlon)
 
-    stack.stack("POLY "+apt+rwy+"-A,"+",".join([T,A,L,T,R,A]))
-    #stack.stack("LINE "+apt+rwy+"-A1,"+",".join([T,A]))
-    #stack.stack("LINE "+apt+rwy+"-A2,"+",".join([A,L]))
-    #stack.stack("LINE "+apt+rwy+"-A3,"+",".join([L,T]))
-    #stack.stack("LINE "+apt+rwy+"-A4,"+",".join([T,R]))
-    #stack.stack("LINE "+apt+rwy+"-A5,"+",".join([R,A]))
+    stack.stack("POLYLINE "+apt+rwy+"-A,"+",".join([T,A,L,T,R,A]))
 
     return
 
@@ -312,11 +307,11 @@ def drawdeprwy(apt,rwy,rwylat,rwylon,rwyhdg):
     phi   =  3. # [deg] angle of half the arrow
 
     # Calculate arrow (T = Threshold runway):
-    #                               /------------- L   (left)
-    #                 /-----------/              /
-    #   T -------------------------------------- A    (approach)
-    #                 \-----------\              \
-    #                              \--------------R    (right)
+    #      L   (left)
+    #     /
+    #   D ------------------------------------- T    (approach)
+    #     \
+    #      R    (right)
     #
 
     deplat,deplon     = kwikpos(rwylat,rwylon,rwyhdg%360.,Ldep*1.1)
@@ -329,9 +324,7 @@ def drawdeprwy(apt,rwy,rwylat,rwylon,rwyhdg):
     L = str(leftlat)+","+str(leftlon)
     R = str(rightlat)+","+str(rightlon)
 
-    stack.stack("POLY " + apt + rwy + "-D," + ",".join([D,R,D,L,D,T]))
-    #stack.stack("LINE "+apt+rwy+"-D1,"+",".join([T,D]))
-    #stack.stack("LINE "+apt+rwy+"-D2,"+",".join([L,D]))
-    #stack.stack("LINE "+apt+rwy+"-D4,"+",".join([D,R]))
+    stack.stack("POLYLINE " + apt + rwy + "-D," + ",".join([R,D,L,D,T]))
+   
 
     return

@@ -575,8 +575,8 @@ class Screen:
             for i in range(len(self.objtype)):
 
                 # Draw LINE or POLYGON with objdata = [lat0,lon,lat1,lon1,lat2,lon2,..]
-                if self.objtype[i]=='LINE' or self.objtype[i]=="POLY":
-                    npoints = len(self.objdata[i])/2
+                if self.objtype[i]=='LINE' or self.objtype[i]=="POLY" or self.objtype[i]=="POLYLINE":
+                    npoints = int(len(self.objdata[i])/2)
                     print(npoints)
                     x0,y0 = self.ll2xy(self.objdata[i][0],self.objdata[i][1])
                     for j in range(1,npoints):
@@ -651,7 +651,7 @@ class Screen:
                 # Draw aircraft symbol
                 pos.centerx = trafx[i]
                 pos.centery = trafy[i]
-                dy = self.fontrad.linedy * 7 / 6
+                dy = int(self.fontrad.linedy * 7 / 6)
 
                 # Draw aircraft altitude line
                 if self.isoalt>1e-7:
