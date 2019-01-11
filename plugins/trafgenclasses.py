@@ -128,7 +128,7 @@ class Source():
 
         # Get a/c types frequency list, if given
         destactypes = []
-        if len(cmdargs) >= 2:  # also types are given for this destination
+        if len(cmdargs) > 2:  # also types are given for this destination
             for c in cmdargs[2:]:
                 if c.count(":") > 0:
                     actype, typefreq = c.split(":")
@@ -235,21 +235,28 @@ class Source():
                     self.rwytotime[i] = sim.simt
                     self.rwyline[i]   = self.rwyline[i]-1
 
-                    # Choose and aicraft type, chck for distance
-                    idest = int(random.random() * len(self.dest))
-
-                    acid = randacname(self.name,self.dest[idest])
-
-                    if self.desttype[idest]=="seg" or self.dest[idest][:4]=="SEGM":
-                        lat,lon,hdg = getseg(self.dest[idest])
+                    # Choose and aicraft type, check for distance
+                    if len(self.dest)>0:
+                        idest = int(random.random() * len(self.dest))
                     else:
-                        success,posobj = txt2pos(self.dest[idest],ctrlat,ctrlon)
-                        lat,lon = posobj.lat,posobj.lon
-                    distroute = latlondist(self.lat,self.lon,lat,lon)/nm
+                        idest = -1
 
-                    if self.destactypes[idest]==[]:
+                    if idest>=0:
+                        acid = randacname(self.name,self.dest[idest])
+
+                        if self.desttype[idest]=="seg" or self.dest[idest][:4]=="SEGM":
+                            lat,lon,hdg = getseg(self.dest[idest])
+                        else:
+                            success,posobj = txt2pos(self.dest[idest],ctrlat,ctrlon)
+                            lat,lon = posobj.lat,posobj.lon
+                        distroute = latlondist(self.lat,self.lon,lat,lon)/nm
+
+                    else:
+                        acid = randacname(self.name, self.name)
+
+                    if self.destactypes[idest] == []:
                         actype = random.choice(self.actypes)
-                        actype = checkactype(actype,distroute,self.actypes)
+                        actype = checkactype(actype, distroute, self.actypes)
                     else:
                         actype = random.choice(self.destactypes[idest])
 
@@ -260,17 +267,19 @@ class Source():
                     stack.stack(acid+" ALT FL100")
                     # TBD: Add waypoint for after take-off?
 
-                    if self.dest[idest][:4] != "SEGM":
-                        stack.stack(acid + " DEST " + self.dest[idest])
-                    else:
-                        stack.stack(acid + " DEST " + str(self.destlat[idest])
+                    if idest>=0:
+                        if self.dest[idest][:4] != "SEGM":
+                            stack.stack(acid + " DEST " + self.dest[idest])
+                        else:
+                            stack.stack(acid + " DEST " + str(self.destlat[idest])
                                     + " " + str(self.destlon[idest]))
+
                     if self.name[:4] != "SEGM":
                         stack.stack(acid + " ORIG " + self.name)
                     else:
                         stack.stack(acid + " ORIG " + str(self.lat) + " " + str(self.lon))
 
-                    if self.desttype[idest]=="seg":
+                    if idest>=0 and self.desttype[idest]=="seg":
                         lat,lon,hdg = getseg(self.dest[idest])
                         brg,dist = kwikqdrdist(self.lat,self.lon,lat,lon)
                         #stack.stack(acid+" HDG "+str(brg))
@@ -297,19 +306,23 @@ class Source():
                 else:
                     alttxt,spdtxt = "FL"+str(random.randint(200,300)), str(random.randint(250,350))
                 # Add destination
-                idest = int(random.random() * len(self.dest))
-
-                acid = randacname(self.name,self.dest[idest])
+                if len(self.dest)>0:
+                    idest = int(random.random() * len(self.dest))
+                    acid = randacname(self.name,self.dest[idest])
+                else:
+                    acid  = randacname(self.name,self.name)
+                    idest = -1
 
                 stack.stack("CRE " + ",".join([acid, random.choice(self.actypes),
                                                str(self.lat), str(self.lon), str(int(hdg%360)),
                                                alttxt,spdtxt]))
 
-                if self.dest[idest][:4] != "SEGM":
-                    stack.stack(acid + " DEST " + self.dest[idest])
-                else:
-                    stack.stack(acid + " DEST " + str(self.destlat[idest])
-                                            +" "+str(self.destlon[idest]))
+                if idest>=0:
+                    if self.dest[idest][:4] != "SEGM":
+                        stack.stack(acid + " DEST " + self.dest[idest])
+                    else:
+                        stack.stack(acid + " DEST " + str(self.destlat[idest])+" "+str(self.destlon[idest]))
+
                 if self.name[:4] != "SEGM":
                     stack.stack(acid + " ORIG " + self.name)
                 else:
@@ -320,13 +333,15 @@ class Source():
                     stack.stack(acid+" ALT FL100")
                     #stack.stack(acid+" LNAV ON")
                 else:
-                    if self.desttype[idest] == "seg":
-                        lat, lon, hdg = getseg(self.dest[idest])
-                        brg, dist = kwikdist(self.lat, self.lon, lat, lon)
-                        stack.stack(acid + " HDG " + str(brg))
-                    else:
-                        stack.stack(acid + " LNAV ON")
-                        #stack.stack(acid + " VNAV ON")
+                    if idest>=0:
+                        if self.desttype[idest] == "seg":
+                            lat, lon, hdg = getseg(self.dest[idest])
+                            brg, dist = kwikdist(self.lat, self.lon, lat, lon)
+                            stack.stack(acid + " HDG " + str(brg))
+                        else:
+                            stack.stack(acid + " LNAV ON")
+                            #stack.stack(acid + " VNAV ON")
+
 class Drain():
     # Define a drain: destination within area, source outside
     def __init__(self,name,cmd,cmdargs):
@@ -425,7 +440,7 @@ class Drain():
 
         # Get a/c types frequency list, if given
         origactypes = []
-        if len(cmdargs) >= 2:  # also types are given for this origin
+        if len(cmdargs) > 2:  # also types are given for this origin
             for c in cmdargs[2:]:
                 if c.count(":") > 0:
                     actype, typefreq = c.split(":")

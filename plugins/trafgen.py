@@ -145,6 +145,10 @@ def trafgencmd(cmdline):
                 if success:
                     aptlat, aptlon = posobj.lat, posobj.lon
                     sources[name] = Source(name,cmd,cmdargs)
+                    if posobj.type == "rwy" and name.count("/")==1:
+                        aptname, rwyname = name.split('/')
+                        drawrwy(aptname,[rwyname],posobj.lat,posobj.lon,drawdeprwy)
+
             else:
                 try:
                     brg = int(name[4:])
@@ -159,7 +163,7 @@ def trafgencmd(cmdline):
 
         if success:
             if cmd=="RUNWAY" or cmd=="RWY":
-                sources[name].addrunways(cmdargs)
+                sources[name].setrunways(cmdargs)
                 errormsg = drawrwy(name,cmdargs,aptlat,aptlon,drawdeprwy)
                 if len(errormsg) > 0:
                     return False, "TRAFGEN SRC RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
@@ -186,13 +190,17 @@ def trafgencmd(cmdline):
             # name not in drains: New drain defined
             if not name[:4]=="SEGM":
                 success, posobj = txt2pos(name, ctrlat, ctrlon)
-                aptlat,aptlon = posobj.lat,posobj.lon
                 if success:
-                    drains[name] = Drain(name,cmd,cmdargs)
+                    drains[name] = Drain(name, cmd, cmdargs)
+
+                    if posobj.type == "rwy" and name.count("/") == 1:
+                        aptname, rwyname = name.split('/')
+                        drawrwy(aptname, [rwyname], posobj.lat, posobj.lon, drawapprwy)
+
+
             else:
                 try:
                     brg = int(name[:4])
-                    aptlat,aptlon = kwikpos(ctrlat,ctrlon,brg,radius)
                     drains[name] = Drain(name, cmd, cmdargs)
                     success = True
                 except:
@@ -202,7 +210,7 @@ def trafgencmd(cmdline):
         if success:
             if cmd == "RUNWAY" or cmd == "RWY":
                 aptlat, aptlon = drains[name].lat,drains[name].lon
-                drains[name].addrunways(cmdargs)
+                drains[name].setrunways(cmdargs)
                 errormsg = drawrwy(name,cmdargs,aptlat,aptlon,drawapprwy)
                 if len(errormsg) > 0:
                     return False, "TRAFGEN DRN RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
@@ -251,26 +259,26 @@ def splitline(rawline):
         cmd = ""
     return cmd,args[1:]
 
-def drawrwy(name,cmdargs,aptlat,aptlon,drawfunction):
+def drawrwy(aptname,cmdargs,aptlat,aptlon,drawfunction):
     errormsg = []
 
     for rwy in cmdargs:
         if rwy[0] == "R":
-            success, rwyposobj = txt2pos(name + "/" + rwy, aptlat, aptlon)
+            success, rwyposobj = txt2pos(aptname + "/" + rwy, aptlat, aptlon)
         else:
-            success, rwyposobj = txt2pos(name + "/RW" + rwy, aptlat, aptlon)
+            success, rwyposobj = txt2pos(aptname + "/RW" + rwy, aptlat, aptlon)
         if success:
             rwydigits = rwy.lstrip("RWY").lstrip("RW")
 
             # Look up threshold position
             try:
-                rwyhdg = navdb.rwythresholds[name][rwydigits][2]
+                rwyhdg = navdb.rwythresholds[aptname][rwydigits][2]
             except:
-                errormsg.append(name + "/RW" + rwydigits)
+                errormsg.append(aptname + "/RW" + rwydigits)
 
-            drawfunction(name, rwy, rwyposobj.lat, rwyposobj.lon, rwyhdg)
+            drawfunction(aptname, rwy, rwyposobj.lat, rwyposobj.lon, rwyhdg)
         else:
-            errormsg.append(name + "/" + rwy)
+            errormsg.append(aptname + "/" + rwy)
     return errormsg
 
 
