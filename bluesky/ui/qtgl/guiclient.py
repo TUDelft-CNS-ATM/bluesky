@@ -230,7 +230,7 @@ class nodeData(object):
             self.polys[name] = (contourbuf, fillbuf)
 
     def defwpt(self, name, lat, lon):
-        self.custwplbl += name.ljust(5)
+        self.custwplbl += name[:10].ljust(10)
         self.custwplat = np.append(self.custwplat, np.float32(lat))
         self.custwplon = np.append(self.custwplon, np.float32(lon))
 

@@ -262,7 +262,7 @@ class RadarWidget(QGLWidget):
 
         self.custwplatbuf = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
         self.custwplonbuf = create_empty_buffer(MAX_CUST_WPT * 4, usage=gl.GL_STATIC_DRAW)
-        self.custwplblbuf = create_empty_buffer(MAX_CUST_WPT * 5, usage=gl.GL_STATIC_DRAW)
+        self.custwplblbuf = create_empty_buffer(MAX_CUST_WPT * 10, usage=gl.GL_STATIC_DRAW)
 
         # ------- Map ------------------------------------
         mapvertices = np.array([(-90.0, 540.0), (-90.0, -540.0), (90.0, -540.0), (90.0, 540.0)], dtype=np.float32)
@@ -363,7 +363,7 @@ class RadarWidget(QGLWidget):
         self.customwp  = RenderObject(gl.GL_LINE_LOOP, vertex=wptvertices, color=palette.wptsymbol)
         self.customwp.bind_attrib(ATTRIB_LAT, 1, self.custwplatbuf, instance_divisor=1)
         self.customwp.bind_attrib(ATTRIB_LON, 1, self.custwplonbuf, instance_divisor=1)
-        self.customwplbl = self.font.prepare_text_instanced(self.custwplblbuf, (5, 1), self.custwplatbuf, self.custwplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
+        self.customwplbl = self.font.prepare_text_instanced(self.custwplblbuf, (10, 1), self.custwplatbuf, self.custwplonbuf, char_size=text_size, vertex_offset=(wpt_size, 0.5 * wpt_size))
         self.customwplbl.bind_color(palette.wptlabel)
         # ------- Airports -------------------------------
         aptvertices = np.array([(-0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, -0.5 * apt_size), (0.5 * apt_size, 0.5 * apt_size), (-0.5 * apt_size, 0.5 * apt_size)], dtype=np.float32)  # a square
