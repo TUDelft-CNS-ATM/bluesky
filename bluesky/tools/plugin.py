@@ -78,10 +78,12 @@ def manage(cmd='LIST', plugin_name=''):
             text += '\nNo additional plugins available.'
         return True, text
 
-    if cmd == 'LOAD':
+    if cmd == 'LOAD' or cmd=='ENABLE':
         return load(plugin_name)
-    if cmd == 'REMOVE':
+    elif cmd == 'REMOVE' or cmd=='UNLOAD' or cmd=='DISABLE':
         return remove(plugin_name)
+    elif not cmd=="": # If no command is given, assume user tries to load a plugin
+        return load(cmd)
     return False
 
 def init(mode):
