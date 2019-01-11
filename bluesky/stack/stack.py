@@ -1059,6 +1059,8 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
         scentime = []
         scencmd  = []
 
+    insidx = 0
+    instime = bs.sim.simt
     with open(fname_full, 'r') as fscen:
         for line in fscen:
 
@@ -1068,26 +1070,40 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
                     line = line.replace("%" + str(iarg), pcall_arglst[iarg])
 
             # Skip emtpy lines and comments
-            if len(line.strip()) > 12 and line.strip()[0] != "#":
-                # Try reading timestamp and command
-                try:
-                    icmdline = line.index('>')
-                    tstamp = line[:icmdline]
-                    ttxt = tstamp.strip().split(':')
-                    ihr = int(ttxt[0]) * 3600.0
-                    imin = int(ttxt[1]) * 60.0
-                    xsec = float(ttxt[2])
-                    scentime.append(ihr + imin + xsec + t_offset)
-                    scencmd.append(line[icmdline + 1:].strip("\n"))
-                except:
-                    if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
-                        print("except this:" + line)
-                    pass  # nice try, we will just ignore this syntax error
+            if len(line.strip()) < 12 or line.strip()[0] == "#":
+                continue
 
-    if mergeWithExisting:
-        # If we are merging we need to sort the resulting command list
-        scentime, scencmd = [list(x) for x in zip(*sorted(
-            zip(scentime, scencmd), key=lambda pair: pair[0]))]
+            # Try reading timestamp and command
+            try:
+                icmdline = line.index('>')
+                tstamp = line[:icmdline]
+                ttxt = tstamp.strip().split(':')
+                ihr = int(ttxt[0]) * 3600.0
+                imin = int(ttxt[1]) * 60.0
+                xsec = float(ttxt[2])
+                cmdtime = ihr + imin + xsec + t_offset
+                if not scentime or cmdtime > scentime[-1]:
+                    scentime.append(cmdtime)
+                    scencmd.append(line[icmdline + 1:].strip("\n"))
+                else:
+                    if cmdtime > instime:
+                        insidx, instime = next(((i - 1, t)
+                            for i, t in enumerate(scentime) if t > cmdtime),
+                                (len(scentime), scentime[-1]))
+                    scentime.insert(insidx, cmdtime)
+                    scencmd.insert(insidx, line[icmdline + 1:].strip("\n"))
+                    insidx += 1
+            except:
+                if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
+                    print("except this:" + line)
+                pass  # nice try, we will just ignore this syntax error
+
+    # for t, c in zip(scentime, scencmd):
+    #     print(t, '>', c)
+    # if mergeWithExisting:
+    #     # If we are merging we need to sort the resulting command list
+    #     scentime, scencmd = [list(x) for x in zip(*sorted(
+    #         zip(scentime, scencmd), key=lambda pair: pair[0]))]
 
     return True
 
@@ -1424,7 +1440,8 @@ def process():
                 echotext = "Unknown command: " + cmd
 
         # Always return on command
-        bs.scr.echo(echotext, echoflags)
+        if echotext:
+            bs.scr.echo(echotext, echoflags)
         #**********************************************************************
         #======================  End of command branches ======================
         #**********************************************************************
