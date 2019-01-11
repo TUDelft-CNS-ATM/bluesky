@@ -572,10 +572,12 @@ class RadarWidget(QGLWidget):
             self.font.set_block_size(self.aptlabels.block_size)
             self.aptlabels.draw(n_instances=nairports)
         if actdata.show_wpt:
-            self.font.set_char_size(self.customwplbl.char_size)
-            self.font.set_block_size(self.customwplbl.block_size)
+            self.font.set_char_size(self.wptlabels.char_size)
+            self.font.set_block_size(self.wptlabels.block_size)
             self.wptlabels.draw(n_instances=nwaypoints)
             if self.ncustwpts > 0:
+                self.font.set_char_size(self.customwplbl.char_size)
+                self.font.set_block_size(self.customwplbl.block_size)
                 self.customwplbl.draw(n_instances=self.ncustwpts)
 
         if actdata.show_traf and self.route.vertex_count > 1:
