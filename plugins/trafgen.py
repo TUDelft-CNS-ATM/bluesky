@@ -147,7 +147,7 @@ def trafgencmd(cmdline):
                     sources[name] = Source(name,cmd,cmdargs)
                     if posobj.type == "rwy" and name.count("/")==1:
                         aptname, rwyname = name.split('/')
-                        drawrwy(aptname,[rwyname],posobj.lat,posobj.lon,drawdeprwy)
+                        sources[name].polys.append(drawrwy(aptname,[rwyname],posobj.lat,posobj.lon,drawdeprwy))
 
             else:
                 try:
@@ -164,9 +164,9 @@ def trafgencmd(cmdline):
         if success:
             if cmd=="RUNWAY" or cmd=="RWY":
                 sources[name].setrunways(cmdargs)
-                errormsg = drawrwy(name,cmdargs,aptlat,aptlon,drawdeprwy)
-                if len(errormsg) > 0:
-                    return False, "TRAFGEN SRC RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
+                for polyname in sources[name].polys:
+                    stack.stack("DEL +",polyname)
+                sources[name].polys = drawrwy(name,cmdargs,aptlat,aptlon,drawdeprwy)
 
             elif cmd=="DEST":
                 success = sources[name].adddest(cmdargs)
@@ -174,6 +174,12 @@ def trafgencmd(cmdline):
                 success = sources[name].setflow(cmdargs[0])
             elif cmd=="TYPES" or cmd=="TYPE":
                 sources[name].addactypes(cmdargs)
+            elif cmd=="ALT": # Set fixed alt or interval
+                sources[name].setalt(cmdargs)
+            elif cmd=="SPD":
+                sources[name].setspd(cmdargs)
+            elif cmd=="HDG":
+                sources[name].sethdg(cmdargs)
             if not success:
                 return False, "TRAFGEN SRC ERROR"+cmd+" ".join(cmdargs)
         else:
@@ -209,18 +215,26 @@ def trafgencmd(cmdline):
 
         if success:
             if cmd == "RUNWAY" or cmd == "RWY":
+                # Delete old runways
+                for polyname in drains[name].polys:
+                    stack.stack("DEL +",polyname)
                 aptlat, aptlon = drains[name].lat,drains[name].lon
                 drains[name].setrunways(cmdargs)
-                errormsg = drawrwy(name,cmdargs,aptlat,aptlon,drawapprwy)
-                if len(errormsg) > 0:
-                    return False, "TRAFGEN DRN RWY ERROR" + " ".join(errormsg) + " NOT FOUND"
+                drains[name].polys = drawrwy(name,cmdargs,aptlat,aptlon,drawapprwy)
 
             elif cmd=="ORIG":
                 success = drains[name].addorig(cmdargs)
+
             elif cmd=="FLOW":
                 sucess = drains[name].setflow(cmdargs[0])
             elif cmd=="TYPES" or cmd=="TYPE":
                 drains[name].addactypes(cmdargs)
+            elif cmd == "ALT":  # Set fixed alt or interval
+                drains[name].setalt(cmdargs)
+            elif cmd == "SPD":
+                drains[name].setspd(cmdargs)
+            elif cmd == "HDG":
+                drains[name].sethdg(cmdargs)
             if not success:
                 return False, "TRAFGEN SRC ERROR"+cmd+" ".join(cmdargs)
 
@@ -260,7 +274,7 @@ def splitline(rawline):
     return cmd,args[1:]
 
 def drawrwy(aptname,cmdargs,aptlat,aptlon,drawfunction):
-    errormsg = []
+    rwnames = []
 
     for rwy in cmdargs:
         if rwy[0] == "R":
@@ -274,12 +288,12 @@ def drawrwy(aptname,cmdargs,aptlat,aptlon,drawfunction):
             try:
                 rwyhdg = navdb.rwythresholds[aptname][rwydigits][2]
             except:
-                errormsg.append(aptname + "/RW" + rwydigits)
+                stack.stack("ECHO TRAFGEN RWY ERROR " + aptname + "/" + rwy + " NOT FOUND")
 
-            drawfunction(aptname, rwy, rwyposobj.lat, rwyposobj.lon, rwyhdg)
+            rwnames.append(drawfunction(aptname, rwy, rwyposobj.lat, rwyposobj.lon, rwyhdg))
         else:
-            errormsg.append(aptname + "/" + rwy)
-    return errormsg
+            stack.stack("ECHO TRAFGEN RWY ERROR " + aptname + "/" + rwy + " NOT FOUND")
+    return rwnames
 
 
 def drawapprwy(apt,rwy,rwylat,rwylon,rwyhdg):
@@ -307,7 +321,7 @@ def drawapprwy(apt,rwy,rwylat,rwylon,rwyhdg):
 
     stack.stack("POLYLINE "+apt+rwy+"-A,"+",".join([T,A,L,T,R,A]))
 
-    return
+    return apt+rwy+"-A"
 
 def drawdeprwy(apt,rwy,rwylat,rwylon,rwyhdg):
     # Draw approach ILS arrow
@@ -335,4 +349,4 @@ def drawdeprwy(apt,rwy,rwylat,rwylon,rwyhdg):
     stack.stack("POLYLINE " + apt + rwy + "-D," + ",".join([R,D,L,D,T]))
    
 
-    return
+    return apt + rwy + "-D"

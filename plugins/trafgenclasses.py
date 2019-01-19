@@ -5,7 +5,7 @@ from math import degrees,radians,cos,sin,atan2,sqrt
 from bluesky import stack,traf,sim,tools,navdb
 from bluesky.tools.position import txt2pos
 from bluesky.tools.geo import kwikqdrdist,kwikpos,kwikdist,latlondist,qdrdist
-from bluesky.tools.misc import degto180
+from bluesky.tools.misc import degto180,txt2alt,txt2spd
 from bluesky.tools.aero import nm
 
 # Default values
@@ -90,6 +90,9 @@ class Source():
         self.desthdg     = []  # if dest is a runway (for flights within FIR) or circle segment (source outside FIR)
         self.destactypes = []   # Types for this destinations ([]=use defaults for this source)
 
+        #Names of drawing objects runways
+        self.polys       = []
+
         return
 
     def setrunways(self,cmdargs):
@@ -110,13 +113,53 @@ class Source():
                 self.rwylat.append(rwyposobj.lat)
                 self.rwylon.append(rwyposobj.lon)
                 rwyname = runwayname.upper().lstrip('RWY').lstrip("RW")
-                try:
+                #try:
+                if True:
                     self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
-                except:
-                    success = False
+                #except:
+                #    success = False
                 self.rwyline.append(0)
                 self.rwytotime.append(-999.)
                 # TBD draw runways
+
+    def setalt(self,cmdargs):
+        if len(cmdargs)==1:
+            alt = txt2alt(cmdargs[0])
+            self.startaltmin = alt
+            self.startaltmax = alt
+        elif len(cmdargs)>1:
+            alt0,alt1 = txt2alt(cmdargs[0]),txt2alt(cmdargs[1])
+            self.startaltmin = min(alt0,alt1)
+            self.startaltmax = max(alt0,alt1)
+        else:
+            stack.stack("ECHO "+self.name+" ALT "+str(self.startaltmin)+" "+str(self.startaltmax))
+
+    def setspd(self,cmdargs):
+        if len(cmdargs)==1:
+            spd = txt2spd(cmdargs[0])
+            self.startspdmin = spd
+            self.startapdmax = spd
+        elif len(cmdargs)>1:
+            spd0,spd1 = txt2spd(cmdargs[0]),txt2spd(cmdargs[1])
+            self.startspdmin = min(spd0,spd1)
+            self.startspdmax = max(spd0,spd1)
+        else:
+            stack.stack("ECHO "+self.name+" SPD "+str(self.startaltmin)+" "+str(self.startaltmax))
+
+    def sethdg(self,cmdargs):
+        if len(cmdargs)==1:
+            hdg = float(cmdargs[0])
+            self.starthdgmin = hdg
+            self.starthdgmax = hdg
+        elif len(cmdargs)>1:
+            hdg0,hdg1 = float(cmdargs[0]),float(cmdargs[1])
+            hdg0,hdg1 = min(hdg0,hdg1),max(hdg0,hdg1)
+            if hdg1-hdg0>180.:
+                hdg0,hdg1 = hdg1-360,hdg0
+            self.starthdgmin = hdg0
+            self.starthdgmax = hdg1
+        else:
+            stack.stack("ECHO "+self.name+" HDG "+str(self.starthdgmin)+" "+str(self.starthdgmax))
 
     def adddest(self,cmdargs):
         # Add destination with a given aircraft types
@@ -408,6 +451,9 @@ class Drain():
         self.origactypes = []   # Types for this originations ([]=use defaults for this drain)
         self.origincirc  = []
 
+        #Names of drawing objects runways
+        self.polys       = []
+
         return
 
     def setrunways(self,cmdargs):
@@ -496,6 +542,47 @@ class Drain():
             self.origactypes.append(origactypes)
             self.origincirc.append(incircle(lat,lon))
         return True
+
+    def setalt(self,cmdargs):
+        if len(cmdargs)==1:
+            alt = txt2alt(cmdargs[0])
+            self.startaltmin = alt
+            self.startaltmax = alt
+        elif len(cmdargs)>1:
+            alt0,alt1 = txt2alt(cmdargs[0]),txt2alt(cmdargs[1])
+            self.startaltmin = min(alt0,alt1)
+            self.startaltmax = max(alt0,alt1)
+        else:
+            stack.stack("ECHO "+self.name+" ALT "+str(self.startaltmin)+" "+str(self.startaltmax))
+
+    def setspd(self,cmdargs):
+        if len(cmdargs)==1:
+            spd = txt2spd(cmdargs[0])
+            self.startspdmin = spd
+            self.startapdmax = spd
+        elif len(cmdargs)>1:
+            spd0,spd1 = txt2spd(cmdargs[0]),txt2spd(cmdargs[1])
+            self.startspdmin = min(spd0,spd1)
+            self.startspdmax = max(spd0,spd1)
+        else:
+            stack.stack("ECHO "+self.name+" SPD "+str(self.startaltmin)+" "+str(self.startaltmax))
+
+    def sethdg(self,cmdargs):
+        if len(cmdargs)==1:
+            hdg = float(cmdargs[0])
+            self.starthdgmin = hdg
+            self.starthdgmax = hdg
+        elif len(cmdargs)>1:
+            hdg0,hdg1 = float(cmdargs[0]),float(cmdargs[1])
+            hdg0,hdg1 = min(hdg0,hdg1),max(hdg0,hdg1)
+            if hdg1-hdg0>180.:
+                hdg0,hdg1 = hdg1-360,hdg0
+            self.starthdgmin = hdg0
+            self.starthdgmax = hdg1
+        else:
+            stack.stack("ECHO "+self.name+" HDG "+str(self.starthdgmin)+" "+str(self.starthdgmax))
+
+
 
     def setflow(self,flowtxt):
         try:

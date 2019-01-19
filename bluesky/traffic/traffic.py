@@ -236,13 +236,13 @@ class Traffic(TrafficArrays):
 
         if type(aclat)==float or type(aclat)==int:
             bs.stack.savecmd(" ".join(["CRE", acid[0], actype[0],
-                                       str(aclat), str(aclon), str(acalt),
-                                       str(achdg), str(acspd)]))
+                                       str(aclat), str(aclon), str(achdg),
+                                       str(acalt), str(acspd)]))
         else:
             for i in range(n):
                 bs.stack.savecmd(" ".join([ "CRE", acid[i], actype[i],
-                                            str(aclat[i]), str(aclon[i]), str(acalt[i]),
-                                            str(achdg[i]), str(acspd[i]) ]))
+                                            str(aclat[i]), str(aclon[i]), str(achdg[i]),
+                                            str(acalt[i]), str(acspd[i])]))
 
 
         # Aircraft Info

@@ -20,12 +20,6 @@
 # Runways for all airport except Schiphol EHAM South-Western wind (most common wind direction NL)
 00:00:00.00>CALL Contest/runwayuse-SWwind
 
-
-# Runway use EHAM: SRC=departing/take-off, DRN = arriving/landing
-00:00:00.01>trafgen SRC EHAM RUNWAY RW24
-00:00:00.01>trafgen DRN EHAM RUNWAY RW18R RW18C RW22
-
-
 # Departing from EHAM 
 
 00:00:00.01>trafgen SRC EHAM DEST LTAI 4 B738:1 A320:1 A321:1 B38M:1
