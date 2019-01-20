@@ -800,7 +800,7 @@ class RadarWidget(QGLWidget):
                 self.traillines.set_vertex_count(0)
 
     def cmdline_stacked(self, cmd, args):
-        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE']:
+        if cmd in ['AREA', 'BOX', 'POLY', 'POLYGON', 'CIRCLE', 'LINE','POLYLINE']:
             self.polyprev.set_vertex_count(0)
 
     def previewpoly(self, shape_type, data_in=None):
