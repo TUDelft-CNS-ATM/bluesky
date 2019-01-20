@@ -125,8 +125,8 @@ class Source():
                 #try:
                 if True:
                     self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
-                    if self.name=="EHAM":
-                        print("runway added with hdg:",self.rwyhdg[-1])
+                    #if self.name=="EHAM":
+                    #S    print("runway added with hdg:",self.rwyhdg[-1])
                 #except:
                 #    success = False
                 self.rwyline.append(0)
