@@ -5,7 +5,8 @@
 00:00:00.00>plugin load trafgen
 00:00:00.00>CALL EHAM/FIR-NL-EHAA
 00:00:00.00>TAXI OFF 1800
-00:00:00.00>DTLOOK 20
+00:00:00.00>DTLOOK 10
+00:00:00.00>RSZONER 1
 
 
 # Add more oil rigs
@@ -19,6 +20,14 @@
 
 # Runways for all airport except Schiphol EHAM South-Western wind (most common wind direction NL)
 00:00:00.00>CALL Contest/runwayuse-SWwind
+
+# Wind profile
+00:00:00.00>WIND 52,4,    1, 230,0.01
+00:00:00.00>WIND 52,4,  100, 230,0.01
+00:00:00.00>WIND 52,4, 1000, 230,10
+00:00:00.00>WIND 52,4, 5000, 235,15
+00:00:00.00>WIND 52,4, FL70, 245,50
+
 
 # Departing from EHAM 
 
@@ -1066,8 +1075,17 @@
 00:20:00.01>trafgen SRC EHVK FLOW 600
 00:20:30.01>trafgen SRC EHVK FLOW 10
 
+# Change to outbound peak at EHAM
+00:20:00.01>trafgen drn eham flow 40
+00:30:00.01>trafgen src eham flow 80
+00:30:00.01>trafgen DRN EHAM RUNWAY RW18R RW22
+00:40:00.01>trafgen SRC EHAM RUNWAY RW24 RW18L
+
 
 # And they come back after 25 minutes
 00:45:00.01>trafgen SRC SEGM330 DEST EHVK 1 FGTN:1
 00:45:00.01>trafgen SRC SEGM330 FLOW 600
 00:45:30.01>trafgen SRC SEGM330 FLOW 10
+
+# End after one hour
+01:00:00.00>QUIT

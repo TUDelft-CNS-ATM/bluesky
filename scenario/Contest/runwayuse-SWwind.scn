@@ -1,8 +1,10 @@
 # Runways for South-Western wind (most common wind direction NL)
 
 # Runway use EHAM: SRC=departing/take-off, DRN = arriving/landing
-00:00:00.01>trafgen SRC EHAM RUNWAY RW24
-00:00:00.01>trafgen DRN EHAM RUNWAY RW18R RW18C RW22
+
+00:00:00.00>trafgen SRC EHAM RUNWAY RW24
+00:00:00.00>trafgen DRN EHAM RUNWAY RW18R RW18C RW22
+
 
 # Runway use EHRD: SRC=departing/take-off, DRN = arriving/landing
 00:00:00.00>trafgen SRC EHRD RUNWAY RW24
@@ -40,8 +42,14 @@
 00:00:00.00>trafgen SRC EHTE RUNWAY RW27
 00:00:00.00>trafgen DRN EHTE RUNWAY RW27
 
-# Runway change EHAM: SRC=departing/take-off, DRN = arriving/landing
-00:20:00.01>trafgen drn eham flow 40
-00:30:00.01>trafgen src eham flow 80
-00:30:00.01>trafgen DRN EHAM RUNWAY RW18R RW22
-00:40:00.01>trafgen SRC EHAM RUNWAY RW24 RW18L
+00:00:00.01>trafgen SRC EHGR RUNWAY RW28
+00:00:00.01>trafgen DRN EHGR RUNWAY RW28
+
+00:00:00.01>trafgen SRC EHHO RUNWAY RW27
+00:00:00.01>trafgen DRN EHHO RUNWAY RW27
+
+00:00:00.01>trafgen SRC EHKD RUNWAY RW22
+00:00:00.01>trafgen DRN EHKD RUNWAY RW22
+
+00:00:00.01>trafgen SRC EHMZ RUNWAY RW27
+00:00:00.01>trafgen DRN EHMZ RUNWAY RW27

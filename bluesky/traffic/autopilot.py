@@ -330,7 +330,7 @@ class Autopilot(TrafficArrays):
     def selhdgcmd(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
         # If there is wind, compute the corresponding track angle
-        if bs.traf.wind.winddim > 0:
+        if bs.traf.wind.winddim > 0 and bs.traf.alt[idx]>50.*ft:
             tasnorth = bs.traf.tas[idx] * np.cos(np.radians(hdg))
             taseast  = bs.traf.tas[idx] * np.sin(np.radians(hdg))
             vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[idx], bs.traf.lon[idx], bs.traf.alt[idx])

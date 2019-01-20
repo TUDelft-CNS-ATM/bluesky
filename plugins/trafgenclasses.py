@@ -91,7 +91,16 @@ class Source():
         self.destactypes = []   # Types for this destinations ([]=use defaults for this source)
 
         #Names of drawing objects runways
-        self.polys       = []
+        self.polys       = []    # Names of current runway polygons to remove when runways change
+
+        # Start values
+        self.startaltmin = -999. # [ft] minimum starting altitude
+        self.startaltmax = -999. # [ft] maximum starting altitude
+        self.startspdmin = -999. # [m/s] minimum starting speed
+        self.startspdmax = -999. # [m/s] maximum starting speed
+        self.starthdgmin = -999. # [deg] Valid values -360 - 360 degrees (to also have an interval possible around 360)
+        self.starthdgmax = -999. # [deg] Valid values -360 - 360 degrees (to also have an interval possible around 360)
+
 
         return
 
@@ -112,15 +121,16 @@ class Source():
                 self.runways.append(runwayname)
                 self.rwylat.append(rwyposobj.lat)
                 self.rwylon.append(rwyposobj.lon)
-                rwyname = runwayname.upper().lstrip('RWY').lstrip("RW")
+                rwyname = runwayname.upper().lstrip('RWY')
                 #try:
                 if True:
                     self.rwyhdg.append(navdb.rwythresholds[self.name][rwyname][2])
+                    if self.name=="EHAM":
+                        print("runway added with hdg:",self.rwyhdg[-1])
                 #except:
                 #    success = False
                 self.rwyline.append(0)
                 self.rwytotime.append(-999.)
-                # TBD draw runways
 
     def setalt(self,cmdargs):
         if len(cmdargs)==1:
@@ -306,8 +316,10 @@ class Source():
                     stack.stack("CRE "+",".join([acid, actype,
                                                  str(self.rwylat[i]),str(self.rwylon[i]),str(self.rwyhdg[i]),
                                                  "0.0","0.0"]))
-                    stack.stack(acid+" SPD 250")
-                    stack.stack(acid+" ALT FL100")
+
+                    stack.stack(acid + " SPD 250")
+                    stack.stack(acid + " ALT FL100")
+                    stack.stack(acid + " HDG " + str(self.rwyhdg[i]))
                     # TBD: Add waypoint for after take-off?
 
                     if idest>=0:
@@ -374,7 +386,6 @@ class Source():
                 if alttxt=="0" and spdtxt =="0":
                     stack.stack(acid+" SPD 250")
                     stack.stack(acid+" ALT FL100")
-                    #stack.stack(acid+" LNAV ON")
                 else:
                     if idest>=0:
                         if self.desttype[idest] == "seg":
@@ -516,7 +527,7 @@ class Drain():
                         self.orig.append(origname)
                         self.origlat.append(posobj.lat)
                         self.origlon.append(posobj.lon)
-                        self.orighdg.append(0)
+                        self.orighdg.append(None)
                         self.origtype.append(posobj.type)
                         self.origactypes.append(origactypes)
                         self.origincirc.append(incirc)
@@ -527,7 +538,7 @@ class Drain():
                     self.orig.append(name)
                     self.origlat.append(lat)
                     self.origlon.append(lon)
-                    self.orighdg.append(0)
+                    self.orighdg.append(None)
                     self.origtype.append("seg")
                     self.origactypes.append(origactypes)
                     self.origincirc.append(False)
@@ -643,7 +654,11 @@ class Drain():
                 else:
                     acid = randacname("LFPG", self.name)
 
-                actype = random.choice(self.actypes)
+                if len(self.origactypes)>0:
+                    actype = random.choice(self.origactypes[iorig])
+                else:
+                    actype = random.choice(self.actypes)
+
                 stack.stack("CRE " + ",".join([acid,actype,str(lat), str(lon),
                                                str(int(hdg%360)),alttxt,spdtxt]))
                 if iorig>=0:

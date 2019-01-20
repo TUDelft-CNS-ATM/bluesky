@@ -147,7 +147,7 @@ def trafgencmd(cmdline):
                     sources[name] = Source(name,cmd,cmdargs)
                     if posobj.type == "rwy" and name.count("/")==1:
                         aptname, rwyname = name.split('/')
-                        sources[name].polys.append(drawrwy(aptname,[rwyname],posobj.lat,posobj.lon,drawdeprwy))
+                        sources[name].polys += drawrwy(aptname,[rwyname],posobj.lat,posobj.lon,drawdeprwy)
 
             else:
                 try:
@@ -162,11 +162,11 @@ def trafgencmd(cmdline):
             success = True
 
         if success:
-            if cmd=="RUNWAY" or cmd=="RWY":
+            if cmd[:6]=="RUNWAY" or cmd=="RWY":
                 sources[name].setrunways(cmdargs)
                 for polyname in sources[name].polys:
-                    stack.stack("DEL +",polyname)
-                sources[name].polys = drawrwy(name,cmdargs,aptlat,aptlon,drawdeprwy)
+                    stack.stack("DEL "+polyname)
+                sources[name].polys += drawrwy(name,cmdargs,aptlat,aptlon,drawdeprwy)
 
             elif cmd=="DEST":
                 success = sources[name].adddest(cmdargs)
@@ -201,7 +201,7 @@ def trafgencmd(cmdline):
 
                     if posobj.type == "rwy" and name.count("/") == 1:
                         aptname, rwyname = name.split('/')
-                        drawrwy(aptname, [rwyname], posobj.lat, posobj.lon, drawapprwy)
+                        drains[name].polys += drawrwy(aptname, [rwyname], posobj.lat, posobj.lon, drawapprwy)
 
 
             else:
@@ -214,13 +214,13 @@ def trafgencmd(cmdline):
 
 
         if success:
-            if cmd == "RUNWAY" or cmd == "RWY":
+            if cmd[:6] == "RUNWAY" or cmd == "RWY":
                 # Delete old runways
                 for polyname in drains[name].polys:
-                    stack.stack("DEL +",polyname)
+                    stack.stack("DEL "+polyname)
                 aptlat, aptlon = drains[name].lat,drains[name].lon
                 drains[name].setrunways(cmdargs)
-                drains[name].polys = drawrwy(name,cmdargs,aptlat,aptlon,drawapprwy)
+                drains[name].polys += drawrwy(name,cmdargs,aptlat,aptlon,drawapprwy)
 
             elif cmd=="ORIG":
                 success = drains[name].addorig(cmdargs)
