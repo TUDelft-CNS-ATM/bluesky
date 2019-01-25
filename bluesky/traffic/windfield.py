@@ -174,7 +174,7 @@ class Windfield():
             #---- Altitude interpolation
 
             # No altitude profiles used: do 2D planar interpolation only
-            if self.winddim == 2 or useralt==None: # 2D field no altitude interpolation
+            if self.winddim == 2 or ((type(useralt) not in (list,ndarray)) and useralt==0.0): # 2D field no altitude interpolation
                 vnorth  = self.vnorth[0,:].dot(horfact)
                 veast   = self.veast[0,:].dot(horfact)
 

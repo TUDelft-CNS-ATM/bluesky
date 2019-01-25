@@ -281,18 +281,27 @@ def drawrwy(aptname,cmdargs,aptlat,aptlon,drawfunction):
             success, rwyposobj = txt2pos(aptname + "/" + rwy, aptlat, aptlon)
         else:
             success, rwyposobj = txt2pos(aptname + "/RW" + rwy, aptlat, aptlon)
+
+        if not success:
+            success,rwyposobj = txt2pos(aptname,aptlat,aptlon)
+
         if success:
             rwydigits = rwy.lstrip("RWY").lstrip("RW")
 
-            # Look up threshold position
+            # Look up runwayhdg
             try:
                 rwyhdg = navdb.rwythresholds[aptname][rwydigits][2]
             except:
-                stack.stack("ECHO TRAFGEN RWY ERROR " + aptname + "/" + rwy + " NOT FOUND")
+                try:
+                    rwyhdg = navdb.rwythresholds[aptname][rwydigits.lstrip("0")][2]
+                except:
+                    rwyhdg = 10.*int(rwydigits.rstrip("LCR").lstrip("0"))
 
             rwnames.append(drawfunction(aptname, rwy, rwyposobj.lat, rwyposobj.lon, rwyhdg))
         else:
-            stack.stack("ECHO TRAFGEN RWY ERROR " + aptname + "/" + rwy + " NOT FOUND")
+            # Use airport lat,lon en given heading
+            stack.stack("ECHO TARFGEN RUNWAY "+aptname+"/"+rwy+" NOT FOUND")
+
     return rwnames
 
 

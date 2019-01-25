@@ -80,6 +80,16 @@ class Source():
         self.rwyline    = [] # number of aircraft waiting in line
         self.rwytotime  = [] # time of last takeoff
 
+        # If source type is a runway, add it as the only runway
+        if self.type=="rwy":
+            self.runways = [rwyname]
+            self.rwylat     = [self.lat]
+            self.rwylon     = [self.lon]
+            self.rwyhdg     = [int(rwyname.rstrip("LCR").lstrip("0"))*10.]
+            self.rwyline    = [] # number of aircraft waiting in line
+            self.rwytotime  = [-999] # time of last takeoff
+
+
         self.dtakeoff = 90. # sec take-off interval on one runway, default 90 sec
 
         # Destinations
@@ -131,6 +141,14 @@ class Source():
                 #    success = False
                 self.rwyline.append(0)
                 self.rwytotime.append(-999.)
+            else:
+                self.runways.append(runwayname)
+                self.rwylat.append(self.lat)
+                self.rwylon.append(self.lon)
+                rwydigits = runwayname.lstrip("RWY").rstrip("LCR")
+                self.rwyhdg.append(10. * int(rwydigits.rstrip("LCR").lstrip("0")))
+                self.rwyline.append(0)
+                self.rwytotime.append(-999.)
 
     def setalt(self,cmdargs):
         if len(cmdargs)==1:
@@ -169,7 +187,7 @@ class Source():
             self.starthdgmin = hdg0
             self.starthdgmax = hdg1
         else:
-            stack.stack("ECHO "+self.name+" HDG "+str(self.starthdgmin)+" "+str(self.starthdgmax))
+            stack.stack("ECHO ERROR "+self.name+" HDG "+str(self.starthdgmin)+" "+str(self.starthdgmax))
 
     def adddest(self,cmdargs):
         # Add destination with a given aircraft types
@@ -317,11 +335,9 @@ class Source():
                                                  str(self.rwylat[i]),str(self.rwylon[i]),str(self.rwyhdg[i]),
                                                  "0.0","0.0"]))
 
-                    stack.stack(acid + " SPD 250")
-                    stack.stack(acid + " ALT FL100")
-                    stack.stack(acid + " HDG " + str(self.rwyhdg[i]))
-                    # TBD: Add waypoint for after take-off?
-
+                    #wplat,wplon = kwikpos(self.rwylat[i],self.rwylon[i],self.rwyhdg[i],5.0*nm)
+                    #stack.stack(acid + " ADDWPT ",wplat," ",wplon)
+                    #stack.stack(acid+"LNAV ON")
                     if idest>=0:
                         if self.dest[idest][:4] != "SEGM":
                             stack.stack(acid + " DEST " + self.dest[idest])
@@ -334,13 +350,11 @@ class Source():
                     else:
                         stack.stack(acid + " ORIG " + str(self.lat) + " " + str(self.lon))
 
-                    if idest>=0 and self.desttype[idest]=="seg":
-                        lat,lon,hdg = getseg(self.dest[idest])
-                        brg,dist = kwikqdrdist(self.lat,self.lon,lat,lon)
-                        #stack.stack(acid+" HDG "+str(brg))
-                    else:
-                        stack.stack(acid+" LNAV OFF")
-                        #stack.stack(acid+" VNAV ON")
+                    stack.stack(acid + " SPD 250")
+                    stack.stack(acid + " ALT FL100")
+                    stack.stack(acid + " HDG " + str(self.rwyhdg[i]))
+
+                    stack.stack(acid+" LNAV OFF")
 
             # Not runway, then define instantly at position with random heading or in case of segment inward heading
             if gennow:
