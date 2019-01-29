@@ -70,7 +70,7 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
             from bluesky.simulation.qtgl import Simulation, ScreenIO as Screen
 
         from bluesky import stack
-        from bluesky.tools import plugin, plotter
+        from bluesky.tools import plugin, varexplorer
 
         # Initialize singletons
         global traf, sim, scr
@@ -80,5 +80,5 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
 
         # Initialize remaining modules
         plugin.init(mode)
-        plotter.init()
+        varexplorer.init()
         stack.init(scnfile)
