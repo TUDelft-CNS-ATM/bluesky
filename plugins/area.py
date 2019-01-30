@@ -94,7 +94,7 @@ class Area(TrafficArrays):
         self.swtaxialt = 1500.  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
 
         # The FLST logger
-        self.logger = datalog.defineLogger('FLSTLOG', header)
+        self.logger = datalog.crelog('FLSTLOG', None, header)
 
         with RegisterElementParameters(self):
             self.inside      = np.array([],dtype = np.bool) # In test area or not

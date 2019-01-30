@@ -17,7 +17,7 @@ logger     = None
 def init_plugin():
     # Register a sector count logger
     global logger
-    logger = datalog.defineLogger('OCCUPANCYLOG', 'Sector count log')
+    logger = datalog.crelog('OCCUPANCYLOG', None, 'Sector count log')
 
     # Configuration parameters
     config = {

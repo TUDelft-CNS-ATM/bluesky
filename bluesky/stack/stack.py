@@ -25,6 +25,7 @@ from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import txt2alt, tim2txt, cmdsplit
 from bluesky.tools import varexplorer as ve
+from bluesky.tools import datalog
 from bluesky.tools.calculator import calculator
 from bluesky.tools.position import txt2pos, islat
 from bluesky import settings
@@ -306,6 +307,12 @@ def init(startup_scnfile):
             "txt,txt,acid,hdg,float,time,[alt,time,spd]",
             bs.traf.creconfs,
             "Create an aircraft that is in conflict with 'targetid'"
+        ],
+        "CRELOG": [
+            "CRELOG LOGNAME, [dt,header]",
+            "txt,[float,string]",
+            datalog.crelog,
+            "Create a new data logger."
         ],
         "DATE": [
             "DATE [day,month,year,HH:MM:SS.hh]",
