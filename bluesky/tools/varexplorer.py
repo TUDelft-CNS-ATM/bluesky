@@ -22,7 +22,7 @@ varlist = OrderedDict()
 def init():
     ''' Variable explorer initialization function.
         Is called in bluesky.init() '''
-    # Add the default sources to plot
+    # Add the default sources to the variable explorer
     varlist.update([('sim', (bs.sim, getvarsfromobj(bs.sim))),
                     ('traf', (bs.traf, getvarsfromobj(bs.traf)))])
 
@@ -32,7 +32,7 @@ def register_data_parent(obj, name):
 
 
 def getvarsfromobj(obj):
-    ''' Return a list with the numeric variables of the passed object.'''
+    ''' Return a list with the names of the variables of the passed object.'''
     try:
         # Return attribute names, but exclude private attributes
         return [name for name in vars(obj) if not name[0] == '_']
@@ -41,15 +41,20 @@ def getvarsfromobj(obj):
 
 
 def lsvar(varname=''):
+    ''' Stack function to list information on simulation variables in the
+        BlueSky console. '''
     if not varname:
+        # When no argument is passed, show a list of parent objects for which
+        # variables can be accessed
         return True, '\n' + \
         str.join(', ', [key for key in varlist])
+
+    # Find the variable in the variable list
     v = findvar(varname)
-    print(v)
     if v:
-        thevar = getattr(v.parent, v.varname)
-        attrs = getvarsfromobj(thevar)
-        vartype = thevar.__class__.__name__
+        thevar = v.get()  # reference to the actual variable
+        attrs = getvarsfromobj(thevar)  # When the variable is an object, get child attributes
+        vartype = v.get_type()  # Type of the variable
         if isinstance(v.parent, TrafficArrays) and v.parent.istrafarray(v.varname):
             vartype += ' (TrafficArray)'
         txt = \
@@ -100,6 +105,8 @@ def findvar(varname):
 
 
 class Variable:
+    ''' Wrapper class for variable explorer.
+        Keeps reference to parent object, parent name, and variable name. '''
     def __init__(self, parent, parentname, varname, index):
         self.parent = parent
         self.parentname = parentname
@@ -115,7 +122,12 @@ class Variable:
         return isinstance(v, Number) or \
             (isinstance(v, np.ndarray) and v.dtype.kind not in 'OSUV')
 
+    def get_type(self):
+        ''' Return the a string containing the type name of this variable. '''
+        return self.get().__class__.__name__
+
     def get(self):
+        ''' Get a reference to the actual variable. '''
         if self.index:
             return getattr(self.parent, self.varname)[self.index]
         return getattr(self.parent, self.varname)
