@@ -29,6 +29,7 @@ def crelog(name, dt=None, header=''):
     if dt:
         periodicloggers[name] = allloggers[name]
 
+    return allloggers[name]
 
 def preupdate(simt):
     pass
