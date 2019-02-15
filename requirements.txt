@@ -1,7 +1,10 @@
 pyqt5
+pyqtwebengine
 numpy
 scipy
 matplotlib
+pandas
+pyopengl
 pyopengl-accelerate
 msgpack
 zmq
