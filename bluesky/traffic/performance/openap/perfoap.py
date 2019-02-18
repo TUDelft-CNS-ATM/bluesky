@@ -53,6 +53,13 @@ class OpenAP(PerfBase):
 
         actype = bs.traf.type[-1].upper()
 
+        # Check synonym file if not in open ap actypes
+        if (actype not in self.coeff.actypes_rotor) and \
+           (actype not in self.coeff.dragpolar_fixwing):
+            if actype in self.coeff.synodict:
+                #print(actype,"replaced by",self.coeff.synodict[actype])
+                actype = self.coeff.synodict[actype]
+
         # check fixwing or rotor, default fixwing if not found
         if actype in self.coeff.actypes_rotor:
             self.lifttype[-n:] = coeff.LIFT_ROTOR
@@ -63,7 +70,7 @@ class OpenAP(PerfBase):
         else:
             # convert to known aircraft type
             if actype not in self.coeff.actypes_fixwing:
-                actype = 'A320'
+                actype = "B744"
 
             # populate fuel flow model
             es = self.coeff.acs_fixwing[actype]['engines']

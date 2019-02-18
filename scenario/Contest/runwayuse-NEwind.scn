@@ -3,7 +3,7 @@
 # Runway use EHAM: SRC=departing/take-off, DRN = arriving/landing
 00:00:00.00>trafgen SRC EHAM RUNWAY RW09 RW36L
 00:00:00.00>trafgen DRN EHAM RUNWAY RW06
-00:00:00.00>trafgen DRN EHAM RUNWAY RW22
+00:00:00.00>trafgen DRN EHAM RUNWAY RW04
 
 # Runway use EHRD: SRC=departing/take-off, DRN = arriving/landing
 00:00:00.00>trafgen SRC EHRD RUNWAY RW06
