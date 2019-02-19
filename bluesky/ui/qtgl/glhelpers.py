@@ -54,9 +54,11 @@ def create_empty_buffer(size, target=gl.GL_ARRAY_BUFFER, usage=gl.GL_STATIC_DRAW
 
 
 def update_buffer(buf_id, data, offset=0, target=gl.GL_ARRAY_BUFFER):
-    gl.glBindBuffer(target, buf_id)
-    gl.glBufferSubData(target, offset, data.nbytes, data)
-
+    try:
+        gl.glBindBuffer(target, buf_id)
+        gl.glBufferSubData(target, offset, data.nbytes, data)
+    except Exception as err:
+        print("update_buffer in glhelpers.py: Could not update buffer due to GLError code:",err.err)
 
 class UniformBuffer(object):
     max_binding = 1
