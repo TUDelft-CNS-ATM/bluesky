@@ -2,14 +2,12 @@ import numpy as np
 from bluesky.traffic.performance.openap import coeff
 
 NA = 0  # Unknown phase
-TO = 1  # Take-off
+GD = 1  # Ground
 IC = 2  # Initial climb
 CL = 3  # Climb
 CR = 4  # Cruise
 DE = 5  # Descent
 AP = 6  # Approach
-LD = 7  # Landing
-GD = 8  # Ground, Taxiing
 
 def get(lifttype, spd, roc, alt, unit="SI"):
     ph = np.zeros(len(spd))
@@ -54,9 +52,9 @@ def get_fixwing(spd, roc, alt, unit="SI"):
 
     ph = np.zeros(len(spd), dtype=int)
 
-    ph[(alt<=10) & (roc<=100) & (roc>=-100)] = GD
-    ph[(alt>=0) & (alt<=1000) & (roc>=0)] = IC
-    ph[(alt>=0) & (alt<=1000) & (roc<=0)] = AP
+    ph[(alt<=75)] = GD
+    ph[(alt>=75) & (alt<=1000) & (roc>=0)] = IC
+    ph[(alt>=75) & (alt<=1000) & (roc<=0)] = AP
     ph[(alt>=1000) & (roc>=100)] = CL
     ph[(alt>=1000) & (roc<=-100)] = DE
     ph[(alt>=5000) & (roc<=100) & (roc>=-100)] = CR
