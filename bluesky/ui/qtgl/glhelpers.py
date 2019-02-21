@@ -59,8 +59,8 @@ def update_buffer(buf_id, data, offset=0, target=gl.GL_ARRAY_BUFFER):
     try:
         gl.glBindBuffer(target, buf_id)
         gl.glBufferSubData(target, offset, data.nbytes, data)
-    except Exception as err:
 
+    except Exception as err:
         if err.err==1282:
             if not msg1282:
                 print("update_buffer: Communication aborted (1282)")
