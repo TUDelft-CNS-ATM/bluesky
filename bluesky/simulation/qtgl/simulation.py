@@ -216,7 +216,7 @@ def Simulation(detached):
                 event_processed = True
             elif eventname == b'QUIT':
                 # BlueSky is quitting
-                self.quit()
+                self.stop()
             elif eventname == b'GETSIMSTATE':
                 # Send list of stack functions available in this sim to gui at start
                 stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
