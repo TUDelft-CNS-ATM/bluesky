@@ -30,9 +30,10 @@ class OpenAP(PerfBase):
             self.phase = np.array([])
             self.lifttype = np.array([])  # lift type, fixwing [1] or rotor [2]
             self.engnum = np.array([], dtype=int)  # number of engines
-            self.engthrust = np.array([])  # static engine thrust
+            self.engthrmax = np.array([])  # static engine thrust
             self.engbpr = np.array([])  # engine bypass ratio
-            self.thrustratio = np.array([])  # thrust ratio at current alt spd
+            self.thrust = np.array([])  # thrust ratio at current alt spd
+            self.max_thrust = np.array([])  # thrust ratio at current alt spd
             self.ff_coeff_a = np.array([])  # icao fuel flows coefficient a
             self.ff_coeff_b = np.array([])  # icao fuel flows coefficient b
             self.ff_coeff_c = np.array([])  # icao fuel flows coefficient c
@@ -53,6 +54,13 @@ class OpenAP(PerfBase):
 
         actype = bs.traf.type[-1].upper()
 
+        # Check synonym file if not in open ap actypes
+        if (actype not in self.coeff.actypes_rotor) and \
+           (actype not in self.coeff.dragpolar_fixwing):
+            if actype in self.coeff.synodict:
+                #print(actype,"replaced by",self.coeff.synodict[actype])
+                actype = self.coeff.synodict[actype]
+
         # check fixwing or rotor, default fixwing if not found
         if actype in self.coeff.actypes_rotor:
             self.lifttype[-n:] = coeff.LIFT_ROTOR
@@ -63,7 +71,7 @@ class OpenAP(PerfBase):
         else:
             # convert to known aircraft type
             if actype not in self.coeff.actypes_fixwing:
-                actype = 'A320'
+                actype = "B744"
 
             # populate fuel flow model
             es = self.coeff.acs_fixwing[actype]['engines']
@@ -82,7 +90,7 @@ class OpenAP(PerfBase):
             self.ff_coeff_c[-n:] = coeff_c
 
             all_ac_engs = list(self.coeff.acs_fixwing[actype]['engines'].keys())
-            self.engthrust[-n:] = self.coeff.acs_fixwing[actype]['engines'][all_ac_engs[0]]['thr']
+            self.engthrmax[-n:] = self.coeff.acs_fixwing[actype]['engines'][all_ac_engs[0]]['thr']
             self.engbpr[-n:] = self.coeff.acs_fixwing[actype]['engines'][all_ac_engs[0]]['bpr']
 
             # init drag polar coefficients
@@ -122,16 +130,15 @@ class OpenAP(PerfBase):
         self.vsmax = limits[:, 3]
         self.hmax = limits[:, 4]
         self.axmax = limits[:, 5]
+        self.vminto = limits[:, 6]
 
         idx_fixwing = np.where(self.lifttype==coeff.LIFT_FIXWING)[0]
 
         # ----- compute drag -----
         # update drage coefficient based on flight phase
-        self.cd0[self.phase==ph.TO] = self.cd0_to[self.phase==ph.TO]
+        self.cd0[self.phase==ph.GD] = self.cd0_to[self.phase==ph.GD]
         self.cd0[self.phase==ph.IC] = self.cd0_ic[self.phase==ph.IC]
         self.cd0[self.phase==ph.AP] = self.cd0_ap[self.phase==ph.AP]
-        self.cd0[self.phase==ph.LD] = self.cd0_ld[self.phase==ph.LD]
-        self.cd0[self.phase==ph.GD] = self.cd0_gd[self.phase==ph.GD]
         self.cd0[self.phase==ph.CL] = self.cd0_clean[self.phase==ph.CL]
         self.cd0[self.phase==ph.CR] = self.cd0_clean[self.phase==ph.CR]
         self.cd0[self.phase==ph.DE] = self.cd0_clean[self.phase==ph.DE]
@@ -143,20 +150,23 @@ class OpenAP(PerfBase):
         cl = self.mass[idx_fixwing] * aero.g0 / rhovs
         self.drag[idx_fixwing] = rhovs * (self.cd0[idx_fixwing] + self.k[idx_fixwing] * cl**2)
 
-        # ----- compute thrust -----
-        #  eq: number of engines x engine static thrust x thrust ratio
-        self.thrustratio[idx_fixwing] = thrust.compute_thrust_ratio(
+        # ----- compute maximum thrust -----
+        max_thrustratio_fixwing = thrust.compute_max_thr_ratio(
             self.phase[idx_fixwing], self.engbpr[idx_fixwing],
             bs.traf.tas[idx_fixwing], bs.traf.alt[idx_fixwing],
-            bs.traf.vs[idx_fixwing], self.engnum[idx_fixwing]*self.engthrust[idx_fixwing]
-
+            bs.traf.vs[idx_fixwing], self.engnum[idx_fixwing]*self.engthrmax[idx_fixwing]
         )
-        self.thrust[idx_fixwing] = self.engnum[idx_fixwing]*self.engthrust[idx_fixwing] * self.thrustratio[idx_fixwing]
+        self.max_thrust[idx_fixwing] = max_thrustratio_fixwing * self.engnum[idx_fixwing] * self.engthrmax[idx_fixwing]
+
+
+        # ----- compute net thrust -----
+        self.thrust[idx_fixwing] = self.drag[idx_fixwing] + self.mass[idx_fixwing] * bs.traf.ax[idx_fixwing]
 
         # ----- compute duel flow -----
-        self.fuelflow = self.engnum * (self.ff_coeff_a * self.thrustratio**2 \
-                                       + self.ff_coeff_b * self.thrustratio  \
-                                       + self.ff_coeff_c)
+        thrustratio_fixwing = self.thrust[idx_fixwing] / (self.engnum[idx_fixwing] * self.engthrmax[idx_fixwing])
+        self.fuelflow[idx_fixwing] = self.engnum[idx_fixwing] * (self.ff_coeff_a[idx_fixwing] * thrustratio_fixwing**2 \
+                                       + self.ff_coeff_b[idx_fixwing] * thrustratio_fixwing  \
+                                       + self.ff_coeff_c[idx_fixwing])
 
 
         # TODO: implement thrust computation for rotor aircraft
@@ -164,7 +174,7 @@ class OpenAP(PerfBase):
         # self.thrust[idx_rotor] = 0
 
         # update bank angle, due to phase change
-        self.bank = np.where((self.phase==ph.TO) | (self.phase==ph.LD), 15, self.bank)
+        self.bank = np.where((self.phase==ph.GD), 15, self.bank)
         self.bank = np.where((self.phase==ph.IC) | (self.phase==ph.CR) | (self.phase==ph.AP), 35, self.bank)
 
         # ----- debug statements -----
@@ -181,25 +191,19 @@ class OpenAP(PerfBase):
         """ apply limits on indent speed, vertical speed, and altitude (called in pilot module)"""
         super(OpenAP, self).limits(intent_v_tas, intent_vs, intent_h)
 
-        # if isinstance(self.vmin, np.ndarray):
-        #     pass
-        # else:
-        #     self.update()
-
         allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
 
         intent_v_cas = aero.vtas2cas(intent_v_tas, allow_h)
-        allow_v_cas = np.where(intent_v_cas < self.vmin, self.vmin, intent_v_cas)
+
+        allow_v_cas = np.where((intent_v_cas < self.vmin), self.vmin, intent_v_cas)
         allow_v_cas = np.where(intent_v_cas > self.vmax, self.vmax, allow_v_cas)
         allow_v_tas = aero.vcas2tas(allow_v_cas, allow_h)
 
         vs_max_with_acc = (1 - ax / self.axmax) * self.vsmax
-        allow_vs = np.where(intent_vs > self.vsmax, vs_max_with_acc, intent_vs)
-        allow_vs = np.where(intent_vs < self.vsmin, self.vsmin, allow_vs)
+        allow_vs = np.where((intent_vs > 0) & (intent_vs>self.vsmax), vs_max_with_acc, intent_vs)   # for climb with vs larger than vsmax
+        allow_vs = np.where((intent_vs < 0) & (intent_vs<self.vsmin), vs_max_with_acc, intent_vs)   # for descent with vs smaller than vsmin (negative)
+        allow_vs = np.where((self.phase==ph.GD) & (bs.traf.tas < self.vminto), 0, intent_vs)        # takeoff aircraft
 
-        # print(intent_h, allow_h, self.hmax)
-        # print(intent_v_cas, allow_v_cas, self.vmin, self.vmax)
-        # print(self.coeff.limits_rotor['EC35'])
 
         return allow_v_tas, allow_vs, allow_h
 
@@ -217,7 +221,7 @@ class OpenAP(PerfBase):
         """
 
         nrow = len(actypes)
-        ncol = 6
+        ncol = 7
 
         # initialize the n_actype x 5 matrix
         limits = np.zeros((nrow, ncol))
@@ -227,20 +231,16 @@ class OpenAP(PerfBase):
         for mdl in unique_fixwing_mdls:
             # for each aircraft type construct the speed, roc, and alt limits based on phase
             limits[:, 0] = np.where((actypes==mdl) & (phases==ph.NA), 0, limits[:, 0])
-            limits[:, 0] = np.where((actypes==mdl) & (phases==ph.TO), self.coeff.limits_fixwing[mdl]['vminto'], limits[:, 0])
             limits[:, 0] = np.where((actypes==mdl) & (phases==ph.IC), self.coeff.limits_fixwing[mdl]['vminic'], limits[:, 0])
             limits[:, 0] = np.where((actypes==mdl) & ((phases==ph.CL)|(phases==ph.CR)|(phases==ph.DE)), self.coeff.limits_fixwing[mdl]['vminer'], limits[:, 0])
             limits[:, 0] = np.where((actypes==mdl) & (phases==ph.AP), self.coeff.limits_fixwing[mdl]['vminap'], limits[:, 0])
-            limits[:, 0] = np.where((actypes==mdl) & (phases==ph.LD), self.coeff.limits_fixwing[mdl]['vminld'], limits[:, 0])
             limits[:, 0] = np.where((actypes==mdl) & (phases==ph.GD), 0, limits[:, 0])
 
             limits[:, 1] = np.where((actypes==mdl) & (phases==ph.NA), self.coeff.limits_fixwing[mdl]['vmaxer'], limits[:, 1])
-            limits[:, 1] = np.where((actypes==mdl) & (phases==ph.TO), self.coeff.limits_fixwing[mdl]['vmaxto'], limits[:, 1])
             limits[:, 1] = np.where((actypes==mdl) & (phases==ph.IC), self.coeff.limits_fixwing[mdl]['vmaxic'], limits[:, 1])
             limits[:, 1] = np.where((actypes==mdl) & ((phases==ph.CL)|(phases==ph.CR)|(phases==ph.DE)), self.coeff.limits_fixwing[mdl]['vmaxer'], limits[:, 1])
             limits[:, 1] = np.where((actypes==mdl) & (phases==ph.AP), self.coeff.limits_fixwing[mdl]['vmaxap'], limits[:, 1])
-            limits[:, 1] = np.where((actypes==mdl) & (phases==ph.LD), self.coeff.limits_fixwing[mdl]['vmaxld'], limits[:, 1])
-            limits[:, 1] = np.where((actypes==mdl) & (phases==ph.GD), self.coeff.limits_fixwing[mdl]['vmaxer'], limits[:, 1])
+            limits[:, 1] = np.where((actypes==mdl) & (phases==ph.GD), self.coeff.limits_fixwing[mdl]['vmaxic'], limits[:, 1])
 
             limits[:, 2] = np.where((actypes==mdl), self.coeff.limits_fixwing[mdl]['vsmin'], limits[:, 2])
             limits[:, 3] = np.where((actypes==mdl), self.coeff.limits_fixwing[mdl]['vsmax'], limits[:, 3])
@@ -248,6 +248,9 @@ class OpenAP(PerfBase):
             limits[:, 4] = np.where((actypes==mdl), self.coeff.limits_fixwing[mdl]['hmax'], limits[:, 4])
 
             limits[:, 5] = np.where((actypes==mdl), self.coeff.limits_fixwing[mdl]['axmax'], limits[:, 5])
+
+            limits[:, 6] = np.where((actypes==mdl), self.coeff.limits_fixwing[mdl]['vminto'], limits[:, 6])
+
 
         idx_rotor = np.where(self.lifttype==coeff.LIFT_ROTOR)[0]
         unique_rotor_mdls = np.unique(actypes[idx_rotor])

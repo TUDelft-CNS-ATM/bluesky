@@ -27,6 +27,8 @@ import OpenGL.GL as gl
 import numpy as np
 from bluesky import settings
 
+msg1282 = False # GL error 1282 when quitting should only be reported once
+
 # Register settings defaults
 settings.set_variable_defaults(gfx_path='data/graphics')
 
@@ -51,9 +53,21 @@ def create_empty_buffer(size, target=gl.GL_ARRAY_BUFFER, usage=gl.GL_STATIC_DRAW
 
 
 def update_buffer(buf_id, data, offset=0, target=gl.GL_ARRAY_BUFFER):
-    gl.glBindBuffer(target, buf_id)
-    gl.glBufferSubData(target, offset, data.nbytes, data)
 
+    global msg1282
+
+    try:
+        gl.glBindBuffer(target, buf_id)
+        gl.glBufferSubData(target, offset, data.nbytes, data)
+    except Exception as err:
+
+        if err.err==1282:
+            if not msg1282:
+                print("update_buffer: Communication aborted (1282)")
+            msg1282 = True
+        else:
+            print("update_buffer in glhelpers.py: Could not update buffer due to GLError code:",\
+                  err.err)
 
 class UniformBuffer(object):
     max_binding = 1

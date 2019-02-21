@@ -2,7 +2,7 @@ import numpy as np
 from bluesky.tools import aero
 from bluesky.traffic.performance.openap import phase as ph
 
-def compute_thrust_ratio(phase, bpr, v, h, vs, thr0):
+def compute_max_thr_ratio(phase, bpr, v, h, vs, thr0):
     """Computer the dynamic thrust based on engine bypass-ratio, static maximum
     thrust, aircraft true airspeed, and aircraft altitude
 
@@ -20,7 +20,7 @@ def compute_thrust_ratio(phase, bpr, v, h, vs, thr0):
     n = len(phase)
 
     # ---- thrust ratio at takeoff ----
-    ratio_takeoff = tr_takepff(bpr, v, h)
+    ratio_takeoff = tr_takeoff(bpr, v, h)
 
     # ---- thrust ratio in flight ----
     ratio_inflight = inflight(v, h, vs, thr0)
@@ -32,13 +32,13 @@ def compute_thrust_ratio(phase, bpr, v, h, vs, thr0):
     # thrust ratio array
     #   LD and GN assume ZERO thrust
     tr = np.zeros(n)
-    tr = np.where(phase==ph.TO, ratio_takeoff, tr)
+    tr = np.where(phase==ph.GD, ratio_takeoff, tr)
     tr = np.where((phase==ph.IC) | (phase==ph.CL) | (phase==ph.CR), ratio_inflight, tr)
     tr = np.where(phase==ph.DE, ratio_idle, tr)
 
     return tr
 
-def tr_takepff(bpr, v, h):
+def tr_takeoff(bpr, v, h):
     """Compute thrust ration at take-off"""
     G0 = 0.0606 * bpr + 0.6337
     Mach = aero.vtas2mach(v, h)
@@ -59,36 +59,16 @@ def tr_takepff(bpr, v, h):
 def inflight(v, h, vs, thr0):
     """Compute thrust ration for inflight"""
     def dfunc(mratio):
-        d = np.where(
-            mratio<0.85, 0.73, np.where(
-                mratio<0.92, 0.73+(0.69-0.73)/(0.92-0.85)*(mratio-0.85), np.where(
-                    mratio<1.08, 0.66+(0.63-0.66)/(1.08-1.00)*(mratio-1.00), np.where(
-                        mratio<1.15, 0.63+(0.60-0.63)/(1.15-1.08)*(mratio-1.08), 0.60
-                    )
-                )
-            )
-        )
+        d = -0.4204 * mratio + 1.0824
         return d
 
     def nfunc(roc):
-        n = np.where(roc<1500, 0.89, np.where(roc<2500, 0.93, 0.97))
+        n = 2.667e-05 * roc + 0.8633
         return n
 
+
     def mfunc(vratio, roc):
-        m = np.where(
-            vratio<0.67, 0.4, np.where(
-                vratio<0.75, 0.39, np.where(
-                    vratio<0.83, 0.38, np.where(
-                        vratio<0.92, 0.37, 0.36
-                    )
-                )
-            )
-        )
-        m = np.where(
-            roc<1500, m-0.06, np.where(
-                roc<2500, m-0.01, m
-            )
-        )
+        m = -1.2043e-1 * vratio - 8.8889e-9 * roc**2 + 2.4444e-5 * roc + 4.7379e-1
         return m
 
     roc = np.abs(np.asarray(vs/aero.fpm))
