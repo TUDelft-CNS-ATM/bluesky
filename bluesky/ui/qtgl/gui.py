@@ -1,19 +1,10 @@
 """ QTGL Gui for BlueSky."""
-try:
-    from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
-        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
-        QT_VERSION, QT_VERSION_STR
-    from PyQt5.QtWidgets import QApplication, QErrorMessage
-    from PyQt5.QtOpenGL import QGLFormat
+from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
+    QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
+    QT_VERSION, QT_VERSION_STR
+from PyQt5.QtWidgets import QApplication, QErrorMessage
+from PyQt5.QtOpenGL import QGLFormat
 
-except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, qInstallMessageHandler, \
-        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
-        QT_VERSION, QT_VERSION_STR
-    from PyQt4.QtGui import QApplication, QErrorMessage
-    from PyQt4.QtOpenGL import QGLFormat
-
-# Local imports
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
 from bluesky.ui.qtgl.mainwindow import MainWindow, Splash, DiscoveryDialog

@@ -1,21 +1,14 @@
 """ Main window for the QTGL gui."""
 import platform
 import os
-try:
-    from PyQt5.QtWidgets import QApplication as app
-    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
-    from PyQt5.QtGui import QPixmap, QIcon
-    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
-        QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-        QDialogButtonBox
-    from PyQt5 import uic
-except ImportError:
-    from PyQt4.QtGui import QApplication as app
-    from PyQt4.QtCore import Qt, pyqtSlot, QTimer, QSize, QEvent
-    from PyQt4.QtGui import QPixmap, QMainWindow, QIcon, QSplashScreen, \
-        QItemSelectionModel, QTreeWidgetItem, QPushButton, QFileDialog, \
-        QDialog, QTreeWidget, QVBoxLayout, QDialogButtonBox
-    from PyQt4 import uic
+
+from PyQt5.QtWidgets import QApplication as app
+from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
+from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
+    QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
+    QDialogButtonBox
+from PyQt5 import uic
 
 # Local imports
 import bluesky as bs

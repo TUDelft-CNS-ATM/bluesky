@@ -1,15 +1,7 @@
-try:
-    from PyQt5.QtCore import Qt, QEvent, QTimer, pyqtSlot
-    from PyQt5.QtGui import QImage
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtOpenGL import QGLWidget, QGLFormat
-    QT_VERSION = 5
-except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, QTimer, pyqtSlot
-    from PyQt4.QtGui import QApplication, QImage
-    from PyQt4.QtOpenGL import QGLWidget, QGLFormat
-    QT_VERSION = 4
-
+from PyQt5.QtCore import Qt, QEvent, QTimer, pyqtSlot
+from PyQt5.QtGui import QImage
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtOpenGL import QGLWidget, QGLFormat
 import OpenGL.GL as gl
 import numpy as np
 from glob import glob
@@ -271,9 +263,7 @@ class BlipDriver(QGLWidget):
         self.update_lcd()
 
     def resizeGL(self, width, height):
-        pixel_ratio = 1
-        if QT_VERSION >= 5:
-            pixel_ratio = self.devicePixelRatio()
+        pixel_ratio = self.devicePixelRatio()
 
         self.width, self.height = width / pixel_ratio, height / pixel_ratio
         hmcp = height / 10 * 2

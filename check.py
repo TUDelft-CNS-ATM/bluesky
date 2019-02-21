@@ -37,21 +37,15 @@ else:
 
 print("Checking for pyqt               ", end=' ')
 try:
+    from PyQt5.QtCore import QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtOpenGL import QGLWidget, QGLFormat
-    QT_VERSION = 5
     qt = True
 except ImportError:
-    try:
-        from PyQt4.QtGui import QApplication
-        from PyQt4.QtOpenGL import QGLWidget, QGLFormat
-        QT_VERSION = 4
-        qt = True
-    except ImportError:
-        print("[FAIL]")
+    print("[FAIL]")
 
 if qt:
-    print("[QT%d]" % QT_VERSION)
+    print("[QT {}]" .format(QT_VERSION_STR))
     print("Checking for pyopengl           ", end=' ')
     try:
         import OpenGL

@@ -1,9 +1,6 @@
-try:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QPen, QBrush, QColor, QFont
-    from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItemGroup
-except ImportError:
-    from PyQt4.QtGui import QPen, QBrush, QColor, QFont, QGraphicsView, QGraphicsScene, QGraphicsItemGroup
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPen, QBrush, QColor, QFont
+from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItemGroup
 
 
 class AMANDisplay(QGraphicsView):

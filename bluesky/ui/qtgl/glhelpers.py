@@ -22,10 +22,7 @@ Date          :
 """
 import os
 from ctypes import c_void_p, pointer, sizeof
-try:
-    from PyQt5.QtGui import QImage
-except ImportError:
-    from PyQt4.QtGui import QImage
+from PyQt5.QtGui import QImage
 import OpenGL.GL as gl
 import numpy as np
 from bluesky import settings

@@ -1,13 +1,6 @@
-try:
-    from PyQt5.QtCore import QTimer
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtOpenGL import QGLWidget, QGLFormat, QGLContext
-    QT_VERSION = 5
-except:
-    from PyQt4.QtCore import QTimer
-    from PyQt4.QtGui import QApplication
-    from PyQt4.QtOpenGL import QGLWidget, QGLFormat, QGLContext
-    QT_VERSION = 4
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtOpenGL import QGLWidget, QGLFormat, QGLContext
 import OpenGL.GL as gl
 
 
@@ -18,11 +11,7 @@ class GLTest(QGLWidget):
         f.setVersion(3, 3)
         f.setProfile(QGLFormat.CoreProfile)
         f.setDoubleBuffer(True)
-        if QT_VERSION == 4:
-            QGLWidget.__init__(self, QGLContext(f, None), parent)
-        else:
-            # Qt 5
-            QGLWidget.__init__(self, QGLContext(f), parent)
+        QGLWidget.__init__(self, QGLContext(f), parent)
 
         print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 

@@ -1,17 +1,10 @@
 from os import path
-try:
-    from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, QT_VERSION
-    from PyQt5.QtOpenGL import QGLWidget
-except ImportError:
-    from PyQt4.QtCore import Qt, QEvent, qCritical, QTimer, QT_VERSION
-    from PyQt4.QtOpenGL import QGLWidget
-
+from PyQt5.QtCore import Qt, QEvent, qCritical, QTimer, QT_VERSION
+from PyQt5.QtOpenGL import QGLWidget
 from ctypes import c_float, c_int, Structure
 import numpy as np
 import OpenGL.GL as gl
 
-
-# Local imports
 import bluesky as bs
 from bluesky import settings
 from bluesky.ui import palette
@@ -608,9 +601,7 @@ class RadarWidget(QGLWidget):
 
         # update the window size
         # Qt5 supports getting the device pixel ratio, which can be > 1 for HiDPI displays such as Mac Retina screens
-        pixel_ratio = 1
-        if QT_VERSION >= 0x05:
-            pixel_ratio = self.devicePixelRatio()
+        pixel_ratio = self.devicePixelRatio()
 
         # Calculate zoom so that the window resize doesn't affect the scale, but only enlarges or shrinks the view
         zoom   = float(self.width) / float(width) * pixel_ratio

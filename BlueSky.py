@@ -38,8 +38,7 @@ def main():
     """
     # When importerror gives different name than (pip) install needs,
     # also advise latest version
-    missingmodules = {"OpenGL": "pyopengl and pyopengl-accelerate",
-                      "PyQt4": "pyqt5"}
+    missingmodules = {"OpenGL": "pyopengl and pyopengl-accelerate"}
 
     ### Parse command-line arguments ###
     # BlueSky.py modes:

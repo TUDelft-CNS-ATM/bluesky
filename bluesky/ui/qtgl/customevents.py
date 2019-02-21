@@ -1,8 +1,5 @@
 """ Definition of custom QEvent objects for QtGL gui. """
-try:
-    from PyQt5.QtCore import QEvent
-except ImportError:
-    from PyQt4.QtCore import QEvent
+from PyQt5.QtCore import QEvent
 
 NUMCUSTOMEVENTS    = 2
 ACDataEventType    = 1000

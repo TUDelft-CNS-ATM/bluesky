@@ -43,20 +43,10 @@ def load_coastline_txt():
 
 # Only try this if BlueSky is started in qtgl gui mode
 if bs.gui_type == 'qtgl':
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QApplication, QProgressDialog
     from bluesky.ui.polytools import PolygonSet, BoundingBox
 
-    try:
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtWidgets import QApplication, QProgressDialog
-    except ImportError:
-        try:
-            from PyQt4.QtCore import Qt
-            from PyQt4.QtGui import QApplication, QProgressDialog
-        except ImportError:
-            class QApplication:
-                @staticmethod
-                def instance():
-                    return None
 
     class ProgressBar():
         def __init__(self, text):

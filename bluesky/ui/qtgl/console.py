@@ -1,10 +1,6 @@
 """ Console interface for the QTGL implementation."""
-try:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QWidget, QTextEdit
-except ImportError:
-    from PyQt4.QtCore import Qt
-    from PyQt4.QtGui import QWidget, QTextEdit
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
 from bluesky.tools.misc import cmdsplit

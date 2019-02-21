@@ -1,9 +1,5 @@
 ''' I/O Client implementation for the QtGL gui. '''
-try:
-    from PyQt5.QtCore import QTimer
-except ImportError:
-    from PyQt4.QtCore import QTimer
-
+from PyQt5.QtCore import QTimer
 import numpy as np
 
 from bluesky.ui.polytools import PolygonSet
