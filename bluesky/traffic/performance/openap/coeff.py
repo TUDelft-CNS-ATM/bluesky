@@ -56,6 +56,7 @@ class Coefficient():
 
         # read fixwing aircraft and engine files
         allengines = pd.read_csv(fixwing_engine_db, encoding='utf-8')
+        allengines['name'] = allengines['name'].str.upper()
         acs = json.load(open(fixwing_aircraft_db, 'r'))
         acs.pop('__comment')
         acs_ = {}

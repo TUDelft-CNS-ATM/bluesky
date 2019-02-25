@@ -166,30 +166,6 @@
     "mfc": 63200,
     "engines": ["JT9D-7R4", "PW4056", "CF6-80C2B2"]
   },
-  "B772": {
-    "name": "Boeing 777-200 / -200ER",
-    "n_engines": 2,
-    "engine_type": "TF",
-    "wa": 427.8,
-    "mtow": 297000,
-    "mlw": 213000,
-    "mzfw": 190000,
-    "oew": 138000,
-    "mfc": 171000,
-    "engines": ["PW4077", "Trent 877", "GE90-77B", "PW4090", "Trent 895", "GE90-94B"]
-  },
-  "B773": {
-    "name": "Boeing 777-300",
-    "n_engines": 2,
-    "engine_type": "TF",
-    "wa": 427.8,
-    "mtow": 299300,
-    "mlw": 237600,
-    "mzfw": 224530,
-    "oew": 160500,
-    "mfc": 171200,
-    "engines": ["PW4077", "Trent 877", "GE90-77B", "PW4090", "Trent 895", "GE90-94B"]
-  },
   "B77W": {
     "name": "Boeing 777-300ER",
     "n_engines": 2,
