@@ -20,6 +20,7 @@ import os
 import os.path
 import subprocess
 import numpy as np
+from matplotlib import colors
 import bluesky as bs
 from bluesky.tools import geo, areafilter, plugin, plotter
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
@@ -49,6 +50,7 @@ cmdsynon  = {"ADDAIRWAY": "ADDAWY",
              "AIRWAYS": "AIRWAY",
              "CALL": "PCALL",
              "CHDIR": "CD",
+             "COL": "COLOR",
              "CONTINUE": "OP",
              "CREATE": "CRE",
              "CLOSE": "QUIT",
@@ -294,6 +296,12 @@ def init(startup_scnfile):
             "txt,latlon,float,[alt,alt]",
             lambda name, *coords: areafilter.defineArea(name, 'CIRCLE', coords[:3], *coords[3:]),
             "Define a circle-shaped area"
+        ],
+        "COLOR": [
+            "COLOR name,color (named color or r,g,b)",
+            "txt,color",
+            bs.scr.color,
+            "Set a custom color for an aircraft or shape"
         ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
@@ -1750,6 +1758,18 @@ class Argparser:
             except ValueError:
                 self.error += 'Could not parse "' + curarg + '" as time'
                 return False
+        elif argtype == 'color':
+            try:
+                if curarg.isnumeric():
+                    g, args = getnextarg(args)
+                    b, args = getnextarg(args)
+                    result = [int(curarg), int(g), int(b)]
+                else:
+                    result = [int(255 * i) for i in colors.to_rgb(curarg)]
+            except ValueError:
+                self.error += 'Could not parse "' + curarg + '" as color'
+                return False
+
         else:
             # Argument not found: return False
             self.error += 'Unknown argument type: ' + argtype

@@ -5,7 +5,7 @@ import numpy as np
 # Local imports
 import bluesky as bs
 from bluesky import stack
-from bluesky.tools import Timer
+from bluesky.tools import Timer, areafilter
 
 
 class ScreenIO(object):
@@ -34,6 +34,9 @@ class ScreenIO(object):
 
         self.route_acid  = None
 
+        # Dict of custom aircraft colors
+        self.custacclr = dict()
+
         # Timing bookkeeping counters
         self.prevtime    = 0.0
         self.samplecount = 0
@@ -54,6 +57,7 @@ class ScreenIO(object):
             self.samplecount += 1
 
     def reset(self):
+        self.custacclr = dict()
         self.samplecount = 0
         self.prevcount   = 0
         self.prevtime    = 0.0
@@ -96,6 +100,20 @@ class ScreenIO(object):
             self.client_zoom.clear()
 
         bs.sim.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
+
+    def color(self, name, r, g, b):
+        ''' Set custom color for aircraft or shape. '''
+        data = dict(color=(r, g, b))
+        if name in bs.traf.id:
+            data['acid'] = name
+            self.custacclr[name] = (r, g, b)
+        elif areafilter.hasArea(name):
+            data['polyid'] = name
+            areafilter.areas[name].raw['color'] = (r, g, b)
+        else:
+            return False, 'No object found with name ' + name
+        bs.sim.send_event(b'COLOR', data)
+        return True
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''

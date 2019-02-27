@@ -221,7 +221,8 @@ def Simulation(detached):
                 # Send list of stack functions available in this sim to gui at start
                 stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
                 shapes = [shape.raw for shape in areafilter.areas.values()]
-                simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom, stackcmds=stackdict, shapes=shapes)
+                simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
+                    stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr)
                 self.send_event(b'SIMSTATE', simstate, target=sender_rte)
             else:
                 # This is either an unknown event or a gui event.
