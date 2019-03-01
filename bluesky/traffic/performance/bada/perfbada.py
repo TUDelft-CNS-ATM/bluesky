@@ -164,6 +164,11 @@ class PerfBADA(TrafficArrays):
     def engchange(self, acid, engid=None):
         return False, "BADA performance model doesn't allow changing engine type"
 
+    def reset(self):
+        ''' Reset performance model states and trigger time. '''
+        super().reset()
+        self.t0 = -self.dt
+
     def create(self, n=1):
         super(PerfBADA, self).create(n)
         """CREATE NEW AIRCRAFT"""
@@ -333,7 +338,9 @@ class PerfBADA(TrafficArrays):
         self.gr_acc[-n:]    = coeff.gr_acc
 
     def perf(self, simt):
-        if abs(simt - self.t0) >= self.dt:
+        if simt - self.t0 >= self.dt:
+            # Actual dt can vary due to float roundoff errors
+            dt_act = simt - self.t0
             self.t0 = simt
         else:
             return
@@ -550,7 +557,7 @@ class PerfBADA(TrafficArrays):
         self.ff = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
 
         # update mass
-        self.mass = self.mass - self.ff*self.dt # Use fuelflow in kg/min
+        self.mass = self.mass - self.ff * dt_act # Use fuelflow in kg/min
 
 
 
