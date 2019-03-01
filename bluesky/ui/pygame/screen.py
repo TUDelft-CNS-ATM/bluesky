@@ -9,8 +9,7 @@ import subprocess
 import numpy as np
 
 import bluesky as bs
-from bluesky.tools import geo
-from bluesky.tools.areafilter import areas
+from bluesky.tools import geo, areafilter
 from bluesky.tools.aero import ft, kts, nm
 from bluesky.tools.misc import tim2txt
 from . import splash
@@ -1139,6 +1138,16 @@ class Screen:
         lat=dist/111319.
         return self.ltopix_eq(lat)
 
+    def color(self, name, r, g, b):
+        ''' Set custom color for aircraft or shape. '''
+        if areafilter.hasArea(name):
+            idx = self.objname.index(name)
+            self.objcolor[idx] = (r, g, b)
+        else:
+            return False, 'No object found with name ' + name
+
+        self.redrawradbg = True  # redraw background
+        return True
 
     def objappend(self,itype,name,data):
         """Add user defined objects"""
