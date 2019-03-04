@@ -1059,17 +1059,14 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
 
     # Check whether file exists
 
-    # Split the incoming filename into a path, a filename and an extension
-    path, fname = os.path.split(os.path.normpath(fname))
+    # Split the incoming filename into a path + filename and an extension
     base, ext = os.path.splitext(fname)
-    path = path or os.path.normpath(settings.scenario_path)
+    if not os.path.isabs(base):
+        base = os.path.join(settings.scenario_path, base)
     ext = ext or '.scn'
 
-
     # The entire filename, possibly with added path and extension
-    fname_full = os.path.join(path, base + ext)
-
-
+    fname_full = os.path.normpath(base + ext)
 
     # If timestamps in file should be interpreted as relative we need to add
     # the current simtime to every timestamp
@@ -1077,14 +1074,8 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
 
     # If this is a relative path we need to prefix scenario folder
     if not os.path.exists(fname_full):
-        if ".scn" not in orgfname.lower():
-            orgfname = orgfname+".scn"
-
-        if os.path.exists(settings.scenario_path + "/" + orgfname):
-            fname_full = settings.scenario_path + "/" + orgfname
-        else:
-            print("Openfile error: Cannot file", fname_full)
-            return False, "Error: cannot find file: " + fname_full
+        print("Openfile error: Cannot find file", fname_full)
+        return False, "Error: cannot find file: " + fname_full
 
     # Split scenario file line in times and commands
     if not mergeWithExisting:
