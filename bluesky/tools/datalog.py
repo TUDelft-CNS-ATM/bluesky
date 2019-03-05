@@ -38,7 +38,7 @@ def preupdate(simt):
 def postupdate():
     """ This function writes to files of all periodic logs by calling the appropriate
     functions for each type of periodic log, at the approriate update time. """
-    for key, log in periodicloggers.items():
+    for log in periodicloggers.values():
         log.log()
 
 
@@ -49,7 +49,7 @@ def reset():
     CSVLogger.simt = 0.0
 
     # Close all logs and remove reference to its file object
-    for key, log in allloggers.items():
+    for log in allloggers.values():
         log.reset()
 
 
