@@ -483,6 +483,12 @@ def init(startup_scnfile):
             bs.scr.cmdline,
             "Insert text op edit line in command window"
         ],
+        "LEGEND": [
+            "LEGEND label1, ..., labeln",
+            "txt,...",
+            lambda *labels: plotter.legend(labels),
+            "Add a legend to the last created plot"
+        ],
         "LINE": [
             "LINE name,lat,lon,lat,lon",
             "txt,latlon,latlon",

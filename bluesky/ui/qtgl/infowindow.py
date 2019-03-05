@@ -20,6 +20,7 @@ import bluesky as bs
 
 
 class InfoWindow(QTabWidget):
+    ''' Top-level window containing simulation information such as plots. '''
     def __init__(self):
         super(InfoWindow, self).__init__()
         self.setDocumentMode(True)
@@ -44,6 +45,7 @@ class InfoWindow(QTabWidget):
         self.plottab.update_plots(data, sender_id)
 
 class PlotTab(QScrollArea):
+    ''' InfoWindow tab for plots. '''
     def __init__(self):
         super(PlotTab, self).__init__()
         self.layout = QVBoxLayout()
@@ -55,25 +57,45 @@ class PlotTab(QScrollArea):
         self.plots = dict()
 
     def update_plots(self, data, sender):
-        for fig, (x, y, color) in data.items():
+        ''' Update plots in this tab using incoming data. '''
+        for fig, figdata in data.items():
+            # First extract plot data when present
+            x, y = figdata.pop('x', None), figdata.pop('y', None)
+
             plot = self.plots.get((sender, fig))
             if not plot:
-                plot = Plot(self)
+                # If plot doesn't exist yet, create it
+                plot = Plot(self, **figdata)
                 self.plots[(sender, fig)] = plot
                 self.layout.addWidget(plot)
+            elif figdata:
+                # When passed, apply updated figure settings
+                plot.set(**figdata)
 
-            plot.update_data(x, y)
+            if x is not None and y is not None:
+                plot.update_data(x, y)
 
 class Plot(FigureCanvas):
-    def __init__(self, parent):
+    def __init__(self, parent, **kwargs):
         super(Plot, self).__init__(plt.figure())
         self.setParent(parent)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFocus()
         self.setFixedHeight(350)
+        self.axes = self.figure.add_subplot(111, **kwargs)
+        self.figure.tight_layout(pad=8)
         self.plots = []
 
-    def update_data(self, xdata, ydata, color=''):
+    def set(self, **kwargs):
+        for flag, value in kwargs.items():
+            if flag == 'legend':
+                if len(self.plots) < len(value):
+                    for _ in range(len(value) - len(self.plots)):
+                        lineobj = self.axes.plot(np.array([]), np.array([]))[0]
+                        self.plots.append(lineobj)
+                self.axes.legend(value)
+
+    def update_data(self, xdata, ydata):
         if isinstance(xdata, Collection) and not isinstance(ydata, Collection):
             ydata = [ydata] * len(xdata)
         elif not isinstance(xdata, Collection) and isinstance(ydata, Collection):
@@ -85,7 +107,8 @@ class Plot(FigureCanvas):
         npoints = len(xdata)
         if len(self.plots) < npoints:
             for _ in range(npoints - len(self.plots)):
-                self.plots.append(plt.plot(np.array([]), [], figure=self.figure)[0])
+                lineobj = self.axes.plot(np.array([]), np.array([]))[0]
+                self.plots.append(lineobj)
 
         for p, x, y in zip(self.plots, xdata, ydata):
             p.set_xdata(np.append(p.get_xdata(), x))
