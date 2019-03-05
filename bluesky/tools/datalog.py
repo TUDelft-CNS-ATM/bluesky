@@ -104,6 +104,7 @@ class CSVLogger:
         self.default_dt = dt
 
     def addvars(self, selection):
+        selvars = []
         while selection:
             parent = ''
             if selection[0] == 'FROM':
@@ -111,7 +112,15 @@ class CSVLogger:
                 del selection[0:2]
             vars = list(itertools.takewhile(lambda i: i != 'FROM', selection))
             selection = selection[len(vars):]
-            self.selvars.extend([ve.findvar(parent + '.' + v) for v in vars])
+            for v in vars:
+                varobj = ve.findvar(parent + '.' + v)
+                if varobj:
+                    selvars.append(varobj)
+                else:
+                    return False, 'Variable {} not found'.format(v)
+
+        self.selvars = selvars
+        return True
 
     def open(self, fname):
         if self.file:
@@ -193,6 +202,6 @@ class CSVLogger:
             self.reset()
 
         elif args[0] == 'ADD':
-            self.addvars(list(args[1:]))
+            return self.addvars(list(args[1:]))
 
         return True
