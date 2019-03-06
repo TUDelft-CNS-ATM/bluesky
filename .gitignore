@@ -26,6 +26,7 @@ __pycache__/
 *.atom-build*
 *.build-tools*
 .idea/*
+.vscode/*
 
 # C extensions
 *.so
