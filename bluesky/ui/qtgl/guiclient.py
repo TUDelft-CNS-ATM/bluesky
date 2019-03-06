@@ -10,7 +10,7 @@ from bluesky.tools.aero import ft
 
 # Globals
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT']
-ACTNODE_TOPICS = [b'ACDATA', b'ROUTEDATA']
+ACTNODE_TOPICS = [b'ACDATA']
 
 
 class GuiClient(Client):
@@ -25,6 +25,7 @@ class GuiClient(Client):
         self.timer.start(20)
         self.subscribe(b'SIMINFO')
         self.subscribe(b'PLOT' + self.client_id)
+        self.subscribe(b'ROUTEDATA' + self.client_id)
 
         # Signals
         self.actnodedata_changed = Signal()

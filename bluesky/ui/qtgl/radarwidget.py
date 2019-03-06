@@ -623,7 +623,7 @@ class RadarWidget(QGLWidget):
         if streamname == b'ACDATA':
             self.acdata = ACDataEvent(data)
             self.update_aircraft_data(self.acdata)
-        elif streamname == b'ROUTEDATA':
+        elif streamname[:9] == b'ROUTEDATA':
             self.routedata = RouteDataEvent(data)
             self.update_route_data(self.routedata)
 

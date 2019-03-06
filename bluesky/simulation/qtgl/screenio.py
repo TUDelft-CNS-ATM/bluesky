@@ -31,8 +31,7 @@ class ScreenIO(object):
         self.client_pan  = dict()
         self.client_zoom = dict()
         self.client_ar   = dict()
-
-        self.route_acid  = None
+        self.route_acid  = dict()
 
         # Dict of custom aircraft colors
         self.custacclr = dict()
@@ -159,7 +158,7 @@ class ScreenIO(object):
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
-        self.route_acid = acid
+        self.route_acid[stack.sender()] = acid
         return True
 
     def addnavwpt(self, name, lat, lon):
@@ -256,10 +255,10 @@ class ScreenIO(object):
         bs.sim.send_stream(b'ACDATA', data)
 
     def send_route_data(self):
-        if self.route_acid:
+        for sender, acid in self.route_acid.items():
             data               = dict()
-            data['acid']       = self.route_acid
-            idx   = bs.traf.id2idx(self.route_acid)
+            data['acid']       = acid
+            idx   = bs.traf.id2idx(acid)
             if idx >= 0:
                 route          = bs.traf.ap.route[idx]
                 data['iactwp'] = route.iactwp
@@ -276,4 +275,4 @@ class ScreenIO(object):
 
                 data['wpname'] = route.wpname
 
-            bs.sim.send_stream(b'ROUTEDATA', data)  # Send route data to GUI
+            bs.sim.send_stream(b'ROUTEDATA' + sender, data)  # Send route data to GUI
