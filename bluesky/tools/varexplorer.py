@@ -120,7 +120,9 @@ class Variable:
         ''' py3 replacement of operator.isNumberType.'''
         v = getattr(self.parent, self.varname)
         return isinstance(v, Number) or \
-            (isinstance(v, np.ndarray) and v.dtype.kind not in 'OSUV')
+            (isinstance(v, np.ndarray) and v.dtype.kind not in 'OSUV') or \
+            (isinstance(v, Collection) and self.index and
+            all([isinstance(v[i], Number) for i in self.index]))
 
     def get_type(self):
         ''' Return the a string containing the type name of this variable. '''
@@ -129,5 +131,6 @@ class Variable:
     def get(self):
         ''' Get a reference to the actual variable. '''
         if self.index:
-            return getattr(self.parent, self.varname)[self.index]
+            v = getattr(self.parent, self.varname)
+            return [v[i] for i in self.index]
         return getattr(self.parent, self.varname)
