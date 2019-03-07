@@ -191,7 +191,7 @@ def init(startup_scnfile):
         ],
         "ADDWPT": [
             "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
-            "acid,wpt,[alt/txt,spd,wpinroute,wpinroute]",
+            "acid,wpt/txt,[alt,spd,wpinroute,wpinroute]",
             #
             # lambda *arg: short-hand for using function output as argument, equivalent with:
             #
