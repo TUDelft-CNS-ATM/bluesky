@@ -6,8 +6,8 @@
 #include <algorithm>
 
 struct conflict {
-    double tin, tout, tcpa, q, d; bool LOS;
-    conflict() : tin(0.0), tout(0.0), tcpa(0.0), q(0.0), d(0.0), LOS(false) {}
+    double tin, tout, dcpa, tcpa, q, d; bool LOS;
+    conflict() : tin(0.0), tout(0.0), dcpa(0.0), tcpa(0.0), q(0.0), d(0.0), LOS(false) {}
 };
 inline bool detect_hor(conflict& conf, const double& RPZ, const double& tlookahead,
                        const qdr_d_in& ll1, const double& gs1, const double& trk1,
@@ -42,6 +42,7 @@ inline bool detect_hor(conflict& conf, const double& RPZ, const double& tlookahe
     conf.tcpa = vreldotdx / vrel2;
 
     double CPA2  = conf.d * conf.d - vreldotdx * conf.tcpa;
+    conf.dcpa = sqrt(CPA2);
     double dt    = sqrt(std::max(RPZ * RPZ - CPA2, 0.0) / vrel2);
     conf.tin     = conf.tcpa - dt;
     conf.tout    = conf.tcpa + dt;

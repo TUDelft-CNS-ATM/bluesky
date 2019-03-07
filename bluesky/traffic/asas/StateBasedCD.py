@@ -6,7 +6,6 @@ from bluesky.tools.aero import nm
 
 def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     ''' Conflict detection between ownship (traf) and intruder (traf/adsb).'''
-
     # Identity matrix of order ntraf: avoid ownship-ownship detected conflicts
     I = np.eye(ownship.ntraf)
 
@@ -98,6 +97,7 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     qdr = qdr[swconfl]
     dist = dist[swconfl]
     tcpa = tcpa[swconfl]
+    dcpa = np.sqrt(dcpa2[swconfl])
     tinconf = tinconf[swconfl]
 
-    return confpairs, lospairs, inconf, tcpamax, qdr, dist, tcpa, tinconf
+    return confpairs, lospairs, inconf, tcpamax, qdr, dist, dcpa, tcpa, tinconf

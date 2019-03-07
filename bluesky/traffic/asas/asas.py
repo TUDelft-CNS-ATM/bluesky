@@ -125,6 +125,8 @@ class ASAS(TrafficArrays):
         self.confpairs_all = list()  # All conflicts since simt=0
         self.lospairs_all = list()  # All losses of separation since simt=0
 
+        self.dcpa = np.array([])  # CPA distance
+
         # Conflict time and geometry data per conflict pair
         self.tcpa = np.array([])  # Time to CPA
         self.tLOS = np.array([])  # Time to start LoS
@@ -479,7 +481,7 @@ class ASAS(TrafficArrays):
         if bs.traf.ntraf:
             # Conflict detection
             self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
-                self.qdr, self.dist, self.tcpa, self.tLOS = \
+                self.qdr, self.dist, self.dcpa, self.tcpa, self.tLOS = \
                 self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
 
             # Conflict resolution if there are conflicts
