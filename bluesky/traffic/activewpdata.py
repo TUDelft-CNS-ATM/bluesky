@@ -36,7 +36,8 @@ class ActiveWaypoint(TrafficArrays):
 
         # First calculate turn diatance
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
-        self.turndist,turnrad = flyby*self.calcturn(bs.traf.tas,bs.traf.bank,qdr,next_qdr)
+        flybyturndist,turnrad = self.calcturn(bs.traf.tas,bs.traf.bank,qdr,next_qdr)
+        self.turndist = flyby*flybyturndist
 
         # Avoid circling by checking for flying away
         away     = np.abs(degto180(bs.traf.trk%360. - qdr%360.)) > 90. # difference large than 90
