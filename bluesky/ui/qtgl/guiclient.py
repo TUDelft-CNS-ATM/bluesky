@@ -95,18 +95,19 @@ class GuiClient(Client):
 class nodeData(object):
     def __init__(self, route=None):
         # Stack window
-        self.echo_text  = ''
-        self.stackcmds  = dict()
+        self.echo_text = ''
+        self.stackcmds = dict()
+        self.stacksyn = dict()
 
         # Display pan and zoom
-        self.pan       = (0.0, 0.0)
-        self.zoom      = 1.0
+        self.pan = (0.0, 0.0)
+        self.zoom = 1.0
 
         # Per-scenario data
         self.clear_scen_data()
 
         # Network route to this node
-        self._route    = route
+        self._route = route
 
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node

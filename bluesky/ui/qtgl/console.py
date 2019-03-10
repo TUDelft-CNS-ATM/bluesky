@@ -107,9 +107,10 @@ class Console(QWidget):
         self.cmd = self.cmd.upper()
 
         hintline = ''
+        cmd = actdata.stacksyn.get(self.cmd, self.cmd)
         allhints = actdata.stackcmds
         if allhints:
-            hint = allhints.get(self.cmd)
+            hint = allhints.get(cmd)
             if hint:
                 if len(self.args) > 0:
                     hintargs = hint.split(',')
