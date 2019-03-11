@@ -1,5 +1,4 @@
-# VALKO departure from RW18L
-# Needs NAV-EHAM.scn to be called first for defintion of EHnnn waypoints
+# DEFFIX.scn needs to be called once first
 
 00:00:00.00>%0 ADDWPT EH073
 00:00:00.00>%0 ADDWPT EH009,2500

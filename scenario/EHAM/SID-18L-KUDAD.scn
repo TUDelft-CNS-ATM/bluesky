@@ -1,0 +1,5 @@
+# DEFFIX.scn needs to be called once first
+
+00:00:00.00>%0 ADDWPT EH073,FL60
+00:00:00.00>%0 ADDWPT LEKKO
+00:00:00.00>%0 ADDWPT KUDAD

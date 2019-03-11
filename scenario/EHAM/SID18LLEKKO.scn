@@ -1,5 +1,0 @@
-# LEKKO departure from RW18L
-# Needs NAV-EHAM.scn to be called first for defintion of EHnnn waypoints
-
-00:00:00.00>%0 ADDWPT EH073
-00:00:00.00>%0 ADDWPT LEKKO,FL60
