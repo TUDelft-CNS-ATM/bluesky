@@ -4,15 +4,13 @@
  0:00:00.00>Cre KL204,A320,52.19, 4.48,45.,2000,150
  #0:00:00.00>Pan KL204;--
 
- 0:00:00.00>Orig KL204,EHRD  
- 0:00:00.00>Dest KL204,EHAM 
- 0:00:00.00>KL204 VNAV on     # Switch VNAV on (LNAV is already on due to ADDWPT)
+ 0:00:00.00>Orig KL204 EHRD
+ 0:00:00.00>Dest KL204 EHAM RW06
 
  0:00:00.00>Addwpt KL204 RTM
  0:00:00.00>Addwpt KL204 KAG92
  0:00:00.00>Addwpt KL204 KAG62, 1500
 
- 0:00:00.00>Addwpt KL204 EHAM RW06 0
- 0:00:00.00>Direct RTM
+ 0:00:00.00>KL204 VNAV on     # Switch VNAV on (LNAV is already on due to ADDWPT)
  0:00:00.00>PAN KL204;++++++;POS KL204;FF
 
