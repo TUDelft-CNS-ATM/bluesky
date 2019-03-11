@@ -68,7 +68,7 @@ class Plot(object):
 
         self.fig = fig
 
-        self.stream_id = b'PLOT' + bs.stack.sender()
+        self.stream_id = b'PLOT' + (bs.stack.sender() or b'*')
 
         if None in (self.x, self.y):
             raise IndexError('Variable {} not found'.format(varx if self.x is None else (vary or varx)))

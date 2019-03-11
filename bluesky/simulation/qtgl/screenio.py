@@ -275,4 +275,4 @@ class ScreenIO(object):
 
                 data['wpname'] = route.wpname
 
-            bs.sim.send_stream(b'ROUTEDATA' + sender, data)  # Send route data to GUI
+            bs.sim.send_stream(b'ROUTEDATA' + (sender or b'*'), data)  # Send route data to GUI
