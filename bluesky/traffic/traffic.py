@@ -190,10 +190,11 @@ class Traffic(TrafficArrays):
                 return False, acid + " already exists."  # already exists do nothing
             acid = [acid]
 
-        actype = n * [actype] if isinstance(actype, str) else actype
-        acalt = np.array(n * [acalt]) if isinstance(acalt, float) else acalt
-        acspd = np.array(n * [acspd]) if isinstance(acspd, float) else acspd
-        dest = n * [dest] if isinstance(dest, str) else dest
+        if n>1:
+            actype = n * [actype] if isinstance(actype, str) else actype
+            acalt = np.array(n * [acalt]) if isinstance(acalt, float) else acalt
+            acspd = np.array(n * [acspd]) if isinstance(acspd, float) else acspd
+            dest = n * [dest] if isinstance(dest, str) else dest
             
 
         super(Traffic, self).create(n)
@@ -229,7 +230,7 @@ class Traffic(TrafficArrays):
         # Names of aircraft (acid) need to be recorded for saved future commands
         # And positions need to be the same in case of *MCRE"
 
-        if type(aclat)==float or type(aclat)==int:
+        if n==1:
             bs.stack.savecmd(" ".join(["CRE", acid[0], actype[0],
                                        str(aclat), str(aclon), str(int(round(achdg))),
                                        str(int(round(acalt/ft))),
