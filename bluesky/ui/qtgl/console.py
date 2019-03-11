@@ -96,7 +96,7 @@ class Console(QWidget):
     def append_cmdline(self, text):
         self.set_cmdline(self.command_line + text)
 
-    def set_cmdline(self, text):
+    def set_cmdline(self, text, cursorpos=None):
         if self.command_line == text:
             return
 
@@ -118,7 +118,7 @@ class Console(QWidget):
                 else:
                     hintline = ' ' + hint
 
-        self.lineEdit.setHtml('>>' + self.command_line + '<font color="#aaaaaa">' + hintline + '</font>')
+        self.lineEdit.set_cmdline(self.command_line, hintline, cursorpos)
 
     def keyPressEvent(self, event):
         ''' Handle keyboard input for bluesky. '''
@@ -132,6 +132,7 @@ class Console(QWidget):
                 return
 
         newcmd = self.command_line
+        cursorpos = None
         if event.key() == Qt.Key_Backspace:
             newcmd = newcmd[:-1]
 
@@ -157,24 +158,39 @@ class Console(QWidget):
                     self.echo(displaytext)
 
         elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
-            newcmd += str(event.text())
+            pos = self.lineEdit.cursor_pos()
+            newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
+            # Update the cursor position with the length of the added text
+            cursorpos = pos + len(event.text())
 
         else:
             # Remaining keys are things like sole modifier keys, and function keys
             super(Console, self).keyPressEvent(event)
 
         # Final processing of the command line
-        self.set_cmdline(newcmd)
+        self.set_cmdline(newcmd, cursorpos)
 
 class Cmdline(QTextEdit):
+    ''' Wrapper class for the command line. '''
     def __init__(self, parent=None):
         super(Cmdline, self).__init__(parent)
         Console.lineEdit = self
-        self.setFocusPolicy(Qt.NoFocus)
-        self.setHtml('>>')
+        # self.setFocusPolicy(Qt.NoFocus)
+        self.set_cmdline('')
 
+    def set_cmdline(self, cmdline, hints='', cursorpos=None):
+        ''' Set the command line with possible hints. '''
+        self.setHtml('>>' + cmdline + '<font color="#aaaaaa">' + hints + '</font>')
+        cursor = self.textCursor()
+        cursor.setPosition((cursorpos or len(cmdline)) + 2)
+        self.setTextCursor(cursor)
+
+    def cursor_pos(self):
+        ''' Get the cursor position. '''
+        return self.textCursor().position() - 2
 
 class Stackwin(QTextEdit):
+    ''' Wrapper class for the stack output textbox. '''
     def __init__(self, parent=None):
         super(Stackwin, self).__init__(parent)
         Console.stackText = self
