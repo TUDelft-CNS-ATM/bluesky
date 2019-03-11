@@ -153,6 +153,12 @@ class Console(QWidget):
                 else:
                     newcmd = self.command_history[-self.history_pos]
 
+        elif event.key() == Qt.Key_Left:
+            self.lineEdit.cursor_left()
+
+        elif event.key() == Qt.Key_Right:
+            self.lineEdit.cursor_right()
+
         elif event.key() == Qt.Key_Tab:
             if newcmd:
                 newcmd, displaytext = autocomplete.complete(newcmd)
@@ -177,12 +183,14 @@ class Cmdline(QTextEdit):
     def __init__(self, parent=None):
         super(Cmdline, self).__init__(parent)
         Console.lineEdit = self
+        self.cmdline = ''
         # self.setFocusPolicy(Qt.NoFocus)
         self.set_cmdline('')
 
     def set_cmdline(self, cmdline, hints='', cursorpos=None):
         ''' Set the command line with possible hints. '''
         self.setHtml('>>' + cmdline + '<font color="#aaaaaa">' + hints + '</font>')
+        self.cmdline = cmdline
         cursor = self.textCursor()
         cursor.setPosition((cursorpos or len(cmdline)) + 2)
         self.setTextCursor(cursor)
@@ -190,6 +198,18 @@ class Cmdline(QTextEdit):
     def cursor_pos(self):
         ''' Get the cursor position. '''
         return self.textCursor().position() - 2
+
+    def cursor_left(self):
+        ''' Move the cursor one position to the left. '''
+        cursor = self.textCursor()
+        cursor.setPosition(max(2, cursor.position() - 1))
+        self.setTextCursor(cursor)
+
+    def cursor_right(self):
+        ''' Move the cursor one position to the right. '''
+        cursor = self.textCursor()
+        cursor.setPosition(min(len(self.cmdline) + 2, cursor.position() + 1))
+        self.setTextCursor(cursor)
 
 class Stackwin(QTextEdit):
     ''' Wrapper class for the stack output textbox. '''
