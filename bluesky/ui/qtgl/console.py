@@ -134,7 +134,9 @@ class Console(QWidget):
         newcmd = self.command_line
         cursorpos = None
         if event.key() == Qt.Key_Backspace:
-            newcmd = newcmd[:-1]
+            pos = self.lineEdit.cursor_pos()
+            newcmd = newcmd[:pos - 1] + newcmd[pos:]
+            cursorpos = pos - 1
 
         elif event.key() == Qt.Key_Up:
             if self.history_pos == 0:
