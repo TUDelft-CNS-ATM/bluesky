@@ -190,8 +190,11 @@ class Traffic(TrafficArrays):
                 return False, acid + " already exists."  # already exists do nothing
             acid = [acid]
 
-        if isinstance(actype, str):
-            actype = n * [actype]
+        actype = n * [actype] if isinstance(actype, str) else actype
+        acalt = np.array(n * [acalt]) if isinstance(acalt, float) else acalt
+        acspd = np.array(n * [acspd]) if isinstance(acspd, float) else acspd
+        dest = n * [dest] if isinstance(dest, str) else dest
+            
 
         super(Traffic, self).create(n)
 
