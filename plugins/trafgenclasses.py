@@ -6,7 +6,7 @@ from bluesky import stack,traf,sim,tools,navdb
 from bluesky.tools.position import txt2pos
 from bluesky.tools.geo import kwikqdrdist,kwikpos,kwikdist,latlondist,qdrdist
 from bluesky.tools.misc import degto180,txt2alt,txt2spd
-from bluesky.tools.aero import nm
+from bluesky.tools.aero import nm,ft
 
 # Default values
 swcircle = False
@@ -103,14 +103,13 @@ class Source():
         #Names of drawing objects runways
         self.polys       = []    # Names of current runway polygons to remove when runways change
 
-        # Start values
-        self.startaltmin = -999. # [ft] minimum starting altitude
-        self.startaltmax = -999. # [ft] maximum starting altitude
-        self.startspdmin = -999. # [m/s] minimum starting speed
-        self.startspdmax = -999. # [m/s] maximum starting speed
-        self.starthdgmin = -999. # [deg] Valid values -360 - 360 degrees (to also have an interval possible around 360)
-        self.starthdgmax = -999. # [deg] Valid values -360 - 360 degrees (to also have an interval possible around 360)
-
+        # Limits on start values alt,spd,hdg
+        self.startaltmin = None
+        self.startaltmax = None
+        self.startspdmin = None
+        self.startspdmax = None
+        self.starthdgmin = None
+        self.starthdgmax = None
 
         return
 
@@ -370,10 +369,18 @@ class Source():
                 else:
                     hdg = random.random()*360.
 
-                if (self.type=="apt" or self.type=="rwy") and self.incircle:
-                    alttxt,spdtxt = str(0),str(0)
+                if self.startaltmin and self.startaltmax:
+                    alt = random.randint(int(self.startaltmin), int(self.startaltmax))
                 else:
-                    alttxt,spdtxt = "FL"+str(random.randint(200,300)), str(random.randint(250,350))
+                    alt = random.randint(200, 300) * 100 * ft
+
+                if self.startspdmin and self.startspdmax:
+                    spd = random.randint(int(self.startspdmin), int(self.startspdmax))
+                else:
+                    spd = random.randint(250, 350)
+
+                alttxt, spdtxt = "FL" + str(int(round(alt / (100 * ft)))), str(spd)
+
                 # Add destination
                 if len(self.dest)>0:
                     idest = int(random.random() * len(self.dest))
@@ -475,6 +482,14 @@ class Drain():
         self.orighdg     = []  # if orig is a runway (for flights within FIR) or circle segment (drain outside FIR)
         self.origactypes = []   # Types for this originations ([]=use defaults for this drain)
         self.origincirc  = []
+
+        # Limits on start values alt,spd,hdg
+        self.startaltmin = None
+        self.startaltmax = None
+        self.startspdmin = None
+        self.startspdmax = None
+        self.starthdgmin = None
+        self.starthdgmax = None
 
         #Names of drawing objects runways
         self.polys       = []
@@ -661,7 +676,17 @@ class Drain():
                 if incirc and (self.origtype[iorig]=="apt" or self.origtype[iorig]=="rwy"):
                     alttxt,spdtxt = str(0),str(0)
                 else:
-                    alttxt,spdtxt = "FL"+str(random.randint(200,300)), str(random.randint(250,350))
+                    if self.startaltmin and self.startaltmax:
+                        alt = random.randint(int(self.startaltmin), int(self.startaltmax))
+                    else:
+                        alt = random.randint(200,300)*100*ft
+
+                    if self.startspdmin and self.startspdmax:
+                        spd = random.randint(int(self.startspdmin), int(self.startspdmax))
+                    else:
+                        spd = random.randint(250,350)
+
+                    alttxt,spdtxt = "FL"+str(int(round(alt/(100*ft)))), str(spd)
 
                 if iorig>=0:
                     acid = randacname(self.orig[iorig], self.name)

@@ -18,6 +18,7 @@ from random import seed
 import re
 import os
 import os.path
+import webbrowser
 import subprocess
 import numpy as np
 from matplotlib import colors
@@ -262,11 +263,18 @@ def init(startup_scnfile):
             lambda idx, *args: bs.traf.ap.route[idx].beforeaddwptStack(idx, *args),
             "Before waypoint, add a waypoint to route of aircraft (FMS)"
         ],
+        "BLUESKY": [
+            "BLUESKY",
+            "",
+            singbluesky,
+            "Sing"
+        ],
         "BENCHMARK": [
             "BENCHMARK [scenfile,time]",
             "[txt,time]",
             bs.sim.benchmark,
             "Run benchmark"
+
         ],
         "BOX": [
             "BOX name,lat,lon,lat,lon,[top,bottom]",
@@ -1805,3 +1813,7 @@ def makedoc():
                     for arg in re_args.findall(lst[0])[1:]:
                         f.write(arg + '|     |   |\n')
                 f.write('\n[[Back to command reference.|Command Reference]]\n')
+
+def singbluesky():
+    webbrowser.open_new("https://youtu.be/aQUlA8Hcv4s")
+    return True

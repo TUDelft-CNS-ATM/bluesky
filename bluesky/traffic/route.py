@@ -801,7 +801,7 @@ class Route:
 
     def delrte(self):
         """Delete complete route"""
-        # Simple re-initilize this route as empty
+        # Simple re-initialize this route as empty
         self.__init__()
         return True
 
