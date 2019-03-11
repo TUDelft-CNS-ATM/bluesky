@@ -1,15 +1,22 @@
-00:00:00.00>box goeast,51.9,1.62,51.24,5,fl900,0
-00:00:00.00>box gonorth,51.24,5.0,53.0,6.5,fl900,0
-00:00:00.00>box gowest,53,6.5,53.6,2.7,fl900,0
-00:00:00.00>box gosouth,53.6,2.7,51.9,1.5,fl900,0
+00:00:00.00>box goeast,51.9,1.62,51.24,5,fl900
+00:00:00.00>box gonorth,51.24,5.0,53.0,6.5,fl900
+00:00:00.00>box gowest,53,6.5,53.6,2.7,fl900
+00:00:00.00>box gosouth,53.6,2.7,51.9,1.5,fl900
 00:00:00.00>box max250,51.24,1.5,53.6,6.5,0,fl100
 00:00:00.00>mcre 200
-00:00:00.00>reso mvp
+
+# No resolutions:
+00:00:00.00>reso off
+00:00:00.00>asas off
+
+# With resolutions:
+#00:00:00.00>reso mvp
+
 # Go east and climb
-00:00:01.00>geovector goeast,,,85,105,1500,2000
+00:00:01.00>geovector goeast,,,85,105,400,450
 00:00:01.00>geovector gonorth,,,355,5,,
 # Go west and descend
-00:00:01.00>geovector gowest,,,265,275,-1500,-2000
+00:00:01.00>geovector gowest,,,265,275,-450,-400
 00:00:01.00>geovector gosouth,,2,175,185
 Max 250 kts groundspeed below FL100
 00:00:01.00>geovector max250,,250
