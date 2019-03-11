@@ -1,9 +1,0 @@
-# Als ik een CRE F27 toevoeg met FL100 & speed 200, gaat het steeds
-# sneller vliegen terwijl de snelheid al hoger is dan in de tabel 
-# terug te vinden is. In het bijgevoegde bestand F28___PTF zie je 
-# duidelijk bij FL 100 in cruise een TAS van 197, en in BlueSky
-# forceert hij hem veel hoger. 
-
-0:00:00.00> CRE TEST, F27, 51.890958,5.177844, 300, FL100, 200
-0:00:00.00> TRAILS ON
-0:00:00.00> TEST
