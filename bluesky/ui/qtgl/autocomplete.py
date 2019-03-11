@@ -26,7 +26,7 @@ def complete(cmd):
     newcmd = cmd
     displaytext = ''
 
-    if lcmd[0] == 'IC' or lcmd[0] == 'BATCH':
+    if lcmd[0] in ['IC', 'BATCH', 'CALL', 'PCALL']:
         global previous_g
         g = settings.scenario_path
         striplen = len(g)
