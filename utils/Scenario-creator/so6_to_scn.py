@@ -2,7 +2,7 @@ import numpy as np
 import collections
 import textwrap
 from datetime import datetime
-from aero import qdrdist, ft, tas2cas
+# from bluesky.tools.aero import qdrdist, ft, tas2cas
 
 class readFile:
 
@@ -65,7 +65,7 @@ class readFile:
             lon2 = air_traffic['lon_end'][i] / 60
             self.alt = air_traffic['fl_begin'][i] * 100
             self.alt_end = air_traffic['fl_end'][i] * 100
-            self.hdg, distance = qdrdist(self.lat, self.lon, lat2, lon2)
+            # self.hdg, distance = qdrdist(self.lat, self.lon, lat2, lon2)
             time_format = '%H:%M:%S'
             self.time = air_traffic['t_begin'][i]
             self.time = ':'.join(textwrap.wrap(self.time, 2))

@@ -2,8 +2,7 @@ import numpy as np
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from pylab import *
 import matplotlib.pyplot as plt
-import pygmaps
-import aero
+# import aero
 from datetime import datetime, timedelta
 from operator import itemgetter
 from collections import OrderedDict
