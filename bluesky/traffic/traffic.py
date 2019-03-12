@@ -112,8 +112,9 @@ class Traffic(TrafficArrays):
             self.selvs  = np.array([])  # selected vertical speed [m/s]
 
             # Whether to perform LNAV and VNAV
-            self.swlnav   = np.array([], dtype=np.bool)
-            self.swvnav   = np.array([], dtype=np.bool)
+            self.swlnav    = np.array([], dtype=np.bool)
+            self.swvnav    = np.array([], dtype=np.bool)
+            self.swvnavspd = np.array([], dtype=np.bool)
 
             # Flight Models
             self.asas   = ASAS()
@@ -558,7 +559,10 @@ class Traffic(TrafficArrays):
             if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
 
                 if self.swvnav[idx]:
-                    lines = lines + "VNAV, "
+                    if self.swvnavspd[idx]:
+                        lines = lines + "VNAV (incl.VNAVSPD), "
+                    else:
+                        lines = lines + "VNAV (NOT VNAVSPD), "
 
                 lines += "LNAV to " + route.wpname[route.iactwp] + "\n"
 
