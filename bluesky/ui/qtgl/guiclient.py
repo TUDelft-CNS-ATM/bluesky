@@ -283,6 +283,18 @@ class nodeData(object):
         elif flag == 'POLY':
             self.show_poly = 0 if self.show_poly == 2 else self.show_poly + 1
 
+        elif flag == 'LABEL':
+            # Cycle aircraft label through detail level 0,1,2
+            if args==None:
+                self.show_lbl = (self.show_lbl+1)%3
+
+            # Or use the argument if it is an integer
+            else:
+                try:
+                    self.show_lbl = min(2,max(0,int(args)))
+                except:
+                    self.show_lbl = (self.show_lbl + 1) % 3
+
         elif flag == 'SSD':
             self.show_ssd(args)
 
