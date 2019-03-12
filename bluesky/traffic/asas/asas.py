@@ -141,6 +141,8 @@ class ASAS(TrafficArrays):
         # Clear conflict list when switched off
         if not self.swasas:
             self.clearconfdb()
+            self.inconf = self.inconf&False  # Set in-conflict flag to False
+
         return True
 
     def clearconfdb(self):
