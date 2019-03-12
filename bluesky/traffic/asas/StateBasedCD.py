@@ -45,7 +45,7 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     tcpa = -(du * dx + dv * dy) / dv2 + 1e9 * I
 
     # Calculate distance^2 at CPA (minimum distance^2)
-    dcpa2 = dist * dist - tcpa * tcpa * dv2
+    dcpa2 = np.abs(dist * dist - tcpa * tcpa * dv2)
 
     # Check for horizontal conflict
     R2 = RPZ * RPZ
