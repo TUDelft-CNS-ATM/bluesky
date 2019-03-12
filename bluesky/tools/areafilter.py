@@ -45,24 +45,24 @@ def reset():
     areas.clear()
 
 class Shape:
-    def __init__(self, shape, name, coordinates):
+    def __init__(self, shape, name, coordinates, top=1e9, bottom=-1e9):
         self.raw = dict(name=name, shape=shape, coordinates=coordinates)
-
-
-class Line(Shape):
-    def __init__(self, name, coordinates):
-        super(Line, self).__init__('LINE', name, coordinates)
-        self.coords = coordinates
+        self.coordinates = coordinates
+        self.top = np.maximum(bottom, top)
+        self.bottom = np.minimum(bottom, top)
 
     def checkInside(self, lat, lon, alt):
         return False
 
 
+class Line(Shape):
+    def __init__(self, name, coordinates):
+        super(Line, self).__init__('LINE', name, coordinates)
+
+
 class Box(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
-        super(Box, self).__init__('BOX', name, coordinates)
-        self.top    = np.maximum(bottom,top)
-        self.bottom = np.minimum(bottom,top)
+        super(Box, self).__init__('BOX', name, coordinates, top, bottom)
         # Sort the order of the corner points
         self.lat0 = min(coordinates[0], coordinates[2])
         self.lon0 = min(coordinates[1], coordinates[3])
@@ -70,20 +70,18 @@ class Box(Shape):
         self.lon1 = max(coordinates[1], coordinates[3])
 
     def checkInside(self, lat, lon, alt):
-        inside = ((self.lat0 <=  lat) & ( lat <= self.lat1)) & \
-                 ((self.lon0 <= lon) & (lon <= self.lon1)) & \
-                 ((self.bottom <= alt) & (alt <= self.top))
-        return inside
+        return ((self.lat0 <=  lat) & ( lat <= self.lat1)) & \
+               ((self.lon0 <= lon) & (lon <= self.lon1)) & \
+               ((self.bottom <= alt) & (alt <= self.top))
+
 
 
 class Circle(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
-        super(Circle, self).__init__('CIRCLE', name, coordinates)
+        super(Circle, self).__init__('CIRCLE', name, coordinates, top, bottom)
         self.clat   = coordinates[0]
         self.clon   = coordinates[1]
         self.r      = coordinates[2]
-        self.top    = np.maximum(bottom,top)
-        self.bottom = np.minimum(bottom,top)
 
     def checkInside(self, lat, lon, alt):
         distance = kwikdist(self.clat, self.clon, lat, lon)  # [NM]
@@ -93,10 +91,8 @@ class Circle(Shape):
 
 class Poly(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
-        super(Poly, self).__init__('POLY', name, coordinates)
+        super(Poly, self).__init__('POLY', name, coordinates, top, bottom)
         self.border = Path(np.reshape(coordinates, (len(coordinates) // 2, 2)))
-        self.top    = np.maximum(bottom,top)
-        self.bottom = np.minimum(bottom,top)
 
     def checkInside(self, lat, lon, alt):
         points = np.vstack((lat,lon)).T
