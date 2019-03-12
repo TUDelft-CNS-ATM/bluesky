@@ -195,7 +195,9 @@ class Autopilot(TrafficArrays):
             dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax)) #[s]
             dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg #[m]
 
-            usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spd > -990.)*bs.traf.swvnav
+            # Chekc also whether VNAVSPD is on, if not, SPD SEL has override
+            usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spd > -990.)*bs.traf.swvnavspd*bs.traf.swvnav
+
             bs.traf.selspd = np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd)
             
 
@@ -353,8 +355,8 @@ class Autopilot(TrafficArrays):
         _, cas, m = vcasormach(casmach, bs.traf.alt[idx])
         bs.traf.selspd[idx] = np.where(bs.traf.abco[idx], m, cas) # [-,-,m/s]
 
-        # Switch off VNAV: SPD command overrides
-        bs.traf.swvnav[idx]   = False
+        # Used to be: Switch off VNAV: SPD command overrides
+        bs.traf.swvnavspd[idx]   = False
         return True
 
     def setdestorig(self, cmd, idx, *args):
@@ -464,9 +466,13 @@ class Autopilot(TrafficArrays):
         """ Set VNAV on or off for a specific or for all aircraft """
         if idx is None:
             # All aircraft are targeted
-            bs.traf.swvnav = np.array(bs.traf.ntraf * [flag])
+            bs.traf.swvnav    = np.array(bs.traf.ntraf * [flag])
+            bs.traf.swvnavspd = np.array(bs.traf.ntraf * [flag])
 
         elif flag is None:
+            msg = bs.traf.id[idx] + ": VNAV is " + "ON" if bs.traf.swvnav[idx] else "OFF"
+            if not bs.traf.swvnavspd[idx]:
+                msg += " but VNAVSPD is OFF"
             return True, (bs.traf.id[idx] + ": VNAV is " + "ON" if bs.traf.swvnav[idx] else "OFF")
 
         elif flag:
@@ -475,11 +481,15 @@ class Autopilot(TrafficArrays):
 
             route = self.route[idx]
             if route.nwp > 0:
-                bs.traf.swvnav[idx] = True
+                bs.traf.swvnav[idx]    = True
+                bs.traf.swvnavspd[idx] = True
                 self.route[idx].calcfp()
                 self.ComputeVNAV(idx,self.route[idx].wptoalt[self.route[idx].iactwp],
                                      self.route[idx].wpxtoalt[self.route[idx].iactwp])
+
             else:
                 return False, ("VNAV " + bs.traf.id[idx] + ": no waypoints or destination specified")
         else:
-            bs.traf.swvnav[idx] = False
+            bs.traf.swvnav[idx]    = False
+            bs.traf.swvnavspd[idx] = False
+
