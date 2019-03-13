@@ -88,7 +88,9 @@ class Client(object):
         self.poller.register(self.stream_in, zmq.POLLIN)
 
     def receive(self, timeout=0):
-        ''' Poll for incoming data from Server, and receive if available. '''
+        ''' Poll for incoming data from Server, and receive if available.
+            Arguments:
+            timeout: The polling timeout in milliseconds. '''
         try:
             socks = dict(self.poller.poll(timeout))
             if socks.get(self.event_io) == zmq.POLLIN:
