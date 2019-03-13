@@ -1074,7 +1074,7 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
     # Check whether file exists
 
     # Split the incoming filename into a path + filename and an extension
-    base, ext = os.path.splitext(fname)
+    base, ext = os.path.splitext(fname.replace('\\', '/'))
     if not os.path.isabs(base):
         base = os.path.join(settings.scenario_path, base)
     ext = ext or '.scn'
