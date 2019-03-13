@@ -83,8 +83,16 @@ def findvar(varname):
         name, index = varset[-1]
         # is a parent object passed? (e.g., traf.lat instead of just lat)
         if len(varset) > 1:
+            obj = None
             # The first object should be in the varlist of Plot
-            obj = varlist.get(varset[0][0])[0]
+            # As either a top-level object:
+            if varset[0][0] in varlist:
+                obj = varlist.get(varset[0][0])[0]
+            else:
+                for objname, objset in varlist.items():
+                    if varset[0][0] in objset[1]:
+                        obj = getattr(objset[0], varset[0][0])
+
             # Iterate over objectname,index pairs in varset
             for pair in varset[1:-1]:
                 if obj is None:
