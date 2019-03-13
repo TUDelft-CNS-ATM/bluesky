@@ -190,13 +190,9 @@ class Traffic(TrafficArrays):
             if self.id.count(acid.upper()) > 0:
                 return False, acid + " already exists."  # already exists do nothing
             acid = [acid]
-
-        if n>1:
-            actype = n * [actype] if isinstance(actype, str) else actype
-            acalt = np.array(n * [acalt]) if isinstance(acalt, float) else acalt
-            acspd = np.array(n * [acspd]) if isinstance(acspd, float) else acspd
-            dest = n * [dest] if isinstance(dest, str) else dest
-            
+        else:
+            # TODO: for a list of a/c, check each callsign
+            pass
 
         super(Traffic, self).create(n)
 
@@ -205,9 +201,13 @@ class Traffic(TrafficArrays):
 
         if aclat is None:
             aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
+        elif isinstance(aclat, float):
+            aclat = np.array(n * [aclat])
 
         if aclon is None:
             aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
+        elif isinstance(aclon, float):
+            aclon = np.array(n * [aclon])
 
         # Limit longitude to [-180.0, 180.0]
         if n == 1:
@@ -219,30 +219,31 @@ class Traffic(TrafficArrays):
 
         if achdg is None:
             achdg = np.random.randint(1, 360, n)
+        elif isinstance(achdg, float):
+            achdg = np.array(n * [achdg])
 
         if acalt is None:
             acalt = np.random.randint(2000, 39000, n) * ft
+        elif isinstance(acalt, float):
+            acalt = np.array(n * [acalt])
 
         if acspd is None:
             acspd = np.random.randint(250, 450, n) * kts
+        elif isinstance(acspd, float):
+            acspd = np.array(n * [acspd])
+
+        actype = n * [actype] if isinstance(actype, str) else actype
+        dest = n * [dest] if isinstance(dest, str) else dest
 
         # SAVEIC: save cre command when filled in
         # Special provision in case SAVEIC is on: then save individual CRE commands
         # Names of aircraft (acid) need to be recorded for saved future commands
         # And positions need to be the same in case of *MCRE"
-
-        if n==1:
-            bs.stack.savecmd(" ".join(["CRE", acid[0], actype[0],
-                                       str(aclat), str(aclon), str(int(round(achdg))),
-                                       str(int(round(acalt/ft))),
-                                       str(int(round(acspd/kts)))]))
-        else:
-            for i in range(n):
-                bs.stack.savecmd(" ".join([ "CRE", acid[i], actype[i],
-                                            str(aclat[i]), str(aclon[i]), str(int(round(achdg[i]))),
-                                            str(int(round(acalt[i]/ft))),
-                                            str(int(round(acspd[i]/kts)))]))
-
+        for i in range(n):
+            bs.stack.savecmd(" ".join([ "CRE", acid[i], actype[i],
+                                        str(aclat[i]), str(aclon[i]), str(int(round(achdg[i]))),
+                                        str(int(round(acalt[i]/ft))),
+                                        str(int(round(acspd[i]/kts)))]))
 
         # Aircraft Info
         self.id[-n:]   = acid
