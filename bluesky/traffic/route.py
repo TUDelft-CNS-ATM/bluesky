@@ -793,7 +793,7 @@ class Route:
         # Else: current = runway and this is also the last waypoint
         if (self.wptype[self.iactwp] == 5 and
                 self.wpname[self.iactwp] == self.wpname[-1]) or \
-           (self.wptype[self.iactwp] == 5 and
+           (self.wptype[self.iactwp] == 5 and self.iactwp+1<self.nwp and
                 self.wptype[self.iactwp + 1] == 3):
 
             self.flag_landed_runway = True
@@ -805,18 +805,25 @@ class Route:
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], nextqdr
 
-    def delrte(self):
+    def delrte(self,iac=None):
         """Delete complete route"""
         # Simple re-initialize this route as empty
         self.__init__()
+
+        # Also disable LNAV,VNAV if route is deleted
+        if self.nwp == 0 and (iac or iac == 0):
+            bs.traf.swlnav[iac]    = False
+            bs.traf.swvnav[iac]    = False
+            bs.traf.swvnavspd[iac] = False
+
         return True
 
-    def delwpt(self, delwpname):
+    def delwpt(self,delwpname,iac=None):
         """Delete waypoint"""
 
         # Delete complete route?
         if delwpname =="*":
-            return self.delrte()
+            return self.delrte(iac)
 
         # Look up waypoint
         idx = -1
@@ -830,7 +837,7 @@ class Route:
         if idx == -1:
             return False, "Waypoint " + delwpname + " not found"
 
-        self.nwp -= 1
+        self.nwp =self.nwp - 1
         del self.wpname[idx]
         del self.wplat[idx]
         del self.wplon[idx]
@@ -841,6 +848,13 @@ class Route:
             self.iactwp = max(0, self.iactwp - 1)
 
         self.iactwp = min(self.iactwp, self.nwp - 1)
+
+        # If no waypoints left, make sure to disable LNAV/VNAV
+        if self.nwp==0 and (iac or iac==0):
+            bs.traf.swlnav[iac]    =  False
+            bs.traf.swvnav[iac]    =  False
+            bs.traf.swvnavspd[iac] =  False
+
         return True
 
     def newcalcfp(self):

@@ -133,7 +133,7 @@ sender_rte = None  # bs net route to sender
 # When SAVEIC is used, we will also have a recoding scenario file handle
 savefile = None # File object of recording scenario file
 defexcl = ["PAN","ZOOM","HOLD","POS","INSEDIT","SAVEIC","QUIT","PCALL","PLOT","CALC","FF",
-           "IC","OP","HOLD","RESET","MCRE","CRE","TRAFGEN"] # Commands to be excluded, default
+           "IC","OP","HOLD","RESET","MCRE","CRE","TRAFGEN","LISTRTE"] # Commands to be excluded, default
 saveexcl = defexcl
 saveict0 = 0.0 # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
 
@@ -361,13 +361,13 @@ def init(startup_scnfile):
         "DELRTE": [
             "DELRTE acid",
             "acid",
-            lambda idx: bs.traf.ap.route[idx].delrte(),
+            lambda idx: bs.traf.ap.route[idx].delrte(idx),
             "Delete for this a/c the complete route/dest/orig (FMS)"
         ],
         "DELWPT": [
             "DELWPT acid,wpname",
             "acid,wpinroute",
-            lambda idx, wpname: bs.traf.ap.route[idx].delwpt(wpname),
+            lambda idx, wpname: bs.traf.ap.route[idx].delwpt(wpname,idx),
             "Delete a waypoint from a route (FMS)"
         ],
         "DEST": [
