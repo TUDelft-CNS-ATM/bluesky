@@ -753,11 +753,17 @@ class Route:
             # remain on the runway
             # syntax: HDG acid,hdg (deg,True)
             name = self.wpname[self.iactwp]
+
+            # Change RW06,RWY18C,RWY24001 to resp. 06,18C,24
             if "RWY" in name:
-                rwykey = name[8:]
-            # if it is only RW
+                rwykey = name[8:10]
+                if not name[10].isidigit():
+                    rwykey = rwykey+name[10]
+            # also if it is only RW
             else:
-                rwykey = name[7:]
+                rwykey = name[7:9]
+                if not name[9].isidigit():
+                    rwykey = rwykey+name[9]
 
             wphdg = bs.navdb.rwythresholds[name[:4]][rwykey][2]
 
