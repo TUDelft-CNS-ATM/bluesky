@@ -8,7 +8,7 @@ except ImportError:
     from collections import Collection
 import numpy as np
 
-defaults = {"float": 0.0, "int": 0, "bool": False, "S": "", "str": ""}
+defaults = {"float": 0.0, "int": 0, "uint":0, "bool": False, "S": "", "str": ""}
 
 
 class RegisterElementParameters():

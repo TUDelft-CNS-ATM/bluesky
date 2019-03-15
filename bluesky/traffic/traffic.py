@@ -25,6 +25,7 @@ from .pilot import Pilot
 from .autopilot import Autopilot
 from .activewpdata import ActiveWaypoint
 from .turbulence import Turbulence
+from .trafficgroups import TrafficGroups
 
 from bluesky import settings
 
@@ -124,6 +125,9 @@ class Traffic(TrafficArrays):
             self.trails = Trails()
             self.actwp  = ActiveWaypoint()
             self.perf   = Perf()
+            
+            # Group Logic
+            self.groups = TrafficGroups()
 
             # Traffic performance data
             self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
