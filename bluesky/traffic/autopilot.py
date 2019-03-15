@@ -307,10 +307,7 @@ class Autopilot(TrafficArrays):
 
     def selaltcmd(self, idx, alt, vspd=None):
         """ Select altitude command: ALT acid, alt, [vspd] """
-        if idx < 0 or idx >= bs.traf.ntraf:
-            return False, "ALT: Aircraft does not exist"
-
-        bs.traf.selalt[idx]    = alt
+        bs.traf.selalt[idx]   = alt
         bs.traf.swvnav[idx]   = False
 
         # Check for optional VS argument
@@ -320,8 +317,8 @@ class Autopilot(TrafficArrays):
             delalt        = alt - bs.traf.alt[idx]
             # Check for VS with opposite sign => use default vs
             # by setting autopilot vs to zero
-            if bs.traf.selvs[idx] * delalt < 0. and abs(bs.traf.selvs[idx]) > 0.01:
-                bs.traf.selvs[idx] = 0.
+            oppositevs = np.logical_and(bs.traf.selvs[idx] * delalt < 0., abs(bs.traf.selvs[idx]) > 0.01)
+            bs.traf.selvs[idx[oppositevs]] = 0.
 
     def selvspdcmd(self, idx, vspd):
         """ Vertical speed autopilot command: VS acid vspd """
@@ -332,18 +329,21 @@ class Autopilot(TrafficArrays):
     def selhdgcmd(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
         # If there is wind, compute the corresponding track angle
-        if bs.traf.wind.winddim > 0 and bs.traf.alt[idx]>50.*ft:
-            tasnorth = bs.traf.tas[idx] * np.cos(np.radians(hdg))
-            taseast  = bs.traf.tas[idx] * np.sin(np.radians(hdg))
-            vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[idx], bs.traf.lon[idx], bs.traf.alt[idx])
-            gsnorth    = tasnorth + vnwnd
-            gseast     = taseast  + vewnd
-            trk        = np.degrees(np.arctan2(gseast, gsnorth))
-        else:
-            trk = hdg
+        if type(idx) is not np.ndarray:
+            idx = [idx]
+        for i in idx:
+            if bs.traf.wind.winddim > 0 and bs.traf.alt[i]>50.*ft:
+                tasnorth = bs.traf.tas[i] * np.cos(np.radians(hdg))
+                taseast  = bs.traf.tas[i] * np.sin(np.radians(hdg))
+                vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[i], bs.traf.lon[i], bs.traf.alt[i])
+                gsnorth    = tasnorth + vnwnd
+                gseast     = taseast  + vewnd
+                trk        = np.degrees(np.arctan2(gseast, gsnorth))
+            else:
+                trk = hdg
 
-        self.trk[idx]  = trk
-        bs.traf.swlnav[idx] = False
+            self.trk[i]  = trk
+            bs.traf.swlnav[i] = False
         # Everything went ok!
         return True
 
@@ -444,52 +444,69 @@ class Autopilot(TrafficArrays):
                 return False, (self.orig[idx] + " not found.")
 
     def setLNAV(self, idx, flag=None):
-        """ Set LNAV on or off for a specific or for all aircraft """
-        if idx is None:
-            # All aircraft are targeted
-            bs.traf.swlnav = np.array(bs.traf.ntraf * [flag])
+        """ Set LNAV on or off for specific or for all aircraft """
+        if not isinstance(idx, np.ndarray):
+            if idx is None:
+                # All aircraft are targeted
+                bs.traf.swlnav = np.array(bs.traf.ntraf * [flag])
+            else:
+                # Prepare for the loop
+                idx = [idx]
 
-        elif flag is None:
-            return True, (bs.traf.id[idx] + ": LNAV is " + "ON" if bs.traf.swlnav[idx] else "OFF")
+        # Set LNAV for all aircraft in idx array
+        output = []
+        for i in idx:
+            if flag is None:
+                output.append(bs.traf.id[i] + ": LNAV is " + ("ON" if bs.traf.swlnav[i] else "OFF"))
 
-        elif flag:
-            route = self.route[idx]
-            if route.nwp <= 0:
-                return False, ("LNAV " + bs.traf.id[idx] + ": no waypoints or destination specified")
-            elif not bs.traf.swlnav[idx]:
-               bs.traf.swlnav[idx] = True
-               route.direct(idx, route.wpname[route.findact(idx)])
-        else:
-            bs.traf.swlnav[idx] = False
+            elif flag:
+                route = self.route[i]
+                if route.nwp <= 0:
+                    return False, ("LNAV " + bs.traf.id[i] + ": no waypoints or destination specified")
+                elif not bs.traf.swlnav[i]:
+                   bs.traf.swlnav[i] = True
+                   route.direct(i, route.wpname[route.findact(i)])
+            else:
+                bs.traf.swlnav[i] = False
+        if flag == None:
+            return True, '\n'.join(output)
 
     def setVNAV(self, idx, flag=None):
-        """ Set VNAV on or off for a specific or for all aircraft """
-        if idx is None:
-            # All aircraft are targeted
-            bs.traf.swvnav    = np.array(bs.traf.ntraf * [flag])
-            bs.traf.swvnavspd = np.array(bs.traf.ntraf * [flag])
-
-        elif flag is None:
-            msg = bs.traf.id[idx] + ": VNAV is " + "ON" if bs.traf.swvnav[idx] else "OFF"
-            if not bs.traf.swvnavspd[idx]:
-                msg += " but VNAVSPD is OFF"
-            return True, (bs.traf.id[idx] + ": VNAV is " + "ON" if bs.traf.swvnav[idx] else "OFF")
-
-        elif flag:
-            if not bs.traf.swlnav[idx]:
-                return False, (bs.traf.id[idx] + ": VNAV ON requires LNAV to be ON")
-
-            route = self.route[idx]
-            if route.nwp > 0:
-                bs.traf.swvnav[idx]    = True
-                bs.traf.swvnavspd[idx] = True
-                self.route[idx].calcfp()
-                self.ComputeVNAV(idx,self.route[idx].wptoalt[self.route[idx].iactwp],
-                                     self.route[idx].wpxtoalt[self.route[idx].iactwp])
-
+        """ Set VNAV on or off for specific or for all aircraft """
+        if not isinstance(idx, np.ndarray):
+            if idx is None:
+                # All aircraft are targeted
+                bs.traf.swvnav    = np.array(bs.traf.ntraf * [flag])
+                bs.traf.swvnavspd = np.array(bs.traf.ntraf * [flag])
             else:
-                return False, ("VNAV " + bs.traf.id[idx] + ": no waypoints or destination specified")
-        else:
-            bs.traf.swvnav[idx]    = False
-            bs.traf.swvnavspd[idx] = False
+                # Prepare for the loop                
+                idx = [idx]
 
+        # Set VNAV for all aircraft in idx array
+        output = []
+        for i in idx:
+            if flag is None:
+                msg = bs.traf.id[i] + ": VNAV is " + "ON" if bs.traf.swvnav[i] else "OFF"
+                if not bs.traf.swvnavspd[i]:
+                    msg += " but VNAVSPD is OFF"
+                output.append(bs.traf.id[i] + ": VNAV is " + "ON" if bs.traf.swvnav[i] else "OFF")
+
+            elif flag:
+                if not bs.traf.swlnav[i]:
+                    return False, (bs.traf.id[i] + ": VNAV ON requires LNAV to be ON")
+
+                route = self.route[i]
+                if route.nwp > 0:
+                    bs.traf.swvnav[i]    = True
+                    bs.traf.swvnavspd[i] = True
+                    self.route[i].calcfp()
+                    self.ComputeVNAV(i,self.route[i].wptoalt[self.route[i].iactwp],
+                                         self.route[i].wpxtoalt[self.route[i].iactwp])
+
+                else:
+                    return False, ("VNAV " + bs.traf.id[i] + ": no waypoints or destination specified")
+            else:
+                bs.traf.swvnav[i]    = False
+                bs.traf.swvnavspd[i] = False
+        if flag == None:
+            return True, '\n'.join(output)
