@@ -465,7 +465,7 @@ def init(startup_scnfile):
         ],
         "GROUP": [
             "GROUP [grname, (areaname OR acid,...) ]",
-            "[txt,acid,...]",
+            "[txt,acid/txt,...]",
             bs.traf.groups.group,
             "Add aircraft to a group. OR all aircraft in given area.\n" +
             "Returns list of groups when no argument is passed.\n" +
