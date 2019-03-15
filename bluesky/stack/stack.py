@@ -345,13 +345,12 @@ def init(startup_scnfile):
         ],
         "DEL": [
             "DEL acid/ALL/WIND/shape",
-            "acid/txt",
-            lambda a:   bs.traf.delete(a)    if isinstance(a, int) \
-                   else bs.traf.groups.delgroup(a) if hasattr(a,'groupname') \
-                   else bs.traf.delete(a)    if isinstance(a,np.ndarray) \
-                   #else bs.traf.delete_all   if a == "ALL"\
-                   else bs.traf.wind.clear() if a == "WIND" \
-                   else areafilter.deleteArea(a),
+            "acid/txt,...",
+            lambda *a:
+                bs.traf.wind.clear() if isinstance(a[0], str) and a[0] == "WIND" else \
+                areafilter.deleteArea(a[0]) if isinstance(a[0], str) else \
+                bs.traf.groups.delgroup(a[0]) if hasattr(a[0], 'groupname') else \
+                bs.traf.delete(a),
             "Delete command (aircraft, wind, area)"
         ],
         "DELAY": [
