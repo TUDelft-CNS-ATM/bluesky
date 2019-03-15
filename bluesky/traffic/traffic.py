@@ -364,7 +364,7 @@ class Traffic(TrafficArrays):
         # If this is a multiple delete, sort first for list delete
         # (which will use list in reverse order to avoid index confusion)
         if isinstance(idx, Collection):
-            idx.sort()
+            idx = np.sort(idx)
 
         # Call the actual delete function
         super(Traffic, self).delete(idx)
