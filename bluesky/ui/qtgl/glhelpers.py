@@ -252,7 +252,8 @@ class RenderObject(object):
         self.bind()
 
         if self.single_colour is not None:
-            gl.glVertexAttrib4Nub(self.attrib_color, *self.single_colour)
+            normcolor = [c / 255 for c in self.single_colour]
+            gl.glVertexAttrib4f(self.attrib_color, *normcolor)
 
         if n_instances > 0:
             gl.glDrawArraysInstanced(primitive_type, first_vertex, vertex_count, n_instances * self.max_instance_divisor)
