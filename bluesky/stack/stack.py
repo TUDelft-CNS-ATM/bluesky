@@ -190,12 +190,6 @@ def init(startup_scnfile):
             bs.sim.addnodes,
             "Add a simulation instance/node"
         ],
-        "ADDTOGROUP": [
-            "ADDTOGROUP grname, acid",
-            "txt,acid,...",
-            bs.traf.groups.AddMembers,
-            "Add an aircraft to a group"
-        ], 
         "ADDWPT": [
             "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
             "acid,wpt/txt,[alt,spd,wpinroute,wpinroute]",
@@ -353,7 +347,7 @@ def init(startup_scnfile):
             "DEL acid/ALL/WIND/shape",
             "acid/txt",
             lambda a:   bs.traf.delete(a)    if isinstance(a, int) \
-                   else bs.traf.groups.deletegroup(a) if hasattr(a,'groupname') \
+                   else bs.traf.groups.delgroup(a) if hasattr(a,'groupname') \
                    else bs.traf.delete(a)    if isinstance(a,np.ndarray) \
                    #else bs.traf.delete_all   if a == "ALL"\
                    else bs.traf.wind.clear() if a == "WIND" \
@@ -366,12 +360,6 @@ def init(startup_scnfile):
             lambda time,*args: sched_cmd(time, args, relative=True),
             "Add a delayed command to stack"
         ],
-        "DELFROMGROUP": [
-            "DELFROMGROUP grname, acid",
-            "txt,acid,...",
-            bs.traf.groups.RemoveMembers,
-            "Remove aircraft from a group"
-        ],         
         "DELRTE": [
             "DELRTE acid",
             "acid",
@@ -476,11 +464,14 @@ def init(startup_scnfile):
             "Get wind at a specified position (and optionally at altitude)"
         ],
         "GROUP": [
-            "GROUP grname, [areaname]",
-            "txt,[txt]",
-            bs.traf.groups.Create,
-            "Create a group of aircraft"
-        ],           
+            "GROUP [grname, (areaname OR acid,...) ]",
+            "[txt,acid,...]",
+            bs.traf.groups.group,
+            "Add aircraft to a group. OR all aircraft in given area.\n" +
+            "Returns list of groups when no argument is passed.\n" +
+            "Returns list of aircraft in group when only a groupname is passed.\n" +
+            "A group is created when a group with the given name doesn't exist yet."
+        ],
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
@@ -523,18 +514,6 @@ def init(startup_scnfile):
             lambda name, *coords: areafilter.defineArea(name, 'LINE', coords),
             "Draw a line on the radar screen"
         ],
-        "LISTGROUP": [
-            "LISTGROUP grname",
-            "txt",
-            bs.traf.groups.ListMembers,
-            "Show list of aircraft in a group"
-        ],
-        "LISTGROUPS": [
-            "LISTGROUPS",
-            "",
-            bs.traf.groups.ListGroups,
-            "Show list of all current groups"
-        ],        
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
@@ -800,7 +779,12 @@ def init(startup_scnfile):
             bs.traf.trails.setTrails,
             "Toggle aircraft trails on/off"
         ],
-
+        "UNGROUP": [
+            "UNGROUP grname, acid",
+            "txt,acid,...",
+            bs.traf.groups.ungroup,
+            "Remove aircraft from a group"
+        ],
         "VNAV": [
             "VNAV acid,[ON/OFF]",
             "acid,[onoff]",
@@ -1621,7 +1605,7 @@ class Argparser:
 
         elif argtype == "acid":  # aircraft id => parse index
             if curarg in bs.traf.groups:
-                idx = bs.traf.groups.Membersidx(curarg)
+                idx = bs.traf.groups.listgroup(curarg)
             else:
                 idx = bs.traf.id2idx(curarg)
 
