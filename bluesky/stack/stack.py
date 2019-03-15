@@ -190,6 +190,12 @@ def init(startup_scnfile):
             bs.sim.addnodes,
             "Add a simulation instance/node"
         ],
+        "ADDTOGROUP": [
+            "ADDTOGROUP grname, acid",
+            "txt,acid,...",
+            bs.traf.groups.AddMembers,
+            "Add an aircraft to a group"
+        ], 
         "ADDWPT": [
             "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
             "acid,wpt/txt,[alt,spd,wpinroute,wpinroute]",
@@ -347,7 +353,9 @@ def init(startup_scnfile):
             "DEL acid/ALL/WIND/shape",
             "acid/txt",
             lambda a:   bs.traf.delete(a)    if isinstance(a, int) \
-                   else bs.traf.delete_all   if a == "ALL"\
+                   else bs.traf.groups.deletegroup(a) if hasattr(a,'groupname') \
+                   else bs.traf.delete(a)    if isinstance(a,np.ndarray) \
+                   #else bs.traf.delete_all   if a == "ALL"\
                    else bs.traf.wind.clear() if a == "WIND" \
                    else areafilter.deleteArea(a),
             "Delete command (aircraft, wind, area)"
@@ -358,6 +366,12 @@ def init(startup_scnfile):
             lambda time,*args: sched_cmd(time, args, relative=True),
             "Add a delayed command to stack"
         ],
+        "DELFROMGROUP": [
+            "DELFROMGROUP grname, acid",
+            "txt,acid,...",
+            bs.traf.groups.RemoveMembers,
+            "Remove aircraft from a group"
+        ],         
         "DELRTE": [
             "DELRTE acid",
             "acid",
@@ -461,6 +475,12 @@ def init(startup_scnfile):
             bs.traf.wind.get,
             "Get wind at a specified position (and optionally at altitude)"
         ],
+        "GROUP": [
+            "GROUP grname, [areaname]",
+            "txt,[txt]",
+            bs.traf.groups.Create,
+            "Create a group of aircraft"
+        ],           
         "HDG": [
             "HDG acid,hdg (deg,True)",
             "acid,float",
@@ -503,6 +523,18 @@ def init(startup_scnfile):
             lambda name, *coords: areafilter.defineArea(name, 'LINE', coords),
             "Draw a line on the radar screen"
         ],
+        "LISTGROUP": [
+            "LISTGROUP grname",
+            "txt",
+            bs.traf.groups.ListMembers,
+            "Show list of aircraft in a group"
+        ],
+        "LISTGROUPS": [
+            "LISTGROUPS",
+            "",
+            bs.traf.groups.ListGroups,
+            "Show list of all current groups"
+        ],        
         "LISTRTE": [
             "LISTRTE acid, [pagenr]",
             "acid,[int]",
@@ -1529,16 +1561,17 @@ class Argparser:
                 result = self.parse_arg(argtypei)
                 if result:
                     # No value = None when this is allowed because it is an optional argument
-                    if None in result:
-                        if not self.argisopt[curtype]:
-                            self.error = 'No value given for mandatory argument ' + \
-                                self.argtypes[curtype]
-                            return False
-                        # If we have other default values than None, use those
-                        for i, v in enumerate(result):
-                            if v is None and self.argdefaults:
-                                result[i] = self.argdefaults[0]
-                                print('using default value from function: {}'.format(result[i]))
+                    if not isinstance(result[0],np.ndarray):
+                        if None in result:
+                            if not self.argisopt[curtype]:
+                                self.error = 'No value given for mandatory argument ' + \
+                                    self.argtypes[curtype]
+                                return False
+                            # If we have other default values than None, use those
+                            for i, v in enumerate(result):
+                                if v is None and self.argdefaults:
+                                    result[i] = self.argdefaults[0]
+                                    print('using default value from function: {}'.format(result[i]))
 
                     self.arglist += result
 
@@ -1587,16 +1620,19 @@ class Argparser:
             self.argstring = ''
 
         elif argtype == "acid":  # aircraft id => parse index
-            idx = bs.traf.id2idx(curarg)
+            if curarg in bs.traf.groups:
+                idx = bs.traf.groups.Membersidx(curarg)
+            else:
+                idx = bs.traf.id2idx(curarg)
 
-            if idx < 0:
-                self.error += curarg + " not found"
-                return False
+                if idx < 0:
+                    self.error += curarg + " not found"
+                    return False
 
-            # Update ref position for navdb lookup
-            Argparser.reflat = bs.traf.lat[idx]
-            Argparser.reflon = bs.traf.lon[idx]
-            self.refac   = idx
+                # Update ref position for navdb lookup
+                Argparser.reflat = bs.traf.lat[idx]
+                Argparser.reflon = bs.traf.lon[idx]
+                self.refac   = idx
             result  = [idx]
 
         # Empty arg or wildcard
