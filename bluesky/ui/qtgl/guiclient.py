@@ -113,6 +113,7 @@ class nodeData(object):
         # Clear all scenario-specific data for sender node
         self.polys = dict()
         self.custacclr = dict()
+        self.custgrclr = dict()
         self.custwplbl = ''
         self.custwplat = np.array([], dtype=np.float32)
         self.custwplon = np.array([], dtype=np.float32)
@@ -159,9 +160,11 @@ class nodeData(object):
         if zoom:
             self.zoom = zoom * (1.0 if absolute else self.zoom)
 
-    def update_color_data(self, color, acid=None, polyid=None):
+    def update_color_data(self, color, acid=None, groupid=None, polyid=None):
         if acid:
             self.custacclr[acid] = tuple(color)
+        elif groupid:
+            self.custgrclr[groupid] = tuple(color)
         else:
             contourbuf, fillbuf, colorbuf = self.polys.get(polyid)
             color = tuple(color) + (255,)

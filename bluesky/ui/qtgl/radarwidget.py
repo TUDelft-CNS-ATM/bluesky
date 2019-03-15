@@ -722,9 +722,9 @@ class RadarWidget(QGLWidget):
             selssd = np.zeros(self.naircraft, dtype=np.uint8)
             confidx = 0
 
-            zdata = zip(data.id, data.inconf, data.tcpamax, data.trk, data.gs,
+            zdata = zip(data.id, data.ingroup, data.inconf, data.tcpamax, data.trk, data.gs,
                         data.cas, data.vs, data.alt, data.lat, data.lon)
-            for i, (acid, inconf, tcpa, trk, gs, cas, vs, alt, lat, lon) in enumerate(zdata):
+            for i, (acid, ingroup, inconf, tcpa, trk, gs, cas, vs, alt, lat, lon) in enumerate(zdata):
                 if i >= MAX_NAIRCRAFT:
                     break
 
@@ -750,7 +750,13 @@ class RadarWidget(QGLWidget):
                     confidx += 1
                 else:
                     # Get custom color if available, else default
-                    rgb = actdata.custacclr.get(acid, palette.aircraft)
+                    rgb = palette.aircraft
+                    if ingroup:
+                        for groupmask, groupcolor in actdata.custgrclr.items():
+                            if ingroup & groupmask:
+                                rgb = groupcolor
+                                break
+                    rgb = actdata.custacclr.get(acid, rgb)
                     color[i, :] = tuple(rgb) + (255,)
 
                 #  Check if aircraft is selected to show SSD

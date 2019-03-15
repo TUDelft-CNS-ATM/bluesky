@@ -33,8 +33,9 @@ class ScreenIO(object):
         self.client_ar   = dict()
         self.route_acid  = dict()
 
-        # Dict of custom aircraft colors
+        # Dicts of custom aircraft and group colors
         self.custacclr = dict()
+        self.custgrclr = dict()
 
         # Timing bookkeeping counters
         self.prevtime    = 0.0
@@ -57,6 +58,7 @@ class ScreenIO(object):
 
     def reset(self):
         self.custacclr = dict()
+        self.custgrclr = dict()
         self.samplecount = 0
         self.prevcount   = 0
         self.prevtime    = 0.0
@@ -103,7 +105,11 @@ class ScreenIO(object):
     def color(self, name, r, g, b):
         ''' Set custom color for aircraft or shape. '''
         data = dict(color=(r, g, b))
-        if name in bs.traf.id:
+        if name in bs.traf.groups:
+            groupmask = bs.traf.groups.groups[name]
+            data['groupid'] = groupmask
+            self.custgrclr[groupmask] = (r, g, b)
+        elif name in bs.traf.id:
             data['acid'] = name
             self.custacclr[name] = (r, g, b)
         elif areafilter.hasArea(name):
@@ -218,6 +224,7 @@ class ScreenIO(object):
         data['tas']        = bs.traf.tas
         data['cas']        = bs.traf.cas
         data['gs']         = bs.traf.gs
+        data['ingroup']    = bs.traf.groups.ingroup
         data['inconf'] = bs.traf.asas.inconf
         data['tcpamax'] = bs.traf.asas.tcpamax
         data['nconf_cur'] = len(bs.traf.asas.confpairs_unique)
