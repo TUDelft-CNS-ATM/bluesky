@@ -42,7 +42,8 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         double tcpamax_ac = 0.0;
 
         // Return values
-        PyDoubleArrayAttr inconf(size), tcpamax(size);
+        PyDoubleArrayAttr tcpamax(size);
+        PyBoolArrayAttr inconf(size);
         PyListAttr confpairs, lospairs, qdr, dist, dcpa, tcpa, tinconf;
 
         // Pre-calculate intruder data
@@ -54,6 +55,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         for (unsigned int i = 0; i < size; ++i) {
             ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
             pll2 = ll2.begin();
+            acinconf = NPY_FALSE;
             for (unsigned int j = 0; j < size; ++j) {
                 if (i != j) {
                     // Vectical detection first

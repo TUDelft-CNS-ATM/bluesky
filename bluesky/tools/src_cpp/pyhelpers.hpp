@@ -17,7 +17,7 @@ struct PyAttr {
     ~PyAttr() {Py_XDECREF(attr);}
 };
 
-template<typename T>
+template<typename T, int T_ENUM>
 struct PyArrayAttr: public PyAttr {
     T *ptr, *ptr_start;
     PyArrayObject* arr;
@@ -30,7 +30,7 @@ struct PyArrayAttr: public PyAttr {
     PyArrayAttr(const int length) : PyAttr(NULL) {
         int nd = 1;
         npy_intp dims[] = {length};
-        arr = (PyArrayObject*)PyArray_SimpleNew(nd, dims, NPY_DOUBLE);
+        arr = (PyArrayObject*)PyArray_SimpleNew(nd, dims, T_ENUM);
         if (arr != NULL) {
             ptr_start = ptr = (T*)PyArray_DATA(arr);
         }
@@ -53,8 +53,8 @@ struct PyArrayAttr: public PyAttr {
     npy_intp size() const {return PyArray_SIZE(arr);}
 };
 
-typedef PyArrayAttr<double> PyDoubleArrayAttr;
-typedef PyArrayAttr<npy_bool> PyBoolArrayAttr;
+typedef PyArrayAttr<double, NPY_DOUBLE> PyDoubleArrayAttr;
+typedef PyArrayAttr<npy_bool, NPY_BOOL> PyBoolArrayAttr;
 
 struct PyListAttr: public PyAttr {
     PyListAttr(int size=0) : PyAttr(PyList_New(size)) {}
