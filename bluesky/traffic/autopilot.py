@@ -320,11 +320,13 @@ class Autopilot(TrafficArrays):
             bs.traf.selvs[idx] = vspd
         else:
             if not isinstance(idx, Collection):
-                idx = [idx]
+                idx = np.array([idx])
             delalt        = alt - bs.traf.alt[idx]
             # Check for VS with opposite sign => use default vs
             # by setting autopilot vs to zero
             oppositevs = np.logical_and(bs.traf.selvs[idx] * delalt < 0., abs(bs.traf.selvs[idx]) > 0.01)
+            print(idx)
+            print(oppositevs)
             bs.traf.selvs[idx[oppositevs]] = 0.
 
     def selvspdcmd(self, idx, vspd):
@@ -337,7 +339,7 @@ class Autopilot(TrafficArrays):
         """ Select heading command: HDG acid, hdg """
         # If there is wind, compute the corresponding track angle
         if not isinstance(idx, Collection):
-                idx = [idx]
+                idx = np.array([idx])
         for i in idx:
             if bs.traf.wind.winddim > 0 and bs.traf.alt[i]>50.*ft:
                 tasnorth = bs.traf.tas[i] * np.cos(np.radians(hdg))
@@ -458,7 +460,7 @@ class Autopilot(TrafficArrays):
                 bs.traf.swlnav = np.array(bs.traf.ntraf * [flag])
             else:
                 # Prepare for the loop
-                idx = [idx]
+                idx = np.array([idx])
 
         # Set LNAV for all aircraft in idx array
         output = []
@@ -487,7 +489,7 @@ class Autopilot(TrafficArrays):
                 bs.traf.swvnavspd = np.array(bs.traf.ntraf * [flag])
             else:
                 # Prepare for the loop                
-                idx = [idx]
+                idx = np.array([idx])
 
         # Set VNAV for all aircraft in idx array
         output = []
