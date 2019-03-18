@@ -325,8 +325,7 @@ class Autopilot(TrafficArrays):
             # Check for VS with opposite sign => use default vs
             # by setting autopilot vs to zero
             oppositevs = np.logical_and(bs.traf.selvs[idx] * delalt < 0., abs(bs.traf.selvs[idx]) > 0.01)
-            print(idx)
-            print(oppositevs)
+
             bs.traf.selvs[idx[oppositevs]] = 0.
 
     def selvspdcmd(self, idx, vspd):
