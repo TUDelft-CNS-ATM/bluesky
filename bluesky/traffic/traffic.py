@@ -205,12 +205,12 @@ class Traffic(TrafficArrays):
 
         if aclat is None:
             aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
-        elif isinstance(aclat, float):
+        elif isinstance(aclat, (float, int)):
             aclat = np.array(n * [aclat])
 
         if aclon is None:
             aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
-        elif isinstance(aclon, float):
+        elif isinstance(aclon, (float, int)):
             aclon = np.array(n * [aclon])
 
         # Limit longitude to [-180.0, 180.0]
@@ -223,17 +223,17 @@ class Traffic(TrafficArrays):
 
         if achdg is None:
             achdg = np.random.randint(1, 360, n)
-        elif isinstance(achdg, float):
+        elif isinstance(achdg, (float, int)):
             achdg = np.array(n * [achdg])
 
         if acalt is None:
             acalt = np.random.randint(2000, 39000, n) * ft
-        elif isinstance(acalt, float):
+        elif isinstance(acalt, (float, int)):
             acalt = np.array(n * [acalt])
 
         if acspd is None:
             acspd = np.random.randint(250, 450, n) * kts
-        elif isinstance(acspd, float):
+        elif isinstance(acspd,(float, int)):
             acspd = np.array(n * [acspd])
 
         actype = n * [actype] if isinstance(actype, str) else actype
