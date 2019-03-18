@@ -1,6 +1,11 @@
 """ Autopilot Implementation."""
 from math import sin, cos, radians
 import numpy as np
+try:
+    from collections.abc import Collection
+except ImportError:
+    # In python <3.3 collections.abc doesn't exist
+    from collections import Collection
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.position import txt2pos
@@ -314,6 +319,8 @@ class Autopilot(TrafficArrays):
         if vspd:
             bs.traf.selvs[idx] = vspd
         else:
+            if not isinstance(idx, Collection):
+                idx = [idx]
             delalt        = alt - bs.traf.alt[idx]
             # Check for VS with opposite sign => use default vs
             # by setting autopilot vs to zero
@@ -329,8 +336,8 @@ class Autopilot(TrafficArrays):
     def selhdgcmd(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
         # If there is wind, compute the corresponding track angle
-        if type(idx) is not np.ndarray:
-            idx = [idx]
+        if not isinstance(idx, Collection):
+                idx = [idx]
         for i in idx:
             if bs.traf.wind.winddim > 0 and bs.traf.alt[i]>50.*ft:
                 tasnorth = bs.traf.tas[i] * np.cos(np.radians(hdg))
@@ -445,7 +452,7 @@ class Autopilot(TrafficArrays):
 
     def setLNAV(self, idx, flag=None):
         """ Set LNAV on or off for specific or for all aircraft """
-        if not isinstance(idx, np.ndarray):
+        if not isinstance(idx, Collection):
             if idx is None:
                 # All aircraft are targeted
                 bs.traf.swlnav = np.array(bs.traf.ntraf * [flag])
@@ -473,7 +480,7 @@ class Autopilot(TrafficArrays):
 
     def setVNAV(self, idx, flag=None):
         """ Set VNAV on or off for specific or for all aircraft """
-        if not isinstance(idx, np.ndarray):
+        if not isinstance(idx, Collection):
             if idx is None:
                 # All aircraft are targeted
                 bs.traf.swvnav    = np.array(bs.traf.ntraf * [flag])
