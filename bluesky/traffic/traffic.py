@@ -87,6 +87,7 @@ class Traffic(TrafficArrays):
             # Positions
             self.lat     = np.array([])  # latitude [deg]
             self.lon     = np.array([])  # longitude [deg]
+            self.distflown = np.array([])  # distance travelled [m]
             self.alt     = np.array([])  # altitude [m]
             self.hdg     = np.array([])  # traffic heading [deg]
             self.trk     = np.array([])  # track angle [deg]
@@ -477,6 +478,7 @@ class Traffic(TrafficArrays):
         self.lat = self.lat + np.degrees(simdt * self.gsnorth / Rearth)
         self.coslat = np.cos(np.deg2rad(self.lat))
         self.lon = self.lon + np.degrees(simdt * self.gseast / self.coslat / Rearth)
+        self.distflown += self.gs * simdt
 
     def id2idx(self, acid):
         """Find index of aircraft id"""
