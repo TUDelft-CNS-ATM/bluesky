@@ -15,8 +15,6 @@ def plot(varx='', vary='', dt=1.0, fig=None, **params):
     try:
         newplot = Plot(varx, vary, dt, fig, **params)
         plots.append(newplot)
-        data = {newplot.fig: params}
-        bs.net.send_stream(newplot.stream_id, data)
         return True
     except IndexError as e:
         return False, e.args[0]
@@ -73,5 +71,9 @@ class Plot(object):
         if None in (self.x, self.y):
             raise IndexError('Variable {} not found'.format(varx if self.x is None else (vary or varx)))
 
-        if not self.x.is_num() or not self.y.is_num():
-            raise IndexError('Variable {} not numeric'.format(varx if not self.x.is_num() else (vary or varx)))
+        # if not self.x.is_num() or not self.y.is_num():
+        #     raise IndexError('Variable {} not numeric'.format(varx if not self.x.is_num() else (vary or varx)))
+        bs.net.send_stream(self.stream_id, {self.fig: params})
+
+    def send(self):
+        bs.net.send_stream(self.stream_id, {self.fig : dict(x=self.x.get(), y=self.y.get())})
