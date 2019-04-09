@@ -10,16 +10,16 @@ modified, cited, etc. without any limitations.
 
 ## BlueSky Releases
 If you are not (yet) interested in reading and editing the source of BlueSky, you can also download a release version of BlueSky, that you can install directly, without having to worry about python and library dependencies. You can find the latest release here:
-https://github.com/ProfHoekstra/bluesky/releases
+https://github.com/TUDelft-CNS-ATM/bluesky/releases
 
 ## BlueSky Wiki
 Installation and user guides are accessible at:
-https://github.com/ProfHoekstra/bluesky/wiki
+https://github.com/TUDelft-CNS-ATM/bluesky/wiki
 
 ## Some features of BlueSky:
 - Written in the freely available, ultra-simple-hence-easy-to-learn, multi-platform language
 Python 3 (using numpy and either pygame or Qt+OpenGL for visualisation) with source
-- Extensible by means of self-contained [plugins](https://github.com/ProfHoekstra/bluesky/wiki/plugin)
+- Extensible by means of self-contained [plugins](https://github.com/TUDelft-CNS-ATM/bluesky/wiki/plugin)
 - Contains open source data on navaids, performance data of aircraft and geography
 - Global coverage navaid and airport data
 - Contains simulations of aircraft performance, flight management system (LNAV, VNAV under construction),

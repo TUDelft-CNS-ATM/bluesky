@@ -271,7 +271,7 @@ def init(startup_scnfile):
         ],
         "BENCHMARK": [
             "BENCHMARK [scenfile,time]",
-            "[txt,time]",
+            "[string,time]",
             bs.sim.benchmark,
             "Run benchmark"
 
