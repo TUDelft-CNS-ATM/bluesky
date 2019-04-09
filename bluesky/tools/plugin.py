@@ -109,6 +109,7 @@ def init(mode):
 preupdate_funs = dict()
 update_funs    = dict()
 reset_funs     = dict()
+remove_funs    = dict()
 
 def load(name):
     ''' Load a plugin. '''
@@ -128,12 +129,15 @@ def load(name):
         prefun = config.get('preupdate')
         updfun = config.get('update')
         rstfun = config.get('reset')
+        remfun = config.get('remove')
         if prefun:
             preupdate_funs[name] = [bs.sim.simt + dt, dt, prefun]
         if updfun:
             update_funs[name]    = [bs.sim.simt + dt, dt, updfun]
         if rstfun:
             reset_funs[name]     = rstfun
+        if remfun:
+            remove_funs[name] = remfun
         # Add the plugin's stack functions to the stack
         bs.stack.append_commands(stackfuns)
         # Add the plugin as data parent to the variable explorer
@@ -151,12 +155,17 @@ def remove(name):
     if preset:
         # Call module reset first to clear plugin state just in case.
         preset()
+    # Call plugin remove for plugins that have one
+    for fun in remove_funs.values():
+        fun()
     descr  = plugin_descriptions.get(name)
     cmds, _ = list(zip(*descr.plugin_stack))
     bs.stack.remove_commands(cmds)
     active_plugins.pop(name)
     preupdate_funs.pop(name)
     update_funs.pop(name)
+    remove_funs.pop(name)
+    return True, 'Successfully removed plugin {}'.format(name)
 
 def preupdate(simt):
     ''' Update function executed before traffic update.'''
