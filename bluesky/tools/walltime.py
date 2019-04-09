@@ -1,12 +1,15 @@
 """ BlueSky implementation of a timer that can periodically trigger functions."""
 import time
+from collections import OrderedDict
 from bluesky.tools.signal import Signal
 
 
 class Timer(object):
-    """ A timer can be used to periodically trigger functions."""
-    # A list with all of the instantiated timers
-    timers  = []
+    """ A timer can be used to periodically (wall-time) trigger functions."""
+
+    # Data that the wall clock needs to keep
+    timers = []
+
 
     def __init__(self):
         super(Timer, self).__init__()

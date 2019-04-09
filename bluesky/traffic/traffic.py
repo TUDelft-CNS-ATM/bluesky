@@ -389,13 +389,12 @@ class Traffic(TrafficArrays):
         self.adsb.update(simt)
 
         #---------- Fly the Aircraft --------------------------
-        self.ap.update(simt)     # Autopilot logic
-        self.asas.update(simt)   # Airboren Separation Assurance
+        self.ap.update()  # Autopilot logic
+        self.asas.update()  # Airboren Separation Assurance
         self.pilot.APorASAS()    # Decide autopilot or ASAS
 
-        #---------- OpenAP Performance Update ------------------------
-        if settings.performance_model == 'openap':
-            self.perf.update(simt)
+        #---------- Performance Update ------------------------
+        self.perf.update()
 
         #---------- Limit Speeds ------------------------------
         self.pilot.applylimits()
@@ -404,10 +403,6 @@ class Traffic(TrafficArrays):
         self.UpdateAirSpeed(simdt, simt)
         self.UpdateGroundSpeed(simdt)
         self.UpdatePosition(simdt)
-
-        #---------- Legacy and BADA Performance Update ------------------------
-        if settings.performance_model != 'openap':
-            self.perf.perf(simt)
 
         #---------- Simulate Turbulence -----------------------
         self.turbulence.Woosh(simdt)

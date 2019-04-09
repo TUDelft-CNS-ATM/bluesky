@@ -1,13 +1,15 @@
 """ BlueSky aircraft performance calculations using BADA 3.xx."""
 import numpy as np
 import bluesky as bs
+from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path_bada='data/performance/BADA', verbose=False)
+settings.set_variable_defaults(perf_path_bada='data/performance/BADA', 
+                               performance_dt=1.0, verbose=False)
 
 from . import coeff_bada
 if not coeff_bada.init(settings.perf_path_bada):
@@ -38,8 +40,6 @@ class PerfBADA(TrafficArrays):
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
         # Flight performance scheduling
-        self.dt  = 0.1           # [s] update interval of performance limits
-        self.t0  = -self.dt  # [s] last time checked (in terms of simt)
         self.warned2 = False        # Flag: Did we warn for default engine parameters yet?
 
         # Register the per-aircraft parameter arrays
@@ -163,11 +163,6 @@ class PerfBADA(TrafficArrays):
 
     def engchange(self, acid, engid=None):
         return False, "BADA performance model doesn't allow changing engine type"
-
-    def reset(self):
-        ''' Reset performance model states and trigger time. '''
-        super().reset()
-        self.t0 = -self.dt
 
     def create(self, n=1):
         super(PerfBADA, self).create(n)
@@ -337,13 +332,8 @@ class PerfBADA(TrafficArrays):
         # for now, BADA aircraft have the same acceleration as deceleration
         self.gr_acc[-n:]    = coeff.gr_acc
 
-    def perf(self, simt):
-        if simt - self.t0 >= self.dt:
-            # Actual dt can vary due to float roundoff errors
-            dt_act = simt - self.t0
-            self.t0 = simt
-        else:
-            return
+    @timed_function('performance', dt=settings.performance_dt)
+    def update(self, dt=settings.performance_dt):
         """AIRCRAFT PERFORMANCE"""
         # BADA version
         swbada = True
@@ -557,7 +547,7 @@ class PerfBADA(TrafficArrays):
         self.ff = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
 
         # update mass
-        self.mass = self.mass - self.ff * dt_act # Use fuelflow in kg/min
+        self.mass = self.mass - self.ff * dt # Use fuelflow in kg/min
 
 
 

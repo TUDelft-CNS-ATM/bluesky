@@ -157,7 +157,7 @@ class Simulation:
         self.tprev = self.simt-0.001  # allow 1 msec step rto avoid div by zero
         return
 
-    def setDt(self, dt):
+    def setdt(self, dt):
         self.fixdt = abs(dt)
 
     def setDtMultiplier(self, mult=None):

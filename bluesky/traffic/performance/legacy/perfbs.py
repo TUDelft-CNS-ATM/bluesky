@@ -4,6 +4,7 @@ import os
 from math import *
 import numpy as np
 import bluesky as bs
+from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
@@ -13,7 +14,8 @@ from bluesky import settings
 from bluesky.traffic.performance.legacy.coeff_bs import CoeffBS
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/performance/BS', verbose=False)
+settings.set_variable_defaults(perf_path='data/performance/BS', 
+                               performance_dt=1.0, verbose=False)
 coeffBS = CoeffBS()
 
 
@@ -25,10 +27,6 @@ class PerfBS(TrafficArrays):
 
         # prepare for coefficient readin
         coeffBS.coeff()
-
-        # Flight performance scheduling
-        self.dt  = 0.1           # [s] update interval of performance limits
-        self.t0  = -self.dt  # [s] last time checked (in terms of simt)
 
         with RegisterElementParameters(self):
             # index of aircraft types in library
@@ -197,11 +195,8 @@ class PerfBS(TrafficArrays):
         self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx])
         self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx])
 
-    def perf(self,simt):
-        if abs(simt - self.t0) >= self.dt:
-            self.t0 = simt
-        else:
-            return
+    @timed_function('performance', dt=settings.performance_dt)
+    def update(self, dt=settings.performance_dt):
         """Aircraft performance"""
         swbada = False # no-bada version
 

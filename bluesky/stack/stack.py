@@ -396,9 +396,9 @@ def init(startup_scnfile):
             "Show extended help window for given command, or the main documentation page if no command is given."
         ],
         "DT": [
-            "DT dt",
-            "float",
-            bs.sim.setDt,
+            "DT [dt] OR [target,dt]",
+            "[float/txt,float]",
+            lambda *args: bs.sim.setdt(*reversed(args)),
             "Set simulation time step"
         ],
         "DTLOOK": [

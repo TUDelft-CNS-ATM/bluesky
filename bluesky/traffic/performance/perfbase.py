@@ -3,7 +3,7 @@ from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 class PerfBase(TrafficArrays):
     def __init__(self):
-        super(PerfBase, self).__init__()
+        super().__init__()
 
         with RegisterElementParameters(self):
             # --- fixed parameters ---
@@ -30,7 +30,7 @@ class PerfBase(TrafficArrays):
     def reset(self):
         super(PerfBase, self).reset()
 
-    def update(self, simt):
+    def update(self):
         """implement this methods"""
         pass
 
