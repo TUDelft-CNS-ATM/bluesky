@@ -122,6 +122,6 @@ def timed_function(name, dt=1.0):
         timer = Timer(name, dt)
         def wrapper(*args, **kwargs):
             if timer.readynext():
-                return fun(*args, **kwargs, dt=timer.elapsed())
+                return fun(*args, **kwargs, dt=float(timer.dt_act))
         return wrapper
     return decorator
