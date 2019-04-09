@@ -33,4 +33,3 @@ containing the same commands with a time stamp before the command ("HH:MM:SS.hh>
 ## Contributions
 BlueSky is still under heavy development. We would like to encourage anyone with a strong interest in
 ATM and/or Python to join us. Please feel free to comment, criticise, and contribute to this project. Please send suggestions, proposed changes or contributions through GitHub pull requests, preferably after debugging it and optimising it for run-time performance.
-You can also join the discussion [here](https://github.com/orgs/TUDelft-CNS-ATM/teams/bluesky-contributors/discussions)
