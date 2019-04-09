@@ -7,7 +7,7 @@ from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.openap import coeff, thrust
 from bluesky.traffic.performance.openap import phase as ph
 
-bs.settings.RegisterElementParameters(performance_dt=1.0)
+bs.settings.set_variable_defaults(performance_dt=1.0)
 
 class OpenAP(PerfBase):
     """
@@ -47,6 +47,14 @@ class OpenAP(PerfBase):
             self.cd0_ap = np.array([])  # Cd0, landing
             self.cd0_ld = np.array([])  # Cd0, landing
             self.k = np.array([])  # induced drag coeff
+
+            self.vmin = np.array([])
+            self.vmax = np.array([])
+            self.vsmin = np.array([])
+            self.vsmax = np.array([])
+            self.hmax = np.array([])
+            self.axmax = np.array([])
+            self.vminto = np.array([])
 
     def create(self, n=1):
         # cautious! considering multiple created aircraft with same type
