@@ -62,10 +62,8 @@ class Autopilot(TrafficArrays):
 
     @timed_function('fms', dt=bs.settings.fms_dt)
     def update_fms(self, qdr, dist, dt=bs.settings.fms_dt):
-        print(bs.sim.simt, 'FMS route update')
         # Shift waypoints for aircraft i where necessary
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby):
-
             # Save current wp speed for use on next leg when we pass this waypoint
             # VNAV speeds are always FROM-speed, so we accelerate/decellerate at the waypoint
             # where this speed is specified, so we need to save it for use now
