@@ -11,10 +11,17 @@ from bluesky.tools import varexplorer as ve
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
 
-# Dict of descriptions of plugins found for this instance of bluesky
+# Dict of descriptions of plugins found for this instance of BlueSky
 plugin_descriptions = dict()
-# Dict of loaded plugins for this instance of bluesky
+
+# Dict of loaded plugins for this instance of BlueSky
 active_plugins = dict()
+
+# Sim implementation of plugin management
+preupdate_funs = dict()
+update_funs    = dict()
+reset_funs     = dict()
+remove_funs    = dict()
 
 class Plugin(object):
     def __init__(self, fname):
@@ -104,56 +111,64 @@ def init(mode):
         success = load(pname.upper())
         print(success[1])
 
-
-# Sim implementation of plugin management
-preupdate_funs = dict()
-update_funs    = dict()
-reset_funs     = dict()
-remove_funs    = dict()
-
 def load(name):
-    ''' Load a plugin. '''
+    """ Load plugin 'name'. """
+
     try:
         if name in active_plugins:
             return False, 'Plugin %s already loaded' % name
         descr  = plugin_descriptions.get(name)
         if not descr:
             return False, 'Error loading plugin: plugin %s not found.' % name
+
         # Load the plugin
         mod    = imp.find_module(descr.module_name, [descr.module_path])
         plugin = imp.load_module(descr.module_name, *mod)
+
         # Initialize the plugin
         config, stackfuns    = plugin.init_plugin()
         active_plugins[name] = plugin
+
+        # Add the functions of the current plugin to the plugin management dictionaries
         dt     = max(config.get('update_interval', 0.0), bs.sim.simdt)
         prefun = config.get('preupdate')
         updfun = config.get('update')
         rstfun = config.get('reset')
         remfun = config.get('remove')
+
         if prefun:
             preupdate_funs[name] = [bs.sim.simt + dt, dt, prefun]
         if updfun:
-            update_funs[name]    = [bs.sim.simt + dt, dt, updfun]
+            update_funs[name] = [bs.sim.simt + dt, dt, updfun]
         if rstfun:
-            reset_funs[name]     = rstfun
+            reset_funs[name] = rstfun
         if remfun:
             remove_funs[name] = remfun
+
         # Add the plugin's stack functions to the stack
         bs.stack.append_commands(stackfuns)
+
         # Add the plugin as data parent to the variable explorer
         ve.register_data_parent(plugin, name.lower())
+
         return True, 'Successfully loaded plugin %s' % name
     except ImportError as e:
         print('BlueSky plugin system failed to load', name, ':', e)
         return False, 'Failed to load %s' % name
 
 def remove(name):
-    ''' Remove a loaded plugin. '''
+    """ Remove plugin 'name'. """
+
     if name not in active_plugins:
-        return False, 'Plugin %s not loaded' % name
+        return False, "Plugin {} not loaded".format(name)
+
+    # NOTE: This may be redundant now that the remove() function exists - kept it in
+    # for now to ensure compatibility with plugins that do not have remove().
+    #
+    # Call plugin reset before deleting the function from the reset_funs
+    # dictionary to clear the plugin state just in case.
     preset = reset_funs.pop(name, None)
     if preset:
-        # Call module reset first to clear plugin state just in case.
         preset()
 
     # Call plugin remove function before deleting the function from the remove_funs
@@ -166,6 +181,8 @@ def remove(name):
     descr  = plugin_descriptions.get(name)
     cmds, _ = list(zip(*descr.plugin_stack))
     bs.stack.remove_commands(cmds)
+
+    # Remove functions from the plugin management dictionaries
     active_plugins.pop(name)
     preupdate_funs.pop(name)
     update_funs.pop(name)
