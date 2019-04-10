@@ -155,16 +155,21 @@ def remove(name):
     if preset:
         # Call module reset first to clear plugin state just in case.
         preset()
-    # Call plugin remove for plugins that have one
-    for fun in remove_funs.values():
-        fun()
+
+    # Call plugin remove function before deleting the function from the remove_funs
+    # dictionary to let the plugin know it is about to be removed.
+    premove = remove_funs.pop(name, None)
+    if premove:
+        premove()
+
+    # Remove plugin commands from the BlueSky stack
     descr  = plugin_descriptions.get(name)
     cmds, _ = list(zip(*descr.plugin_stack))
     bs.stack.remove_commands(cmds)
     active_plugins.pop(name)
     preupdate_funs.pop(name)
     update_funs.pop(name)
-    remove_funs.pop(name)
+
     return True, 'Successfully removed plugin {}'.format(name)
 
 def preupdate(simt):
