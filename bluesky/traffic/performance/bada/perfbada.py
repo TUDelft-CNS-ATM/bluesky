@@ -337,9 +337,10 @@ class PerfBADA(TrafficArrays):
         """AIRCRAFT PERFORMANCE"""
         # BADA version
         swbada = True
+        delalt = bs.traf.selalt - bs.traf.alt
         # flight phase
         self.phase, self.bank = \
-        phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
+        phases(bs.traf.alt, bs.traf.gs, delalt, \
         bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
         bs.traf.swhdgsel, swbada)
 
@@ -376,9 +377,9 @@ class PerfBADA(TrafficArrays):
 
         # conditions
         epsalt = np.array([0.001]*bs.traf.ntraf)
-        climb = np.array(bs.traf.delalt > epsalt)
-        descent = np.array(bs.traf.delalt<-epsalt)
-        lvl = np.array(np.abs(bs.traf.delalt)<0.0001)*1
+        climb = np.array(delalt > epsalt)
+        descent = np.array(delalt<-epsalt)
+        lvl = np.array(np.abs(delalt)<0.0001)*1
 
 
 
@@ -388,8 +389,9 @@ class PerfBADA(TrafficArrays):
         bs.traf.belco = np.array(bs.traf.alt<atrans)
 
         # energy share factor
+        delspd = bs.traf.pilot.tas - bs.traf.tas
         self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
-                  climb, descent, bs.traf.delspd)
+                  climb, descent, delspd)
 
         # THRUST
         # 1. climb: max.climb thrust in ISA conditions (p. 32, BADA User Manual 3.12)

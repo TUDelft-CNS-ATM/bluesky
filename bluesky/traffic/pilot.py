@@ -67,7 +67,6 @@ class Pilot(TrafficArrays):
         if settings.performance_model == 'openap':
             self.tas, self.vs, self.alt = bs.traf.perf.limits(self.tas, self.vs, self.alt, bs.traf.ax)
         else:
-            bs.traf.delalt = bs.traf.selalt - bs.traf.alt  # [m]
             bs.traf.perf.limits() # Sets limspd_flag and limspd when it needs to be limited
 
             # Update desired sates with values within the flight envelope

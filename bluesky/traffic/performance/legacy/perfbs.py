@@ -199,10 +199,10 @@ class PerfBS(TrafficArrays):
     def update(self, dt=settings.performance_dt):
         """Aircraft performance"""
         swbada = False # no-bada version
-
+        delalt = bs.traf.selalt - bs.traf.alt
         # allocate aircraft to their flight phase
         self.phase, self.bank = \
-           phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
+           phases(bs.traf.alt, bs.traf.gs, delalt, \
            bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
            bs.traf.swhdgsel,swbada)
 
@@ -252,8 +252,8 @@ class PerfBS(TrafficArrays):
         self.D = cd*self.qS
         # energy share factor and crossover altitude
         epsalt = np.array([0.001]*bs.traf.ntraf)
-        self.climb = np.array(bs.traf.delalt > epsalt)
-        self.descent = np.array(bs.traf.delalt< -epsalt)
+        self.climb = np.array(delalt > epsalt)
+        self.descent = np.array(delalt< -epsalt)
 
 
         # crossover altitiude
@@ -261,8 +261,9 @@ class PerfBS(TrafficArrays):
         bs.traf.belco = np.array(bs.traf.alt<self.atrans)
 
         # energy share factor
+        delspd = bs.traf.pilot.tas - bs.traf.tas
         self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
-                  self.climb, self.descent, bs.traf.delspd)
+                  self.climb, self.descent, delspd)
 
         # determine thrust
         self.Thr = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
