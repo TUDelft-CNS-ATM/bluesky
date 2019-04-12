@@ -27,7 +27,21 @@ class Node(object):
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''
-        pass
+        # Process timers
+        Timer.update_timers()
+        # Get new events from the I/O thread
+        # while self.event_io.poll(0):
+        if self.event_io.getsockopt(zmq.EVENTS) & zmq.POLLIN:
+            msg = self.event_io.recv_multipart()
+            route, eventname, data = msg[:-2], msg[-2], msg[-1]
+            # route back to sender is acquired by reversing the incoming route
+            route.reverse()
+            if eventname == b'QUIT':
+                self.quit()
+            else:
+                pydata = msgpack.unpackb(
+                    data, object_hook=decode_ndarray, encoding='utf-8')
+                self.event(eventname, pydata, route)
 
     def start(self):
         ''' Starting of main loop. '''
@@ -53,23 +67,8 @@ class Node(object):
     def run(self):
         ''' Start the main loop of this node. '''
         while self.running:
-            # Get new events from the I/O thread
-            # while self.event_io.poll(0):
-            if self.event_io.getsockopt(zmq.EVENTS) & zmq.POLLIN:
-                msg = self.event_io.recv_multipart()
-                route, eventname, data = msg[:-2], msg[-2], msg[-1]
-                # route back to sender is acquired by reversing the incoming route
-                route.reverse()
-                if eventname == b'QUIT':
-                    self.quit()
-                else:
-                    pydata = msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8')
-                    self.event(eventname, pydata, route)
             # Perform a simulation step
             self.step()
-
-            # Process timers
-            Timer.update_timers()
 
     def addnodes(self, count=1):
         self.send_event(b'ADDNODES', count)

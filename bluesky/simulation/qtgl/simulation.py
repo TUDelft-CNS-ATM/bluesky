@@ -61,6 +61,7 @@ def Simulation(detached):
 
         def step(self):
             ''' Perform a simulation timestep. '''
+            super().step()
             # When running at a fixed rate, or when in hold/init,
             # increment system time with sysdt and calculate remainder to sleep.
             if not self.ffmode or not self.state == bs.OP:
