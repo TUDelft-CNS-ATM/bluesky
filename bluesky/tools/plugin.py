@@ -29,11 +29,14 @@ class Plugin(object):
 def check_plugin(fname):
     plugin = None
     with open(fname, 'rb') as f:
-        source         = f.read()
-        tree           = ast.parse(source)
+        source = f.read()
+        try:
+            tree = ast.parse(source)
+        except:
+            return None
 
-        ret_dicts      = []
-        ret_names      = ['', '']
+        ret_dicts = []
+        ret_names = ['', '']
         for item in tree.body:
             if isinstance(item, ast.FunctionDef) and item.name == 'init_plugin':
                 # This is the initialization function of a bluesky plugin. Parse the contents
