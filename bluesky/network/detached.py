@@ -22,13 +22,6 @@ class Node(object):
         # Process timers
         Timer.update_timers()
 
-    def start(self):
-        ''' Starting of main loop. '''
-        print('Node started, id={}'.format(self.node_id))
-
-        # run() implements the main loop
-        self.run()
-
     def quit(self):
         ''' Quit the simulation process. '''
         self.running = False

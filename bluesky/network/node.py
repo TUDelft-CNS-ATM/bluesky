@@ -43,9 +43,8 @@ class Node(object):
                     data, object_hook=decode_ndarray, encoding='utf-8')
                 self.event(eventname, pydata, route)
 
-    def start(self):
-        ''' Starting of main loop. '''
-        # Final Initialization
+    def connect(self):
+        ''' Connect node to the BlueSky server. '''
         # Initialization of sockets.
         self.event_io.setsockopt(zmq.IDENTITY, self.node_id)
         self.event_io.connect('tcp://localhost:{}'.format(self.event_port))
@@ -54,10 +53,7 @@ class Node(object):
         # Start communication, and receive this node's ID
         self.send_event(b'REGISTER')
         self.host_id = self.event_io.recv_multipart()[0]
-        print('Node started, id={}'.format(self.node_id))
-
-        # run() implements the main loop
-        self.run()
+        # print('Node connected, id={}'.format(self.node_id))
 
     def quit(self):
         ''' Quit the simulation process. '''
