@@ -252,7 +252,8 @@ def Simulation(detached):
 
                 else:
                     try:
-                        self.utc = datetime.datetime.strptime(args[0], '%H:%M:%S.%f')
+                        self.utc = datetime.datetime.strptime(args[0], 
+                            '%H:%M:%S.%f' if '.' in args[0] else '%H:%M:%S')
                     except ValueError:
                         return False, "Input time invalid"
 
@@ -265,7 +266,10 @@ def Simulation(detached):
             elif len(args) == 4:
                 day, month, year, timestring = args
                 try:
-                    self.utc = datetime.datetime.strptime(f'{year},{month},{day},{timestring}', '%Y,%m,%d,%H:%M:%S.%f')
+                    self.utc = datetime.datetime.strptime(
+                        f'{year},{month},{day},{timestring}',
+                        '%Y,%m,%d,%H:%M:%S.%f' if '.' in timestring else
+                        '%Y,%m,%d,%H:%M:%S')
                 except ValueError:
                     return False, "Input date invalid."
             else:
