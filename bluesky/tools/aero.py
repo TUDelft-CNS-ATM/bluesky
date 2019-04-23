@@ -161,14 +161,14 @@ def vcas2mach(cas, h):
     return M
 
 def vcasormach(spd, h):
-    ismach = np.logical_and(0.1 < spd, spd < 1)
+    ismach = np.logical_and(0.1 < spd, spd < 2.0)
     tas = np.where(ismach, vmach2tas(spd, h), vcas2tas(spd, h))
     cas = np.where(ismach, vtas2cas(tas, h), spd)
     m   = np.where(ismach, spd, vtas2mach(tas, h))
     return tas, cas, m
 
 def vcasormach2tas(spd, h):
-    tas = np.where(np.abs(spd) < 1, vmach2tas(spd, h), vcas2tas(spd, h))
+    tas = np.where(np.abs(spd) < 2.0, vmach2tas(spd, h), vcas2tas(spd, h))
     return tas
 
 
