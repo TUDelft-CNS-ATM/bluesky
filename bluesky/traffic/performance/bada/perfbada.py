@@ -152,7 +152,7 @@ class PerfBADA(TrafficArrays):
             # performance
             self.Thr         = np.array([])   # thrust
             self.D           = np.array([])   # drag
-            self.ff          = np.array([])   # fuel flow
+            self.fuelflow    = np.array([])   # fuel flow
 
             # ground
             self.tol         = np.array([])   # take-off length[m]
@@ -322,7 +322,7 @@ class PerfBADA(TrafficArrays):
 
         self.Thr[-n:]       = 0.0
         self.D[-n:]         = 0.0
-        self.ff[-n:]        = 0.0
+        self.fuelflow[-n:]  = 0.0
 
         # ground
         self.tol[-n:]       = coeff.TOL
@@ -546,10 +546,10 @@ class PerfBADA(TrafficArrays):
         ffgd = fmin*(self.phase==PHASE['GD'])
 
         # fuel flow for each condition
-        self.ff = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
+        self.fuelflow = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
 
         # update mass
-        self.mass = self.mass - self.ff * dt # Use fuelflow in kg/min
+        self.mass -= self.fuelflow * dt # Use fuelflow in kg/min
 
 
 
@@ -634,10 +634,10 @@ class PerfBADA(TrafficArrays):
         #DEBUGGING
 
         #record data
-        # self.log.write(self.dt, str(bs.traf.alt[0]), str(bs.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.ff[0]),  str(bs.traf.vs[0]), str(cd[0]))
+        # self.log.write(self.dt, str(bs.traf.alt[0]), str(bs.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.fuelflow[0]),  str(bs.traf.vs[0]), str(cd[0]))
         # self.log.save()
 
         # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \
-        # self.Thr, self.D, self.ff,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
+        # self.Thr, self.D, self.fuelflow,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
         # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
         # CD0f, kf, self.hmaxact
