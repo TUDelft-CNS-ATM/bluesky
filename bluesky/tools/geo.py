@@ -271,18 +271,18 @@ def qdrpos(latd1, lond1, qdr, dist):
              latd2,lond2 (IN DEGREES!)
         Ref for qdrpos: http://www.movable-type.co.uk/scripts/latlong.html """
 
-    r_earth_at_lat = rwgs84(latd1) / nm
+    r_earth_lat = rwgs84(latd1) / nm
 
     # Convert degrees to radians
     lat1 = np.radians(latd1)
     lon1 = np.radians(lond1)
 
     # Calculate new position
-    lat2 = np.arcsin(np.sin(lat1) * np.cos(dist / r_earth_at_lat) \
-                     + np.cos(lat1) * np.sin(dist/r_earth_at_lat) * np.cos(np.radians(qdr)))
+    lat2 = np.arcsin(np.sin(lat1) * np.cos(dist / r_earth_lat) \
+                     + np.cos(lat1) * np.sin(dist/r_earth_lat) * np.cos(np.radians(qdr)))
 
-    lon2 = lon1 + np.arctan2(np.sin(np.radians(qdr)) * np.sin(dist / r_earth_at_lat) * np.cos(lat1),
-                             np.cos(dist / r_earth_at_lat) - np.sin(lat1) * np.sin(lat2))
+    lon2 = lon1 + np.arctan2(np.sin(np.radians(qdr)) * np.sin(dist / r_earth_lat) * np.cos(lat1),
+                             np.cos(dist / r_earth_lat) - np.sin(lat1) * np.sin(lat2))
 
     # Convert back to degrees and normalize longitude to range [-180..180] deg
     latd2 = np.degrees(lat2)
