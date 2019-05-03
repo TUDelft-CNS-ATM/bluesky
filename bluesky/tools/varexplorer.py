@@ -47,19 +47,20 @@ def lsvar(varname=''):
         # When no argument is passed, show a list of parent objects for which
         # variables can be accessed
         return True, '\n' + \
-        str.join(', ', [key for key in varlist])
+            str.join(', ', [key for key in varlist])
 
     # Find the variable in the variable list
     v = findvar(varname)
     if v:
         thevar = v.get()  # reference to the actual variable
-        attrs = getvarsfromobj(thevar)  # When the variable is an object, get child attributes
+        # When the variable is an object, get child attributes
+        attrs = getvarsfromobj(thevar)
         vartype = v.get_type()  # Type of the variable
         if isinstance(v.parent, TrafficArrays) and v.parent.istrafarray(v.varname):
             vartype += ' (TrafficArray)'
         txt = \
-        'Variable:   {}\n'.format(v.varname) + \
-        'Type:       {}\n'.format(vartype)
+            'Variable:   {}\n'.format(v.varname) + \
+            'Type:       {}\n'.format(vartype)
         if isinstance(thevar, Collection):
             txt += 'Size:       {}\n'.format(len(thevar))
         txt += 'Parent:     {}'.format(v.parentname)
@@ -78,7 +79,7 @@ def findvar(varname):
         '''
     try:
         # Find a string matching 'a.b.c[d]', where everything except a is optional
-        varset = re.findall(r'(\w+)(?<=.)*(?:\[(\w+)\])?', varname.lower())
+        varset = re.findall(r'(\w+)(?<=.)*(?:\[(\w+)\])?', varname)
         # The actual variable is always the last
         name, index = varset[-1]
         # is a parent object passed? (e.g., traf.lat instead of just lat)
@@ -115,6 +116,7 @@ def findvar(varname):
 class Variable:
     ''' Wrapper class for variable explorer.
         Keeps reference to parent object, parent name, and variable name. '''
+
     def __init__(self, parent, parentname, varname, index):
         self.parent = parent
         self.parentname = parentname
@@ -130,7 +132,7 @@ class Variable:
         return isinstance(v, Number) or \
             (isinstance(v, np.ndarray) and v.dtype.kind not in 'OSUV') or \
             (isinstance(v, Collection) and self.index and
-            all([isinstance(v[i], Number) for i in self.index]))
+             all([isinstance(v[i], Number) for i in self.index]))
 
     def get_type(self):
         ''' Return the a string containing the type name of this variable. '''
