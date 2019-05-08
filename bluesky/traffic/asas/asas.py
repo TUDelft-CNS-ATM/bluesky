@@ -116,13 +116,13 @@ class ASAS(TrafficArrays):
         self.asaseval     = False                      # [-] Whether target resolution is calculated or not
 
         # Sets of pairs: conflict pairs, LoS pairs
-        self.confpairs = list()  # Conflict pairs detected in the current timestep (used for resolving)
-        self.confpairs_unique = set()  # Unique conflict pairs (a, b) = (b, a) are merged
-        self.resopairs = set()  # Resolved (when RESO is on) conflicts that are still before CPA
-        self.lospairs = list()  # Current loss of separation pairs
-        self.lospairs_unique = set()  # Unique LOS pairs (a, b) = (b, a) are merged
-        self.confpairs_all = list()  # All conflicts since simt=0
-        self.lospairs_all = list()  # All losses of separation since simt=0
+        self.confpairs = []  # Conflict pairs detected in the current timestep (used for resolving)
+        self.confpairs_unique = []  # Unique conflict pairs (a, b) = (b, a) are merged
+        self.resopairs = []  # Resolved (when RESO is on) conflicts that are still before CPA
+        self.lospairs = []  # Current loss of separation pairs
+        self.lospairs_unique = []  # Unique LOS pairs (a, b) = (b, a) are merged
+        self.confpairs_all = []  # All conflicts since simt=0
+        self.lospairs_all = []  # All losses of separation since simt=0
 
         self.dcpa = np.array([])  # CPA distance
 
@@ -148,13 +148,13 @@ class ASAS(TrafficArrays):
         """
         Clear conflict database
         """
-        self.confpairs = list()  # Conflict pairs detected in the current timestep (used for resolving)
-        self.confpairs_unique = set()  # Unique conflict pairs (a, b) = (b, a) are merged
-        self.resopairs = set()  # Resolved (when RESO is on) conflicts that are still before CPA
-        self.lospairs = list()  # Current loss of separation pairs
-        self.lospairs_unique = set()  # Unique LOS pairs (a, b) = (b, a) are merged
-        self.confpairs_all = list()  # All conflicts since simt=0
-        self.lospairs_all = list()  # All losses of separation since simt=0
+        self.confpairs = []  # Conflict pairs detected in the current timestep (used for resolving)
+        self.confpairs_unique = []  # Unique conflict pairs (a, b) = (b, a) are merged
+        self.resopairs = []  # Resolved (when RESO is on) conflicts that are still before CPA
+        self.lospairs = []  # Current loss of separation pairs
+        self.lospairs_unique = []  # Unique LOS pairs (a, b) = (b, a) are merged
+        self.confpairs_all = []  # All conflicts since simt=0
+        self.lospairs_all = []  # All losses of separation since simt=0
 
         # Conflict time and geometry data per conflict pair
         self.tcpa = np.array([])  # Time to CPA
@@ -414,14 +414,14 @@ class ASAS(TrafficArrays):
             should be followed or not, based on if the aircraft pairs passed
             their CPA. """
         # Conflict pairs to be deleted
-        delpairs = set()
+        delpairs = []
 
         # Look at all conflicts, also the ones that are solved but CPA is yet to come
         for conflict in self.resopairs:
             idx1, idx2 = bs.traf.id2idx(conflict)
             # If the ownship aircraft is deleted remove its conflict from the list
             if idx1 < 0:
-                delpairs.add(conflict)
+                delpairs.append(conflict)
                 continue
 
             if idx2 >= 0:
@@ -468,10 +468,10 @@ class ASAS(TrafficArrays):
                     bs.traf.ap.route[idx1].direct(idx1, bs.traf.ap.route[idx1].wpname[iwpid])
 
                 # If conflict is solved, remove it from the resopairs list
-                delpairs.add(conflict)
+                delpairs.append(conflict)
 
         # Remove pairs from the list that are past CPA or have deleted aircraft
-        self.resopairs -= delpairs
+        self.resopairs = [pair for pair in self.resopairs if pair not in delpairs]
 
     @timed_function('asas', dt=settings.asas_dt)
     def update(self, dt):
@@ -488,15 +488,17 @@ class ASAS(TrafficArrays):
             self.cr.resolve(self, bs.traf)
 
         # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
-        self.resopairs.update(self.confpairs)
+        self.resopairs.extend(self.confpairs)
 
         # confpairs has conflicts observed from both sides (a, b) and (b, a)
         # confpairs_unique keeps only one of these
-        confpairs_unique = {frozenset(pair) for pair in self.confpairs}
-        lospairs_unique = {frozenset(pair) for pair in self.lospairs}
+        confpairs_unique = list({frozenset(pair) for pair in self.confpairs})
+        lospairs_unique = list({frozenset(pair) for pair in self.lospairs})
 
-        self.confpairs_all.extend(confpairs_unique - self.confpairs_unique)
-        self.lospairs_all.extend(lospairs_unique - self.lospairs_unique)
+        self.confpairs_all.extend([pair for pair in confpairs_unique 
+                                        if pair not in self.confpairs_unique])
+        self.lospairs_all.extend([pair for pair in lospairs_unique
+                                       if pair not in self.lospairs_unique])
 
         # Update confpairs_unique and lospairs_unique
         self.confpairs_unique = confpairs_unique
