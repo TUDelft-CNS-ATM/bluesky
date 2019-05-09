@@ -28,7 +28,8 @@ class OpenAP(PerfBase):
         with RegisterElementParameters(self):
             self.actypes = np.array([], dtype=str)
             self.phase = np.array([])
-            self.lifttype = np.array([])  # lift type, fixwing [1] or rotor [2]
+            self.lifttype = np.array([])    # lift type, fixwing [1] or rotor [2]
+            self.mass = np.array([])        # mass of aircraft
             self.engnum = np.array([], dtype=int)  # number of engines
             self.engthrmax = np.array([])  # static engine thrust
             self.engbpr = np.array([])  # engine bypass ratio
@@ -103,6 +104,7 @@ class OpenAP(PerfBase):
                 self.cd0_ld[-n:] = self.coeff.dragpolar_fixwing[actype]['cd0_ld']
                 self.k[-n:] = self.coeff.dragpolar_fixwing[actype]['k']
             else:
+                # rotorcraft
                 self.cd0_clean[-n:] = self.coeff.dragpolar_fixwing['NA']['cd0_clean']
                 self.cd0_gd[-n:] = self.coeff.dragpolar_fixwing['NA']['cd0_gd']
                 self.cd0_to[-n:] = self.coeff.dragpolar_fixwing['NA']['cd0_to']
