@@ -1,13 +1,15 @@
 """ BlueSky aircraft performance calculations using BADA 3.xx."""
 import numpy as np
 import bluesky as bs
+from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import kts, ft, g0, a0, T0, gamma1, gamma2,  beta, R, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path_bada='data/performance/BADA', verbose=False)
+settings.set_variable_defaults(perf_path_bada='data/performance/BADA', 
+                               performance_dt=1.0, verbose=False)
 
 from . import coeff_bada
 if not coeff_bada.init(settings.perf_path_bada):
@@ -38,8 +40,6 @@ class PerfBADA(TrafficArrays):
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
         # Flight performance scheduling
-        self.dt  = 0.1           # [s] update interval of performance limits
-        self.t0  = -self.dt  # [s] last time checked (in terms of simt)
         self.warned2 = False        # Flag: Did we warn for default engine parameters yet?
 
         # Register the per-aircraft parameter arrays
@@ -152,7 +152,7 @@ class PerfBADA(TrafficArrays):
             # performance
             self.Thr         = np.array([])   # thrust
             self.D           = np.array([])   # drag
-            self.ff          = np.array([])   # fuel flow
+            self.fuelflow    = np.array([])   # fuel flow
 
             # ground
             self.tol         = np.array([])   # take-off length[m]
@@ -163,11 +163,6 @@ class PerfBADA(TrafficArrays):
 
     def engchange(self, acid, engid=None):
         return False, "BADA performance model doesn't allow changing engine type"
-
-    def reset(self):
-        ''' Reset performance model states and trigger time. '''
-        super().reset()
-        self.t0 = -self.dt
 
     def create(self, n=1):
         super(PerfBADA, self).create(n)
@@ -327,7 +322,7 @@ class PerfBADA(TrafficArrays):
 
         self.Thr[-n:]       = 0.0
         self.D[-n:]         = 0.0
-        self.ff[-n:]        = 0.0
+        self.fuelflow[-n:]  = 0.0
 
         # ground
         self.tol[-n:]       = coeff.TOL
@@ -337,19 +332,15 @@ class PerfBADA(TrafficArrays):
         # for now, BADA aircraft have the same acceleration as deceleration
         self.gr_acc[-n:]    = coeff.gr_acc
 
-    def perf(self, simt):
-        if simt - self.t0 >= self.dt:
-            # Actual dt can vary due to float roundoff errors
-            dt_act = simt - self.t0
-            self.t0 = simt
-        else:
-            return
+    @timed_function('performance', dt=settings.performance_dt)
+    def update(self, dt=settings.performance_dt):
         """AIRCRAFT PERFORMANCE"""
         # BADA version
         swbada = True
+        delalt = bs.traf.selalt - bs.traf.alt
         # flight phase
         self.phase, self.bank = \
-        phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
+        phases(bs.traf.alt, bs.traf.gs, delalt, \
         bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
         bs.traf.swhdgsel, swbada)
 
@@ -386,9 +377,9 @@ class PerfBADA(TrafficArrays):
 
         # conditions
         epsalt = np.array([0.001]*bs.traf.ntraf)
-        climb = np.array(bs.traf.delalt > epsalt)
-        descent = np.array(bs.traf.delalt<-epsalt)
-        lvl = np.array(np.abs(bs.traf.delalt)<0.0001)*1
+        climb = np.array(delalt > epsalt)
+        descent = np.array(delalt<-epsalt)
+        lvl = np.array(np.abs(delalt)<0.0001)*1
 
 
 
@@ -398,8 +389,9 @@ class PerfBADA(TrafficArrays):
         bs.traf.belco = np.array(bs.traf.alt<atrans)
 
         # energy share factor
+        delspd = bs.traf.pilot.tas - bs.traf.tas
         self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
-                  climb, descent, bs.traf.delspd)
+                  climb, descent, delspd)
 
         # THRUST
         # 1. climb: max.climb thrust in ISA conditions (p. 32, BADA User Manual 3.12)
@@ -554,10 +546,10 @@ class PerfBADA(TrafficArrays):
         ffgd = fmin*(self.phase==PHASE['GD'])
 
         # fuel flow for each condition
-        self.ff = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
+        self.fuelflow = np.maximum.reduce([ffto, ffic, ffcc, ffcrl, ffcd, ffap, ffld, ffgd])/60. # convert from kg/min to kg/sec
 
         # update mass
-        self.mass = self.mass - self.ff * dt_act # Use fuelflow in kg/min
+        self.mass -= self.fuelflow * dt # Use fuelflow in kg/min
 
 
 
@@ -642,10 +634,10 @@ class PerfBADA(TrafficArrays):
         #DEBUGGING
 
         #record data
-        # self.log.write(self.dt, str(bs.traf.alt[0]), str(bs.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.ff[0]),  str(bs.traf.vs[0]), str(cd[0]))
+        # self.log.write(self.dt, str(bs.traf.alt[0]), str(bs.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.fuelflow[0]),  str(bs.traf.vs[0]), str(cd[0]))
         # self.log.save()
 
         # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \
-        # self.Thr, self.D, self.ff,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
+        # self.Thr, self.D, self.fuelflow,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
         # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
         # CD0f, kf, self.hmaxact

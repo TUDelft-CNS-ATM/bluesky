@@ -19,14 +19,8 @@ class Node(object):
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''
-        pass
-
-    def start(self):
-        ''' Starting of main loop. '''
-        print('Node started, id={}'.format(self.node_id))
-
-        # run() implements the main loop
-        self.run()
+        # Process timers
+        Timer.update_timers()
 
     def quit(self):
         ''' Quit the simulation process. '''
@@ -37,9 +31,6 @@ class Node(object):
         while self.running:
             # Perform a simulation step
             self.step()
-
-            # Process timers
-            Timer.update_timers()
 
     def addnodes(self, count=1):
         pass

@@ -1,10 +1,13 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.tools.simtime import timed_function
+from bluesky.tools.trafficarrays import RegisterElementParameters
 from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.openap import coeff, thrust
 from bluesky.traffic.performance.openap import phase as ph
+
+bs.settings.set_variable_defaults(performance_dt=1.0)
 
 class OpenAP(PerfBase):
     """
@@ -15,11 +18,9 @@ class OpenAP(PerfBase):
         update(): update performance parameters
     """
 
-    def __init__(self, min_update_dt=1):
+    def __init__(self):
         super(OpenAP, self).__init__()
 
-        self.min_update_dt = min_update_dt    # second, minimum update dt
-        self.current_sim_time = 0       # last update simulation time
         self.ac_warning = False         # aircraft mdl to default warning
         self.eng_warning = False        # aircraft engine to default warning
 
@@ -47,6 +48,14 @@ class OpenAP(PerfBase):
             self.cd0_ap = np.array([])  # Cd0, landing
             self.cd0_ld = np.array([])  # Cd0, landing
             self.k = np.array([])  # induced drag coeff
+
+            self.vmin = np.array([])
+            self.vmax = np.array([])
+            self.vsmin = np.array([])
+            self.vsmax = np.array([])
+            self.hmax = np.array([])
+            self.axmax = np.array([])
+            self.vminto = np.array([])
 
     def create(self, n=1):
         # cautious! considering multiple created aircraft with same type
@@ -117,8 +126,9 @@ class OpenAP(PerfBase):
         # append update actypes, after removing unkown types
         self.actypes[-n:] = [actype] * n
 
-    def update(self, simt=1):
-        super(OpenAP, self).update(simt)
+    @timed_function('performance', dt=bs.settings.performance_dt)
+    def update(self, dt=bs.settings.performance_dt):
+        super(OpenAP, self).update()
 
         # update phase, infer from spd, roc, alt
         lenph1 = len(self.phase)

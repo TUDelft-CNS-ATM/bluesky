@@ -3,7 +3,7 @@ import time, datetime
 # Local imports
 import bluesky as bs
 from bluesky import settings, stack
-from bluesky.tools import datalog, areafilter, plugin, plotter
+from bluesky.tools import datalog, areafilter, plugin, plotter, simtime
 from bluesky.tools.misc import txt2tim, tim2txt
 
 
@@ -61,6 +61,7 @@ def Simulation(detached):
 
         def step(self):
             ''' Perform a simulation timestep. '''
+            super().step()
             # When running at a fixed rate, or when in hold/init,
             # increment system time with sysdt and calculate remainder to sleep.
             if not self.ffmode or not self.state == bs.OP:
@@ -115,7 +116,7 @@ def Simulation(detached):
                 datalog.postupdate()
 
                 # Update sim and UTC time for the next timestep
-                self.simt += self.simdt
+                self.simt, self.simdt = simtime.step()
                 self.utc += datetime.timedelta(seconds=self.simdt)
 
             # Always update syst
@@ -150,6 +151,7 @@ def Simulation(detached):
             self.syst = -1.0
             self.simt = 0.0
             self.simdt = settings.simdt
+            simtime.reset()
             self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             self.ffmode = False
             self.setDtMultiplier(1.0)
@@ -161,9 +163,11 @@ def Simulation(detached):
             areafilter.reset()
             bs.scr.reset()
 
-        def setDt(self, dt):
-            self.simdt = abs(dt)
-            self.sysdt = self.simdt / self.dtmult
+        def setdt(self, dt=None, target='simdt'):
+            if dt is not None and target == 'simdt':
+                self.simdt = abs(dt)
+                self.sysdt = self.simdt / self.dtmult
+            return simtime.setdt(dt, target)
 
         def setDtMultiplier(self, mult):
             self.dtmult = mult
@@ -248,7 +252,8 @@ def Simulation(detached):
 
                 else:
                     try:
-                        self.utc = datetime.datetime.strptime(args[0], '%H:%M:%S.%f')
+                        self.utc = datetime.datetime.strptime(args[0], 
+                            '%H:%M:%S.%f' if '.' in args[0] else '%H:%M:%S')
                     except ValueError:
                         return False, "Input time invalid"
 
@@ -261,7 +266,10 @@ def Simulation(detached):
             elif len(args) == 4:
                 day, month, year, timestring = args
                 try:
-                    self.utc = datetime.datetime.strptime(f'{year},{month},{day},{timestring}', '%Y,%m,%d,%H:%M:%S.%f')
+                    self.utc = datetime.datetime.strptime(
+                        f'{year},{month},{day},{timestring}',
+                        '%Y,%m,%d,%H:%M:%S.%f' if '.' in timestring else
+                        '%Y,%m,%d,%H:%M:%S')
                 except ValueError:
                     return False, "Input date invalid."
             else:

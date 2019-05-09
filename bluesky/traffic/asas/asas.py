@@ -3,6 +3,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky import settings
+from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import ft, nm
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -78,7 +79,6 @@ class ASAS(TrafficArrays):
         self.cd           = ASAS.CDmethods[self.cd_name]
         self.cr           = ASAS.CRmethods[self.cr_name]
 
-        self.dtasas       = settings.asas_dt                # interval for ASAS
         self.dtlookahead  = settings.asas_dtlookahead       # [s] lookahead time
         self.mar          = settings.asas_mar               # [-] Safety margin for evasion
         self.R            = settings.asas_pzr * nm          # [m] Horizontal separation minimum for detection
@@ -86,7 +86,6 @@ class ASAS(TrafficArrays):
         self.Rm           = self.R * self.mar               # [m] Horizontal separation minimum for resolution
         self.dhm          = self.dh * self.mar              # [m] Vertical separation minimum for resolution
         self.swasas       = True                            # [-] whether to perform CD&R
-        self.tasas        = 0.0                             # Next time ASAS should be called
 
         self.vmin         = settings.asas_vmin * nm / 3600. # [m/s] Minimum ASAS velocity (200 kts)
         self.vmax         = settings.asas_vmax * nm / 3600. # [m/s] Maximum ASAS velocity (600 kts)
@@ -416,6 +415,7 @@ class ASAS(TrafficArrays):
             their CPA. """
         # Conflict pairs to be deleted
         delpairs = set()
+        changeactive = dict()
 
         # Look at all conflicts, also the ones that are solved but CPA is yet to come
         for conflict in self.resopairs:
@@ -457,55 +457,60 @@ class ASAS(TrafficArrays):
             # and not in horizontal LOS or a bouncing conflict
             if idx2 >= 0 and (not past_cpa or hor_los or is_bouncing):
                 # Enable ASAS for this aircraft
-                self.active[idx1] = True
+                changeactive[idx1] = True
             else:
-                # Switch ASAS off for ownship
-                self.active[idx1] = False
-
-                # Waypoint recovery after conflict: Find the next active waypoint
-                # and send the aircraft to that waypoint.
-                iwpid = bs.traf.ap.route[idx1].findact(idx1)
-                if iwpid != -1:  # To avoid problems if there are no waypoints
-                    bs.traf.ap.route[idx1].direct(idx1, bs.traf.ap.route[idx1].wpname[iwpid])
-
+                # Switch ASAS off for ownship if there are no other conflicts
+                # that this aircraft is involved in.
+                changeactive[idx1] = changeactive.get(idx1, False)
                 # If conflict is solved, remove it from the resopairs list
                 delpairs.add(conflict)
+
+        for idx, active in changeactive.items():
+            # Loop a second time: this is to avoid that ASAS resolution is
+            # turned off for an aircraft that is involved simultaneously in
+            # multiple conflicts, where the first, but not all conflicts are
+            # resolved.
+            self.active[idx] = active
+            if not active:
+                # Waypoint recovery after conflict: Find the next active waypoint
+                # and send the aircraft to that waypoint.
+                iwpid = bs.traf.ap.route[idx].findact(idx)
+                if iwpid != -1:  # To avoid problems if there are no waypoints
+                    bs.traf.ap.route[idx].direct(idx, bs.traf.ap.route[idx].wpname[iwpid])
 
         # Remove pairs from the list that are past CPA or have deleted aircraft
         self.resopairs -= delpairs
 
-    def update(self, simt):
-        if not self.swasas or simt < self.tasas:
+    @timed_function('asas', dt=settings.asas_dt)
+    def update(self, dt):
+        if not self.swasas or bs.traf.ntraf == 0:
             return
 
-        # increment trigger time for next ASAS step
-        self.tasas += self.dtasas
-        if bs.traf.ntraf:
-            # Conflict detection
-            self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
-                self.qdr, self.dist, self.dcpa, self.tcpa, self.tLOS = \
-                self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
+        # Conflict detection
+        self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
+            self.qdr, self.dist, self.dcpa, self.tcpa, self.tLOS = \
+            self.cd.detect(bs.traf, bs.traf, self.R, self.dh, self.dtlookahead)
 
-            # Conflict resolution if there are conflicts
-            if self.confpairs:
-                self.cr.resolve(self, bs.traf)
+        # Conflict resolution if there are conflicts
+        if self.confpairs:
+            self.cr.resolve(self, bs.traf)
 
-            # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
-            self.resopairs.update(self.confpairs)
+        # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
+        self.resopairs.update(self.confpairs)
 
-            # confpairs has conflicts observed from both sides (a, b) and (b, a)
-            # confpairs_unique keeps only one of these
-            confpairs_unique = {frozenset(pair) for pair in self.confpairs}
-            lospairs_unique = {frozenset(pair) for pair in self.lospairs}
+        # confpairs has conflicts observed from both sides (a, b) and (b, a)
+        # confpairs_unique keeps only one of these
+        confpairs_unique = {frozenset(pair) for pair in self.confpairs}
+        lospairs_unique = {frozenset(pair) for pair in self.lospairs}
 
-            self.confpairs_all.extend(confpairs_unique - self.confpairs_unique)
-            self.lospairs_all.extend(lospairs_unique - self.lospairs_unique)
+        self.confpairs_all.extend(confpairs_unique - self.confpairs_unique)
+        self.lospairs_all.extend(lospairs_unique - self.lospairs_unique)
 
-            # Update confpairs_unique and lospairs_unique
-            self.confpairs_unique = confpairs_unique
-            self.lospairs_unique = lospairs_unique
+        # Update confpairs_unique and lospairs_unique
+        self.confpairs_unique = confpairs_unique
+        self.lospairs_unique = lospairs_unique
 
-            self.ResumeNav()
+        self.ResumeNav()
 
         # iconf0 = np.array(self.iconf)
         #

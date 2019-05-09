@@ -4,6 +4,7 @@ import os
 from math import *
 import numpy as np
 import bluesky as bs
+from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
@@ -13,7 +14,8 @@ from bluesky import settings
 from bluesky.traffic.performance.legacy.coeff_bs import CoeffBS
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/performance/BS', verbose=False)
+settings.set_variable_defaults(perf_path='data/performance/BS', 
+                               performance_dt=1.0, verbose=False)
 coeffBS = CoeffBS()
 
 
@@ -25,10 +27,6 @@ class PerfBS(TrafficArrays):
 
         # prepare for coefficient readin
         coeffBS.coeff()
-
-        # Flight performance scheduling
-        self.dt  = 0.1           # [s] update interval of performance limits
-        self.t0  = -self.dt  # [s] last time checked (in terms of simt)
 
         with RegisterElementParameters(self):
             # index of aircraft types in library
@@ -73,7 +71,7 @@ class PerfBS(TrafficArrays):
             # jet engines:
             self.rThr         = np.array([]) # rated thrust (all engines)
             self.SFC          = np.array([]) # specific fuel consumption in cruise
-            self.ff           = np.array([]) # fuel flow
+            self.fuelflow     = np.array([]) # fuel flow
             self.ffto         = np.array([]) # fuel flow takeoff
             self.ffcl         = np.array([]) # fuel flow climb
             self.ffcr         = np.array([]) # fuel flow cruise
@@ -191,23 +189,20 @@ class PerfBS(TrafficArrays):
         self.Thr_pilot[-n:] = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx])  # initialize thrust with rated thrust
         self.maxthr[-n:]    = np.where(turboprops, 1. , coeffBS.rThr[jetidx]*coeffBS.n_eng[coeffidx]*1.2)  # maximum thrust - initialize with 1.2*rThr
         self.SFC[-n:]       = np.where(turboprops, 1. , coeffBS.SFC[jetidx] )
-        self.ffto[-n:]      = np.where(turboprops, 1. , coeffBS.ffto[jetidx]*coeffBS.n_eng[coeffidx])
-        self.ffcl[-n:]      = np.where(turboprops, 1. , coeffBS.ffcl[jetidx]*coeffBS.n_eng[coeffidx])
-        self.ffcr[-n:]      = np.where(turboprops, 1. , coeffBS.ffcr[jetidx]*coeffBS.n_eng[coeffidx])
-        self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx])
-        self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx])
+        self.ffto[-n:]      = np.where(turboprops, 1. , coeffBS.ffto[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
+        self.ffcl[-n:]      = np.where(turboprops, 1. , coeffBS.ffcl[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
+        self.ffcr[-n:]      = np.where(turboprops, 1. , coeffBS.ffcr[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
+        self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
+        self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
 
-    def perf(self,simt):
-        if abs(simt - self.t0) >= self.dt:
-            self.t0 = simt
-        else:
-            return
+    @timed_function('performance', dt=settings.performance_dt)
+    def update(self, dt=settings.performance_dt):
         """Aircraft performance"""
         swbada = False # no-bada version
-
+        delalt = bs.traf.selalt - bs.traf.alt
         # allocate aircraft to their flight phase
         self.phase, self.bank = \
-           phases(bs.traf.alt, bs.traf.gs, bs.traf.delalt, \
+           phases(bs.traf.alt, bs.traf.gs, delalt, \
            bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
            bs.traf.swhdgsel,swbada)
 
@@ -257,8 +252,8 @@ class PerfBS(TrafficArrays):
         self.D = cd*self.qS
         # energy share factor and crossover altitude
         epsalt = np.array([0.001]*bs.traf.ntraf)
-        self.climb = np.array(bs.traf.delalt > epsalt)
-        self.descent = np.array(bs.traf.delalt< -epsalt)
+        self.climb = np.array(delalt > epsalt)
+        self.descent = np.array(delalt< -epsalt)
 
 
         # crossover altitiude
@@ -266,8 +261,9 @@ class PerfBS(TrafficArrays):
         bs.traf.belco = np.array(bs.traf.alt<self.atrans)
 
         # energy share factor
+        delspd = bs.traf.pilot.tas - bs.traf.tas
         self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
-                  self.climb, self.descent, bs.traf.delspd)
+                  self.climb, self.descent, delspd)
 
         # determine thrust
         self.Thr = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
@@ -311,10 +307,10 @@ class PerfBS(TrafficArrays):
 
 
         # combine
-        self.ff = np.maximum(0.0,ff_jet + ff_prop)
+        self.fuelflow = np.maximum(0.0, ff_jet + ff_prop)
 
         # update mass
-        #self.mass = self.mass - self.ff*self.dt/60. # Use fuelflow in kg/min
+        self.mass -= self.fuelflow * dt
 
         # print bs.traf.id, self.phase, bs.traf.alt/ft, bs.traf.tas/kts, bs.traf.cas/kts, bs.traf.M,  \
         # self.Thr, self.D, self.ff,  cl, cd, bs.traf.vs/fpm, self.ESF,self.atrans, self.maxthr, \
@@ -406,10 +402,10 @@ class PerfBS(TrafficArrays):
         self.Thr[idx]    = coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[idx] # initialize thrust with rated thrust
         self.maxthr[idx] = coeffBS.rThr[self.jetengidx]*coeffBS.n_eng[idx] # maximum thrust - initialize with 1.2*rThr
         self.SFC[idx]    = coeffBS.SFC[self.jetengidx]
-        self.ff[idx]     = 0. # neutral initialisation
-        self.ffto[idx]   = coeffBS.ffto[self.jetengidx]*coeffBS.n_eng[idx]
-        self.ffcl[idx]   = coeffBS.ffcl[self.jetengidx]*coeffBS.n_eng[idx]
-        self.ffcr[idx]   = coeffBS.ffcr[self.jetengidx]*coeffBS.n_eng[idx]
-        self.ffid[idx]   = coeffBS.ffid[self.jetengidx]*coeffBS.n_eng[idx]
-        self.ffap[idx]   = coeffBS.ffap[self.jetengidx]*coeffBS.n_eng[idx]
+        self.fuelflow[idx] = 0. # neutral initialisation
+        self.ffto[idx]   = coeffBS.ffto[self.jetengidx]*coeffBS.n_eng[idx] / 60.0
+        self.ffcl[idx]   = coeffBS.ffcl[self.jetengidx]*coeffBS.n_eng[idx] / 60.0
+        self.ffcr[idx]   = coeffBS.ffcr[self.jetengidx]*coeffBS.n_eng[idx] / 60.0
+        self.ffid[idx]   = coeffBS.ffid[self.jetengidx]*coeffBS.n_eng[idx] / 60.0
+        self.ffap[idx]   = coeffBS.ffap[self.jetengidx]*coeffBS.n_eng[idx] / 60.0
         return
