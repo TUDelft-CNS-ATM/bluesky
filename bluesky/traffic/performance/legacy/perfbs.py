@@ -308,7 +308,7 @@ class PerfBS(TrafficArrays):
 
         # for aircraft on the runway and taxiways we need to know, whether they
         # are prior or after their flight
-        self.post_flight = np.where(self.descent, True, self.post_flight)
+        self.post_flight = np.where(descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
         bs.traf.pilot.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.tas)
