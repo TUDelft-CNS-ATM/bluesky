@@ -93,18 +93,7 @@ class Autopilot(TrafficArrays):
                 bs.traf.actwp.nextaltco[i] = alt  # [m]
 
             if spd > -990. and bs.traf.swlnav[i] and bs.traf.swvnav[i]:
-
-                # Valid speed and LNAV and VNAV ap modes are on
-                # Depending on crossover altitude we fix CAS or Mach
-                if bs.traf.abco[i] and spd > 1.0:
-                    bs.traf.actwp.spd[i] = cas2mach(spd, bs.traf.alt[i])
-
-                elif bs.traf.belco[i] and 0. < spd <= 1.0:
-                    bs.traf.actwp.spd[i] = mach2cas(spd, bs.traf.alt[i])
-
-                else:
-                    bs.traf.actwp.spd[i] = spd
-
+                bs.traf.actwp.spd[i] = spd
             else:
                 bs.traf.actwp.spd[i] = -999.
 
@@ -358,8 +347,7 @@ class Autopilot(TrafficArrays):
         # Depending on or position relative to crossover altitude,
         # we will maintain CAS or Mach when altitude changes
         # We will convert values when needed
-        _, cas, m = vcasormach(casmach, bs.traf.alt[idx])
-        bs.traf.selspd[idx] = np.where(bs.traf.abco[idx], m, cas) # [-,-,m/s]
+        bs.traf.selspd[idx] = casmach
 
         # Used to be: Switch off VNAV: SPD command overrides
         bs.traf.swvnavspd[idx]   = False

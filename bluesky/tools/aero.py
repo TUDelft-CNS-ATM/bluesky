@@ -21,7 +21,7 @@ p0 = 101325.                # Pa     Sea level pressure ISA
 rho0 = 1.225                # kg/m3  Sea level density ISA
 T0   = 288.15               # K   Sea level temperature ISA
 Tstrat = 216.65             # K Stratosphere temperature (until alt=22km)
-gamma = 1.40                # cp/cv for air
+gamma = 1.40                # cp/cv: adiabatic index for air
 gamma1 =  0.2               # (gamma-1)/2 for air
 gamma2 = 3.5                # gamma/(gamma-1) for air
 beta = -0.0065              # [K/m] ISA temp gradient below tropopause
@@ -171,6 +171,25 @@ def vcasormach2tas(spd, h):
     tas = np.where(np.abs(spd) < 2.0, vmach2tas(spd, h), vcas2tas(spd, h))
     return tas
 
+
+def crossoveralt(vcas, mach):
+    ''' Calculate crossover altitude for given CAS and Mach number. 
+    
+        Calculates the altitude where the given CAS and Mach values
+        correspond to the same true airspeed.
+
+        (BADA User Manual 3.12, p. 12)
+
+        Returns: altitude in meters.
+    '''
+    # Delta: pressure ratio at the transition altitude
+    delta = (((1.0 + 0.5 * (gamma - 1.0) * (vcas / a0) ** 2) **
+                (gamma / (gamma - 1.0)) - 1.0) /
+                ((1.0 + 0.5 * (gamma - 1.0) * mach ** 2) **
+                (gamma / (gamma - 1.0)) - 1.0))
+    # Theta: Temperature ratio at the transition altitude
+    theta = delta ** (-beta * R / g0)
+    return 1000.0 / 6.5 * T0 * (1.0 - theta)
 
 # ------------------------------------------------------------------------------
 # Scalar aero functions

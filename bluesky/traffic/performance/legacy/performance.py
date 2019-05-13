@@ -152,37 +152,39 @@ def phases(alt, gs, delalt, cas, vmto, vmic, vmap,
 # (BADA User Manual 3.12, p.15)
 #
 #-----------------------------------------------------------------------------
-def esf(abco, belco, alt, M, climb, descent, delspd):
+def esf(alt, M, climb, descent, delspd, selmach):
 
     # test for acceleration / deceleration
-    cspd  = np.array((delspd <= 0.0) & (delspd >= -0.0))
+    cspd  = np.array((delspd <= 0.001) & (delspd >= -0.001))
     # accelerating or decelerating
-    acc   = np.array(delspd > 0.0)
-    dec   = np.array(delspd < -0.0)
+    acc   = np.array(delspd > 0.001)
+    dec   = np.array(delspd < -0.001)
 
     # tropopause
     abtp  = np.array(alt > 11000.0)
-    beltp = np.array(alt < 11000.0)
+    beltp = np.logical_not(abtp)
+
+    selcas = np.logical_not(selmach)
 
     # constant Mach/CAS
     # case a: constant MA above TP
-    efa   = np.logical_and.reduce([cspd, abco, abtp]) * 1
+    efa   = np.logical_and.reduce([cspd, selmach, abtp]) * 1
 
     # case b: constant MA below TP (at the moment just ISA: tISA = 1)
     # tISA = (self.temp-self.dtemp)/self.temp
     efb   = 1.0 / ((1.0 + ((gamma * R * beta) / (2.0 * g0)) * M**2)) \
-        * np.logical_and.reduce([cspd, abco, beltp]) * 1
+        * np.logical_and.reduce([cspd, selmach, beltp]) * 1
 
     # case c: constant CAS below TP (at the moment just ISA: tISA = 1)
     efc = 1.0 / (1.0 + (((gamma * R * beta) / (2.0 * g0)) * (M**2)) +
         ((1.0 + gamma1 * (M**2))**(-1.0 / (gamma - 1.0))) *
         (((1.0 + gamma1 * (M**2))**gamma2) - 1)) * \
-        np.logical_and.reduce([cspd, belco, beltp]) * 1
+        np.logical_and.reduce([cspd, selcas, beltp]) * 1
 
     #case d: constant CAS above TP
     efd = 1.0 / (1.0 + ((1.0 + gamma1 * (M**2))**(-1.0 / (gamma - 1.0))) *
         (((1.0 + gamma1 * (M**2))**gamma2) - 1.0)) * \
-        np.logical_and.reduce([cspd, belco, abtp]) * 1
+        np.logical_and.reduce([cspd, selcas, abtp]) * 1
 
     #case e: acceleration in climb
     efe    = 0.3 * np.logical_and.reduce([acc, climb])
@@ -197,13 +199,11 @@ def esf(abco, belco, alt, M, climb, descent, delspd):
     efh    = 1.7 * np.logical_and.reduce([acc, descent])
 
     # combine cases
-    esf = np.maximum.reduce([efa, efb, efc, efd, efe, eff, efg, efh])
+    ef = np.maximum.reduce([efa, efb, efc, efd, efe, eff, efg, efh])
 
-    # ESF of non-climbing/descending aircraft is zero what
+    # ESF of non-climbing/descending aircraft is zero which
     # leads to an error. Therefore, ESF for non-climbing aircraft is 1
-    ESF = np.maximum(esf, np.array(esf == 0) * 1)
-
-    return ESF
+    return np.maximum(ef, np.array(ef == 0) * 1)
 
 
 #------------------------------------------------------------------------------

@@ -74,15 +74,15 @@ def getCoefficients(actype):
         when successful, retreives the corresponding coefficient set.
         This function returns the synonym object (which contains more detailed
         information about the aircraft type) and the coefficient object'''
-    if actype not in synonyms:
+    syn = synonyms.get(actype, None)
+    if syn is None:
         return False, actype + ' is not found in BADA aircraft database. \
             (Check the file SYNONYM.NEW in your BADA path if you spelled the id correctly)'
-
-    syn   = synonyms[actype]
-    if syn.file not in accoeffs:
+    coeff = accoeffs.get(syn.file, None)
+    if coeff is None:
         return False, actype + ' exists in BADA synonym database, but corresponding \
             coefficient file (%s) could not be found.' % syn.file
-    coeff = accoeffs[syn.file]
+
     return syn, coeff
 
 
@@ -195,6 +195,13 @@ class ACData(object):
         # ground movements block: 1 line
         self.TOL, self.LDL, \
             self.wingspan, self.length            = data[21]
+
+        # Set minimum operating speeds based on stall speeds and minspeed coefficients
+        self.vmto = self.Vstall_to * self.CVmin_to
+        self.vmic = self.Vstall_ic * self.CVmin
+        self.vmcr = self.Vstall_cr * self.CVmin
+        self.vmap = self.Vstall_ap * self.CVmin
+        self.vmld = self.Vstall_ld * self.CVmin
 
     def setAPFData(self, data):
         # Minimum, average, and high reference speeds for climb, cruise,

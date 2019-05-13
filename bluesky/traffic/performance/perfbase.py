@@ -1,7 +1,9 @@
 import numpy as np
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
+
 class PerfBase(TrafficArrays):
+    ''' Base class for BlueSky aircraft performance implementations. '''
     def __init__(self):
         super().__init__()
 
@@ -21,23 +23,14 @@ class PerfBase(TrafficArrays):
             self.drag = np.array([])  # drag
             self.fuelflow = np.array([])  # fuel flow
 
-    def create(self, n):
-        super(PerfBase, self).create(n)
-
-    def delete(self, idx):
-        super(PerfBase, self).delete(idx)
-
-    def reset(self):
-        super(PerfBase, self).reset()
-
     def update(self):
-        """implement this methods"""
+        """implement this method """
         pass
 
     def limits(self, intent_v, intent_vs, intent_h):
-        """implement this methods"""
+        """implement this method """
         pass
 
     def engchange(self):
-        """implement this methods"""
+        """implement this method """
         pass

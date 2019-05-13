@@ -62,7 +62,6 @@ class PerfBS(TrafficArrays):
             self.k            = np.array([]) # induced drag factor
             self.clmaxcr      = np.array([]) # max. cruise lift coefficient
             self.qS           = np.array([]) # Dynamic air pressure [Pa]
-            self.atrans       = np.array([]) # Transition altitude [m]
 
             # engines
             self.n_eng        = np.array([]) # Number of engines
@@ -134,11 +133,6 @@ class PerfBS(TrafficArrays):
         self.gr_acc[-n:]            = coeffBS.gr_acc[coeffidx] # ground acceleration
         self.gr_dec[-n:]            = coeffBS.gr_dec[coeffidx] # ground acceleration
 
-        # calculate the crossover altitude according to the BADA 3.12 User Manual
-        self.atrans[-n:]            = ((1000/6.5)*(T0*(1-((((1+gamma1*(self.refcas[-n:]/a0)*(self.refcas[-n:]/a0))** \
-                                (gamma2))-1) / (((1+gamma1*self.refma[-n:]*self.refma[-n:])** \
-                                    (gamma2))-1))**((-(beta)*R)/g0))))
-
         # limits
         self.vm_to[-n:]             = coeffBS.vmto[coeffidx]
         self.vm_ld[-n:]             = coeffBS.vmld[coeffidx]
@@ -201,10 +195,9 @@ class PerfBS(TrafficArrays):
         swbada = False # no-bada version
         delalt = bs.traf.selalt - bs.traf.alt
         # allocate aircraft to their flight phase
-        self.phase, self.bank = \
-           phases(bs.traf.alt, bs.traf.gs, delalt, \
-           bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, bs.traf.bank, bs.traf.bphase, \
-           bs.traf.swhdgsel,swbada)
+        self.phase, self.bank = phases(bs.traf.alt, bs.traf.gs, delalt, 
+            bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, 
+            bs.traf.bank, bs.traf.bphase, bs.traf.swhdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)
@@ -252,18 +245,13 @@ class PerfBS(TrafficArrays):
         self.D = cd*self.qS
         # energy share factor and crossover altitude
         epsalt = np.array([0.001]*bs.traf.ntraf)
-        self.climb = np.array(delalt > epsalt)
-        self.descent = np.array(delalt< -epsalt)
-
-
-        # crossover altitiude
-        bs.traf.abco = np.array(bs.traf.alt>self.atrans)
-        bs.traf.belco = np.array(bs.traf.alt<self.atrans)
+        climb = np.array(delalt > epsalt)
+        descent = np.array(delalt< -epsalt)
 
         # energy share factor
         delspd = bs.traf.pilot.tas - bs.traf.tas
-        self.ESF = esf(bs.traf.abco, bs.traf.belco, bs.traf.alt, bs.traf.M,\
-                  self.climb, self.descent, delspd)
+        selmach = bs.traf.selspd < 2.0
+        self.ESF = esf(bs.traf.alt, bs.traf.M, climb, descent, delspd, selmach)
 
         # determine thrust
         self.Thr = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
