@@ -420,10 +420,11 @@ class Traffic(TrafficArrays):
         # Turning
         turnrate = np.degrees(g0 * np.tan(self.bank) / np.maximum(self.tas, self.eps))
         delhdg = (self.pilot.hdg - self.hdg + 180) % 360 - 180  # [deg]
-        self.swhdgsel = np.abs(delhdg) > np.abs(2 * simdt * turnrate)
+        self.swhdgsel = np.abs(delhdg) > np.abs(1.5 * simdt * turnrate)
 
         # Update heading
-        self.hdg = (self.hdg + simdt * turnrate * self.swhdgsel * np.sign(delhdg)) % 360.
+        self.hdg = (self.hdg + np.where(self.swhdgsel,
+            simdt * turnrate * np.sign(delhdg), delhdg)) % 360.0
 
         # Update vertical speed
         delta_alt = self.pilot.alt - self.alt
