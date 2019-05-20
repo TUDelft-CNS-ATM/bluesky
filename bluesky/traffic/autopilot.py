@@ -323,22 +323,26 @@ class Autopilot(TrafficArrays):
 
     def selhdgcmd(self, idx, hdg):  # HDG command
         """ Select heading command: HDG acid, hdg """
-        # If there is wind, compute the corresponding track angle
         if not isinstance(idx, Collection):
-                idx = np.array([idx])
-        for i in idx:
-            if bs.traf.wind.winddim > 0 and bs.traf.alt[i]>50.*ft:
-                tasnorth = bs.traf.tas[i] * np.cos(np.radians(hdg))
-                taseast  = bs.traf.tas[i] * np.sin(np.radians(hdg))
-                vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[i], bs.traf.lon[i], bs.traf.alt[i])
-                gsnorth    = tasnorth + vnwnd
-                gseast     = taseast  + vewnd
-                trk        = np.degrees(np.arctan2(gseast, gsnorth))
-            else:
-                trk = hdg
+            idx = np.array([idx])
+        # If there is wind, compute the corresponding track angle
+        if bs.traf.wind.winddim > 0:
+            ab50 = bs.traf.alt[idx] > 50.0 * ft
+            bel50 = np.logical_not(ab50)
+            iab = idx[ab50]
+            ibel = idx[bel50]
 
-            self.trk[i]  = trk
-            bs.traf.swlnav[i] = False
+            tasnorth = bs.traf.tas[iab] * np.cos(np.radians(hdg[ab50]))
+            taseast = bs.traf.tas[iab] * np.sin(np.radians(hdg[ab50]))
+            vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[iab], bs.traf.lon[iab], bs.traf.alt[iab])
+            gsnorth = tasnorth + vnwnd
+            gseast = taseast + vewnd
+            self.trk[iab] = np.degrees(np.arctan2(gseast, gsnorth))
+            self.trk[ibel] = hdg
+        else:
+            self.trk[idx] = hdg
+
+        bs.traf.swlnav[idx] = False
         # Everything went ok!
         return True
 
