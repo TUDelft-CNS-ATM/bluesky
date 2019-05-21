@@ -63,18 +63,23 @@ def makeLogfileName(logname):
 def col2txt(col, nrows):
     if isinstance(col, (list, np.ndarray)):
         if isinstance(col[0], numbers.Integral):
-            return np.char.mod('%d', col)
+            ret = np.char.mod('%d', col)
         elif isinstance(col[0], numbers.Number):
-            return np.char.mod(logprecision, col)
+            ret = np.char.mod(logprecision, col)
         else:
-            return col
-    else:
-        if isinstance(col, numbers.Integral):
-            return nrows * ['%d' % col]
-        if isinstance(col, numbers.Number):
-            return nrows * [logprecision % col]
+            ret = np.char.mod('%s', col)
+        if len(ret.shape) > 1:
+            for el in ret.T:
+                yield el
+        else:
+            yield ret
+    elif isinstance(col, numbers.Integral):
+        yield nrows * ['%d' % col]
+    elif isinstance(col, numbers.Number):
+        yield nrows * [logprecision % col]
     # The input is not a number
-    return nrows * [col]
+    else:
+        yield nrows * [col]
 
 
 class CSVLogger:
@@ -160,7 +165,8 @@ class CSVLogger:
             if nrows == 0:
                 return
             # Convert (numeric) arrays to text, leave text arrays untouched
-            txtdata = [col2txt(col, nrows) for col in varlist]
+            txtdata = [
+                txtcol for col in varlist for txtcol in col2txt(col, nrows)]
 
             # log the data to file
             np.savetxt(self.file, np.vstack(txtdata).T,
