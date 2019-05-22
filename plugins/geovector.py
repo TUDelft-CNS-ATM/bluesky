@@ -9,15 +9,12 @@ Geovector is defined as:
 
 
  """
-
+import numpy as np
 
 from bluesky import traf  #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import areafilter
 from bluesky.tools.aero import vtas2cas,ft
 from bluesky.tools.misc import degto180
-
-
-import numpy as np
 
 
 # A dictionary of areas with a geovector specification
@@ -41,7 +38,9 @@ class GeoVector:
 
     def __str__(self):
         ''' Pretty printed geovector information. '''
-        return 'gs: {s.gsmin}-{s.gsmax} [m/s], {s.trkmin}-{s.trkmax} trk[deg], {s.vsmin}-{s.vsmax} vs[m/s]'.format(s=self)
+        return f'gs: {self.gsmin}-{self.gsmax} [m/s], ' + \
+            f'{self.trkmin}-{self.trkmax} trk[deg], ' + \
+                f'{self.vsmin}-{self.vsmax} vs[m/s]'
 
 
 def init_plugin():
