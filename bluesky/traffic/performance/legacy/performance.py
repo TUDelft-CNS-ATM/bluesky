@@ -225,7 +225,7 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
     limspd_flag = np.where((desspd > vmo), True, limspd_flag)
 
     # maximum Mach
-    limspd      = np.where((M > mmo), vmach2cas((mmo - 0.01), alt), limspd)
+    limspd      = np.where((M > mmo), vmach2cas(mmo, alt), limspd)
     limspd_flag = np.where((M > mmo), True, limspd_flag)
 
     # remove non-needed limits
