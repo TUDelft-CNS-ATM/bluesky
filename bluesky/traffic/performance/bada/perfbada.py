@@ -587,7 +587,7 @@ class PerfBADA(TrafficArrays):
                                         self.maxthr,           \
                                         self.Thr,              \
                                         self.D,                \
-                                        bs.traf.cas,           \
+                                        bs.traf.tas,           \
                                         self.mass,             \
                                         self.ESF,              \
                                         self.phase)

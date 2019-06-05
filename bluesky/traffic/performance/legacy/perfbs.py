@@ -356,7 +356,7 @@ class PerfBS(TrafficArrays):
                                         self.maxthr,         \
                                         self.Thr_pilot,      \
                                         self.D,              \
-                                        bs.traf.cas,         \
+                                        bs.traf.tas,         \
                                         self.mass,           \
                                         self.ESF,            \
                                         self.phase)
