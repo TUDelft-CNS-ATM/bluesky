@@ -46,8 +46,7 @@ def complete(cmd):
             else:
                 previous_g = g
                 idx        = len(g)
-
-                while len(files) is len(iglob(g + files[0][idx] + '*')) and idx < len(files[0]):
+                while idx < len(files[0]) and len(files) == len(iglob(g + files[0][idx] + '*')):
                     g += files[0][idx].upper()
                     idx += 1
 
