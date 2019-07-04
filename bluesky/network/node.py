@@ -58,6 +58,11 @@ class Node(object):
     def quit(self):
         ''' Quit the simulation process. '''
         self.running = False
+
+    def stop(self):
+        ''' Stack stop/quit command. '''
+        # On a stack quit command, send quit signal to server to stop all
+        # simulations.
         self.send_event(b'QUIT')
 
     def run(self):

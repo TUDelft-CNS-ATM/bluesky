@@ -22,6 +22,11 @@ class Node(object):
         # Process timers
         Timer.update_timers()
 
+    def stop(self):
+        ''' Stack stop/quit command. '''
+        # On a stack quit command, detached simulation just quits.
+        self.quit()
+
     def quit(self):
         ''' Quit the simulation process. '''
         self.running = False

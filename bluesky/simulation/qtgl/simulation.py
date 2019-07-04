@@ -128,13 +128,19 @@ def Simulation(detached):
                 self.prevstate = self.state
 
         def stop(self):
+            ''' Stack stop/quit command. '''
+            super().stop()
+
+        def quit(self):
+            ''' Quit simulation. 
+                This function is called when a QUIT signal is received from
+                the server. '''
+            super().quit()
             self.state = bs.END
             datalog.reset()
 
             # Close savefile which may be open for recording
             bs.stack.saveclose()  # Close reording file if it is on
-
-            self.quit()
 
         def op(self):
             self.syst = time.time()
@@ -218,9 +224,7 @@ def Simulation(detached):
                 stack.set_scendata(eventdata['scentime'], eventdata['scencmd'])
                 self.op()
                 event_processed = True
-            elif eventname == b'QUIT':
-                # BlueSky is quitting
-                self.stop()
+
             elif eventname == b'GETSIMSTATE':
                 # Send list of stack functions available in this sim to gui at start
                 stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}

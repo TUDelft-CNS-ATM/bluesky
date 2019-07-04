@@ -368,7 +368,6 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.action_Save:
             bs.net.send_event(b'STACKCMD', 'SAVEIC')
         elif hasattr(self.sender(), 'host_id'):
-            print(self.sender())
             bs.net.send_event(b'ADDNODES', 1)
 
     def show_file_dialog(self):

@@ -113,10 +113,10 @@ class Server(Thread):
                 if self.discovery and sock == self.discovery.handle.fileno():
                     # This is a discovery message
                     dmsg = self.discovery.recv_reqreply()
-                    print('Received', dmsg)
+                    # print('Received', dmsg)
                     if dmsg.conn_id != self.host_id and dmsg.is_request:
                         # This is a request from someone else: send a reply
-                        print('Sending reply')
+                        # print('Sending reply')
                         self.discovery.send_reply(bs.settings.event_port,
                             bs.settings.stream_port)
                     continue
@@ -188,9 +188,14 @@ class Server(Thread):
                         continue
 
                     elif eventname == b'QUIT':
-                        # Send quit to all nodes
-                        route = [self.host_id, b'*']
                         self.running = False
+                        # Send quit to all nodes and clients
+                        msg = [self.host_id, eventname, data]
+                        for connid in self.workers:
+                            self.be_event.send_multipart([connid] + msg)
+                        for connid in self.clients:
+                            self.fe_event.send_multipart([connid] + msg)
+                        continue
 
                     elif eventname == b'BATCH':
                         scentime, scencmd = msgpack.unpackb(data, encoding='utf-8')
