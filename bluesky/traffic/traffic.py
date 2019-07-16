@@ -11,7 +11,7 @@ from random import randint
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
-from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, \
+from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach
 
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
@@ -339,12 +339,12 @@ class Traffic(TrafficArrays):
                                  rd * vreln + rx * vrele))
 
         # Calculate intruder lat/lon
-        aclat, aclon = geo.qdrpos(latref, lonref, brn, dist / nm)
+        aclat, aclon = geo.kwikpos(latref, lonref, brn, dist / nm)
 
         # convert groundspeed to CAS, and track to heading
         wn, we     = self.wind.getdata(aclat, aclon, acalt)
         tasn, tase = gsn - wn, gse - we
-        acspd      = vtas2cas(sqrt(tasn * tasn + tase * tase), acalt)
+        acspd      = tas2cas(sqrt(tasn * tasn + tase * tase), acalt)
         achdg      = degrees(atan2(tase, tasn))
 
         # Create and, when necessary, set vertical speed
