@@ -7,7 +7,7 @@ Methods:
                               from scenario folder
     saveic(scenname)        : save current traffic situation as
                               scenario file scenname.SCN
-    checkscen(t)            : check whether commands need to be
+    checkscen()             : check whether commands need to be
                               processed from scenario file
     process()               : central command processing method
 Created by  : Jacco M. Hoekstra (TU Delft)

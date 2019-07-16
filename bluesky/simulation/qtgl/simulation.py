@@ -97,7 +97,7 @@ def Simulation(detached):
                         self.bencht = time.time()
 
             if self.state == bs.OP:
-                stack.checkfile()
+                stack.checkscen()
 
             # Always update stack
             stack.process()
