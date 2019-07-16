@@ -711,6 +711,12 @@ def init(startup_scnfile):
             bs.traf.asas.SetPZRm,
             "Set horizontal radius of resolution zone in nm"
         ],
+        "RTA": [
+            "RTA acid,wpinroute,RTAtime",
+            "acid,wpinroute,txt",
+            lambda idx, *args: bs.traf.ap.route[idx].SetRTA(idx, *args),
+            "Set required time of arrival (RTA) at waypoint in route"
+        ],
         "SAVEIC": [
             "SAVEIC filename/EXCEPT NONE/cmds",
             "[string]",
