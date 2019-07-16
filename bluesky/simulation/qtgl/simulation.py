@@ -97,7 +97,7 @@ def Simulation(detached):
                         self.bencht = time.time()
 
             if self.state == bs.OP:
-                stack.checkfile(self.simt)
+                stack.checkfile()
 
             # Always update stack
             stack.process()
@@ -200,14 +200,16 @@ def Simulation(detached):
         def sendState(self):
             self.send_event(b'STATECHANGE', self.state)
 
-        def batch(self, filename):
+        def batch(self, fname):
             # The contents of the scenario file are meant as a batch list: send to server and clear stack
-            result = stack.openfile(filename)
-            if result:
-                scentime, scencmd = stack.get_scendata()
+            self.reset()
+            try:
+                scentime, scencmd = zip(*[tc for tc in stack.readscn(fname)])            
                 self.send_event(b'BATCH', (scentime, scencmd))
-                self.reset()
-            return result
+            except FileNotFoundError:
+                return False, f'BATCH: File not found: {fname}'
+
+            return True
 
         def event(self, eventname, eventdata, sender_rte):
             # Keep track of event processing

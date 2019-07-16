@@ -99,7 +99,7 @@ class Simulation:
             if len(self.dts) > 20:
                     del self.dts[0]
 
-            stack.checkfile(self.simt)
+            stack.checkfile()
 
         # Always process stack
         stack.process()

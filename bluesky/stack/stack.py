@@ -3,11 +3,11 @@ Commandstack module definition : command stack & processing module
 Methods:
     Commandstack()          :  constructor
     stack(cmdline)          : add a command to the command stack
-    openfile(scenname)      : start playing a scenario file scenname.SCN
+    readscn(scenname)       : start playing a scenario file scenname.SCN
                               from scenario folder
-    saveic(scenname)      : save current traffic situation as
+    saveic(scenname)        : save current traffic situation as
                               scenario file scenname.SCN
-    checkfile(t)            : check whether commands need to be
+    checkscen(t)            : check whether commands need to be
                               processed from scenario file
     process()               : central command processing method
 Created by  : Jacco M. Hoekstra (TU Delft)
@@ -123,8 +123,7 @@ cmdsynon = {"ADDAIRWAY": "ADDAWY",
 
 cmdstack = []  # The actual stack: Current commands to be processed
 
-# Scenario file which is read
-scenfile = ""  # Currently used scenario file (for reading)
+# Scenario details
 scenname = ""  # Currently used scenario name (for reading)
 scentime = []  # Times of the commands from the read scenario file
 scencmd = []  # Commands from the scenario file
@@ -605,8 +604,8 @@ def init(startup_scnfile):
         ],
         "PCALL": [
             "PCALL filename [REL/ABS/args]",
-            "txt,[txt,...]",
-            lambda fname, *args: openfile(fname, args, mergeWithExisting=True),
+            "string",
+            pcall,
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file"
         ],
         "PLOT": [
@@ -847,7 +846,7 @@ def init(startup_scnfile):
 
     # Load initial scenario if passed
     if startup_scnfile:
-        openfile(startup_scnfile)
+        ic(startup_scnfile)
 
 
 def sender():
@@ -1080,27 +1079,7 @@ def sched_cmd(time, args, relative=False):
 
     return True
 
-
-def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
-    global scentime, scencmd
-
-    # Check for a/c id as first argument (use case: procedure files)
-    # CALL KL204 myproc should have effect as if: CALL myproc KL204
-    if mergeWithExisting and pcall_arglst and fname in bs.traf.id:
-        acid = fname
-        fname = pcall_arglst[0]
-        pcall_arglst = [acid]+list(pcall_arglst[1:])
-
-    # Save original filename for if path splitting fails (relative path)
-    orgfname = fname
-
-    absrel = "REL"  # default relative to the time of call
-    if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
-        absrel = pcall_arglst[0]
-        pcall_arglst = pcall_arglst[1:]
-
-    # Check whether file exists
-
+def readscn(fname):
     # Split the incoming filename into a path + filename and an extension
     base, ext = os.path.splitext(fname.replace('\\', '/'))
     if not os.path.isabs(base):
@@ -1110,33 +1089,8 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
     # The entire filename, possibly with added path and extension
     fname_full = os.path.normpath(base + ext)
 
-    # If timestamps in file should be interpreted as relative we need to add
-    # the current simtime to every timestamp
-    t_offset = bs.sim.simt if absrel == 'REL' else 0.0
-
-    # If this is a relative path we need to prefix scenario folder
-    if not os.path.exists(fname_full):
-        print("Openfile error: Cannot find file", fname_full)
-        return False, "Error: cannot find file: " + fname_full
-
-    # Split scenario file line in times and commands
-    if not mergeWithExisting:
-        # When a scenario file is read with PCALL the resulting commands
-        # need to be merged with the existing commands. Otherwise the
-        # old scenario commands are cleared.
-        scentime = []
-        scencmd = []
-
-    insidx = 0
-    instime = bs.sim.simt
     with open(fname_full, 'r') as fscen:
         for line in fscen:
-
-            # Replace possible arguments: %0 by first argument, %1 by second, ..
-            if pcall_arglst and line.find("%") >= 0:
-                for iarg, txtarg in enumerate(pcall_arglst):
-                    line = line.replace("%" + str(iarg), pcall_arglst[iarg])
-
             # Skip emtpy lines and comments
             if len(line.strip()) < 12 or line.strip()[0] == "#":
                 continue
@@ -1149,32 +1103,58 @@ def openfile(fname, pcall_arglst=None, mergeWithExisting=False):
                 ihr = int(ttxt[0]) * 3600.0
                 imin = int(ttxt[1]) * 60.0
                 xsec = float(ttxt[2])
-                cmdtime = ihr + imin + xsec + t_offset
-                if not scentime or cmdtime >= scentime[-1]:
-                    scentime.append(cmdtime)
-                    scencmd.append(line[icmdline + 1:].strip("\n"))
-                else:
-                    if cmdtime > instime:
-                        insidx, instime = next(((i, t)
-                                                for i, t in enumerate(scentime) if t >= cmdtime),
-                                               (len(scentime), scentime[-1]))
-                    scentime.insert(insidx, cmdtime)
-                    scencmd.insert(insidx, line[icmdline + 1:].strip("\n"))
-                    insidx += 1
-            except:
+                cmdtime = ihr + imin + xsec
+
+                yield (cmdtime, line[icmdline + 1:].strip("\n"))
+            except (ValueError, IndexError):
+                # nice try, we will just ignore this syntax error
                 if not(len(line.strip()) > 0 and line.strip()[0] == "#"):
                     print("except this:" + line)
-                pass  # nice try, we will just ignore this syntax error
 
-    # for t, c in zip(scentime, scencmd):
-    #     print(t, '>', c)
-    # if mergeWithExisting:
-    #     # If we are merging we need to sort the resulting command list
-    #     scentime, scencmd = [list(x) for x in zip(*sorted(
-    #         zip(scentime, scencmd), key=lambda pair: pair[0]))]
 
-    return True
+def pcall(fname, pcall_arglst=None):
+    ''' PCALL stack function: import another scn file into the current
+        scenario. '''
 
+    # Check for a/c id as first argument (use case: procedure files)
+    # CALL KL204 myproc should have effect as if: CALL myproc KL204
+    if pcall_arglst and fname in bs.traf.id:
+        acid = fname
+        fname = pcall_arglst[0]
+        pcall_arglst = [acid]+list(pcall_arglst[1:])
+
+    absrel = "REL"  # default relative to the time of call
+    if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
+        absrel = pcall_arglst[0]
+        pcall_arglst = pcall_arglst[1:]
+
+    # If timestamps in file should be interpreted as relative we need to add
+    # the current simtime to every timestamp
+    t_offset = bs.sim.simt if absrel == 'REL' else 0.0
+
+    # Read the scenario file
+    # readscn(fname, pcall_arglst, t_offset)
+    insidx = 0
+    instime = bs.sim.simt
+    try:
+        for (cmdtime, cmd) in readscn(fname):
+            cmdtime += t_offset
+            if not scentime or cmdtime >= scentime[-1]:
+                scentime.append(cmdtime)
+                scencmd.append(cmd)
+            else:
+                if cmdtime > instime:
+                    insidx, instime = next(((i, t)
+                                            for i, t in enumerate(scentime) if t >= cmdtime),
+                                            (len(scentime), scentime[-1]))
+                scentime.insert(insidx, cmdtime)
+                scencmd.insert(insidx, cmd)
+                insidx += 1
+
+        # stack any commands that are already due
+        checkscen()
+    except FileNotFoundError as e:
+        return False, f'PCALL: File not found\'{e.filename}\''
 
 def setscenpath(newpath):
 
@@ -1201,7 +1181,7 @@ def setscenpath(newpath):
 
 def ic(filename=''):
     ''' Function implementing the IC stack command. '''
-    global scenfile, scenname
+    global scenname
 
     # reset sim always
     bs.sim.reset()
@@ -1215,10 +1195,12 @@ def ic(filename=''):
 
     # Reset sim and open new scenario file
     if filename:
-        result = openfile(filename)
-        if result:
-            scenfile = filename
+        try:
+            for (cmdtime, cmd) in readscn(filename):
+                scentime.append(cmdtime)
+                scencmd.append(cmd)
             scenname, _ = os.path.splitext(os.path.basename(filename))
+
             # Remember this filename in IC.scn in scenario folder
             with open(settings.scenario_path+"/"+"ic.scn", "w") as keepicfile:
                 keepicfile.write(
@@ -1227,14 +1209,14 @@ def ic(filename=''):
                     "# So in the console type 'IC IC' to restart the previously used scenario file\n")
                 keepicfile.write("00:00:00.00>IC "+filename+"\n")
 
-            return True, "Opened " + filename
+            return True, f"IC: Opened {filename}"
+        except FileNotFoundError:
+            return False, f"IC: File not found: {filename}"
 
-        return result
 
-
-def checkfile(simt):
+def checkscen():
     ''' Check if commands from the scenario buffer need to be stacked. '''
-    while len(scencmd) > 0 and simt >= scentime[0]:
+    while len(scencmd) > 0 and bs.sim.simt >= scentime[0]:
         stack(scencmd[0])
         del scencmd[0]
         del scentime[0]
@@ -1426,7 +1408,9 @@ def process():
     global sender_rte
 
     # Process stack of commands
-    for (line, sender_rte) in cmdstack:
+    # for (line, sender_rte) in cmdstack:
+    while cmdstack:
+        (line, sender_rte) = cmdstack.pop(0)
         # debug print ("stack is processing:",line)
         # Empty line: next command
         line = line.strip()
