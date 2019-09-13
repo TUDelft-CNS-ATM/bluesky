@@ -17,7 +17,9 @@ class ActiveWaypoint(TrafficArrays):
             self.vs        = np.array([])  # [m/s] Active vertical speed to use
             self.turndist  = np.array([])  # [m] Distance when to turn to next waypoint
             self.flyby     = np.array([])  # Flyby switch, when False, flyover (turndist=0.0)
+            self.torta     = np.array([])  # [s] Req Time of Arrival (RTA) for next wp (-999. = None)
             self.next_qdr  = np.array([])  # [deg] track angle of next leg
+
 
     def create(self, n=1):
         super(ActiveWaypoint, self).create(n)
@@ -26,6 +28,7 @@ class ActiveWaypoint(TrafficArrays):
         self.spd[-n:]       = -999.    # [CAS[m/s]/Mach]Active WP speed
         self.turndist[-n:]  = 1.0      # [m] Distance to active waypoint where to turn
         self.flyby[-n:]     = 1.0      # Flyby/fly-over switch
+        self.torta[-n:]     = -999.0   # [s] Req Time of Arrival (RTA) for next wp (-999. = None)
         self.next_qdr[-n:]  = -999.0   # [deg] bearing next leg
 
     def Reached(self, qdr, dist, flyby):

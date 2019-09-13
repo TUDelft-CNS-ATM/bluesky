@@ -664,7 +664,11 @@ class Route:
             bs.traf.actwp.xtoalt[idx] = self.wpxtoalt[wpidx]
             bs.traf.actwp.nextaltco[idx] = self.wptoalt[wpidx]
 
-            bs.traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx])
+            bs.traf.actwp.torta[idx]    = self.wprta[idx] # available for active RTA-guidance
+
+            # VANV calculations like V/S and speed for RTA
+            bs.traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx],\
+                                        self.wprta[wpidx],self.wpxtorta[wpidx])
 
             # If there is a speed specified, process it
             if self.wpspd[wpidx]>0.:
@@ -712,10 +716,15 @@ class Route:
     def SetRTA(self, idx, name, txt):  # all arguments of setRTA
         """SetRTA acid, wpname, time: add RTA to waypoint record"""
         timeinsec = txt2tim(txt)
+        print(timeinsec)
         if name in self.wpname:
             wpidx = self.wpname.index(name)
             self.wprta[wpidx] = timeinsec
             #print("Ik heb",self.wprta[wpidx],"op",self.wpname[wpidx],"gezet!")
+
+            # Recompute if RTA waypoint is active waypoint
+            if wpidx == self.iactwp:
+                self.direct(idx, self.wpname[wpidx])
 
         return True,""
 
@@ -828,7 +837,7 @@ class Route:
 
             self.flag_landed_runway = True
 
-#        print ("getnextwp:",self.wpname[self.iactwp])
+        print ("getnextwp:",self.wpname[self.iactwp],"   torta = ",self.wptorta[self.iactwp])
 
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
@@ -1102,6 +1111,7 @@ class Route:
             irta = -1       # index of wp
             torta = -999.   # next rta value
             xtoalt = 0.     # distance to next rta
+            xtorta = 0.0    # Default value for initial leg with speed constraints
             for i in range(self.nwp - 1, -1, -1):
 
                 # waypoint with rta: reset counter, update rts
@@ -1136,7 +1146,7 @@ class Route:
 
                 self.wpirta[i]   = irta
                 self.wptorta[i]  = torta  # [s]
-                self.wpxtorta[i] = xtoalt  # [m]
+                self.wpxtorta[i] = xtorta  # [m]
 
     def findact(self,i):
         """ Find best default active waypoint.

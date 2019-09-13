@@ -11,7 +11,7 @@ from bluesky.tools import geo
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vtas2cas, cas2mach, \
-     mach2cas, vcasormach2tas, vcasormach
+     mach2cas, vcasormach2tas, tas2cas, vcasormach
 from .route import Route
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -73,7 +73,7 @@ class Autopilot(TrafficArrays):
             oldspd = bs.traf.actwp.spd[i]
 
             # Get next wp (lnavon = False if no more waypoints)
-            lat, lon, alt, spd, bs.traf.actwp.xtoalt[i], toalt, xtorta, torta,\
+            lat, lon, alt, spd, bs.traf.actwp.xtoalt[i], toalt, xtorta, bs.traf.actwp.torta[i],\
                 lnavon, flyby, bs.traf.actwp.next_qdr[i] =  \
                 self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
@@ -118,11 +118,22 @@ class Autopilot(TrafficArrays):
                 bs.traf.actwp.calcturn(bs.traf.tas[i], bs.traf.bank[i],
                                         qdr[i], local_next_qdr)  # update turn distance for VNAV
 
-            # Check  whether active waypoint speed needs to be adjusted for RTA
-            self.setspeedforRTA(i,torta,xtorta)
 
-            # VNAV = FMS ALT/SPD mode
-            self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i])
+            # VNAV = FMS ALT/SPD mode incl RTA
+            self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i],bs.traf.actwp.torta[i],xtorta)
+
+        # Check RTA guidance for all a/c flying to an RTA waypoint
+        #print(bs.traf.actwp.torta )
+        for iac in np.where(bs.traf.actwp.torta > -99.)[0]:
+
+            # For all a/c flying to an RTA waypoint, recalculate speed more often
+            iwp = bs.traf.ap.route[iac].iactwp
+
+            dist2go4rta = geo.kwikdist(bs.traf.lat[iac],bs.traf.lon[iac], \
+                           bs.traf.route[iac].wplat[iwp],bs.traf.route[iac].wplon[iwp])
+
+            self.setspeedforRTA(iac,bs.traf.actwp.torta[iac],dist2go4rta)
+
 
     def update(self):
         # FMS LNAV mode:
@@ -201,9 +212,13 @@ class Autopilot(TrafficArrays):
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
 
 
-
-    def ComputeVNAV(self, idx, toalt, xtoalt):
+    def ComputeVNAV(self, idx, toalt, xtoalt, torta, xtorta):
         # debug print ("ComputeVNAV for",bs.traf.id[idx],":",toalt/ft,"ft  ",xtoalt/nm,"nm")
+
+        # Check  whether active waypoint speed needs to be adjusted for RTA
+        self.setspeedforRTA(idx, torta, xtorta)
+
+
         # Check if there is a target altitude and VNAV is on, else return doing nothing
         if toalt < 0 or not bs.traf.swvnav[idx]:
             self.dist2vs[idx] = -999. #dist to next wp will never be less than this, so VNAV will do nothing
@@ -299,9 +314,12 @@ class Autopilot(TrafficArrays):
         else:
             self.dist2vs[idx] = -999. # [m]
 
+
         return
 
     def setspeedforRTA(self, idx, torta, xtorta):
+
+        #print(bs.sim.simt,"setspeedforRTA: idx,torta,xtorta = ",idx,torta,xtorta)
         # Calculate required CAS to meet RTA
         # for aircraft nr. idx (scalar)
         if torta < 0. : # no RTA defined in remainder of route
@@ -311,6 +329,7 @@ class Autopilot(TrafficArrays):
         if deltime>0: # Still possible?
             # xtorta does not include speed constraint legs, and torta has been compensated for that
             gsrta = xtorta/deltime # Calculate along track ground speed
+            print('bs.traf.ap.route[idx].wpxtorta =',bs.traf.ap.route[idx].wpxtorta)
 
             # Subtract tail wind speed vector
             tailwind = (bs.traf.windnorth[idx]*bs.traf.gsnorth[idx] + bs.traf.windeast[idx]*bs.traf.gseast[idx]) / \
@@ -321,6 +340,7 @@ class Autopilot(TrafficArrays):
 
             # Performance limits on speed will be applied in traf.update
             bs.traf.actwp.spd[idx]= rtacas
+            print("SetSpeedforRTA: rtacas =",rtacas)
 
             return True
         else:
@@ -529,7 +549,8 @@ class Autopilot(TrafficArrays):
                     bs.traf.swvnavspd[i] = True
                     self.route[i].calcfp()
                     actwpidx = self.route[i].iactwp
-                    self.ComputeVNAV(i,self.route[i].wptoalt[actwpidx],self.route[i].wpxtoalt[actwpidx])
+                    self.ComputeVNAV(i,self.route[i].wptoalt[actwpidx],self.route[i].wpxtoalt[actwpidx],\
+                                     self.route[i].wptorta[actwpidx],self.route[i].wpxtorta[actwpidx])
                     bs.traf.actwp.nextaltco[i] = self.route[i].wptoalt[actwpidx]
 
                 else:
