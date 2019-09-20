@@ -117,6 +117,7 @@ class ASAS(TrafficArrays):
 
         # Sets of pairs: conflict pairs, LoS pairs
         self.confpairs = list()  # Conflict pairs detected in the current timestep (used for resolving)
+        self.confpairs_new = list()  # Conflict pairs detected in the current timestep that were not yet present in the previous timestep
         self.confpairs_unique = set()  # Unique conflict pairs (a, b) = (b, a) are merged
         self.resopairs = set()  # Resolved (when RESO is on) conflicts that are still before CPA
         self.lospairs = list()  # Current loss of separation pairs
@@ -124,13 +125,19 @@ class ASAS(TrafficArrays):
         self.confpairs_all = list()  # All conflicts since simt=0
         self.lospairs_all = list()  # All losses of separation since simt=0
 
-        self.dcpa = np.array([])  # CPA distance
-
         # Conflict time and geometry data per conflict pair
+        self.dcpa = np.array([])  # CPA distance
         self.tcpa = np.array([])  # Time to CPA
         self.tLOS = np.array([])  # Time to start LoS
         self.qdr = np.array([])  # Bearing from ownship to intruder
         self.dist = np.array([])  # Horizontal distance between ""
+
+        # Conflict time and geometry data per new conflict pair
+        self.dcpa_new = np.array([])  # CPA distance
+        self.tcpa_new = np.array([])  # Time to CPA
+        self.tLOS_new = np.array([])  # Time to start LoS
+        self.qdr_new = np.array([])  # Bearing from ownship to intruder
+        self.dist_new = np.array([])  # Horizontal distance between ""
 
     def toggle(self, flag=None):
         if flag is None:
@@ -149,6 +156,7 @@ class ASAS(TrafficArrays):
         Clear conflict database
         """
         self.confpairs = list()  # Conflict pairs detected in the current timestep (used for resolving)
+        self.confpairs_new = list()  # Conflict pairs detected in the current timestep that were not yet present in the previous timestep
         self.confpairs_unique = set()  # Unique conflict pairs (a, b) = (b, a) are merged
         self.resopairs = set()  # Resolved (when RESO is on) conflicts that are still before CPA
         self.lospairs = list()  # Current loss of separation pairs
@@ -482,9 +490,12 @@ class ASAS(TrafficArrays):
         self.resopairs -= delpairs
 
     @timed_function('asas', dt=settings.asas_dt)
-    def update(self, dt):
+    def update(self):
         if not self.swasas or bs.traf.ntraf == 0:
             return
+
+        # Keep old confpairs to determine new confpairs
+        prevconfpairs = set(self.confpairs)
 
         # Conflict detection
         self.confpairs, self.lospairs, self.inconf, self.tcpamax, \
@@ -494,6 +505,17 @@ class ASAS(TrafficArrays):
         # Conflict resolution if there are conflicts
         if self.confpairs:
             self.cr.resolve(self, bs.traf)
+
+        # Store statistics for all new conflict pairs
+        self.confpairs_new = list(set(self.confpairs) - prevconfpairs)
+        print(len(self.confpairs), len(self.confpairs_new))
+        idxdict = dict((v, i) for i, v in enumerate(self.confpairs))
+        idxnew = [idxdict.get(i) for i in self.confpairs_new]
+        self.dcpa_new = np.asarray(self.dcpa)[idxnew]
+        self.tcpa_new = np.asarray(self.tcpa)[idxnew]
+        self.tLOS_new = np.asarray(self.tLOS)[idxnew]
+        self.qdr_new = np.asarray(self.qdr)[idxnew]
+        self.dist_new = np.asarray(self.dist)[idxnew]
 
         # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
         self.resopairs.update(self.confpairs)

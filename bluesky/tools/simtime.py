@@ -1,7 +1,7 @@
 ''' Simulation clock with guaranteed decimal precision. '''
 from collections import OrderedDict
+from inspect import signature
 from types import SimpleNamespace
-import bluesky as bs
 from decimal import Decimal
 from bluesky import settings
 
@@ -120,8 +120,13 @@ class Timer:
 def timed_function(name, dt=1.0):
     def decorator(fun):
         timer = Timer(name, dt)
-        def wrapper(*args, **kwargs):
-            if timer.readynext():
-                return fun(*args, **kwargs, dt=float(timer.dt_act))
+        if 'dt' in signature(fun).parameters:
+            def wrapper(*args, **kwargs):
+                if timer.readynext():
+                    return fun(*args, **kwargs, dt=float(timer.dt_act))
+        else:
+            def wrapper(*args, **kwargs):
+                if timer.readynext():
+                    return fun(*args, **kwargs)
         return wrapper
     return decorator

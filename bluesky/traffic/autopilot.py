@@ -61,7 +61,7 @@ class Autopilot(TrafficArrays):
         self.route[-n:] = [Route() for _ in range(n)]
 
     @timed_function('fms', dt=bs.settings.fms_dt)
-    def update_fms(self, qdr, dist, dt=bs.settings.fms_dt):
+    def update_fms(self, qdr, dist):
         # Shift waypoints for aircraft i where necessary
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby):
             # Save current wp speed for use on next leg when we pass this waypoint
