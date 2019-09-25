@@ -664,7 +664,8 @@ class Route:
             bs.traf.actwp.xtoalt[idx] = self.wpxtoalt[wpidx]
             bs.traf.actwp.nextaltco[idx] = self.wptoalt[wpidx]
 
-            bs.traf.actwp.torta[idx]    = self.wprta[idx] # available for active RTA-guidance
+            bs.traf.actwp.torta[idx]    = self.wprta[wpidx]    # available for active RTA-guidance
+            #print("Direct: rta =",self.wprta[wpidx],"at",self.wpname[wpidx])
 
             # VANV calculations like V/S and speed for RTA
             bs.traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx],\
@@ -716,7 +717,7 @@ class Route:
     def SetRTA(self, idx, name, txt):  # all arguments of setRTA
         """SetRTA acid, wpname, time: add RTA to waypoint record"""
         timeinsec = txt2tim(txt)
-        print(timeinsec)
+        #print(timeinsec)
         if name in self.wpname:
             wpidx = self.wpname.index(name)
             self.wprta[wpidx] = timeinsec
@@ -817,7 +818,8 @@ class Route:
 
             return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                            self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
-                           self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
+                           self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp], \
+                           self.wpxtorta[self.iactwp], self.wptorta[self.iactwp], \
                            lnavon,self.wpflyby[self.iactwp], nextqdr
 
         lnavon = self.iactwp +1 < self.nwp
@@ -837,7 +839,7 @@ class Route:
 
             self.flag_landed_runway = True
 
-        print ("getnextwp:",self.wpname[self.iactwp],"   torta = ",self.wptorta[self.iactwp])
+        #print ("getnextwp:",self.wpname[self.iactwp],"   torta = ",self.wptorta[self.iactwp])
 
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \

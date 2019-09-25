@@ -10,10 +10,12 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, vtas2cas, cas2mach, \
+from bluesky.tools.aero import ft, nm, kts, vtas2cas, cas2mach, \
      mach2cas, vcasormach2tas, tas2cas, vcasormach
 from .route import Route
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.tools.misc import tim2txt
+
 
 bs.settings.set_variable_defaults(fms_dt=1.0)
 
@@ -124,13 +126,16 @@ class Autopilot(TrafficArrays):
 
         # Check RTA guidance for all a/c flying to an RTA waypoint
         #print(bs.traf.actwp.torta )
+
+        #print('bs.traf.actwp.torta=',bs.traf.actwp.torta)
         for iac in np.where(bs.traf.actwp.torta > -99.)[0]:
 
             # For all a/c flying to an RTA waypoint, recalculate speed more often
             iwp = bs.traf.ap.route[iac].iactwp
 
             dist2go4rta = geo.kwikdist(bs.traf.lat[iac],bs.traf.lon[iac], \
-                           bs.traf.route[iac].wplat[iwp],bs.traf.route[iac].wplon[iwp])
+                                       bs.traf.actwp.lat[iac],bs.traf.actwp.lon[iac])*nm
+            #print("dist2go4rta=",dist2go4rta)
 
             self.setspeedforRTA(iac,bs.traf.actwp.torta[iac],dist2go4rta)
 
@@ -215,14 +220,18 @@ class Autopilot(TrafficArrays):
     def ComputeVNAV(self, idx, toalt, xtoalt, torta, xtorta):
         # debug print ("ComputeVNAV for",bs.traf.id[idx],":",toalt/ft,"ft  ",xtoalt/nm,"nm")
 
-        # Check  whether active waypoint speed needs to be adjusted for RTA
-        self.setspeedforRTA(idx, torta, xtorta)
-
-
         # Check if there is a target altitude and VNAV is on, else return doing nothing
         if toalt < 0 or not bs.traf.swvnav[idx]:
             self.dist2vs[idx] = -999. #dist to next wp will never be less than this, so VNAV will do nothing
             return
+
+        # Flat earth distance to next wp
+        dy = (bs.traf.actwp.lat[idx] - bs.traf.lat[idx])  # [deg lat = 60. nm]
+        dx = (bs.traf.actwp.lon[idx] - bs.traf.lon[idx]) * bs.traf.coslat[idx]  # [corrected deg lon = 60. nm]
+        legdist = 60. * nm * np.sqrt(dx * dx + dy * dy)  # [m]
+
+        # Check  whether active waypoint speed needs to be adjusted for RTA
+        self.setspeedforRTA(idx, torta, xtorta+legdist)
 
         # So: somewhere there is an altitude constraint ahead
         # Compute proper values for bs.traf.actwp.nextaltco, self.dist2vs, self.alt, bs.traf.actwp.vs
@@ -322,25 +331,33 @@ class Autopilot(TrafficArrays):
         #print(bs.sim.simt,"setspeedforRTA: idx,torta,xtorta = ",idx,torta,xtorta)
         # Calculate required CAS to meet RTA
         # for aircraft nr. idx (scalar)
-        if torta < 0. : # no RTA defined in remainder of route
+        if torta < -90. : # no RTA defined in remainder of route
             return False
 
         deltime = torta-bs.sim.simt # Remaining time to next RTA [s] in simtime
+        #print("deltime =",deltime)
         if deltime>0: # Still possible?
             # xtorta does not include speed constraint legs, and torta has been compensated for that
             gsrta = xtorta/deltime # Calculate along track ground speed
-            print('bs.traf.ap.route[idx].wpxtorta =',bs.traf.ap.route[idx].wpxtorta)
+            #print("gsrta =",gsrta/kts)
+            #print('torta, xtorta =',torta, xtorta/nm)
 
             # Subtract tail wind speed vector
             tailwind = (bs.traf.windnorth[idx]*bs.traf.gsnorth[idx] + bs.traf.windeast[idx]*bs.traf.gseast[idx]) / \
-                         bs.traf.gs*bs.traf.gs
+                         bs.traf.gs[idx]*bs.traf.gs[idx]
+
+            #print("tailwind =",tailwind)
+
+
+            #print("ETA wp =", tim2txt(bs.sim.simt+xtortaa / (bs.traf.gs[idx] + tailwind)))
+            #print("RTA wp =", tim2txt(bs.sim.simt+xtorta / gsrta))
 
             # Convert to CAS
             rtacas = tas2cas(gsrta-tailwind,bs.traf.alt[idx])
 
             # Performance limits on speed will be applied in traf.update
             bs.traf.actwp.spd[idx]= rtacas
-            print("SetSpeedforRTA: rtacas =",rtacas)
+            #print("SetSpeedforRTA: rtacas =",rtacas/kts)
 
             return True
         else:

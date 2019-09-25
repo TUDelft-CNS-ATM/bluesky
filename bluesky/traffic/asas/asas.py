@@ -508,7 +508,7 @@ class ASAS(TrafficArrays):
 
         # Store statistics for all new conflict pairs
         self.confpairs_new = list(set(self.confpairs) - prevconfpairs)
-        print(len(self.confpairs), len(self.confpairs_new))
+        #print(len(self.confpairs), len(self.confpairs_new))
         idxdict = dict((v, i) for i, v in enumerate(self.confpairs))
         idxnew = [idxdict.get(i) for i in self.confpairs_new]
         self.dcpa_new = np.asarray(self.dcpa)[idxnew]
