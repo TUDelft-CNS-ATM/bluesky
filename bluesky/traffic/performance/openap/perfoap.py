@@ -43,12 +43,12 @@ class OpenAP(PerfBase):
             self.engpower = np.array([])  # engine power, rotor ac
             self.cd0 = np.array([])  # zero drag coefficient
             self.cd0_clean = np.array([])  # Cd0, clean configuration
-            self.cd0_gd = np.array([])  # Cd0, ground mode
-            self.cd0_to = np.array([])  # Cd0, taking-off
-            self.cd0_ic = np.array([])  # Cd0, initial climb
-            self.cd0_ap = np.array([])  # Cd0, landing
-            self.cd0_ld = np.array([])  # Cd0, landing
-            self.k = np.array([])  # induced drag coeff
+            self.k_clean = np.array([])  # k, clean configuration
+            self.cd0_to = np.array([])  # Cd0, takeoff configuration
+            self.k_to = np.array([])  # k, takeoff configuration
+            self.cd0_ld = np.array([])  # Cd0, landing configuration
+            self.k_ld = np.array([])  # k, landing configuration
+            self.delta_cd_gear = np.array([])  # landing gear
 
             self.vmin = np.array([])
             self.vmax = np.array([])
@@ -142,12 +142,14 @@ class OpenAP(PerfBase):
             self.vminto[-n:] = self.coeff.limits_fixwing[actype]["vminto"]
 
             self.cd0_clean[-n:] = self.coeff.dragpolar_fixwing[actype]["cd0_clean"]
-            self.cd0_gd[-n:] = self.coeff.dragpolar_fixwing[actype]["cd0_gd"]
+            self.k_clean[-n:] = self.coeff.dragpolar_fixwing[actype]["k_clean"]
             self.cd0_to[-n:] = self.coeff.dragpolar_fixwing[actype]["cd0_to"]
-            self.cd0_ic[-n:] = self.coeff.dragpolar_fixwing[actype]["cd0_ic"]
-            self.cd0_ap[-n:] = self.coeff.dragpolar_fixwing[actype]["cd0_ap"]
+            self.k_to[-n:] = self.coeff.dragpolar_fixwing[actype]["k_to"]
             self.cd0_ld[-n:] = self.coeff.dragpolar_fixwing[actype]["cd0_ld"]
-            self.k[-n:] = self.coeff.dragpolar_fixwing[actype]["k"]
+            self.k_ld[-n:] = self.coeff.dragpolar_fixwing[actype]["k_ld"]
+            self.delta_cd_gear[-n:] = self.coeff.dragpolar_fixwing[actype][
+                "delta_cd_gear"
+            ]
         else:  # rotorcraft
             self.vmin[-n:] = self.coeff.limits_rotor[actype]["vmin"]
             self.vmax[-n:] = self.coeff.limits_rotor[actype]["vmax"]
@@ -159,13 +161,13 @@ class OpenAP(PerfBase):
             self.vsmax[-n:] = self.coeff.limits_rotor[actype]["vsmax"]
             self.hmax[-n:] = self.coeff.limits_rotor[actype]["hmax"]
 
-            self.cd0_clean[-n:] = self.coeff.dragpolar_fixwing["NA"]["cd0_clean"]
-            self.cd0_gd[-n:] = self.coeff.dragpolar_fixwing["NA"]["cd0_gd"]
-            self.cd0_to[-n:] = self.coeff.dragpolar_fixwing["NA"]["cd0_to"]
-            self.cd0_ic[-n:] = self.coeff.dragpolar_fixwing["NA"]["cd0_ic"]
-            self.cd0_ap[-n:] = self.coeff.dragpolar_fixwing["NA"]["cd0_ap"]
-            self.cd0_ld[-n:] = self.coeff.dragpolar_fixwing["NA"]["cd0_ld"]
-            self.k[-n:] = self.coeff.dragpolar_fixwing["NA"]["k"]
+            self.cd0_clean[-n:] = np.nan
+            self.k_clean[-n:] = np.nan
+            self.cd0_to[-n:] = np.nan
+            self.k_to[-n:] = np.nan
+            self.cd0_ld[-n:] = np.nan
+            self.k_ld[-n:] = np.nan
+            self.delta_cd_gear[-n:] = np.nan
 
         # append update actypes, after removing unkown types
         self.actypes[-n:] = [actype] * n
@@ -187,13 +189,23 @@ class OpenAP(PerfBase):
 
         # ----- compute drag -----
         # update drage coefficient based on flight phase
-        self.cd0[self.phase == ph.GD] = self.cd0_to[self.phase == ph.GD]
-        self.cd0[self.phase == ph.IC] = self.cd0_ic[self.phase == ph.IC]
-        self.cd0[self.phase == ph.AP] = self.cd0_ap[self.phase == ph.AP]
+        self.cd0[self.phase == ph.GD] = (
+            self.cd0_to[self.phase == ph.GD] + self.delta_cd_gear[self.phase == ph.GD]
+        )
+        self.cd0[self.phase == ph.IC] = self.cd0_to[self.phase == ph.IC]
+        self.cd0[self.phase == ph.AP] = self.cd0_ld[self.phase == ph.AP]
         self.cd0[self.phase == ph.CL] = self.cd0_clean[self.phase == ph.CL]
         self.cd0[self.phase == ph.CR] = self.cd0_clean[self.phase == ph.CR]
         self.cd0[self.phase == ph.DE] = self.cd0_clean[self.phase == ph.DE]
         self.cd0[self.phase == ph.NA] = self.cd0_clean[self.phase == ph.NA]
+
+        self.k[self.phase == ph.GD] = self.k_to[self.phase == ph.GD]
+        self.k[self.phase == ph.IC] = self.k_to[self.phase == ph.IC]
+        self.k[self.phase == ph.AP] = self.k_ld[self.phase == ph.AP]
+        self.k[self.phase == ph.CL] = self.k_clean[self.phase == ph.CL]
+        self.k[self.phase == ph.CR] = self.k_clean[self.phase == ph.CR]
+        self.k[self.phase == ph.DE] = self.k_clean[self.phase == ph.DE]
+        self.k[self.phase == ph.NA] = self.k_clean[self.phase == ph.NA]
 
         rho = aero.vdensity(bs.traf.alt[idx_fixwing])
         vtas = bs.traf.tas[idx_fixwing]

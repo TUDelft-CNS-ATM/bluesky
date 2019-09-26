@@ -5,7 +5,6 @@
     "engine_type": "Engine typer: TF, TP",
     "mtow": "max take-of weight (kg)",
     "mlw": "max landing weight (kg)",
-    "mzfw": "maximum zero fuel weight, max (kg)",
     "oew": "operating empty weight (kg)",
     "mfc": "max fuel capacity (L)",
     "engines": "[list of engines]"
@@ -17,7 +16,6 @@
     "wa": 122.4,
     "mtow": 75500,
     "mlw": 62500,
-    "mzfw": 58500,
     "oew": 40800,
     "mfc": 30190,
     "engines": ["CFM56-5B5", "CFM56-5B6", "CFM56-5B7", "CFM56-5A4", "CFM56-5A5", "V2522-A5", "V2524-A5", "V2527M-A5"]
@@ -29,7 +27,6 @@
     "wa": 122.6,
     "mtow": 78000,
     "mlw": 66000,
-    "mzfw": 62500,
     "oew": 42600,
     "mfc": 24210,
     "engines": ["CFM56-5B4", "CFM56-5B5", "CFM56-5B6", "V2500-A1", "V2527-A5"]
@@ -41,7 +38,6 @@
     "wa": 122.6,
     "mtow": 93500,
     "mlw": 77800,
-    "mzfw": 73800,
     "oew": 48500,
     "mfc": 30030,
     "engines": ["CFM56-5B1", "CFM56-5B2", "CFM56-5B3", "V2533-A5", "V2530-A5"]
@@ -53,7 +49,6 @@
     "wa": 361.6,
     "mtow": 230000,
     "mlw": 182000,
-    "mzfw": 170000,
     "oew": 120200,
     "mfc": 139000,
     "engines": ["CF6-80E1A1", "PW4168", "Trent 768", "Trent 772"]
@@ -65,7 +60,6 @@
     "wa": 363.6,
     "mtow": 230000,
     "mlw": 188000,
-    "mzfw": 175000,
     "oew": 122780,
     "mfc": 139000,
     "engines": ["CF6-80E1A1", "PW4168", "Trent 768", "Trent 772"]
@@ -77,10 +71,20 @@
     "wa": 361.6,
     "mtow": 276000,
     "mlw": 190000,
-    "mzfw": 178000,
     "oew": 130000,
     "mfc": 147850,
     "engines": ["CFM56-5C2", "CFM56-5C3", "CFM56-5C4"]
+  },
+  "A359": {
+    "name": "Airbus A350-900",
+    "n_engines": 2,
+    "engine_type": "TF",
+    "wa": 442,
+    "mtow": 280000,
+    "mlw": 205000,
+    "oew": 142400,
+    "mfc": 140795,
+    "engines": ["Trent XWB-84"]
   },
   "A388": {
     "name": "Airbus A-380-800",
@@ -89,10 +93,20 @@
     "wa": 845.0,
     "mtow": 575000,
     "mlw": 394000,
-    "mzfw": 369000,
     "oew": 369000,
     "mfc": 323546,
     "engines": ["GP7270", "Trent 970", "Trent 972"]
+  },
+  "B734": {
+    "name": "Boeing 737-400",
+    "n_engines": 2,
+    "engine_type": "TF",
+    "wa": 91.04,
+    "mtow": 68000,
+    "mlw": 56200,
+    "oew": 33700,
+    "mfc": 20000,
+    "engines": ["CFM56-3B-2", "CFM56-3C-1"]
   },
   "B737": {
     "name": "Boeing 737-700",
@@ -101,7 +115,6 @@
     "wa": 124.6,
     "mtow": 70000,
     "mlw": 58600,
-    "mzfw": 54600,
     "oew": 37600,
     "mfc": 26000,
     "engines": ["CFM56-7B20", "CFM56-7B22", "CFM56-7B24", "CFM56-7B26", "CFM56-7B27"]
@@ -113,7 +126,6 @@
     "wa": 124.6,
     "mtow": 79000,
     "mlw": 66300,
-    "mzfw": 62000,
     "oew": 41400,
     "mfc": 26000,
     "engines": ["CFM56-7B24", "CFM56-7B26"]
@@ -125,7 +137,6 @@
     "wa": 124.6,
     "mtow": 85100,
     "mlw": 71300,
-    "mzfw": 62360,
     "oew": 44600,
     "mfc": 26000,
     "engines": ["CFM56-7B24", "CFM56-7B26", "CFM56-7B27"]
@@ -137,10 +148,20 @@
     "wa": 525.6,
     "mtow": 396800,
     "mlw": 260300,
-    "mzfw": 242600,
     "oew": 182400,
     "mfc": 203500,
     "engines": ["PW4056", "CF6-80C2B5F", "RB211-524G"]
+  },
+  "B748": {
+    "name": "Boeing 747-8",
+    "n_engines": 4,
+    "engine_type": "TF",
+    "wa": 554,
+    "mtow": 447700,
+    "mlw": 312100,
+    "oew": 220100,
+    "mfc": 238600,
+    "engines": ["GEnx-2B67"]
   },
   "B752": {
     "name": "Boeing 757-200",
@@ -149,7 +170,6 @@
     "wa": 185.3,
     "mtow": 115600,
     "mlw": 92200,
-    "mzfw": 84300,
     "oew": 58400,
     "mfc": 43500,
     "engines": ["PW2037", "RB211-535E4"]
@@ -161,7 +181,6 @@
     "wa": 283.3,
     "mtow": 158700,
     "mlw": 136000,
-    "mzfw": 133800,
     "oew": 90000,
     "mfc": 63200,
     "engines": ["JT9D-7R4", "PW4056", "CF6-80C2B2"]
@@ -173,7 +192,6 @@
     "wa": 436.8,
     "mtow": 351500,
     "mlw": 251300,
-    "mzfw": 224530,
     "oew": 167800,
     "mfc": 181300,
     "engines": ["PW4077", "Trent 877", "GE90-77B", "PW4090", "Trent 895", "GE90-94B"]
@@ -185,7 +203,6 @@
     "wa": 325,
     "mtow": 228000,
     "mlw": 172000,
-    "mzfw": 161000,
     "oew": 119000,
     "mfc": 126200,
     "engines": ["GEnx-1B64", "GEnx-1B67", "GEnx-1B70", "Trent 1000-A", "Trent 1000-C", "Trent 1000-E"]
@@ -197,7 +214,6 @@
     "wa": 361,
     "mtow": 254000,
     "mlw": 193000,
-    "mzfw": 181000,
     "oew": 128000,
     "mfc": 126400,
     "engines": ["GEnx-1B74", "GEnx-1B75", "Trent 1000-A2", "Trent 1000-J2", "Trent 1000-K2"]
@@ -209,10 +225,31 @@
     "wa": 31.8,
     "mtow": 6849,
     "mlw": 6804,
-    "mzfw": 5126,
     "oew": 3655,
     "mfc": 2204,
     "engines": ["JT15D-4"]
+  },
+  "E170": {
+    "name": "Embraer E170",
+    "n_engines": 2,
+    "engine_type": "TF",
+    "wa": 72.72,
+    "mtow": 34200,
+    "mlw": 32800,
+    "oew": 21140,
+    "mfc": 9335,
+    "engines": ["CF34-8E5", "CF34-8E6"]
+  },
+  "E75L": {
+    "name": "Embraer E175 (LR)",
+    "n_engines": 2,
+    "engine_type": "TF",
+    "wa": 72.72,
+    "mtow": 38790,
+    "mlw": 34000,
+    "oew": 21890,
+    "mfc": 11625,
+    "engines": ["CF34-8E5", "CF34-8E6"]
   },
   "E190": {
     "name": "Embraer E-Jet E190",
@@ -221,7 +258,6 @@
     "wa": 92.5,
     "mtow": 51800,
     "mlw": 44000,
-    "mzfw": 40900,
     "oew": 28080,
     "mfc": 16250,
     "engines": ["CF34-10E5", "CF34-10E6", "CF34-10E7"]
@@ -233,9 +269,19 @@
     "wa": 63.1,
     "mtow": 28998,
     "mlw": 28009,
-    "mzfw": 25855,
     "oew": 17819,
     "mfc": 6525,
     "engines": ["PW150A"]
+  },
+  "F16": {
+    "name": "F-16 Fighting Falcon",
+    "n_engines": 1,
+    "engine_type": "TF",
+    "wa": 28,
+    "mtow": 19187,
+    "mlw": 19187,
+    "oew": 8573,
+    "mfc": 3200,
+    "engines": ["JT8D-11"]
   }
 }

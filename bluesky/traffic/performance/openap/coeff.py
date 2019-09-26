@@ -26,6 +26,18 @@ rotor_aircraft_db = settings.perf_path_openap + "/rotor/aircraft.json"
 
 class Coefficient:
     def __init__(self):
+
+        # Load synonyms.dat text file into dictionary
+        self.synodict = {}
+        with open(synonyms_db, "r") as f_syno:
+            for line in f_syno.readlines():
+                if line.count("#") > 0:
+                    dataline, comment = line.split("#")
+                else:
+                    dataline = line.strip("\n")
+                acmod, synomod = dataline.split("=")
+                self.synodict[acmod.strip().upper()] = synomod.strip().upper()
+
         self.acs_fixwing = self._load_all_fixwing_flavor()
         self.engines_fixwing = pd.read_csv(fixwing_engine_db, encoding="utf-8")
         self.limits_fixwing = self._load_all_fixwing_envelop()
@@ -39,18 +51,6 @@ class Coefficient:
         df = pd.read_csv(fixwing_dragpolar_db, index_col="mdl")
         self.dragpolar_fixwing = df.to_dict(orient="index")
         self.dragpolar_fixwing["NA"] = df.mean().to_dict()
-
-        # Load synonyms.dat text file into dictionary
-        self.synodict = {}
-        f_syno = open(synonyms_db, "r")
-        for line in f_syno.readlines():
-            if line.count("#") > 0:
-                dataline, comment = line.split("#")
-            else:
-                dataline = line.strip("\n")
-            acmod, synomod = dataline.split("=")
-            self.synodict[acmod.strip().upper()] = synomod.strip().upper()
-        f_syno.close()
 
     def _load_all_fixwing_flavor(self):
         import warnings
@@ -76,6 +76,7 @@ class Coefficient:
                 if selengine.shape[0] >= 1:
                     engine = json.loads(selengine.iloc[-1, :].to_json())
                     acs_[mdl.upper()]["engines"][engine["name"]] = engine
+
         return acs_
 
     def _load_all_rotor_flavor(self):
@@ -107,7 +108,7 @@ class Coefficient:
                     df.loc["cr_v_cas_mean"]["min"],
                     df.loc["de_v_cas_const"]["min"],
                 )
-                limits_fixwing[mdl]["vmaxer"] = min(
+                limits_fixwing[mdl]["vmaxer"] = max(
                     df.loc["cl_v_cas_const"]["max"],
                     df.loc["cr_v_cas_mean"]["max"],
                     df.loc["de_v_cas_const"]["max"],
@@ -141,6 +142,12 @@ class Coefficient:
                 )
 
                 # limits_fixwing['amaxverti'] = None # max vertical acceleration (m/s2)
+
+        # create envolop based on synonym
+        for mdl in self.synodict.keys():
+            if mdl not in limits_fixwing:
+                limits_fixwing[mdl] = limits_fixwing[self.synodict[mdl]]
+
         return limits_fixwing
 
     def _load_all_rotor_envelop(self):
