@@ -1,5 +1,6 @@
 Windows 10 users:
 If you get errors installing pyopengl-accelerate, this is due to a problem
 with Microsofts Build tools and Python 3.7.
-The best solution for now is to step back to python 3.6.
-Hopefully this will soon be fixed by the pyopengl-accelerate developer 
+Hopefully this will soon be fixed by the pyopengl-accelerate developer.
+You could step back to Python 3.6 (to use pyopengl-accelerate)
+or run BlueSky with Python 3.7 (without pyopengl-accelerate).
