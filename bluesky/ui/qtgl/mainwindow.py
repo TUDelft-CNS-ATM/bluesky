@@ -14,6 +14,7 @@ from PyQt5 import uic
 import bluesky as bs
 from bluesky.tools.misc import tim2txt
 from bluesky.network import get_ownip
+from bluesky.ui import palette
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -25,12 +26,13 @@ from bluesky.ui.pygame.dialog import fileopen
 is_osx = platform.system() == 'Darwin'
 
 # Register settings defaults
-bs.settings.set_variable_defaults(gfx_path='data/graphics',
-                                  stack_text_color=(0, 255, 0),
-                                  stack_background_color=(102, 102, 102))
+bs.settings.set_variable_defaults(gfx_path='data/graphics')
 
-fg = bs.settings.stack_text_color
-bg = bs.settings.stack_background_color
+palette.set_default_colours(stack_text=(0, 255, 0),
+                            stack_background=(102, 102, 102))
+
+fg = palette.stack_text
+bg = palette.stack_background
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
