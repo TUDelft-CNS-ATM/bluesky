@@ -354,3 +354,16 @@ class OpenAP(PerfBase):
         accs[self.phase != ph.GD] = acc_air
 
         return accs
+
+    def show_performance(self, acid):
+        bs.scr.echo("Flight phase: %s" % ph.readable_phase(self.phase[acid]))
+        bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
+        bs.scr.echo("Drag: %d kN" % (self.drag[acid] / 1000))
+        bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
+        bs.scr.echo("Speed envolop: [%d, %d] m/s" % (self.vmin[acid], self.vmax[acid]))
+        bs.scr.echo(
+            "Vetrical speed envolop: [%d, %d] m/s"
+            % (self.vsmin[acid], self.vsmax[acid])
+        )
+        bs.scr.echo("Ceiling: %d km" % (self.hmax[acid] / 1000))
+        # self.drag.astype(int)
