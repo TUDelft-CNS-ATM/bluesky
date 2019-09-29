@@ -294,7 +294,7 @@ def kwikdist(lata, lona, latb, lonb):
         dist [nm]
     """
 
-    re      = 6371000.  # readius earth [m]
+    re      = 6371000.  # radius earth [m]
     dlat    = np.radians(latb - lata)
     dlon    = np.radians(lonb - lona)
     cavelat = np.cos(np.radians(lata + latb) * 0.5)
