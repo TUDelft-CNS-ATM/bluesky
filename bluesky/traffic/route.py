@@ -80,7 +80,7 @@ class Route:
 
         while data.count(name_) > 0 :
             appi += 1
-            name_ = name[:-len_]+fmt_.format(appi)
+            name_ = name_[:-len_]+fmt_.format(appi)
         return name_
 
     def addwptStack(self, idx, *args):  # args: all arguments of addwpt
