@@ -416,26 +416,27 @@ class Traffic(TrafficArrays):
     def UpdateAirSpeed(self, simdt, simt):
         # Compute horizontal acceleration
         delta_spd = self.pilot.tas - self.tas
-        need_ax = np.abs(delta_spd) > kts     # small threshold
-        self.ax = need_ax * np.sign(delta_spd) * self.perf.acceleration()
-        
+        ax = self.perf.acceleration()
+        need_ax = np.abs(delta_spd) > np.abs(simdt * ax)
+        self.ax = need_ax * np.sign(delta_spd) * ax
         # Update velocities
-        self.tas = self.tas + self.ax * simdt
+        self.tas = np.where(need_ax, self.tas + self.ax * simdt, self.pilot.tas)
         self.cas = vtas2cas(self.tas, self.alt)
         self.M = vtas2mach(self.tas, self.alt)
 
         # Turning
         turnrate = np.degrees(g0 * np.tan(self.bank) / np.maximum(self.tas, self.eps))
         delhdg = (self.pilot.hdg - self.hdg + 180) % 360 - 180  # [deg]
-        self.swhdgsel = np.abs(delhdg) > np.abs(1.5 * simdt * turnrate)
+        self.swhdgsel = np.abs(delhdg) > np.abs(simdt * turnrate)
 
         # Update heading
-        self.hdg = (self.hdg + np.where(self.swhdgsel,
-            simdt * turnrate * np.sign(delhdg), delhdg)) % 360.0
+        self.hdg = np.where(self.swhdgsel, 
+                            self.hdg + simdt * turnrate * np.sign(delhdg), self.pilot.hdg) % 360.0
 
         # Update vertical speed
         delta_alt = self.pilot.alt - self.alt
-        self.swaltsel = np.abs(delta_alt) > np.maximum(10 * ft, np.abs(2 * simdt * np.abs(self.vs)))
+        self.swaltsel = np.abs(delta_alt) > np.maximum(
+            10 * ft, np.abs(2 * np.abs(simdt * self.vs)))
         target_vs = self.swaltsel * np.sign(delta_alt) * np.abs(self.pilot.vs)
         delta_vs = target_vs - self.vs
         # print(delta_vs / fpm)
