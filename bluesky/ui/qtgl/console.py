@@ -9,6 +9,7 @@ from . import autocomplete
 
 cmdline_stacked = Signal()
 
+
 def get_cmd():
     """ Return the current command in the console's command line."""
     if not Console._instance:
@@ -50,11 +51,11 @@ class Console(QWidget):
     def __init__(self, parent=None):
         super(Console, self).__init__(parent)
         self.command_history = []
-        self.cmd             = ''
-        self.args            = []
-        self.history_pos     = 0
-        self.command_mem     = ''
-        self.command_line    = ''
+        self.cmd = ''
+        self.args = []
+        self.history_pos = 0
+        self.command_mem = ''
+        self.command_line = ''
 
         # Connect to the io client's activenode changed signal
         bs.net.event_received.connect(self.on_simevent_received)
@@ -72,8 +73,8 @@ class Console(QWidget):
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:
             self.stackText.setPlainText(nodedata.echo_text)
-            self.stackText.verticalScrollBar().setValue(self.stackText.verticalScrollBar().maximum())
-
+            self.stackText.verticalScrollBar().setValue(
+                self.stackText.verticalScrollBar().maximum())
 
     def stack(self, text):
         # Add command to the command history
@@ -91,7 +92,8 @@ class Console(QWidget):
         actdata = bs.net.get_nodedata()
         actdata.echo(text)
         self.stackText.append(text)
-        self.stackText.verticalScrollBar().setValue(self.stackText.verticalScrollBar().maximum())
+        self.stackText.verticalScrollBar().setValue(
+            self.stackText.verticalScrollBar().maximum())
 
     def append_cmdline(self, text):
         self.set_cmdline(self.command_line + text)
@@ -133,53 +135,69 @@ class Console(QWidget):
 
         newcmd = self.command_line
         cursorpos = None
-        if event.key() == Qt.Key_Backspace:
+        if event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
+            pos = self.lineEdit.cursor_pos()
+            newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
+            # Update the cursor position with the length of the added text
+            cursorpos = pos + len(event.text())
+        elif event.key() == Qt.Key_Backspace:
             pos = self.lineEdit.cursor_pos()
             newcmd = newcmd[:pos - 1] + newcmd[pos:]
             cursorpos = pos - 1
-
-        elif event.key() == Qt.Key_Up:
-            if self.history_pos == 0:
-                self.command_mem = newcmd
-            if len(self.command_history) >= self.history_pos + 1:
-                self.history_pos += 1
-                newcmd = self.command_history[-self.history_pos]
-
-        elif event.key() == Qt.Key_Down:
-            if self.history_pos > 0:
-                self.history_pos -= 1
-                if self.history_pos == 0:
-                    newcmd = self.command_mem
-                else:
-                    newcmd = self.command_history[-self.history_pos]
-
-        elif event.key() == Qt.Key_Left:
-            self.lineEdit.cursor_left()
-
-        elif event.key() == Qt.Key_Right:
-            self.lineEdit.cursor_right()
-
         elif event.key() == Qt.Key_Tab:
             if newcmd:
                 newcmd, displaytext = autocomplete.complete(newcmd)
                 if displaytext:
                     self.echo(displaytext)
+        elif not event.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier | 
+                                        Qt.AltModifier | Qt.MetaModifier):
+            if event.key() == Qt.Key_Up:
+                if self.history_pos == 0:
+                    self.command_mem = newcmd
+                if len(self.command_history) >= self.history_pos + 1:
+                    self.history_pos += 1
+                    newcmd = self.command_history[-self.history_pos]
 
-        elif event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
-            pos = self.lineEdit.cursor_pos()
-            newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
-            # Update the cursor position with the length of the added text
-            cursorpos = pos + len(event.text())
+            elif event.key() == Qt.Key_Down:
+                if self.history_pos > 0:
+                    self.history_pos -= 1
+                    if self.history_pos == 0:
+                        newcmd = self.command_mem
+                    else:
+                        newcmd = self.command_history[-self.history_pos]
 
+            elif event.key() == Qt.Key_Left:
+                self.lineEdit.cursor_left()
+
+            elif event.key() == Qt.Key_Right:
+                self.lineEdit.cursor_right()
+            else:
+                # Remaining keys are things like sole modifier keys, and function keys
+                super(Console, self).keyPressEvent(event)
         else:
-            # Remaining keys are things like sole modifier keys, and function keys
-            super(Console, self).keyPressEvent(event)
+            event.ignore()
+            return
 
         # Final processing of the command line
         self.set_cmdline(newcmd, cursorpos)
 
+
+class Word:
+    def __init__(self, w='', type='str'):
+        self.word = w
+
+    def append(self, w):
+        self.word = self.word + w
+        # TODO do checks
+
+    def __str__(self):
+        ''' Word with color markup. '''
+        return ''
+
+
 class Cmdline(QTextEdit):
     ''' Wrapper class for the command line. '''
+
     def __init__(self, parent=None):
         super(Cmdline, self).__init__(parent)
         Console.lineEdit = self
@@ -187,13 +205,18 @@ class Cmdline(QTextEdit):
         # self.setFocusPolicy(Qt.NoFocus)
         self.set_cmdline('')
 
+    def keyPressEvent(self, event):
+        event.ignore()
+
     def set_cmdline(self, cmdline, hints='', cursorpos=None):
         ''' Set the command line with possible hints. '''
-        self.setHtml('>>' + cmdline + '<font color="#aaaaaa">' + hints + '</font>')
+        self.setHtml('>>' + cmdline + '<font color="#aaaaaa">' +
+                     hints + '</font>')
         self.cmdline = cmdline
         cursor = self.textCursor()
         cursor.setPosition((cursorpos or len(cmdline)) + 2)
         self.setTextCursor(cursor)
+        # TODO: word objects with possible list of checker functions?
 
     def cursor_pos(self):
         ''' Get the cursor position. '''
@@ -211,8 +234,10 @@ class Cmdline(QTextEdit):
         cursor.setPosition(min(len(self.cmdline) + 2, cursor.position() + 1))
         self.setTextCursor(cursor)
 
+
 class Stackwin(QTextEdit):
     ''' Wrapper class for the stack output textbox. '''
+
     def __init__(self, parent=None):
         super(Stackwin, self).__init__(parent)
         Console.stackText = self
