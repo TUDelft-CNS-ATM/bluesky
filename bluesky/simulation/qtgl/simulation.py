@@ -13,7 +13,7 @@ MINSLEEP = 1e-3
 onedayinsec = 24 * 3600  # [s] time of one day in seconds for clock time
 
 # Register settings defaults
-settings.set_variable_defaults(simdt=0.05, simevent_port=10000, simstream_port=10001)
+settings.set_variable_defaults(simdt=0.05)
 
 
 def Simulation(detached):
@@ -233,8 +233,14 @@ def Simulation(detached):
                 shapes = [shape.raw for shape in areafilter.areas.values()]
                 simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
                     stackcmds=stackdict, stacksyn=stack.cmdsynon, shapes=shapes,
-                    custacclr=bs.scr.custacclr, custgrclr=bs.scr.custgrclr)
+                    custacclr=bs.scr.custacclr, custgrclr=bs.scr.custgrclr,
+                    settings=bs.settings._settings_hierarchy)
                 self.send_event(b'SIMSTATE', simstate, target=sender_rte)
+            # elif eventname in (b'GETSETTINGS', b'GETPLUGINSETTINGS'):
+            #     data = dict(bs.settings._settings_hierarchy)
+            #     if eventname == b'GETPLUGINSETTINGS':
+            #         del data['bluesky']
+            #     self.send_event(b'SIMSETTINGS', data, target=sender_rte)
             else:
                 # This is either an unknown event or a gui event.
                 event_processed = bs.scr.event(eventname, eventdata, sender_rte)

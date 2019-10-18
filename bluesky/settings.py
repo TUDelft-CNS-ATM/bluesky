@@ -1,8 +1,10 @@
 '''BlueSky global configuration module'''
+import re
 import os
 import sys
 import shutil
 import site
+import inspect
 
 
 def init(cfgfile=''):
@@ -24,7 +26,7 @@ def init(cfgfile=''):
     if not os.path.isfile(os.path.join(rundir, 'data/default.cfg')):
         # collate list of possible data install roots
         root_dirs = site.getusersitepackages()
-        root_dirs = [root_dirs] if type(root_dirs) is str else root_dirs
+        root_dirs = [root_dirs] if isinstance(root_dirs, str) else root_dirs
         root_dirs += site.getsitepackages()
 
         # search for bluesky shared data directory
@@ -46,7 +48,6 @@ def init(cfgfile=''):
     outdir = os.path.join(rundir, 'output')
     plgsrc = os.path.join(srcdir, 'plugins')
     plgdir = os.path.join(rundir, 'plugins')
-    configfile = os.path.join(rundir, 'settings.cfg')
     configsrc = os.path.join(srcdir, 'data/default.cfg')
 
     if not cfgfile:
@@ -56,7 +57,7 @@ def init(cfgfile=''):
     for i in range(len(sys.argv)):
         if len(sys.argv) > i + 1:
             if sys.argv[i] == '--config-file':
-                configfile = sys.argv[i + 1]
+                cfgfile = sys.argv[i + 1]
             elif sys.argv[i] == '--scenfile':
                 globals()['scenfile'] = sys.argv[i + 1]
 
@@ -102,6 +103,9 @@ def init(cfgfile=''):
     cachedir = os.path.join(cachedir, 'py%d' % sys.version_info[0])
     globals()['cache_path'] = cachedir
 
+    # Store name of config file
+    globals()['_cfgfile'] = cfgfile
+
     # Create default directories if they don't exist yet
     for d in (outdir, cachedir):
         if not os.path.isdir(d):
@@ -117,7 +121,8 @@ def init(cfgfile=''):
 
     return True
 
-
+_settings_hierarchy = dict()
+_settings = list()
 def set_variable_defaults(**kwargs):
     ''' Register a default value for a configuration variable. Use this functionality
         in plugins to make sure that configuration variables are available upon usage.
@@ -131,3 +136,63 @@ def set_variable_defaults(**kwargs):
     for key, value in kwargs.items():
         if key not in globals():
             globals()[key] = value
+        else:
+            kwargs[key] = globals()[key]
+        if key not in _settings:
+            _settings.append(key)
+
+    # Keep track of who this variable belongs to
+    callertree = inspect.currentframe().f_back.f_globals['__name__'].split('.')
+    tree = _settings_hierarchy
+    visited = set()
+    for loc in callertree:
+        if loc in visited:
+            continue
+        if loc not in tree:
+            tree[loc] = dict()
+        tree = tree[loc]
+        visited.add(loc)
+    tree.update(kwargs)
+
+def save(fname=None, changes=None):
+    # Apply any changes that are passed for saving
+    if changes:
+        globals().update(changes)
+    # Make a copy of the list of settings
+    allsettings = list(_settings)
+    # Write to a specified file if passed, else current config file
+    fname = fname or _cfgfile
+    # Get config file formatting from file to be updated if it exists, else get
+    # it from the config file template
+    srcdir = ''
+    if getattr(sys, 'frozen', False):
+        srcdir = os.path.dirname(sys.executable)
+        if not os.path.isabs(fname):
+            fname = os.path.join(os.path.expanduser('~'), 'bluesky', fname)
+
+    configsrc = fname if os.path.isfile(fname) else os.path.join(srcdir, 'data/default.cfg')
+    lines = [line for line in open(configsrc, 'r')]
+
+    with open(fname, 'w') as fout:
+        # first write all lines following the format of the source file
+        for line in lines:
+            key = (re.findall(r'^(\w+)\s*=?.*', line.strip()) + [''])[0]
+            if key in allsettings:
+                allsettings.pop(allsettings.index(key))
+                value = globals()[key]
+                if isinstance(value, str):
+                    fout.write(f'{key} = \'{value}\'\n')
+                else:
+                    fout.write(f'{key} = {value}\n')
+            else:
+                fout.write(line)
+        # Then write any remaining additional settings
+        fout.write('\n')
+        for key in allsettings:
+            value = globals()[key]
+            if isinstance(value, str):
+                fout.write(f'{key} = \'{value}\'\n')
+            else:
+                fout.write(f'{key} = {value}\n')
+
+    return True, f'Saved settings to {fname}'
