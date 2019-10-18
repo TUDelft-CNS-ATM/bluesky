@@ -13,10 +13,6 @@ from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
-# Register settings defaults
-bs.settings.set_variable_defaults(scenario_path='scenario',
-                                  event_port=9000, stream_port=9001)
-
 
 def gui_msg_handler(msgtype, context, msg):
     if msgtype == QtWarningMsg:

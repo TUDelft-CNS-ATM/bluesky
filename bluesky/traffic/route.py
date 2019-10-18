@@ -9,8 +9,6 @@ from bluesky.tools.position import txt2pos
 from bluesky import stack
 from bluesky.stack import Argparser
 
-# Register settings defaults
-bs.settings.set_variable_defaults(log_path='output')
 
 class Route:
     """

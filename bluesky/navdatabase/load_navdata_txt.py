@@ -4,9 +4,6 @@ import numpy as np
 from bluesky import settings
 from bluesky.tools.aero import ft
 
-## Default settings
-settings.set_variable_defaults(navdata_path='data/navdata')
-
 def load_navdata_txt():
     #----------  Read  nav.dat file (nav aids) ----------
     wptdata         = dict()

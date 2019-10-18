@@ -6,9 +6,6 @@ import numpy as np
 import bluesky as bs
 from bluesky import settings
 
-## Default settings
-settings.set_variable_defaults(navdata_path='data/navdata')
-
 REARTH_INV = 1.56961231e-7
 
 

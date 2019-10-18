@@ -5,9 +5,6 @@ from types import SimpleNamespace
 from decimal import Decimal
 from bluesky import settings
 
-
-settings.set_variable_defaults(simdt=0.05)
-
 # Data that the simulation clock needs to keep
 _clock = SimpleNamespace(t=Decimal('0.0'), dt=Decimal(repr(settings.simdt)),
                          ft=0.0, fdt=settings.simdt)

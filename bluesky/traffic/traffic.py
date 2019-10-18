@@ -30,7 +30,7 @@ from .trafficgroups import TrafficGroups
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(performance_model='openap', snapdt=1.0, instdt=1.0, skydt=1.0, asas_pzr=5.0, asas_pzh=1000.0)
+settings.set_variable_defaults(performance_model='openap')
 
 if settings.performance_model == 'bada':
     try:

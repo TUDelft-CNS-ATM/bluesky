@@ -2,9 +2,6 @@
 import glob
 from bluesky import settings
 
-# Register settings defaults
-settings.set_variable_defaults(scenario_path='scenario')
-
 previous_g = ''
 
 
