@@ -2,13 +2,13 @@
 import os
 import zmq
 import msgpack
-import bluesky
+import bluesky as bs
 from bluesky import stack
 from bluesky.tools import Timer
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 
-class Node(object):
+class Node:
     def __init__(self, event_port, stream_port):
         self.node_id = b'\x00' + os.urandom(4)
         self.host_id = b''
@@ -18,12 +18,6 @@ class Node(object):
         self.stream_out = ctx.socket(zmq.PUB)
         self.event_port = event_port
         self.stream_port = stream_port
-        # Tell bluesky that this client will manage the network I/O
-        bluesky.net = self
-
-    def event(self, eventname, eventdata, sender_id):
-        ''' Event data handler. Reimplemented in Simulation. '''
-        print('Node {} received {} data from {}'.format(self.node_id, eventname, sender_id))
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''
@@ -41,7 +35,7 @@ class Node(object):
             else:
                 pydata = msgpack.unpackb(
                     data, object_hook=decode_ndarray, encoding='utf-8')
-                self.event(eventname, pydata, route)
+                bs.sim.event(eventname, pydata, route)
 
     def connect(self):
         ''' Connect node to the BlueSky server. '''
@@ -70,6 +64,9 @@ class Node(object):
         while self.running:
             # Perform a simulation step
             self.step()
+            bs.sim.step()
+            # Update screen logic
+            bs.scr.step()
 
     def addnodes(self, count=1):
         self.send_event(b'ADDNODES', count)

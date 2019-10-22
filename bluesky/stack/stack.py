@@ -207,7 +207,7 @@ def init(startup_scnfile):
         "ADDNODES": [
             "ADDNODES number",
             "int",
-            bs.sim.addnodes,
+            bs.net.addnodes,
             "Add a simulation instance/node",
         ],
         "ADDWPT": [

@@ -76,6 +76,12 @@ class Screen:
         self.radt0 = -999.  # last time drawn
         self.maxnrwp = 1000  # max nr apts+wpts to be drawn
 
+        # Keep track of sim dt to show average update rate on screen
+        self.dts = []
+
+    def reset(self):
+        self.objdel()     # Delete user defined objects
+
     def init(self):
         # Read Screen configuration file:
         print()
@@ -319,6 +325,11 @@ class Screen:
         else:
             self.ndcrs = 0.0
 
+        # Simulation: keep track of timestep
+        # For measuring game loop frequency
+        self.dts.append(bs.sim.simdt)
+        if len(self.dts) > 20:
+                del self.dts[0]
 
         # Radar window
         # --------------Background--------------
@@ -857,7 +868,7 @@ class Screen:
             self.fontsys.printat(self.win, 10+80, 2, \
                                  "ntraf = " + str(bs.traf.ntraf))
             self.fontsys.printat(self.win, 10+160, 2, \
-                                 "Freq=" + str(int(len(bs.sim.dts) / max(0.001, sum(bs.sim.dts)))))
+                                 "Freq=" + str(int(len(self.dts) / max(0.001, sum(self.dts)))))
 
             self.fontsys.printat(self.win, 10+240, 2, \
                                  "#LOS      = " + str(len(bs.traf.asas.lospairs_unique)))

@@ -46,13 +46,14 @@ class ScreenIO(object):
         self.slow_timer = Timer()
         self.slow_timer.timeout.connect(self.send_siminfo)
         self.slow_timer.timeout.connect(self.send_route_data)
+        self.slow_timer.timeout.connect(self.send_trails)
         self.slow_timer.start(int(1000 / self.siminfo_rate))
 
         self.fast_timer = Timer()
         self.fast_timer.timeout.connect(self.send_aircraft_data)
         self.fast_timer.start(int(1000 / self.acupdate_rate))
 
-    def update(self):
+    def step(self):
         if bs.sim.state == bs.OP:
             self.samplecount += 1
 
@@ -64,14 +65,14 @@ class ScreenIO(object):
         self.prevtime    = 0.0
 
         # Communicate reset to gui
-        bs.sim.send_event(b'RESET', b'ALL')
+        bs.net.send_event(b'RESET', b'ALL')
 
 
     def echo(self, text='', flags=0):
-        bs.sim.send_event(b'ECHO', dict(text=text, flags=flags))
+        bs.net.send_event(b'ECHO', dict(text=text, flags=flags))
 
     def cmdline(self, text):
-        bs.sim.send_event(b'CMDLINE', text)
+        bs.net.send_event(b'CMDLINE', text)
 
     def getviewctr(self):
         return self.client_pan.get(stack.sender()) or self.def_pan
@@ -100,7 +101,7 @@ class ScreenIO(object):
             self.def_zoom = zoom * (1.0 if absolute else self.def_zoom)
             self.client_zoom.clear()
 
-        bs.sim.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
+        bs.net.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
 
     def color(self, name, r, g, b):
         ''' Set custom color for aircraft or shape. '''
@@ -117,7 +118,7 @@ class ScreenIO(object):
             areafilter.areas[name].raw['color'] = (r, g, b)
         else:
             return False, 'No object found with name ' + name
-        bs.sim.send_event(b'COLOR', data)
+        bs.net.send_event(b'COLOR', data)
         return True
 
     def pan(self, *args):
@@ -148,19 +149,19 @@ class ScreenIO(object):
                                                        lon + self.def_pan[1])
             self.client_pan.clear()
 
-        bs.sim.send_event(b'PANZOOM', dict(pan=(lat,lon), absolute=absolute))
+        bs.net.send_event(b'PANZOOM', dict(pan=(lat,lon), absolute=absolute))
 
     def shownd(self, acid):
-        bs.sim.send_event(b'SHOWND', acid)
+        bs.net.send_event(b'SHOWND', acid)
 
     def symbol(self):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(flag='SYM'))
+        bs.net.send_event(b'DISPLAYFLAG', dict(flag='SYM'))
 
     def feature(self, switch, argument=None):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(flag=switch, args=argument))
+        bs.net.send_event(b'DISPLAYFLAG', dict(flag=switch, args=argument))
 
     def trails(self,sw):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(flag='TRAIL', args=sw))
+        bs.net.send_event(b'DISPLAYFLAG', dict(flag='TRAIL', args=sw))
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -169,18 +170,18 @@ class ScreenIO(object):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        bs.sim.send_event(b'DEFWPT', dict(name=name, lat=lat, lon=lon))
+        bs.net.send_event(b'DEFWPT', dict(name=name, lat=lat, lon=lon))
         return True
 
     def show_file_dialog(self):
-        bs.sim.send_event(b'SHOWDIALOG', dict(dialog='OPENFILE'))
+        bs.net.send_event(b'SHOWDIALOG', dict(dialog='OPENFILE'))
         return ''
 
     def show_cmd_doc(self, cmd=''):
-        bs.sim.send_event(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
+        bs.net.send_event(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
 
     def filteralt(self, *args):
-        bs.sim.send_event(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
+        bs.net.send_event(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
 
     def objappend(self, objtype, objname, data):
         """Add a drawing object to the radar screen using the following inputs:
@@ -191,7 +192,7 @@ class ScreenIO(object):
                     BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
                     CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
         """
-        bs.sim.send_event(b'SHAPE', dict(name=objname, shape=objtype, coordinates=data))
+        bs.net.send_event(b'SHAPE', dict(name=objname, shape=objtype, coordinates=data))
 
     def event(self, eventname, eventdata, sender_rte):
         if eventname == b'PANZOOM':
@@ -209,10 +210,22 @@ class ScreenIO(object):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
-        bs.sim.send_stream(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
+        bs.net.send_stream(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
             str(bs.sim.utc.replace(microsecond=0)), bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
+
+    def send_trails(self):
+        # Trails, send only new line segments to be added
+        data = dict(swtrails=bs.traf.trails.active,
+                    traillat0=bs.traf.trails.newlat0,
+                    traillon0=bs.traf.trails.newlon0,
+                    traillat1=bs.traf.trails.newlat1,
+                    traillon1=bs.traf.trails.newlon1,
+                    traillastlat=bs.traf.trails.lastlat,
+                    traillastlon=bs.traf.trails.lastlon)
+        bs.traf.trails.clearnew()
+        bs.net.send_stream(b'TRAILS', data)
 
     def send_aircraft_data(self):
         data = dict()
@@ -236,18 +249,6 @@ class ScreenIO(object):
         data['vmin']       = bs.traf.asas.vmin
         data['vmax']       = bs.traf.asas.vmax
 
-        # Trails, send only new line segments to be added
-        data['swtrails']  = bs.traf.trails.active
-        data['traillat0'] = bs.traf.trails.newlat0
-        data['traillon0'] = bs.traf.trails.newlon0
-        data['traillat1'] = bs.traf.trails.newlat1
-        data['traillon1'] = bs.traf.trails.newlon1
-        bs.traf.trails.clearnew()
-
-        # Last segment which is being built per aircraft
-        data['traillastlat']   = bs.traf.trails.lastlat
-        data['traillastlon']   = bs.traf.trails.lastlon
-
         # Transition level as defined in traf
         data['translvl']   = bs.traf.translvl
 
@@ -259,7 +260,20 @@ class ScreenIO(object):
             data['asasn']  = np.zeros(bs.traf.ntraf, dtype=np.float32)
             data['asase']  = np.zeros(bs.traf.ntraf, dtype=np.float32)
 
-        bs.sim.send_stream(b'ACDATA', data)
+        # Trails, send only new line segments to be added
+        data['swtrails'] = bs.traf.trails.active
+        data['traillat0'] = bs.traf.trails.newlat0
+        data['traillon0'] = bs.traf.trails.newlon0
+        data['traillat1'] = bs.traf.trails.newlat1
+        data['traillon1'] = bs.traf.trails.newlon1
+        bs.traf.trails.clearnew()
+
+        # Last segment which is being built per aircraft
+        data['traillastlat'] = bs.traf.trails.lastlat
+        data['traillastlon'] = bs.traf.trails.lastlon
+
+
+        bs.net.send_stream(b'ACDATA', data)
 
     def send_route_data(self):
         for sender, acid in self.route_acid.items():
@@ -282,4 +296,4 @@ class ScreenIO(object):
 
                 data['wpname'] = route.wpname
 
-            bs.sim.send_stream(b'ROUTEDATA' + (sender or b'*'), data)  # Send route data to GUI
+            bs.net.send_stream(b'ROUTEDATA' + (sender or b'*'), data)  # Send route data to GUI

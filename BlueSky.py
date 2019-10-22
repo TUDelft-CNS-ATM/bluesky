@@ -78,8 +78,8 @@ def main():
         # Only start a simulation node if called with --sim or --detached
         if mode[:3] == 'sim':
             if mode[-8:] != 'detached':
-                bs.sim.connect()
-            bs.sim.run()
+                bs.net.connect()
+            bs.net.run()
         else:
             # Only print start message in the non-sim cases to avoid printing
             # this for every started node
