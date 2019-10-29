@@ -23,7 +23,7 @@ DIRECT	Go direct to specified waypoint in route (FMS)	DIRECT acid wpname	acid,tx
 DIST	Distance and direction calculation between two positions	DIST lat0, lon0, lat1, lon1	latlon,latlon	
 DT	Set simulation time step	DT dt	float	 Simulation.setDt of bluesky.sim.qtgl.simulation.Simulation object
 DTLOOK	Set lookahead time in seconds for conflict detection	DTLOOK [time]	[float]	 ASAS.SetDtLook of bluesky.traf.asas.asas.ASAS object
-DTMULT	Sel multiplication factor for fast-time simulation	DTMULT multiplier	float	 Simulation.setDtMultiplier of bluesky.sim.qtgl.simulation.Simulation object
+DTMULT	Sel multiplication factor for fast-time simulation	DTMULT multiplier	float	 Simulation.set_dtmult of bluesky.sim.qtgl.simulation.Simulation object
 DTNOLOOK	Set interval for conflict detection	DTNOLOOK [time]	[float]	 ASAS.SetDtNoLook of bluesky.traf.asas.asas.ASAS object
 DUMPRTE	Write route to output/routelog.txt	DUMPRTE acid	acid	
 ECHO	Show a text in command window for user to read	ECHO txt	string	 ScreenIO.echo of bluesky.sim.qtgl.screenio.ScreenIO object
@@ -33,7 +33,7 @@ FIXDT	Fix the time step	FIXDT ON/OFF [tend]	onoff,[time]	 Simulation.setFixdt of
 GETWIND	Get wind at a specified position (and optionally at altitude)	GETWIND lat,lon,[alt]	latlon,[alt]	 WindSim.get of bluesky.traf.windsim.WindSim instance
 HDG	Heading command (autopilot)	HDG acid,hdg (deg,True)	acid,float	 Autopilot.selhdg of bluesky.traf.autopilot.Autopilot object
 HELP	Show help on a command, show pdf or write list of commands to file	HELP [command]/pdf/ >filename	[txt]	
-HOLD	Pause(hold) simulation	HOLD		 Simulation.pause of bluesky.sim.qtgl.simulation.Simulation object
+HOLD	Pause(hold) simulation	HOLD		 Simulation.hold of bluesky.sim.qtgl.simulation.Simulation object
 IC	Initial condition: (re)start simulation and open scenario file	IC [IC/filename]	[string]	
 INSEDIT	Insert text op edit line in command window	INSEDIT txt	string	 ScreenIO.cmdline of bluesky.sim.qtgl.screenio.ScreenIO object
 INSTLOG	INSTLOG data logging on	INSTLOG ON/OFF,[dt] or LISTVARS or SELECTVARS var1,...,varn	[txt,float/txt,...]	 CSVLogger.stackio of bluesky.tools.datalog.CSVLogger instance
@@ -47,7 +47,7 @@ ND	Show navigation display with CDTI	ND acid	txt
 NOISE	Turbulence/noise switch	NOISE [ON/OFF]	[onoff]	 Traffic.setNoise of bluesky.traf.traffic.Traffic object
 NOM	Set nominal acceleration for this aircraft (perf model)	NOM acid	acid	 Traffic.nom of bluesky.traf.traffic.Traffic object
 NORESO	Switch off conflict resolution for this aircraft	NORESO [acid]	[string]	 ASAS.SetNoreso of bluesky.traf.asas.asas.ASAS object
-OP	Start/Run simulation or continue after pause	OP		 Simulation.start of bluesky.sim.qtgl.simulation.Simulation object
+OP	Start/Run simulation or continue after hold	OP		 Simulation.start of bluesky.sim.qtgl.simulation.Simulation object
 ORIG	Set origin airport of aircraft	ORIG acid, latlon/airport	acid,wpt/latlon	
 PAN	Pan screen (move view) to a waypoint, direction or aircraft	PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN	pandir/latlon	 ScreenIO.pan of bluesky.sim.qtgl.screenio.ScreenIO object
 PCALL	Call commands in another scenario file	PCALL filename [REL/ABS]	txt,[txt]	
@@ -91,7 +91,7 @@ ZOOM	Zoom display in/out, you can also use +++ or -----	ZOOM IN/OUT or factor	fl
  Synonyms (equivalent commands)
 ?	HELP	Show help on a command, show pdf or write list of commands to file
 CLOSE	QUIT	Quit program/Stop simulation
-CONTINUE	OP	Start/Run simulation or continue after pause
+CONTINUE	OP	Start/Run simulation or continue after hold
 CREATE	CRE	Create an aircraft
 DELETE	DEL	Delete command (aircraft, wind, area)
 DELWP	DELWPT	Delete a waypoint from a route (FMS)
@@ -112,10 +112,10 @@ PAUSE	HOLD	Pause(hold) simulation
 Q	QUIT	Quit program/Stop simulation
 RESOFACH	RFACH	Set resolution factor horizontal (to add a margin)
 RESOFACV	RFACV	Set resolution factor vertical (to add a margin)
-RUN	OP	Start/Run simulation or continue after pause
+RUN	OP	Start/Run simulation or continue after hold
 SAVE	SAVEIC	Save current situation as IC
 SPEED	SPD	Speed command (autopilot)
-START	OP	Start/Run simulation or continue after pause
+START	OP	Start/Run simulation or continue after hold
 STOP	QUIT	Quit program/Stop simulation
 TURN	HDG	Heading command (autopilot)
 VMETH	RMETHV	Set resolution method to be used vertically

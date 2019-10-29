@@ -18,12 +18,7 @@ def main():
         bs.sim.step()   # Update sim
         bs.scr.update()   # GUI update
 
-        # Restart traffic simulation:
-        # if bs.sim.state == bs.INIT:
-        #     bs.sim.reset()
-        #     bs.scr.objdel()     # Delete user defined objects
-
-    bs.sim.stop()
+    bs.sim.quit()
     pg.quit()
 
     print('BlueSky normal end.')

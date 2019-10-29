@@ -1,8 +1,8 @@
+''' BlueSky simulation control object. '''
 import time, datetime
 
 # Local imports
 import bluesky as bs
-from bluesky import settings, stack
 from bluesky.tools import datalog, areafilter, plugin, plotter, simtime
 
 
@@ -10,7 +10,7 @@ from bluesky.tools import datalog, areafilter, plugin, plotter, simtime
 MINSLEEP = 1e-3
 
 # Register settings defaults
-settings.set_variable_defaults(simdt=0.05)
+bs.settings.set_variable_defaults(simdt=0.05)
 
 
 class Simulation:
@@ -30,7 +30,7 @@ class Simulation:
         self.simt = 0.0
 
         # Simulation timestep [seconds]
-        self.simdt = settings.simdt
+        self.simdt = bs.settings.simdt
 
         # Simulation timestep multiplier: run sim at n x speed
         self.dtmult = 1.0
@@ -59,7 +59,7 @@ class Simulation:
                 bs.scr.echo('Benchmark complete: %d samples in %.3f seconds.' % \
                             (bs.scr.samplecount, time.time() - self.bencht))
                 self.benchdt = -1.0
-                self.pause()
+                self.hold()
             else:
                 self.op()
 
@@ -72,17 +72,17 @@ class Simulation:
             if self.syst < 0.0:
                 self.syst = time.time()
 
-            if bs.traf.ntraf > 0 or len(stack.get_scendata()[0]) > 0:
+            if bs.traf.ntraf > 0 or len(bs.stack.get_scendata()[0]) > 0:
                 self.op()
                 if self.benchdt > 0.0:
                     self.fastforward(self.benchdt)
                     self.bencht = time.time()
 
         if self.state == bs.OP:
-            stack.checkscen()
+            bs.stack.checkscen()
 
         # Always update stack
-        stack.process()
+        bs.stack.process()
 
         if self.state == bs.OP:
 
@@ -106,7 +106,7 @@ class Simulation:
 
         # Inform main of our state change
         if not self.state == self.prevstate:
-            self.sendState()
+            bs.net.send_event(b'STATECHANGE', self.state)
             self.prevstate = self.state
 
     def stop(self):
@@ -125,68 +125,67 @@ class Simulation:
         bs.stack.saveclose()  # Close reording file if it is on
 
     def op(self):
+        ''' Set simulation state to OPERATE. '''
         self.syst = time.time()
         self.ffmode = False
         self.state = bs.OP
-        self.setDtMultiplier(1.0)
+        self.set_dtmult(1.0)
 
-    def pause(self):
+    def hold(self):
+        ''' Set simulation state to HOLD. '''
         self.syst = time.time()
         self.state = bs.HOLD
 
     def reset(self):
+        ''' Reset all simulation objects. '''
         self.state = bs.INIT
         self.syst = -1.0
         self.simt = 0.0
-        self.simdt = settings.simdt
+        self.simdt = bs.settings.simdt
         simtime.reset()
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.ffmode = False
-        self.setDtMultiplier(1.0)
+        self.set_dtmult(1.0)
         plugin.reset()
         bs.navdb.reset()
         bs.traf.reset()
-        stack.reset()
+        bs.stack.reset()
         datalog.reset()
         areafilter.reset()
         bs.scr.reset()
 
     def setdt(self, dt=None, target='simdt'):
+        ''' Change the timestep of the simulation or other periodic functions. '''
         if dt is not None and target == 'simdt':
             self.simdt = abs(dt)
             self.sysdt = self.simdt / self.dtmult
         return simtime.setdt(dt, target)
 
-    def setDtMultiplier(self, mult):
+    def set_dtmult(self, mult):
+        ''' Set simulation speed multiplier. '''
         self.dtmult = mult
         self.sysdt  = self.simdt / self.dtmult
 
-    def setFixdt(self, flag, nsec=None):
-        if flag:
-            self.fastforward(nsec)
-        else:
-            self.op()
-
     def fastforward(self, nsec=None):
+        ''' Run in fast-time (for nsec seconds if specified). '''
         self.ffmode = True
-        if nsec is not None:
-            self.ffstop = self.simt + nsec
-        else:
-            self.ffstop = None
+        self.ffstop = (self.simt + nsec) if nsec else None
 
     def benchmark(self, fname='IC', dt=300.0):
-        stack.ic(fname)
+        ''' Run a simulation benchmark.
+            Use scenario given by fname.
+            Run for <dt> seconds. '''
+        bs.stack.ic(fname)
         self.bencht  = 0.0  # Start time will be set at next sim cycle
         self.benchdt = dt
 
-    def sendState(self):
-        bs.net.send_event(b'STATECHANGE', self.state)
-
     def batch(self, fname):
-        # The contents of the scenario file are meant as a batch list: send to server and clear stack
+        ''' Run a batch of scenarios. '''
+        # The contents of the scenario file are meant as a batch list:
+        # send to server and clear stack
         self.reset()
         try:
-            scentime, scencmd = zip(*[tc for tc in stack.readscn(fname)])            
+            scentime, scencmd = zip(*[tc for tc in bs.stack.readscn(fname)])
             bs.net.send_event(b'BATCH', (scentime, scencmd))
         except FileNotFoundError:
             return False, f'BATCH: File not found: {fname}'
@@ -194,27 +193,28 @@ class Simulation:
         return True
 
     def event(self, eventname, eventdata, sender_rte):
+        ''' Handle events coming from the network. '''
         # Keep track of event processing
         event_processed = False
 
         if eventname == b'STACKCMD':
             # We received a single stack command. Add it to the existing stack
-            stack.stack(eventdata, sender_rte)
+            bs.stack.stack(eventdata, sender_rte)
             event_processed = True
 
         elif eventname == b'BATCH':
             # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
             self.reset()
-            stack.set_scendata(eventdata['scentime'], eventdata['scencmd'])
+            bs.stack.set_scendata(eventdata['scentime'], eventdata['scencmd'])
             self.op()
             event_processed = True
 
         elif eventname == b'GETSIMSTATE':
             # Send list of stack functions available in this sim to gui at start
-            stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in stack.cmddict.items()}
+            stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in bs.stack.cmddict.items()}
             shapes = [shape.raw for shape in areafilter.areas.values()]
             simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
-                stackcmds=stackdict, stacksyn=stack.cmdsynon, shapes=shapes,
+                stackcmds=stackdict, stacksyn=bs.stack.cmdsynon, shapes=shapes,
                 custacclr=bs.scr.custacclr, custgrclr=bs.scr.custgrclr,
                 settings=bs.settings._settings_hierarchy)
             bs.net.send_event(b'SIMSTATE', simstate, target=sender_rte)
@@ -225,18 +225,18 @@ class Simulation:
         return event_processed
 
     def setutc(self, *args):
-        """ Set simulated clock time offset"""
+        ''' Set simulated clock time offset. '''
         if not args:
             pass  # avoid error message, just give time
 
         elif len(args) == 1:
-            if args[0].upper() == "RUN":
+            if args[0].upper() == 'RUN':
                 self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
-            elif args[0].upper() == "REAL":
+            elif args[0].upper() == 'REAL':
                 self.utc = datetime.datetime.today().replace(microsecond=0)
 
-            elif args[0].upper() == "UTC":
+            elif args[0].upper() == 'UTC':
                 self.utc = datetime.datetime.utcnow().replace(microsecond=0)
 
             else:
@@ -244,14 +244,14 @@ class Simulation:
                     self.utc = datetime.datetime.strptime(args[0], 
                         '%H:%M:%S.%f' if '.' in args[0] else '%H:%M:%S')
                 except ValueError:
-                    return False, "Input time invalid"
+                    return False, 'Input time invalid'
 
         elif len(args) == 3:
             day, month, year = args
             try:
                 self.utc = datetime.datetime(year, month, day)
             except ValueError:
-                return False, "Input date invalid."
+                return False, 'Input date invalid.'
         elif len(args) == 4:
             day, month, year, timestring = args
             try:
@@ -260,8 +260,8 @@ class Simulation:
                     '%Y,%m,%d,%H:%M:%S.%f' if '.' in timestring else
                     '%Y,%m,%d,%H:%M:%S')
             except ValueError:
-                return False, "Input date invalid."
+                return False, 'Input date invalid.'
         else:
-            return False, "Syntax error"
+            return False, 'Syntax error'
 
-        return True, "Simulation UTC " + str(self.utc)
+        return True, 'Simulation UTC ' + str(self.utc)

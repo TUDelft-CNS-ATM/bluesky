@@ -431,7 +431,7 @@ def init(startup_scnfile):
         "DTMULT": [
             "DTMULT multiplier",
             "float",
-            bs.sim.setDtMultiplier,
+            bs.sim.set_dtmult,
             "Sel multiplication factor for fast-time simulation",
         ],
         "DTNOLOOK": [
@@ -473,8 +473,8 @@ def init(startup_scnfile):
         "FIXDT": [
             "FIXDT ON/OFF [tend]",
             "onoff,[time]",
-            bs.sim.setFixdt,
-            "Fix the time step",
+            lambda flag, *args: bs.sim.ff(*args) if flag else bs.op(),
+            "Legacy function for TMX compatibility",
         ],
         "GETWIND": [
             "GETWIND lat,lon,[alt]",
@@ -503,7 +503,7 @@ def init(startup_scnfile):
             lambda *args: bs.scr.echo(showhelp(*args)),
             "Show help on a command, show pdf or write list of commands to file",
         ],
-        "HOLD": ["HOLD", "", bs.sim.pause, "Pause(hold) simulation"],
+        "HOLD": ["HOLD", "", bs.sim.hold, "Pause(hold) simulation"],
         "IC": [
             "IC [IC/filename]",
             "[string]",
@@ -589,7 +589,7 @@ def init(startup_scnfile):
             bs.traf.asas.SetNoreso,
             "Switch off conflict resolution for this aircraft",
         ],
-        "OP": ["OP", "", bs.sim.op, "Start/Run simulation or continue after pause"],
+        "OP": ["OP", "", bs.sim.op, "Start/Run simulation or continue after hold"],
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
