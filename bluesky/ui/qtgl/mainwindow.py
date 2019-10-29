@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
                     self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked],
                     self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked],
                     self.op :         ['play.svg', 'Operate', self.buttonClicked],
-                    self.hold :       ['pause.svg', 'Hold', self.buttonClicked],
+                    self.hold :       ['hold.svg', 'Hold', self.buttonClicked],
                     self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked],
                     self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked],
                     self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked],
