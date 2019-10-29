@@ -376,7 +376,7 @@ class Traffic(TrafficArrays):
         self.ntraf = len(self.lat)
         return True
 
-    def update(self, simt, simdt):
+    def update(self):
         # Update only if there is traffic ---------------------
         if self.ntraf == 0:
             return
@@ -385,7 +385,7 @@ class Traffic(TrafficArrays):
         self.p, self.rho, self.Temp = vatmos(self.alt)
 
         #---------- ADSB Update -------------------------------
-        self.adsb.update(simt)
+        self.adsb.update()
 
         #---------- Fly the Aircraft --------------------------
         self.ap.update()  # Autopilot logic
@@ -399,53 +399,53 @@ class Traffic(TrafficArrays):
         self.pilot.applylimits()
 
         #---------- Kinematics --------------------------------
-        self.UpdateAirSpeed(simdt, simt)
-        self.UpdateGroundSpeed(simdt)
-        self.UpdatePosition(simdt)
+        self.UpdateAirSpeed()
+        self.UpdateGroundSpeed()
+        self.UpdatePosition()
 
         #---------- Simulate Turbulence -----------------------
-        self.turbulence.Woosh(simdt)
+        self.turbulence.update()
 
         # Check whther new traffci state triggers conditional commands
         self.cond.update()
 
         #---------- Aftermath ---------------------------------
-        self.trails.update(simt)
+        self.trails.update()
         return
 
-    def UpdateAirSpeed(self, simdt, simt):
+    def UpdateAirSpeed(self):
         # Compute horizontal acceleration
         delta_spd = self.pilot.tas - self.tas
         ax = self.perf.acceleration()
-        need_ax = np.abs(delta_spd) > np.abs(simdt * ax)
+        need_ax = np.abs(delta_spd) > np.abs(bs.sim.simdt * ax)
         self.ax = need_ax * np.sign(delta_spd) * ax
         # Update velocities
-        self.tas = np.where(need_ax, self.tas + self.ax * simdt, self.pilot.tas)
+        self.tas = np.where(need_ax, self.tas + self.ax * bs.sim.simdt, self.pilot.tas)
         self.cas = vtas2cas(self.tas, self.alt)
         self.M = vtas2mach(self.tas, self.alt)
 
         # Turning
         turnrate = np.degrees(g0 * np.tan(self.bank) / np.maximum(self.tas, self.eps))
         delhdg = (self.pilot.hdg - self.hdg + 180) % 360 - 180  # [deg]
-        self.swhdgsel = np.abs(delhdg) > np.abs(simdt * turnrate)
+        self.swhdgsel = np.abs(delhdg) > np.abs(bs.sim.simdt * turnrate)
 
         # Update heading
         self.hdg = np.where(self.swhdgsel, 
-                            self.hdg + simdt * turnrate * np.sign(delhdg), self.pilot.hdg) % 360.0
+                            self.hdg + bs.sim.simdt * turnrate * np.sign(delhdg), self.pilot.hdg) % 360.0
 
         # Update vertical speed
         delta_alt = self.pilot.alt - self.alt
         self.swaltsel = np.abs(delta_alt) > np.maximum(
-            10 * ft, np.abs(2 * np.abs(simdt * self.vs)))
+            10 * ft, np.abs(2 * np.abs(bs.sim.simdt * self.vs)))
         target_vs = self.swaltsel * np.sign(delta_alt) * np.abs(self.pilot.vs)
         delta_vs = target_vs - self.vs
         # print(delta_vs / fpm)
         need_az = np.abs(delta_vs) > 300 * fpm   # small threshold
         self.az = need_az * np.sign(delta_vs) * (300 * fpm)   # fixed vertical acc approx 1.6 m/s^2
-        self.vs = np.where(need_az, self.vs+self.az*simdt, target_vs)
+        self.vs = np.where(need_az, self.vs+self.az*bs.sim.simdt, target_vs)
         self.vs = np.where(np.isfinite(self.vs), self.vs, 0)    # fix vs nan issue
 
-    def UpdateGroundSpeed(self, simdt):
+    def UpdateGroundSpeed(self):
         # Compute ground speed and track from heading, airspeed and wind
         if self.wind.winddim == 0:  # no wind
             self.gsnorth  = self.tas * np.cos(np.radians(self.hdg))
@@ -469,13 +469,13 @@ class Traffic(TrafficArrays):
             self.trk = np.logical_not(applywind)*self.hdg + \
                        applywind*np.degrees(np.arctan2(self.gseast, self.gsnorth)) % 360.
 
-    def UpdatePosition(self, simdt):
+    def UpdatePosition(self):
         # Update position
-        self.alt = np.where(self.swaltsel, self.alt + self.vs * simdt, self.pilot.alt)
-        self.lat = self.lat + np.degrees(simdt * self.gsnorth / Rearth)
+        self.alt = np.where(self.swaltsel, self.alt + self.vs * bs.sim.simdt, self.pilot.alt)
+        self.lat = self.lat + np.degrees(bs.sim.simdt * self.gsnorth / Rearth)
         self.coslat = np.cos(np.deg2rad(self.lat))
-        self.lon = self.lon + np.degrees(simdt * self.gseast / self.coslat / Rearth)
-        self.distflown += self.gs * simdt
+        self.lon = self.lon + np.degrees(bs.sim.simdt * self.gseast / self.coslat / Rearth)
+        self.distflown += self.gs * bs.sim.simdt
 
     def id2idx(self, acid):
         """Find index of aircraft id"""

@@ -21,11 +21,11 @@ class Turbulence:
         # in (horizontal flight direction, horizontal wing direction, vertical)
         self.sd=np.where(self.sd>1e-6,self.sd,1e-6)
 
-    def Woosh(self,dt):
+    def update(self):
         if not self.active:
             return
 
-        timescale=np.sqrt(dt)
+        timescale=np.sqrt(bs.sim.simdt)
         # Horizontal flight direction
         turbhf=np.random.normal(0,self.sd[0]*timescale,bs.traf.ntraf) #[m]
 

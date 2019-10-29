@@ -33,13 +33,13 @@ def legend(legend, fig=None):
     except IndexError as e:
         return False, e.args[0]
 
-def update(simt):
+def update():
     ''' Periodic update function for the plotter. '''
     streamdata = defaultdict(dict)
-    for plot in plots:
-        if plot.tnext <= simt:
-            plot.tnext += plot.dt
-            streamdata[plot.stream_id][plot.fig] = dict(x=plot.x.get(), y=plot.y.get())
+    for p in plots:
+        if p.tnext <= bs.sim.simt:
+            p.tnext += p.dt
+            streamdata[p.stream_id][p.fig] = dict(x=p.x.get(), y=p.y.get())
 
     for streamname, data in streamdata.items():
         bs.net.send_stream(streamname, data)

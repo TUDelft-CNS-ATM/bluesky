@@ -32,11 +32,7 @@ def crelog(name, dt=None, header=''):
     return allloggers[name]
 
 
-def preupdate(simt):
-    pass
-
-
-def postupdate():
+def update():
     """ This function writes to files of all periodic logs by calling the appropriate
     functions for each type of periodic log, at the approriate update time. """
     for log in periodicloggers.values():

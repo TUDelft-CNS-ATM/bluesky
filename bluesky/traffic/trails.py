@@ -68,12 +68,12 @@ class Trails(TrafficArrays):
         self.lastlat[-1] = bs.traf.lat[-1]
         self.lastlon[-1] = bs.traf.lon[-1]
 
-    def update(self, t):
+    def update(self):
         self.acid    = bs.traf.id
         if not self.active:
             self.lastlat = bs.traf.lat
             self.lastlon = bs.traf.lon
-            self.lasttim[:] = t
+            self.lasttim[:] = bs.sim.simt
             return
         """Add linepieces for trails based on traffic data"""
 

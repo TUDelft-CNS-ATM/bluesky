@@ -19,14 +19,14 @@ class Simulation:
         self.state = bs.INIT
         self.prevstate = None
 
-        # Set starting system time [seconds]
+        # System time [seconds]
         self.syst = -1.0
 
         # Benchmark time and timespan [seconds]
         self.bencht = 0.0
         self.benchdt = -1.0
 
-        # Starting simulation time [seconds]
+        # Simulation time [seconds]
         self.simt = 0.0
 
         # Simulation timestep [seconds]
@@ -64,35 +64,31 @@ class Simulation:
         if (not self.ffmode or self.state != bs.OP) and remainder > MINSLEEP:
             time.sleep(remainder)
 
-        if self.state == bs.OP:
-            # Plugins pre-update
-            plugin.preupdate(self.simt)
-            # Parse scenario file up until current time
-            bs.stack.checkscen()
-
         # Always update stack
         bs.stack.process()
 
         if self.state == bs.OP:
-            # Determine timestep
+            # Plot/log the current timestep, and call preupdate for plugins that
+            # have it
+            plotter.update()
+            datalog.update()
+            plugin.preupdate()
+
+            # Determine interval towards next timestep
             if remainder < 0.0 and self.rtmode:
-                simtnext, self.simdt = simtime.step(-remainder)
+                self.simt, self.simdt = simtime.step(-remainder)
             else:
+                # Don't accumulate delay when we aren't running realtime
                 if remainder < 0.0:
-                    # Don't accumulate delay in the system clock when we are
-                    # not running realtime.
                     self.syst -= remainder
-                simtnext, self.simdt = simtime.step()
+                self.simt, self.simdt = simtime.step()
 
-            # Update traffic, plugins, plotter, and loggers
-            bs.traf.update(self.simt, self.simdt)
-            plugin.update(self.simt)
-            plotter.update(self.simt)
-            datalog.postupdate()
-
-            # Update sim and UTC time for the next timestep
-            self.simt = simtnext
+            # Update UTC time
             self.utc += datetime.timedelta(seconds=self.simdt)
+
+            # Update traffic and plugins for the next timestep
+            bs.traf.update()
+            plugin.update()
 
         # Always update syst
         self.syst += self.simdt / self.dtmult
@@ -108,7 +104,7 @@ class Simulation:
                 self.op()
 
         # Inform main of our state change
-        if not self.state == self.prevstate:
+        if self.state != self.prevstate:
             bs.net.send_event(b'STATECHANGE', self.state)
             self.prevstate = self.state
 

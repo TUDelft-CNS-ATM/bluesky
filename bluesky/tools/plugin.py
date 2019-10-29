@@ -161,21 +161,21 @@ def remove(name):
     preupdate_funs.pop(name)
     update_funs.pop(name)
 
-def preupdate(simt):
+def preupdate():
     ''' Update function executed before traffic update.'''
     for fun in preupdate_funs.values():
         # Call function if its update interval has passed
-        if simt >= fun[0]:
+        if bs.sim.simt >= fun[0]:
             # Set the next triggering time for this function
             fun[0] += fun[1]
             # Call the function
             fun[2]()
 
-def update(simt):
+def update():
     ''' Update function executed after traffic update.'''
     for fun in update_funs.values():
         # Call function if its update interval has passed
-        if simt >= fun[0]:
+        if bs.sim.simt >= fun[0]:
             # Set the next triggering time for this function
             fun[0] += fun[1]
             # Call the function

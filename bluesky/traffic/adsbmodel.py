@@ -41,8 +41,8 @@ class ADSB(TrafficArrays):
         self.tas[-n:] = bs.traf.tas[-n:]
         self.gs[-n:]  = bs.traf.gs[-n:]
 
-    def update(self, time):
-        up = np.where(self.lastupdate + self.trunctime < time)
+    def update(self):
+        up = np.where(self.lastupdate + self.trunctime < bs.sim.simt)
         nup = len(up)
         if self.transnoise:
             self.lat[up] = bs.traf.lat[up] + np.random.normal(0, self.transerror[0], nup)

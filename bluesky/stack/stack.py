@@ -1231,10 +1231,9 @@ def ic(filename=""):
 
 def checkscen():
     """ Check if commands from the scenario buffer need to be stacked. """
-    while len(scencmd) > 0 and bs.sim.simt >= scentime[0]:
-        stack(scencmd[0])
-        del scencmd[0]
-        del scentime[0]
+    while scencmd and bs.sim.simt >= scentime[0]:
+        stack(scencmd.pop(0))
+        scentime.pop(0)
 
 
 def saveic(fname=None):
@@ -1242,8 +1241,8 @@ def saveic(fname=None):
     global savefile, saveexcl, saveict0
 
     # No args? Give current status
-    if fname == "" or fname == None:
-        if savefile == None:
+    if not fname:
+        if savefile is None:
             return False
         else:
             return True, "SAVEIC is already on\n" + "File: " + savefile.name
@@ -1254,7 +1253,7 @@ def saveic(fname=None):
         savefile = None
         return True
 
-    elif fname[:6].upper() == "EXCEPT":
+    if fname[:6].upper() == "EXCEPT":
         if len(fname.strip()) == 6:  # Only except:
             return True, "EXCEPT is now: " + " ".join(saveexcl)
 
@@ -1267,7 +1266,7 @@ def saveic(fname=None):
         return True
 
     # If recording is already on, give message
-    if savefile != None:
+    if savefile is not None:
         return False, "SAVEIC is already on\n" + "Savefile:  " + savefile.name
 
     # Add extension .scn if not already present
@@ -1428,10 +1427,11 @@ def getnextarg(line):
 
 
 def process():
-    global savefile, saveexcl, orgcmd
-
     """process and empty command stack"""
-    global sender_rte
+    global savefile, saveexcl, orgcmd, sender_rte
+
+    # First check for commands in scenario file
+    checkscen()
 
     # Process stack of commands
     # for (line, sender_rte) in cmdstack:
