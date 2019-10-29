@@ -38,35 +38,15 @@ class Simulation:
         # Simulated UTC clock time
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # System timestep [seconds]
-        self.sysdt = self.simdt / self.dtmult
-
         # Flag indicating running at fixed rate or fast time
         self.ffmode = False
         self.ffstop = None
 
+        # Flag indicating whether timestep can be varied to ensure realtime op
+        self.rtmode = False
+
     def step(self):
         ''' Perform a simulation timestep. '''
-        # When running at a fixed rate, or when in hold/init,
-        # increment system time with sysdt and calculate remainder to sleep.
-        if not self.ffmode or not self.state == bs.OP:
-            remainder = self.syst - time.time()
-            if remainder > MINSLEEP:
-                time.sleep(remainder)
-
-        elif self.ffstop is not None and self.simt >= self.ffstop:
-            if self.benchdt > 0.0:
-                bs.scr.echo('Benchmark complete: %d samples in %.3f seconds.' % \
-                            (bs.scr.samplecount, time.time() - self.bencht))
-                self.benchdt = -1.0
-                self.hold()
-            else:
-                self.op()
-
-        if self.state == bs.OP:
-            # Plugins pre-update
-            plugin.preupdate(self.simt)
-
         # Simulation starts as soon as there is traffic, or pending commands
         if self.state == bs.INIT:
             if self.syst < 0.0:
@@ -78,31 +58,54 @@ class Simulation:
                     self.fastforward(self.benchdt)
                     self.bencht = time.time()
 
+        # When running at a fixed rate, or when in hold/init,
+        # increment system time with sysdt and calculate remainder to sleep.
+        remainder = self.syst - time.time()
+        if (not self.ffmode or self.state != bs.OP) and remainder > MINSLEEP:
+            time.sleep(remainder)
+
         if self.state == bs.OP:
+            # Plugins pre-update
+            plugin.preupdate(self.simt)
+            # Parse scenario file up until current time
             bs.stack.checkscen()
 
         # Always update stack
         bs.stack.process()
 
         if self.state == bs.OP:
+            # Determine timestep
+            if remainder < 0.0 and self.rtmode:
+                simtnext, self.simdt = simtime.step(-remainder)
+            else:
+                if remainder < 0.0:
+                    # Don't accumulate delay in the system clock when we are
+                    # not running realtime.
+                    self.syst -= remainder
+                simtnext, self.simdt = simtime.step()
 
+            # Update traffic, plugins, plotter, and loggers
             bs.traf.update(self.simt, self.simdt)
-
-            # Update plugins
             plugin.update(self.simt)
-
-            # Update Plotter
             plotter.update(self.simt)
-
-            # Update loggers
             datalog.postupdate()
 
             # Update sim and UTC time for the next timestep
-            self.simt, self.simdt = simtime.step()
+            self.simt = simtnext
             self.utc += datetime.timedelta(seconds=self.simdt)
 
         # Always update syst
-        self.syst += self.sysdt
+        self.syst += self.simdt / self.dtmult
+
+        # Stop fast-time/benchmark if enabled and set interval has passed
+        if self.ffstop is not None and self.simt >= self.ffstop:
+            if self.benchdt > 0.0:
+                bs.scr.echo('Benchmark complete: %d samples in %.3f seconds.' %
+                            (bs.scr.samplecount, time.time() - self.bencht))
+                self.benchdt = -1.0
+                self.hold()
+            else:
+                self.op()
 
         # Inform main of our state change
         if not self.state == self.prevstate:
@@ -154,17 +157,15 @@ class Simulation:
         areafilter.reset()
         bs.scr.reset()
 
-    def setdt(self, dt=None, target='simdt'):
-        ''' Change the timestep of the simulation or other periodic functions. '''
-        if dt is not None and target == 'simdt':
-            self.simdt = abs(dt)
-            self.sysdt = self.simdt / self.dtmult
-        return simtime.setdt(dt, target)
-
     def set_dtmult(self, mult):
         ''' Set simulation speed multiplier. '''
         self.dtmult = mult
-        self.sysdt  = self.simdt / self.dtmult
+
+    def realtime(self, flag=None):
+        if flag is not None:
+            self.rtmode = flag
+
+        return True, 'Realtime mode is o' + ('n' if self.rtmode else 'ff')
 
     def fastforward(self, nsec=None):
         ''' Run in fast-time (for nsec seconds if specified). '''

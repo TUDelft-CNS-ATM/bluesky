@@ -23,7 +23,7 @@ import subprocess
 import numpy as np
 from matplotlib import colors
 import bluesky as bs
-from bluesky.tools import geo, areafilter, plugin, plotter
+from bluesky.tools import geo, areafilter, plugin, plotter, simtime
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import txt2alt, tim2txt, cmdsplit
 from bluesky.tools import varexplorer as ve
@@ -83,6 +83,7 @@ cmdsynon = {
     "POLYLINES": "POLYLINE",
     "PRINT": "ECHO",
     "Q": "QUIT",
+    "RT": "REALTIME",
     "RTF": "DTMULT",
     "STOP": "QUIT",
     "RUN": "OP",
@@ -419,7 +420,7 @@ def init(startup_scnfile):
         "DT": [
             "DT [dt] OR [target,dt]",
             "[float/txt,float]",
-            lambda *args: bs.sim.setdt(*reversed(args)),
+            lambda *args: simtime.setdt(*reversed(args)),
             "Set simulation time step",
         ],
         "DTLOOK": [
@@ -659,6 +660,11 @@ def init(startup_scnfile):
             "Define priority rules (right of way) for conflict resolution",
         ],
         "QUIT": ["QUIT", "", bs.sim.stop, "Quit program/Stop simulation"],
+        "REALTIME": [
+            "REALTIME [ON/OFF]",
+            "[bool]",
+            bs.sim.realtime,
+            "En-/disable realtime running allowing a variable timestep."],
         "RESET": ["RESET", "", bs.sim.reset, "Reset simulation"],
         "RFACH": [
             "RFACH [factor]",

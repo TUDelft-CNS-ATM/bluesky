@@ -5,6 +5,8 @@ from types import SimpleNamespace
 from decimal import Decimal
 from bluesky import settings
 
+MAX_RECOVERY_FAC = 4
+
 # Data that the simulation clock needs to keep
 _clock = SimpleNamespace(t=Decimal('0.0'), dt=Decimal(repr(settings.simdt)),
                          ft=0.0, fdt=settings.simdt)
@@ -35,15 +37,19 @@ def setdt(newdt=None, target='simdt'):
     return timer.setdt(newdt)
 
 
-def step():
-    ''' Increment the time of this clock with one timestep. 
-        Returns a floating-point representation of the new simulation time. '''
-    _clock.t += _clock.dt
+def step(recovery_time=0):
+    ''' Increment the time of this clock with one timestep, plus a possible
+        recovery time increment if the simulation is lagging and real-time
+        running is enabled.
+        Returns a floating-point representation of the new simulation time,
+        and the actual timestep. '''
+    recovery_time = min(Decimal(recovery_time), MAX_RECOVERY_FAC * _clock.dt)
+    _clock.t += _clock.dt + recovery_time
     _clock.ft = float(_clock.t)
     for timer in _timers.values():
         timer.step()
 
-    return _clock.ft, _clock.fdt
+    return _clock.ft, _clock.fdt + float(recovery_time)
 
 
 def reset():
