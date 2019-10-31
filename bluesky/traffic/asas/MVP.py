@@ -183,8 +183,8 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
     # If intruder is outside the ownship PZ, then apply extra factor
     # to make sure that resolution does not graze IPZ
     if asas.Rm<dist and dabsH<dist:
-        # Compute the resolution velocity vector in horizontal direction
-        # abs(tcpa) because it bcomes negative during intrusion
+        # Compute the resolution velocity vector in horizontal direction.
+        # abs(tcpa) because it bcomes negative during intrusion.
         erratum=np.cos(np.arcsin(asas.Rm/dist)-np.arcsin(dabsH/dist))
         dv1 = ((asas.Rm/erratum - dabsH)*dcpa[0])/(abs(tcpa)*dabsH)
         dv2 = ((asas.Rm/erratum - dabsH)*dcpa[1])/(abs(tcpa)*dabsH)
