@@ -33,11 +33,11 @@ def resolve(asas, traf):
     for ((ac1, ac2), qdr, dist, tcpa, tLOS) in zip(asas.confpairs, asas.qdr, asas.dist, asas.tcpa, asas.tLOS):
         id1 = traf.id.index(ac1)
         id2 = traf.id.index(ac2)
-
+        phi = asas.phi
         # If A/C indexes are found, then apply MVP on this conflict pair
         # Because ADSB is ON, this is done for each aircraft separately
         if id1 >-1 and id2 > -1:
-            dv_mvp, tsolV = MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2)
+            dv_mvp, tsolV = MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2, phi)
             if tsolV < timesolveV[id1]:
                 timesolveV[id1] = tsolV
 
@@ -141,12 +141,12 @@ def resolve(asas, traf):
     # using the auto pilot vertical speed (traf.avs) using the code in line 106 (asasalttemp) when only
     # horizontal resolutions are allowed.
     asas.alt = asas.alt*(1-asas.swresohoriz) + traf.selalt*asas.swresohoriz
-
+    return dv
 
 #======================= Modified Voltage Potential ===========================
 
 
-def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
+def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2, phi):
     """Modified Voltage Potential (MVP) resolution method"""
     # Preliminary calculations-------------------------------------------------
 
@@ -172,7 +172,6 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
 
     # Compute horizontal intrusion
     iH = asas.Rm - dabsH
-
     # Exception handlers for head-on conflicts
     # This is done to prevent division by zero in the next step
     if dabsH <= 10.:
@@ -185,14 +184,23 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
     dv1 = (iH*dcpa[0])/(abs(tcpa)*dabsH)
     dv2 = (iH*dcpa[1])/(abs(tcpa)*dabsH)
 
+    absvrel = np.linalg.norm(vrel)
+    phi = np.radians(phi)
+    #print(np.degrees(phi))
+    tcpa_star = tcpa + (dabsH * np.tan(phi))/absvrel
+    dcpa_star = drel + vrel*tcpa_star
+    dabsH_star = np.sqrt(dcpa_star[0]*dcpa_star[0]+dcpa_star[1]*dcpa_star[1])
+    iH_star = asas.Rm - dabsH_star
+
     # If intruder is outside the ownship PZ, then apply extra factor
     # to make sure that resolution does not graze IPZ
     if asas.Rm<dist and dabsH<dist:
-        erratum=np.cos(np.arcsin(asas.Rm/dist)-np.arcsin(dabsH/dist))
-        dv1 = dv1/erratum
-        dv2 = dv2/erratum
-
-
+        erratum = np.cos(np.arcsin(asas.Rm/dist)-np.arcsin(dabsH/dist))
+        erratum_star = np.cos(np.arcsin(asas.Rm/dist)-np.arcsin(dabsH/dist) + phi)
+        # Aanpassing Wouter Schaberg
+        dv1 = ((asas.Rm/erratum_star - dabsH_star)*dcpa_star[0])/(abs(tcpa_star)*dabsH_star)
+        dv2 = ((asas.Rm/erratum_star - dabsH_star)*dcpa_star[1])/(abs(tcpa_star)*dabsH_star)
+        # Eind aanpassing Wouter Schaberg
     # Vertical resolution------------------------------------------------------
 
     # Compute the  vertical intrusion
