@@ -188,7 +188,9 @@ def MVP(traf, asas, qdr, dist, tcpa, tLOS, id1, id2):
         erratum=np.cos(np.arcsin(asas.Rm/dist)-np.arcsin(dabsH/dist))
         dv1 = ((asas.Rm/erratum - dabsH)*dcpa[0])/(abs(tcpa)*dabsH)
         dv2 = ((asas.Rm/erratum - dabsH)*dcpa[1])/(abs(tcpa)*dabsH)
-
+    else:
+        dv1 = (iH * dcpa[0]) / (abs(tcpa) * dabsH)
+        dv2 = (iH * dcpa[1]) / (abs(tcpa) * dabsH)
 
     # Vertical resolution------------------------------------------------------
 
