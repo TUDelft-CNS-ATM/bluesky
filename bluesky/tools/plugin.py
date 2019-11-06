@@ -7,6 +7,7 @@ import imp
 import bluesky as bs
 from bluesky import settings
 from bluesky.tools import varexplorer as ve
+from bluesky.tools.simtime import timed_function
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -132,9 +133,17 @@ def load(name):
         updfun = config.get('update')
         rstfun = config.get('reset')
         if prefun:
-            preupdate_funs[name] = [bs.sim.simt + dt, dt, prefun]
+            if hasattr(prefun, '__istimed'):
+                preupdate_funs[name] = prefun
+            else:
+                preupdate_funs[name] = timed_function(f'{name}.{prefun.__name__}', dt)(prefun)
+
         if updfun:
-            update_funs[name]    = [bs.sim.simt + dt, dt, updfun]
+            if hasattr(updfun, '__istimed'):
+                update_funs[name] = updfun
+            else:
+                update_funs[name] = timed_function(f'{name}.{updfun.__name__}', dt)(updfun)
+
         if rstfun:
             reset_funs[name]     = rstfun
         # Add the plugin's stack functions to the stack
@@ -164,22 +173,24 @@ def remove(name):
 def preupdate():
     ''' Update function executed before traffic update.'''
     for fun in preupdate_funs.values():
-        # Call function if its update interval has passed
-        if bs.sim.simt >= fun[0]:
-            # Set the next triggering time for this function
-            fun[0] += fun[1]
-            # Call the function
-            fun[2]()
+        fun()
+        # # Call function if its update interval has passed
+        # if bs.sim.simt >= fun[0]:
+        #     # Set the next triggering time for this function
+        #     fun[0] += fun[1]
+        #     # Call the function
+        #     fun[2]()
 
 def update():
     ''' Update function executed after traffic update.'''
     for fun in update_funs.values():
-        # Call function if its update interval has passed
-        if bs.sim.simt >= fun[0]:
-            # Set the next triggering time for this function
-            fun[0] += fun[1]
-            # Call the function
-            fun[2]()
+        fun()
+        # # Call function if its update interval has passed
+        # if bs.sim.simt >= fun[0]:
+        #     # Set the next triggering time for this function
+        #     fun[0] += fun[1]
+        #     # Call the function
+        #     fun[2]()
 
 def reset():
     ''' Reset all plugins.'''

@@ -131,5 +131,6 @@ def timed_function(name, dt=1.0):
             def wrapper(*args, **kwargs):
                 if timer.readynext():
                     return fun(*args, **kwargs)
+        wrapper.__istimed = True
         return wrapper
     return decorator
