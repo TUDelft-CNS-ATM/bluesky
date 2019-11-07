@@ -1,14 +1,13 @@
-""" Geovectoring: for an area define an allowed interval for each component of the 3D speed vector (gs,trk,vs):
+""" Geovectoring: for an area define an allowed interval for each component
+    of the 3D speed vector (gs,trk,vs):
 
-first argument is the are on whuch the geovector shoudl apply
+    first argument is the are on whuch the geovector shoudl apply
 
-Geovector is defined as:
- (  [ gsmin,gsmax ]  ) [kts]
- (  [trkmin,trkmax]  ) [deg]
- (  [ vsmin,vsmax ]  ) [fpm]
-
-
- """
+    Geovector is defined as:
+    (  [ gsmin,gsmax ]  ) [kts]
+    (  [trkmin,trkmax]  ) [deg]
+    (  [ vsmin,vsmax ]  ) [fpm]
+"""
 import numpy as np
 
 from bluesky import traf  #, settings, navdb, traf, sim, scr, tools
@@ -182,8 +181,8 @@ def defgeovec(areaname="", spdmin=None, spdmax=None, trkmin=None, trkmax=None, v
 
     if not (spdmin or spdmax or (trkmin and trkmax) or vspdmin or vspdmax):
         if areaname in geovecs:
-            return True, areaname + " uses " + str(geovecs[areaname])
-        return False, "No geovector found for " + areaname
+            return True, f'{areaname} uses {geovecs[areaname]}'
+        return False, f'No geovector found for {areaname}'
 
     # Remove old geovector for this area (if it exists)
     geovecs.pop(areaname, None)
@@ -217,6 +216,6 @@ def delgeovec(area=""):
     # Delete geovector specification for area if it exists
     found = geovecs.pop(area)
     if not found:
-        return False, "No geovector found for " + area
+        return False, f'No geovector found for {area}'
 
-    return True, 'Deleted geovector specification for ' + area
+    return True, f'Deleted geovector specification for {area}'
