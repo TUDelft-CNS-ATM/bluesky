@@ -617,7 +617,7 @@ def init(startup_scnfile):
         ],
         "PLOT": [
             "PLOT [x], y [,dt,color,figure]",
-            "word,[word,float,txt,int]",
+            "[word,word,float,txt,int]",
             plotter.plot,
             "Create a graph of variables x versus y.",
         ],

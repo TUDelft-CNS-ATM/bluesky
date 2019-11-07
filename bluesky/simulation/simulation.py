@@ -152,6 +152,7 @@ class Simulation:
         datalog.reset()
         areafilter.reset()
         bs.scr.reset()
+        plotter.reset()
 
     def set_dtmult(self, mult):
         ''' Set simulation speed multiplier. '''

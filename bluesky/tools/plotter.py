@@ -9,15 +9,17 @@ from bluesky.tools import varexplorer as ve
 plots = list()
 
 
-def plot(varx='', vary='', dt=1.0, fig=None, **params):
+def plot(*args, **params):
     ''' Select a set of variables to plot.
         Arguments: varx, vary, dt, color, fig. '''
-    try:
-        newplot = Plot(varx, vary, dt, fig, **params)
-        plots.append(newplot)
-        return True
-    except IndexError as e:
-        return False, e.args[0]
+    if args:
+        try:
+            newplot = Plot(*args, **params)
+            plots.append(newplot)
+        except IndexError as e:
+            return False, e.args[0]
+    bs.net.send_stream(b'PLOT' + (bs.stack.sender() or b'*'), dict(show=True))
+    return True
 
 
 def legend(legend, fig=None):
@@ -32,6 +34,16 @@ def legend(legend, fig=None):
         return True
     except IndexError as e:
         return False, e.args[0]
+
+def reset():
+    ''' Remove plots when simulation is reset. '''
+    # Notify clients of removal of plots
+    notify_ids = {p.stream_id for p in plots}
+    for stream_id in notify_ids:
+        bs.net.send_stream(stream_id, dict(reset=True))
+    print('plotter reset')
+    plots.clear()
+
 
 def update():
     ''' Periodic update function for the plotter. '''
