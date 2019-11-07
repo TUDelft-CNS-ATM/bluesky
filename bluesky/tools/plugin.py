@@ -194,11 +194,6 @@ def update():
 
 def reset():
     ''' Reset all plugins.'''
-    # Reset trigger times
-    for fun in preupdate_funs.values():
-        fun[0] = fun[1]
-    for fun in update_funs.values():
-        fun[0] = fun[1]
     # Call plugin reset for plugins that have one
     for fun in reset_funs.values():
         fun()
