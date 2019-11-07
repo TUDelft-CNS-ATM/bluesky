@@ -128,14 +128,23 @@ struct kwik_in {double dlat, dlon, cavelat;
         dlat(lat2 - lat1), dlon(lon2 - lon1), cavelat(cos(0.5 * (lat1 + lat2))) {};
 };
 
-// quick distnace calculation (using equirectangular distance approximation)
+// quick distance calculation (using equirectangular distance approximation)
 inline double kwikdist(const kwik_in& in)
 {
     double dangle  = sqrt(in.dlat * in.dlat + in.dlon * in.dlon * in.cavelat * in.cavelat);
     return re * dangle;
 }
 
-inline double kwikqdr(const kwik_in& in)
+struct posvec {double dx, dy; posvec(const double& dx, const double& dy): dx(dx), dy(dy) {}};
+inline posvec kwikposvec(const double &lat1, const double &lon1, const double &lat2, const double &lon2)
+{
+    return posvec(
+        re * (lon1 - lon2) * cos(0.5 * (lat1 + lat2),
+        re * (lat1 - lat2)
+    );
+};
+
+inline double kwikqdr(const kwik_in &in)
 {
     return fmod(atan2(in.dlon * in.cavelat, in.dlat), 360.0);
 }

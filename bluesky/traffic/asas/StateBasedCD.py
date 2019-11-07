@@ -12,13 +12,13 @@ def detect(ownship, intruder, RPZ, HPZ, tlookahead):
     # Horizontal conflict ------------------------------------------------------
 
     # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
-    qdr, dist = geo.qdrdist_matrix(np.mat(ownship.lat), np.mat(ownship.lon),
-                                   np.mat(intruder.lat), np.mat(intruder.lon))
+    qdr, dist = geo.kwikqdrdist_matrix(np.asmatrix(ownship.lat), np.asmatrix(ownship.lon),
+                                   np.asmatrix(intruder.lat), np.asmatrix(intruder.lon))
 
     # Convert back to array to allow element-wise array multiplications later on
     # Convert to meters and add large value to own/own pairs
-    qdr = np.array(qdr)
-    dist = np.array(dist) * nm + 1e9 * I
+    qdr = np.asarray(qdr)
+    dist = np.asarray(dist) * nm + 1e9 * I
 
     # Calculate horizontal closest point of approach (CPA)
     qdrrad = np.radians(qdr)
