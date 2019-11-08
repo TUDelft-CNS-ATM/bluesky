@@ -3,7 +3,7 @@ import platform
 import os
 
 from PyQt5.QtWidgets import QApplication as app
-from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
+from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
     QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
@@ -22,9 +22,9 @@ from bluesky.ui.qtgl.radarwidget import RadarWidget
 from bluesky.ui.qtgl.infowindow import InfoWindow
 from bluesky.ui.qtgl.settingswindow import SettingsWindow
 from bluesky.ui.qtgl.nd import ND
-from bluesky.ui.pygame.dialog import fileopen
 
-is_osx = platform.system() == 'Darwin'
+if platform.system().lower() == "windows":
+    from bluesky.ui.pygame.dialog import fileopen
 
 # Register settings defaults
 bs.settings.set_variable_defaults(gfx_path='data/graphics')
@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
         gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
-        if is_osx:
+        if platform.system() == 'Darwin':
             app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'bluesky.icns')))
         else:
             app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icon.gif')))
