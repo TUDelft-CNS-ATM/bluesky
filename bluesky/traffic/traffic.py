@@ -389,7 +389,7 @@ class Traffic(TrafficArrays):
 
         #---------- Fly the Aircraft --------------------------
         self.ap.update()  # Autopilot logic
-        self.asas.update()  # Airboren Separation Assurance
+        self.asas.update()  # Airborne Separation Assurance
         self.pilot.APorASAS()    # Decide autopilot or ASAS
 
         #---------- Performance Update ------------------------
@@ -406,7 +406,7 @@ class Traffic(TrafficArrays):
         #---------- Simulate Turbulence -----------------------
         self.turbulence.update()
 
-        # Check whther new traffci state triggers conditional commands
+        # Check whether new traffic state triggers conditional commands
         self.cond.update()
 
         #---------- Aftermath ---------------------------------
@@ -480,7 +480,6 @@ class Traffic(TrafficArrays):
     def id2idx(self, acid):
         """Find index of aircraft id"""
         if not isinstance(acid, str):
-
             # id2idx is called for multiple id's
             # Fast way of finding indices of all ACID's in a given list
             tmp = dict((v, i) for i, v in enumerate(self.id))
