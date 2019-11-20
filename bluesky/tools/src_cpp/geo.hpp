@@ -135,14 +135,14 @@ inline double kwikdist(const kwik_in& in)
     return re * dangle;
 }
 
-struct posvec {double dx, dy; posvec(const double& dx, const double& dy): dx(dx), dy(dy) {}};
-inline posvec kwikposvec(const double &lat1, const double &lon1, const double &lat2, const double &lon2)
-{
-    return posvec(
-        re * (lon1 - lon2) * cos(0.5 * (lat1 + lat2),
-        re * (lat1 - lat2)
-    );
-};
+// struct posvec {double dx, dy; posvec(const double& dx, const double& dy): dx(dx), dy(dy) {}};
+// inline posvec kwikposvec(const double &lat1, const double &lon1, const double &lat2, const double &lon2)
+// {
+//     return posvec(
+//         re * (lon1 - lon2) * cos(0.5 * (lat1 + lat2)),
+//         re * (lat1 - lat2)
+//     );
+// };
 
 inline double kwikqdr(const kwik_in &in)
 {

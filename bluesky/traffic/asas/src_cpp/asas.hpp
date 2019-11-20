@@ -9,28 +9,23 @@ struct conflict {
     double tin, tout, dcpa, tcpa, q, d; bool LOS;
     conflict() : tin(0.0), tout(0.0), dcpa(0.0), tcpa(0.0), q(0.0), d(0.0), LOS(false) {}
 };
-inline bool detect_hor(conflict& conf, const double& RPZ, const double& tlookahead,
-                       const qdr_d_in& ll1, const double& gs1, const double& trk1,
-                       const qdr_d_in& ll2, const double& gs2, const double& trk2)
+inline bool detect_hor(conflict &conf, const double &RPZ, const double &tlookahead,
+                       const double &lat1, const double &lon1, const double &gs1, const double &trk1,
+                       const double &lat2, const double &lon2, const double &gs2, const double &trk2)
 {
+    // The groundspeed of ownship and intruder as vectors
     double u1        = gs1 * sin(trk1),
            v1        = gs1 * cos(trk1),
            u2        = gs2 * sin(trk2),
            v2        = gs2 * cos(trk2);
+    // The relative velocity vector
     double du        = u1 - u2,
            dv        = v1 - v2;
-
-   // First a coarse flat-earth check to skip the most unlikely candidates for a conflict
-   if (std::max((fabs(ll2.lon - ll1.lon) * std::min(ll1.coslat, ll2.coslat) * re - RPZ) / fabs(du),
-                 (fabs(ll2.lat - ll1.lat) * re - RPZ) / fabs(dv))
-        > 1.05 * tlookahead)
-     return false;
-
-    conf.d = dist(ll1, ll2),
-    conf.q = qdr(ll1, ll2);
+    kwik_in kin = kwik_in(lat1, lon1, lat2, lon2);
+    conf.d = kwikdist(kin),
+    conf.q = kwikqdr(kin);
     double dx        = conf.d * sin(conf.q),
            dy        = conf.d * cos(conf.q);
-
 
     double vreldotdx = du * dx + dv * dy;
     conf.LOS         = conf.d < RPZ;
@@ -53,17 +48,24 @@ inline bool detect_hor(conflict& conf, const double& RPZ, const double& tlookahe
 inline bool detect_ver(conflict& conf, const double& HPZ, const double& tlookahead,
                        const double& dalt, const double& dvs)
 {
+    // Check whether there is currently a vertical loss of separation
     conf.LOS = fabs(dalt) < HPZ;
+    /* If there is a nonzero vertical speed, check the start and end time of
+       a vertical loss of separation (negative if diverging) */
     if (fabs(dvs) > 1e-6) {
+        /* tcrosshi: time until crossing the top of the intruder PZ
+           tcrosslo: time until crossing the bottom of the intruder PZ */
         double tcrosshi = (dalt + HPZ) / -dvs,
                tcrosslo = (dalt - HPZ) / -dvs;
 
+        // Determine time in/out from tcrosslo,tcrosshi
         conf.tin  = std::max(0.0, std::min(tcrosslo, tcrosshi));
         conf.tout = std::max(tcrosslo, tcrosshi);
 
         // Vertical conflict if t_in is within lookahead horizon, and t_out > 0
         return (conf.tin <= tlookahead && conf.tout > 0.0);
     } else {
+        // If VS is zero, tin, tout are relevant if there is already a LoS
         conf.tin  = 0.0;
         conf.tout = 1e4;
         return conf.LOS;
