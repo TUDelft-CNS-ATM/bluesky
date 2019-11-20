@@ -153,7 +153,7 @@ class CSVLogger:
             varlist += additional_vars
 
             # Get the number of rows from the first array/list
-            nrows = 0
+            nrows = 1
             for v in varlist:
                 if isinstance(v, (list, np.ndarray)):
                     nrows = len(v)
