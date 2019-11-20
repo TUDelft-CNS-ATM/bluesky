@@ -199,7 +199,7 @@ class CSVLogger:
             # TODO: add list of logging vars
         elif args[0] == 'ON':
             if len(args) > 1:
-                if type(args[1]) is float:
+                if isinstance(args[1], float):
                     self.dt = args[1]
                 else:
                     return False, 'Turn ' + self.name + ' on with optional dt'
