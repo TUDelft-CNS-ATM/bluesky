@@ -41,7 +41,6 @@ def reset():
     notify_ids = {p.stream_id for p in plots}
     for stream_id in notify_ids:
         bs.net.send_stream(stream_id, dict(reset=True))
-    print('plotter reset')
     plots.clear()
 
 
