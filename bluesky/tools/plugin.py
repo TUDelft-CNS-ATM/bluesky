@@ -8,6 +8,7 @@ import bluesky as bs
 from bluesky import settings
 from bluesky.tools import varexplorer as ve
 from bluesky.tools.simtime import timed_function
+from bluesky.tools.replaceable import Replaceable
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -17,7 +18,7 @@ plugin_descriptions = dict()
 # Dict of loaded plugins for this instance of bluesky
 active_plugins = dict()
 
-class Plugin(object):
+class Plugin:
     def __init__(self, fname):
         fname = path.normpath(path.splitext(fname)[0].replace('\\', '/'))
         self.module_path, self.module_name = path.split(fname)
@@ -82,11 +83,11 @@ def manage(cmd='LIST', plugin_name=''):
             text += '\nNo additional plugins available.'
         return True, text
 
-    if cmd == 'LOAD' or cmd=='ENABLE':
+    if cmd in ['LOAD', 'ENABLE']:
         return load(plugin_name)
-    elif cmd == 'REMOVE' or cmd=='UNLOAD' or cmd=='DISABLE':
+    elif cmd in ['REMOVE', 'UNLOAD', 'DISABLE']:
         return remove(plugin_name)
-    elif not cmd=="": # If no command is given, assume user tries to load a plugin
+    elif cmd != '': # If no command is given, assume user tries to load a plugin
         return load(cmd)
     return False
 
@@ -174,26 +175,19 @@ def preupdate():
     ''' Update function executed before traffic update.'''
     for fun in preupdate_funs.values():
         fun()
-        # # Call function if its update interval has passed
-        # if bs.sim.simt >= fun[0]:
-        #     # Set the next triggering time for this function
-        #     fun[0] += fun[1]
-        #     # Call the function
-        #     fun[2]()
+
 
 def update():
     ''' Update function executed after traffic update.'''
     for fun in update_funs.values():
         fun()
-        # # Call function if its update interval has passed
-        # if bs.sim.simt >= fun[0]:
-        #     # Set the next triggering time for this function
-        #     fun[0] += fun[1]
-        #     # Call the function
-        #     fun[2]()
+
 
 def reset():
     ''' Reset all plugins.'''
     # Call plugin reset for plugins that have one
     for fun in reset_funs.values():
         fun()
+
+    # Reset replaceable classes
+    Replaceable.reset()

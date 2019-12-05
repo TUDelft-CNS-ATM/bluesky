@@ -30,6 +30,7 @@ from bluesky.tools import varexplorer as ve
 from bluesky.tools import datalog
 from bluesky.tools.calculator import calculator
 from bluesky.tools.position import txt2pos, islat
+from bluesky.tools.replaceable import Replaceable
 from bluesky import settings
 
 # Temporary fix for synthetic
@@ -72,6 +73,8 @@ cmdsynon = {
     "HMETH": "RMETHH",
     "HRESOM": "RMETHH",
     "HRESOMETH": "RMETHH",
+    "IMPL": "IMPLEMENTATION",
+    "IMPLEMENT": "IMPLEMENTATION",
     "LINES": "POLYLINE",
     "LOAD": "IC",
     "OPEN": "IC",
@@ -510,6 +513,12 @@ def init(startup_scnfile):
             "[string]",
             ic,
             "Initial condition: (re)start simulation and open scenario file",
+        ],
+        "IMPLEMENTATION": [
+            "IMPLEMENTATION [base, implementation]",
+            "[txt,txt]",
+            Replaceable.select_stack,
+            "Select an alternate implementation for a Bluesky base class"
         ],
         "INSEDIT": [
             "INSEDIT txt",
