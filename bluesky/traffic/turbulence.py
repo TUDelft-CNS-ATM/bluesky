@@ -2,24 +2,26 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import Rearth
+from bluesky.tools.replaceable import ReplaceableSingleton
 
 
-class Turbulence:
+class Turbulence(ReplaceableSingleton):
     """ Simple turbulence implementation."""
     def __init__(self):
-        self.reset()
+        self.active = False
+        self.sd = np.array([])
 
     def reset(self):
         self.active = False
         self.SetStandards([0, 0.1, 0.1])
 
-    def SetNoise(self,n):
-        self.active = n
+    def SetNoise(self, flag):
+        self.active = flag
 
-    def SetStandards(self,s):
+    def SetStandards(self, s):
         self.sd = np.array(s) # m/s standard turbulence  (nonnegative)
         # in (horizontal flight direction, horizontal wing direction, vertical)
-        self.sd=np.where(self.sd>1e-6,self.sd,1e-6)
+        self.sd = np.where(self.sd > 1e-6, self.sd, 1e-6)
 
     def update(self):
         if not self.active:

@@ -3,6 +3,7 @@ from os import path
 from numpy import *
 import bluesky as bs
 from bluesky.tools import geo
+from bluesky.tools.replaceable import Replaceable
 from bluesky.tools.aero import ft, kts, g0, nm, mach2cas, casormach2tas
 from bluesky.tools.misc import degto180,txt2tim
 from bluesky.tools.position import txt2pos
@@ -10,7 +11,7 @@ from bluesky import stack
 from bluesky.stack import Argparser
 
 
-class Route:
+class Route(Replaceable):
     """
     Route class definition   : Route data for an aircraft
     (basic FMS functionality)

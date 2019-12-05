@@ -10,16 +10,14 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, kts, vtas2cas, cas2mach, \
-     mach2cas, vcasormach2tas, tas2cas, vcasormach
-from .route import Route
+from bluesky.tools.aero import ft, nm, vcasormach2tas, tas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.tools.misc import tim2txt
-
+from bluesky.tools.replaceable import ReplaceableSingleton
+from .route import Route
 
 bs.settings.set_variable_defaults(fms_dt=1.0)
 
-class Autopilot(TrafficArrays):
+class Autopilot(ReplaceableSingleton, TrafficArrays):
     def __init__(self):
         super(Autopilot, self).__init__()
 
