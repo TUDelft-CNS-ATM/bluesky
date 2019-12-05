@@ -9,6 +9,7 @@ import numpy as np
 from math import *
 from random import randint
 import bluesky as bs
+from bluesky import settings
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
@@ -27,7 +28,7 @@ from .activewpdata import ActiveWaypoint
 from .turbulence import Turbulence
 from .trafficgroups import TrafficGroups
 
-from bluesky import settings
+
 
 # Register settings defaults
 settings.set_variable_defaults(performance_model='openap')
