@@ -5,6 +5,9 @@ from types import SimpleNamespace
 from decimal import Decimal
 from bluesky import settings
 
+# Register settings defaults
+settings.set_variable_defaults(simdt=0.05)
+
 MAX_RECOVERY_FAC = 4
 
 # Data that the simulation clock needs to keep
