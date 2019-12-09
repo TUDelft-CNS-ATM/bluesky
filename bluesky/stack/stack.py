@@ -925,7 +925,7 @@ def append_commands(newcommands):
             argisopt += [opt or t == "..." for t in types]
             args = args[cut:].lstrip(",]")
         # Check if function pointer needs to be wrapped
-        fun = Replaceable.check_method(fun)
+        fun = replaceable.check_method(fun)
         cmddict[cmd] = (smallhelp, argtypes, argisopt, fun, largehelp)
 
 
