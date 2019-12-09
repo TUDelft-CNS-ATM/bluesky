@@ -8,7 +8,6 @@ import bluesky as bs
 from bluesky import settings
 from bluesky.tools import varexplorer as ve
 from bluesky.tools.simtime import timed_function
-from bluesky.tools.replaceable import Replaceable
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -188,6 +187,3 @@ def reset():
     # Call plugin reset for plugins that have one
     for fun in reset_funs.values():
         fun()
-
-    # Reset replaceable classes
-    Replaceable.reset()

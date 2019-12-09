@@ -27,10 +27,9 @@ from bluesky.tools import geo, areafilter, plugin, plotter, simtime
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import txt2alt, tim2txt, cmdsplit
 from bluesky.tools import varexplorer as ve
-from bluesky.tools import datalog
+from bluesky.tools import datalog, replaceable
 from bluesky.tools.calculator import calculator
 from bluesky.tools.position import txt2pos, islat
-from bluesky.tools.replaceable import Replaceable
 from bluesky import settings
 
 # Temporary fix for synthetic
@@ -518,7 +517,7 @@ def init(startup_scnfile):
         "IMPLEMENTATION": [
             "IMPLEMENTATION [base, implementation]",
             "[txt,txt]",
-            Replaceable.select_stack,
+            replaceable.select_implementation,
             "Select an alternate implementation for a Bluesky base class"
         ],
         "INSEDIT": [
