@@ -21,14 +21,14 @@ def setdt(newdt=None, target='simdt'):
         Returns a floating-point representation of the new timestep. '''
     if newdt is None:
         text = 'Simulation timesteps:\nbase dt = {}'.format(_clock.fdt)
-        for name, timer in _timers.items():
+        for timer in _timers.values():
             text += '\n{} = {}'.format(timer.name, timer.dt_act)
         return True, text
     if target == 'simdt':
         _clock.dt = Decimal(repr(newdt))
         _clock.fdt = float(_clock.dt)
         msg = 'Base dt set to {}'.format(_clock.dt)
-        for name, timer in _timers.items():
+        for timer in _timers.values():
             _, tmsg = timer.setdt()
             msg = msg + '\n' + tmsg
 
