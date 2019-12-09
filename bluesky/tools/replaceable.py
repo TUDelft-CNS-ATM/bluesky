@@ -5,22 +5,63 @@
 import inspect
 
 
+class Methodproxy:
+    ''' Proxy class for methods of replaceable singletons. '''
+    def _notimplemented(self, *args, **kwargs):
+        return False, f'The current {self._basename} implementation doesn\'t' +\
+            f'provide this function (function was originally declared in {self._origimpl})'
+
+    def __init__(self, fun):
+        self._fun = fun
+        self._origimpl = fun.__self__.__class__.__name__
+        self._basename = fun.__self__.__class__._replaceable.__name__
+        self.__defaults__ = fun.__defaults__
+
+    def __call__(self, *args, **kwargs):
+        return self._fun(*args, **kwargs)
+
+    def _update(self, fun):
+        self._fun = fun
+        self.__defaults__ = fun.__defaults__
+
+    def _reset(self):
+        self._fun = self._notimplemented
+
+
 class Proxy:
     ''' Proxy class for BlueSky replaceable singletons. '''
     def __init__(self):
         self._refobj = None
         self._proxied = list()
+        self._wrappedmethods = dict()
+
+    def _methodproxy(self, fun):
+        ret = Methodproxy(fun)
+        delattr(self, fun.__name__)
+        self._proxied.remove(fun.__name__)
+        self._wrappedmethods[fun.__name__] = ret
+        setattr(self, fun.__name__, ret)
+        return ret
 
     def _replace(self, refobj):
+        # Replace our reference object
         self._refobj = refobj
         for name in self._proxied:
             delattr(self, name)
         self._proxied.clear()
+        wrappedmethods = dict(self._wrappedmethods)
         # Copy all public methods of reference object
         for name, value in inspect.getmembers(refobj, callable):
             if name[0] != '_':
-                setattr(self, name, value)
-                self._proxied.append(name)
+                wrapped = wrappedmethods.pop(name, None)
+                if wrapped is None:
+                    setattr(self, name, value)
+                    self._proxied.append(name)
+                else:
+                    wrapped._update(value)
+        # Clear any remaining method wrappers
+        for wrapped in wrappedmethods.values():
+            wrapped._reset()
 
     def __getattr__(self, attr):
         return getattr(self._refobj, attr)
@@ -64,6 +105,14 @@ class Replaceable(metaclass=ReplaceableMeta):
     _replaceable = None
     _generator = None
 
+    @staticmethod
+    def check_method(fun):
+        ''' Check if passed function is a method of a ReplaceableSingleton. '''
+        if inspect.ismethod(fun) and isinstance(fun.__self__, ReplaceableSingleton):
+            print(f'Replacing method {fun.__name__}')
+            return fun.__self__._proxy._methodproxy(fun)
+        return fun
+
     @classmethod
     def select_stack(cls, basename='', implname=''):
         ''' Stack function to select an implementation for the construction of
@@ -96,6 +145,11 @@ class Replaceable(metaclass=ReplaceableMeta):
     def select(cls):
         ''' Select this class as generator. '''
         cls._replaceable._generator = cls
+
+    @classmethod
+    def selected(cls):
+        ''' Return the selected implementation. '''
+        return cls._replaceable._generator
 
     @classmethod
     def derived(cls):
