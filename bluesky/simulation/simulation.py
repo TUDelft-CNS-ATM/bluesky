@@ -3,8 +3,7 @@ import time, datetime
 
 # Local imports
 import bluesky as bs
-from bluesky.tools import datalog, areafilter, plugin, plotter, simtime
-
+from bluesky.tools import datalog, areafilter, plugin, plotter, simtime, replaceable
 
 # Minimum sleep interval
 MINSLEEP = 1e-3
@@ -146,6 +145,7 @@ class Simulation:
         self.ffmode = False
         self.set_dtmult(1.0)
         plugin.reset()
+        replaceable.reset()
         bs.navdb.reset()
         bs.traf.reset()
         bs.stack.reset()

@@ -5,6 +5,34 @@
 import inspect
 
 
+def reset():
+    ''' Reset all replaceables to their default implementation. '''
+    for base in Replaceable._replaceables.values():
+        base.select()
+
+
+def select_implementation(basename='', implname=''):
+    ''' Stack function to select an implementation for the construction of
+        objects of the class corresponding to basename. '''
+    if not basename:
+        return True, 'Replaceable classes in Bluesky:\n' + \
+            ', '.join(Replaceable._replaceables)
+    base = Replaceable._replaceables.get(basename.upper(), None)
+    if not base:
+        return False, f'Replaceable {basename} not found.'
+    impls = base.derived()
+    if not implname:
+        return True, f'Current implementation for {basename}: {base._generator.__name__}\n' + \
+            f'Available implementations for {basename}:\n' + \
+            ', '.join(impls)
+
+    impl = impls.get(base.__name__ if implname == 'BASE' else implname)
+    if not impl:
+        return False, f'Implementation {implname} not found for replaceable {basename}.'
+    impl.select()
+    return True, f'Selected implementation {implname} for replaceable {basename}'
+
+
 class Proxy:
     ''' Proxy class for BlueSky replaceable singletons. '''
     def __init__(self):
@@ -63,34 +91,6 @@ class Replaceable(metaclass=ReplaceableMeta):
     _replaceables = dict()
     _replaceable = None
     _generator = None
-
-    @classmethod
-    def select_stack(cls, basename='', implname=''):
-        ''' Stack function to select an implementation for the construction of
-            objects of the class corresponding to basename. '''
-        if not basename:
-            return True, 'Replaceable classes in Bluesky:\n' + \
-                ', '.join(cls._replaceables)
-        base = cls._replaceables.get(basename.upper(), None)
-        if not base:
-            return False, f'Replaceable {basename} not found.'
-        impls = base.derived()
-        if not implname:
-            return True, f'Current implementation for {basename}: {base._generator.__name__}\n' + \
-                f'Available implementations for {basename}:\n' + \
-                ', '.join(impls)
-
-        impl = impls.get(base.__name__ if implname == 'BASE' else implname)
-        if not impl:
-            return False, f'Implementation {implname} not found for replaceable {basename}.'
-        impl.select()
-        return True, f'Selected implementation {implname} for replaceable {basename}'
-
-    @classmethod
-    def reset(cls):
-        ''' Reset all replaceables to their default implementation. '''
-        for base in cls._replaceables.values():
-            base.select()
 
     @classmethod
     def select(cls):
