@@ -119,7 +119,8 @@ cmdsynon = {
     "TRAFRECDT": "TMX",
     "TRAFLOGDT": "TMX",
     "TREACT": "TMX",
-    "WINDGRID": "TMX",  # Use a scenario file with WIND commands to defin a grid and/or profiles
+    # Use a scenario file with WIND commands to defin a grid and/or profiles
+    "WINDGRID": "TMX",
     # Question mark is Help
     "?": "HELP",
 }
@@ -156,10 +157,10 @@ defexcl = [
     "TRAFGEN",
     "LISTRTE",
 ]  # Commands to be excluded, default
+# Note (P)CALL is always excluded! Commands in called file are saved explicitly
 saveexcl = defexcl
-saveict0 = 0.0  # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
-
-# Note (P)CALL is always excluded! Commands in the called file are saved explicitly
+# simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
+saveict0 = 0.0
 
 
 # Global version
@@ -167,8 +168,6 @@ orgcmd = ""
 
 
 def init(startup_scnfile):
-    global orgcmd
-
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -194,17 +193,19 @@ def init(startup_scnfile):
     #
     #   float     = plain float
     #   int       = integer
-    #   txt       = text will be converted to upper case (for keywords, navaids, flags, waypoints,acid etc)
+    #   txt       = text will be converted to upper case
+    #               (for keywords, navaids, flags, waypoints,acid etc)
     #   word      = single, case sensitive word
     #   string    = case sensitive string
     #   on/off    = text => boolean
     #
     #   latlon    = converts acid, wpt, airport etc => lat,lon (deg) so 2 args!
-    #   wpt       = converts postext or lat,lon into a text string to be used as named waypoint
+    #   wpt       = converts postext or lat,lon into a text string,
+    #               to be used as named waypoint
     #   wpinroute = text string with name of waypoint in route
     #   pandir    = text with LEFT, RIGHT, UP/ABOVE or DOWN
     #
-    # Below this dictionary also a dictionary of synonym commandss is given (equivalent commands)
+    # Below this dictionary also a dictionary of synonym commands is given
     #
     # --------------------------------------------------------------------
     commands = {
@@ -690,7 +691,7 @@ def init(startup_scnfile):
         "RESO": [
             "RESO [method]",
             "[txt]",
-            bs.traf.asas.SetCRmethod,
+            bs.traf.asas.cr.setmethod,
             "Set resolution method",
         ],
         "RESOOFF": [
@@ -924,7 +925,8 @@ def append_commands(newcommands):
             argtypes += types
             argisopt += [opt or t == "..." for t in types]
             args = args[cut:].lstrip(",]")
-
+        # Check if function pointer needs to be wrapped
+        fun = Replaceable.check_method(fun)
         cmddict[cmd] = (smallhelp, argtypes, argisopt, fun, largehelp)
 
 
