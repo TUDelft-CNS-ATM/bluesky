@@ -19,7 +19,7 @@ bs.settings.set_variable_defaults(fms_dt=1.0)
 
 class Autopilot(ReplaceableSingleton, TrafficArrays):
     def __init__(self):
-        super(Autopilot, self).__init__()
+        TrafficArrays.__init__(self)
 
         # Standard self.steepness for descent
         self.steepness = 3000. * ft / (10. * nm)
@@ -186,7 +186,6 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         bs.traf.actwp.vs = np.maximum(self.steepness*bs.traf.gs, \
                                 np.abs((bs.traf.actwp.nextaltco-bs.traf.alt))  \
                                 /np.maximum(1.0,t2go2alt))
-
 
         self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
         #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
