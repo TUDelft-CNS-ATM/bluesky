@@ -158,6 +158,11 @@ class Replaceable(metaclass=ReplaceableMeta):
         cls._replaceable._generator = cls
 
     @classmethod
+    def selected(cls):
+        ''' Return the selected generator class. '''
+        return cls._replaceable._generator
+
+    @classmethod
     def derived(cls):
         ''' Recursively find all derived classes of cls. '''
         ret = {cls.__name__.upper(): cls}
@@ -179,8 +184,3 @@ class ReplaceableSingleton(Replaceable, metaclass=ReplaceableSingletonMeta):
         ''' Select this class as generator. '''
         cls._replaceable._generator = cls
         _ = cls()
-
-    @classmethod
-    def selected(cls):
-        ''' Return the selected generator class. '''
-        return cls._replaceable._generator
