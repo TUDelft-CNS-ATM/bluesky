@@ -317,7 +317,7 @@ def init(startup_scnfile):
         "CDMETHOD": [
             "CDMETHOD [method]",
             "[txt]",
-            bs.traf.asas.SetCDmethod,
+            bs.traf.asas.cd.setmethod,
             "Set conflict detection method",
         ],
         "CIRCLE": [
@@ -429,7 +429,7 @@ def init(startup_scnfile):
         "DTLOOK": [
             "DTLOOK [time]",
             "[float]",
-            bs.traf.asas.SetDtLook,
+            bs.traf.asas.cd.setdtlook,
             "Set lookahead time in seconds for conflict detection",
         ],
         "DTMULT": [
@@ -441,7 +441,7 @@ def init(startup_scnfile):
         "DTNOLOOK": [
             "DTNOLOOK [time]",
             "[float]",
-            bs.traf.asas.SetDtNoLook,
+            bs.traf.asas.cd.setdtnolook,
             "Set interval for conflict detection",
         ],
         "DUMPRTE": [
@@ -568,19 +568,18 @@ def init(startup_scnfile):
             bs.traf.create,
             "Multiple random create of n aircraft in current view",
         ],
-        # "METRIC": [
-        #     "METRIC OFF/0/1/2, [dt]",
-        #     "onoff/int,[float]",
-        #     bs.sim.metric.toggle,
-        #     "Complexity metrics module"
-        # ],
         "MOVE": [
             "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
             "acid,latlon,[alt,hdg,spd,vspd]",
             bs.traf.move,
             "Move an aircraft to a new position",
         ],
-        "ND": ["ND acid", "txt", bs.scr.shownd, "Show navigation display with CDTI"],
+        "ND": [
+            "ND acid",
+            "txt",
+            bs.scr.shownd,
+            "Show navigation display with CDTI"
+        ],
         "NOISE": [
             "NOISE [ON/OFF]",
             "[onoff]",
@@ -595,11 +594,16 @@ def init(startup_scnfile):
         ],
         "NORESO": [
             "NORESO [acid]",
-            "[string]",
-            bs.traf.asas.SetNoreso,
-            "Switch off conflict resolution for this aircraft",
+            "[acid]",
+            bs.traf.asas.cr.setnoreso,
+            "Switch on/off conflict resolution for one or more aircraft",
         ],
-        "OP": ["OP", "", bs.sim.op, "Start/Run simulation or continue after hold"],
+        "OP": [
+            "OP",
+            "",
+            bs.sim.op,
+            "Start/Run simulation or continue after hold"
+        ],
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
@@ -665,7 +669,7 @@ def init(startup_scnfile):
         "PRIORULES": [
             "PRIORULES [ON/OFF PRIOCODE]",
             "[onoff, txt]",
-            bs.traf.asas.SetPrio,
+            bs.traf.asas.cr.setprio,
             "Define priority rules (right of way) for conflict resolution",
         ],
         "QUIT": ["QUIT", "", bs.sim.stop, "Quit program/Stop simulation"],
@@ -678,14 +682,14 @@ def init(startup_scnfile):
         "RFACH": [
             "RFACH [factor]",
             "[float]",
-            bs.traf.asas.SetResoFacH,
-            "Set resolution factor horizontal (to add a margin)",
+            bs.traf.asas.cr.setresofach,
+            "Set resolution factor horizontal (to maneuver only a fraction of a resolution vector)",
         ],
         "RFACV": [
             "RFACV [factor]",
             "[float]",
-            bs.traf.asas.SetResoFacV,
-            "Set resolution factor vertical (to add a margin)",
+            bs.traf.asas.cr.setresofacv,
+            "Set resolution factor vertical (to maneuver only a fraction of a resolution vector)",
         ],
         "RESO": [
             "RESO [method]",
@@ -695,33 +699,9 @@ def init(startup_scnfile):
         ],
         "RESOOFF": [
             "RESOOFF [acid]",
-            "[string]",
-            bs.traf.asas.SetResooff,
+            "[acid]",
+            bs.traf.asas.cr.setresooff,
             "Switch for conflict resolution module",
-        ],
-        "RMETHH": [
-            "RMETHH [method]",
-            "[txt]",
-            bs.traf.asas.SetResoHoriz,
-            "Set resolution method to be used horizontally",
-        ],
-        "RMETHV": [
-            "RMETHV [method]",
-            "[txt]",
-            bs.traf.asas.SetResoVert,
-            "Set resolution method to be used vertically",
-        ],
-        "RSZONEDH": [
-            "RSZONEDH [height]",
-            "[float]",
-            bs.traf.asas.SetPZHm,
-            "Set half of vertical dimension of resolution zone in ft",
-        ],
-        "RSZONER": [
-            "RSZONER [radius]",
-            "[float]",
-            bs.traf.asas.SetPZRm,
-            "Set horizontal radius of resolution zone in nm",
         ],
         "RTA": [
             "RTA acid,wpinroute,RTAtime",
@@ -825,13 +805,13 @@ def init(startup_scnfile):
         "ZONEDH": [
             "ZONEDH [height]",
             "[float]",
-            bs.traf.asas.SetPZH,
+            bs.traf.asas.cd.sethpz,
             "Set half of the vertical protected zone dimensions in ft",
         ],
         "ZONER": [
             "ZONER [radius]",
             "[float]",
-            bs.traf.asas.SetPZR,
+            bs.traf.asas.cd.setrpz,
             "Set the radius of the horizontal protected zone dimensions in nm",
         ],
         "ZOOM": [

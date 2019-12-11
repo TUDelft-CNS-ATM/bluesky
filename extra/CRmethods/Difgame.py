@@ -152,7 +152,7 @@ def Difgamehor(traf, dbconf,own,wrn):
     horC = dbconf.Controls[tuple(dstate)][pirates]
 
     # Find vertical controls
-    verticalconflict = np.abs(traf.alt[own]-traf.alt[wrn])<dbconf.Rm
+    verticalconflict = np.abs(traf.alt[own]-traf.alt[wrn])<dbconf.R * self.resofach
     if verticalconflict:
         if traf.alt[own]<traf.alt[wrn]:
             verC = np.array([0])

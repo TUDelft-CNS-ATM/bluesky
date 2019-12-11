@@ -670,7 +670,7 @@ class Screen:
                 # Normal symbol if no conflict else amber
                 toosmall=self.lat1-self.lat0>6 #don't draw circles if zoomed out too much
 
-                if not bs.traf.asas.inconf[i]:
+                if not bs.traf.asas.cd.inconf[i]:
                     self.win.blit(self.acsymbol[isymb], pos)
                     if self.swsep and not toosmall:
                         pg.draw.circle(self.win,green,(int(trafx[i]),int(trafy[i])),pixelrad,1)
@@ -712,7 +712,7 @@ class Screen:
 
                     bs.traf.label[i] = []
                     labelbmp = pg.Surface((100, 60), 0, self.win)
-                    if not bs.traf.asas.inconf[i]:
+                    if not bs.traf.asas.cd.inconf[i]:
                         acfont = self.fontrad
                     else:
                         acfont = self.fontamb
@@ -761,8 +761,8 @@ class Screen:
                     i = bs.traf.id2idx(bs.traf.asas.confpairs[j][0])
                     if i>=0 and i<bs.traf.ntraf and (i in trafsel):
                         latcpa, loncpa = geo.kwikpos(bs.traf.lat[i], bs.traf.lon[i], \
-                                                    bs.traf.trk[i], bs.traf.asas.tcpa[j] * bs.traf.gs[i] / nm)
-                        altcpa = bs.traf.lat[i] + bs.traf.vs[i]*bs.traf.asas.tcpa[j]
+                                                    bs.traf.trk[i], bs.traf.asas.tcpamax[j] * bs.traf.gs[i] / nm)
+                        altcpa = bs.traf.lat[i] + bs.traf.vs[i]*bs.traf.asas.tcpamax[j]
                         xc, yc = self.ll2xy(latcpa,loncpa)
                         yc = yc - altcpa * self.isoalt
                         pg.draw.line(self.win,amber,(xc,yc),(trafx[i],trafy[i]))

@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar 29 12:02:02 2017
-
-@author: Suthes Balasooriyan
-"""
-
+''' Conflict resolution based on the SSD algorithm. '''
+from bluesky.traffic.asas import ConflictResolution
 from bluesky.tools import geo
 from bluesky.tools.aero import nm
 import numpy as np
@@ -14,14 +9,36 @@ try:
 except ImportError:
     print("Could not import pyclipper, RESO SSD will not function")
 
+
+class SSD(ConflictResolution):
+    def setprio(self, flag=None, priocode=''):
+        '''Set the prio switch and the type of prio '''
+        if flag is None:
+            return True, "PRIORULES [ON/OFF] [PRIOCODE]" + \
+                            "\nAvailable priority codes: " + \
+                            "\n     RS1:  Shortest way out" + \
+                            "\n     RS2:  Clockwise turning" + \
+                            "\n     RS3:  Heading first, RS1 second" + \
+                            "\n     RS4:  Speed first, RS1 second" + \
+                            "\n     RS5:  Shortest from target" + \
+                            "\n     RS6:  Rules of the air" + \
+                            "\n     RS7:  Sequential RS1" + \
+                            "\n     RS8:  Sequential RS5" + \
+                            "\n     RS9:  Counterclockwise turning" + \
+                            "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
+                            "\nPriority code is currently: " + \
+                str(self.priocode)
+        options = ["RS1", "RS2", "RS3", "RS4",
+                   "RS5", "RS6", "RS7", "RS8", "RS9"]
+        if priocode not in options:
+            return False, "Priority code Not Understood. Available Options: " + str(options)
+        return super().setprio(flag, priocode)
+
 def loaded_pyclipper():
     """ Return true if pyclipper is successfully loaded """
     import sys
     return "pyclipper" in sys.modules
 
-# No idea what this does (placeholder??)
-def start(asas):
-    pass
 
 
 def detect(asas, traf):
@@ -547,9 +564,6 @@ def calculate_resolution(asas, traf):
                             asas.asase[i] = x1[0]
                             asas.asasn[i] = y1[0]
 
-                # asaseval should be set to True now
-                if not asas.asaseval:
-                    asas.asaseval = True
         # Those that are not in conflict will be assigned zeros
         # Or those that have no solutions (full ARV)
         else:

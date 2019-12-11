@@ -238,7 +238,7 @@ class ScreenIO(object):
         data['cas']        = bs.traf.cas
         data['gs']         = bs.traf.gs
         data['ingroup']    = bs.traf.groups.ingroup
-        data['inconf'] = bs.traf.asas.inconf
+        data['inconf'] = bs.traf.asas.cd.inconf
         data['tcpamax'] = bs.traf.asas.tcpamax
         data['nconf_cur'] = len(bs.traf.asas.confpairs_unique)
         data['nconf_tot'] = len(bs.traf.asas.confpairs_all)

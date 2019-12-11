@@ -107,7 +107,7 @@ class Area(TrafficArrays):
         self.exparea = ''
         self.swtaxi = True  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
         self.swtaxialt = 1500.0  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
-
+        self.prevconfpairs = set()
         self.confinside_all = 0
 
         # The FLST logger
@@ -164,9 +164,20 @@ class Area(TrafficArrays):
 
             # Count new conflicts where at least one of the aircraft is inside
             # the experiment area
-            if traf.asas.confpairs_new:
-                newconf_unique = {frozenset(pair)
-                                  for pair in traf.asas.confpairs_new}
+            # Store statistics for all new conflict pairs
+            # Conflict pairs detected in the current timestep that were not yet present in the previous timestep
+            confpairs_new = list(set(traf.asas.cd.confpairs) - self.prevconfpairs)
+            if confpairs_new:
+                # If necessary: select conflict geometry parameters for new conflicts
+                # idxdict = dict((v, i) for i, v in enumerate(traf.asas.cd.confpairs))
+                # idxnew = [idxdict.get(i) for i in confpairs_new]
+                # dcpa_new = np.asarray(traf.asas.cd.dcpa)[idxnew]
+                # tcpa_new = np.asarray(traf.asas.cd.tcpa)[idxnew]
+                # tLOS_new = np.asarray(traf.asas.cd.tLOS)[idxnew]
+                # qdr_new = np.asarray(traf.asas.cd.qdr)[idxnew]
+                # dist_new = np.asarray(traf.asas.cd.dist)[idxnew]
+
+                newconf_unique = {frozenset(pair) for pair in confpairs_new}
                 ac1, ac2 = zip(*newconf_unique)
                 idx1 = traf.id2idx(ac1)
                 idx2 = traf.id2idx(ac2)
@@ -176,6 +187,7 @@ class Area(TrafficArrays):
                 if nnewconf_exp:
                     self.confinside_all += nnewconf_exp
                     self.conflog.log(self.confinside_all)
+            self.prevconfpairs = set(traf.asas.cd.confpairs)
 
             # Register distance values upon entry of experiment area
             newentries = np.logical_not(self.insexp) * insexp
@@ -200,7 +212,7 @@ class Area(TrafficArrays):
                     traf.tas[exits],
                     traf.vs[exits],
                     traf.hdg[exits],
-                    traf.asas.active[exits],
+                    traf.asas.cr.active[exits],
                     traf.pilot.alt[exits],
                     traf.pilot.tas[exits],
                     traf.pilot.vs[exits],

@@ -38,10 +38,10 @@ class Pilot(TrafficArrays):
             asastas = bs.traf.asas.tas # TAS [m/s]
 
         # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on.
-        self.trk = np.where(bs.traf.asas.active, bs.traf.asas.trk, bs.traf.ap.trk)
-        self.tas = np.where(bs.traf.asas.active, asastas, bs.traf.ap.tas)
-        self.alt = np.where(bs.traf.asas.active, bs.traf.asas.alt, bs.traf.ap.alt)
-        self.vs  = np.where(bs.traf.asas.active, bs.traf.asas.vs, bs.traf.ap.vs)
+        self.trk = np.where(bs.traf.asas.cr.active, bs.traf.asas.trk, bs.traf.ap.trk)
+        self.tas = np.where(bs.traf.asas.cr.active, asastas, bs.traf.ap.tas)
+        self.alt = np.where(bs.traf.asas.cr.active, bs.traf.asas.alt, bs.traf.ap.alt)
+        self.vs  = np.where(bs.traf.asas.cr.active, bs.traf.asas.vs, bs.traf.ap.vs)
 
         # ASAS can give positive and negative VS, but the sign of VS is determined using delalt in Traf.ComputeAirSpeed
         # Therefore, ensure that pilot.vs is always positive to prevent opposite signs of delalt and VS in Traf.ComputeAirSpeed
