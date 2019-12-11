@@ -76,8 +76,9 @@ class Proxy:
 
     def _methodproxy(self, fun):
         ret = Methodproxy(fun)
-        delattr(self, fun.__name__)
-        self._proxied.remove(fun.__name__)
+        if fun.__name__ in self._proxied:
+            delattr(self, fun.__name__)
+            self._proxied.remove(fun.__name__)
         self._wrappedmethods[fun.__name__] = ret
         self.__dict__[fun.__name__] = ret
         return ret
