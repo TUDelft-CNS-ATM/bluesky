@@ -195,7 +195,7 @@ class MVP(ConflictResolution):
                     timesolveV[idx1] = tsolV
 
                 # Use priority rules if activated
-                if conf.swprio:
+                if self.swprio:
                     dv[idx1], _ = self.applyprio(dv_mvp, dv[idx1], dv[idx2], ownship.vs[idx1], intruder.vs[idx2])
                 else:
                     # since cooperative, the vertical resolution component can be halved, and then dv_mvp can be added
@@ -226,12 +226,12 @@ class MVP(ConflictResolution):
         # Limit resolution direction if required-----------------------------------
 
         # Compute new speed vector in polar coordinates based on desired resolution
-        if conf.swresohoriz: # horizontal resolutions
-            if conf.swresospd and not conf.swresohdg: # SPD only
+        if self.swresohoriz: # horizontal resolutions
+            if self.swresospd and not self.swresohdg: # SPD only
                 newtrack = ownship.trk
                 newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
                 newvs    = ownship.vs
-            elif conf.swresohdg and not conf.swresospd: # HDG only
+            elif self.swresohdg and not self.swresospd: # HDG only
                 newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) % 360
                 newgs    = ownship.gs
                 newvs    = ownship.vs
@@ -239,7 +239,7 @@ class MVP(ConflictResolution):
                 newtrack = (np.arctan2(newv[0,:],newv[1,:])*180/np.pi) %360
                 newgs    = np.sqrt(newv[0,:]**2 + newv[1,:]**2)
                 newvs    = ownship.vs
-        elif conf.swresovert: # vertical resolutions
+        elif self.swresovert: # vertical resolutions
             newtrack = ownship.trk
             newgs    = ownship.gs
             newvs    = newv[2,:]
@@ -251,32 +251,32 @@ class MVP(ConflictResolution):
         # Determine ASAS module commands for all aircraft--------------------------
 
         # Cap the velocity
-        newgscapped = np.maximum(conf.vmin,np.minimum(conf.vmax,newgs))
+        newgscapped = np.maximum(ownship.perf.vmin,np.minimum(ownship.perf.vmax,newgs))
 
         # Cap the vertical speed
-        vscapped = np.maximum(conf.vsmin,np.minimum(conf.vsmax,newvs))
+        vscapped = np.maximum(ownship.perf.vsmin,np.minimum(ownship.perf.vsmax,newvs))
 
         # Calculate if Autopilot selected altitude should be followed. This avoids ASAS from
         # climbing or descending longer than it needs to if the autopilot leveloff
-        # altitude also resolves the conflict. Because conf.alt is calculated using
+        # altitude also resolves the conflict. Because asasalttemp is calculated using
         # the time to resolve, it may result in climbing or descending more than the selected
         # altitude.
-        signdvs = np.sign(conf.vs - ownship.ap.vs * np.sign(ownship.selalt - ownship.alt))
-        signalt = np.sign(conf.alt - ownship.selalt)
-        alt = np.where(np.logical_or(signdvs == 0, signdvs == signalt), conf.alt, ownship.selalt)
+        asasalttemp = vscapped * timesolveV + ownship.alt
+        signdvs = np.sign(vscapped - ownship.ap.vs * np.sign(ownship.selalt - ownship.alt))
+        signalt = np.sign(asasalttemp - ownship.selalt)
+        alt = np.where(np.logical_or(signdvs == 0, signdvs == signalt), asasalttemp, ownship.selalt)
 
         # To compute asas alt, timesolveV is used. timesolveV is a really big value (1e9)
         # when there is no conflict. Therefore asas alt is only updated when its
         # value is less than the look-ahead time, because for those aircraft are in conflict
         altCondition = np.logical_and(timesolveV<conf.dtlookahead, np.abs(dv[2,:])>0.0)
-        asasalttemp = conf.vs*timesolveV + ownship.alt
         alt[altCondition] = asasalttemp[altCondition]
 
         # If resolutions are limited in the horizontal direction, then asasalt should
         # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed
         # using the auto pilot vertical speed (ownship.avs) using the code in line 106 (asasalttemp) when only
         # horizontal resolutions are allowed.
-        alt = alt * (1 - conf.swresohoriz) + ownship.selalt * conf.swresohoriz
+        alt = alt * (1 - self.swresohoriz) + ownship.selalt * self.swresohoriz
         return newtrack, newgscapped, vscapped, alt
 
     def MVP(self, ownship, intruder, conf, qdr, dist, tcpa, tLOS, idx1, idx2):
@@ -304,7 +304,7 @@ class MVP(ConflictResolution):
         dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
 
         # Compute horizontal intrusion
-        iH = (conf.R * self.resofach) - dabsH
+        iH = (conf.rpz * self.resofach) - dabsH
 
         # Exception handlers for head-on conflicts
         # This is done to prevent division by zero in the next step
@@ -315,12 +315,12 @@ class MVP(ConflictResolution):
 
         # If intruder is outside the ownship PZ, then apply extra factor
         # to make sure that resolution does not graze IPZ
-        if (conf.R * self.resofach) < dist and dabsH < dist:
+        if (conf.rpz * self.resofach) < dist and dabsH < dist:
             # Compute the resolution velocity vector in horizontal direction.
             # abs(tcpa) because it bcomes negative during intrusion.
-            erratum=np.cos(np.arcsin((conf.R * self.resofach)/dist)-np.arcsin(dabsH/dist))
-            dv1 = (((conf.R * self.resofach)/erratum - dabsH)*dcpa[0])/(abs(tcpa)*dabsH)
-            dv2 = (((conf.R * self.resofach)/erratum - dabsH)*dcpa[1])/(abs(tcpa)*dabsH)
+            erratum=np.cos(np.arcsin((conf.rpz * self.resofach)/dist)-np.arcsin(dabsH/dist))
+            dv1 = (((conf.rpz * self.resofach)/erratum - dabsH)*dcpa[0])/(abs(tcpa)*dabsH)
+            dv2 = (((conf.rpz * self.resofach)/erratum - dabsH)*dcpa[1])/(abs(tcpa)*dabsH)
         else:
             dv1 = (iH * dcpa[0]) / (abs(tcpa) * dabsH)
             dv2 = (iH * dcpa[1]) / (abs(tcpa) * dabsH)
@@ -329,7 +329,7 @@ class MVP(ConflictResolution):
 
         # Compute the  vertical intrusion
         # Amount of vertical intrusion dependent on vertical relative velocity
-        iV = (conf.dh * self.resofacv) if abs(vrel[2])>0.0 else (conf.dh * self.resofacv)-abs(drel[2])
+        iV = (conf.hpz * self.resofacv) if abs(vrel[2])>0.0 else (conf.hpz * self.resofacv)-abs(drel[2])
 
         # Get the time to solve the conflict vertically - tsolveV
         tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else tLOS
@@ -339,7 +339,7 @@ class MVP(ConflictResolution):
         # within tinconf
         if tsolV>conf.dtlookahead:
             tsolV = tLOS
-            iV    = (conf.dh * self.resofacv)
+            iV    = (conf.hpz * self.resofacv)
 
         # Compute the resolution velocity vector in the vertical direction
         # The direction of the vertical resolution is such that the aircraft with

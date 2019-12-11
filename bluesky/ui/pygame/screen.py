@@ -753,16 +753,16 @@ class Screen:
 
             # Draw conflicts: line from a/c to closest point of approach
             nconf = len(bs.traf.asas.confpairs_unique)
-            n2conf = len(bs.traf.asas.confpairs)
+            n2conf = len(bs.traf.asas.cd.confpairs)
 
             if nconf>0:
 
                 for j in range(n2conf):
-                    i = bs.traf.id2idx(bs.traf.asas.confpairs[j][0])
+                    i = bs.traf.id2idx(bs.traf.asas.cd.confpairs[j][0])
                     if i>=0 and i<bs.traf.ntraf and (i in trafsel):
                         latcpa, loncpa = geo.kwikpos(bs.traf.lat[i], bs.traf.lon[i], \
-                                                    bs.traf.trk[i], bs.traf.asas.tcpamax[j] * bs.traf.gs[i] / nm)
-                        altcpa = bs.traf.lat[i] + bs.traf.vs[i]*bs.traf.asas.tcpamax[j]
+                                                    bs.traf.trk[i], bs.traf.asas.cd.tcpamax[j] * bs.traf.gs[i] / nm)
+                        altcpa = bs.traf.lat[i] + bs.traf.vs[i]*bs.traf.asas.cd.tcpamax[j]
                         xc, yc = self.ll2xy(latcpa,loncpa)
                         yc = yc - altcpa * self.isoalt
                         pg.draw.line(self.win,amber,(xc,yc),(trafx[i],trafy[i]))

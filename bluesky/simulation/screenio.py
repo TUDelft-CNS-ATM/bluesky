@@ -239,15 +239,15 @@ class ScreenIO(object):
         data['gs']         = bs.traf.gs
         data['ingroup']    = bs.traf.groups.ingroup
         data['inconf'] = bs.traf.asas.cd.inconf
-        data['tcpamax'] = bs.traf.asas.tcpamax
+        data['tcpamax'] = bs.traf.asas.cd.tcpamax
         data['nconf_cur'] = len(bs.traf.asas.confpairs_unique)
         data['nconf_tot'] = len(bs.traf.asas.confpairs_all)
         data['nlos_cur'] = len(bs.traf.asas.lospairs_unique)
         data['nlos_tot'] = len(bs.traf.asas.lospairs_all)
         data['trk']        = bs.traf.trk
         data['vs']         = bs.traf.vs
-        data['vmin']       = bs.traf.asas.vmin
-        data['vmax']       = bs.traf.asas.vmax
+        data['vmin']       = bs.traf.perf.vmin
+        data['vmax']       = bs.traf.perf.vmax
 
         # Transition level as defined in traf
         data['translvl']   = bs.traf.translvl

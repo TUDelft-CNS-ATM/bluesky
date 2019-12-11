@@ -54,7 +54,7 @@ def resolve(asas, traf):
     neweas=vtas2eas(newgs,traf.alt)
 
     # Cap the velocity
-    neweascapped=np.maximum(asas.vmin,np.minimum(asas.vmax,neweas))
+    neweascapped=np.maximum(traf.perf.vmin,np.minimum(traf.perf.vmax,neweas))
 
     # now assign in the traf class
     asas.hdg = newtrack

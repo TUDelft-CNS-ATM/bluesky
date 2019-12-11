@@ -38,18 +38,17 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
 
     def update(self, conf, ownship, intruder):
         trk, tas, vs, alt = self.resolve(conf, ownship, intruder)
-
-        # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
-        self.resopairs.update(conf.confpairs)
-
-        self.resumenav()
+        self.resumenav(conf, ownship, intruder)
 
         return trk, tas, vs, alt
 
-    def resumenav(self):
+    def resumenav(self, conf, ownship, intruder):
         """ Decide for each aircraft in the conflict list whether the ASAS
             should be followed or not, based on if the aircraft pairs passed
             their CPA. """
+
+        # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
+        self.resopairs.update(conf.confpairs)
 
         # Conflict pairs to be deleted
         delpairs = set()
@@ -66,14 +65,14 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
             if idx2 >= 0:
                 # Distance vector using flat earth approximation
                 re = 6371000.
-                dist = re * np.array([np.radians(bs.traf.lon[idx2] - bs.traf.lon[idx1]) *
-                                      np.cos(0.5 * np.radians(bs.traf.lat[idx2] +
-                                                              bs.traf.lat[idx1])),
-                                      np.radians(bs.traf.lat[idx2] - bs.traf.lat[idx1])])
+                dist = re * np.array([np.radians(intruder.lon[idx2] - ownship.lon[idx1]) *
+                                      np.cos(0.5 * np.radians(intruder.lat[idx2] +
+                                                              ownship.lat[idx1])),
+                                      np.radians(intruder.lat[idx2] - ownship.lat[idx1])])
 
                 # Relative velocity vector
-                vrel = np.array([bs.traf.gseast[idx2] - bs.traf.gseast[idx1],
-                                 bs.traf.gsnorth[idx2] - bs.traf.gsnorth[idx1]])
+                vrel = np.array([intruder.gseast[idx2] - ownship.gseast[idx1],
+                                 intruder.gsnorth[idx2] - ownship.gsnorth[idx1]])
 
                 # Check if conflict is past CPA
                 past_cpa = np.dot(dist, vrel) > 0.0
@@ -83,14 +82,14 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
                 # LOS. This is particularly relevant when vertical resolutions
                 # are used.
                 hdist = np.linalg.norm(dist)
-                hor_los = hdist < self.R
+                hor_los = hdist < conf.rpz
 
                 # Bouncing conflicts:
                 # If two aircraft are getting in and out of conflict continously,
                 # then they it is a bouncing conflict. ASAS should stay active until
                 # the bouncing stops.
                 is_bouncing = abs(
-                    bs.traf.trk[idx1] - bs.traf.trk[idx2]) < 30.0 and hdist < self.Rm
+                    ownship.trk[idx1] - intruder.trk[idx2]) < 30.0 and hdist < conf.rpz * self.resofach
 
             # Start recovery for ownship if intruder is deleted, or if past CPA
             # and not in horizontal LOS or a bouncing conflict

@@ -30,7 +30,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         self.dist = np.array([])
         self.dcpa = np.array([])
         self.tcpa = np.array([])
-        self.tinconf = np.array([])
+        self.tLOS = np.array([])
         with RegisterElementParameters(self):
             self.inconf = np.array([], dtype=bool)  # In-conflict flag
             self.tcpamax = np.array([])
@@ -81,7 +81,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
 
     def update(self, ownship, intruder):
         self.confpairs, self.lospairs, self.inconf, self.tcpamax, self.qdr, \
-            self.dist, self.dcpa, self.tcpa, self.tinconf = \
+            self.dist, self.dcpa, self.tcpa, self.tLOS = \
                 self.detect(ownship, intruder)
 
     def detect(self, ownship, intruder):
@@ -94,5 +94,5 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         dist = np.array([])
         dcpa = np.array([])
         tcpa = np.array([])
-        tinconf = np.array([])
-        return confpairs, lospairs, inconf, tcpamax, qdr, dist, dcpa, tcpa, tinconf
+        tLOS = np.array([])
+        return confpairs, lospairs, inconf, tcpamax, qdr, dist, dcpa, tcpa, tLOS

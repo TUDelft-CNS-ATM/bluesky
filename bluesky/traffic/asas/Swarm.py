@@ -91,7 +91,7 @@ def resolve(asas, traf):
     Swarmvs = np.average(vss, axis=0, weights=asas.Swarmweights)
 
     # Cap the velocity
-    Swarmcascapped = np.maximum(asas.vmin, np.minimum(asas.vmax, Swarmcas))
+    Swarmcascapped = np.maximum(traf.perf.vmin, np.minimum(traf.perf.vmax, Swarmcas))
     # Assign Final Swarming directions to traffic
     asas.hdg = Swarmhdg
     asas.tas = Swarmcascapped

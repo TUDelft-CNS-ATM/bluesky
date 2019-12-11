@@ -100,7 +100,7 @@ def resolve(dbconf, traf):
     # Now assign in the traf class --------------------------------------------
     # Change autopilot desired speed
     dbconf.asasspd=vtas2eas(np.where(acccontrol==0,traf.gs,\
-        np.where(acccontrol>0,dbconf.vmax,dbconf.vmin)),traf.alt)
+        np.where(acccontrol>0,traf.perf.vmax,traf.perf.vmin)),traf.alt)
     # Set acceleration for aircraft in conflict
     traf.ax=np.where(dbconf.asasactive,abs(acccontrol),kts)
     # Change autopilot desired heading

@@ -118,8 +118,8 @@ def constructSSD(asas, traf, priocode = "RS1"):
     N = 0
     # Parameters
     N_angle = 180                   # [-] Number of points on circle (discretization)
-    vmin    = asas.vmin             # [m/s] Defined in asas.py
-    vmax    = asas.vmax             # [m/s] Defined in asas.py
+    vmin    = traf.perf.vmin             # [m/s] Defined in asas.py
+    vmax    = traf.perf.vmax             # [m/s] Defined in asas.py
     hsep    = asas.R                # [m] Horizontal separation (5 NM)
     margin  = asas.mar              # [-] Safety margin for evasion
     hsepm   = hsep * margin         # [m] Horizontal separation with safety margin
