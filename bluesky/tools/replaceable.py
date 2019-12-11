@@ -159,7 +159,7 @@ class Replaceable(metaclass=ReplaceableMeta):
 
     @classmethod
     def selected(cls):
-        ''' Return the selected generator class. '''
+        ''' Return the selected implementation. '''
         return cls._replaceable._generator
 
     @classmethod
