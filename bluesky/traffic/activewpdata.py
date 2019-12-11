@@ -7,7 +7,7 @@ from bluesky.tools.replaceable import ReplaceableSingleton
 
 class ActiveWaypoint(ReplaceableSingleton, TrafficArrays):
     def __init__(self):
-        super(ActiveWaypoint, self).__init__()
+        TrafficArrays.__init__(self)
         with RegisterElementParameters(self):
             self.lat       = np.array([])  # [deg] Active WP latitude
             self.lon       = np.array([])  # [deg] Active WP longitude

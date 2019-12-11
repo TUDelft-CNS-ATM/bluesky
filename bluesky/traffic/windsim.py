@@ -6,6 +6,9 @@ from bluesky.tools.replaceable import ReplaceableSingleton
 from .windfield import Windfield
 
 class WindSim(ReplaceableSingleton, Windfield):
+    def __init__(self):
+        Windfield.__init__(self)
+
     def add(self, *arg):
 
         lat = arg[0]

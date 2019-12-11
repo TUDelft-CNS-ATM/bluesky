@@ -36,7 +36,6 @@ def select_implementation(basename='', implname=''):
 def check_method(fun):
     ''' Check if passed function is a method of a ReplaceableSingleton. '''
     if inspect.ismethod(fun) and isinstance(fun.__self__, ReplaceableSingleton):
-        print(f'Replacing method {fun.__name__}')
         return fun.__self__._proxy._methodproxy(fun)
     return fun
 
@@ -68,21 +67,24 @@ class Methodproxy:
 class Proxy:
     ''' Proxy class for BlueSky replaceable singletons. '''
     def __init__(self):
-        self._refobj = None
-        self._proxied = list()
-        self._wrappedmethods = dict()
+        self.__dict__['_refobj'] = None
+        self.__dict__['_proxied'] = list()
+        self.__dict__['_wrappedmethods'] = dict()
+
+    def _selected(self):
+        return self._refobj.__class__
 
     def _methodproxy(self, fun):
         ret = Methodproxy(fun)
         delattr(self, fun.__name__)
         self._proxied.remove(fun.__name__)
         self._wrappedmethods[fun.__name__] = ret
-        setattr(self, fun.__name__, ret)
+        self.__dict__[fun.__name__] = ret
         return ret
 
     def _replace(self, refobj):
         # Replace our reference object
-        self._refobj = refobj
+        self.__dict__['_refobj'] = refobj
         for name in self._proxied:
             delattr(self, name)
         self._proxied.clear()
@@ -92,7 +94,7 @@ class Proxy:
             if name[0] != '_':
                 wrapped = wrappedmethods.pop(name, None)
                 if wrapped is None:
-                    setattr(self, name, value)
+                    self.__dict__[name] = value
                     self._proxied.append(name)
                 else:
                     wrapped._update(value)
@@ -102,6 +104,9 @@ class Proxy:
 
     def __getattr__(self, attr):
         return getattr(self._refobj, attr)
+
+    def __setattr__(self, name, value):
+        return setattr(self._refobj, name, value)
 
 
 class ReplaceableMeta(type):
@@ -126,13 +131,18 @@ class ReplaceableSingletonMeta(ReplaceableMeta):
     ''' Meta class to make replaceable classes singletons. '''
     def __init__(cls, clsname, bases, attrs):
         super().__init__(clsname, bases, attrs)
+        cls._instance = None
         if clsname != 'ReplaceableSingleton' and cls._proxy is None:
             cls._proxy = Proxy()
 
     def __call__(cls, *args, **kwargs):
-        if type(cls._replaceable._instance) is not cls._replaceable._generator:
-            cls._replaceable._instance = super().__call__(*args, **kwargs)
-            cls._proxy._replace(cls._instance)
+        # check if the current instance is the same as the selected class
+        if cls._proxy._selected() is not cls.selected():
+            # If not, reset the proxy object to the selected implementation,
+            # and create the instance if it hasn't been created yet
+            if cls.selected()._instance is None:
+                cls.selected()._instance = super().__call__(*args, **kwargs)
+            cls._proxy._replace(cls.selected()._instance)
         return cls._proxy
 
 
@@ -174,3 +184,8 @@ class ReplaceableSingleton(Replaceable, metaclass=ReplaceableSingletonMeta):
         ''' Select this class as generator. '''
         cls._replaceable._generator = cls
         _ = cls()
+
+    @classmethod
+    def selected(cls):
+        ''' Return the selected generator class. '''
+        return cls._replaceable._generator

@@ -9,7 +9,7 @@ class ADSB(ReplaceableSingleton, TrafficArrays):
     """ ADS-B model. Implements real-life limitations of ADS-B communication."""
 
     def __init__(self):
-        super(ADSB, self).__init__()
+        TrafficArrays.__init__(self)
         # From here, define object arrays
         with RegisterElementParameters(self):
             # Most recent broadcast data
