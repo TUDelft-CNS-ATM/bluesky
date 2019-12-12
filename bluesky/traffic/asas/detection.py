@@ -1,4 +1,4 @@
-''' Conflict detection base class. '''
+''' This module provides the Conflict Detection base class. '''
 import numpy as np
 
 import bluesky as bs
@@ -22,18 +22,50 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         # [s] lookahead time
         self.dtlookahead = bs.settings.asas_dtlookahead
         self.dtnolook = 0.0
-        # Conflict pairs detected in the current timestep (used for resolving)
+
+        # Conflicts and LoS detected in the current timestep (used for resolving)
         self.confpairs = list()
-        # Current loss of separation pairs
         self.lospairs = list()
         self.qdr = np.array([])
         self.dist = np.array([])
         self.dcpa = np.array([])
         self.tcpa = np.array([])
         self.tLOS = np.array([])
+        # Unique conflicts and LoS in the current timestep (a, b) = (b, a)
+        self.confpairs_unique = set()
+        self.lospairs_unique = set()
+
+        # All conflicts and LoS since simt=0
+        self.confpairs_all = list()  
+        self.lospairs_all = list()
+
+        # Per-aircraft conflict data
         with RegisterElementParameters(self):
             self.inconf = np.array([], dtype=bool)  # In-conflict flag
-            self.tcpamax = np.array([])
+            self.tcpamax = np.array([]) # Maximum time to CPA for aircraft in conflict
+
+    def clearconfdb(self):
+        ''' Clear conflict database. '''
+        self.confpairs_unique.clear()
+        self.lospairs_unique.clear()
+        self.confpairs.clear()
+        self.lospairs.clear()
+        self.qdr = np.array([])
+        self.dist = np.array([])
+        self.dcpa = np.array([])
+        self.tcpa = np.array([])
+        self.tLOS = np.array([])
+        self.inconf[:] = False
+
+    def reset(self):
+        super().reset()
+        self.clearconfdb()
+        self.confpairs_all.clear()
+        self.lospairs_all.clear()
+        self.rpz = bs.settings.asas_pzr * nm
+        self.hpz = bs.settings.asas_pzh * ft
+        self.dtlookahead = bs.settings.asas_dtlookahead
+        self.dtnolook = 0.0
 
     @classmethod
     def setmethod(cls, name=''):
@@ -48,8 +80,13 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
                          f'\nAvailable CD methods: {", ".join(names)}'
         # Check if the requested method exists
         if name == 'OFF':
+            # Select the base method and clear the conflict database
             ConflictDetection.select()
+            ConflictDetection.instance().clearconfdb()
             return True, 'Conflict Detection turned off.'
+        if name == 'ON':
+            # Just select the first CD method in the list
+            name = next(n for n in names if n != 'OFF')
         method = methods.get(name, None)
         if method is None:
             return False, f'{name} doesn\'t exist.\n' + \
@@ -83,6 +120,18 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         self.confpairs, self.lospairs, self.inconf, self.tcpamax, self.qdr, \
             self.dist, self.dcpa, self.tcpa, self.tLOS = \
                 self.detect(ownship, intruder)
+
+        # confpairs has conflicts observed from both sides (a, b) and (b, a)
+        # confpairs_unique keeps only one of these
+        confpairs_unique = {frozenset(pair) for pair in self.confpairs}
+        lospairs_unique = {frozenset(pair) for pair in self.lospairs}
+
+        self.confpairs_all.extend(confpairs_unique - self.confpairs_unique)
+        self.lospairs_all.extend(lospairs_unique - self.lospairs_unique)
+
+        # Update confpairs_unique and lospairs_unique
+        self.confpairs_unique = confpairs_unique
+        self.lospairs_unique = lospairs_unique
 
     def detect(self, ownship, intruder):
         ''' Detect any conflicts between ownship and intruder. '''

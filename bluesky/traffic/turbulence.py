@@ -15,7 +15,7 @@ class Turbulence(ReplaceableSingleton):
         self.active = False
         self.SetStandards([0, 0.1, 0.1])
 
-    def SetNoise(self, flag):
+    def setnoise(self, flag):
         self.active = flag
 
     def SetStandards(self, s):

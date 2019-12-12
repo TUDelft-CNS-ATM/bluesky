@@ -22,9 +22,9 @@ class ADSB(ReplaceableSingleton, TrafficArrays):
             self.gs         = np.array([])
             self.vs         = np.array([])
 
-        self.SetNoise(False)
+        self.setnoise(False)
 
-    def SetNoise(self, n):
+    def setnoise(self, n):
         self.transnoise = n
         self.truncated  = n
         self.transerror = [1e-4, 100 * ft]  # [degree,m] standard lat/lon distance, altitude error

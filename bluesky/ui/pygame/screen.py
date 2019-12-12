@@ -649,7 +649,7 @@ class Screen:
                 ltx, lty = self.ll2xy(bs.traf.trails.lastlat, bs.traf.trails.lastlon)
 
             # Find pixel size of horizontal separation on screen
-            pixelrad=self.dtopix_eq(bs.traf.asas.R/2)
+            pixelrad=self.dtopix_eq(bs.traf.cd.rpz/2)
 
             # Loop through all traffic indices which we found on screen
             for i in trafsel:
@@ -670,7 +670,7 @@ class Screen:
                 # Normal symbol if no conflict else amber
                 toosmall=self.lat1-self.lat0>6 #don't draw circles if zoomed out too much
 
-                if not bs.traf.asas.cd.inconf[i]:
+                if not bs.traf.cd.inconf[i]:
                     self.win.blit(self.acsymbol[isymb], pos)
                     if self.swsep and not toosmall:
                         pg.draw.circle(self.win,green,(int(trafx[i]),int(trafy[i])),pixelrad,1)
@@ -712,7 +712,7 @@ class Screen:
 
                     bs.traf.label[i] = []
                     labelbmp = pg.Surface((100, 60), 0, self.win)
-                    if not bs.traf.asas.cd.inconf[i]:
+                    if not bs.traf.cd.inconf[i]:
                         acfont = self.fontrad
                     else:
                         acfont = self.fontamb
@@ -752,17 +752,17 @@ class Screen:
 
 
             # Draw conflicts: line from a/c to closest point of approach
-            nconf = len(bs.traf.asas.confpairs_unique)
-            n2conf = len(bs.traf.asas.cd.confpairs)
+            nconf = len(bs.traf.cd.confpairs_unique)
+            n2conf = len(bs.traf.cd.confpairs)
 
             if nconf>0:
 
                 for j in range(n2conf):
-                    i = bs.traf.id2idx(bs.traf.asas.cd.confpairs[j][0])
+                    i = bs.traf.id2idx(bs.traf.cd.confpairs[j][0])
                     if i>=0 and i<bs.traf.ntraf and (i in trafsel):
                         latcpa, loncpa = geo.kwikpos(bs.traf.lat[i], bs.traf.lon[i], \
-                                                    bs.traf.trk[i], bs.traf.asas.cd.tcpamax[j] * bs.traf.gs[i] / nm)
-                        altcpa = bs.traf.lat[i] + bs.traf.vs[i]*bs.traf.asas.cd.tcpamax[j]
+                                                    bs.traf.trk[i], bs.traf.cd.tcpamax[j] * bs.traf.gs[i] / nm)
+                        altcpa = bs.traf.lat[i] + bs.traf.vs[i]*bs.traf.cd.tcpamax[j]
                         xc, yc = self.ll2xy(latcpa,loncpa)
                         yc = yc - altcpa * self.isoalt
                         pg.draw.line(self.win,amber,(xc,yc),(trafx[i],trafy[i]))
@@ -871,13 +871,13 @@ class Screen:
                                  "Freq=" + str(int(len(self.dts) / max(0.001, sum(self.dts)))))
 
             self.fontsys.printat(self.win, 10+240, 2, \
-                                 "#LOS      = " + str(len(bs.traf.asas.lospairs_unique)))
+                                 "#LOS      = " + str(len(bs.traf.cd.lospairs_unique)))
             self.fontsys.printat(self.win, 10+240, 18, \
-                                 "Total LOS = " + str(len(bs.traf.asas.lospairs_all)))
+                                 "Total LOS = " + str(len(bs.traf.cd.lospairs_all)))
             self.fontsys.printat(self.win, 10+240, 34, \
-                                 "#Con      = " + str(len(bs.traf.asas.confpairs_unique)))
+                                 "#Con      = " + str(len(bs.traf.cd.confpairs_unique)))
             self.fontsys.printat(self.win, 10+240, 50, \
-                                 "Total Con = " + str(len(bs.traf.asas.confpairs_all)))
+                                 "Total Con = " + str(len(bs.traf.cd.confpairs_all)))
 
             # Frame ready, flip to screen
             pg.display.flip()

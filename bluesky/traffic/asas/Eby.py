@@ -99,7 +99,7 @@ def Eby_straight(traf, asas, id1, id2):
     -Solve using the quadratic formula
     """
     # These terms are used to construct a,b,c of the quadratic formula
-    R2=(asas.R * self.resofach)**2 # in meters
+    R2=(conf.rpz * self.resofach)**2 # in meters
     d2=np.dot(d,d) # distance vector length squared
     v2=np.dot(v,v) # velocity vector length squared
     dv=np.dot(d,v) # dot product of distance and velocity
@@ -131,7 +131,7 @@ def Eby_straight(traf, asas, id1, id2):
         dstarabs=np.linalg.norm(drelstar)
 
     #intrusion at tstar
-    i=(asas.R * self.resofach)-dstarabs
+    i=(conf.rpz * self.resofach)-dstarabs
 
     #desired change in the plane's speed vector:
     dv=i*drelstar/(dstarabs*tstar)

@@ -13,7 +13,7 @@ from . import MVP
 
 
 def start(asas):
-    asas.Rswarm = 7.5 * nm  # [m]
+    conf.rpzswarm = 7.5 * nm  # [m]
     asas.dhswarm = 1500 * ft  # [m]
 
     asas.Swarmweights = np.array([10, 3, 1])
@@ -30,7 +30,7 @@ def resolve(asas, traf):
     # correcting the distance from CASAS line 109
 
     dalt = traf.alt.reshape((1, traf.ntraf)) - traf.alt.reshape((1, traf.ntraf)).T
-    close = np.logical_and(dx**2 + dy**2 < asas.Rswarm**2,
+    close = np.logical_and(dx**2 + dy**2 < conf.rpzswarm**2,
                            np.abs(dalt) < asas.dhswarm)
 
     trkdif = traf.trk.reshape(1, traf.ntraf) - traf.trk.reshape(traf.ntraf, 1)

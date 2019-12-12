@@ -30,18 +30,18 @@ class Pilot(TrafficArrays):
         # Convert the ASAS commanded speed from ground speed to TAS
         if bs.traf.wind.winddim > 0:
             vwn, vwe     = bs.traf.wind.getdata(bs.traf.lat, bs.traf.lon, bs.traf.alt)
-            asastasnorth = bs.traf.asas.tas * np.cos(np.radians(bs.traf.asas.trk)) - vwn
-            asastaseast  = bs.traf.asas.tas * np.sin(np.radians(bs.traf.asas.trk)) - vwe
+            asastasnorth = bs.traf.cr.tas * np.cos(np.radians(bs.traf.cr.trk)) - vwn
+            asastaseast  = bs.traf.cr.tas * np.sin(np.radians(bs.traf.cr.trk)) - vwe
             asastas      = np.sqrt(asastasnorth**2 + asastaseast**2)
         # no wind, then ground speed = TAS
         else:
-            asastas = bs.traf.asas.tas # TAS [m/s]
+            asastas = bs.traf.cr.tas # TAS [m/s]
 
         # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on.
-        self.trk = np.where(bs.traf.asas.cr.active, bs.traf.asas.trk, bs.traf.ap.trk)
-        self.tas = np.where(bs.traf.asas.cr.active, asastas, bs.traf.ap.tas)
-        self.alt = np.where(bs.traf.asas.cr.active, bs.traf.asas.alt, bs.traf.ap.alt)
-        self.vs  = np.where(bs.traf.asas.cr.active, bs.traf.asas.vs, bs.traf.ap.vs)
+        self.trk = np.where(bs.traf.cr.active, bs.traf.cr.trk, bs.traf.ap.trk)
+        self.tas = np.where(bs.traf.cr.active, asastas, bs.traf.ap.tas)
+        self.alt = np.where(bs.traf.cr.active, bs.traf.cr.alt, bs.traf.ap.alt)
+        self.vs  = np.where(bs.traf.cr.active, bs.traf.cr.vs, bs.traf.ap.vs)
 
         # ASAS can give positive and negative VS, but the sign of VS is determined using delalt in Traf.ComputeAirSpeed
         # Therefore, ensure that pilot.vs is always positive to prevent opposite signs of delalt and VS in Traf.ComputeAirSpeed

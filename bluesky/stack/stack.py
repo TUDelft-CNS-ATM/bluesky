@@ -48,6 +48,7 @@ cmddict = dict()  # Defined in stack.init
 #
 cmdsynon = {
     "ADDAIRWAY": "ADDAWY",
+    "ASAS": "CDMETHOD",
     "AWY": "POS",
     "AIRPORT": "POS",
     "AIRWAYS": "AIRWAY",
@@ -245,12 +246,6 @@ def init(startup_scnfile):
             bs.traf.ap.selaltcmd,
             "Altitude command (autopilot)",
         ],
-        "ASAS": [
-            "ASAS ON/OFF/VMIN/VMAX",
-            "[onoff]",
-            bs.traf.asas.toggle,
-            "Airborne Separation Assurance System switch",
-        ],
         "AT": [
             "acid AT wpname [DEL] SPD/ALT [spd/alt]",
             "acid,wpinroute,[txt,txt]",
@@ -311,7 +306,7 @@ def init(startup_scnfile):
         "CDMETHOD": [
             "CDMETHOD [method]",
             "[txt]",
-            bs.traf.asas.cd.setmethod,
+            bs.traf.cd.setmethod,
             "Set conflict detection method",
         ],
         "CIRCLE": [
@@ -423,7 +418,7 @@ def init(startup_scnfile):
         "DTLOOK": [
             "DTLOOK [time]",
             "[float]",
-            bs.traf.asas.cd.setdtlook,
+            bs.traf.cd.setdtlook,
             "Set lookahead time in seconds for conflict detection",
         ],
         "DTMULT": [
@@ -435,7 +430,7 @@ def init(startup_scnfile):
         "DTNOLOOK": [
             "DTNOLOOK [time]",
             "[float]",
-            bs.traf.asas.cd.setdtnolook,
+            bs.traf.cd.setdtnolook,
             "Set interval for conflict detection",
         ],
         "DUMPRTE": [
@@ -577,7 +572,7 @@ def init(startup_scnfile):
         "NOISE": [
             "NOISE [ON/OFF]",
             "[onoff]",
-            bs.traf.setNoise,
+            bs.traf.setnoise,
             "Turbulence/noise switch",
         ],
         "NOM": [
@@ -589,7 +584,7 @@ def init(startup_scnfile):
         "NORESO": [
             "NORESO [acid]",
             "[acid]",
-            bs.traf.asas.cr.setnoreso,
+            bs.traf.cr.setnoreso,
             "Switch on/off conflict resolution for one or more aircraft",
         ],
         "OP": [
@@ -663,7 +658,7 @@ def init(startup_scnfile):
         "PRIORULES": [
             "PRIORULES [ON/OFF PRIOCODE]",
             "[onoff, txt]",
-            bs.traf.asas.cr.setprio,
+            bs.traf.cr.setprio,
             "Define priority rules (right of way) for conflict resolution",
         ],
         "QUIT": ["QUIT", "", bs.sim.stop, "Quit program/Stop simulation"],
@@ -676,25 +671,25 @@ def init(startup_scnfile):
         "RFACH": [
             "RFACH [factor]",
             "[float]",
-            bs.traf.asas.cr.setresofach,
+            bs.traf.cr.setresofach,
             "Set resolution factor horizontal (to maneuver only a fraction of a resolution vector)",
         ],
         "RFACV": [
             "RFACV [factor]",
             "[float]",
-            bs.traf.asas.cr.setresofacv,
+            bs.traf.cr.setresofacv,
             "Set resolution factor vertical (to maneuver only a fraction of a resolution vector)",
         ],
         "RESO": [
             "RESO [method]",
             "[txt]",
-            bs.traf.asas.cr.setmethod,
+            bs.traf.cr.setmethod,
             "Set resolution method",
         ],
         "RESOOFF": [
             "RESOOFF [acid]",
             "[acid]",
-            bs.traf.asas.cr.setresooff,
+            bs.traf.cr.setresooff,
             "Switch for conflict resolution module",
         ],
         "RTA": [
@@ -799,13 +794,13 @@ def init(startup_scnfile):
         "ZONEDH": [
             "ZONEDH [height]",
             "[float]",
-            bs.traf.asas.cd.sethpz,
+            bs.traf.cd.sethpz,
             "Set half of the vertical protected zone dimensions in ft",
         ],
         "ZONER": [
             "ZONER [radius]",
             "[float]",
-            bs.traf.asas.cd.setrpz,
+            bs.traf.cd.setrpz,
             "Set the radius of the horizontal protected zone dimensions in nm",
         ],
         "ZOOM": [

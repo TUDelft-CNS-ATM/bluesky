@@ -28,6 +28,11 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
             self.noresoac = np.array([], dtype=np.bool)
             # whether the autopilot follows ASAS or not
             self.active = np.array([], dtype=bool)
+            self.trk = np.array([])  # heading provided by the ASAS [deg]
+            self.tas = np.array([])  # speed provided by the ASAS (eas) [m/s]
+            self.alt = np.array([])  # alt provided by the ASAS [m]
+            self.vs = np.array([])  # vspeed provided by the ASAS [m/s]
+
 
     def resolve(self, conf, ownship, intruder):
         ''' Resolve all current conflicts '''
@@ -37,10 +42,8 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         return ownship.ap.trk, ownship.ap.tas, ownship.ap.vs, ownship.ap.alt
 
     def update(self, conf, ownship, intruder):
-        trk, tas, vs, alt = self.resolve(conf, ownship, intruder)
+        self.trk, self.tas, self.vs, self.alt = self.resolve(conf, ownship, intruder)
         self.resumenav(conf, ownship, intruder)
-
-        return trk, tas, vs, alt
 
     def resumenav(self, conf, ownship, intruder):
         """ Decide for each aircraft in the conflict list whether the ASAS

@@ -166,16 +166,16 @@ class Area(TrafficArrays):
             # the experiment area
             # Store statistics for all new conflict pairs
             # Conflict pairs detected in the current timestep that were not yet present in the previous timestep
-            confpairs_new = list(set(traf.asas.cd.confpairs) - self.prevconfpairs)
+            confpairs_new = list(set(traf.cd.confpairs) - self.prevconfpairs)
             if confpairs_new:
                 # If necessary: select conflict geometry parameters for new conflicts
-                # idxdict = dict((v, i) for i, v in enumerate(traf.asas.cd.confpairs))
+                # idxdict = dict((v, i) for i, v in enumerate(traf.cd.confpairs))
                 # idxnew = [idxdict.get(i) for i in confpairs_new]
-                # dcpa_new = np.asarray(traf.asas.cd.dcpa)[idxnew]
-                # tcpa_new = np.asarray(traf.asas.cd.tcpa)[idxnew]
-                # tLOS_new = np.asarray(traf.asas.cd.tLOS)[idxnew]
-                # qdr_new = np.asarray(traf.asas.cd.qdr)[idxnew]
-                # dist_new = np.asarray(traf.asas.cd.dist)[idxnew]
+                # dcpa_new = np.asarray(traf.cd.dcpa)[idxnew]
+                # tcpa_new = np.asarray(traf.cd.tcpa)[idxnew]
+                # tLOS_new = np.asarray(traf.cd.tLOS)[idxnew]
+                # qdr_new = np.asarray(traf.cd.qdr)[idxnew]
+                # dist_new = np.asarray(traf.cd.dist)[idxnew]
 
                 newconf_unique = {frozenset(pair) for pair in confpairs_new}
                 ac1, ac2 = zip(*newconf_unique)
@@ -187,7 +187,7 @@ class Area(TrafficArrays):
                 if nnewconf_exp:
                     self.confinside_all += nnewconf_exp
                     self.conflog.log(self.confinside_all)
-            self.prevconfpairs = set(traf.asas.cd.confpairs)
+            self.prevconfpairs = set(traf.cd.confpairs)
 
             # Register distance values upon entry of experiment area
             newentries = np.logical_not(self.insexp) * insexp
@@ -212,7 +212,7 @@ class Area(TrafficArrays):
                     traf.tas[exits],
                     traf.vs[exits],
                     traf.hdg[exits],
-                    traf.asas.cr.active[exits],
+                    traf.cr.active[exits],
                     traf.pilot.alt[exits],
                     traf.pilot.tas[exits],
                     traf.pilot.vs[exits],

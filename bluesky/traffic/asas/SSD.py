@@ -120,7 +120,7 @@ def constructSSD(asas, traf, priocode = "RS1"):
     N_angle = 180                   # [-] Number of points on circle (discretization)
     vmin    = traf.perf.vmin             # [m/s] Defined in asas.py
     vmax    = traf.perf.vmax             # [m/s] Defined in asas.py
-    hsep    = asas.R                # [m] Horizontal separation (5 NM)
+    hsep    = conf.rpz                # [m] Horizontal separation (5 NM)
     margin  = asas.mar              # [-] Safety margin for evasion
     hsepm   = hsep * margin         # [m] Horizontal separation with safety margin
     alpham  = 0.4999 * np.pi        # [rad] Maximum half-angle for VO
@@ -627,7 +627,7 @@ def minTLOS(asas, traf, i, i_other, x1, y1, x, y):
     # CPA distance
     dcpa2 = np.square(np.dot(dist.reshape((L,1)),np.ones((1,W)))) - np.square(tcpa) * vrel2
     # Calculate time to LOS
-    R2 = asas.R * asas.R
+    R2 = conf.rpz * conf.rpz
     swhorconf = dcpa2 < R2
     dxinhor = np.sqrt(np.maximum(0,R2-dcpa2))
     dtinhor = dxinhor / np.sqrt(vrel2)
