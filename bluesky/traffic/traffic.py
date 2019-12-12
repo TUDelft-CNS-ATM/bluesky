@@ -9,7 +9,6 @@ import numpy as np
 from math import *
 from random import randint
 import bluesky as bs
-from bluesky import settings
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
@@ -29,20 +28,19 @@ from .turbulence import Turbulence
 from .trafficgroups import TrafficGroups
 
 
-
 # Register settings defaults
-settings.set_variable_defaults(performance_model='openap', asas_dt=1.0)
+bs.settings.set_variable_defaults(performance_model='openap', asas_dt=1.0)
 
-if settings.performance_model == 'bada':
+if bs.settings.performance_model == 'bada':
     try:
         print('Using BADA Performance model')
         from .performance.bada.perfbada import PerfBADA as Perf
     except Exception as err:# ImportError as err:
         print(err)
         print('Falling back to Open Aircraft Performance (OpenAP) model')
-        settings.performance_model = "openap"
+        bs.settings.performance_model = "openap"
         from .performance.openap import OpenAP as Perf
-elif settings.performance_model == 'openap':
+elif bs.settings.performance_model == 'openap':
     print('Using Open Aircraft Performance (OpenAP) model')
     from .performance.openap import OpenAP as Perf
 else:
@@ -318,8 +316,8 @@ class Traffic(TrafficArrays):
         gsref   = self.gs[targetidx]   # m/s
         vsref   = self.vs[targetidx]   # m/s
         cpa     = cpa * nm
-        pzr     = settings.asas_pzr * nm
-        pzh     = settings.asas_pzh * ft
+        pzr     = bs.settings.asas_pzr * nm
+        pzh     = bs.settings.asas_pzh * ft
 
         trk     = trkref + radians(dpsi)
         gs      = gsref if spd is None else spd
@@ -415,7 +413,7 @@ class Traffic(TrafficArrays):
         self.trails.update()
         return
 
-    @timed_function('asas', dt=settings.asas_dt)
+    @timed_function('asas', dt=bs.settings.asas_dt)
     def update_asas(self):
         # Conflict detection
         self.cd.update(self, self)
