@@ -36,7 +36,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         self.lospairs_unique = set()
 
         # All conflicts and LoS since simt=0
-        self.confpairs_all = list()  
+        self.confpairs_all = list()
         self.lospairs_all = list()
 
         # Per-aircraft conflict data
@@ -119,7 +119,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
     def update(self, ownship, intruder):
         self.confpairs, self.lospairs, self.inconf, self.tcpamax, self.qdr, \
             self.dist, self.dcpa, self.tcpa, self.tLOS = \
-                self.detect(ownship, intruder)
+                self.detect(ownship, intruder, self.rpz, self.hpz, self.dtlookahead)
 
         # confpairs has conflicts observed from both sides (a, b) and (b, a)
         # confpairs_unique keeps only one of these
@@ -133,7 +133,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         self.confpairs_unique = confpairs_unique
         self.lospairs_unique = lospairs_unique
 
-    def detect(self, ownship, intruder):
+    def detect(self, ownship, intruder, rpz, hpz, dtlookahead):
         ''' Detect any conflicts between ownship and intruder. '''
         confpairs = []
         lospairs = []

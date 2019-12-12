@@ -6,7 +6,7 @@ from bluesky.traffic.asas import ConflictDetection
 
 
 class StateBased(ConflictDetection):
-    def detect(self, ownship, intruder):
+    def detect(self, ownship, intruder, rpz, hpz, dtlookahead):
         ''' Conflict detection between ownship (traf) and intruder (traf/adsb).'''
         # Identity matrix of order ntraf: avoid ownship-ownship detected conflicts
         I = np.eye(ownship.ntraf)
@@ -50,7 +50,7 @@ class StateBased(ConflictDetection):
         dcpa2 = np.abs(dist * dist - tcpa * tcpa * dv2)
 
         # Check for horizontal conflict
-        R2 = self.rpz * self.rpz
+        R2 = rpz * rpz
         swhorconf = dcpa2 < R2  # conflict or not
 
         # Calculate times of entering and leaving horizontal conflict
@@ -71,8 +71,8 @@ class StateBased(ConflictDetection):
         dvs = np.where(np.abs(dvs) < 1e-6, 1e-6, dvs)  # prevent division by zero
 
         # Check for passing through each others zone
-        tcrosshi = (dalt + self.hpz) / -dvs
-        tcrosslo = (dalt - self.hpz) / -dvs
+        tcrosshi = (dalt + hpz) / -dvs
+        tcrosslo = (dalt - hpz) / -dvs
         tinver = np.minimum(tcrosshi, tcrosslo)
         toutver = np.maximum(tcrosshi, tcrosslo)
 
@@ -81,7 +81,7 @@ class StateBased(ConflictDetection):
         toutconf = np.minimum(toutver, touthor)
 
         swconfl = np.array(swhorconf * (tinconf <= toutconf) * (toutconf > 0.0) * \
-            (tinconf < self.dtlookahead) * (1.0 - I), dtype=np.bool)
+            (tinconf < dtlookahead) * (1.0 - I), dtype=np.bool)
 
         # --------------------------------------------------------------------------
         # Update conflict lists
@@ -92,7 +92,7 @@ class StateBased(ConflictDetection):
 
         # Select conflicting pairs: each a/c gets their own record
         confpairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swconfl))]
-        swlos = (dist < self.rpz) * (np.abs(dalt) < self.hpz)
+        swlos = (dist < rpz) * (np.abs(dalt) < hpz)
         lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
 
         # bearing, dist, tcpa, tinconf, toutconf per conflict
