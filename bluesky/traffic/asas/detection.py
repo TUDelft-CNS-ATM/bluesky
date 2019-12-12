@@ -97,26 +97,32 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         return True, f'Selected {method.__name__} as CD method.'
 
     def setrpz(self, value=None):
+        ''' Set the horizontal separation distance. '''
         if value is None:
             return True, ("ZONER [radius (nm)]\nCurrent PZ radius: %.2f NM" % (self.rpz / nm))
         self.rpz = value * nm
 
     def sethpz(self, value=None):
+        ''' Set the vertical separation distance. '''
         if value is None:
             return True, ("ZONEDH [height (ft)]\nCurrent PZ height: %.2f ft" % (self.hpz / ft))
         self.hpz = value * ft
 
     def setdtlook(self, value=None):
+        ''' Set the lookahead time for conflict detection. '''
         if value is None:
             return True, ("DTLOOK [time]\nCurrent value: %.1f sec" % self.dtlookahead)
         self.dtlookahead = value
 
     def setdtnolook(self, value=None):
+        ''' Set the interval in which conflict detection is skipped after a
+            conflict resolution. '''
         if value is None:
             return True, ("DTNOLOOK [time]\nCurrent value: %.1f sec" % self.dtasas)
         self.dtnolook = value
 
     def update(self, ownship, intruder):
+        ''' Perform an update step of the Conflict Detection implementation. '''
         self.confpairs, self.lospairs, self.inconf, self.tcpamax, self.qdr, \
             self.dist, self.dcpa, self.tcpa, self.tLOS = \
                 self.detect(ownship, intruder, self.rpz, self.hpz, self.dtlookahead)
@@ -134,7 +140,12 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         self.lospairs_unique = lospairs_unique
 
     def detect(self, ownship, intruder, rpz, hpz, dtlookahead):
-        ''' Detect any conflicts between ownship and intruder. '''
+        ''' 
+            Detect any conflicts between ownship and intruder.
+            This function should be reimplemented in a subclass for actual
+            detection of conflicts. See for instance 
+            bluesky.traffic.asas.statebased.
+        '''
         confpairs = []
         lospairs = []
         inconf = np.zeros(ownship.ntraf)

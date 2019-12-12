@@ -35,21 +35,28 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
 
 
     def resolve(self, conf, ownship, intruder):
-        ''' Resolve all current conflicts '''
+        '''
+            Resolve all current conflicts.
+            This function should be reimplemented in a subclass for actual
+            resolution of conflicts. See for instance
+            bluesky.traffic.asas.mvp.
+        '''
         # If resolution is off, and detection is on, and a conflict is detected
         # then asas will be active for that airplane. Since resolution is off, it
         # should then follow the auto pilot instructions.
         return ownship.ap.trk, ownship.ap.tas, ownship.ap.vs, ownship.ap.alt
 
     def update(self, conf, ownship, intruder):
+        ''' Perform an update step of the Conflict Resolution implementation. '''
         self.trk, self.tas, self.vs, self.alt = self.resolve(conf, ownship, intruder)
         self.resumenav(conf, ownship, intruder)
 
     def resumenav(self, conf, ownship, intruder):
-        """ Decide for each aircraft in the conflict list whether the ASAS
+        '''
+            Decide for each aircraft in the conflict list whether the ASAS
             should be followed or not, based on if the aircraft pairs passed
-            their CPA. """
-
+            their CPA.
+        '''
         # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
         self.resopairs.update(conf.confpairs)
 
@@ -124,7 +131,7 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         self.resopairs -= delpairs
 
     def setprio(self, flag=None, priocode=''):
-        '''Set the prio switch and the type of prio '''
+        ''' Set the prio switch and the type of prio '''
         if flag is None:
             if self.__class__ is ConflictResolution:
                 return False, 'No conflict resolution enabled, or no prio.'
@@ -136,8 +143,8 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         return True
 
     def setnoreso(self, idx=None):
-        '''ADD or Remove aircraft that nobody will avoid.
-        Multiple aircraft can be sent to this function at once '''
+        ''' ADD or Remove aircraft that nobody will avoid.
+        Multiple aircraft can be sent to this function at once. '''
         if idx is None:
             return True, 'NORESO [ACID, ... ] OR NORESO [GROUPID]' + \
                          '\nCurrent list of aircraft nobody will avoid:' + \
@@ -145,7 +152,7 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         self.noresoac[idx] = np.logical_not(self.noresoac[idx])
 
     def setresooff(self, idx=None):
-        "ADD or Remove aircraft that will not avoid anybody else"
+        ''' ADD or Remove aircraft that will not avoid anybody else. '''
         if idx is None:
             return True, 'NORESO [ACID, ... ] OR NORESO [GROUPID]' + \
                          '\nCurrent list of aircraft will not avoid anybody:' + \
@@ -153,7 +160,7 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         self.resooffac[idx] = np.logical_not(self.resooffac[idx])
 
     def setresofach(self, value=None):
-        ''' Set the horizontal resolution factor'''
+        ''' Set the horizontal resolution factor. '''
         if value is None:
             return True, f'RFACH [FACTOR]\nCurrent horizontal resolution factor is: {self.resofach}'
         self.resofach = value
@@ -161,7 +168,7 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         return True, f'Horizontal resolution factor set to {self.resofach}'
 
     def setresofacv(self, value=None):
-        ''' Set the vertical resolution factor'''
+        ''' Set the vertical resolution factor. '''
         if value is None:
             return True, f'RFACV [FACTOR]\nCurrent vertical resolution factor is: {self.resofacv}'
         self.resofacv = value
