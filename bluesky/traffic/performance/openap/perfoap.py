@@ -311,7 +311,7 @@ class OpenAP(PerfBase):
         vmaxfw = np.zeros(len(ifw))
 
         # fixwing
-        # obtain flight envolop for speed, roc, and alt, based on flight phase
+        # obtain flight envelope for speed, roc, and alt, based on flight phase
         vminfw = np.where(phases[ifw] == ph.NA, 0, vminfw)
         vminfw = np.where(phases[ifw] == ph.IC, self.vminic[ifw], vminfw)
         vminfw = np.where(
@@ -360,9 +360,9 @@ class OpenAP(PerfBase):
         bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
         bs.scr.echo("Drag: %d kN" % (self.drag[acid] / 1000))
         bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
-        bs.scr.echo("Speed envolop: [%d, %d] m/s" % (self.vmin[acid], self.vmax[acid]))
+        bs.scr.echo("Speed envelope: [%d, %d] m/s" % (self.vmin[acid], self.vmax[acid]))
         bs.scr.echo(
-            "Vetrical speed envolop: [%d, %d] m/s"
+            "Vertical speed envelope: [%d, %d] m/s"
             % (self.vsmin[acid], self.vsmax[acid])
         )
         bs.scr.echo("Ceiling: %d km" % (self.hmax[acid] / 1000))
