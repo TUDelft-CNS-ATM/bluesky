@@ -4,7 +4,7 @@ from math import degrees,radians,cos,sin,atan2,sqrt
 
 from bluesky import stack,traf,sim,tools,navdb
 from bluesky.tools.position import txt2pos
-from bluesky.tools.geo import kwikqdrdist,kwikpos,kwikdist,latlondist,qdrdist
+from bluesky.tools.geo import kwikqdrdist,kwikpos,latlondist,qdrdist
 from bluesky.tools.misc import degto180,txt2alt,txt2spd
 from bluesky.tools.aero import nm,ft
 
@@ -411,7 +411,7 @@ class Source():
                     if idest>=0:
                         if self.desttype[idest] == "seg":
                             lat, lon, hdg = getseg(self.dest[idest])
-                            brg, dist = kwikdist(self.lat, self.lon, lat, lon)
+                            brg, dist = kwikqdrdist(self.lat, self.lon, lat, lon)
                             stack.stack(acid + " HDG " + str(brg))
                         else:
                             stack.stack(acid + " LNAV ON")
