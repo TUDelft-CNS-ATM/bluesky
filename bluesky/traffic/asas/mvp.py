@@ -175,7 +175,8 @@ class MVP(ConflictResolution):
     def resolve(self, conf, ownship, intruder):
         ''' Resolve all current conflicts '''
         # Preamble------------------------------------------------------------------
-
+        if not conf.confpairs:
+            return
         # Initialize an array to store the resolution velocity vector for all A/C
         dv = np.zeros((ownship.ntraf, 3))
 

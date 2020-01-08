@@ -415,12 +415,9 @@ class Traffic(TrafficArrays):
 
     @timed_function('asas', dt=bs.settings.asas_dt)
     def update_asas(self):
-        # Conflict detection
+        # Conflict detection and resolution
         self.cd.update(self, self)
-
-        # Conflict resolution if there are conflicts
-        if self.cd.confpairs:
-            self.cr.update(self.cd, self, self)
+        self.cr.update(self.cd, self, self)
 
     def update_airspeed(self):
         # Compute horizontal acceleration
