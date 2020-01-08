@@ -636,8 +636,8 @@ def init(startup_scnfile):
             "List all plugins, load a plugin, or remove a loaded plugin.",
         ],
         "POLY": [
-            "POLY name,lat,lon,lat,lon, ...",
-            "txt,latlon,...",
+            "POLY name,[lat,lon,lat,lon, ...]",
+            "txt,[latlon,...]",
             lambda name, *coords: areafilter.defineArea(name, "POLY", coords),
             "Define a polygon-shaped area",
         ],
@@ -1110,10 +1110,20 @@ def readscn(fname):
     fname_full = os.path.normpath(base + ext)
 
     with open(fname_full, "r") as fscen:
+        prevline = ''
         for line in fscen:
+            line = line.strip()
             # Skip emtpy lines and comments
-            if len(line.strip()) < 12 or line.strip()[0] == "#":
+            if len(line) < 12 or line[0] == "#":
                 continue
+            line = prevline + line
+
+            # Check for line continuation
+            if line[-1] == '\\':
+                prevline = f'{line[:-1].strip()} '
+                continue
+            else:
+                prevline = ''
 
             # Try reading timestamp and command
             try:
