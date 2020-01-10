@@ -224,6 +224,7 @@ class Traffic(TrafficArrays):
             aclon[aclon < -180.0] += 360.0
 
         if achdg is None:
+
             achdg = np.random.randint(1, 360, n)
         elif isinstance(achdg, (float, int)):
             achdg = np.array(n * [achdg])
@@ -277,9 +278,9 @@ class Traffic(TrafficArrays):
         if self.wind.winddim > 0:
             applywind         = self.alt[-n:]> 50.*ft
             self.windnorth[-n:], self.windeast[-n:]  = self.wind.getdata(self.lat[-n:], self.lon[-n:], self.alt[-n:])
-            self.gsnorth[-n:] = self.gsnorth[-n:] + self.windnorth*applywind
-            self.gseast[-n:]  = self.gseast[-n:]  + self.windeast*applywind
-            self.trk[-n:]     = np.logical_not(applywind)*achdg +\
+            self.gsnorth[-n:] = self.gsnorth[-n:] + self.windnorth[-n:]*applywind
+            self.gseast[-n:]  = self.gseast[-n:]  + self.windeast[-n:]*applywind
+            self.trk[-n:]     = np.logical_not(applywind)*achdg + \
                                 applywind*np.degrees(np.arctan2(self.gseast[-n:], self.gsnorth[-n:]))
             self.gs[-n:]      = np.sqrt(self.gsnorth[-n:]**2 + self.gseast[-n:]**2)
         else:
