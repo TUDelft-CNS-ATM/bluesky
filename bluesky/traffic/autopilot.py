@@ -304,6 +304,11 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             else:
                 # Calculate V/S using self.steepness,
                 # protect against zero/invalid ground speed value
+#                if bs.sim.simt>11.99:
+#                    print("bs.traf.tas.shape =",bs.traf.tas.shape)
+#                    print("bs.traf.gs.shape =", bs.traf.gs.shape)
+#                    print("bs.traf.actwp.vs.shape =", bs.traf.actwp.vs.shape)
+
                 bs.traf.actwp.vs[idx] = -self.steepness * (bs.traf.gs[idx] +
                       (bs.traf.gs[idx] < 0.2 * bs.traf.tas[idx]) * bs.traf.tas[idx])
 
@@ -388,6 +393,8 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         """ Select heading command: HDG acid, hdg """
         if not isinstance(idx, Collection):
             idx = np.array([idx])
+        if not isinstance(hdg, Collection):
+            hdg = np.array([hdg])
         # If there is wind, compute the corresponding track angle
         if bs.traf.wind.winddim > 0:
             ab50 = bs.traf.alt[idx] > 50.0 * ft
