@@ -1606,17 +1606,14 @@ class Argparser:
                                 )
                                 return False
                             # If we have other default values than None, use those
-                            for i, v in enumerate(result):
+                            for ires, v in enumerate(result):
                                 if v is None and self.argdefaults:
-                                    result[i] = self.argdefaults[0]
+                                    result[ires] = self.argdefaults[0]
                                     print(
-                                        "using default value from function: {}".format(
-                                            result[i]
-                                        )
+                                        f"using default value from function: {result[ires]}"
                                     )
 
                     self.arglist += result
-
                     if self.argdefaults:
                         self.argdefaults.pop(0)
 
@@ -1674,7 +1671,6 @@ class Argparser:
                 idx = bs.traf.groups.listgroup(curargu)
             else:
                 idx = bs.traf.id2idx(curargu)
-
                 if idx < 0:
                     self.error += curargu + " not found"
                     return False
