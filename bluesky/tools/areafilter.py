@@ -14,6 +14,17 @@ def hasArea(areaname):
 
 def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
     """Define a new area"""
+    if areaname == 'LIST':
+        if not areas:
+            return True, 'No shapes are currently defined.'
+        else:
+            return True, 'Currently defined shapes:\n' + \
+                ', '.join(areas)
+    if not coordinates:
+        if areaname in areas:
+            return True, str(areas[areaname])
+        else:
+            return False, f'Unknown shape: {areaname}'
     if areatype == 'BOX':
         areas[areaname] = Box(areaname, coordinates, top, bottom)
     elif areatype == 'CIRCLE':
@@ -47,6 +58,7 @@ def reset():
 class Shape:
     def __init__(self, shape, name, coordinates, top=1e9, bottom=-1e9):
         self.raw = dict(name=name, shape=shape, coordinates=coordinates)
+        self.name = name
         self.coordinates = coordinates
         self.top = np.maximum(bottom, top)
         self.bottom = np.minimum(bottom, top)
@@ -54,10 +66,29 @@ class Shape:
     def checkInside(self, lat, lon, alt):
         return False
 
+    def _str_vrange(self):
+        if self.top < 9e8:
+            if self.bottom > -9e8:
+                return f' with altitude between {self.bottom} and {self.top}'
+            else:
+                return f' with altitude below {self.top}'
+        if self.bottom > -9e8:
+            return f' with altitude above {self.bottom}'
+        return ''
+
+    def __str__(self):
+        return f'{self.name} is a {self.raw["shape"]} with coordinates ' + \
+            ', '.join(str(c) for c in self.coordinates) + self._str_vrange()
+
 
 class Line(Shape):
     def __init__(self, name, coordinates):
         super(Line, self).__init__('LINE', name, coordinates)
+
+    def __str__(self):
+        return f'{self.name} is a LINE with ' \
+            f'start point ({self.coordinates[0]}, {self.coordinates[1]}), ' \
+            f'and end point ({self.coordinates[2]}, {self.coordinates[3]}).'
 
 
 class Box(Shape):
@@ -87,6 +118,11 @@ class Circle(Shape):
         distance = kwikdist(self.clat, self.clon, lat, lon)  # [NM]
         inside   = (distance <= self.r) & (self.bottom <= alt) & (alt <= self.top)
         return inside
+
+    def __str__(self):
+        return f'{self.name} is a CIRCLE with ' \
+            f'center ({self.clat}, {self.clon}) ' \
+            f'and radius {self.r}.' + self._str_vrange()
 
 
 class Poly(Shape):

@@ -630,8 +630,8 @@ def init(startup_scnfile):
             "List all plugins, load a plugin, or remove a loaded plugin.",
         ],
         "POLY": [
-            "POLY name,lat,lon,lat,lon, ...",
-            "txt,latlon,...",
+            "POLY name,[lat,lon,lat,lon, ...]",
+            "txt,[latlon,...]",
             lambda name, *coords: areafilter.defineArea(name, "POLY", coords),
             "Define a polygon-shaped area",
         ],
@@ -1081,10 +1081,20 @@ def readscn(fname):
     fname_full = os.path.normpath(base + ext)
 
     with open(fname_full, "r") as fscen:
+        prevline = ''
         for line in fscen:
+            line = line.strip()
             # Skip emtpy lines and comments
-            if len(line.strip()) < 12 or line.strip()[0] == "#":
+            if len(line) < 12 or line[0] == "#":
                 continue
+            line = prevline + line
+
+            # Check for line continuation
+            if line[-1] == '\\':
+                prevline = f'{line[:-1].strip()} '
+                continue
+            else:
+                prevline = ''
 
             # Try reading timestamp and command
             try:
@@ -1567,17 +1577,14 @@ class Argparser:
                                 )
                                 return False
                             # If we have other default values than None, use those
-                            for i, v in enumerate(result):
+                            for ires, v in enumerate(result):
                                 if v is None and self.argdefaults:
-                                    result[i] = self.argdefaults[0]
+                                    result[ires] = self.argdefaults[0]
                                     print(
-                                        "using default value from function: {}".format(
-                                            result[i]
-                                        )
+                                        f"using default value from function: {result[ires]}"
                                     )
 
                     self.arglist += result
-
                     if self.argdefaults:
                         self.argdefaults.pop(0)
 
@@ -1635,7 +1642,6 @@ class Argparser:
                 idx = bs.traf.groups.listgroup(curargu)
             else:
                 idx = bs.traf.id2idx(curargu)
-
                 if idx < 0:
                     self.error += curargu + " not found"
                     return False
