@@ -1,4 +1,4 @@
-""" BlueSky: The open-source ATM simulator."""
+''' BlueSky: The open-source ATM simulator.'''
 from bluesky import settings
 
 
@@ -25,14 +25,14 @@ server = None
 
 
 def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
-    """ Initialize bluesky modules.
+    ''' Initialize bluesky modules.
 
         Arguments:
         - mode: can be 'sim', 'sim-detached', 'server-gui', 'server-headless',
           or 'client'
         - pygame: indicate if BlueSky is started with BlueSky_pygame.py
         - discovery: Enable network discovery
-    """
+    '''
     # Initialize global settings first, possibly loading a custom config file
     settings.init(cfgfile)
 

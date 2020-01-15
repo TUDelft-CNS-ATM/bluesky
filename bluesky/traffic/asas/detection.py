@@ -55,10 +55,11 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         self.dcpa = np.array([])
         self.tcpa = np.array([])
         self.tLOS = np.array([])
-        self.inconf[:] = False
+        self.inconf = np.zeros(bs.traf.ntraf)
+        self.tcpamax = np.zeros(bs.traf.ntraf)
 
     def reset(self):
-        super().reset()
+        TrafficArrays.reset(self)
         self.clearconfdb()
         self.confpairs_all.clear()
         self.lospairs_all.clear()
@@ -73,7 +74,6 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         # Get a dict of all registered CD methods
         methods = cls.derived()
         names = ['OFF' if n == 'CONFLICTDETECTION' else n for n in methods]
-
         if not name:
             curname = 'OFF' if cls.selected() is ConflictDetection else cls.selected().__name__
             return True, f'Current CD method: {curname}' + \
@@ -94,6 +94,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
 
         # Select the requested method
         method.select()
+        ConflictDetection.instance().clearconfdb()
         return True, f'Selected {method.__name__} as CD method.'
 
     def setrpz(self, value=None):

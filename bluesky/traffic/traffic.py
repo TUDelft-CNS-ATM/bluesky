@@ -159,8 +159,6 @@ class Traffic(TrafficArrays):
         # Default bank angles per flight phase
         self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
 
-        self.reset()
-
     def reset(self):
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb

@@ -1,5 +1,6 @@
 ''' State-based conflict detection. '''
 import numpy as np
+from bluesky import stack
 from bluesky.tools import geo
 from bluesky.tools.aero import nm
 from bluesky.traffic.asas import ConflictDetection
@@ -98,3 +99,16 @@ class StateBased(ConflictDetection):
         return confpairs, lospairs, inconf, tcpamax, \
             qdr[swconfl], dist[swconfl], np.sqrt(dcpa2[swconfl]), \
                 tcpa[swconfl], tinconf[swconfl]
+
+
+try:
+    from bluesky.traffic.asas import casas
+
+
+    class CStateBased(StateBased):
+        def __init__(self):
+            super().__init__()
+            self.detect = casas.detect
+
+except ImportError:
+    pass
