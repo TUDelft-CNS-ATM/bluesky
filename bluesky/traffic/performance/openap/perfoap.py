@@ -127,7 +127,7 @@ class OpenAP(PerfBase):
             ]["bpr"]
 
         # init type specific coefficients
-        if actype in self.coeff.dragpolar_fixwing.keys():
+        if actype in self.coeff.limits_fixwing.keys():
             self.vminic[-n:] = self.coeff.limits_fixwing[actype]["vminic"]
             self.vminer[-n:] = self.coeff.limits_fixwing[actype]["vminer"]
             self.vminap[-n:] = self.coeff.limits_fixwing[actype]["vminap"]
@@ -150,7 +150,7 @@ class OpenAP(PerfBase):
             self.delta_cd_gear[-n:] = self.coeff.dragpolar_fixwing[actype][
                 "delta_cd_gear"
             ]
-        else:  # rotorcraft
+        elif actype in self.coeff.limits_rotor.keys():  # rotorcraft
             self.vmin[-n:] = self.coeff.limits_rotor[actype]["vmin"]
             self.vmax[-n:] = self.coeff.limits_rotor[actype]["vmax"]
             self.vsmin[-n:] = self.coeff.limits_rotor[actype]["vsmin"]
@@ -168,6 +168,30 @@ class OpenAP(PerfBase):
             self.cd0_ld[-n:] = np.nan
             self.k_ld[-n:] = np.nan
             self.delta_cd_gear[-n:] = np.nan
+        else: # Use default B747-400
+            print("Open AP (perfoap.py): Unknown actype, using default B744 instead.")
+            self.vminic[-n:] = self.coeff.limits_fixwing["B744"]["vminic"]
+            self.vminer[-n:] = self.coeff.limits_fixwing["B744"]["vminer"]
+            self.vminap[-n:] = self.coeff.limits_fixwing["B744"]["vminap"]
+            self.vmaxic[-n:] = self.coeff.limits_fixwing["B744"]["vmaxic"]
+            self.vmaxer[-n:] = self.coeff.limits_fixwing["B744"]["vmaxer"]
+            self.vmaxap[-n:] = self.coeff.limits_fixwing["B744"]["vmaxap"]
+
+            self.vsmin[-n:] = self.coeff.limits_fixwing["B744"]["vsmin"]
+            self.vsmax[-n:] = self.coeff.limits_fixwing["B744"]["vsmax"]
+            self.hmax[-n:] = self.coeff.limits_fixwing["B744"]["hmax"]
+            self.axmax[-n:] = self.coeff.limits_fixwing["B744"]["axmax"]
+            self.vminto[-n:] = self.coeff.limits_fixwing["B744"]["vminto"]
+
+            self.cd0_clean[-n:] = self.coeff.dragpolar_fixwing["B744"]["cd0_clean"]
+            self.k_clean[-n:] = self.coeff.dragpolar_fixwing["B744"]["k_clean"]
+            self.cd0_to[-n:] = self.coeff.dragpolar_fixwing["B744"]["cd0_to"]
+            self.k_to[-n:] = self.coeff.dragpolar_fixwing["B744"]["k_to"]
+            self.cd0_ld[-n:] = self.coeff.dragpolar_fixwing["B744"]["cd0_ld"]
+            self.k_ld[-n:] = self.coeff.dragpolar_fixwing["B744"]["k_ld"]
+            self.delta_cd_gear[-n:] = self.coeff.dragpolar_fixwing["B744"][
+                "delta_cd_gear"
+            ]
 
         # append update actypes, after removing unkown types
         self.actypes[-n:] = [actype] * n
