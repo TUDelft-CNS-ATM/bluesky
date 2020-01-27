@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar 29 12:02:02 2017
-
-@author: Suthes Balasooriyan
-"""
-
+''' Conflict resolution based on the SSD algorithm. '''
+from bluesky.traffic.asas import ConflictResolution
 from bluesky.tools import geo
 from bluesky.tools.aero import nm
 import numpy as np
@@ -14,14 +9,56 @@ try:
 except ImportError:
     print("Could not import pyclipper, RESO SSD will not function")
 
+
+# TODO: not completely migrated yet to class-based implementation
+
+
+def init_plugin():
+
+    # Addtional initilisation code
+
+    # Configuration parameters
+    config = {
+        # The name of your plugin
+        'plugin_name':     'SSD',
+
+        # The type of this plugin. For now, only simulation plugins are possible.
+        'plugin_type':     'sim'
+    }
+
+    # init_plugin() should always return these two dicts.
+    return config, {}
+
+
+class SSD(ConflictResolution):
+    def setprio(self, flag=None, priocode=''):
+        '''Set the prio switch and the type of prio '''
+        if flag is None:
+            return True, "PRIORULES [ON/OFF] [PRIOCODE]" + \
+                            "\nAvailable priority codes: " + \
+                            "\n     RS1:  Shortest way out" + \
+                            "\n     RS2:  Clockwise turning" + \
+                            "\n     RS3:  Heading first, RS1 second" + \
+                            "\n     RS4:  Speed first, RS1 second" + \
+                            "\n     RS5:  Shortest from target" + \
+                            "\n     RS6:  Rules of the air" + \
+                            "\n     RS7:  Sequential RS1" + \
+                            "\n     RS8:  Sequential RS5" + \
+                            "\n     RS9:  Counterclockwise turning" + \
+                            "\nPriority is currently " + ("ON" if self.swprio else "OFF") + \
+                            "\nPriority code is currently: " + \
+                str(self.priocode)
+        options = ["RS1", "RS2", "RS3", "RS4",
+                   "RS5", "RS6", "RS7", "RS8", "RS9"]
+        if priocode not in options:
+            return False, "Priority code Not Understood. Available Options: " + str(options)
+        return super().setprio(flag, priocode)
+
 def loaded_pyclipper():
     """ Return true if pyclipper is successfully loaded """
     import sys
     return "pyclipper" in sys.modules
 
-# No idea what this does (placeholder??)
-def start(asas):
-    pass
 
 
 def detect(asas, traf):
@@ -101,9 +138,9 @@ def constructSSD(asas, traf, priocode = "RS1"):
     N = 0
     # Parameters
     N_angle = 180                   # [-] Number of points on circle (discretization)
-    vmin    = asas.vmin             # [m/s] Defined in asas.py
-    vmax    = asas.vmax             # [m/s] Defined in asas.py
-    hsep    = asas.R                # [m] Horizontal separation (5 NM)
+    vmin    = traf.perf.vmin             # [m/s] Defined in asas.py
+    vmax    = traf.perf.vmax             # [m/s] Defined in asas.py
+    hsep    = conf.rpz                # [m] Horizontal separation (5 NM)
     margin  = asas.mar              # [-] Safety margin for evasion
     hsepm   = hsep * margin         # [m] Horizontal separation with safety margin
     alpham  = 0.4999 * np.pi        # [rad] Maximum half-angle for VO
@@ -547,9 +584,6 @@ def calculate_resolution(asas, traf):
                             asas.asase[i] = x1[0]
                             asas.asasn[i] = y1[0]
 
-                # asaseval should be set to True now
-                if not asas.asaseval:
-                    asas.asaseval = True
         # Those that are not in conflict will be assigned zeros
         # Or those that have no solutions (full ARV)
         else:
@@ -613,7 +647,7 @@ def minTLOS(asas, traf, i, i_other, x1, y1, x, y):
     # CPA distance
     dcpa2 = np.square(np.dot(dist.reshape((L,1)),np.ones((1,W)))) - np.square(tcpa) * vrel2
     # Calculate time to LOS
-    R2 = asas.R * asas.R
+    R2 = conf.rpz * conf.rpz
     swhorconf = dcpa2 < R2
     dxinhor = np.sqrt(np.maximum(0,R2-dcpa2))
     dtinhor = dxinhor / np.sqrt(vrel2)

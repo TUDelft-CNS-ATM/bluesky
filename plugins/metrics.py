@@ -84,7 +84,7 @@ class Metrics(TrafficArrays):
 
         # Check convergence using CD with large RPZ and tlook
         confpairs, lospairs, inconf, tcpamax, qdr, dist, dcpa, tcpa, tLOS = \
-            traf.asas.cd.detect(traf, traf, 20 * nm, traf.asas.dh, 3600)
+            traf.cd.detect(traf, traf, 20 * nm, traf.asas.dh, 3600)
 
         if confpairs:
             own, intr = zip(*confpairs)

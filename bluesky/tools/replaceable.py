@@ -185,3 +185,7 @@ class ReplaceableSingleton(Replaceable, metaclass=ReplaceableSingletonMeta):
         ''' Select this class as generator. '''
         cls._replaceable._generator = cls
         _ = cls()
+
+    @classmethod
+    def instance(cls):
+        return cls._proxy

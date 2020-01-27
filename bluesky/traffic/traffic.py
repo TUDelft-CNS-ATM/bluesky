@@ -9,19 +9,18 @@ import numpy as np
 from math import *
 from random import randint
 import bluesky as bs
-from bluesky import settings
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach
-
+from bluesky.tools.simtime import timed_function
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
+from bluesky.traffic.asas import ConflictDetection, ConflictResolution
 from .windsim import WindSim
 from .conditional import Condition
 from .trails import Trails
 from .adsbmodel import ADSB
-from .asas import ASAS
 from .pilot import Pilot
 from .autopilot import Autopilot
 from .activewpdata import ActiveWaypoint
@@ -29,20 +28,19 @@ from .turbulence import Turbulence
 from .trafficgroups import TrafficGroups
 
 
-
 # Register settings defaults
-settings.set_variable_defaults(performance_model='openap')
+bs.settings.set_variable_defaults(performance_model='openap', asas_dt=1.0)
 
-if settings.performance_model == 'bada':
+if bs.settings.performance_model == 'bada':
     try:
         print('Using BADA Performance model')
         from .performance.bada.perfbada import PerfBADA as Perf
     except Exception as err:# ImportError as err:
         print(err)
         print('Falling back to Open Aircraft Performance (OpenAP) model')
-        settings.performance_model = "openap"
+        bs.settings.performance_model = "openap"
         from .performance.openap import OpenAP as Perf
-elif settings.performance_model == 'openap':
+elif bs.settings.performance_model == 'openap':
     print('Using Open Aircraft Performance (OpenAP) model')
     from .performance.openap import OpenAP as Perf
 else:
@@ -62,7 +60,7 @@ class Traffic(TrafficArrays):
         update(sim)          : do a numerical integration step
         id2idx(name)         : return index in traffic database of given call sign
         engchange(i,engtype) : change engine type of an aircraft
-        setNoise(A)          : Add turbulence
+        setnoise(A)          : Add turbulence
     Members: see create
     Created by  : Jacco M. Hoekstra
     """
@@ -124,13 +122,14 @@ class Traffic(TrafficArrays):
             self.swvnavspd = np.array([], dtype=np.bool)
 
             # Flight Models
-            self.asas   = ASAS()
-            self.ap     = Autopilot()
-            self.pilot  = Pilot()
-            self.adsb   = ADSB()
+            self.cd = ConflictDetection()
+            self.cr = ConflictResolution()
+            self.ap = Autopilot()
+            self.pilot = Pilot()
+            self.adsb = ADSB()
             self.trails = Trails()
-            self.actwp  = ActiveWaypoint()
-            self.perf   = Perf()
+            self.actwp = ActiveWaypoint()
+            self.perf = Perf()
             
             # Group Logic
             self.groups = TrafficGroups()
@@ -160,8 +159,6 @@ class Traffic(TrafficArrays):
         # Default bank angles per flight phase
         self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
 
-        self.reset()
-
     def reset(self):
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
@@ -178,7 +175,7 @@ class Traffic(TrafficArrays):
         self.turbulence.reset()
 
         # Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)
-        self.setNoise(False)
+        self.setnoise(False)
 
         # Reset transition level to default value
         self.translvl = 5000.*ft
@@ -318,8 +315,8 @@ class Traffic(TrafficArrays):
         gsref   = self.gs[targetidx]   # m/s
         vsref   = self.vs[targetidx]   # m/s
         cpa     = cpa * nm
-        pzr     = settings.asas_pzr * nm
-        pzh     = settings.asas_pzh * ft
+        pzr     = bs.settings.asas_pzr * nm
+        pzh     = bs.settings.asas_pzh * ft
 
         trk     = trkref + radians(dpsi)
         gs      = gsref if spd is None else spd
@@ -391,7 +388,7 @@ class Traffic(TrafficArrays):
 
         #---------- Fly the Aircraft --------------------------
         self.ap.update()  # Autopilot logic
-        self.asas.update()  # Airborne Separation Assurance
+        self.update_asas()  # Airborne Separation Assurance
         self.pilot.APorASAS()    # Decide autopilot or ASAS
 
         #---------- Performance Update ------------------------
@@ -401,9 +398,9 @@ class Traffic(TrafficArrays):
         self.pilot.applylimits()
 
         #---------- Kinematics --------------------------------
-        self.UpdateAirSpeed()
-        self.UpdateGroundSpeed()
-        self.UpdatePosition()
+        self.update_airspeed()
+        self.update_groundspeed()
+        self.update_pos()
 
         #---------- Simulate Turbulence -----------------------
         self.turbulence.update()
@@ -415,7 +412,13 @@ class Traffic(TrafficArrays):
         self.trails.update()
         return
 
-    def UpdateAirSpeed(self):
+    @timed_function('asas', dt=bs.settings.asas_dt)
+    def update_asas(self):
+        # Conflict detection and resolution
+        self.cd.update(self, self)
+        self.cr.update(self.cd, self, self)
+
+    def update_airspeed(self):
         # Compute horizontal acceleration
         delta_spd = self.pilot.tas - self.tas
         ax = self.perf.acceleration()
@@ -447,7 +450,7 @@ class Traffic(TrafficArrays):
         self.vs = np.where(need_az, self.vs+self.az*bs.sim.simdt, target_vs)
         self.vs = np.where(np.isfinite(self.vs), self.vs, 0)    # fix vs nan issue
 
-    def UpdateGroundSpeed(self):
+    def update_groundspeed(self):
         # Compute ground speed and track from heading, airspeed and wind
         if self.wind.winddim == 0:  # no wind
             self.gsnorth  = self.tas * np.cos(np.radians(self.hdg))
@@ -471,7 +474,7 @@ class Traffic(TrafficArrays):
             self.trk = np.logical_not(applywind)*self.hdg + \
                        applywind*np.degrees(np.arctan2(self.gseast, self.gsnorth)) % 360.
 
-    def UpdatePosition(self):
+    def update_pos(self):
         # Update position
         self.alt = np.where(self.swaltsel, self.alt + self.vs * bs.sim.simdt, self.pilot.alt)
         self.lat = self.lat + np.degrees(bs.sim.simdt * self.gsnorth / Rearth)
@@ -496,13 +499,13 @@ class Traffic(TrafficArrays):
             except:
                 return -1
 
-    def setNoise(self, noise=None):
+    def setnoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
         if noise is None:
             return True, "Noise is currently " + ("on" if self.turbulence.active else "off")
 
-        self.turbulence.SetNoise(noise)
-        self.adsb.SetNoise(noise)
+        self.turbulence.setnoise(noise)
+        self.adsb.setnoise(noise)
         return True
 
     def engchange(self, acid, engid):

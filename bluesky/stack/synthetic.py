@@ -77,11 +77,11 @@ def process(*cmdargs):
         else:
             bs.scr.isoalt=0
             bs.traf.reset()
-            x=  bs.traf.asas.xw[int(float(cmdargs[1]))]/111319.
-            y=  bs.traf.asas.yw[int(float(cmdargs[2]))]/111319.
-            v_o=bs.traf.asas.v_o[int(float(cmdargs[3]))]
-            v_w=bs.traf.asas.v_w[int(float(cmdargs[4]))]
-            phi=np.degrees(bs.traf.asas.phi[int(float(cmdargs[5]))])
+            x=  bs.traf.cr.xw[int(float(cmdargs[1]))]/111319.
+            y=  bs.traf.cr.yw[int(float(cmdargs[2]))]/111319.
+            v_o=bs.traf.cr.v_o[int(float(cmdargs[3]))]
+            v_w=bs.traf.cr.v_w[int(float(cmdargs[4]))]
+            phi=np.degrees(bs.traf.cr.phi[int(float(cmdargs[5]))])
             wrapcreate(acid="OWN", actype="GENERIC", aclat=0, aclon=0,
                            achdg=0, acalt=5000*ft, acspd=v_o)
             wrapcreate(acid="WRN", actype="GENERIC", aclat=y, aclon=x,
@@ -190,7 +190,7 @@ def process(*cmdargs):
                                aclon=distance*-np.sin(angle),
                                achdg=90, acalt=alt, acspd=spd)
 
-            separation=bs.traf.asas.R*1.01 #[m] the factor 1.01 is so that the funnel doesn't collide with itself
+            separation=bs.traf.cd.rpz*1.01 #[m] the factor 1.01 is so that the funnel doesn't collide with itself
             sepdeg=separation/np.sqrt(2.)/mperdeg #[deg]
 
             for row in range(1):
@@ -222,7 +222,7 @@ def process(*cmdargs):
             bs.scr.isoalt=0
             bs.traf.reset()
             mperdeg=111319.
-            hsep=bs.traf.asas.R # [m] horizontal separation minimum
+            hsep=bs.traf.cd.rpz # [m] horizontal separation minimum
             hseplat=hsep/mperdeg
             matsep=1.1 #factor of extra space in the matrix
             hseplat=hseplat*matsep
@@ -261,7 +261,7 @@ def process(*cmdargs):
         bs.traf.reset()
         mperdeg=111319.
         altdif=3000 # ft
-        hsep=bs.traf.asas.R # [m] horizontal separation minimum
+        hsep=bs.traf.cd.rpz # [m] horizontal separation minimum
         floorsep=1.1 #factor of extra spacing in the floor
         hseplat=hsep/mperdeg*floorsep
         wrapcreate(acid="OWNSHIP", actype="FLOOR",
@@ -307,7 +307,7 @@ def process(*cmdargs):
         bs.traf.reset()
         mperdeg=111319.
         distance=0.6 # in degrees lat/lon, for now
-        hsep=bs.traf.asas.R # [m] horizontal separation minimum
+        hsep=bs.traf.cd.rpz # [m] horizontal separation minimum
         hseplat=hsep/mperdeg
         wallsep=1.1 #factor of extra space in the wall
         wrapcreate(acid="OWNSHIP", actype="WALL",
@@ -336,7 +336,7 @@ def process(*cmdargs):
                     raise Exception()
 
                 mperdeg=111319.
-                hsep=bs.traf.asas.R # [m] horizontal separation minimum
+                hsep=bs.traf.cd.rpz # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
                 matsep=1.1 #factor of extra space in the formation
                 hseplat=hseplat*matsep
@@ -378,7 +378,7 @@ def process(*cmdargs):
                     raise Exception()
 
                 mperdeg=111319.
-                hsep=bs.traf.asas.R # [m] horizontal separation minimum
+                hsep=bs.traf.cd.rpz # [m] horizontal separation minimum
                 hseplat=hsep/mperdeg
                 matsep=1.1 #factor of extra space in the formation
                 hseplat=hseplat*matsep

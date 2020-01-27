@@ -238,27 +238,23 @@ class ScreenIO(object):
         data['cas']        = bs.traf.cas
         data['gs']         = bs.traf.gs
         data['ingroup']    = bs.traf.groups.ingroup
-        data['inconf'] = bs.traf.asas.inconf
-        data['tcpamax'] = bs.traf.asas.tcpamax
-        data['nconf_cur'] = len(bs.traf.asas.confpairs_unique)
-        data['nconf_tot'] = len(bs.traf.asas.confpairs_all)
-        data['nlos_cur'] = len(bs.traf.asas.lospairs_unique)
-        data['nlos_tot'] = len(bs.traf.asas.lospairs_all)
+        data['inconf'] = bs.traf.cd.inconf
+        data['tcpamax'] = bs.traf.cd.tcpamax
+        data['nconf_cur'] = len(bs.traf.cd.confpairs_unique)
+        data['nconf_tot'] = len(bs.traf.cd.confpairs_all)
+        data['nlos_cur'] = len(bs.traf.cd.lospairs_unique)
+        data['nlos_tot'] = len(bs.traf.cd.lospairs_all)
         data['trk']        = bs.traf.trk
         data['vs']         = bs.traf.vs
-        data['vmin']       = bs.traf.asas.vmin
-        data['vmax']       = bs.traf.asas.vmax
+        data['vmin']       = bs.traf.perf.vmin
+        data['vmax']       = bs.traf.perf.vmax
 
         # Transition level as defined in traf
         data['translvl']   = bs.traf.translvl
 
         # ASAS resolutions for visualization. Only send when evaluated
-        if bs.traf.asas.asaseval:
-            data['asasn']  = bs.traf.asas.asasn
-            data['asase']  = bs.traf.asas.asase
-        else:
-            data['asasn']  = np.zeros(bs.traf.ntraf, dtype=np.float32)
-            data['asase']  = np.zeros(bs.traf.ntraf, dtype=np.float32)
+        data['asastas']  = bs.traf.cr.tas
+        data['asastrk']  = bs.traf.cr.trk
 
         # Trails, send only new line segments to be added
         data['swtrails'] = bs.traf.trails.active

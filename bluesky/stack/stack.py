@@ -48,6 +48,7 @@ cmddict = dict()  # Defined in stack.init
 #
 cmdsynon = {
     "ADDAIRWAY": "ADDAWY",
+    "ASAS": "CDMETHOD",
     "AWY": "POS",
     "AIRPORT": "POS",
     "AIRWAYS": "AIRWAY",
@@ -118,7 +119,8 @@ cmdsynon = {
     "TRAFRECDT": "TMX",
     "TRAFLOGDT": "TMX",
     "TREACT": "TMX",
-    "WINDGRID": "TMX",  # Use a scenario file with WIND commands to defin a grid and/or profiles
+    # Use a scenario file with WIND commands to defin a grid and/or profiles
+    "WINDGRID": "TMX",
     # Question mark is Help
     "?": "HELP",
 }
@@ -155,10 +157,10 @@ defexcl = [
     "TRAFGEN",
     "LISTRTE",
 ]  # Commands to be excluded, default
+# Note (P)CALL is always excluded! Commands in called file are saved explicitly
 saveexcl = defexcl
-saveict0 = 0.0  # simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
-
-# Note (P)CALL is always excluded! Commands in the called file are saved explicitly
+# simt time of moment of SAVEIC command, 00:00:00.00 in recorded file
+saveict0 = 0.0
 
 
 # Global version
@@ -166,8 +168,6 @@ orgcmd = ""
 
 
 def init(startup_scnfile):
-    global orgcmd
-
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -193,17 +193,19 @@ def init(startup_scnfile):
     #
     #   float     = plain float
     #   int       = integer
-    #   txt       = text will be converted to upper case (for keywords, navaids, flags, waypoints,acid etc)
+    #   txt       = text will be converted to upper case
+    #               (for keywords, navaids, flags, waypoints,acid etc)
     #   word      = single, case sensitive word
     #   string    = case sensitive string
     #   on/off    = text => boolean
     #
     #   latlon    = converts acid, wpt, airport etc => lat,lon (deg) so 2 args!
-    #   wpt       = converts postext or lat,lon into a text string to be used as named waypoint
+    #   wpt       = converts postext or lat,lon into a text string,
+    #               to be used as named waypoint
     #   wpinroute = text string with name of waypoint in route
     #   pandir    = text with LEFT, RIGHT, UP/ABOVE or DOWN
     #
-    # Below this dictionary also a dictionary of synonym commandss is given (equivalent commands)
+    # Below this dictionary also a dictionary of synonym commands is given
     #
     # --------------------------------------------------------------------
     commands = {
@@ -243,18 +245,6 @@ def init(startup_scnfile):
             "acid,alt,[vspd]",
             bs.traf.ap.selaltcmd,
             "Altitude command (autopilot)",
-        ],
-        "ASAS": [
-            "ASAS ON/OFF/VMIN/VMAX",
-            "[onoff]",
-            bs.traf.asas.toggle,
-            "Airborne Separation Assurance System switch",
-        ],
-        "ASASV": [
-            "ASASV MAX/MIN SPD (TAS in kts)",
-            "[txt,float]",
-            bs.traf.asas.SetVLimits,
-            "Airborne Separation Assurance System Speed",
         ],
         "AT": [
             "acid AT wpname [DEL] SPD/ALT [spd/alt]",
@@ -316,7 +306,7 @@ def init(startup_scnfile):
         "CDMETHOD": [
             "CDMETHOD [method]",
             "[txt]",
-            bs.traf.asas.SetCDmethod,
+            bs.traf.cd.setmethod,
             "Set conflict detection method",
         ],
         "CIRCLE": [
@@ -428,7 +418,7 @@ def init(startup_scnfile):
         "DTLOOK": [
             "DTLOOK [time]",
             "[float]",
-            bs.traf.asas.SetDtLook,
+            bs.traf.cd.setdtlook,
             "Set lookahead time in seconds for conflict detection",
         ],
         "DTMULT": [
@@ -440,7 +430,7 @@ def init(startup_scnfile):
         "DTNOLOOK": [
             "DTNOLOOK [time]",
             "[float]",
-            bs.traf.asas.SetDtNoLook,
+            bs.traf.cd.setdtnolook,
             "Set interval for conflict detection",
         ],
         "DUMPRTE": [
@@ -567,23 +557,22 @@ def init(startup_scnfile):
             bs.traf.create,
             "Multiple random create of n aircraft in current view",
         ],
-        # "METRIC": [
-        #     "METRIC OFF/0/1/2, [dt]",
-        #     "onoff/int,[float]",
-        #     bs.sim.metric.toggle,
-        #     "Complexity metrics module"
-        # ],
         "MOVE": [
             "MOVE acid,lat,lon,[alt,hdg,spd,vspd]",
             "acid,latlon,[alt,hdg,spd,vspd]",
             bs.traf.move,
             "Move an aircraft to a new position",
         ],
-        "ND": ["ND acid", "txt", bs.scr.shownd, "Show navigation display with CDTI"],
+        "ND": [
+            "ND acid",
+            "txt",
+            bs.scr.shownd,
+            "Show navigation display with CDTI"
+        ],
         "NOISE": [
             "NOISE [ON/OFF]",
             "[onoff]",
-            bs.traf.setNoise,
+            bs.traf.setnoise,
             "Turbulence/noise switch",
         ],
         "NOM": [
@@ -594,11 +583,16 @@ def init(startup_scnfile):
         ],
         "NORESO": [
             "NORESO [acid]",
-            "[string]",
-            bs.traf.asas.SetNoreso,
-            "Switch off conflict resolution for this aircraft",
+            "[acid]",
+            bs.traf.cr.setnoreso,
+            "Switch on/off conflict resolution for one or more aircraft",
         ],
-        "OP": ["OP", "", bs.sim.op, "Start/Run simulation or continue after hold"],
+        "OP": [
+            "OP",
+            "",
+            bs.sim.op,
+            "Start/Run simulation or continue after hold"
+        ],
         "ORIG": [
             "ORIG acid, latlon/airport",
             "acid,wpt/latlon",
@@ -664,7 +658,7 @@ def init(startup_scnfile):
         "PRIORULES": [
             "PRIORULES [ON/OFF PRIOCODE]",
             "[onoff, txt]",
-            bs.traf.asas.SetPrio,
+            bs.traf.cr.setprio,
             "Define priority rules (right of way) for conflict resolution",
         ],
         "QUIT": ["QUIT", "", bs.sim.stop, "Quit program/Stop simulation"],
@@ -677,50 +671,26 @@ def init(startup_scnfile):
         "RFACH": [
             "RFACH [factor]",
             "[float]",
-            bs.traf.asas.SetResoFacH,
-            "Set resolution factor horizontal (to add a margin)",
+            bs.traf.cr.setresofach,
+            "Set resolution factor horizontal (to maneuver only a fraction of a resolution vector)",
         ],
         "RFACV": [
             "RFACV [factor]",
             "[float]",
-            bs.traf.asas.SetResoFacV,
-            "Set resolution factor vertical (to add a margin)",
+            bs.traf.cr.setresofacv,
+            "Set resolution factor vertical (to maneuver only a fraction of a resolution vector)",
         ],
         "RESO": [
             "RESO [method]",
             "[txt]",
-            bs.traf.asas.SetCRmethod,
+            bs.traf.cr.setmethod,
             "Set resolution method",
         ],
         "RESOOFF": [
             "RESOOFF [acid]",
-            "[string]",
-            bs.traf.asas.SetResooff,
+            "[acid]",
+            bs.traf.cr.setresooff,
             "Switch for conflict resolution module",
-        ],
-        "RMETHH": [
-            "RMETHH [method]",
-            "[txt]",
-            bs.traf.asas.SetResoHoriz,
-            "Set resolution method to be used horizontally",
-        ],
-        "RMETHV": [
-            "RMETHV [method]",
-            "[txt]",
-            bs.traf.asas.SetResoVert,
-            "Set resolution method to be used vertically",
-        ],
-        "RSZONEDH": [
-            "RSZONEDH [height]",
-            "[float]",
-            bs.traf.asas.SetPZHm,
-            "Set half of vertical dimension of resolution zone in ft",
-        ],
-        "RSZONER": [
-            "RSZONER [radius]",
-            "[float]",
-            bs.traf.asas.SetPZRm,
-            "Set horizontal radius of resolution zone in nm",
         ],
         "RTA": [
             "RTA acid,wpinroute,RTAtime",
@@ -824,13 +794,13 @@ def init(startup_scnfile):
         "ZONEDH": [
             "ZONEDH [height]",
             "[float]",
-            bs.traf.asas.SetPZH,
+            bs.traf.cd.sethpz,
             "Set half of the vertical protected zone dimensions in ft",
         ],
         "ZONER": [
             "ZONER [radius]",
             "[float]",
-            bs.traf.asas.SetPZR,
+            bs.traf.cd.setrpz,
             "Set the radius of the horizontal protected zone dimensions in nm",
         ],
         "ZOOM": [
@@ -923,7 +893,8 @@ def append_commands(newcommands):
             argtypes += types
             argisopt += [opt or t == "..." for t in types]
             args = args[cut:].lstrip(",]")
-
+        # Check if function pointer needs to be wrapped
+        fun = replaceable.check_method(fun)
         cmddict[cmd] = (smallhelp, argtypes, argisopt, fun, largehelp)
 
 
