@@ -1,8 +1,8 @@
 """ Implementation of BlueSky's plugin system. """
 import ast
 from os import path
+from pathlib import Path
 import sys
-from glob import glob
 import imp
 import bluesky as bs
 from bluesky import settings
@@ -98,7 +98,7 @@ def init(mode):
     req_type = 'sim' if mode[:3] == 'sim' else 'gui'
 
     # Find available plugins
-    for fname in glob(path.join(settings.plugin_path, '*.py')):
+    for fname in Path(settings.plugin_path).rglob('*.py'):
         p = check_plugin(fname)
         # This is indeed a plugin, and it is meant for us
         if p and p.plugin_type == req_type:
