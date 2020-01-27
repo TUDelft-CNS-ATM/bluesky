@@ -10,6 +10,26 @@ except ImportError:
     print("Could not import pyclipper, RESO SSD will not function")
 
 
+# TODO: not completely migrated yet to class-based implementation
+
+
+def init_plugin():
+
+    # Addtional initilisation code
+
+    # Configuration parameters
+    config = {
+        # The name of your plugin
+        'plugin_name':     'SSD',
+
+        # The type of this plugin. For now, only simulation plugins are possible.
+        'plugin_type':     'sim'
+    }
+
+    # init_plugin() should always return these two dicts.
+    return config, {}
+
+
 class SSD(ConflictResolution):
     def setprio(self, flag=None, priocode=''):
         '''Set the prio switch and the type of prio '''

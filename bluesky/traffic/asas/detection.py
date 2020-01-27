@@ -144,7 +144,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         ''' 
             Detect any conflicts between ownship and intruder.
             This function should be reimplemented in a subclass for actual
-            detection of conflicts. See for instance 
+            detection of conflicts. See for instance
             bluesky.traffic.asas.statebased.
         '''
         confpairs = []
