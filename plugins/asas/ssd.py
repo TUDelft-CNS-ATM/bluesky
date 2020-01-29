@@ -73,11 +73,6 @@ def detect(asas, traf):
 
 def resolve(asas, traf):
     """ Resolve all current conflicts """
-
-    # Check if ASAS is ON first!
-    if not asas.swasas:
-        return
-
     # Initialize SSD variables with ntraf
     initializeSSD(asas, traf.ntraf)
 

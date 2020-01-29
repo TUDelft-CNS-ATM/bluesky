@@ -33,7 +33,6 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
             self.alt = np.array([])  # alt provided by the ASAS [m]
             self.vs = np.array([])  # vspeed provided by the ASAS [m/s]
 
-
     def resolve(self, conf, ownship, intruder):
         '''
             Resolve all current conflicts.
@@ -48,7 +47,8 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
 
     def update(self, conf, ownship, intruder):
         ''' Perform an update step of the Conflict Resolution implementation. '''
-        self.trk, self.tas, self.vs, self.alt = self.resolve(conf, ownship, intruder)
+        if conf.confpairs:
+            self.trk, self.tas, self.vs, self.alt = self.resolve(conf, ownship, intruder)
         self.resumenav(conf, ownship, intruder)
 
     def resumenav(self, conf, ownship, intruder):

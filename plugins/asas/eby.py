@@ -24,10 +24,6 @@ def init_plugin():
 class Eby(ConflictResolution):
     def resolve(self, conf, ownship, intruder):
         ''' Resolve all current conflicts '''
-        # Preamble------------------------------------------------------------------
-        if not conf.confpairs:
-            return
-
         # required change in velocity
         dv = np.zeros((ownship.ntraf, 3))
 
