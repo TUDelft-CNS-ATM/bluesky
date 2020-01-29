@@ -274,7 +274,7 @@ class CoeffBS:
         self.propenlist  = [] # list of all turbopropengines
 
         # a. jet aircraft
-        self.rThr        = [] # rated Thrust (one engine)
+        self.rated_thrust = [] # rated Thrust (one engine)
         self.ffto        = [] # fuel flow takeoff
         self.ffcl        = [] # fuel flow climb
         self.ffcr        = [] # fuel flow cruise
@@ -302,7 +302,7 @@ class CoeffBS:
                 # store engine in jet-engine list
                 self.jetenlist.append(endoc.find('engines/engine').text)
                 # thrust
-                self.rThr.append(self.convert(endoc.find('engines/Thr').text, endoc.find('engines/Thr').attrib['unit']))
+                self.rated_thrust.append(self.convert(endoc.find('engines/Thr').text, endoc.find('engines/Thr').attrib['unit']))
                 # bypass ratio
                 BPRc = int(endoc.find('engines/BPR_cat').text)
                 # different SFC for different bypass ratios (reference: Raymer, p.36)
@@ -352,7 +352,7 @@ class CoeffBS:
         self.P=np.array(self.P)
         self.PSFC_TO=np.array(self.PSFC_TO)
         self.PSFC_CR=np.array(self.PSFC_CR)
-        self.rThr=np.array(self.rThr)
+        self.rated_thrust=np.array(self.rated_thrust)
         self.SFC=np.array(self.SFC)
         self.ffto=np.array(self.ffto)
         self.ffcl=np.array(self.ffcl)

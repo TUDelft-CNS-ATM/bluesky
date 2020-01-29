@@ -696,19 +696,23 @@ class RadarWidget(QGLWidget):
             data.vs  = data.vs[idx]
         self.naircraft = len(data.lat)
         actdata.translvl = data.translvl
-        self.asas_vmin = data.vmin
-        self.asas_vmax = data.vmax
+        # self.asas_vmin = data.vmin
+        # self.asas_vmax = data.vmax
         if self.naircraft == 0:
             self.cpalines.set_vertex_count(0)
         else:
             # Update data in GPU buffers
+            asase = np.where(data.inconf, data.asastas *
+                              np.sin(data.asastrk / 180 * np.pi), 0.0)
+            asasn = np.where(data.inconf, data.asastas *
+                              np.cos(data.asastrk / 180 * np.pi), 0.0)
             update_buffer(self.aclatbuf, np.array(data.lat[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.aclonbuf, np.array(data.lon[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.achdgbuf, np.array(data.trk[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.acaltbuf, np.array(data.alt[:MAX_NAIRCRAFT], dtype=np.float32))
             update_buffer(self.actasbuf, np.array(data.tas[:MAX_NAIRCRAFT], dtype=np.float32))
-            update_buffer(self.asasnbuf, np.array(data.asasn[:MAX_NAIRCRAFT], dtype=np.float32))
-            update_buffer(self.asasebuf, np.array(data.asase[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.asasnbuf, np.array(asasn[:MAX_NAIRCRAFT], dtype=np.float32))
+            update_buffer(self.asasebuf, np.array(asase[:MAX_NAIRCRAFT], dtype=np.float32))
 
             # CPA lines to indicate conflicts
             ncpalines = np.count_nonzero(data.inconf)

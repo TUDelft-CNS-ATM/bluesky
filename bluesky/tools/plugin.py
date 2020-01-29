@@ -1,12 +1,13 @@
 """ Implementation of BlueSky's plugin system. """
 import ast
 from os import path
+from pathlib import Path
 import sys
-from glob import glob
 import imp
 import bluesky as bs
 from bluesky import settings
 from bluesky.tools import varexplorer as ve
+from bluesky.tools.simtime import timed_function
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -16,7 +17,7 @@ plugin_descriptions = dict()
 # Dict of loaded plugins for this instance of bluesky
 active_plugins = dict()
 
-class Plugin(object):
+class Plugin:
     def __init__(self, fname):
         fname = path.normpath(path.splitext(fname)[0].replace('\\', '/'))
         self.module_path, self.module_name = path.split(fname)
@@ -81,11 +82,11 @@ def manage(cmd='LIST', plugin_name=''):
             text += '\nNo additional plugins available.'
         return True, text
 
-    if cmd == 'LOAD' or cmd=='ENABLE':
+    if cmd in ['LOAD', 'ENABLE']:
         return load(plugin_name)
-    elif cmd == 'REMOVE' or cmd=='UNLOAD' or cmd=='DISABLE':
+    elif cmd in ['REMOVE', 'UNLOAD', 'DISABLE']:
         return remove(plugin_name)
-    elif not cmd=="": # If no command is given, assume user tries to load a plugin
+    elif cmd != '': # If no command is given, assume user tries to load a plugin
         return load(cmd)
     return False
 
@@ -97,7 +98,7 @@ def init(mode):
     req_type = 'sim' if mode[:3] == 'sim' else 'gui'
 
     # Find available plugins
-    for fname in glob(path.join(settings.plugin_path, '*.py')):
+    for fname in Path(settings.plugin_path).rglob('*.py'):
         p = check_plugin(fname)
         # This is indeed a plugin, and it is meant for us
         if p and p.plugin_type == req_type:
@@ -132,9 +133,17 @@ def load(name):
         updfun = config.get('update')
         rstfun = config.get('reset')
         if prefun:
-            preupdate_funs[name] = [bs.sim.simt + dt, dt, prefun]
+            if hasattr(prefun, '__istimed'):
+                preupdate_funs[name] = prefun
+            else:
+                preupdate_funs[name] = timed_function(f'{name}.{prefun.__name__}', dt)(prefun)
+
         if updfun:
-            update_funs[name]    = [bs.sim.simt + dt, dt, updfun]
+            if hasattr(updfun, '__istimed'):
+                update_funs[name] = updfun
+            else:
+                update_funs[name] = timed_function(f'{name}.{updfun.__name__}', dt)(updfun)
+
         if rstfun:
             reset_funs[name]     = rstfun
         # Add the plugin's stack functions to the stack
@@ -164,30 +173,17 @@ def remove(name):
 def preupdate():
     ''' Update function executed before traffic update.'''
     for fun in preupdate_funs.values():
-        # Call function if its update interval has passed
-        if bs.sim.simt >= fun[0]:
-            # Set the next triggering time for this function
-            fun[0] += fun[1]
-            # Call the function
-            fun[2]()
+        fun()
+
 
 def update():
     ''' Update function executed after traffic update.'''
     for fun in update_funs.values():
-        # Call function if its update interval has passed
-        if bs.sim.simt >= fun[0]:
-            # Set the next triggering time for this function
-            fun[0] += fun[1]
-            # Call the function
-            fun[2]()
+        fun()
+
 
 def reset():
     ''' Reset all plugins.'''
-    # Reset trigger times
-    for fun in preupdate_funs.values():
-        fun[0] = fun[1]
-    for fun in update_funs.values():
-        fun[0] = fun[1]
     # Call plugin reset for plugins that have one
     for fun in reset_funs.values():
         fun()

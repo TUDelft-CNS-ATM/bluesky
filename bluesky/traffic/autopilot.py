@@ -10,18 +10,16 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, kts, vtas2cas, cas2mach, \
-     mach2cas, vcasormach2tas, tas2cas, vcasormach
-from .route import Route
+from bluesky.tools.aero import ft, nm, vcasormach2tas, tas2cas
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.tools.misc import tim2txt
-
+from bluesky.tools.replaceable import ReplaceableSingleton
+from .route import Route
 
 bs.settings.set_variable_defaults(fms_dt=1.0)
 
-class Autopilot(TrafficArrays):
+class Autopilot(ReplaceableSingleton, TrafficArrays):
     def __init__(self):
-        super(Autopilot, self).__init__()
+        TrafficArrays.__init__(self)
 
         # Standard self.steepness for descent
         self.steepness = 3000. * ft / (10. * nm)
@@ -189,7 +187,6 @@ class Autopilot(TrafficArrays):
                                 np.abs((bs.traf.actwp.nextaltco-bs.traf.alt))  \
                                 /np.maximum(1.0,t2go2alt))
 
-
         self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
         #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
 
@@ -307,6 +304,11 @@ class Autopilot(TrafficArrays):
             else:
                 # Calculate V/S using self.steepness,
                 # protect against zero/invalid ground speed value
+#                if bs.sim.simt>11.99:
+#                    print("bs.traf.tas.shape =",bs.traf.tas.shape)
+#                    print("bs.traf.gs.shape =", bs.traf.gs.shape)
+#                    print("bs.traf.actwp.vs.shape =", bs.traf.actwp.vs.shape)
+
                 bs.traf.actwp.vs[idx] = -self.steepness * (bs.traf.gs[idx] +
                       (bs.traf.gs[idx] < 0.2 * bs.traf.tas[idx]) * bs.traf.tas[idx])
 
@@ -391,6 +393,8 @@ class Autopilot(TrafficArrays):
         """ Select heading command: HDG acid, hdg """
         if not isinstance(idx, Collection):
             idx = np.array([idx])
+        if not isinstance(hdg, Collection):
+            hdg = np.array([hdg])
         # If there is wind, compute the corresponding track angle
         if bs.traf.wind.winddim > 0:
             ab50 = bs.traf.alt[idx] > 50.0 * ft

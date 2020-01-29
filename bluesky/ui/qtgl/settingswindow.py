@@ -1,13 +1,57 @@
+from os import path
+from glob import glob
 from collections import defaultdict
 from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
     QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
-        QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout
+        QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
+        QListWidget, QListWidgetItem
 
 import bluesky as bs
 
+def sel_palette(value, changed_fun):
+    wid = QComboBox()
+    palfiles = [path.basename(f) for f in glob(path.join(bs.settings.gfx_path, 'palettes', '*'))]
+    wid.addItems(palfiles)
+    wid.setCurrentText(value)
+    wid.currentTextChanged.connect(changed_fun)
+    return wid
+
+def sel_perf(value, changed_fun):
+    wid = QComboBox()
+    wid.addItems(['openap', 'bada', 'legacy'])
+    wid.setCurrentText(value)
+    wid.currentTextChanged.connect(changed_fun)
+    return wid
+
+
+class PluginCheckList(QListWidget):
+    def __init__(self, value, changed_fun, avail_plugins):
+        super().__init__()
+        self.changed_fun = changed_fun
+        self.curvalue = {v.upper() for v in value}
+        if avail_plugins:
+            for name in avail_plugins:
+                row = QListWidgetItem(name)
+                row.name = name
+                row.setFlags(row.flags()|Qt.ItemIsUserCheckable)
+                row.setCheckState(Qt.Checked if name in self.curvalue else Qt.Unchecked)
+                self.addItem(row)
+        self.itemChanged.connect(self.onitemchanged)
+
+    def onitemchanged(self, item):
+        if item.checkState() & Qt.Checked:
+            self.curvalue.add(item.name)
+        else:
+            self.curvalue -= {item.name}
+        self.changed_fun(list(self.curvalue))
 
 class SettingsWindow(QWidget):
+    customwids = {
+        'colour_palette': sel_palette,
+        'performance_model': sel_perf,
+        'enabled_plugins': PluginCheckList
+    }
     def __init__(self):
         super().__init__()
         self.resize(600, 500)
@@ -64,7 +108,6 @@ class SettingsWindow(QWidget):
         super().show()
 
     def populate(self):
-        # print(bs.settings._settings_hierarchy)
         top = bs.settings._settings_hierarchy['bluesky']
         netset = top['network']
         netitems = {**netset['discovery'], **netset['server']}
@@ -107,9 +150,11 @@ class SettingsWindow(QWidget):
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
         if item in self.hosts.values():
-            simsettings = {}
+            simsettings = dict()
+            plugins = list()
             for node in item.nodes:
                 simsettings.update(bs.net.get_nodedata(node).settings)
+                plugins = bs.net.get_nodedata(node).plugins
 
             # First clear any old items in the node settings layout
             clear_layout(self.nodesettings.layout())
@@ -120,9 +165,12 @@ class SettingsWindow(QWidget):
                 'Stack', top['stack'], target=item.host_id)
             sim = self.make_settings_box(
                 'Simulation', top['simulation'], maxdepth=0, target=item.host_id)
+
+            misc = self.make_settings_box('Misc', top['tools'], maxdepth=0, target=item.host_id, avail_plugins=plugins)
             self.nodesettings.layout().addWidget(traf)
             self.nodesettings.layout().addWidget(stack)
             self.nodesettings.layout().addWidget(sim)
+            self.nodesettings.layout().addWidget(misc)
             for name, plugin in simsettings.items():
                 if name == 'bluesky':
                     continue
@@ -130,16 +178,19 @@ class SettingsWindow(QWidget):
                     name.capitalize(), plugin, target=item.host_id)
                 self.nodesettings.layout().addWidget(pbox)
 
-    def add_row(self, box, name, value, depth=0, maxdepth=1, target='common'):
+    def add_row(self, box, name, value, depth=0, maxdepth=1, target='common', **kwargs):
         if isinstance(value, dict):
             if depth < maxdepth:
                 line = QFrame()
                 line.setFrameShape(line.HLine)
                 box.layout().addRow(QLabel(f'<b>{name}</b>'), line)
             for cname, cvalue in value.items():
-                self.add_row(box, cname, cvalue, depth=depth+1, target=target)
+                self.add_row(box, cname, cvalue, depth=depth+1, target=target, **kwargs)
             return
-        if isinstance(value, bool):
+        if name in SettingsWindow.customwids:
+            wid = SettingsWindow.customwids[name](
+                value, self.input_changed, **kwargs)
+        elif isinstance(value, bool):
             wid = QCheckBox('')
             wid.setChecked(value)
             wid.clicked.connect(self.input_changed)
@@ -160,23 +211,18 @@ class SettingsWindow(QWidget):
 
     def input_changed(self, value):
         wid = self.sender()
-        if isinstance(wid, QCheckBox):
-            value = wid.isChecked()
-        elif isinstance(wid, QSpinBox):
-            value = wid.value()
-        else:
-            value = type(wid.origvalue)(wid.text())
         # Store the changed value in a dict of all changed values
         self.changed[wid.target][wid.name] = value
         self.changedlabel.setText('Save the changes and restart BlueSky for the changes to take effect.')
         self.resetbtn.setEnabled(True)
         self.savebtn.setEnabled(True)
 
-    def make_settings_box(self, name, items, maxdepth=1, target='common'):
+    def make_settings_box(self, name, items, maxdepth=1, target='common', **kwargs):
         box = QGroupBox(name)
         box.setLayout(QFormLayout())
         for rowname, value in items.items():
-            self.add_row(box, rowname, value, maxdepth=maxdepth, target=target)
+            self.add_row(box, rowname, value, maxdepth=maxdepth,
+                         target=target, **kwargs)
 
         return box
 
@@ -185,7 +231,6 @@ class SettingsWindow(QWidget):
             layout = getattr(branch, 'layout')
             layout = layout() if callable(layout) else layout
             if layout is not branch and layout is not None:
-                print('here')
                 self.reset(layout)
                 return
         if isinstance(branch, QLayout):

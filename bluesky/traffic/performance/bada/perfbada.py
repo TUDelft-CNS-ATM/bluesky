@@ -146,7 +146,7 @@ class PerfBADA(TrafficArrays):
             self.cf_cruise   = np.array([])   # [-]
 
             # performance
-            self.Thr         = np.array([])   # thrust
+            self.thrust         = np.array([])   # thrust
             self.D           = np.array([])   # drag
             self.fuelflow    = np.array([])   # fuel flow
 
@@ -305,7 +305,7 @@ class PerfBADA(TrafficArrays):
         self.cf4[-n:]       = 1.0 if coeff.Cf4 < 1e-9 else coeff.Cf4
         self.cf_cruise[-n:] = coeff.Cf_cruise
 
-        self.Thr[-n:]       = 0.0
+        self.thrust[-n:] = 0.0
         self.D[-n:]         = 0.0
         self.fuelflow[-n:]  = 0.0
 
@@ -449,7 +449,7 @@ class PerfBADA(TrafficArrays):
                       (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
                       + self.D)) + ((bs.traf.selvs==0)*T)
 
-        self.Thr = T
+        self.thrust = T
 
 
         # Fuel consumption
@@ -475,7 +475,7 @@ class PerfBADA(TrafficArrays):
         jt = np.maximum.reduce([self.jet, self.turbo])
         pdf = np.maximum.reduce ([self.piston])
 
-        fnomjt = eta*self.Thr*jt
+        fnomjt = eta*self.thrust*jt
         fnomp = self.cf1*pdf
         # merge
         fnom = fnomjt + fnomp
@@ -487,7 +487,7 @@ class PerfBADA(TrafficArrays):
         fmin = fminjt + fminp
 
         # cruise fuel flow jet, turbo and piston
-        fcrjt = eta*self.Thr*self.cf_cruise*jt
+        fcrjt = eta*self.thrust*self.cf_cruise*jt
         fcrp = self.cf1*self.cf_cruise*pdf
         #merge
         fcr = fcrjt + fcrp
@@ -585,7 +585,7 @@ class PerfBADA(TrafficArrays):
                                         bs.traf.pilot.alt,     \
                                         bs.traf.pilot.vs,      \
                                         self.maxthr,           \
-                                        self.Thr,              \
+                                        self.thrust,              \
                                         self.D,                \
                                         bs.traf.tas,           \
                                         self.mass,             \
@@ -615,6 +615,6 @@ class PerfBADA(TrafficArrays):
         # self.log.save()
 
         # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \
-        # self.Thr, self.D, self.fuelflow,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
+        # self.thrust, self.D, self.fuelflow,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
         # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
         # CD0f, kf, self.hmaxact

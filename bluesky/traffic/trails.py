@@ -85,7 +85,7 @@ class Trails(TrafficArrays):
         lsttime = []
 
         # Check for update
-        delta = t - self.lasttim
+        delta = bs.sim.simt - self.lasttim
         idxs = np.where(delta > self.dt)[0]
 
         # Add all a/c which need the update
@@ -98,7 +98,7 @@ class Trails(TrafficArrays):
             lstlon0.append(self.lastlon[i])
             lstlat1.append(bs.traf.lat[i])
             lstlon1.append(bs.traf.lon[i])
-            lsttime.append(t)
+            lsttime.append(bs.sim.simt)
 
             if isinstance(self.col, np.ndarray):
                 # print type(trailcol[i])
@@ -112,7 +112,7 @@ class Trails(TrafficArrays):
             # Update aircraft record
             self.lastlat[i] = bs.traf.lat[i]
             self.lastlon[i] = bs.traf.lon[i]
-            self.lasttim[i] = t
+            self.lasttim[i] = bs.sim.simt
 
         # When a/c is no longer part of trail semgment,
         # it is no longer a/c data => move to the GUI buffer (send or draw)
@@ -130,7 +130,7 @@ class Trails(TrafficArrays):
             self.newlat1.extend(lstlat1)
             self.newlon1.extend(lstlon1)
         # Update colours
-        self.fcol = (1. - np.minimum(self.tcol0, np.abs(t - self.time)) / self.tcol0)
+        self.fcol = (1. - np.minimum(self.tcol0, np.abs(bs.sim.simt - self.time)) / self.tcol0)
 
         return
 

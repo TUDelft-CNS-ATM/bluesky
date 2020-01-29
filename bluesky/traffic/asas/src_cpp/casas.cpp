@@ -35,9 +35,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         conflict confhor, confver;
         double tin, tout;
         double dalt, dvs;
-        qdr_d_in ll1;
-        std::vector<qdr_d_in> ll2(size);
-        std::vector<qdr_d_in>::iterator pll2 = ll2.begin();
+
         npy_bool acinconf = NPY_FALSE;
         double tcpamax_ac = 0.0;
 
@@ -46,15 +44,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         PyBoolArrayAttr inconf(size);
         PyListAttr confpairs, lospairs, qdr, dist, dcpa, tcpa, tinconf;
 
-        // Pre-calculate intruder data
         for (unsigned int i = 0; i < size; ++i) {
-            pll2->init(*lat2.ptr * DEG2RAD, *lon2.ptr * DEG2RAD);
-            lat2.ptr++; lon2.ptr++; pll2++;
-        }
-
-        for (unsigned int i = 0; i < size; ++i) {
-            ll1.init(*lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD);
-            pll2 = ll2.begin();
             acinconf = NPY_FALSE;
             for (unsigned int j = 0; j < size; ++j) {
                 if (i != j) {
@@ -64,8 +54,9 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                     if (detect_ver(confver, HPZ, tlookahead, dalt, dvs)) {
                         // Horizontal detection
                         if (detect_hor(confhor, RPZ, tlookahead,
-                                       ll1,   *gs1.ptr, *trk1.ptr * DEG2RAD,
-                                       *pll2, *gs2.ptr, *trk2.ptr * DEG2RAD)) {
+                                       *lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD, *gs1.ptr, *trk1.ptr * DEG2RAD,
+                                       *lat2.ptr * DEG2RAD, *lon2.ptr * DEG2RAD, *gs2.ptr, *trk2.ptr * DEG2RAD))
+                        {
                             tin  = std::max(confhor.tin, confver.tin);
                             tout = std::min(confhor.tout, confver.tout);
                             // Combined conflict?
@@ -89,7 +80,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                         }
                     }
                 }
-                pll2++; trk2.ptr++; gs2.ptr++; alt2.ptr++; vs2.ptr++;
+                lat2.ptr++; lon2.ptr++; trk2.ptr++; gs2.ptr++; alt2.ptr++; vs2.ptr++;
             }
             *inconf.ptr = acinconf;
             *tcpamax.ptr = tcpamax_ac;
@@ -97,6 +88,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
             tcpamax.ptr++;
             acinconf = NPY_FALSE;
             tcpamax_ac = 0.0;
+            lat2.ptr = lat2.ptr_start; lon2.ptr = lon2.ptr_start;
             trk2.ptr = trk2.ptr_start; gs2.ptr  = gs2.ptr_start;
             alt2.ptr = alt2.ptr_start; vs2.ptr  = vs2.ptr_start;
             lat1.ptr++; lon1.ptr++; trk1.ptr++; gs1.ptr++; alt1.ptr++; vs1.ptr++;

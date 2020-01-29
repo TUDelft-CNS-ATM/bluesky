@@ -3,8 +3,7 @@ import time, datetime
 
 # Local imports
 import bluesky as bs
-from bluesky.tools import datalog, areafilter, plugin, plotter, simtime
-
+from bluesky.tools import datalog, areafilter, plugin, plotter, simtime, replaceable
 
 # Minimum sleep interval
 MINSLEEP = 1e-3
@@ -146,12 +145,14 @@ class Simulation:
         self.ffmode = False
         self.set_dtmult(1.0)
         plugin.reset()
+        replaceable.reset()
         bs.navdb.reset()
         bs.traf.reset()
         bs.stack.reset()
         datalog.reset()
         areafilter.reset()
         bs.scr.reset()
+        plotter.reset()
 
     def set_dtmult(self, mult):
         ''' Set simulation speed multiplier. '''
@@ -213,7 +214,7 @@ class Simulation:
             simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
                 stackcmds=stackdict, stacksyn=bs.stack.cmdsynon, shapes=shapes,
                 custacclr=bs.scr.custacclr, custgrclr=bs.scr.custgrclr,
-                settings=bs.settings._settings_hierarchy)
+                settings=bs.settings._settings_hierarchy, plugins=list(plugin.plugin_descriptions.keys()))
             bs.net.send_event(b'SIMSTATE', simstate, target=sender_rte)
         else:
             # This is either an unknown event or a gui event.

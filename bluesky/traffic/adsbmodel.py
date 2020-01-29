@@ -3,13 +3,13 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.tools.replaceable import ReplaceableSingleton
 
-
-class ADSB(TrafficArrays):
+class ADSB(ReplaceableSingleton, TrafficArrays):
     """ ADS-B model. Implements real-life limitations of ADS-B communication."""
 
     def __init__(self):
-        super(ADSB, self).__init__()
+        TrafficArrays.__init__(self)
         # From here, define object arrays
         with RegisterElementParameters(self):
             # Most recent broadcast data
@@ -22,9 +22,9 @@ class ADSB(TrafficArrays):
             self.gs         = np.array([])
             self.vs         = np.array([])
 
-        self.SetNoise(False)
+        self.setnoise(False)
 
-    def SetNoise(self, n):
+    def setnoise(self, n):
         self.transnoise = n
         self.truncated  = n
         self.transerror = [1e-4, 100 * ft]  # [degree,m] standard lat/lon distance, altitude error

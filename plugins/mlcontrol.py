@@ -61,7 +61,7 @@ def update():
         alt=traf.alt
     )
     sim.send_event(b'MLSTATEREPLY', data, myclientrte)
-    sim.pause()
+    sim.hold()
 
 def preupdate():
     pass
