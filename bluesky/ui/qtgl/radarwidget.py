@@ -167,9 +167,9 @@ class RadarWidget(QGLWidget):
                 # Create contour buffer with color
                 buf = np.concatenate(contours)
                 update_buffer(self.allpolysbuf, buf)
+                self.allpolys.set_vertex_count(len(buf) // 2)
                 buf = np.concatenate(colors)
                 update_buffer(self.allpolysclrbuf, buf)
-                self.allpolys.set_vertex_count(len(buf) // 2)
 
                 # Create fill buffer
                 buf = np.concatenate(fills)
