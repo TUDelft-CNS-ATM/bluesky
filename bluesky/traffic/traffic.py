@@ -160,10 +160,12 @@ class Traffic(TrafficArrays):
         self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
 
     def reset(self):
+        ''' Clear all traffic data upon simulation reset. '''
+        # Some child reset functions depend on a correct value of self.ntraf
+        self.ntraf = 0
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
         super(Traffic, self).reset()
-        self.ntraf = 0
 
         # reset performance model
         self.perf.reset()

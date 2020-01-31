@@ -59,7 +59,7 @@ class ConflictDetection(ReplaceableSingleton, TrafficArrays):
         self.tcpamax = np.zeros(bs.traf.ntraf)
 
     def reset(self):
-        TrafficArrays.reset(self)
+        super().reset()
         self.clearconfdb()
         self.confpairs_all.clear()
         self.lospairs_all.clear()

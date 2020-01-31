@@ -13,7 +13,7 @@ defaults = {"float": 0.0, "int": 0, "uint":0, "bool": False, "S": "", "str": ""}
 
 class RegisterElementParameters():
     """ Class to use in 'with'-syntax. This class automatically
-        calls for the MakeParameterLists function of the
+        calls for the _init_trafarrays function of the
         DynamicArray, with all parameters defined in 'with'."""
 
     def __init__(self, parent):
@@ -23,7 +23,7 @@ class RegisterElementParameters():
         self.keys0 = set(self._parent.__dict__.keys())
 
     def __exit__(self, type, value, tb):
-        self._parent.MakeParameterLists(set(self._parent.__dict__.keys()) - self.keys0)
+        self._parent._init_trafarrays(set(self._parent.__dict__.keys()) - self.keys0)
 
 
 class TrafficArrays(object):
@@ -34,6 +34,7 @@ class TrafficArrays(object):
     # The TrafficArrays class keeps track of all of the constructed
     # TrafficArray objects
     root = None
+    ntraf = 0
 
     @classmethod
     def SetRoot(cls, obj):
@@ -56,7 +57,7 @@ class TrafficArrays(object):
         newparent._children.append(self)
         self._parent = newparent
 
-    def MakeParameterLists(self, keys):
+    def _init_trafarrays(self, keys):
         for key in keys:
             if isinstance(self._Vars[key], list):
                 self._LstVars.append(key)
@@ -65,8 +66,14 @@ class TrafficArrays(object):
             elif isinstance(self._Vars[key], TrafficArrays):
                 self._Vars[key].reparent(self)
 
+        # In plugins and replaceable classes it could be that their instance
+        # is created when the simulation is already running, and traffic is
+        # present. Size traffic arrays accordingly here
+        if TrafficArrays.root.ntraf:
+            self.create(TrafficArrays.root.ntraf)
+
     def create(self, n=1):
-        # Append one element (aircraft) to all lists and arrays
+        ''' Append n elements (aircraft) to all lists and arrays. '''
 
         for v in self._LstVars:  # Lists (mostly used for strings)
 
@@ -121,7 +128,7 @@ class TrafficArrays(object):
                     del self._Vars[v][idx]
 
     def reset(self):
-        # Delete all elements from arrays and start at 0 aircraft
+        ''' Delete all elements from arrays and start at 0 aircraft. '''
         for child in self._children:
             child.reset()
 
