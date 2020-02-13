@@ -370,10 +370,11 @@ class MainWindow(QMainWindow):
 
     def show_file_dialog(self):
         # Due to Qt5 bug in Windows, use temporarily Tkinter
-        if platform.system().lower()=="windows":
+        if platform.system().lower()=='windows':
             fname = fileopen()
         else:
-            response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
+            opt = None if platform.system().lower() == 'darwin' else QFileDialog.DontUseNativeDialog
+            response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)', options=opt)
             if type(response) is tuple:
                 fname = response[0]
             else:
