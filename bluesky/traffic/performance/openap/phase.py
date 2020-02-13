@@ -59,11 +59,11 @@ def get_fixwing(spd, roc, alt, unit="SI"):
     ph = np.zeros(len(spd), dtype=int)
 
     ph[(alt <= 75)] = GD
-    ph[(alt >= 75) & (alt <= 1000) & (roc >= 0)] = IC
-    ph[(alt >= 75) & (alt <= 1000) & (roc <= 0)] = AP
-    ph[(alt >= 1000) & (roc >= 100)] = CL
-    ph[(alt >= 1000) & (roc <= -100)] = DE
-    ph[(alt >= 5000) & (roc <= 100) & (roc >= -100)] = CR
+    ph[(alt >= 75) & (alt <= 1000) & (roc >= 150)] = IC
+    ph[(alt >= 75) & (alt <= 1000) & (roc <= -150)] = AP
+    ph[(alt >= 1000) & (roc >= 150)] = CL
+    ph[(alt >= 1000) & (roc <= -150)] = DE
+    ph[(alt >= 10000) & (roc <= 150) & (roc >= -150)] = CR
 
     return ph
 

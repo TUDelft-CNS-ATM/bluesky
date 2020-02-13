@@ -104,14 +104,18 @@ class Coefficient:
                 limits_fixwing[mdl]["vminic"] = df.loc["ic_va_avg"]["min"]
                 limits_fixwing[mdl]["vmaxic"] = df.loc["ic_va_avg"]["max"]
                 limits_fixwing[mdl]["vminer"] = min(
+                    df.loc["ic_va_avg"]["min"],
                     df.loc["cl_v_cas_const"]["min"],
                     df.loc["cr_v_cas_mean"]["min"],
                     df.loc["de_v_cas_const"]["min"],
+                    df.loc["fa_va_avg"]["min"],
                 )
                 limits_fixwing[mdl]["vmaxer"] = max(
+                    df.loc["ic_va_avg"]["max"],
                     df.loc["cl_v_cas_const"]["max"],
                     df.loc["cr_v_cas_mean"]["max"],
                     df.loc["de_v_cas_const"]["max"],
+                    df.loc["fa_va_avg"]["max"],
                 )
                 limits_fixwing[mdl]["vminap"] = df.loc["fa_va_avg"]["min"]
                 limits_fixwing[mdl]["vmaxap"] = df.loc["fa_va_avg"]["max"]
