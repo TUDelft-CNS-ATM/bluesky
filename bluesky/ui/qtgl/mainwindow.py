@@ -373,15 +373,14 @@ class MainWindow(QMainWindow):
         if platform.system().lower()=='windows':
             fname = fileopen()
         else:
-            opt = None if platform.system().lower() == 'darwin' else QFileDialog.DontUseNativeDialog
-            response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)', options=opt)
-            if type(response) is tuple:
-                fname = response[0]
+            if platform.system().lower() == 'darwin':
+                response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
             else:
-                fname = response
+                response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)', options=QFileDialog.DontUseNativeDialog)
+            fname = response[0] if isinstance(response, tuple) else response
 
         # Send IC command to stack with filename if selected, else do nothing
-        if len(fname) > 0:
+        if fname:
             self.console.stack('IC ' + str(fname))
 
     def show_doc_window(self, cmd=''):
