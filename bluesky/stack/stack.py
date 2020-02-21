@@ -613,7 +613,7 @@ def init(startup_scnfile):
         ],
         "PCALL": [
             "PCALL filename [REL/ABS/args]",
-            "txt,string",
+            "txt,[string]",
             pcall,
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file",
         ],
@@ -1117,9 +1117,6 @@ def pcall(fname, pcall_arglst=None):
     """ PCALL stack function: import another scn file into the current
         scenario. """
 
-    if type(pcall_arglst)==str:
-        pcall_arglst = pcall_arglst.split()
-
     # Check for a/c id as first argument (use case: procedure files)
     # CALL KL204 myproc should have effect as if: CALL myproc KL204
     if pcall_arglst and fname in bs.traf.id:
@@ -1127,6 +1124,30 @@ def pcall(fname, pcall_arglst=None):
         fname = pcall_arglst[0]
         pcall_arglst = [acid] + pcall_arglst[1:]
 
+    # Change to list in case of single string
+    elif pcall_arglst and type(pcall_arglst) == str:
+        if pcall_arglst[0].count('"') > 0 and fname.count('"') > 0:
+            idxquote = pcall_arglst.index('"')
+            fname = fname+" "+pcall_arglst[:idxquote]
+            pcall_arglst = pcall_arglst[idxquote+1:]
+
+        # Convert string to list
+        while pcall_arglst.count("  ")>0:
+            pcall_arglst = pcall_arglst.replace("  "," ")
+        pcall_arglst = pcall_arglst.replace(" ",",").split(",")
+
+    # Allow space in file anme when surrounded by double quotes
+    # for file/path name "C:\data\python" and first argument "file/scenario1.scn",
+    # add a space and everything up to quote to file name
+    elif pcall_arglst and pcall_arglst[0].count('"') > 0 and fname.count('"')>0:
+        idxquote = pcall_arglst[0].index('"')
+        fname = fname + " " + pcall_arglst[0][:idxquote]
+        if len(pcall_arglst)>1:
+            pcall_arglst = pcall_arglst[1:]
+        else:
+            pcall_arglst = None
+
+    # Check for relative or absolute path
     absrel = "REL"  # default relative to the time of call
     if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
         absrel = pcall_arglst[0]
@@ -1142,26 +1163,27 @@ def pcall(fname, pcall_arglst=None):
     instime = bs.sim.simt
     
     try:
-        for (cmdtime, cmd) in readscn(fname):
+        for (cmdtime, cmdline) in readscn(fname):
 
             # Time offset correction
             cmdtime += t_offset
 
             # Replace %0, %1 with pcall_arglst[0], pcall_arglst[1], etc.
-            for i,argtxt in enumerate(pcall_arglst):
-                cmd = cmd.replace("%"+str(i),pcall_arglst[i])
+            if pcall_arglst:
+                for i,argtxt in enumerate(pcall_arglst):
+                    cmdline = cmdline.replace("%"+str(i),pcall_arglst[i])
 
             if not scentime or cmdtime >= scentime[-1]:
                 scentime.append(cmdtime)
-                scencmd.append(cmd)
+                scencmd.append(cmdline)
             else:
                 if cmdtime > instime:
                     insidx, instime = next(
-                        ((i, t) for i, t in enumerate(scentime) if t >= cmdtime),
+                        ((j, t) for j, t in enumerate(scentime) if t >= cmdtime),
                         (len(scentime), scentime[-1]),
                     )
                 scentime.insert(insidx, cmdtime)
-                scencmd.insert(insidx, cmd)
+                scencmd.insert(insidx, cmdline)
                 insidx += 1
 
         # stack any commands that are already due
