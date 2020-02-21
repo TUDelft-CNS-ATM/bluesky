@@ -613,7 +613,7 @@ def init(startup_scnfile):
         ],
         "PCALL": [
             "PCALL filename [REL/ABS/args]",
-            "string",
+            "txt,string",
             pcall,
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file",
         ],
@@ -1117,12 +1117,15 @@ def pcall(fname, pcall_arglst=None):
     """ PCALL stack function: import another scn file into the current
         scenario. """
 
+    if type(pcall_arglst)==str:
+        pcall_arglst = pcall_arglst.split()
+
     # Check for a/c id as first argument (use case: procedure files)
     # CALL KL204 myproc should have effect as if: CALL myproc KL204
     if pcall_arglst and fname in bs.traf.id:
         acid = fname
         fname = pcall_arglst[0]
-        pcall_arglst = [acid] + list(pcall_arglst[1:])
+        pcall_arglst = [acid] + pcall_arglst[1:]
 
     absrel = "REL"  # default relative to the time of call
     if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
@@ -1137,9 +1140,17 @@ def pcall(fname, pcall_arglst=None):
     # readscn(fname, pcall_arglst, t_offset)
     insidx = 0
     instime = bs.sim.simt
+    
     try:
         for (cmdtime, cmd) in readscn(fname):
+
+            # Time offset correction
             cmdtime += t_offset
+
+            # Replace %0, %1 with pcall_arglst[0], pcall_arglst[1], etc.
+            for i,argtxt in enumerate(pcall_arglst):
+                cmd = cmd.replace("%"+str(i),pcall_arglst[i])
+
             if not scentime or cmdtime >= scentime[-1]:
                 scentime.append(cmdtime)
                 scencmd.append(cmd)
