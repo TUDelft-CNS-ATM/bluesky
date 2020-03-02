@@ -154,7 +154,7 @@ class Server(Thread):
                         continue # No message needs to be forwarded
 
                     elif eventname == b'NODESCHANGED':
-                        servers_upd = msgpack.unpackb(data, encoding='utf-8')
+                        servers_upd = msgpack.unpackb(data, raw=False)
                         # Update the route with a hop to the originating server
                         for server in servers_upd.values():
                             server['route'].insert(0, sender_id)
@@ -197,7 +197,7 @@ class Server(Thread):
                         continue
 
                     elif eventname == b'BATCH':
-                        scentime, scencmd = msgpack.unpackb(data, encoding='utf-8')
+                        scentime, scencmd = msgpack.unpackb(data, raw=False)
                         self.scenarios = [scen for scen in split_scenarios(scentime, scencmd)]
                         # Check if the batch list contains scenarios
                         if not self.scenarios:

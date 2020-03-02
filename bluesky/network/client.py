@@ -101,7 +101,7 @@ class Client(object):
                 route, eventname, data = msg[:-2], msg[-2], msg[-1]
                 self.sender_id = route[0]
                 route.reverse()
-                pydata = msgpack.unpackb(data, object_hook=decode_ndarray, encoding='utf-8')
+                pydata = msgpack.unpackb(data, object_hook=decode_ndarray, raw=False)
                 if eventname == b'NODESCHANGED':
                     self.servers.update(pydata)
                     self.nodes_changed.emit(pydata)
@@ -120,7 +120,7 @@ class Client(object):
 
                 strmname = msg[0][:-5]
                 sender_id = msg[0][-5:]
-                pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, encoding='utf-8')
+                pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
                 self.stream(strmname, pydata, sender_id)
 
             # If we are in discovery mode, parse this message

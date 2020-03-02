@@ -34,7 +34,7 @@ class Node:
                 self.quit()
             else:
                 pydata = msgpack.unpackb(
-                    data, object_hook=decode_ndarray, encoding='utf-8')
+                    data, object_hook=decode_ndarray, raw=False)
                 bs.sim.event(eventname, pydata, route)
 
     def connect(self):
