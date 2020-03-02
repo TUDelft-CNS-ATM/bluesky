@@ -613,7 +613,7 @@ def init(startup_scnfile):
         ],
         "PCALL": [
             "PCALL filename [REL/ABS/args]",
-            "txt,[string]",
+            "word,[word,...]",
             pcall,
             "Call commands in another scenario file, %0, %1 etc specify arguments in called file",
         ],
@@ -1113,41 +1113,17 @@ def readscn(fname):
                     print("except this:" + line)
 
 
-def pcall(fname, pcall_arglst=None):
+def pcall(fname, *pcall_arglst):
     """ PCALL stack function: import another scn file into the current
         scenario. """
-
     # Check for a/c id as first argument (use case: procedure files)
     # CALL KL204 myproc should have effect as if: CALL myproc KL204
     if pcall_arglst and fname in bs.traf.id:
         acid = fname
         fname = pcall_arglst[0]
-        pcall_arglst = [acid] + pcall_arglst[1:]
+        pcall_arglst = [acid] + list(pcall_arglst[1:])
 
-    # Change to list in case of single string
-    elif pcall_arglst and type(pcall_arglst) == str:
-        if pcall_arglst[0].count('"') > 0 and fname.count('"') > 0:
-            idxquote = pcall_arglst.index('"')
-            fname = fname+" "+pcall_arglst[:idxquote]
-            pcall_arglst = pcall_arglst[idxquote+1:]
-
-        # Convert string to list
-        while pcall_arglst.count("  ")>0:
-            pcall_arglst = pcall_arglst.replace("  "," ")
-        pcall_arglst = pcall_arglst.replace(" ",",").split(",")
-
-    # Allow space in file anme when surrounded by double quotes
-    # for file/path name "C:\data\python" and first argument "file/scenario1.scn",
-    # add a space and everything up to quote to file name
-    elif pcall_arglst and pcall_arglst[0].count('"') > 0 and fname.count('"')>0:
-        idxquote = pcall_arglst[0].index('"')
-        fname = fname + " " + pcall_arglst[0][:idxquote]
-        if len(pcall_arglst)>1:
-            pcall_arglst = pcall_arglst[1:]
-        else:
-            pcall_arglst = None
-
-    # Check for relative or absolute path
+    # Check for relative or absolute time
     absrel = "REL"  # default relative to the time of call
     if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
         absrel = pcall_arglst[0]
@@ -1161,7 +1137,7 @@ def pcall(fname, pcall_arglst=None):
     # readscn(fname, pcall_arglst, t_offset)
     insidx = 0
     instime = bs.sim.simt
-    
+
     try:
         for (cmdtime, cmdline) in readscn(fname):
 
@@ -1170,8 +1146,8 @@ def pcall(fname, pcall_arglst=None):
 
             # Replace %0, %1 with pcall_arglst[0], pcall_arglst[1], etc.
             if pcall_arglst:
-                for i,argtxt in enumerate(pcall_arglst):
-                    cmdline = cmdline.replace("%"+str(i),pcall_arglst[i])
+                for i, argtxt in enumerate(pcall_arglst):
+                    cmdline = cmdline.replace(f"%{i}", argtxt)
 
             if not scentime or cmdtime >= scentime[-1]:
                 scentime.append(cmdtime)
@@ -1437,7 +1413,7 @@ def saveclose():
 # (?<!")[^\s,]* : look behind for not a leading quote, then parse until first whitespace or comma
 # "?\s*,?\s*    : skip potential closing quote, whitespace, and a potential single comma
 # (.*)          : parse the rest of the string as the second return value
-re_getarg = re.compile(r'"?((?<=")[^"]*|(?<!")[^\s,]*)"?\s*,?\s*(.*)')
+re_getarg = re.compile(r'[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
 
 
 def getnextarg(line):
