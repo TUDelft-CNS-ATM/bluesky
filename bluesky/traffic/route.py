@@ -545,7 +545,7 @@ class Route(Replaceable):
                     self.swflyby)
 
                 self.nwp += 1
-                if orig and self.iactwp > 0:
+                if orig and self.iactwp >= 0:
                     self.iactwp += 1
                 elif not orig and self.iactwp < 0 and self.nwp == 1:
                     # When only waypoint: adjust pointer to point to destination
