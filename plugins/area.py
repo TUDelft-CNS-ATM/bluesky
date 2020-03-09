@@ -105,8 +105,8 @@ class Area(TrafficArrays):
         self.active = False
         self.delarea = ''
         self.exparea = ''
-        self.swtaxi = True  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
-        self.swtaxialt = 1500.0  # Default OFF: Doesn't do anything. See comments of set_taxi fucntion below.
+        self.swtaxi = True  # Default ON: Doesn't do anything. See comments of set_taxi function below.
+        self.swtaxialt = 1500.0  # Default alt for TAXI OFF
         self.prevconfpairs = set()
         self.confinside_all = 0
 
