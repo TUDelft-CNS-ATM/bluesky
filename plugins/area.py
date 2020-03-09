@@ -6,7 +6,7 @@ import numpy as np
 from bluesky import traf, sim  #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import datalog, areafilter, \
     TrafficArrays, RegisterElementParameters
-from bluesky.tools.aero import ft
+from bluesky.tools.aero import ft,kts,nm,fpm
 from bluesky.tools.simtime import timed_function
 
 # Log parameters for the flight statistics log
@@ -20,24 +20,24 @@ flstheader = \
     'Call sign [-], ' + \
     'Spawn Time [s], ' + \
     'Flight time [s], ' + \
-    'Actual Distance 2D [m], ' + \
-    'Actual Distance 3D [m], ' + \
-    'Work Done [J], ' + \
+    'Actual Distance 2D [nm], ' + \
+    'Actual Distance 3D [nm], ' + \
+    'Work Done [MJ], ' + \
     'Latitude [deg], ' + \
     'Longitude [deg], ' + \
-    'Altitude [m], ' + \
-    'TAS [m/s], ' + \
-    'Vertical Speed [m/s], ' + \
+    'Altitude [ft], ' + \
+    'TAS [kts], ' + \
+    'Vertical Speed [fpm], ' + \
     'Heading [deg], ' + \
     'Origin Lat [deg], ' + \
     'Origin Lon [deg], ' + \
     'Destination Lat [deg], ' + \
     'Destination Lon [deg], ' + \
     'ASAS Active [bool], ' + \
-    'Pilot ALT [m], ' + \
-    'Pilot SPD (TAS) [m/s], ' + \
+    'Pilot ALT [ft], ' + \
+    'Pilot SPD (TAS) [kts], ' + \
     'Pilot HDG [deg], ' + \
-    'Pilot VS [m/s]'  + '\n'
+    'Pilot VS [fpm]'  + '\n'
 
 confheader = \
     '#######################################################\n' + \
@@ -125,6 +125,7 @@ class Area(TrafficArrays):
             self.workstart = np.array([])
             self.work = np.array([])
             self.entrytime = np.array([])
+            self.create_time = np.array([])
 
     def reset(self):
         ''' Reset area state when simulation is reset. '''
@@ -141,6 +142,7 @@ class Area(TrafficArrays):
         self.oldalt[-n:] = traf.alt[-n:]
         self.insdel[-n:] = False
         self.insexp[-n:] = False
+        self.create_time[-n:] = sim.simt
 
     @timed_function('AREA', dt=1.0)
     def update(self, dt):
@@ -197,30 +199,35 @@ class Area(TrafficArrays):
             self.entrytime[newentries] = sim.simt
 
             # Log flight statistics when exiting experiment area
-            exits = self.insexp * np.logical_not(insexp)
+            exits = np.logical_and(self.insexp,np.logical_not(insexp))
+            # Update insexp
+            self.insexp = insexp
+
             if np.any(exits):
                 self.flst.log(
                     np.array(traf.id)[exits],
                     self.create_time[exits],
                     sim.simt - self.entrytime[exits],
-                    self.dstart2D[exits] - self.distance2D[exits],
-                    self.dstart3D[exits] - self.distance3D[exits],
-                    self.workstart[exits] - self.work[exits],
+                    (self.distance2D[exits] - self.dstart2D[exits])/nm,
+                    (self.distance3D[exits] - self.dstart3D[exits])/nm,
+                    (self.work[exits] - self.workstart[exits])*1e-6,
                     traf.lat[exits],
                     traf.lon[exits],
-                    traf.alt[exits],
-                    traf.tas[exits],
-                    traf.vs[exits],
+                    traf.alt[exits]/ft,
+                    traf.tas[exits]/kts,
+                    traf.vs[exits]/fpm,
                     traf.hdg[exits],
                     traf.cr.active[exits],
-                    traf.pilot.alt[exits],
-                    traf.pilot.tas[exits],
-                    traf.pilot.vs[exits],
+                    traf.pilot.alt[exits]/ft,
+                    traf.pilot.tas[exits]/kts,
+                    traf.pilot.vs[exits]/fpm,
                     traf.pilot.hdg[exits])
 
             # delete all aicraft in self.delidx
             if len(delidx) > 0:
                 traf.delete(delidx)
+
+
 
         # Autodelete for descending with swTaxi:
         if not self.swtaxi:
@@ -231,8 +238,8 @@ class Area(TrafficArrays):
                 traf.delete(list(delidxalt))
 
     def set_area(self, *args, exparea=False):
-        ''' Set Experiment Area. Aicraft leaving the experiment area are deleted.
-        Input can be exisiting shape name, or a box with optional altitude constrainsts.'''
+        ''' Set Experiment Area. Aircraft leaving the experiment area are deleted.
+        Input can be existing shape name, or a box with optional altitude constraints.'''
         curname = self.exparea if exparea else self.delarea
         msgname = 'Experiment area' if exparea else 'Deletion area'
         # if all args are empty, then print out the current area status
