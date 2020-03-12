@@ -84,7 +84,7 @@ class Metrics(TrafficArrays):
 
         # Check convergence using CD with large RPZ and tlook
         confpairs, lospairs, inconf, tcpamax, qdr, dist, dcpa, tcpa, tLOS = \
-            traf.cd.detect(traf, traf, 20 * nm, traf.asas.dh, 3600)
+            traf.cd.detect(traf, traf, np.ones(traf.ntraf) * 20 * nm, traf.cd.hpz, np.ones(traf.ntraf) * 3600)
 
         if confpairs:
             own, intr = zip(*confpairs)
@@ -187,9 +187,10 @@ class Metrics(TrafficArrays):
                 return False, 'Sector %s already registered.' % name
             elif areafilter.hasArea(name):
                 if not self.sectors:
-                    self.fconv = open('output/convergence.csv', 'w')
-                    self.fsd = open('output/density.csv', 'w')
-                    self.feff = open('output/efficiency.csv', 'w')
+
+                    self.fconv = open('output/'+stack.scenname+'convergence.csv', 'w')
+                    self.fsd = open('output/'+stack.scenname+'density.csv', 'w')
+                    self.feff = open('output/'+stack.scenname+'efficiency.csv', 'w')
                     # Create the plot if this is the first sector
                     plotter.plot('metrics.metrics.sectorsd', dt=2.5, title='Static Density',
                                 xlabel='Time', ylabel='Aircraft count', fig=1)
