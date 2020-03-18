@@ -15,9 +15,8 @@ ACTNODE_TOPICS = [b'ACDATA', b'PLOT*', b'ROUTEDATA*']
 
 class GuiClient(Client):
     def __init__(self):
-        super(GuiClient, self).__init__(ACTNODE_TOPICS)
+        super().__init__(ACTNODE_TOPICS)
         self.nodedata = dict()
-        self.timer = None
         self.ref_nodedata = nodeData()
         self.discovery_timer = None
         self.timer = QTimer()
