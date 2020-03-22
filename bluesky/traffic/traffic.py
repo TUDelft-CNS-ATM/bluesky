@@ -478,7 +478,7 @@ class Traffic(TrafficArrays):
 
     def update_pos(self):
         # Update position
-        self.alt = np.where(self.swaltsel, self.alt + self.vs * bs.sim.simdt, self.pilot.alt)
+        self.alt = np.where(self.swaltsel, np.round(self.alt + self.vs * bs.sim.simdt, 6), self.pilot.alt)
         self.lat = self.lat + np.degrees(bs.sim.simdt * self.gsnorth / Rearth)
         self.coslat = np.cos(np.deg2rad(self.lat))
         self.lon = self.lon + np.degrees(bs.sim.simdt * self.gseast / self.coslat / Rearth)
