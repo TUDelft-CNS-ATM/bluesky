@@ -9,12 +9,11 @@ from bluesky import stack, traf, sim  #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import areafilter, datalog, plotter, geo, TrafficArrays
 from bluesky.tools.aero import nm, ft
 
-
 # Metrics object
 metrics = None
 
-
 class SectorData:
+    # Selected traffic data for a/c in a sector
     def __init__(self):
         self.acid = list()
         self.lat0 = np.array([])
@@ -22,15 +21,18 @@ class SectorData:
         self.dist0 = np.array([])
 
     def id2idx(self, acid):
-        # Fast way of finding indices of all ACID's in a given list
+        # Fast way of finding indices of all ACID's in our list
         tmp = dict((v, i) for i, v in enumerate(self.acid))
+        # Return only the indices
         return [tmp.get(acidi, -1) for acidi in acid]
 
     def get(self, acid):
+        # Get lat,lon and distance flown for this a/c
         idx = self.id2idx(acid)
         return self.lat0[idx], self.lon0[idx], self.dist0[idx]
 
     def delete(self, acid):
+        # Remove an aircraft from our sector traffic data list
         idx = np.sort(self.id2idx(acid))
         self.lat0 = np.delete(self.lat0, idx)
         self.lon0 = np.delete(self.lon0, idx)
@@ -39,6 +41,8 @@ class SectorData:
             del self.acid[i]
 
     def extend(self, acid, lat0, lon0, dist0):
+        # Add several a/c to our list:
+        # input: lat0,lon0,dist: np arrays, acid: list of strings
         self.lat0 = np.append(self.lat0, lat0)
         self.lon0 = np.append(self.lon0, lon0)
         self.dist0 = np.append(self.dist0, dist0)
@@ -99,6 +103,7 @@ class Metrics(TrafficArrays):
         sendeff = False
         for idx, (sector, previnside) in enumerate(zip(self.sectors, self.acinside)):
             inside = areafilter.checkInside(sector, traf.lat, traf.lon, traf.alt)
+
             sectoreff = []
             # Detect aircraft leaving and entering the sector
             previds = set(previnside.acid)
@@ -106,18 +111,21 @@ class Metrics(TrafficArrays):
             arrived = list(ids - previds)
             left = previds - ids
 
-            # Split left aircraft in deleted and not deleted
+            # Split aircraft that left the sector in deleted and not deleted
             left_intraf = left.intersection(traf.id)
-            left_del = list(left - left_intraf)
-            left_intraf = list(left_intraf)
+            left_del = list(left - left_intraf) # Aircraft id's prev inside but deleted
+            left_intraf = list(left_intraf) # Aircraft id's that left sector
 
+            # New a/c in sector arr listed by index in arridx
             arridx = traf.id2idx(arrived)
             leftidx = traf.id2idx(left_intraf)
-            # Retrieve the current distance flown for arriving and leaving aircraft
 
+            # Retrieve the current distance flown for arriving and leaving aircraft
             arrdist = traf.distflown[arridx]
             arrlat = traf.lat[arridx]
             arrlon = traf.lon[arridx]
+
+            # Get all a/c ids that left from the set delac
             leftlat, leftlon, leftdist = self.delac.get(left_del)
             leftlat = np.append(leftlat, traf.lat[leftidx])
             leftlon = np.append(leftlon, traf.lon[leftidx])
@@ -126,17 +134,19 @@ class Metrics(TrafficArrays):
             self.delac.delete(left_del)
 
             if len(left) > 0:
+
+                # Exclude aircraft where origin = destination for sector efficiency,
+                # so require that distance start-end > 10 nm
                 q, d = geo.qdrdist(leftlat0, leftlon0, leftlat, leftlon)
-                
-                # Exclude aircraft where origin = destination
                 mask = d > 10
 
                 sectoreff = list((leftdist[mask] - leftdist0[mask]) / d[mask] / nm)
-
                 names = np.array(left_del + left_intraf)[mask]
+
                 for name, eff in zip(names, sectoreff):
                     self.feff.write('{}, {}, {}\n'.format(sim.simt, name, eff))
                 sendeff = True
+
                 # print('{} aircraft left sector {}, distance flown (acid:dist):'.format(len(left), sector))
                 # for a, d0, d1, e in zip(left, leftdist0, leftdist, sectoreff):
                 #     print('Aircraft {} flew {} meters (eff = {})'.format(a, round(d1-d0), e))
