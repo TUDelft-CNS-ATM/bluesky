@@ -110,13 +110,13 @@ class CSVLogger:
         while selection:
             parent = ''
             if selection[0].upper() == 'FROM':
-                parent = selection[1]
+                parent = selection[1] + '.'
                 del selection[0:2]
-            vars = list(itertools.takewhile(
+            variables = list(itertools.takewhile(
                 lambda i: i.upper() != 'FROM', selection))
-            selection = selection[len(vars):]
-            for v in vars:
-                varobj = ve.findvar(parent + '.' + v)
+            selection = selection[len(variables):]
+            for v in variables:
+                varobj = ve.findvar(parent + v)
                 if varobj:
                     selvars.append(varobj)
                 else:

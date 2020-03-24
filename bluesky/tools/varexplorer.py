@@ -100,7 +100,7 @@ def findvar(varname):
                     break
                 obj = getattr(obj, pair[0], None)
 
-            if obj and name in vars(obj):
+            if obj and hasattr(obj, name):
                 return Variable(obj, varset[-2][0], name, index)
         else:
             # A parent object is not passed, we only have a variable name
