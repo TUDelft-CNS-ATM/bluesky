@@ -52,6 +52,7 @@ cmdsynon = {
     "AWY": "POS",
     "AIRPORT": "POS",
     "AIRWAYS": "AIRWAY",
+    "BANKLIM": "BANK",
     "CALL": "PCALL",
     "CHDIR": "CD",
     "COL": "COLOR",
@@ -264,12 +265,19 @@ def init(startup_scnfile):
             bs.traf.cond.atspdcmd,
             "When a/c reaches given speed, execute a command cmd",
         ],
+        "BANK": [
+            "BANK bankangle[deg]",
+            "acid,[float]",
+            bs.traf.setbanklim,
+            "Set or show bank limit for this vehicle",
+        ],
         "BATCH": [
             "BATCH filename",
             "string",
             bs.sim.batch,
             "Start a scenario file as batch simulation",
         ],
+
         "BEFORE": [
             "acid BEFORE beforewp ADDWPT (wpname/lat,lon),[alt,spd]",
             "acid,wpinroute,txt,wpt,[alt,spd]",

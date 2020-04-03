@@ -5,7 +5,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.replaceable import Replaceable
 from bluesky.tools.aero import ft, kts, g0, nm, mach2cas, casormach2tas
-from bluesky.tools.misc import degto180,txt2tim
+from bluesky.tools.misc import degto180,txt2tim,txt2spd
 from bluesky.tools.position import txt2pos
 from bluesky import stack
 from bluesky.stack import Argparser
@@ -45,9 +45,22 @@ class Route(Replaceable):
         self.wprta  = []    # [m/s] negative value means not specified
         self.wpflyby = []   # Flyby (True)/flyover(False) switch
 
+        # Made for drones: fly turn mode, means use specified turn radius and optionally turn speed
+        self.wpflyturn = []   # Flyturn (True) or flyover/flyby (False) switch
+        self.wpturnrad = []   # [nm] Turn radius per waypoint (<0 = not specified)
+        self.wpturnspd = []   # [kts] Turn speed (IAS/CAS) per waypoint (<0 = not specified)
+
         # Current actual waypoint
         self.iactwp = -1
-        self.swflyby  = True  # Default waypoints are flyby waypoint
+
+        # Set to default addwpt wpmode
+        # Note that neither flyby nor flyturn means: flyover)
+        self.swflyby   = True    # Default waypoints are flyby waypoint
+        self.swflyturn = False  # Default waypoints are flyby waypoint
+
+        # Default turn values to be used in flyturn mode
+        self.turnrad  = -999. # Negative value indicating no value has been set
+        self.turnspd  = -999. # Dito, in this case bank angle of vehicle will be used with current speed
 
         # if the aircraft lands on a runway, the aircraft should keep the
         # runway heading
@@ -89,14 +102,44 @@ class Route(Replaceable):
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
 
         if len(args) == 1:
-            isflyby = args[0].replace('-', '')
+            swwpmode = args[0].replace('-', '')
 
-            if isflyby == "FLYBY":
-                self.swflyby = True
+            if swwpmode == "FLYBY":
+                self.swflyby   = True
+                self.swflyturn = False
                 return True
 
-            elif isflyby == "FLYOVER":
-                self.swflyby = False
+            elif swwpmode == "FLYOVER":
+
+                self.swflyby   = False
+                self.swflyturn = False
+                return True
+
+            elif swwpmode == "FLYTURN":
+
+                self.swflyby   = False
+                self.swflyturn = True
+                return True
+
+        elif len(args) == 2:
+
+            swwpmode = args[0].replace('-', '')
+
+            if swwpmode == "TURNRAD" or swwpmode == "TURNRADIUS":
+
+                try:
+                    self.turnrad = float(args[1])/ft # arg was originally parsed as wpalt
+                except:
+                    return False,"Error in processing value of turn radius"
+                return True
+
+            elif swwpmode == "TURNSPD" or swwpmode == "TURNSPEED":
+
+                try:
+                    self.turnspd = args[1]*kts/ft # [m/s] Arg was wpalt Keep it as IAS/CAS orig in kts, now in m/s
+                except:
+                    return False, "Error in processing value of turn speed"
+
                 return True
 
         # Convert to positions
@@ -442,25 +485,25 @@ class Route(Replaceable):
         return True
 
     def overwrite_wpt_data(self, wpidx, wpname, wplat, wplon, wptype, wpalt,
-                           wpspd, swflyby):
+                           wpspd):
         """
         Overwrites information for a waypoint, via addwpt_data/9
         """
 
         self.addwpt_data(True, wpidx, wpname, wplat, wplon, wptype, wpalt,
-                         wpspd, swflyby)
+                         wpspd)
 
     def insert_wpt_data(self, wpidx, wpname, wplat, wplon, wptype, wpalt,
-                        wpspd, swflyby):
+                        wpspd):
         """
         Inserts information for a waypoint, via addwpt_data/9
         """
 
         self.addwpt_data(False, wpidx, wpname, wplat, wplon, wptype, wpalt,
-                         wpspd, swflyby)
+                         wpspd)
 
     def addwpt_data(self, overwrt, wpidx, wpname, wplat, wplon, wptype,
-                    wpalt, wpspd, swflyby):
+                    wpalt, wpspd):
         """
         Overwrites or inserts information for a waypoint
         """
@@ -474,8 +517,10 @@ class Route(Replaceable):
             self.wpalt[wpidx]   = wpalt
             self.wpspd[wpidx]   = wpspd
             self.wptype[wpidx]  = wptype
-            self.wpflyby[wpidx] = swflyby
-
+            self.wpflyby[wpidx] = self.swflyby
+            self.wpflyturn[wpidx] = self.swflyturn
+            self.wpturnrad[wpidx] = self.turnrad
+            self.wpturnspd[wpidx] = self.turnspd
             self.wprta[wpidx]   = -999.0 # initially no RTA
 
         else:
@@ -485,7 +530,10 @@ class Route(Replaceable):
             self.wpalt.insert(wpidx, wpalt)
             self.wpspd.insert(wpidx, wpspd)
             self.wptype.insert(wpidx, wptype)
-            self.wpflyby.insert(wpidx, swflyby)
+            self.wpflyby.insert(wpidx, self.swflyby)
+            self.wpflyturn.insert(wpidx, self.swflyturn)
+            self.wpturnrad.insert(wpidx, self.turnrad)
+            self.wpturnspd.insert(wpidx, self.turnspd)
             self.wprta.insert(wpidx,-999.0)       # initially no RTA
 
 
@@ -532,8 +580,7 @@ class Route(Replaceable):
             # Overwrite existing origin/dest
             if self.nwp > 0 and self.wptype[wpidx] == wptype:
                 self.overwrite_wpt_data(
-                    wpidx, wprtename, wplat, wplon, wptype, alt, spd,
-                    self.swflyby)
+                    wpidx, wprtename, wplat, wplon, wptype, alt, spd)
 
             # Or add before first waypoint/append to end
             else:
@@ -541,8 +588,7 @@ class Route(Replaceable):
                     wpidx = len(self.wplat)
 
                 self.insert_wpt_data(
-                    wpidx, wprtename, wplat, wplon, wptype, alt, spd,
-                    self.swflyby)
+                    wpidx, wprtename, wplat, wplon, wptype, alt, spd)
 
                 self.nwp += 1
                 if orig and self.iactwp >= 0:
@@ -591,8 +637,7 @@ class Route(Replaceable):
                         self.wpname.index(bfwp)
 
                     self.insert_wpt_data(
-                        wpidx, newname, wplat, wplon, wptype, alt, spd,
-                        self.swflyby)
+                        wpidx, newname, wplat, wplon, wptype, alt, spd)
 
                     if afterwp and self.iactwp >= wpidx:
                         self.iactwp += 1
@@ -606,8 +651,7 @@ class Route(Replaceable):
                         wpidx = self.nwp
 
                     self.addwpt_data(
-                        False, wpidx, newname, wplat, wplon, wptype, alt, spd,
-                        self.swflyby)
+                        False, wpidx, newname, wplat, wplon, wptype, alt, spd)
 
                 idx = wpidx
                 self.nwp += 1
@@ -652,6 +696,7 @@ class Route(Replaceable):
         return result
 
     def direct(self, idx, wpnam):
+        #print("Hello from direct")
         """Set active point to a waypoint by name"""
         name = wpnam.upper().strip()
         if name != "" and self.wpname.count(name) > 0:
@@ -662,6 +707,9 @@ class Route(Replaceable):
             bs.traf.actwp.lat[idx]    = self.wplat[wpidx]
             bs.traf.actwp.lon[idx]    = self.wplon[wpidx]
             bs.traf.actwp.flyby[idx]  = self.wpflyby[wpidx]
+            bs.traf.actwp.flyturn[idx] = self.wpflyturn[wpidx]
+            bs.traf.actwp.turnrad[idx] = self.wpturnrad[wpidx]
+            bs.traf.actwp.turnspd[idx] = self.wpturnspd[wpidx]
 
             # Do calculation for VNAV
             self.calcfp()
@@ -702,7 +750,11 @@ class Route(Replaceable):
             qdr, dist = geo.qdrdist(bs.traf.lat[idx], bs.traf.lon[idx],
                                 bs.traf.actwp.lat[idx], bs.traf.actwp.lon[idx])
 
-            turnrad = bs.traf.tas[idx]*bs.traf.tas[idx]/tan(radians(25.)) / g0 / nm  # [nm]default bank angle 25 deg
+            if self.wpflyturn[wpidx] or self.wpturnrad[wpidx]<0.:
+                turnrad = self.wpturnrad[wpidx]
+            else:
+                turnrad = bs.traf.tas[idx]*bs.traf.tas[idx]/tan(radians(25.)) / g0 / nm  # [nm]default bank angle 25 deg
+
 
             bs.traf.actwp.turndist[idx] = (bs.traf.actwp.flyby[idx] > 0.5)  *   \
                      turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
@@ -820,7 +872,10 @@ class Route(Replaceable):
                            self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                            self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp], \
                            self.wpxtorta[self.iactwp], self.wptorta[self.iactwp], \
-                           lnavon,self.wpflyby[self.iactwp], nextqdr
+                           lnavon,self.wpflyby[self.iactwp], \
+                           self.wpflyturn[self.iactwp],self.wpturnrad[self.iactwp],\
+                           self.wpturnspd[self.iactwp], \
+                           nextqdr
 
         lnavon = self.iactwp +1 < self.nwp
         if lnavon:
@@ -845,7 +900,10 @@ class Route(Replaceable):
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
                self.wpxtorta[self.iactwp],self.wptorta[self.iactwp],\
-               lnavon,self.wpflyby[self.iactwp], nextqdr
+               lnavon,self.wpflyby[self.iactwp], \
+               self.wpflyturn[self.iactwp], self.wpturnrad[self.iactwp], \
+               self.wpturnspd[self.iactwp], \
+               nextqdr
 
 
     def delrte(self,iac=None):

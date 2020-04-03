@@ -1,5 +1,5 @@
 """ Autopilot Implementation."""
-from math import sin, cos, radians,sqrt
+from math import sin, cos, radians, sqrt, atan
 import numpy as np
 try:
     from collections.abc import Collection
@@ -10,7 +10,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, vcasormach2tas, tas2cas
+from bluesky.tools.aero import ft, nm, vcasormach2tas, tas2cas, cas2tas, g0
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools.replaceable import ReplaceableSingleton
 from .route import Route
@@ -63,7 +63,8 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
     @timed_function('fms', dt=bs.settings.fms_dt)
     def update_fms(self, qdr, dist):
         # Shift waypoints for aircraft i where necessary
-        for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby):
+        for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
+                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad):
             # Save current wp speed for use on next leg when we pass this waypoint
             # VNAV speeds are always FROM-speed, so we accelerate/decellerate at the waypoint
             # where this speed is specified, so we need to save it for use now
@@ -73,10 +74,22 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             bs.traf.actwp.spd[i]    = bs.traf.actwp.nextspd[i]
             bs.traf.actwp.spdcon[i] = bs.traf.actwp.nextspd[i]
 
+            # Use turnradius of passing wp for bank angle
+            if bs.traf.actwp.flyturn[i] and bs.traf.actwp.turnrad[i]>0.:
+                if bs.traf.actwp.turnspd[i]>0.:
+                    turnspd = bs.traf.actwp.turnspd[i]
+                else:
+                    turnspd = bs.traf.tas[i]
+
+                bs.traf.aphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*nm*g0)) # [rad]
+            else:
+                bs.traf.aphi[i] = 0.0  #[rad] or leave untouched???
+
             # Get next wp (lnavon = False if no more waypoints)
             lat, lon, alt, bs.traf.actwp.nextspd[i], bs.traf.actwp.xtoalt[i], toalt, \
                 bs.traf.actwp.xtorta[i], bs.traf.actwp.torta[i], \
-                lnavon, flyby, bs.traf.actwp.next_qdr[i] =      \
+                lnavon, flyby, flyturn, turnrad, turnspd,\
+                bs.traf.actwp.next_qdr[i] =      \
                 self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
             # End of route/no more waypoints: switch off LNAV
@@ -113,17 +126,32 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             else:
                 local_next_qdr = bs.traf.actwp.next_qdr[i]
 
+            bs.traf.actwp.flyturn[i] = flyturn
+            bs.traf.actwp.turnrad[i] = turnrad
+            bs.traf.actwp.turnspd[i] = turnspd
+
             # Calculate turn dist (and radius which we do not use) now for scalar variable [i]
             bs.traf.actwp.turndist[i], dummy = \
                 bs.traf.actwp.calcturn(bs.traf.tas[i], bs.traf.bank[i],
-                                        qdr[i], local_next_qdr)  # update turn distance for VNAV
+                                        qdr[i], local_next_qdr,turnrad)  # update turn distance for VNAV
 
 
             # VNAV = FMS ALT/SPD mode incl. RTA
             self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i], bs.traf.actwp.torta[i],
                              bs.traf.actwp.xtorta[i])
 
+            # Check deceleration distance before next wp in case of turns
+            bs.traf.actwp.deceldist = np.where(flyturn,
+                                     (bs.traf.tas[i] - cas2tas(turnspd, bs.traf.alt[i])) * 0.5 *
+                                     (bs.traf.tas[i] - cas2tas(turnspd, bs.traf.alt[i])) / max(0.001, bs.traf.ax[i])
+                                      , 0.0)
+
         # Continuous guidance when speed constraint on active leg
+
+        # Check whether we are already at deceleration distance to next wp
+        self.tas = np.where(dist<bs.traf.actwp.deceldist,
+                            bs.traf.actwp.turnspd,
+                            self.tas)
 
         # If still an RTA in the route and currently no speed constraint
         for iac in np.where((bs.traf.actwp.torta > -99.)*(bs.traf.actwp.spdcon<0.0))[0]:
@@ -161,9 +189,6 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         dy = (bs.traf.actwp.lat - bs.traf.lat)  #[deg lat = 60 nm]
         dx = (bs.traf.actwp.lon - bs.traf.lon) * bs.traf.coslat #[corrected deg lon = 60 nm]
         dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy) # [m]
-        #print("dist2wp =",dist2wp,"   self.dist2vs =",self.dist2vs)
-
-        #print("actpwp.nextaltco=",bs.traf.actwp.nextaltco)
 
         # VNAV logic: descend as late as possible, climb as soon as possible
         startdescent = (dist2wp < self.dist2vs) + (bs.traf.actwp.nextaltco > bs.traf.alt)

@@ -83,7 +83,7 @@ def test_addwpt_data(route_):
         route.wpspd == route.wptype == route.wpflyby == []
 
     # Add new waypoint and check if added correctly
-    route.addwpt_data(False, 0, 'FOO', 10., -10., 0, 1000., 100., False)
+    route.addwpt_data(False, 0, 'FOO', 10., -10., 0, 1000., 100.)
     assert route.wpname == ['FOO']
     assert route.wplat == [10.]
     assert route.wplon == [-10.]
@@ -93,7 +93,7 @@ def test_addwpt_data(route_):
     assert route.wpflyby == [False]
 
     # Add another waypoint, see if both this and previous are in list
-    route.addwpt_data(False, 0, 'BAZ', 20., -20., 0, 2000., 200., True)
+    route.addwpt_data(False, 0, 'BAZ', 20., -20., 0, 2000., 200.)
     assert route.wpname == ['BAZ', 'FOO']
     assert route.wplat == [20., 10.]
     assert route.wplon == [-20., -10.]
@@ -103,7 +103,7 @@ def test_addwpt_data(route_):
     assert route.wpflyby == [True, False]
 
     # This waypoint must overwrite FOO (which was previously at index 1)
-    route.addwpt_data(True, 1, 'BAR', 30., -30., 0, 3000., 300., True)
+    route.addwpt_data(True, 1, 'BAR', 30., -30., 0, 3000., 300.)
     assert route.wpname == ['BAZ', 'BAR']
     assert route.wplat == [20., 30.]
     assert route.wplon == [-20., -30.]
@@ -132,8 +132,8 @@ def test_add_wp_orig(traffic_, route_):
 
     # Add some dummy data
     #
-    route.addwpt_data(False, 0, 'BAZ', 20., -20., 0, 2000., 200., True)
-    route.addwpt_data(False, 1, 'BAR', 30., -30., 0, 3000., 300., True)
+    route.addwpt_data(False, 0, 'BAZ', 20., -20., 0, 2000., 200.)
+    route.addwpt_data(False, 1, 'BAR', 30., -30., 0, 3000., 300.)
     route.iactwp = 1
     route.nwp = 2
 

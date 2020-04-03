@@ -138,7 +138,7 @@ class Traffic(TrafficArrays):
             self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
             self.aphi     = np.array([])  # [rad] bank angle setting of autopilot
             self.ax       = np.array([])  # [m/s2] absolute value of longitudinal accelleration
-            self.bank     = np.array([])  # nominal bank angle, [radian]
+            self.bank     = np.array([])  # nominal bank angle, [radians]
             self.swhdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
             # limit settings
@@ -289,7 +289,7 @@ class Traffic(TrafficArrays):
         # Traffic performance data
         #(temporarily default values)
         self.apvsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
-        self.aphi[-n:]    = np.radians(25.)  # bank angle setting of autopilot
+        self.aphi[-n:]    = 0.            # bank angle output of autopilot (optional)
         self.ax[-n:]      = kts           # absolute value of longitudinal accelleration
         self.bank[-n:]    = np.radians(25.)
 
@@ -432,7 +432,9 @@ class Traffic(TrafficArrays):
         self.M = vtas2mach(self.tas, self.alt)
 
         # Turning
-        turnrate = np.degrees(g0 * np.tan(self.bank) / np.maximum(self.tas, self.eps))
+
+        turnrate = np.degrees(g0 * np.tan(np.where(self.aphi>self.eps,self.aphi,self.bank) \
+                                          / np.maximum(self.tas, self.eps)))
         delhdg = (self.pilot.hdg - self.hdg + 180) % 360 - 180  # [deg]
         self.swhdgsel = np.abs(delhdg) > np.abs(bs.sim.simdt * turnrate)
 
@@ -755,3 +757,10 @@ class Traffic(TrafficArrays):
             tlvl = int(round(self.translvl/ft))
             return True,"Transition level = " + \
                           str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
+
+    def setbanklim(self,idx,bankangle=None):
+        if bankangle:
+            self.bank[idx] = np.radians(bankangle) # [rad]
+            return True
+        else:
+            return True,"Banklimit of "+self.id[idx]+" is "+str(int(np.degrees(self.bank[idx])))+" deg"
