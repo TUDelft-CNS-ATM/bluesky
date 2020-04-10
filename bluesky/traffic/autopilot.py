@@ -141,17 +141,13 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                              bs.traf.actwp.xtorta[i])
 
             # Check deceleration distance before next wp in case of turns
-            bs.traf.actwp.deceldist = np.where(flyturn,
+            bs.traf.actwp.deceldist[i] = np.where(flyturn,
                                      (bs.traf.tas[i] - cas2tas(turnspd, bs.traf.alt[i])) * 0.5 *
                                      (bs.traf.tas[i] - cas2tas(turnspd, bs.traf.alt[i])) / max(0.001, bs.traf.ax[i])
                                       , 0.0)
 
         # Continuous guidance when speed constraint on active leg
 
-        # Check whether we are already at deceleration distance to next wp
-        self.tas = np.where(dist<bs.traf.actwp.deceldist,
-                            bs.traf.actwp.turnspd,
-                            self.tas)
 
         # If still an RTA in the route and currently no speed constraint
         for iac in np.where((bs.traf.actwp.torta > -99.)*(bs.traf.actwp.spdcon<0.0))[0]:
@@ -176,6 +172,11 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         qdr, distinnm = geo.qdrdist(bs.traf.lat, bs.traf.lon,
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
         dist = distinnm*nm  # Conversion to meters
+
+        # Check whether we are already at deceleration distance to next wp
+        self.tas = np.where(dist < bs.traf.actwp.deceldist,
+                            bs.traf.actwp.turnspd,
+                            self.tas)
 
         # FMS route update
         self.update_fms(qdr, dist)
