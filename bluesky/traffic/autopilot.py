@@ -174,9 +174,9 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         dist = distinnm*nm  # Conversion to meters
 
         # Check whether we are already at deceleration distance to next wp
-        self.tas = np.where(dist < bs.traf.actwp.deceldist,
-                            bs.traf.actwp.turnspd,
-                            self.tas)
+#        self.tas = np.where(dist < bs.traf.actwp.deceldist,
+#                            bs.traf.actwp.turnspd,
+#                           self.tas)
 
         # FMS route update
         self.update_fms(qdr, dist)
