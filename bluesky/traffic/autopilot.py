@@ -10,7 +10,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, vcasormach2tas, tas2cas, cas2tas, g0
+from bluesky.tools.aero import ft, nm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools.replaceable import ReplaceableSingleton
 from .route import Route
@@ -173,10 +173,6 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
         dist = distinnm*nm  # Conversion to meters
 
-        # Check whether we are already at deceleration distance to next wp
-#        self.tas = np.where(dist < bs.traf.actwp.deceldist,
-#                            bs.traf.actwp.turnspd,
-#                           self.tas)
 
         # FMS route update
         self.update_fms(qdr, dist)
@@ -227,19 +223,28 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # LNAV commanded track angle
         self.trk = np.where(bs.traf.swlnav, qdr, self.trk)
 
-        # FMS speed guidance: anticipate accel distance
+        # FMS speed guidance: anticipate accel/decel distance for next leg or turn
 
         # Actual distance it takes to decelerate
-        nexttas  = vcasormach2tas(bs.traf.actwp.spd,bs.traf.alt)
-        tasdiff  = nexttas - bs.traf.tas # [m/s]
-        dtspdchg = np.abs(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax)) #[s]
-        dxspdchg = 0.5*np.sign(tasdiff)*np.abs(bs.traf.ax)*dtspdchg*dtspdchg + bs.traf.tas*dtspdchg #[m]
+        # Normally next leg speed (actwp.spd) but in case we fly turns with a specified turn speed
+        # use the turn speed
+        swturnspd = bs.traf.actwp.flyturn*(bs.traf.actwp.turnspd>0.001)
+        nexttas   = np.where(swturnspd,
+                             vcas2tas(bs.traf.actwp.turnspd,bs.traf.alt),
+                             vcasormach2tas(bs.traf.actwp.spd,bs.traf.alt))
+        tasdiff   = nexttas - bs.traf.tas # [m/s]
 
-        # Check also whether VNAVSPD is on, if not, SPD SEL has override
+        # dt = dv/a   dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
+        dxspdchg = swturnspd*bs.traf.actwp.turndist + np.sign(tasdiff)/np.maximum(0.01,np.abs(bs.traf.ax)) * \
+                   (bs.traf.tas+0.5*tasdiff)
+
+        # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
+        # and same for turn logic
         usespdcon      = (dist2wp < dxspdchg)*(bs.traf.actwp.spdcon > -990.) * \
                             bs.traf.swvnavspd*bs.traf.swvnav
 
-        bs.traf.selspd = np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd)
+        bs.traf.selspd = np.where(usespdcon, np.where(swturnspd,bs.traf.actwp.turnspd,
+                                                      bs.traf.actwp.spd), bs.traf.selspd)
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)

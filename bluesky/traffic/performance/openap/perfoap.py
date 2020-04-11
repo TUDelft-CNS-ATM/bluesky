@@ -1,6 +1,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
+from bluesky.tools.aero import kts,ft,fpm
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.trafficarrays import RegisterElementParameters
 from bluesky.traffic.performance.perfbase import PerfBase
@@ -384,10 +385,10 @@ class OpenAP(PerfBase):
         bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
         bs.scr.echo("Drag: %d kN" % (self.drag[acid] / 1000))
         bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
-        bs.scr.echo("Speed envelope: [%d, %d] m/s" % (self.vmin[acid], self.vmax[acid]))
+        bs.scr.echo("Speed envelope: [%d, %d] kts" % (int(self.vmin[acid]/kts), int(self.vmax[acid]/kts)))
         bs.scr.echo(
-            "Vertical speed envelope: [%d, %d] m/s"
-            % (self.vsmin[acid], self.vsmax[acid])
+            "Vertical speed envelope: [%d, %d] fpm"
+            % (int(self.vsmin[acid]/fpm), int(self.vsmax[acid]/fpm))
         )
-        bs.scr.echo("Ceiling: %d km" % (self.hmax[acid] / 1000))
+        bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
         # self.drag.astype(int)

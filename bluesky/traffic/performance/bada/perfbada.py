@@ -146,7 +146,7 @@ class PerfBADA(TrafficArrays):
             self.cf_cruise   = np.array([])   # [-]
 
             # performance
-            self.thrust         = np.array([])   # thrust
+            self.thrust      = np.array([])   # thrust
             self.D           = np.array([])   # drag
             self.fuelflow    = np.array([])   # fuel flow
 
@@ -618,3 +618,13 @@ class PerfBADA(TrafficArrays):
         # self.thrust, self.D, self.fuelflow,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
         # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
         # CD0f, kf, self.hmaxact
+
+    def show_performance(self, acid):
+        bs.scr.echo("Flight phase: %s" % self.phase[acid])
+        bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
+        bs.scr.echo("Drag: %d kN" % (self.D[acid] / 1000))
+        bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
+        bs.scr.echo("Speed envelope: Min: %d MMO: %d %.2f kts" % (int(self.vmin[acid] / kts), int(self.vmo[acid] / kts),
+                                                      self.mmo))
+         bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
+        # self.drag.astype(int)
