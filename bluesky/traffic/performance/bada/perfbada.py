@@ -627,7 +627,7 @@ class PerfBADA(TrafficArrays):
         bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
         bs.scr.echo("Drag: %d kN" % (self.D[acid] / 1000))
         bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
-        bs.scr.echo("Speed envelope: Min: %d MMO: %d %.2f kts" % (int(self.vmin[acid] / kts), int(self.vmo[acid] / kts),
+        bs.scr.echo("Speed envelope: Min: %d MMO: %d kts M %.2f" % (int(self.vmin[acid] / kts), int(self.vmo[acid] / kts),
                                                       self.mmo[acid]))
         bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
         # self.drag.astype(int)
