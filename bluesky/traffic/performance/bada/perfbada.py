@@ -67,6 +67,7 @@ class PerfBADA(TrafficArrays):
 
             self.vmo        = np.array([])   # max operating speed [m/s]
             self.mmo        = np.array([])   # max operating mach number [-]
+            self.vmax       = np.array([])   # max speed (copy of vmo)
             self.hmax       = np.array([])   # max. alt above standard MSL (ISA) at MTOW [m]
             self.hmaxact    = np.array([])   # max. alt depending on temperature gradient [m]
             self.hmo        = np.array([])   # max. operating alt abov standard MSL [m]
@@ -210,6 +211,7 @@ class PerfBADA(TrafficArrays):
         self.vmin[-n:]      = 0.0
         self.vmo[-n:]       = coeff.VMO * kts
         self.mmo[-n:]       = coeff.MMO
+        self.vmax[-n:]      = self.vmo
 
         # max. altitude parameters
         self.hmo[-n:]       = coeff.h_MO * ft
@@ -620,11 +622,13 @@ class PerfBADA(TrafficArrays):
         # CD0f, kf, self.hmaxact
 
     def show_performance(self, acid):
+        # PERF acid command
         bs.scr.echo("Flight phase: %s" % self.phase[acid])
         bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
         bs.scr.echo("Drag: %d kN" % (self.D[acid] / 1000))
         bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
         bs.scr.echo("Speed envelope: Min: %d MMO: %d %.2f kts" % (int(self.vmin[acid] / kts), int(self.vmo[acid] / kts),
-                                                      self.mmo))
-         bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
+                                                      self.mmo[acid]))
+        bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
         # self.drag.astype(int)
+        return True
