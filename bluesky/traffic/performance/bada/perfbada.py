@@ -211,7 +211,7 @@ class PerfBADA(TrafficArrays):
         self.vmin[-n:]      = 0.0
         self.vmo[-n:]       = coeff.VMO * kts
         self.mmo[-n:]       = coeff.MMO
-        self.vmax[-n:]      = self.vmo
+        self.vmax[-n:]      = self.vmo[-n:]
 
         # max. altitude parameters
         self.hmo[-n:]       = coeff.h_MO * ft
