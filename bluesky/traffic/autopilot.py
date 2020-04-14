@@ -235,7 +235,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # Is turn speed specified and are we not already slow enough? We only decelerate for turns, not accel.
         turntas       = np.where(bs.traf.actwp.turnspd>0.0, vcas2tas(bs.traf.actwp.turnspd, bs.traf.alt),
                                  -1.0+0.*bs.traf.tas)
-        swturnspd     = bs.traf.actwp.flyturn*(turntas>0.0)*(bs.traf.tas>turntas)
+        swturnspd     = bs.traf.actwp.flyturn*(turntas>0.0)*(bs.traf.tas>turntas)*(bs.traf.actwp.turnspd>0.0)
         turntasdiff   = (bs.traf.tas - turntas)*(turntas>0.0)
 
         # dt = dv/a ;  dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
