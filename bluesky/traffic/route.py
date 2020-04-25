@@ -816,11 +816,18 @@ class Route(Replaceable):
                 else:
                     txt += "M" + str(self.wpspd[i])
 
-                # Type
+                # Type: orig, dest, C = flyby, | = flyover, U = flyturn
                 if self.wptype[i] == Route.orig:
                     txt += "[orig]"
                 elif self.wptype[i] == Route.dest:
                     txt += "[dest]"
+                elif self.wpflyturn[i]:
+                    txt += "[U]"
+                elif self.wpflyby[i]:
+                    txt += "[C]"
+                else: # FLYOVER
+                    txt += "[|]"
+
 
                 # Display message
                 bs.scr.echo(txt)
