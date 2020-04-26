@@ -92,8 +92,13 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                 bs.traf.actwp.next_qdr[i] =      \
                 self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
 
-            # End of route/no more waypoints: switch off LNAV
-            bs.traf.swlnav[i] = bs.traf.swlnav[i] and lnavon
+            # End of route/no more waypoints: switch off LNAV using the lnavon
+            # switch returned by getnextwp
+            if not lnavon and bs.traf.swlnav[i]:
+                bs.traf.swlnav[i] = False
+                # Last wp: copy last wp values for alt and speed in autopilot
+                if bs.traf.swvnavspd[i] and bs.traf.actwp.nextspd[i]>= 0.0:
+                    bs.traf.selspd[i] = bs.traf.actwp.nextspd[i]
 
             # In case of no LNAV, do not allow VNAV mode on its own
             bs.traf.swvnav[i] = bs.traf.swvnav[i] and bs.traf.swlnav[i]
@@ -239,7 +244,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         turntasdiff   = (bs.traf.tas - turntas)*(turntas>0.0)
 
         # dt = dv/a ;  dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
-        dxturnspdchg  = np.where(swturnspd, turntasdiff/np.maximum(0.01,np.abs(bs.traf.ax)*(bs.traf.tas+0.5*turntasdiff)),
+        dxturnspdchg  = np.where(swturnspd, turntasdiff/np.maximum(0.01,np.abs(bs.traf.ax)*(bs.traf.tas+0.5*np.abs(turntasdiff))),
                                                                    0.0*bs.traf.tas)
 
         # Decelerate or accelerate for next required speed because of speed constraint or RTA speed
@@ -247,12 +252,15 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         tasdiff   = nexttas - bs.traf.tas # [m/s]
 
         # dt = dv/a   dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
-        dxspdchg = np.maximum(np.abs(tasdiff)/np.maximum(0.01, np.abs(bs.traf.ax)) * (bs.traf.tas+0.5*np.abs(tasdiff)),
-                              swturnspd*dxturnspdchg)
+        dxspdconchg = np.abs(tasdiff)/np.maximum(0.01, np.abs(bs.traf.ax)) * (bs.traf.tas+0.5*np.abs(tasdiff))
+
 
         # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
         # and same for turn logic
-        usespdcon = (dist2wp < dxspdchg)*(bs.traf.actwp.spdcon> -990.) * \
+        usespdcon = (dist2wp < dxspdconchg)*(bs.traf.actwp.spdcon> -990.) * \
+                            bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
+
+        useturnspd = (dist2wp < dxturnspdchg)*swturnspd * \
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
 
         # Which CAS/Mach do we have to keep? VNAV, last turn or next turn?
@@ -265,7 +273,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                                             bs.traf.actwp.oldturnspd)
 
         # Select speed
-        bs.traf.selspd = np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd)
+        bs.traf.selspd = np.where(useturnspd,bs.traf.actwp.turnspd,np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd))
 
         # Temporary override when still in old turn
         bs.traf.selspd = np.where(inoldturn*(bs.traf.actwp.oldturnspd)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
