@@ -133,12 +133,16 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             else:
                 local_next_qdr = bs.traf.actwp.next_qdr[i]
 
+            # Get flyturn switches and data
             bs.traf.actwp.flyturn[i]     = flyturn
             bs.traf.actwp.turnrad[i]     = turnrad
 
             # Keep both turning speeds: turn to leg and turn from leg
             bs.traf.actwp.oldturnspd[i]  = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
-            bs.traf.actwp.turnspd[i]     = turnspd                  # new turnspd, turning by next waypoint
+            if bs.traf.actwp.flyturn[i]:
+                bs.traf.actwp.turnspd[i] = turnspd                  # new turnspd, turning by next waypoint
+            else:
+                bs.traf.actwp.turnspd[i] = -990.
 
             # Calculate turn dist (and radius which we do not use) now for scalar variable [i]
             bs.traf.actwp.turndist[i], dummy = \
