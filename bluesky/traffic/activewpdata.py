@@ -66,7 +66,7 @@ class ActiveWaypoint(ReplaceableSingleton, TrafficArrays):
 
         # Ratio between distance close enough to switch to next wp when flying away
         # When within pro1 nm and flying away: switch also
-        proxfact = 1.01 # Turnradius scales this contant , factor => [turnrad]
+        proxfact = 1.02 # Turnradius scales this contant , factor => [turnrad]
         incircle = dist<turnrad*proxfact
         circling = away*incircle # [True/False] passed wp,used for flyover as well
 

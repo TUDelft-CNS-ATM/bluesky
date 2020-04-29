@@ -156,6 +156,10 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                 bs.traf.actwp.calcturn(bs.traf.tas[i], bs.traf.bank[i],
                                         qdr[i], local_next_qdr,turnrad)  # update turn distance for VNAV
 
+            # Reduce turn dist for reduced turnspd
+            if bs.traf.actwp.flyturn[i] and bs.traf.actwp.turnrad[i]<0.0 and bs.traf.actwp.turnspd[i]>0.:
+                turntas = cas2tas(bs.traf.actwp.turnspd[i], bs.traf.alt[i])
+                bs.traf.actwp.turndist[i] = bs.traf.actwp.turndist[i]*turntas*turntas/(bs.traf.tas[i]*bs.traf.tas[i])
 
             # VNAV = FMS ALT/SPD mode incl. RTA
             self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i], bs.traf.actwp.torta[i],
