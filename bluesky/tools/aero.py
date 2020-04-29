@@ -161,7 +161,7 @@ def vcas2mach(cas, h):
     return M
 
 def vcasormach(spd, h):
-    ismach = np.logical_and(0.1 < spd, spd < 2.0)
+    ismach = np.logical_and(spd > 0.1, spd < 2.0)
     tas = np.where(ismach, vmach2tas(spd, h), vcas2tas(spd, h))
     cas = np.where(ismach, vtas2cas(tas, h), spd)
     m   = np.where(ismach, spd, vtas2mach(tas, h))

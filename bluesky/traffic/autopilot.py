@@ -8,6 +8,7 @@ except ImportError:
     from collections import Collection
 import bluesky as bs
 from bluesky.tools import geo
+from bluesky.tools.misc import degto180
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
@@ -137,6 +138,12 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             bs.traf.actwp.flyturn[i]     = flyturn
             bs.traf.actwp.turnrad[i]     = turnrad
 
+            # Pass on whether currently flyturn mode:
+            # at beginning of leg,c copy tonextwp to lastwp
+            # set next turn False
+            bs.traf.actwp.turnfromlastwp[i] = bs.traf.actwp.turntonextwp[i]
+            bs.traf.actwp.turntonextwp[i]   = False
+
             # Keep both turning speeds: turn to leg and turn from leg
             bs.traf.actwp.oldturnspd[i]  = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
             if bs.traf.actwp.flyturn[i]:
@@ -244,44 +251,64 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # Is turn speed specified and are we not already slow enough? We only decelerate for turns, not accel.
         turntas       = np.where(bs.traf.actwp.turnspd>0.0, vcas2tas(bs.traf.actwp.turnspd, bs.traf.alt),
                                  -1.0+0.*bs.traf.tas)
-        swturnspd     = bs.traf.actwp.flyturn*(turntas>0.0)*(bs.traf.tas>turntas)*(bs.traf.actwp.turnspd>0.0)
-        turntasdiff   = (bs.traf.tas - turntas)*(turntas>0.0)
+        swturnspd     = bs.traf.actwp.flyturn*(turntas>0.0)*(bs.traf.actwp.turnspd>0.0)
+        turntasdiff   = np.maximum(0.,(bs.traf.tas - turntas)*(turntas>0.0))
 
         # dt = dv/a ;  dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
-        dxturnspdchg  = np.where(swturnspd, turntasdiff/np.maximum(0.01,np.abs(bs.traf.ax)*(bs.traf.tas+0.5*np.abs(turntasdiff))),
+        ax = bs.traf.perf.acceleration()
+        dxturnspdchg  = np.where(swturnspd, np.abs(turntasdiff)/np.maximum(0.01,ax)*(bs.traf.tas+0.5*np.abs(turntasdiff)),
                                                                    0.0*bs.traf.tas)
 
         # Decelerate or accelerate for next required speed because of speed constraint or RTA speed
-        nexttas   = vcasormach2tas(bs.traf.actwp.spd,bs.traf.alt)
-        tasdiff   = nexttas - bs.traf.tas # [m/s]
+        nexttas   = vcasormach2tas(bs.traf.actwp.nextspd,bs.traf.alt)
+        tasdiff   = (nexttas - bs.traf.tas)*(bs.traf.actwp.spd>=0.) # [m/s]
 
         # dt = dv/a   dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
-        dxspdconchg = np.abs(tasdiff)/np.maximum(0.01, np.abs(bs.traf.ax)) * (bs.traf.tas+0.5*np.abs(tasdiff))
+        dxspdconchg = np.abs(tasdiff)/np.maximum(0.01, np.abs(ax)) * (bs.traf.tas+0.5*np.abs(tasdiff))
 
 
         # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
         # and same for turn logic
-        usespdcon = (dist2wp < dxspdconchg)*(bs.traf.actwp.spdcon> -990.) * \
+        usenextspdcon = (dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd> -990.) * \
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
+        useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,(dist2wp < dxturnspdchg)*swturnspd * \
+                            bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav)
 
-        useturnspd = (dist2wp < dxturnspdchg)*swturnspd * \
-                            bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
+        # Hold turn mode can only be switched on here, cannot be switched off here (happeps upon passing wp)
+        bs.traf.actwp.turntonextwp = np.logical_or(bs.traf.actwp.turntonextwp,useturnspd)
 
         # Which CAS/Mach do we have to keep? VNAV, last turn or next turn?
-        oncurrentleg = (abs(bs.traf.trk - qdr) < 2.0)
-        inoldturn    = (bs.traf.actwp.oldturnspd > 0.) * np.logical_not(oncurrentleg)   # [deg]
+        oncurrentleg = (abs(degto180(bs.traf.trk - qdr)) < 2.0) # [deg]
+        inoldturn    = (bs.traf.actwp.oldturnspd > 0.) * np.logical_not(oncurrentleg)
 
-        # Avoid using old turning speeds when turning of this leg ot the next leg
+        # Avoid using old turning speeds when turning of this leg to the next leg
         # by disabling (old) turningspd when on leg
-        bs.traf.actwp.oldturnspd = np.where(oncurrentleg*bs.traf.actwp.oldturnspd, -999.,
+        bs.traf.actwp.oldturnspd = np.where(oncurrentleg*(bs.traf.actwp.oldturnspd>0.), -999.,
                                             bs.traf.actwp.oldturnspd)
 
-        # Select speed
-        bs.traf.selspd = np.where(useturnspd,bs.traf.actwp.turnspd,np.where(usespdcon, bs.traf.actwp.spd, bs.traf.selspd))
+        # turnfromlastwp can only be switched off here, not on (latter happens upon passing wp)
+        bs.traf.actwp.turnfromlastwp = np.logical_and(bs.traf.actwp.turnfromlastwp,inoldturn)
+
+        # Select speed: turn sped, next speed constraint, or current speed constraint
+        bs.traf.selspd = np.where(useturnspd,bs.traf.actwp.turnspd,
+                                  np.where(usenextspdcon, bs.traf.actwp.nextspd,
+                                           np.where(bs.traf.actwp.spdcon>0,bs.traf.actwp.spd,bs.traf.selspd)))
+
 
         # Temporary override when still in old turn
-        bs.traf.selspd = np.where(inoldturn*(bs.traf.actwp.oldturnspd)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
+        bs.traf.selspd = np.where(inoldturn*(bs.traf.actwp.oldturnspd>0.)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
                                   bs.traf.actwp.oldturnspd,bs.traf.selspd)
+
+        #debug if inoldturn[0]:
+        #debug     print("inoldturn bs.traf.trk =",bs.traf.trk[0],"qdr =",qdr)
+        #debug elif usenextspdcon[0]:
+        #debug     print("usenextspdcon")
+        #debug elif useturnspd[0]:
+        #debug     print("useturnspd")
+        #debug elif bs.traf.actwp.spdcon>0:
+        #debug     print("using current speed constraint")
+        #debug else:
+        #debug     print("no speed given")
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
