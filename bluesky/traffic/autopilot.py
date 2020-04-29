@@ -271,8 +271,8 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # and same for turn logic
         usenextspdcon = (dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd> -990.) * \
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
-        useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,(dist2wp < dxturnspdchg)*swturnspd * \
-                            bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav)
+        useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,(dist2wp < dxturnspdchg+bs.traf.actwp.turndist) *\
+                                                              swturnspd*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav)
 
         # Hold turn mode can only be switched on here, cannot be switched off here (happeps upon passing wp)
         bs.traf.actwp.turntonextwp = np.logical_or(bs.traf.actwp.turntonextwp,useturnspd)
@@ -292,7 +292,8 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # Select speed: turn sped, next speed constraint, or current speed constraint
         bs.traf.selspd = np.where(useturnspd,bs.traf.actwp.turnspd,
                                   np.where(usenextspdcon, bs.traf.actwp.nextspd,
-                                           np.where(bs.traf.actwp.spdcon>0,bs.traf.actwp.spd,bs.traf.selspd)))
+                                           np.where((bs.traf.actwp.spdcon>0)*bs.traf.swvnavspd,bs.traf.actwp.spd,
+                                                                            bs.traf.selspd)))
 
 
         # Temporary override when still in old turn
