@@ -16,7 +16,8 @@ from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools.replaceable import ReplaceableSingleton
 from .route import Route
 
-bs.settings.set_variable_defaults(fms_dt=1.0)
+bs.settings.set_variable_defaults(fms_dt=10.5)
+
 
 class Autopilot(ReplaceableSingleton, TrafficArrays):
     def __init__(self):
@@ -40,7 +41,11 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             self.swvnavvs = np.array([])  # whether to use given VS or not
             self.vnavvs   = np.array([])  # vertical speed in VNAV
 
-            # Traffic navigation information
+            # LNAV variables
+            self.qdr2wp   = np.array([]) # Direction to waypoint from the last time passing was checked
+                                         # to avoid 180 turns due to updated qdr shortly before passing wp
+
+             # Traffic navigation information
             self.orig = []  # Four letter code of origin airport
             self.dest = []  # Four letter code of destination airport
 
@@ -55,6 +60,10 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         self.trk[-n:] = bs.traf.trk[-n:]
         self.alt[-n:] = bs.traf.alt[-n:]
 
+        # LNAV variables
+        self.qdr2wp[-n:] = -999   # Direction to waypoint from the last time passing was checked
+        # to avoid 180 turns due to updated qdr shortly before passing wp
+
         # VNAV Variables
         self.dist2vs[-n:] = -999.
 
@@ -63,6 +72,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
 
     @timed_function('fms', dt=bs.settings.fms_dt)
     def update_fms(self, qdr, dist):
+
         # Shift waypoints for aircraft i where necessary
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
                                        bs.traf.actwp.flyturn,bs.traf.actwp.turnrad):
@@ -166,6 +176,8 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                              bs.traf.actwp.xtorta[i])
 
         # End of per waypoint i switching loop
+        # Update qdr2wp with up-to-date qdr, now that we have chekced passing wp
+        self.qdr2wp = qdr%360.
 
         # Continuous guidance when speed constraint on active leg is in update-method
 
@@ -195,9 +207,8 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
         dist2wp = distinnm*nm  # Conversion to meters
 
-
         # FMS route update and possibly waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
-        self.update_fms(qdr, dist2wp)
+        self.update_fms(qdr, dist2wp) # Updates self.qdr2wp when necessary
 
         #================= Continuous FMS guidance ========================
 
@@ -243,7 +254,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         bs.traf.selalt = np.where(self.swvnavvs,bs.traf.actwp.nextaltco,bs.traf.selalt)
 
         # LNAV commanded track angle
-        self.trk = np.where(bs.traf.swlnav, qdr, self.trk)
+        self.trk = np.where(bs.traf.swlnav, self.qdr2wp, self.trk)
 
         # FMS speed guidance: anticipate accel/decel distance for next leg or turn
 
@@ -508,7 +519,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[iab], bs.traf.lon[iab], bs.traf.alt[iab])
             gsnorth = tasnorth + vnwnd
             gseast = taseast + vewnd
-            self.trk[iab] = np.degrees(np.arctan2(gseast, gsnorth))
+            self.trk[iab] = np.degrees(np.arctan2(gseast, gsnorth))%360.
             self.trk[ibel] = hdg
         else:
             self.trk[idx] = hdg
