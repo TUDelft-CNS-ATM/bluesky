@@ -839,7 +839,7 @@ def init(startup_scnfile):
 
     # Load initial scenario if passed
     if startup_scnfile:
-        ic(startup_scnfile)
+        stack(f'IC {startup_scnfile}')
 
 
 def sender():
