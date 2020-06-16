@@ -134,7 +134,7 @@ class Traffic(TrafficArrays):
             # Group Logic
             self.groups = TrafficGroups()
 
-            # Traffic performance data
+            # Traffic autopilot data
             self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
             self.aphi     = np.array([])  # [rad] bank angle setting of autopilot
             self.ax       = np.array([])  # [m/s2] absolute value of longitudinal accelleration
@@ -155,6 +155,7 @@ class Traffic(TrafficArrays):
             # Miscallaneous
             self.coslat = np.array([])  # Cosine of latitude for computations
             self.eps    = np.array([])  # Small nonzero numbers
+            self.work   = np.array([])  # Work done throughout the flight
 
         # Default bank angles per flight phase
         self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
@@ -477,6 +478,10 @@ class Traffic(TrafficArrays):
 
             self.trk = np.logical_not(applywind)*self.hdg + \
                        applywind*np.degrees(np.arctan2(self.gseast, self.gsnorth)) % 360.
+
+        self.work += (self.perf.thrust * bs.sim.simdt * np.sqrt(self.gs * self.gs + self.vs * self.vs))
+
+
 
     def update_pos(self):
         # Update position

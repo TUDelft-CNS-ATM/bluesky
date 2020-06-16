@@ -123,7 +123,6 @@ class Area(TrafficArrays):
             self.dstart2D = np.array([])
             self.dstart3D = np.array([])
             self.workstart = np.array([])
-            self.work = np.array([])
             self.entrytime = np.array([])
             self.create_time = np.array([])
 
@@ -152,8 +151,7 @@ class Area(TrafficArrays):
             resultantspd = np.sqrt(traf.gs * traf.gs + traf.vs * traf.vs)
             self.distance2D += dt * traf.gs
             self.distance3D += dt * resultantspd
-            self.work += (traf.perf.thrust * dt * resultantspd)
-
+            
             # Find out which aircraft are currently inside the experiment area, and
             # determine which aircraft need to be deleted.
             insdel = areafilter.checkInside(self.delarea, traf.lat, traf.lon, traf.alt)
@@ -195,7 +193,7 @@ class Area(TrafficArrays):
             newentries = np.logical_not(self.insexp) * insexp
             self.dstart2D[newentries] = self.distance2D[newentries]
             self.dstart3D[newentries] = self.distance3D[newentries]
-            self.workstart[newentries] = self.work[newentries]
+            self.workstart[newentries] = traf.work[newentries]
             self.entrytime[newentries] = sim.simt
 
             # Log flight statistics when exiting experiment area
@@ -210,7 +208,7 @@ class Area(TrafficArrays):
                     sim.simt - self.entrytime[exits],
                     (self.distance2D[exits] - self.dstart2D[exits])/nm,
                     (self.distance3D[exits] - self.dstart3D[exits])/nm,
-                    (self.work[exits] - self.workstart[exits])*1e-6,
+                    (traf.work[exits] - self.workstart[exits])*1e-6,
                     traf.lat[exits],
                     traf.lon[exits],
                     traf.alt[exits]/ft,
