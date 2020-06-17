@@ -1,7 +1,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
-from bluesky.tools.aero import kts,ft,fpm
+from bluesky.tools.aero import kts, ft, fpm
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.trafficarrays import RegisterElementParameters
 from bluesky.traffic.performance.perfbase import PerfBase
@@ -169,7 +169,7 @@ class OpenAP(PerfBase):
             self.cd0_ld[-n:] = np.nan
             self.k_ld[-n:] = np.nan
             self.delta_cd_gear[-n:] = np.nan
-        else: # Use default B747-400
+        else:  # Use default B747-400
             print("Open AP (perfoap.py): Unknown actype, using default B744 instead.")
             self.vminic[-n:] = self.coeff.limits_fixwing["B744"]["vminic"]
             self.vminer[-n:] = self.coeff.limits_fixwing["B744"]["vminer"]
@@ -293,7 +293,16 @@ class OpenAP(PerfBase):
         return None
 
     def limits(self, intent_v_tas, intent_vs, intent_h, ax):
-        """ apply limits on indent speed, vertical speed, and altitude (called in pilot module)"""
+        """ apply limits on indent speed, vertical speed, and altitude (called in pilot module)
+
+        Args:
+            intent_v_tas (float or 1D-array): intent true airspeed
+            intent_vs (float or 1D-array): intent vertical speed
+            intent_h (float or 1D-array): intent altitude
+            ax (float or 1D-array): acceleration
+        Returns:
+            floats or 1D-arrays: Allowed TAS, Allowed vetical rate, Allowed altitude
+        """
         super(OpenAP, self).limits(intent_v_tas, intent_vs, intent_h)
 
         allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
@@ -316,6 +325,20 @@ class OpenAP(PerfBase):
         )  # takeoff aircraft
 
         return allow_v_tas, allow_vs, allow_h
+
+    def currentlimits(self, id=None):
+        """Get current kinematic performance envelop.
+
+        Args:
+            id (int or 1D-array): Aircraft ID(s). Defualt to None (all aircraft).
+
+        Returns:
+            floats or 1D-arrays: Min CAS, Max CAS, Min VS, Max VS
+        """
+        if id is not None:
+            return self.vmin[id], self.vmax[id], self.vsmin[id], self.vsmax[id]
+        else:
+            return self.vmin, self.vmax, self.vsmin, self.vsmax
 
     def _construct_v_limits(self, actypes, phases):
         """Compute speed limist base on aircraft model and flight phases
@@ -385,10 +408,13 @@ class OpenAP(PerfBase):
         bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
         bs.scr.echo("Drag: %d kN" % (self.drag[acid] / 1000))
         bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
-        bs.scr.echo("Speed envelope: [%d, %d] kts" % (int(self.vmin[acid]/kts), int(self.vmax[acid]/kts)))
+        bs.scr.echo(
+            "Speed envelope: [%d, %d] kts"
+            % (int(self.vmin[acid] / kts), int(self.vmax[acid] / kts))
+        )
         bs.scr.echo(
             "Vertical speed envelope: [%d, %d] fpm"
-            % (int(self.vsmin[acid]/fpm), int(self.vsmax[acid]/fpm))
+            % (int(self.vsmin[acid] / fpm), int(self.vsmax[acid] / fpm))
         )
         bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
         # self.drag.astype(int)

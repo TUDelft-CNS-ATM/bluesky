@@ -32,6 +32,11 @@ class PerfBase(TrafficArrays):
         """implement this method """
         pass
 
+    def currentlimits(self):
+        """implement this method """
+        # Get current kinematic performance envelop of all aircraft
+        pass
+
     def engchange(self):
         """implement this method """
         pass
