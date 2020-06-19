@@ -55,13 +55,13 @@ void main()
 		case VERTEX_IS_METERS:
 			// Vertex coordinates in meters use a right-handed coordinate system, where the positive x-axis points to the north
 			// The elements in each vertex therefore need to be flipped
-			gl_Position = vec4(vAR * zoom * (flat_earth * position + mrot * (degrees(vertex_in.yx * REARTH_INV))), 0.0, 1.0);
+			gl_Position = vec4(vAR * zoom * (flat_earth * position + degrees(vertex_in.yx * REARTH_INV)), 0.0, 1.0);
 			texcoords_fs = texcoords_in.ts;
 			break;
 		case VERTEX_IS_LATLON:
 		default:
 			// Lat/lon vertex coordinates are flipped: lat is index 0, but screen y-axis, and lon is index 1, but screen x-axis
-			gl_Position = vec4(vAR * flat_earth * zoom * (position + mrot * vertex_in.yx), 0.0, 1.0);
+			gl_Position = vec4(vAR * flat_earth * zoom * (position + vertex_in.yx), 0.0, 1.0);
 			texcoords_fs = texcoords_in.ts;
 			break;	
 	}
