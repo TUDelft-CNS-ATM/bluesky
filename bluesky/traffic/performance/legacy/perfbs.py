@@ -249,15 +249,15 @@ class PerfBS(TrafficArrays):
         descent = np.array(delalt< -epsalt)
 
         # energy share factor
-        delspd = bs.traf.pilot.tas - bs.traf.tas
+        delspd = bs.traf.aporasas.tas - bs.traf.tas
         selmach = bs.traf.selspd < 2.0
         self.ESF = esf(bs.traf.alt, bs.traf.M, climb, descent, delspd, selmach)
 
         # determine thrust
         self.thrust = (((bs.traf.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.tas))) + self.D)
         # determine thrust required to fulfill requests from pilot
-        # self.thrust_pilot = (((bs.traf.pilot.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.pilot.tas))) + self.D)
-        self.thrust_pilot = (((bs.traf.ap.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.pilot.tas))) + self.D)
+        # self.thrust_pilot = (((bs.traf.aporasas.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.aporasas.tas))) + self.D)
+        self.thrust_pilot = (((bs.traf.ap.vs*self.mass*g0)/(self.ESF*np.maximum(bs.traf.eps, bs.traf.aporasas.tas))) + self.D)
 
         # maximum thrust jet (Bruenig et al., p. 66):
         mt_jet = self.rated_thrust*(bs.traf.rho/rho0)**0.75
@@ -311,7 +311,7 @@ class PerfBS(TrafficArrays):
         self.post_flight = np.where(descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
-        bs.traf.pilot.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.tas)
+        bs.traf.aporasas.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.aporasas.tas)
         # the impulse for reducing the speed to 0 should only be given once,
         # otherwise taxiing will be impossible afterwards
         self.pf_flag = np.where ((bs.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
@@ -342,7 +342,7 @@ class PerfBS(TrafficArrays):
         bs.traf.limalt,          \
         bs.traf.limalt_flag,     \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.pilot.tas, bs.traf.alt), \
+        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.aporasas.tas, bs.traf.alt), \
                                         bs.traf.gs,          \
                                         self.vmto,           \
                                         self.vmin,           \
@@ -351,8 +351,8 @@ class PerfBS(TrafficArrays):
                                         bs.traf.M,           \
                                         bs.traf.alt,         \
                                         self.hmaxact,        \
-                                        bs.traf.pilot.alt,   \
-                                        bs.traf.pilot.vs,    \
+                                        bs.traf.aporasas.alt,   \
+                                        bs.traf.aporasas.vs,    \
                                         self.maxthr,         \
                                         self.thrust_pilot,      \
                                         self.D,              \

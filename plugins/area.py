@@ -216,10 +216,10 @@ class Area(TrafficArrays):
                     traf.vs[exits]/fpm,
                     traf.hdg[exits],
                     traf.cr.active[exits],
-                    traf.pilot.alt[exits]/ft,
-                    traf.pilot.tas[exits]/kts,
-                    traf.pilot.vs[exits]/fpm,
-                    traf.pilot.hdg[exits])
+                    traf.aporasas.alt[exits]/ft,
+                    traf.aporasas.tas[exits]/kts,
+                    traf.aporasas.vs[exits]/fpm,
+                    traf.aporasas.hdg[exits])
 
             # delete all aicraft in self.delidx
             if len(delidx) > 0:

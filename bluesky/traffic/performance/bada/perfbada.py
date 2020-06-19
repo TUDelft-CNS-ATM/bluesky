@@ -368,7 +368,7 @@ class PerfBADA(TrafficArrays):
         lvl = np.array(np.abs(delalt)<0.0001)*1
 
         # energy share factor
-        delspd = bs.traf.pilot.tas - bs.traf.tas
+        delspd = bs.traf.aporasas.tas - bs.traf.tas
         selmach = bs.traf.selspd < 2.0
         self.ESF = esf(bs.traf.alt, bs.traf.M, climb, descent, delspd, selmach)
 
@@ -447,7 +447,7 @@ class PerfBADA(TrafficArrays):
         # switch for given vertical speed selvs
         if (bs.traf.selvs.any()>0.) or (bs.traf.selvs.any()<0.):
             # thrust = f(selvs)
-            T = ((bs.traf.selvs!=0)*(((bs.traf.pilot.vs*self.mass*g0)/     \
+            T = ((bs.traf.selvs!=0)*(((bs.traf.aporasas.vs*self.mass*g0)/     \
                       (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
                       + self.D)) + ((bs.traf.selvs==0)*T)
 
@@ -537,7 +537,7 @@ class PerfBADA(TrafficArrays):
         self.post_flight = np.where(descent, True, self.post_flight)
 
         # when landing, we would like to stop the aircraft.
-        bs.traf.pilot.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.pilot.tas)
+        bs.traf.aporasas.tas = np.where((bs.traf.alt <0.5)*(self.post_flight)*self.pf_flag, 0.0, bs.traf.aporasas.tas)
 
 
         # otherwise taxiing will be impossible afterwards
@@ -575,7 +575,7 @@ class PerfBADA(TrafficArrays):
         bs.traf.limalt,          \
         bs.traf.limalt_flag,      \
         bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.pilot.tas, bs.traf.alt),   \
+        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.aporasas.tas, bs.traf.alt),   \
                                         bs.traf.gs,            \
                                         self.vmto,             \
                                         self.vmin,             \
@@ -584,8 +584,8 @@ class PerfBADA(TrafficArrays):
                                         bs.traf.M,             \
                                         bs.traf.alt,           \
                                         self.hmaxact,          \
-                                        bs.traf.pilot.alt,     \
-                                        bs.traf.pilot.vs,      \
+                                        bs.traf.aporasas.alt,     \
+                                        bs.traf.aporasas.vs,      \
                                         self.maxthr,           \
                                         self.thrust,              \
                                         self.D,                \

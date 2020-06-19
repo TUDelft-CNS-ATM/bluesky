@@ -12,7 +12,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
-                         vatmos,  vtas2cas, vtas2mach, vcasormach
+                         vatmos,  vtas2cas, vtas2mach, vcasormach, vcas2tas
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
@@ -21,7 +21,7 @@ from .windsim import WindSim
 from .conditional import Condition
 from .trails import Trails
 from .adsbmodel import ADSB
-from .pilot import Pilot
+from .aporasas import APorASAS
 from .autopilot import Autopilot
 from .activewpdata import ActiveWaypoint
 from .turbulence import Turbulence
@@ -122,14 +122,14 @@ class Traffic(TrafficArrays):
             self.swvnavspd = np.array([], dtype=np.bool)
 
             # Flight Models
-            self.cd = ConflictDetection()
-            self.cr = ConflictResolution()
-            self.ap = Autopilot()
-            self.pilot = Pilot()
-            self.adsb = ADSB()
-            self.trails = Trails()
-            self.actwp = ActiveWaypoint()
-            self.perf = Perf()
+            self.cd       = ConflictDetection()
+            self.cr       = ConflictResolution()
+            self.ap       = Autopilot()
+            self.aporasas = APorASAS()
+            self.adsb     = ADSB()
+            self.trails   = Trails()
+            self.actwp    = ActiveWaypoint()
+            self.perf     = Perf()
             
             # Group Logic
             self.groups = TrafficGroups()
@@ -392,13 +392,13 @@ class Traffic(TrafficArrays):
         #---------- Fly the Aircraft --------------------------
         self.ap.update()  # Autopilot logic
         self.update_asas()  # Airborne Separation Assurance
-        self.pilot.APorASAS()    # Decide autopilot or ASAS
+        self.aporasas.update()   # Decide to use autopilot or ASAS for commands
 
         #---------- Performance Update ------------------------
         self.perf.update()
 
-        #---------- Limit Speeds ------------------------------
-        self.pilot.applylimits()
+        #---------- Limit commanded speeds based on performance ------------------------------
+        self.applylimits()
 
         #---------- Kinematics --------------------------------
         self.update_airspeed()
@@ -421,14 +421,35 @@ class Traffic(TrafficArrays):
         self.cd.update(self, self)
         self.cr.update(self.cd, self, self)
 
+    def applylimits(self):
+        # check for the flight envelope
+        if bs.settings.performance_model == 'openap':
+            self.aporasas.tas, self.aporasas.vs, self.aporasas.alt = \
+                self.perf.limits(self.aporasas.tas, self.aporasas.vs, \
+                                 self.aporasas.alt, self.ax)
+
+        else:
+            self.perf.limits()  # Sets limspd_flag and limspd when it needs to be limited
+
+            # Update desired sates with values within the flight envelope
+            # When CAS is limited, it needs to be converted to TAS as only this TAS is used later on!
+
+            self.aporasas.tas = np.where(self.limspd_flag, vcas2tas(self.limspd, self.alt), self.aporasas.tas)
+
+            # Autopilot selected altitude [m]
+            self.aporasas.alt = np.where(self.limalt_flag, bs.traf.limalt, self.aporasas.alt)
+
+            # Autopilot selected vertical speed (V/S)
+            self.aporasas.vs = np.where(self.limvs_flag, self.limvs, self.aporasas.vs)
+
     def update_airspeed(self):
         # Compute horizontal acceleration
-        delta_spd = self.pilot.tas - self.tas
+        delta_spd = self.aporasas.tas - self.tas
         ax = self.perf.acceleration()
         need_ax = np.abs(delta_spd) > np.abs(bs.sim.simdt * ax)
         self.ax = need_ax * np.sign(delta_spd) * ax
         # Update velocities
-        self.tas = np.where(need_ax, self.tas + self.ax * bs.sim.simdt, self.pilot.tas)
+        self.tas = np.where(need_ax, self.tas + self.ax * bs.sim.simdt, self.aporasas.tas)
         self.cas = vtas2cas(self.tas, self.alt)
         self.M = vtas2mach(self.tas, self.alt)
 
@@ -436,18 +457,18 @@ class Traffic(TrafficArrays):
 
         turnrate = np.degrees(g0 * np.tan(np.where(self.aphi>self.eps,self.aphi,self.bank) \
                                           / np.maximum(self.tas, self.eps)))
-        delhdg = (self.pilot.hdg - self.hdg + 180) % 360 - 180  # [deg]
+        delhdg = (self.aporasas.hdg - self.hdg + 180) % 360 - 180  # [deg]
         self.swhdgsel = np.abs(delhdg) > np.abs(bs.sim.simdt * turnrate)
 
         # Update heading
         self.hdg = np.where(self.swhdgsel, 
-                            self.hdg + bs.sim.simdt * turnrate * np.sign(delhdg), self.pilot.hdg) % 360.0
+                            self.hdg + bs.sim.simdt * turnrate * np.sign(delhdg), self.aporasas.hdg) % 360.0
 
         # Update vertical speed
-        delta_alt = self.pilot.alt - self.alt
+        delta_alt = self.aporasas.alt - self.alt
         self.swaltsel = np.abs(delta_alt) > np.maximum(
             10 * ft, np.abs(2 * np.abs(bs.sim.simdt * self.vs)))
-        target_vs = self.swaltsel * np.sign(delta_alt) * np.abs(self.pilot.vs)
+        target_vs = self.swaltsel * np.sign(delta_alt) * np.abs(self.aporasas.vs)
         delta_vs = target_vs - self.vs
         # print(delta_vs / fpm)
         need_az = np.abs(delta_vs) > 300 * fpm   # small threshold
@@ -482,10 +503,9 @@ class Traffic(TrafficArrays):
         self.work += (self.perf.thrust * bs.sim.simdt * np.sqrt(self.gs * self.gs + self.vs * self.vs))
 
 
-
     def update_pos(self):
         # Update position
-        self.alt = np.where(self.swaltsel, np.round(self.alt + self.vs * bs.sim.simdt, 6), self.pilot.alt)
+        self.alt = np.where(self.swaltsel, np.round(self.alt + self.vs * bs.sim.simdt, 6), self.aporasas.alt)
         self.lat = self.lat + np.degrees(bs.sim.simdt * self.gsnorth / Rearth)
         self.coslat = np.cos(np.deg2rad(self.lat))
         self.lon = self.lon + np.degrees(bs.sim.simdt * self.gseast / self.coslat / Rearth)
