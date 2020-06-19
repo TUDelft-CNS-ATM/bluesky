@@ -33,6 +33,25 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
             self.alt = np.array([])  # alt provided by the ASAS [m]
             self.vs = np.array([])  # vspeed provided by the ASAS [m/s]
 
+    # By default all channels are controlled by self.active, but they can be overloaded with separate
+    # variables or functions in a derived ASAS Conflict Resolution class
+    # ( @property decorator takes away need for brackets when calling it so it can be overloaded by a variable)
+    @property
+    def hdgactive(self):
+        return self.active
+
+    @property
+    def vsactive(self):
+        return self.active
+
+    @property
+    def altactive(self):
+        return self.active
+
+    @property
+    def tasactive(self):
+        return self.active
+
     def resolve(self, conf, ownship, intruder):
         '''
             Resolve all current conflicts.

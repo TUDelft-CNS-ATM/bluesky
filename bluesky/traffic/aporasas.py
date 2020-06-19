@@ -34,11 +34,13 @@ class APorASAS(TrafficArrays):
         else:
             asastas = bs.traf.cr.tas # TAS [m/s]
 
-        # Determine desired states from ASAS or AP. Select asas if there is a conflict AND resolution is on.
-        self.trk = np.where(bs.traf.cr.active, bs.traf.cr.trk, bs.traf.ap.trk)
-        self.tas = np.where(bs.traf.cr.active, asastas, bs.traf.ap.tas)
-        self.alt = np.where(bs.traf.cr.active, bs.traf.cr.alt, bs.traf.ap.alt)
-        self.vs  = np.where(bs.traf.cr.active, bs.traf.cr.vs, bs.traf.ap.vs)
+        # Select asas if there is a conflict AND resolution is on
+        # Determine desired states per channel whether to use value from ASAS or AP.
+        # bs.traf.cr.active may be used as well, will set all of these channels
+        self.trk = np.where(bs.traf.cr.hdgactive, bs.traf.cr.trk, bs.traf.ap.trk)
+        self.tas = np.where(bs.traf.cr.tasactive, asastas, bs.traf.ap.tas)
+        self.alt = np.where(bs.traf.cr.altactive, bs.traf.cr.alt, bs.traf.ap.alt)
+        self.vs  = np.where(bs.traf.cr.vsactive, bs.traf.cr.vs, bs.traf.ap.vs)
 
         # ASAS can give positive and negative VS, but the sign of VS is determined using delalt in Traf.ComputeAirSpeed
         # Therefore, ensure that pilot.vs is always positive to prevent opposite signs of delalt and VS in Traf.ComputeAirSpeed
