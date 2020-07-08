@@ -371,9 +371,6 @@ class Traffic(TrafficArrays):
         # Call the actual delete function
         super(Traffic, self).delete(idx)
 
-        # Update conditions list
-        self.cond.delac(idx)
-
         # Update number of aircraft
         self.ntraf = len(self.lat)
         return True
