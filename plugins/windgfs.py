@@ -7,9 +7,10 @@ import requests
 import bluesky as bs
 from bluesky import settings, stack
 
-base_url = "http://nomads.ncdc.noaa.gov/data/gfsanl"
+settings.set_variable_defaults(
+    windgfs_url="https://www.ncei.noaa.gov/data/global-forecast-system/access/historical/analysis/")
 
-nlayer = 23
+# nlayer = 23
 
 datadir = settings.data_path + '/grib/'
 
@@ -61,7 +62,7 @@ class WindGFS():
         fname = "gfsanl_3_%s_%s_%s.grb2" % (ymd, hm, pred)
         fpath = datadir + fname
 
-        remote_url = base_url + remote_loc
+        remote_url = settings.windgfs_url + remote_loc
 
         if not os.path.isfile(fpath):
             bs.scr.echo("Downloading file, please wait...")
@@ -132,7 +133,7 @@ class WindGFS():
         lat0_ = min(lat0, lat1)
         lat1_ = max(lat0, lat1)
         lon0_ = min(lon0, lon1)
-        lon1_ = max(lon0, lat1)
+        lon1_ = max(lon0, lon1)
 
         mask = (lats > lat0_) & (lats < lat1_) & (lons > lon0_) & (lons < lon1_)
 
