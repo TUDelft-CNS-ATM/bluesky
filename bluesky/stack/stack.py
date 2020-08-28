@@ -116,7 +116,9 @@ cmdsynon = {
     "PREDASAS": "TMX",
     "RENAME": "TMX",
     "RETYPE": "TMX",
+    "SETTHR": "THR",
     "SWNLRPASAS": "TMX",
+    "THROTTLE": "THR",
     "TRAFRECDT": "TMX",
     "TRAFLOGDT": "TMX",
     "TREACT": "TMX",
@@ -755,6 +757,12 @@ def init(startup_scnfile):
             "txt,[...]",
             syn.process,
             "Macro for generating synthetic (geometric) traffic scenarios",
+        ],
+        "THR": [
+            "THR acid, IDLE/0.0/throttlesetting/1.0/AUTO(default)",
+            "acid[,txt]",
+            bs.traf.setthrottle,
+            "Set throttle or autotothrottle(default)",
         ],
         "TIME": [
             "TIME RUN(default) / HH:MM:SS.hh / REAL / UTC ",
