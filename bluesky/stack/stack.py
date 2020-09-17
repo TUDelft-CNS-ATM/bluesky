@@ -3,10 +3,10 @@ import math
 import os
 import subprocess
 import bluesky as bs
-from bluesky.stack.parser import Parser
 from bluesky.stack.command import Command, command, commandgroup
 from bluesky.stack.basecmds import initbasecmds
 import bluesky.stack.recorder as recorder
+import bluesky.stack.parser as parser
 from bluesky import settings
 
 
@@ -62,6 +62,8 @@ def reset():
 
     # Close recording file and reset scenario recording settings
     recorder.reset()
+    # Reset parser reference values
+    parser.reset()
 
 
 def stack(*cmdlines, cmdsender=None):
@@ -98,13 +100,13 @@ def process():
         echoflags = bs.BS_OK
 
         # Get first argument from command line and check if it's a command
-        cmd, argstring = Parser.getnextarg(line)
+        cmd, argstring = parser.getnextarg(line)
         cmdu = cmd.upper()
         cmdobj = Command.cmddict.get(cmdu)
 
         # If no function is found for 'cmd', check if cmd is actually an aircraft id
         if not cmdobj and cmdu in bs.traf.id:
-            cmd, argstring = Parser.getnextarg(argstring)
+            cmd, argstring = parser.getnextarg(argstring)
             argstring = cmdu + " " + argstring
             # When no other args are parsed, command is POS
             cmdu = cmd.upper() if cmd else 'POS'
@@ -122,16 +124,16 @@ def process():
                     success = success[0]
                 if success == False:
                     if not argstring:
-                        echotext = echotext or cmdobj.brief
+                        echotext = echotext or cmdobj.brieftext()
                     else:
                         echoflags = bs.BS_FUNERR
-                        echotext = f'Syntax error: {echotext or cmdobj.brief}'
+                        echotext = f'Syntax error: {echotext or cmdobj.brieftext()}'
 
             except Exception as e:
                 success = False
                 echoflags = bs.BS_ARGERR
-                header = 'Usage:' if not argstring else e.args[0] if e.args else 'Argument error:'
-                echotext = f'{header}\n{cmdobj.brief}'
+                header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
+                echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
 
         # ----------------------------------------------------------------------
         # ZOOM command (or use ++++  or --  to zoom in or out)
@@ -221,8 +223,7 @@ def readscn(fname):
             if line[-1] == '\\':
                 prevline = f'{line[:-1].strip()} '
                 continue
-            else:
-                prevline = ''
+            prevline = ''
 
             # Try reading timestamp and command
             try:

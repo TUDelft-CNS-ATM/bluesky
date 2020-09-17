@@ -1,7 +1,7 @@
 ''' Stack Command implementation. '''
 import inspect
 
-from bluesky.stack.parser import Parameter
+from bluesky.stack.parser import Parameter, getnextarg
 
 
 class Command:
@@ -21,7 +21,7 @@ class Command:
         self.impl = ''
         self.valid = True
         self.annotations = get_annot(kwargs.get('annotations', ''))
-        self.parsers = list()
+        self.params = list()
         self.parent = parent
         self.callback = func
 
@@ -41,19 +41,26 @@ class Command:
 
     def __call__(self, argstring):
         args = []
-        parser = None
+        param = None
         # Use callback-specified parameter parsers to generate param list from strings
-        for parser in self.parsers:
-            result = parser(argstring)
+        for param in self.params:
+            result = param(argstring)
             argstring = result[-1]
             args.extend(result[:-1])
 
         # Parse repeating final args
         while argstring:
-            if parser is None or not parser.gobble:
-                raise TypeError(
-                    f'{self.name} takes {len(self.parsers)} arguments, but {len(self.parsers) + len(argstring)} were given')
-            arg, argstring = parser(argstring)
+            if param is None or not param.gobble:
+                msg = f'{self.name} takes {len(self.params)} argument'
+                if len(self.params) > 1:
+                    msg += 's'
+                count = len(self.params)
+                while argstring:
+                    _, argstring = getnextarg(argstring)
+                    count += 1
+                msg += f', but {count} were given'
+                raise TypeError(msg)
+            arg, argstring = param(argstring)
             args.append(arg)
 
         # Call callback function with parsed parameters
@@ -103,28 +110,33 @@ class Command:
                 self.name + ' ' + ','.join(spec.parameters))
             self.help = self.help or inspect.cleandoc(
                 inspect.getdoc(function) or '')
-            params = list(spec.parameters.values())
+            paramspecs = list(spec.parameters.values())
             if self.annotations:
-                self.parsers = list()
+                self.params = list()
                 pos = 0
                 for annot in self.annotations:
-                    if annot == '...' and not self.parsers[-1].gobble:
-                        raise IndexError(f'Repeating arguments (...) given for function'
-                                         f' not ending in starred (variable-length) argument')
+                    if annot == '...' and not self.params[-1].gobble:
+                        raise IndexError('Repeating arguments (...) given for function'
+                                         ' not ending in starred (variable-length) argument')
 
-                    parser = Parameter(params[pos], annot)
-                    if parser:
-                        pos = min(pos + parser.size(), len(params) - 1)
-                        self.parsers.append(parser)
-                if len(self.parsers) > len(params) and not self.parsers[-1].gobble:
+                    param = Parameter(paramspecs[pos], annot)
+                    if param:
+                        pos = min(pos + param.size(), len(paramspecs) - 1)
+                        self.params.append(param)
+                if len(self.params) > len(paramspecs) and not self.params[-1].gobble:
                     raise IndexError(f'More annotations given than function '
                                      f'{self.callback.__name__} has arguments.')
             else:
-                self.parsers = [p for p in map(Parameter, params) if p]
+                self.params = [p for p in map(Parameter, paramspecs) if p]
 
     def helptext(self):
         ''' Return complete help text. '''
         return f'{self.help}\nUsage:\n{self.brief}'
+
+    def brieftext(self):
+        ''' Return the brief usage text. '''
+        return self.brief
+
 
 class CommandGroup(Command):
     ''' Stack command group object.
@@ -149,6 +161,13 @@ class CommandGroup(Command):
     def helptext(self):
         ''' Return complete help text. '''
         msg = f'{self.help}\nUsage:\n{self.brief}'
+        for subcmd in self.subcmds.values():
+            msg += f'\n{self.name} {subcmd.brief}'
+        return msg
+
+    def brieftext(self):
+        ''' Return the brief usage text. '''
+        msg = self.brief
         for subcmd in self.subcmds.values():
             msg += f'\n{self.name} {subcmd.brief}'
         return msg

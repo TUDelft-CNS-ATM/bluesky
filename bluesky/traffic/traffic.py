@@ -9,7 +9,7 @@ import numpy as np
 from math import *
 from random import randint
 import bluesky as bs
-from bluesky.stack import Parser
+from bluesky.stack import refdata
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
@@ -226,7 +226,7 @@ class Traffic(TrafficArrays):
 
         if achdg is None:
             if n == 1:
-                achdg = np.array([Parser.refhdg])
+                achdg = np.array([refdata.hdg])
             else:
                 achdg = np.random.randint(1, 360, n)
         elif isinstance(achdg, (float, int)):

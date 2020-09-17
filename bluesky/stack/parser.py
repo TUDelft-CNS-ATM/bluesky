@@ -1,11 +1,41 @@
 ''' Stack argument parsers. '''
 import inspect
 import re
+from types import SimpleNamespace
 from matplotlib import colors
 from bluesky.tools.misc import txt2bool, txt2lat, txt2lon, txt2alt, txt2tim, \
     txt2hdg, txt2vs, txt2spd
 from bluesky.tools.position import Position, islat
 import bluesky as bs
+
+
+# Regular expression for argument parser
+# Reading the regular expression:
+# [\'"]?             : skip potential opening quote
+# (?<=[\'"])[^\'"]+  : look behind for a leading quote, and if so, parse everything until closing quote
+# (?<![\'"])[^\s,]+  : look behind for not a leading quote, then parse until first whitespace or comma
+# [\'"]?\s*,?\s*     : skip potential closing quote, whitespace, and a potential single comma
+re_getarg = re.compile(
+    r'[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
+# re_getarg = re.compile(r'[\'"]?((?<=[\'"])[^\'"]+|(?<![\'"])[^\s,]+)[\'"]?\s*,?\s*')
+
+# Stack reference data namespace
+refdata = SimpleNamespace(lat=None, lon=None, alt=None, ac=-1, hdg=None, cas=None)
+
+
+def getnextarg(cmdstring):
+    ''' Return first argument and remainder of command string from cmdstring. '''
+    return re_getarg.match(cmdstring).groups()
+
+
+def reset():
+    ''' Reset reference data. '''
+    refdata.lat = None
+    refdata.lon = None
+    refdata.alt = None
+    refdata.acidx = -1
+    refdata.hdg = None
+    refdata.cas = None
 
 
 class Parameter:
@@ -43,10 +73,9 @@ class Parameter:
         # First check if argument is omitted and default value is needed
         if not argstring or argstring[0] in (',', '*'):
             if self.hasdefault():
-                _, argstring = Parser.getnextarg(argstring)
+                _, argstring = re_getarg.match(argstring).groups()
                 return self.default, argstring
-            else:
-                raise TypeError(f'Missing argument {self.name}')
+            raise TypeError(f'Missing argument {self.name}')
         # Try available parsers
         error = ''
         for parser in self.parsers:
@@ -70,17 +99,10 @@ class Parameter:
         return max((p.size for p in self.parsers))
 
     def hasdefault(self):
+        ''' Returns True if this parameter has a default value. '''
         return self.default is not inspect._empty
 
-# Regular expression for argument parser
-# Reading the regular expression:
-# [\'"]?             : skip potential opening quote
-# (?<=[\'"])[^\'"]+  : look behind for a leading quote, and if so, parse everything until closing quote
-# (?<![\'"])[^\s,]+  : look behind for not a leading quote, then parse until first whitespace or comma
-# [\'"]?\s*,?\s*     : skip potential closing quote, whitespace, and a potential single comma
-re_getarg = re.compile(
-    r'[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
-# re_getarg = re.compile(r'[\'"]?((?<=[\'"])[^\'"]+|(?<![\'"])[^\s,]+)[\'"]?\s*,?\s*')
+
 
 
 class Parser:
@@ -97,13 +119,6 @@ class Parser:
 
     # Output size of this parser
     size = 1
-
-    @classmethod
-    def getnextarg(cls, cmdstring):
-        ''' Return first argument and remainder of command string
-            from cmdstring.
-        '''
-        return re_getarg.match(cmdstring).groups()
 
     def __init__(self, parsefun=None):
         self.parsefun = parsefun
@@ -133,9 +148,9 @@ class AcidArg(Parser):
                 raise ValueError(f'Error in argument {self.name}: {acid} not found')
 
             # Update ref position for navdb lookup
-            Parser.reflat = bs.traf.lat[idx]
-            Parser.reflon = bs.traf.lon[idx]
-            Parser.refac = idx
+            refdata.lat = bs.traf.lat[idx]
+            refdata.lon = bs.traf.lon[idx]
+            refdata.acidx = idx
         return idx, argstring
 
 
@@ -144,8 +159,8 @@ class WpinrouteArg(Parser):
     def parse(self, argstring):
         arg, argstring = re_getarg.match(argstring).groups()
         wpname = arg.upper()
-        if self.refac >= 0 and wpname not in bs.traf.ap.route[self.refac].wpname:
-            raise ValueError(f'{wpname} not found in the route of {bs.traf.id[self.refac]}')
+        if refdata.acidx >= 0 and wpname not in bs.traf.ap.route[refdata.acidx].wpname:
+            raise ValueError(f'{wpname} not found in the route of {bs.traf.id[refdata.acidx]}')
         return wpname, argstring
 
 
@@ -216,17 +231,17 @@ class PosArg(Parser):
             arg, argstring = re_getarg.match(argstring).groups()
             argu = argu + "/" + arg.upper()
 
-        if Parser.reflat is None:
-            Parser.reflat, Parser.reflon = bs.scr.getviewctr()
+        if refdata.lat is None:
+            refdata.lat, refdata.lon = bs.scr.getviewctr()
 
-        posobj = Position(argu, Parser.reflat, Parser.reflon)
+        posobj = Position(argu, refdata.lat, refdata.lon)
         if posobj.error:
             raise ValueError(f'{argu} is not a valid waypoint, airport, runway, or aircraft id.')
 
         # Update reference lat/lon
-        Parser.reflat = posobj.lat
-        Parser.reflon = posobj.lon
-        Parser.refhdg = posobj.refhdg
+        refdata.lat = posobj.lat
+        refdata.lon = posobj.lon
+        refdata.hdg = posobj.refhdg
 
         return posobj.lat, posobj.lon, argstring
 
