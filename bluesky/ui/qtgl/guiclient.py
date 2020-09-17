@@ -99,7 +99,7 @@ class nodeData(object):
         self.stacksyn = dict()
 
         # Display pan and zoom
-        self.pan = (0.0, 0.0)
+        self.pan = [0.0, 0.0]
         self.zoom = 1.0
 
         # Per-scenario data
@@ -152,7 +152,7 @@ class nodeData(object):
     def panzoom(self, pan=None, zoom=None, absolute=True):
         if pan:
             if absolute:
-                self.pan  = pan
+                self.pan  = list(pan)
             else:
                 self.pan[0] += pan[0]
                 self.pan[1] += pan[1]

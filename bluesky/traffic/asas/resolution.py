@@ -2,13 +2,13 @@
 import numpy as np
 
 import bluesky as bs
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
 bs.settings.set_variable_defaults(asas_mar=1.01)
 
-class ConflictResolution(ReplaceableSingleton, TrafficArrays):
+class ConflictResolution(Entity, TrafficArrays):
     ''' Base class for Conflict Resolution implementations. '''
     def __init__(self):
         TrafficArrays.__init__(self)

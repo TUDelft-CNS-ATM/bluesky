@@ -3,9 +3,9 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity
 
-class ADSB(ReplaceableSingleton, TrafficArrays):
+class ADSB(Entity, TrafficArrays):
     """ ADS-B model. Implements real-life limitations of ADS-B communication."""
 
     def __init__(self):

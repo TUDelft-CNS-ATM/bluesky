@@ -2,10 +2,10 @@
 from numpy import arctan2,degrees,array,sqrt # to allow arrays, their functions and types
 
 from bluesky.tools.aero import kts
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity
 from .windfield import Windfield
 
-class WindSim(ReplaceableSingleton, Windfield):
+class WindSim(Entity, Windfield):
     def __init__(self):
         Windfield.__init__(self)
 

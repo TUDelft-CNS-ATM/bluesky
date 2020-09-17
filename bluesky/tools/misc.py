@@ -3,7 +3,7 @@ Miscellaneous modules
 
 Modules:
      txt2alt(txt): read altitude[ft] from txt (FL ot ft)
-     txt2spd(spd,h): read CAS or Mach and convert to TAS for given altitude
+     txt2tas(spd,h): read CAS or Mach and convert to TAS for given altitude
      tim2txt(t)  : convert time[s] to HH:MM:SS.hh
      i2txt(i,n)  : convert integer to string of n chars with leading zeros
 
@@ -12,7 +12,7 @@ Created by  : Jacco M. Hoekstra
 
 from numpy import *
 from time import strftime, gmtime
-from .aero import cas2tas, mach2tas, kts
+from .aero import cas2tas, mach2tas, kts, fpm
 
 
 def txt2alt(txt):
@@ -20,11 +20,11 @@ def txt2alt(txt):
     # First check for FL otherwise feet
     try:
         if txt.upper()[:2] == 'FL' and len(txt) >= 4:  # Syntax check Flxxx or Flxx
-            return 100. * int(txt[2:])
-        else:
-            return float(txt)
+            return 100.0 * int(txt[2:])
+        return float(txt)
     except ValueError:
-        return -1e9
+        pass
+    raise ValueError(f'Could not parse "{txt}" as altitude"')
 
 
 def tim2txt(t):
@@ -39,31 +39,82 @@ def txt2tim(txt):
        HH:MM:SS
        HH:MM:SS.hh
     """
-    timlst = txt.split(":")
+    timlst = txt.strip().split(":")
 
-    t = 0.
+    t = 0.0
+    try:
+        # HH
+        if timlst[0]:
+            t += 3600.0 * int(timlst[0])
 
-    # HH
-    if len(timlst[0])>0 and timlst[0].isdigit():
-        t = t+3600.*int(timlst[0])
+        # MM
+        if len(timlst) > 1 and timlst[1]:
+            t += 60.0 * int(timlst[1])
 
-    # MM
-    if len(timlst)>1 and len(timlst[1])>0 and timlst[1].isdigit():
-        t = t+60.*int(timlst[1])
+        # SS.hh
+        if len(timlst) > 2 and timlst[2]:
+            t += float(timlst[2])
 
-    # SS.hh
-    if len(timlst)>2 and len(timlst[2])>0:
-        if timlst[2].replace(".","0").isdigit():
-            t = t + float(timlst[2])
+        return t
+    except (ValueError, IndexError):
+        raise ValueError(f'Could not parse "{txt}" as time')
 
-    return t
+
+def txt2bool(txt):
+    ''' Convert string to boolean. '''
+    ltxt = txt.lower()
+    if ltxt in ('true', 'yes', 'y', '1', 'on'):
+        return True
+    if ltxt in ('false', 'no', 'n', '0', 'off'):
+        return False
+    raise ValueError(f'Could not parse {txt} as bool.')
+
 
 def i2txt(i, n):
     """Convert integer to string with leading zeros to make it n chars long"""
     return '{:0{}d}'.format(i, n)
 
 
-def txt2spd(txt, h):
+def txt2hdg(txt):
+    ''' Convert text to heading. '''
+    # TODO: take care of difference between magnetic/true heading?
+    # Would need reference position.
+    return float(txt.upper().replace("T", "").replace("M", ""))
+
+
+def txt2vs(txt):
+    ''' Convert text to vertical speed.
+
+        Arguments:
+        - txt: text string representing vertical speed in feet per minute.
+
+        Returns:
+        - Vertical Speed (float) in meters per second.
+    '''
+    return fpm * float(txt)
+
+
+def txt2spd(txt):
+    """ Convert text to speed, keep type (EAS/TAS/MACH) unchanged.
+
+        Arguments:
+        - txt: text string representing speed
+        
+        Returns:
+        - Speed in meters per second or Mach.
+    """
+    try:
+        txt = txt.upper()
+        spd = float(txt.replace("M0.", ".").replace("M", ".").replace("..", "."))
+
+        if not (0.1 < spd < 1.0 or txt.count("M") > 0):
+            spd *= kts
+        return spd
+    except ValueError:
+        raise ValueError(f'Could not parse {txt} as speed.')
+
+
+def txt2tas(txt, h):
     """Convert text to speed (EAS [kts]/MACH[-] to TAS[m/s])"""
     if len(txt) == 0:
         return -1.
@@ -81,13 +132,14 @@ def txt2spd(txt, h):
         else:
             spd_ = float(txt) * kts
             acspd = cas2tas(spd_, h)  # m/s
-    except:
+    except ValueError:
         return -1.
 
     return acspd
 
 
 def col2rgb(txt):
+    ''' Convert named color to R,G,B values (integer per component, 0-255) '''
     cols = {"black": (0, 0, 0), "white": (255, 255, 255), "green": (0, 255, 0),
             "red": (255, 0, 0), "blue": (0, 0, 255), "magenta": (255, 0, 255),
             "yellow": (240, 255, 127), "amber": (255, 255, 0), "cyan": (0, 255, 255)}
@@ -170,7 +222,7 @@ def txt2lat(lattxt):
                 try:
                     lat = lat + f * abs(float(xtxt)) / float(div)
                     div = div * 60
-                except:
+                except ValueError:
                     print("txt2lat value error:",lattxt)
                     return 0.0
     else:
@@ -248,16 +300,16 @@ def float2degminsec(x):
     return deg,minutes,sec
 
 def findall(lst,x):
-       # Find indices of multiple occurences of x in lst
-       idx = []
-       i = 0
-       found = True
-       while i<len(lst) and found:
-           try:
-               i = lst[i:].index(x)+i
-               idx.append(i)
-               i = i + 1
-               found = True
-           except:
-               found = False
-       return idx
+    # Find indices of multiple occurences of x in lst
+    idx = []
+    i = 0
+    found = True
+    while i<len(lst) and found:
+        try:
+            i = lst[i:].index(x)+i
+            idx.append(i)
+            i = i + 1
+            found = True
+        except:
+            found = False
+    return idx

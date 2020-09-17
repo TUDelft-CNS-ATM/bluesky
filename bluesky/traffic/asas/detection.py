@@ -3,7 +3,7 @@ import numpy as np
 
 import bluesky as bs
 from bluesky.tools.aero import ft, nm
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 
 
@@ -11,7 +11,7 @@ bs.settings.set_variable_defaults(asas_pzr=5.0, asas_pzh=1000.0,
                                   asas_dtlookahead=300.0)
 
 
-class ConflictDetection(ReplaceableSingleton, TrafficArrays):
+class ConflictDetection(Entity, TrafficArrays):
     ''' Base class for Conflict Detection implementations. '''
     def __init__(self):
         TrafficArrays.__init__(self)

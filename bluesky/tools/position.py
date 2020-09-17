@@ -39,6 +39,7 @@ class Position():
 
         self.name = name # default: copy source name
         self.error = False # we're optmistic about our succes
+        self.refhdg = None
 
         # lat,lon type ?
         if name.count(",")>0: #lat,lon or apt,rwy type
@@ -54,8 +55,8 @@ class Position():
             try:
                 aptname,rwytxt = name.split("/RW")
                 rwyname = rwytxt.lstrip("Y").upper() # remove Y and spaces
-                self.lat,self.lon = bs.navdb.rwythresholds[aptname][rwyname][:2] # raises error if not found
-            except:
+                self.lat,self.lon, self.refhdg = bs.navdb.rwythresholds[aptname][rwyname]
+            except KeyError:
                 self.error = True
             self.type = "rwy"
 
@@ -98,4 +99,3 @@ class Position():
             self.error = True
             # raise error with missing data... (empty position object)
 
-        return

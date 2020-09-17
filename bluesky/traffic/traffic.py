@@ -9,6 +9,7 @@ import numpy as np
 from math import *
 from random import randint
 import bluesky as bs
+from bluesky.stack import Parser
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
@@ -224,8 +225,10 @@ class Traffic(TrafficArrays):
             aclon[aclon < -180.0] += 360.0
 
         if achdg is None:
-
-            achdg = np.random.randint(1, 360, n)
+            if n == 1:
+                achdg = np.array([Parser.refhdg])
+            else:
+                achdg = np.random.randint(1, 360, n)
         elif isinstance(achdg, (float, int)):
             achdg = np.array(n * [achdg])
 

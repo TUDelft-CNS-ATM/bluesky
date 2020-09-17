@@ -3,9 +3,9 @@ import bluesky as bs
 from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
 from bluesky.tools.aero import nm, g0, cas2tas
 from bluesky.tools.misc import degto180
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity
 
-class ActiveWaypoint(ReplaceableSingleton, TrafficArrays):
+class ActiveWaypoint(Entity, TrafficArrays):
     def __init__(self):
         TrafficArrays.__init__(self)
         with RegisterElementParameters(self):
