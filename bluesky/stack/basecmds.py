@@ -178,9 +178,7 @@ def initbasecmds():
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
             "txt,txt,latlon,hdg,alt,spd",
-            lambda acid, actype, lat, lon, hdg, alt, spd: bs.traf.create(
-                1, actype, alt, spd, None, lat, lon, hdg, acid
-            ),
+            bs.traf.cre,
             "Create an aircraft",
         ],
         "CRECONFS": [
@@ -382,7 +380,7 @@ def initbasecmds():
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
             "int,[txt,alt,spd,txt]",
-            bs.traf.create,
+            bs.traf.mcre,
             "Multiple random create of n aircraft in current view",
         ],
         "MOVE": [

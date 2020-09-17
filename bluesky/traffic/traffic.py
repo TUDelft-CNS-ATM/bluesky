@@ -184,76 +184,60 @@ class Traffic(TrafficArrays):
         # Reset transition level to default value
         self.translvl = 5000.*ft
 
-    def create(self, n=1, actype="B744", acalt=None, acspd=None, dest=None,
-                aclat=None, aclon=None, achdg=None, acid=None):
-        """ Create multiple random aircraft in a specified area """
+    def mcre(self, n, actype="b744", acalt=None, acspd=None, dest=None):
+        """ Create one or more random aircraft in a specified area """
         area = bs.scr.getviewbounds()
-        if acid is None:
-            idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
-            acid = [idtmp.format(i) for i in range(n)]
 
-        elif isinstance(acid, str):
-            # Check if not already exist
-            if self.id.count(acid.upper()) > 0:
-                return False, acid + " already exists."  # already exists do nothing
-            acid = [acid]
-        else:
-            # TODO: for a list of a/c, check each callsign
-            pass
+        # Generate random callsigns
+        idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
+        acid = [idtmp.format(i) for i in range(n)]
 
-        super(Traffic, self).create(n)
+        # Generate random positions
+        aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
+        aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
+        achdg = np.random.randint(1, 360, n)
+        acalt = acalt or np.random.randint(2000, 39000, n) * ft
+        acspd = acspd or np.random.randint(250, 450, n) * kts
 
-        # Increase number of aircraft
-        self.ntraf += n
-
-        if aclat is None:
-            aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
-        elif isinstance(aclat, (float, int)):
-            aclat = np.array(n * [aclat])
-
-        if aclon is None:
-            aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
-        elif isinstance(aclon, (float, int)):
-            aclon = np.array(n * [aclon])
-
-        # Limit longitude to [-180.0, 180.0]
-        if n == 1:
-            aclon = aclon - 360 if aclon > 180 else \
-                    aclon + 360 if aclon < -180.0 else aclon
-        else:
-            aclon[aclon > 180.0] -= 360.0
-            aclon[aclon < -180.0] += 360.0
-
-        if achdg is None:
-            if n == 1:
-                achdg = np.array([refdata.hdg])
-            else:
-                achdg = np.random.randint(1, 360, n)
-        elif isinstance(achdg, (float, int)):
-            achdg = np.array(n * [achdg])
-
-        if acalt is None:
-            acalt = np.random.randint(2000, 39000, n) * ft
-        elif isinstance(acalt, (float, int)):
-            acalt = np.array(n * [acalt])
-
-        if acspd is None:
-            acspd = np.random.randint(250, 450, n) * kts
-        elif isinstance(acspd,(float, int)):
-            acspd = np.array(n * [acspd])
-
-        actype = n * [actype] if isinstance(actype, str) else actype
-        dest = n * [dest] if isinstance(dest, str) else dest
+        self.cre(acid, actype, aclat, aclon, achdg, acalt, acspd)
 
         # SAVEIC: save cre command when filled in
         # Special provision in case SAVEIC is on: then save individual CRE commands
         # Names of aircraft (acid) need to be recorded for saved future commands
         # And positions need to be the same in case of *MCRE"
         for i in range(n):
-            bs.stack.savecmd(" ".join([ "CRE", acid[i], actype[i],
-                                        str(aclat[i]), str(aclon[i]), str(int(round(achdg[i]))),
-                                        str(int(round(acalt[i]/ft))),
-                                        str(int(round(acspd[i]/kts)))]))
+            bs.stack.savecmd("CRE", " ".join(["CRE", acid[i], actype,
+                                              str(aclat[i]), str(aclon[i]), 
+                                              str(int(round(achdg[i]))),
+                                              str(int(round(acalt[i]/ft))),
+                                              str(int(round(acspd[i]/kts)))]))
+
+    def cre(self, acid, actype, aclat, aclon, achdg=None, acalt=0, acspd=0):
+        """ Create one or more aircraft. """
+        # Determine number of aircraft to create from array length of acid
+        n = 1 if isinstance(acid, str) else len(acid)
+
+        # Adjust the size of all traffic arrays
+        super(Traffic, self).create(n)
+        self.ntraf += n
+
+        if isinstance(acid, str):
+            # Check if not already exist
+            if self.id.count(acid.upper()) > 0:
+                return False, acid + " already exists."  # already exists do nothing
+            acid = n * [acid]
+
+        if isinstance(aclat, (float, int)):
+            aclat = np.array(n * [aclat])
+
+        if isinstance(aclon, (float, int)):
+            aclon = np.array(n * [aclon])
+
+        # Limit longitude to [-180.0, 180.0]
+        aclon[aclon > 180.0] -= 360.0
+        aclon[aclon < -180.0] += 360.0
+
+        achdg = refdata.hdg if achdg is None else achdg
 
         # Aircraft Info
         self.id[-n:]   = acid

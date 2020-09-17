@@ -7,3 +7,4 @@ from bluesky.stack.stack import stack, init, reset, process, sender, \
 from bluesky.stack.command import command, commandgroup, append_commands, \
     remove_commands, get_commands
 from bluesky.stack.parser import refdata
+from bluesky.stack.recorder import savecmd
