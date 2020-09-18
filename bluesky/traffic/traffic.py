@@ -131,7 +131,7 @@ class Traffic(TrafficArrays):
             self.trails   = Trails()
             self.actwp    = ActiveWaypoint()
             self.perf     = Perf()
-            
+
             # Group Logic
             self.groups = TrafficGroups()
 
@@ -636,7 +636,7 @@ class Traffic(TrafficArrays):
                     runways = bs.navdb.rwythresholds[bs.navdb.aptid[iap]].keys()
                     if runways:
                         lines = lines + "\nRunways: " + ", ".join(runways)
-                except:
+                except KeyError:
                     pass
 
             # Not found as airport, try waypoints & navaids
@@ -721,55 +721,47 @@ class Traffic(TrafficArrays):
             # Show what we found on airport and navaid/waypoint
             return True, lines
 
-    def airwaycmd(self,key=""):
-        # Show conections of a waypoint
+    def airwaycmd(self, key):
+        ''' Show conections of a waypoint or airway. '''
         reflat, reflon = bs.scr.getviewctr()
 
-        if key=="":
-            return False,'AIRWAY needs waypoint or airway'
+        if bs.navdb.awid.count(key) > 0:
+            return self.poscommand(key)
 
-        if bs.navdb.awid.count(key)>0:
-            return self.poscommand(key.upper())
-        else:
-            # Find connecting airway legs
-            wpid = key.upper()
-            iwp = bs.navdb.getwpidx(wpid,reflat,reflon)
-            if iwp<0:
-                return False,key + " not found."
+        # Find connecting airway legs
+        wpid = key
+        iwp = bs.navdb.getwpidx(wpid,reflat,reflon)
+        if iwp < 0:
+            return False,key + " not found."
 
-            wplat = bs.navdb.wplat[iwp]
-            wplon = bs.navdb.wplon[iwp]
-            connect = bs.navdb.listconnections(key.upper(),wplat,wplon)
-            if len(connect)>0:
-                lines = ""
-                for c in connect:
-                    if len(c)>=2:
-                        # Add airway, direction, waypoint
-                        lines = lines+ c[0]+": to "+c[1]+"\n"
-                return True, lines[:-1]  # exclude final newline
-            else:
-                return False,"No airway legs found for ",key
+        wplat = bs.navdb.wplat[iwp]
+        wplon = bs.navdb.wplon[iwp]
+        connect = bs.navdb.listconnections(key, wplat, wplon)
+        if connect:
+            lines = ""
+            for c in connect:
+                if len(c)>=2:
+                    # Add airway, direction, waypoint
+                    lines = lines+ c[0]+": to "+c[1]+"\n"
+            return True, lines[:-1]  # exclude final newline
+        return False, f"No airway legs found for {key}"
 
-    def settrans(self,alt=-999.):
+    def settrans(self, alt=-999.):
         """ Set or show transition level"""
-
         # in case a valid value is ginve set it
-        if alt>-900.:
-            if alt>0.:
+        if alt > -900.:
+            if alt > 0.:
                 self.translvl = alt
                 return True
-            else:
-                return False,"Transition level needs to be ft/FL and larger than zero"
+            return False,"Transition level needs to be ft/FL and larger than zero"
 
         # In case no value is given, show it
-        else:
-            tlvl = int(round(self.translvl/ft))
-            return True,"Transition level = " + \
-                          str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
+        tlvl = int(round(self.translvl/ft))
+        return True, f"Transition level = {tlvl}/FL{int(round(tlvl/100.))}"
 
-    def setbanklim(self,idx,bankangle=None):
+    def setbanklim(self, idx, bankangle=None):
+        ''' Set bank limit for given aircraft. '''
         if bankangle:
             self.bank[idx] = np.radians(bankangle) # [rad]
             return True
-        else:
-            return True,"Banklimit of "+self.id[idx]+" is "+str(int(np.degrees(self.bank[idx])))+" deg"
+        return True, f"Banklimit of {self.id[idx]} is {int(np.degrees(self.bank[idx]))} deg"
