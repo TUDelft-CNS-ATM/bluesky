@@ -277,7 +277,7 @@ class OpenAP(PerfBase):
         return None
 
     def limits(self, intent_v_tas, intent_vs, intent_h, ax):
-        """ apply limits on indent speed, vertical speed, and altitude (called in pilot module)
+        """apply limits on indent speed, vertical speed, and altitude (called in pilot module)
 
         Args:
             intent_v_tas (float or 1D-array): intent true airspeed
@@ -312,6 +312,15 @@ class OpenAP(PerfBase):
         allow_vs = np.where(
             (self.phase == ph.GD) & (bs.traf.tas < self.vminto), 0, allow_vs
         )  # takeoff aircraft
+
+        # corect rotercraft speed limits
+        ir = np.where(self.lifttype == coeff.LIFT_ROTOR)[0]
+        allow_v_tas[ir] = np.where(
+            (intent_v_tas[ir] < self.vmin[ir]), self.vmin[ir], intent_v_tas[ir]
+        )
+        allow_v_tas[ir] = np.where(
+            (intent_v_tas[ir] > self.vmax[ir]), self.vmax[ir], allow_v_tas[ir]
+        )
 
         return allow_v_tas, allow_vs, allow_h
 
