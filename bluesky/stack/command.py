@@ -131,7 +131,10 @@ class Command:
 
     def helptext(self):
         ''' Return complete help text. '''
-        return f'{self.help}\nUsage:\n{self.brief}'
+        msg = f'{self.help}\nUsage:\n{self.brief}'
+        if self.aliases:
+            msg += ('\nCommand aliases: ' + ','.join(self.aliases))
+        return msg
 
     def brieftext(self):
         ''' Return the brief usage text. '''
@@ -163,6 +166,8 @@ class CommandGroup(Command):
         msg = f'{self.help}\nUsage:\n{self.brief}'
         for subcmd in self.subcmds.values():
             msg += f'\n{self.name} {subcmd.brief}'
+        if self.aliases:
+            msg += ('\nCommand aliases: ' + ','.join(self.aliases))
         return msg
 
     def brieftext(self):
@@ -199,7 +204,7 @@ def append_commands(newcommands, syndict=None):
     """ Append additional functions to the stack command dictionary """
     for name, (brief, annotations, fun, hlp) in newcommands.items():
         if syndict:
-            aliases = (k for k,v in syndict.items() if v == name)
+            aliases = tuple(k for k,v in syndict.items() if v == name)
         else:
             aliases = tuple()
         # Use the command decorator function to register each new command
