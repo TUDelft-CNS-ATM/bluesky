@@ -280,7 +280,7 @@ argparsers = {
     'int': Parser(int),
     'onoff': Parser(txt2bool),
     'bool': Parser(txt2bool),
-    'acid': Parser(AcidArg),
+    'acid': AcidArg(),
     'wpinroute': WpinrouteArg(),
     'wpt': WptArg(),
     'latlon': PosArg(),
