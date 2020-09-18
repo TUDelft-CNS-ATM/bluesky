@@ -401,10 +401,10 @@ def showhelp(cmd:'txt'=''):
     if not cmd:
         return True, (
             "There are different ways to get help:\n"
-            + " HELP PDF  gives an overview of the existing commands\n"
-            + " HELP cmd  gives a help line on the command (syntax)\n"
-            + " DOC  cmd  show documentation of a command (if available)\n"
-            + "And there is more info in the docs folder and the wiki on Github"
+            " HELP PDF  gives an overview of the existing commands\n"
+            " HELP cmd  gives a help line on the command (syntax)\n"
+            " DOC  cmd  show documentation of a command (if available)\n"
+            "And there is more info in the docs folder and the wiki on Github"
         )
 
     # Check if help is asked for a specific command
@@ -414,21 +414,11 @@ def showhelp(cmd:'txt'=''):
 
     # Write command reference to tab-delimited text file
     if cmd[0] == ">":
-
         # Get filename
         if len(cmd) > 1:
             fname = "./docs/" + cmd[1:]
         else:
             fname = "./docs/bluesky-commands.txt"
-
-        # Write command dictionary to tab-delimited text file
-        try:
-            f = open(fname, "w")
-        except:
-            return "Invalid filename:" + fname
-
-        # Header of first table
-        f.write("Command\tDescription\tUsage\tArgument types\tFunction\tSynonyms\n")
 
         # Get unique set of commands
         cmdobjs = set(Command.cmddict.values())
@@ -439,16 +429,15 @@ def showhelp(cmd:'txt'=''):
             fname = obj.callback.__name__.replace("<", "").replace(">", "")
             args = ','.join((str(p) for p in obj.parsers))
             syn = ','.join(obj.aliases)
-            line = f'{obj.name}\t{obj.help}\t{obj.brief}\t{args}\t{fname}\t{syn}\n'
+            line = f'{obj.name}\t{obj.help}\t{obj.brief}\t{args}\t{fname}\t{syn}'
             table.append(line)
 
         # Sort & write table
         table.sort()
-        for line in table:
-            f.write(line)
-
-        # Close and report where file is to be found
-        f.close()
+        with open(fname, "w") as f:
+            # Header of first table
+            f.write("Command\tDescription\tUsage\tArgument types\tFunction\tSynonyms\n")
+            f.write('\n'.join(table))
         return True, "Writing command reference in " + fname
 
     return False, "HELP: Unknown command: " + cmd
