@@ -81,28 +81,14 @@ class TrafficArrays:
         ''' Append n elements (aircraft) to all lists and arrays. '''
 
         for v in self._LstVars:  # Lists (mostly used for strings)
-
-            # Get type
-            vartype = None
             lst = self.__dict__.get(v)
-            if len(lst) > 0:
-                vartype = str(type(lst[0])).split("'")[1]
-
-            if vartype in defaults:
-                defaultvalue = [defaults[vartype]] * n
-            else:
-                defaultvalue = [""] * n
-
-            self._Vars[v].extend(defaultvalue)
+            vartype = type(lst[0]).__name__ if lst else 'str'
+            lst.extend([defaults[vartype]] * n)
 
         for v in self._ArrVars:  # Numpy array
             # Get type without byte length
             vartype = ''.join(c for c in str(self._Vars[v].dtype) if c.isalpha())
-
-            # Get default value
-            defaultvalue = [defaults.get(vartype, 0)] * n
-
-            self._Vars[v] = np.append(self._Vars[v], defaultvalue)
+            self._Vars[v] = np.append(self._Vars[v], [defaults.get(vartype, 0)] * n)
 
     def istrafarray(self, key):
         return key in self._LstVars or key in self._ArrVars
