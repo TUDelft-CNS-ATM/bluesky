@@ -75,6 +75,8 @@ class Parameter:
             if self.hasdefault():
                 _, argstring = re_getarg.match(argstring).groups()
                 return self.default, argstring
+            if self.gobble:
+                return (argstring,)
             raise TypeError(f'Missing argument {self.name}')
         # Try available parsers
         error = ''
@@ -145,7 +147,7 @@ class AcidArg(Parser):
         else:
             idx = bs.traf.id2idx(acid)
             if idx < 0:
-                raise ValueError(f'Error in argument {self.name}: {acid} not found')
+                raise ValueError(f'Aircraft with callsign {acid} not found')
 
             # Update ref position for navdb lookup
             refdata.lat = bs.traf.lat[idx]

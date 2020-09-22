@@ -60,8 +60,9 @@ class Command:
                     count += 1
                 msg += f', but {count} were given'
                 raise TypeError(msg)
-            arg, argstring = param(argstring)
-            args.append(arg)
+            result = param(argstring)
+            argstring = result[-1]
+            args.extend(result[:-1])
 
         # Call callback function with parsed parameters
         ret = self.callback(*args)
