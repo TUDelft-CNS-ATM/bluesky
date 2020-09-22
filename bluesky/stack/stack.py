@@ -38,10 +38,8 @@ def init(startup_scnfile):
     # --------------------------------------------------------------------
 
     # Display Help text on start of program
-    stack(
-        "ECHO BlueSky Console Window: Enter HELP or ? for info.\n"
-        + "Or select IC to Open a scenario file."
-    )
+    stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n"
+          "Or select IC to Open a scenario file.")
 
     # Pan to initial location
     stack("PAN " + settings.start_location)
