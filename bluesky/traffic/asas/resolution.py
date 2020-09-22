@@ -2,12 +2,12 @@
 import numpy as np
 
 import bluesky as bs
-from bluesky.core import Entity, TrafficArrays
+from bluesky.core import Entity
 
 
 bs.settings.set_variable_defaults(asas_mar=1.01)
 
-class ConflictResolution(Entity, TrafficArrays):
+class ConflictResolution(Entity):
     ''' Base class for Conflict Resolution implementations. '''
     def __init__(self):
         super().__init__()

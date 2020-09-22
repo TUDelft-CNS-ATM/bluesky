@@ -3,14 +3,14 @@ import numpy as np
 
 import bluesky as bs
 from bluesky.tools.aero import ft, nm
-from bluesky.core import Entity, TrafficArrays
+from bluesky.core import Entity
 
 
 bs.settings.set_variable_defaults(asas_pzr=5.0, asas_pzh=1000.0,
                                   asas_dtlookahead=300.0)
 
 
-class ConflictDetection(Entity, TrafficArrays):
+class ConflictDetection(Entity):
     ''' Base class for Conflict Detection implementations. '''
     def __init__(self):
         super().__init__()

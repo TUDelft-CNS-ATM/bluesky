@@ -1,6 +1,7 @@
 ''' Entity is a base class for all BlueSky singleton entities. '''
 import inspect
 from bluesky.core.replaceable import Replaceable, ReplaceableMeta
+from bluesky.core.trafficarrays import TrafficArrays
 
 
 class Proxy:
@@ -83,7 +84,7 @@ class EntityMeta(ReplaceableMeta):
         return cls._proxy
 
 
-class Entity(Replaceable, metaclass=EntityMeta):
+class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta):
     '''
         Super class for all BlueSky singleton entities.
     '''
@@ -98,7 +99,7 @@ class Entity(Replaceable, metaclass=EntityMeta):
     @classmethod
     def select(cls):
         ''' Select this class as generator. '''
-        cls._replaceable._generator = cls
+        super().select()
         _ = cls()
 
     @classmethod

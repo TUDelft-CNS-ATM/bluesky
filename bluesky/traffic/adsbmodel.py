@@ -2,9 +2,9 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft
-from bluesky.core import Entity, TrafficArrays
+from bluesky.core import Entity
 
-class ADSB(Entity, TrafficArrays):
+class ADSB(Entity):
     """ ADS-B model. Implements real-life limitations of ADS-B communication."""
 
     def __init__(self):

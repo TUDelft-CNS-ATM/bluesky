@@ -1,11 +1,10 @@
 import numpy as np
 import bluesky as bs
-from bluesky.core import TrafficArrays
-from bluesky.tools.aero import nm, g0, cas2tas
+from bluesky.tools.aero import nm, g0
 from bluesky.tools.misc import degto180
 from bluesky.core import Entity
 
-class ActiveWaypoint(Entity, TrafficArrays):
+class ActiveWaypoint(Entity):
     def __init__(self):
         super().__init__()
         with self.settrafarrays():
