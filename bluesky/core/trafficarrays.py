@@ -83,7 +83,7 @@ class TrafficArrays:
         for v in self._LstVars:  # Lists (mostly used for strings)
             lst = self.__dict__.get(v)
             vartype = type(lst[0]).__name__ if lst else 'str'
-            lst.extend([defaults[vartype]] * n)
+            lst.extend([defaults.get(vartype)] * n)
 
         for v in self._ArrVars:  # Numpy array
             # Get type without byte length
