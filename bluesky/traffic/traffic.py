@@ -15,7 +15,7 @@ from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach, vcas2tas
 from bluesky.tools.simtime import timed_function
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import TrafficArrays
 
 from bluesky.traffic.asas import ConflictDetection, ConflictResolution
 from .windsim import WindSim
@@ -70,7 +70,7 @@ class Traffic(TrafficArrays):
         super(Traffic, self).__init__()
 
         # Traffic is the toplevel trafficarrays object
-        TrafficArrays.SetRoot(self)
+        TrafficArrays.setroot(self)
 
         self.ntraf = 0
 
@@ -79,7 +79,7 @@ class Traffic(TrafficArrays):
         self.turbulence = Turbulence()
         self.translvl = 5000.*ft # [m] Default transition level
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             # Aircraft Info
             self.id      = []  # identifier (string)
             self.type    = []  # aircaft type (string)

@@ -1,7 +1,7 @@
 # Logic for group commands
 import numpy as np
 import bluesky as bs
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import TrafficArrays
 from bluesky.tools import areafilter
 
 class GroupArray(np.ndarray):
@@ -17,7 +17,7 @@ class TrafficGroups(TrafficArrays):
         super(TrafficGroups, self).__init__()
         self.groups = dict()
         self.allmasks = 0
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.ingroup = np.array([], dtype=np.int64)
 
     def __contains__(self, groupname):

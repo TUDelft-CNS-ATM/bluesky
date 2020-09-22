@@ -3,7 +3,7 @@ from math import *
 import numpy as np
 import bluesky as bs
 from bluesky import settings
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import TrafficArrays
 
 
 class Trails(TrafficArrays):
@@ -51,7 +51,7 @@ class Trails(TrafficArrays):
         self.bgtime = np.array([])
         self.bgcol = []
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.accolor = []
             self.lastlat = np.array([])
             self.lastlon = np.array([])

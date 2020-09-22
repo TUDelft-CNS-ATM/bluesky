@@ -10,7 +10,7 @@ Tests TrafficArrays
 
 import pytest
 import numpy as np
-import bluesky.tools.trafficarrays as ta
+from bluesky.core import TrafficArrays
 
 
 @pytest.fixture(scope="module")
@@ -20,7 +20,7 @@ def t_a(pytestconfig):
     naming `t_a` in their parameter lists.
     """
 
-    class TestChild(ta.TrafficArrays):
+    class TestChild(TrafficArrays):
         """
         Test class for testing TrafficArrays class, esp.
         handling of new children objects.
@@ -34,11 +34,11 @@ def t_a(pytestconfig):
             """
             super(TestChild, self).__init__()
 
-            with ta.RegisterElementParameters(self):
+            with self.settrafarrays():
                 self.np_array_bool = np.array([], dtype=np.bool)
                 self.np_array_int = np.array([], dtype=np.int)
 
-    class TestRoot(ta.TrafficArrays):
+    class TestRoot(TrafficArrays):
         """
         Test class for testing TrafficArrays class, esp.
         handling of TrafficArrays root elements.
@@ -49,12 +49,12 @@ def t_a(pytestconfig):
             Initialises TestRoot class setting itself as root
             and registering a number of arrays.
             """
-            super(TestRoot, self).__init__()
+            super().__init__()
 
             # Traffic is the toplevel trafficarrays object
-            ta.TrafficArrays.SetRoot(self)
+            TrafficArrays.setroot(self)
 
-            with ta.RegisterElementParameters(self):
+            with self.settrafarrays():
                 self.fl_list = []
                 self.int_list = []
                 self.bool_list = []

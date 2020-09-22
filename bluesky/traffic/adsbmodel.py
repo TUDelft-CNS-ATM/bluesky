@@ -2,8 +2,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.core import Entity
+from bluesky.core import Entity, TrafficArrays
 
 class ADSB(Entity, TrafficArrays):
     """ ADS-B model. Implements real-life limitations of ADS-B communication."""
@@ -11,7 +10,7 @@ class ADSB(Entity, TrafficArrays):
     def __init__(self):
         TrafficArrays.__init__(self)
         # From here, define object arrays
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             # Most recent broadcast data
             self.lastupdate = np.array([])
             self.lat        = np.array([])

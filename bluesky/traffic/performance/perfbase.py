@@ -1,5 +1,5 @@
 import numpy as np
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import TrafficArrays
 
 
 class PerfBase(TrafficArrays):
@@ -8,7 +8,7 @@ class PerfBase(TrafficArrays):
     def __init__(self):
         super().__init__()
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             # --- fixed parameters ---
             self.actype = np.array([], dtype=str)  # aircraft type
             self.Sref = np.array([])  # wing reference surface area [m^2]

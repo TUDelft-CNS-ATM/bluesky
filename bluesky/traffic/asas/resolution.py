@@ -2,8 +2,7 @@
 import numpy as np
 
 import bluesky as bs
-from bluesky.core import Entity
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import Entity, TrafficArrays
 
 
 bs.settings.set_variable_defaults(asas_mar=1.01)
@@ -23,7 +22,7 @@ class ConflictResolution(Entity, TrafficArrays):
         self.resofach = bs.settings.asas_mar
         self.resofacv = bs.settings.asas_mar
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.resooffac = np.array([], dtype=np.bool)
             self.noresoac = np.array([], dtype=np.bool)
             # whether the autopilot follows ASAS or not

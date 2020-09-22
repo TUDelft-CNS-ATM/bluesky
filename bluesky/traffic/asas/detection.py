@@ -3,8 +3,7 @@ import numpy as np
 
 import bluesky as bs
 from bluesky.tools.aero import ft, nm
-from bluesky.core import Entity
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import Entity, TrafficArrays
 
 
 bs.settings.set_variable_defaults(asas_pzr=5.0, asas_pzh=1000.0,
@@ -40,7 +39,7 @@ class ConflictDetection(Entity, TrafficArrays):
         self.lospairs_all = list()
 
         # Per-aircraft conflict data
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.inconf = np.array([], dtype=bool)  # In-conflict flag
             self.tcpamax = np.array([]) # Maximum time to CPA for aircraft in conflict
 

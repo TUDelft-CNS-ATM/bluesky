@@ -6,7 +6,7 @@ except ImportError:
     # In python <3.3 collections.abc doesn't exist
     from collections import Collection
 from bluesky import stack, traf, sim  #, settings, navdb, traf, sim, scr, tools
-from bluesky.tools import areafilter, datalog, plotter, geo, TrafficArrays
+from bluesky.tools import areafilter, datalog, plotter, geo
 from bluesky.tools.aero import nm, ft
 
 # Metrics object
@@ -48,9 +48,8 @@ class SectorData:
         self.dist0 = np.append(self.dist0, dist0)
         self.acid.extend(acid)
 
-class Metrics(TrafficArrays):
+class Metrics:
     def __init__(self):
-        super().__init__()
         # List of sectors known to this plugin.
         self.sectors = list()
         # List of sets of aircraft in each sector

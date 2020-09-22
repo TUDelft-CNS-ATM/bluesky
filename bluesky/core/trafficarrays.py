@@ -11,22 +11,23 @@ import numpy as np
 defaults = {"float": 0.0, "int": 0, "uint":0, "bool": False, "S": "", "str": ""}
 
 
-class RegisterElementParameters():
+class RegisterElementParameters:
     """ Class to use in 'with'-syntax. This class automatically
         calls for the _init_trafarrays function of the
         DynamicArray, with all parameters defined in 'with'."""
 
     def __init__(self, parent):
         self._parent = parent
+        self.keys0 = set(parent.__dict__.keys())
 
     def __enter__(self):
-        self.keys0 = set(self._parent.__dict__.keys())
+        pass
 
     def __exit__(self, type, value, tb):
         self._parent._init_trafarrays(set(self._parent.__dict__.keys()) - self.keys0)
 
 
-class TrafficArrays(object):
+class TrafficArrays:
     """ Parent class to use separate arrays and lists to allow
         vectorizing but still maintain and object like benefits
         for creation and deletion of an element for all parameters"""
@@ -37,7 +38,7 @@ class TrafficArrays(object):
     ntraf = 0
 
     @classmethod
-    def SetRoot(cls, obj):
+    def setroot(cls, obj):
         ''' This function is used to set the root of the tree of TrafficArray
             objects (which is the traffic object.)'''
         cls.root = obj
@@ -56,6 +57,9 @@ class TrafficArrays(object):
         self._parent._children.pop(self._parent._children.index(self))
         newparent._children.append(self)
         self._parent = newparent
+
+    def settrafarrays(self):
+        return RegisterElementParameters(self)
 
     def _init_trafarrays(self, keys):
         for key in keys:
@@ -95,10 +99,7 @@ class TrafficArrays(object):
             vartype = ''.join(c for c in str(self._Vars[v].dtype) if c.isalpha())
 
             # Get default value
-            if vartype in defaults:
-                defaultvalue = [defaults[vartype]] * n
-            else:
-                defaultvalue = [0.0] * n
+            defaultvalue = [defaults.get(vartype, 0)] * n
 
             self._Vars[v] = np.append(self._Vars[v], defaultvalue)
 

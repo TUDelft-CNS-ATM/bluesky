@@ -3,7 +3,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import kts, ft, g0, vtas2cas
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import TrafficArrays
 from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 from . import coeff_bada
@@ -43,7 +43,7 @@ class PerfBADA(TrafficArrays):
         self.warned2 = False        # Flag: Did we warn for default engine parameters yet?
 
         # Register the per-aircraft parameter arrays
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             # engine
             self.jet        = np.array([])
             self.turbo      = np.array([])

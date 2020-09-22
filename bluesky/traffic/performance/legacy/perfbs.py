@@ -7,7 +7,7 @@ import bluesky as bs
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
     kts, lbs, inch, sqft, fpm, vtas2cas
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import TrafficArrays
 from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
@@ -28,7 +28,7 @@ class PerfBS(TrafficArrays):
         # prepare for coefficient readin
         coeffBS.coeff()
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             # index of aircraft types in library
             self.coeffidxlist = np.array([])
 

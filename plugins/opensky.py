@@ -22,7 +22,8 @@ except ImportError:
     import pickle
 
 from bluesky import stack, settings, traf, scr
-from bluesky.tools import RegisterElementParameters, TrafficArrays, cachefile
+from bluesky.core import TrafficArrays
+from bluesky.tools import cachefile
 settings.set_variable_defaults(opensky_user=None, opensky_password=None,
                                opensky_ownonly=False)
 
@@ -82,7 +83,7 @@ class OpenSkyListener(TrafficArrays):
         self._api_url = "https://opensky-network.org/api"
         self.connected = False
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.upd_time = np.array([])
             self.my_ac = np.array([], dtype=np.bool)
 

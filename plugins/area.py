@@ -4,8 +4,8 @@
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import traf, sim  #, settings, navdb, traf, sim, scr, tools
-from bluesky.tools import datalog, areafilter, \
-    TrafficArrays, RegisterElementParameters
+from bluesky.tools import datalog, areafilter
+from bluesky.core import TrafficArrays
 from bluesky.tools.aero import ft,kts,nm,fpm
 from bluesky.tools.simtime import timed_function
 
@@ -114,7 +114,7 @@ class Area(TrafficArrays):
         self.flst = datalog.crelog('FLSTLOG', None, flstheader)
         self.conflog = datalog.crelog('CONFLOG', None, confheader)
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.insdel = np.array([], dtype=np.bool) # In deletion area or not
             self.insexp = np.array([], dtype=np.bool) # In experiment area or not
             self.oldalt = np.array([])

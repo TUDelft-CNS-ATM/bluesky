@@ -3,7 +3,6 @@ import bluesky as bs
 from bluesky.tools import aero
 from bluesky.tools.aero import kts, ft, fpm
 from bluesky.tools.simtime import timed_function
-from bluesky.tools.trafficarrays import RegisterElementParameters
 from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.openap import coeff, thrust
 from bluesky.traffic.performance.openap import phase as ph
@@ -28,7 +27,7 @@ class OpenAP(PerfBase):
 
         self.coeff = coeff.Coefficient()
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.actypes = np.array([], dtype=str)
             self.phase = np.array([])
             self.lifttype = np.array([])  # lift type, fixwing [1] or rotor [2]

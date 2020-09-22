@@ -12,8 +12,7 @@ from bluesky.tools.misc import degto180
 from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.core import Entity
+from bluesky.core import Entity, TrafficArrays
 from .route import Route
 
 bs.settings.set_variable_defaults(fms_dt=10.5)
@@ -27,7 +26,7 @@ class Autopilot(Entity, TrafficArrays):
         self.steepness = 3000. * ft / (10. * nm)
 
         # From here, define object arrays
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
 
             # FMS directions
             self.trk = np.array([])
