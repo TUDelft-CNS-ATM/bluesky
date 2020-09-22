@@ -8,7 +8,7 @@ class ADSB(Entity, TrafficArrays):
     """ ADS-B model. Implements real-life limitations of ADS-B communication."""
 
     def __init__(self):
-        TrafficArrays.__init__(self)
+        super().__init__()
         # From here, define object arrays
         with self.settrafarrays():
             # Most recent broadcast data

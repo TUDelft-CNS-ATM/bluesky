@@ -10,7 +10,7 @@ bs.settings.set_variable_defaults(asas_mar=1.01)
 class ConflictResolution(Entity, TrafficArrays):
     ''' Base class for Conflict Resolution implementations. '''
     def __init__(self):
-        TrafficArrays.__init__(self)
+        super().__init__()
         # [-] switch to activate priority rules for conflict resolution
         self.swprio = False  # switch priority on/off
         self.priocode = ''  # select priority mode

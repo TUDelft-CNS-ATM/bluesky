@@ -13,7 +13,7 @@ bs.settings.set_variable_defaults(asas_pzr=5.0, asas_pzh=1000.0,
 class ConflictDetection(Entity, TrafficArrays):
     ''' Base class for Conflict Detection implementations. '''
     def __init__(self):
-        TrafficArrays.__init__(self)
+        super().__init__()
         # [m] Horizontal separation minimum for detection
         self.rpz = bs.settings.asas_pzr * nm
         # [m] Vertical separation minimum for detection

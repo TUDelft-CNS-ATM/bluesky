@@ -44,6 +44,7 @@ class TrafficArrays:
         cls.root = obj
 
     def __init__(self):
+        super().__init__()
         self._parent   = TrafficArrays.root
         if self._parent:
             self._parent._children.append(self)

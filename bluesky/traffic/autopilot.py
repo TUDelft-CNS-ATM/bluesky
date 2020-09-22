@@ -20,7 +20,7 @@ bs.settings.set_variable_defaults(fms_dt=10.5)
 
 class Autopilot(Entity, TrafficArrays):
     def __init__(self):
-        TrafficArrays.__init__(self)
+        super().__init__()
 
         # Standard self.steepness for descent
         self.steepness = 3000. * ft / (10. * nm)

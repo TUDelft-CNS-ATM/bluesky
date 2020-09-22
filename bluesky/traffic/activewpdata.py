@@ -7,7 +7,7 @@ from bluesky.core import Entity
 
 class ActiveWaypoint(Entity, TrafficArrays):
     def __init__(self):
-        TrafficArrays.__init__(self)
+        super().__init__()
         with self.settrafarrays():
             self.lat        = np.array([])    # [deg] Active WP latitude
             self.lon        = np.array([])    # [deg] Active WP longitude
