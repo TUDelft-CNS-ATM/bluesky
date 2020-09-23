@@ -12,16 +12,16 @@ Created by  : Jacco M. Hoekstra
 
 from numpy import *
 from time import strftime, gmtime
-from .aero import cas2tas, mach2tas, kts, fpm
+from .aero import cas2tas, mach2tas, kts, fpm, ft
 
 
 def txt2alt(txt):
-    """Convert text to altitude in ft: also FL300 => 30000. as float"""
+    """Convert text to altitude in meter: also FL300 => 30000. as float"""
     # First check for FL otherwise feet
     try:
         if txt.upper()[:2] == 'FL' and len(txt) >= 4:  # Syntax check Flxxx or Flxx
-            return 100.0 * int(txt[2:])
-        return float(txt)
+            return 100.0 * int(txt[2:]) * ft
+        return float(txt) * ft
     except ValueError:
         pass
     raise ValueError(f'Could not parse "{txt}" as altitude"')
