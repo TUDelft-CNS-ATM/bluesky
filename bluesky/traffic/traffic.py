@@ -765,7 +765,7 @@ class Traffic(TrafficArrays):
                         lines = lines+ c[0]+": to "+c[1]+"\n"
                 return True, lines[:-1]  # exclude final newline
             else:
-                return False,"No airway legs found for ",key
+                return False,"No airway legs found for "+key
 
     def settrans(self,alt=-999.):
         """ Set or show transition level"""
