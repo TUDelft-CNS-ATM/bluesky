@@ -43,7 +43,7 @@ class Parameter:
     def __init__(self, param, annotation=''):
         self.name = param.name
         self.default = param.default
-        self.gobble = param.kind == param.VAR_POSITIONAL
+        self.gobble = param.kind == param.VAR_POSITIONAL and not annotation
         self.annotation = annotation or param.annotation
 
         # Make list of parsers
@@ -67,7 +67,7 @@ class Parameter:
         # This parameter is not valid if it has no parsers, or is keyword-only.
         # In those cases it can be skipped from the list of parameters when
         # processing a stack command line.
-        self.valid = bool(self.parsers) and param.kind != param.VAR_KEYWORD
+        self.valid = bool(self.parsers) and self.canwrap(param)
 
     def __call__(self, argstring):
         # First check if argument is omitted and default value is needed
@@ -104,7 +104,11 @@ class Parameter:
         ''' Returns True if this parameter has a default value. '''
         return self.default is not inspect._empty
 
-
+    @staticmethod
+    def canwrap(param):
+        ''' Returns True if Parameter can be used to wrap given function parameter.
+            Returns False if param is keyword-only. '''
+        return param.kind not in (param.VAR_KEYWORD, param.KEYWORD_ONLY)
 
 
 class Parser:

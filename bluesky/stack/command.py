@@ -111,20 +111,24 @@ class Command:
                 self.name + ' ' + ','.join(spec.parameters))
             self.help = self.help or inspect.cleandoc(
                 inspect.getdoc(function) or '')
-            paramspecs = list(spec.parameters.values())
+            paramspecs = list(filter(Parameter.canwrap, spec.parameters.values()))
             if self.annotations:
                 self.params = list()
                 pos = 0
                 for annot in self.annotations:
-                    if annot == '...' and not self.params[-1].gobble:
-                        raise IndexError('Repeating arguments (...) given for function'
-                                         ' not ending in starred (variable-length) argument')
+                    if annot == '...':
+                        if paramspecs[-1].kind != paramspecs[-1].VAR_POSITIONAL:
+                            raise IndexError('Repeating arguments (...) given for function'
+                                             ' not ending in starred (variable-length) argument')
+                        self.params[-1].gobble = True
+                        break
 
                     param = Parameter(paramspecs[pos], annot)
                     if param:
                         pos = min(pos + param.size(), len(paramspecs) - 1)
                         self.params.append(param)
-                if len(self.params) > len(paramspecs) and not self.params[-1].gobble:
+                if len(self.params) > len(paramspecs) and \
+                    paramspecs[-1].kind != paramspecs[-1].VAR_POSITIONAL:
                     raise IndexError(f'More annotations given than function '
                                      f'{self.callback.__name__} has arguments.')
             else:
