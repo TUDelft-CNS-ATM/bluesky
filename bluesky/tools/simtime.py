@@ -36,7 +36,6 @@ def setdt(newdt=None, target='simdt'):
     timer = _timers.get(target, None)
     if timer is None:
         return False, 'Timer {} not found'.format(target)
-    
     return timer.setdt(newdt)
 
 
@@ -66,6 +65,7 @@ def reset():
 
 
 class Timer:
+    ''' Timer class for simulation-time periodic functions. '''
     def __init__(self, name, dt):
         self.name = name
         self.dt_default = Decimal(repr(dt))
@@ -75,11 +75,12 @@ class Timer:
         self.counter = 0
         self.tprev = _clock.t
         self.setdt()
-        
+
         # Add self to dictionary of timers
         _timers[name.upper()] = self
 
     def reset(self):
+        ''' Reset all simulation timers to their default time interval. '''
         self.dt_requested = self.dt_default
         self.dt_act = self.dt_default
         self.rel_freq = 0
@@ -88,6 +89,7 @@ class Timer:
         self.setdt()
 
     def setdt(self, dt=None):
+        ''' Set the update interval of this timer. '''
         # setdt is called without arguments if the base dt has changed
         # In this case, check if our dt is still ok.
         if dt:
@@ -108,23 +110,29 @@ class Timer:
         if abs(self.dt_act - self.dt_requested) > 0.0001:
             return True, self.name + \
                 ' dt set to {} to match integer multiple of base dt.'.format(self.dt_act)
-        else:
-            return True, self.name + ' dt set to {}'.format(self.dt_act)        
+        return True, self.name + ' dt set to {}'.format(self.dt_act)
 
     def step(self):
+        ''' Step is called each base timestep to update this timer. '''
         self.counter = (self.counter or self.rel_freq) - 1
 
     def readynext(self):
+        ''' Returns True if a time interval of this timer has passed. '''
         return self.counter == 0
 
     def elapsed(self):
+        ''' Return the time elapsed since the last time this timer was triggered. '''
         elapsed = float(_clock.t - self.tprev)
         self.tprev = _clock.t
         return elapsed
 
 
 def timed_function(name, dt=1.0):
+    ''' Decorator to turn a function into a periodically timed function. '''
     def decorator(fun):
+        # Return original function if it is already wrapped
+        if getattr(fun, '__istimed', False):
+            return fun
         timer = Timer(name, dt)
         if 'dt' in signature(fun).parameters:
             def wrapper(*args, **kwargs):
