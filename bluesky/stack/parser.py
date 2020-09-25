@@ -43,6 +43,7 @@ class Parameter:
     def __init__(self, param, annotation=''):
         self.name = param.name
         self.default = param.default
+        self.optional = self.hasdefault() or param.kind == param.VAR_POSITIONAL
         self.gobble = param.kind == param.VAR_POSITIONAL and not annotation
         self.annotation = annotation or param.annotation
 
@@ -72,10 +73,10 @@ class Parameter:
     def __call__(self, argstring):
         # First check if argument is omitted and default value is needed
         if not argstring or argstring[0] in (',', '*'):
+            _, argstring = re_getarg.match(argstring).groups()
             if self.hasdefault():
-                _, argstring = re_getarg.match(argstring).groups()
                 return self.default, argstring
-            if self.gobble:
+            if self.optional:
                 return (argstring,)
             raise TypeError(f'Missing argument {self.name}')
         # Try available parsers
