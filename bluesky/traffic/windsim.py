@@ -16,9 +16,8 @@ class WindSim(Entity, Windfield, replaceable=True):
         ndata = len(winddata)
 
         # No altitude or just one: same wind for all altitudes at this position
-
-        if ndata == 3 or (ndata == 4 and winddata[0] == None): # only one point, ignore altitude
-            if winddata[1] == None or winddata[2] == None:
+        if ndata == 3 or (ndata == 4 and winddata[0] is None): # only one point, ignore altitude
+            if winddata[1] is None or winddata[2] is None:
                return False, "Wind direction and speed needed."
 
             self.addpoint(lat,lon,winddata[1],winddata[2]*kts)
