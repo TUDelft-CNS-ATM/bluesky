@@ -9,13 +9,14 @@ import numpy as np
 from math import *
 from random import randint
 import bluesky as bs
+from bluesky.core import Entity
 from bluesky.stack import refdata
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach, vcas2tas
 from bluesky.tools.simtime import timed_function
-from bluesky.core import TrafficArrays
+
 
 from bluesky.traffic.asas import ConflictDetection, ConflictResolution
 from .windsim import WindSim
@@ -49,7 +50,7 @@ else:
     from .performance.legacy.perfbs import PerfBS as Perf
 
 
-class Traffic(TrafficArrays):
+class Traffic(Entity):
     """
     Traffic class definition    : Traffic data
     Methods:
@@ -67,10 +68,10 @@ class Traffic(TrafficArrays):
     """
 
     def __init__(self):
-        super(Traffic, self).__init__()
+        super().__init__()
 
         # Traffic is the toplevel trafficarrays object
-        TrafficArrays.setroot(self)
+        self.setroot(self)
 
         self.ntraf = 0
 

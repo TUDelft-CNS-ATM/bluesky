@@ -5,10 +5,8 @@ from bluesky.tools.aero import kts
 from bluesky.core import Entity
 from .windfield import Windfield
 
-class WindSim(Entity, Windfield):
-    def __init__(self):
-        Windfield.__init__(self)
 
+class WindSim(Entity, Windfield, replaceable=True):
     def add(self, *arg):
 
         lat = arg[0]

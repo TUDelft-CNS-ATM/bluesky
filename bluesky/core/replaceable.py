@@ -2,12 +2,14 @@
     Provides Replaceable base class for classes in BlueSky that should allow
     replaceable implementations (in plugins) that can be selected at runtime.
 '''
-import inspect
+
+# Global dictionary of replaceable BlueSky classes
+replaceables = dict()
 
 
 def reset():
     ''' Reset all replaceables to their default implementation. '''
-    for base in Replaceable._replaceables.values():
+    for base in replaceables.values():
         base.select()
 
 
@@ -16,8 +18,8 @@ def select_implementation(basename='', implname=''):
         objects of the class corresponding to basename. '''
     if not basename:
         return True, 'Replaceable classes in Bluesky:\n' + \
-            ', '.join(Replaceable._replaceables)
-    base = Replaceable._replaceables.get(basename.upper(), None)
+            ', '.join(replaceables)
+    base = replaceables.get(basename.upper(), None)
     if not base:
         return False, f'Replaceable {basename} not found.'
     impls = base.derived()
@@ -33,39 +35,17 @@ def select_implementation(basename='', implname=''):
     return True, f'Selected implementation {implname} for replaceable {basename}'
 
 
-class ReplaceableMeta(type):
-    ''' Meta class to equip replaceable classes with a generator object. '''
-    def __init__(cls, clsname, bases, attrs):
-        super().__init__(clsname, bases, attrs)
-        if clsname not in ['Replaceable', 'Entity']:
-            cls._generator = cls
-            # Keep track of the base replaceable class
-            if cls._replaceable is None:
-                # Register this class as a base replaceable class
-                cls._replaceable = cls
-                cls._replaceables[clsname.upper()] = cls
-
-    def __call__(cls, *args, **kwargs):
-        ret = object.__new__(cls._generator)
-        ret.__init__(*args, **kwargs)
-        return ret
-
-
-class Replaceable(metaclass=ReplaceableMeta):
+class Replaceable:
     ''' Super class for BlueSky classes with replaceable implementations. '''
-    _replaceables = dict()
-    _replaceable = None
-    _generator = None
-
     @classmethod
     def select(cls):
         ''' Select this class as generator. '''
-        cls._replaceable._generator = cls
+        cls._baseimpl._generator = cls
 
     @classmethod
     def selected(cls):
         ''' Return the selected implementation. '''
-        return cls._replaceable._generator
+        return cls._baseimpl._generator
 
     @classmethod
     def derived(cls):
@@ -74,3 +54,16 @@ class Replaceable(metaclass=ReplaceableMeta):
         for sub in cls.__subclasses__():
             ret.update(sub.derived())
         return ret
+
+    def __init_subclass__(cls, replaceable=True):
+        ''' Register replaceable class bases. '''
+        cls._generator = cls
+        if replaceable and not hasattr(cls, '_baseimpl'):
+            # Singleton Entitie derive from Replaceable, but have
+            # the option to avoid being replaceable.
+            cls._baseimpl = cls
+            replaceables[cls.__name__.upper()] = cls
+
+    def __new__(cls, *args, **kwargs):
+        ''' Replaced new to allow base class to construct selected derived instances. '''
+        return object.__new__(cls._generator)

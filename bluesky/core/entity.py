@@ -1,12 +1,11 @@
 ''' Entity is a base class for all BlueSky singleton entities. '''
 import inspect
-from bluesky.core.replaceable import Replaceable, ReplaceableMeta
+from bluesky.core.replaceable import Replaceable
 from bluesky.core.trafficarrays import TrafficArrays
 
 
 class Proxy:
     ''' Proxy class for BlueSky replaceable singleton entities. '''
-
     def __init__(self):
         # The reference object
         self.__dict__['_refobj'] = None
@@ -36,39 +35,17 @@ class Proxy:
         return setattr(self._refobj, name, value)
 
 
-class EntityMeta(ReplaceableMeta):
+class EntityMeta(type):
     ''' Meta class to make replaceable classes singletons. '''
-    def __init__(cls, clsname, bases, attrs):
-        super().__init__(clsname, bases, attrs)
-        cls._instance = None
-        if clsname != 'Entity':
-            # Initialise proxy object and stack command list for the first
-            # descendant of Entity
-            if cls._proxy is None:
-                cls._proxy = Proxy()
-            if cls._stackcmds is None:
-                cls._stackcmds = dict()
-            # Always update the stack command list by iterating over all stack commands
-            for name, obj in inspect.getmembers(cls, lambda o: hasattr(o, '__stack_cmd__')):
-                if name in cls._stackcmds:
-                    # for subclasses reimplementing stack functions we keep only one
-                    # Command object
-                    if type(obj.__stack_cmd__) is not type(cls._stackcmds[name]):
-                        raise TypeError(f'Error reimplementing {name}: '
-                            f'A {type(cls._stackcmds[name]).__name__} cannot be '
-                            f'reimplemented as a {type(obj.__stack_cmd__).__name__}')
-                    obj.__stack_cmd__ = cls._stackcmds[name]
-                else:
-                    cls._stackcmds[name] = obj.__stack_cmd__
-                cmd = obj.__stack_cmd__
-                if not inspect.ismethod(cmd.callback) and inspect.ismethod(obj):
-                    # Update callback of stack command with first bound
-                    # method we encounter
-                    cmd.callback = obj
-
     def __call__(cls, *args, **kwargs):
         ''' Object creation with proxy wrapping and ensurance of singleton
             behaviour. '''
+        # For non-replaceable Entities, _proxy is None,
+        # just return the singleton instance
+        if cls._proxy is None:
+            if cls._instance is None:
+                cls._instance = super().__call__(*args, **kwargs)
+            return cls._instance
         # check if the current instance is the same as the selected class
         if cls._proxy._selected() is not cls.selected():
             # If not, reset the proxy object to the selected implementation,
@@ -84,18 +61,8 @@ class EntityMeta(ReplaceableMeta):
         return cls._proxy
 
 
-class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta):
-    '''
-        Super class for all BlueSky singleton entities.
-    '''
-    # Each Entity subclass keeps its own (single) instance
-    _instance = None
-    # Each first descendant of Entity has a proxy object that wraps the
-    # currently selected instance
-    _proxy = None
-    # Each first descendant of Entity keeps a dict of all stack commands
-    _stackcmds = None
-
+class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False):
+    ''' Super class for BlueSky singleton entities (such as Traffic, Autopilot, ...). '''
     @classmethod
     def select(cls):
         ''' Select this class as generator. '''
@@ -106,3 +73,32 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta):
     def instance(cls):
         ''' Return the current instance of this entity. '''
         return cls._proxy
+
+    def __init_subclass__(cls, replaceable=False):
+        super().__init_subclass__(replaceable)
+        # Each Entity subclass keeps its own (single) instance
+        cls._instance = None
+        if not hasattr(cls, '_stackcmds'):
+            # Each first descendant of Entity keeps a dict of all stack commands
+            cls._stackcmds = dict()
+
+            # Each first descendant of replaceable Entities have a proxy object
+            # that wraps the currently selected instance
+            cls._proxy = Proxy() if replaceable else None
+
+        # Always update the stack command list by iterating over all stack commands
+        for name, obj in inspect.getmembers(cls, lambda o: hasattr(o, '__stack_cmd__')):
+            if name in cls._stackcmds:
+                # for subclasses reimplementing stack functions we keep only one
+                # Command object
+                if type(obj.__stack_cmd__) is not type(cls._stackcmds[name]):
+                    raise TypeError(f'Error reimplementing {name}: '
+                                    f'A {type(cls._stackcmds[name]).__name__} cannot be '
+                                    f'reimplemented as a {type(obj.__stack_cmd__).__name__}')
+                obj.__stack_cmd__ = cls._stackcmds[name]
+            else:
+                cls._stackcmds[name] = obj.__stack_cmd__
+            cmd = obj.__stack_cmd__
+            if not inspect.ismethod(cmd.callback) and inspect.ismethod(obj):
+                # Update callback of stack command with first bound method we encounter
+                cmd.callback = obj

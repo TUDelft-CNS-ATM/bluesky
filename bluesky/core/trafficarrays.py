@@ -37,11 +37,11 @@ class TrafficArrays:
     root = None
     ntraf = 0
 
-    @classmethod
-    def setroot(cls, obj):
+    @staticmethod
+    def setroot(obj):
         ''' This function is used to set the root of the tree of TrafficArray
             objects (which is the traffic object.)'''
-        cls.root = obj
+        TrafficArrays.root = obj
 
     def __init__(self):
         super().__init__()

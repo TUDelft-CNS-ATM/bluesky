@@ -10,7 +10,7 @@ bs.settings.set_variable_defaults(asas_pzr=5.0, asas_pzh=1000.0,
                                   asas_dtlookahead=300.0)
 
 
-class ConflictDetection(Entity):
+class ConflictDetection(Entity, replaceable=True):
     ''' Base class for Conflict Detection implementations. '''
     def __init__(self):
         super().__init__()

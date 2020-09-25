@@ -7,7 +7,8 @@ from bluesky.core import Entity
 
 bs.settings.set_variable_defaults(asas_mar=1.01)
 
-class ConflictResolution(Entity):
+
+class ConflictResolution(Entity, replaceable=True):
     ''' Base class for Conflict Resolution implementations. '''
     def __init__(self):
         super().__init__()

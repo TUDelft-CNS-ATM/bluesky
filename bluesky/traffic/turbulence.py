@@ -5,7 +5,7 @@ from bluesky.tools.aero import Rearth
 from bluesky.core import Entity
 
 
-class Turbulence(Entity):
+class Turbulence(Entity, replaceable=True):
     """ Simple turbulence implementation."""
     def __init__(self):
         self.active = False

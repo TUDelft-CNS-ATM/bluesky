@@ -18,7 +18,7 @@ from .route import Route
 bs.settings.set_variable_defaults(fms_dt=10.5)
 
 
-class Autopilot(Entity):
+class Autopilot(Entity, replaceable=True):
     def __init__(self):
         super().__init__()
 

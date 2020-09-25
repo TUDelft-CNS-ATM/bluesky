@@ -4,7 +4,7 @@ from bluesky.tools.aero import nm, g0
 from bluesky.tools.misc import degto180
 from bluesky.core import Entity
 
-class ActiveWaypoint(Entity):
+class ActiveWaypoint(Entity, replaceable=True):
     def __init__(self):
         super().__init__()
         with self.settrafarrays():
