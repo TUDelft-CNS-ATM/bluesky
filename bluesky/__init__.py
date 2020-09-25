@@ -73,8 +73,9 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
             else:
                 from bluesky.network.node import Node
 
+        from bluesky.core import plugin
         from bluesky import stack
-        from bluesky.tools import plugin, varexplorer
+        from bluesky.tools import varexplorer
 
         # Initialize singletons
         global traf, sim, scr, net
