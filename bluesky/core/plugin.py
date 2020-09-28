@@ -50,7 +50,10 @@ def check_plugin(fname):
                     # Return value of init_plugin should always be a tuple of two dicts
                     # The first dict is the plugin config dict, the second dict is the stack function dict
                     if isinstance(iitem, ast.Return):
-                        ret_dicts = iitem.value.elts
+                        if isinstance(iitem.value, ast.Tuple):
+                            ret_dicts = iitem.value.elts
+                        else:
+                            ret_dicts = [iitem.value]
                         if len(ret_dicts) not in (1, 2):
                             print(fname + " looks like a plugin, but init_plugin() doesn't return one or two dicts")
                             return None
@@ -88,9 +91,9 @@ def manage(cmd='LIST', plugin_name=''):
 
     if cmd in ['LOAD', 'ENABLE']:
         return load(plugin_name)
-    elif cmd in ['REMOVE', 'UNLOAD', 'DISABLE']:
+    if cmd in ['REMOVE', 'UNLOAD', 'DISABLE']:
         return remove(plugin_name)
-    elif cmd != '': # If no command is given, assume user tries to load a plugin
+    if cmd != '': # If no command is given, assume user tries to load a plugin
         return load(cmd)
     return False
 
