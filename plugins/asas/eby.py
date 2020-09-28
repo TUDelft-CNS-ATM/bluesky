@@ -17,8 +17,7 @@ def init_plugin():
         'plugin_type':     'sim'
     }
 
-    # init_plugin() should always return these two dicts.
-    return config, {}
+    return config
 
 
 class Eby(ConflictResolution):
