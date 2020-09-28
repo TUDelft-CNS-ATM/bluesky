@@ -542,20 +542,13 @@ class Autopilot(Entity, replaceable=True):
         if len(args) == 0:
             if cmd == 'DEST':
                 return True, 'DEST ' + bs.traf.id[idx] + ': ' + self.dest[idx]
-            else:
-                return True, 'ORIG ' + bs.traf.id[idx] + ': ' + self.orig[idx]
-
-        if idx<0 or idx>=bs.traf.ntraf:
-            return False, cmd + ": Aircraft does not exist."
+            return True, 'ORIG ' + bs.traf.id[idx] + ': ' + self.orig[idx]
 
         route = self.route[idx]
-
         name = args[0]
-
         apidx = bs.navdb.getaptidx(name)
 
         if apidx < 0:
-
             if cmd =="DEST" and bs.traf.ap.route[idx].nwp>0:
                 reflat = bs.traf.ap.route[idx].wplat[-1]
                 reflon = bs.traf.ap.route[idx].wplon[-1]
