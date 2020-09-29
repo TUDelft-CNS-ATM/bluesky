@@ -142,6 +142,10 @@ class Traffic(Entity):
             self.bank     = np.array([])  # nominal bank angle, [radians]
             self.swhdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
+            # Traffic autothrottle settings
+            self.swats    = np.array([], dtype=np.bool)  # Switch indicating whether autothrottle system is on/off
+            self.thr      = np.array([])        # Thottle seeting (0.0-1.0), negative = non-valid/auto
+
             # limit settings
             self.limspd      = np.array([])  # limit speed
             self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
@@ -765,3 +769,43 @@ class Traffic(Entity):
             self.bank[idx] = np.radians(bankangle) # [rad]
             return True
         return True, f"Banklimit of {self.id[idx]} is {int(np.degrees(self.bank[idx]))} deg"
+
+    def setthrottle(self,idx,throttle=""):
+        """Set throttle to given value or AUTO, meaning autothrottle on (default)"""
+
+        if throttle:
+            if throttle == "AUTO" or throttle=='OFF': # throttle mode off, ATS on
+                self.swats[idx] = True   # Autothrottle on
+                self.thr[idx] = -999.    # Set to invalid
+
+            elif throttle == "IDLE":
+                self.swats[idx] = False
+                self.thr[idx] = 0.0
+
+            else:
+                # Check for percent unit
+                if throttle.count("%")==1:
+                    throttle= throttle.replace("%","")
+                    factor = 0.01
+                else:
+                    factor = 1.0
+
+                # Remaining option is that it is a float, so try conversion
+                try:
+                    x = factor*float(throttle)
+                except:
+                    return False,"THR invalid argument "+throttle
+
+                # Check whether value makes sense
+                if x<0.0 or x>1.0:
+                    return False, "THR invalid value " + throttle +". Needs to be [0.0 , 1.0]"
+
+                 # Valid value, set throttle and disable autothrottle
+                self.swats[idx] = False
+                self.thr[idx] = x
+
+            return True
+
+        if self.swats[idx]:
+            return True,"ATS of "+self.id[idx]+" is ON"
+        return True, "ATS of " + self.id[idx] + " is OFF. THR is "+str(self.thr[idx])

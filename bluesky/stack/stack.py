@@ -35,8 +35,6 @@ def init(startup_scnfile):
     # Initialise base commands
     initbasecmds()
 
-    # --------------------------------------------------------------------
-
     # Display Help text on start of program
     stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n"
           "Or select IC to Open a scenario file.")
