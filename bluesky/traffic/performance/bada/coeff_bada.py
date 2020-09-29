@@ -10,7 +10,7 @@
 from glob import glob
 from os import path
 import re
-from bluesky.tools.fwparser import FixedWidthParser, ParseError
+from .fwparser import FixedWidthParser, ParseError
 
 # File formats of BADA data files. Uses fortran-like notation
 # Adapted from the BADA manual format lines. (page 61-81 in the BADA manual)
