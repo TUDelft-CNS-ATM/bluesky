@@ -205,7 +205,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # qdr[deg],distinnm[nm]
         qdr, distinnm = geo.qdrdist(bs.traf.lat, bs.traf.lon,
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
-        qdr2wp  = qdr
+        self.qdr2wp  = qdr
         dist2wp = distinnm*nm  # Conversion to meters
 
         # FMS route update and possibly waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
