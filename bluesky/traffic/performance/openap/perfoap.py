@@ -2,7 +2,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
 from bluesky.tools.aero import kts, ft, fpm
-from bluesky.tools.simtime import timed_function
+from bluesky.core import timed_function
 from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.openap import coeff, thrust
 from bluesky.traffic.performance.openap import phase as ph

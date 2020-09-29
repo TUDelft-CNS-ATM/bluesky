@@ -1,7 +1,7 @@
 """ Node encapsulates the sim process, and manages process I/O. """
 import os
 import bluesky as bs
-from bluesky.tools import Timer
+from bluesky.core.walltime import Timer
 
 
 class Node:

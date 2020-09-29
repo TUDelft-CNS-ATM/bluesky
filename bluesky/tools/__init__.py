@@ -1,8 +1,6 @@
 from bluesky import settings
 # Register settings defaults
 settings.set_variable_defaults(prefer_compiled=False)
-from .walltime import Timer
-from .signal import Signal
 if settings.prefer_compiled:
     try:
         from . import cgeo as geo

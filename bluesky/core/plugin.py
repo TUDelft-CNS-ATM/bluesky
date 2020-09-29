@@ -7,7 +7,7 @@ import imp
 import bluesky as bs
 from bluesky import settings
 from bluesky.tools import varexplorer as ve
-from bluesky.tools.simtime import timed_function
+from bluesky.core import timed_function
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])

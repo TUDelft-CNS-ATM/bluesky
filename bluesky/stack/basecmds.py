@@ -4,8 +4,8 @@ import os
 
 import bluesky as bs
 from bluesky import settings
-from bluesky.core import select_implementation, plugin
-from bluesky.tools import geo, areafilter, plotter, simtime, datalog
+from bluesky.core import select_implementation, plugin, simtime
+from bluesky.tools import geo, areafilter, plotter, datalog
 from bluesky.tools import varexplorer as ve
 from bluesky.tools.calculator import calculator
 import bluesky.stack.synthetic as syn

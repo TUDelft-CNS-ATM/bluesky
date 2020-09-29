@@ -5,7 +5,7 @@ import numpy as np
 from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
 from bluesky.network import Client
-from bluesky.tools import Signal
+from bluesky.core import Signal
 from bluesky.tools.aero import ft
 
 # Globals

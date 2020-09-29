@@ -7,6 +7,7 @@ class Signal:
         self.__subscribers = []
 
     def get_subs(self):
+        """ Return the list of subscribers to this signal. """
         return self.__subscribers
 
     def emit(self, *args, **kwargs):

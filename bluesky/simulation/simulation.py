@@ -7,8 +7,8 @@ from random import seed
 # Local imports
 import bluesky as bs
 import bluesky.core as core
-from bluesky.core import plugin
-from bluesky.tools import datalog, areafilter, plotter, simtime
+from bluesky.core import plugin, simtime
+from bluesky.tools import datalog, areafilter, plotter
 
 # Minimum sleep interval
 MINSLEEP = 1e-3

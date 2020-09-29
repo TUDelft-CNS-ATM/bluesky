@@ -9,13 +9,12 @@ import numpy as np
 from math import *
 from random import randint
 import bluesky as bs
-from bluesky.core import Entity
+from bluesky.core import Entity, timed_function
 from bluesky.stack import refdata
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach, vcas2tas
-from bluesky.tools.simtime import timed_function
 
 
 from bluesky.traffic.asas import ConflictDetection, ConflictResolution

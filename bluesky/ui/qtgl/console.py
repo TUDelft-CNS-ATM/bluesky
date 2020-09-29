@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
 from bluesky.tools.misc import cmdsplit
-from bluesky.tools.signal import Signal
+from bluesky.core.signal import Signal
 from . import autocomplete
 
 cmdline_stacked = Signal()

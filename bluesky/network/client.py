@@ -3,7 +3,7 @@ import os
 import zmq
 import msgpack
 import bluesky
-from bluesky.tools import Signal
+from bluesky.core import Signal
 from bluesky.network.discovery import Discovery
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 

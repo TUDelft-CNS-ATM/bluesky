@@ -9,10 +9,9 @@ except ImportError:
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.misc import degto180
-from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
-from bluesky.core import Entity
+from bluesky.core import Entity, timed_function
 from .route import Route
 
 bs.settings.set_variable_defaults(fms_dt=10.5)

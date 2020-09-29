@@ -1,9 +1,8 @@
 """ BlueSky aircraft performance calculations using BADA 3.xx."""
 import numpy as np
 import bluesky as bs
-from bluesky.tools.simtime import timed_function
 from bluesky.tools.aero import kts, ft, g0, vtas2cas
-from bluesky.core import TrafficArrays
+from bluesky.core import TrafficArrays, timed_function
 from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 from . import coeff_bada

@@ -5,9 +5,8 @@ import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import traf, sim  #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import datalog, areafilter
-from bluesky.core import TrafficArrays
+from bluesky.core import TrafficArrays, timed_function
 from bluesky.tools.aero import ft,kts,nm,fpm
-from bluesky.tools.simtime import timed_function
 
 # Log parameters for the flight statistics log
 flstheader = \
