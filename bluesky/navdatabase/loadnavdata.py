@@ -1,9 +1,5 @@
 ''' Loader functions for navigation data. '''
-from os import path
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 import bluesky as bs
 from bluesky import settings

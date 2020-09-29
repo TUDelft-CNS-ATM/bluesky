@@ -6,9 +6,8 @@ from .misc import txt2lat, txt2lon
 def txt2pos(name, reflat, reflon):
     pos = Position(name.upper().strip(), reflat, reflon)
     if not pos.error:
-        return True,pos
-    else:
-        return False,name+" not found in database"
+        return True, pos
+    return False, name+" not found in database"
 
 def islat(txt):
     # Is it a latitude-like format or not?
@@ -98,4 +97,3 @@ class Position():
         else:
             self.error = True
             # raise error with missing data... (empty position object)
-

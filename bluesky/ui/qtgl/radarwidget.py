@@ -76,7 +76,7 @@ class radarUBO(UniformBuffer):
     data = Data()
 
     def __init__(self):
-        super(radarUBO, self).__init__(self.data)
+        super().__init__(self.data)
 
     def set_wrap(self, wraplon, wrapdir):
         self.data.wrapdir = wrapdir
@@ -143,7 +143,7 @@ class RadarWidget(QGLWidget):
 
         # Only initialize super class after loading data to avoid Qt starting
         # things before we are ready.
-        super(RadarWidget, self).__init__(shareWidget=shareWidget)
+        super().__init__(shareWidget=shareWidget)
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.grabGesture(Qt.PanGesture)
         self.grabGesture(Qt.PinchGesture)
@@ -1034,4 +1034,4 @@ class RadarWidget(QGLWidget):
                     pass
 
         # For all other events call base class event handling
-        return super(RadarWidget, self).event(event)
+        return super().event(event)

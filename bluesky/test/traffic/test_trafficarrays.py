@@ -32,7 +32,7 @@ def t_a(pytestconfig):
             and initialising two numpy arrays (one for booleans,
             one for integers)
             """
-            super(TestChild, self).__init__()
+            super().__init__()
 
             with self.settrafarrays():
                 self.np_array_bool = np.array([], dtype=np.bool)

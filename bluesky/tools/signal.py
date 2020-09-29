@@ -1,7 +1,7 @@
 """ BlueSky implementation of signals that can trigger one or more functions
     when a signal is emitted. """
 
-class Signal(object):
+class Signal:
     """ A signal can trigger one or more functions when it is emitted. """
     def __init__(self):
         self.__subscribers = []

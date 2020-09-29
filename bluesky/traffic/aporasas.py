@@ -15,8 +15,7 @@ class APorASAS(TrafficArrays):
             self.tas = np.array([])  # desired speed [m/s]
 
     def create(self, n=1):
-        super(APorASAS, self).create(n)
-
+        super().create(n)
         self.alt[-n:] = bs.traf.alt[-n:]
         self.tas[-n:] = bs.traf.tas[-n:]
         self.hdg[-n:] = bs.traf.hdg[-n:]

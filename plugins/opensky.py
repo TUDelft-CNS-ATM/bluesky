@@ -13,13 +13,9 @@ Xavier Olive, 2018
 Joost Ellerbroek, 2018
 """
 import time
+import pickle
 import requests
 import numpy as np
-from os import path
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 from bluesky import stack, settings, traf, scr
 from bluesky.core import TrafficArrays
@@ -75,7 +71,7 @@ def get_actypedb():
 
 class OpenSkyListener(TrafficArrays):
     def __init__(self):
-        super(OpenSkyListener, self).__init__()
+        super().__init__()
         if settings.opensky_user:
             self._auth = (settings.opensky_user, settings.opensky_password)
         else:
@@ -88,7 +84,7 @@ class OpenSkyListener(TrafficArrays):
             self.my_ac = np.array([], dtype=np.bool)
 
     def create(self, n=1):
-        super(OpenSkyListener, self).create(n)
+        super().create(n)
         # Store creation time of new aircraft
         self.upd_time[-n:] = time.time()
         self.my_ac[-n:] = False

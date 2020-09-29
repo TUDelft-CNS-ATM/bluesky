@@ -30,7 +30,7 @@ class ActiveWaypoint(Entity, replaceable=True):
 
 
     def create(self, n=1):
-        super(ActiveWaypoint, self).create(n)
+        super().create(n)
         # LNAV route navigation
         self.lat[-n:]        = 89.99    # [deg]Active WP latitude
         self.nextspd[-n:]    = -999.    # [CAS[m/s]/Mach]Next leg speed from current WP

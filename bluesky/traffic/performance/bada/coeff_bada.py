@@ -141,7 +141,7 @@ def init(bada_path=''):
     return (len(synonyms) > 0 and len(accoeffs) > 0)
 
 
-class Synonym(object):
+class Synonym:
     def __init__(self, data):
         self.is_equiv = (data[0] == '*')           # False if model is directly supported in bada, true if supported through equivalent model
         self.accode   = data[1]          # Aircraft code
@@ -151,7 +151,7 @@ class Synonym(object):
         self.icao     = (data[5].upper() == 'Y')  # designator for this aircraft type is in use according to ICAO Doc 8643 [RD2]
 
 
-class ACData(object):
+class ACData:
     # minimum speed coefficients
     CVmin          = 1.3
     CVmin_to       = 1.2

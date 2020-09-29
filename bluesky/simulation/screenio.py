@@ -8,7 +8,7 @@ from bluesky import stack
 from bluesky.tools import Timer, areafilter
 
 
-class ScreenIO(object):
+class ScreenIO:
     """Class within sim task which sends/receives data to/from GUI task"""
 
     # =========================================================================

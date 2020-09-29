@@ -42,7 +42,7 @@ class IOThread(Thread):
                 fe_stream.send_multipart(be_stream.recv_multipart())
 
 
-class Node(object):
+class Node:
     def __init__(self):
         self.host_id = b''
         self.node_id = b''

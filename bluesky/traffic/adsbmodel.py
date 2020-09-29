@@ -31,7 +31,7 @@ class ADSB(Entity, replaceable=True):
         self.trunctime  = 0  # [s]
 
     def create(self, n=1):
-        super(ADSB, self).create(n)
+        super().create(n)
 
         self.lastupdate[-n:] = -self.trunctime * np.random.rand(n)
         self.lat[-n:] = bs.traf.lat[-n:]

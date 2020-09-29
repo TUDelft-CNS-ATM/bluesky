@@ -56,7 +56,7 @@ def update():
         bs.net.send_stream(streamname, data)
 
 
-class Plot(object):
+class Plot:
     ''' A plot object.
         Each plot object is used to manage the plot of one variable
         on the sim side.'''

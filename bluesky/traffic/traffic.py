@@ -168,7 +168,7 @@ class Traffic(Entity):
         self.ntraf = 0
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
-        super(Traffic, self).reset()
+        super().reset()
 
         # reset performance model
         self.perf.reset()
@@ -219,7 +219,7 @@ class Traffic(Entity):
         n = 1 if isinstance(acid, str) else len(acid)
 
         # Adjust the size of all traffic arrays
-        super(Traffic, self).create(n)
+        super().create(n)
         self.ntraf += n
 
         if isinstance(acid, str):
@@ -357,7 +357,7 @@ class Traffic(Entity):
             idx = np.sort(idx)
 
         # Call the actual delete function
-        super(Traffic, self).delete(idx)
+        super().delete(idx)
 
         # Update number of aircraft
         self.ntraf = len(self.lat)

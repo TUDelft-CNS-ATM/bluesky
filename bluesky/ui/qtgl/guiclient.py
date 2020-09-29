@@ -30,7 +30,7 @@ class GuiClient(Client):
         self.actnodedata_changed = Signal()
 
     def start_discovery(self):
-        super(GuiClient, self).start_discovery()
+        super().start_discovery()
         self.discovery_timer = QTimer()
         self.discovery_timer.timeout.connect(self.discovery.send_request)
         self.discovery_timer.start(3000)
@@ -38,7 +38,7 @@ class GuiClient(Client):
     def stop_discovery(self):
         self.discovery_timer.stop()
         self.discovery_timer = None
-        super(GuiClient, self).stop_discovery()
+        super().stop_discovery()
 
     def event(self, name, data, sender_id):
         sender_data = self.get_nodedata(sender_id)
@@ -68,7 +68,7 @@ class GuiClient(Client):
             sender_data.siminit(**data)
             data_changed = list(UPDATE_ALL)
         else:
-            super(GuiClient, self).event(name, data, sender_id)
+            super().event(name, data, sender_id)
 
         if sender_id == self.act and data_changed:
             self.actnodedata_changed.emit(sender_id, sender_data, data_changed)
@@ -91,7 +91,7 @@ class GuiClient(Client):
         return data
 
 
-class nodeData(object):
+class nodeData:
     def __init__(self, route=None):
         # Stack window
         self.echo_text = ''

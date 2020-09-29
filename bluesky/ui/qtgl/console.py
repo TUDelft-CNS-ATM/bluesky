@@ -49,7 +49,7 @@ class Console(QWidget):
     _instance = None
 
     def __init__(self, parent=None):
-        super(Console, self).__init__(parent)
+        super().__init__(parent)
         self.command_history = []
         self.cmd = ''
         self.args = []
@@ -173,7 +173,7 @@ class Console(QWidget):
                 self.lineEdit.cursor_right()
             else:
                 # Remaining keys are things like sole modifier keys, and function keys
-                super(Console, self).keyPressEvent(event)
+                super().keyPressEvent(event)
         else:
             event.ignore()
             return
@@ -199,7 +199,7 @@ class Cmdline(QTextEdit):
     ''' Wrapper class for the command line. '''
 
     def __init__(self, parent=None):
-        super(Cmdline, self).__init__(parent)
+        super().__init__(parent)
         Console.lineEdit = self
         self.cmdline = ''
         # self.setFocusPolicy(Qt.NoFocus)
@@ -239,6 +239,6 @@ class Stackwin(QTextEdit):
     ''' Wrapper class for the stack output textbox. '''
 
     def __init__(self, parent=None):
-        super(Stackwin, self).__init__(parent)
+        super().__init__(parent)
         Console.stackText = self
         self.setFocusPolicy(Qt.NoFocus)

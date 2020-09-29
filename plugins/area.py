@@ -100,7 +100,7 @@ def init_plugin():
 class Area(TrafficArrays):
     ''' Traffic area: delete traffic when it leaves this area (so not when outside)'''
     def __init__(self):
-        super(Area, self).__init__()
+        super().__init__()
         # Parameters of area
         self.active = False
         self.delarea = ''
@@ -137,7 +137,7 @@ class Area(TrafficArrays):
         self.confinside_all = 0
 
     def create(self, n=1):
-        super(Area, self).create(n)
+        super().create(n)
         self.oldalt[-n:] = traf.alt[-n:]
         self.insdel[-n:] = False
         self.insexp[-n:] = False

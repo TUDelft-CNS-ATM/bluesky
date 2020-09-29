@@ -52,7 +52,7 @@ class Autopilot(Entity, replaceable=True):
             self.route = []
 
     def create(self, n=1):
-        super(Autopilot, self).create(n)
+        super().create(n)
 
         # FMS directions
         self.tas[-n:] = bs.traf.tas[-n:]
@@ -71,7 +71,6 @@ class Autopilot(Entity, replaceable=True):
 
     @timed_function('fms', dt=bs.settings.fms_dt)
     def update_fms(self, qdr, dist):
-
         # Shift waypoints for aircraft i where necessary
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
                                        bs.traf.actwp.flyturn,bs.traf.actwp.turnrad):
@@ -197,14 +196,14 @@ class Autopilot(Entity, replaceable=True):
                 if bs.traf.swvnavspd[iac]:
                      bs.traf.selspd[iac] = bs.traf.actwp.spd[iac]
 
-        return
-
     def update(self):
         # FMS LNAV mode:
         # qdr[deg],distinnm[nm]
         qdr, distinnm = geo.qdrdist(bs.traf.lat, bs.traf.lon,
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
         dist2wp = distinnm*nm  # Conversion to meters
+
+        self.qdr2wp = qdr
 
         # FMS route update and possibly waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
         self.update_fms(qdr, dist2wp) # Updates self.qdr2wp when necessary

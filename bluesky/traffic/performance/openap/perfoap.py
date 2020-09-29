@@ -20,7 +20,7 @@ class OpenAP(PerfBase):
     """
 
     def __init__(self):
-        super(OpenAP, self).__init__()
+        super().__init__()
 
         self.ac_warning = False  # aircraft mdl to default warning
         self.eng_warning = False  # aircraft engine to default warning
@@ -69,8 +69,7 @@ class OpenAP(PerfBase):
 
     def create(self, n=1):
         # cautious! considering multiple created aircraft with same type
-
-        super(OpenAP, self).create(n)
+        super().create(n)
 
         actype = bs.traf.type[-1].upper()
 
@@ -181,7 +180,7 @@ class OpenAP(PerfBase):
 
     @timed_function("performance", dt=bs.settings.performance_dt)
     def update(self, dt=bs.settings.performance_dt):
-        super(OpenAP, self).update()
+        super().update()
 
         # update phase, infer from spd, roc, alt
         lenph1 = len(self.phase)
@@ -286,7 +285,7 @@ class OpenAP(PerfBase):
         Returns:
             floats or 1D-arrays: Allowed TAS, Allowed vetical rate, Allowed altitude
         """
-        super(OpenAP, self).limits(intent_v_tas, intent_vs, intent_h)
+        super().limits(intent_v_tas, intent_vs, intent_h)
 
         allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
 

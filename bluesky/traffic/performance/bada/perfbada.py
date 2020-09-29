@@ -35,7 +35,7 @@ class PerfBADA(TrafficArrays):
         EEC Technical/Scientific Report No. 14/04/24-44 edition, 2014.
     """
     def __init__(self):
-        super(PerfBADA, self).__init__()
+        super().__init__()
         self.warned = False     # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
@@ -162,7 +162,7 @@ class PerfBADA(TrafficArrays):
         return False, "BADA performance model doesn't allow changing engine type"
 
     def create(self, n=1):
-        super(PerfBADA, self).create(n)
+        super().create(n)
         """CREATE NEW AIRCRAFT"""
         actypes = bs.traf.type[-n:]
 

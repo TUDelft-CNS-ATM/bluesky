@@ -80,10 +80,6 @@ if qt:
 
                 class GLTest(QGLWidget):
                     gl_version = 0.0
-
-                    def __init__(self):
-                        super(GLTest, self).__init__()
-
                     def initializeGL(self):
                         GLTest.gl_version = float(ogl.glGetString(ogl.GL_VERSION)[:3])
 

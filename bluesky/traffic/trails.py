@@ -19,7 +19,7 @@ class Trails(TrafficArrays):
     """
 
     def __init__(self,dttrail=10.):
-        super(Trails, self).__init__()
+        super().__init__()
         self.active = False  # Wether or not to show trails
         self.dt = dttrail    # Resolution of trail pieces in time
         self.pygame = (bs.gui_type == 'pygame') # Trails are different for pygame
@@ -62,7 +62,7 @@ class Trails(TrafficArrays):
         return
 
     def create(self,n=1):
-        super(Trails, self).create(n)
+        super().create(n)
 
         self.accolor[-1] = self.defcolor
         self.lastlat[-1] = bs.traf.lat[-1]
@@ -231,6 +231,6 @@ class Trails(TrafficArrays):
     def reset(self):
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
-        super(Trails, self).reset()
+        super().reset()
         self.clear()
         self.active = False

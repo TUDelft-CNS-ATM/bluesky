@@ -21,7 +21,7 @@ coeffBS = CoeffBS()
 
 class PerfBS(TrafficArrays):
     def __init__(self):
-        super(PerfBS,self).__init__()
+        super().__init__()
         self.warned  = False    # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?
 
@@ -101,7 +101,7 @@ class PerfBS(TrafficArrays):
         return
 
     def create(self, n=1):
-        super(PerfBS,self).create(n)
+        super().create(n)
         """CREATE NEW AIRCRAFT"""
         actypes = bs.traf.type[-n:]
         coeffidx = []

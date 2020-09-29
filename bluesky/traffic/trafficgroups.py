@@ -14,7 +14,7 @@ class GroupArray(np.ndarray):
 class TrafficGroups(TrafficArrays):
     def __init__(self):
         # Initialize the groups structure
-        super(TrafficGroups, self).__init__()
+        super().__init__()
         self.groups = dict()
         self.allmasks = 0
         with self.settrafarrays():
