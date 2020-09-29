@@ -3,10 +3,10 @@ import math
 import os
 import subprocess
 import bluesky as bs
-from bluesky.stack.command import Command, command, commandgroup
+from bluesky.stack.cmdparser import Command, command, commandgroup
 from bluesky.stack.basecmds import initbasecmds
 import bluesky.stack.recorder as recorder
-import bluesky.stack.parser as parser
+import bluesky.stack.argparser as argparser
 from bluesky import settings
 
 
@@ -61,7 +61,7 @@ def reset():
     # Close recording file and reset scenario recording settings
     recorder.reset()
     # Reset parser reference values
-    parser.reset()
+    argparser.reset()
 
 
 def stack(*cmdlines, cmdsender=None):
@@ -98,13 +98,13 @@ def process():
         echoflags = bs.BS_OK
 
         # Get first argument from command line and check if it's a command
-        cmd, argstring = parser.getnextarg(line)
+        cmd, argstring = argparser.getnextarg(line)
         cmdu = cmd.upper()
         cmdobj = Command.cmddict.get(cmdu)
 
         # If no function is found for 'cmd', check if cmd is actually an aircraft id
         if not cmdobj and cmdu in bs.traf.id:
-            cmd, argstring = parser.getnextarg(argstring)
+            cmd, argstring = argparser.getnextarg(argstring)
             argstring = cmdu + " " + argstring
             # When no other args are parsed, command is POS
             cmdu = cmd.upper() if cmd else 'POS'

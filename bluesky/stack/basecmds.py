@@ -8,7 +8,7 @@ from bluesky.core import select_implementation, plugin, simtime, varexplorer as 
 from bluesky.tools import geo, areafilter, plotter, datalog
 from bluesky.tools.calculator import calculator
 import bluesky.stack.synthetic as syn
-from bluesky.stack.command import append_commands
+from bluesky.stack.cmdparser import append_commands
 
 
 def initbasecmds():

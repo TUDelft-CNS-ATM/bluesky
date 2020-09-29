@@ -4,7 +4,7 @@ import math
 import bluesky as bs
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
 from bluesky.tools.misc import tim2txt
-from bluesky.stack.command import command, commandgroup
+from bluesky.stack.cmdparser import command, commandgroup
 
 # When SAVEIC is used, we will also have a recording scenario file handle
 savefile = None  # File object of recording scenario file

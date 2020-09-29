@@ -1,7 +1,7 @@
 ''' Stack Command implementation. '''
 import inspect
 
-from bluesky.stack.parser import Parameter, getnextarg
+from bluesky.stack.argparser import Parameter, getnextarg
 
 
 class Command:
