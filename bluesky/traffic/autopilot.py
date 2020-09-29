@@ -202,8 +202,6 @@ class Autopilot(Entity, replaceable=True):
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
         dist2wp = distinnm*nm  # Conversion to meters
 
-        self.qdr2wp = qdr
-
         # FMS route update and possibly waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
         self.update_fms(qdr, dist2wp) # Updates self.qdr2wp when necessary
 
