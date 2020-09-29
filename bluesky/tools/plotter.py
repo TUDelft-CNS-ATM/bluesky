@@ -1,7 +1,7 @@
 ''' Sim-side implementation of graphical data plotter in BlueSky.'''
 from collections import defaultdict
 import bluesky as bs
-from bluesky.tools import varexplorer as ve
+from bluesky.core import varexplorer as ve
 
 
 # Globals
