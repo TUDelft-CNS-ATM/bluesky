@@ -176,7 +176,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                              bs.traf.actwp.xtorta[i])
 
         # End of per waypoint i switching loop
-        # Update qdr2wp with up-to-date qdr, now that we have chekced passing wp
+        # Update qdr2wp with up-to-date qdr, now that we have checked passing wp
         self.qdr2wp = qdr%360.
 
         # Continuous guidance when speed constraint on active leg is in update-method
@@ -205,6 +205,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # qdr[deg],distinnm[nm]
         qdr, distinnm = geo.qdrdist(bs.traf.lat, bs.traf.lon,
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
+        qdr2wp  = qdr
         dist2wp = distinnm*nm  # Conversion to meters
 
         # FMS route update and possibly waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
