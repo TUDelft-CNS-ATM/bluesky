@@ -403,7 +403,7 @@ class Traffic(Entity):
         self.trails.update()
         return
 
-    @timed_function('asas', dt=bs.settings.asas_dt)
+    @timed_function(name='asas', dt=bs.settings.asas_dt, manual=True)
     def update_asas(self):
         # Conflict detection and resolution
         self.cd.update(self, self)
@@ -774,7 +774,7 @@ class Traffic(Entity):
         """Set throttle to given value or AUTO, meaning autothrottle on (default)"""
 
         if throttle:
-            if throttle == "AUTO" or throttle=='OFF': # throttle mode off, ATS on
+            if throttle in ('AUTO', 'OFF'): # throttle mode off, ATS on
                 self.swats[idx] = True   # Autothrottle on
                 self.thr[idx] = -999.    # Set to invalid
 

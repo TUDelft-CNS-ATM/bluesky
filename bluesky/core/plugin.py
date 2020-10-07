@@ -18,7 +18,7 @@ active_plugins = dict()
 
 class Plugin:
     ''' BlueSky plugin class. 
-        This class is used internally to store information about bluesky 
+        This class is used internally to store information about bluesky
         plugins that were found in the search directory. '''
     def __init__(self, fname):
         fname = path.normpath(path.splitext(fname)[0].replace('\\', '/'))
@@ -140,10 +140,12 @@ def load(name):
         updfun = config.get('update')
         rstfun = config.get('reset')
         if prefun:
-            preupdate_funs[name] = timed_function(f'{name}.{prefun.__name__}', dt)(prefun)
+            preupdate_funs[name] = timed_function(
+                prefun, name=f'{name}.{prefun.__name__}', dt=dt, manual=True)
 
         if updfun:
-            update_funs[name] = timed_function(f'{name}.{updfun.__name__}', dt)(updfun)
+            update_funs[name] = timed_function(
+                updfun, name=f'{name}.{updfun.__name__}', dt=dt, manual=True)
 
         if rstfun:
             reset_funs[name] = rstfun

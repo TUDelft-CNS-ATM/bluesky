@@ -318,7 +318,7 @@ class PerfBADA(TrafficArrays):
         # for now, BADA aircraft have the same acceleration as deceleration
         self.gr_acc[-n:]    = coeff.gr_acc
 
-    @timed_function('performance', dt=settings.performance_dt)
+    @timed_function(name='performance', dt=settings.performance_dt, manual=True)
     def update(self, dt=settings.performance_dt):
         """AIRCRAFT PERFORMANCE"""
         # BADA version

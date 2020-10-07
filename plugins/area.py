@@ -142,7 +142,7 @@ class Area(TrafficArrays):
         self.insexp[-n:] = False
         self.create_time[-n:] = sim.simt
 
-    @timed_function('AREA', dt=1.0)
+    @timed_function(name='AREA', dt=1.0, manual=True)
     def update(self, dt):
         ''' Update flight efficiency metrics
             2D and 3D distance [m], and work done (force*distance) [J] '''

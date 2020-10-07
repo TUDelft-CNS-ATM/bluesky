@@ -1,4 +1,5 @@
 ''' Simulation clock with guaranteed decimal precision. '''
+import inspect
 from collections import OrderedDict
 from inspect import signature
 from types import SimpleNamespace
@@ -66,7 +67,8 @@ def reset():
 
 class Timer:
     ''' Timer class for simulation-time periodic functions. '''
-    def __init__(self, name, dt):
+
+    def __init__(self, name, fun, dt, manual, hook):
         self.name = name
         self.dt_default = Decimal(repr(dt))
         self.dt_requested = self.dt_default
@@ -75,6 +77,10 @@ class Timer:
         self.counter = 0
         self.tprev = _clock.t
         self.setdt()
+
+        self.fun = fun
+        self.manual = manual
+        self.hook = hook
 
         # Add self to dictionary of timers
         _timers[name.upper()] = self
@@ -127,21 +133,27 @@ class Timer:
         return elapsed
 
 
-def timed_function(name, dt=1.0):
+def timed_function(fun=None, name='', dt=1.0, manual=False, hook=''):
     ''' Decorator to turn a function into a periodically timed function. '''
-    def decorator(fun):
+    def deco(fun):
+        print(fun.__name__, inspect.getmodule(fun))
         # Return original function if it is already wrapped
         if getattr(fun, '__istimed', False):
             return fun
-        timer = Timer(name, dt)
-        if 'dt' in signature(fun).parameters:
-            def wrapper(*args, **kwargs):
-                if timer.readynext():
-                    return fun(*args, **kwargs, dt=float(timer.dt_act))
-        else:
-            def wrapper(*args, **kwargs):
-                if timer.readynext():
-                    return fun(*args, **kwargs)
-        wrapper.__istimed = True
-        return wrapper
-    return decorator
+        timer = Timer(name, fun, dt, manual, hook)
+        if manual:
+            if 'dt' in signature(fun).parameters:
+                def wrapper(*args, **kwargs):
+                    if timer.readynext():
+                        return fun(*args, **kwargs, dt=float(timer.dt_act))
+            else:
+                def wrapper(*args, **kwargs):
+                    if timer.readynext():
+                        return fun(*args, **kwargs)
+            wrapper.__istimed = True
+            return wrapper
+        fun.__timer__ = timer
+        fun.__istimed = True
+        return fun
+    # Allow both @timed_function and @timed_function(args)
+    return deco if fun is None else deco(fun)

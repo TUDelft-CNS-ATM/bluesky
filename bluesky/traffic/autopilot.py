@@ -68,7 +68,7 @@ class Autopilot(Entity, replaceable=True):
         # Route objects
         self.route[-n:] = [Route() for _ in range(n)]
 
-    @timed_function('fms', dt=bs.settings.fms_dt)
+    @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
     def update_fms(self, qdr, dist):
         # Shift waypoints for aircraft i where necessary
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,

@@ -188,7 +188,7 @@ class PerfBS(TrafficArrays):
         self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
         self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
 
-    @timed_function('performance', dt=settings.performance_dt)
+    @timed_function(name='performance', dt=settings.performance_dt, manual=True)
     def update(self, dt=settings.performance_dt):
         """Aircraft performance"""
         swbada = False # no-bada version

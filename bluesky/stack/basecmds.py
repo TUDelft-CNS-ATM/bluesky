@@ -549,6 +549,12 @@ def initbasecmds():
             syn.process,
             "Macro for generating synthetic (geometric) traffic scenarios",
         ],
+        "THR": [
+            "THR acid, IDLE/0.0/throttlesetting/1.0/AUTO(default)",
+            "acid[,txt]",
+            bs.traf.setthrottle,
+            "Set throttle or autotothrottle(default)",
+        ],
         "TIME": [
             "TIME RUN(default) / HH:MM:SS.hh / REAL / UTC ",
             "[txt]",

@@ -178,7 +178,7 @@ class OpenAP(PerfBase):
         # append update actypes, after removing unkown types
         self.actypes[-n:] = [actype] * n
 
-    @timed_function("performance", dt=bs.settings.performance_dt)
+    @timed_function(name="performance", dt=bs.settings.performance_dt, manual=True)
     def update(self, dt=bs.settings.performance_dt):
         super().update()
 
