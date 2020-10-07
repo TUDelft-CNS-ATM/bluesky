@@ -90,8 +90,6 @@ def manage(cmd='LIST', plugin_name=''):
 
     if cmd in ['LOAD', 'ENABLE']:
         return load(plugin_name)
-    if cmd in ['REMOVE', 'UNLOAD', 'DISABLE']:
-        return remove(plugin_name)
     if cmd != '': # If no command is given, assume user tries to load a plugin
         return load(cmd)
     return False
@@ -159,21 +157,6 @@ def load(name):
     except ImportError as e:
         print('BlueSky plugin system failed to load', name, ':', e)
         return False, 'Failed to load %s' % name
-
-def remove(name):
-    ''' Remove a loaded plugin. '''
-    if name not in active_plugins:
-        return False, 'Plugin %s not loaded' % name
-    preset = reset_funs.pop(name, None)
-    if preset:
-        # Call module reset first to clear plugin state just in case.
-        preset()
-    descr  = plugin_descriptions.get(name)
-    cmds, _ = list(zip(*descr.plugin_stack))
-    bs.stack.remove_commands(cmds)
-    active_plugins.pop(name)
-    preupdate_funs.pop(name)
-    update_funs.pop(name)
 
 def preupdate():
     ''' Update function executed before traffic update.'''
