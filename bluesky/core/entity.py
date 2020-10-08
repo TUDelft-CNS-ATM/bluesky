@@ -45,6 +45,14 @@ class EntityMeta(type):
         if cls._proxy is None:
             if cls._instance is None:
                 cls._instance = super().__call__(*args, **kwargs)
+                # Update the stack commands of this class
+                for name, cmd in cls._stackcmds.items():
+                    cmd.callback = getattr(
+                        cls._instance, name, cmd.notimplemented)
+                # Update the timed functions of this class
+                for name, timedfun in cls._timedfuns.items():
+                    timedfun.callback = getattr(
+                        cls._instance, name, timedfun.notimplemented)
             return cls._instance
         # check if the current instance is the same as the selected class
         if cls._proxy._selected() is not cls.selected():
@@ -58,6 +66,9 @@ class EntityMeta(type):
             # Update the stack commands of this class
             for name, cmd in cls._stackcmds.items():
                 cmd.callback = getattr(refobj, name, cmd.notimplemented)
+            # Update the timed functions of this class
+            for name, timedfun in cls._timedfuns.items():
+                timedfun.callback = getattr(refobj, name, timedfun.notimplemented)
         return cls._proxy
 
 
@@ -81,6 +92,8 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
         if not hasattr(cls, '_stackcmds'):
             # Each first descendant of Entity keeps a dict of all stack commands
             cls._stackcmds = dict()
+            # And all timed methods
+            cls._timedfuns = dict()
 
             # Each first descendant of replaceable Entities have a proxy object
             # that wraps the currently selected instance
@@ -102,3 +115,13 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
             if not inspect.ismethod(cmd.callback) and inspect.ismethod(obj):
                 # Update callback of stack command with first bound method we encounter
                 cmd.callback = obj
+        # Similarly also always update the timed function list
+        for name, obj in inspect.getmembers(cls, lambda o: hasattr(o, '__timedfun__')):
+            if name in cls._timedfuns:
+                obj.__timedfun__ = cls._timedfuns[name]
+            else:
+                cls._timedfuns[name] = obj.__timedfun__
+            timedfun = obj.__timedfun__
+            if not inspect.ismethod(timedfun.callback) and inspect.ismethod(obj):
+                # Update callback of the timed function with first bound method we encounter
+                timedfun.callback = obj

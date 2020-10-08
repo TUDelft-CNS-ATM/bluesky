@@ -72,14 +72,14 @@ class Simulation:
         bs.stack.process()
 
         if self.state == bs.OP:
-            # Plot/log the current timestep, and call preupdate for plugins that
-            # have it
+            # Plot/log the current timestep, and call preupdate functions
             plotter.update()
             datalog.update()
-            plugin.preupdate()
+            simtime.preupdate()
 
             # Determine interval towards next timestep
             if remainder < 0.0 and self.rtmode:
+                # Allow a variable timestep when we are running realtime
                 self.simt, self.simdt = simtime.step(-remainder)
             else:
                 # Don't accumulate delay when we aren't running realtime
@@ -90,9 +90,9 @@ class Simulation:
             # Update UTC time
             self.utc += datetime.timedelta(seconds=self.simdt)
 
-            # Update traffic and plugins for the next timestep
+            # Update traffic and other update functions for the next timestep
             bs.traf.update()
-            plugin.update()
+            simtime.update()
 
         # Always update syst
         self.syst += self.simdt / self.dtmult
@@ -149,7 +149,7 @@ class Simulation:
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.ffmode = False
         self.set_dtmult(1.0)
-        plugin.reset()
+        simtime.reset()
         core.reset()
         bs.navdb.reset()
         bs.traf.reset()

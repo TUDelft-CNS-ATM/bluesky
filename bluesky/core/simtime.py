@@ -16,6 +16,11 @@ _clock = SimpleNamespace(t=Decimal('0.0'), dt=Decimal(repr(settings.simdt)),
                          ft=0.0, fdt=settings.simdt)
 _timers = OrderedDict()
 
+# Dictionaries of timed functions for different trigger points
+preupdate_funs = OrderedDict()
+update_funs = OrderedDict()
+reset_funs = OrderedDict()
+
 
 def setdt(newdt=None, target='simdt'):
     ''' Set the timestep for the simulation clock.
@@ -55,8 +60,25 @@ def step(recovery_time=0):
     return _clock.ft, _clock.fdt + float(recovery_time)
 
 
+def preupdate():
+    ''' Update function executed before traffic update.'''
+    for fun in preupdate_funs.values():
+        fun.trigger()
+
+
+def update():
+    ''' Update function executed after traffic update.'''
+    for fun in update_funs.values():
+        fun.trigger()
+
+
 def reset():
-    ''' Reset the simulation clock. '''
+    ''' Reset function executed when simulation is reset.'''
+    # Call plugin reset for plugins that have one
+    for fun in reset_funs.values():
+        fun.trigger()
+
+    # Reset the simulation clock.
     _clock.t = Decimal('0.0')
     _clock.dt = Decimal(repr(settings.simdt))
     _clock.ft = 0.0
@@ -68,7 +90,7 @@ def reset():
 class Timer:
     ''' Timer class for simulation-time periodic functions. '''
 
-    def __init__(self, name, fun, dt, manual, hook):
+    def __init__(self, name, dt):
         self.name = name
         self.dt_default = Decimal(repr(dt))
         self.dt_requested = self.dt_default
@@ -77,10 +99,6 @@ class Timer:
         self.counter = 0
         self.tprev = _clock.t
         self.setdt()
-
-        self.fun = fun
-        self.manual = manual
-        self.hook = hook
 
         # Add self to dictionary of timers
         _timers[name.upper()] = self
@@ -133,15 +151,75 @@ class Timer:
         return elapsed
 
 
-def timed_function(fun=None, name='', dt=1.0, manual=False, hook=''):
-    ''' Decorator to turn a function into a periodically timed function. '''
+class TimedFunction:
+    ''' Wrapper object to hold (periodically) timed functions. '''
+    def __init__(self, fun, name, dt=0, hook=''):
+        self.trigger = None
+        self.name = name
+        self.dt = dt
+        self.hook = hook
+        # reset is a special case: doesn't need timer, and fun is called directly
+        self.timer = None if hook == 'reset' else Timer(name, dt)
+        self.callback = fun
+
+    @property
+    def callback(self):
+        ''' Callback pointing to the actual function triggered by this timer. '''
+        return self._callback
+
+    @callback.setter
+    def callback(self, function):
+        self._callback = function
+        if self.timer is None:
+            # Untimed functions are called directly
+            self.trigger = function
+        elif 'dt' in signature(function).parameters:
+            # Timed functions that accept dt as argument
+            self.trigger = self.call_timeddt
+        else:
+            # Timed functions without arguments
+            self.trigger = self.call_timed
+        if not inspect.ismethod(function):
+            function.__timedfun__ = self
+
+    def call_timeddt(self):
+        ''' Wrapper method to call timed functions that accept dt as argument. '''
+        if self.timer.readynext():
+            self._callback(dt=float(self.timer.dt_act))
+
+    def call_timed(self):
+        ''' Wrapper method to call timed functions. '''
+        if self.timer.readynext():
+            self._callback()
+
+    def notimplemented(self, *args, **kwargs):
+        ''' This function is called when a (derived) class is selected that doesn't
+            provide the timed function originally passed by the base class. '''
+        pass
+
+
+def timed_function(fun=None, name='', dt=0, manual=False, hook=''):
+    ''' Decorator to turn a function into a (periodically) timed function. '''
     def deco(fun):
-        print(fun.__name__, inspect.getmodule(fun))
         # Return original function if it is already wrapped
         if getattr(fun, '__istimed', False):
             return fun
-        timer = Timer(name, fun, dt, manual, hook)
+        # Generate a name if none is provided
+        if name == '':
+            if inspect.ismethod(fun):
+                if inspect.isclass(fun.__self__):
+                    # classmethods
+                    tname = f'{fun.__self__.__name__}.{fun.__name__}'
+                else:
+                    # instance methods
+                    tname = f'{fun.__self__.__class__.__name__}.{fun.__name__}'
+            else:
+                tname = f'{fun.__module__}.{fun.__name__}'
+        else:
+            tname = name
+
         if manual:
+            timer = Timer(tname, dt)
             if 'dt' in signature(fun).parameters:
                 def wrapper(*args, **kwargs):
                     if timer.readynext():
@@ -152,8 +230,14 @@ def timed_function(fun=None, name='', dt=1.0, manual=False, hook=''):
                         return fun(*args, **kwargs)
             wrapper.__istimed = True
             return wrapper
-        fun.__timer__ = timer
-        fun.__istimed = True
+
+        timedfun = TimedFunction(fun, tname, dt, hook)
+        if hook == 'preupdate':
+            preupdate_funs[tname] = timedfun
+        elif hook == 'reset':
+            reset_funs[tname] = timedfun
+        else:
+            update_funs[tname] = timedfun
         return fun
     # Allow both @timed_function and @timed_function(args)
     return deco if fun is None else deco(fun)

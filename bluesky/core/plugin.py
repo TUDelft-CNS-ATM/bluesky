@@ -17,7 +17,7 @@ plugin_descriptions = dict()
 active_plugins = dict()
 
 class Plugin:
-    ''' BlueSky plugin class. 
+    ''' BlueSky plugin class.
         This class is used internally to store information about bluesky
         plugins that were found in the search directory. '''
     def __init__(self, fname):
@@ -113,11 +113,6 @@ def init(mode):
         print(success[1])
 
 
-# Sim implementation of plugin management
-preupdate_funs = dict()
-update_funs    = dict()
-reset_funs     = dict()
-
 def load(name):
     ''' Load a plugin. '''
     try:
@@ -134,19 +129,12 @@ def load(name):
         config = result if isinstance(result, dict) else result[0]
         active_plugins[name] = plugin
         dt     = max(config.get('update_interval', 0.0), bs.sim.simdt)
-        prefun = config.get('preupdate')
-        updfun = config.get('update')
-        rstfun = config.get('reset')
-        if prefun:
-            preupdate_funs[name] = timed_function(
-                prefun, name=f'{name}.{prefun.__name__}', dt=dt, manual=True)
+        # Add timed functions if present
+        for hook in ('preupdate', 'update', 'reset'):
+            fun = config.get(hook)
+            if fun:
+                timed_function(fun, name=f'{name}.{fun.__name__}', dt=dt, hook=hook)
 
-        if updfun:
-            update_funs[name] = timed_function(
-                updfun, name=f'{name}.{updfun.__name__}', dt=dt, manual=True)
-
-        if rstfun:
-            reset_funs[name] = rstfun
         if isinstance(result, (tuple, list)) and len(result) > 1:
             stackfuns = result[1]
             # Add the plugin's stack functions to the stack
@@ -157,21 +145,3 @@ def load(name):
     except ImportError as e:
         print('BlueSky plugin system failed to load', name, ':', e)
         return False, 'Failed to load %s' % name
-
-def preupdate():
-    ''' Update function executed before traffic update.'''
-    for fun in preupdate_funs.values():
-        fun()
-
-
-def update():
-    ''' Update function executed after traffic update.'''
-    for fun in update_funs.values():
-        fun()
-
-
-def reset():
-    ''' Reset all plugins.'''
-    # Call plugin reset for plugins that have one
-    for fun in reset_funs.values():
-        fun()
