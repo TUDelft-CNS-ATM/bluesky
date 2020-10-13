@@ -95,21 +95,13 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
             # And all timed methods
             cls._timedfuns = dict()
 
-            # Each first descendant of replaceable Entities have a proxy object
+            # Each first descendant of replaceable Entities has a proxy object
             # that wraps the currently selected instance
             cls._proxy = Proxy() if replaceable else None
 
         # Always update the stack command list by iterating over all stack commands
         for name, obj in inspect.getmembers(cls, lambda o: hasattr(o, '__stack_cmd__')):
-            if name in cls._stackcmds:
-                # for subclasses reimplementing stack functions we keep only one
-                # Command object
-                if type(obj.__stack_cmd__) is not type(cls._stackcmds[name]):
-                    raise TypeError(f'Error reimplementing {name}: '
-                                    f'A {type(cls._stackcmds[name]).__name__} cannot be '
-                                    f'reimplemented as a {type(obj.__stack_cmd__).__name__}')
-                obj.__stack_cmd__ = cls._stackcmds[name]
-            else:
+            if name not in cls._stackcmds:
                 cls._stackcmds[name] = obj.__stack_cmd__
             cmd = obj.__stack_cmd__
             if not inspect.ismethod(cmd.callback) and inspect.ismethod(obj):
@@ -117,9 +109,7 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
                 cmd.callback = obj
         # Similarly also always update the timed function list
         for name, obj in inspect.getmembers(cls, lambda o: hasattr(o, '__timedfun__')):
-            if name in cls._timedfuns:
-                obj.__timedfun__ = cls._timedfuns[name]
-            else:
+            if name not in cls._timedfuns:
                 cls._timedfuns[name] = obj.__timedfun__
             timedfun = obj.__timedfun__
             if not inspect.ismethod(timedfun.callback) and inspect.ismethod(obj):

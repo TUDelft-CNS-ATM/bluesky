@@ -10,11 +10,40 @@ class Command:
     # Dictionary with all command objects
     cmddict = dict()
 
-    def __init__(self, func, parent=None, **kwargs):
+    @classmethod
+    def addcommand(cls, func, parent=None, name='', **kwargs):
+        ''' Add 'func' as a stack command. '''
         # Get function object if it's decorated as static or classmethod
         func = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
             else func
-        self.name = kwargs.get('name', func.__name__).upper()
+        # Stack command name
+        name = (name or func.__name__).upper()
+
+        # When a parent is passed this function is a subcommand
+        target = parent.subcmds if isinstance(
+            parent, CommandGroup) else Command.cmddict
+
+        # Check if this command already exists
+        cmdobj = target.get(name)
+        if not cmdobj:
+            cmdobj = cls(func, parent, name, **kwargs)
+            target[name] = cmdobj
+            for alias in cmdobj.aliases:
+                target[alias] = cmdobj
+        else:
+            # for subclasses reimplementing stack functions we keep only one
+            # Command object
+            print(f'Attempt to reimplement {name} from {cmdobj.callback} to {func}')
+            if not isinstance(cmdobj, cls):
+                raise TypeError(f'Error reimplementing {name}: '
+                                f'A {type(cmdobj).__name__} cannot be '
+                                f'reimplemented as a {cls.__name__}')
+        # Store reference to command object for function
+        if not inspect.ismethod(func):
+            func.__stack_cmd__ = cmdobj
+
+    def __init__(self, func, parent=None, name='', **kwargs):
+        self.name = name
         self.help = inspect.cleandoc(kwargs.get('help', ''))
         self.brief = kwargs.get('brief', '')
         self.aliases = kwargs.get('aliases', tuple())
@@ -24,20 +53,6 @@ class Command:
         self.params = list()
         self.parent = parent
         self.callback = func
-
-        # When a parent is passed this function is a subcommand
-        if parent is None:
-            Command.cmddict[self.name] = self
-            for alias in self.aliases:
-                Command.cmddict[alias] = self
-        elif isinstance(parent, CommandGroup):
-            parent.subcmds[self.name] = self
-            for alias in self.aliases:
-                parent.subcmds[alias] = self
-
-        # Store reference to self for function
-        if not inspect.ismethod(func):
-            func.__stack_cmd__ = self
 
     def __call__(self, argstring):
         args = []
@@ -150,8 +165,8 @@ class CommandGroup(Command):
     ''' Stack command group object.
         Command groups can have subcommands.
     '''
-    def __init__(self, func, parent=None, **kwargs):
-        super().__init__(func, parent, **kwargs)
+    def __init__(self, func, parent=None, name='', **kwargs):
+        super().__init__(func, parent, name, **kwargs)
         self.subcmds = dict()
 
         # Give the function a method to add subcommands
@@ -199,7 +214,7 @@ def command(fun=None, cls=Command, parent=None, **kwargs):
     '''
     def deco(fun):
         # Construct the stack command object, but return the original function
-        cls(fun, parent, **kwargs)
+        cls.addcommand(fun, parent, **kwargs)
         return fun
     # Allow both @command and @command(args)
     return deco if fun is None else deco(fun)
