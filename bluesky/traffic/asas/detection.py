@@ -4,6 +4,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft, nm
 from bluesky.core import Entity
+from bluesky.stack import command
 
 
 bs.settings.set_variable_defaults(asas_pzr=5.0, asas_pzh=1000.0,
@@ -68,8 +69,9 @@ class ConflictDetection(Entity, replaceable=True):
         self.dtnolook = 0.0
 
     @classmethod
-    def setmethod(cls, name=''):
-        ''' Select a CD method. '''
+    @command(name='CDMETHOD', aliases=('ASAS',))
+    def setmethod(cls, name : 'txt' = ''):
+        ''' Select a Conflict Detection (CD) method. '''
         # Get a dict of all registered CD methods
         methods = cls.derived()
         names = ['OFF' if n == 'CONFLICTDETECTION' else n for n in methods]
@@ -96,30 +98,40 @@ class ConflictDetection(Entity, replaceable=True):
         ConflictDetection.instance().clearconfdb()
         return True, f'Selected {method.__name__} as CD method.'
 
-    def setrpz(self, value=None):
-        ''' Set the horizontal separation distance. '''
-        if value is None:
-            return True, ("ZONER [radius (nm)]\nCurrent PZ radius: %.2f NM" % (self.rpz / nm))
-        self.rpz = value * nm
+    @command(name='ZONER')
+    def setrpz(self, radius: float = -1.0):
+        ''' Set the horizontal separation distance (i.e., the radius of the
+            protected zone) in nautical miles. '''
+        if radius < 0.0:
+            return True, f'ZONER[radius(nm)]\nCurrent PZ radius: {self.rpz / nm:.2f} NM'
+        self.rpz = radius * nm
+        return True, f'Setting PZ radius to {radius} NM'
 
-    def sethpz(self, value=None):
-        ''' Set the vertical separation distance. '''
-        if value is None:
-            return True, ("ZONEDH [height (ft)]\nCurrent PZ height: %.2f ft" % (self.hpz / ft))
-        self.hpz = value * ft
+    @command(name='ZONEDH')
+    def sethpz(self, height: float = -1.0):
+        ''' Set the vertical separation distance (i.e., half of the protected
+            zone height) in feet. '''
+        if height < 0.0:
+            return True, f'ZONEDH [height (ft)]\nCurrent PZ height: {self.hpz / ft:.2f} ft'
+        self.hpz = height * ft
+        return True, f'Setting PZ height to {height} ft'
 
-    def setdtlook(self, value=None):
-        ''' Set the lookahead time for conflict detection. '''
-        if value is None:
-            return True, ("DTLOOK [time]\nCurrent value: %.1f sec" % self.dtlookahead)
-        self.dtlookahead = value
+    @command(name='DTLOOK')
+    def setdtlook(self, time : 'time' = -1.0):
+        ''' Set the lookahead time (in [hh:mm:]sec) for conflict detection. '''
+        if time < 0.0:
+            return True, f'DTLOOK[time]\nCurrent value: {self.dtlookahead: .1f} sec'
+        self.dtlookahead = time
+        return True, f'Setting CD lookahead to {time} sec'
 
-    def setdtnolook(self, value=None):
-        ''' Set the interval in which conflict detection is skipped after a
-            conflict resolution. '''
-        if value is None:
-            return True, ("DTNOLOOK [time]\nCurrent value: %.1f sec" % self.dtasas)
-        self.dtnolook = value
+    @command(name='DTNOLOOK')
+    def setdtnolook(self, time : 'time' = -1.0):
+        ''' Set the interval (in [hh:mm:]sec) in which conflict detection
+            is skipped after a conflict resolution. '''
+        if time < 0.0:
+            return True, f'DTNOLOOK[time]\nCurrent value: {self.dtasas: .1f} sec'
+        self.dtnolook = time
+        return True, f'Setting CD no-look to {time} sec'
 
     def update(self, ownship, intruder):
         ''' Perform an update step of the Conflict Detection implementation. '''

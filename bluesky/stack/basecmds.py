@@ -154,12 +154,6 @@ def initbasecmds():
             setscenpath,
             "Change to a different scenario folder",
         ],
-        "CDMETHOD": [
-            "CDMETHOD [method]",
-            "[txt]",
-            bs.traf.cd.setmethod,
-            "Set conflict detection method",
-        ],
         "CIRCLE": [
             "CIRCLE name,lat,lon,radius,[top,bottom]",
             "txt,latlon,float,[alt,alt]",
@@ -258,23 +252,11 @@ def initbasecmds():
             lambda *args: simtime.setdt(*reversed(args)),
             "Set simulation time step",
         ],
-        "DTLOOK": [
-            "DTLOOK [time]",
-            "[float]",
-            bs.traf.cd.setdtlook,
-            "Set lookahead time in seconds for conflict detection",
-        ],
         "DTMULT": [
             "DTMULT multiplier",
             "float",
             bs.sim.set_dtmult,
             "Sel multiplication factor for fast-time simulation",
-        ],
-        "DTNOLOOK": [
-            "DTNOLOOK [time]",
-            "[float]",
-            bs.traf.cd.setdtnolook,
-            "Set interval for conflict detection",
         ],
         "DUMPRTE": [
             "DUMPRTE acid",
@@ -406,12 +388,6 @@ def initbasecmds():
             bs.traf.nom,
             "Set nominal acceleration for this aircraft (perf model)",
         ],
-        "NORESO": [
-            "NORESO [acid]",
-            "[acid]",
-            bs.traf.cr.setnoreso,
-            "Switch on/off conflict resolution for one or more aircraft",
-        ],
         "OP": [
             "OP",
             "",
@@ -474,12 +450,6 @@ def initbasecmds():
             bs.traf.poscommand,
             "Get info on aircraft, airport or waypoint",
         ],
-        "PRIORULES": [
-            "PRIORULES [ON/OFF PRIOCODE]",
-            "[onoff, txt]",
-            bs.traf.cr.setprio,
-            "Define priority rules (right of way) for conflict resolution",
-        ],
         "QUIT": ["QUIT", "", bs.sim.stop, "Quit program/Stop simulation"],
         "REALTIME": [
             "REALTIME [ON/OFF]",
@@ -487,30 +457,6 @@ def initbasecmds():
             bs.sim.realtime,
             "En-/disable realtime running allowing a variable timestep."],
         "RESET": ["RESET", "", bs.sim.reset, "Reset simulation"],
-        "RFACH": [
-            "RFACH [factor]",
-            "[float]",
-            bs.traf.cr.setresofach,
-            "Set resolution factor horizontal (to maneuver only a fraction of a resolution vector)",
-        ],
-        "RFACV": [
-            "RFACV [factor]",
-            "[float]",
-            bs.traf.cr.setresofacv,
-            "Set resolution factor vertical (to maneuver only a fraction of a resolution vector)",
-        ],
-        "RESO": [
-            "RESO [method]",
-            "[txt]",
-            bs.traf.cr.setmethod,
-            "Set resolution method",
-        ],
-        "RESOOFF": [
-            "RESOOFF [acid]",
-            "[acid]",
-            bs.traf.cr.setresooff,
-            "Switch for conflict resolution module",
-        ],
         "RTA": [
             "RTA acid,wpinroute,RTAtime",
             "acid,wpinroute,txt",
@@ -592,18 +538,6 @@ def initbasecmds():
             bs.traf.wind.add,
             "Define a wind vector as part of the 2D or 3D wind field",
         ],
-        "ZONEDH": [
-            "ZONEDH [height]",
-            "[float]",
-            bs.traf.cd.sethpz,
-            "Set half of the vertical protected zone dimensions in ft",
-        ],
-        "ZONER": [
-            "ZONER [radius]",
-            "[float]",
-            bs.traf.cd.setrpz,
-            "Set the radius of the horizontal protected zone dimensions in nm",
-        ],
         "ZOOM": [
             "ZOOM IN/OUT or factor",
             "float/txt",
@@ -623,7 +557,6 @@ def initbasecmds():
     #
     synonyms = {
         "ADDAIRWAY": "ADDAWY",
-        "ASAS": "CDMETHOD",
         "AWY": "POS",
         "AIRPORT": "POS",
         "AIRWAYS": "AIRWAY",
@@ -645,9 +578,6 @@ def initbasecmds():
         "EXIT": "QUIT",
         "FWD": "FF",
         "HEADING": "HDG",
-        "HMETH": "RMETHH",
-        "HRESOM": "RMETHH",
-        "HRESOMETH": "RMETHH",
         "IMPL": "IMPLEMENTATION",
         "IMPLEMENT": "IMPLEMENTATION",
         "LINES": "POLYLINE",
@@ -664,16 +594,11 @@ def initbasecmds():
         "STOP": "QUIT",
         "RUN": "OP",
         "RUNWAYS": "POS",
-        "RESOFACH": "RFACH",
-        "RESOFACV": "RFACV",
         "SAVE": "SAVEIC",
         "SPEED": "SPD",
         "START": "OP",
         "TRAILS": "TRAIL",
         "TURN": "HDG",
-        "VMETH": "RMETHV",
-        "VRESOM": "RMETHV",
-        "VRESOMETH": "RMETHV"
     }
 
     append_commands(cmddict, synonyms)
