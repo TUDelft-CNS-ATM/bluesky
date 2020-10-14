@@ -5,16 +5,17 @@ try:
 except ImportError:
     # In python <3.3 collections.abc doesn't exist
     from collections import Collection
-import numpy as np
 from math import *
 from random import randint
+import numpy as np
+
 import bluesky as bs
 from bluesky.core import Entity, timed_function
 from bluesky.stack import refdata
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
-                         vatmos,  vtas2cas, vtas2mach, vcasormach, vcas2tas
+                         vatmos,  vtas2cas, vtas2mach, vcasormach
 
 
 from bluesky.traffic.asas import ConflictDetection, ConflictResolution
@@ -27,26 +28,26 @@ from .autopilot import Autopilot
 from .activewpdata import ActiveWaypoint
 from .turbulence import Turbulence
 from .trafficgroups import TrafficGroups
-
+from .performance.perfbase import PerfBase
 
 # Register settings defaults
 bs.settings.set_variable_defaults(performance_model='openap', asas_dt=1.0)
 
-if bs.settings.performance_model == 'bada':
-    try:
-        print('Using BADA Performance model')
-        from .performance.bada.perfbada import PerfBADA as Perf
-    except Exception as err:# ImportError as err:
-        print(err)
-        print('Falling back to Open Aircraft Performance (OpenAP) model')
-        bs.settings.performance_model = "openap"
-        from .performance.openap import OpenAP as Perf
-elif bs.settings.performance_model == 'openap':
-    print('Using Open Aircraft Performance (OpenAP) model')
-    from .performance.openap import OpenAP as Perf
-else:
-    print('Using BlueSky legacy performance model')
-    from .performance.legacy.perfbs import PerfBS as Perf
+# if bs.settings.performance_model == 'bada':
+#     try:
+#         print('Using BADA Performance model')
+#         from .performance.bada.perfbada import PerfBADA as Perf
+#     except Exception as err:# ImportError as err:
+#         print(err)
+#         print('Falling back to Open Aircraft Performance (OpenAP) model')
+#         bs.settings.performance_model = "openap"
+#         from .performance.openap import OpenAP as Perf
+# elif bs.settings.performance_model == 'openap':
+#     print('Using Open Aircraft Performance (OpenAP) model')
+#     from .performance.openap import OpenAP as Perf
+# else:
+#     print('Using BlueSky legacy performance model')
+#     from .performance.legacy.perfbs import PerfBS as Perf
 
 
 class Traffic(Entity):
@@ -130,7 +131,7 @@ class Traffic(Entity):
             self.adsb     = ADSB()
             self.trails   = Trails()
             self.actwp    = ActiveWaypoint()
-            self.perf     = Perf()
+            self.perf     = PerfBase()
 
             # Group Logic
             self.groups = TrafficGroups()
@@ -145,14 +146,6 @@ class Traffic(Entity):
             # Traffic autothrottle settings
             self.swats    = np.array([], dtype=np.bool)  # Switch indicating whether autothrottle system is on/off
             self.thr      = np.array([])        # Thottle seeting (0.0-1.0), negative = non-valid/auto
-
-            # limit settings
-            self.limspd      = np.array([])  # limit speed
-            self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
-            self.limalt      = np.array([])  # limit altitude
-            self.limalt_flag = np.array([])  # A need to limit altitude has been detected
-            self.limvs       = np.array([])  # limit vertical speed due to thrust limitation
-            self.limvs_flag  = np.array([])  # A need to limit V/S detected
 
             # Display information on label
             self.label       = []  # Text and bitmap of traffic label
@@ -386,7 +379,9 @@ class Traffic(Entity):
         self.perf.update()
 
         #---------- Limit commanded speeds based on performance ------------------------------
-        self.applylimits()
+        self.aporasas.tas, self.aporasas.vs, self.aporasas.alt = \
+            self.perf.limits(self.aporasas.tas, self.aporasas.vs,
+                             self.aporasas.alt, self.ax)
 
         #---------- Kinematics --------------------------------
         self.update_airspeed()
@@ -408,27 +403,6 @@ class Traffic(Entity):
         # Conflict detection and resolution
         self.cd.update(self, self)
         self.cr.update(self.cd, self, self)
-
-    def applylimits(self):
-        # check for the flight envelope
-        if bs.settings.performance_model == 'openap':
-            self.aporasas.tas, self.aporasas.vs, self.aporasas.alt = \
-                self.perf.limits(self.aporasas.tas, self.aporasas.vs, \
-                                 self.aporasas.alt, self.ax)
-
-        else:
-            self.perf.limits()  # Sets limspd_flag and limspd when it needs to be limited
-
-            # Update desired sates with values within the flight envelope
-            # When CAS is limited, it needs to be converted to TAS as only this TAS is used later on!
-
-            self.aporasas.tas = np.where(self.limspd_flag, vcas2tas(self.limspd, self.alt), self.aporasas.tas)
-
-            # Autopilot selected altitude [m]
-            self.aporasas.alt = np.where(self.limalt_flag, bs.traf.limalt, self.aporasas.alt)
-
-            # Autopilot selected vertical speed (V/S)
-            self.aporasas.vs = np.where(self.limvs_flag, self.limvs, self.aporasas.vs)
 
     def update_airspeed(self):
         # Compute horizontal acceleration

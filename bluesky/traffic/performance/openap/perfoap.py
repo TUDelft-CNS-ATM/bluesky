@@ -2,12 +2,9 @@ import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
 from bluesky.tools.aero import kts, ft, fpm
-from bluesky.core import timed_function
 from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.openap import coeff, thrust
 from bluesky.traffic.performance.openap import phase as ph
-
-bs.settings.set_variable_defaults(performance_dt=1.0)
 
 
 class OpenAP(PerfBase):
@@ -50,8 +47,6 @@ class OpenAP(PerfBase):
             self.k_ld = np.array([])  # k, landing configuration
             self.delta_cd_gear = np.array([])  # landing gear
 
-            self.vmin = np.array([])
-            self.vmax = np.array([])
             self.vminic = np.array([])
             self.vminer = np.array([])
             self.vminap = np.array([])
@@ -178,10 +173,8 @@ class OpenAP(PerfBase):
         # append update actypes, after removing unkown types
         self.actypes[-n:] = [actype] * n
 
-    @timed_function(name="performance", dt=bs.settings.performance_dt, manual=True)
-    def update(self, dt=bs.settings.performance_dt):
-        super().update()
-
+    def update(self, dt):
+        ''' Periodic update function for performance calculations. '''
         # update phase, infer from spd, roc, alt
         lenph1 = len(self.phase)
         self.phase = ph.get(
@@ -272,8 +265,6 @@ class OpenAP(PerfBase):
         # print(self.currentlimits())
         # print()
 
-        return None
-
     def limits(self, intent_v_tas, intent_vs, intent_h, ax):
         """apply limits on indent speed, vertical speed, and altitude (called in pilot module)
 
@@ -285,8 +276,6 @@ class OpenAP(PerfBase):
         Returns:
             floats or 1D-arrays: Allowed TAS, Allowed vetical rate, Allowed altitude
         """
-        super().limits(intent_v_tas, intent_vs, intent_h)
-
         allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
 
         intent_v_cas = aero.vtas2cas(intent_v_tas, allow_h)
@@ -394,10 +383,6 @@ class OpenAP(PerfBase):
 
         return vmin, vmax
 
-    def engchange(self, acid, engid=None):
-        bs.scr.echo("Engine change not suppoerted in OpenAP model.")
-        pass
-
     def acceleration(self):
         # using fix accelerations depending on phase
         acc_ground = 2
@@ -410,17 +395,10 @@ class OpenAP(PerfBase):
         return accs
 
     def show_performance(self, acid):
-        bs.scr.echo("Flight phase: %s" % ph.readable_phase(self.phase[acid]))
-        bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
-        bs.scr.echo("Drag: %d kN" % (self.drag[acid] / 1000))
-        bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
-        bs.scr.echo(
-            "Speed envelope: [%d, %d] kts"
-            % (int(self.vmin[acid] / kts), int(self.vmax[acid] / kts))
-        )
-        bs.scr.echo(
-            "Vertical speed envelope: [%d, %d] fpm"
-            % (int(self.vsmin[acid] / fpm), int(self.vsmax[acid] / fpm))
-        )
-        bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
-        # self.drag.astype(int)
+        return True, f"Flight phase: {ph.readable_phase(self.phase[acid])}\n" \
+                     f"Thrust: {self.thrust[acid] / 1000:d} kN\n" \
+                     f"Drag: {self.drag[acid] / 1000:d} kN\n" \
+                     f"Fuel flow: {self.fuelflow[acid]:.2f} kg/s\n" \
+                     f"Speed envelope: [{self.vmin[acid] / kts:d}, {self.vmax[acid] / kts:d}] kts\n" \
+                     f"Vertical speed envelope: [{self.vsmin[acid] / fpm:d}, {self.vsmax[acid] / fpm:d}] fpm\n" \
+                     f"Ceiling: {self.hmax[acid] / ft:d} ft"

@@ -1,12 +1,10 @@
 """ BlueSky aircraft performance calculations."""
-import os
-
 from math import *
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import ft, g0, a0, T0, rho0, gamma1, gamma2,  beta, R, \
-    kts, lbs, inch, sqft, fpm, vtas2cas
-from bluesky.core import TrafficArrays, timed_function
+    kts, lbs, inch, sqft, fpm, vtas2cas, vcas2tas
+from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
@@ -18,7 +16,7 @@ settings.set_variable_defaults(perf_path='data/performance/BS',
 coeffBS = CoeffBS()
 
 
-class PerfBS(TrafficArrays):
+class Legacy(PerfBase):
     def __init__(self):
         super().__init__()
         self.warned  = False    # Flag: Did we warn for default perf parameters yet?
@@ -49,7 +47,6 @@ class PerfBS(TrafficArrays):
             self.vmcr         = np.array([]) # min cruise spd
             self.vmap         = np.array([]) # min approach speed
             self.vmld         = np.array([]) # min landing spd
-            self.vmin         = np.array([]) # min speed over all phases
             self.vmo          = np.array([]) # max CAS
             self.mmo          = np.array([]) # max Mach
 
@@ -94,10 +91,16 @@ class PerfBS(TrafficArrays):
             self.pf_flag = np.array([])
 
             self.engines = []           # avaliable engine type per aircraft type
+
+            # limit settings
+            self.limspd      = np.array([])  # limit speed
+            self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
+            self.limalt      = np.array([])  # limit altitude
+            self.limalt_flag = np.array([])  # A need to limit altitude has been detected
+            self.limvs       = np.array([])  # limit vertical speed due to thrust limitation
+            self.limvs_flag  = np.array([])  # A need to limit V/S detected
         self.eta = 0.8          # propeller efficiency according to Raymer
         self.thrust_settings = np.array([1., 0.85, 0.07, 0.3 ]) # Thrust settings per flight phase according to ICAO
-
-        return
 
     def create(self, n=1):
         super().create(n)
@@ -188,14 +191,13 @@ class PerfBS(TrafficArrays):
         self.ffid[-n:]      = np.where(turboprops, 1. , coeffBS.ffid[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
         self.ffap[-n:]      = np.where(turboprops, 1. , coeffBS.ffap[jetidx]*coeffBS.n_eng[coeffidx]) / 60.0
 
-    @timed_function(name='performance', dt=settings.performance_dt, manual=True)
-    def update(self, dt=settings.performance_dt):
-        """Aircraft performance"""
+    def update(self, dt):
+        ''' Periodic update function for performance calculations. '''
         swbada = False # no-bada version
         delalt = bs.traf.selalt - bs.traf.alt
         # allocate aircraft to their flight phase
-        self.phase, self.bank = phases(bs.traf.alt, bs.traf.gs, delalt, 
-            bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld, 
+        self.phase, self.bank = phases(bs.traf.alt, bs.traf.gs, delalt,
+            bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld,
             bs.traf.bank, bs.traf.bphase, bs.traf.swhdgsel,swbada)
 
         # AERODYNAMICS
@@ -317,7 +319,7 @@ class PerfBS(TrafficArrays):
 
         return
 
-    def limits(self):
+    def limits(self, intent_v, intent_vs, intent_h, ax):
         """Flight envelope""" # Connect this with function limits in performance.py
 
         # combine minimum speeds and flight phases. Phases initial climb, cruise
@@ -336,32 +338,26 @@ class PerfBS(TrafficArrays):
 
 
         # forwarding to tools
-        bs.traf.limspd,          \
-        bs.traf.limspd_flag,     \
-        bs.traf.limalt,          \
-        bs.traf.limalt_flag,     \
-        bs.traf.limvs,           \
-        bs.traf.limvs_flag  =  calclimits(vtas2cas(bs.traf.aporasas.tas, bs.traf.alt), \
-                                        bs.traf.gs,          \
-                                        self.vmto,           \
-                                        self.vmin,           \
-                                        self.vmo,            \
-                                        self.mmo,            \
-                                        bs.traf.M,           \
-                                        bs.traf.alt,         \
-                                        self.hmaxact,        \
-                                        bs.traf.aporasas.alt,   \
-                                        bs.traf.aporasas.vs,    \
-                                        self.maxthr,         \
-                                        self.thrust_pilot,      \
-                                        self.D,              \
-                                        bs.traf.tas,         \
-                                        self.mass,           \
-                                        self.ESF,            \
-                                        self.phase)
+        self.limspd, self.limspd_flag, self.limalt, \
+            self.limalt_flag, self.limvs, self.limvs_flag  =  calclimits(
+                vtas2cas(intent_v, bs.traf.alt), bs.traf.gs, \
+                self.vmto, self.vmin, self.vmo, self.mmo, \
+                bs.traf.M, bs.traf.alt, self.hmaxact, \
+                intent_h, intent_vs, self.maxthr, \
+                self.thrust_pilot, self.D, bs.traf.tas, \
+                self.mass, self.ESF, self.phase)
 
+        # Update desired sates with values within the flight envelope
+        # When CAS is limited, it needs to be converted to TAS as only this TAS is used later on!
+        allowed_tas = np.where(self.limspd_flag, vcas2tas(self.limspd, bs.traf.alt), intent_v)
 
-        return
+        # Autopilot selected altitude [m]
+        allowed_alt = np.where(self.limalt_flag, self.limalt, intent_h)
+
+        # Autopilot selected vertical speed (V/S)
+        allowed_vs = np.where(self.limvs_flag, self.limvs, intent_vs)
+
+        return allowed_tas, allowed_vs, allowed_alt
 
     def acceleration(self):
         # define acceleration: aircraft taxiing and taking off use ground acceleration,

@@ -270,12 +270,6 @@ def initbasecmds():
             bs.scr.echo,
             "Show a text in command window for user to read",
         ],
-        "ENG": [
-            "ENG acid,[engine_id]",
-            "acid,[txt]",
-            bs.traf.perf.engchange,
-            "Specify a different engine type",
-        ],
         "FF": [
             "FF [timeinsec]",
             "[time]",
@@ -399,12 +393,6 @@ def initbasecmds():
             "acid,wpt",
             lambda *args: bs.traf.ap.setdestorig("ORIG", *args),
             "Set origin airport of aircraft",
-        ],
-        "PERF": [
-            "PERF acid",
-            "acid",
-            bs.traf.perf.show_performance,
-            "Show aircraft perfromance parameters",
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",

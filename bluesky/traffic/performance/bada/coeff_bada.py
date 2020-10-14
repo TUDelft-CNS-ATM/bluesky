@@ -86,8 +86,22 @@ def getCoefficients(actype):
     return syn, coeff
 
 
+def check(bada_path=''):
+    ''' Import check for BADA performance model. '''
+    releasefile = path.join(path.normpath(bada_path), 'ReleaseSummary')
+    if not path.isfile(releasefile):
+        return False
+    synonymfile = path.join(path.normpath(bada_path), 'SYNONYM.NEW')
+    if not path.isfile(synonymfile):
+        return False
+    return True
+
+
 def init(bada_path=''):
     ''' init() loads the available BADA datafiles in the provided directory.'''
+    if accoeffs:
+        return True
+
     releasefile = path.join(path.normpath(bada_path), 'ReleaseSummary')
     if path.isfile(releasefile):
         global release_date, bada_version
