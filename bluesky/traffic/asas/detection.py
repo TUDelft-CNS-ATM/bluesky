@@ -68,15 +68,16 @@ class ConflictDetection(Entity, replaceable=True):
         self.dtlookahead = bs.settings.asas_dtlookahead
         self.dtnolook = 0.0
 
-    @classmethod
+    @staticmethod
     @command(name='CDMETHOD', aliases=('ASAS',))
-    def setmethod(cls, name : 'txt' = ''):
+    def setmethod(name : 'txt' = ''):
         ''' Select a Conflict Detection (CD) method. '''
         # Get a dict of all registered CD methods
-        methods = cls.derived()
+        methods = ConflictDetection.derived()
         names = ['OFF' if n == 'CONFLICTDETECTION' else n for n in methods]
         if not name:
-            curname = 'OFF' if cls.selected() is ConflictDetection else cls.selected().__name__
+            curname = 'OFF' if ConflictDetection.selected() is ConflictDetection \
+                else ConflictDetection.selected().__name__
             return True, f'Current CD method: {curname}' + \
                          f'\nAvailable CD methods: {", ".join(names)}'
         # Check if the requested method exists
@@ -152,8 +153,7 @@ class ConflictDetection(Entity, replaceable=True):
         self.lospairs_unique = lospairs_unique
 
     def detect(self, ownship, intruder, rpz, hpz, dtlookahead):
-        ''' 
-            Detect any conflicts between ownship and intruder.
+        ''' Detect any conflicts between ownship and intruder.
             This function should be reimplemented in a subclass for actual
             detection of conflicts. See for instance
             bluesky.traffic.asas.statebased.

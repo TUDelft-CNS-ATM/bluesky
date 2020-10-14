@@ -202,16 +202,17 @@ class ConflictResolution(Entity, replaceable=True):
         self.resofacv = factor
         return True, f'Vertical resolution factor set to {self.resofacv}'
 
-    @classmethod
+    @staticmethod
     @command(name='RESO')
-    def setmethod(cls, name : 'txt' = ''):
+    def setmethod(name : 'txt' = ''):
         ''' Select a Conflict Resolution method. '''
         # Get a dict of all registered CR methods
-        methods = cls.derived()
+        methods = ConflictResolution.derived()
         names = ['OFF' if n == 'CONFLICTRESOLUTION' else n for n in methods]
         
         if not name:
-            curname = 'OFF' if cls.selected() is ConflictResolution else cls.selected().__name__
+            curname = 'OFF' if ConflictResolution.selected() is ConflictResolution \
+                else ConflictResolution.selected().__name__
             return True, f'Current CR method: {curname}' + \
                          f'\nAvailable CR methods: {", ".join(names)}'
         # Check if the requested method exists

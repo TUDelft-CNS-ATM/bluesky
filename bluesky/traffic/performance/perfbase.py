@@ -38,7 +38,7 @@ class PerfBase(Entity, replaceable=True):
     @timed_function(name="performance", dt=settings.performance_dt, manual=True)
     def update(self, dt=settings.performance_dt):
         """implement this method """
-        print('update base, dt=', dt)
+        pass
 
     def limits(self, intent_v, intent_vs, intent_h, ax):
         """implement this method """
@@ -64,16 +64,16 @@ class PerfBase(Entity, replaceable=True):
         return False, 'The currently selected performance model doesn\'t provide this function.'
 
 
-    @classmethod
+    @staticmethod
     @command(name='PERF')
-    def setmethod(cls, name: 'txt' = ''):
+    def setmethod(name: 'txt' = ''):
         ''' Select a Performance implementation. '''
         # Get a dict of all registered Performance models
-        methods = cls.derived()
+        methods = PerfBase.derived()
         names = ['OFF' if n == 'PERFBASE' else n for n in methods]
 
         if not name:
-            curname = 'OFF' if cls.selected() is PerfBase else cls.selected().__name__
+            curname = 'OFF' if PerfBase.selected() is PerfBase else PerfBase.selected().__name__
             return True, f'Current Performance model: {curname}' + \
                          f'\nAvailable performance models: {", ".join(names)}'
         # Check if the requested method exists
