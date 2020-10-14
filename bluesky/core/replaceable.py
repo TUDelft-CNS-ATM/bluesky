@@ -10,7 +10,7 @@ replaceables = dict()
 def reset():
     ''' Reset all replaceables to their default implementation. '''
     for base in replaceables.values():
-        base.select()
+        base.selectdefault()
 
 
 def select_implementation(basename='', implname=''):
@@ -38,6 +38,20 @@ def select_implementation(basename='', implname=''):
 class Replaceable:
     ''' Super class for BlueSky classes with replaceable implementations. '''
     @classmethod
+    def setdefault(cls, name):
+        ''' Set a default implementation. '''
+        impl = cls._baseimpl.derived().get(name.upper())
+        if impl:
+            cls._baseimpl._default = name.upper()
+            cls._baseimpl._generator = impl
+
+    @classmethod
+    def selectdefault(cls):
+        ''' Select the default implementation. '''
+        base = cls._baseimpl
+        base.derived().get(base._default, base).select()
+
+    @classmethod
     def select(cls):
         ''' Select this class as generator. '''
         cls._baseimpl._generator = cls
@@ -62,6 +76,7 @@ class Replaceable:
             # Singleton Entitie derive from Replaceable, but have
             # the option to avoid being replaceable.
             cls._baseimpl = cls
+            cls._default = ''
             replaceables[cls.__name__.upper()] = cls
 
     def __new__(cls, *args, **kwargs):
