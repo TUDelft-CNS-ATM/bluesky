@@ -2,6 +2,7 @@
 import inspect
 from bluesky.core.replaceable import Replaceable
 from bluesky.core.trafficarrays import TrafficArrays
+from bluesky.core.simtime import timed_function
 
 
 class Proxy:
@@ -92,26 +93,36 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
         if not hasattr(cls, '_stackcmds'):
             # Each first descendant of Entity keeps a dict of all stack commands
             cls._stackcmds = dict()
-            # And all timed methods
+            # All automatically-triggered timed methods
             cls._timedfuns = dict()
+            # And all manually-triggered timed methods
+            cls._manualtimedfuns = dict()
 
             # Each first descendant of replaceable Entities has a proxy object
             # that wraps the currently selected instance
             cls._proxy = Proxy() if replaceable else None
 
-        # Always update the stack command list by iterating over all stack commands
-        for name, obj in inspect.getmembers(cls, lambda o: hasattr(o, '__stack_cmd__')):
-            if name not in cls._stackcmds:
-                cls._stackcmds[name] = obj.__stack_cmd__
-            cmd = obj.__stack_cmd__
-            if not inspect.ismethod(cmd.callback) and inspect.ismethod(obj):
-                # Update callback of stack command with first bound method we encounter
-                cmd.callback = obj
-        # Similarly also always update the timed function list
-        for name, obj in inspect.getmembers(cls, lambda o: hasattr(o, '__timedfun__')):
-            if name not in cls._timedfuns:
-                cls._timedfuns[name] = obj.__timedfun__
-            timedfun = obj.__timedfun__
-            if not inspect.ismethod(timedfun.callback) and inspect.ismethod(obj):
-                # Update callback of the timed function with first bound method we encounter
-                timedfun.callback = obj
+        for name, obj in inspect.getmembers(cls):
+            # Always update the stack command list by iterating over all stack commands
+            if hasattr(obj, '__stack_cmd__'):
+                if name not in cls._stackcmds:
+                    cls._stackcmds[name] = obj.__stack_cmd__
+                cmd = obj.__stack_cmd__
+                if not inspect.ismethod(cmd.callback) and inspect.ismethod(obj):
+                    # Update callback of stack command with first bound method we encounter
+                    cmd.callback = obj
+            # Similarly also always update the timed function lists
+            timer = cls._manualtimedfuns.get(name)
+            if timer and not hasattr(obj, '__manualtimer__'):
+                # Reimplemented timed functions in derived classes should share
+                # timers with their originals
+                setattr(cls, name, timed_function(obj, manual=True, timer=timer))
+            elif hasattr(obj, '__manualtimer__'):
+                cls._manualtimedfuns[name] = obj.__manualtimer__
+            elif hasattr(obj, '__timedfun__'):
+                if name not in cls._timedfuns:
+                    cls._timedfuns[name] = obj.__timedfun__
+                timedfun = obj.__timedfun__
+                if not inspect.ismethod(timedfun.callback) and inspect.ismethod(obj):
+                    # Update callback of the timed function with first bound method we encounter
+                    timedfun.callback = obj

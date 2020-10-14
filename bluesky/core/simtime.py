@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from decimal import Decimal
 from bluesky import settings
 
+
 # Register settings defaults
 settings.set_variable_defaults(simdt=0.05)
 
@@ -89,6 +90,11 @@ def reset():
 
 class Timer:
     ''' Timer class for simulation-time periodic functions. '''
+    @classmethod
+    def maketimer(cls, name, dt):
+        ''' Create and return a new timer if none with the given name exists.
+            Return existing timer if present. '''
+        return _timers.get(name.upper(), cls(name, dt))
 
     def __init__(self, name, dt):
         self.name = name
@@ -159,7 +165,7 @@ class TimedFunction:
         self.dt = dt
         self.hook = hook
         # reset is a special case: doesn't need timer, and fun is called directly
-        self.timer = None if hook == 'reset' else Timer(name, dt)
+        self.timer = None if hook == 'reset' else Timer.maketimer(name, dt)
         self.callback = fun
 
     @property
@@ -182,14 +188,19 @@ class TimedFunction:
         if not inspect.ismethod(function):
             function.__timedfun__ = self
 
+    def ismanual(self):
+        ''' Returns true if this is a manually-triggered timed function. '''
+        # This is a manually-triggered timed function if self.hook is empty.
+        return not self.hook
+
     def call_timeddt(self):
         ''' Wrapper method to call timed functions that accept dt as argument. '''
-        if self.timer.readynext():
+        if self.timer.counter == 0:
             self._callback(dt=float(self.timer.dt_act))
 
     def call_timed(self):
         ''' Wrapper method to call timed functions. '''
-        if self.timer.readynext():
+        if self.timer.counter == 0:
             self._callback()
 
     def notimplemented(self, *args, **kwargs):
@@ -198,11 +209,11 @@ class TimedFunction:
         pass
 
 
-def timed_function(fun=None, name='', dt=0, manual=False, hook=''):
+def timed_function(fun=None, name='', dt=0, manual=False, hook='', timer=None):
     ''' Decorator to turn a function into a (periodically) timed function. '''
     def deco(fun):
         # Return original function if it is already wrapped
-        if getattr(fun, '__istimed', False):
+        if hasattr(fun, '__timedfun__') or hasattr(fun, '__manualtimer__'):
             return fun
         # Generate a name if none is provided
         if name == '':
@@ -219,25 +230,24 @@ def timed_function(fun=None, name='', dt=0, manual=False, hook=''):
             tname = name
 
         if manual:
-            timer = Timer(tname, dt)
+            manualtimer = timer or Timer.maketimer(tname, dt)
             if 'dt' in signature(fun).parameters:
                 def wrapper(*args, **kwargs):
-                    if timer.readynext():
-                        return fun(*args, **kwargs, dt=float(timer.dt_act))
+                    if manualtimer.counter == 0:
+                        fun(*args, **kwargs, dt=float(manualtimer.dt_act))
             else:
                 def wrapper(*args, **kwargs):
-                    if timer.readynext():
-                        return fun(*args, **kwargs)
-            wrapper.__istimed = True
+                    if manualtimer.counter == 0:
+                        fun(*args, **kwargs)
+            wrapper.__manualtimer__ = manualtimer
             return wrapper
-
-        timedfun = TimedFunction(fun, tname, dt, hook)
-        if hook == 'preupdate':
-            preupdate_funs[tname] = timedfun
-        elif hook == 'reset':
-            reset_funs[tname] = timedfun
-        else:
-            update_funs[tname] = timedfun
+        # Add automatically-triggered function to appropriate dict if not there yet.
+        if hook == 'preupdate' and tname not in preupdate_funs:
+            preupdate_funs[tname] = TimedFunction(fun, tname, dt, hook)
+        elif hook == 'reset' and tname not in reset_funs:
+            reset_funs[tname] = TimedFunction(fun, tname, dt, hook)
+        elif tname not in update_funs:
+            update_funs[tname] = TimedFunction(fun, tname, dt, 'update')
         return fun
     # Allow both @timed_function and @timed_function(args)
     return deco if fun is None else deco(fun)
