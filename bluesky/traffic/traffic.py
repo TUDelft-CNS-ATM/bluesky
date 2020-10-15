@@ -214,15 +214,15 @@ class Traffic(Entity):
         # Determine number of aircraft to create from array length of acid
         n = 1 if isinstance(acid, str) else len(acid)
 
-        # Adjust the size of all traffic arrays
-        super().create(n)
-        self.ntraf += n
-
         if isinstance(acid, str):
             # Check if not already exist
             if self.id.count(acid.upper()) > 0:
                 return False, acid + " already exists."  # already exists do nothing
             acid = n * [acid]
+
+        # Adjust the size of all traffic arrays
+        super().create(n)
+        self.ntraf += n
 
         if isinstance(aclat, (float, int)):
             aclat = np.array(n * [aclat])
@@ -396,7 +396,6 @@ class Traffic(Entity):
 
         #---------- Aftermath ---------------------------------
         self.trails.update()
-        return
 
     @timed_function(name='asas', dt=bs.settings.asas_dt, manual=True)
     def update_asas(self):
