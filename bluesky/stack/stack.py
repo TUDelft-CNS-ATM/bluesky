@@ -112,18 +112,21 @@ def process():
         if cmdobj:
             try:
                 # Call the command, passing the argument string
-                echotext = ''
-                success = cmdobj(argstring)
-                if isinstance(success, tuple) and success:
-                    if len(success) > 1:
-                        echotext = success[1]
-                    success = success[0]
-                if success == False:
-                    if not argstring:
-                        echotext = echotext or cmdobj.brieftext()
+                result = cmdobj(argstring)
+                if result is not None:
+                    if isinstance(result, tuple) and result:
+                        if len(result) > 1:
+                            echotext = result[1]
+                        success = result[0]
                     else:
-                        echoflags = bs.BS_FUNERR
-                        echotext = f'Syntax error: {echotext or cmdobj.brieftext()}'
+                        # Assume result is a bool indicating the success of the function
+                        success = result
+                    if not success:
+                        if not argstring:
+                            echotext = echotext or cmdobj.brieftext()
+                        else:
+                            echoflags = bs.BS_FUNERR
+                            echotext = f'Syntax error: {echotext or cmdobj.brieftext()}'
 
             except Exception as e:
                 success = False
@@ -153,6 +156,8 @@ def process():
         # Recording of actual validated commands
         if success:
             recorder.savecmd(cmdu, line)
+        elif not sender_rte:
+            echotext = f'{line}\n{echotext}'
 
         # Always return on command
         if echotext:
