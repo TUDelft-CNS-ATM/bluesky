@@ -3,7 +3,7 @@
 from random import randint
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, stack, traf  #, settings, navdb, traf, sim, scr, tools
+from bluesky import core, stack, traf  #, settings, navdb, sim, scr, tools
 
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
