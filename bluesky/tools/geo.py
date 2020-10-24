@@ -485,8 +485,6 @@ def init_interpo_dec():
     lon_1st = declination.iloc[0,1]
     num_lon = (declination.lat == lat_1st).sum()
     num_lat = (declination.lon == lon_1st).sum()
-    lat_2nd = declination.iloc[num_lon,0]
-    lon_2nd = declination.iloc[1,1]
     lat_last = declination.iloc[index_last-1,0]
     lon_last = declination.iloc[index_last-1,1]
     lat_x = np.linspace(lat_last, lat_1st, num_lat) * np.pi / 180.
