@@ -2,7 +2,7 @@
 Miscellaneous modules
 
 Modules:
-     txt2alt(txt): read altitude[ft] from txt (FL ot ft)
+     txt2alt(txt): read altitude[ft] from txt (FL to ft)
      txt2spd(spd,h): read CAS or Mach and convert to TAS for given altitude
      tim2txt(t)  : convert time[s] to HH:MM:SS.hh
      i2txt(i,n)  : convert integer to string of n chars with leading zeros
