@@ -444,9 +444,8 @@ def magdec(latd, lond):
     # scipy.interpolate.RectSphereBivariateSpline
     if isinstance(interpo_dec,RectSphereBivariateSpline) == False:
         interpo_dec = init_interpo_dec()
-        d_hdg = interpo_dec.ev(latd,lond)[0]
-    else:
-        d_hdg = interpo_dec.ev(latd,lond)[0]
+        
+    d_hdg = interpo_dec.ev(latd,lond)[0]
     
     return d_hdg
 
