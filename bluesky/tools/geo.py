@@ -420,6 +420,7 @@ def magdec(latd, lond):
             https://www.ngdc.noaa.gov/geomag/calculators/help/igrfgridHelp.html
                             In short, magnetic heading = true heading + d_hdg,
                             or,       true heading = magnetic heading - d_hdg.
+    Created by  : Yaofu Zhou
     """
 
     # convert latitude and longitude to 1-D arrays required by interpo_dec.ev()
@@ -476,6 +477,7 @@ def init_interpo_dec():
     surface. The interpolation is performed at sea-level, but no significant
     difference would be noticed up to FL600 or beyond.
     See docstring of geo.magdec() for more information.
+    Created by  : Yaofu Zhou
     """
     
     declination = pd.read_csv('./declination_sealevel.csv',\
