@@ -161,12 +161,17 @@ class TimedFunction:
     ''' Wrapper object to hold (periodically) timed functions. '''
     def __init__(self, fun, name, dt=0, hook=''):
         self.trigger = None
-        self.name = name
-        self.dt = dt
         self.hook = hook
-        # reset is a special case: doesn't need timer, and fun is called directly
-        self.timer = None if hook == 'reset' else Timer.maketimer(name, dt)
-        self.callback = fun
+        if hasattr(fun, '__manualtimer__'):
+            # If the passed function already has its own timer, use that one
+            self.timer = fun.__manualtimer__
+            self.name = self.timer.name
+            self.callback = fun.__func__
+        else:
+            self.name = name
+            # reset is a special case: doesn't need timer, and fun is called directly
+            self.timer = None if hook == 'reset' else Timer.maketimer(name, dt)
+            self.callback = fun
 
     @property
     def callback(self):
@@ -213,7 +218,7 @@ def timed_function(fun=None, name='', dt=0, manual=False, hook='', timer=None):
     ''' Decorator to turn a function into a (periodically) timed function. '''
     def deco(fun):
         # Return original function if it is already wrapped
-        if hasattr(fun, '__timedfun__') or hasattr(fun, '__manualtimer__'):
+        if hasattr(fun, '__timedfun__') or (hasattr(fun, '__manualtimer__') and not hook):
             return fun
         # Generate a name if none is provided
         if name == '':
@@ -240,6 +245,7 @@ def timed_function(fun=None, name='', dt=0, manual=False, hook='', timer=None):
                     if manualtimer.counter == 0:
                         fun(*args, **kwargs)
             wrapper.__manualtimer__ = manualtimer
+            wrapper.__func__ = fun
             return wrapper
         # Add automatically-triggered function to appropriate dict if not there yet.
         if hook == 'preupdate' and tname not in preupdate_funs:
