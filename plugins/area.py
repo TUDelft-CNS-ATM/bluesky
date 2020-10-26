@@ -5,7 +5,7 @@ import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import traf, sim  #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import datalog, areafilter
-from bluesky.core import TrafficArrays, timed_function
+from bluesky.core import Entity, timed_function
 from bluesky.tools.aero import ft,kts,nm,fpm
 
 # Log parameters for the flight statistics log
@@ -64,13 +64,7 @@ def init_plugin():
         'plugin_name':     'AREA',
 
         # The type of this plugin. For now, only simulation plugins are possible.
-        'plugin_type':     'sim',
-
-        # The update function is called after traffic is updated.
-        'update':          area.update,
-
-        # The reset function
-        'reset':           area.reset
+        'plugin_type':     'sim'
         }
 
     stackfunctions = {
@@ -96,7 +90,7 @@ def init_plugin():
     # init_plugin() should always return these two dicts.
     return config, stackfunctions
 
-class Area(TrafficArrays):
+class Area(Entity):
     ''' Traffic area: delete traffic when it leaves this area (so not when outside)'''
     def __init__(self):
         super().__init__()
@@ -136,13 +130,14 @@ class Area(TrafficArrays):
         self.confinside_all = 0
 
     def create(self, n=1):
+        ''' Create is called when new aircraft are created. '''
         super().create(n)
         self.oldalt[-n:] = traf.alt[-n:]
         self.insdel[-n:] = False
         self.insexp[-n:] = False
         self.create_time[-n:] = sim.simt
 
-    @timed_function(name='AREA', dt=1.0, manual=True)
+    @timed_function(name='AREA', dt=1.0)
     def update(self, dt):
         ''' Update flight efficiency metrics
             2D and 3D distance [m], and work done (force*distance) [J] '''
@@ -150,7 +145,7 @@ class Area(TrafficArrays):
             resultantspd = np.sqrt(traf.gs * traf.gs + traf.vs * traf.vs)
             self.distance2D += dt * traf.gs
             self.distance3D += dt * resultantspd
-            
+
             # Find out which aircraft are currently inside the experiment area, and
             # determine which aircraft need to be deleted.
             insdel = areafilter.checkInside(self.delarea, traf.lat, traf.lon, traf.alt)
@@ -164,7 +159,8 @@ class Area(TrafficArrays):
             # Count new conflicts where at least one of the aircraft is inside
             # the experiment area
             # Store statistics for all new conflict pairs
-            # Conflict pairs detected in the current timestep that were not yet present in the previous timestep
+            # Conflict pairs detected in the current timestep that were not yet
+            # present in the previous timestep
             confpairs_new = list(set(traf.cd.confpairs) - self.prevconfpairs)
             if confpairs_new:
                 # If necessary: select conflict geometry parameters for new conflicts
