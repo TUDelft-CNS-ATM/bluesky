@@ -116,13 +116,6 @@ class Parser:
     ''' Base implementation of argument parsers
         that are used to parse arguments to stack commands.
     '''
-    # Keep track of reference values for optional arguments
-    reflat = None
-    reflon = None
-    refalt = None
-    refac = -1
-    refhdg = None
-    refcas = None
 
     # Output size of this parser
     size = 1
