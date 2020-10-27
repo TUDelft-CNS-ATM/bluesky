@@ -1,9 +1,14 @@
 ''' BlueSky simulation control object. '''
-import time, datetime
+import time
+import datetime
+import numpy as np
+from random import seed
 
 # Local imports
 import bluesky as bs
-from bluesky.tools import datalog, areafilter, plugin, plotter, simtime, replaceable
+import bluesky.core as core
+from bluesky.core import plugin, simtime
+from bluesky.tools import datalog, areafilter, plotter
 
 # Minimum sleep interval
 MINSLEEP = 1e-3
@@ -67,14 +72,14 @@ class Simulation:
         bs.stack.process()
 
         if self.state == bs.OP:
-            # Plot/log the current timestep, and call preupdate for plugins that
-            # have it
+            # Plot/log the current timestep, and call preupdate functions
             plotter.update()
             datalog.update()
-            plugin.preupdate()
+            simtime.preupdate()
 
             # Determine interval towards next timestep
             if remainder < 0.0 and self.rtmode:
+                # Allow a variable timestep when we are running realtime
                 self.simt, self.simdt = simtime.step(-remainder)
             else:
                 # Don't accumulate delay when we aren't running realtime
@@ -85,9 +90,9 @@ class Simulation:
             # Update UTC time
             self.utc += datetime.timedelta(seconds=self.simdt)
 
-            # Update traffic and plugins for the next timestep
+            # Update traffic and other update functions for the next timestep
             bs.traf.update()
-            plugin.update()
+            simtime.update()
 
         # Always update syst
         self.syst += self.simdt / self.dtmult
@@ -144,8 +149,8 @@ class Simulation:
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.ffmode = False
         self.set_dtmult(1.0)
-        plugin.reset()
-        replaceable.reset()
+        simtime.reset()
+        core.reset()
         bs.navdb.reset()
         bs.traf.reset()
         bs.stack.reset()
@@ -197,7 +202,7 @@ class Simulation:
 
         if eventname == b'STACKCMD':
             # We received a single stack command. Add it to the existing stack
-            bs.stack.stack(eventdata, sender_rte)
+            bs.stack.stack(eventdata, cmdsender=sender_rte)
             event_processed = True
 
         elif eventname == b'BATCH':
@@ -209,12 +214,12 @@ class Simulation:
 
         elif eventname == b'GETSIMSTATE':
             # Send list of stack functions available in this sim to gui at start
-            stackdict = {cmd : val[0][len(cmd) + 1:] for cmd, val in bs.stack.cmddict.items()}
+            stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
             shapes = [shape.raw for shape in areafilter.areas.values()]
             simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
-                stackcmds=stackdict, stacksyn=bs.stack.cmdsynon, shapes=shapes,
-                custacclr=bs.scr.custacclr, custgrclr=bs.scr.custgrclr,
-                settings=bs.settings._settings_hierarchy, plugins=list(plugin.plugin_descriptions.keys()))
+                stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
+                custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
+                plugins=list(plugin.plugin_descriptions.keys()))
             bs.net.send_event(b'SIMSTATE', simstate, target=sender_rte)
         else:
             # This is either an unknown event or a gui event.
@@ -263,3 +268,9 @@ class Simulation:
             return False, 'Syntax error'
 
         return True, 'Simulation UTC ' + str(self.utc)
+
+    @staticmethod
+    def setseed(value):
+        ''' Set random seed for this simulation. '''
+        seed(value)
+        np.random.seed(value)

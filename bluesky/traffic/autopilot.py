@@ -9,25 +9,23 @@ except ImportError:
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.misc import degto180
-from bluesky.tools.simtime import timed_function
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity, timed_function
 from .route import Route
 
 bs.settings.set_variable_defaults(fms_dt=10.5)
 
 
-class Autopilot(ReplaceableSingleton, TrafficArrays):
+class Autopilot(Entity, replaceable=True):
     def __init__(self):
-        TrafficArrays.__init__(self)
+        super().__init__()
 
         # Standard self.steepness for descent
         self.steepness = 3000. * ft / (10. * nm)
 
         # From here, define object arrays
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
 
             # FMS directions
             self.trk = np.array([])
@@ -53,7 +51,7 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
             self.route = []
 
     def create(self, n=1):
-        super(Autopilot, self).create(n)
+        super().create(n)
 
         # FMS directions
         self.tas[-n:] = bs.traf.tas[-n:]
@@ -70,9 +68,8 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         # Route objects
         self.route[-n:] = [Route() for _ in range(n)]
 
-    @timed_function('fms', dt=bs.settings.fms_dt)
+    @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
     def update_fms(self, qdr, dist):
-
         # Shift waypoints for aircraft i where necessary
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
                                        bs.traf.actwp.flyturn,bs.traf.actwp.turnrad):
@@ -197,8 +194,6 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
                 # If VNAV speed is on (by default coupled to VNAV), use it for speed guidance
                 if bs.traf.swvnavspd[iac]:
                      bs.traf.selspd[iac] = bs.traf.actwp.spd[iac]
-
-        return
 
     def update(self):
         # FMS LNAV mode:
@@ -544,20 +539,13 @@ class Autopilot(ReplaceableSingleton, TrafficArrays):
         if len(args) == 0:
             if cmd == 'DEST':
                 return True, 'DEST ' + bs.traf.id[idx] + ': ' + self.dest[idx]
-            else:
-                return True, 'ORIG ' + bs.traf.id[idx] + ': ' + self.orig[idx]
-
-        if idx<0 or idx>=bs.traf.ntraf:
-            return False, cmd + ": Aircraft does not exist."
+            return True, 'ORIG ' + bs.traf.id[idx] + ': ' + self.orig[idx]
 
         route = self.route[idx]
-
         name = args[0]
-
         apidx = bs.navdb.getaptidx(name)
 
         if apidx < 0:
-
             if cmd =="DEST" and bs.traf.ap.route[idx].nwp>0:
                 reflat = bs.traf.ap.route[idx].wplat[-1]
                 reflon = bs.traf.ap.route[idx].wplon[-1]

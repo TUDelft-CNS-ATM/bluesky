@@ -4,7 +4,7 @@ import zmq
 import msgpack
 import bluesky as bs
 from bluesky import stack
-from bluesky.tools import Timer
+from bluesky.core.walltime import Timer
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 

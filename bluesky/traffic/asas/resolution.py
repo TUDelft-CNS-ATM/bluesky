@@ -2,16 +2,17 @@
 import numpy as np
 
 import bluesky as bs
-from bluesky.tools.replaceable import ReplaceableSingleton
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import Entity
+from bluesky.stack import command
 
 
 bs.settings.set_variable_defaults(asas_mar=1.01)
 
-class ConflictResolution(ReplaceableSingleton, TrafficArrays):
+
+class ConflictResolution(Entity, replaceable=True):
     ''' Base class for Conflict Resolution implementations. '''
     def __init__(self):
-        TrafficArrays.__init__(self)
+        super().__init__()
         # [-] switch to activate priority rules for conflict resolution
         self.swprio = False  # switch priority on/off
         self.priocode = ''  # select priority mode
@@ -23,7 +24,7 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         self.resofach = bs.settings.asas_mar
         self.resofacv = bs.settings.asas_mar
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.resooffac = np.array([], dtype=np.bool)
             self.noresoac = np.array([], dtype=np.bool)
             # whether the autopilot follows ASAS or not
@@ -149,60 +150,69 @@ class ConflictResolution(ReplaceableSingleton, TrafficArrays):
         # Remove pairs from the list that are past CPA or have deleted aircraft
         self.resopairs -= delpairs
 
-    def setprio(self, flag=None, priocode=''):
-        ''' Set the prio switch and the type of prio '''
+    @command(name='PRIORULES')
+    def setprio(self, flag : bool = None, priocode=''):
+        ''' Define priority rules (right of way) for conflict resolution. '''
         if flag is None:
             if self.__class__ is ConflictResolution:
-                return False, 'No conflict resolution enabled, or no prio.'
-            else:
-                return False, f'Resolution algorithm {self.__class__.name} hasn\'t implemented priority.'
+                return False, 'No conflict resolution enabled.'
+            return False, f'Resolution algorithm {self.__class__.name} hasn\'t implemented priority.'
 
         self.swprio = flag
         self.priocode = priocode
         return True
 
-    def setnoreso(self, idx=None):
+    @command(name='NORESO')
+    def setnoreso(self, *idx : 'acid'):
         ''' ADD or Remove aircraft that nobody will avoid.
         Multiple aircraft can be sent to this function at once. '''
-        if idx is None:
+        if not idx:
             return True, 'NORESO [ACID, ... ] OR NORESO [GROUPID]' + \
                          '\nCurrent list of aircraft nobody will avoid:' + \
                          ', '.join(np.array(bs.traf.id)[self.noresoac])
+        idx = list(idx)
         self.noresoac[idx] = np.logical_not(self.noresoac[idx])
+        return True
 
-    def setresooff(self, idx=None):
-        ''' ADD or Remove aircraft that will not avoid anybody else. '''
-        if idx is None:
+    @command(name='RESOOFF')
+    def setresooff(self, *idx : 'acid'):
+        ''' ADD or Remove aircraft that will not avoid anybody else.
+            Multiple aircraft can be sent to this function at once. '''
+        if not idx:
             return True, 'NORESO [ACID, ... ] OR NORESO [GROUPID]' + \
                          '\nCurrent list of aircraft will not avoid anybody:' + \
                          ', '.join(np.array(bs.traf.id)[self.resooffac])
+        idx = list(idx)
         self.resooffac[idx] = np.logical_not(self.resooffac[idx])
+        return True
 
-    def setresofach(self, value=None):
-        ''' Set the horizontal resolution factor. '''
-        if value is None:
+    @command(name='RFACH', aliases=('RESOFACH',))
+    def setresofach(self, factor : float = None):
+        ''' Set resolution factor horizontal (to maneuver only a fraction of a resolution vector) '''
+        if factor is None:
             return True, f'RFACH [FACTOR]\nCurrent horizontal resolution factor is: {self.resofach}'
-        self.resofach = value
-
+        self.resofach = factor
         return True, f'Horizontal resolution factor set to {self.resofach}'
 
-    def setresofacv(self, value=None):
-        ''' Set the vertical resolution factor. '''
-        if value is None:
+    @command(name='RFACV', aliases=('RESOFACV',))
+    def setresofacv(self, factor : float = None):
+        ''' Set resolution factor vertical (to maneuver only a fraction of a resolution vector). '''
+        if factor is None:
             return True, f'RFACV [FACTOR]\nCurrent vertical resolution factor is: {self.resofacv}'
-        self.resofacv = value
-
+        self.resofacv = factor
         return True, f'Vertical resolution factor set to {self.resofacv}'
 
-    @classmethod
-    def setmethod(cls, name=''):
-        ''' Select a CR method. '''
+    @staticmethod
+    @command(name='RESO')
+    def setmethod(name : 'txt' = ''):
+        ''' Select a Conflict Resolution method. '''
         # Get a dict of all registered CR methods
-        methods = cls.derived()
+        methods = ConflictResolution.derived()
         names = ['OFF' if n == 'CONFLICTRESOLUTION' else n for n in methods]
         
         if not name:
-            curname = 'OFF' if cls.selected() is ConflictResolution else cls.selected().__name__
+            curname = 'OFF' if ConflictResolution.selected() is ConflictResolution \
+                else ConflictResolution.selected().__name__
             return True, f'Current CR method: {curname}' + \
                          f'\nAvailable CR methods: {", ".join(names)}'
         # Check if the requested method exists

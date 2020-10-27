@@ -22,7 +22,7 @@ import bluesky as bs
 class InfoWindow(QTabWidget):
     ''' Top-level window containing simulation information such as plots. '''
     def __init__(self):
-        super(InfoWindow, self).__init__()
+        super().__init__()
         self.setDocumentMode(True)
         self.resize(600, 500)
         self.plottab = None
@@ -59,7 +59,7 @@ class InfoWindow(QTabWidget):
 class PlotTab(QScrollArea):
     ''' InfoWindow tab for plots. '''
     def __init__(self):
-        super(PlotTab, self).__init__()
+        super().__init__()
         self.layout = QVBoxLayout()
         container = QWidget()
         container.setLayout(self.layout)
@@ -96,7 +96,7 @@ class PlotTab(QScrollArea):
 
 class Plot(FigureCanvas):
     def __init__(self, parent, plot_type='line', **kwargs):
-        super(Plot, self).__init__(plt.figure())
+        super().__init__(plt.figure())
         self.setParent(parent)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setFocus()

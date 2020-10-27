@@ -13,16 +13,13 @@ Xavier Olive, 2018
 Joost Ellerbroek, 2018
 """
 import time
+import pickle
 import requests
 import numpy as np
-from os import path
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 from bluesky import stack, settings, traf, scr
-from bluesky.tools import RegisterElementParameters, TrafficArrays, cachefile
+from bluesky.core import Entity, timed_function
+from bluesky.tools import cachefile
 settings.set_variable_defaults(opensky_user=None, opensky_password=None,
                                opensky_ownonly=False)
 
@@ -40,20 +37,10 @@ def init_plugin():
 
     config = {
         'plugin_name': 'OPENSKY',
-        'plugin_type': 'sim',
-        'update_interval': 6.0,
-        'preupdate': reader.update
+        'plugin_type': 'sim'
     }
 
-    stackfunctions = {
-        'OPENSKY': [
-            'OPENSKY [on/off]',
-            '[onoff]',
-            reader.toggle,
-            'Select OpenSky as a data source for traffic']
-    }
-
-    return config, stackfunctions
+    return config
 
 def get_actypedb():
     ''' Get aircraft type database from cache or web. '''
@@ -72,9 +59,9 @@ def get_actypedb():
             cache.dump(actypes)
 
 
-class OpenSkyListener(TrafficArrays):
+class OpenSkyListener(Entity):
     def __init__(self):
-        super(OpenSkyListener, self).__init__()
+        super().__init__()
         if settings.opensky_user:
             self._auth = (settings.opensky_user, settings.opensky_password)
         else:
@@ -82,12 +69,12 @@ class OpenSkyListener(TrafficArrays):
         self._api_url = "https://opensky-network.org/api"
         self.connected = False
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             self.upd_time = np.array([])
             self.my_ac = np.array([], dtype=np.bool)
 
     def create(self, n=1):
-        super(OpenSkyListener, self).create(n)
+        super().create(n)
         # Store creation time of new aircraft
         self.upd_time[-n:] = time.time()
         self.my_ac[-n:] = False
@@ -107,6 +94,7 @@ class OpenSkyListener(TrafficArrays):
             return list(zip(*states_json['states']))
         return None
 
+    @timed_function(name='OPENSKY', dt=6.0)
     def update(self):
         if not self.connected:
             return
@@ -184,11 +172,13 @@ class OpenSkyListener(TrafficArrays):
         # t5 = time.time()
         # print('req={}, mod={}, cre={}, mov={}, del={}, ncre={}, nmov={}, ndel={}'.format(curtime-t1, t2-curtime, t3-t2, t4-t3, t5-t4, n_new, n_oth, len(delidx)))
 
-    def toggle(self, flag=None):
+    @stack.command(name='OPENSKY')
+    def toggle(self, flag:bool=None):
+        ''' Use the OpenSky plugin as a data source for traffic. '''
+        if flag is None:
+            return True, f'OpenSky is currently {"" if self.connected else "not"} connected.'
+        self.connected = flag
         if flag:
-            self.connected = True
             stack.stack('OP')
             return True, 'Connecting to OpenSky'
-        else:
-            self.connected = False
-            return True, 'Stopping the requests'
+        return True, 'Stopping the requests'

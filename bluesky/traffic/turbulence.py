@@ -2,10 +2,10 @@
 import numpy as np
 import bluesky as bs
 from bluesky.tools.aero import Rearth
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity
 
 
-class Turbulence(ReplaceableSingleton):
+class Turbulence(Entity, replaceable=True):
     """ Simple turbulence implementation."""
     def __init__(self):
         self.active = False

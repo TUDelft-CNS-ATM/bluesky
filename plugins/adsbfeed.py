@@ -40,7 +40,7 @@ def init_plugin():
 
 class Modesbeast(TcpSocket):
     def __init__(self):
-        super(Modesbeast, self).__init__()
+        super().__init__()
         self.acpool         = {}
         self.buffer         = b''
         self.default_ac_mdl = "B738"

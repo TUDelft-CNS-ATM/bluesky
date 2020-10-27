@@ -12,7 +12,7 @@ except ImportError:
 import re
 import numpy as np
 import bluesky as bs
-from bluesky.tools import TrafficArrays
+from bluesky.core import TrafficArrays
 
 # Globals
 # The variable lists and their corresponding sources

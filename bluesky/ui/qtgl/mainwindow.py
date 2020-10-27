@@ -38,12 +38,12 @@ bg = palette.stack_background
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super(Splash, self).__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
+        super().__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
 
 
 class DiscoveryDialog(QDialog):
     def __init__(self, parent=None):
-        super(DiscoveryDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setModal(True)
         self.setMinimumSize(200,200) # To prevent Geometry error
         self.hosts = []
@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
     modes = ['Init', 'Hold', 'Operate', 'End']
 
     def __init__(self, mode):
-        super(MainWindow, self).__init__()
+        super().__init__()
         # Running mode of this gui. Options:
         #  - server-gui: Normal mode, starts bluesky server together with gui
         #  - client: starts only gui in client mode, can connect to existing

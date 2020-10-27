@@ -101,7 +101,7 @@ def main():
     # Give info on missing module
     except ImportError as error:
         modulename = missingmodules.get(error.name) or error.name
-        if modulename is None:
+        if modulename is None or 'bluesky' in modulename:
             raise error
         print("Bluesky needs", modulename)
         print("Run setup-python.bat (Windows) or check requirements.txt (other systems)")

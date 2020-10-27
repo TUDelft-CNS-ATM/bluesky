@@ -5,16 +5,18 @@ try:
 except ImportError:
     # In python <3.3 collections.abc doesn't exist
     from collections import Collection
-import numpy as np
 from math import *
 from random import randint
+import numpy as np
+
 import bluesky as bs
+from bluesky.core import Entity, timed_function
+from bluesky.stack import refdata
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
-                         vatmos,  vtas2cas, vtas2mach, vcasormach, vcas2tas
-from bluesky.tools.simtime import timed_function
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+                         vatmos,  vtas2cas, vtas2mach, vcasormach
+
 
 from bluesky.traffic.asas import ConflictDetection, ConflictResolution
 from .windsim import WindSim
@@ -26,29 +28,29 @@ from .autopilot import Autopilot
 from .activewpdata import ActiveWaypoint
 from .turbulence import Turbulence
 from .trafficgroups import TrafficGroups
-
+from .performance.perfbase import PerfBase
 
 # Register settings defaults
 bs.settings.set_variable_defaults(performance_model='openap', asas_dt=1.0)
 
-if bs.settings.performance_model == 'bada':
-    try:
-        print('Using BADA Performance model')
-        from .performance.bada.perfbada import PerfBADA as Perf
-    except Exception as err:# ImportError as err:
-        print(err)
-        print('Falling back to Open Aircraft Performance (OpenAP) model')
-        bs.settings.performance_model = "openap"
-        from .performance.openap import OpenAP as Perf
-elif bs.settings.performance_model == 'openap':
-    print('Using Open Aircraft Performance (OpenAP) model')
-    from .performance.openap import OpenAP as Perf
-else:
-    print('Using BlueSky legacy performance model')
-    from .performance.legacy.perfbs import PerfBS as Perf
+# if bs.settings.performance_model == 'bada':
+#     try:
+#         print('Using BADA Performance model')
+#         from .performance.bada.perfbada import PerfBADA as Perf
+#     except Exception as err:# ImportError as err:
+#         print(err)
+#         print('Falling back to Open Aircraft Performance (OpenAP) model')
+#         bs.settings.performance_model = "openap"
+#         from .performance.openap import OpenAP as Perf
+# elif bs.settings.performance_model == 'openap':
+#     print('Using Open Aircraft Performance (OpenAP) model')
+#     from .performance.openap import OpenAP as Perf
+# else:
+#     print('Using BlueSky legacy performance model')
+#     from .performance.legacy.perfbs import PerfBS as Perf
 
 
-class Traffic(TrafficArrays):
+class Traffic(Entity):
     """
     Traffic class definition    : Traffic data
     Methods:
@@ -66,10 +68,10 @@ class Traffic(TrafficArrays):
     """
 
     def __init__(self):
-        super(Traffic, self).__init__()
+        super().__init__()
 
         # Traffic is the toplevel trafficarrays object
-        TrafficArrays.SetRoot(self)
+        self.setroot(self)
 
         self.ntraf = 0
 
@@ -78,7 +80,7 @@ class Traffic(TrafficArrays):
         self.turbulence = Turbulence()
         self.translvl = 5000.*ft # [m] Default transition level
 
-        with RegisterElementParameters(self):
+        with self.settrafarrays():
             # Aircraft Info
             self.id      = []  # identifier (string)
             self.type    = []  # aircaft type (string)
@@ -129,8 +131,8 @@ class Traffic(TrafficArrays):
             self.adsb     = ADSB()
             self.trails   = Trails()
             self.actwp    = ActiveWaypoint()
-            self.perf     = Perf()
-            
+            self.perf     = PerfBase()
+
             # Group Logic
             self.groups = TrafficGroups()
 
@@ -144,14 +146,6 @@ class Traffic(TrafficArrays):
             # Traffic autothrottle settings
             self.swats    = np.array([], dtype=np.bool)  # Switch indicating whether autothrottle system is on/off
             self.thr      = np.array([])        # Thottle seeting (0.0-1.0), negative = non-valid/auto
-
-            # limit settings
-            self.limspd      = np.array([])  # limit speed
-            self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
-            self.limalt      = np.array([])  # limit altitude
-            self.limalt_flag = np.array([])  # A need to limit altitude has been detected
-            self.limvs       = np.array([])  # limit vertical speed due to thrust limitation
-            self.limvs_flag  = np.array([])  # A need to limit V/S detected
 
             # Display information on label
             self.label       = []  # Text and bitmap of traffic label
@@ -170,7 +164,7 @@ class Traffic(TrafficArrays):
         self.ntraf = 0
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
-        super(Traffic, self).reset()
+        super().reset()
 
         # reset performance model
         self.perf.reset()
@@ -187,74 +181,60 @@ class Traffic(TrafficArrays):
         # Reset transition level to default value
         self.translvl = 5000.*ft
 
-    def create(self, n=1, actype="B744", acalt=None, acspd=None, dest=None,
-                aclat=None, aclon=None, achdg=None, acid=None):
-        """ Create multiple random aircraft in a specified area """
+    def mcre(self, n, actype="b744", acalt=None, acspd=None, dest=None):
+        """ Create one or more random aircraft in a specified area """
         area = bs.scr.getviewbounds()
-        if acid is None:
-            idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
-            acid = [idtmp.format(i) for i in range(n)]
 
-        elif isinstance(acid, str):
-            # Check if not already exist
-            if self.id.count(acid.upper()) > 0:
-                return False, acid + " already exists."  # already exists do nothing
-            acid = [acid]
-        else:
-            # TODO: for a list of a/c, check each callsign
-            pass
+        # Generate random callsigns
+        idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
+        acid = [idtmp.format(i) for i in range(n)]
 
-        super(Traffic, self).create(n)
+        # Generate random positions
+        aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
+        aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
+        achdg = np.random.randint(1, 360, n)
+        acalt = acalt or np.random.randint(2000, 39000, n) * ft
+        acspd = acspd or np.random.randint(250, 450, n) * kts
 
-        # Increase number of aircraft
-        self.ntraf += n
-
-        if aclat is None:
-            aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
-        elif isinstance(aclat, (float, int)):
-            aclat = np.array(n * [aclat])
-
-        if aclon is None:
-            aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
-        elif isinstance(aclon, (float, int)):
-            aclon = np.array(n * [aclon])
-
-        # Limit longitude to [-180.0, 180.0]
-        if n == 1:
-            aclon = aclon - 360 if aclon > 180 else \
-                    aclon + 360 if aclon < -180.0 else aclon
-        else:
-            aclon[aclon > 180.0] -= 360.0
-            aclon[aclon < -180.0] += 360.0
-
-        if achdg is None:
-
-            achdg = np.random.randint(1, 360, n)
-        elif isinstance(achdg, (float, int)):
-            achdg = np.array(n * [achdg])
-
-        if acalt is None:
-            acalt = np.random.randint(2000, 39000, n) * ft
-        elif isinstance(acalt, (float, int)):
-            acalt = np.array(n * [acalt])
-
-        if acspd is None:
-            acspd = np.random.randint(250, 450, n) * kts
-        elif isinstance(acspd,(float, int)):
-            acspd = np.array(n * [acspd])
-
-        actype = n * [actype] if isinstance(actype, str) else actype
-        dest = n * [dest] if isinstance(dest, str) else dest
+        self.cre(acid, actype, aclat, aclon, achdg, acalt, acspd)
 
         # SAVEIC: save cre command when filled in
         # Special provision in case SAVEIC is on: then save individual CRE commands
         # Names of aircraft (acid) need to be recorded for saved future commands
         # And positions need to be the same in case of *MCRE"
         for i in range(n):
-            bs.stack.savecmd(" ".join([ "CRE", acid[i], actype[i],
-                                        str(aclat[i]), str(aclon[i]), str(int(round(achdg[i]))),
-                                        str(int(round(acalt[i]/ft))),
-                                        str(int(round(acspd[i]/kts)))]))
+            bs.stack.savecmd("CRE", " ".join(["CRE", acid[i], actype,
+                                              str(aclat[i]), str(aclon[i]), 
+                                              str(int(round(achdg[i]))),
+                                              str(int(round(acalt[i]/ft))),
+                                              str(int(round(acspd[i]/kts)))]))
+
+    def cre(self, acid, actype, aclat, aclon, achdg=None, acalt=0, acspd=0):
+        """ Create one or more aircraft. """
+        # Determine number of aircraft to create from array length of acid
+        n = 1 if isinstance(acid, str) else len(acid)
+
+        if isinstance(acid, str):
+            # Check if not already exist
+            if self.id.count(acid.upper()) > 0:
+                return False, acid + " already exists."  # already exists do nothing
+            acid = n * [acid]
+
+        # Adjust the size of all traffic arrays
+        super().create(n)
+        self.ntraf += n
+
+        if isinstance(aclat, (float, int)):
+            aclat = np.array(n * [aclat])
+
+        if isinstance(aclon, (float, int)):
+            aclon = np.array(n * [aclon])
+
+        # Limit longitude to [-180.0, 180.0]
+        aclon[aclon > 180.0] -= 360.0
+        aclon[aclon < -180.0] += 360.0
+
+        achdg = refdata.hdg if achdg is None else achdg
 
         # Aircraft Info
         self.id[-n:]   = acid
@@ -373,7 +353,7 @@ class Traffic(TrafficArrays):
             idx = np.sort(idx)
 
         # Call the actual delete function
-        super(Traffic, self).delete(idx)
+        super().delete(idx)
 
         # Update number of aircraft
         self.ntraf = len(self.lat)
@@ -399,7 +379,9 @@ class Traffic(TrafficArrays):
         self.perf.update()
 
         #---------- Limit commanded speeds based on performance ------------------------------
-        self.applylimits()
+        self.aporasas.tas, self.aporasas.vs, self.aporasas.alt = \
+            self.perf.limits(self.aporasas.tas, self.aporasas.vs,
+                             self.aporasas.alt, self.ax)
 
         #---------- Kinematics --------------------------------
         self.update_airspeed()
@@ -414,34 +396,12 @@ class Traffic(TrafficArrays):
 
         #---------- Aftermath ---------------------------------
         self.trails.update()
-        return
 
-    @timed_function('asas', dt=bs.settings.asas_dt)
+    @timed_function(name='asas', dt=bs.settings.asas_dt, manual=True)
     def update_asas(self):
         # Conflict detection and resolution
         self.cd.update(self, self)
         self.cr.update(self.cd, self, self)
-
-    def applylimits(self):
-        # check for the flight envelope
-        if bs.settings.performance_model == 'openap':
-            self.aporasas.tas, self.aporasas.vs, self.aporasas.alt = \
-                self.perf.limits(self.aporasas.tas, self.aporasas.vs, \
-                                 self.aporasas.alt, self.ax)
-
-        else:
-            self.perf.limits()  # Sets limspd_flag and limspd when it needs to be limited
-
-            # Update desired sates with values within the flight envelope
-            # When CAS is limited, it needs to be converted to TAS as only this TAS is used later on!
-
-            self.aporasas.tas = np.where(self.limspd_flag, vcas2tas(self.limspd, self.alt), self.aporasas.tas)
-
-            # Autopilot selected altitude [m]
-            self.aporasas.alt = np.where(self.limalt_flag, bs.traf.limalt, self.aporasas.alt)
-
-            # Autopilot selected vertical speed (V/S)
-            self.aporasas.vs = np.where(self.limvs_flag, self.limvs, self.aporasas.vs)
 
     def update_airspeed(self):
         # Compute horizontal acceleration
@@ -653,7 +613,7 @@ class Traffic(TrafficArrays):
                     runways = bs.navdb.rwythresholds[bs.navdb.aptid[iap]].keys()
                     if runways:
                         lines = lines + "\nRunways: " + ", ".join(runways)
-                except:
+                except KeyError:
                     pass
 
             # Not found as airport, try waypoints & navaids
@@ -738,66 +698,56 @@ class Traffic(TrafficArrays):
             # Show what we found on airport and navaid/waypoint
             return True, lines
 
-    def airwaycmd(self,key=""):
-        # Show conections of a waypoint
+    def airwaycmd(self, key):
+        ''' Show conections of a waypoint or airway. '''
         reflat, reflon = bs.scr.getviewctr()
 
-        if key=="":
-            return False,'AIRWAY needs waypoint or airway'
+        if bs.navdb.awid.count(key) > 0:
+            return self.poscommand(key)
 
-        if bs.navdb.awid.count(key)>0:
-            return self.poscommand(key.upper())
-        else:
-            # Find connecting airway legs
-            wpid = key.upper()
-            iwp = bs.navdb.getwpidx(wpid,reflat,reflon)
-            if iwp<0:
-                return False,key + " not found."
+        # Find connecting airway legs
+        wpid = key
+        iwp = bs.navdb.getwpidx(wpid,reflat,reflon)
+        if iwp < 0:
+            return False,key + " not found."
 
-            wplat = bs.navdb.wplat[iwp]
-            wplon = bs.navdb.wplon[iwp]
-            connect = bs.navdb.listconnections(key.upper(),wplat,wplon)
-            if len(connect)>0:
-                lines = ""
-                for c in connect:
-                    if len(c)>=2:
-                        # Add airway, direction, waypoint
-                        lines = lines+ c[0]+": to "+c[1]+"\n"
-                return True, lines[:-1]  # exclude final newline
-            else:
-                return False,"No airway legs found for "+key
+        wplat = bs.navdb.wplat[iwp]
+        wplon = bs.navdb.wplon[iwp]
+        connect = bs.navdb.listconnections(key, wplat, wplon)
+        if connect:
+            lines = ""
+            for c in connect:
+                if len(c)>=2:
+                    # Add airway, direction, waypoint
+                    lines = lines+ c[0]+": to "+c[1]+"\n"
+            return True, lines[:-1]  # exclude final newline
+        return False, f"No airway legs found for {key}"
 
-    def settrans(self,alt=-999.):
+    def settrans(self, alt=-999.):
         """ Set or show transition level"""
-
         # in case a valid value is ginve set it
-        if alt>-900.:
-            if alt>0.:
+        if alt > -900.:
+            if alt > 0.:
                 self.translvl = alt
                 return True
-            else:
-                return False,"Transition level needs to be ft/FL and larger than zero"
+            return False,"Transition level needs to be ft/FL and larger than zero"
 
         # In case no value is given, show it
-        else:
-            tlvl = int(round(self.translvl/ft))
-            return True,"Transition level = " + \
-                          str(tlvl) + "/FL" +  str(int(round(tlvl/100.)))
+        tlvl = int(round(self.translvl/ft))
+        return True, f"Transition level = {tlvl}/FL{int(round(tlvl/100.))}"
 
-    def setbanklim(self,idx,bankangle=None):
-        """Set autopilot bank limit of aircraft in degrees"""
+    def setbanklim(self, idx, bankangle=None):
+        ''' Set bank limit for given aircraft. '''
         if bankangle:
             self.bank[idx] = np.radians(bankangle) # [rad]
             return True
-        else:
-            return True,"Banklimit of "+self.id[idx]+" is "+str(int(np.degrees(self.bank[idx])))+" deg"
+        return True, f"Banklimit of {self.id[idx]} is {int(np.degrees(self.bank[idx]))} deg"
 
     def setthrottle(self,idx,throttle=""):
         """Set throttle to given value or AUTO, meaning autothrottle on (default)"""
 
-        if not (throttle==""):
-
-            if throttle == "AUTO" or throttle=='OFF': # throttle mode off, ATS on
+        if throttle:
+            if throttle in ('AUTO', 'OFF'): # throttle mode off, ATS on
                 self.swats[idx] = True   # Autothrottle on
                 self.thr[idx] = -999.    # Set to invalid
 
@@ -806,7 +756,6 @@ class Traffic(TrafficArrays):
                 self.thr[idx] = 0.0
 
             else:
-
                 # Check for percent unit
                 if throttle.count("%")==1:
                     throttle= throttle.replace("%","")
@@ -829,10 +778,7 @@ class Traffic(TrafficArrays):
                 self.thr[idx] = x
 
             return True
-        else:
-            if self.swats[idx]:
-                return True,"ATS of "+self.id[idx]+" is ON"
-            else:
-                return True, "ATS of " + self.id[idx] + " is OFF. THR is "+str(self.thr[idx])
 
-
+        if self.swats[idx]:
+            return True,"ATS of "+self.id[idx]+" is ON"
+        return True, "ATS of " + self.id[idx] + " is OFF. THR is "+str(self.thr[idx])

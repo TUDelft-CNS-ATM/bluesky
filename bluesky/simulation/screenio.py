@@ -5,10 +5,10 @@ import numpy as np
 # Local imports
 import bluesky as bs
 from bluesky import stack
-from bluesky.tools import Timer, areafilter
+from bluesky.tools import areafilter
+from bluesky.core.walltime import Timer
 
-
-class ScreenIO(object):
+class ScreenIO:
     """Class within sim task which sends/receives data to/from GUI task"""
 
     # =========================================================================

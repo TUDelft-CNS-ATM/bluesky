@@ -10,7 +10,7 @@
 from glob import glob
 from os import path
 import re
-from bluesky.tools.fwparser import FixedWidthParser, ParseError
+from .fwparser import FixedWidthParser, ParseError
 
 # File formats of BADA data files. Uses fortran-like notation
 # Adapted from the BADA manual format lines. (page 61-81 in the BADA manual)
@@ -86,8 +86,22 @@ def getCoefficients(actype):
     return syn, coeff
 
 
+def check(bada_path=''):
+    ''' Import check for BADA performance model. '''
+    releasefile = path.join(path.normpath(bada_path), 'ReleaseSummary')
+    if not path.isfile(releasefile):
+        return False
+    synonymfile = path.join(path.normpath(bada_path), 'SYNONYM.NEW')
+    if not path.isfile(synonymfile):
+        return False
+    return True
+
+
 def init(bada_path=''):
     ''' init() loads the available BADA datafiles in the provided directory.'''
+    if accoeffs:
+        return True
+
     releasefile = path.join(path.normpath(bada_path), 'ReleaseSummary')
     if path.isfile(releasefile):
         global release_date, bada_version
@@ -141,7 +155,7 @@ def init(bada_path=''):
     return (len(synonyms) > 0 and len(accoeffs) > 0)
 
 
-class Synonym(object):
+class Synonym:
     def __init__(self, data):
         self.is_equiv = (data[0] == '*')           # False if model is directly supported in bada, true if supported through equivalent model
         self.accode   = data[1]          # Aircraft code
@@ -151,7 +165,7 @@ class Synonym(object):
         self.icao     = (data[5].upper() == 'Y')  # designator for this aircraft type is in use according to ICAO Doc 8643 [RD2]
 
 
-class ACData(object):
+class ACData:
     # minimum speed coefficients
     CVmin          = 1.3
     CVmin_to       = 1.2

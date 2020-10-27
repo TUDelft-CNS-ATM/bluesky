@@ -38,9 +38,8 @@ def init_plugin():
 
     return config, stackfunctions
 
-class WindGFS():
+class WindGFS:
     def __init__(self):
-        super(WindGFS, self).__init__()
         self.year = 0
         self.month = 0
         self.day = 0

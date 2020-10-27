@@ -29,7 +29,7 @@ re_skip  = re.compile('[\s,]*(\d+)x[\s,]*', re.IGNORECASE)
 re_data  = re.compile('[\s,]*(\d+)[fis][\s,]*', re.IGNORECASE)
 
 
-class FixedWidthParser(object):
+class FixedWidthParser:
     ''' Use a FixedWidthParser to parse fixed-width column-based text files.
         In BlueSky, this is currently used to parse BADA data files.
 
@@ -74,6 +74,6 @@ class FixedWidthParser(object):
 
 class ParseError(Exception):
     def __init__(self, fname, lineno):
-        super(ParseError, self).__init__()
+        super().__init__()
         self.fname = fname
         self.lineno = lineno

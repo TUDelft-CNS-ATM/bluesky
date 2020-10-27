@@ -3,7 +3,7 @@ from threading import Thread
 import zmq
 import msgpack
 from bluesky import stack
-from bluesky.tools import Timer
+from bluesky.core.walltime import Timer
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 class IOThread(Thread):
@@ -42,7 +42,7 @@ class IOThread(Thread):
                 fe_stream.send_multipart(be_stream.recv_multipart())
 
 
-class Node(object):
+class Node:
     def __init__(self):
         self.host_id = b''
         self.node_id = b''
