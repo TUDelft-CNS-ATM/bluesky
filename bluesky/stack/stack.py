@@ -1833,7 +1833,11 @@ class Argparser:
         elif argtype == "hdg":
             try:
                 # TODO: take care of difference between magnetic/true heading
-                hdg = float(curargu.replace("T", "").replace("M", ""))
+                hdg = float(curargu.replace("T", "").replace("M", "").replace("m", ""))
+                if "M" in curargu or "m" in curargu:
+                    magnatic_declination = 0. 
+                    hdg = (hdg + magnatic_declination)%360.
+                print(hdg)
                 result = [hdg]
             except ValueError:
                 self.error += 'Could not parse "' + curargu + '" as heading'
