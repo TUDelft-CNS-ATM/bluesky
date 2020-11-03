@@ -36,6 +36,16 @@ class Proxy:
         return setattr(self._refobj, name, value)
 
 
+def isproxied(obj):
+    ''' Returns true if 'obj' is a proxied object. '''
+    return isinstance(obj, Proxy)
+
+
+def getproxied(obj):
+    ''' Return wrapped proxy object if proxied, otherwise the original object. '''
+    return obj.__dict__['_refobj'] if isinstance(obj, Proxy) else obj
+
+
 class EntityMeta(type):
     ''' Meta class to make replaceable classes singletons. '''
     def __call__(cls, *args, **kwargs):

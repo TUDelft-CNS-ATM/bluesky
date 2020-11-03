@@ -13,6 +13,7 @@ import re
 import numpy as np
 import bluesky as bs
 from bluesky.core import TrafficArrays
+from bluesky.core.entity import getproxied
 
 # Globals
 # The variable lists and their corresponding sources
@@ -143,4 +144,4 @@ class Variable:
         if self.index:
             v = getattr(self.parent, self.varname)
             return [v[i] for i in self.index]
-        return getattr(self.parent, self.varname)
+        return getproxied(getattr(self.parent, self.varname))
