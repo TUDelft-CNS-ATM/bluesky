@@ -176,9 +176,10 @@ class CommandGroup(Command):
     def __call__(self, strargs):
         # First check subcommand
         if strargs:
-            subcmd = self.subcmds.get(strargs[0], None)
-            if subcmd:
-                return subcmd(strargs[1:])
+            subcmd, subargs = getnextarg(strargs)
+            subcmdobj = self.subcmds.get(subcmd.upper())
+            if subcmdobj:
+                return subcmdobj(subargs)
         return super().__call__(strargs)
 
     def helptext(self):
