@@ -7,7 +7,6 @@ from bluesky import settings
 from bluesky.core import select_implementation, plugin, simtime, varexplorer as ve
 from bluesky.tools import geo, areafilter, plotter, datalog
 from bluesky.tools.calculator import calculator
-import bluesky.stack.synthetic as syn
 from bluesky.stack.cmdparser import append_commands
 
 
@@ -476,13 +475,6 @@ def initbasecmds():
             "Switch on/off elements and background of map/radar view",
         ],
         "SYMBOL": ["SYMBOL", "", bs.scr.symbol, "Toggle aircraft symbol"],
-        "SYN": [
-            " SYN: Possible subcommands: HELP, SIMPLE, SIMPLED, DIFG, SUPER,"
-            + "MATRIX, FLOOR, TAKEOVER, WALL, ROW, COLUMN, DISP",
-            "txt,[...]",
-            syn.process,
-            "Macro for generating synthetic (geometric) traffic scenarios",
-        ],
         "THR": [
             "THR acid, IDLE/0.0/throttlesetting/1.0/AUTO(default)",
             "acid[,txt]",
