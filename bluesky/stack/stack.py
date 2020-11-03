@@ -390,7 +390,7 @@ def delay(time: 'time', cmdline: 'string'):
 
 
 @commandgroup(name='HELP', aliases=('?',))
-def showhelp(cmd:'txt'=''):
+def showhelp(cmd:'txt'='', subcmd:'txt'=''):
     """ HELP: Display general help text or help text for a specific command,
         or dump command reference in file when command is >filename.
 
@@ -411,7 +411,7 @@ def showhelp(cmd:'txt'=''):
     # Check if help is asked for a specific command
     cmdobj = Command.cmddict.get(cmd)
     if cmdobj:
-        return True, cmdobj.helptext()
+        return True, cmdobj.helptext(subcmd)
 
     # Write command reference to tab-delimited text file
     if cmd[0] == ">":

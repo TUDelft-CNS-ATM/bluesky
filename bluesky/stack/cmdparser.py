@@ -149,7 +149,7 @@ class Command:
             else:
                 self.params = [p for p in map(Parameter, paramspecs) if p]
 
-    def helptext(self):
+    def helptext(self, subcmd=''):
         ''' Return complete help text. '''
         msg = f'{self.help}\nUsage:\n{self.brief}'
         if self.aliases:
@@ -182,8 +182,12 @@ class CommandGroup(Command):
                 return subcmdobj(subargs)
         return super().__call__(strargs)
 
-    def helptext(self):
+    def helptext(self, subcmd=''):
         ''' Return complete help text. '''
+        if subcmd:
+            obj = self.subcmds.get(subcmd)
+            return obj.helptext() if obj else f'{subcmd} is not a subcommand of {self.name}'
+
         msg = f'{self.help}\nUsage:\n{self.brief}'
         for subcmd in self.subcmds.values():
             msg += f'\n{self.name} {subcmd.brief}'
