@@ -5,8 +5,8 @@ import subprocess
 import bluesky as bs
 from bluesky.stack.cmdparser import Command, command, commandgroup
 from bluesky.stack.basecmds import initbasecmds
-import bluesky.stack.recorder as recorder
-import bluesky.stack.argparser as argparser
+from bluesky.stack import recorder
+from bluesky.stack import argparser
 from bluesky import settings
 
 
