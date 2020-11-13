@@ -47,7 +47,7 @@ class ndUBO(UniformBuffer):
     data = Data(0.0, 0.0, 0.0, 4.0, 3)
 
     def __init__(self):
-        super(ndUBO, self).__init__(self.data)
+        super().__init__(self.data)
 
     def set_zoom(self, zoom):
         self.data.zoom   = zoom
@@ -104,7 +104,7 @@ def check_btn(px, py):
 
 class BlipDriver(QGLWidget):
     def __init__(self, parent=None):
-        super(BlipDriver, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         self.initialized = False
         self.width       = 800
         self.height      = 800
@@ -356,7 +356,7 @@ class BlipDriver(QGLWidget):
 
     def event(self, event):
         if not self.initialized:
-            return super(BlipDriver, self).event(event)
+            return super().event(event)
 
         self.makeCurrent()
         if event.type() in [QEvent.MouseMove, QEvent.MouseButtonPress, QEvent.MouseButtonRelease]:
@@ -399,7 +399,7 @@ class BlipDriver(QGLWidget):
 
             # ismcp = float(self.height - event.y()) / self.height <= 0.2
 
-        return super(BlipDriver, self).event(event)
+        return super().event(event)
 
     @pyqtSlot()
     def updateAPValues(self):

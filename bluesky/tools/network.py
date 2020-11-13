@@ -16,7 +16,7 @@ def as_bytes(msg):
         return msg
 
 
-class TcpSocket(object):
+class TcpSocket:
     """A TCP Client receving message from server, analysing the data, and """
     def __init__(self):
         self.buffer_size = 1024
@@ -72,7 +72,7 @@ class TcpSocket(object):
         return None
 
 
-class TcpServer(object):
+class TcpServer:
     def __init__(self):
         pass
 

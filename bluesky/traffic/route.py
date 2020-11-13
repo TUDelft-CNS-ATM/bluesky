@@ -3,12 +3,11 @@ from os import path
 from numpy import *
 import bluesky as bs
 from bluesky.tools import geo
-from bluesky.tools.replaceable import Replaceable
+from bluesky.core import Replaceable
 from bluesky.tools.aero import ft, kts, g0, nm, mach2cas, casormach2tas
-from bluesky.tools.misc import degto180,txt2tim,txt2spd
+from bluesky.tools.misc import degto180, txt2tim, txt2alt, txt2spd
 from bluesky.tools.position import txt2pos
 from bluesky import stack
-from bluesky.stack import Argparser
 
 
 class Route(Replaceable):
@@ -411,20 +410,18 @@ class Route(Replaceable):
                     if alttxt.count('-') > 1: # "----" = delete
                         self.wpalt[wpidx]  = -999.
                     else:
-                        parser = Argparser(['alt'], [False], alttxt)
-                        if parser.parse():
-                            self.wpalt[wpidx] = parser.arglist[0]
-                        else:
+                        try:
+                            self.wpalt[wpidx] = txt2alt(alttxt)
+                        except ValueError as e:
                             success = False
 
                     # Edit waypoint speed constraint
                     if spdtxt.count('-') > 1: # "----" = delete
                         self.wpspd[wpidx]  = -999.
                     else:
-                        parser = Argparser(['spd'], [False], spdtxt)
-                        if parser.parse():
-                            self.wpspd[wpidx] = parser.arglist[0]
-                        else:
+                        try:
+                            self.wpalt[wpidx] = txt2spd(spdtxt)
+                        except ValueError as e:
                             success = False
 
                     if not success:
@@ -444,19 +441,17 @@ class Route(Replaceable):
 
                     # Edit waypoint altitude constraint
                     if swalt:
-                        parser = Argparser(['alt'], [False], args[2])
-                        if parser.parse():
-                            self.wpalt[wpidx] = parser.arglist[0]
-                        else:
-                            return False,'Could not parse "' + args[2] + '" as altitude'
+                        try:
+                            self.wpalt[wpidx] = txt2alt(args[2])
+                        except ValueError as e:
+                            return False, e.args[0]
 
                     # Edit waypoint speed constraint
                     elif swspd:
-                        parser = Argparser(['spd'], [False], args[2])
-                        if parser.parse():
-                            self.wpspd[wpidx] = parser.arglist[0]
-                        else:
-                            return False,'Could not parse "' + args[2] + '" as speed'
+                        try:
+                            self.wpspd[wpidx] = txt2spd(args[2])
+                        except ValueError as e:
+                            return False, e.args[0]
 
                     # Delete a constraint (or both) at this waypoint
                     elif args[1]=="DEL" or args[1]=="DELETE":

@@ -6,8 +6,7 @@ import sys
 import imp
 import bluesky as bs
 from bluesky import settings
-from bluesky.tools import varexplorer as ve
-from bluesky.tools.simtime import timed_function
+from bluesky.core import timed_function, varexplorer as ve
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -18,6 +17,9 @@ plugin_descriptions = dict()
 active_plugins = dict()
 
 class Plugin:
+    ''' BlueSky plugin class.
+        This class is used internally to store information about bluesky
+        plugins that were found in the search directory. '''
     def __init__(self, fname):
         fname = path.normpath(path.splitext(fname)[0].replace('\\', '/'))
         self.module_path, self.module_name = path.split(fname)
@@ -47,16 +49,19 @@ def check_plugin(fname):
                     # Return value of init_plugin should always be a tuple of two dicts
                     # The first dict is the plugin config dict, the second dict is the stack function dict
                     if isinstance(iitem, ast.Return):
-                        ret_dicts = iitem.value.elts
-                        if not len(ret_dicts) == 2:
-                            print(fname + " looks like a plugin, but init_plugin() doesn't return two dicts")
+                        if isinstance(iitem.value, ast.Tuple):
+                            ret_dicts = iitem.value.elts
+                        else:
+                            ret_dicts = [iitem.value]
+                        if len(ret_dicts) not in (1, 2):
+                            print(fname + " looks like a plugin, but init_plugin() doesn't return one or two dicts")
                             return None
                         ret_names = [el.id if isinstance(el, ast.Name) else '' for el in ret_dicts]
 
                     # Check if this is the assignment of one of the return values
                     if isinstance(iitem, ast.Assign) and isinstance(iitem.value, ast.Dict):
-                        for i in range(2):
-                            if iitem.targets[0].id == ret_names[i]:
+                        for i, name in enumerate(ret_names):
+                            if iitem.targets[0].id == name:
                                 ret_dicts[i] = iitem.value
 
                 # Parse the config dict
@@ -65,9 +70,10 @@ def check_plugin(fname):
                 plugin.plugin_type = cfgdict['plugin_type'].s
 
                 # Parse the stack function dict
-                stack_keys       = [el.s for el in ret_dicts[1].keys]
-                stack_docs       = [el.elts[-1].s for el in ret_dicts[1].values]
-                plugin.plugin_stack = list(zip(stack_keys, stack_docs))
+                if len(ret_dicts) > 1:
+                    stack_keys       = [el.s for el in ret_dicts[1].keys]
+                    stack_docs       = [el.elts[-1].s for el in ret_dicts[1].values]
+                    plugin.plugin_stack = list(zip(stack_keys, stack_docs))
     return plugin
 
 def manage(cmd='LIST', plugin_name=''):
@@ -84,9 +90,7 @@ def manage(cmd='LIST', plugin_name=''):
 
     if cmd in ['LOAD', 'ENABLE']:
         return load(plugin_name)
-    elif cmd in ['REMOVE', 'UNLOAD', 'DISABLE']:
-        return remove(plugin_name)
-    elif cmd != '': # If no command is given, assume user tries to load a plugin
+    if cmd != '': # If no command is given, assume user tries to load a plugin
         return load(cmd)
     return False
 
@@ -109,11 +113,6 @@ def init(mode):
         print(success[1])
 
 
-# Sim implementation of plugin management
-preupdate_funs = dict()
-update_funs    = dict()
-reset_funs     = dict()
-
 def load(name):
     ''' Load a plugin. '''
     try:
@@ -126,64 +125,23 @@ def load(name):
         mod    = imp.find_module(descr.module_name, [descr.module_path])
         plugin = imp.load_module(descr.module_name, *mod)
         # Initialize the plugin
-        config, stackfuns    = plugin.init_plugin()
+        result = plugin.init_plugin()
+        config = result if isinstance(result, dict) else result[0]
         active_plugins[name] = plugin
         dt     = max(config.get('update_interval', 0.0), bs.sim.simdt)
-        prefun = config.get('preupdate')
-        updfun = config.get('update')
-        rstfun = config.get('reset')
-        if prefun:
-            if hasattr(prefun, '__istimed'):
-                preupdate_funs[name] = prefun
-            else:
-                preupdate_funs[name] = timed_function(f'{name}.{prefun.__name__}', dt)(prefun)
+        # Add timed functions if present
+        for hook in ('preupdate', 'update', 'reset'):
+            fun = config.get(hook)
+            if fun:
+                timed_function(fun, name=f'{name}.{fun.__name__}', dt=dt, hook=hook)
 
-        if updfun:
-            if hasattr(updfun, '__istimed'):
-                update_funs[name] = updfun
-            else:
-                update_funs[name] = timed_function(f'{name}.{updfun.__name__}', dt)(updfun)
-
-        if rstfun:
-            reset_funs[name]     = rstfun
-        # Add the plugin's stack functions to the stack
-        bs.stack.append_commands(stackfuns)
+        if isinstance(result, (tuple, list)) and len(result) > 1:
+            stackfuns = result[1]
+            # Add the plugin's stack functions to the stack
+            bs.stack.append_commands(stackfuns)
         # Add the plugin as data parent to the variable explorer
         ve.register_data_parent(plugin, name.lower())
         return True, 'Successfully loaded plugin %s' % name
     except ImportError as e:
         print('BlueSky plugin system failed to load', name, ':', e)
         return False, 'Failed to load %s' % name
-
-def remove(name):
-    ''' Remove a loaded plugin. '''
-    if name not in active_plugins:
-        return False, 'Plugin %s not loaded' % name
-    preset = reset_funs.pop(name, None)
-    if preset:
-        # Call module reset first to clear plugin state just in case.
-        preset()
-    descr  = plugin_descriptions.get(name)
-    cmds, _ = list(zip(*descr.plugin_stack))
-    bs.stack.remove_commands(cmds)
-    active_plugins.pop(name)
-    preupdate_funs.pop(name)
-    update_funs.pop(name)
-
-def preupdate():
-    ''' Update function executed before traffic update.'''
-    for fun in preupdate_funs.values():
-        fun()
-
-
-def update():
-    ''' Update function executed after traffic update.'''
-    for fun in update_funs.values():
-        fun()
-
-
-def reset():
-    ''' Reset all plugins.'''
-    # Call plugin reset for plugins that have one
-    for fun in reset_funs.values():
-        fun()

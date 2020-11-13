@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItemGroup
 
 class AMANDisplay(QGraphicsView):
     def __init__(self):
-        super(AMANDisplay, self).__init__()
+        super().__init__()
         self.setGeometry(0, 0, 500, 600)
         self.setStyleSheet('background-color:#233370')
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)

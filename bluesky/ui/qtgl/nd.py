@@ -28,7 +28,7 @@ class ndUBO(UniformBuffer):
     data = Data(0.0, 0.0, 0.0, 4.0, 3)
 
     def __init__(self):
-        super(ndUBO, self).__init__(self.data)
+        super().__init__(self.data)
 
     def set_zoom(self, zoom):
         self.data.zoom   = zoom
@@ -46,7 +46,7 @@ class ndUBO(UniformBuffer):
 
 class ND(QGLWidget):
     def __init__(self, parent=None, shareWidget=None):
-        super(ND, self).__init__(parent=parent, shareWidget=shareWidget)
+        super().__init__(parent=parent, shareWidget=shareWidget)
 
         self.shareWidget = shareWidget
         self.ac_id = ''

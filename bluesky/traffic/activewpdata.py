@@ -1,14 +1,13 @@
 import numpy as np
 import bluesky as bs
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
-from bluesky.tools.aero import nm, g0, cas2tas
+from bluesky.tools.aero import nm, g0
 from bluesky.tools.misc import degto180
-from bluesky.tools.replaceable import ReplaceableSingleton
+from bluesky.core import Entity
 
-class ActiveWaypoint(ReplaceableSingleton, TrafficArrays):
+class ActiveWaypoint(Entity, replaceable=True):
     def __init__(self):
-        TrafficArrays.__init__(self)
-        with RegisterElementParameters(self):
+        super().__init__()
+        with self.settrafarrays():
             self.lat        = np.array([])    # [deg] Active WP latitude
             self.lon        = np.array([])    # [deg] Active WP longitude
             self.nextaltco  = np.array([])    # [m] Altitude to arrive at after distance xtoalt
@@ -31,7 +30,7 @@ class ActiveWaypoint(ReplaceableSingleton, TrafficArrays):
 
 
     def create(self, n=1):
-        super(ActiveWaypoint, self).create(n)
+        super().create(n)
         # LNAV route navigation
         self.lat[-n:]        = 89.99    # [deg]Active WP latitude
         self.nextspd[-n:]    = -999.    # [CAS[m/s]/Mach]Next leg speed from current WP

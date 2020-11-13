@@ -83,7 +83,7 @@ class Shape:
 
 class Line(Shape):
     def __init__(self, name, coordinates):
-        super(Line, self).__init__('LINE', name, coordinates)
+        super().__init__('LINE', name, coordinates)
 
     def __str__(self):
         return f'{self.name} is a LINE with ' \
@@ -93,7 +93,7 @@ class Line(Shape):
 
 class Box(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
-        super(Box, self).__init__('BOX', name, coordinates, top, bottom)
+        super().__init__('BOX', name, coordinates, top, bottom)
         # Sort the order of the corner points
         self.lat0 = min(coordinates[0], coordinates[2])
         self.lon0 = min(coordinates[1], coordinates[3])
@@ -109,7 +109,7 @@ class Box(Shape):
 
 class Circle(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
-        super(Circle, self).__init__('CIRCLE', name, coordinates, top, bottom)
+        super().__init__('CIRCLE', name, coordinates, top, bottom)
         self.clat   = coordinates[0]
         self.clon   = coordinates[1]
         self.r      = coordinates[2]
@@ -127,7 +127,7 @@ class Circle(Shape):
 
 class Poly(Shape):
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
-        super(Poly, self).__init__('POLY', name, coordinates, top, bottom)
+        super().__init__('POLY', name, coordinates, top, bottom)
         self.border = Path(np.reshape(coordinates, (len(coordinates) // 2, 2)))
 
     def checkInside(self, lat, lon, alt):

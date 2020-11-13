@@ -1,13 +1,16 @@
 """ BlueSky plugin template. The text you put here will be visible
     in BlueSky as the description of your plugin. """
+from random import randint
+import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import stack  #, settings, navdb, traf, sim, scr, tools
+from bluesky import core, stack, traf  #, settings, navdb, sim, scr, tools
 
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
-
-    # Addtional initilisation code
+    ''' Plugin initialisation function. '''
+    # Instantiate our example entity
+    example = Example()
 
     # Configuration parameters
     config = {
@@ -16,61 +19,55 @@ def init_plugin():
 
         # The type of this plugin. For now, only simulation plugins are possible.
         'plugin_type':     'sim',
-
-        # Update interval in seconds. By default, your plugin's update function(s)
-        # are called every timestep of the simulation. If your plugin needs less
-        # frequent updates provide an update interval.
-        'update_interval': 2.5,
-
-        # The update function is called after traffic is updated. Use this if you
-        # want to do things as a result of what happens in traffic. If you need to
-        # something before traffic is updated please use preupdate.
-        'update':          update,
-
-        # The preupdate function is called before traffic is updated. Use this
-        # function to provide settings that need to be used by traffic in the current
-        # timestep. Examples are ASAS, which can give autopilot commands to resolve
-        # a conflict.
-        'preupdate':       preupdate,
-
-        # If your plugin has a state, you will probably need a reset function to
-        # clear the state in between simulations.
-        'reset':         reset
         }
 
-    stackfunctions = {
-        # The command name for your function
-        'MYFUN': [
-            # A short usage string. This will be printed if you type HELP <name> in the BlueSky console
-            'MYFUN ON/OFF',
-
-            # A list of the argument types your function accepts. For a description of this, see ...
-            '[onoff]',
-
-            # The name of your function in this plugin
-            myfun,
-
-            # a longer help text of your function.
-            'Print something to the bluesky console based on the flag passed to MYFUN.']
-    }
-
-    # init_plugin() should always return these two dicts.
-    return config, stackfunctions
+    # init_plugin() should always return a configuration dict.
+    return config
 
 
-### Periodic update functions that are called by the simulation. You can replace
-### this by anything, so long as you communicate this in init_plugin
+### Entities in BlueSky are objects that are created only once (called singleton)
+### which implement some traffic or other simulation functionality.
+### To define an entity that ADDS functionality to BlueSky, create a class that
+### inherits from bluesky.core.Entity.
+### To replace existing functionality in BlueSky, inherit from the class that
+### provides the original implementation (see for example the asas/eby plugin).
+class Example(core.Entity):
+    ''' Example new entity object for BlueSky. '''
+    def __init__(self):
+        super().__init__()
+        # All classes deriving from Entity can register lists and numpy arrays
+        # that hold per-aircraft data. This way, their size is automatically
+        # updated when aircraft are created or deleted in the simulation.
+        with self.settrafarrays():
+            self.npassengers = np.array([])
 
-def update():
-    stack.stack('ECHO MY_PLUGIN update: creating a random aircraft')
-    stack.stack('MCRE 1')
+    def create(self, n=1):
+        ''' This function gets called automatically when new aircraft are created. '''
+        # Don't forget to call the base class create when you reimplement this function!
+        super().create(n)
+        # After base creation we can change the values in our own states for the new aircraft
+        self.npassengers[-n:] = [randint(0, 150) for _ in range(n)]
 
-def preupdate():
-    pass
+    # Functions that need to be called periodically can be indicated to BlueSky
+    # with the timed_function decorator
+    @core.timed_function(name='example', dt=5)
+    def update(self):
+        ''' Periodic update function for our example entity. '''
+        stack.stack('ECHO Example update: creating a random aircraft')
+        stack.stack('MCRE 1')
 
-def reset():
-    pass
+    # You can create new stack commands with the stack.command decorator.
+    # By default, the stack command name is set to the function name.
+    # The default argument type is a case-sensitive word. You can indicate different
+    # types using argument annotations. This is done in the below function:
+    # - The acid argument is a BlueSky-specific argument with type 'acid'.
+    #       This converts callsign to the corresponding index in the traffic arrays.
+    # - The count argument is a regular int.
+    @stack.command
+    def passengers(self, acid: 'acid', count: int = -1):
+        ''' Set the number of passengers on aircraft 'acid' to 'count'. '''
+        if count < 0:
+            return True, f'Aircraft {traf.id[acid]} currently has {self.npassengers[acid]} passengers on board.'
 
-### Other functions of your plugin
-def myfun(flag=True):
-    return True, 'My plugin received an o%s flag.' % ('n' if flag else 'ff')
+        self.npassengers[acid] = count
+        return True, f'The number of passengers on board {traf.id[acid]} is set to {count}.'

@@ -11,18 +11,13 @@ try:
 
     class DocView(QWebView):
         def __init__(self, parent=None):
-            super(DocView, self).__init__(parent)
-
+            super().__init__(parent)
             class DocPage(QWebPage):
-                def __init__(self, parent=None):
-                    super(DocPage, self).__init__(parent)
-
                 def acceptNavigationRequest(self, url, navtype, ismainframe):
                     if navtype == self.NavigationTypeLinkClicked:
                         if url.url()[:6].lower() == 'stack:':
                             DocWindow.app.stack(url.url()[6:].lower())
                             return False
-
                     return True
             self.page = DocPage()
             self.setPage(self.page)
@@ -34,7 +29,7 @@ class DocWindow(QWidget):
     app = None
 
     def __init__(self, app):
-        super(DocWindow, self).__init__()
+        super().__init__()
         DocWindow.app = app
         self.vlayout  = QVBoxLayout()
         self.backbtn = QPushButton('Back')

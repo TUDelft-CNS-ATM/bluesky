@@ -1,7 +1,7 @@
 import numpy as np
 from bluesky.tools.aero import nm, ft
 from bluesky.traffic.asas import MVP
-
+from bluesky import traf
 # TODO: not completely migrated yet to class-based implementation
 
 
@@ -18,8 +18,7 @@ def init_plugin():
         'plugin_type':     'sim'
     }
 
-    # init_plugin() should always return these two dicts.
-    return config, {}
+    return config
 
 
 class Swarm(MVP):

@@ -1,12 +1,12 @@
 """ Pilot logic."""
 import numpy as np
 import bluesky as bs
-from bluesky.tools.trafficarrays import TrafficArrays, RegisterElementParameters
+from bluesky.core import TrafficArrays
 
 class APorASAS(TrafficArrays):
     def __init__(self):
-        super(APorASAS, self).__init__()
-        with RegisterElementParameters(self):
+        super().__init__()
+        with self.settrafarrays():
             # Desired aircraft states
             self.alt = np.array([])  # desired altitude [m]
             self.hdg = np.array([])  # desired heading [deg]
@@ -15,8 +15,7 @@ class APorASAS(TrafficArrays):
             self.tas = np.array([])  # desired speed [m/s]
 
     def create(self, n=1):
-        super(APorASAS, self).create(n)
-
+        super().create(n)
         self.alt[-n:] = bs.traf.alt[-n:]
         self.tas[-n:] = bs.traf.tas[-n:]
         self.hdg[-n:] = bs.traf.hdg[-n:]

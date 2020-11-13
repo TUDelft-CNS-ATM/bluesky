@@ -8,7 +8,7 @@ import itertools
 from datetime import datetime
 import numpy as np
 from bluesky import settings, stack
-from bluesky.tools import varexplorer as ve
+from bluesky.core import varexplorer as ve
 import bluesky as bs
 
 # Register settings defaults
