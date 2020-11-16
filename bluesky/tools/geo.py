@@ -455,8 +455,8 @@ def init_interpo_dec():
     """
     Generates an object of scipy.interpolate.RectSphereBivariateSpline 
     interpo_dec required by magdec() that interpolates
-    magnetic declination based on the data table calculated from the NOAA
-    webpage
+    magnetic declination (also called magnetic variation) based on the data
+    table calculated from the NOAA webpage
     https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml#igrfgrid
     with the following input:
         Southern most lat:  90 S
