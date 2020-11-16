@@ -75,7 +75,8 @@ def i2txt(i, n):
 
 
 def txt2hdg(txt):    
-    ''' Convert text to true or magnetic heading. '''
+    ''' Convert text to true or magnetic heading.
+    Modified by : Yaofu Zhou'''
     heading = float(txt.upper().replace("T", "").replace("M", ""))
     magnatic_declination = 0.
 
