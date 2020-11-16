@@ -411,15 +411,15 @@ def magdec(latd, lond):
          d_hdg       [deg]  Magnetic declination, the angle of difference
                             between true North and magnetic North. For instance,
                             if the declination at a certain point were 10 deg W
-                            (-10 deg), then a compass at that location pointing
+                            (10 deg), then a compass at that location pointing
                             north (magnetic) would actually align 10 deg W of
                             true North. True North would be 10 deg E relative to
                             the magnetic North direction given by the compass. 
                             Declination varies with location and slowly changes
                             in time. Referenced from
             https://www.ngdc.noaa.gov/geomag/calculators/help/igrfgridHelp.html
-                            In short, magnetic heading = true heading + d_hdg,
-                            or,       true heading = magnetic heading - d_hdg.
+                            In short, magnetic heading = true heading - d_hdg,
+                            or,       true heading = magnetic heading + d_hdg.
     Created by  : Yaofu Zhou
     """
 
@@ -479,8 +479,8 @@ def init_interpo_dec():
     See docstring of geo.magdec() for more information.
     Created by  : Yaofu Zhou
     """
-    
-    declination = pd.read_csv('./declination_sealevel.csv',\
+
+    declination = pd.read_csv('bluesky/tools/declination_sealevel.csv',\
         comment='#',usecols=[1,2,4],header=None, names=['lat','lon','dec'])
     index_last = len(declination.index)
     lat_1st = declination.iloc[0,0]

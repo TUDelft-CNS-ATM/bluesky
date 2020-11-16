@@ -11,6 +11,7 @@ Created by  : Jacco M. Hoekstra
 from numpy import *
 from time import strftime, gmtime
 from .aero import cas2tas, mach2tas, kts, fpm, ft
+from .geo import magdec, init_interpo_dec
 
 
 def txt2alt(txt):
@@ -73,11 +74,20 @@ def i2txt(i, n):
     return '{:0{}d}'.format(i, n)
 
 
-def txt2hdg(txt):
+def txt2hdg(txt):    
     ''' Convert text to heading. '''
     # TODO: take care of difference between magnetic/true heading?
     # Would need reference position.
-    return float(txt.upper().replace("T", "").replace("M", ""))
+    heading = float(txt.upper().replace("T", "").replace("M", ""))
+    magnatic_declination = 0.
+
+    if "M" in txt.upper():
+        from bluesky.stack.argparser import refdata
+        magnatic_declination = magdec(refdata.lat, refdata.lon)
+
+    heading = (heading + magnatic_declination)%360.
+
+    return heading
 
 
 def txt2vs(txt):
@@ -204,7 +214,7 @@ def txt2lat(lattxt):
 
     # Use of "'" and '"' as delimiter for degrees/minutes/seconds (also accept degree symbol chr(176))
     if txt.count("'") > 0 or txt.count('"') > 0 or txt.count(chr(176)) > 0:
-        txt = txt.replace('"', "'").replace(chr(176),"'")# replace " or degree symbol and  by a '
+        txt = txt.replace('"', "'").replace(chr(176),"'")# replace " or degree symbol and by a '
         degs = txt.split("'")
         div = 1
         lat = 0
