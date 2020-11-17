@@ -349,7 +349,7 @@ def ic(filename=""):
             return False, f"IC: File not found: {filename}"
 
 
-@command(aliases='SCEN')
+@command(aliases=('SCEN',))
 def scenario(name: 'string'):
     """ SCENARIO sets the scenario name for the current simulation.
 
