@@ -25,11 +25,14 @@ allloggers = dict()
 
 def crelog(name, dt=None, header=''):
     ''' Create a new logger from the stack. '''
+    if name in allloggers:
+        return False, f'Logger {name} already exists'
+
     allloggers[name] = CSVLogger(name, dt or 0.0, header)
     if dt:
         periodicloggers[name] = allloggers[name]
 
-    return allloggers[name]
+    return True, f'Created {"periodic" if dt else ""} logger {name}'
 
 
 def update():
