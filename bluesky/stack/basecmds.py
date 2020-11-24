@@ -5,7 +5,7 @@ import os
 import bluesky as bs
 from bluesky import settings
 from bluesky.core import select_implementation, plugin, simtime, varexplorer as ve
-from bluesky.tools import geo, areafilter, plotter, datalog
+from bluesky.tools import geo, areafilter, plotter
 from bluesky.tools.calculator import calculator
 from bluesky.stack.cmdparser import append_commands
 
@@ -178,12 +178,6 @@ def initbasecmds():
             "txt,txt,acid,hdg,float,time,[alt,time,spd]",
             bs.traf.creconfs,
             "Create an aircraft that is in conflict with 'targetid'",
-        ],
-        "CRELOG": [
-            "CRELOG LOGNAME, [dt,header]",
-            "txt,[float,string]",
-            datalog.crelog,
-            "Create a new data logger.",
         ],
         "DATE": [
             "DATE [day,month,year,HH:MM:SS.hh]",
