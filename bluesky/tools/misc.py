@@ -14,6 +14,8 @@ from numpy import *
 from time import strftime, gmtime
 from .aero import cas2tas, mach2tas, kts, fpm, ft
 
+from .geo import magdec, init_interpo_dec
+
 
 def txt2alt(txt):
     """Convert text to altitude in meter: also FL300 => 30000. as float"""
@@ -75,11 +77,19 @@ def i2txt(i, n):
     return '{:0{}d}'.format(i, n)
 
 
-def txt2hdg(txt):
-    ''' Convert text to heading. '''
-    # TODO: take care of difference between magnetic/true heading?
-    # Would need reference position.
-    return float(txt.upper().replace("T", "").replace("M", ""))
+def txt2hdg(txt):    
+    ''' Convert text to true or magnetic heading.
+    Modified by : Yaofu Zhou'''
+    heading = float(txt.upper().replace("T", "").replace("M", ""))
+    magnatic_declination = 0.
+
+    if "M" in txt.upper():
+        from bluesky.stack.argparser import refdata
+        magnatic_declination = magdec(refdata.lat, refdata.lon)
+
+    heading = (heading + magnatic_declination)%360.
+
+    return heading
 
 
 def txt2vs(txt):
