@@ -292,6 +292,6 @@ argparsers = {
     'spd': Parser(txt2spd),
     'vspd': Parser(txt2vs),
     'alt': Parser(txt2alt),
-    'hdg': Parser(txt2hdg),
+    'hdg': Parser(lambda txt: txt2hdg(txt, refdata.lat, refdata.lon)),
     'time': Parser(txt2tim),
     'color': ColorArg()}

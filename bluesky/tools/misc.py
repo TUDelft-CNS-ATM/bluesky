@@ -12,10 +12,8 @@ Created by  : Jacco M. Hoekstra
 from time import strftime, gmtime
 import numpy as np
 
-
 from .aero import cas2tas, mach2tas, kts, fpm, ft
-
-from .geo import magdec, init_interpo_dec
+from .geo import magdec
 
 
 def txt2alt(txt):
@@ -78,17 +76,17 @@ def i2txt(i, n):
     return '{:0{}d}'.format(i, n)
 
 
-def txt2hdg(txt):
+def txt2hdg(txt, lat=None, lon=None):
     ''' Convert text to true or magnetic heading.
     Modified by : Yaofu Zhou'''
     heading = float(txt.upper().replace("T", "").replace("M", ""))
-    magnatic_declination = 0.
 
     if "M" in txt.upper():
-        from bluesky.stack.argparser import refdata
-        magnatic_declination = magdec(refdata.lat, refdata.lon)
-
-    heading = (heading + magnatic_declination)%360.
+        if None in (lat, lon):
+            raise ValueError('txt2hdg needs a reference latitude and longitude '
+                             'when a magnetic heading is parsed.')
+        magnetic_declination = magdec(lat, lon)
+        heading = (heading + magnetic_declination) % 360.0
 
     return heading
 
