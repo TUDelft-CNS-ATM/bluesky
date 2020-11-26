@@ -224,6 +224,8 @@ class PosArg(Parser):
         # Check if lat/lon combination
         if islat(argu):
             nextarg, argstring = re_getarg.match(argstring).groups()
+            refdata.lat = txt2lat(argu)
+            refdata.lon = txt2lon(nextarg)
             return txt2lat(argu), txt2lon(nextarg), argstring
 
         # apt,runway ? Combine into one string with a slash as separator

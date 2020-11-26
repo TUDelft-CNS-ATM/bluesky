@@ -30,7 +30,7 @@ def initbasecmds():
     #   acid      = aircraft id (text => index)
     #   alt       = altitude (FL250, 25000  ft+. meters)
     #   spd       = CAS or Mach (when <1)   => m/s
-    #   hdg       = heading in degrees
+    #   hdg       = heading in degrees, True or Magnetic
     #
     #   float     = plain float
     #   int       = integer
@@ -297,8 +297,8 @@ def initbasecmds():
             + "A group is created when a group with the given name doesn't exist yet.",
         ],
         "HDG": [
-            "HDG acid,hdg (deg,True)",
-            "acid,float",
+            "HDG acid,hdg (deg,True or Magnetic)",
+            "acid,hdg",
             bs.traf.ap.selhdgcmd,
             "Heading command (autopilot)",
         ],
