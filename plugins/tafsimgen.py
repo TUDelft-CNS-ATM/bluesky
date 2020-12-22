@@ -19,13 +19,12 @@ def init_plugin():
     # Configuration parameters
     config = {
         # The name of your plugin
-        'plugin_name':     'SIMGEN',
+        'plugin_name':     'TAFSIMGEN',
 
         # The type of this plugin.
         'plugin_type':     'sim'
 
         }
-
     return config 
 
 class Simgen(Entity):
@@ -91,6 +90,7 @@ class Simgen(Entity):
     def update(self):
         ''' Periodic update function for our example entity. '''
 
+        stack.stack(f"MCRE {randint(0, 4)}")
         #self.create(n = randint(1, 4))
         for i in range(traf.ntraf):
             #get current waypoint position and next waypoint index
