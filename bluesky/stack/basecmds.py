@@ -508,7 +508,7 @@ def initbasecmds():
         "WIND": [
             "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
             # last 3 args are repeated
-            "latlon,[alt],float,float,...,",
+            "latlon,[alt],float,alt/float,...,",
             bs.traf.wind.add,
             "Define a wind vector as part of the 2D or 3D wind field",
         ],
