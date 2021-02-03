@@ -12,6 +12,9 @@ import bluesky as bs
 from .discovery import Discovery
 
 
+# Keep subset of commandline args to pass on to child processes
+childargs = [a for a in sys.argv if 'headless' not in a]
+
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
                                   event_port=9000, stream_port=9001,
@@ -57,7 +60,7 @@ class Server(Thread):
     def addnodes(self, count=1):
         ''' Add [count] nodes to this server. '''
         for _ in range(count):
-            p = Popen([sys.executable, 'BlueSky.py', '--sim'])
+            p = Popen([sys.executable, 'BlueSky.py', '--sim', *childargs])
             self.spawned_processes.append(p)
 
     def run(self):
