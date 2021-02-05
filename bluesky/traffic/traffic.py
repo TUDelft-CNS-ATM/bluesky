@@ -209,7 +209,7 @@ class Traffic(Entity):
                                               str(int(round(acalt[i]/ft))),
                                               str(int(round(acspd[i]/kts)))]))
 
-    def cre(self, acid, actype, aclat, aclon, achdg=None, acalt=0, acspd=0):
+    def cre(self, acid, actype="B744", aclat=52., aclon=4., achdg=None, acalt=0, acspd=0):
         """ Create one or more aircraft. """
         # Determine number of aircraft to create from array length of acid
         n = 1 if isinstance(acid, str) else len(acid)
