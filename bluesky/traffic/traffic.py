@@ -181,7 +181,7 @@ class Traffic(Entity):
         # Reset transition level to default value
         self.translvl = 5000.*ft
 
-    def mcre(self, n, actype="b744", acalt=None, acspd=None, dest=None):
+    def mcre(self, n, actype="B744", acalt=None, acspd=None, dest=None):
         """ Create one or more random aircraft in a specified area """
         area = bs.scr.getviewbounds()
 
@@ -238,7 +238,7 @@ class Traffic(Entity):
 
         # Aircraft Info
         self.id[-n:]   = acid
-        self.type[-n:] = actype
+        self.type[-n:] = n*[actype]
 
         # Positions
         self.lat[-n:]  = aclat
@@ -530,6 +530,7 @@ class Traffic(Entity):
     def poscommand(self, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
         """POS command: Show info or an aircraft, airport, waypoint or navaid"""
         # Aircraft index
+
         if type(idxorwp)==int and idxorwp >= 0:
 
             idx           = idxorwp
