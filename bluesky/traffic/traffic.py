@@ -341,7 +341,8 @@ class Traffic(Entity):
         achdg      = degrees(atan2(tase, tasn))
 
         # Create and, when necessary, set vertical speed
-        self.cre(1, actype, acalt, acspd, None, aclat, aclon, achdg, acid)
+        self.cre(acid,actype,aclat,aclon,achdg,acalt,acspd)
+
         self.ap.selaltcmd(len(self.lat) - 1, altref, acvs)
         self.vs[-1] = acvs
 
