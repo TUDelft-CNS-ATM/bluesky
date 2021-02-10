@@ -18,7 +18,8 @@ childargs = [a for a in sys.argv[1:] if 'headless' not in a]
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
                                   event_port=9000, stream_port=9001,
-                                  simevent_port=10000, simstream_port=10001)
+                                  simevent_port=10000, simstream_port=10001,
+                                  enable_discovery=False)
 
 def split_scenarios(scentime, scencmd):
     ''' Split the contents of a batch file into individual scenarios. '''
@@ -45,7 +46,7 @@ class Server(Thread):
         self.servers = {self.host_id : dict(route=[], nodes=self.workers)}
         self.avail_workers = dict()
 
-        if discovery:
+        if bs.settings.enable_discovery or discovery:
             self.discovery = Discovery(self.host_id, is_client=False)
         else:
             self.discovery = None
