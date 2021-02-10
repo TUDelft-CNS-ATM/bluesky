@@ -14,7 +14,7 @@ from bluesky.core import Entity, timed_function
 from bluesky.stack import refdata
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
-from bluesky.tools.aero import fpm, kts, ft, g0, Rearth, nm, tas2cas,\
+from bluesky.tools.aero import cas2tas, fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach
 
 
@@ -224,6 +224,9 @@ class Traffic(Entity):
         super().create(n)
         self.ntraf += n
 
+        if isinstance(actype, str):
+            actype = n * [actype]
+
         if isinstance(aclat, (float, int)):
             aclat = np.array(n * [aclat])
 
@@ -238,7 +241,7 @@ class Traffic(Entity):
 
         # Aircraft Info
         self.id[-n:]   = acid
-        self.type[-n:] = n*[actype]
+        self.type[-n:] = actype
 
         # Positions
         self.lat[-n:]  = aclat
@@ -295,6 +298,19 @@ class Traffic(Entity):
         self.create_children(n)
 
     def creconfs(self, acid, actype, targetidx, dpsi, cpa, tlosh, dH=None, tlosv=None, spd=None):
+        ''' Create an aircraft in conflict with target aircraft.
+
+            Arguments:
+            - acid: callsign of new aircraft
+            - actype: aircraft type of new aircraft
+            - targetidx: id (callsign) of target aircraft
+            - dpsi: Conflict angle (angle between tracks of ownship and intruder) (deg)
+            - cpa: Predicted distance at closest point of approach (NM)
+            - tlosh: Horizontal time to loss of separation ((hh:mm:)sec)
+            - dH: Vertical distance (ft)
+            - tlosv: Vertical time to loss of separation
+            - spd: Speed of new aircraft (groundspeed, kts)
+        '''
         latref  = self.lat[targetidx]  # deg
         lonref  = self.lon[targetidx]  # deg
         altref  = self.alt[targetidx]  # m
@@ -306,7 +322,7 @@ class Traffic(Entity):
         pzh     = bs.settings.asas_pzh * ft
 
         trk     = trkref + radians(dpsi)
-        gs      = gsref if spd is None else spd
+        gs      = gsref if spd is None else spd * kts
         if dH is None:
             acalt = altref
             acvs  = 0.0
@@ -333,15 +349,16 @@ class Traffic(Entity):
 
         # Calculate intruder lat/lon
         aclat, aclon = geo.kwikpos(latref, lonref, brn, dist / nm)
-
         # convert groundspeed to CAS, and track to heading
         wn, we     = self.wind.getdata(aclat, aclon, acalt)
         tasn, tase = gsn - wn, gse - we
-        acspd      = tas2cas(sqrt(tasn * tasn + tase * tase), acalt)
+        acspd      = tas2cas(sqrt(tasn * tasn + tase * tase) / kts, acalt)
+
         achdg      = degrees(atan2(tase, tasn))
 
         # Create and, when necessary, set vertical speed
-        self.create(1, actype, acalt, acspd, None, aclat, aclon, achdg, acid)
+        self.cre(acid,actype,aclat,aclon,achdg,acalt,acspd)
+
         self.ap.selaltcmd(len(self.lat) - 1, altref, acvs)
         self.vs[-1] = acvs
 

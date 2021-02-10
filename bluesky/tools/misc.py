@@ -35,26 +35,23 @@ def tim2txt(t):
 
 def txt2tim(txt):
     """Convert text to time in seconds:
-       HH
-       HH:MM
-       HH:MM:SS
-       HH:MM:SS.hh
+       SS.hh
+       MM:SS.hh
+       HH.MM.SS.hh
     """
     timlst = txt.strip().split(":")
 
-    t = 0.0
     try:
-        # HH
-        if timlst[0]:
-            t += 3600.0 * int(timlst[0])
+        # Always SS.hh
+        t = float(timlst[-1])
 
         # MM
-        if len(timlst) > 1 and timlst[1]:
-            t += 60.0 * int(timlst[1])
+        if len(timlst) > 1 and timlst[-2]:
+            t += 60.0 * int(timlst[-2])
 
-        # SS.hh
-        if len(timlst) > 2 and timlst[2]:
-            t += float(timlst[2])
+        # HH
+        if len(timlst) > 2 and timlst[-3]:
+            t += 3600.0 * int(timlst[-3])
 
         return t
     except (ValueError, IndexError):
