@@ -34,7 +34,7 @@ def split_scenarios(scentime, scencmd):
 class Server(Thread):
     ''' Implementation of the BlueSky simulation server. '''
 
-    def __init__(self, headless):
+    def __init__(self, discovery):
         super().__init__()
         self.spawned_processes = list()
         self.running = True
@@ -46,7 +46,7 @@ class Server(Thread):
         self.servers = {self.host_id : dict(route=[], nodes=self.workers)}
         self.avail_workers = dict()
 
-        if bs.settings.enable_discovery or headless:
+        if bs.settings.enable_discovery or discovery:
             self.discovery = Discovery(self.host_id, is_client=False)
         else:
             self.discovery = None

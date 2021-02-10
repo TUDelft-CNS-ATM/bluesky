@@ -55,7 +55,7 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
     if mode[:6] == 'server':
         global server
         from bluesky.network import Server
-        server = Server(headless)
+        server = Server(discovery)
 
     # The remaining objects are only instantiated in the sim nodes
     if mode[:3] == 'sim':
