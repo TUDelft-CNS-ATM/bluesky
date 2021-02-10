@@ -18,8 +18,7 @@ childargs = [a for a in sys.argv[1:] if 'headless' not in a]
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
                                   event_port=9000, stream_port=9001,
-                                  simevent_port=10000, simstream_port=10001,
-                                  enable_discovery=False)
+                                  simevent_port=10000, simstream_port=10001)
 
 def split_scenarios(scentime, scencmd):
     ''' Split the contents of a batch file into individual scenarios. '''
@@ -34,7 +33,7 @@ def split_scenarios(scentime, scencmd):
 class Server(Thread):
     ''' Implementation of the BlueSky simulation server. '''
 
-    def __init__(self, headless):
+    def __init__(self, discovery):
         super().__init__()
         self.spawned_processes = list()
         self.running = True
@@ -46,7 +45,7 @@ class Server(Thread):
         self.servers = {self.host_id : dict(route=[], nodes=self.workers)}
         self.avail_workers = dict()
 
-        if bs.settings.enable_discovery or headless:
+        if discovery:
             self.discovery = Discovery(self.host_id, is_client=False)
         else:
             self.discovery = None
