@@ -66,7 +66,8 @@ class Autopilot(Entity, replaceable=True):
         self.dist2vs[-n:] = -999.
 
         # Route objects
-        self.route[-n:] = [Route() for _ in range(n)]
+        for ridx, acid in enumerate(bs.traf.id[-n:]):
+            self.route[ridx - n] = Route(acid)
 
     @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
     def update_fms(self, qdr, dist):

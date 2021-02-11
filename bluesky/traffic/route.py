@@ -31,8 +31,10 @@ class Route(Replaceable):
     calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
     runway   = 5   # Runway: Copy name and positions
 
-    def __init__(self):
-        self.nwp    = 0
+    def __init__(self, acid):
+        # Aircraft id (callsign) of the aircraft to which this route belongs
+        self.acid = acid
+        self.nwp = 0
 
         # Waypoint data
         self.wpname = []
@@ -66,7 +68,6 @@ class Route(Replaceable):
         # default: False
         self.flag_landed_runway = False
 
-        self.iac = None
         self.wpdirfrom = []
         self.wpdistto  = []
         self.wpialt    = []
@@ -541,7 +542,6 @@ class Route(Replaceable):
 #        print ("spd = ",spd)
 #        print ("afterwp ="+afterwp)
 #        print
-        self.iac = iac    # a/c to which this route belongs
         # For safety
         self.nwp = len(self.wplat)
 
@@ -862,13 +862,13 @@ class Route(Replaceable):
             wphdg = bs.navdb.rwythresholds[name[:4]][rwykey][2]
 
             # keep constant runway heading
-            stack.stack("HDG " + str(bs.traf.id[self.iac]) + " " + str(wphdg))
+            stack.stack("HDG " + str(self.acid) + " " + str(wphdg))
 
             # start decelerating
-            stack.stack("DELAY " + "10 " + "SPD " + str(bs.traf.id[self.iac]) + " " + "10")
+            stack.stack("DELAY " + "10 " + "SPD " + str(self.acid) + " " + "10")
 
             # delete aircraft
-            stack.stack("DELAY " + "42 " + "DEL " + str(bs.traf.id[self.iac]))
+            stack.stack("DELAY " + "42 " + "DEL " + str(self.acid))
 
             return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                            self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
@@ -976,12 +976,13 @@ class Route(Replaceable):
             self.delwpt("A/C")
 
         # Insert actual position as A/C waypoint
+        acidx = bs.traf.id2idx(self.acid)
         idx = self.iactwp
         self.insertcalcwp(idx,"A/C")
-        self.wplat[idx] = bs.traf.lat[self.iac] # deg
-        self.wplon[idx] = bs.traf.lon[self.iac] # deg
-        self.wpalt[idx] = bs.traf.alt[self.iac] # m
-        self.wpspd[idx] = bs.traf.tas[self.iac] # m/s
+        self.wplat[idx] = bs.traf.lat[acidx] # deg
+        self.wplon[idx] = bs.traf.lon[acidx] # deg
+        self.wpalt[idx] = bs.traf.alt[acidx] # m
+        self.wpspd[idx] = bs.traf.tas[acidx] # m/s
 
         # Calculate distance to last waypoint in route
         nwp = len(self.wpname)
@@ -1006,8 +1007,8 @@ class Route(Replaceable):
 
         # Find longest segment without altitude constraints
 
-        desslope = clbslope = 1.
-        crzalt = bs.traf.crzalt[self.iac]
+        desslope = clbslope = 1.0
+        crzalt = bs.traf.crzalt[acidx]
         if crzalt>0.:
             ilong  = -1
             dxlong = 0.0
