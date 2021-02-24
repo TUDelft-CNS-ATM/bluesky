@@ -14,7 +14,7 @@ from bluesky.core import Entity, timed_function
 from bluesky.stack import refdata
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
-from bluesky.tools.aero import cas2tas, fpm, kts, ft, g0, Rearth, nm, tas2cas,\
+from bluesky.tools.aero import cas2tas, casormach2tas, fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach
 
 
@@ -309,20 +309,20 @@ class Traffic(Entity):
             - tlosh: Horizontal time to loss of separation ((hh:mm:)sec)
             - dH: Vertical distance (ft)
             - tlosv: Vertical time to loss of separation
-            - spd: Speed of new aircraft (groundspeed, kts)
+            - spd: Speed of new aircraft (CAS/Mach, kts/-)
         '''
         latref  = self.lat[targetidx]  # deg
         lonref  = self.lon[targetidx]  # deg
         altref  = self.alt[targetidx]  # m
         trkref  = radians(self.trk[targetidx])
         gsref   = self.gs[targetidx]   # m/s
+        tasref  = self.tas[targetidx]   # m/s
         vsref   = self.vs[targetidx]   # m/s
         cpa     = cpa * nm
         pzr     = bs.settings.asas_pzr * nm
         pzh     = bs.settings.asas_pzh * ft
-
         trk     = trkref + radians(dpsi)
-        gs      = spd or gsref
+
         if dH is None:
             acalt = altref
             acvs  = 0.0
@@ -331,8 +331,18 @@ class Traffic(Entity):
             tlosv = tlosh if tlosv is None else tlosv
             acvs  = vsref - np.sign(dH) * (abs(dH) - pzh) / tlosv
 
+        if spd:
+            # CAS or Mach provided: convert to groundspeed, assuming that
+            # wind at intruder position is similar to wind at ownship position
+            tas = tasref if spd is None else casormach2tas(spd, acalt)
+            tasn, tase = tas * cos(trk), tas * sin(trk)
+            wn, we = self.wind.getdata(latref, lonref, acalt)
+            gsn, gse = tasn + wn, tase + we
+        else:
+            # Groundspeed is the same as ownship
+            gsn, gse = gsref * cos(trk), gsref * sin(trk)
+
         # Horizontal relative velocity vector
-        gsn, gse     = gs    * cos(trk),          gs    * sin(trk)
         vreln, vrele = gsref * cos(trkref) - gsn, gsref * sin(trkref) - gse
         # Relative velocity magnitude
         vrel    = sqrt(vreln * vreln + vrele * vrele)
@@ -349,16 +359,15 @@ class Traffic(Entity):
 
         # Calculate intruder lat/lon
         aclat, aclon = geo.kwikpos(latref, lonref, brn, dist / nm)
-        # convert groundspeed to CAS, and track to heading
+        # convert groundspeed to CAS, and track to heading using actual
+        # intruder position
         wn, we     = self.wind.getdata(aclat, aclon, acalt)
         tasn, tase = gsn - wn, gse - we
         acspd      = tas2cas(sqrt(tasn * tasn + tase * tase), acalt)
-
         achdg      = degrees(atan2(tase, tasn))
 
         # Create and, when necessary, set vertical speed
-        self.cre(acid,actype,aclat,aclon,achdg,acalt,acspd)
-
+        self.cre(acid, actype, aclat, aclon, achdg, acalt, acspd)
         self.ap.selaltcmd(len(self.lat) - 1, altref, acvs)
         self.vs[-1] = acvs
 
