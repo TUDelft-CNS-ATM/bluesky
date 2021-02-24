@@ -322,7 +322,7 @@ class Traffic(Entity):
         pzh     = bs.settings.asas_pzh * ft
 
         trk     = trkref + radians(dpsi)
-        gs      = gsref if spd is None else spd * kts
+        gs      = spd or gsref
         if dH is None:
             acalt = altref
             acvs  = 0.0
@@ -352,7 +352,7 @@ class Traffic(Entity):
         # convert groundspeed to CAS, and track to heading
         wn, we     = self.wind.getdata(aclat, aclon, acalt)
         tasn, tase = gsn - wn, gse - we
-        acspd      = tas2cas(sqrt(tasn * tasn + tase * tase) / kts, acalt)
+        acspd      = tas2cas(sqrt(tasn * tasn + tase * tase), acalt)
 
         achdg      = degrees(atan2(tase, tasn))
 
