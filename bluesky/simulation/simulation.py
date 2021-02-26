@@ -129,15 +129,19 @@ class Simulation:
 
     def op(self):
         ''' Set simulation state to OPERATE. '''
-        self.syst = time.time()
+        self.syst = time.time() + self.simdt
         self.ffmode = False
+        self.ffstop = None
         self.state = bs.OP
         self.set_dtmult(1.0)
 
     def hold(self):
         ''' Set simulation state to HOLD. '''
-        self.syst = time.time()
+        self.syst = time.time() + self.simdt / self.dtmult
         self.state = bs.HOLD
+        self.ffmode = False
+        self.ffstop = None
+
 
     def reset(self):
         ''' Reset all simulation objects. '''
