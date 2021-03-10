@@ -12,6 +12,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.core import Entity, timed_function
 from bluesky.stack import refdata
+from bluesky.stack.recorder import savecmd
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
 from bluesky.tools.aero import cas2tas, casormach2tas, fpm, kts, ft, g0, Rearth, nm, tas2cas,\
@@ -198,16 +199,6 @@ class Traffic(Entity):
 
         self.cre(acid, actype, aclat, aclon, achdg, acalt, acspd)
 
-        # SAVEIC: save cre command when filled in
-        # Special provision in case SAVEIC is on: then save individual CRE commands
-        # Names of aircraft (acid) need to be recorded for saved future commands
-        # And positions need to be the same in case of *MCRE"
-        for i in range(n):
-            bs.stack.savecmd("CRE", " ".join(["CRE", acid[i], actype,
-                                              str(aclat[i]), str(aclon[i]), 
-                                              str(int(round(achdg[i]))),
-                                              str(int(round(acalt[i]/ft))),
-                                              str(int(round(acspd[i]/kts)))]))
 
     def cre(self, acid, actype="B744", aclat=52., aclon=4., achdg=None, acalt=0, acspd=0):
         """ Create one or more aircraft. """
@@ -297,7 +288,19 @@ class Traffic(Entity):
         # manually in Traffic.
         self.create_children(n)
 
-    def creconfs(self, acid, actype, targetidx, dpsi, cpa, tlosh, dH=None, tlosv=None, spd=None):
+        # Record as individual CRE commands for repeatability
+        #print(self.ntraf-n,self.ntraf)
+        for j in range(self.ntraf-n,self.ntraf):
+            # Reconstruct CRE command
+            line = "CRE "+",".join([self.id[j],self.type[j],
+                                    str(self.lat[j]),str(self.lon[j]),
+                                    str(round(self.trk[j])),str(round(self.alt[j]/ft)),
+                                    str(round(self.cas[j]/kts))])
+            # Savecmd(cmd,line): line is saved, cmd is used to prevent recording PAN & ZOOM commands and CRE
+            # So insert a dummy command to record the line
+            savecmd("---",line)
+
+    def creconfs(self, acid, actype, targetidx, dpsi, dcpa, tlosh, dH=None, tlosv=None, spd=None):
         ''' Create an aircraft in conflict with target aircraft.
 
             Arguments:
@@ -318,7 +321,7 @@ class Traffic(Entity):
         gsref   = self.gs[targetidx]   # m/s
         tasref  = self.tas[targetidx]   # m/s
         vsref   = self.vs[targetidx]   # m/s
-        cpa     = cpa * nm
+        cpa     = dcpa * nm
         pzr     = bs.settings.asas_pzr * nm
         pzh     = bs.settings.asas_pzh * ft
         trk     = trkref + radians(dpsi)
