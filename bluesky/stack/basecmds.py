@@ -345,6 +345,12 @@ def initbasecmds():
             ve.lsvar,
             "Inspect any variable in a bluesky simulation",
         ],
+        "MAGVAR": [
+            "MAGVAR lat,lon",
+            "lat,lon",
+            bs.tools.geo.magdeccmd,
+            "Show magnetic variation/declination at position",
+        ],
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
             "int,[txt,alt,spd,txt]",
@@ -555,6 +561,8 @@ def initbasecmds():
         "IMPL": "IMPLEMENTATION",
         "IMPLEMENT": "IMPLEMENTATION",
         "LINES": "POLYLINE",
+        "MAGDEC": "MAGVAR",
+        "MAGDECL":"MAGVAR",
         "PAUSE": "HOLD",
         "PLUGIN": "PLUGINS",
         "PLUG-IN": "PLUGINS",
@@ -573,6 +581,7 @@ def initbasecmds():
         "START": "OP",
         "TRAILS": "TRAIL",
         "TURN": "HDG",
+        "VAR": "MAGVAR"
     }
 
     append_commands(cmddict, synonyms)
