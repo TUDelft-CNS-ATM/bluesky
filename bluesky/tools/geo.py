@@ -1,5 +1,7 @@
 """ This module defines a set of standard geographic functions and constants for
     easy use in BlueSky. """
+from bluesky import settings
+import os
 import numpy as np
 from math import *
 # Constants
@@ -448,10 +450,9 @@ def magdec(latd, lond):
 
 def initdecl_data():
     """
-    Generates an object of scipy.interpolate.RectSphereBivariateSpline
-    interpo_dec required by magdec() that interpolates
-    magnetic declination (also called magnetic variation) based on the data
-    table calculated from the NOAA webpage
+    Called by Init
+    Read magnetic declination (also called magnetic variation) datafile
+    based on the data table calculated from the NOAA webpage
     https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml#igrfgrid
     with the following input:
         Southern most lat:  90 S
@@ -472,7 +473,8 @@ def initdecl_data():
     surface. The interpolation is performed at sea-level, but no significant
     difference would be noticed up to FL600 or beyond.
     See docstring of geo.magdec() for more information.
-    Based on original version created by  : Yaofu Zhou"""
+    Based on original version created by  : Yaofu Zhou
+    Modified to read at init and use linear interpolation by J.M. Hoekstra"""
 
     #    Columns:
     #     (1) Date in decimal years
@@ -485,10 +487,10 @@ def initdecl_data():
     #
     # lat : 89 ... -90
     # Lon: -180 ... 179
-    global decl_lat_lon
+    global decl_read, decl_lat_lon
 
-    dec_table = np.genfromtxt('bluesky/tools/declination_sealevel.csv',\
-        comments='#',delimiter=",")
+    dec_table = np.genfromtxt(os.path.join(settings.navdata_path, 'declination_sealevel.csv'),\
+                              comments='#',delimiter=",")
     decl = dec_table[:,4]
 
     #          <----lon ---->
@@ -506,6 +508,7 @@ def initdecl_data():
     # Result is table 181 rows x 361 columns table for
     # lat = 90 ... -90 (rows)
     # lon = -180 ... 180 (columns)
+    decl_read = True
 
     return decl_lat_lon
 
