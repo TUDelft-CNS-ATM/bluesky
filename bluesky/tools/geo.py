@@ -515,4 +515,4 @@ def initdecl_data():
 # Command MAGVAR to get magnetic variation at position lat,lon
 def magdeccmd(latdeg,londeg):
     return True,"Magnetic variation at "+str(latdeg)+","+str(londeg) + \
-                " = "+str(magdec(latdeg,londeg))
+                " = "+str(magdec(latdeg,londeg))+" deg"
