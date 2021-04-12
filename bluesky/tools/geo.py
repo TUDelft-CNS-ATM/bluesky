@@ -304,7 +304,7 @@ def kwikdist(lata, lona, latb, lonb):
 
     re      = 6371000.  # radius earth [m]
     dlat    = np.radians(latb - lata)
-    dlon    = np.radians(lonb - lona)
+    dlon    = np.radians(((lonb - lona)+180)%360-180)
     cavelat = np.cos(np.radians(lata + latb) * 0.5)
 
     dangle  = np.sqrt(dlat * dlat + dlon * dlon * cavelat * cavelat)
@@ -324,7 +324,7 @@ def kwikdist_matrix(lata, lona, latb, lonb):
 
     re      = 6371000.  # readius earth [m]
     dlat    = np.radians(latb - lata.T)
-    dlon    = np.radians(lonb - lona.T)
+    dlon    = np.radians(((lonb - lona.T)+180)%360-180)
     cavelat = np.cos(np.radians(lata + latb.T) * 0.5)
 
     dangle  = np.sqrt(np.multiply(dlat, dlat) +
@@ -341,7 +341,7 @@ def kwikqdrdist(lata, lona, latb, lonb):
 
     re      = 6371000.  # radius earth [m]
     dlat    = np.radians(latb - lata)
-    dlon    = np.radians(lonb - lona)
+    dlon    = np.radians(((lonb - lona)+180)%360-180)
     cavelat = np.cos(np.radians(lata + latb) * 0.5)
 
     dangle  = np.sqrt(dlat * dlat + dlon * dlon * cavelat * cavelat)
@@ -358,7 +358,7 @@ def kwikqdrdist_matrix(lata, lona, latb, lonb):
 
     re      = 6371000.  # radius earth [m]
     dlat    = np.radians(latb - lata.T)
-    dlon    = np.radians(lonb - lona.T)
+    dlon    = np.radians(((lonb - lona.T)+ 180) % 360 - 180)
     cavelat = np.cos(np.radians(lata + latb.T) * 0.5)
 
     dangle  = np.sqrt(np.multiply(dlat, dlat) +
@@ -386,7 +386,8 @@ def kwikpos(latd1, lond1, qdr, dist):
     dlat = dy/60.
     dlon = dx/(np.maximum(0.01,60.*np.cos(np.radians(latd1))))
     latd2 = latd1 + dlat
-    lond2 = lond1 + dlon
+    lond2 = ((lond1 + dlon)+pi)%(2.*pi)-pi
+
     return latd2,lond2
 
 def magdec(latd, lond):

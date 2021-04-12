@@ -14,7 +14,7 @@ class StateBased(ConflictDetection):
 
         # Horizontal conflict ------------------------------------------------------
 
-        # qdlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
+        # qdrlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
         qdr, dist = geo.kwikqdrdist_matrix(np.asmatrix(ownship.lat), np.asmatrix(ownship.lon),
                                     np.asmatrix(intruder.lat), np.asmatrix(intruder.lon))
 
