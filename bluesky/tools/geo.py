@@ -1,7 +1,5 @@
 """ This module defines a set of standard geographic functions and constants for
     easy use in BlueSky. """
-from bluesky import settings
-import os
 import numpy as np
 from math import *
 # Constants
@@ -490,7 +488,7 @@ def initdecl_data():
     # Lon: -180 ... 179
     global decl_read, decl_lat_lon
 
-    dec_table = np.genfromtxt(os.path.join(settings.navdata_path, 'declination_sealevel.csv'),\
+    dec_table = np.genfromtxt("bluesky/tools/geo_declination_data.csv",\
                               comments='#',delimiter=",")
     decl = dec_table[:,4]
 
