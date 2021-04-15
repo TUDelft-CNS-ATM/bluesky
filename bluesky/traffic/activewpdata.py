@@ -70,13 +70,14 @@ class ActiveWaypoint(Entity, replaceable=True):
         circling = away*incircle # [True/False] passed wp,used for flyover as well
 
         # Check whether shift based dist is required, set closer than WP turn distance
-        swreached = np.where(bs.traf.swlnav * ((dist < self.turndist)+circling))[0]
+        swreached = np.where(bs.traf.swlnav * np.logical_or(away,np.logical_or(dist < self.turndist,circling)))[0]
 
         # Return True/1.0 for a/c where we have reached waypoint
         return swreached
 
     # Calculate turn distance for array or scalar
     def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnradnm=-999.):
+        """Calculate distance to wp where to start turn and turn radius in meters"""
 
         # Calculate turn radius using current speed or use specified turnradius
         turnrad = np.where(turnradnm+0.*tas<0.,

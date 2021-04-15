@@ -69,7 +69,7 @@ class Autopilot(Entity, replaceable=True):
         for ridx, acid in enumerate(bs.traf.id[-n:]):
             self.route[ridx - n] = Route(acid)
 
-    @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
+    #no longer timed @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
     def update_fms(self, qdr, dist):
         # Shift waypoints for aircraft i where necessary
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
