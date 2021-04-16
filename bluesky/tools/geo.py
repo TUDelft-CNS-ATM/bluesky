@@ -2,6 +2,8 @@
     easy use in BlueSky. """
 import numpy as np
 from math import *
+from pathlib import Path
+
 # Constants
 nm  = 1852.  # m       1 nautical mile
 
@@ -488,7 +490,7 @@ def initdecl_data():
     # Lon: -180 ... 179
     global decl_read, decl_lat_lon
 
-    dec_table = np.genfromtxt("bluesky/tools/geo_declination_data.csv",\
+    dec_table = np.genfromtxt(Path(__file__).parent / "geo_declination_data.csv",\
                               comments='#',delimiter=",")
     decl = dec_table[:,4]
 
