@@ -911,7 +911,7 @@ class Route(Replaceable):
     def delrte(self,iac=None):
         """Delete complete route"""
         # Simple re-initialize this route as empty
-        self.__init__()
+        self.__init__(bs.traf.id[iac])
 
         # Also disable LNAV,VNAV if route is deleted
         if self.nwp == 0 and (iac or iac == 0):
@@ -935,6 +935,11 @@ class Route(Replaceable):
             i -= 1
             if self.wpname[i].upper() == delwpname.upper():
                 idx = i
+
+        # check if active way point is the one being deleted and that it is not the last wpt.
+        # If active wpt is deleted then change path of aircraft
+        if self.iactwp == idx and not idx == self.nwp - 1:
+            self.direct(iac, self.wpname[idx + 1])
 
         # Delete waypoint
         if idx == -1:
