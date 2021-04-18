@@ -105,8 +105,13 @@ class ConflictDetection(Entity, replaceable=True):
             protected zone) in nautical miles. '''
         if radius < 0.0:
             return True, f'ZONER[radius(nm)]\nCurrent PZ radius: {self.rpz / nm:.2f} NM'
-        self.rpz = radius * nm
-        return True, f'Setting PZ radius to {radius} NM'
+        else:
+            oldradius = self.rpz
+            self.rpz = radius * nm
+            # Adjust factors for reso zone if those were set with an absolute value
+            if not bs.traf.cr.resorrelative:
+                bs.stack.stack(f"RSZONER {bs.traf.cr.resofach*oldradius/nm}")
+            return True, f'Setting PZ radius to {radius} NM'
 
     @command(name='ZONEDH')
     def sethpz(self, height: float = -1.0):
@@ -114,8 +119,13 @@ class ConflictDetection(Entity, replaceable=True):
             zone height) in feet. '''
         if height < 0.0:
             return True, f'ZONEDH [height (ft)]\nCurrent PZ height: {self.hpz / ft:.2f} ft'
-        self.hpz = height * ft
-        return True, f'Setting PZ height to {height} ft'
+        else:
+            oldhpz = self.hpz
+            self.hpz = height * ft
+            # Adjust factors for reso zone if those were set with an absolute value
+            if not bs.traf.cr.resodhrelative:
+                bs.stack.stack(f"RSZONEDH {bs.traf.cr.resofacv*oldhpz/ft}")
+            return True, f'Setting PZ height to {height} ft'
 
     @command(name='DTLOOK')
     def setdtlook(self, time : 'time' = -1.0):

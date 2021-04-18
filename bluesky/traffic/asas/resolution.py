@@ -4,9 +4,11 @@ import numpy as np
 import bluesky as bs
 from bluesky.core import Entity
 from bluesky.stack import command
+from bluesky.tools.aero import nm,ft
 
 
-bs.settings.set_variable_defaults(asas_mar=1.01)
+bs.settings.set_variable_defaults(asas_marh=1.01)
+bs.settings.set_variable_defaults(asas_marh=1.01)
 
 
 class ConflictResolution(Entity, replaceable=True):
@@ -25,8 +27,12 @@ class ConflictResolution(Entity, replaceable=True):
         # Resolution factors:
         # set < 1 to maneuver only a fraction of the resolution
         # set > 1 to add a margin to separation values
-        self.resofach = bs.settings.asas_mar
-        self.resofacv = bs.settings.asas_mar
+        self.resofach = bs.settings.asas_marh
+        self.resofacv = bs.settings.asas_marv
+
+        # Switches to guarantee last reso zone commands keep valid if cd zone changes
+        self.resodhrelative = True # Size of resolution zone dh, vertically, set relative to CD zone
+        self.resorrelative  = True # Size of resolution zone r, vertically, set relative to CD zone
 
         with self.settrafarrays():
             self.resooffac = np.array([], dtype=np.bool)
@@ -205,9 +211,10 @@ class ConflictResolution(Entity, replaceable=True):
             return True, 'NORESO [ACID, ... ] OR NORESO [GROUPID]' + \
                          '\nCurrent list of aircraft will not avoid anybody:' + \
                          ', '.join(np.array(bs.traf.id)[self.resooffac])
-        idx = list(idx)
-        self.resooffac[idx] = np.logical_not(self.resooffac[idx])
-        return True
+        else:
+            idx = list(idx)
+            self.resooffac[idx] = np.logical_not(self.resooffac[idx])
+            return True
 
     @command(name='RFACH', aliases=('RESOFACH',))
     def setresofach(self, factor : float = None):
@@ -216,16 +223,48 @@ class ConflictResolution(Entity, replaceable=True):
         '''
         if factor is None:
             return True, f'RFACH [FACTOR]\nCurrent horizontal resolution factor is: {self.resofach}'
-        self.resofach = factor
-        return True, f'Horizontal resolution factor set to {self.resofach}'
+        else:
+            self.resofach = factor
+            self.resorrelative = True  # Size of resolution zone r, vertically, set relative to CD zone
+            return True, f'Horizontal resolution factor set to {self.resofach}'
 
     @command(name='RFACV', aliases=('RESOFACV',))
-    def setresofacv(self, factor : float = None):
+    def setresofacv(self, factor: float = None):
         ''' Set resolution factor vertical (to maneuver only a fraction of a resolution vector). '''
         if factor is None:
             return True, f'RFACV [FACTOR]\nCurrent vertical resolution factor is: {self.resofacv}'
-        self.resofacv = factor
-        return True, f'Vertical resolution factor set to {self.resofacv}'
+        else:
+            bs.traf.asas_marv = factor
+            self.resofacv = factor
+            self.resodhrelative = True  # Size of resolution zone dh, vertically, set relative to CD zone
+            return True, f'Vertical resolution factor set to {self.resofacv}'
+
+    @command(name='RSZONER', aliases=('RESOZONER',))
+    def setresozoner(self, zoner : float = None):
+        ''' Set resolution factor horizontal, but then with absolute value
+            (to maneuver only a fraction of a resolution vector)
+        '''
+        if zoner is None:
+            return True, f'RSZONER [radiusnm]\nCurrent horizontal resolution radius is: {self.resofach*bs.traf.cd.rpz/nm} nm'
+        else:
+            bs.traf.asas_marh = zoner * nm / np.maximum(0.01, bs.traf.cd.rpz)
+            self.resofach = bs.traf.asas_marh
+            self.resorrelative = False  # Size of resolution zone r, vertically, no longer relative to CD zone
+            return True, f'Horizontal resolution zoner set to {zoner} nm'
+
+    @command(name='RSZONEDH', aliases=('RESOZONEDH',))
+    def setresozonedh(self, zonedh : float = None):
+        '''
+        Set resolution factor vertical (to maneuver only a fraction of a resolution vector),
+        but then with absolute value
+        '''
+        if zonedh is None:
+            return True, f'RSZONEDH [zonedhft]\nCurrent vertical resolution factor is: {self.resofacv*bs.traf.cd.hpz/ft} ft'
+        else:
+            bs.traf.asas_marv = zonedh * ft / np.maximum(0.01, bs.traf.cd.hpz)
+            self.resofacv = bs.traf.asas_marv
+            self.resodhrelative = False  # Size of resolution zone dh, vertically, no longer relative to CD zone
+            return True, f'Vertical resolution zonedh set to {zonedh} ft'
 
     @staticmethod
     @command(name='RESO')

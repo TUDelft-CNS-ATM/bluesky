@@ -71,7 +71,7 @@ def init(cfgfile=''):
         print('A default version will be generated, which you can change if necessary before the next time you run BlueSky.')
         print()
 
-        with open(configsrc, 'r') as fin, open(cfgfile, 'w') as fout:
+        with open(configsrc, 'r') as fin, open(cfgfile, 'w') as file_out:
             for line in fin:
                 if line[:9] == 'data_path':
                     line = "data_path = '" + datadir.replace('\\', '/') + "'\n"
@@ -92,7 +92,7 @@ def init(cfgfile=''):
                 elif line[:12] == 'navdata_path':
                     line = "navdata_path = '" + navdir.replace('\\', '/') + "'\n"
 
-                fout.write(line)
+                file_out.write(line)
 
     else:
         print(f'Reading config from {cfgfile}')
@@ -173,7 +173,7 @@ def save(fname=None, changes=None):
     configsrc = fname if os.path.isfile(fname) else os.path.join(srcdir, 'data/default.cfg')
     lines = [line for line in open(configsrc, 'r')]
 
-    with open(fname, 'w') as fout:
+    with open(fname, 'w') as file_out:
         # first write all lines following the format of the source file
         for line in lines:
             key = (re.findall(r'^(\w+)\s*=?.*', line.strip()) + [''])[0]
@@ -181,18 +181,18 @@ def save(fname=None, changes=None):
                 allsettings.pop(allsettings.index(key))
                 value = globals()[key]
                 if isinstance(value, str):
-                    fout.write(f'{key} = \'{value}\'\n')
+                    file_out.write(f'{key} = \'{value}\'\n')
                 else:
-                    fout.write(f'{key} = {value}\n')
+                    file_out.write(f'{key} = {value}\n')
             else:
-                fout.write(line)
+                file_out.write(line)
         # Then write any remaining additional settings
-        fout.write('\n')
+        file_out.write('\n')
         for key in allsettings:
             value = globals()[key]
             if isinstance(value, str):
-                fout.write(f'{key} = \'{value}\'\n')
+                file_out.write(f'{key} = \'{value}\'\n')
             else:
-                fout.write(f'{key} = {value}\n')
+                file_out.write(f'{key} = {value}\n')
 
     return True, f'Saved settings to {fname}'
