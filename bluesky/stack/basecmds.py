@@ -89,8 +89,8 @@ def initbasecmds():
             "Altitude command (autopilot)",
         ],
         "AT": [
-            "acid AT wpname [DEL] SPD/ALT [spd/alt]",
-            "acid,wpinroute,[txt,txt]",
+            "acid AT wpname [DEL] SPD/ALT/DO [spd/alt/command line]",
+            "acid,wpinroute,[txt,txt,...]",
             lambda idx, *args: bs.traf.ap.route[idx].atwptStack(idx, *args),
             "Edit, delete or show spd/alt constraints at a waypoint in the route",
         ],
