@@ -390,13 +390,16 @@ class OpenAP(PerfBase):
         return vmin, vmax
 
     def acceleration(self):
-        # using fix accelerations depending on phase
-        acc_ground = 2
-        acc_air = 0.5
+        # using fix accelerations depending on phase and wing type
+        acc_fixwing_ground = 2
+        acc_fixwing_air = 0.5
+        acc_rotor = 3.5
 
         accs = np.zeros(bs.traf.ntraf)
-        accs[self.phase == ph.GD] = acc_ground
-        accs[self.phase != ph.GD] = acc_air
+        accs[self.phase == ph.GD] = acc_fixwing_ground
+        accs[self.phase != ph.GD] = acc_fixwing_air
+
+        accs[self.lifttype == coeff.LIFT_ROTOR] = acc_rotor
 
         return accs
 

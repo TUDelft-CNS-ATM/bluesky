@@ -90,8 +90,8 @@ class Coefficient:
         return acs_
 
     def _load_all_fixwing_envelop(self):
-        """ load aircraft envelop from the model database,
-            All unit in SI"""
+        """load aircraft envelop from the model database,
+        All unit in SI"""
         limits_fixwing = {}
         for mdl, ac in self.acs_fixwing.items():
             fenv = fixwing_envelops_dir + mdl.lower() + ".csv"
@@ -144,8 +144,6 @@ class Coefficient:
                     df.loc["de_vz_avg_cas_const"]["min"],
                     df.loc["de_vz_avg_mach_const"]["min"],
                 )
-
-                # limits_fixwing['amaxverti'] = None # max vertical acceleration (m/s2)
 
         # create envolop based on synonym
         for mdl in self.synodict.keys():
