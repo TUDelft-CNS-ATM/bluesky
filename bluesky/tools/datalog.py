@@ -2,7 +2,6 @@
 
 # ToDo: Add description in comments
 
-import os
 import numbers
 import itertools
 from datetime import datetime
@@ -25,15 +24,15 @@ allloggers = dict()
 
 
 @command(name='CRELOG')
-def crelogstack(name:'txt', dt:float=None, header:'string'=''):
-    ''' Create a new data logger.
-    
+def crelogstack(name: 'txt', dt: float = None, header: 'string' = ''):
+    """ Create a new data logger.
+
         Arguments:
         - name: The name of the logger
         - dt: The logging time interval. When a value is given for dt
               this becomes a periodic logger.
         - header: A header text to put at the top of each log file
-    '''
+    """
     if name in allloggers:
         return False, f'Logger {name} already exists'
 
@@ -42,7 +41,7 @@ def crelogstack(name:'txt', dt:float=None, header:'string'=''):
 
 
 def crelog(name, dt=None, header=''):
-    ''' Create a new logger. '''
+    """ Create a new logger. """
     allloggers[name] = allloggers.get(name, CSVLogger(name, dt or 0.0, header))
     if dt:
         periodicloggers[name] = allloggers[name]
@@ -68,9 +67,12 @@ def reset():
         log.reset()
 
 
-def makeLogfileName(logname):
+def makeLogfileName(logname, prefix: str = ''):
     timestamp = datetime.now().strftime('%Y%m%d_%H-%M-%S')
-    fname = "%s_%s_%s.log" % (logname, stack.get_scenname(), timestamp)
+    if prefix == '' or prefix.lower() == stack.get_scenname().lower():
+        fname = "%s_%s_%s.log" % (logname, stack.get_scenname(), timestamp)
+    else:
+        fname = "%s_%s_%s_%s.log" % (logname, stack.get_scenname(), prefix, timestamp)
     return settings.log_path + '/' + fname
 
 
@@ -100,6 +102,7 @@ class CSVLogger:
     def __init__(self, name, dt, header):
         self.name = name
         self.file = None
+        self.fname = None
         self.dataparents = []
         self.header = header.split('\n')
         self.tlog = 0.0
@@ -112,9 +115,12 @@ class CSVLogger:
         # Register a command for this logger in the stack
         stackcmd = {name: [
             name + ' ON/OFF,[dt] or ADD [FROM parent] var1,...,varn',
-            '[txt,float/word,...]', self.stackio, name+" data logging on"]
+            '[txt,float/word,...]', self.stackio, name + " data logging on"]
         }
         stack.append_commands(stackcmd)
+
+    def write(self, line):
+        self.file.write(bytearray(line, 'ascii'))
 
     def setheader(self, header):
         self.header = header.split('\n')
@@ -186,14 +192,16 @@ class CSVLogger:
             np.savetxt(self.file, np.vstack(txtdata).T,
                        delimiter=',', newline='\n', fmt='%s')
 
-    def start(self):
-        ''' Start this logger. '''
+    def start(self, prefix: str = ''):
+        """ Start this logger. """
         self.tlog = bs.sim.simt
-        self.open(makeLogfileName(self.name))
+        self.fname = makeLogfileName(self.name, prefix)
+        self.open(self.fname)
 
     def reset(self):
         self.dt = self.default_dt
         self.tlog = 0.0
+        self.fname = None
         if self.file:
             self.file.close()
             self.file = None
