@@ -77,7 +77,7 @@ class Parameter:
             if self.hasdefault():
                 return self.default, argstring
             if self.optional:
-                return (argstring,)
+                return (None, argstring) if argstring else ('',)
             raise TypeError(f'Missing argument {self.name}')
         # Try available parsers
         error = ''
