@@ -28,7 +28,6 @@ class ActiveWaypoint(Entity, replaceable=True):
             self.xtorta     = np.array([])    # [m] distance ot next RTA
             self.next_qdr   = np.array([])    # [deg] track angle of next leg
 
-
     def create(self, n=1):
         super().create(n)
         # LNAV route navigation
@@ -50,6 +49,9 @@ class ActiveWaypoint(Entity, replaceable=True):
 
     def Reached(self, qdr, dist, flyby, flyturn, turnradnm):
         # Calculate distance before waypoint where to start the turn
+        # Note: this is a vectorized function, called with numpy arrays
+        # It returns the indices where the Reached criterion is True
+        #
         # Turn radius:      R = V2 tan phi / g
         # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
         # using default bank angle per flight phase
@@ -70,9 +72,10 @@ class ActiveWaypoint(Entity, replaceable=True):
         circling = away*incircle # [True/False] passed wp,used for flyover as well
 
         # Check whether shift based dist is required, set closer than WP turn distance
+        # Detect indices
         swreached = np.where(bs.traf.swlnav * np.logical_or(away,np.logical_or(dist < self.turndist,circling)))[0]
 
-        # Return True/1.0 for a/c where we have reached waypoint
+        # Return indices for which condition is True/1.0 for a/c where we have reached waypoint
         return swreached
 
     # Calculate turn distance for array or scalar

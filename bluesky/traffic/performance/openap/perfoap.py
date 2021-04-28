@@ -174,7 +174,7 @@ class OpenAP(PerfBase):
         self.actypes[-n:] = [actype] * n
 
     def update(self, dt):
-        ''' Periodic update function for performance calculations. '''
+        """ Periodic update function for performance calculations. """
         # update phase, infer from spd, roc, alt
         lenph1 = len(self.phase)
         self.phase = ph.get(
@@ -308,6 +308,12 @@ class OpenAP(PerfBase):
         allow_v_tas[ir] = np.where(
             (intent_v_tas[ir] > self.vmax[ir]), self.vmax[ir], allow_v_tas[ir]
         )
+        allow_vs[ir] = np.where(
+            (intent_vs[ir] < self.vsmin[ir]), self.vsmin[ir], intent_vs[ir]
+        )
+        allow_vs[ir] = np.where(
+            (intent_vs[ir] > self.vsmax[ir]), self.vsmax[ir], allow_vs[ir]
+        )
 
         return allow_v_tas, allow_vs, allow_h
 
@@ -384,21 +390,31 @@ class OpenAP(PerfBase):
         return vmin, vmax
 
     def acceleration(self):
-        # using fix accelerations depending on phase
-        acc_ground = 2
-        acc_air = 0.5
+        # accelerations depending on phase and wing type
+        acc_fixwing_ground = 2
+        acc_rotor = 3.5
+
+        # acc_fixwing_air = 0.5
+        acc_fixwing_air = (self.max_thrust - self.drag) / self.mass
 
         accs = np.zeros(bs.traf.ntraf)
-        accs[self.phase == ph.GD] = acc_ground
-        accs[self.phase != ph.GD] = acc_air
+        accs[self.phase == ph.GD] = acc_fixwing_ground
+        accs[self.phase != ph.GD] = acc_fixwing_air
+
+        accs[self.lifttype == coeff.LIFT_ROTOR] = acc_rotor
+
+        accs[accs < 0] = 0
 
         return accs
 
     def show_performance(self, acid):
-        return True, f"Flight phase: {ph.readable_phase(self.phase[acid])}\n" \
-                     f"Thrust: {self.thrust[acid] / 1000:d} kN\n" \
-                     f"Drag: {self.drag[acid] / 1000:d} kN\n" \
-                     f"Fuel flow: {self.fuelflow[acid]:.2f} kg/s\n" \
-                     f"Speed envelope: [{self.vmin[acid] / kts:d}, {self.vmax[acid] / kts:d}] kts\n" \
-                     f"Vertical speed envelope: [{self.vsmin[acid] / fpm:d}, {self.vsmax[acid] / fpm:d}] fpm\n" \
-                     f"Ceiling: {self.hmax[acid] / ft:d} ft"
+        return (
+            True,
+            f"Flight phase: {ph.readable_phase(self.phase[acid])}\n"
+            f"Thrust: {self.thrust[acid] / 1000:d} kN\n"
+            f"Drag: {self.drag[acid] / 1000:d} kN\n"
+            f"Fuel flow: {self.fuelflow[acid]:.2f} kg/s\n"
+            f"Speed envelope: [{self.vmin[acid] / kts:d}, {self.vmax[acid] / kts:d}] kts\n"
+            f"Vertical speed envelope: [{self.vsmin[acid] / fpm:d}, {self.vsmax[acid] / fpm:d}] fpm\n"
+            f"Ceiling: {self.hmax[acid] / ft:d} ft",
+        )

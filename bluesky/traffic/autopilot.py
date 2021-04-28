@@ -71,7 +71,9 @@ class Autopilot(Entity, replaceable=True):
 
     #no longer timed @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
     def update_fms(self, qdr, dist):
+        # Check which aircraft i have reached the ir active waypoint
         # Shift waypoints for aircraft i where necessary
+        # Reached function return list of indices where reached logic is True
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
                                        bs.traf.actwp.flyturn,bs.traf.actwp.turnrad):
             # Save current wp speed for use on next leg when we pass this waypoint
@@ -82,6 +84,9 @@ class Autopilot(Entity, replaceable=True):
             # Get speed for next leg from the waypoint we pass now
             bs.traf.actwp.spd[i]    = bs.traf.actwp.nextspd[i]
             bs.traf.actwp.spdcon[i] = bs.traf.actwp.nextspd[i]
+
+            # Execute stack commands for the still active waypoint, which we pass
+            self.route[i].runactwpstack()
 
             # Use turnradius of passing wp for bank angle
             if bs.traf.actwp.flyturn[i] and bs.traf.actwp.turnrad[i]>0.:

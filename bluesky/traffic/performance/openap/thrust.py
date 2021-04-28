@@ -2,6 +2,7 @@ import numpy as np
 from bluesky.tools import aero
 from bluesky.traffic.performance.openap import phase as ph
 
+
 def compute_max_thr_ratio(phase, bpr, v, h, vs, thr0):
     """Computer the dynamic thrust based on engine bypass-ratio, static maximum
     thrust, aircraft true airspeed, and aircraft altitude
@@ -32,11 +33,15 @@ def compute_max_thr_ratio(phase, bpr, v, h, vs, thr0):
     # thrust ratio array
     #   LD and GN assume ZERO thrust
     tr = np.zeros(n)
-    tr = np.where(phase==ph.GD, ratio_takeoff, tr)
-    tr = np.where((phase==ph.IC) | (phase==ph.CL) | (phase==ph.CR), ratio_inflight, tr)
-    tr = np.where(phase==ph.DE, ratio_idle, tr)
+    tr = np.where(phase == ph.GD, ratio_takeoff, tr)
+    tr = np.where(
+        (phase == ph.IC) | (phase == ph.CL) | (phase == ph.CR) | (phase == ph.DE),
+        ratio_inflight,
+        tr,
+    )
 
     return tr
+
 
 def tr_takeoff(bpr, v, h):
     """Compute thrust ration at take-off"""
@@ -46,18 +51,22 @@ def tr_takeoff(bpr, v, h):
     P = aero.vpressure(h)
     PP = P / P0
 
-    A = -0.4327 * PP**2 + 1.3855 * PP + 0.0472
-    Z = 0.9106 * PP**3 - 1.7736 * PP**2 + 1.8697 * PP
-    X = 0.1377 * PP**3 - 0.4374 * PP**2 + 1.3003 * PP
+    A = -0.4327 * PP ** 2 + 1.3855 * PP + 0.0472
+    Z = 0.9106 * PP ** 3 - 1.7736 * PP ** 2 + 1.8697 * PP
+    X = 0.1377 * PP ** 3 - 0.4374 * PP ** 2 + 1.3003 * PP
 
-    ratio = A - 0.377 * (1+bpr) / np.sqrt((1+0.82*bpr)*G0) * Z * Mach \
-          + (0.23 + 0.19 * np.sqrt(bpr)) * X * Mach**2
+    ratio = (
+        A
+        - 0.377 * (1 + bpr) / np.sqrt((1 + 0.82 * bpr) * G0) * Z * Mach
+        + (0.23 + 0.19 * np.sqrt(bpr)) * X * Mach ** 2
+    )
 
     return ratio
 
 
 def inflight(v, h, vs, thr0):
     """Compute thrust ration for inflight"""
+
     def dfunc(mratio):
         d = -0.4204 * mratio + 1.0824
         return d
@@ -66,42 +75,45 @@ def inflight(v, h, vs, thr0):
         n = 2.667e-05 * roc + 0.8633
         return n
 
-
     def mfunc(vratio, roc):
-        m = -1.2043e-1 * vratio - 8.8889e-9 * roc**2 + 2.4444e-5 * roc + 4.7379e-1
+        m = -1.2043e-1 * vratio - 8.8889e-9 * roc ** 2 + 2.4444e-5 * roc + 4.7379e-1
         return m
 
-    roc = np.abs(np.asarray(vs/aero.fpm))
+    roc = np.abs(np.asarray(vs / aero.fpm))
     v = np.where(v < 10, 10, v)
 
     mach = aero.vtas2mach(v, h)
     vcas = aero.vtas2cas(v, h)
 
     p = aero.vpressure(h)
-    p10 = aero.vpressure(10000*aero.ft)
-    p35 = aero.vpressure(35000*aero.ft)
+    p10 = aero.vpressure(10000 * aero.ft)
+    p35 = aero.vpressure(35000 * aero.ft)
 
     # approximate thrust at top of climb (REF 2)
-    F35 = (200 + 0.2 * thr0/4.448) * 4.448
+    F35 = (200 + 0.2 * thr0 / 4.448) * 4.448
     mach_ref = 0.8
-    vcas_ref = aero.vmach2cas(mach_ref, 35000*aero.ft)
+    vcas_ref = aero.vmach2cas(mach_ref, 35000 * aero.ft)
 
     # segment 3: alt > 35000:
-    d = dfunc(mach/mach_ref)
+    d = dfunc(mach / mach_ref)
     b = (mach / mach_ref) ** (-0.11)
-    ratio_seg3 = d * np.log(p/p35) + b
+    ratio_seg3 = d * np.log(p / p35) + b
 
     # segment 2: 10000 < alt <= 35000:
     a = (vcas / vcas_ref) ** (-0.1)
     n = nfunc(roc)
-    ratio_seg2 = a * (p/p35) ** (-0.355 * (vcas/vcas_ref) + n)
+    ratio_seg2 = a * (p / p35) ** (-0.355 * (vcas / vcas_ref) + n)
 
     # segment 1: alt <= 10000:
-    F10 = F35 * a * (p10/p35) ** (-0.355 * (vcas/vcas_ref) + n)
-    m = mfunc(vcas/vcas_ref, roc)
-    ratio_seg1 = m * (p/p35) + (F10/F35 - m * (p10/p35))
+    F10 = F35 * a * (p10 / p35) ** (-0.355 * (vcas / vcas_ref) + n)
+    m = mfunc(vcas / vcas_ref, roc)
+    ratio_seg1 = m * (p / p35) + (F10 / F35 - m * (p10 / p35))
 
-    ratio = np.where(h>35000*aero.ft, ratio_seg3, np.where(h>10000*aero.ft, ratio_seg2, ratio_seg1))
+    ratio = np.where(
+        h > 35000 * aero.ft,
+        ratio_seg3,
+        np.where(h > 10000 * aero.ft, ratio_seg2, ratio_seg1),
+    )
 
     # convert to maximum static thrust ratio
     ratio_F0 = ratio * F35 / thr0

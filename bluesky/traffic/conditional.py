@@ -5,9 +5,10 @@ KL204 ATALT FL100 KL204 SPD 350
 import numpy as np
 import bluesky as bs
 from bluesky import stack
+from bluesky.tools.geo import qdrdist
 
 # Enumerated condtion types
-alttype, spdtype = 0, 1
+alttype, spdtype, postype = 0, 1, 2
 
 
 class Condition():
@@ -17,8 +18,9 @@ class Condition():
 
         self.id       = []                         # Id of aircraft of condition
         self.condtype = np.array([],dtype=int)     # Condition type (0=alt,1=spd)
-        self.target   = np.array([],dtype=float)   # Target value
+        self.target   = np.array([],dtype=float)   # Target value (alt,speed,distance[nm])
         self.lastdif  = np.array([],dtype=float)   # Difference during last update
+        self.posdata  = []                         # Data for postype: tuples lat[deg],lon[deg] of ref position
         self.cmd      = []                         # Commands to be issued
 
     def update(self):
@@ -34,16 +36,25 @@ class Condition():
                 self.condtype = np.delete(self.condtype, i)
                 self.target = np.delete(self.target, i)
                 self.lastdif = np.delete(self.lastdif, i)
-                del (self.cmd[i])
+                del self.posdata[i]
+                del self.cmd[i]
+
             self.ncond = len(self.id)
             if self.ncond==0:
                 return
             acidxlst = np.array(bs.traf.id2idx(self.id))
 
         # Check condition types
+        actdist = np.ones(self.ncond)*999e9  # Invalid number which never triggers anything is extremely large
+        for j in range(self.ncond):
+            if self.condtype[j] == postype:
+                qdr,dist = qdrdist(bs.traf.lat[acidxlst[j]],bs.traf.lon[acidxlst[j]],self.posdata[j][0],self.posdata[j][1])
+                actdist[j] = dist # [nm]
+
         # Get relevant actual value using index list as index to numpy arrays
         self.actual = (self.condtype == alttype) * bs.traf.alt[acidxlst] + \
-                      (self.condtype == spdtype) * bs.traf.cas[acidxlst]
+                      (self.condtype == spdtype) * bs.traf.cas[acidxlst] + \
+                      (self.condtype == postype) * actdist
 
         # Compare sign of actual difference with sign of last difference
         actdif       = self.target - self.actual
@@ -54,20 +65,24 @@ class Condition():
         if idxtrue==None or len(idxtrue)==0:
             return
 
+
         # Execute commands found to have true condition
         for i in idxtrue:
             if i>=0:
                 stack.stack(self.cmd[i])
+                # debug
+                # stack.stack(" ECHO Conditional command issued: "+self.cmd[i])
 
         # Delete executed commands to clean up arrays and lists
         # from highest index to lowest for consistency
         for i in idxtrue[::-1]:
             if i>=0:
-                del(self.id[i])
+                del self.id[i]
                 self.condtype = np.delete(self.condtype,i)
                 self.target   = np.delete(self.target,i)
                 self.lastdif  = np.delete(self.lastdif,i)
-                del (self.cmd[i])
+                del self.posdata[i]
+                del self.cmd[i]
 
         # Adjust number of conditions
         self.ncond = len(self.id)
@@ -76,7 +91,6 @@ class Condition():
             print ("self.ncond=",self.ncond)
             print ("self.cmd=",self.cmd)
             print ("traffic/conditional.py: self.delcondition: invalid condition array size")
-
         return
 
     def ataltcmd(self,acidx,targalt,cmdtxt):
@@ -86,11 +100,16 @@ class Condition():
 
     def atspdcmd(self, acidx, targspd, cmdtxt):
         actspd = bs.traf.tas[acidx]
-        self.addcondition(acidx,spdtype,targspd,actspd,cmdtxt)
+        self.addcondition(acidx, spdtype, targspd, actspd,cmdtxt)
         return True
 
-    def addcondition(self,acidx, icondtype, target, actual, cmdtxt):
-        #print ("addcondition:", acidx, icondtype, target, actual, cmdtxt)
+    def atdistcmd(self, acidx, lat, lon, targdist, cmdtxt):
+        qdr, actdist = qdrdist(bs.traf.lat[acidx], bs.traf.lon[acidx], lat, lon)
+        self.addcondition(acidx, postype, targdist, actdist, cmdtxt, (lat,lon))
+        return True
+
+    def addcondition(self,acidx, icondtype, target, actual, cmdtxt,latlon=None):
+        #print ("addcondition:", acidx, icondtype, target, actual, cmdtxt, latlon)
 
         # Add condition to arrays
         self.id.append(bs.traf.id[acidx])
@@ -99,6 +118,7 @@ class Condition():
         self.target   = np.append(self.target,target)
         self.lastdif  = np.append(self.lastdif,target - actual)
 
+        self.posdata.append(latlon)
         self.cmd.append(cmdtxt)
 
         self.ncond = self.ncond+1
