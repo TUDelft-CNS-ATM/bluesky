@@ -403,7 +403,7 @@ class OpenAP(PerfBase):
 
         accs[self.lifttype == coeff.LIFT_ROTOR] = acc_rotor
 
-        accs[accs < 0] = 0
+        accs[accs < 0.5] = 0.5  # minumum acceleration
 
         return accs
 
