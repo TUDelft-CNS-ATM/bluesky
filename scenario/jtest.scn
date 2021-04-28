@@ -1,4 +1,0 @@
-00:00:00.00>SCEN test1
-00:00:00.00>PCALL 0-demo-scenario.scn
-00:00:00.00>FF
-00:10:00.00>STOP

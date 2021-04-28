@@ -100,6 +100,12 @@ def initbasecmds():
             bs.traf.cond.ataltcmd,
             "When a/c at given altitude , execute a command cmd",
         ],
+        "ATDIST": [
+            "acid ATDIST pos dist cmd ",
+            "acid,latlon,float,string",
+            bs.traf.cond.atdistcmd,
+            "When a/c passing this distance[nm] to position, execute the command cmd",
+        ],
         "ATSPD": [
             "acid ATSPD spd cmd ",
             "acid,spd,string",
