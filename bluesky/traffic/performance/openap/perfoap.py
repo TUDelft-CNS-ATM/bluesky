@@ -394,12 +394,10 @@ class OpenAP(PerfBase):
         acc_fixwing_ground = 2
         acc_rotor = 3.5
 
-        # acc_fixwing_air = 0.5
-        acc_fixwing_air = (self.max_thrust - self.drag) / self.mass
-
         accs = np.zeros(bs.traf.ntraf)
+        accs = (self.max_thrust - self.drag) / self.mass
+
         accs[self.phase == ph.GD] = acc_fixwing_ground
-        accs[self.phase != ph.GD] = acc_fixwing_air
 
         accs[self.lifttype == coeff.LIFT_ROTOR] = acc_rotor
 
