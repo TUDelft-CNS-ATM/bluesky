@@ -7,8 +7,7 @@ from bluesky.stack import command
 from bluesky.tools.aero import nm,ft
 
 
-bs.settings.set_variable_defaults(asas_marh=1.01)
-bs.settings.set_variable_defaults(asas_marh=1.01)
+bs.settings.set_variable_defaults(asas_marh=1.01, asas_marv=1.01)
 
 
 class ConflictResolution(Entity, replaceable=True):
