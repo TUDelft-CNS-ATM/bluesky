@@ -27,7 +27,7 @@ class GuiClient(Client):
         self.subscribe(b'ROUTEDATA' + self.client_id)
 
         # Signals
-        self.actnodedata_changed = Signal()
+        self.actnodedata_changed = Signal('actnodedata_changed')
 
     def start_discovery(self):
         super().start_discovery()

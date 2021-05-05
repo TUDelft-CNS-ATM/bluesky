@@ -7,7 +7,7 @@ from bluesky.tools.misc import cmdsplit
 from bluesky.core.signal import Signal
 from . import autocomplete
 
-cmdline_stacked = Signal()
+cmdline_stacked = Signal('cmdline_stacked')
 
 
 def get_cmd():

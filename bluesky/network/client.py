@@ -24,11 +24,11 @@ class Client:
         self.discovery = None
 
         # Signals
-        self.nodes_changed = Signal()
-        self.server_discovered = Signal()
-        self.signal_quit = Signal()
-        self.event_received = Signal()
-        self.stream_received = Signal()
+        self.nodes_changed = Signal('nodes_changed')
+        self.server_discovered = Signal('server_discovered')
+        self.signal_quit = Signal('quit')
+        self.event_received = Signal('event_received')
+        self.stream_received = Signal('stream_received')
 
         # Tell bluesky that this client will manage the network I/O
         bluesky.net = self
