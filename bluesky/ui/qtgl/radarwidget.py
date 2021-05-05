@@ -7,12 +7,11 @@ from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt, qCritical, QEvent, QT_VERSION
 
 import bluesky as bs
-from bluesky.ui.radarclick import radarclick
-from bluesky.ui.qtgl import console
 import bluesky.ui.qtgl.glhelpers as glh
 from bluesky import settings
 from .gltraffic import Traffic
 from .glmap import Map
+from .glnavdata import Navdata
 
 # Register settings defaults
 settings.set_variable_defaults(gfx_path='data/graphics')
@@ -25,7 +24,7 @@ if QT_VERSION <= 0x050600:
     CORRECT_PINCH = platform.system() == 'Darwin'
 
 
-class radarShaders(glh.ShaderSet):
+class RadarShaders(glh.ShaderSet):
     ''' Shaderset for the radar view. '''
     def __init__(self, parent):
         super().__init__(parent)
@@ -92,9 +91,10 @@ class RadarWidget(QOpenGLWidget):
         self.mousepos = (0, 0)
         self.prevmousepos = (0, 0)
 
-        self.shaderset = radarShaders(self)
+        self.shaderset = RadarShaders(self)
         self.map = Map(parent=self)
         self.traffic = Traffic(parent=self)
+        self.navdata = Navdata(parent=self)
 
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.grabGesture(Qt.PanGesture)
@@ -130,6 +130,7 @@ class RadarWidget(QOpenGLWidget):
         
         self.map.create()
         self.traffic.create()
+        self.navdata.create()
 
         # Set initial values for the global uniforms
         self.shaderset.set_wrap(self.wraplon, self.wrapdir)
@@ -157,6 +158,10 @@ class RadarWidget(QOpenGLWidget):
         # Draw map texture
         self.map.draw()
 
+        # Draw navdata
+        self.navdata.draw()
+
+        # Draw traffic
         self.traffic.draw()
 
         # Release shaders
