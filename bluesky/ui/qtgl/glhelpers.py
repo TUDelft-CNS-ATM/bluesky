@@ -1,239 +1,467 @@
-"""
-BlueSky-QtGL tools       : Tools and objects that are used in the BlueSky-QtGL implementation
+''' BlueSky OpenGL classes and functions. '''
+from os import path
+from collections import namedtuple
 
-Methods:
-    load_texture(fname)  : GL-texture load function. Returns id of new texture
-    BlueSkyProgram()     : Constructor of a BlueSky shader program object: the main shader object in BlueSky-QtGL
-
-
-Internal methods and classes:
-    create_font_array()
-    create_attrib_from_glbuf()
-    create_attrib_from_nparray()
-
-
-Created by    : Joost Ellerbroek
-Date          : April 2015
-
-Modification  :
-By            :
-Date          :
-------------------------------------------------------------------
-"""
-import os
-from ctypes import c_void_p, pointer, sizeof
-from PyQt5.QtGui import QImage
-import OpenGL.GL as gl
+try:
+    from collections.abc import Collection, MutableMapping
+except ImportError:
+    # In python <3.3 collections.abc doesn't exist
+    from collections import Collection, MutableMapping
+import ctypes
 import numpy as np
-from bluesky import settings
 
-msg1282 = False # GL error 1282 when quitting should only be reported once
+from PyQt5.QtGui import (QSurfaceFormat, QOpenGLShader, QOpenGLShaderProgram,
+                         QOpenGLVertexArrayObject, QOpenGLBuffer,
+                         QOpenGLContext, QOpenGLVersionProfile,
+                         QOpenGLTexture, QImage)
+from bluesky import settings
+from bluesky.ui.qtgl.dds import DDSTexture
+
 
 # Register settings defaults
 settings.set_variable_defaults(gfx_path='data/graphics')
 
-def load_texture(fname):
-    img = QImage(fname)
-    ptr = c_void_p(int(img.constBits()))
-
-    tex_id = gl.glGenTextures(1)
-    gl.glBindTexture(gl.GL_TEXTURE_2D, tex_id)
-    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA8, img.width(), img.height(), 0, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
-    gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR)
-    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-    return tex_id
+GLVariable = namedtuple('GLVariable', ['loc', 'size'])
+# Convenience object with all GL functions
+gl = None
+_glvar_sizes = dict()
 
 
-def create_empty_buffer(size, target=gl.GL_ARRAY_BUFFER, usage=gl.GL_STATIC_DRAW):
-    buf_id = gl.glGenBuffers(1)
-    gl.glBindBuffer(target, buf_id)
-    gl.glBufferData(target, size, None, usage)
-    return buf_id
+def init():
+    ''' Startup initialisation of OpenGL. '''
+    if gl is None:
+        # Initialise application-wide GL version
+        fmt = QSurfaceFormat()
+        fmt.setVersion(4, 1)
+        fmt.setProfile(QSurfaceFormat.CoreProfile)
+        QSurfaceFormat.setDefaultFormat(fmt)
+
+        # Use a dummy context to get GL functions
+        glprofile = QOpenGLVersionProfile(fmt)
+        ctx = QOpenGLContext()
+        globals()['gl'] = ctx.versionFunctions(glprofile)
+
+        globals()['_glvar_sizes'] = {
+            gl.GL_FLOAT: 1, gl.GL_FLOAT_VEC2: 2, gl.GL_FLOAT_VEC3: 3,
+            gl.GL_FLOAT_VEC4: 4, gl.GL_FLOAT_MAT2: 4, gl.GL_FLOAT_MAT3: 9,
+            gl.GL_FLOAT_MAT4: 16, gl.GL_FLOAT_MAT2x3: 6, gl.GL_FLOAT_MAT2x4: 8,
+            gl.GL_FLOAT_MAT3x2: 6, gl.GL_FLOAT_MAT3x4: 12, gl.GL_FLOAT_MAT4x2: 8,
+            gl.GL_FLOAT_MAT4x3: 12, gl.GL_INT: 1, gl.GL_INT_VEC2: 2, gl.GL_INT_VEC3: 3,
+            gl.GL_INT_VEC4: 4, gl.GL_UNSIGNED_INT: 1, gl.GL_UNSIGNED_INT_VEC2: 2,
+            gl.GL_UNSIGNED_INT_VEC3: 3, gl.GL_UNSIGNED_INT_VEC4: 4, gl.GL_DOUBLE: 1,
+            gl.GL_DOUBLE_VEC2: 2, gl.GL_DOUBLE_VEC3: 3, gl.GL_DOUBLE_VEC4: 4,
+            gl.GL_DOUBLE_MAT2: 4, gl.GL_DOUBLE_MAT3: 9, gl.GL_DOUBLE_MAT4: 16,
+            gl.GL_DOUBLE_MAT2x3: 6, gl.GL_DOUBLE_MAT2x4: 8, gl.GL_DOUBLE_MAT3x2: 6,
+            gl.GL_DOUBLE_MAT3x4: 12, gl.GL_DOUBLE_MAT4x2: 8, gl.GL_DOUBLE_MAT4x3: 12}
+
+    return gl
 
 
-def update_buffer(buf_id, data, offset=0, target=gl.GL_ARRAY_BUFFER):
-
-    global msg1282
-
-    try:
-        gl.glBindBuffer(target, buf_id)
-        gl.glBufferSubData(target, offset, data.nbytes, data)
-
-    except Exception as err:
-        if err.err==1282:
-            if not msg1282:
-                print("update_buffer: Communication aborted (1282)")
-            msg1282 = True
-        else:
-            print("update_buffer in glhelpers.py: Could not update buffer due to GLError code:",\
-                  err.err)
-
-class UniformBuffer:
-    max_binding = 1
-
-    def __init__(self, data):
-        self.data = data
-        self.nbytes = sizeof(data)
-        self.ubo = gl.glGenBuffers(1)
-        self.binding = self.max_binding
-        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)
-        gl.glBufferData(gl.GL_UNIFORM_BUFFER, self.nbytes, pointer(self.data), gl.GL_STREAM_DRAW)
-        gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, self.binding, self.ubo)
-        UniformBuffer.max_binding += 1
-
-    def update(self, offset=0, size=None):
-        if size is None:
-            size = self.nbytes
-        gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.ubo)
-        gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, offset, size, pointer(self.data))
+if gl is None:
+    init()
 
 
-class BlueSkyProgram():
-    # Static variables
-    initialized = False
+def init_glcontext(ctx):
+    ''' Correct OpenGL functions can only be obtained from a valid GL context. '''
+    globals()['gl'] = ctx.versionFunctions()
+    # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
-    def __init__(self, vertex_shader, fragment_shader, geom_shader=None):
-        self.shaders = []
-        self.compile_shader(vertex_shader, gl.GL_VERTEX_SHADER)
-        self.compile_shader(fragment_shader, gl.GL_FRAGMENT_SHADER)
-        if geom_shader is not None:
-            self.compile_shader(geom_shader, gl.GL_GEOMETRY_SHADER)
-        self.link()
+    # void glGetActiveUniformBlockName(	GLuint program,
+    #                                   GLuint uniformBlockIndex,
+    #                                   GLsizei bufSize,
+    #                                   GLsizei * length,
+    #                                   GLchar * uniformBlockName)
 
-    def compile_shader(self, fname, type):
-        """Compile a vertex shader from source."""
-        source = open(fname, 'r').read()
-        shader = gl.glCreateShader(type)
-        gl.glShaderSource(shader, source)
-        gl.glCompileShader(shader)
-        # check compilation error
-        result = gl.glGetShaderiv(shader, gl.GL_COMPILE_STATUS)
-        if not(result):
-            raise RuntimeError(gl.glGetShaderInfoLog(shader))
-            gl.glDeleteShader(shader)
-            return
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+                               ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_char * 20))
+    funcptr = ctx.getProcAddress(b'glGetActiveUniformBlockName')
+    c_getuboname = funtype(funcptr.__int__())
 
-        self.shaders.append(shader)
+    def p_getuboname(programid, uboid):
+        name = (ctypes.c_char * 20)()
+        c_getuboname(programid, uboid, 20, None, ctypes.pointer(name))
+        return name.value.decode('utf-8')
 
-    def link(self):
-        """Create a shader program with from compiled shaders."""
-        self.program = gl.glCreateProgram()
-        for i in range(0, len(self.shaders)):
-            gl.glAttachShader(self.program, self.shaders[i])
+    gl.glGetActiveUniformBlockName = p_getuboname
 
-        gl.glLinkProgram(self.program)
-        # check linking error
-        result = gl.glGetProgramiv(self.program, gl.GL_LINK_STATUS)
-        if not(result):
-            raise RuntimeError(gl.glGetProgramInfoLog(self.program))
-            gl.glDeleteProgram(self.program)
-            for i in range(0, len(self.shaders)):
-                gl.glDeleteShader(self.shaders[i])
+    # void glGetActiveUniformBlockiv( GLuint program,
+    #                                 GLuint uniformBlockIndex,
+    #                                 GLenum pname,
+    #                                 GLint * params)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+                               ctypes.POINTER(ctypes.c_int32))
+    funcptr = ctx.getProcAddress(b'glGetActiveUniformBlockiv')
+    c_getuboiv = funtype(funcptr.__int__())
 
-        # Clean up
-        for i in range(0, len(self.shaders)):
-            gl.glDetachShader(self.program, self.shaders[i])
-            gl.glDeleteShader(self.shaders[i])
+    def p_getuboiv(programid, uboid, pname):
+        if pname == gl.GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES:
+            # Special case: array with specific size is expected
+            n_indices = ctypes.c_int32()
+            c_getuboiv(programid, uboid,
+                       gl.GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, ctypes.pointer(n_indices))
+            indices = (ctypes.c_int32 * n_indices.value)()
+            # Apparently we need to specifically wrap depending on array size
+            funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+                                       ctypes.POINTER(ctypes.c_int32 * n_indices.value))
+            funcptr = ctx.getProcAddress(b'glGetActiveUniformBlockiv')
+            c_getuboindices = funtype(funcptr.__int__())
+            c_getuboindices(programid, uboid, pname, ctypes.pointer(indices))
+            return list(indices)
 
-    def use(self):
-        gl.glUseProgram(self.program)
+        param = ctypes.c_int32()
+        c_getuboiv(programid, uboid, pname, ctypes.pointer(param))
+        return param.value
+
+    gl.glGetActiveUniformBlockiv = p_getuboiv
+
+    # GLuint glGetUniformBlockIndex( GLuint program,
+    #                                const GLchar * uniformBlockName)
+    funtype = ctypes.CFUNCTYPE(
+        ctypes.c_uint32, ctypes.c_uint32, ctypes.POINTER(ctypes.c_char))
+    funcptr = ctx.getProcAddress(b'glGetUniformBlockIndex')
+    c_getuboindex = funtype(funcptr.__int__())
+
+    def p_getuboindex(programid, uboname):
+        ret = c_getuboindex(programid, ctypes.c_char_p(
+            uboname.encode('utf-8')))
+        return ret
+
+    gl.glGetUniformBlockIndex = p_getuboindex
+
+    # void glVertexAttrib4Nub( GLuint index,
+    #                          GLubyte v0,
+    #                          GLubyte v1,
+    #                          GLubyte v2,
+    #                          GLubyte v3)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint8,
+                               ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8)
+    funcptr = ctx.getProcAddress(b'glVertexAttrib4Nub')
+    gl.glVertexAttrib4Nub = funtype(funcptr.__int__())
+
+
+    # void glVertexAttribIPointer(GLuint index,
+    #                             GLint size,
+    #                             GLenum type,
+    #                             GLsizei stride,
+    #                             const void * pointer)
+
+
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int32, ctypes.c_uint32, 
+                               ctypes.c_uint32, ctypes.c_void_p)
+    funcptr = ctx.getProcAddress(b'glVertexAttribIPointer')
+    # c_getvapointer = funtype(funcptr.__int__())
+    # def p_getvapointer(index, size, atype, normalized, stride, offset):
+    #     norm = ctypes.c_bool(0)
+    #     c_getvapointer(index, size, atype, norm, stride, offset)
+    gl.glVertexAttribIPointer = funtype(funcptr.__int__())
+
+class ShaderSet(MutableMapping):
+    ''' A set of shader programs for BlueSky.
+
+        Convenience class to easily switch between sets of shader programs
+        (e.g., between the radarwidget and the nd.)
+
+        Normally, each set contains at least the following programs:
+        'normal':   Rendering of regular, untextured shapes
+        'textured': Rendering of regular, textured shapes
+        'text':     Rendering of text objects
+        'ssd':      Rendering of SSD objects
+    '''
+    # Currently selected shader set
+    selected = None
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+        self._programs = dict()
+        self._ubos = dict()
+        self._spath = ''
+        if ShaderSet.selected is None:
+            self.select()
+
+    def select(self):
+        ''' Select this shader set. '''
+        ShaderSet.selected = self
+
+    def update_ubo(self, uboname, *args, **kwargs):
+        ''' Update an uniform buffer object of this shader set. '''
+        ubo = self._ubos.get(uboname, None)
+        if not ubo:
+            raise KeyError('Uniform Buffer Object', uboname,
+                           'not found in shader set.')
+        ubo.update(*args, **kwargs)
+
+    def set_shader_path(self, shader_path):
+        ''' Set a search path for shader files. '''
+        self._spath = shader_path
+
+    def load_shader(self, shader_name, vs, fs, gs=None):
+        ''' Load a shader into this shader set.
+            default shader names are: normal, textured, and text. '''
+        vs = path.join(self._spath, vs)
+        fs = path.join(self._spath, fs)
+        if gs:
+            gs = path.join(self._spath, gs)
+
+        newshader = ShaderProgram(self.parent)
+        if newshader.create(vs, fs, gs):
+            self[shader_name] = newshader
+
+    def release_all(self):
+        ''' Release bound shader from context. '''
+        if ShaderProgram.bound_shader:
+            ShaderProgram.bound_shader.release()
+            ShaderProgram.bound_shader = None
+
+    def __getitem__(self, key):
+        ret = self._programs.get(key, None)
+        if not ret:
+            raise KeyError('Shader program', key, 'not found in shader set.')
+        return ret
+
+    def __setitem__(self, key, program):
+        if not isinstance(program, ShaderProgram):
+            raise ValueError(
+                'Only ShaderProgram objects can be added to a ShaderSet')
+        self._programs[key] = program
+        # Bind UBO buffers of this shader set to program's UBO's
+        for name, size in program.ubos.items():
+            ubo = self._ubos.get(name, None)
+            if ubo is None:
+                ubo = UniformBufferObject()
+                ubo.create(size)
+                self._ubos[name] = ubo
+
+            program.bind_uniform_buffer(name, ubo)
+
+    def __delitem__(self, key):
+        del self._programs[key]
+
+    def __iter__(self):
+        return iter(self._programs)
+
+    def __len__(self):
+        return len(self._programs)
+
+    @classmethod
+    def get_shader(cls, shader_type=''):
+        ''' Get a shader from the current shaderset by type. '''
+        if not shader_type:
+            return ShaderProgram.bound_shader
+        ret = cls.selected._programs.get(shader_type, None)
+        if not ret:
+            raise KeyError('Shader program', shader_type,
+                           'not found in shader set.')
+        return ret
+
+
+class ShaderProgram(QOpenGLShaderProgram):
+    ''' BlueSky wrapper class for OpenGL shader programs. '''
+    bound_shader = None
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.attribs = dict()
+        self.ubos = dict()
+        self.uniforms = dict()
+
+    def bind(self):
+        ''' Bind this shader to the current context. '''
+        if ShaderProgram.bound_shader is not self:
+            ShaderProgram.bound_shader = self
+            super().bind()
+
+    def release(self):
+        ''' Release this shader from the current context. '''
+        if ShaderProgram.bound_shader is self:
+            super().release()
+            ShaderProgram.bound_shader = None
+
+    def create(self, fname_vertex, fname_frag, fname_geom=''):
+        ''' Compile shaders and link program.
+            Typically executed in initializeGL(). '''
+        # Compile shaders from file
+        success = True and \
+            self.addShaderFromSourceFile(QOpenGLShader.Vertex, fname_vertex) and \
+            self.addShaderFromSourceFile(QOpenGLShader.Fragment, fname_frag)
+        if fname_geom:
+            success = success and \
+                self.addShaderFromSourceFile(QOpenGLShader.Geometry, fname_geom)
+
+        # Link program
+        if success:
+            success = success and self.link()
+
+        if not success:
+            print('Shader program creation unsuccessful:')
+            print(self.log())
+            return False
+
+        # Obtain list of attributes with location and size info
+        n_attrs = gl.glGetProgramiv(self.programId(), gl.GL_ACTIVE_ATTRIBUTES)
+        for a in range(n_attrs):
+            name, size, atype = gl.glGetActiveAttrib(self.programId(), a)
+            loc = self.attributeLocation(name)
+            typesize = _glvar_sizes.get(atype, 1)
+            self.attribs[name] = GLVariable(loc, size * typesize)
+
+        # Get number of uniforms
+        n_uniforms = gl.glGetProgramiv(self.programId(), gl.GL_ACTIVE_UNIFORMS)
+        all_uids = set(range(n_uniforms))
+
+        # Obtain list of uniform blocks
+        n_ub = gl.glGetProgramiv(self.programId(), gl.GL_ACTIVE_UNIFORM_BLOCKS)
+        for ub in range(n_ub):
+            name = gl.glGetActiveUniformBlockName(self.programId(), ub)
+            size = gl.glGetActiveUniformBlockiv(
+                self.programId(), ub, gl.GL_UNIFORM_BLOCK_DATA_SIZE)
+            self.ubos[name] = size
+            # ubsize = gl.glGetActiveUniformBlockiv(self.programId(), ub,
+            # gl.GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS)
+            indices = gl.glGetActiveUniformBlockiv(
+                self.programId(), ub, gl.GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES)
+            all_uids -= set(indices)
+            # print('Uniform block: ', name.value.decode('utf8'),
+            #   'size =', ubsize.value)
+            # for i in indices:
+            #     usize = ctypes.c_int32()
+            #     utype = ctypes.c_int32()
+            #     uname = (ctpes.c_char * 20)()
+            #     gl.glGetActiveUniform(self.programId(), i, 20, None,
+            #         ctypes.pointer(usize), ctypes.pointer(utype),
+            #         ctypes.pointer(uname))
+            #     print('block uniform', i, '=', uname.value.decode('utf8'),
+            #           'size =', usize.value)
+            #     print(gl.glGetActiveUniform(self.programId(), i))
+
+        # Obtain list of remaining uniforms (those not part of a block)
+        for u in all_uids:
+            name, size, utype = gl.glGetActiveUniform(self.programId(), u)
+            self.uniforms[name] = GLVariable(
+                u, size * _glvar_sizes.get(utype, 1))
+
+        return True
 
     def bind_uniform_buffer(self, ubo_name, ubo):
-        idx = gl.glGetUniformBlockIndex(self.program, ubo_name)
-        gl.glUniformBlockBinding(self.program, idx, ubo.binding)
+        ''' Bind a uniform buffer block to this shader. '''
+        idx = gl.glGetUniformBlockIndex(self.programId(), ubo_name)
+        gl.glUniformBlockBinding(self.programId(), idx, ubo.binding)
 
 
-class RenderObject:
-    # Attribute locations
-    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, \
-        attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
-    bound_vao = -1
+class VertexArrayObject(QOpenGLVertexArrayObject):
+    ''' Wrapper around the OpenGL approach to drawing a single shape from one
+        or more buffers. '''
 
-    def __init__(self, primitive_type=None, first_vertex=0, vertex_count=0, n_instances=0, vertex=None, texcoords=None, color=None):
-        self.vao_id               = gl.glGenVertexArrays(1)
-        self.enabled_attributes   = dict()
-        self.primitive_type       = primitive_type
-        self.first_vertex         = first_vertex
-        self.vertex_count         = vertex_count
-        self.n_instances          = n_instances
+    def __init__(self, primitive_type=gl.GL_LINE_STRIP, shader_type='normal', parent=None):
+        super().__init__(parent)
+        self.shader_type = shader_type
+        self.texture = None
+        self.primitive_type = primitive_type
+        self.first_vertex = 0
+        self.vertex_count = 0
+        self.n_instances = 0
         self.max_instance_divisor = 0
-        self.single_colour        = None
-
-        if vertex is not None:
-            self.vbuf = self.bind_vertex(vertex)
-
-        if texcoords is not None:
-            self.texbuf = self.bind_texcoords(texcoords)
-
-        if color is not None:
-            self.colorbuf = self.bind_color(color)
+        self.single_color = None
 
     def set_primitive_type(self, primitive_type):
+        ''' Set the primitive type for this VAO. '''
         self.primitive_type = primitive_type
 
     def set_vertex_count(self, count):
+        ''' Set the vertex count for this VAO. '''
         self.vertex_count = int(count)
 
     def set_first_vertex(self, vertex):
+        ''' Set the first vertex for this VAO. '''
         self.first_vertex = vertex
 
-    def bind_attrib(self, attrib_id, size, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0, datatype=gl.GL_FLOAT, stride=0, offset=None, normalize=False):
-        if RenderObject.bound_vao is not self.vao_id:
-            gl.glBindVertexArray(self.vao_id)
-            RenderObject.bound_vao = self.vao_id
+    def create(self, texture=None, **attribs):
+        ''' Create the actual VAO, attach passed attribs, and potentially
+            create new buffers. '''
+        super().create()
+        if texture is not None:
+            if isinstance(texture, Texture):
+                self.texture = texture
+            else:
+                self.texture = Texture()
+                self.texture.load(texture)
+            if self.shader_type == 'normal':
+                self.shader_type = 'textured'
+        self.set_attribs(**attribs)
 
-        # Keep track of max instance divisor
-        self.max_instance_divisor = max(instance_divisor, self.max_instance_divisor)
+    def set_attribs(self, usage=QOpenGLBuffer.StaticDraw, instance_divisor=0,
+                    datatype=None, stride=0, offset=None, normalize=False,
+                    **attribs):
+        ''' Set attributes for this VAO. '''
+        if not attribs:
+            return
+        self.bind()
+        program = ShaderSet.get_shader(self.shader_type)
+        for name, data in attribs.items():
+            attrib = program.attribs.get(name, None)
+            if not attrib:
+                raise KeyError('Unknown attribute ' + name +
+                               ' for shader type ' + self.shader_type)
 
-        # If the input is an array create a new GL buffer, otherwise assume the buffer already exists and a buffer ID is passed
-        if type(data) is np.ndarray:
-            # Get an index to one new buffer in GPU mem, bind it, and copy the array data to it
-            buf_id = gl.glGenBuffers(1)
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, buf_id)
-            gl.glBufferData(gl.GL_ARRAY_BUFFER, data.nbytes, data, storagetype)
-        else:
-            # Assume that a GLuint is passed which means that the buffer is already in GPU memory
-            buf_id = data
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, buf_id)
+            dtype = datatype or (gl.GL_UNSIGNED_BYTE if name == 'color' else gl.GL_FLOAT)
+            if name == 'color':
+                normalize = True
 
-        # Assign this buffer to one of the attributes in the shader
-        gl.glEnableVertexAttribArray(attrib_id)
-        gl.glVertexAttribPointer(attrib_id, size, datatype, normalize, stride, offset)
-        # For instanced data, indicate per how many instances we move a step in the buffer (1=per instance)
-        if instance_divisor > 0:
-            gl.glVertexAttribDivisor(attrib_id, instance_divisor)
-        # Clean up
-        gl.glDisableVertexAttribArray(attrib_id)
+            if isinstance(data, QOpenGLBuffer):
+                # A previously created GL buffer is passed
+                buf = data
+                buf.bind()
+            elif isinstance(data, Collection):
+                # Color attribute has a special condition for a single color
+                if name == 'color' and np.size(data) in (3, 4):
+                    # Store attrib location and color
+                    self.single_color = np.append(attrib.loc, data)
+                    if len(data) == 3:
+                        # Add full alpha if none is given
+                        self.single_color = np.append(self.single_color, 255)
+                    return
+                # If the input is an array create a new GL buffer
+                buf = GLBuffer()
+                buf.create(usage=usage, data=data)
+            elif isinstance(data, int):
+                buf = GLBuffer()
+                buf.create(usage=usage, size=data)
+            # Special attribs: color and vertex
+            if name == 'vertex' and isinstance(data, Collection):
+                self.vertex_count = np.size(data) // 2
 
-        self.enabled_attributes[attrib_id] = [size, buf_id, instance_divisor, datatype]
+            # Bind the buffer to the indicated attribute for this VAO
+            program.enableAttributeArray(attrib.loc)
+            if dtype == gl.GL_UNSIGNED_BYTE and not normalize:
+                gl.glVertexAttribIPointer(attrib.loc, attrib.size, dtype, stride, offset)
+            else:
+                program.setAttributeBuffer(attrib.loc, dtype, 0, attrib.size)
 
-        return buf_id
+            # For instanced data, indicate per how many instances
+            # we move a step in the buffer (1=per instance)
+            if instance_divisor > 0:
+                gl.glVertexAttribDivisor(attrib.loc, instance_divisor)
+                self.max_instance_divisor = max(
+                    instance_divisor, self.max_instance_divisor)
 
-    def bind_texcoords(self, data, *args, **kwargs):
-        self.bind_attrib(self.attrib_texcoords, 2, data, *args, **kwargs)
+            # Keep a reference to the buffer of this attribute
+            setattr(self, name, buf)
 
-    def bind_vertex(self, data, vertex_count=0, *args, **kwargs):
-        self.vertex_count = int(np.size(data) / 2) if vertex_count == 0 else vertex_count
-        self.bind_attrib(self.attrib_vertex, 2, data, *args, **kwargs)
+    def update(self, **attribs):
+        ''' Update one or more buffers for this object. '''
+        for name, data in attribs.items():
+            attrib = getattr(self, name, None)
+            if not isinstance(attrib, GLBuffer):
+                raise KeyError('Unknown attribute ' + name)
+            # Special attribs: color and vertex
+            if name == 'vertex' and isinstance(data, Collection):
+                self.vertex_count = np.size(data) // 2
 
-    def bind_color(self, data, storagetype=gl.GL_STATIC_DRAW, instance_divisor=0):
-        # One colour for everything in a  size 3/4 array? or an existing or new buffer
-        if np.size(data) in [3, 4]:
-            # Add full alpha if none is given
-            self.single_colour = np.append(data, 255) if len(data) == 3 else data
-
-        else:
-            self.bind_attrib(self.attrib_color, 4, data, storagetype, instance_divisor, datatype=gl.GL_UNSIGNED_BYTE, normalize=True)
-
-    def bind(self):
-        if RenderObject.bound_vao != self.vao_id:
-            gl.glBindVertexArray(self.vao_id)
-            RenderObject.bound_vao = self.vao_id
-            for attrib in self.enabled_attributes:
-                gl.glEnableVertexAttribArray(attrib)
+            # Update the buffer of the attribute
+            attrib.update(data)
 
     def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=None):
+        ''' Draw this VAO. '''
         if primitive_type is None:
             primitive_type = self.primitive_type
 
@@ -248,137 +476,268 @@ class RenderObject:
 
         if vertex_count == 0:
             return
-
+        ShaderSet.get_shader(self.shader_type).bind()
         self.bind()
 
-        if self.single_colour is not None:
-            normcolor = [c / 255 for c in self.single_colour]
-            gl.glVertexAttrib4f(self.attrib_color, *normcolor)
+        if self.single_color is not None:
+            gl.glVertexAttrib4Nub(*self.single_color)
+        elif self.texture:
+            self.texture.bind()
 
         if n_instances > 0:
-            gl.glDrawArraysInstanced(primitive_type, first_vertex, vertex_count, n_instances * self.max_instance_divisor)
+            gl.glDrawArraysInstanced(
+                primitive_type, first_vertex, vertex_count, n_instances * self.max_instance_divisor)
         else:
             gl.glDrawArrays(primitive_type, first_vertex, vertex_count)
 
-    @staticmethod
-    def unbind_all():
-        gl.glBindVertexArray(0)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-        RenderObject.bound_vao = -1
 
-    @staticmethod
-    def copy(original):
-        """ Copy a renderobject from one context to the other.
-        """
-        new = RenderObject(original.primitive_type, original.first_vertex, original.vertex_count, original.n_instances)
+class Text(VertexArrayObject):
+    ''' Convenience class for a text object. '''
 
-        # Bind the same attributes for the new renderobject
-        # [size, buf_id, instance_divisor, datatype]
-        for attrib, params in original.enabled_attributes.items():
-            new.bind_attrib(attrib, params[0], params[1], instance_divisor=params[2], datatype=params[3])
+    def __init__(self, charsize=16.0, blocksize=None, font=None):
+        super().__init__(primitive_type=gl.GL_TRIANGLES, shader_type='text')
+        self.font = font or Font.getdefault()
+        self.blocksize = blocksize or (0, 0)
+        self.charsize = charsize
 
-        # Copy possible object attributes that were added to the renderobject
-        for attr, val in original.__dict__.items():
-            if attr not in new.__dict__:
-                setattr(new, attr, val)
+    def create(self, text, lat=None, lon=None, color=None, vertex_offset=None, instanced=False):
+        ''' Create the Text VAO. '''
+        super().create()
+        if not self.font.isCreated():
+            self.font.create()
+        w, h = self.charsize, self.charsize * self.font.char_ar
+        x, y = vertex_offset or (0.0, 0.0)
+        if instanced:
+            vertices, texcoords = self.font.char(x, y, w, h)
+        else:
+            vertices, texcoords = [], []
+            for i, c in enumerate(text):
+                v, t = self.font.char(x + i * w, y, w, h, ord(c))
+                vertices += v
+                texcoords += t
 
-        return new
+        self.set_attribs(vertex=np.array(vertices, dtype=np.float32),
+                         texcoords=np.array(texcoords, dtype=np.float32))
+
+        if instanced:
+            self.set_attribs(texdepth=text, instance_divisor=1,
+                             datatype=gl.GL_UNSIGNED_BYTE)
+        divisor = self.blocksize[0] * self.blocksize[1] if instanced else 0
+        if lat is not None and lon is not None:
+            self.set_attribs(lat=lat, lon=lon, instance_divisor=divisor)
+
+        if color:
+            self.set_attribs(color=color, instance_divisor=divisor)
+
+    def draw(self, first_vertex=None, vertex_count=None, n_instances=None):
+        ''' Draw this text VAO. '''
+        ShaderSet.get_shader(self.shader_type).bind()
+        self.font.bind()
+        self.font.set_char_size(self.charsize)
+        if self.blocksize:
+            self.font.set_block_size(self.blocksize)
+        super().draw(first_vertex=first_vertex,
+                     vertex_count=vertex_count, n_instances=n_instances)
 
 
-class Font:
-    # Attribute locations
-    attrib_vertex, attrib_texcoords, attrib_lat, attrib_lon, attrib_orientation, attrib_color, attrib_texdepth = list(range(7))
+class RenderObject:
+    ''' Convenience class for drawing different (nested) objects. '''
 
-    def __init__(self, tex_id=0, char_ar=1.0):
-        self.tex_id         = tex_id
-        self.loc_char_size  = 0
+    def __init__(self, parent=None):
+        self.parent = parent
+        self.glsurface = parent.glsurface if isinstance(parent, RenderObject) else parent
+        self.children = list()
+
+    def draw(self):
+        ''' Draw this object. '''
+        for child in self.children:
+            child.draw()
+
+    def create(self):
+        ''' Create this object. '''
+        pass
+
+
+class Circle(VertexArrayObject):
+    ''' Convenience class for a circle. '''
+
+    def __init__(self, shader_type='normal', parent=None):
+        super().__init__(gl.GL_LINE_LOOP, shader_type, parent)
+
+    def create(self, radius, nsegments=36, **attribs):
+        ''' Create the Circle VAO.'''
+        vertices = [(radius * np.cos(i / nsegments * 2.0 * np.pi),
+                     radius * np.sin(i / nsegments * 2.0 * np.pi)) for i in range(nsegments)]
+        # vcircle = np.array(np.transpose((
+        #     radius * np.cos(np.linspace(0.0, 2.0 * np.pi, nsegments)),
+        #     radius * np.sin(np.linspace(0.0, 2.0 * np.pi, nsegments)))), dtype=np.float32)
+        super().create(vertex=np.array(vertices, dtype=np.float32), **attribs)
+
+class Rectangle(VertexArrayObject):
+    ''' Convenience class for a rectangle. '''
+
+    def __init__(self, shader_type='normal', parent=None):
+        super().__init__(gl.GL_LINE_LOOP, shader_type, parent)
+
+    def create(self, w, h, fill=False):
+        ''' Create the Rectangle VAO.'''
+        if fill:
+            self.set_primitive_type(gl.GL_TRIANGLE_FAN)
+        vrect = np.array([(-0.5 * h, 0.5 * w), (-0.5 * h, -0.5 * w),
+                          (0.5 * h, -0.5 * w), (0.5 * h, 0.5 * w)], dtype=np.float32)
+        super().create(vertex=vrect)
+
+
+class GLBuffer(QOpenGLBuffer):
+    ''' Wrapper class for vertex and index buffers. '''
+
+    def create(self, size=None, usage=QOpenGLBuffer.StaticDraw, data=None):
+        ''' Create the buffer. '''
+        if size is None and data is None:
+            raise ValueError(
+                'Either a size or a set of data should be provided when creating a GL buffer')
+        super().create()
+        self.setUsagePattern(usage)
+        self.bind()
+        if data is not None:
+            self.allocate(*content_and_size(data))
+        else:
+            self.allocate(size)
+
+    def update(self, data, offset=0, size=None):
+        ''' Send new data to this GL buffer. '''
+        dbuf, dsize = content_and_size(data)
+        size = size or dsize
+        if size > self.size() - offset:
+            print('GLBuffer: Warning, trying to send more data '
+                  'to buffer than allocated size.')
+            size = self.size() - offset
+        self.bind()
+        self.write(offset, dbuf, size)
+        # TODO: master branch has try/except for buffer writes after closing context
+
+
+class UniformBufferObject(GLBuffer):
+    ''' Wrapper class for uniform buffers. '''
+    ufo_max_binding = 1
+
+    def __init__(self):
+        super().__init__(gl.GL_UNIFORM_BUFFER)
+        self.binding = 0
+
+    def create(self, size=None, usage=QOpenGLBuffer.StaticDraw, data=None):
+        ''' Create this UBO. '''
+        super().create(size, usage, data)
+        self.binding = UniformBufferObject.ufo_max_binding
+        UniformBufferObject.ufo_max_binding += 1
+        gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER,
+                            self.binding, self.bufferId())
+
+
+class Texture(QOpenGLTexture):
+    ''' BlueSky OpenGL Texture class. '''
+    def __init__(self, target=QOpenGLTexture.Target2D):
+        super().__init__(target)
+
+    def load(self, fname):
+        ''' Load the texture into GPU memory. '''
+        if fname[-3:].lower() == 'dds':
+            tex = DDSTexture(fname)
+            self.setFormat(QOpenGLTexture.RGB_DXT1)
+            self.setSize(tex.width, tex.height)
+            self.setWrapMode(QOpenGLTexture.Repeat)
+            self.allocateStorage()
+            self.setCompressedData(len(tex.data), tex.data)
+        else:
+            self.setData(QImage(fname))
+            self.setWrapMode(QOpenGLTexture.Repeat)
+
+
+class Font(Texture):
+    ''' BlueSky class to implement a font using a GL Texture array. '''
+    _fonts = list()
+
+    def __init__(self):
+        super().__init__(QOpenGLTexture.Target2DArray)
+        self.char_ar = 1.0
+        self.loc_char_size = 0
         self.loc_block_size = 0
-        self.char_ar        = char_ar
+        Font._fonts.append(self)
 
-    def copy(self):
-        return Font(self.tex_id, self.char_ar)
+    def create(self):
+        ''' Create this font. '''
+        txtshader = ShaderSet.get_shader('text')
+        self.loc_char_size = txtshader.uniforms['char_size'].loc
+        self.loc_block_size = txtshader.uniforms['block_size'].loc
 
-    def init_shader(self, program):
-        self.loc_char_size = gl.glGetUniformLocation(program.program, 'char_size')
-        self.loc_block_size = gl.glGetUniformLocation(program.program, 'block_size')
+        # Load the first image to get font size
+        img = QImage(path.join(settings.gfx_path, 'font/32.png'))
+        imgsize = (img.width(), img.height())
+        self.char_ar = float(imgsize[1]) / imgsize[0]
 
-    def use(self):
-        gl.glActiveTexture(gl.GL_TEXTURE0 + 0)
-        gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.tex_id)
+        super().create()
+        self.setFormat(QOpenGLTexture.RGBA8_UNorm)
+        self.setSize(img.width(), img.height())
+        self.setLayers(127 - 30)
+
+        self.bind()
+        self.allocateStorage()
+        # gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8,
+        #                 imgsize[0], imgsize[1], 127 - 30, 0, gl.GL_BGRA,
+        #                 gl.GL_UNSIGNED_BYTE, None)
+        self.setWrapMode(QOpenGLTexture.DirectionS,
+                         QOpenGLTexture.ClampToBorder)
+        self.setWrapMode(QOpenGLTexture.DirectionT,
+                         QOpenGLTexture.ClampToBorder)
+        self.setMinMagFilters(QOpenGLTexture.Linear, QOpenGLTexture.Linear)
+
+        # We're using the ASCII range 32-126; space, uppercase, lower case,
+        # numbers, brackets, punctuation marks
+        for i in range(30, 127):
+            img = QImage(path.join(settings.gfx_path, 'font/%d.png' %
+                                   i)).convertToFormat(QImage.Format_ARGB32)
+            ptr = img.constBits()
+            ptr.setsize(imgsize[0] * imgsize[1] * 4)
+
+            # xOffset, yOffset, zOffset, width, height, depth, sourceFormat, sourceType, data
+            # self.setData(0, 0, i - 30, imgsize[0], imgsize[1], 1,
+            #              QOpenGLTexture.BGRA, QOpenGLTexture.UInt8, ptr) #Qt >= 5.14
+            gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 30,
+                               imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
+
+    @classmethod
+    def getdefault(cls):
+        ''' Get the default font. '''
+        if not cls._fonts:
+            return Font()
+        return cls._fonts[0]
 
     def set_char_size(self, char_size):
+        ''' Set the character size uniform. '''
         gl.glUniform2f(self.loc_char_size, char_size, char_size * self.char_ar)
 
     def set_block_size(self, block_size):
+        ''' Set the block size uniform. '''
         gl.glUniform2i(self.loc_block_size, block_size[0], block_size[1])
-
-    def create_font_array(self):
-        # Load the first image to get font size
-        img          = QImage(os.path.join(settings.gfx_path, 'font/32.png'))
-        imgsize      = (img.width(), img.height())
-        self.char_ar = float(imgsize[1]) / imgsize[0]
-
-        # Set-up the texture array
-        self.tex_id = gl.glGenTextures(1)
-        gl.glBindTexture(gl.GL_TEXTURE_2D_ARRAY, self.tex_id)
-        gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8, imgsize[0], imgsize[1], 127 - 30, 0, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, None)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-        gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
-        gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
-        # We're using the ASCII range 32-126; space, uppercase, lower case, numbers, brackets, punctuation marks
-        for i in range(30, 127):
-            img = QImage(os.path.join(settings.gfx_path, 'font/%d.png' % i)).convertToFormat(QImage.Format_ARGB32)
-            ptr = c_void_p(int(img.constBits()))
-            gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 30, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 
     @staticmethod
     def char(x, y, w, h, c=32):
+        ''' Convenience function to get vertices and texture coordinates for a
+            single character. '''
         # Two triangles per character
-        vertices  = [(x, y + h), (x, y), (x + w, y + h), (x + w, y + h), (x, y), (x + w, y)]
-        texcoords = [(0, 0, c), (0, 1, c), (1, 0, c), (1, 0, c), (0, 1, c), (1, 1, c)]
+        vertices = [(x, y + h), (x, y), (x + w, y + h),
+                    (x + w, y + h), (x, y), (x + w, y)]
+        texcoords = [(0, 0, c), (0, 1, c), (1, 0, c),
+                     (1, 0, c), (0, 1, c), (1, 1, c)]
         return vertices, texcoords
 
-    def prepare_text_string(self, text_string, char_size=16.0, text_color=(0.0, 1.0, 0.0), vertex_offset=(0.0, 0.0)):
-        ret = RenderObject(gl.GL_TRIANGLES, vertex_count=6 * len(text_string))
 
-        vertices, texcoords = [], []
-        w, h = char_size, char_size * self.char_ar
-        x, y = vertex_offset
-        for i, c in enumerate(text_string):
-            v, t = self.char(x + i * w, y, w, h, ord(c))
-            vertices  += v
-            texcoords += t
-
-        ret.bind_attrib(self.attrib_vertex, 2, np.array(vertices, dtype=np.float32))
-        ret.bind_attrib(self.attrib_texcoords, 3, np.array(texcoords, dtype=np.float32))
-        ret.bind_attrib(self.attrib_color, 3, np.array(text_color, dtype=np.uint8), datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=1)
-
-        ret.char_size  = char_size
-        ret.block_size = (len(text_string), 1)
-        return ret
-
-    def prepare_text_instanced(self, text_array, textblock_size, origin_lat=None, origin_lon=None, text_color=None, char_size=16.0, vertex_offset=(0.0, 0.0)):
-        ret       = RenderObject(gl.GL_TRIANGLES, vertex_count=6)
-        w, h      = char_size, char_size * self.char_ar
-        x, y      = vertex_offset
-        v, t      = self.char(x, y, w, h)
-        vertices  = v
-        texcoords = t
-        ret.bind_attrib(self.attrib_vertex, 2, np.array(vertices, dtype=np.float32))
-        ret.bind_attrib(self.attrib_texcoords, 3, np.array(texcoords, dtype=np.float32))
-
-        ret.bind_attrib(self.attrib_texdepth, 1, text_array, instance_divisor=1, datatype=gl.GL_UNSIGNED_BYTE)
-        divisor = textblock_size[0] * textblock_size[1]
-        if origin_lat is not None:
-            ret.bind_attrib(self.attrib_lat, 1, origin_lat, instance_divisor=divisor)
-        if origin_lon is not None:
-            ret.bind_attrib(self.attrib_lon, 1, origin_lon, instance_divisor=divisor)
-
-        if text_color is not None:
-            ret.bind_attrib(self.attrib_color, 4, text_color, datatype=gl.GL_UNSIGNED_BYTE, normalize=True, instance_divisor=divisor)
-
-        ret.block_size = textblock_size
-        ret.char_size = char_size
-
-        return ret
+def content_and_size(data):
+    ''' Convenience function to get the correct variables to upload data to
+        GL buffers. '''
+    if isinstance(data, np.ndarray):
+        return data, data.nbytes
+    if isinstance(data, (ctypes.Structure, ctypes.Array)):
+        # return ctypes.pointer(data), ctypes.sizeof(data)
+        return bytes(data), ctypes.sizeof(data)
+    return None, 0

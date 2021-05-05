@@ -21,7 +21,7 @@ from bluesky.ui.qtgl.docwindow import DocWindow
 from bluesky.ui.qtgl.radarwidget import RadarWidget
 from bluesky.ui.qtgl.infowindow import InfoWindow
 from bluesky.ui.qtgl.settingswindow import SettingsWindow
-from bluesky.ui.qtgl.nd import ND
+# from bluesky.ui.qtgl.nd import ND
 
 if platform.system().lower() == "windows":
     from bluesky.ui.pygame.dialog import fileopen
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         self.mode = mode
 
         self.radarwidget = RadarWidget()
-        self.nd = ND(shareWidget=self.radarwidget)
+        # self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
         self.settingswin = SettingsWindow()
 
@@ -110,8 +110,8 @@ class MainWindow(QMainWindow):
             print('Couldnt make docwindow:', e)
         # self.aman = AMANDisplay()
         gltimer = QTimer(self)
-        gltimer.timeout.connect(self.radarwidget.updateGL)
-        gltimer.timeout.connect(self.nd.updateGL)
+        gltimer.timeout.connect(self.radarwidget.update)
+        # gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
         if platform.system() == 'Darwin':
@@ -270,6 +270,7 @@ class MainWindow(QMainWindow):
         ''' Processing of events from simulation nodes. '''
         # ND window for selected aircraft
         if eventname == b'SHOWND':
+            return
             if eventdata:
                 self.nd.setAircraftID(eventdata)
             self.nd.setVisible(not self.nd.isVisible())

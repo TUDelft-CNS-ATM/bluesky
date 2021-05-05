@@ -1,6 +1,7 @@
 """ Definition of custom QEvent objects for QtGL gui. """
 from PyQt5.QtCore import QEvent
 
+
 NUMCUSTOMEVENTS    = 2
 ACDataEventType    = 1000
 RouteDataEventType = 1001
