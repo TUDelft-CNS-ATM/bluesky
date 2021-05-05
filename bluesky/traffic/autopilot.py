@@ -76,6 +76,7 @@ class Autopilot(Entity, replaceable=True):
         # Reached function return list of indices where reached logic is True
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
                                        bs.traf.actwp.flyturn,bs.traf.actwp.turnrad):
+            #debug print(bs.traf.id[i],"reached",self.route[i].wpname[self.route[i].iactwp])
             # Save current wp speed for use on next leg when we pass this waypoint
             # VNAV speeds are always FROM-speed, so we accelerate/decellerate at the waypoint
             # where this speed is specified, so we need to save it for use now
@@ -89,13 +90,17 @@ class Autopilot(Entity, replaceable=True):
             self.route[i].runactwpstack()
 
             # Use turnradius of passing wp for bank angle
-            if bs.traf.actwp.flyturn[i] and bs.traf.actwp.turnrad[i]>0.:
-                if bs.traf.actwp.turnspd[i]>0.:
+            if bs.traf.actwp.flyturn[i]:
+                if bs.traf.actwp.turnspd[i]>=0.:
                     turnspd = bs.traf.actwp.turnspd[i]
                 else:
                     turnspd = bs.traf.tas[i]
 
-                bs.traf.aphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*nm*g0)) # [rad]
+                if bs.traf.actwp.turnrad[i] > 0.:
+                    bs.traf.aphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*nm*g0)) # [rad]
+                else:
+                    bs.traf.aphi[i] = 0.0  # [rad] or leave untouched???
+
             else:
                 bs.traf.aphi[i] = 0.0  #[rad] or leave untouched???
 
@@ -170,7 +175,7 @@ class Autopilot(Entity, replaceable=True):
                                         qdr[i], local_next_qdr,turnrad)  # update turn distance for VNAV
 
             # Reduce turn dist for reduced turnspd
-            if bs.traf.actwp.flyturn[i] and bs.traf.actwp.turnrad[i]<0.0 and bs.traf.actwp.turnspd[i]>0.:
+            if bs.traf.actwp.flyturn[i] and bs.traf.actwp.turnrad[i]<0.0 and bs.traf.actwp.turnspd[i]>=0.:
                 turntas = cas2tas(bs.traf.actwp.turnspd[i], bs.traf.alt[i])
                 bs.traf.actwp.turndist[i] = bs.traf.actwp.turndist[i]*turntas*turntas/(bs.traf.tas[i]*bs.traf.tas[i])
 

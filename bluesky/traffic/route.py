@@ -101,7 +101,9 @@ class Route(Replaceable):
     def addwptStack(self, idx, *args):  # args: all arguments of addwpt
         """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp],[beforewp]"""
 
-#        print "addwptStack:",args
+        #debug print ("addwptStack:",args)
+        #print("active = ",self.wpname[self.iactwp])
+        #print(args)
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
 
         if len(args) == 1:
@@ -294,18 +296,19 @@ class Route(Replaceable):
         # Recalculate flight plan
         self.calcfp()
 
-        # Check for success by checking insetred locaiton in flight plan >= 0
+        # Check for success by checking inserted location in flight plan >= 0
         if wpidx < 0:
             return False, "Waypoint " + name + " not added."
 
-        # chekc for presence of orig/dest
-        norig = int(bs.traf.ap.orig[idx] != "")
-        ndest = int(bs.traf.ap.dest[idx] != "")
+        # check for presence of orig/dest
+        norig = int(bs.traf.ap.orig[idx] != "") # 1 if orig is present in route
+        ndest = int(bs.traf.ap.dest[idx] != "") # 1 if dest is present in route
 
         # Check whether this is first 'real' waypoint (not orig & dest),
         # And if so, make active
         if self.nwp - norig - ndest == 1:  # first waypoint: make active
             self.direct(idx, self.wpname[norig])  # 0 if no orig
+            #print("direct ",self.wpname[norig])
             bs.traf.swlnav[idx] = True
 
         if afterwp and self.wpname.count(afterwp) == 0:
@@ -503,16 +506,20 @@ class Route(Replaceable):
                             self.wpstack[wpidx].append(" ".join(args[2:]))
 
                     # Delete a constraint (or both) at this waypoint
-                    elif args[1]=="DEL" or args[1]=="DELETE":
+                    elif args[1]=="DEL" or args[1]=="DELETE" or args[1]=="CLR" or args[1]=="CLEAR" :
                         swalt = args[2].upper()=="ALT"
                         swspd = args[2].upper() in ("SPD","SPEED")
-                        both  = args[2].upper() in ("ALL","BOTH")
+                        swboth  = args[2].upper()=="BOTH"
+                        swall   = args[2].upper()=="ALL"
 
-                        if swspd or both:
+                        if swspd or swboth or swall:
                             self.wpspd[wpidx]  = -999.
 
-                        if swalt or both:
+                        if swalt or swboth or swall:
                             self.wpalt[wpidx]  = -999.
+
+                        if swall:
+                            self.wpstack[wpidx]=[]
 
                     else:
                         return False,"No "+args[1]+" at ",name
@@ -960,6 +967,8 @@ class Route(Replaceable):
     def runactwpstack(self):
         for cmdline in self.wpstack[self.iactwp]:
             stack.stack(cmdline)
+            #debug
+            # stack.stack("ECHO "+self.acid+" AT "+self.wpname[self.iactwp]+" command issued:"+cmdline)
         return
 
     def delrte(self,iac=None):

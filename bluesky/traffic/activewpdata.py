@@ -62,8 +62,11 @@ class ActiveWaypoint(Entity, replaceable=True):
 
         self.turndist = np.logical_or(flyby,flyturn)*flybyturndist
 
-        # Avoid circling by checking for flying away
-        away     = np.abs(degto180(bs.traf.trk%360. - qdr%360.)) > 90. # difference large than 90
+        # Avoid circling by checking for flying away on almost straight legs with small turndist
+        # difference between direction to and track larger than 90
+        # but avoid switching wayspoint when trk undefined due to standing still (groundspeed (<1 m/s)
+        away  = (np.abs(bs.traf.gs)>1)*(np.abs(degto180(bs.traf.trk%360. - qdr%360.)) > 90.) # difference large than 90
+
 
         # Ratio between distance close enough to switch to next wp when flying away
         # When within pro1 nm and flying away: switch also
