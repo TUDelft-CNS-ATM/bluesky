@@ -1,0 +1,3 @@
+0:00:00.00>CRELOG CONFLOG 1.0 Conflict log
+0:00:00.00>CONFLOG ADD FROM traf.asas confpairs_new dcpa_new tcpa_new tLOS_new qdr_new dist_new
+0:00:00.00>CONFLOG ON
