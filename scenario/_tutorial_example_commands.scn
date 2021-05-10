@@ -1,0 +1,55 @@
+# Example scenario
+
+00:00:00.00>CRE KL204,B744,52,4,90,FL250,350
+
+# Create a B747-400 with call sign KL204
+# lat,lon = 52,4   (positions can also be clicked with mouse)
+# hdg = 90 degrees, so flying east, headings can also be clicked by mouse
+# alt = FL250 (so 25000 ft above ISA sea level pressure)
+# speed = 350 (kts, CAS), Mach can also be use deg.g 0.84 or M.84 or M84
+
+# Define a route  
+00:00:00.00>KL204 ORIG eham
+00:00:00.00>KL204 DEST ehgg
+
+# Edit flight plan: call sign ADDWPT wptname, [alt], [spd]
+# Waypoint are added at the end of the route before destination
+
+00:00:00.00>KL204 addwpt SPL,fl250
+00:00:00.00>KL204 addwpt RTM,,350
+
+# Insert a waypoint
+00:00:00.00>KL204 after spl addwpt SSB
+
+00:00:00.00>KL204 LNAV ON;KL204 VNAV ON
+
+# Double click shows rotue via POS command
+# POS command can also be used for info on navaids and airports
+00:00:00.00>POS KL204
+
+# List route shows route
+00:00:00.00>LISTRTE KL204
+
+# When only a destination is entered it is still a route, and LNAV,VNAV is activated
+
+
+00:00:02.50>CRE IR400    B73V  52.113724    2.366456  90.9   29603 289.8
+00:00:02.50>IR400 DEST EDDC
+
+00:00:05.00>CRE PY058    B757  52.501717    2.829971 152.3   30009 303.8
+00:00:05.00>PY058 DEST LFSD      
+
+# Switch on resolution module to have separation assurance (can also be used to simulate ATCO actions)
+
+00:00:05.50>RESO MVP
+00:00:05.50>Echo Switching on resolutions with MVP algorithm
+
+# Basic AP modes : HDG SEL, SPD SEL, ALT SEL
+00:00:10.00>KL204 HDG 235
+00:00:11.00>KL204 SPD M.82
+00:00:11.00>KL204 ALT 2000
+
+# V/S command only works when not in altitude hold but still climbing/descending
+# It is also possible to be included in the altitude command
+00:00:12.00>KL204 VS -1500
+00:00:15.00>KL204 ALT 2000,-1400

@@ -1,0 +1,6 @@
+# DEFFIX.scn needs to be called once first
+
+00:00:00.00>%0 ADDWPT EH019
+00:00:00.00>%0 ADDWPT SPY
+00:00:00.00>%0 ADDWPT BERGI
+

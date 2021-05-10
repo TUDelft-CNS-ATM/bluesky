@@ -1,0 +1,5 @@
+# DEFFIX.scn needs to be called once first
+
+00:00:00.00>%0 ADDWPT EH073
+00:00:00.00>%0 ADDWPT EH009,2500
+00:00:00.00>%0 ADDWPT VALKO,FL60
