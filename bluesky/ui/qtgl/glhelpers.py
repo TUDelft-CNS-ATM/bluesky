@@ -139,6 +139,13 @@ def init_glcontext(ctx):
     gl.glVertexAttrib4Nub = funtype(funcptr.__int__())
 
 
+    # void glVertexAttrib1f( GLuint index,
+ 	#                        GLfloat v0);
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_float)
+    funcptr = ctx.getProcAddress(b'glVertexAttrib1f')
+    gl.glVertexAttrib1f = funtype(funcptr.__int__())
+
+
     # void glVertexAttribIPointer(GLuint index,
     #                             GLint size,
     #                             GLenum type,
