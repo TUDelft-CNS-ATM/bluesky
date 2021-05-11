@@ -23,6 +23,7 @@ class Map(glh.RenderObject):
         self.coastlines = glh.VertexArrayObject(glh.gl.GL_LINES)
         self.coastindices = []
         self.vcount_coast = 0
+        self.wraplon_loc = 0
 
     def create(self):
         ''' Create GL objects. '''
@@ -35,6 +36,7 @@ class Map(glh.RenderObject):
             [-90.0, 540.0, -90.0, -540.0, 90.0, -540.0, 90.0, 540.0], dtype=np.float32)
         texcoords = np.array(
             [1, 3, 1, 0, 0, 0, 0, 3], dtype=np.float32)
+        self.wraplon_loc = glh.ShaderSet.get_shader(self.coastlines.shader_type).attribs['lon'].loc
 
         # Load and bind world texture
         max_texture_size = glh.gl.glGetIntegerv(glh.gl.GL_MAX_TEXTURE_SIZE)
@@ -50,26 +52,27 @@ class Map(glh.RenderObject):
 
     def draw(self):
         self.map.draw()
-
-        if True:#self.wrapdir == 0:
+        shaderset = glh.ShaderSet.selected
+        if shaderset.data.wrapdir == 0:
             # Normal case, no wrap around
             self.coastlines.draw(
                 first_vertex=0, vertex_count=self.vcount_coast)
         else:
             self.coastlines.bind()
+            shader = glh.ShaderProgram.bound_shader
             wrapindex = np.uint32(
-                self.coastindices[int(self.wraplon) + 180])
-            if self.wrapdir == 1:
-                glh.gl.glVertexAttrib1f(self.coastlines.lon.loc, 360.0)
+                self.coastindices[int(shaderset.data.wraplon) + 180])
+            if shaderset.data.wrapdir == 1:
+                shader.setAttributeValue(self.wraplon_loc, 360.0)
                 self.coastlines.draw(
                     first_vertex=0, vertex_count=wrapindex)
-                glh.gl.glVertexAttrib1f(self.coastlines.lon.loc, 0.0)
+                shader.setAttributeValue(self.wraplon_loc, 0.0)
                 self.coastlines.draw(
                     first_vertex=wrapindex, vertex_count=self.vcount_coast - wrapindex)
             else:
-                glh.gl.glVertexAttrib1f(self.coastlines.lon.loc, -360.0)
+                shader.setAttributeValue(self.wraplon_loc, -360.0)
                 self.coastlines.draw(
                     first_vertex=wrapindex, vertex_count=self.vcount_coast - wrapindex)
-                glh.gl.glVertexAttrib1f(self.coastlines.lon.loc, 0.0)
+                shader.setAttributeValue(self.wraplon_loc, 0.0)
                 self.coastlines.draw(
                     first_vertex=0, vertex_count=wrapindex)
