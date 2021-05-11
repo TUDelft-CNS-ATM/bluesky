@@ -4,6 +4,7 @@ import numpy as np
 
 from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
+from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.network import Client
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
@@ -39,6 +40,21 @@ class GuiClient(Client):
         self.discovery_timer.stop()
         self.discovery_timer = None
         super().stop_discovery()
+
+    def stream(self, name, data, sender_id):
+        ''' Guiclient stream handler. '''
+        if sender_id == self.act:
+            actdata = self.get_nodedata(sender_id)
+            if name == b'ACDATA':
+                actdata.setacdata(data)
+                self.actnodedata_changed.emit(sender_id, actdata, 'ACDATA')
+                return
+            elif name == b'ROUTEDATA':
+                actdata.setroutedata(data)
+                self.actnodedata_changed.emit(sender_id, actdata, 'ROUTEDATA')
+                return
+
+        super().stream(name, data, sender_id)
 
     def event(self, name, data, sender_id):
         sender_data = self.get_nodedata(sender_id)
@@ -102,11 +118,22 @@ class nodeData:
         self.pan = [0.0, 0.0]
         self.zoom = 1.0
 
+        self.naircraft = 0
+        self.acdata = ACDataEvent()
+        self.routedata = RouteDataEvent()
+
         # Per-scenario data
         self.clear_scen_data()
 
         # Network route to this node
         self._route = route
+
+    def setacdata(self, data):
+        self.acdata = ACDataEvent(data)
+        self.naircraft = len(self.acdata.lat)
+
+    def setroutedata(self, data):
+        self.routedata = RouteDataEvent(data)
 
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node

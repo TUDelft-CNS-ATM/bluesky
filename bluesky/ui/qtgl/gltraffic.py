@@ -1,7 +1,7 @@
 ''' Traffic OpenGL visualisation. '''
 import numpy as np
 import bluesky.ui.qtgl.glhelpers as glh
-from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
+
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky import settings
@@ -33,9 +33,6 @@ class Traffic(glh.RenderObject):
     ''' Traffic OpenGL object. '''
     def __init__(self, parent):
         super().__init__(parent)
-        self.naircraft = 0
-        self.acdata = ACDataEvent()
-        self.routedata = RouteDataEvent()
         self.shaderset = None
         self.initialized = False
         self.route_acid = ''
@@ -62,7 +59,8 @@ class Traffic(glh.RenderObject):
         self.routelbl = glh.Text(settings.text_size, (12, 2))
         self.rwaypoints = glh.VertexArrayObject(glh.gl.GL_LINE_LOOP)
         self.traillines = glh.VertexArrayObject(glh.gl.GL_LINES)
-        bs.net.stream_received.connect(self.on_simstream_received)
+
+        bs.net.actnodedata_changed.connect(self.actdata_changed)
 
     def create(self):
         self.shaderset = glh.ShaderSet.selected
@@ -130,7 +128,7 @@ class Traffic(glh.RenderObject):
         ''' Draw all traffic graphics. '''
         # Get data for active node
         actdata = bs.net.get_nodedata()
-        if self.naircraft == 0 or not actdata.show_traf:
+        if actdata.naircraft == 0 or not actdata.show_traf:
             return
 
         # Send the (possibly) updated global uniforms to the buffer
@@ -148,19 +146,19 @@ class Traffic(glh.RenderObject):
         # PZ circles only when they are bigger than the A/C symbols
         if actdata.show_pz: # TODO: and self.zoom >= 0.15:
             self.shaderset.set_vertex_scale_type(VERTEX_IS_METERS)
-            self.protectedzone.draw(n_instances=self.naircraft)
+            self.protectedzone.draw(n_instances=actdata.naircraft)
 
         self.shaderset.set_vertex_scale_type(VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
-        self.ac_symbol.draw(n_instances=self.naircraft)
+        self.ac_symbol.draw(n_instances=actdata.naircraft)
 
         if self.routelbl.n_instances:
             self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.routelbl.draw()
 
         if actdata.show_lbl:
-            self.aclabels.draw(n_instances=self.naircraft)
+            self.aclabels.draw(n_instances=actdata.naircraft)
 
         # SSD
         if actdata.ssd_all or actdata.ssd_conflicts or len(actdata.ssd_ownship) > 0:
@@ -168,21 +166,16 @@ class Traffic(glh.RenderObject):
             ssd_shader.bind()
             glh.gl.glUniform3f(ssd_shader.uniforms['Vlimits'].loc, self.asas_vmin **
                            2, self.asas_vmax ** 2, self.asas_vmax)
-            glh.gl.glUniform1i(ssd_shader.uniforms['n_ac'].loc, self.naircraft)
-            self.ssd.draw(vertex_count=self.naircraft,
-                          n_instances=self.naircraft)
+            glh.gl.glUniform1i(ssd_shader.uniforms['n_ac'].loc, actdata.naircraft)
+            self.ssd.draw(vertex_count=actdata.naircraft,
+                          n_instances=actdata.naircraft)
 
-    def event(self, event):
-        print(event)
-
-    def on_simstream_received(self, streamname, data, sender_id):
+    def actdata_changed(self, nodeid, nodedata, changed_elems):
         ''' Process incoming traffic data. '''
-        if streamname == b'ACDATA':
-            self.acdata = ACDataEvent(data)
-            self.update_aircraft_data(self.acdata)
-        elif streamname[:9] == b'ROUTEDATA':
-            self.routedata = RouteDataEvent(data)
-            self.update_route_data(self.routedata)
+        if 'ACDATA' in changed_elems:
+            self.update_aircraft_data(nodedata.acdata)
+        if 'ROUTEDATA' in changed_elems:
+            self.update_route_data(nodedata.routedata)
 
     def update_route_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
@@ -253,12 +246,12 @@ class Traffic(glh.RenderObject):
             data.alt = data.alt[idx]
             data.tas = data.tas[idx]
             data.vs = data.vs[idx]
-        self.naircraft = len(data.lat)
+        naircraft = len(data.lat)
         actdata.translvl = data.translvl
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
         # self.asas_vmax = data.vmax
 
-        if self.naircraft == 0:
+        if naircraft == 0:
             self.cpalines.set_vertex_count(0)
         else:
             # Update data in GPU buffers
@@ -280,8 +273,8 @@ class Traffic(glh.RenderObject):
             # Labels and colors
             rawlabel = ''
             color = np.empty(
-                (min(self.naircraft, MAX_NAIRCRAFT), 4), dtype=np.uint8)
-            selssd = np.zeros(self.naircraft, dtype=np.uint8)
+                (min(naircraft, MAX_NAIRCRAFT), 4), dtype=np.uint8)
+            selssd = np.zeros(naircraft, dtype=np.uint8)
             confidx = 0
 
             zdata = zip(data.id, data.ingroup, data.inconf, data.tcpamax, data.trk, data.gs,

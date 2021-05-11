@@ -8,6 +8,8 @@ from PyQt5.QtCore import Qt, qCritical, QEvent, QT_VERSION
 
 import bluesky as bs
 import bluesky.ui.qtgl.glhelpers as glh
+from bluesky.ui.radarclick import radarclick
+from bluesky.ui.qtgl import console
 from bluesky import settings
 from .gltraffic import Traffic
 from .glmap import Map
@@ -338,14 +340,13 @@ class RadarWidget(QOpenGLWidget):
         elif event.type() == QEvent.MouseButtonRelease and \
                 event.button() & Qt.LeftButton and not self.mousedragged:
             lat, lon = self.pixelCoordsToLatLon(event.x(), event.y())
-            
-            # TODO: acdata en routedata
-            # tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
-            #                                 self.acdata, self.routedata)
-            # if '\n' not in tocmdline:
-            #     console.append_cmdline(tocmdline)
-            # if tostack:
-            #     console.stack(tostack)
+            actdata = bs.net.get_nodedata()
+            tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
+                                            actdata.acdata, actdata.routedata)
+            if '\n' not in tocmdline:
+                console.append_cmdline(tocmdline)
+            if tostack:
+                console.stack(tostack)
 
         elif event.type() == QEvent.MouseMove:
             self.mousedragged = True

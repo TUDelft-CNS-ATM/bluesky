@@ -179,14 +179,13 @@ class MainWindow(QMainWindow):
         self.maxhostnum = 0
         self.hosts = dict()
         self.nodes = dict()
+        self.actnode = ''
 
         fgcolor = '#%02x%02x%02x' % fg
         bgcolor = '#%02x%02x%02x' % bg
 
         self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
-
-        self.nconf_cur = self.nconf_tot = self.nlos_cur = self.nlos_tot = 0
 
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.ShiftModifier \
@@ -224,9 +223,11 @@ class MainWindow(QMainWindow):
         # return True
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
-        node = self.nodes[nodeid]
-        self.nodelabel.setText('<b>Node</b> {}:{}'.format(node.host_num, node.node_num))
-        self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
+        if nodeid != self.actnode:
+            self.actnode = nodeid
+            node = self.nodes[nodeid]
+            self.nodelabel.setText('<b>Node</b> {}:{}'.format(node.host_num, node.node_num))
+            self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
 
     def nodesChanged(self, data):
         for host_id, host_data in data.items():
@@ -289,13 +290,9 @@ class MainWindow(QMainWindow):
             simt = tim2txt(simt)[:-3]
             self.setNodeInfo(sender_id, simt, scenname)
             if sender_id == bs.net.actnode():
+                acdata = bs.net.get_nodedata().acdata
                 self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
-        elif streamname == b'ACDATA':
-            self.nconf_cur = data['nconf_cur']
-            self.nconf_tot = data['nconf_tot']
-            self.nlos_cur = data['nlos_cur']
-            self.nlos_tot = data['nlos_tot']
+                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
 
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
