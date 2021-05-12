@@ -75,11 +75,9 @@ class Navdata(glh.RenderObject):
             else:
                 self.apt_inrange = np.array([])
         if 'CUSTWPT' in changed_elems:
-            print('here', len(nodedata.custwplat), len(nodedata.custwplon), nodedata.custwplbl)
             if nodedata.custwplbl:
                 self.customwp.update(lat=nodedata.custwplat,
                                      lon=nodedata.custwplon)
-                print('setting label now')
                 self.custwplblbuf.update(
                     np.array(nodedata.custwplbl, dtype=np.string_))
             self.ncustwpts = len(nodedata.custwplat)
@@ -121,7 +119,7 @@ class Navdata(glh.RenderObject):
                               self.waypoints.lon, palette.wptlabel,
                               (wpt_size, 0.5 * wpt_size), instanced=True)
 
-        self.customwp.create(vertex=self.waypoints.vertex, color=palette.wptsymbol)
+        self.customwp.create(vertex=self.waypoints.vertex, vertex_count=3, color=palette.wptsymbol)
         self.customwp.set_attribs(
             lat=CUSTWP_SIZE * 4, lon=CUSTWP_SIZE * 4, instance_divisor=1)
         self.customwplbl.create(self.custwplblbuf,
