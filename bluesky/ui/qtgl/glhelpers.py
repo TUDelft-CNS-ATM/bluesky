@@ -557,6 +557,14 @@ class RenderObject:
         ''' Create this object. '''
         pass
 
+    @property
+    def shaderset(self):
+        ''' The shaderset of a RenderObject.
+            Always points to the currently selected ShaderSet.
+        '''
+        # TODO move to metaclass?
+        return ShaderSet.selected
+
 
 class Circle(VertexArrayObject):
     ''' Convenience class for a circle. '''

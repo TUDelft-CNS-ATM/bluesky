@@ -34,7 +34,6 @@ class Navdata(glh.RenderObject):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.shaderset = None
         self.custwplblbuf = glh.GLBuffer()
 
         # ------- Airport graphics -----------------------
@@ -85,7 +84,6 @@ class Navdata(glh.RenderObject):
     def create(self):
         apt_size = settings.apt_size
         wpt_size = settings.wpt_size
-        self.shaderset = glh.ShaderSet.selected
         self.custwplblbuf.create(CUSTWP_SIZE * 10, usage=glh.gl.GL_STATIC_DRAW)
 
         # Load vertex data

@@ -32,7 +32,6 @@ class Traffic(glh.RenderObject):
     ''' Traffic OpenGL object. '''
     def __init__(self, parent):
         super().__init__(parent)
-        self.shaderset = None
         self.initialized = False
         self.route_acid = ''
         self.asas_vmin = settings.asas_vmin
@@ -60,7 +59,6 @@ class Traffic(glh.RenderObject):
         bs.net.actnodedata_changed.connect(self.actdata_changed)
 
     def create(self):
-        self.shaderset = glh.ShaderSet.selected
         ac_size = settings.ac_size
         wpt_size = settings.wpt_size
         self.hdg.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
