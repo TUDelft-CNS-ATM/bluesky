@@ -1,5 +1,6 @@
 ''' BlueSky: The open-source ATM simulator.'''
 from bluesky import settings
+from bluesky.core import Signal
 
 
 # Constants
