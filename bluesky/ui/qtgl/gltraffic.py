@@ -144,7 +144,7 @@ class Traffic(glh.RenderObject):
         self.shaderset.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if actdata.show_pz: # TODO: and self.zoom >= 0.15:
+        if actdata.show_pz and actdata.zoom >= 0.15:
             self.shaderset.set_vertex_scale_type(VERTEX_IS_METERS)
             self.protectedzone.draw(n_instances=actdata.naircraft)
 
