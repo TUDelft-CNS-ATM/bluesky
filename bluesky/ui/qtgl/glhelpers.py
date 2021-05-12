@@ -374,7 +374,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
         ''' Set the first vertex for this VAO. '''
         self.first_vertex = vertex
 
-    def create(self, texture=None, **attribs):
+    def create(self, texture=None, vertex_count=0, **attribs):
         ''' Create the actual VAO, attach passed attribs, and potentially
             create new buffers. '''
         super().create()
@@ -386,6 +386,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
                 self.texture.load(texture)
             if self.shader_type == 'normal':
                 self.shader_type = 'textured'
+        self.vertex_count = vertex_count
         self.set_attribs(**attribs)
 
     def set_attribs(self, usage=QOpenGLBuffer.StaticDraw, instance_divisor=0,
@@ -599,19 +600,24 @@ class GLBuffer(QOpenGLBuffer):
         self.setUsagePattern(usage)
         self.bind()
         if data is not None:
-            self.allocate(*content_and_size(data))
+            bufdata, size = content_and_size(data)
+            self.allocate(bufdata, size)
         else:
             self.allocate(size)
+        # Test if allocated size is as requested
+        if self.size() != size:
+            print(f'GLBuffer: Warning: could not allocate buffer of size {size}. Actual size is {self.size()}')
 
     def update(self, data, offset=0, size=None):
         ''' Send new data to this GL buffer. '''
         dbuf, dsize = content_and_size(data)
         size = size or dsize
-        if size > self.size() - offset:
-            print('GLBuffer: Warning, trying to send more data '
-                  'to buffer than allocated size.')
-            size = self.size() - offset
         self.bind()
+        if size > self.size() - offset:
+            print(f'GLBuffer: Warning, trying to send more data ({size} bytes)'
+                  f'to buffer than allocated size ({self.size()} bytes).')
+            size = self.size() - offset
+        
         self.write(offset, dbuf, size)
         # TODO: master branch has try/except for buffer writes after closing context
 
