@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt, qCritical, QEvent, QT_VERSION
 
 import bluesky as bs
+from bluesky.core import Signal
 import bluesky.ui.qtgl.glhelpers as glh
 from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
@@ -14,10 +15,10 @@ from bluesky import settings
 from .gltraffic import Traffic
 from .glmap import Map
 from .glnavdata import Navdata
+from .glpoly import Poly
 
 # Register settings defaults
 settings.set_variable_defaults(gfx_path='data/graphics')
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 
 # Qt smaller than 5.6.2 needs a different approach to pinch gestures
 CORRECT_PINCH = False
@@ -97,6 +98,7 @@ class RadarWidget(QOpenGLWidget):
         self.map = Map(parent=self)
         self.traffic = Traffic(parent=self)
         self.navdata = Navdata(parent=self)
+        self.poly = Poly(parent=self)
 
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.grabGesture(Qt.PanGesture)
@@ -104,7 +106,9 @@ class RadarWidget(QOpenGLWidget):
         # self.grabGesture(Qt.SwipeGesture)
         self.setMouseTracking(True)
 
+        # Signals and slots
         bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        self.mouse_event = Signal('radarmouse')
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         ''' Update buffers when a different node is selected, or when
@@ -133,6 +137,7 @@ class RadarWidget(QOpenGLWidget):
         self.map.create()
         self.traffic.create()
         self.navdata.create()
+        self.poly.create()
 
         # Set initial values for the global uniforms
         self.shaderset.set_wrap(self.wraplon, self.wrapdir)
@@ -150,15 +155,10 @@ class RadarWidget(QOpenGLWidget):
         # clear the framebuffer
         glh.gl.glClear(glh.gl.GL_COLOR_BUFFER_BIT)
 
-        # Send the (possibly) updated global uniforms to the buffer
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
-
-        # --- DRAW THE MAP AND COASTLINES ---------------------------------------------
-        # Map and coastlines: don't wrap around in the shader
-        self.shaderset.enable_wrap(False)
-
         # Draw map texture
         self.map.draw()
+
+        self.poly.draw()
 
         # Draw navdata
         self.navdata.draw()
@@ -368,24 +368,12 @@ class RadarWidget(QOpenGLWidget):
             bs.net.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
                                                zoom=self.zoom, ar=self.ar, absolute=True))
 
-        # If this is a mouse move event, check if we are updating a preview poly
-        # if self.mousepos != self.prevmousepos:
-        #     cmd = console.get_cmd()
-        #     nargs = len(console.get_args())
-        #     if cmd in ['AREA', 'BOX', 'POLY', 'POLYLINE',
-        #                'POLYALT', 'POLYGON', 'CIRCLE', 'LINE'] and nargs >= 2:
-        #         self.prevmousepos = self.mousepos
-        #         try:
-        #             # get the largest even number of points
-        #             start = 0 if cmd == 'AREA' else 3 if cmd == 'POLYALT' else 1
-        #             end = ((nargs - start) // 2) * 2 + start
-        #             data = [float(v) for v in console.get_args()[start:end]]
-        #             data += self.pixelCoordsToLatLon(*self.mousepos)
-        #             self.previewpoly(cmd, data)
-
-        #         except ValueError:
-        #             pass
+        else:
+            return super().event(event)
+        
+        # If we get here, the event was a mouse/trackpad event. Emit it to interested children
+        self.mouse_event.emit(event)
 
         # For all other events call base class event handling
-        return super().event(event)
+        return True
 
