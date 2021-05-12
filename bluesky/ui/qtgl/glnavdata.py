@@ -60,6 +60,30 @@ class Navdata(glh.RenderObject):
         self.airports = glh.VertexArrayObject(glh.gl.GL_LINE_LOOP)
         self.aptlabels = glh.Text(settings.text_size, (4, 1))
 
+        bs.net.actnodedata_changed.connect(self.actdata_changed)
+
+    def actdata_changed(self, nodeid, nodedata, changed_elems):
+        if 'PANZOOM' in changed_elems:
+            # TODO panzoom state should always go via nodedata
+            if nodedata.zoom >= 1.0:
+                # Airports may be visible when zoom > 1: in this case, update the list of indicates
+                # of airports that need to be drawn
+                ll_range = max(1.5 / nodedata.zoom, 1.0)
+                indices = np.logical_and(np.abs(self.apt_ctrlat - nodedata.pan[0])
+                                     <= ll_range, np.abs(self.apt_ctrlon - nodedata.pan[1]) <= ll_range)
+                self.apt_inrange = self.apt_indices[indices]
+            else:
+                self.apt_inrange = np.array([])
+        if 'CUSTWPT' in changed_elems:
+            print('here', len(nodedata.custwplat), len(nodedata.custwplon), nodedata.custwplbl)
+            if nodedata.custwplbl:
+                self.customwp.update(lat=nodedata.custwplat,
+                                     lon=nodedata.custwplon)
+                print('setting label now')
+                self.custwplblbuf.update(
+                    np.array(nodedata.custwplbl, dtype=np.string_))
+            self.ncustwpts = len(nodedata.custwplat)
+
     def create(self):
         apt_size = settings.apt_size
         wpt_size = settings.wpt_size
@@ -135,11 +159,9 @@ class Navdata(glh.RenderObject):
     def draw(self):
         actdata = bs.net.get_nodedata()
         # Send the (possibly) updated global uniforms to the buffer
-        # self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
+        self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
 
-        # --- DRAW THE MAP AND COASTLINES ---------------------------------------------
-        # Map and coastlines: don't wrap around in the shader
-        # self.shaderset.enable_wrap(False)
+        self.shaderset.enable_wrap(False)
 
         # --- DRAW AIRPORT DETAILS (RUNWAYS, TAXIWAYS, PAVEMENTS) -------------
         self.runways.draw()
