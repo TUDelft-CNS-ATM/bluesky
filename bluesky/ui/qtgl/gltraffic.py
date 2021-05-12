@@ -24,9 +24,8 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 MAX_NAIRCRAFT = 10000
 MAX_NCONFLICTS = 25000
 MAX_ROUTE_LENGTH = 500
-MAX_TRAILLEN = MAX_NAIRCRAFT * 1000
 ROUTE_SIZE = 500
-TRAILS_SIZE = MAX_NAIRCRAFT * 1000
+TRAILS_SIZE = 1000000
 
 
 class Traffic(glh.RenderObject):
@@ -45,8 +44,6 @@ class Traffic(glh.RenderObject):
         self.tas = glh.GLBuffer()
         self.color = glh.GLBuffer()
         self.lbl = glh.GLBuffer()
-        self.confcpa = glh.GLBuffer()
-        self.trails = glh.GLBuffer()
         self.asasn = glh.GLBuffer()
         self.asase = glh.GLBuffer()
 
@@ -73,8 +70,6 @@ class Traffic(glh.RenderObject):
         self.tas.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
         self.color.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
         self.lbl.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
-        self.confcpa.create(MAX_NCONFLICTS * 16, glh.GLBuffer.StreamDraw)
-        self.trails.create(MAX_TRAILLEN * 16, glh.GLBuffer.StreamDraw)
         self.asasn.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
         self.asase.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
 
@@ -102,7 +97,7 @@ class Traffic(glh.RenderObject):
         self.aclabels.create(self.lbl, self.lat, self.lon, self.color,
                              (ac_size, -0.5 * ac_size), instanced=True)
 
-        self.cpalines.create(vertex=self.confcpa, color=palette.conflict)
+        self.cpalines.create(vertex=MAX_NCONFLICTS * 16, color=palette.conflict, usage=glh.GLBuffer.StreamDraw)
 
         # ------- Aircraft Route -------------------------
         self.route.create(vertex=ROUTE_SIZE * 8, color=palette.route, usage=glh.gl.GL_DYNAMIC_DRAW)
@@ -340,7 +335,7 @@ class Traffic(glh.RenderObject):
             if len(actdata.ssd_ownship) > 0 or actdata.ssd_conflicts or actdata.ssd_all:
                 self.ssd.update(selssd=selssd)
 
-            self.confcpa.update(cpalines)
+            self.cpalines.update(vertex=cpalines)
             self.color.update(color)
             self.lbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))
             
