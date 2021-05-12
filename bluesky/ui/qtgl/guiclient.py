@@ -24,6 +24,7 @@ class GuiClient(Client):
         self.timer.timeout.connect(self.receive)
         self.timer.start(20)
         self.subscribe(b'SIMINFO')
+        self.subscribe(b'TRAILS')
         self.subscribe(b'PLOT' + self.client_id)
         self.subscribe(b'ROUTEDATA' + self.client_id)
 
@@ -43,16 +44,20 @@ class GuiClient(Client):
 
     def stream(self, name, data, sender_id):
         ''' Guiclient stream handler. '''
-        if sender_id == self.act:
-            actdata = self.get_nodedata(sender_id)
-            if name == b'ACDATA':
-                actdata.setacdata(data)
-                self.actnodedata_changed.emit(sender_id, actdata, 'ACDATA')
-                return
-            elif name == b'ROUTEDATA':
-                actdata.setroutedata(data)
-                self.actnodedata_changed.emit(sender_id, actdata, 'ROUTEDATA')
-                return
+        changed = ''
+        actdata = self.get_nodedata(sender_id)
+        if name == b'ACDATA':
+            actdata.setacdata(data)
+            changed = name.decode('utf8')
+        elif name == b'ROUTEDATA':
+            actdata.setroutedata(data)
+            changed = name.decode('utf8')
+        elif name == b'TRAILS':
+            actdata.settrails(**data)
+            changed = name.decode('utf8')
+
+        if sender_id == self.act and changed:
+            self.actnodedata_changed.emit(sender_id, actdata, changed)
 
         super().stream(name, data, sender_id)
 
@@ -134,6 +139,18 @@ class nodeData:
 
     def setroutedata(self, data):
         self.routedata = RouteDataEvent(data)
+
+    def settrails(self, swtrails, traillat0, traillon0, traillat1, traillon1):
+        if not swtrails:
+            self.traillat0 = []
+            self.traillon0 = []
+            self.traillat1 = []
+            self.traillon1 = []
+        else:
+            self.traillat0.extend(traillat0)
+            self.traillon0.extend(traillon0)
+            self.traillat1.extend(traillat1)
+            self.traillon1.extend(traillon1)
 
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node

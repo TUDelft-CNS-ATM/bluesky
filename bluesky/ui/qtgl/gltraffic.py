@@ -176,6 +176,22 @@ class Traffic(glh.RenderObject):
             self.update_aircraft_data(nodedata.acdata)
         if 'ROUTEDATA' in changed_elems:
             self.update_route_data(nodedata.routedata)
+        if 'TRAILS' in changed_elems:
+            self.update_trails_data(nodedata.traillat0,
+                                    nodedata.traillon0,
+                                    nodedata.traillat1,
+                                    nodedata.traillon1)
+
+    def update_trails_data(self, lat0, lon0, lat1, lon1):
+        ''' Update GPU buffers with route data from simulation. '''
+        if not self.initialized:
+            return
+        self.glsurface.makeCurrent()
+        self.traillines.set_vertex_count(len(lat0))
+        if len(lat0) > 0:
+            self.traillines.update(vertex=np.array(
+                    list(zip(lat0, lon0,
+                             lat1, lon1)), dtype=np.float32))
 
     def update_route_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
@@ -332,24 +348,3 @@ class Traffic(glh.RenderObject):
             if self.route_acid in data.id:
                 idx = data.id.index(self.route_acid)
                 self.route.vertex.update(np.array([data.lat[idx], data.lon[idx]], dtype=np.float32))
-
-            # Update trails database with new lines
-            if data.swtrails:
-                actdata.traillat0.extend(data.traillat0)
-                actdata.traillon0.extend(data.traillon0)
-                actdata.traillat1.extend(data.traillat1)
-                actdata.traillon1.extend(data.traillon1)
-                self.traillines.update(vertex=np.array(
-                    list(zip(actdata.traillat0, actdata.traillon0,
-                             actdata.traillat1, actdata.traillon1)) +
-                    list(zip(data.traillastlat, data.traillastlon,
-                             list(data.lat), list(data.lon))),
-                    dtype=np.float32))
-
-            else:
-                actdata.traillat0 = []
-                actdata.traillon0 = []
-                actdata.traillat1 = []
-                actdata.traillon1 = []
-
-                self.traillines.set_vertex_count(0)
