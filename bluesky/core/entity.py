@@ -96,9 +96,13 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
         ''' Return the current instance of this entity. '''
         return cls._proxy
 
-    def __init_subclass__(cls, replaceable=False):
+    def __init_subclass__(cls, replaceable=False, skipbase=False):
         super().__init_subclass__(replaceable)
-        # Each Entity subclass keeps its own (single) instance
+        # When skipbase is True, an intermediate base class is currently defined,
+        # and instance management shoud skip one step in the class tree.
+        if skipbase:
+            return
+        # Each Entity subclass keeps its own (single) instance.
         cls._instance = None
         if not hasattr(cls, '_stackcmds'):
             # Each first descendant of Entity keeps a dict of all stack commands

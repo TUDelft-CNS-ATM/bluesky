@@ -15,6 +15,8 @@ from PyQt5.QtGui import (QSurfaceFormat, QOpenGLShader, QOpenGLShaderProgram,
                          QOpenGLContext, QOpenGLVersionProfile,
                          QOpenGLTexture, QImage)
 from bluesky import settings
+from bluesky.core import Entity
+from bluesky.stack import command
 from bluesky.ui.qtgl.dds import DDSTexture
 
 
@@ -540,8 +542,21 @@ class Text(VertexArrayObject):
                      vertex_count=vertex_count, n_instances=n_instances)
 
 
-class RenderObject:
-    ''' Convenience class for drawing different (nested) objects. '''
+class RenderObject(Entity, skipbase=True):
+    ''' Convenience singleton class for drawing different (nested) objects. '''
+    # Known RenderObject base classes
+    __renderobjs__ = dict()
+
+    def __init_subclass__(cls, layer=100, skipbase=False):
+        # All renderobjects are replaceable, but it is still possible to create an intermediate non-instantiable base class
+        if not skipbase and not hasattr(cls, '_baseimpl'):
+            # Store passed layer as a class variable
+            cls.layer = layer
+            cls.visible = True
+            # Store all RenderObject base implementations in an ordereddict for drawing
+            RenderObject.__renderobjs__[cls.__name__.upper()] = cls
+
+        return super().__init_subclass__(replaceable=True, skipbase=skipbase)
 
     def __init__(self, parent=None):
         self.parent = parent
@@ -562,8 +577,33 @@ class RenderObject:
         ''' The shaderset of a RenderObject.
             Always points to the currently selected ShaderSet.
         '''
-        # TODO move to metaclass?
         return ShaderSet.selected
+
+
+@command
+def appearance(objname: "txt" = "", vis: "bool/txt" = ""):
+    ''' Set the appearance and visibility of render objects. '''
+    if not objname:
+        return True, "Render objects in BlueSky:\n" + ", ".join(RenderObject.__renderobjs__)
+    obj = RenderObject.__renderobjs__.get(objname)
+    if not obj:
+        return False, f"Render object {objname} not known!"
+    # If vis is a boolean, this command is meant to toggle the visibility of the render object
+    if isinstance(vis, bool):
+        obj.visible = vis
+        return True, f'setting visibility for {objname} to {vis}'
+    all_impls = obj.derived()
+    if vis == "":
+        return True, f"{objname} has the following available implementations:\n" + ", ".join(all_impls)
+
+    impl = all_impls.get(vis)
+    if impl is None:
+        return False, f'{vis} doesn\'t exist.\n' + \
+            f"{objname} has the following available implementations:\n" + \
+            ", ".join(all_impls)
+    # Implementation exists, we can select it
+    impl.select()
+    return True, f'Selected {vis} as visualisation for {objname}.'
 
 
 class Circle(VertexArrayObject):
