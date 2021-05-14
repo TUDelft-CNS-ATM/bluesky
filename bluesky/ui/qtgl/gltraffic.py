@@ -30,7 +30,7 @@ TRAILS_SIZE = 1000000
 
 class Traffic(glh.RenderObject):
     ''' Traffic OpenGL object. '''
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.initialized = False
         self.route_acid = ''

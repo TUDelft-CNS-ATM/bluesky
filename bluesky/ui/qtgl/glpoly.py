@@ -21,7 +21,7 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 class Poly(glh.RenderObject):
     ''' Poly OpenGL object. '''
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent)
         # Polygon preview object
         self.polyprev = glh.VertexArrayObject(glh.gl.GL_LINE_LOOP)

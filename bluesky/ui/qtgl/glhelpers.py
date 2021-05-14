@@ -559,7 +559,7 @@ class RenderObject(Entity, skipbase=True):
         return super().__init_subclass__(replaceable=True, skipbase=skipbase)
 
     def __init__(self, parent=None):
-        self.parent = parent
+        self.parent = parent or self.instance().parent
         self.glsurface = parent.glsurface if isinstance(parent, RenderObject) else parent
         self.children = list()
 
