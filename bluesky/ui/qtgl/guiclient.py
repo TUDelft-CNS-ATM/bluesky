@@ -65,6 +65,8 @@ class GuiClient(Client):
         ''' Overloaded Client.echo function. '''
         sender_data = self.get_nodedata(sender_id)
         sender_data.echo(text, flags)
+        # If sender_id is None this is an echo command originating from the gui user, and therefore also meant for the active node
+        sender_id = sender_id or self.act
         if sender_id == self.act:
             self.actnodedata_changed.emit(sender_id, sender_data, ('ECHOTEXT',))
 
