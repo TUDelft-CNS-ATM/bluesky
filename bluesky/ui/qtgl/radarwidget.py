@@ -144,7 +144,7 @@ class RadarWidget(QOpenGLWidget):
         self.shaderset.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
 
         # background color
-        glh.gl.glClearColor(1.0, 0.8, 0.8, 0)
+        glh.gl.glClearColor(0.7, 0.7, 0.7, 0)
         glh.gl.glEnable(glh.gl.GL_BLEND)
         glh.gl.glBlendFunc(glh.gl.GL_SRC_ALPHA, glh.gl.GL_ONE_MINUS_SRC_ALPHA)
 

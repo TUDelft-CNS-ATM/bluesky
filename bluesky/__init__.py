@@ -1,6 +1,7 @@
 ''' BlueSky: The open-source ATM simulator.'''
 from bluesky import settings
 from bluesky.core import Signal
+from bluesky import stack
 
 
 # Constants
@@ -75,7 +76,6 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
                 from bluesky.network.node import Node
 
         from bluesky.core import plugin
-        from bluesky import stack
         from bluesky.core import varexplorer
 
         # Initialize singletons
@@ -89,4 +89,7 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
         # Initialize remaining modules
         plugin.init(mode)
         varexplorer.init()
-        stack.init(scnfile)
+        if scnfile:
+            stack.stack(f'IC {scnfile}')
+
+    stack.init(mode)

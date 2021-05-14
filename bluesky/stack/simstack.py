@@ -3,6 +3,7 @@ import math
 import os
 import subprocess
 import bluesky as bs
+from bluesky.stack.stackbase import Stack, stack, checkscen
 from bluesky.stack.cmdparser import Command, command, commandgroup
 from bluesky.stack.basecmds import initbasecmds
 from bluesky.stack import recorder
@@ -18,17 +19,8 @@ tmxlist = ("BGPASAS", "DFFLEVEL", "FFLEVEL", "FILTCONF", "FILTTRED", "FILTTAMB",
            "GRAB", "HDGREF", "MOVIE", "NAVDB", "PREDASAS", "RENAME", "RETYPE",
            "SWNLRPASAS", "TRAFRECDT", "TRAFLOGDT", "TREACT", "WINDGRID")
 
-# Stack data
-cmdstack = []  # The actual stack: Current commands to be processed
 
-# Scenario details
-scenname = ""  # Currently used scenario name (for reading)
-scentime = []  # Times of the commands from the read scenario file
-scencmd = []  # Commands from the scenario file
-sender_rte = None  # bs net route to sender
-
-
-def init(startup_scnfile):
+def init():
     """ Initialization of the default stack commands. This function is called
         at the initialization of the main simulation object."""
 
@@ -43,18 +35,11 @@ def init(startup_scnfile):
     stack("PAN " + settings.start_location)
     stack("ZOOM 0.4")
 
-    # Load initial scenario if passed
-    if startup_scnfile:
-        stack(f'IC {startup_scnfile}')
-
 
 def reset():
     """ Reset the stack. """
-    global scentime, scencmd, scenname
 
-    scentime = []
-    scencmd = []
-    scenname = ""
+    Stack.reset()
 
     # Close recording file and reset scenario recording settings
     recorder.reset()
@@ -62,35 +47,16 @@ def reset():
     argparser.reset()
 
 
-def stack(*cmdlines, cmdsender=None):
-    """ Stack one or more commands separated by ";" """
-    for cmdline in cmdlines:
-        cmdline = cmdline.strip()
-        if cmdline:
-            for line in cmdline.split(";"):
-                cmdstack.append((line, cmdsender))
-
-
-def checkscen():
-    """ Check if commands from the scenario buffer need to be stacked. """
-    if scencmd:
-        # Find index of first timestamp exceeding bs.sim.simt
-        idx = next((i for i, t in enumerate(scentime) if t > bs.sim.simt), None)
-        # Stack all commands before that time, and remove from scenario
-        stack(*scencmd[:idx])
-        del scencmd[:idx]
-        del scentime[:idx]
 
 
 def process():
-    ''' Process and empty command stack. '''
-    global sender_rte
-
+    ''' Sim-side stack processing. '''
     # First check for commands in scenario file
     checkscen()
 
     # Process stack of commands
-    for line, sender_rte in cmdstack:
+    for line, sender_rte in Stack.cmdstack:
+        Stack.sender_rte = sender_rte
         success = True
         echotext = ''
         echoflags = bs.BS_OK
@@ -112,21 +78,13 @@ def process():
         if cmdobj:
             try:
                 # Call the command, passing the argument string
-                result = cmdobj(argstring)
-                if result is not None:
-                    if isinstance(result, tuple) and result:
-                        if len(result) > 1:
-                            echotext = result[1]
-                        success = result[0]
+                success, echotext = cmdobj(argstring)
+                if not success:
+                    if not argstring:
+                        echotext = echotext or cmdobj.brieftext()
                     else:
-                        # Assume result is a bool indicating the success of the function
-                        success = result
-                    if not success:
-                        if not argstring:
-                            echotext = echotext or cmdobj.brieftext()
-                        else:
-                            echoflags = bs.BS_FUNERR
-                            echotext = f'Syntax error: {echotext or cmdobj.brieftext()}'
+                        echoflags = bs.BS_FUNERR
+                        echotext = f'Syntax error: {echotext or cmdobj.brieftext()}'
 
             except Exception as e:
                 success = False
@@ -138,7 +96,8 @@ def process():
         # ZOOM command (or use ++++  or --  to zoom in or out)
         # ----------------------------------------------------------------------
         elif cmdu[0] in ("+", "=", "-"):
-            nplus = cmdu.count("+") + cmdu.count("=")  # = equals + (same key)
+            # = equals + (same key)
+            nplus = cmdu.count("+") + cmdu.count("=")
             nmin = cmdu.count("-")
             bs.scr.zoom(math.sqrt(2) ** (nplus - nmin), absolute=False)
             cmdu = 'ZOOM'
@@ -146,7 +105,11 @@ def process():
         # -------------------------------------------------------------------
         # Command not found
         # -------------------------------------------------------------------
+        elif sender_rte is None:
+            # Command came from scenario file: assume it's a gui/client command and send it on
+            bs.scr.stack(line)
         else:
+            success = False
             echoflags = bs.BS_CMDERR
             if not argstring:
                 echotext = f'Unknown command or aircraft: {cmd}'
@@ -164,40 +127,7 @@ def process():
             bs.scr.echo(echotext, echoflags)
 
     # Clear the processed commands
-    cmdstack.clear()
-
-
-def sender():
-    """ Return the sender of the currently executed stack command.
-        If there is no sender id (e.g., when the command originates
-        from a scenario file), None is returned. """
-    return sender_rte[-1] if sender_rte else None
-
-
-def routetosender():
-    """ Return the route to the sender of the currently executed stack command.
-        If there is no sender id (e.g., when the command originates
-        from a scenario file), None is returned. """
-    return sender_rte
-
-
-def get_scenname():
-    """ Return the name of the current scenario.
-        This is either the name defined by the SCEN command,
-        or otherwise the filename of the scenario. """
-    return scenname
-
-
-def get_scendata():
-    """ Return the scenario data that was loaded from a scenario file. """
-    return scentime, scencmd
-
-
-def set_scendata(newtime, newcmd):
-    """ Set the scenario data. This is used by the batch logic. """
-    global scentime, scencmd
-    scentime = newtime
-    scencmd = newcmd
+    Stack.cmdstack.clear()
 
 
 def readscn(fname):
@@ -288,17 +218,17 @@ def pcall(fname, *pcall_arglst):
                 for i, argtxt in enumerate(pcall_arglst):
                     cmdline = cmdline.replace(f"%{i}", argtxt)
 
-            if not scentime or cmdtime >= scentime[-1]:
-                scentime.append(cmdtime)
-                scencmd.append(cmdline)
+            if not Stack.scentime or cmdtime >= Stack.scentime[-1]:
+                Stack.scentime.append(cmdtime)
+                Stack.scencmd.append(cmdline)
             else:
                 if cmdtime > instime:
                     insidx, instime = next(
-                        ((j, t) for j, t in enumerate(scentime) if t >= cmdtime),
-                        (len(scentime), scentime[-1]),
+                        ((j, t) for j, t in enumerate(Stack.scentime) if t >= cmdtime),
+                        (len(Stack.scentime), Stack.scentime[-1]),
                     )
-                scentime.insert(insidx, cmdtime)
-                scencmd.insert(insidx, cmdline)
+                Stack.scentime.insert(insidx, cmdtime)
+                Stack.scencmd.insert(insidx, cmdline)
                 insidx += 1
 
         # stack any commands that are already due
@@ -314,7 +244,6 @@ def ic(filename : 'string' = ''):
         Arguments:
         - filename: The filename of the scenario to load. Call IC IC
           to load previous scenario again. '''
-    global scenname
 
     # reset sim always
     bs.sim.reset()
@@ -330,9 +259,9 @@ def ic(filename : 'string' = ''):
     if filename:
         try:
             for (cmdtime, cmd) in readscn(filename):
-                scentime.append(cmdtime)
-                scencmd.append(cmd)
-            scenname, _ = os.path.splitext(os.path.basename(filename))
+                Stack.scentime.append(cmdtime)
+                Stack.scencmd.append(cmd)
+            Stack.scenname, _ = os.path.splitext(os.path.basename(filename))
 
             # Remember this filename in IC.scn in scenario folder
             with open(settings.scenario_path + "/" + "ic.scn", "w") as keepicfile:
@@ -355,8 +284,7 @@ def scenario(name: 'string'):
 
         Arguments:
         - name: The name to give the scenario """
-    global scenname
-    scenname = name
+    Stack.scenname = name
     return True, "Starting scenario " + name
 
 
@@ -368,9 +296,9 @@ def schedule(time: 'time', cmdline: 'string'):
         - time: the time at which the command should be executed
         - cmdline: the command line to be executed """
     # Get index of first scentime greater than 'time' as insert position
-    idx = next((i for i, t in enumerate(scentime) if t > time), len(scentime))
-    scentime.insert(idx, time)
-    scencmd.insert(idx, cmdline)
+    idx = next((i for i, t in enumerate(Stack.scentime) if t > time), len(Stack.scentime))
+    Stack.scentime.insert(idx, time)
+    Stack.scencmd.insert(idx, cmdline)
     return True
 
 
@@ -383,9 +311,9 @@ def delay(time: 'time', cmdline: 'string'):
         - cmdline: the command line to be executed after the delay """
     # Get index of first scentime greater than 'time' as insert position
     time += bs.sim.simt
-    idx = next((i for i, t in enumerate(scentime) if t > time), len(scentime))
-    scentime.insert(idx, time)
-    scencmd.insert(idx, cmdline)
+    idx = next((i for i, t in enumerate(Stack.scentime) if t > time), len(Stack.scentime))
+    Stack.scentime.insert(idx, time)
+    Stack.scencmd.insert(idx, cmdline)
     return True
 
 

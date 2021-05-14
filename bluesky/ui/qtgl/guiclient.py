@@ -21,7 +21,7 @@ class GuiClient(Client):
         self.ref_nodedata = nodeData()
         self.discovery_timer = None
         self.timer = QTimer()
-        self.timer.timeout.connect(self.receive)
+        self.timer.timeout.connect(self.update)
         self.timer.start(20)
         self.subscribe(b'SIMINFO')
         self.subscribe(b'TRAILS')
@@ -61,6 +61,13 @@ class GuiClient(Client):
 
         super().stream(name, data, sender_id)
 
+    def echo(self, text, flags=None, sender_id=None):
+        ''' Overloaded Client.echo function. '''
+        sender_data = self.get_nodedata(sender_id)
+        sender_data.echo(text, flags)
+        if sender_id == self.act:
+            self.actnodedata_changed.emit(sender_id, sender_data, ('ECHOTEXT',))
+
     def event(self, name, data, sender_id):
         sender_data = self.get_nodedata(sender_id)
         data_changed = []
@@ -80,7 +87,7 @@ class GuiClient(Client):
         elif name == b'DISPLAYFLAG':
             sender_data.setflag(**data)
         elif name == b'ECHO':
-            sender_data.echo(**data)
+            
             data_changed.append('ECHOTEXT')
         elif name == b'PANZOOM':
             sender_data.panzoom(**data)
