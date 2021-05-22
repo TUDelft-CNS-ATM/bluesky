@@ -454,10 +454,15 @@ class Traffic(Entity):
         self.hdg = np.where(self.swhdgsel, 
                             self.hdg + bs.sim.simdt * turnrate * np.sign(delhdg), self.aporasas.hdg) % 360.0
 
-        # Update vertical speed
+        # Update vertical speed (alt select, capture and hold autopilot mode)
         delta_alt = self.aporasas.alt - self.alt
-        self.swaltsel = np.abs(delta_alt) > np.maximum(
-            10 * ft, np.abs(2 * np.abs(bs.sim.simdt * self.vs)))
+        # Old dead band version:
+        #        self.swaltsel = np.abs(delta_alt) > np.maximum(
+        #            10 * ft, np.abs(2 * bs.sim.simdt * self.vs))
+
+        # Update version: time based engage of altitude capture (to adapt for UAV vs airliner scale)
+        self.swaltsel = np.abs(delta_alt) >  1.05*np.maximum(np.abs(bs.sim.simdt * self.aporasas.vs), \
+                                                         np.abs(bs.sim.simdt * self.vs))
         target_vs = self.swaltsel * np.sign(delta_alt) * np.abs(self.aporasas.vs)
         delta_vs = target_vs - self.vs
         # print(delta_vs / fpm)
