@@ -64,8 +64,10 @@ class ActiveWaypoint(Entity, replaceable=True):
 
         # Avoid circling by checking for flying away on almost straight legs with small turndist
         # difference between direction to and track larger than 90
-        # and close to waypoint based on ground speed, assumption: FMS checks reached every 2 seconds
-        close2wp = dist/(np.maximum(0.0001,np.abs(bs.traf.gs)))<2.0 # Waypoint is within 2 seconds flight time
+        # and close to waypoint based on ground speed, assumption using vicinity criterion:
+        # flying away and within 4 sec distance based on ground speed (4 sec = sensitivity tuning parameter)
+
+        close2wp = dist/(np.maximum(0.0001,np.abs(bs.traf.gs)))<4.0 # Waypoint is within 4 seconds flight time
         away  = close2wp*(np.abs(degto180(bs.traf.trk%360. - qdr%360.)) > 90.) # difference large than 90
 
         # Ratio between distance close enough to switch to next wp when flying away
