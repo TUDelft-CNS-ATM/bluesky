@@ -46,6 +46,11 @@ class Replaceable:
             cls._baseimpl._generator = impl
 
     @classmethod
+    def getdefault(cls):
+        ''' Get the default implementation. '''
+        return cls._baseimpl
+
+    @classmethod
     def selectdefault(cls):
         ''' Select the default implementation. '''
         base = cls._baseimpl

@@ -92,9 +92,19 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
         _ = cls()
 
     @classmethod
+    def is_instantiated(cls):
+        ''' Returns true if the singleton of this class has already been instantiated. '''
+        return cls._instance is not None
+
+    @classmethod
     def instance(cls):
         ''' Return the current instance of this entity. '''
-        return cls._proxy
+        return cls._proxy or cls._instance
+
+    @classmethod
+    def implinstance(cls):
+        ''' Return the instance of this specific implementation. '''
+        return cls._instance
 
     def __init_subclass__(cls, replaceable=False, skipbase=False):
         super().__init_subclass__(replaceable)
