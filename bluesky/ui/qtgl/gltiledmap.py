@@ -42,6 +42,5 @@ class TiledMap(Map):
         shader.bind()
         shader.setUniformValue(self.offsetzoom_loc, *self.texture.offsetscale)
         self.map.draw()
-        # print(self.texture.offsetscale)
         # Temp coastlines
         Map._instance.draw(skipmap=True)

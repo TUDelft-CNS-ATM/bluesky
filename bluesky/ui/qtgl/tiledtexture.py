@@ -3,7 +3,7 @@ import math
 from os import makedirs, path
 import weakref
 from collections import OrderedDict
-import sip
+
 from PyQt5.QtCore import QObject, QRunnable, QThread, QThreadPool, pyqtSignal
 import numpy as np
 from urllib.request import urlopen
@@ -42,15 +42,14 @@ class Tile:
         fpath = path.join(bs.settings.cache_path, source, str(zoom), str(tilex))
         fname = path.join(fpath, f'{tiley}.png')
         if path.exists(fname):
-            print(f'loading {fname} from disk')
             self.image = QImage(fname).convertToFormat(QImage.Format_ARGB32)
         else:
             # Make sure cache directory exists
             makedirs(fpath, exist_ok=True)
             for url in bs.settings.tile_sources[source]:
-                url_request = urlopen(url.format(zoom=zoom, x=tilex, y=tiley))
-                print(f'downloading {url}')
                 try:
+                    url_request = urlopen(url.format(
+                        zoom=zoom, x=tilex, y=tiley))
                     data = url_request.read()
                     self.image = QImage.fromData(
                         data).convertToFormat(QImage.Format_ARGB32)
@@ -73,7 +72,6 @@ class TileLoader(QRunnable):
 
     def run(self):
         tile = Tile(*self.args, **self.kwargs)
-        print('Downloading tile', self.args, 'in', QThread.currentThreadId())
         self.signals.finished.emit(tile)
 
 
@@ -83,7 +81,6 @@ class TiledTextureMeta(type(glh.Texture)):
     tiletextures = weakref.WeakValueDictionary()
     def __call__(cls, *args, **kwargs):
         name = kwargs.get('tilesource', 'opentopomap')
-        print(name)
         if name not in cls.tiletextures:
             cls.tiletextures[name] = super().__call__(*args, **kwargs)
         return cls.tiletextures[name]
@@ -93,7 +90,6 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
     def __init__(self, glsurface, tilesource='opentopomap'):
         super().__init__(target=glh.Texture.Target2DArray)
         # TODO: take min of settings and tilesource limitations
-        # self.threadpool = ThreadPoolExecutor(max_workers=bs.settings.max_download_workers)
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(bs.settings.max_download_workers)
         self.tilesource = tilesource
@@ -119,12 +115,9 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         if self.isCreated():
             return
         super().create()
-        print('tiled texture create')
         # Fetch a temporary tile image to get dimensions
         tmptile = Tile(self.tilesource, 1, 1, 1, 0, 0)
         img = tmptile.image
-        print(
-            f'Initialising tile array to {img.width()}x{img.height()}x{bs.settings.tile_array_size}')
         self.setFormat(glh.Texture.RGBA8_UNorm)
         self.tilesize = (img.width(), img.height())
         self.setSize(img.width(), img.height())
@@ -141,7 +134,6 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # RG = texcoord offset, B = zoom factor, A = array index
         itexw = int(np.sqrt(bs.settings.tile_array_size) * 4 / 3 + 10)
         itexh = int(np.sqrt(bs.settings.tile_array_size) * 3 / 4 + 10)
-        # self.release()
         self.indextexture.create()
         self.indextexture.setFormat(glh.Texture.RGBA32I)
         self.indextexture.setSize(itexw, itexh)
@@ -158,8 +150,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.indextexture.setWrapMode(glh.Texture.DirectionT,
                          glh.Texture.ClampToBorder)
         self.indextexture.setMinMagFilters(glh.Texture.Nearest, glh.Texture.Nearest)
-        print(
-            f'Creating index texture: w={itexw} h={itexh} ntot={bs.settings.tile_array_size}')
+
         shader = glh.ShaderSet.get_shader('tiled')
         self.indexsampler_loc = shader.uniformLocation('tile_index')
         self.arraysampler_loc = shader.uniformLocation('tile_texture')
@@ -179,7 +170,6 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             the data of the current node is updated. '''
         # Update pan/zoom
         if 'PANZOOM' in changed_elems:
-            print('tex panzoom changed')
             # Check if textures need to be updated
             viewport = self.glsurface.viewportlatlon()
             surfwidth_px = self.glsurface.width()
@@ -196,9 +186,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             x1, y1 = latlon2tilenum(*viewport[2:], zoom)
             nx = abs(x1 - x0) + 1
             ny = abs(y1 - y0) + 1
-            print('Viewport:', viewport)
-            print(f'Top-left tile: latlon={viewport[0:2]} x={x0} y={y0} zoom={zoom}')
-            print(f'Bottom-right tile: latlon={viewport[2:]} x={x1} y={y1} zoom={zoom}')
+
             # Calculate the offset of the top-left tile w.r.t. the screen top-left corner
             tile0_topleft = np.array(tilenum2latlon(x0, y0, zoom))
             tile0_bottomright = np.array(tilenum2latlon(x0 + 1, y0 + 1, zoom))
@@ -215,7 +203,6 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             # Store global offset and scale for shader uniform
             self.offsetscale = np.array(
                 [tex_x0, tex_y0, tex_x1 - tex_x0, tex_y1 - tex_y0], dtype=np.float32)
-            print(tex_x0, tex_y0, tex_x1, tex_y1)
             # Determine required tiles
             index_tex = []
             curtiles = OrderedDict()
@@ -271,8 +258,6 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             _, layer = self.curtiles.popitem()
         self.curtiles[(tile.tilex, tile.tiley, tile.zoom)] = layer
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
-        print('tile', tile.tilex, tile.tiley,
-              tile.zoom, 'downloaded. Uploading to GPU at layer', layer)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
         glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0,
