@@ -16,7 +16,6 @@ class TiledMap(Map):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.map = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN, shader_type='tiled')
-        # self.map = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN)
         self.texture = TiledTexture(self.glsurface, bs.settings.tilesource)
         self.offsetzoom_loc = 0
 
@@ -27,7 +26,6 @@ class TiledMap(Map):
         self.texture.create()
         self.texture.add_bounding_box(-90, -180, 90, 180)
         self.map.create(vertex=mapvertices, texture=self.texture)
-        # self.map.create(vertex=mapvertices, color=(255, 0, 0))
         self.offsetzoom_loc = glh.ShaderSet.get_shader(
             'tiled').uniformLocation('offset_scale')
 
