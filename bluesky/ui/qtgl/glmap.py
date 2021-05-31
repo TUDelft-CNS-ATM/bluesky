@@ -53,7 +53,7 @@ class Map(glh.RenderObject):
                                 texcoords=texcoords, texture=fname)
                 break
 
-    def draw(self):
+    def draw(self, skipmap=False):
         # Send the (possibly) updated global uniforms to the buffer
         self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
 
@@ -61,7 +61,8 @@ class Map(glh.RenderObject):
         # Map and coastlines: don't wrap around in the shader
         self.shaderset.enable_wrap(False)
 
-        self.map.draw()
+        if not skipmap:
+            self.map.draw()
         shaderset = glh.ShaderSet.selected
         if shaderset.data.wrapdir == 0:
             # Normal case, no wrap around

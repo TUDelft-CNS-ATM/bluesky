@@ -5,6 +5,7 @@ import numpy as np
 
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt, qCritical, QEvent, QT_VERSION
+import sip
 
 import bluesky as bs
 from bluesky.core import Signal
@@ -16,7 +17,7 @@ from .gltraffic import Traffic
 from .glmap import Map
 from .glnavdata import Navdata
 from .glpoly import Poly
-
+from .gltiledmap import TiledMap
 # Register settings defaults
 settings.set_variable_defaults(gfx_path='data/graphics')
 
@@ -44,6 +45,8 @@ class RadarShaders(glh.ShaderSet):
                          'radarwidget-color.frag')
         self.load_shader('textured', 'radarwidget-normal.vert',
                          'radarwidget-texture.frag')
+        self.load_shader('tiled', 'radarwidget-normal.vert',
+                         'radarwidget-tiled.frag')
         self.load_shader('text', 'radarwidget-text.vert',
                          'radarwidget-text.frag')
         self.load_shader('ssd', 'ssd.vert', 'ssd.frag', 'ssd.geom')
@@ -79,7 +82,7 @@ class RadarWidget(QOpenGLWidget):
     ''' The BlueSky radar view. '''
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.width = self.height = 600
+        self.prevwidth = self.prevheight = 600
         self.panlat = 0.0
         self.panlon = 0.0
         self.zoom = 1.0
@@ -107,10 +110,10 @@ class RadarWidget(QOpenGLWidget):
         self.setMouseTracking(True)
 
         # Signals and slots
-        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        bs.net.actnodedata_changed.connect(self.actdata_changed)
         self.mouse_event = Signal('radarmouse')
 
-    def actnodedataChanged(self, nodeid, nodedata, changed_elems):
+    def actdata_changed(self, nodeid, nodedata, changed_elems):
         ''' Update buffers when a different node is selected, or when
             the data of the current node is updated. '''
 
@@ -174,13 +177,13 @@ class RadarWidget(QOpenGLWidget):
         # update the window size
 
         # Calculate zoom so that the window resize doesn't affect the scale, but only enlarges or shrinks the view
-        zoom = float(self.width) / float(width)
+        zoom = float(self.prevwidth) / float(width)
         origin = (width / 2, height / 2)
 
         # Update width, height, and aspect ratio
-        self.width, self.height = width, height
+        self.prevwidth, self.prevheight = width, height
         self.ar = float(width) / max(1, float(height))
-        self.shaderset.set_win_width_height(self.width, self.height)
+        self.shaderset.set_win_width_height(width, height)
 
         # Update zoom
         self.panzoom(zoom=zoom, origin=origin)
@@ -189,8 +192,8 @@ class RadarWidget(QOpenGLWidget):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
         """
         # GL coordinates (x, y range -1 -- 1)
-        glx = (float(2.0 * x) / self.width - 1.0)
-        gly = -(float(2.0 * y) / self.height - 1.0)
+        glx = (float(2.0 * x) / self.prevwidth - 1.0)
+        gly = -(float(2.0 * y) / self.prevheight - 1.0)
         return glx, gly
 
     def pixelCoordsToLatLon(self, x, y):
@@ -203,6 +206,13 @@ class RadarWidget(QOpenGLWidget):
         lat = self.panlat + gly / (self.zoom * self.ar)
         lon = self.panlon + glx / (self.zoom * self.flat_earth)
         return lat, lon
+
+    def viewportlatlon(self):
+        ''' Return the viewport bounds in lat/lon coordinates. '''
+        return (self.panlat + 1.0 / (self.zoom * self.ar),
+                self.panlon - 1.0 / (self.zoom * self.flat_earth),
+                self.panlat - 1.0 / (self.zoom * self.ar),
+                self.panlon + 1.0 / (self.zoom * self.flat_earth))
 
     def panzoom(self, pan=None, zoom=None, origin=None, absolute=False):
         if not self.initialized:
