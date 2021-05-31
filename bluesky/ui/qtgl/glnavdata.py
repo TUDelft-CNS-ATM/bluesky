@@ -193,6 +193,7 @@ class Navdata(glh.RenderObject):
         if actdata.show_apt:
             self.airports.draw(n_instances=nairports)
 
+        # Draw wpt/apt labels
         if actdata.show_apt:
             self.aptlabels.draw(n_instances=nairports)
         if actdata.show_wpt:
