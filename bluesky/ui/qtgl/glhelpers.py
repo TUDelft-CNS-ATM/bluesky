@@ -156,6 +156,36 @@ def init_glcontext(ctx):
     #     c_getvapointer(index, size, atype, norm, stride, offset)
     gl.glVertexAttribIPointer = funtype(funcptr.__int__())
 
+    # void glTexImage2D( GLenum target,
+    #                    GLint level,
+    #                    GLint internalFormat,
+    #                    GLsizei width,
+    #                    GLsizei height,
+    #                    GLint border,
+    #                    GLenum format,
+    #                    GLenum type,
+    #                    const void * data)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int32, ctypes.c_int32,
+                               ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
+    funcptr = ctx.getProcAddress(b'glTexImage2D')
+    gl.glTexImage2D_alt = funtype(funcptr.__int__())
+
+
+    # void glTexSubImage2D(	GLenum target,
+    #                       GLint level,
+    #                       GLint xoffset,
+    #                       GLint yoffset,
+    #                       GLsizei width,
+    #                       GLsizei height,
+    #                       GLenum format,
+    #                       GLenum type,
+    #                       const void * pixels)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int32, ctypes.c_int32,
+                               ctypes.c_int32, ctypes.c_uint32, ctypes.c_uint32,
+                               ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
+    funcptr = ctx.getProcAddress(b'glTexSubImage2D')
+    gl.glTexSubImage2D_alt = funtype(funcptr.__int__())
+
 class ShaderSet(MutableMapping):
     ''' A set of shader programs for BlueSky.
 
@@ -484,7 +514,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
         if self.single_color is not None:
             gl.glVertexAttrib4Nub(*self.single_color)
         elif self.texture:
-            self.texture.bind()
+            self.texture.bind(0)
 
         if n_instances > 0:
             gl.glDrawArraysInstanced(
@@ -559,8 +589,8 @@ class RenderObject(Entity, skipbase=True):
         return super().__init_subclass__(replaceable=True, skipbase=skipbase)
 
     def __init__(self, parent=None):
-        self.parent = parent or self.instance().parent
-        self.glsurface = parent.glsurface if isinstance(parent, RenderObject) else parent
+        self.parent = parent or self.getdefault().implinstance().parent
+        self.glsurface = self.parent.glsurface if isinstance(self.parent, RenderObject) else self.parent
         self.children = list()
 
     def draw(self):
@@ -585,14 +615,14 @@ def appearance(objname: "txt" = "", vis: "bool/txt" = ""):
     ''' Set the appearance and visibility of render objects. '''
     if not objname:
         return True, "Render objects in BlueSky:\n" + ", ".join(RenderObject.__renderobjs__)
-    obj = RenderObject.__renderobjs__.get(objname)
-    if not obj:
+    baseimpl = RenderObject.__renderobjs__.get(objname)
+    if not baseimpl:
         return False, f"Render object {objname} not known!"
     # If vis is a boolean, this command is meant to toggle the visibility of the render object
     if isinstance(vis, bool):
-        obj.visible = vis
+        baseimpl.visible = vis
         return True, f'setting visibility for {objname} to {vis}'
-    all_impls = obj.derived()
+    all_impls = baseimpl.derived()
     if vis == "":
         return True, f"{objname} has the following available implementations:\n" + ", ".join(all_impls)
 
@@ -602,7 +632,13 @@ def appearance(objname: "txt" = "", vis: "bool/txt" = ""):
             f"{objname} has the following available implementations:\n" + \
             ", ".join(all_impls)
     # Implementation exists, we can select it
+    # Check first if implementation was selected before, otherwise create should be called
+    # after construction
+    firsttime = not impl.is_instantiated()
     impl.select()
+    if firsttime:
+        impl.instance().glsurface.makeCurrent()
+        impl.instance().create()
     return True, f'Selected {vis} as visualisation for {objname}.'
 
 
@@ -705,6 +741,21 @@ class Texture(QOpenGLTexture):
             self.setData(QImage(fname))
             self.setWrapMode(QOpenGLTexture.Repeat)
 
+    def bind(self, unit=0):
+        # Overload texture bind with default texture unit to make sure that, unless an explicit
+        # texture unit is passed, the default is always zero.
+        super().bind(unit)
+
+    def setLayerData(self, layer, image):
+        ''' For array textures, set the image data at given layer. '''
+        ptr = image.constBits()
+        ptr.setsize(image.width() * image.height() * 4)
+
+        # xOffset, yOffset, zOffset, width, height, depth, sourceFormat, sourceType, data
+        # self.setData(0, 0, i - 30, imgsize[0], imgsize[1], 1,
+        #              QOpenGLTexture.BGRA, QOpenGLTexture.UInt8, ptr) #Qt >= 5.14
+        gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer,
+                           image.width(), image.height(), 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 
 class Font(Texture):
     ''' BlueSky class to implement a font using a GL Texture array. '''
@@ -749,14 +800,7 @@ class Font(Texture):
         for i in range(30, 127):
             img = QImage(path.join(settings.gfx_path, 'font/%d.png' %
                                    i)).convertToFormat(QImage.Format_ARGB32)
-            ptr = img.constBits()
-            ptr.setsize(imgsize[0] * imgsize[1] * 4)
-
-            # xOffset, yOffset, zOffset, width, height, depth, sourceFormat, sourceType, data
-            # self.setData(0, 0, i - 30, imgsize[0], imgsize[1], 1,
-            #              QOpenGLTexture.BGRA, QOpenGLTexture.UInt8, ptr) #Qt >= 5.14
-            gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 30,
-                               imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
+            self.setLayerData(i - 30, img)
 
     @classmethod
     def getdefault(cls):
