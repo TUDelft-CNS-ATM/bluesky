@@ -112,6 +112,7 @@ class RadarWidget(QOpenGLWidget):
         # Signals and slots
         bs.net.actnodedata_changed.connect(self.actdata_changed)
         self.mouse_event = Signal('radarmouse')
+        self.panzoom_event = Signal('panzoom')
 
     def actdata_changed(self, nodeid, nodedata, changed_elems):
         ''' Update buffers when a different node is selected, or when
@@ -292,6 +293,7 @@ class RadarWidget(QOpenGLWidget):
         self.shaderset.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
         # Update pan and zoom in centralized nodedata
         bs.net.get_nodedata().panzoom((self.panlat, self.panlon), self.zoom)
+        self.panzoom_event.emit(False)
         return True
 
     def event(self, event):
@@ -377,7 +379,7 @@ class RadarWidget(QOpenGLWidget):
             self.panzoomchanged = False
             bs.net.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
                                                zoom=self.zoom, ar=self.ar, absolute=True))
-
+            self.panzoom_event.emit(True)
         else:
             return super().event(event)
         

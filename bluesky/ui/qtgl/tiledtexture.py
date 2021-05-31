@@ -12,6 +12,7 @@ from urllib.error import URLError
 from PyQt5.QtGui import QImage
 
 import bluesky as bs
+from bluesky.core import Signal
 import bluesky.ui.qtgl.glhelpers as glh
 
 
@@ -56,7 +57,8 @@ class Tile:
                     with open(fname, 'wb') as fout:
                         fout.write(data)
                     break
-                except URLError:
+                except URLError as e:
+                    print(e)
                     pass
 
 
@@ -103,6 +105,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.indexsampler_loc = 0
         self.arraysampler_loc = 0
         bs.net.actnodedata_changed.connect(self.actdata_changed)
+        Signal('panzoom').connect(self.on_panzoom_changed)
 
 
     def add_bounding_box(self, lat0, lon0, lat1, lon1):
@@ -170,81 +173,85 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             the data of the current node is updated. '''
         # Update pan/zoom
         if 'PANZOOM' in changed_elems:
-            # Check if textures need to be updated
-            viewport = self.glsurface.viewportlatlon()
-            surfwidth_px = self.glsurface.width()
-            # First determine floating-point, hypothetical values to calculate the required tile zoom level
-            # floating-point number of tiles that fit in the width of the view
-            ntiles_hor = surfwidth_px / self.tilesize[0]
-            # Estimated width in longitude of one tile
-            est_tilewidth = abs(viewport[3] - viewport[1]) / ntiles_hor
+            self.on_panzoom_changed(True)
 
-            zoom = tilezoom(est_tilewidth)
-            # With the tile zoom level get the required number of tiles
-            # Top-left and bottom-right tiles:
-            x0, y0 = latlon2tilenum(*viewport[:2], zoom)
-            x1, y1 = latlon2tilenum(*viewport[2:], zoom)
-            nx = abs(x1 - x0) + 1
-            ny = abs(y1 - y0) + 1
+    def on_panzoom_changed(self, finished=False):
+        # Check if textures need to be updated
+        viewport = self.glsurface.viewportlatlon()
+        surfwidth_px = self.glsurface.width()
+        # First determine floating-point, hypothetical values to calculate the required tile zoom level
+        # floating-point number of tiles that fit in the width of the view
+        ntiles_hor = surfwidth_px / self.tilesize[0]
+        # Estimated width in longitude of one tile
+        est_tilewidth = abs(viewport[3] - viewport[1]) / ntiles_hor
 
-            # Calculate the offset of the top-left tile w.r.t. the screen top-left corner
-            tile0_topleft = np.array(tilenum2latlon(x0, y0, zoom))
-            tile0_bottomright = np.array(tilenum2latlon(x0 + 1, y0 + 1, zoom))
-            tilesize_latlon0 = np.abs(tile0_bottomright - tile0_topleft)
-            offset_latlon0 = viewport[:2] - tile0_topleft
-            tex_y0, tex_x0 = np.abs(offset_latlon0 / tilesize_latlon0)
+        zoom = tilezoom(est_tilewidth)
+        # With the tile zoom level get the required number of tiles
+        # Top-left and bottom-right tiles:
+        x0, y0 = latlon2tilenum(*viewport[:2], zoom)
+        x1, y1 = latlon2tilenum(*viewport[2:], zoom)
+        nx = abs(x1 - x0) + 1
+        ny = abs(y1 - y0) + 1
 
-            # Calculate the offset of the bottom-right tile w.r.t. the screen bottom right corner
-            tile1_topleft = np.array(tilenum2latlon(x1, y1, zoom))
-            tile1_bottomright = np.array(tilenum2latlon(x1 + 1, y1 + 1, zoom))
-            tilesize_latlon1 = np.abs(tile1_bottomright - tile1_topleft)
-            offset_latlon1 = viewport[2:] - tile1_topleft
-            tex_y1, tex_x1 = np.abs(offset_latlon1 / tilesize_latlon1) + [ny - 1, nx - 1]
-            # Store global offset and scale for shader uniform
-            self.offsetscale = np.array(
-                [tex_x0, tex_y0, tex_x1 - tex_x0, tex_y1 - tex_y0], dtype=np.float32)
-            # Determine required tiles
-            index_tex = []
-            curtiles = OrderedDict()
-            curtiles_difzoom = OrderedDict()
-            for j, y in enumerate(range(y0, y1 + 1)):
-                for i, x in enumerate(range(x0, x1 + 1)):
-                    # Find tile index if already loaded
-                    idx = self.curtiles.pop((x, y, zoom), None)
-                    if idx is not None:
-                        # correct zoom, so dx,dy=0, zoomfac=1
-                        index_tex.extend((0, 0, 1, idx))
-                        curtiles[(x, y, zoom)] = idx
-                    else:
+        # Calculate the offset of the top-left tile w.r.t. the screen top-left corner
+        tile0_topleft = np.array(tilenum2latlon(x0, y0, zoom))
+        tile0_bottomright = np.array(tilenum2latlon(x0 + 1, y0 + 1, zoom))
+        tilesize_latlon0 = np.abs(tile0_bottomright - tile0_topleft)
+        offset_latlon0 = viewport[:2] - tile0_topleft
+        tex_y0, tex_x0 = np.abs(offset_latlon0 / tilesize_latlon0)
+
+        # Calculate the offset of the bottom-right tile w.r.t. the screen bottom right corner
+        tile1_topleft = np.array(tilenum2latlon(x1, y1, zoom))
+        tile1_bottomright = np.array(tilenum2latlon(x1 + 1, y1 + 1, zoom))
+        tilesize_latlon1 = np.abs(tile1_bottomright - tile1_topleft)
+        offset_latlon1 = viewport[2:] - tile1_topleft
+        tex_y1, tex_x1 = np.abs(offset_latlon1 / tilesize_latlon1) + [ny - 1, nx - 1]
+        # Store global offset and scale for shader uniform
+        self.offsetscale = np.array(
+            [tex_x0, tex_y0, tex_x1 - tex_x0, tex_y1 - tex_y0], dtype=np.float32)
+        # Determine required tiles
+        index_tex = []
+        curtiles = OrderedDict()
+        curtiles_difzoom = OrderedDict()
+        for j, y in enumerate(range(y0, y1 + 1)):
+            for i, x in enumerate(range(x0, x1 + 1)):
+                # Find tile index if already loaded
+                idx = self.curtiles.pop((x, y, zoom), None)
+                if idx is not None:
+                    # correct zoom, so dx,dy=0, zoomfac=1
+                    index_tex.extend((0, 0, 1, idx))
+                    curtiles[(x, y, zoom)] = idx
+                else:
+                    if finished:
                         # Tile not loaded yet, fetch in the background
                         task = TileLoader(self.tilesource, zoom, x, y, i, j)
                         task.signals.finished.connect(self.load_tile)
                         self.threadpool.start(task)
 
-                        # In the mean time, check if more zoomed-out tiles are loaded that can be used
-                        for z in range(zoom - 1, max(2, zoom - 5), -1):
-                            zx, zy, dx, dy = zoomout_tilenum(x, y, z - zoom)
-                            idx = self.curtiles.pop((zx, zy, z), None)
-                            if idx is not None:
-                                curtiles_difzoom[(zx, zy, z)] = idx
-                                zoomfac = int(2 ** (zoom - z))
-                                dxi = int(round(dx * zoomfac))
-                                dyi = int(round(dy * zoomfac))
-                                # offset zoom, so possible offset dxi, dyi
-                                index_tex.extend((dxi, dyi, zoomfac, idx))
-                                break
-                        else:
-                            # No useful tile found
-                            index_tex.extend((0, 0, 0, -1))
-            # Update curtiles ordered dict
-            curtiles.update(curtiles_difzoom)
-            curtiles.update(self.curtiles)
-            self.curtiles = curtiles
-            data = np.array(index_tex, dtype=np.int32)
-            self.glsurface.makeCurrent()
-            self.indextexture.bind(2)
-            glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0,
-                                       0, 0, nx, ny, glh.Texture.RGBA_Integer, glh.Texture.Int32, data.tobytes())
+                    # In the mean time, check if more zoomed-out tiles are loaded that can be used
+                    for z in range(zoom - 1, max(2, zoom - 5), -1):
+                        zx, zy, dx, dy = zoomout_tilenum(x, y, z - zoom)
+                        idx = self.curtiles.pop((zx, zy, z), None)
+                        if idx is not None:
+                            curtiles_difzoom[(zx, zy, z)] = idx
+                            zoomfac = int(2 ** (zoom - z))
+                            dxi = int(round(dx * zoomfac))
+                            dyi = int(round(dy * zoomfac))
+                            # offset zoom, so possible offset dxi, dyi
+                            index_tex.extend((dxi, dyi, zoomfac, idx))
+                            break
+                    else:
+                        # No useful tile found
+                        index_tex.extend((0, 0, 0, -1))
+        # Update curtiles ordered dict
+        curtiles.update(curtiles_difzoom)
+        curtiles.update(self.curtiles)
+        self.curtiles = curtiles
+        data = np.array(index_tex, dtype=np.int32)
+        self.glsurface.makeCurrent()
+        self.indextexture.bind(2)
+        glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0,
+                                    0, 0, nx, ny, glh.Texture.RGBA_Integer, glh.Texture.Int32, data.tobytes())
 
     def load_tile(self, tile):
         ''' Send loaded image data to GPU texture array.

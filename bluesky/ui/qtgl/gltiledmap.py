@@ -13,6 +13,7 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 
 
 class TiledMap(Map):
+    ''' Tiled Texture background for radarview. '''
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.map = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN, shader_type='tiled')
@@ -28,6 +29,8 @@ class TiledMap(Map):
         self.map.create(vertex=mapvertices, texture=self.texture)
         self.offsetzoom_loc = glh.ShaderSet.get_shader(
             'tiled').uniformLocation('offset_scale')
+        # Make sure that we have textures on first draw
+        self.texture.on_panzoom_changed(True)
 
     def draw(self):
         # Send the (possibly) updated global uniforms to the buffer
