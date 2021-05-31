@@ -3,12 +3,11 @@ import math
 from os import makedirs, path
 import weakref
 from collections import OrderedDict
-
-from PyQt5.QtCore import QObject, QRunnable, QThread, QThreadPool, pyqtSignal
-import numpy as np
 from urllib.request import urlopen
 from urllib.error import URLError
+import numpy as np
 
+from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
 from PyQt5.QtGui import QImage
 
 import bluesky as bs
@@ -20,9 +19,11 @@ bs.settings.set_variable_defaults(
     tile_array_size=100,
     max_download_workers=2,
     tile_sources={
-        'opentopomap': ['https://a.tile.opentopomap.org/{zoom}/{x}/{y}.png',
-                        'https://b.tile.opentopomap.org/{zoom}/{x}/{y}.png',
-                        'https://c.tile.opentopomap.org/{zoom}/{x}/{y}.png']
+        'opentopomap': {
+            'source': ['https://a.tile.opentopomap.org/{zoom}/{x}/{y}.png',
+                       'https://b.tile.opentopomap.org/{zoom}/{x}/{y}.png',
+                       'https://c.tile.opentopomap.org/{zoom}/{x}/{y}.png'],
+            'max_download_workers': 2}
     })
 
 
@@ -47,7 +48,7 @@ class Tile:
         else:
             # Make sure cache directory exists
             makedirs(fpath, exist_ok=True)
-            for url in bs.settings.tile_sources[source]:
+            for url in bs.settings.tile_sources[source]['source']:
                 try:
                     url_request = urlopen(url.format(
                         zoom=zoom, x=tilex, y=tiley))
@@ -59,11 +60,12 @@ class Tile:
                     break
                 except URLError as e:
                     print(e)
-                    pass
 
 
 class TileLoader(QRunnable):
+    ''' Thread worker to load tiles in the background. '''
     class Signals(QObject):
+        ''' Container class for worker signals. '''
         finished = pyqtSignal(Tile)
 
     def __init__(self, *args, **kwargs):
@@ -73,13 +75,15 @@ class TileLoader(QRunnable):
         self.signals = TileLoader.Signals()
 
     def run(self):
+        ''' Function to execute in the worker thread. '''
         tile = Tile(*self.args, **self.kwargs)
         self.signals.finished.emit(tile)
 
 
 class TiledTextureMeta(type(glh.Texture)):
-    ''' TileTexture meta class that stores weak references to created textures so that they can be used in
-        multiple objects, but are deleted when the last reference to them is removed. '''
+    ''' TileTexture meta class that stores weak references to created textures
+        so that they can be used in multiple objects, but are deleted when the
+        last reference to them is removed. '''
     tiletextures = weakref.WeakValueDictionary()
     def __call__(cls, *args, **kwargs):
         name = kwargs.get('tilesource', 'opentopomap')
@@ -89,11 +93,13 @@ class TiledTextureMeta(type(glh.Texture)):
 
 
 class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
+    ''' Tiled texture implementation for the BlueSky GL gui. '''
     def __init__(self, glsurface, tilesource='opentopomap'):
         super().__init__(target=glh.Texture.Target2DArray)
-        # TODO: take min of settings and tilesource limitations
         self.threadpool = QThreadPool()
-        self.threadpool.setMaxThreadCount(bs.settings.max_download_workers)
+        max_dl = bs.settings.tile_sources[tilesource].get(
+            'max_download_workers', bs.settings.max_download_workers)
+        self.threadpool.setMaxThreadCount(min(bs.settings.max_download_workers, max_dl))
         self.tilesource = tilesource
         self.tilesize = (256,256)
         self.curtiles = OrderedDict()
@@ -109,12 +115,17 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
 
 
     def add_bounding_box(self, lat0, lon0, lat1, lon1):
+        ''' Add the bounding box of a textured shape.
+
+            These bounding boxes are used to determine if tiles need to be
+            downloaded. '''
         if abs(lat1 - lat0) >= 178 and abs(lon1 - lon0) >= 358:
             self.fullscreen = True
         else:
             self.bbox.append((lat0, lon0, lat1, lon1))
 
     def create(self):
+        ''' Create this texture in GPU memory. '''
         if self.isCreated():
             return
         super().create()
@@ -145,20 +156,21 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
 
         idxdata = np.array(itexw * itexh *
                            [(0, 0, 0, -1)], dtype=np.int32)
-        glh.gl.glTexImage2D_alt(glh.Texture.Target2D, 0, glh.Texture.RGBA32I, itexw, itexh, False,
-                          glh.Texture.RGBA_Integer, glh.Texture.Int32, idxdata.tobytes())
-        # self.indextexture.setData(glh.Texture.RGBA_Integer, glh.Texture.Int32, sip.voidptr(idxdata))
+        glh.gl.glTexImage2D_alt(glh.Texture.Target2D, 0, glh.Texture.RGBA32I,
+                                itexw, itexh, 0, glh.Texture.RGBA_Integer,
+                                glh.Texture.Int32, idxdata.tobytes())
+
         self.indextexture.setWrapMode(glh.Texture.DirectionS,
-                         glh.Texture.ClampToBorder)
+                                      glh.Texture.ClampToBorder)
         self.indextexture.setWrapMode(glh.Texture.DirectionT,
-                         glh.Texture.ClampToBorder)
+                                      glh.Texture.ClampToBorder)
         self.indextexture.setMinMagFilters(glh.Texture.Nearest, glh.Texture.Nearest)
 
         shader = glh.ShaderSet.get_shader('tiled')
         self.indexsampler_loc = shader.uniformLocation('tile_index')
         self.arraysampler_loc = shader.uniformLocation('tile_texture')
 
-    def bind(self, unit):
+    def bind(self, unit=0):
         ''' Bind this texture for drawing. '''
         # Set sampler locations
         glh.ShaderProgram.bound_shader.setUniformValue(self.indexsampler_loc, 2)
@@ -176,10 +188,12 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             self.on_panzoom_changed(True)
 
     def on_panzoom_changed(self, finished=False):
+        ''' Update textures whenever pan/zoom changes. '''
         # Check if textures need to be updated
         viewport = self.glsurface.viewportlatlon()
         surfwidth_px = self.glsurface.width()
-        # First determine floating-point, hypothetical values to calculate the required tile zoom level
+        # First determine floating-point, hypothetical values
+        # to calculate the required tile zoom level
         # floating-point number of tiles that fit in the width of the view
         ntiles_hor = surfwidth_px / self.tilesize[0]
         # Estimated width in longitude of one tile
@@ -250,8 +264,9 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         data = np.array(index_tex, dtype=np.int32)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0,
-                                    0, 0, nx, ny, glh.Texture.RGBA_Integer, glh.Texture.Int32, data.tobytes())
+        glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0, 0, 0, nx, ny,
+                                   glh.Texture.RGBA_Integer,
+                                   glh.Texture.Int32, data.tobytes())
 
     def load_tile(self, tile):
         ''' Send loaded image data to GPU texture array.
@@ -267,8 +282,9 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0,
-                               tile.idxx, tile.idxy, 1, 1, glh.Texture.RGBA_Integer, glh.Texture.Int32, idxdata.tobytes())
+        glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0, tile.idxx, tile.idxy,
+                                   1, 1, glh.Texture.RGBA_Integer,
+                                   glh.Texture.Int32, idxdata.tobytes())
         super().bind(4)
         self.setLayerData(layer, tile.image)
         self.indextexture.release()
@@ -276,6 +292,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
 
 
 def latlon2tilenum(lat_deg, lon_deg, zoom):
+    ''' Generate tile x/y numbers for a given lat/lon/zoom. '''
     lat_rad = math.radians(lat_deg)
     n = 2.0 ** zoom
     xtile = int((lon_deg + 180.0) / 360.0 * n)
@@ -284,6 +301,8 @@ def latlon2tilenum(lat_deg, lon_deg, zoom):
 
 
 def tilenum2latlon(xtile, ytile, zoom):
+    ''' Generate lat/lon coordinates for the top-left corner of a tile, given
+        the x/y tilenumbers and zoom factor. '''
     n = 2.0 ** zoom
     lon_deg = xtile / n * 360.0 - 180.0
     lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
@@ -292,18 +311,24 @@ def tilenum2latlon(xtile, ytile, zoom):
 
 
 def tilewidth(zoom):
+    ''' Calculate the width of a tile in degrees longitude,
+        given a zoom factor. '''
     n = 2 ** zoom
     dlon_deg = 1.0 / n * 360.0
     return dlon_deg
 
 
 def tilezoom(dlon):
+    ''' Calculate a zoom factor, given a (hypothetical) width of a tile in
+        degrees longitude. '''
     n = 1.0 / dlon * 360.0
     zoom = math.log2(n)
     return round(zoom)
 
 
 def zoomout_tilenum(xtile_in, ytile_in, delta_zoom):
+    ''' Calculate corresponding tile x/y number for the overlapping tile
+        that is 'delta_zoom' steps zoomed out. '''
     zoomfac = 2 ** delta_zoom
     xtilef = xtile_in * zoomfac
     ytilef = ytile_in * zoomfac
