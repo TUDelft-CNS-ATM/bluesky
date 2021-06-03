@@ -331,10 +331,12 @@ class RadarWidget(QOpenGLWidget):
             dlat = dlon = 0.0
             for g in event.gestures():
                 if g.gestureType() == Qt.PinchGesture:
+                    event.accept(g)
                     zoom = g.scaleFactor() * (zoom or 1.0)
                     if CORRECT_PINCH:
                         zoom /= g.lastScaleFactor()
                 elif g.gestureType() == Qt.PanGesture:
+                    event.accept(g)
                     if abs(g.delta().y() + g.delta().x()) > 1e-1:
                         dlat += 0.005 * g.delta().y() / (self.zoom * self.ar)
                         dlon -= 0.005 * g.delta().x() / (self.zoom * self.flat_earth)
@@ -372,6 +374,10 @@ class RadarWidget(QOpenGLWidget):
                 self.prevmousepos = (event.x(), event.y())
                 self.panzoomchanged = True
                 return self.panzoom(pan=(dlat, dlon))
+
+        elif event.type() == QEvent.TouchBegin:
+            # Accept touch start to enable reception of follow-on touch update and touch end events
+            event.accept()
 
         # Update pan/zoom to simulation thread only when the pan/zoom gesture is finished
         elif (event.type() == QEvent.MouseButtonRelease or
