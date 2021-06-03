@@ -18,12 +18,14 @@ import bluesky.ui.qtgl.glhelpers as glh
 bs.settings.set_variable_defaults(
     tile_array_size=100,
     max_download_workers=2,
+    max_tile_zoom=18,
     tile_sources={
         'opentopomap': {
             'source': ['https://a.tile.opentopomap.org/{zoom}/{x}/{y}.png',
                        'https://b.tile.opentopomap.org/{zoom}/{x}/{y}.png',
                        'https://c.tile.opentopomap.org/{zoom}/{x}/{y}.png'],
-            'max_download_workers': 2}
+            'max_download_workers': 2,
+            'max_tile_zoom': 17}
     })
 
 
@@ -97,8 +99,11 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
     def __init__(self, glsurface, tilesource='opentopomap'):
         super().__init__(target=glh.Texture.Target2DArray)
         self.threadpool = QThreadPool()
-        max_dl = bs.settings.tile_sources[tilesource].get(
-            'max_download_workers', bs.settings.max_download_workers)
+        tileinfo = bs.settings.tile_sources.get(tilesource)
+        if not tileinfo:
+            raise KeyError(f'Tile source {tilesource} not found!')
+        max_dl = tileinfo.get('max_download_workers', bs.settings.max_download_workers)
+        self.maxzoom = tileinfo.get('max_tile_zoom', bs.settings.max_tile_zoom)
         self.threadpool.setMaxThreadCount(min(bs.settings.max_download_workers, max_dl))
         self.tilesource = tilesource
         self.tilesize = (256,256)
@@ -199,7 +204,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # Estimated width in longitude of one tile
         est_tilewidth = abs(viewport[3] - viewport[1]) / ntiles_hor
 
-        zoom = tilezoom(est_tilewidth)
+        zoom = tilezoom(est_tilewidth, self.maxzoom)
         # With the tile zoom level get the required number of tiles
         # Top-left and bottom-right tiles:
         x0, y0 = latlon2tilenum(*viewport[:2], zoom)
@@ -318,12 +323,12 @@ def tilewidth(zoom):
     return dlon_deg
 
 
-def tilezoom(dlon):
+def tilezoom(dlon, maxzoom=18):
     ''' Calculate a zoom factor, given a (hypothetical) width of a tile in
         degrees longitude. '''
     n = 1.0 / dlon * 360.0
     zoom = math.log2(n)
-    return round(zoom)
+    return min(maxzoom, round(zoom))
 
 
 def zoomout_tilenum(xtile_in, ytile_in, delta_zoom):
