@@ -25,7 +25,8 @@ bs.settings.set_variable_defaults(
                        'https://b.tile.opentopomap.org/{zoom}/{x}/{y}.png',
                        'https://c.tile.opentopomap.org/{zoom}/{x}/{y}.png'],
             'max_download_workers': 2,
-            'max_tile_zoom': 17}
+            'max_tile_zoom': 17,
+            'license': 'map data: © OpenStreetMap contributors, SRTM | map style: © OpenTopoMap.org (CC-BY-SA)'}
     })
 
 

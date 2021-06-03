@@ -13,6 +13,15 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 
 
 class TiledMap(Map):
+    @classmethod
+    def select(cls):
+        ''' Echo tile source usage message to console before selecting TiledMap. '''
+        tileinfo = bs.settings.tile_sources.get(bs.settings.tilesource)
+        if not tileinfo:
+            raise KeyError(f'Tile source {bs.settings.tilesource} not found!')
+        msg = tileinfo.get('license', f'Tile source: {bs.settings.tilesource}')
+        bs.stack.stack(f'ECHO {msg}')
+        return super().select()
     ''' Tiled Texture background for radarview. '''
     def __init__(self, parent=None):
         super().__init__(parent=parent)
