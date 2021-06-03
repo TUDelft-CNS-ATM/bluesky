@@ -56,7 +56,7 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
     # If mode is server-gui or server-headless start the networking server
     if mode[:6] == 'server':
         global server
-        from bluesky.network import Server
+        from bluesky.network.server import Server
         server = Server(discovery)
 
     # The remaining objects are only instantiated in the sim nodes

@@ -1,8 +1,11 @@
+import os
+import subprocess
+
 import bluesky as bs
 from bluesky.stack.stackbase import Stack, stack
 from bluesky.stack.cmdparser import Command, command, commandgroup
 from bluesky.stack import argparser
-
+print('clientstack imported')
 
 def init():
     ''' client-side stack initialisation. '''
@@ -61,3 +64,42 @@ def process():
 
     # Clear the processed commands
     Stack.cmdstack.clear()
+
+
+@commandgroup(name='HELP', aliases=('?',))
+def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
+    """ HELP: Display general help text or help text for a specific command,
+        or dump command reference in file when command is >filename.
+
+        Arguments:
+        - cmd: Argument can refer to:
+            - Command name to display help for. 
+            - Call HELP >filename to generate a CSV file with help text for all commands.
+            - Call HELP PDF to view a pdf containing information on all stack commands.
+
+        To get more detailed information on a command type DOC cmd.
+    """
+
+    # Check if help is asked for a specific command
+    cmdobj = Command.cmddict.get(cmd or 'HELP')
+    if cmdobj:
+        return True, cmdobj.helptext(subcmd)
+
+    # If command is not a known Client command pass the help request on to the sim
+    bs.net.send_event(b'STACKCMD', f'HELP {cmd} {subcmd}')
+
+
+@showhelp.subcommand
+def pdf():
+    ''' Open a pdf file with BlueSky command help text. '''
+    os.chdir("docs")
+    pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
+    if os.path.isfile(pdfhelp):
+        try:
+            subprocess.Popen(pdfhelp, shell=True)
+        except:
+            return "Opening " + pdfhelp + " failed."
+    else:
+        return pdfhelp + "does not exist."
+    os.chdir("..")
+    return "Pdf window opened"

@@ -5,7 +5,7 @@ import numpy as np
 from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
 from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
-from bluesky.network import Client
+from bluesky.network.client import Client
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
 

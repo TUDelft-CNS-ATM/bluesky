@@ -1,10 +1,9 @@
 ''' Main stack functions. '''
 import math
 import os
-import subprocess
 import bluesky as bs
 from bluesky.stack.stackbase import Stack, stack, checkscen
-from bluesky.stack.cmdparser import Command, command, commandgroup
+from bluesky.stack.cmdparser import Command, command
 from bluesky.stack.basecmds import initbasecmds
 from bluesky.stack import recorder
 from bluesky.stack import argparser
@@ -317,27 +316,19 @@ def delay(time: 'time', cmdline: 'string'):
     return True
 
 
-@commandgroup(name='HELP', aliases=('?',))
+@command(name='HELP', aliases=('?',))
 def showhelp(cmd:'txt'='', subcmd:'txt'=''):
     """ HELP: Display general help text or help text for a specific command,
         or dump command reference in file when command is >filename.
 
         Arguments:
-        - cmd: Command name to display help for. Call HELP >filename to generate
-          a CSV file with help text for all commands.
+        - cmd: Argument can refer to:
+            - Command name to display help for. 
+            - Call HELP >filename to generate a CSV file with help text for all commands.
     """
-    # No command given: show all
-    if not cmd:
-        return True, (
-            "There are different ways to get help:\n"
-            " HELP PDF  gives an overview of the existing commands\n"
-            " HELP cmd  gives a help line on the command (syntax)\n"
-            " DOC  cmd  show documentation of a command (if available)\n"
-            "And there is more info in the docs folder and the wiki on Github"
-        )
 
     # Check if help is asked for a specific command
-    cmdobj = Command.cmddict.get(cmd)
+    cmdobj = Command.cmddict.get(cmd or 'HELP')
     if cmdobj:
         return True, cmdobj.helptext(subcmd)
 
@@ -370,22 +361,6 @@ def showhelp(cmd:'txt'='', subcmd:'txt'=''):
         return True, "Writing command reference in " + fname
 
     return False, "HELP: Unknown command: " + cmd
-
-
-@showhelp.subcommand
-def pdf():
-    ''' Open a pdf file with BlueSky command help text. '''
-    os.chdir("docs")
-    pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
-    if os.path.isfile(pdfhelp):
-        try:
-            subprocess.Popen(pdfhelp, shell=True)
-        except:
-            return "Opening " + pdfhelp + " failed."
-    else:
-        return pdfhelp + "does not exist."
-    os.chdir("..")
-    return "Pdf window opened"
 
 
 @command
