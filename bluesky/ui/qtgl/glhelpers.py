@@ -610,8 +610,8 @@ class RenderObject(Entity, skipbase=True):
         return ShaderSet.selected
 
 
-@command
-def appearance(objname: "txt" = "", vis: "bool/txt" = ""):
+@command(aliases=('VIS',))
+def visual(objname: "txt" = "", vis: "bool/txt" = ""):
     ''' Set the appearance and visibility of render objects. '''
     if not objname:
         return True, "Render objects in BlueSky:\n" + ", ".join(RenderObject.__renderobjs__)
