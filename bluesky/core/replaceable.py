@@ -59,7 +59,7 @@ class Replaceable:
     @classmethod
     def name(cls):
         ''' Return the name of this implementation. '''
-        return cls.__name__
+        return cls.__name__.upper()
 
     @classmethod
     def selectdefault(cls):

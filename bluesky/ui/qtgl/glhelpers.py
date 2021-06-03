@@ -684,6 +684,45 @@ class RenderObject(Entity, skipbase=True):
         return ShaderSet.selected
 
 
+@command(aliases=('ADDVIS',))
+def addvisual(target: "txt" = "", objname: "txt" = ""):
+    ''' Add a render object to a render target. 
+    
+        Argements:
+        - target: A render target such as the RadarWidget and the ND. 
+        - obj: The renderobject to add. '''
+    if not target:
+        return True, f'Available render targets: {", ".join(RenderTarget.__rendertargets__)}'
+    
+    targetobj = RenderTarget.__rendertargets__.get(target)
+    if not targetobj:
+        return False, f'Render target {target} not found!\n' + \
+            f'Available render targets: {", ".join(RenderTarget.__rendertargets__)}'
+
+    if not objname:
+        existing = targetobj._renderobjs
+        canadd = set(RenderObject.__renderobjs__.keys()) - set(existing)
+        msg = f'Target {target} is currently drawing the following objects:\n'
+        msg += ', '.join(existing) + '\n'
+        if canadd:
+            msg += f'Further objects that can be added to {target} are:\n'
+            msg += ', '.join(canadd)
+        else:
+            msg += 'There are no further objects available to add.'
+        return True, msg
+
+    classobj = RenderObject.__renderobjs__.get(objname)
+    if not classobj:
+        return False, f'Unknown render object: {objname}!'
+    # Check if object is already instantiated
+    firsttime = not classobj.is_instantiated()
+    obj = classobj()
+    if firsttime:
+        targetobj.makeCurrent()
+        obj.create()
+    targetobj.addobject(obj)
+
+
 @command(aliases=('VIS',))
 def visual(objname: "txt" = "", vis: "bool/txt" = ""):
     ''' Set the appearance and visibility of render objects. '''
