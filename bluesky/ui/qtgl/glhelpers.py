@@ -1,6 +1,10 @@
 ''' BlueSky OpenGL classes and functions. '''
 from os import path
 from collections import namedtuple
+from typing import OrderedDict
+from PyQt5.QtCore import qCritical
+
+from PyQt5.QtWidgets import QOpenGLWidget
 
 try:
     from collections.abc import Collection, MutableMapping
@@ -207,8 +211,17 @@ class ShaderSet(MutableMapping):
         self._programs = dict()
         self._ubos = dict()
         self._spath = ''
+        self._iscreated = False
         if ShaderSet.selected is None:
             self.select()
+
+    def create(self):
+        ''' Overload this function for creation of shader programs in this set. '''
+        self._iscreated = True
+
+    def created(self):
+        ''' Returns True if this shaderset was successfully created. '''
+        return self._iscreated
 
     def select(self):
         ''' Select this shader set. '''
@@ -572,18 +585,79 @@ class Text(VertexArrayObject):
                      vertex_count=vertex_count, n_instances=n_instances)
 
 
+class RenderTarget:
+    ''' Wrapper class for OpenGL render targets, which can be widgets inside a bigger window,
+        or independent GL windows. '''
+    __rendertargets__ = dict()
+
+    def __init__(self, shaderset=None):
+        # Store all RenderTarget objects
+        RenderTarget.__rendertargets__[self.__class__.__name__.upper()] = self
+        self._renderobjs = OrderedDict()
+        self._shaderset = shaderset
+
+    def set_shaderset(self, shset):
+        ''' Set the shaderset for this render target. '''
+        self._shaderset = shset
+
+    def addobject(self, obj):
+        ''' Add a RenderObject to this target to draw.
+            Objects are stored and drawn sorted by layer. '''
+        self._renderobjs[obj.getbase().name()] = obj
+        self._renderobjs = OrderedDict(sorted(self._renderobjs.items(),
+                                             key=lambda o: o[1].layer))
+
+
+class RenderWidget(QOpenGLWidget, RenderTarget):
+    def initializeGL(self):
+        init_glcontext(self.context())
+        # First check for supported GL version
+        gl_version = float(gl.glGetString(gl.GL_VERSION)[:3])
+        if gl_version < 3.3:
+            print(('OpenGL context created with GL version %.1f' % gl_version))
+            qCritical("""Your system reports that it supports OpenGL up to version %.1f. The minimum requirement for BlueSky is OpenGL 3.3.
+                Generally, AMD/ATI/nVidia cards from 2008 and newer support OpenGL 3.3, and Intel integrated graphics from the Haswell
+                generation and newer. If you think your graphics system should be able to support GL>=3.3 please open an issue report
+                on the BlueSky Github page (https://github.com/TUDelft-CNS-ATM/bluesky/issues)""" % gl_version)
+            return
+
+        if self._shaderset is None and self._renderobjs:
+            qCritical("Cannot create render objects without an initialised shader set!")
+            return
+
+        # Initialise our shaderset if this hasn't been done yet
+        if not self._shaderset.created():
+            self._shaderset.create()
+
+        # Call the create method of all registered objects
+        for obj in self._renderobjs.values():
+            obj.create()
+
+    def paintGL(self):
+        """Paint the scene."""
+        # clear the framebuffer
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+
+        # Draw our render objects in order of layer
+        for obj in self._renderobjs.values():
+            obj.draw()
+
+        # Release shaders
+        self._shaderset.release_all()
+
+
 class RenderObject(Entity, skipbase=True):
     ''' Convenience singleton class for drawing different (nested) objects. '''
     # Known RenderObject base classes
     __renderobjs__ = dict()
 
-    def __init_subclass__(cls, layer=100, skipbase=False):
+    def __init_subclass__(cls, layer=0, skipbase=False):
         # All renderobjects are replaceable, but it is still possible to create an intermediate non-instantiable base class
         if not skipbase and not hasattr(cls, '_baseimpl'):
             # Store passed layer as a class variable
             cls.layer = layer
             cls.visible = True
-            # Store all RenderObject base implementations in an ordereddict for drawing
+            # Store all RenderObject base implementations
             RenderObject.__renderobjs__[cls.__name__.upper()] = cls
 
         return super().__init_subclass__(replaceable=True, skipbase=skipbase)

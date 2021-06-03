@@ -18,7 +18,7 @@ POLY_SIZE = 2000
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 
 
-class Poly(glh.RenderObject):
+class Poly(glh.RenderObject, layer=-20):
     ''' Poly OpenGL object. '''
 
     def __init__(self, parent=None):

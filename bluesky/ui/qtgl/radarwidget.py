@@ -3,9 +3,7 @@ from os import path
 from ctypes import c_float, c_int, Structure
 import numpy as np
 
-from PyQt5.QtWidgets import QOpenGLWidget
-from PyQt5.QtCore import Qt, qCritical, QEvent, QT_VERSION
-import sip
+from PyQt5.QtCore import Qt, QEvent, QT_VERSION
 
 import bluesky as bs
 from bluesky.core import Signal
@@ -38,7 +36,8 @@ class RadarShaders(glh.ShaderSet):
                         ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
         self.data = GlobalData()
 
-    def load_shaders(self):
+    def create(self):
+        super().create()
         self.set_shader_path(path.join(settings.gfx_path, 'shaders'))
         # Load all shaders for this shader set
         self.load_shader('normal', 'radarwidget-normal.vert',
@@ -78,7 +77,7 @@ class RadarShaders(glh.ShaderSet):
         self.update_ubo('global_data', self.data)
 
 
-class RadarWidget(QOpenGLWidget):
+class RadarWidget(glh.RenderWidget):
     ''' The BlueSky radar view. '''
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -98,10 +97,13 @@ class RadarWidget(QOpenGLWidget):
         self.prevmousepos = (0, 0)
 
         self.shaderset = RadarShaders(self)
-        self.map = Map(parent=self)
-        self.traffic = Traffic(parent=self)
-        self.navdata = Navdata(parent=self)
-        self.poly = Poly(parent=self)
+        self.set_shaderset(self.shaderset)
+
+        # Add default objects
+        self.addobject(Map(parent=self))
+        self.addobject(Traffic(parent=self))
+        self.addobject(Navdata(parent=self))
+        self.addobject(Poly(parent=self))
 
         self.setAttribute(Qt.WA_AcceptTouchEvents, True)
         self.grabGesture(Qt.PanGesture)
@@ -124,24 +126,7 @@ class RadarWidget(QOpenGLWidget):
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
-        glh.init_glcontext(self.context())
-        # First check for supported GL version
-        gl_version = float(glh.gl.glGetString(glh.gl.GL_VERSION)[:3])
-        if gl_version < 3.3:
-            print(('OpenGL context created with GL version %.1f' % gl_version))
-            qCritical("""Your system reports that it supports OpenGL up to version %.1f. The minimum requirement for BlueSky is OpenGL 3.3.
-                Generally, AMD/ATI/nVidia cards from 2008 and newer support OpenGL 3.3, and Intel integrated graphics from the Haswell
-                generation and newer. If you think your graphics system should be able to support GL>=3.3 please open an issue report
-                on the BlueSky Github page (https://github.com/ProfHoekstra/bluesky/issues)""" % gl_version)
-            return
-
-        # Compile shaders and link texture shader program
-        self.shaderset.load_shaders()
-        
-        self.map.create()
-        self.traffic.create()
-        self.navdata.create()
-        self.poly.create()
+        super().initializeGL()
 
         # Set initial values for the global uniforms
         self.shaderset.set_wrap(self.wraplon, self.wrapdir)
@@ -154,24 +139,6 @@ class RadarWidget(QOpenGLWidget):
 
         self.initialized = True
 
-    def paintGL(self):
-        """Paint the scene."""
-        # clear the framebuffer
-        glh.gl.glClear(glh.gl.GL_COLOR_BUFFER_BIT)
-
-        # Draw map texture
-        self.map.draw()
-
-        self.poly.draw()
-
-        # Draw navdata
-        self.navdata.draw()
-
-        # Draw traffic
-        self.traffic.draw()
-
-        # Release shaders
-        self.shaderset.release_all()
 
     def resizeGL(self, width, height):
         """Called upon window resizing: reinitialize the viewport."""

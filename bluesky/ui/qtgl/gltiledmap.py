@@ -22,6 +22,7 @@ class TiledMap(Map):
         msg = tileinfo.get('license', f'Tile source: {bs.settings.tilesource}')
         bs.stack.stack(f'ECHO {msg}')
         return super().select()
+
     ''' Tiled Texture background for radarview. '''
     def __init__(self, parent=None):
         super().__init__(parent=parent)

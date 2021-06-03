@@ -17,7 +17,7 @@ palette.set_default_colours(
 VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 
 
-class Map(glh.RenderObject):
+class Map(glh.RenderObject, layer=-100):
     ''' Radar screen map OpenGL object. '''
     def __init__(self, parent=None):
         super().__init__(parent)

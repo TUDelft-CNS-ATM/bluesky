@@ -29,7 +29,7 @@ VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 CUSTWP_SIZE = 1000
 
 
-class Navdata(glh.RenderObject):
+class Navdata(glh.RenderObject, layer=-10):
     ''' Navdata OpenGL object. '''
 
     def __init__(self, parent=None):
