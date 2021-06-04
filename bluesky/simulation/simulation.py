@@ -224,7 +224,7 @@ class Simulation:
             simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
                 stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
                 custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
-                plugins=list(plugin.plugin_descriptions.keys()))
+                plugins=list(plugin.Plugin.plugins.keys()))
             bs.net.send_event(b'SIMSTATE', simstate, target=sender_rte)
         else:
             # This is either an unknown event or a gui event.
