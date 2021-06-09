@@ -62,7 +62,7 @@ class Tile:
                         fout.write(data)
                     break
                 except URLError as e:
-                    print(e)
+                    print(e, f'({url.format(zoom=zoom, x=tilex, y=tiley)})')
 
 
 class TileLoader(QRunnable):
@@ -80,7 +80,8 @@ class TileLoader(QRunnable):
     def run(self):
         ''' Function to execute in the worker thread. '''
         tile = Tile(*self.args, **self.kwargs)
-        self.signals.finished.emit(tile)
+        if tile.image is not None:
+            self.signals.finished.emit(tile)
 
 
 class TiledTextureMeta(type(glh.Texture)):
@@ -284,7 +285,10 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         if layer >= bs.settings.tile_array_size:
             # we're exceeding the size of the GL texture array. Replace the least-recent tile
             _, layer = self.curtiles.popitem()
+
         self.curtiles[(tile.tilex, tile.tiley, tile.zoom)] = layer
+        # Update the ordering of the tile dict: the new tile should be on top
+        self.curtiles.move_to_end((tile.tilex, tile.tiley, tile.zoom), last=False)
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
