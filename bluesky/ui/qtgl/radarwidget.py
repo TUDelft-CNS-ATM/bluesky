@@ -327,7 +327,7 @@ class RadarWidget(glh.RenderWidget):
             if '\n' not in tocmdline:
                 console.append_cmdline(tocmdline)
             if tostack:
-                console.stack(tostack)
+                bs.stack.stack(tostack)
 
         elif event.type() == QEvent.MouseMove:
             self.mousedragged = True

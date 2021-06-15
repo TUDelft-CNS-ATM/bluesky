@@ -379,7 +379,7 @@ class MainWindow(QMainWindow):
 
         # Send IC command to stack with filename if selected, else do nothing
         if fname:
-            self.console.stack('IC ' + str(fname))
+            bs.stack.stack('IC ' + str(fname))
 
     def show_doc_window(self, cmd=''):
         self.docwin.show_cmd_doc(cmd)
