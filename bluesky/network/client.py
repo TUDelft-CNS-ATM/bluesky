@@ -121,7 +121,7 @@ class Client:
                 route.reverse()
                 pydata = msgpack.unpackb(data, object_hook=decode_ndarray, raw=False)
                 if eventname == b'STACK':
-                    stack(pydata, self.sender_id)
+                    stack(pydata, sender_id=self.sender_id)
                 elif eventname == b'ECHO':
                     self.echo(**pydata, sender_id=self.sender_id)
                 elif eventname == b'NODESCHANGED':
