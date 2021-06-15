@@ -16,7 +16,7 @@ import bluesky as bs
 # (?<![\'"])[^\s,]+  : look behind for not a leading quote, then parse until first whitespace or comma
 # [\'"]?\s*,?\s*     : skip potential closing quote, whitespace, and a potential single comma
 re_getarg = re.compile(
-    r'[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
+    r'\s*[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
 # re_getarg = re.compile(r'[\'"]?((?<=[\'"])[^\'"]+|(?<![\'"])[^\s,]+)[\'"]?\s*,?\s*')
 
 # Stack reference data namespace
