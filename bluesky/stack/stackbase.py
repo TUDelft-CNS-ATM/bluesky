@@ -38,13 +38,13 @@ def checkscen():
         del Stack.scentime[:idx]
 
 
-def stack(*cmdlines, cmdsender=None):
+def stack(*cmdlines, sender_id=None):
     """ Stack one or more commands separated by ";" """
     for cmdline in cmdlines:
         cmdline = cmdline.strip()
         if cmdline:
             for line in cmdline.split(";"):
-                Stack.cmdstack.append((line, cmdsender))
+                Stack.cmdstack.append((line, sender_id))
 
 
 def sender():

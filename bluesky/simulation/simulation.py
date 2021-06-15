@@ -207,7 +207,7 @@ class Simulation:
 
         if eventname == b'STACKCMD':
             # We received a single stack command. Add it to the existing stack
-            bs.stack.stack(eventdata, cmdsender=sender_rte)
+            bs.stack.stack(eventdata, sender_id=sender_rte)
             event_processed = True
 
         elif eventname == b'BATCH':
