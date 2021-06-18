@@ -75,7 +75,6 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
             else:
                 from bluesky.network.node import Node
 
-        from bluesky.core import plugin
         from bluesky.core import varexplorer
 
         # Initialize singletons
@@ -87,9 +86,10 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
                    settings.simstream_port)
 
         # Initialize remaining modules
-        plugin.init(mode)
         varexplorer.init()
         if scnfile:
             stack.stack(f'IC {scnfile}')
 
+    from bluesky.core import plugin
+    plugin.init(mode)
     stack.init(mode)

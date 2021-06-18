@@ -1,5 +1,6 @@
 """ Implementation of BlueSky's plugin system. """
 import ast
+from bluesky.stack.stackbase import sender
 from os import path
 from pathlib import Path
 import sys
@@ -7,7 +8,7 @@ import imp
 import bluesky as bs
 from bluesky import settings
 from bluesky.core import timed_function, varexplorer as ve
-from bluesky.stack import command
+from bluesky import stack
 
 # Register settings defaults
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
@@ -141,32 +142,13 @@ class Plugin:
                             cls.plugins[plugin.plugin_name.upper()] = plugin
 
 
-@command(name='PLUGINS', aliases=('PLUGIN','PLUG-IN', 'PLUG-INS'))
-def manage(cmd : 'txt' = 'LIST', plugin_name : 'txt' = ''):
-    ''' List all plugins, load a plugin, or remove a loaded plugin.'''
-    if cmd == 'LIST':
-        running   = set(Plugin.loaded_plugins.keys())
-        available = set(Plugin.plugins.keys()) - running
-        text  = '\nCurrently running plugins: %s' % ', '.join(running)
-        if available:
-            text += '\nAvailable plugins: %s' % ', '.join(available)
-        else:
-            text += '\nNo additional plugins available.'
-        return True, text
-
-    if cmd in ('LOAD', 'ENABLE') or not plugin_name:
-        # If no command is given, assume user tries to load a plugin
-        return Plugin.load(plugin_name or cmd)
-
-    return False, f'Unknown command {cmd}'
-
-
 def init(mode):
     ''' Initialization function of the plugin system.'''
     # Add plugin path to module search path
     sys.path.append(path.abspath(settings.plugin_path))
     # Set plugin type for this instance of BlueSky
     req_type = 'sim' if mode[:3] == 'sim' else 'gui'
+    oth_type = 'gui' if mode[:3] == 'sim' else 'sim'
 
     # Find available plugins
     Plugin.find_plugins(req_type)
@@ -175,4 +157,29 @@ def init(mode):
         success = Plugin.load(pname.upper())
         print(success[1])
 
+    # Create the plugin management stack command
+    @stack.command(name='PLUGINS', aliases=('PLUGIN', 'PLUG-IN', 'PLUG-INS', f'{req_type.upper()}PLUGIN'))
+    def manage(cmd: 'txt' = 'LIST', plugin_name: 'txt' = ''):
+        ''' List all plugins, load a plugin, or remove a loaded plugin.'''
+        if cmd == 'LIST':
+            running = set(Plugin.loaded_plugins.keys())
+            available = set(Plugin.plugins.keys()) - running
+            text = f'\nCurrently running {req_type} plugins: {", ".join(running)}'
+            if available:
+                text += f'\nAvailable {req_type} plugins: {", ".join(available)}'
+            else:
+                text += f'\nNo additional {req_type} plugins available.'
+            # Also let other side print the list of plugins
+            stack.forward()
+            return True, text
 
+        if cmd in ('LOAD', 'ENABLE') or not plugin_name:
+            # If no command is given, assume user tries to load a plugin
+            success, msg = Plugin.load(plugin_name or cmd)
+            # If we're the first and plugin is not found here, send it on
+            if not success:
+                stack.forward()
+                return True
+            return success, msg
+
+        return False, f'Unknown command {cmd}'
