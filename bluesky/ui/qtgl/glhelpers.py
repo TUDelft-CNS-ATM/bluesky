@@ -685,12 +685,13 @@ class RenderObject(Entity, skipbase=True):
 
 
 @command(aliases=('ADDVIS',))
-def addvisual(target: "txt" = "", objname: "txt" = ""):
+def addvisual(objname: "txt" = "", target: "txt" = "RADARWIDGET"):
     ''' Add a render object to a render target. 
     
         Argements:
-        - target: A render target such as the RadarWidget and the ND. 
-        - obj: The renderobject to add. '''
+        - obj: The renderobject to add. 
+        - target: A render target such as the RadarWidget (the default) and the ND.
+    '''
     if not target:
         return True, f'Available render targets: {", ".join(RenderTarget.__rendertargets__)}'
     
@@ -716,7 +717,7 @@ def addvisual(target: "txt" = "", objname: "txt" = ""):
         return False, f'Unknown render object: {objname}!'
     # Check if object is already instantiated
     firsttime = not classobj.is_instantiated()
-    obj = classobj()
+    obj = classobj(parent=targetobj)
     if firsttime:
         targetobj.makeCurrent()
         obj.create()
