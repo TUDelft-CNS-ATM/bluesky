@@ -332,15 +332,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.show_file_dialog()
         elif self.sender() == self.sameic:
-            bs.net.send_event(b'STACKCMD', 'IC IC')
+            bs.net.send_event(b'STACK', 'IC IC')
         elif self.sender() == self.hold:
-            bs.net.send_event(b'STACKCMD', 'HOLD')
+            bs.net.send_event(b'STACK', 'HOLD')
         elif self.sender() == self.op:
-            bs.net.send_event(b'STACKCMD', 'OP')
+            bs.net.send_event(b'STACK', 'OP')
         elif self.sender() == self.fast:
-            bs.net.send_event(b'STACKCMD', 'FF')
+            bs.net.send_event(b'STACK', 'FF')
         elif self.sender() == self.fast10:
-            bs.net.send_event(b'STACKCMD', 'FF 0:0:10')
+            bs.net.send_event(b'STACK', 'FF 0:0:10')
         elif self.sender() == self.showac:
             actdata.show_traf = not actdata.show_traf
         elif self.sender() == self.showpz:
@@ -362,7 +362,7 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             actdata.show_map = not actdata.show_map
         elif self.sender() == self.action_Save:
-            bs.net.send_event(b'STACKCMD', 'SAVEIC')
+            bs.net.send_event(b'STACK', 'SAVEIC')
         elif hasattr(self.sender(), 'host_id'):
             bs.net.send_event(b'ADDNODES', 1)
 

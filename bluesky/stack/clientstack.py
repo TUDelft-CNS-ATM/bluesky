@@ -2,7 +2,7 @@ import os
 import subprocess
 
 import bluesky as bs
-from bluesky.stack.stackbase import Stack, stack
+from bluesky.stack.stackbase import Stack, forward, stack
 from bluesky.stack.cmdparser import Command, command, commandgroup
 from bluesky.stack import argparser
 print('clientstack imported')
@@ -15,14 +15,13 @@ def init():
 def process():
     ''' Client-side stack processing. '''
     # Process stack of commands
-    for line, sender_rte in Stack.cmdstack:
-        Stack.sender_rte = sender_rte
+    for cmdline in Stack.commands():
         success = True
         echotext = ''
         echoflags = bs.BS_OK
 
         # Get first argument from command line and check if it's a command
-        cmd, argstring = argparser.getnextarg(line)
+        cmd, argstring = argparser.getnextarg(cmdline)
         cmdu = cmd.upper()
         cmdobj = Command.cmddict.get(cmdu)
 
@@ -44,9 +43,9 @@ def process():
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
 
-        elif sender_rte is None:
+        elif Stack.sender_rte is None:
             # If sender_id is None, this stack command originated from the gui. Send it on to the sim
-            bs.net.send_event(b'STACKCMD', line)
+            forward()
         # -------------------------------------------------------------------
         # Command not found
         # -------------------------------------------------------------------
@@ -60,7 +59,7 @@ def process():
 
         # Always return on command
         if echotext:
-            bs.scr.echo(echotext, echoflags, sender_rte)
+            bs.scr.echo(echotext, echoflags, Stack.sender_rte)
 
     # Clear the processed commands
     Stack.cmdstack.clear()
@@ -86,7 +85,7 @@ def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
         return True, cmdobj.helptext(subcmd)
 
     # If command is not a known Client command pass the help request on to the sim
-    bs.net.send_event(b'STACKCMD', f'HELP {cmd} {subcmd}')
+    bs.net.send_event(b'STACK', f'HELP {cmd} {subcmd}')
 
 
 @showhelp.subcommand

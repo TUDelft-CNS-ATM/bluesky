@@ -1,8 +1,8 @@
-''' Main stack functions. '''
+''' Main simulation-side stack functions. '''
 import math
 import os
 import bluesky as bs
-from bluesky.stack.stackbase import Stack, stack, checkscen
+from bluesky.stack.stackbase import Stack, stack, checkscen, forward
 from bluesky.stack.cmdparser import Command, command
 from bluesky.stack.basecmds import initbasecmds
 from bluesky.stack import recorder
@@ -48,20 +48,20 @@ def reset():
 
 
 
+
 def process():
     ''' Sim-side stack processing. '''
     # First check for commands in scenario file
     checkscen()
 
     # Process stack of commands
-    for line, sender_rte in Stack.cmdstack:
-        Stack.sender_rte = sender_rte
+    for cmdline in Stack.commands():
         success = True
         echotext = ''
         echoflags = bs.BS_OK
 
         # Get first argument from command line and check if it's a command
-        cmd, argstring = argparser.getnextarg(line)
+        cmd, argstring = argparser.getnextarg(cmdline)
         cmdu = cmd.upper()
         cmdobj = Command.cmddict.get(cmdu)
 
@@ -104,9 +104,9 @@ def process():
         # -------------------------------------------------------------------
         # Command not found
         # -------------------------------------------------------------------
-        elif sender_rte is None:
+        elif Stack.sender_rte is None:
             # Command came from scenario file: assume it's a gui/client command and send it on
-            bs.scr.stack(line)
+            forward()
         else:
             success = False
             echoflags = bs.BS_CMDERR
@@ -117,16 +117,16 @@ def process():
 
         # Recording of actual validated commands
         if success:
-            recorder.savecmd(cmdu, line)
-        elif not sender_rte:
-            echotext = f'{line}\n{echotext}'
+            recorder.savecmd(cmdu, cmdline)
+        elif not Stack.sender_rte:
+            echotext = f'{cmdline}\n{echotext}'
 
         # Always return on command
         if echotext:
             bs.scr.echo(echotext, echoflags)
 
     # Clear the processed commands
-    Stack.cmdstack.clear()
+    Stack.clear()
 
 
 def readscn(fname):

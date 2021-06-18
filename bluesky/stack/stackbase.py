@@ -6,6 +6,7 @@ class Stack:
     ''' Stack static-only namespace. '''
 
     # Stack data
+    current = ''
     cmdstack = []  # The actual stack: Current commands to be processed
 
     # Scenario details
@@ -24,7 +25,17 @@ class Stack:
         cls.scentime = []
         cls.scencmd = []
         cls.sender_rte = None
-        
+
+    @classmethod
+    def commands(cls):
+        ''' Generator function to iterate over stack commands. '''
+        for cls.current, cls.sender_rte in cls.cmdstack:
+            yield cls.current
+
+    @classmethod
+    def clear(cls):
+        cls.cmdstack.clear()
+
 
 def checkscen():
     """ Check if commands from the scenario buffer need to be stacked. """
@@ -45,6 +56,17 @@ def stack(*cmdlines, sender_id=None):
         if cmdline:
             for line in cmdline.split(";"):
                 Stack.cmdstack.append((line, sender_id))
+
+
+def forward(cmd=None, *args):
+    ''' Forward a stack command. 
+
+        Sends command on to the client if this stack is running sim-side,
+        and vice-versa.
+    '''
+    if Stack.sender_rte is None:
+        # Only forward if this command originated here
+        bs.net.send_event(b'STACK', f'{cmd} {",".join(args)}' if cmd else Stack.current)
 
 
 def sender():

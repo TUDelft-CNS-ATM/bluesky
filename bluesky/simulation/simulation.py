@@ -205,7 +205,7 @@ class Simulation:
         # Keep track of event processing
         event_processed = False
 
-        if eventname == b'STACKCMD':
+        if eventname == b'STACK':
             # We received a single stack command. Add it to the existing stack
             bs.stack.stack(eventdata, sender_id=sender_rte)
             event_processed = True

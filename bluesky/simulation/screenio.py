@@ -67,10 +67,6 @@ class ScreenIO:
         # Communicate reset to gui
         bs.net.send_event(b'RESET', b'ALL')
 
-
-    def stack(self, cmdline):
-        bs.net.send_event(b'STACK', cmdline)
-
     def echo(self, text='', flags=0):
         bs.net.send_event(b'ECHO', dict(text=text, flags=flags))
 

@@ -36,7 +36,7 @@ class TextClient(Client):
 
     def stack(self, text):
         ''' Stack function to send stack commands to BlueSky. '''
-        self.send_event(b'STACKCMD', text)
+        self.send_event(b'STACK', text)
 
     def echo(self, text, flags=None):
         ''' Overload Client's echo function. '''
