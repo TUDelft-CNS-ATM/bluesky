@@ -2,9 +2,8 @@
     in BlueSky as the description of your plugin. """
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import stack  #, settings, navdb, sim, scr, tools
-import bluesky.ui.qtgl.glhelpers as ui
-from bluesky.ui.qtgl.glhelpers import gl
+from bluesky import stack, ui  #, settings, navdb, sim, scr, tools
+from bluesky.ui import gl
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -14,7 +13,7 @@ def init_plugin():
     # Configuration parameters
     config = {
         # The name of your plugin
-        'plugin_name':     'CLIENTEXAMPLE',
+        'plugin_name':     'GUIEXAMPLE',
 
         # The type of this plugin.
         'plugin_type':     'gui',
@@ -52,6 +51,6 @@ class MyVisual(ui.RenderObject, layer=100):
     #       This converts callsign to the corresponding index in the traffic arrays.
     # - The count argument is a regular int.
     @stack.command
-    def mycolor(self, color: 'color'):
+    def mycolor(self, *color: 'color'):
         ''' Set the color of my example shape. '''
         self.shape.single_color[1:4] = color
