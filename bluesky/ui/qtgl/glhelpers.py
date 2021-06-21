@@ -39,7 +39,10 @@ def init():
         # Initialise application-wide GL version
         fmt = QSurfaceFormat()
         fmt.setVersion(4, 1)
-        fmt.setProfile(QSurfaceFormat.CoreProfile)
+        profile = QSurfaceFormat.CompatibilityProfile if fmt.testOption(
+            QSurfaceFormat.DeprecatedFunctions) else QSurfaceFormat.CoreProfile
+        fmt.setProfile(profile)
+        # fmt.setProfile()
         QSurfaceFormat.setDefaultFormat(fmt)
 
         # Use a dummy context to get GL functions
