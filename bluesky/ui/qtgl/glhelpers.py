@@ -1,4 +1,5 @@
 ''' BlueSky OpenGL classes and functions. '''
+import sys
 from os import path
 from collections import namedtuple
 from typing import OrderedDict
@@ -39,16 +40,18 @@ def init():
         # Initialise application-wide GL version
         fmt = QSurfaceFormat()
         fmt.setVersion(4, 1)
-        profile = QSurfaceFormat.CompatibilityProfile if fmt.testOption(
-            QSurfaceFormat.DeprecatedFunctions) else QSurfaceFormat.CoreProfile
+        profile = QSurfaceFormat.CoreProfile if sys.platform == 'darwin' else QSurfaceFormat.CompatibilityProfile
         fmt.setProfile(profile)
-        # fmt.setProfile()
         QSurfaceFormat.setDefaultFormat(fmt)
 
         # Use a dummy context to get GL functions
         glprofile = QOpenGLVersionProfile(fmt)
         ctx = QOpenGLContext()
         globals()['gl'] = ctx.versionFunctions(glprofile)
+
+        # Check and set OpenGL capabilities
+        if not glprofile.hasProfiles():
+            raise RuntimeError('No OpenGL version >= 3.3 support detected for this system!')
 
         globals()['_glvar_sizes'] = {
             gl.GL_FLOAT: 1, gl.GL_FLOAT_VEC2: 2, gl.GL_FLOAT_VEC3: 3,
