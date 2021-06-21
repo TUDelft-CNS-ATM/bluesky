@@ -22,6 +22,9 @@ class Plugin:
     # Dictionary of all available plugins
     plugins = dict()
 
+    # Plugins not meant for this process type (i.e., sim/gui)
+    plugins_ext = list()
+
     loaded_plugins = dict()
 
     def __init__(self, fname):
@@ -140,6 +143,8 @@ class Plugin:
                                 plugin.plugin_stack = list(zip(stack_keys, stack_docs))
                             # Add plugin to the dict of available plugins
                             cls.plugins[plugin.plugin_name.upper()] = plugin
+                        else:
+                            cls.plugins_ext.append(cfgdict['plugin_name'].s.upper())
 
 
 def init(mode):
@@ -154,8 +159,9 @@ def init(mode):
     Plugin.find_plugins(req_type)
     # Load plugins selected in config
     for pname in settings.enabled_plugins:
-        success = Plugin.load(pname.upper())
-        print(success[1])
+        if pname.upper() not in Plugin.plugins_ext:
+            success = Plugin.load(pname.upper())
+            print(success[1])
 
     # Create the plugin management stack command
     @stack.command(name='PLUGINS', aliases=('PLUGIN', 'PLUG-IN', 'PLUG-INS', f'{req_type.upper()}PLUGIN'))
