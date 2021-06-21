@@ -47,9 +47,8 @@ class MyVisual(ui.RenderObject, layer=100):
     # By default, the stack command name is set to the function name.
     # The default argument type is a case-sensitive word. You can indicate different
     # types using argument annotations. This is done in the below function:
-    # - The acid argument is a BlueSky-specific argument with type 'acid'.
-    #       This converts callsign to the corresponding index in the traffic arrays.
-    # - The count argument is a regular int.
+    # - The color argument returns three integer values (r, g, b), which is why the 
+    #   starred notation is used here.
     @stack.command
     def mycolor(self, *color: 'color'):
         ''' Set the color of my example shape. '''
