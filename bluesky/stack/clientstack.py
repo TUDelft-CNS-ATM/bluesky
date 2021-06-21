@@ -5,7 +5,6 @@ import bluesky as bs
 from bluesky.stack.stackbase import Stack, forward, stack
 from bluesky.stack.cmdparser import Command, command, commandgroup
 from bluesky.stack import argparser
-print('clientstack imported')
 
 def init():
     ''' client-side stack initialisation. '''
