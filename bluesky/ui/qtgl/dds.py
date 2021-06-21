@@ -91,7 +91,6 @@ class DDSTexture:
             # Read main texture and possible mipmaps
             w, h = self.width, self.height
             self.data = fin.read(calcsize(w, h))
-            print(type(self.data))
             self.mipmaps = list()
             for _ in range(self.mipmapcount):
                 w = w // 2
