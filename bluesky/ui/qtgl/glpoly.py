@@ -15,8 +15,6 @@ palette.set_default_colours(
 POLYPREV_SIZE = 100
 POLY_SIZE = 2000
 
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
-
 
 class Poly(glh.RenderObject, layer=-20):
     ''' Poly OpenGL object. '''
@@ -46,7 +44,7 @@ class Poly(glh.RenderObject, layer=-20):
     def draw(self):
         actdata = bs.net.get_nodedata()
         # Send the (possibly) updated global uniforms to the buffer
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
         # --- DRAW THE MAP AND COASTLINES ---------------------------------------------
         # Map and coastlines: don't wrap around in the shader

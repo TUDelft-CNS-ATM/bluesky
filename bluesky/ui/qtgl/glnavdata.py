@@ -25,7 +25,6 @@ palette.set_default_colours(
 )
 
 # Static defines
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 CUSTWP_SIZE = 1000
 
 
@@ -155,7 +154,7 @@ class Navdata(glh.RenderObject, layer=-10):
     def draw(self):
         actdata = bs.net.get_nodedata()
         # Send the (possibly) updated global uniforms to the buffer
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
         self.shaderset.enable_wrap(False)
 
@@ -169,7 +168,7 @@ class Navdata(glh.RenderObject, layer=-10):
                 self.pavement.draw(first_vertex=idx[2], vertex_count=idx[3])
 
         self.shaderset.enable_wrap(True)
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_SCREEN)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
 
         if actdata.zoom >= 0.5 and actdata.show_apt == 1 or actdata.show_apt == 2:
             nairports = self.nairports[2]

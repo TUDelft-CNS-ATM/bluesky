@@ -28,6 +28,8 @@ if QT_VERSION <= 0x050600:
 
 class RadarShaders(glh.ShaderSet):
     ''' Shaderset for the radar view. '''
+    # Vertex type enum: Individual vertices can correspond to lat/lon coordinates, screen coordinates, or meters.
+    VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
     def __init__(self, parent):
         super().__init__(parent)
 

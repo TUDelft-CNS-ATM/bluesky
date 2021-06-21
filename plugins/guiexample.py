@@ -40,7 +40,7 @@ class MyVisual(ui.RenderObject, layer=100):
         self.shape.create(vertex=vertices, color=(255, 0, 0))
 
     def draw(self):
-        self.shaderset.set_vertex_scale_type(0)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
         self.shape.draw()
 
     # You can create new stack commands with the stack.command decorator.

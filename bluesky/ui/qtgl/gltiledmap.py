@@ -9,8 +9,6 @@ from bluesky.ui.qtgl.tiledtexture import TiledTexture
 
 bs.settings.set_variable_defaults(tilesource='opentopomap')
 
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
-
 
 class TiledMap(Map):
     @classmethod
@@ -44,7 +42,7 @@ class TiledMap(Map):
 
     def draw(self):
         # Send the (possibly) updated global uniforms to the buffer
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
         # --- DRAW THE MAP AND COASTLINES ---------------------------------------------
         # Map and coastlines: don't wrap around in the shader

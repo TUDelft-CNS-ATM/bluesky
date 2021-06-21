@@ -20,7 +20,6 @@ palette.set_default_colours(
     trails=(0, 255, 255))
 
 # Static defines
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
 MAX_NAIRCRAFT = 10000
 MAX_NCONFLICTS = 25000
 MAX_ROUTE_LENGTH = 500
@@ -125,7 +124,7 @@ class Traffic(glh.RenderObject, layer=100):
             return
 
         # Send the (possibly) updated global uniforms to the buffer
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
         self.shaderset.enable_wrap(False)
 
         self.route.draw()
@@ -138,10 +137,11 @@ class Traffic(glh.RenderObject, layer=100):
 
         # PZ circles only when they are bigger than the A/C symbols
         if actdata.show_pz and actdata.zoom >= 0.15:
-            self.shaderset.set_vertex_scale_type(VERTEX_IS_METERS)
+            self.shaderset.set_vertex_scale_type(
+                self.shaderset.VERTEX_IS_METERS)
             self.protectedzone.draw(n_instances=actdata.naircraft)
 
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_SCREEN)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
         self.ac_symbol.draw(n_instances=actdata.naircraft)

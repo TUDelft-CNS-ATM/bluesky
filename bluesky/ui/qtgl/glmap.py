@@ -14,9 +14,6 @@ palette.set_default_colours(
     coastlines=(85, 85, 115))
 
 
-VERTEX_IS_LATLON, VERTEX_IS_METERS, VERTEX_IS_SCREEN = list(range(3))
-
-
 class Map(glh.RenderObject, layer=-100):
     ''' Radar screen map OpenGL object. '''
     def __init__(self, parent=None):
@@ -55,7 +52,7 @@ class Map(glh.RenderObject, layer=-100):
 
     def draw(self, skipmap=False):
         # Send the (possibly) updated global uniforms to the buffer
-        self.shaderset.set_vertex_scale_type(VERTEX_IS_LATLON)
+        self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
         # --- DRAW THE MAP AND COASTLINES ---------------------------------------------
         # Map and coastlines: don't wrap around in the shader
