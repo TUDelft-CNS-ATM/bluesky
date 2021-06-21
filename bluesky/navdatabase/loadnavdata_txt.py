@@ -1,10 +1,15 @@
 ''' Load navigation data from text files.'''
 import os
 import numpy as np
+from zipfile import ZipFile
 from bluesky import settings
 from bluesky.tools.aero import ft
 
-def load_navdata_txt():
+
+REARTH_INV = 1.56961231e-7
+
+
+def loadnavdata_txt():
     #----------  Read  nav.dat file (nav aids) ----------
     wptdata         = dict()
     wptdata['wpid']    = []              # identifier (string)
@@ -74,7 +79,7 @@ def load_navdata_txt():
                 wptdata["wpfreq"].append(0.0)
 
             if wptype in ["VOR","NDB"]:
-                wptdata["wpvar"].append(float(fields[6])) # Magnetic variation in degrees
+                wptdata["wpvar"].append(float(fields[6])) # Magnetic variation in np.degrees
                 wptdata["wpid"].append(fields[7]) # Id
 
             elif wptype in ["DME","TACAN"]:
@@ -82,7 +87,7 @@ def load_navdata_txt():
                 wptdata["wpid"].append(fields[7]) # Id
 
             else:
-                wptdata['wpvar'].append(0.0) # Magnetic variation in degrees
+                wptdata['wpvar'].append(0.0) # Magnetic variation in np.degrees
                 wptdata['wpid'].append(" ")  # Id
 
             # Find description
@@ -348,3 +353,89 @@ def load_navdata_txt():
 
 
     return wptdata, aptdata, awydata, firdata, codata
+
+
+def loadthresholds_txt():
+    ''' Runway threshold loader for navdatabase. '''
+    rwythresholds = dict()
+    curthresholds = None
+    zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
+    print("Reading apt.dat from apt.zip")
+    with zfile.open('apt.dat', 'r') as f:
+        for line in f:
+            elems = line.decode(
+                encoding="ascii", errors="ignore").strip().split()
+            if len(elems) == 0:
+                continue
+
+            # 1: AIRPORT
+            if elems[0] == '1':
+                # Add airport to runway threshold database
+                curthresholds = dict()
+                rwythresholds[elems[4]] = curthresholds
+                continue
+
+            if elems[0] == '100':
+                # Only asphalt and concrete runways
+                if int(elems[2]) > 2:
+                    continue
+                # rwy_lbl = (elems[8], elems[17])
+
+                lat0 = float(elems[9])
+                lon0 = float(elems[10])
+                offset0 = float(elems[11])
+
+                lat1 = float(elems[18])
+                lon1 = float(elems[19])
+                offset1 = float(elems[20])
+
+                # threshold information: ICAO code airport, Runway identifier,
+                # latitude, longitude, bearing
+                # vertices: gives vertices of the box around the threshold
+
+                # opposite runways are on the same line. RWY1: 8-11, RWY2: 17-20
+                # Hence, there are two thresholds per line
+                # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
+                # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
+
+                thr0 = thresholds(np.radians(lat0), np.radians(lon0),
+                                  np.radians(lat1), np.radians(lon1), offset0)
+                thr1 = thresholds(np.radians(lat1), np.radians(lon1),
+                                  np.radians(lat0), np.radians(lon0), offset1)
+                curthresholds[elems[8]] = thr0
+                curthresholds[elems[17]] = thr1
+                continue
+    return rwythresholds
+
+
+def thresholds(lat1, lon1, lat2, lon2, offset):
+    ''' calculates the threshold points per runway
+        underlying equations can be found at
+        http://www.movable-type.co.uk/scripts/latlong.html '''
+
+    d = offset * REARTH_INV
+    deltal = lon2 - lon1
+
+    # calculate runway bearing
+    bearing = np.atan2(np.sin(deltal) * np.cos(lat2), (np.cos(lat1) * np.sin(lat2) -
+                                              np.sin(lat1) * np.cos(lat2) * np.cos(deltal)))
+
+    # normalize to 0-360 degrees
+    bearing = np.radians((np.degrees(bearing) + 360) % 360)
+
+    # get threshold points
+    latthres, lonthres = thrpoints(lat1, lon1, d, bearing)
+
+    return np.degrees(latthres), np.degrees(lonthres), np.degrees(bearing)
+
+
+def thrpoints(lat1, lon1, d, bearing):
+    ''' Calculate threshold points as well as end points of threshold box
+    underlying equations can be found at
+    http://www.movable-type.co.uk/scripts/latlong.html '''
+    latthres = np.asin(np.sin(lat1) * np.cos(d) + np.cos(lat1) * np.sin(d) * np.cos(bearing))
+
+    lonthres = lon1 + np.atan2(np.sin(bearing) * np.sin(d) * np.cos(lat1),
+                            np.cos(d) - np.sin(lat1) * np.sin(latthres))
+
+    return latthres, lonthres
