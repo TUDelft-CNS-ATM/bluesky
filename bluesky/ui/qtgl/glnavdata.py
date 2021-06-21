@@ -3,7 +3,7 @@ import numpy as np
 import bluesky as bs
 import bluesky.ui.qtgl.glhelpers as glh
 from bluesky import settings
-from bluesky.navdatabase import load_aptsurface
+from bluesky.ui.loadvisuals import load_aptsurface
 from bluesky.ui import palette
 
 

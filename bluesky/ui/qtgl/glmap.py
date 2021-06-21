@@ -4,7 +4,7 @@ import numpy as np
 
 from bluesky.ui import palette
 import bluesky.ui.qtgl.glhelpers as glh
-from bluesky.navdatabase import load_aptsurface, load_coastlines
+from bluesky.ui.loadvisuals import load_coastlines
 from bluesky import settings
 
 
