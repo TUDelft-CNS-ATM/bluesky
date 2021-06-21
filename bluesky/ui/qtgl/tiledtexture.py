@@ -26,7 +26,17 @@ bs.settings.set_variable_defaults(
                        'https://c.tile.opentopomap.org/{zoom}/{x}/{y}.png'],
             'max_download_workers': 2,
             'max_tile_zoom': 17,
-            'license': 'map data: © OpenStreetMap contributors, SRTM | map style: © OpenTopoMap.org (CC-BY-SA)'}
+            'license': 'map data: © OpenStreetMap contributors, SRTM | map style: © OpenTopoMap.org (CC-BY-SA)'},
+        'cartodb': {
+            'source': ['https://cartodb-basemaps-b.global.ssl.fastly.net/light_nolabels/{zoom}/{x}/{y}.png'],
+            'max_tile_zoom': 20,
+            'license': 'CartoDB Grey and white, no labels'
+        },
+        'nasa': {
+            'source': ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}.jpg'],
+            'max_tile_zoom': 13,
+            'license': 'Satellite images from NASA via ESRI'
+        }
     })
 
 
@@ -41,11 +51,12 @@ class Tile:
         self.tiley = tiley
         self.idxx = idxx
         self.idxy = idxy
+        self.ext = source[source.rfind('.'):]
 
         self.image = None
         # For the image data, check cache path first
         fpath = path.join(bs.settings.cache_path, source, str(zoom), str(tilex))
-        fname = path.join(fpath, f'{tiley}.png')
+        fname = path.join(fpath, f'{tiley}{self.ext}')
         if path.exists(fname):
             self.image = QImage(fname).convertToFormat(QImage.Format_ARGB32)
         else:
