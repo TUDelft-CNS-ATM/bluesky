@@ -72,7 +72,7 @@ class Parameter:
 
     def __call__(self, argstring):
         # First check if argument is omitted and default value is needed
-        if not argstring or argstring[0] in (',', '*'):
+        if not argstring or argstring[0] == ',':
             _, argstring = re_getarg.match(argstring).groups()
             if self.hasdefault():
                 return self.default, argstring
