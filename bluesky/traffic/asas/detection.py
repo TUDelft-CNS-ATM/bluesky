@@ -18,11 +18,15 @@ class ConflictDetection(Entity, replaceable=True):
         ## Default values
         # [m] Horizontal separation minimum for detection
         self.rpz_def = bs.settings.asas_pzr * nm
+        self.global_rpz = True
         # [m] Vertical separation minimum for detection
         self.hpz_def = bs.settings.asas_pzh * ft
+        self.global_hpz = True
         # [s] lookahead time
         self.dtlookahead_def = bs.settings.asas_dtlookahead
+        self.global_dtlook = True
         self.dtnolook_def = 0.0
+        self.global_dtnolook = True
 
         # Conflicts and LoS detected in the current timestep (used for resolving)
         self.confpairs = list()
@@ -83,6 +87,8 @@ class ConflictDetection(Entity, replaceable=True):
         self.hpz = bs.settings.asas_pzh * ft
         self.dtlookahead = bs.settings.asas_dtlookahead
         self.dtnolook = 0.0
+        self.global_rpz = self.global_hpz = True
+        self.global_dtlook = self.global_dtnolook = True
 
     @staticmethod
     @command(name='CDMETHOD', aliases=('ASAS',))
@@ -127,16 +133,21 @@ class ConflictDetection(Entity, replaceable=True):
         if radius < 0.0:
             return True, f'ZONER [radius(nm), acid(s)/ac group]\nCurrent default PZ radius: {self.rpz_def / nm:.2f} NM'
         if len(acidx) > 0:
+            if isinstance(acidx[0], np.ndarray):
+                acidx = acidx[0]
             self.rpz[acidx] = radius * nm
+            self.global_rpz = False
             return True, f'Setting PZ radius to {radius} NM for {len(acidx)} aircraft'
         oldradius = self.rpz_def
         self.rpz_def = radius * nm
+        if self.global_rpz:
+            self.rpz[:] = self.rpz_def
         # Adjust factors for reso zone if those were set with an absolute value
         if not bs.traf.cr.resorrelative:
             bs.stack.stack(f"RSZONER {bs.traf.cr.resofach*oldradius/nm}")
         return True, f'Setting default PZ radius to {radius} NM'
 
-    @command(name='ZONEDH')
+    @command(name='ZONEDH', aliases=('PZDH', 'DHPZ', 'PZHEIGHT'))
     def sethpz(self, height: float = -1.0, *acidx: 'acid'):
         ''' Set the vertical separation distance (i.e., half of the protected
             zone height) in feet.
@@ -148,10 +159,15 @@ class ConflictDetection(Entity, replaceable=True):
         if height < 0.0:
             return True, f'ZONEDH [height (ft), acid(s)/ac group]\nCurrent default PZ height: {self.hpz / ft:.2f} ft'
         if len(acidx) > 0:
+            if isinstance(acidx[0], np.ndarray):
+                acidx = acidx[0]
             self.hpz[acidx] = height * ft
+            self.global_hpz = False
             return True, f'Setting PZ height to {height} ft for {len(acidx)} aircraft'
         oldhpz = self.hpz_def
         self.hpz_def = height * ft
+        if self.global_hpz:
+            self.hpz[:] = self.hpz_def
         # Adjust factors for reso zone if those were set with an absolute value
         if not bs.traf.cr.resodhrelative:
             bs.stack.stack(f"RSZONEDH {bs.traf.cr.resofacv*oldhpz/ft}")
@@ -163,9 +179,14 @@ class ConflictDetection(Entity, replaceable=True):
         if time < 0.0:
             return True, f'DTLOOK[time]\nCurrent value: {self.dtlookahead_def: .1f} sec'
         if len(acidx) > 0:
+            if isinstance(acidx[0], np.ndarray):
+                acidx = acidx[0]
             self.dtlookahead[acidx] = time
+            self.global_dtlook = False
             return True, f'Setting CD lookahead to {time} sec for {len(acidx)} aircraft'
         self.dtlookahead_def = time
+        if self.global_dtlook:
+            self.dtlookahead[:] = time
         return True, f'Setting default CD lookahead to {time} sec'
 
     @command(name='DTNOLOOK')
@@ -175,9 +196,14 @@ class ConflictDetection(Entity, replaceable=True):
         if time < 0.0:
             return True, f'DTNOLOOK[time]\nCurrent value: {self.dtnolook_def: .1f} sec'
         if len(acidx) > 0:
+            if isinstance(acidx[0], np.ndarray):
+                acidx = acidx[0]
             self.dtnolook[acidx] = time
+            self.global_dtnolook = False
             return True, f'Setting CD no-look to {time} sec for {len(acidx)} aircraft'
         self.dtnolook_def = time
+        if self.global_dtnolook:
+            self.dtnolook[:] = time
         return True, f'Setting default CD no-look to {time} sec'
 
     def update(self, ownship, intruder):
