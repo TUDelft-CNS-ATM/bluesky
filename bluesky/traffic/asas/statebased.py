@@ -51,6 +51,8 @@ class StateBased(ConflictDetection):
         dcpa2 = np.abs(dist * dist - tcpa * tcpa * dv2)
 
         # Check for horizontal conflict
+        # RPZ can differ per aircraft, get the largest value per aircraft pair
+        rpz = np.asarray(np.maximum(np.asmatrix(rpz), np.asmatrix(rpz).transpose()))
         R2 = rpz * rpz
         swhorconf = dcpa2 < R2  # conflict or not
 
@@ -72,6 +74,8 @@ class StateBased(ConflictDetection):
         dvs = np.where(np.abs(dvs) < 1e-6, 1e-6, dvs)  # prevent division by zero
 
         # Check for passing through each others zone
+        # hPZ can differ per aircraft, get the largest value per aircraft pair
+        hpz = np.asarray(np.maximum(np.asmatrix(hpz), np.asmatrix(hpz).transpose()))
         tcrosshi = (dalt + hpz) / -dvs
         tcrosslo = (dalt - hpz) / -dvs
         tinver = np.minimum(tcrosshi, tcrosslo)
@@ -81,8 +85,8 @@ class StateBased(ConflictDetection):
         tinconf = np.maximum(tinver, tinhor)
         toutconf = np.minimum(toutver, touthor)
 
-        swconfl = np.array(swhorconf * (tinconf <= toutconf) * (toutconf > 0.0) * \
-            (tinconf < dtlookahead) * (1.0 - I), dtype=np.bool)
+        swconfl = np.array(swhorconf * (tinconf <= toutconf) * (toutconf > 0.0) *
+                           np.asarray(tinconf < np.asmatrix(dtlookahead).T) * (1.0 - I), dtype=np.bool)
 
         # --------------------------------------------------------------------------
         # Update conflict lists

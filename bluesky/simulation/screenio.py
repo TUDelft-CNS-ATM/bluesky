@@ -240,6 +240,7 @@ class ScreenIO:
         data['ingroup']    = bs.traf.groups.ingroup
         data['inconf'] = bs.traf.cd.inconf
         data['tcpamax'] = bs.traf.cd.tcpamax
+        data['rpz'] = bs.traf.cd.rpz
         data['nconf_cur'] = len(bs.traf.cd.confpairs_unique)
         data['nconf_tot'] = len(bs.traf.cd.confpairs_all)
         data['nlos_cur'] = len(bs.traf.cd.lospairs_unique)

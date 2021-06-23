@@ -36,6 +36,7 @@ class Traffic(glh.RenderObject, layer=100):
         self.asas_vmin = settings.asas_vmin
         self.asas_vmax = settings.asas_vmax
         self.hdg = glh.GLBuffer()
+        self.rpz = glh.GLBuffer()
         self.lat = glh.GLBuffer()
         self.lon = glh.GLBuffer()
         self.alt = glh.GLBuffer()
@@ -69,6 +70,7 @@ class Traffic(glh.RenderObject, layer=100):
         self.lbl.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
         self.asasn.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
         self.asase.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
+        self.rpz.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
 
         self.ssd.create(lat1=self.lat, lon1=self.lon, alt1=self.alt,
                         tas1=self.tas, trk1=self.hdg)
@@ -79,8 +81,8 @@ class Traffic(glh.RenderObject, layer=100):
                              trk0=self.hdg, asasn=self.asasn,
                              asase=self.asase, instance_divisor=1)
 
-        self.protectedzone.create(radius=2.5 * nm)
-        self.protectedzone.set_attribs(lat=self.lat, lon=self.lon,
+        self.protectedzone.create(radius=1.0)
+        self.protectedzone.set_attribs(lat=self.lat, lon=self.lon, scale=self.rpz,
                                        color=self.color, instance_divisor=1)
 
         acvertices = np.array([(0.0, 0.5 * ac_size), (-0.5 * ac_size, -0.5 * ac_size),
@@ -255,6 +257,7 @@ class Traffic(glh.RenderObject, layer=100):
             data.alt = data.alt[idx]
             data.tas = data.tas[idx]
             data.vs = data.vs[idx]
+            data.rpz = data.rpz[idx]
         naircraft = len(data.lat)
         actdata.translvl = data.translvl
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
@@ -269,6 +272,7 @@ class Traffic(glh.RenderObject, layer=100):
             self.hdg.update(np.array(data.trk, dtype=np.float32))
             self.alt.update(np.array(data.alt, dtype=np.float32))
             self.tas.update(np.array(data.tas, dtype=np.float32))
+            self.rpz.update(np.array(data.rpz, dtype=np.float32))
             if hasattr(data, 'asasn') and hasattr(data, 'asase'):
                 self.asasn.update(np.array(data.asasn, dtype=np.float32))
                 self.asase.update(np.array(data.asase, dtype=np.float32))

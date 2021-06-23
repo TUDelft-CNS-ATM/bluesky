@@ -215,7 +215,7 @@ class ConflictResolution(Entity, replaceable=True):
             self.resooffac[idx] = np.logical_not(self.resooffac[idx])
             return True
 
-    @command(name='RFACH', aliases=('RESOFACH',))
+    @command(name='RFACH', aliases=('RESOFACH', 'HRFAC', 'HRESOFAC'))
     def setresofach(self, factor : float = None):
         ''' Set resolution factor horizontal
             (to maneuver only a fraction of a resolution vector)
