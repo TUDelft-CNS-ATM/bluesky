@@ -233,7 +233,6 @@ class ConflictResolution(Entity, replaceable=True):
         if factor is None:
             return True, f'RFACV [FACTOR]\nCurrent vertical resolution factor is: {self.resofacv}'
         else:
-            bs.traf.asas_marv = factor
             self.resofacv = factor
             self.resodhrelative = True  # Size of resolution zone dh, vertically, set relative to CD zone
             return True, f'Vertical resolution factor set to {self.resofacv}'
@@ -243,13 +242,15 @@ class ConflictResolution(Entity, replaceable=True):
         ''' Set resolution factor horizontal, but then with absolute value
             (to maneuver only a fraction of a resolution vector)
         '''
+        if not bs.traf.cd.global_rpz:
+            self.resorrelative = True
+            return False, f'RSZONER [radiusnm]\nCan only set resolution factor when simulation contains aircraft with different RPZ,\nUse RFACH instead.'
         if zoner is None:
-            return True, f'RSZONER [radiusnm]\nCurrent horizontal resolution radius is: {self.resofach*bs.traf.cd.rpz/nm} nm'
+            return True, f'RSZONER [radiusnm]\nCurrent horizontal resolution factor is: {self.resofach}, resulting in radius: {self.resofach*bs.traf.cd.rpz_def/nm} nm'
         else:
-            bs.traf.asas_marh = zoner * nm / np.maximum(0.01, bs.traf.cd.rpz)
-            self.resofach = bs.traf.asas_marh
+            self.resofach = zoner / bs.traf.cd.rpz_def * nm
             self.resorrelative = False  # Size of resolution zone r, vertically, no longer relative to CD zone
-            return True, f'Horizontal resolution zoner set to {zoner} nm'
+            return True, f'Horizontal resolution factor updated to {self.resofach}, resulting in radius: {zoner} nm'
 
     @command(name='RSZONEDH', aliases=('RESOZONEDH',))
     def setresozonedh(self, zonedh : float = None):
@@ -257,13 +258,15 @@ class ConflictResolution(Entity, replaceable=True):
         Set resolution factor vertical (to maneuver only a fraction of a resolution vector),
         but then with absolute value
         '''
+        if not bs.traf.cd.global_hpz:
+            self.resodhrelative = True
+            return False, f'RSZONEH [zonedhft]\nCan only set resolution factor when simulation contains aircraft with different HPZ,\nUse RFACV instead.'
         if zonedh is None:
-            return True, f'RSZONEDH [zonedhft]\nCurrent vertical resolution factor is: {self.resofacv*bs.traf.cd.hpz/ft} ft'
+            return True, f'RSZONEDH [zonedhft]\nCurrent vertical resolution factor is: {self.resofacv}, resulting in height: {self.resofacv*bs.traf.cd.hpz_def/ft} ft'
         else:
-            bs.traf.asas_marv = zonedh * ft / np.maximum(0.01, bs.traf.cd.hpz)
-            self.resofacv = bs.traf.asas_marv
+            self.resofacv = zonedh / bs.traf.cd.hpz_def * ft
             self.resodhrelative = False  # Size of resolution zone dh, vertically, no longer relative to CD zone
-            return True, f'Vertical resolution zonedh set to {zonedh} ft'
+            return True, f'Vertical resolution factor updated to {self.resofacv}, resulting in height: {zonedh} ft'
 
     @staticmethod
     @command(name='RESO')
