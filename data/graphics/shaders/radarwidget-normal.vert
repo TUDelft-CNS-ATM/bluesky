@@ -22,6 +22,7 @@ layout (location = 2) in float lat;
 layout (location = 3) in float lon;
 layout (location = 4) in float orientation;
 layout (location = 5) in vec4 color;
+layout (location = 6) in float scale;
 
 out vec4 color_fs;
 out vec2 texcoords_fs;
@@ -47,7 +48,7 @@ void main()
 	switch (vertex_scale_type) {
 		case VERTEX_IS_SCREEN:
 			// Vertex coordinates are screen pixels, so correct for screen size
-			vec2 vertex_out = mrot * vertex;
+			vec2 vertex_out = scale * mrot * vertex;
 			vertex_out = vec2(2.0 * vertex_out.x / float(screen_width), 2.0 * vertex_out.y / float(screen_height));
 			gl_Position = vec4(vAR * zoom * flat_earth * position + vertex_out, 0.0, 1.0);
 			texcoords_fs = texcoords;
@@ -55,7 +56,7 @@ void main()
 		case VERTEX_IS_METERS:
 			// Vertex coordinates in meters use a right-handed coordinate system, where the positive x-axis points to the north
 			// The elements in each vertex therefore need to be flipped
-			gl_Position = vec4(vAR * zoom * (flat_earth * position + mrot * (degrees(vertex.yx * REARTH_INV))), 0.0, 1.0);
+			gl_Position = vec4(vAR * zoom * (flat_earth * position + scale * mrot * (degrees(vertex.yx * REARTH_INV))), 0.0, 1.0);
 			texcoords_fs = texcoords.ts;
 			break;
 		case VERTEX_IS_LATLON:

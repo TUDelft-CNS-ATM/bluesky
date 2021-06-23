@@ -412,6 +412,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
         self.n_instances = 0
         self.max_instance_divisor = 0
         self.single_color = None
+        self.single_scale = None
 
     def set_primitive_type(self, primitive_type):
         ''' Set the primitive type for this VAO. '''
@@ -425,7 +426,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
         ''' Set the first vertex for this VAO. '''
         self.first_vertex = vertex
 
-    def create(self, texture=None, vertex_count=0, **attribs):
+    def create(self, texture=None, vertex_count=0, n_instances=0, **attribs):
         ''' Create the actual VAO, attach passed attribs, and potentially
             create new buffers. '''
         super().create()
@@ -438,6 +439,13 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
             if self.shader_type == 'normal':
                 self.shader_type = 'textured'
         self.vertex_count = vertex_count
+        self.n_instances = n_instances
+
+        # Update special attribute 'scale' if necessary
+        scaleattrib = ShaderSet.get_shader(self.shader_type).attribs.get('scale')
+        if scaleattrib is not None:
+            self.single_scale = (scaleattrib.loc, 1.0)
+
         self.set_attribs(**attribs)
 
     def set_attribs(self, usage=QOpenGLBuffer.StaticDraw, instance_divisor=0,
@@ -470,16 +478,23 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
                     if len(data) == 3:
                         # Add full alpha if none is given
                         self.single_color = np.append(self.single_color, 255)
-                    return
+                    continue
                 # If the input is an array create a new GL buffer
                 buf = GLBuffer()
                 buf.create(usage=usage, data=data)
             elif isinstance(data, int):
                 buf = GLBuffer()
                 buf.create(usage=usage, size=data)
-            # Special attribs: color and vertex
+
+            # Special attribs: scale and vertex
             if name == 'vertex' and isinstance(data, Collection):
                 self.vertex_count = np.size(data) // 2
+            elif name == 'scale':
+                if isinstance(data, float):
+                    self.single_scale = (attrib.loc, data)
+                    continue
+                else:
+                    self.single_scale = None
 
             # Bind the buffer to the indicated attribute for this VAO
             program.enableAttributeArray(attrib.loc)
@@ -527,13 +542,17 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
 
         if vertex_count == 0:
             return
-        ShaderSet.get_shader(self.shader_type).bind()
+        shader = ShaderSet.get_shader(self.shader_type)
+        shader.bind()
         self.bind()
 
         if self.single_color is not None:
             gl.glVertexAttrib4Nub(*self.single_color)
         elif self.texture:
             self.texture.bind(0)
+
+        if self.single_scale is not None:
+            shader.setAttributeValue(*self.single_scale)
 
         if n_instances > 0:
             gl.glDrawArraysInstanced(
