@@ -2,6 +2,7 @@
 #include <Python.h>
 #include "structmember.h"
 #include "numpy/arrayobject.h"
+#include<iostream>
 
 template<typename T> int atype();
 template<> int atype<double>() {return NPY_DOUBLE;};
@@ -9,7 +10,11 @@ template<> int atype<npy_bool>() {return NPY_BOOL;};
 
 struct PyAttr {
     PyObject* attr;
-    PyAttr(PyObject* attr) : attr(attr) {}
+    PyAttr(PyObject* attr, bool refowned = false) : attr(NULL) {
+        if (refowned) {
+            this->attr = attr;
+        }
+    }
     PyAttr(PyObject* parent, const char* name) :
         attr(PyObject_GetAttrString(parent, name)) {}
     PyAttr(const PyAttr& parent, const char* name) :
@@ -22,10 +27,12 @@ struct PyArrayAttr: public PyAttr {
     T *ptr, *ptr_start;
     PyArrayObject* arr;
     PyArrayAttr(PyObject* parent, const char* name) :
-        PyAttr(parent, name) {init();}
+        PyAttr(parent, name) {init(attr);}
     PyArrayAttr(const PyAttr& parent, const char* name) :
-        PyAttr(parent, name) {init();}
-    PyArrayAttr(PyObject* attr) : PyAttr(attr) {init();}
+        PyAttr(parent, name) {init(attr);}
+    PyArrayAttr(PyObject* attr) : PyAttr(attr) {
+        init(attr);
+    }
 
     PyArrayAttr(const int length) : PyAttr(NULL) {
         int nd = 1;
@@ -36,11 +43,13 @@ struct PyArrayAttr: public PyAttr {
         }
     }
 
-    void init() {
-        if (attr != NULL) {
-            arr = (PyArrayObject*)PyArray_FROM_OTF(attr, atype<T>(), NPY_ARRAY_IN_ARRAY);
+    void init(PyObject* obj) {
+        if (obj != NULL) {
+            arr = (PyArrayObject*)PyArray_FROM_OTF(obj, atype<T>(), NPY_ARRAY_IN_ARRAY);
             if (arr != NULL) {
                 ptr_start = ptr = (T*)PyArray_DATA(arr);
+            } else {
+                std::cout << "Couldn't create array from python object" << std::endl;
             }
         }
     }
@@ -49,7 +58,7 @@ struct PyArrayAttr: public PyAttr {
         Py_XDECREF(arr);
     }
 
-    operator bool() const {return (attr != NULL);}
+    operator bool() const {return (arr != NULL);}
     npy_intp size() const {return PyArray_SIZE(arr);}
 };
 
@@ -57,7 +66,7 @@ typedef PyArrayAttr<double, NPY_DOUBLE> PyDoubleArrayAttr;
 typedef PyArrayAttr<npy_bool, NPY_BOOL> PyBoolArrayAttr;
 
 struct PyListAttr: public PyAttr {
-    PyListAttr(int size=0) : PyAttr(PyList_New(size)) {}
+    PyListAttr(int size=0) : PyAttr(PyList_New(size), true) {}
     PyListAttr(PyObject* attr) : PyAttr(attr) {}
     PyListAttr(PyObject* parent, const char* name) : PyAttr(parent, name) {}
     PyListAttr(const PyAttr& parent, const char* name) : PyAttr(parent, name) {}
