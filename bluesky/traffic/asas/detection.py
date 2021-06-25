@@ -83,10 +83,10 @@ class ConflictDetection(Entity, replaceable=True):
         self.clearconfdb()
         self.confpairs_all.clear()
         self.lospairs_all.clear()
-        self.rpz = bs.settings.asas_pzr * nm
-        self.hpz = bs.settings.asas_pzh * ft
-        self.dtlookahead = bs.settings.asas_dtlookahead
-        self.dtnolook = 0.0
+        self.rpz_def = bs.settings.asas_pzr * nm
+        self.hpz_def = bs.settings.asas_pzh * ft
+        self.dtlookahead_def = bs.settings.asas_dtlookahead
+        self.dtnolook_def = 0.0
         self.global_rpz = self.global_hpz = True
         self.global_dtlook = self.global_dtnolook = True
 
