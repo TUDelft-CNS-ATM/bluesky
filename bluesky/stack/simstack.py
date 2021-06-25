@@ -1,6 +1,7 @@
 ''' Main simulation-side stack functions. '''
 import math
 import os
+import traceback
 import bluesky as bs
 from bluesky.stack.stackbase import Stack, stack, checkscen, forward
 from bluesky.stack.cmdparser import Command, command
@@ -90,6 +91,7 @@ def process():
                 echoflags = bs.BS_ARGERR
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
+                traceback.print_exc()
 
         # ----------------------------------------------------------------------
         # ZOOM command (or use ++++  or --  to zoom in or out)
