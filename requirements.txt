@@ -10,10 +10,6 @@ matplotlib
 
 pandas
 
-pyopengl
-
-pyopengl-accelerate
-
 msgpack
 
 zmq
