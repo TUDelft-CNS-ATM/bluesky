@@ -63,12 +63,13 @@ def init():
             glprofile = QOpenGLVersionProfile(fmt)
             ctx = QOpenGLContext()
             globals()['gl'] = ctx.versionFunctions(glprofile)
+            # Check and set OpenGL capabilities
+            if not glprofile.hasProfiles():
+                raise RuntimeError(
+                    'No OpenGL version >= 3.3 support detected for this system!')
         else:
             # If profile was none, PyQt5 is not shipped with any OpenGL function modules. Use PyOpenGL instead
             globals()['gl'] = __import__('OpenGL.GL')
-        # Check and set OpenGL capabilities
-        if not glprofile.hasProfiles():
-            raise RuntimeError('No OpenGL version >= 3.3 support detected for this system!')
 
         globals()['_glvar_sizes'] = {
             gl.GL_FLOAT: 1, gl.GL_FLOAT_VEC2: 2, gl.GL_FLOAT_VEC3: 3,
