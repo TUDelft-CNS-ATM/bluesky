@@ -384,7 +384,7 @@ def kwikpos(latd1, lond1, qdr, dist):
     dlat = dy/60.
     dlon = dx/(np.maximum(0.01,60.*np.cos(np.radians(latd1))))
     latd2 = latd1 + dlat
-    lond2 = ((lond1 + dlon)+pi)%(2.*pi)-pi
+    lond2 = ((lond1 + dlon)+180)%360-180
 
     return latd2,lond2
 
