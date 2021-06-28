@@ -92,13 +92,27 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
         _ = cls()
 
     @classmethod
+    def is_instantiated(cls):
+        ''' Returns true if the singleton of this class has already been instantiated. '''
+        return cls._instance is not None
+
+    @classmethod
     def instance(cls):
         ''' Return the current instance of this entity. '''
-        return cls._proxy
+        return cls._proxy or cls._instance
 
-    def __init_subclass__(cls, replaceable=False):
+    @classmethod
+    def implinstance(cls):
+        ''' Return the instance of this specific implementation. '''
+        return cls._instance
+
+    def __init_subclass__(cls, replaceable=False, skipbase=False):
         super().__init_subclass__(replaceable)
-        # Each Entity subclass keeps its own (single) instance
+        # When skipbase is True, an intermediate base class is currently defined,
+        # and instance management shoud skip one step in the class tree.
+        if skipbase:
+            return
+        # Each Entity subclass keeps its own (single) instance.
         cls._instance = None
         if not hasattr(cls, '_stackcmds'):
             # Each first descendant of Entity keeps a dict of all stack commands

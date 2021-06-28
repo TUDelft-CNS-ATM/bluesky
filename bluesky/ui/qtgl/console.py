@@ -7,7 +7,7 @@ from bluesky.tools.misc import cmdsplit
 from bluesky.core.signal import Signal
 from . import autocomplete
 
-cmdline_stacked = Signal()
+cmdline_stacked = Signal('cmdline_stacked')
 
 
 def get_cmd():
@@ -29,12 +29,6 @@ def get_args():
     if not Console._instance:
         return []
     return Console._instance.args
-
-
-def stack(text):
-    assert Console._instance is not None, 'No console created yet: can only stack' + \
-        ' after main window is created.'
-    Console._instance.stack(text)
 
 
 def append_cmdline(text):
@@ -80,8 +74,7 @@ class Console(QWidget):
         # Add command to the command history
         self.command_history.append(text)
         self.echo(text)
-        # Send stack command to sim process
-        bs.net.send_event(b'STACKCMD', text)
+        bs.stack.stack(text)
         cmdline_stacked.emit(self.cmd, self.args)
         # reset commandline and the autocomplete history
         self.set_cmdline('')

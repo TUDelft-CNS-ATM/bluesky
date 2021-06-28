@@ -1,5 +1,7 @@
 ''' BlueSky: The open-source ATM simulator.'''
 from bluesky import settings
+from bluesky.core import Signal
+from bluesky import stack
 
 
 # Constants
@@ -54,7 +56,7 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
     # If mode is server-gui or server-headless start the networking server
     if mode[:6] == 'server':
         global server
-        from bluesky.network import Server
+        from bluesky.network.server import Server
         server = Server(discovery)
 
     # The remaining objects are only instantiated in the sim nodes
@@ -73,8 +75,6 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
             else:
                 from bluesky.network.node import Node
 
-        from bluesky.core import plugin
-        from bluesky import stack
         from bluesky.core import varexplorer
 
         # Initialize singletons
@@ -86,6 +86,10 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
                    settings.simstream_port)
 
         # Initialize remaining modules
-        plugin.init(mode)
         varexplorer.init()
-        stack.init(scnfile)
+        if scnfile:
+            stack.stack(f'IC {scnfile}')
+
+    from bluesky.core import plugin
+    plugin.init(mode)
+    stack.init(mode)

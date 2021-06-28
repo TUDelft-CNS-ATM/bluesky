@@ -32,7 +32,6 @@ void main()
     // float alpha = smoothstep(outlineDistance - smoothing, outlineDistance + smoothing, dist);
     // color.a *= alpha;
 
-
     // With a dropshadow
     float dist = calcdist(texture(tex_sampler, texcoords_fs));
     float alpha = smoothstep(0.5 - smoothing, 0.5 + smoothing, dist);

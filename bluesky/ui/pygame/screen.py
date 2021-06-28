@@ -296,6 +296,9 @@ class Screen:
         self.apswbmp = len(bs.navdb.aptlat) * [False]
         self.aplabel = len(bs.navdb.aptlat) * [0]
 
+    def stack(self, cmdline):
+        self.echo(f'Unknown command: {cmdline}')
+
     def echo(self, msg='', flags=0):
         if msg:
             msgs = msg.split('\n')

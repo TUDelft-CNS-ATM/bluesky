@@ -21,7 +21,7 @@ from bluesky.ui.qtgl.docwindow import DocWindow
 from bluesky.ui.qtgl.radarwidget import RadarWidget
 from bluesky.ui.qtgl.infowindow import InfoWindow
 from bluesky.ui.qtgl.settingswindow import SettingsWindow
-from bluesky.ui.qtgl.nd import ND
+# from bluesky.ui.qtgl.nd import ND
 
 if platform.system().lower() == "windows":
     from bluesky.ui.pygame.dialog import fileopen
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         self.mode = mode
 
         self.radarwidget = RadarWidget()
-        self.nd = ND(shareWidget=self.radarwidget)
+        # self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
         self.settingswin = SettingsWindow()
 
@@ -110,8 +110,8 @@ class MainWindow(QMainWindow):
             print('Couldnt make docwindow:', e)
         # self.aman = AMANDisplay()
         gltimer = QTimer(self)
-        gltimer.timeout.connect(self.radarwidget.updateGL)
-        gltimer.timeout.connect(self.nd.updateGL)
+        gltimer.timeout.connect(self.radarwidget.update)
+        # gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
         if platform.system() == 'Darwin':
@@ -179,14 +179,13 @@ class MainWindow(QMainWindow):
         self.maxhostnum = 0
         self.hosts = dict()
         self.nodes = dict()
+        self.actnode = ''
 
         fgcolor = '#%02x%02x%02x' % fg
         bgcolor = '#%02x%02x%02x' % bg
 
         self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
-
-        self.nconf_cur = self.nconf_tot = self.nlos_cur = self.nlos_tot = 0
 
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.ShiftModifier \
@@ -224,9 +223,11 @@ class MainWindow(QMainWindow):
         # return True
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
-        node = self.nodes[nodeid]
-        self.nodelabel.setText('<b>Node</b> {}:{}'.format(node.host_num, node.node_num))
-        self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
+        if nodeid != self.actnode:
+            self.actnode = nodeid
+            node = self.nodes[nodeid]
+            self.nodelabel.setText('<b>Node</b> {}:{}'.format(node.host_num, node.node_num))
+            self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
 
     def nodesChanged(self, data):
         for host_id, host_data in data.items():
@@ -270,6 +271,7 @@ class MainWindow(QMainWindow):
         ''' Processing of events from simulation nodes. '''
         # ND window for selected aircraft
         if eventname == b'SHOWND':
+            return
             if eventdata:
                 self.nd.setAircraftID(eventdata)
             self.nd.setVisible(not self.nd.isVisible())
@@ -288,13 +290,9 @@ class MainWindow(QMainWindow):
             simt = tim2txt(simt)[:-3]
             self.setNodeInfo(sender_id, simt, scenname)
             if sender_id == bs.net.actnode():
+                acdata = bs.net.get_nodedata().acdata
                 self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
-        elif streamname == b'ACDATA':
-            self.nconf_cur = data['nconf_cur']
-            self.nconf_tot = data['nconf_tot']
-            self.nlos_cur = data['nlos_cur']
-            self.nlos_tot = data['nlos_tot']
+                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
 
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
@@ -334,15 +332,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.show_file_dialog()
         elif self.sender() == self.sameic:
-            bs.net.send_event(b'STACKCMD', 'IC IC')
+            bs.net.send_event(b'STACK', 'IC IC')
         elif self.sender() == self.hold:
-            bs.net.send_event(b'STACKCMD', 'HOLD')
+            bs.net.send_event(b'STACK', 'HOLD')
         elif self.sender() == self.op:
-            bs.net.send_event(b'STACKCMD', 'OP')
+            bs.net.send_event(b'STACK', 'OP')
         elif self.sender() == self.fast:
-            bs.net.send_event(b'STACKCMD', 'FF')
+            bs.net.send_event(b'STACK', 'FF')
         elif self.sender() == self.fast10:
-            bs.net.send_event(b'STACKCMD', 'FF 0:0:10')
+            bs.net.send_event(b'STACK', 'FF 0:0:10')
         elif self.sender() == self.showac:
             actdata.show_traf = not actdata.show_traf
         elif self.sender() == self.showpz:
@@ -364,7 +362,7 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             actdata.show_map = not actdata.show_map
         elif self.sender() == self.action_Save:
-            bs.net.send_event(b'STACKCMD', 'SAVEIC')
+            bs.net.send_event(b'STACK', 'SAVEIC')
         elif hasattr(self.sender(), 'host_id'):
             bs.net.send_event(b'ADDNODES', 1)
 
@@ -381,7 +379,7 @@ class MainWindow(QMainWindow):
 
         # Send IC command to stack with filename if selected, else do nothing
         if fname:
-            self.console.stack('IC ' + str(fname))
+            bs.stack.stack('IC ' + str(fname))
 
     def show_doc_window(self, cmd=''):
         self.docwin.show_cmd_doc(cmd)

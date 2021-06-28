@@ -4,7 +4,7 @@ import os
 
 import bluesky as bs
 from bluesky import settings
-from bluesky.core import select_implementation, plugin, simtime, varexplorer as ve
+from bluesky.core import select_implementation, simtime, varexplorer as ve
 from bluesky.tools import geo, areafilter, plotter
 from bluesky.tools.calculator import calculator
 from bluesky.stack.cmdparser import append_commands
@@ -411,12 +411,6 @@ def initbasecmds():
             plotter.plot,
             "Create a graph of variables x versus y.",
         ],
-        "PLUGINS": [
-            "PLUGINS LIST or PLUGINS LOAD/REMOVE plugin ",
-            "[txt,txt]",
-            plugin.manage,
-            "List all plugins, load a plugin, or remove a loaded plugin.",
-        ],
         "POLY": [
             "POLY name,[lat,lon,lat,lon, ...]",
             "txt,[latlon,...]",
@@ -570,9 +564,6 @@ def initbasecmds():
         "MAGDEC": "MAGVAR",
         "MAGDECL":"MAGVAR",
         "PAUSE": "HOLD",
-        "PLUGIN": "PLUGINS",
-        "PLUG-IN": "PLUGINS",
-        "PLUG-INS": "PLUGINS",
         "POLYGON": "POLY",
         "POLYLINES": "POLYLINE",
         "PRINT": "ECHO",

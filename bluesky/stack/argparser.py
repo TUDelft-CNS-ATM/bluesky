@@ -16,7 +16,7 @@ import bluesky as bs
 # (?<![\'"])[^\s,]+  : look behind for not a leading quote, then parse until first whitespace or comma
 # [\'"]?\s*,?\s*     : skip potential closing quote, whitespace, and a potential single comma
 re_getarg = re.compile(
-    r'[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
+    r'\s*[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
 # re_getarg = re.compile(r'[\'"]?((?<=[\'"])[^\'"]+|(?<![\'"])[^\s,]+)[\'"]?\s*,?\s*')
 
 # Stack reference data namespace
@@ -72,7 +72,7 @@ class Parameter:
 
     def __call__(self, argstring):
         # First check if argument is omitted and default value is needed
-        if not argstring or argstring[0] in (',', '*'):
+        if not argstring or argstring[0] == ',':
             _, argstring = re_getarg.match(argstring).groups()
             if self.hasdefault():
                 return self.default, argstring

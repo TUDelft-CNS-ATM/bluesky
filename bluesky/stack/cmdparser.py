@@ -81,7 +81,15 @@ class Command:
 
         # Call callback function with parsed parameters
         ret = self.callback(*args)
-        return ret
+        # Always return a tuple with a success value and a message string
+        if ret is None:
+            return True, ''
+        if isinstance(ret, (tuple, list)) and ret:
+            if len(ret) > 1:
+                # Assume that (success, echotext) is returned
+                return ret[:2]
+            ret = ret[0]
+        return ret, ''
 
     def __repr__(self):
         if self.valid:

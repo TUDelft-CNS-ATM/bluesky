@@ -4,6 +4,7 @@ import zmq
 import msgpack
 import bluesky
 from bluesky.core import Signal
+from bluesky.stack.clientstack import stack, process
 from bluesky.network.discovery import Discovery
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
@@ -24,14 +25,17 @@ class Client:
         self.discovery = None
 
         # Signals
-        self.nodes_changed = Signal()
-        self.server_discovered = Signal()
-        self.signal_quit = Signal()
-        self.event_received = Signal()
-        self.stream_received = Signal()
+        self.nodes_changed = Signal('nodes_changed')
+        self.server_discovered = Signal('server_discovered')
+        self.signal_quit = Signal('quit')
+        self.event_received = Signal('event_received')
+        self.stream_received = Signal('stream_received')
 
         # Tell bluesky that this client will manage the network I/O
         bluesky.net = self
+        # If no other object is taking care of this, let this client act as screen object as well
+        if not bluesky.scr:
+            bluesky.scr = self
 
     def start_discovery(self):
         if not self.discovery:
@@ -87,6 +91,20 @@ class Client:
         self.poller.register(self.event_io, zmq.POLLIN)
         self.poller.register(self.stream_in, zmq.POLLIN)
 
+    def echo(self, text, flags=None, sender_id=None):
+        ''' Default client echo function. Prints to console.
+            Overload this function to process echo text in your GUI. '''
+        print(text)
+
+    def update(self):
+        ''' Client periodic update function.
+
+            Periodically call this function to allow client to receive and process data.
+        '''
+        self.receive()
+        # Process any waiting stacked commands
+        process()
+
     def receive(self, timeout=0):
         ''' Poll for incoming data from Server, and receive if available.
             Arguments:
@@ -102,7 +120,11 @@ class Client:
                 self.sender_id = route[0]
                 route.reverse()
                 pydata = msgpack.unpackb(data, object_hook=decode_ndarray, raw=False)
-                if eventname == b'NODESCHANGED':
+                if eventname == b'STACK':
+                    stack(pydata, sender_id=self.sender_id)
+                elif eventname == b'ECHO':
+                    self.echo(**pydata, sender_id=self.sender_id)
+                elif eventname == b'NODESCHANGED':
                     self.servers.update(pydata)
                     self.nodes_changed.emit(pydata)
 

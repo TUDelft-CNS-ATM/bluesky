@@ -1,12 +1,54 @@
 ''' Load visual data from text files.'''
+from bluesky.navdatabase.loadnavdata_txt import thresholds, thrpoints
 import os
-from math import cos, radians, degrees, sqrt, atan2, sin, asin
 from zipfile import ZipFile
 import numpy as np
 import bluesky as bs
 from bluesky import settings
 
 REARTH_INV = 1.56961231e-7
+
+# used for calculating the vertices of the runways as well as the threshold boxes
+def dlatlon(lat0, lon0, lat1, lon1, width):
+
+    # calculate distance between ends of runways / threshold boxes
+    flat_earth = np.cos(0.5 * np.radians(lat0 + lat1))
+    lx = lat1 - lat0
+    ly = (lon1 - lon0) * flat_earth
+    l = np.sqrt(lx * lx + ly * ly)
+    wx = ly / l * 0.5 * width
+    wy = -lx / l * 0.5 * width
+    dlat = np.degrees(wx * REARTH_INV)
+    dlon = np.degrees(wy * REARTH_INV / flat_earth)
+
+    # store the vertice information per runway /threshold box
+    vertices = [lat0 + dlat, lon0 + dlon,
+                lat0 - dlat, lon0 - dlon,
+                lat1 + dlat, lon1 + dlon,
+                lat0 - dlat, lon0 - dlon,
+                lat1 + dlat, lon1 + dlon,
+                lat1 - dlat, lon1 - dlon]
+
+    return vertices
+
+def threshold_vertices(lat, lon, bearing):
+    ''' Generate threshold vectices for given runway threshold data. '''
+    d_box = 20.0 * REARTH_INV  # m
+    width_box = 30  # m
+
+    # bearing in opposite direction
+    opp_bearing = np.radians((np.degrees(bearing) + 180) % 360)
+
+    # get points at both ends of the boxes around the threshold point
+    # (zebra crossing)
+    latbox0, lonbox0 = thrpoints(lat, lon, d_box, bearing)
+    latbox1, lonbox1 = thrpoints(lat, lon, d_box, opp_bearing)
+
+    # calculate vertices of threshold box
+    vertices = dlatlon(np.degrees(latbox0), np.degrees(lonbox0), np.degrees(latbox1),
+                        np.degrees(lonbox1), width_box)
+
+    return vertices
 
 
 def load_coastline_txt():
@@ -152,9 +194,10 @@ if bs.gui_type == 'qtgl':
                     # Hence, there are two thresholds per line
                     # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
                     # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
-
-                    thr0, vertices0 = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0)
-                    thr1, vertices1 = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1)
+                    thr0 = thresholds(np.radians(lat0), np.radians(lon0), np.radians(lat1), np.radians(lon1), offset0)
+                    vertices0 = threshold_vertices(*thr0)
+                    thr1 = thresholds(np.radians(lat1), np.radians(lon1), np.radians(lat0), np.radians(lon0), offset1)
+                    vertices1 = threshold_vertices(*thr1)
                     rwythr.extend(vertices0)
                     rwythr.extend(vertices1)
 
@@ -237,125 +280,3 @@ if bs.gui_type == 'qtgl':
 
         # return the data
         return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, apt_ctr_lat, apt_ctr_lon, apt_indices
-
-
-# Runway threshold loader for navdatabase
-def navdata_load_rwythresholds():
-    rwythresholds = dict()
-    curthresholds = None
-    zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
-    print("Reading apt.dat from apt.zip")
-    with zfile.open('apt.dat', 'r') as f:
-        for line in f:
-            elems = line.decode(encoding="ascii", errors="ignore").strip().split()
-            if len(elems) == 0:
-                continue
-
-            # 1: AIRPORT
-            if elems[0] == '1':
-                # Add airport to runway threshold database
-                curthresholds = dict()
-                rwythresholds[elems[4]] = curthresholds
-                continue
-
-            if elems[0] == '100':
-                # Only asphalt and concrete runways
-                if int(elems[2]) > 2:
-                    continue
-                # rwy_lbl = (elems[8], elems[17])
-
-                lat0    = float(elems[9])
-                lon0    = float(elems[10])
-                offset0 = float(elems[11])
-
-                lat1    = float(elems[18])
-                lon1    = float(elems[19])
-                offset1 = float(elems[20])
-
-                # threshold information: ICAO code airport, Runway identifier,
-                # latitude, longitude, bearing
-                # vertices: gives vertices of the box around the threshold
-
-                # opposite runways are on the same line. RWY1: 8-11, RWY2: 17-20
-                # Hence, there are two thresholds per line
-                # thr0: First lat0 and lon0 , then lat1 and lat1, offset=[11]
-                # thr1: First lat1 and lat1 , then lat0 and lon0, offset=[20]
-
-                thr0, _ = thresholds(radians(lat0), radians(lon0), radians(lat1), radians(lon1), offset0)
-                thr1, _ = thresholds(radians(lat1), radians(lon1), radians(lat0), radians(lon0), offset1)
-                curthresholds[elems[8]]  = thr0
-                curthresholds[elems[17]] = thr1
-                continue
-    return rwythresholds
-
-
-# calculates the threshold points per runway
-# underlying equations can be found at
-# http://www.movable-type.co.uk/scripts/latlong.html
-def thresholds(lat1, lon1, lat2, lon2, offset):
-    d = offset * REARTH_INV
-    d_box = 20.0 * REARTH_INV  # m
-    width_box = 30  # m
-    deltal = lon2 - lon1
-
-# calculate runway bearing
-    bearing = atan2(sin(deltal) * cos(lat2), (cos(lat1) * sin(lat2) -
-                                              sin(lat1) * cos(lat2) * cos(deltal)))
-
-    # normalize to 0-360 degrees
-    bearing = radians((degrees(bearing) + 360) % 360)
-
-    # bearing in opposite direction
-    opp_bearing = radians((degrees(bearing) + 180) % 360)
-
-    # get threshold points
-    latthres, lonthres = thrpoints(lat1, lon1, d, bearing)
-
-    # get points at both ends of the boxes around the threshold point
-    # (zebra crossing)
-    latbox0, lonbox0 = thrpoints(latthres, lonthres, d_box, bearing)
-    latbox1, lonbox1 = thrpoints(latthres, lonthres, d_box, opp_bearing)
-
-    # calculate vertices of threshold box
-    vertices = dlatlon(degrees(latbox0), degrees(lonbox0), degrees(latbox1),
-                       degrees(lonbox1), width_box)
-
-    return (degrees(latthres), degrees(lonthres), degrees(bearing)), vertices
-
-
-# calculate threshold points as well as end points of threshold box
-# underlying equations can be found at
-# http://www.movable-type.co.uk/scripts/latlong.html
-
-def thrpoints(lat1, lon1, d, bearing):
-
-    latthres = asin(sin(lat1) * cos(d) + cos(lat1) * sin(d) * cos(bearing))
-
-    lonthres = lon1 + atan2(sin(bearing) * sin(d) * cos(lat1),
-                            cos(d) - sin(lat1) * sin(latthres))
-
-    return latthres, lonthres
-
-
-# used for calculating the vertices of the runways as well as the threshold boxes
-def dlatlon(lat0, lon0, lat1, lon1, width):
-
-    # calculate distance between ends of runways / threshold boxes
-    flat_earth = cos(0.5 * radians(lat0 + lat1))
-    lx = lat1 - lat0
-    ly = (lon1 - lon0) * flat_earth
-    l = sqrt(lx * lx + ly * ly)
-    wx = ly / l * 0.5 * width
-    wy = -lx / l * 0.5 * width
-    dlat = degrees(wx * REARTH_INV)
-    dlon = degrees(wy * REARTH_INV / flat_earth)
-
-    # store the vertice information per runway /threshold box
-    vertices = [lat0 + dlat, lon0 + dlon,
-                lat0 - dlat, lon0 - dlon,
-                lat1 + dlat, lon1 + dlon,
-                lat0 - dlat, lon0 - dlon,
-                lat1 + dlat, lon1 + dlon,
-                lat1 - dlat, lon1 - dlon]
-
-    return vertices

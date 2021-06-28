@@ -4,7 +4,8 @@ import numpy as np
 
 from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
-from bluesky.network import Client
+from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
+from bluesky.network.client import Client
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
 
@@ -20,14 +21,15 @@ class GuiClient(Client):
         self.ref_nodedata = nodeData()
         self.discovery_timer = None
         self.timer = QTimer()
-        self.timer.timeout.connect(self.receive)
+        self.timer.timeout.connect(self.update)
         self.timer.start(20)
         self.subscribe(b'SIMINFO')
+        self.subscribe(b'TRAILS')
         self.subscribe(b'PLOT' + self.client_id)
         self.subscribe(b'ROUTEDATA' + self.client_id)
 
         # Signals
-        self.actnodedata_changed = Signal()
+        self.actnodedata_changed = Signal('actnodedata_changed')
 
     def start_discovery(self):
         super().start_discovery()
@@ -39,6 +41,34 @@ class GuiClient(Client):
         self.discovery_timer.stop()
         self.discovery_timer = None
         super().stop_discovery()
+
+    def stream(self, name, data, sender_id):
+        ''' Guiclient stream handler. '''
+        changed = ''
+        actdata = self.get_nodedata(sender_id)
+        if name == b'ACDATA':
+            actdata.setacdata(data)
+            changed = name.decode('utf8')
+        elif name == b'ROUTEDATA':
+            actdata.setroutedata(data)
+            changed = name.decode('utf8')
+        elif name == b'TRAILS':
+            actdata.settrails(**data)
+            changed = name.decode('utf8')
+
+        if sender_id == self.act and changed:
+            self.actnodedata_changed.emit(sender_id, actdata, changed)
+
+        super().stream(name, data, sender_id)
+
+    def echo(self, text, flags=None, sender_id=None):
+        ''' Overloaded Client.echo function. '''
+        sender_data = self.get_nodedata(sender_id)
+        sender_data.echo(text, flags)
+        # If sender_id is None this is an echo command originating from the gui user, and therefore also meant for the active node
+        sender_id = sender_id or self.act
+        if sender_id == self.act:
+            self.actnodedata_changed.emit(sender_id, sender_data, ('ECHOTEXT',))
 
     def event(self, name, data, sender_id):
         sender_data = self.get_nodedata(sender_id)
@@ -59,7 +89,7 @@ class GuiClient(Client):
         elif name == b'DISPLAYFLAG':
             sender_data.setflag(**data)
         elif name == b'ECHO':
-            sender_data.echo(**data)
+            
             data_changed.append('ECHOTEXT')
         elif name == b'PANZOOM':
             sender_data.panzoom(**data)
@@ -102,11 +132,34 @@ class nodeData:
         self.pan = [0.0, 0.0]
         self.zoom = 1.0
 
+        self.naircraft = 0
+        self.acdata = ACDataEvent()
+        self.routedata = RouteDataEvent()
+
         # Per-scenario data
         self.clear_scen_data()
 
         # Network route to this node
         self._route = route
+
+    def setacdata(self, data):
+        self.acdata = ACDataEvent(data)
+        self.naircraft = len(self.acdata.lat)
+
+    def setroutedata(self, data):
+        self.routedata = RouteDataEvent(data)
+
+    def settrails(self, swtrails, traillat0, traillon0, traillat1, traillon1):
+        if not swtrails:
+            self.traillat0 = []
+            self.traillon0 = []
+            self.traillat1 = []
+            self.traillon1 = []
+        else:
+            self.traillat0.extend(traillat0)
+            self.traillon0.extend(traillon0)
+            self.traillat1.extend(traillat1)
+            self.traillon1.extend(traillon1)
 
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node

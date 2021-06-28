@@ -3,7 +3,6 @@ from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
     QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
     QT_VERSION, QT_VERSION_STR
 from PyQt5.QtWidgets import QApplication, QErrorMessage
-from PyQt5.QtOpenGL import QGLFormat
 
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
@@ -51,17 +50,6 @@ def start(mode):
     # Install error message handler
     handler = QErrorMessage.qtHandler()
     handler.setWindowFlags(Qt.WindowStaysOnTopHint)
-
-    # Check and set OpenGL capabilities
-    if not QGLFormat.hasOpenGL():
-        raise RuntimeError('No OpenGL support detected for this system!')
-    else:
-        f = QGLFormat()
-        f.setVersion(3, 3)
-        f.setProfile(QGLFormat.CoreProfile)
-        f.setDoubleBuffer(True)
-        QGLFormat.setDefaultFormat(f)
-        print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))
 
     splash.showMessage('Constructing main window')
     app.processEvents()

@@ -1,4 +1,4 @@
-#version 330
+#version 410
  
 // Interpolated values from the vertex shaders
 in vec2 texcoords_fs;

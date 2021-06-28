@@ -2,9 +2,17 @@
 
     The stack parses all text-based commands in the simulation.
 '''
-from bluesky.stack.stack import stack, init, reset, process, sender, \
-    routetosender, get_scenname, get_scendata, set_scendata, ic, readscn
+from bluesky import settings
+from bluesky.stack.stackbase import stack, forward, sender, routetosender, get_scenname, get_scendata, set_scendata
 from bluesky.stack.cmdparser import command, commandgroup, append_commands, \
     remove_commands, get_commands
 from bluesky.stack.argparser import refdata
-from bluesky.stack.recorder import savecmd
+
+
+def init(mode='client'):
+    if mode[:3] == 'sim':
+        import bluesky.stack.simstack as simstack
+        simstack.init()
+    else:
+        import bluesky.stack.clientstack as clientstack
+        clientstack.init()

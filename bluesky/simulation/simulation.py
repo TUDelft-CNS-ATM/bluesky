@@ -8,6 +8,7 @@ from random import seed
 import bluesky as bs
 import bluesky.core as core
 from bluesky.core import plugin, simtime
+from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
 
 # Minimum sleep interval
@@ -69,7 +70,7 @@ class Simulation:
             time.sleep(remainder)
 
         # Always update stack
-        bs.stack.process()
+        simstack.process()
 
         if self.state == bs.OP:
             # Plot/log the current timestep, and call preupdate functions
@@ -125,7 +126,7 @@ class Simulation:
         datalog.reset()
 
         # Close savefile which may be open for recording
-        bs.stack.saveclose()  # Close reording file if it is on
+        recorder.saveclose()  # Close reording file if it is on
 
     def op(self):
         ''' Set simulation state to OPERATE. '''
@@ -157,7 +158,7 @@ class Simulation:
         core.reset()
         bs.navdb.reset()
         bs.traf.reset()
-        bs.stack.reset()
+        simstack.reset()
         datalog.reset()
         areafilter.reset()
         bs.scr.reset()
@@ -182,7 +183,7 @@ class Simulation:
         ''' Run a simulation benchmark.
             Use scenario given by fname.
             Run for <dt> seconds. '''
-        bs.stack.ic(fname)
+        simstack.ic(fname)
         self.bencht  = 0.0  # Start time will be set at next sim cycle
         self.benchdt = dt
 
@@ -192,7 +193,7 @@ class Simulation:
         # send to server and clear stack
         self.reset()
         try:
-            scentime, scencmd = zip(*[tc for tc in bs.stack.readscn(fname)])
+            scentime, scencmd = zip(*[tc for tc in simstack.readscn(fname)])
             bs.net.send_event(b'BATCH', (scentime, scencmd))
         except FileNotFoundError:
             return False, f'BATCH: File not found: {fname}'
@@ -204,9 +205,9 @@ class Simulation:
         # Keep track of event processing
         event_processed = False
 
-        if eventname == b'STACKCMD':
+        if eventname == b'STACK':
             # We received a single stack command. Add it to the existing stack
-            bs.stack.stack(eventdata, cmdsender=sender_rte)
+            bs.stack.stack(eventdata, sender_id=sender_rte)
             event_processed = True
 
         elif eventname == b'BATCH':
@@ -223,7 +224,7 @@ class Simulation:
             simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
                 stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
                 custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
-                plugins=list(plugin.plugin_descriptions.keys()))
+                plugins=list(plugin.Plugin.plugins.keys()))
             bs.net.send_event(b'SIMSTATE', simstate, target=sender_rte)
         else:
             # This is either an unknown event or a gui event.

@@ -26,7 +26,7 @@ class TextClient(Client):
     def __init__(self):
         super().__init__()
         self.timer = QTimer()
-        self.timer.timeout.connect(self.receive)
+        self.timer.timeout.connect(self.update)
         self.timer.start(20)
 
     def event(self, name, data, sender_id):
@@ -36,7 +36,13 @@ class TextClient(Client):
 
     def stack(self, text):
         ''' Stack function to send stack commands to BlueSky. '''
-        self.send_event(b'STACKCMD', text)
+        self.send_event(b'STACK', text)
+
+    def echo(self, text, flags=None):
+        ''' Overload Client's echo function. '''
+        if echobox is not None:
+            echobox.echo(text, flags)
+
 
 class Echobox(QTextEdit):
     ''' Text box to show echoed text coming from BlueSky. '''

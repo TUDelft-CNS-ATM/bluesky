@@ -67,7 +67,6 @@ class ScreenIO:
         # Communicate reset to gui
         bs.net.send_event(b'RESET', b'ALL')
 
-
     def echo(self, text='', flags=0):
         bs.net.send_event(b'ECHO', dict(text=text, flags=flags))
 
@@ -217,15 +216,16 @@ class ScreenIO:
 
     def send_trails(self):
         # Trails, send only new line segments to be added
-        data = dict(swtrails=bs.traf.trails.active,
-                    traillat0=bs.traf.trails.newlat0,
-                    traillon0=bs.traf.trails.newlon0,
-                    traillat1=bs.traf.trails.newlat1,
-                    traillon1=bs.traf.trails.newlon1,
-                    traillastlat=bs.traf.trails.lastlat,
-                    traillastlon=bs.traf.trails.lastlon)
-        bs.traf.trails.clearnew()
-        bs.net.send_stream(b'TRAILS', data)
+        if bs.traf.trails.active and len(bs.traf.trails.newlat0) > 0:
+            data = dict(swtrails=bs.traf.trails.active,
+                        traillat0=bs.traf.trails.newlat0,
+                        traillon0=bs.traf.trails.newlon0,
+                        traillat1=bs.traf.trails.newlat1,
+                        traillon1=bs.traf.trails.newlon1)#,
+                        # traillastlat=bs.traf.trails.lastlat,
+                        # traillastlon=bs.traf.trails.lastlon)
+            bs.traf.trails.clearnew()
+            bs.net.send_stream(b'TRAILS', data)
 
     def send_aircraft_data(self):
         data = dict()
@@ -240,6 +240,7 @@ class ScreenIO:
         data['ingroup']    = bs.traf.groups.ingroup
         data['inconf'] = bs.traf.cd.inconf
         data['tcpamax'] = bs.traf.cd.tcpamax
+        data['rpz'] = bs.traf.cd.rpz
         data['nconf_cur'] = len(bs.traf.cd.confpairs_unique)
         data['nconf_tot'] = len(bs.traf.cd.confpairs_all)
         data['nlos_cur'] = len(bs.traf.cd.lospairs_unique)
@@ -255,19 +256,6 @@ class ScreenIO:
         # ASAS resolutions for visualization. Only send when evaluated
         data['asastas']  = bs.traf.cr.tas
         data['asastrk']  = bs.traf.cr.trk
-
-        # Trails, send only new line segments to be added
-        data['swtrails'] = bs.traf.trails.active
-        data['traillat0'] = bs.traf.trails.newlat0
-        data['traillon0'] = bs.traf.trails.newlon0
-        data['traillat1'] = bs.traf.trails.newlat1
-        data['traillon1'] = bs.traf.trails.newlon1
-        bs.traf.trails.clearnew()
-
-        # Last segment which is being built per aircraft
-        data['traillastlat'] = bs.traf.trails.lastlat
-        data['traillastlon'] = bs.traf.trails.lastlon
-
 
         bs.net.send_stream(b'ACDATA', data)
 

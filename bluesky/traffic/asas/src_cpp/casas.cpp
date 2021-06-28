@@ -12,10 +12,12 @@
 static PyObject* casas_detect(PyObject* self, PyObject* args)
 {
     PyObject *ownship = NULL,
-             *intruder = NULL;
-    double RPZ, HPZ, tlookahead;
+             *intruder = NULL,
+             *pRPZ = NULL,
+             *pHPZ = NULL,
+             *ptlookahead = NULL;
 
-    if (!PyArg_ParseTuple(args, "OOddd", &ownship, &intruder, &RPZ, &HPZ, &tlookahead))
+    if (!PyArg_ParseTuple(args, "OOOOO", &ownship, &intruder, &pRPZ, &pHPZ, &ptlookahead))
         return NULL;
 
     PyDoubleArrayAttr lat1(ownship, "lat"),  lon1(ownship, "lon"),  trk1(ownship, "trk"),
@@ -25,8 +27,9 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
 
     PyListAttr  acid(ownship, "id");
 
+    PyDoubleArrayAttr rpz(pRPZ), hpz(pHPZ), tlook(ptlookahead);
     // Only continue if all arrays exist
-    if (lat1 && lon1 && trk1 && gs1  && alt1 && vs1  && lat2 && lon2 && trk2 && gs2  && alt2 && vs2)
+    if (lat1 && lon1 && trk1 && gs1  && alt1 && vs1  && lat2 && lon2 && trk2 && gs2  && alt2 && vs2 && rpz && hpz && tlook)
     {
         // Assume all arrays are the same size; only get the size of lat1
         npy_intp  size  = lat1.size();
@@ -39,6 +42,14 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
         npy_bool acinconf = NPY_FALSE;
         double tcpamax_ac = 0.0;
 
+        // rpz, hpz, and tlook pointers for both sides
+        double *rpz1 = rpz.ptr_start;
+        double *rpz2 = rpz.ptr_start;
+        double *hpz1 = hpz.ptr_start;
+        double *hpz2 = hpz.ptr_start;
+        double *tlook1 = tlook.ptr_start;
+        double *tlook2 = tlook.ptr_start;
+        double tlook_cur;
         // Return values
         PyDoubleArrayAttr tcpamax(size);
         PyBoolArrayAttr inconf(size);
@@ -51,16 +62,17 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                     // Vectical detection first
                     dalt = *alt1.ptr - *alt2.ptr;
                     dvs  = *vs1.ptr  - *vs2.ptr;
-                    if (detect_ver(confver, HPZ, tlookahead, dalt, dvs)) {
+                    tlook_cur = std::max(*tlook1, *tlook2);
+                    if (detect_ver(confver, std::max(*hpz1, *hpz2), tlook_cur, dalt, dvs)) {
                         // Horizontal detection
-                        if (detect_hor(confhor, RPZ, tlookahead,
+                        if (detect_hor(confhor, std::max(*rpz1, *rpz2), tlook_cur,
                                        *lat1.ptr * DEG2RAD, *lon1.ptr * DEG2RAD, *gs1.ptr, *trk1.ptr * DEG2RAD,
                                        *lat2.ptr * DEG2RAD, *lon2.ptr * DEG2RAD, *gs2.ptr, *trk2.ptr * DEG2RAD))
                         {
                             tin  = std::max(confhor.tin, confver.tin);
                             tout = std::min(confhor.tout, confver.tout);
                             // Combined conflict?
-                            if (tin <= tlookahead && tin < tout && tout > 0.0) {
+                            if (tin <= tlook_cur && tin < tout && tout > 0.0) {
                                 // Add AC id to conflict list
                                 PyObject* pair = PyTuple_Pack(2, acid[i], acid[j]);
                                 confpairs.append(pair);
@@ -80,6 +92,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
                         }
                     }
                 }
+                rpz2++; hpz2++; tlook2++;
                 lat2.ptr++; lon2.ptr++; trk2.ptr++; gs2.ptr++; alt2.ptr++; vs2.ptr++;
             }
             *inconf.ptr = acinconf;
@@ -91,6 +104,10 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
             lat2.ptr = lat2.ptr_start; lon2.ptr = lon2.ptr_start;
             trk2.ptr = trk2.ptr_start; gs2.ptr  = gs2.ptr_start;
             alt2.ptr = alt2.ptr_start; vs2.ptr  = vs2.ptr_start;
+            rpz2 = rpz.ptr_start;
+            hpz2 = hpz.ptr_start;
+            tlook2 = tlook.ptr_start;
+            rpz1++; hpz1++; tlook1++;
             lat1.ptr++; lon1.ptr++; trk1.ptr++; gs1.ptr++; alt1.ptr++; vs1.ptr++;
         }
 
