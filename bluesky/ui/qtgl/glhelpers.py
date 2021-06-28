@@ -37,10 +37,16 @@ _glvar_sizes = dict()
 def init():
     ''' Startup initialisation of OpenGL. '''
     if gl is None:
+        try:
+            from PyQt5 import _QOpenGLFunctions_4_1_Compatibility
+            profile = QSurfaceFormat.CompatibilityProfile
+        except ImportError:
+            profile = QSurfaceFormat.CoreProfile
         # Initialise application-wide GL version
         fmt = QSurfaceFormat()
         fmt.setVersion(4, 1)
-        profile = QSurfaceFormat.CoreProfile if sys.platform == 'darwin' else QSurfaceFormat.CompatibilityProfile
+        # profile = QSurfaceFormat.CoreProfile if sys.platform == 'darwin' else QSurfaceFormat.CompatibilityProfile
+
         fmt.setProfile(profile)
         QSurfaceFormat.setDefaultFormat(fmt)
 
