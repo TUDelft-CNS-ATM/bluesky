@@ -34,27 +34,38 @@ gl = None
 _glvar_sizes = dict()
 
 
+def get_profile_settings():
+    for version in ((4, 5), (4, 4), (4, 3), (4, 2), (4, 1), (4, 0), (3, 3)):
+        for profile in ('Core', 'Compatibility'):
+            try:
+                __import__(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                print(f'Found Qt-provided OpenGL functions for OpenGL {version} {profile}')
+                return version, QSurfaceFormat.CoreProfile if profile == 'Core' else QSurfaceFormat.CompatibilityProfile
+            except:
+                continue
+    return (4, 1), None
+
+
 def init():
     ''' Startup initialisation of OpenGL. '''
     if gl is None:
-        try:
-            from PyQt5 import _QOpenGLFunctions_4_1_Compatibility
-            profile = QSurfaceFormat.CompatibilityProfile
-        except ImportError:
-            profile = QSurfaceFormat.CoreProfile
+        version, profile = get_profile_settings()
         # Initialise application-wide GL version
         fmt = QSurfaceFormat()
-        fmt.setVersion(4, 1)
+        fmt.setVersion(*version)
         # profile = QSurfaceFormat.CoreProfile if sys.platform == 'darwin' else QSurfaceFormat.CompatibilityProfile
 
-        fmt.setProfile(profile)
+        fmt.setProfile(profile or QSurfaceFormat.CompatibilityProfile)
         QSurfaceFormat.setDefaultFormat(fmt)
 
-        # Use a dummy context to get GL functions
-        glprofile = QOpenGLVersionProfile(fmt)
-        ctx = QOpenGLContext()
-        globals()['gl'] = ctx.versionFunctions(glprofile)
-
+        if profile is not None:
+            # Use a dummy context to get GL functions
+            glprofile = QOpenGLVersionProfile(fmt)
+            ctx = QOpenGLContext()
+            globals()['gl'] = ctx.versionFunctions(glprofile)
+        else:
+            # If profile was none, PyQt5 is not shipped with any OpenGL function modules. Use PyOpenGL instead
+            globals()['gl'] = __import__('OpenGL.GL')
         # Check and set OpenGL capabilities
         if not glprofile.hasProfiles():
             raise RuntimeError('No OpenGL version >= 3.3 support detected for this system!')
@@ -81,6 +92,9 @@ if gl is None:
 
 def init_glcontext(ctx):
     ''' Correct OpenGL functions can only be obtained from a valid GL context. '''
+    if getattr(gl, '__name__', '') == 'OpenGL.GL':
+        # The extended initialisation of GL functions in this function is only required for Qt-provided GL functions
+        return
     globals()['gl'] = ctx.versionFunctions()
     # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
