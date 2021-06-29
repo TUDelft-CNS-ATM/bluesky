@@ -93,10 +93,10 @@ if gl is None:
 
 def init_glcontext(ctx):
     ''' Correct OpenGL functions can only be obtained from a valid GL context. '''
-    if getattr(gl, '__name__', '') == 'OpenGL.GL':
-        # The extended initialisation of GL functions in this function is only required for Qt-provided GL functions
-        return
-    globals()['gl'] = ctx.versionFunctions()
+    if getattr(gl, '__name__', '') != 'OpenGL.GL':
+        # The OpenGL functions are provided by the Qt library. Update them from the current context
+        globals()['gl'] = ctx.versionFunctions()
+    
     # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
     # void glGetActiveUniformBlockName(	GLuint program,
@@ -146,6 +146,47 @@ def init_glcontext(ctx):
         return param.value
 
     gl.glGetActiveUniformBlockiv = p_getuboiv
+
+    if getattr(gl, '__name__', '') == 'OpenGL.GL':
+        # In case we are using PyOpenGL, get some of the functions to behave in the
+        # same way as their counterparts in Qt
+        glGetProgramiv_wrap = gl.glGetProgramiv
+        def glGetProgramiv(program, pname):
+            params = ctypes.c_int32()
+            glGetProgramiv_wrap(program, pname, params)
+            return params.value
+        gl.glGetProgramiv = glGetProgramiv
+
+        glGetActiveAttrib_wrap = gl.glGetActiveAttrib
+        def glGetActiveAttrib(program, index):
+            length = ctypes.c_int32()
+            size = ctypes.c_int32()
+            atype = ctypes.c_uint32()
+            name = (ctypes.c_char * 20)()
+            glGetActiveAttrib_wrap(program, index, 20, length, size, atype, ctypes.pointer(name))
+            return name.value.decode('utf-8'), size.value, atype.value
+        gl.glGetActiveAttrib = glGetActiveAttrib
+
+        glGetActiveUniform_wrap = gl.glGetActiveUniform
+        def glGetActiveUniform(program, index):
+            length = ctypes.c_int32()
+            size = ctypes.c_int32()
+            atype = ctypes.c_uint32()
+            name = (ctypes.c_char * 20)()
+            glGetActiveUniform_wrap(program, index, 20, length, size, atype, ctypes.pointer(name))
+            return name.value.decode('utf-8'), size.value, atype.value
+        gl.glGetActiveUniform = glGetActiveUniform
+
+        glTexSubImage3D_wrap = gl.glTexSubImage3D
+        def glTexSubImage3D(target, level, xOffset, yOffset, zOffset, width, height, depth, sourceFormat, sourceType, data):
+            glTexSubImage3D_wrap(target, level, xOffset, yOffset, zOffset, width,
+                                height, depth, sourceFormat, sourceType, ctypes.c_void_p(int(data)))
+        gl.glTexSubImage3D = glTexSubImage3D
+
+    
+        # The extended initialisation of the remaining GL functions in this function
+        # is only required for Qt-provided GL functions
+        return
 
     # GLuint glGetUniformBlockIndex( GLuint program,
     #                                const GLchar * uniformBlockName)
