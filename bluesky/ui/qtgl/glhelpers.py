@@ -1,5 +1,5 @@
 ''' BlueSky OpenGL classes and functions. '''
-import sys
+import importlib
 from os import path
 from collections import namedtuple
 from typing import OrderedDict
@@ -38,7 +38,7 @@ def get_profile_settings():
     for version in ((4, 5), (4, 4), (4, 3), (4, 2), (4, 1), (4, 0), (3, 3)):
         for profile in ('Core', 'Compatibility'):
             try:
-                __import__(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                importlib.import_module(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
                 print(f'Found Qt-provided OpenGL functions for OpenGL {version} {profile}')
                 return version, QSurfaceFormat.CoreProfile if profile == 'Core' else QSurfaceFormat.CompatibilityProfile
             except:
@@ -69,7 +69,7 @@ def init():
                     'No OpenGL version >= 3.3 support detected for this system!')
         else:
             # If profile was none, PyQt5 is not shipped with any OpenGL function modules. Use PyOpenGL instead
-            globals()['gl'] = __import__('OpenGL.GL')
+            globals()['gl'] = importlib.import_module('OpenGL.GL')
 
         globals()['_glvar_sizes'] = {
             gl.GL_FLOAT: 1, gl.GL_FLOAT_VEC2: 2, gl.GL_FLOAT_VEC3: 3,
