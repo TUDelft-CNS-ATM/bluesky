@@ -3,6 +3,7 @@ Standard Dialog modules, using Tkinter
 
 Created by  : Jacco M. Hoekstra
 """
+import sys
 try:
     from tkinter import *
     import tkinter.filedialog as filedialog
