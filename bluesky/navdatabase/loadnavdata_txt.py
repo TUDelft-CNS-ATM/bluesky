@@ -417,7 +417,7 @@ def thresholds(lat1, lon1, lat2, lon2, offset):
     deltal = lon2 - lon1
 
     # calculate runway bearing
-    bearing = np.atan2(np.sin(deltal) * np.cos(lat2), (np.cos(lat1) * np.sin(lat2) -
+    bearing = np.arctan2(np.sin(deltal) * np.cos(lat2), (np.cos(lat1) * np.sin(lat2) -
                                               np.sin(lat1) * np.cos(lat2) * np.cos(deltal)))
 
     # normalize to 0-360 degrees
@@ -435,7 +435,7 @@ def thrpoints(lat1, lon1, d, bearing):
     http://www.movable-type.co.uk/scripts/latlong.html '''
     latthres = np.asin(np.sin(lat1) * np.cos(d) + np.cos(lat1) * np.sin(d) * np.cos(bearing))
 
-    lonthres = lon1 + np.atan2(np.sin(bearing) * np.sin(d) * np.cos(lat1),
+    lonthres = lon1 + np.arctan2(np.sin(bearing) * np.sin(d) * np.cos(lat1),
                             np.cos(d) - np.sin(lat1) * np.sin(latthres))
 
     return latthres, lonthres
