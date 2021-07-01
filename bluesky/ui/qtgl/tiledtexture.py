@@ -103,7 +103,7 @@ class TiledTextureMeta(type(glh.Texture)):
     def __call__(cls, *args, **kwargs):
         name = kwargs.get('tilesource', 'opentopomap')
         tex = cls.tiletextures.get(name)
-        if tex = None:
+        if tex is None:
             tex = super().__call__(*args, **kwargs)
             cls.tiletextures[name] = tex
         return tex
