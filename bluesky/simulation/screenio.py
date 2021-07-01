@@ -114,7 +114,7 @@ class ScreenIO:
             self.custacclr[name] = (r, g, b)
         elif areafilter.hasArea(name):
             data['polyid'] = name
-            areafilter.areas[name].raw['color'] = (r, g, b)
+            areafilter.basic_shapes[name].raw['color'] = (r, g, b)
         else:
             return False, 'No object found with name ' + name
         bs.net.send_event(b'COLOR', data)

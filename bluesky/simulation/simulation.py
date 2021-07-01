@@ -220,7 +220,7 @@ class Simulation:
         elif eventname == b'GETSIMSTATE':
             # Send list of stack functions available in this sim to gui at start
             stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
-            shapes = [shape.raw for shape in areafilter.areas.values()]
+            shapes = [shape.raw for shape in areafilter.basic_shapes.values()]
             simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
                 stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
                 custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,

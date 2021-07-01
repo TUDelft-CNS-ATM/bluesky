@@ -193,7 +193,7 @@ class Metrics(Entity):
             return True, 'Registered sectors:', str.join(', ', self.sectors)
         elif cmd == 'ADDSECTOR':
             if name == 'ALL':
-                for areaname in areafilter.areas.keys():
+                for areaname in areafilter.basic_shapes.keys():
                     self.stackio('ADDSECTOR', areaname)
             # Add new sector to list.
             elif name in self.sectors:
