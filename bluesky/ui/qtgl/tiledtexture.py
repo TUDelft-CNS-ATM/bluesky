@@ -102,9 +102,11 @@ class TiledTextureMeta(type(glh.Texture)):
     tiletextures = weakref.WeakValueDictionary()
     def __call__(cls, *args, **kwargs):
         name = kwargs.get('tilesource', 'opentopomap')
-        if name not in cls.tiletextures:
-            cls.tiletextures[name] = super().__call__(*args, **kwargs)
-        return cls.tiletextures[name]
+        tex = cls.tiletextures.get(name)
+        if tex = None:
+            tex = super().__call__(*args, **kwargs)
+            cls.tiletextures[name] = tex
+        return tex
 
 
 class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
