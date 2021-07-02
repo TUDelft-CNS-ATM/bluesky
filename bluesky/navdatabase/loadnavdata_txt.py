@@ -433,7 +433,7 @@ def thrpoints(lat1, lon1, d, bearing):
     ''' Calculate threshold points as well as end points of threshold box
     underlying equations can be found at
     http://www.movable-type.co.uk/scripts/latlong.html '''
-    latthres = np.asin(np.sin(lat1) * np.cos(d) + np.cos(lat1) * np.sin(d) * np.cos(bearing))
+    latthres = np.arcsin(np.sin(lat1) * np.cos(d) + np.cos(lat1) * np.sin(d) * np.cos(bearing))
 
     lonthres = lon1 + np.arctan2(np.sin(bearing) * np.sin(d) * np.cos(lat1),
                             np.cos(d) - np.sin(lat1) * np.sin(latthres))
