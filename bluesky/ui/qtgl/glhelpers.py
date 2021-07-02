@@ -148,6 +148,16 @@ def init_glcontext(ctx):
 
     gl.glGetActiveUniformBlockiv = p_getuboiv
 
+    # void glVertexAttrib4Nub( GLuint index,
+    #                          GLubyte v0,
+    #                          GLubyte v1,
+    #                          GLubyte v2,
+    #                          GLubyte v3)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint8,
+                               ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8)
+    funcptr = ctx.getProcAddress(b'glVertexAttrib4Nub')
+    gl.glVertexAttrib4Nub = funtype(funcptr.__int__())
+
     # void glTexImage2D( GLenum target,
     #                    GLint level,
     #                    GLint internalFormat,
@@ -231,16 +241,6 @@ def init_glcontext(ctx):
         return ret
 
     gl.glGetUniformBlockIndex = p_getuboindex
-
-    # void glVertexAttrib4Nub( GLuint index,
-    #                          GLubyte v0,
-    #                          GLubyte v1,
-    #                          GLubyte v2,
-    #                          GLubyte v3)
-    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint8,
-                               ctypes.c_uint8, ctypes.c_uint8, ctypes.c_uint8)
-    funcptr = ctx.getProcAddress(b'glVertexAttrib4Nub')
-    gl.glVertexAttrib4Nub = funtype(funcptr.__int__())
 
     # void glVertexAttribIPointer(GLuint index,
     #                             GLint size,
