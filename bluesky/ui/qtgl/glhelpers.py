@@ -69,6 +69,7 @@ def init():
                     'No OpenGL version >= 3.3 support detected for this system!')
         else:
             # If profile was none, PyQt5 is not shipped with any OpenGL function modules. Use PyOpenGL instead
+            print("Couldn't find OpenGL functions in Qt. Falling back to PyOpenGL")
             globals()['gl'] = importlib.import_module('OpenGL.GL')
 
         globals()['_glvar_sizes'] = {
@@ -146,6 +147,35 @@ def init_glcontext(ctx):
         return param.value
 
     gl.glGetActiveUniformBlockiv = p_getuboiv
+
+    # void glTexImage2D( GLenum target,
+    #                    GLint level,
+    #                    GLint internalFormat,
+    #                    GLsizei width,
+    #                    GLsizei height,
+    #                    GLint border,
+    #                    GLenum format,
+    #                    GLenum type,
+    #                    const void * data)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int32, ctypes.c_int32,
+                               ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
+    funcptr = ctx.getProcAddress(b'glTexImage2D')
+    gl.glTexImage2D_alt = funtype(funcptr.__int__())
+
+    # void glTexSubImage2D(	GLenum target,
+    #                       GLint level,
+    #                       GLint xoffset,
+    #                       GLint yoffset,
+    #                       GLsizei width,
+    #                       GLsizei height,
+    #                       GLenum format,
+    #                       GLenum type,
+    #                       const void * pixels)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int32, ctypes.c_int32,
+                               ctypes.c_int32, ctypes.c_uint32, ctypes.c_uint32,
+                               ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
+    funcptr = ctx.getProcAddress(b'glTexSubImage2D')
+    gl.glTexSubImage2D_alt = funtype(funcptr.__int__())
 
     if getattr(gl, '__name__', '') == 'OpenGL.GL':
         # In case we are using PyOpenGL, get some of the functions to behave in the
@@ -228,35 +258,6 @@ def init_glcontext(ctx):
     #     c_getvapointer(index, size, atype, norm, stride, offset)
     gl.glVertexAttribIPointer = funtype(funcptr.__int__())
 
-    # void glTexImage2D( GLenum target,
-    #                    GLint level,
-    #                    GLint internalFormat,
-    #                    GLsizei width,
-    #                    GLsizei height,
-    #                    GLint border,
-    #                    GLenum format,
-    #                    GLenum type,
-    #                    const void * data)
-    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int32, ctypes.c_int32,
-                               ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
-    funcptr = ctx.getProcAddress(b'glTexImage2D')
-    gl.glTexImage2D_alt = funtype(funcptr.__int__())
-
-
-    # void glTexSubImage2D(	GLenum target,
-    #                       GLint level,
-    #                       GLint xoffset,
-    #                       GLint yoffset,
-    #                       GLsizei width,
-    #                       GLsizei height,
-    #                       GLenum format,
-    #                       GLenum type,
-    #                       const void * pixels)
-    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_int32, ctypes.c_int32,
-                               ctypes.c_int32, ctypes.c_uint32, ctypes.c_uint32,
-                               ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
-    funcptr = ctx.getProcAddress(b'glTexSubImage2D')
-    gl.glTexSubImage2D_alt = funtype(funcptr.__int__())
 
 class ShaderSet(MutableMapping):
     ''' A set of shader programs for BlueSky.
