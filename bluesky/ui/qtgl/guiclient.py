@@ -49,9 +49,9 @@ class GuiClient(Client):
         if name == b'ACDATA':
             actdata.setacdata(data)
             changed = name.decode('utf8')
-        elif name == b'ROUTEDATA':
+        elif name.startswith(b'ROUTEDATA'):
             actdata.setroutedata(data)
-            changed = name.decode('utf8')
+            changed = 'ROUTEDATA'
         elif name == b'TRAILS':
             actdata.settrails(**data)
             changed = name.decode('utf8')
