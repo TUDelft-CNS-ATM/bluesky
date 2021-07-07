@@ -2,7 +2,7 @@
 import importlib
 from os import path
 from collections import namedtuple
-from typing import OrderedDict
+from collections import OrderedDict
 from PyQt5.QtCore import qCritical
 
 from PyQt5.QtWidgets import QOpenGLWidget
