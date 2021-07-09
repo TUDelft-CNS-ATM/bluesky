@@ -3,7 +3,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.ui import palette
 from bluesky.ui.qtgl import console
-import bluesky.ui.qtgl.glhelpers as glh
+from bluesky.ui.qtgl import glhelpers as glh
 
 
 palette.set_default_colours(

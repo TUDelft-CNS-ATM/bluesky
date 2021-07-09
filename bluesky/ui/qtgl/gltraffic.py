@@ -1,6 +1,6 @@
 ''' Traffic OpenGL visualisation. '''
 import numpy as np
-import bluesky.ui.qtgl.glhelpers as glh
+from bluesky.ui.qtgl import glhelpers as glh
 
 import bluesky as bs
 from bluesky.tools import geo

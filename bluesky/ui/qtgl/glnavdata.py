@@ -1,7 +1,7 @@
 ''' BlueSky navdata OpenGL visualisation object. '''
 import numpy as np
 import bluesky as bs
-import bluesky.ui.qtgl.glhelpers as glh
+from bluesky.ui.qtgl import glhelpers as glh
 from bluesky import settings
 from bluesky.ui.loadvisuals import load_aptsurface
 from bluesky.ui import palette

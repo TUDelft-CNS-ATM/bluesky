@@ -2,7 +2,7 @@
 import numpy as np
 
 import bluesky as bs
-import bluesky.ui.qtgl.glhelpers as glh
+from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.qtgl.glmap import Map
 from bluesky.ui.qtgl.tiledtexture import TiledTexture
 

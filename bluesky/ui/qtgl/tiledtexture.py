@@ -12,7 +12,7 @@ from PyQt5.QtGui import QImage
 
 import bluesky as bs
 from bluesky.core import Signal
-import bluesky.ui.qtgl.glhelpers as glh
+from bluesky.ui.qtgl import glhelpers as glh
 
 
 bs.settings.set_variable_defaults(

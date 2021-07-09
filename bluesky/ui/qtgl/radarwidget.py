@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, QEvent, QT_VERSION
 
 import bluesky as bs
 from bluesky.core import Signal
-import bluesky.ui.qtgl.glhelpers as glh
+from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
 from bluesky import settings
