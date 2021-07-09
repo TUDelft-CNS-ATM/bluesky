@@ -1,5 +1,7 @@
 # BlueSky - The Open Air Traffic Simulator
 
+[![Open in Visual Studio Code](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/TUDelft-CNS-ATM/bluesky)
+
 BlueSky is meant as a tool to perform research on Air Traffic Management and Air Traffic Flows, and is distributed under the GNU General Public License v3.
 
 The goal of BlueSky is to provide everybody who wants to visualize, analyze or simulate air
