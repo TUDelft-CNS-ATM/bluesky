@@ -96,7 +96,9 @@ def init_glcontext(ctx):
     ''' Correct OpenGL functions can only be obtained from a valid GL context. '''
     if getattr(gl, '__name__', '') != 'OpenGL.GL':
         # The OpenGL functions are provided by the Qt library. Update them from the current context
-        globals()['gl'] = ctx.versionFunctions()
+        fmt = QSurfaceFormat.defaultFormat()
+        glprofile = QOpenGLVersionProfile(fmt)
+        globals()['gl'] = ctx.versionFunctions(glprofile)
     
     # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
