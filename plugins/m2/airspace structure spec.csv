@@ -1,0 +1,17 @@
+﻿id,type,start,end
+0,a_and_d,0,100
+1,resolution_0,100,125
+2,cruising_1,125,150
+3,resolution_1,150,175
+4,cruising_2,175,200
+5,resolution_2,200,225
+6,cruising_3,225,250
+7,resolution_3,250,275
+8,cruising_4,275,300
+9,resolution_4,300,325
+10,cruising_5,325,350
+11,resolution_5,350,375
+12,cruising_6,375,400
+13,resolution_6,400,425
+14,cruising_7,425,450
+15,resolution_7,450,475
