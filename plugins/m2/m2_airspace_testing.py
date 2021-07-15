@@ -39,26 +39,7 @@ class airspaceLayer(core.Entity):
         with self.settrafarrays():
             self.airspacelayertype = np.array([],dtype='S24')
 
-    # def create(self, acid: 'acid', n=1,):
-    #     ''' This function gets called automatically when new aircraft are created. '''
-    #     # Don't forget to call the base class create when you reimplement this function!
-    #     super().create(n)
-    #     # After base creation we can change the values in our own states for the new aircraft
-    #     self.airspacelayertype[-n:] = [np.where(traf.alt[acid] < 250*0.3048, 'Cruising','Resolving') for _ in range(n)]
-
-    # Functions that need to be called periodically can be indicated to BlueSky
-    # with the timed_function decorator
-    # def create(self, n=1):
-    #     ''' This function gets called automatically when new aircraft are created. '''
-    #     # Don't forget to call the base class create when you reimplement this function!
-    #     super().create(n)
-    #     # After base creation we can change the values in our own states for the new aircraft
-    #     self.npassengers[-n:] = [randint(0, 150) for _ in range(n)]
-
-
-
-
-    @core.timed_function(name='example', dt=1)
+    @core.timed_function(name='airspacelayer', dt=1)
     def update(self):
         ''' Periodic update function that determines the layer type for all aircraft every second. '''
         for i, callsign in enumerate(traf.id):
@@ -67,4 +48,4 @@ class airspaceLayer(core.Entity):
                 np.where(
                     (airspaceStructure[3].astype(int) >= altitude / 0.3048) & (airspaceStructure[2].astype(int) < altitude / 0.3048))]
             self.airspacelayertype[i] = layer[0]
-            stack.stack(f'ECHO {callsign} {layer}')
+            #stack.stack(f'ECHO {callsign} {layer}') uncomment if you want to keep printing things on the console.
