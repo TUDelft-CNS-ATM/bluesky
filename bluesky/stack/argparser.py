@@ -40,10 +40,10 @@ def reset():
 
 class Parameter:
     ''' Wrapper class for stack function parameters. '''
-    def __init__(self, param, annotation=''):
+    def __init__(self, param, annotation='', isopt=None):
         self.name = param.name
         self.default = param.default
-        self.optional = self.hasdefault() or param.kind == param.VAR_POSITIONAL
+        self.optional = (self.hasdefault() or param.kind == param.VAR_POSITIONAL) if isopt is None else isopt
         self.gobble = param.kind == param.VAR_POSITIONAL and not annotation
         self.annotation = annotation or param.annotation
 
@@ -78,17 +78,17 @@ class Parameter:
                 return self.default, argstring
             if self.optional:
                 return (None, argstring) if argstring else ('',)
-            raise TypeError(f'Missing argument {self.name}')
+            raise ArgumentError(f'Missing argument {self.name}')
         # Try available parsers
         error = ''
         for parser in self.parsers:
             try:
                 return parser.parse(argstring)
-            except ValueError as e:
+            except (ValueError, ArgumentError) as e:
                 error += ('\n' + e.args[0])
 
         # If all fail, raise error
-        raise ValueError(error)
+        raise ArgumentError(error)
 
     def __str__(self):
         return f'{self.name}:{self.annotation}'
@@ -112,6 +112,9 @@ class Parameter:
         return param.kind not in (param.VAR_KEYWORD, param.KEYWORD_ONLY)
 
 
+class ArgumentError(Exception):
+    ''' This error is raised when stack argument parsing fails. '''
+    pass
 class Parser:
     ''' Base implementation of argument parsers
         that are used to parse arguments to stack commands.
@@ -145,7 +148,7 @@ class AcidArg(Parser):
         else:
             idx = bs.traf.id2idx(acid)
             if idx < 0:
-                raise ValueError(f'Aircraft with callsign {acid} not found')
+                raise ArgumentError(f'Aircraft with callsign {acid} not found')
 
             # Update ref position for navdb lookup
             refdata.lat = bs.traf.lat[idx]
@@ -160,7 +163,7 @@ class WpinrouteArg(Parser):
         arg, argstring = re_getarg.match(argstring).groups()
         wpname = arg.upper()
         if refdata.acidx >= 0 and wpname not in bs.traf.ap.route[refdata.acidx].wpname:
-            raise ValueError(f'{wpname} not found in the route of {bs.traf.id[refdata.acidx]}')
+            raise ArgumentError(f'{wpname} not found in the route of {bs.traf.id[refdata.acidx]}')
         return wpname, argstring
 
 
@@ -238,7 +241,7 @@ class PosArg(Parser):
 
         posobj = Position(argu, refdata.lat, refdata.lon)
         if posobj.error:
-            raise ValueError(f'{argu} is not a valid waypoint, airport, runway, or aircraft id.')
+            raise ArgumentError(f'{argu} is not a valid waypoint, airport, runway, or aircraft id.')
 
         # Update reference lat/lon
         refdata.lat = posobj.lat
@@ -254,7 +257,7 @@ class PandirArg(Parser):
         arg, argstring = re_getarg.match(argstring).groups()
         pandir = arg.upper()
         if pandir not in ('LEFT', 'RIGHT', 'UP', 'ABOVE', 'RIGHT', 'DOWN'):
-            raise ValueError(f'{arg} is not a valid pan direction')
+            raise ArgumentError(f'{arg} is not a valid pan direction')
         return pandir, argstring
 
 
@@ -270,7 +273,7 @@ class ColorArg(Parser):
             r, g, b = [int(255 * i) for i in colors.to_rgb(arg.upper())]
             return r, g, b, argstring
         except ValueError:
-            raise ValueError(f'Could not parse "{arg}" as color')
+            raise ArgumentError(f'Could not parse "{arg}" as color')
 
 
 argparsers = {
