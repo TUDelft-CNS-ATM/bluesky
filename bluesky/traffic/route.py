@@ -713,8 +713,10 @@ class Route(Replaceable):
                 if len(self.wplat) == 1:
                     self.iactwp = 0
 
-            #update qdr in traffic
+        #update qdr and "last waypoint switch" in traffic
+        if idx>=0:
             bs.traf.actwp.next_qdr[iac] = self.getnextqdr()
+            bs.traf.actwp.swlastwp[iac] = (self.iactwp==self.nwp-1)
 
         # Update waypoints
         if not (wptype == Route.calcwp):
@@ -927,6 +929,8 @@ class Route(Replaceable):
             # delete aircraft
             stack.stack("DELAY " + "42 " + "DEL " + str(self.acid))
 
+            swlastwp = (self.iactwp == self.nwp - 1)
+
             return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                            self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                            self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp], \
@@ -934,11 +938,17 @@ class Route(Replaceable):
                            lnavon,self.wpflyby[self.iactwp], \
                            self.wpflyturn[self.iactwp],self.wpturnrad[self.iactwp],\
                            self.wpturnspd[self.iactwp], \
-                           nextqdr
+                           nextqdr, swlastwp
 
-        lnavon = self.iactwp +1 < self.nwp
+        # Switch LNAV off when last waypoint has been passed
+        lnavon = self.iactwp < self.nwp -1
+
+        # if LNAV on: increase counter
         if lnavon:
             self.iactwp += 1
+
+        # Activate switch to indicate that this is the last waypoint (for lenient passing logic in actwp.Reached function)
+        swlastwp = (self.iactwp == self.nwp-1)
 
         nextqdr = self.getnextqdr()
 
@@ -955,6 +965,7 @@ class Route(Replaceable):
 
         #print ("getnextwp:",self.wpname[self.iactwp],"   torta = ",self.wptorta[self.iactwp])
 
+
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
@@ -962,7 +973,7 @@ class Route(Replaceable):
                lnavon,self.wpflyby[self.iactwp], \
                self.wpflyturn[self.iactwp], self.wpturnrad[self.iactwp], \
                self.wpturnspd[self.iactwp], \
-               nextqdr
+               nextqdr, swlastwp
 
     def runactwpstack(self):
         for cmdline in self.wpstack[self.iactwp]:
