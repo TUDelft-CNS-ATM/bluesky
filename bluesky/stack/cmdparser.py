@@ -1,7 +1,7 @@
 ''' Stack Command implementation. '''
 import inspect
 
-from bluesky.stack.argparser import Parameter, getnextarg
+from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 
 
 class Command:
@@ -74,7 +74,7 @@ class Command:
                     _, argstring = getnextarg(argstring)
                     count += 1
                 msg += f', but {count} were given'
-                raise TypeError(msg)
+                raise ArgumentError(msg)
             result = param(argstring)
             argstring = result[-1]
             args.extend(result[:-1])
@@ -138,7 +138,7 @@ class Command:
             if self.annotations:
                 self.params = list()
                 pos = 0
-                for annot in self.annotations:
+                for annot, isopt in self.annotations:
                     if annot == '...':
                         if paramspecs[-1].kind != paramspecs[-1].VAR_POSITIONAL:
                             raise IndexError('Repeating arguments (...) given for function'
@@ -146,7 +146,7 @@ class Command:
                         self.params[-1].gobble = True
                         break
 
-                    param = Parameter(paramspecs[pos], annot)
+                    param = Parameter(paramspecs[pos], annot, isopt)
                     if param:
                         pos = min(pos + param.size(), len(paramspecs) - 1)
                         self.params.append(param)
@@ -261,7 +261,6 @@ def get_annot(annotations):
         return tuple(annotations)
     # Assume it is a comma-separated string
     argtypes = []
-    argisopt = []
 
     # Process and reduce annotation string from left to right
     # First cut at square brackets, then take separate argument types
@@ -271,8 +270,8 @@ def get_annot(annotations):
             "[") if "[" in annotations else len(annotations))
 
         types = annotations[:cut].strip("[,]").split(",")
-        argtypes += types
-        argisopt += [opt or t == "..." for t in types]
+        # Returned argtypes are tuples of type and optional status
+        argtypes += zip(types, [opt or t == "..." for t in types])
         annotations = annotations[cut:].lstrip(",]")
 
     return tuple(argtypes)
