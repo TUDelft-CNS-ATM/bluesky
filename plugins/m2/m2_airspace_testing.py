@@ -52,11 +52,27 @@ class airspaceLayer(core.Entity):
     def update(self):
         ''' Periodic update function that determines the layer type for all aircraft every second. '''
         
-        # Loop through 
+        # Loop through each aircraft and determine which layer it is in currently
         for i, callsign in enumerate(traf.id):
             altitude = traf.alt[i]
             layer = self.airspaceStructure[1][
                 np.where(
                     (self.upperalt >= altitude) & (self.loweralt < altitude))]
             self.airspacelayertype[i] = layer[0]
-            # stack.stack(f'ECHO {callsign} {layer}') #uncomment if you want to keep printing things on the console.
+            
+        # stack.stack(f'ECHO {callsign} {layer}') #uncomment if you want to keep printing things on the console.
+    
+    @stack.command
+    def echoaclayer(self, acid: 'acid'):
+        ''' Print the layer name of the selected aircraft onto the console '''
+        layer = self.airspacelayertype[acid]
+        return True, f'{traf.id[acid]} is in {layer}.'
+    
+    
+    def getaclayer(self, callsign):
+        ''' Return the name of the layer that the selected aircraft is currently in '''
+        idx = traf.id2idx(callsign)
+        layer = self.airspacelayertype[idx]
+        # stack.stack(f'ECHO {traf.id[idx]} is in {layer}')
+        return layer
+        
