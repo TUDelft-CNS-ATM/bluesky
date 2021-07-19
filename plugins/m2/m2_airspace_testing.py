@@ -10,8 +10,6 @@ import numpy as np
 from bluesky import core, stack, traf, settings, navdb, sim, scr, tools
 
 
-airspaceStructure =np.genfromtxt('plugins\\m2\\airspace structure spec.csv', delimiter=',',dtype=str)[1:].T
-
 def init_plugin():
     ''' Plugin initialisation function. '''
     # Instantiate our example entity
@@ -36,16 +34,29 @@ class airspaceLayer(core.Entity):
         # All classes deriving from Entity can register lists and numpy arrays
         # that hold per-aircraft data. This way, their size is automatically
         # updated when aircraft are created or deleted in the simulation.
+        
+        # load the airspace structure 
+        self.airspaceStructure = np.genfromtxt('plugins\\m2\\airspace structure spec.csv', delimiter=',',dtype=str, skip_header=1).T
+        
+        # Process airspace structure and convert to SI units
+        self.loweralt = self.airspaceStructure[2].astype(float)*tools.aero.ft  # [m]
+        self.upperalt = self.airspaceStructure[3].astype(float)*tools.aero.ft  # [m]
+        self.lowerspd = self.airspaceStructure[4].astype(float)*tools.aero.kts # [m/s]
+        self.upperspd = self.airspaceStructure[5].astype(float)*tools.aero.kts # [m/s]
+        
+        # add the airspacelayertype as new array per aircraft
         with self.settrafarrays():
             self.airspacelayertype = np.array([],dtype='S24')
 
-    @core.timed_function(name='airspacelayer', dt=1)
+    @core.timed_function(name='airspacelayer', dt=settings.asas_dt)
     def update(self):
         ''' Periodic update function that determines the layer type for all aircraft every second. '''
+        
+        # Loop through 
         for i, callsign in enumerate(traf.id):
             altitude = traf.alt[i]
-            layer = airspaceStructure[1][
+            layer = self.airspaceStructure[1][
                 np.where(
-                    (airspaceStructure[3].astype(int) >= altitude / 0.3048) & (airspaceStructure[2].astype(int) < altitude / 0.3048))]
+                    (self.upperalt >= altitude) & (self.loweralt < altitude))]
             self.airspacelayertype[i] = layer[0]
-            #stack.stack(f'ECHO {callsign} {layer}') uncomment if you want to keep printing things on the console.
+            # stack.stack(f'ECHO {callsign} {layer}') #uncomment if you want to keep printing things on the console.
