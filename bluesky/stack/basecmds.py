@@ -578,7 +578,8 @@ def initbasecmds():
         "START": "OP",
         "TRAILS": "TRAIL",
         "TURN": "HDG",
-        "VAR": "MAGVAR"
+        "VAR": "MAGVAR",
+        "WPTYPE":"ADDWPT"
     }
 
     append_commands(cmddict, synonyms)

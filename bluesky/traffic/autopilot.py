@@ -71,14 +71,14 @@ class Autopilot(Entity, replaceable=True):
 
     #no longer timed @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
     def update_fms(self, qdr, dist):
-        # Check which aircraft i have reached the ir active waypoint
+        # Check which aircraft i have reached their active waypoint
         # Shift waypoints for aircraft i where necessary
         # Reached function return list of indices where reached logic is True
         for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
-                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad):
-            #debug print(bs.traf.id[i],"reached",self.route[i].wpname[self.route[i].iactwp])
+                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad,bs.traf.actwp.swlastwp):
+
             # Save current wp speed for use on next leg when we pass this waypoint
-            # VNAV speeds are always FROM-speed, so we accelerate/decellerate at the waypoint
+            # VNAV speeds are always FROM-speeds, so we accelerate/decellerate at the waypoint
             # where this speed is specified, so we need to save it for use now
             # before getting the new data for the next waypoint
 
@@ -86,10 +86,12 @@ class Autopilot(Entity, replaceable=True):
             bs.traf.actwp.spd[i]    = bs.traf.actwp.nextspd[i]
             bs.traf.actwp.spdcon[i] = bs.traf.actwp.nextspd[i]
 
+
+
             # Execute stack commands for the still active waypoint, which we pass
             self.route[i].runactwpstack()
 
-            # Use turnradius of passing wp for bank angle
+            # If specified, use the given turn radius of passing wp for bank angle
             if bs.traf.actwp.flyturn[i]:
                 if bs.traf.actwp.turnspd[i]>=0.:
                     turnspd = bs.traf.actwp.turnspd[i]
@@ -104,12 +106,20 @@ class Autopilot(Entity, replaceable=True):
             else:
                 bs.traf.aphi[i] = 0.0  #[rad] or leave untouched???
 
-            # Get next wp (lnavon = False if no more waypoints)
-            lat, lon, alt, bs.traf.actwp.nextspd[i], bs.traf.actwp.xtoalt[i], toalt, \
-                bs.traf.actwp.xtorta[i], bs.traf.actwp.torta[i], \
-                lnavon, flyby, flyturn, turnrad, turnspd,\
-                bs.traf.actwp.next_qdr[i] =      \
-                self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
+            # Get next wp, if there still is one
+            if not bs.traf.actwp.swlastwp[i]:
+                lat, lon, alt, bs.traf.actwp.nextspd[i], bs.traf.actwp.xtoalt[i], toalt, \
+                    bs.traf.actwp.xtorta[i], bs.traf.actwp.torta[i], \
+                    lnavon, flyby, flyturn, turnrad, turnspd,\
+                    bs.traf.actwp.next_qdr[i], bs.traf.actwp.swlastwp[i] =      \
+                    self.route[i].getnextwp()  # note: xtoalt,toalt in [m]
+
+            # Prevent trying to activate the next waypoint when it was already the last waypoint
+            else:
+                bs.traf.swlnav[i] = False
+                bs.traf.swvnav[i] = False
+                bs.traf.swvnavspd[i] = False
+                continue # Go to next a/c which reached its active waypoint
 
             # End of route/no more waypoints: switch off LNAV using the lnavon
             # switch returned by getnextwp
@@ -137,7 +147,7 @@ class Autopilot(Entity, replaceable=True):
             # VNAV spd mode: use speed of this waypoint as commanded speed
             # while passing waypoint and save next speed for passing next wp
             # Speed is now from speed! Next speed is ready in wpdata
-            if bs.traf.swvnavspd[i] and bs.traf.actwp.spd[i]> 0.0:
+            if bs.traf.swvnavspd[i] and bs.traf.actwp.spd[i]>= 0.0:
                     bs.traf.selspd[i] = bs.traf.actwp.spd[i]
 
             # Update qdr and turndist for this new waypoint for ComputeVNAV
@@ -203,7 +213,7 @@ class Autopilot(Entity, replaceable=True):
                 self.setspeedforRTA(iac,bs.traf.actwp.torta[iac],dist2go4rta)
 
                 # If VNAV speed is on (by default coupled to VNAV), use it for speed guidance
-                if bs.traf.swvnavspd[iac]:
+                if bs.traf.swvnavspd[iac] and bs.traf.actwp.spd[iac]>=0.0:
                      bs.traf.selspd[iac] = bs.traf.actwp.spd[iac]
 
     def update(self):
@@ -276,18 +286,21 @@ class Autopilot(Entity, replaceable=True):
         swturnspd     = bs.traf.actwp.flyturn*(turntas>0.0)*(bs.traf.actwp.turnspd>0.0)
         turntasdiff   = np.maximum(0.,(bs.traf.tas - turntas)*(turntas>0.0))
 
-        # dt = dv/a ;  dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
+        # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
         ax = bs.traf.perf.acceleration()
-        dxturnspdchg  = np.where(swturnspd, np.abs(turntasdiff)/np.maximum(0.01,ax)*(bs.traf.tas+0.5*np.abs(turntasdiff)),
-                                                                   0.0*bs.traf.tas)
+        dxturnspdchg = distaccel(turntas,bs.traf.tas,ax)
+#        dxturnspdchg = 0.5*np.abs(turntas*turntas-bs.traf.tas*bs.traf.tas)/(np.sign(turntas-bs.traf.tas)*np.maximum(0.01,np.abs(ax)))
+#        dxturnspdchg  = np.where(swturnspd, np.abs(turntasdiff)/np.maximum(0.01,ax)*(bs.traf.tas+0.5*np.abs(turntasdiff)),
+#                                                                   0.0*bs.traf.tas)
 
         # Decelerate or accelerate for next required speed because of speed constraint or RTA speed
         nexttas   = vcasormach2tas(bs.traf.actwp.nextspd,bs.traf.alt)
-        tasdiff   = (nexttas - bs.traf.tas)*(bs.traf.actwp.spd>=0.) # [m/s]
+#        tasdiff   = (nexttas - bs.traf.tas)*(bs.traf.actwp.spd>=0.) # [m/s]
 
-        # dt = dv/a   dx = v*dt + 0.5*a*dt2 => dx = dv/a * (v + 0.5*dv)
-        dxspdconchg = np.abs(tasdiff)/np.maximum(0.01, np.abs(ax)) * (bs.traf.tas+0.5*np.abs(tasdiff))
 
+        # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
+
+        dxspdconchg = distaccel(bs.traf.tas,nexttas,ax)
 
         # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
         # and same for turn logic
@@ -314,7 +327,7 @@ class Autopilot(Entity, replaceable=True):
         # Select speed: turn sped, next speed constraint, or current speed constraint
         bs.traf.selspd = np.where(useturnspd,bs.traf.actwp.turnspd,
                                   np.where(usenextspdcon, bs.traf.actwp.nextspd,
-                                           np.where((bs.traf.actwp.spdcon>0)*bs.traf.swvnavspd,bs.traf.actwp.spd,
+                                           np.where((bs.traf.actwp.spdcon>=0)*bs.traf.swvnavspd,bs.traf.actwp.spd,
                                                                             bs.traf.selspd)))
 
 
@@ -757,3 +770,10 @@ def calcvrta(v0, dx, deltime, trafax):
         vtarg = vlst[0]
     return vtarg
 
+def distaccel(v0,v1,axabs):
+    """Calculate distance travelled during acceleration/deceleration
+    v0 = start speed, v1 = endspeed, axabs = magnitude of accel/decel
+    accel/decel is detemremind by sign of v1-v0
+    axabs is acceleration/deceleration of which absolute value will be used
+    solve for x: x = vo*t + 1/2*a*t*t    v = v0 + a*t """
+    return 0.5*np.abs(v1*v1-v0*v0)/np.maximum(.001,np.abs(axabs))
