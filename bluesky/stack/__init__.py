@@ -6,7 +6,7 @@ from bluesky import settings
 from bluesky.stack.stackbase import stack, forward, sender, routetosender, get_scenname, get_scendata, set_scendata
 from bluesky.stack.cmdparser import command, commandgroup, append_commands, \
     remove_commands, get_commands
-from bluesky.stack.argparser import refdata
+from bluesky.stack.argparser import refdata, ArgumentError
 
 
 def init(mode='client'):

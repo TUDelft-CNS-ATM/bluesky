@@ -7,7 +7,7 @@ from bluesky.stack.stackbase import Stack, stack, checkscen, forward
 from bluesky.stack.cmdparser import Command, command
 from bluesky.stack.basecmds import initbasecmds
 from bluesky.stack import recorder
-from bluesky.stack import argparser
+from bluesky.stack import argparser, ArgumentError
 from bluesky import settings
 
 
@@ -86,11 +86,16 @@ def process():
                         echoflags = bs.BS_FUNERR
                         echotext = f'Syntax error: {echotext or cmdobj.brieftext()}'
 
-            except Exception as e:
+            except ArgumentError as e:
                 success = False
                 echoflags = bs.BS_ARGERR
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
+            except Exception as e:
+                echoflags = bs.BS_FUNERR
+                header = '' if not argstring else e.args[0] if e.args else 'Function error.'
+                echotext = f'Error calling function implementation of {cmdu}: {header}\n' + \
+                    'Traceback printed to terminal.'
                 traceback.print_exc()
 
         # ----------------------------------------------------------------------
