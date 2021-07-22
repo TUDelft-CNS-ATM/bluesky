@@ -120,6 +120,7 @@ class ConflictResolution(Entity, replaceable=True):
                 continue
 
             if idx2 >= 0:
+                rpz = conf.rpz[idx1] + conf.rpz[idx2]
                 # Distance vector using flat earth approximation
                 re = 6371000.
                 dist = re * np.array([np.radians(intruder.lon[idx2] - ownship.lon[idx1]) *
@@ -139,7 +140,7 @@ class ConflictResolution(Entity, replaceable=True):
                 # LOS. This is particularly relevant when vertical resolutions
                 # are used.
                 hdist = np.linalg.norm(dist)
-                hor_los = hdist < conf.rpz
+                hor_los = hdist < rpz
 
                 # Bouncing conflicts:
                 # If two aircraft are getting in and out of conflict continously,
@@ -147,7 +148,7 @@ class ConflictResolution(Entity, replaceable=True):
                 # the bouncing stops.
                 is_bouncing = \
                     abs(ownship.trk[idx1] - intruder.trk[idx2]) < 30.0 and \
-                    hdist < conf.rpz * self.resofach
+                    hdist < rpz * self.resofach
 
             # Start recovery for ownship if intruder is deleted, or if past CPA
             # and not in horizontal LOS or a bouncing conflict
