@@ -43,6 +43,7 @@ class airspaceLayer(core.Entity):
         self.upperalt = self.airspaceStructure[3].astype(float)*tools.aero.ft  # [m]
         self.lowerspd = self.airspaceStructure[4].astype(float)*tools.aero.kts # [m/s]
         self.upperspd = self.airspaceStructure[5].astype(float)*tools.aero.kts # [m/s]
+        self.layernames = self.airspaceStructure[1]
         
         # add the airspacelayertype as new array per aircraft
         with self.settrafarrays():
@@ -52,15 +53,25 @@ class airspaceLayer(core.Entity):
     def update(self):
         ''' Periodic update function that determines the layer type for all aircraft every second. '''
         
+        # Reshape traf.alt to have two dimensions to compare array without looping
+        altitudesreshape = traf.alt.reshape(-1, 1)
+        
+        # compare aircraft altitudes to upper and lower altitude of each layer
+        comparelower = self.loweralt <= altitudesreshape
+        compareupper = altitudesreshape < self.upperalt
+        
+        # determine the index of the layer each aircraft is in
+        idx = np.where(comparelower & compareupper)[1]
+        self.airspacelayertype = self.layernames[idx]
+        
         # Loop through each aircraft and determine which layer it is in currently
-        for i, callsign in enumerate(traf.id):
-            altitude = traf.alt[i]
-            layer = self.airspaceStructure[1][
-                np.where(
-                    (self.upperalt >= altitude) & (self.loweralt < altitude))]
-            self.airspacelayertype[i] = layer[0]
-            
-        # stack.stack(f'ECHO {callsign} {layer}') #uncomment if you want to keep printing things on the console.
+        # for i, callsign in enumerate(traf.id):
+        #     altitude = traf.alt[i]
+        #     layer = self.airspaceStructure[1][
+        #         np.where(
+        #             (self.upperalt > altitude) & (self.loweralt <= altitude))]
+        #     self.airspacelayertype[i] = layer[0]            
+        #     stack.stack(f'ECHO {callsign} {layer}') #uncomment if you want to keep printing things on the console.
     
     @stack.command
     def echoaclayer(self, acid: 'acid'):
