@@ -296,13 +296,13 @@ class MVP(ConflictResolution):
 
 
         # Horizontal resolution----------------------------------------------------
-
+        rpz = conf.rpz[idx1] + conf.rpz[idx2]
         # Find horizontal distance at the tcpa (min horizontal distance)
         dcpa  = drel + vrel*tcpa
         dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
 
         # Compute horizontal intrusion
-        iH = (conf.rpz * self.resofach) - dabsH
+        iH = (rpz * self.resofach) - dabsH
 
         # Exception handlers for head-on conflicts
         # This is done to prevent division by zero in the next step
@@ -313,21 +313,21 @@ class MVP(ConflictResolution):
 
         # If intruder is outside the ownship PZ, then apply extra factor
         # to make sure that resolution does not graze IPZ
-        if (conf.rpz * self.resofach) < dist and dabsH < dist:
+        if (rpz * self.resofach) < dist and dabsH < dist:
             # Compute the resolution velocity vector in horizontal direction.
             # abs(tcpa) because it bcomes negative during intrusion.
-            erratum=np.cos(np.arcsin((conf.rpz * self.resofach)/dist)-np.arcsin(dabsH/dist))
-            dv1 = (((conf.rpz * self.resofach)/erratum - dabsH)*dcpa[0])/(abs(tcpa)*dabsH)
-            dv2 = (((conf.rpz * self.resofach)/erratum - dabsH)*dcpa[1])/(abs(tcpa)*dabsH)
+            erratum=np.cos(np.arcsin((rpz * self.resofach)/dist)-np.arcsin(dabsH/dist))
+            dv1 = (((rpz * self.resofach)/erratum - dabsH)*dcpa[0])/(abs(tcpa)*dabsH)
+            dv2 = (((rpz * self.resofach)/erratum - dabsH)*dcpa[1])/(abs(tcpa)*dabsH)
         else:
             dv1 = (iH * dcpa[0]) / (abs(tcpa) * dabsH)
             dv2 = (iH * dcpa[1]) / (abs(tcpa) * dabsH)
 
         # Vertical resolution------------------------------------------------------
-
+        hpz = conf.hpz[idx1] + conf.hpz[idx2]
         # Compute the  vertical intrusion
         # Amount of vertical intrusion dependent on vertical relative velocity
-        iV = (conf.hpz * self.resofacv) if abs(vrel[2])>0.0 else (conf.hpz * self.resofacv)-abs(drel[2])
+        iV = (hpz * self.resofacv) if abs(vrel[2])>0.0 else (hpz * self.resofacv)-abs(drel[2])
 
         # Get the time to solve the conflict vertically - tsolveV
         tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else tLOS
@@ -335,9 +335,9 @@ class MVP(ConflictResolution):
         # If the time to solve the conflict vertically is longer than the look-ahead time,
         # because the the relative vertical speed is very small, then solve the intrusion
         # within tinconf
-        if tsolV>conf.dtlookahead:
+        if tsolV>conf.dtlookahead[idx1]:
             tsolV = tLOS
-            iV    = (conf.hpz * self.resofacv)
+            iV    = (hpz * self.resofacv)
 
         # Compute the resolution velocity vector in the vertical direction
         # The direction of the vertical resolution is such that the aircraft with
