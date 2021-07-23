@@ -12,8 +12,6 @@ class StateBased(ConflictDetection):
         # Identity matrix of order ntraf: avoid ownship-ownship detected conflicts
         I = np.eye(ownship.ntraf)
 
-        rpz=rpz*2
-
         # Horizontal conflict ------------------------------------------------------
 
         # qdrlst is for [i,j] qdr from i to j, from perception of ADSB and own coordinates
