@@ -7,7 +7,7 @@ Date: 14-07-2021
 from random import randint
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, stack, traf, settings, navdb, sim, scr, tools
+from bluesky import core, stack, traf, settings, tools
 
 
 def init_plugin():
@@ -76,14 +76,12 @@ class airspaceLayer(core.Entity):
     @stack.command
     def echoaclayer(self, acid: 'acid'):
         ''' Print the layer name of the selected aircraft onto the console '''
-        layer = self.airspacelayertype[acid]
+        layer = self.getaclayer(acid)
         return True, f'{traf.id[acid]} is in {layer}.'
     
     
-    def getaclayer(self, callsign):
+    def getaclayer(self, acid: 'acid'):
         ''' Return the name of the layer that the selected aircraft is currently in '''
-        idx = traf.id2idx(callsign)
-        layer = self.airspacelayertype[idx]
-        # stack.stack(f'ECHO {traf.id[idx]} is in {layer}')
+        layer = self.airspacelayertype[acid]
         return layer
         
