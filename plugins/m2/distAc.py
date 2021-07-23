@@ -1,0 +1,65 @@
+""" BlueSky plugin template. The text you put here will be visible
+    in BlueSky as the description of your plugin. """
+from random import randint
+import numpy as np
+# Import the global bluesky objects. Uncomment the ones you need
+from bluesky import core, stack, traf, settings, tools
+
+### Initialization function of your plugin. Do not change the name of this
+### function, as it is the way BlueSky recognises this file as a plugin.
+def init_plugin():
+    ''' Plugin initialisation function. '''
+    # Instantiate our example entity
+    distac = distAc()
+
+    # Configuration parameters
+    config = {
+        # The name of your plugin
+        'plugin_name':     'distAc',
+
+        # The type of this plugin. For now, only simulation plugins are possible.
+        'plugin_type':     'sim',
+        }
+
+    # init_plugin() should always return a configuration dict.
+    return config
+
+
+class distAc(core.Entity):
+    ''' Example new entity object for BlueSky. '''
+    def __init__(self):
+        super().__init__()
+
+    
+    def distAc(self, acid1: 'acid', acid2: 'acid'):
+        ''' Calculate the distance between two selected aircraft on the console'''
+        
+        # lat and lon of acid1
+        lat1 = traf.lat[acid1]
+        lon1 = traf.lon[acid1]
+        
+        # lat and lon of acid2
+        lat2 = traf.lat[acid2]
+        lon2 = traf.lon[acid2]
+        
+        # call the qdrdist function to calculate distance
+        qdr, distNM = tools.geo.qdrdist(lat1, lon1, lat2, lon2)
+        
+        # convert to meters
+        dist = distNM * tools.aero.nm
+        
+        return dist, qdr
+    
+    @stack.command
+    def echodistac(self, acid1: 'acid', acid2: 'acid'):
+        
+        #Calculate the distance and bearing 
+        dist, qdr = self.distAc(acid1, acid2)
+        
+        # round the output for the stack echo
+        dist = round(dist,2)
+        qdr = round(qdr,2)
+        
+        return True, f'Distance and bearing from {traf.id[acid1]} to {traf.id[acid2]} is {dist} [m]  and {qdr} [deg]'
+    
+    
