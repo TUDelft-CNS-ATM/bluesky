@@ -296,7 +296,7 @@ class MVP(ConflictResolution):
 
 
         # Horizontal resolution----------------------------------------------------
-        rpz = conf.rpz[idx1] + conf.rpz[idx2]
+        rpz = max(conf.rpz[idx1], conf.rpz[idx2])
         # Find horizontal distance at the tcpa (min horizontal distance)
         dcpa  = drel + vrel*tcpa
         dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
@@ -324,7 +324,7 @@ class MVP(ConflictResolution):
             dv2 = (iH * dcpa[1]) / (abs(tcpa) * dabsH)
 
         # Vertical resolution------------------------------------------------------
-        hpz = conf.hpz[idx1] + conf.hpz[idx2]
+        hpz = max(conf.hpz[idx1], conf.hpz[idx2])
         # Compute the  vertical intrusion
         # Amount of vertical intrusion dependent on vertical relative velocity
         iV = (hpz * self.resofacv) if abs(vrel[2])>0.0 else (hpz * self.resofacv)-abs(drel[2])
