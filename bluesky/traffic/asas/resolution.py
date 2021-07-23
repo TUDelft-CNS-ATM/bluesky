@@ -120,7 +120,7 @@ class ConflictResolution(Entity, replaceable=True):
                 continue
 
             if idx2 >= 0:
-                rpz = conf.rpz[idx1] + conf.rpz[idx2]
+                rpz = max(conf.rpz[idx1], conf.rpz[idx2])
                 # Distance vector using flat earth approximation
                 re = 6371000.
                 dist = re * np.array([np.radians(intruder.lon[idx2] - ownship.lon[idx1]) *
