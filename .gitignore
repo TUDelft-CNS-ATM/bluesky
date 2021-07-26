@@ -1,6 +1,7 @@
 .spyproject
 output
 scenario/ic.scn
+scenario/M2/ic.scn
 data/cache
 data/grib
 data/performance/BADA/*
