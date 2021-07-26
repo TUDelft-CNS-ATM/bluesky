@@ -1,18 +1,17 @@
 ﻿# id, type ,startalt[ft], endalt[ft], minspd[kts], maxspd[kts]
+# Note: resolution_0 is the lowest reso layer and the only reso layer without direction
 0,a_and_d,0,100,-0.05,999
-1,resolution_0,100,125,-0.05,999
-2,cruising_1,125,150,10,15
-3,resolution_1,150,175,-0.05,999
-4,cruising_2,175,200,10,15
-5,resolution_2,200,225,-0.05,999
-6,cruising_3,225,250,10,15
-7,resolution_3,250,275,-0.05,999
-8,cruising_4,275,300,15,20
-9,resolution_4,300,325,-0.05,999
-10,cruising_5,325,350,20,25
-11,resolution_5,350,375,-0.05,999
-12,cruising_6,375,400,25,30
-13,resolution_6,400,425,-0.05,999
-14,cruising_7,425,450,30,35
-15,resolution_7,450,475,-0.05,999
-16,outside,475,10000,-0.05,999
+1,resolution_0,100,130,-0.05,999
+2,cruising_1,130,160,10,15
+3,resolution_1,160,190,-0.05,999
+4,cruising_2,190,220,10,15
+5,resolution_2,220,250,-0.05,999
+6,cruising_3,250,280,10,15
+7,resolution_3,280,310,-0.05,999
+8,cruising_4,310,340,15,20
+9,resolution_4,340,370,-0.05,999
+10,cruising_5,370,400,20,25
+11,resolution_5,400,430,-0.05,999
+12,cruising_6,430,460,25,30
+13,resolution_6,460,490,-0.05,999
+14,outside,490,10000,-0.05,999
