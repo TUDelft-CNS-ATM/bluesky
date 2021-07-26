@@ -36,7 +36,7 @@ class airspaceLayer(core.Entity):
         # updated when aircraft are created or deleted in the simulation.
         
         # load the airspace structure 
-        self.airspaceStructure = np.genfromtxt('plugins\\m2\\airspace structure spec.csv', delimiter=',',dtype=str, skip_header=1).T
+        self.airspaceStructure = np.genfromtxt('plugins\\m2\\airspace structure spec.csv', delimiter=',',dtype=str, skip_header=2).T
         
         # Process airspace structure and convert to SI units
         self.loweralt = self.airspaceStructure[2].astype(float)*tools.aero.ft  # [m]
