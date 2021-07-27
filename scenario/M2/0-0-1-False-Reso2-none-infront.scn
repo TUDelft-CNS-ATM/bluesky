@@ -1,0 +1,20 @@
+# 0-0-0-True-Reso1-none-behind.scn
+# ownship flight phase: 0 (cruising) / 1 (climbing) / 2 (descending)
+# intruder flight phase: 0 (cruising) / 1 (climbing) / 2 (descending)
+# ownship layer: 0 (crusing layer) / 1 (resolution layer)
+# vertical conflict probe: True (can climb into reso layer) / False (can not climb into reso layer)
+# Resolution type: Reso1-7
+# ownship relative altitude: above / below / none
+# ownship lateral position: infront / behind
+
+
+00:00:00.00>symbol
+00:00:00.00>ASAS ON
+
+# Intruder
+00:00:00.00>CRE D1,M600,52.424512,2.465367,90,340,20
+00:00:00.00>PAN D1
+00:00:00.00>ZOOM 500
+
+# Ownship
+00:00:00.00>creconfs d2 m600 d1 0 0 15 0 0 15
