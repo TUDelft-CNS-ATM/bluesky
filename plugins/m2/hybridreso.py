@@ -57,17 +57,17 @@ class hybridreso(ConflictResolution):
         # Make a copy of traffic data, ground speed and alt. 
         # For gs and trk, determine the new values for the resolving aircraft using the appropriate reso method
         newgs  = np.copy(traf.gs)
-        newalt = np.copy(traf.alt)
+        newalt = np.copy(traf.ap.alt)
         
         # Speed based, and 2D, for now.
-        newtrk = np.copy(traf.alt)
-        newvs = np.copy(traf.trk)
+        newtrk = np.copy(traf.ap.trk)
+        newvs = np.copy(traf.vs)
         
         # import pdb
         # pdb.set_trace()
         
         # call the intent filter
-        # self.intentFilter(conf, ownship, intruder)
+        self.intentFilter(conf, ownship, intruder)
         
         # # set the trk and vs active flags to flase for all traffic
         # self.trkactive = np.array([False]*traf.ntraf)
@@ -106,11 +106,13 @@ class hybridreso(ConflictResolution):
            if such a conflict is automatically so is automatically solved by the routes of the conf '''
            
         # dict to store the the idxs of the aircraft to change their active status
+        
+        
         changeactive = dict()
         
         for conflict in conf.confpairs:
             idxown, idxint = traf.id2idx(conflict)
-        
+            
             own_intent, own_target_alt = ownship.intent[idxown] # TODO: figure out how to import intent
             intruder_intent, intruder_target_alt = intruder.intent[idxint] # TODO
             # Find closest points between the two intent paths
@@ -122,7 +124,8 @@ class hybridreso(ConflictResolution):
             diff = ownship.alt[idxint] - intruder_target_alt
             
             # minimum horizontal separation 
-            rpz = 2*max(conf.rpz[idxown],conf.rpz[idxint])
+            rpz = (conf.rpz[idxown]+conf.rpz[idxint])
+            
             
             # Basically, there are three conditions to be met in order to skip
             # a conflict due to intent:
