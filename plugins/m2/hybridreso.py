@@ -135,24 +135,22 @@ class hybridreso(ConflictResolution):
             # 3. The altitude difference and vertical velocity of the intruder have the same sign.
             # This means that if the aircraft is coming from above (negative), and the altitude difference
             # is positive (thus target altitude is below ownship), then their paths will intersect. 
-            if (point_distance > rpz) and (abs(diff) >= conf.hpz[idxown]):
-                
+            if (point_distance < rpz ) and (conf.hpz[idxown] >= abs(diff)):
+                # if this is a real conflict, set it to active
+                changeactive[idxown] = True
+                changeactive[idxint] = True
+
+            else:
+                # if the intent resolves the conflict, then remove this conflict from the conflict list and set active to False
+                conf.confpairs = conf.confpairs.remove(conflict)
+                if conflict in conf.confpairs_unique:
+                    conf.confpairs = conf.confpairs_unique.remove(conflict)
+                if conflict in conf.confpairs_all:
+                    conf.confpairs = conf.confpairs_all.remove(conflict)
                 # change the active status to False if resolved by intent
                 changeactive[idxown] = changeactive.get(idxown, False)
                 changeactive[idxint] = changeactive.get(idxint, False)
-                
-                # remove this conflict from confpairs, confpairs_unique, confpairs_all
-                conf.confpairs.remove(conflict)
-                if conflict in conf.confpairs_unique:
-                    conf.confpairs_unique.remove(conflict)
-                if conflict in conf.confpairs_all:
-                    conf.confpairs_all.remove(conflict)
-                
-            else:
-                # if intent does not solve the conflict, then set the active to True 
-                changeactive[idxown] = True
-                changeactive[idxint] = True
-                
+
         for idx, active in changeactive.items():
             # Loop a second time: this is to avoid that ASAS resolution is
             # turned off for an aircraft that is involved simultaneously in
