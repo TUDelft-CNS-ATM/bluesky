@@ -48,6 +48,9 @@ class airspaceLayer(core.Entity):
         # add the airspacelayertype as new array per aircraft
         with self.settrafarrays():
             self.airspacelayertype = np.array([],dtype='S24')
+        
+        # add airspacelayertype to traffic so that it can be used by other plugins and the rest of bluesky
+        traf.aclayername = self.airspacelayertype
 
     @core.timed_function(name='airspacelayer', dt=settings.asas_dt)
     def update(self):
@@ -63,6 +66,9 @@ class airspaceLayer(core.Entity):
         # determine the index of the layer each aircraft is in
         idx = np.where(comparelower & compareupper)[1]
         self.airspacelayertype = self.layernames[idx]
+        
+        # update the traffic variable
+        traf.aclayername = self.airspacelayertype
         
         # Loop through each aircraft and determine which layer it is in currently
         # for i, callsign in enumerate(traf.id):
