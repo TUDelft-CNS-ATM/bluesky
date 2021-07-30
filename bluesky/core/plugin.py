@@ -1,8 +1,9 @@
 """ Implementation of BlueSky's plugin system. """
 import ast
+import glob
+
 from bluesky.stack.stackbase import sender
 from os import path
-from pathlib import Path
 import sys
 import imp
 import bluesky as bs
@@ -90,7 +91,7 @@ class Plugin:
     @classmethod
     def find_plugins(cls, reqtype):
         ''' Create plugin wrapper objects based on source code of potential plug-in files. '''
-        for fname in Path(settings.plugin_path).rglob('*.py'):
+        for fname in glob.glob('{}/**/*.py'.format(settings.plugin_path), recursive=True):
             with open(fname, 'rb') as f:
                 source = f.read()
                 try:
