@@ -1,5 +1,8 @@
-""" BlueSky plugin template. The text you put here will be visible
-    in BlueSky as the description of your plugin. """
+""" The hybridreso plugin performs tactical airborne conflict resolution in the
+    Hybrid concept of the Metropolis 2 project.
+    Created by: Emmanuel    
+    Date: 29 July 2021
+"""
 import numpy as np
 import copy
 from shapely.ops import nearest_points
@@ -10,16 +13,14 @@ from bluesky.tools.geo import kwikdist
 from bluesky.tools.aero import nm #, ft
 
 
-### Initialization function of your plugin. Do not change the name of this
-### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
     ''' Plugin initialisation function. '''
-    # Instantiate our example entity
-    # reso = hybridreso()
+    # Instantiate our example entity. Seems to work even if you don't do this.
+    # reso = hybridreso() 
 
     # Configuration parameters
     config = {
-        # The name of your plugi
+        # The name of your plugin. Keep it the same as the class
         'plugin_name':     'hybridreso',
 
         # The type of this plugin. For now, only simulation plugins are possible.
@@ -34,9 +35,6 @@ class hybridreso(ConflictResolution):
     ''' Example new entity object for BlueSky. '''
     def __init__(self):
         super().__init__()
-        # All classes deriving from Entity can register lists and numpy arrays
-        # that hold per-aircraft data. This way, their size is automatically
-        # updated when aircraft are created or deleted in the simulation.
             
     def resolve(self, conf, ownship, intruder):
         ''' This resolve function will override the default resolution of resolution.py

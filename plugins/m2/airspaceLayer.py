@@ -1,7 +1,8 @@
 """
 BlueSky plugin of the M2 Hybrid Team. This plugin will return for each aircraft the type of
-airspace layer it is flying in.
+airspace layer it is flying in. This info is also stored in the traffic object.
 Created by: Vincent
+Modified by: Emmanuel 
 Date: 14-07-2021
 """
 from random import randint

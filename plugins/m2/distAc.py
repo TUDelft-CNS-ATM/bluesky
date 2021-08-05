@@ -1,12 +1,13 @@
-""" BlueSky plugin template. The text you put here will be visible
-    in BlueSky as the description of your plugin. """
+""" The distac plugin has a stack command that echos the distance and bearing 
+    between two aircraft given their callsigns.
+    Created by: Emmanuel 
+    Date: 22 July 2021 
+    """
 from random import randint
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import core, stack, traf, settings, tools
 
-### Initialization function of your plugin. Do not change the name of this
-### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
     ''' Plugin initialisation function. '''
     # Instantiate our example entity
