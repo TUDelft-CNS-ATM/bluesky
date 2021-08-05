@@ -1,5 +1,8 @@
-""" BlueSky plugin template. The text you put here will be visible
-    in BlueSky as the description of your plugin. """
+""" The intent plugin computes the intent of each aircraft with the CD lookahead
+in both horizontal and vertical directions and stores this in the traffic object.
+Created by: Emmanuel and Andrei
+Date: 27 July 2021
+"""
 from shapely.geometry import LineString
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import core, traf, settings#, navdb, sim, scr, tools
