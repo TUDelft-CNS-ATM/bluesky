@@ -64,18 +64,29 @@ class hybridreso(ConflictResolution):
             # determine priority of the aircraft in conflict
             ownshipResolves = self.priorityChecker(idxown, idxint)
             
+            if idxown == 1:
+                print(ownshipResolves)
+            
+            # if ownship is resolving determine which reso method to use and use it!
+            if ownshipResolves:
+                pass
+                
+            
         return newtrk, newgs, newvs, newalt
     
     def priorityChecker(self, idxown, idxint):
         'Determines if the ownship has lower priority and therefore has to resolve the conflict'
         
+        # get the priority of the ownship and intruder from traf
         prioOwn = traf.priority[idxown]
         prioInt = traf.priority[idxint]
         
         # Compare the priority of ownship and intruder
         if prioOwn < prioInt: # if ownship has lower priority, then it resolves
             return True
+        
         elif prioOwn == prioInt: # if both drones have the same priority, the callsign breaks the deadlock
+        
             # get number in the callsign of the ownship and intruder
             numberOwn = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxown] if word.isdigit()]]))
             numberInt = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxint] if word.isdigit()]]))
@@ -85,6 +96,7 @@ class hybridreso(ConflictResolution):
                 return True
             else:
                 return False
+            
         else:# if the ownship has higher priority, then it does not resolve
             return False
         

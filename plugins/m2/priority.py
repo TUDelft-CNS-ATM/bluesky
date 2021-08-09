@@ -41,11 +41,6 @@ class priority(core.Entity):
         to 1 (low priority) '''
         super().create(n)
         self.priority[-n:] = 1
-        
-    
-    @core.timed_function(name='priority', dt=settings.simdt)
-    def update(self):
-        ''' updates the priority every simdt seconds. '''
         traf.priority = self.priority
         
         
@@ -53,6 +48,7 @@ class priority(core.Entity):
     def setpriority(self, acid: 'acid', prio):
         ''' Set the priority of 'acid' to 'prio'. '''
         self.priority[acid] = prio
+        traf.priority = self.priority
         return True, f'The priority of {traf.id[acid]} is set to {prio}.'
     
     @stack.command
