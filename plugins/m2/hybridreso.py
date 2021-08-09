@@ -24,7 +24,7 @@ def init_plugin():
         # The name of your plugin. Keep it the same as the class
         'plugin_name':     'hybridreso',
 
-        # The type of this plugin. For now, only simulation plugins are possible.
+        # The type of this plugin.  For now, only simulation plugins are possible.
         'plugin_type':     'sim',
         }
 
@@ -52,8 +52,39 @@ class hybridreso(ConflictResolution):
         newtrk = np.copy(traf.ap.trk)
         newvs  = np.copy(traf.vs)
         
-        # TODO: Switch to determine which resolution to use 
-        
-                
-        
+        # Loop through each conflict, determine the resolution method, and set 
+        # the resolution for the asas module
+        for conflict in conf.confpairs:
+            
+            #idx of ownship and intruder
+            idxown, idxint = traf.id2idx(conflict)
+            
+            # TODO: Check for multi-aircraft conflicts 
+            
+            # determine priority of the aircraft in conflict
+            ownshipResolves = self.priorityChecker(idxown, idxint)
+            
         return newtrk, newgs, newvs, newalt
+    
+    def priorityChecker(self, idxown, idxint):
+        'Determines if the ownship has lower priority and therefore has to resolve the conflict'
+        
+        prioOwn = traf.priority[idxown]
+        prioInt = traf.priority[idxint]
+        
+        # Compare the priority of ownship and intruder
+        if prioOwn < prioInt: # if ownship has lower priority, then it resolves
+            return True
+        elif prioOwn == prioInt: # if both drones have the same priority, the callsign breaks the deadlock
+            # get number in the callsign of the ownship and intruder
+            numberOwn = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxown] if word.isdigit()]]))
+            numberInt = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxint] if word.isdigit()]]))
+            
+            # The aircraft if the the higher callsign has lower priority, and therefore has to resolve
+            if numberOwn > numberInt:
+                return True
+            else:
+                return False
+        else:# if the ownship has higher priority, then it does not resolve
+            return False
+        
