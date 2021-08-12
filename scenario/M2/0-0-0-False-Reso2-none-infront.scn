@@ -1,4 +1,4 @@
-# 0-0-0-False-Reso1-none-behind.scn
+# 0-0-0-False-Reso2-none-infront.scn
 # ownship flight phase: 0 (cruising) / 1 (climbing) / 2 (descending)
 # intruder flight phase: 0 (cruising) / 1 (climbing) / 2 (descending)
 # ownship layer: 0 (crusing layer) / 1 (resolution layer)
@@ -8,16 +8,15 @@
 # ownship lateral position: infront / behind
 
 
-00:00:00.00>symbol
-00:00:00.00>ASAS ON
+00:00:00.00>PCALL TESTSETTINGS
 
-# Ownship
-00:00:00.00>CRE D2,M600,52.424512,2.465367,90,310,20
-00:00:00.00>PAN D2
+# Intruder
+00:00:00.00>CRE D1,M600,52.424512,2.465367,90,310,20
+00:00:00.00>PAN D1
 00:00:00.00>ZOOM 500
 
-# intruder in cruising layer
-00:00:00.00>creconfs d1 m600 d2 0 0 15 0 0 15
+# Ownship 
+00:00:00.00>creconfs d2 m600 d1 0 0 15 0 0 15
 
 # Aircraft blocking the resolution layer for the ownship
-00:00:00.00>CRE D3,M600,52.424512,2.465367,90,340,20
+00:00:00.00>CRE D3,M600,52.424512,2.4664227,90,340,15
