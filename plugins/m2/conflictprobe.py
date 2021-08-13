@@ -1,4 +1,5 @@
 import numpy as np
+from shapely.ops import nearest_points
 
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import traf  # core, stack, settings, navdb, sim, scr, tools
@@ -6,7 +7,7 @@ from bluesky.tools.aero import nm#, ft
 from bluesky.tools import geo
 
 
-def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlookahead, targetLat=9999, targetLon=9999, targetAlt=-9999, targetVs=-9999, targetGs=9999, targetTrk=9999):
+def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlookahead, intent=False, targetLat=9999, targetLon=9999, targetAlt=-9999, targetVs=-9999, targetGs=9999, targetTrk=9999):
     'Returns True if a conflict would occur if the ownship adopts the input target states'
     'Here the optional argument idxint is used to artifically supress a conflict with this intruder'
     
@@ -15,13 +16,16 @@ def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlook
     hpz = traf.cd.hpz
     
     # get the correct ownship parameters for idxown and replace with target states as required
-    ownlat = ownship.lat[idxown] if targetLat == 9999 else targetLat
-    ownlon = ownship.lon[idxown] if targetLon == 9999 else targetLon
-    owntrk = ownship.trk[idxown] if targetTrk == 9999 else targetTrk
-    owngs  = ownship.gs[idxown]  if targetGs  == 9999 else targetGs
-    ownalt = ownship.alt[idxown] if targetAlt == -9999 else targetAlt
-    ownvs  = ownship.vs[idxown]  if targetVs  == -9999 else targetVs
+    ownlat    = ownship.lat[idxown] if targetLat == 9999 else targetLat
+    ownlon    = ownship.lon[idxown] if targetLon == 9999 else targetLon
+    owntrk    = ownship.trk[idxown] if targetTrk == 9999 else targetTrk
+    owngs     = ownship.gs[idxown]  if targetGs  == 9999 else targetGs
+    ownalt    = ownship.alt[idxown] if targetAlt == -9999 else targetAlt
+    intentalt = ownship.alt[idxown] if targetAlt == -9999 else targetAlt
+    ownvs     = ownship.vs[idxown]  if targetVs  == -9999 else targetVs
     
+    
+    ###### First Do Statebased CD. This is mostly copy-pasted from statebased.py ######
     
     # Horizontal conflict ------------------------------------------------------
 
@@ -99,10 +103,72 @@ def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlook
     
     # If idxint > 0, and there is a conflict between ownship and idxint 
     # then it is assumed that the resolution will resolve the original conflict
-    if  swconfl[idxint] == True and idxint >= 0 :
+    # this is useful when the conflict probe is called to determine the right CR strategy
+    if idxint >= 0 :
          swconfl[idxint] = False
+         
+    ########################## Now do intent ##################################
+         
+    if intent and traf.swintent: # comment out the traf.swintent to test this using intenttest.scn
+        swconfl = intentFilterCP(swconfl, ownship, intruder, idxown, intentalt)
+        
+    
+    ############################# NOW RETURN ################################## 
          
     # determine if ownship will get into conflict with target states with any intruder
     probe = any(swconfl)
     
     return probe
+
+def intentFilterCP(swconfl, ownship, intruder, idxown, intentalt):
+    '''Function to check and remove conflicts from the swconfl
+       if such a conflict is automatically solved by the intended routes of the aircraft '''
+       
+    # NOTE: THE OWNSHIP INTENT IS ALWAYS CALCULATED USING settings.asas_dtlookahead
+    #       REGARDLESS OF THE DTLOOK FOR conflictProbe!!! 
+    #       But this should be ok since this function only filters the conflicts 
+    #       by state-based with the lower dtlook
+    
+    # get the horizontal intent of ownship. This is calculated in the intent plugin.
+    own_intent, foobar = ownship.intent[idxown]
+     
+    # set the vertical intent of ownship
+    own_target_alt = intentalt
+    
+    # loop through all the aircraft
+    for i in range(len(swconfl)):
+        
+        # only do intent filter for the intruders that triggered a statebased conflict
+        if not swconfl[i]:
+            continue
+        
+        # get the intruder intent
+        intruder_intent, intruder_target_alt = intruder.intent[i] 
+        
+        # Find the nearest point in the two line strings
+        pown, pint = nearest_points(own_intent, intruder_intent)
+        
+        # Find the distance between the points
+        point_distance = geo.kwikdist(pown.y, pown.x, pint.y, pint.x) * nm #[m]
+        
+        # Also do vertical intent
+        # Difference between own altitude and intruder target
+        diff = own_target_alt - intruder_target_alt
+        
+        # minimum horizontal separation 
+        rpz = (traf.cd.rpz[idxown]+traf.cd.rpz[i])#*1.05
+        
+        # Basically, there are two conditions to be met in order to skip
+        # a conflict due to intent:
+        # 1. The minimum distance between the horizontal intent lines is greater than r;
+        # 2. The difference between the current altitude and the target altitude of the 
+        # intruder is greater than the vertical separation margin;
+        if (point_distance < rpz ) and (traf.cd.hpz[idxown] >= abs(diff)):
+            # if this is a real conflict, set it to active to True
+            swconfl[i] = True
+        else:
+            # if the intent resolves the conflict, then remove this conflict 
+            # from the conflict lists and set active to False
+            swconfl[i] = False
+            
+    return swconfl      

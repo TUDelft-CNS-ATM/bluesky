@@ -2,6 +2,7 @@
 of statebased CD with an intent filter at the end. The aim is to reduce the number of 
 flase positives using intent. """
 import numpy as np
+import copy
 from shapely.ops import nearest_points
 
 # Import the global bluesky objects. Uncomment the ones you need
@@ -132,7 +133,8 @@ class hybridcd(ConflictDetection):
         
         ####################### Second do intent filter #######################
         
-        confpairs, inconf = self.intentFilter(traf.cd, confpairs, inconf, ownship, intruder)
+        if traf.swintent:
+            confpairs, inconf = self.intentFilter(traf.cd, confpairs, inconf, ownship, intruder)
         
         ########## Finaly return with the filtered confpairs and inconf! ##########
 
@@ -149,7 +151,7 @@ class hybridcd(ConflictDetection):
         changeactive = dict()
         
         # make a deep copy of confpairs in order to loop through and delete from conf.confpairs
-        conflicts = np.copy(confpairs) 
+        conflicts = copy.deepcopy(confpairs) 
         
         # loop through each conflict and remove conflict if intent resolves conflict
         for conflict in conflicts:
@@ -172,7 +174,7 @@ class hybridcd(ConflictDetection):
             diff = own_target_alt - intruder_target_alt
             
             # minimum horizontal separation 
-            rpz = (conf.rpz[idxown]+conf.rpz[idxint])*1.05
+            rpz = (conf.rpz[idxown]+conf.rpz[idxint])#*1.05
             
             # Basically, there are two conditions to be met in order to skip
             # a conflict due to intent:

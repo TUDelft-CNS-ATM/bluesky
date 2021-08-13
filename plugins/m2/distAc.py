@@ -53,6 +53,7 @@ class distAc(core.Entity):
     
     @stack.command
     def echodistac(self, acid1: 'acid', acid2: 'acid'):
+        '''Print the distance between two aircraft'''
         
         #Calculate the distance and bearing 
         dist, qdr = self.distAc(acid1, acid2)
