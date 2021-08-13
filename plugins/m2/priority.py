@@ -51,7 +51,8 @@ class priority(core.Entity):
         traf.priority = self.priority
         return True, f'The priority of {traf.id[acid]} is set to {prio}.'
     
+    
     @stack.command
-    def getpriority(self, acid: 'acid'):
+    def echopriority(self, acid: 'acid'):
         ''' Print the priority of 'acid'. '''
         return True, f'The priority of {traf.id[acid]} is currently {self.priority[acid]}.'

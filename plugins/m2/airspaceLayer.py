@@ -50,6 +50,16 @@ class airspaceLayer(core.Entity):
         with self.settrafarrays():
             self.airspacelayertype = np.array([],dtype='S24')
         
+        # layer height [m]
+        traf.layerHeight = abs(self.loweralt[2] - self.loweralt[1])
+        
+        # set layer variables to traffic so it can be used in other plugins 
+        traf.layerLowerAlt = self.loweralt # [m]
+        traf.layerUpperAlt = self.upperalt # [m]
+        traf.layerLowerSpd = self.lowerspd # [m/s]
+        traf.layerUpperSpd = self.upperspd # [m/s]
+        traf.layernames    = self.layernames 
+        
         # add airspacelayertype to traffic so that it can be used by other plugins and the rest of bluesky
         traf.aclayername = self.airspacelayertype
 

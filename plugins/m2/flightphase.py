@@ -1,6 +1,6 @@
 """ This plugin updates the flight phase of all arcraft every update cycle
-0 = cruising
-1 = climbing
+0 = cruising/hover
+1 = climbing 
 2 = descending
 """
 import numpy as np
@@ -33,8 +33,11 @@ class flightphase(core.Entity):
             self.flightphase = np.array([])
         traf.flightphase = self.flightphase
         
-        # set the vertical speed limit for the cruising aircraft
+        # set the vertical speed limit for the cruising aircraft [m/s]
         self.vslimit = 10*tools.aero.fpm
+        
+        # set the ground speed limit [m/s]
+        self.gslimit = 1*tools.aero.kts
 
     def create(self, n=1):
         ''' This function gets called automatically when new aircraft are created. '''
@@ -46,9 +49,13 @@ class flightphase(core.Entity):
     def update(self):
         ''' Periodically updates the flight phase of all aircraft '''
         
-        # use np.where to figure out the flight phase of each aircaft with 
-        # self.limit as the decision criteria (output is array with 0 = cruising etc.)
-        self.flightphase = np.where(np.abs(traf.vs)<=self.vslimit, 0, np.where(traf.vs>self.vslimit,1,2))
+        # Define the climb and descend conditions. Anything that is not climb or descend is cruise/hover
+        # At the moment, it is assumed that cruise / hover are the same in terms of selecting resolutions
+        climbCondition   = (traf.vs > self.vslimit) * (np.abs(traf.gs) < self.gslimit)
+        descendCondition = (traf.vs < self.vslimit) * (np.abs(traf.gs) < self.gslimit)
+        
+        # first check for climb. Then descend. Everything else is cruise/hover
+        self.flightphase = np.where(climbCondition, 1, np.where(descendCondition, 2, 0))
         
         # set the flightphase into the traffic object so that it can be used in other plugins
         traf.flightphase = self.flightphase

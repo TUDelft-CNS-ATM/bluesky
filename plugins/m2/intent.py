@@ -5,7 +5,7 @@ Date: 27 July 2021
 """
 from shapely.geometry import LineString
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, traf, settings#, navdb, sim, scr, tools
+from bluesky import core, traf, settings, stack#, navdb, sim, scr, tools
 from bluesky.tools import geo
 from bluesky.tools.aero import nm#, ft
 
@@ -38,6 +38,9 @@ class intent(core.Entity):
         with self.settrafarrays():
             self.acintent = []
         
+        # Flag for using intent filter
+        traf.swintent = True 
+        
         # add intent to traffic make it available in the rest of bluesky and other plugins
         traf.intent = self.acintent
 
@@ -46,8 +49,10 @@ class intent(core.Entity):
     @core.timed_function(name='example', dt=settings.asas_dt)
     def update(self):
         
-        # calculate intent
-        self.calc_intent()
+        # calculate intent if the switch is on
+        if traf.swintent:
+            self.calc_intent() 
+        # self.calc_intent() 
         
         # update the traffic variable
         traf.intent = self.acintent
@@ -132,3 +137,12 @@ class intent(core.Entity):
                     self.acintent[idx] = (intentLine, intentAlt)
                     # Stop the while loop, go to next aircraft
                     break
+                
+    
+    @stack.command
+    def intentactive(self, active: 'onoff'):
+        '''Set the intent filter on/off'''
+        
+        traf.swintent = active
+        
+        return True, 'Intent Filter is now ON' if active else 'Intent Filter is now OFF'

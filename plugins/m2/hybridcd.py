@@ -133,7 +133,8 @@ class hybridcd(ConflictDetection):
         
         ####################### Second do intent filter #######################
         
-        confpairs, inconf = self.intentFilter(traf.cd, confpairs, inconf, ownship, intruder)
+        if traf.swintent:
+            confpairs, inconf = self.intentFilter(traf.cd, confpairs, inconf, ownship, intruder)
         
         ########## Finaly return with the filtered confpairs and inconf! ##########
 
@@ -173,7 +174,7 @@ class hybridcd(ConflictDetection):
             diff = own_target_alt - intruder_target_alt
             
             # minimum horizontal separation 
-            rpz = (conf.rpz[idxown]+conf.rpz[idxint])*1.05
+            rpz = (conf.rpz[idxown]+conf.rpz[idxint])#*1.05
             
             # Basically, there are two conditions to be met in order to skip
             # a conflict due to intent:

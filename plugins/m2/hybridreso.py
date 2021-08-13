@@ -5,12 +5,12 @@
 """
 import numpy as np
 import copy
-from shapely.ops import nearest_points
 
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import traf  # core, stack, settings, navdb, sim, scr, tools
+from bluesky import traf, stack  # core, settings, navdb, sim, scr, tools
 from bluesky.traffic.asas import ConflictResolution
 from bluesky.tools.aero import nm, ft
+from plugins.m2.conflictprobe import conflictProbe
 
 
 def init_plugin():
@@ -46,10 +46,10 @@ class hybridreso(ConflictResolution):
              
         # Make a copy of the traffic gs, alt, trk and vs. These are the outputs of this function.
         # The airborne algorithms of the hybrid algorithms will only affect alt and gs
-        newgs  = copy(traf.gs)
-        newalt = copy(traf.ap.alt)
-        newtrk = copy(traf.ap.trk)
-        newvs  = copy(traf.vs)
+        newgs  = copy.deepcopy(traf.gs)
+        newalt = copy.deepcopy(traf.ap.alt)
+        newtrk = copy.deepcopy(traf.ap.trk)
+        newvs  = copy.deepcopy(traf.vs)
         
         # Loop through each conflict, determine the resolution method, and set 
         # the resolution for the asas module
@@ -77,92 +77,141 @@ class hybridreso(ConflictResolution):
                 belowown = traf.alt[idxown] < traf.alt[idxint] 
                 
                 # determine if the ownship is above the intruder 
-                aboveown = traf.alt[idxown] > traf.alt[idxint] 
+                aboveown = traf.alt[idxown] > traf.alt[idxint]
                 
-                # use the flight phases, rlayerown, belowoen and aboveown to 
-                # detemine the correct resolution method
-                if fpown == 0 and fpint == 0: # ownship and intruder are cruising
+                # Get the max and min vertical speed of ownship (needed for conflict probe)
+                vsMinOwn = traf.perf.vsmin[idxown]
+                vsMaxOwn = traf.perf.vsmax[idxown]
+                
+                # determine the look-ahead for the conflict probe
+                dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)
+                dtlookdown = np.abs(traf.layerHeight/vsMinOwn)
+                
+                # test the conflict probe
+                # probe = conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=0.0)
+                # probe = conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn)#, intent=True, targetAlt=155*ft)
+                # print(conflict)
+                # print(probe)
+                
+                ################## START CR Strategy Switch ##################
+                
+                # ownship and intruder are cruising
+                if fpown == 0 and fpint == 0: 
                     if rlayerown:
                         newgs[idxown], traf.cr.tasactive[idxown] = self.reso2(idxown) # use the "speed resolution" strategy
+                        # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                     else:
-                        if self.conflProbeAbove():
+                        if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn, intent=True):
                             newalt[idxown], traf.cr.altactive[idxown] = self.reso1(idxown) # use the "climb into resolution layer" strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso1: climb into resolution layer strategy")
                         else:
                             newgs[idxown], traf.cr.tasactive[idxown] = self.reso2(idxown) # use the speed resolution strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                             
-                elif fpown == 0 and fpint == 1: # ownship is cruising and intruder is climbing
+                            
+                # ownship is cruising and intruder is climbing            
+                elif fpown == 0 and fpint == 1: 
                     if rlayerown:
                         newgs[idxown], traf.cr.tasactive[idxown] = self.reso2(idxown) # use the "speed resolution" strategy
+                        # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                     else:
-                        if self.conflProbeAbove():
+                        if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn, intent=True):
                             newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso5(idxown) # use the climb into resolution layer + speed resolution strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: climb into resolution layer + speed resolution strategy")
                         else:
                             newgs[idxown], traf.cr.tasactive[idxown] = self.reso2(idxown) # use the speed resolution strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
+                            
                 
-                elif fpown == 0 and fpint == 2: # ownship is cruising and intruder is descending
+                # ownship is cruising and intruder is descending
+                elif fpown == 0 and fpint == 2: 
                     if rlayerown:
                         newgs[idxown], traf.cr.tasactive[idxown] = self.reso2(idxown) # use the speed resolution strategy
+                        # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                     else:
-                        if self.conflProbeAbove():
+                        if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn, intent=True):
                             newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso5(idxown) # use the climb into resolution layer + speed resolution strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: climb into resolution layer + speed resolution strategy")
                         else:
                             newgs[idxown], traf.cr.tasactive[idxown] = self.reso2(idxown) # use the speed resolution strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                 
-                
-                elif fpown == 1 and fpint == 0: # ownship is climbing and intruder is cruising
+                # ownship is climbing and intruder is cruising
+                elif fpown == 1 and fpint == 0: 
                     if rlayerown:
                         newgs[idxown], traf.cr.tasactive[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                        # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                     else:
-                        if self.conflProbeAbove():
+                        if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn, intent=True):
                             newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso6(idxown) # use the climb into resolution layer + hover resolution strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso6: climb into resolution layer + hover resolution strategy")
                         else:
                             newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
                 
-                elif fpown == 1 and fpint == 1: # ownship is climbing and intruder is climbing
+                # ownship is climbing and intruder is climbing
+                elif fpown == 1 and fpint == 1: 
                     if belowown:
                         if rlayerown:
                             newgs[idxown], traf.cr.tasactive[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                         else:
-                            if self.conflProbeAbove():
+                            if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn, intent=True):
                                 newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso6(idxown) # use the climb into resolution layer + hover resolution strategy
+                                # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso6: climb into resolution layer + hover resolution strategy")
                             else:
                                 newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
+                                # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
                     else:
                         newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
+                        # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
 
-                elif fpown == 1 and fpint == 2: # ownship is climbing and intruder is descending
+                # ownship is climbing and intruder is descending
+                elif fpown == 1 and fpint == 2: 
                     newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
+                    # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
                     
-                elif fpown == 2 and fpint == 0: # ownship is descending and intruder is cruising
+                # ownship is descending and intruder is cruising
+                elif fpown == 2 and fpint == 0: 
                     if rlayerown:
                         newgs[idxown], traf.cr.tasactive[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                        # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                     else:
-                        if self.conflProbeBelow():
+                        if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookdown, targetVs=vsMinOwn, intent=True):
                             newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso7(idxown) # use the descend into resolution layer + hover resolution strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso7: descend into resolution layer + hover resolution strategy")
                         else:
                             newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
                 
-                elif fpown == 2 and fpint == 1: # ownship is descending and intruder is climbing
+                # ownship is descending and intruder is climbing
+                elif fpown == 2 and fpint == 1: 
                     newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
-                    
-                elif fpown == 2 and fpint == 2: # ownship is descending and intruder is descending
+                    # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
+                
+                # ownship is descending and intruder is descending
+                elif fpown == 2 and fpint == 2: 
                     if aboveown:
                         if rlayerown:
                             newgs[idxown], traf.cr.tasactive[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                         else:
-                            if self.conflProbeBelow():
+                            if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookdown, targetVs=vsMinOwn, intent=True):
                                 newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso7(idxown) # use the descend into resolution layer + hover resolution strategy
+                                # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso7: descend into resolution layer + hover resolution strategy")
                             else:
                                 newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
+                                # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
                     else:
                         newalt[idxown], traf.cr.altactive[idxown] = self.reso4(idxown) # temporarily level off strategy
+                        # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso4: temporarily level off strategy")
                 else:
                     print("ERROR: THE FLIGHT PHASE HAS BEEN COMPUTED WORNGLY. CHECK THE flightphase PLUGIN ")
                 
-                
-                
+                ################### END CR Strategy Switch ###################
             
         return newtrk, newgs, newvs, newalt
+    
     
     def priorityChecker(self, idxown, idxint):
         'Determines if the ownship has lower priority and therefore has to resolve the conflict'
@@ -178,8 +227,8 @@ class hybridreso(ConflictResolution):
         elif prioOwn == prioInt: # if both drones have the same priority, the callsign breaks the deadlock
         
             # get number in the callsign of the ownship and intruder
-            numberOwn = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxown] if word.isdigit()]]))
-            numberInt = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxint] if word.isdigit()]]))
+            numberOwn = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxown] if word.isdigit()]])) # int(traf.id[idxown][1:]) # This is a simpler and faster solution if callsigns are of the format 'D12345'
+            numberInt = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxint] if word.isdigit()]])) # int(traf.id[idxint][1:])
             
             # The aircraft if the the higher callsign has lower priority, and therefore has to resolve
             if numberOwn > numberInt:
@@ -191,30 +240,15 @@ class hybridreso(ConflictResolution):
             return False
         
     
-    def conflProbeAbove(self):
-        'Returns True if it is possible to climb into the next layer without triggering a new conflict'
-        
-        # TODO: make the vertical conflict probe
-        climbProbe = True
-        
-        return climbProbe
-    
-    def conflProbeBelow(self):
-        'Returns True if it is possible to descend into the next layer without triggering a new conflict'
-        
-        # TODO: make the vertical conflict probe
-        descendProbe = True
-        
-        return descendProbe
-    
     def reso1(self, idxown):
         'The climb into resolution layer strategy'
         
         # TODO: Make the drone climb into the correct resolution layer
-        newalt = 250*ft
+        newalt = traf.alt[idxown]
         altactive = True
         
         return newalt, altactive
+    
     
     def reso2(self, idxown): 
         'The speed resolution strategy'
@@ -225,11 +259,12 @@ class hybridreso(ConflictResolution):
         
         return newgs, tasactive
     
+    
     def reso3(self, idxown): 
         'The hover in the resolution layer strategy'
         
-        # Make the ownship hover
-        newgs = 0.0
+        # TODO: Make the ownship hover
+        newgs = traf.gs[idxown] # 0.0
         tasactive = True
         
         return newgs, tasactive
@@ -238,16 +273,17 @@ class hybridreso(ConflictResolution):
         'The temporarily level-off strategy'
         
         # TODO: determine the correct altitude for the drone to level off
-        newalt = 250*ft
+        newalt = traf.alt[idxown]
         altactive = True
         
         return newalt, altactive
+    
     
     def reso5(self, idxown): 
         'The Climb into resolution layer + speed strategy'
         
         # TODO: determine the correct altitude for the drone to climb to  (maybe call reso1)
-        newalt = 250*ft
+        newalt = traf.alt[idxown]
         altactive = True
         
         # TODO: determine the correct the speed the drone should fly (maybe call reso2)
@@ -255,29 +291,31 @@ class hybridreso(ConflictResolution):
         tasactive = True
                 
         return newalt, newgs, altactive, tasactive
+    
         
     def reso6(self, idxown): 
         'The Climb into resolution layer + hover strategy'
         
         # TODO: determine the correct altitude for the drone to climb to  (maybe call reso1)
-        newalt = 250*ft
+        newalt = traf.alt[idxown]
         altactive = True
         
         # TODO: make it hover
-        newgs = 0.0
+        newgs = traf.gs[idxown] # 0.0
         tasactive = True
                 
         return newalt, newgs, altactive, tasactive
+    
     
     def reso7(self, idxown): 
         'The descend into resolution layer + hover strategy'
         
         # TODO: determine the correct altitude for the drone to descend to  (maybe call reso1)
-        newalt = 250*ft
+        newalt = traf.alt[idxown]
         altactive = True
         
         # TODO: make it hover
-        newgs = 0.0
+        newgs = traf.gs[idxown] # 0.0
         tasactive = True
                 
         return newalt, newgs, altactive, tasactive
