@@ -33,11 +33,15 @@ class flightphase(core.Entity):
             self.flightphase = np.array([])
             self.resostrategy = np.array([],dtype='S6') # Name of the resolution method used by each aircraft. added here and used in hybridreso
             self.resoidint = np.array([], dtype=object) # list of intruder callsigns that ownship is curently resolving against. added here and used in hybridreso
+            self.resoalt = np.array([]) # array to store the resolution altitude for each aircraft. added here and used in hybridreso
+            self.resospd = np.array([]) # array to store the resolution speed for each aircraft. added here and used in hybridreso
         
         # update traf
         traf.flightphase  = self.flightphase
         traf.resostrategy = self.resostrategy
         traf.resoidint = self.resoidint
+        traf.resoalt = self.resoalt
+        traf.resospd = self.resospd
         
         # set the vertical speed limit for the cruising aircraft [m/s]
         self.vslimit = 10*tools.aero.fpm
@@ -52,13 +56,15 @@ class flightphase(core.Entity):
         self.flightphase[-n:] = 1 # set the initial flight phase to climbing
         self.resostrategy[-n:] = "None" # the initial resolution strategy at creation is "None"
         self.resoidint[-n:] = [[] for i in range(1)]
-
-        
+        self.resoalt[-n:] = -9999
+        self.resospd[-n:] = -9999
         # update traf
         traf.flightphase = self.flightphase
         traf.resostrategy = self.resostrategy
         traf.resoidint = self.resoidint
-        
+        traf.resoalt = self.resoalt
+        traf.resospd = self.resospd
+
 
     @core.timed_function(name='flightphase', dt=settings.asas_dt)
     def update(self):
