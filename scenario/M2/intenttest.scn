@@ -21,4 +21,4 @@
 # 00:00:00.00>CRE DRON0 M600 41.148566 -75.069179 180 155 20
 # 00:00:00.00>ADDWPT DRON0 41.142793 -75.069085
 # 00:00:00.00>ADDWPT DRON0 41.145102 -75.059048
-# 00:00:00.00>ECHO Dont forget to uncomment/comment stuff in intent, hybridreso, and conflictprobe
+# 00:00:00.00>ECHO Dont forget to uncomment/comment stuff in intent, hybridreso, and conflictprobe when testing the intent for the conflict probe

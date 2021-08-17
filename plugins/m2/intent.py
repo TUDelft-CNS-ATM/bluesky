@@ -4,6 +4,7 @@ Created by: Emmanuel and Andrei
 Date: 27 July 2021
 """
 from shapely.geometry import LineString
+
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import core, traf, settings, stack#, navdb, sim, scr, tools
 from bluesky.tools import geo
@@ -43,6 +44,7 @@ class intent(core.Entity):
         
         # add intent to traffic make it available in the rest of bluesky and other plugins
         traf.intent = self.acintent
+        
 
     # Functions that need to be called periodically can be indicated to BlueSky
     # with the timed_function decorator
@@ -58,7 +60,6 @@ class intent(core.Entity):
         traf.intent = self.acintent
 
 
-    
     def calc_intent(self):
         ''''This function computes the intent of each aircraft up to the CD look-ahead time '''
         
