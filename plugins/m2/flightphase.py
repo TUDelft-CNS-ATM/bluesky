@@ -31,19 +31,34 @@ class flightphase(core.Entity):
         super().__init__()
         with self.settrafarrays():
             self.flightphase = np.array([])
-        traf.flightphase = self.flightphase
+            self.resostrategy = np.array([],dtype='S6') # Name of the resolution method used by each aircraft. added here and used in hybridreso
+            self.resoidint = np.array([], dtype=object) # list of intruder callsigns that ownship is curently resolving against. added here and used in hybridreso
+        
+        # update traf
+        traf.flightphase  = self.flightphase
+        traf.resostrategy = self.resostrategy
+        traf.resoidint = self.resoidint
         
         # set the vertical speed limit for the cruising aircraft [m/s]
         self.vslimit = 10*tools.aero.fpm
         
         # set the ground speed limit [m/s]
         self.gslimit = 1*tools.aero.kts
+        
 
     def create(self, n=1):
         ''' This function gets called automatically when new aircraft are created. '''
         super().create(n)
         self.flightphase[-n:] = 1 # set the initial flight phase to climbing
+        self.resostrategy[-n:] = "None" # the initial resolution strategy at creation is "None"
+        self.resoidint[-n:] = [[] for i in range(1)]
+
+        
+        # update traf
         traf.flightphase = self.flightphase
+        traf.resostrategy = self.resostrategy
+        traf.resoidint = self.resoidint
+        
 
     @core.timed_function(name='flightphase', dt=settings.asas_dt)
     def update(self):
@@ -59,6 +74,7 @@ class flightphase(core.Entity):
         
         # set the flightphase into the traffic object so that it can be used in other plugins
         traf.flightphase = self.flightphase
+        
         
     @stack.command
     def echoflightphase(self, acid: 'acid'):

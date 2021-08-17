@@ -7,7 +7,7 @@ import numpy as np
 import copy
 
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import traf, stack  # core, settings, navdb, sim, scr, tools
+from bluesky import traf, stack, core #, settings, navdb, sim, scr, tools
 from bluesky.traffic.asas import ConflictResolution
 from bluesky.tools.aero import nm, ft
 from plugins.m2.conflictprobe import conflictProbe
@@ -35,9 +35,13 @@ class hybridreso(ConflictResolution):
     ''' Example new entity object for BlueSky. '''
     def __init__(self):
         super().__init__()
+        # with self.settrafarrays():
+        #     self.resostrategy = np.array([])
+        # traf.resostrategy = self.resostrategy
+        
             
     def resolve(self, conf, ownship, intruder):
-        ''' This resolve function will override the default resolution of resolution.py
+        ''' This resolve function will override the default resolution of ConflictResolution
             It should return the gs, vs, alt and trk that the conflicting aircraft should 
             fly to return the conflict. The hypri'''
         # note 'conf' is the CD object --> traf.cd
@@ -87,13 +91,16 @@ class hybridreso(ConflictResolution):
                 dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)
                 dtlookdown = np.abs(traf.layerHeight/vsMinOwn)
                 
+                # append the intruder callsigns that ownship is currently resolving in traf.resoidint
+                traf.resoidint[idxown].append(traf.id[idxint])
+                
                 # test the conflict probe
                 # probe = conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=0.0)
                 # probe = conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn)#, intent=True, targetAlt=155*ft)
                 # print(conflict)
                 # print(probe)
                 
-                ################## START CR Strategy Switch ##################
+                ################## DETERMINE OWNSHIP RESO STRATEGY ##################
                 
                 # ownship and intruder are cruising
                 if fpown == 0 and fpint == 0: 
@@ -102,8 +109,8 @@ class hybridreso(ConflictResolution):
                         # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                     else:
                         if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn, intent=True):
-                            newalt[idxown], traf.cr.altactive[idxown] = self.reso1(idxown) # use the "climb into resolution layer" strategy
-                            # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso1: climb into resolution layer strategy")
+                            newalt[idxown], newvs[idxown], self.altactive[idxown], self.vsactive[idxown] = self.reso1(idxown) # use the "climb into resolution layer" strategy
+                            stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso1: climb into resolution layer strategy")
                         else:
                             newgs[idxown], traf.cr.tasactive[idxown] = self.reso2(idxown) # use the speed resolution strategy
                             # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
@@ -209,9 +216,100 @@ class hybridreso(ConflictResolution):
                     print("ERROR: THE FLIGHT PHASE HAS BEEN COMPUTED WORNGLY. CHECK THE flightphase PLUGIN ")
                 
                 ################### END CR Strategy Switch ###################
-            
+                
         return newtrk, newgs, newvs, newalt
     
+    
+    def resumenav(self, conf, ownship, intruder):
+        '''
+            NOTE: This function overrides the resumenav defined in ConflictResolution
+            Decide for each aircraft in the conflict list whether the ASAS
+            should be followed or not, based on if the aircraft pairs passed
+            their CPA.
+        '''
+        # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
+        self.resopairs.update(conf.confpairs)
+
+        # Conflict pairs to be deleted
+        delpairs = set()
+        changeactive = dict()
+
+        # Look at all conflicts, also the ones that are solved but CPA is yet to come
+        for conflict in self.resopairs:
+            idx1, idx2 = traf.id2idx(conflict)
+            # If the ownship aircraft is deleted remove its conflict from the list
+            if idx1 < 0:
+                delpairs.add(conflict)
+                continue
+
+            if idx2 >= 0:
+                rpz = max(conf.rpz[idx1], conf.rpz[idx2])
+                # Distance vector using flat earth approximation
+                re = 6371000.
+                dist = re * np.array([np.radians(intruder.lon[idx2] - ownship.lon[idx1]) *
+                                      np.cos(0.5 * np.radians(intruder.lat[idx2] +
+                                                              ownship.lat[idx1])),
+                                      np.radians(intruder.lat[idx2] - ownship.lat[idx1])])
+
+                # Relative velocity vector
+                vrel = np.array([intruder.gseast[idx2] - ownship.gseast[idx1],
+                                 intruder.gsnorth[idx2] - ownship.gsnorth[idx1]])
+
+                # Check if conflict is past CPA
+                past_cpa = np.dot(dist, vrel) > 0.0
+
+                # hor_los:
+                # Aircraft should continue to resolve until there is no horizontal
+                # LOS. This is particularly relevant when vertical resolutions
+                # are used.
+                hdist = np.linalg.norm(dist)
+                hor_los = hdist < rpz
+
+                # Bouncing conflicts:
+                # If two aircraft are getting in and out of conflict continously,
+                # then they it is a bouncing conflict. ASAS should stay active until
+                # the bouncing stops.
+                is_bouncing = \
+                    abs(ownship.trk[idx1] - intruder.trk[idx2]) < 30.0 and \
+                    hdist < rpz * self.resofach
+                    
+                # New: determine priority of the idx1 in conflict
+                idx1Resolves = self.priorityChecker(idx1, idx2)
+                
+            # Start recovery for ownship if intruder is deleted, or if past CPA
+            # and not in horizontal LOS or a bouncing conflict. New: check idx1Resolves
+            if idx2 >= 0 and (not past_cpa or hor_los or is_bouncing) and idx1Resolves:
+                # Enable ASAS for this aircraft
+                changeactive[idx1] = True
+            else:
+                # Switch ASAS off for ownship if there are no other conflicts
+                # that this aircraft is involved in.
+                changeactive[idx1] = changeactive.get(idx1, False)
+                # If conflict is solved, remove it from the resopairs list
+                delpairs.add(conflict)
+                # NEW: Once the conflict is resolved, set the resostrategy to 'None'
+                traf.resostrategy[idx1] = "None"
+                # NEW: Once the conflict is resolved, remove idx2 from resoidint
+                if traf.id[idx2] in traf.resoidint[idx1]:
+                    traf.resoidint[idx1].remove(traf.id[idx2])
+
+        for idx, active in changeactive.items():
+            # Loop a second time: this is to avoid that ASAS resolution is
+            # turned off for an aircraft that is involved simultaneously in
+            # multiple conflicts, where the first, but not all conflicts are
+            # resolved.
+            self.active[idx] = active
+            if not active:
+                # Waypoint recovery after conflict: Find the next active waypoint
+                # and send the aircraft to that waypoint.
+                iwpid = traf.ap.route[idx].findact(idx)
+                if iwpid != -1:  # To avoid problems if there are no waypoints
+                    traf.ap.route[idx].direct(
+                        idx, traf.ap.route[idx].wpname[iwpid])
+
+        # Remove pairs from the list that are past CPA or have deleted aircraft
+        self.resopairs -= delpairs
+        
     
     def priorityChecker(self, idxown, idxint):
         'Determines if the ownship has lower priority and therefore has to resolve the conflict'
@@ -227,8 +325,8 @@ class hybridreso(ConflictResolution):
         elif prioOwn == prioInt: # if both drones have the same priority, the callsign breaks the deadlock
         
             # get number in the callsign of the ownship and intruder
-            numberOwn = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxown] if word.isdigit()]])) # int(traf.id[idxown][1:]) # This is a simpler and faster solution if callsigns are of the format 'D12345'
-            numberInt = int("".join([str(elem) for elem in [int(word) for word in traf.id[idxint] if word.isdigit()]])) # int(traf.id[idxint][1:])
+            numberOwn = int("".join([elem for elem in [char for char in traf.id[idxown] if char.isdigit()]])) # int(traf.id[idxown][1:]) # This is a simpler and faster solution if callsigns are of the format 'D12345'
+            numberInt = int("".join([elem for elem in [char for char in traf.id[idxint] if char.isdigit()]])) # int(traf.id[idxint][1:])
             
             # The aircraft if the the higher callsign has lower priority, and therefore has to resolve
             if numberOwn > numberInt:
@@ -241,13 +339,26 @@ class hybridreso(ConflictResolution):
         
     
     def reso1(self, idxown):
-        'The climb into resolution layer strategy'
+        'The climb into resolution layer strategy. This strategy is only used when both the ownship and intruder are cruising and  '
         
-        # TODO: Make the drone climb into the correct resolution layer
-        newalt = traf.alt[idxown]
+        # Determine the index of the current cruising layer within traf.layernames
+        idxCurrentLayer = np.where(traf.layernames == traf.aclayername[idxown])[0]
+        
+        # Determine the altitude of the resolution layer from traf.layerLowerAlt
+        # Note: resolution layer is always above the current resolution layer
+        resoalt = traf.layerLowerAlt[idxCurrentLayer+1]
+        
+        # Use the maximum performance to climb to the correct altitude
+        resovs = traf.perf.vsmax[idxown]
+        
+        # Set the resolution active in altitude and vertical speed.
         altactive = True
+        vsactive  = True
         
-        return newalt, altactive
+        # update the resostrategy used by ownship
+        traf.resostrategy[idxown] = "RESO1"
+        
+        return resoalt, resovs, altactive, vsactive
     
     
     def reso2(self, idxown): 
@@ -256,6 +367,9 @@ class hybridreso(ConflictResolution):
         # TODO: Compute the correct speed to resolve the conflict
         newgs = traf.gs[idxown]
         tasactive = True
+        
+        # update the traf.resoname for ownship
+        traf.resostrategy[idxown] = "RESO2"
         
         return newgs, tasactive
     
@@ -267,6 +381,9 @@ class hybridreso(ConflictResolution):
         newgs = traf.gs[idxown] # 0.0
         tasactive = True
         
+        # update the traf.resoname for ownship
+        traf.resostrategy[idxown] = "RESO3"
+        
         return newgs, tasactive
     
     def reso4(self, idxown): 
@@ -275,6 +392,9 @@ class hybridreso(ConflictResolution):
         # TODO: determine the correct altitude for the drone to level off
         newalt = traf.alt[idxown]
         altactive = True
+        
+        # update the traf.resoname for ownship
+        traf.resostrategy[idxown] = "RESO4"
         
         return newalt, altactive
     
@@ -289,6 +409,9 @@ class hybridreso(ConflictResolution):
         # TODO: determine the correct the speed the drone should fly (maybe call reso2)
         newgs = traf.gs[idxown]
         tasactive = True
+        
+        # update the traf.resoname for ownship
+        traf.resostrategy[idxown] = "RESO5"
                 
         return newalt, newgs, altactive, tasactive
     
@@ -303,6 +426,9 @@ class hybridreso(ConflictResolution):
         # TODO: make it hover
         newgs = traf.gs[idxown] # 0.0
         tasactive = True
+        
+        # update the traf.resoname for ownship
+        traf.resostrategy[idxown] = "RESO6"
                 
         return newalt, newgs, altactive, tasactive
     
@@ -317,6 +443,9 @@ class hybridreso(ConflictResolution):
         # TODO: make it hover
         newgs = traf.gs[idxown] # 0.0
         tasactive = True
+        
+        # update the traf.resoname for ownship
+        traf.resostrategy[idxown] = "RESO7"
                 
         return newalt, newgs, altactive, tasactive
     
