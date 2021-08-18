@@ -27,20 +27,15 @@ class OpenAP(PerfBase):
         self.coeff = coeff.Coefficient()
 
         with self.settrafarrays():
-            self.actypes = np.array([], dtype=str)
-            self.phase = np.array([])
             self.lifttype = np.array([])  # lift type, fixwing [1] or rotor [2]
-            self.mass = np.array([])  # mass of aircraft
             self.engnum = np.array([], dtype=int)  # number of engines
             self.engthrmax = np.array([])  # static engine thrust
             self.engbpr = np.array([])  # engine bypass ratio
-            self.thrust = np.array([])  # thrust ratio at current alt spd
             self.max_thrust = np.array([])  # thrust ratio at current alt spd
             self.ff_coeff_a = np.array([])  # icao fuel flows coefficient a
             self.ff_coeff_b = np.array([])  # icao fuel flows coefficient b
             self.ff_coeff_c = np.array([])  # icao fuel flows coefficient c
             self.engpower = np.array([])  # engine power, rotor ac
-            self.cd0 = np.array([])  # zero drag coefficient
             self.cd0_clean = np.array([])  # Cd0, clean configuration
             self.k_clean = np.array([])  # k, clean configuration
             self.cd0_to = np.array([])  # Cd0, takeoff configuration
@@ -55,8 +50,6 @@ class OpenAP(PerfBase):
             self.vmaxic = np.array([])
             self.vmaxer = np.array([])
             self.vmaxap = np.array([])
-
-            self.axmax = np.array([])  # will be updated in update function
 
             self.vsmin = np.array([])
             self.vsmax = np.array([])
@@ -179,7 +172,7 @@ class OpenAP(PerfBase):
             ]
 
         # append update actypes, after removing unknown types
-        self.actypes[-n:] = [actype] * n
+        self.actype[-n:] = [actype] * n
 
     def update(self, dt):
         """Periodic update function for performance calculations."""
@@ -190,7 +183,7 @@ class OpenAP(PerfBase):
         )
 
         # update speed limits, based on phase change
-        self.vmin, self.vmax = self._construct_v_limits(self.actypes, self.phase)
+        self.vmin, self.vmax = self._construct_v_limits(self.actype, self.phase)
 
         idx_fixwing = np.where(self.lifttype == coeff.LIFT_FIXWING)[0]
 
@@ -253,7 +246,7 @@ class OpenAP(PerfBase):
         )
 
         # ----- update max acceleration ----
-        self.ax = self.calc_axmax()
+        self.axmax = self.calc_axmax()
 
         # TODO: implement thrust computation for rotor aircraft
         # idx_rotor = np.where(self.lifttype==coeff.LIFT_ROTOR)[0]
