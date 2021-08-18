@@ -290,14 +290,17 @@ class hybridreso(ConflictResolution):
                 # NEW: Once the conflict with idx2 is resolved, remove idx2 from resoidint
                 if traf.id[idx2] in traf.resoidint[idx1]:
                     traf.resoidint[idx1].remove(traf.id[idx2])
-
+        
+        # Remove pairs from the list that are past CPA or have deleted aircraft
+        self.resopairs -= delpairs
+        
+        # Update active and intent of each aircraft that are doing a resolution
         for idx, active in changeactive.items():
             # Loop a second time: this is to avoid that ASAS resolution is
             # turned off for an aircraft that is involved simultaneously in
             # multiple conflicts, where the first, but not all conflicts are
             # resolved.
             self.active[idx] = active
-            
             # Update intent continously (one waypoint ahead at a time) if the aircraft is flying its resolution 
             if active:
                 # Find the active waypoint
@@ -311,21 +314,22 @@ class hybridreso(ConflictResolution):
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                         traf.ap.alt[idx] = traf.resoalt[idx]
                         traf.selalt[idx] = traf.resoalt[idx]
-        
-        # Remove pairs from the list that are past CPA or have deleted aircraft
-        self.resopairs -= delpairs
             
-        # Trajectory after the original conflict is finished
+        # Trajectory after the original conflict is finished and update intent
         for idx in np.where(self.active == False)[0]:
+            # Because active is false, switch off all the asas channels
+            traf.resoHdgActive[idx] = False
+            traf.resoTasActive[idx] = False
+            traf.resoAltActive[idx] = False
+            traf.resoVsActive[idx] = False
+            
             # Waypoint recovery after conflict: Find the next active waypoint
             # and send the aircraft to that waypoint, but only if conflict probe is False. 
             iwpid = traf.ap.route[idx].findact(idx)
             if iwpid > -1:  # To avoid problems if there are no waypoints
-            
                 # Get the max and min vertical speed of ownship (needed for conflict probe)
                 vsMinOwn = traf.perf.vsmin[idx]
                 vsMaxOwn = traf.perf.vsmax[idx]
-                
                 # determine the look-ahead for the conflict probe
                 dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)
                 dtlookdown = np.abs(traf.layerHeight/vsMinOwn)
@@ -335,7 +339,6 @@ class hybridreso(ConflictResolution):
                     # If it is safe to descend back to the cruising altitude, then do so!
                     if not conflictProbe(ownship, intruder, idx, dtlook=dtlookdown, targetVs=vsMinOwn, intent=True):
                         traf.resostrategy[idx] = "None"
-                        print("I")
                         # Descend back to the cruising altitude
                         idxCurrentLayer = np.where(traf.layernames == traf.aclayername[idx])[0]
                         recoveryalt = traf.layerLowerAlt[idxCurrentLayer-1][0]
@@ -343,30 +346,50 @@ class hybridreso(ConflictResolution):
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                         traf.ap.alt[idx] = recoveryalt
                         traf.selalt[idx] = recoveryalt
-                        
                     else:
                         # keep flying the resolution altitude
                         traf.ap.route[idx].wpalt[iwpid] = traf.resoalt[idx]
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                         traf.ap.alt[idx] = traf.resoalt[idx]
                         traf.selalt[idx] = traf.resoalt[idx]
+                else:
+                    traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                             
-    # By default all channels are controlled by self.active,
-    # but they can be overloaded with separate variables or functions in a
-    # derived ASAS Conflict Resolution class (@property decorator takes away
-    # need for brackets when calling it so it can be overloaded by a variable)
-    # TODO: THIS IS ONLY A TEMPROARY FIX!!!
+    
+    # The four functions below control the four asas channels. These
     @property
     def hdgactive(self):
         ''' Return a boolean array sized according to the number of aircraft
             with True for all elements where heading is currently controlled by
             the conflict resolution algorithm.
         '''
-        return np.array([False] * len(self.active))
+        return traf.resoHdgActive
+    
+    @property
+    def tasactive(self):
+        ''' Return a boolean array sized according to the number of aircraft
+            with True for all elements where heading is currently controlled by
+            the conflict resolution algorithm.
+        '''
+        return traf.resoTasActive
+    
+    @property
+    def altactive(self):
+        ''' Return a boolean array sized according to the number of aircraft
+            with True for all elements where heading is currently controlled by
+            the conflict resolution algorithm.
+        '''
+        return traf.resoAltActive
+    
+    @property
+    def vsactive(self):
+        ''' Return a boolean array sized according to the number of aircraft
+            with True for all elements where heading is currently controlled by
+            the conflict resolution algorithm.
+        '''
+        return traf.resoVsActive
     
     
-
-
     def priorityChecker(self, idxown, idxint):
         'Determines if the ownship has lower priority and therefore has to resolve the conflict'
         
@@ -408,8 +431,8 @@ class hybridreso(ConflictResolution):
         resovs = traf.perf.vsmax[idxown]
         
         # Set the resolution active in altitude and vertical speed.
-        self.altactive[idxown] = True
-        self.vsactive[idxown]  = True
+        traf.resoAltActive[idxown] = True
+        traf.resoVsActive[idxown]  = True
         
         # add resoalt to the traf variable. needed updating intent and trajectory recovery
         traf.resoalt[idxown] = resoalt

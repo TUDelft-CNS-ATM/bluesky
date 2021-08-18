@@ -425,7 +425,6 @@ class Traffic(Entity):
 
         #---------- Aftermath ---------------------------------
         self.trails.update()
-        # print(self.selalt[0]/ft)
 
     @timed_function(name='asas', dt=bs.settings.asas_dt, manual=True)
     def update_asas(self):
