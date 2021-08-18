@@ -306,10 +306,11 @@ class hybridreso(ConflictResolution):
                 if iwpid > -1: 
                     # TODO: Do this separately for each resolution strategy!
                     if traf.resostrategy[idx] == "RESO1":
-                        # change the altitude of the current active waypoint to resoalt
+                        # keep flying the resolution altitude
                         traf.ap.route[idx].wpalt[iwpid] = traf.resoalt[idx]
-                        # recalculate the flightplan with the resolution 
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
+                        traf.ap.alt[idx] = traf.resoalt[idx]
+                        traf.selalt[idx] = traf.resoalt[idx]
         
         # Remove pairs from the list that are past CPA or have deleted aircraft
         self.resopairs -= delpairs
@@ -333,28 +334,23 @@ class hybridreso(ConflictResolution):
                 if traf.resostrategy[idx] == "RESO1":
                     # If it is safe to descend back to the cruising altitude, then do so!
                     if not conflictProbe(ownship, intruder, idx, dtlook=dtlookdown, targetVs=vsMinOwn, intent=True):
-                        # we need to descend back to the cruising altitude
-                        idxCurrentLayer = np.where(traf.layernames == traf.aclayername[idx])[0]
-                        recoveryalt = traf.layerLowerAlt[idxCurrentLayer-1]
-                        # set it to the altitude of the next active waypoint
-                        traf.ap.route[idx].wpalt[iwpid] = recoveryalt
-                        # send it direct to the next waypoint
-                        traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
-                        # also set the current target A/P alt to recoveryalt to start recovery immidiately
-                        traf.ap.alt[idx] = recoveryalt
-                        # Once the conflict is resolved AND recovery has been initiated, then set the resostrategy to 'None'
                         traf.resostrategy[idx] = "None"
+                        print("I")
+                        # Descend back to the cruising altitude
+                        idxCurrentLayer = np.where(traf.layernames == traf.aclayername[idx])[0]
+                        recoveryalt = traf.layerLowerAlt[idxCurrentLayer-1][0]
+                        traf.ap.route[idx].wpalt[iwpid] = recoveryalt
+                        traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
+                        traf.ap.alt[idx] = recoveryalt
+                        traf.selalt[idx] = recoveryalt
+                        
                     else:
                         # keep flying the resolution altitude
                         traf.ap.route[idx].wpalt[iwpid] = traf.resoalt[idx]
-                        # send it direct to the next waypoint 
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
-                        # also set the current target A/P alt to traf.resoalt to prevent recovery
                         traf.ap.alt[idx] = traf.resoalt[idx]
+                        traf.selalt[idx] = traf.resoalt[idx]
                             
-
-        
-    
     # By default all channels are controlled by self.active,
     # but they can be overloaded with separate variables or functions in a
     # derived ASAS Conflict Resolution class (@property decorator takes away
@@ -406,7 +402,7 @@ class hybridreso(ConflictResolution):
         
         # Determine the altitude of the resolution layer from traf.layerLowerAlt
         # Note: resolution layer is always above the current resolution layer
-        resoalt = traf.layerLowerAlt[idxCurrentLayer+1]
+        resoalt = traf.layerLowerAlt[idxCurrentLayer+1][0]
         
         # Use the maximum performance to climb to the correct altitude
         resovs = traf.perf.vsmax[idxown]
