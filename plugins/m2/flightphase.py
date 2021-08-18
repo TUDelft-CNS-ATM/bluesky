@@ -33,11 +33,24 @@ class flightphase(core.Entity):
             self.flightphase = np.array([])
             self.resostrategy = np.array([],dtype='S6') # Name of the resolution method used by each aircraft. added here and used in hybridreso
             self.resoidint = np.array([], dtype=object) # list of intruder callsigns that ownship is curently resolving against. added here and used in hybridreso
+            self.resoalt = np.array([]) # array to store the resolution altitude for each aircraft. added here and used in hybridreso
+            self.resospd = np.array([]) # array to store the resolution speed for each aircraft. added here and used in hybridreso
+            self.resoHdgActive = np.array([], dtype=bool) # asas channels to delete 
+            self.resoTasActive = np.array([], dtype=bool)
+            self.resoAltActive = np.array([], dtype=bool)
+            self.resoVsActive = np.array([], dtype=bool)
+            
         
         # update traf
         traf.flightphase  = self.flightphase
         traf.resostrategy = self.resostrategy
         traf.resoidint = self.resoidint
+        traf.resoalt = self.resoalt
+        traf.resospd = self.resospd
+        traf.resoHdgActive = self.resoHdgActive
+        traf.resoTasActive = self.resoTasActive
+        traf.resoAltActive = self.resoAltActive
+        traf.resoVsActive = self.resoVsActive
         
         # set the vertical speed limit for the cruising aircraft [m/s]
         self.vslimit = 10*tools.aero.fpm
@@ -52,12 +65,23 @@ class flightphase(core.Entity):
         self.flightphase[-n:] = 1 # set the initial flight phase to climbing
         self.resostrategy[-n:] = "None" # the initial resolution strategy at creation is "None"
         self.resoidint[-n:] = [[] for i in range(1)]
-
-        
+        self.resoalt[-n:] = -9999
+        self.resospd[-n:] = -9999
+        self.resoHdgActive[-n:] = False
+        self.resoTasActive[-n:] = False
+        self.resoAltActive[-n:] = False
+        self.resoVsActive[-n:] = False
+            
         # update traf
         traf.flightphase = self.flightphase
         traf.resostrategy = self.resostrategy
         traf.resoidint = self.resoidint
+        traf.resoalt = self.resoalt
+        traf.resospd = self.resospd
+        traf.resoHdgActive = self.resoHdgActive
+        traf.resoTasActive = self.resoTasActive
+        traf.resoAltActive = self.resoAltActive
+        traf.resoVsActive = self.resoVsActive
         
 
     @core.timed_function(name='flightphase', dt=settings.asas_dt)
