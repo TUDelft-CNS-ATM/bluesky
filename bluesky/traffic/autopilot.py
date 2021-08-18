@@ -10,7 +10,7 @@ import bluesky as bs
 from bluesky.tools import geo
 from bluesky.tools.misc import degto180
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
+from bluesky.tools.aero import ft, nm, fpm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
 from bluesky.core import Entity, timed_function
 from .route import Route
 
@@ -47,6 +47,13 @@ class Autopilot(Entity, replaceable=True):
             self.orig = []  # Four letter code of origin airport
             self.dest = []  # Four letter code of destination airport
 
+            # Default values
+            self.bankdef = np.array([])  # nominal bank angle, [radians]
+            self.vsdef = np.array([]) # [m/s]default vertical speed of autopilot
+            
+            # Currently used roll/bank angle [rad]
+            self.turnphi = np.array([])  # [rad] bank angle setting of autopilot
+
             # Route objects
             self.route = []
 
@@ -64,6 +71,11 @@ class Autopilot(Entity, replaceable=True):
 
         # VNAV Variables
         self.dist2vs[-n:] = -999.
+
+        # Traffic performance data
+        #(temporarily default values)
+        self.vsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
+        self.bankdef[-n:] = np.radians(25.)
 
         # Route objects
         for ridx, acid in enumerate(bs.traf.id[-n:]):
@@ -99,12 +111,12 @@ class Autopilot(Entity, replaceable=True):
                     turnspd = bs.traf.tas[i]
 
                 if bs.traf.actwp.turnrad[i] > 0.:
-                    bs.traf.aphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*nm*g0)) # [rad]
+                    self.turnphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*nm*g0)) # [rad]
                 else:
-                    bs.traf.aphi[i] = 0.0  # [rad] or leave untouched???
+                    self.turnphi[i] = 0.0  # [rad] or leave untouched???
 
             else:
-                bs.traf.aphi[i] = 0.0  #[rad] or leave untouched???
+                self.turnphi[i] = 0.0  #[rad] or leave untouched???
 
             # Get next wp, if there still is one
             if not bs.traf.actwp.swlastwp[i]:
@@ -181,7 +193,7 @@ class Autopilot(Entity, replaceable=True):
 
             # Calculate turn dist (and radius which we do not use) now for scalar variable [i]
             bs.traf.actwp.turndist[i], dummy = \
-                bs.traf.actwp.calcturn(bs.traf.tas[i], bs.traf.bank[i],
+                bs.traf.actwp.calcturn(bs.traf.tas[i], self.bankdef[i],
                                         qdr[i], local_next_qdr,turnrad)  # update turn distance for VNAV
 
             # Reduce turn dist for reduced turnspd
@@ -262,8 +274,8 @@ class Autopilot(Entity, replaceable=True):
         self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
         #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
 
-        # self.vs = np.where(self.swvnavvs, self.vnavvs, bs.traf.apvsdef * bs.traf.limvs_flag)
-        selvs    = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, bs.traf.apvsdef) # m/s
+        # self.vs = np.where(self.swvnavvs, self.vnavvs, self.vsdef * bs.traf.limvs_flag)
+        selvs    = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, self.vsdef) # m/s
         self.vs  = np.where(self.swvnavvs, self.vnavvs, selvs)
         self.alt = np.where(self.swvnavvs, bs.traf.actwp.nextaltco, bs.traf.selalt)
 

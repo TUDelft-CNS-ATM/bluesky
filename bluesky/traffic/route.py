@@ -1325,7 +1325,7 @@ class Route(Replaceable):
 
             # we only turn to the first waypoint if we can reach the required
             # heading before reaching the waypoint
-            time_turn = max(0.01,bs.traf.tas[i])*radians(delhdg)/(g0*tan(bs.traf.bank[i]))
+            time_turn = max(0.01,bs.traf.tas[i])*radians(delhdg)/(g0*tan(bs.traf.ap.bankdef[i]))
             time_straight= sqrt(dist2[iwpnear])*60.*nm/max(0.01,bs.traf.tas[i])
 
             if time_turn > time_straight:

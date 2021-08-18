@@ -198,7 +198,7 @@ class Legacy(PerfBase):
         # allocate aircraft to their flight phase
         self.phase, self.bank = phases(bs.traf.alt, bs.traf.gs, delalt,
             bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld,
-            bs.traf.bank, bs.traf.bphase, bs.traf.swhdgsel,swbada)
+            bs.traf.ap.bankdef, bs.traf.bphase, bs.traf.swhdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)

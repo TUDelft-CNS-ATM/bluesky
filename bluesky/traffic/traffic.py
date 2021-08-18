@@ -103,6 +103,9 @@ class Traffic(Entity):
             self.M       = np.array([])  # mach number
             self.vs      = np.array([])  # vertical speed [m/s]
 
+            # Acceleration
+            self.ax = np.array([])  # [m/s2] current longitudinal acceleration
+
             # Atmosphere
             self.p       = np.array([])  # air pressure [N/m2]
             self.rho     = np.array([])  # air density [kg/m3]
@@ -138,10 +141,6 @@ class Traffic(Entity):
             self.groups = TrafficGroups()
 
             # Traffic autopilot data
-            self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
-            self.aphi     = np.array([])  # [rad] bank angle setting of autopilot
-            self.ax       = np.array([])  # [m/s2] current longitudinal acceleration
-            self.bank     = np.array([])  # nominal bank angle, [radians]
             self.swhdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
             # Traffic autothrottle settings
@@ -264,11 +263,6 @@ class Traffic(Entity):
         else:
             self.windnorth[-n:] = 0.0
             self.windeast[-n:]  = 0.0
-
-        # Traffic performance data
-        #(temporarily default values)
-        self.apvsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
-        self.bank[-n:]    = np.radians(25.)
 
         # Traffic autopilot settings
         self.selspd[-n:] = self.cas[-n:]
@@ -441,7 +435,7 @@ class Traffic(Entity):
         self.M = vtas2mach(self.tas, self.alt)
 
         # Turning
-        turnrate = np.degrees(g0 * np.tan(np.where(self.aphi>self.eps,self.aphi,self.bank) \
+        turnrate = np.degrees(g0 * np.tan(np.where(self.ap.turnphi>self.eps,self.ap.turnphi,self.ap.bankdef) \
                                           / np.maximum(self.tas, self.eps)))
         delhdg = (self.aporasas.hdg - self.hdg + 180) % 360 - 180  # [deg]
         self.swhdgsel = np.abs(delhdg) > np.abs(bs.sim.simdt * turnrate)

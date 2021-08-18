@@ -333,7 +333,7 @@ class BADA(PerfBase):
         # flight phase
         self.phase, self.bank = phases(bs.traf.alt, bs.traf.gs, delalt,
             bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld,
-            bs.traf.bank, bs.traf.bphase, bs.traf.swhdgsel, swbada)
+            bs.traf.ap.bankdef, bs.traf.bphase, bs.traf.swhdgsel, swbada)
 
         # AERODYNAMICS
         # Lift
