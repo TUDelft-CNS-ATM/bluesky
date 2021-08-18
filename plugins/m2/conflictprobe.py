@@ -7,7 +7,7 @@ from bluesky.tools.aero import nm#, ft
 from bluesky.tools import geo
 
 
-def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlookahead, intent=False, targetLat=9999, targetLon=9999, targetAlt=-9999, targetVs=-9999, targetGs=9999, targetTrk=9999):
+def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlookahead, intent=False, targetLat=9999, targetLon=9999, targetAlt=-9999, intAlt=-9999, targetVs=-9999, targetGs=9999, targetTrk=9999):
     'Returns True if a conflict would occur if the ownship adopts the input target states'
     'Here the optional argument idxint is used to artifically supress a conflict with this intruder'
     
@@ -21,7 +21,7 @@ def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlook
     owntrk    = ownship.trk[idxown] if targetTrk == 9999 else targetTrk
     owngs     = ownship.gs[idxown]  if targetGs  == 9999 else targetGs
     ownalt    = ownship.alt[idxown] if targetAlt == -9999 else targetAlt
-    intentalt = ownship.alt[idxown] if targetAlt == -9999 else targetAlt
+    intentalt = ownship.alt[idxown] if intAlt == -9999 else intAlt
     ownvs     = ownship.vs[idxown]  if targetVs  == -9999 else targetVs
     
     
