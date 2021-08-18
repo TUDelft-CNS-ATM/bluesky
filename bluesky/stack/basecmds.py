@@ -69,6 +69,13 @@ def initbasecmds():
             lambda idx, *args: bs.traf.ap.route[idx].addwptStack(idx, *args),
             "Add a waypoint to route of aircraft (FMS)",
         ],
+        "ADDWPTMODE": [
+            "ADDWPTMODE acid, FLYBY/FLYOVER/FLYTURN/TURNSPD/TURNRAD, spd/radius",
+            "acid,[wpt,alt]",
+
+            lambda idx, *args: bs.traf.ap.route[idx].addwptMode(idx, *args),
+            "Change the mode of the ADDWPT command.",
+        ],
         "AFTER": [
             "acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]",
             "acid,wpinroute,txt,wpt,[alt,spd]",

@@ -97,6 +97,36 @@ class Route(Replaceable):
             appi += 1
             name_ = name_[:-len_]+fmt_.format(appi)
         return name_
+    
+    def addwptMode(self, idx, mode = None, value = None):
+        '''Changes the mode of the ADDWPT command to add waypoints of type 'mode'.
+        Available modes: FLYBY, FLYOVER, FLYTURN.Also used to specify 
+        TURNSPEED or TURNRADIUS.'''
+        # First, we want to check what 'mode' is, and then call addwptStack 
+        # accordingly.
+        if mode in ['FLYBY', 'FLYOVER', 'FLYTURN']:
+            # We're just changing addwpt mode, call the appropriate function.
+            self.addwptStack(idx, mode)
+            return True
+        
+        elif mode in  ['TURNSPEED', 'TURNSPD', 'TURNRADIUS', 'TURNRAD']:
+            # We're changing the turn speed or radius
+            self.addwptStack(idx, mode, value)
+            return True
+            
+        elif mode == None:
+            # Just echo the current wptmode
+            if self.swflyby == True and self.swflyturn == False:
+                bs.scr.echo('Current ADDWPT mode is FLYBY.')
+                return True
+
+            elif self.swflyby == False and self.swflyturn == False:
+                bs.scr.echo('Current ADDWPT mode is FLYOVER.')
+                return True
+
+            else:
+                bs.scr.echo('Current ADDWPT mode is FLYTURN.')
+                return True
 
     def addwptStack(self, idx, *args):  # args: all arguments of addwpt
         """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp],[beforewp]"""
@@ -216,7 +246,6 @@ class Route(Replaceable):
             i      = 0
             while i<self.nwp and rwyrteidx<0:
                 if self.wpname[i].count("/") >0:
-#                   print (self.wpname[i])
                     rwyrteidx = i
                 i += 1
 
@@ -592,13 +621,7 @@ class Route(Replaceable):
 
     def addwpt(self, iac, name, wptype, lat, lon, alt=-999., spd=-999., afterwp="", beforewp=""):
         """Adds waypoint an returns index of waypoint, lat/lon [deg], alt[m]"""
-#        print ("addwpt:")
-#        print ("iac = ",iac)
-#        print ("name = "+name)
-#        print ("alt = ",alt)
-#        print ("spd = ",spd)
-#        print ("afterwp ="+afterwp)
-#        print
+
         # For safety
         self.nwp = len(self.wplat)
 
@@ -1186,8 +1209,7 @@ class Route(Replaceable):
 
     def calcfp(self): # Current Flight Plan calculations, which actualize based on flight condition
         """Do flight plan calculations"""
-#        self.delwpt("T/D")
-#        self.delwpt("T/C")
+
 
         # Direction to waypoint
         self.nwp = len(self.wpname)
