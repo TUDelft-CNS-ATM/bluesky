@@ -33,7 +33,11 @@ class PerfBase(Entity, replaceable=True):
             # Performance limits per aircraft
             self.vmin = np.array([])
             self.vmax = np.array([])
+            self.axmax = np.array([]) # Max/min acceleration [m/s2]
 
+    def create(self, n):
+        super().create(n=n)
+        self.axmax[-n:] = 2.0 # Default acceleration limit is 2 m/s2
 
     @timed_function(name="performance", dt=settings.performance_dt, manual=True)
     def update(self, dt=settings.performance_dt):
