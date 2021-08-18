@@ -1,3 +1,5 @@
+import warnings
+from bluesky.stack.stackbase import stack
 import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
@@ -54,10 +56,11 @@ class OpenAP(PerfBase):
             self.vmaxer = np.array([])
             self.vmaxap = np.array([])
 
+            self.axmax = np.array([])  # will be updated in update function
+
             self.vsmin = np.array([])
             self.vsmax = np.array([])
             self.hmax = np.array([])
-            self.axmax = np.array([])
             self.vminto = np.array([])
             self.hcross = np.array([])
             self.mmo = np.array([])
@@ -73,8 +76,10 @@ class OpenAP(PerfBase):
             actype not in self.coeff.dragpolar_fixwing
         ):
             if actype in self.coeff.synodict:
-                # print(actype,"replaced by",self.coeff.synodict[actype])
                 actype = self.coeff.synodict[actype]
+                warn = f"Warning: {actype} replaced by {self.coeff.synodict[actype]}"
+                print(warn)
+                bs.scr.echo(warn)
 
         # initialize aircraft / engine performance parameters
         # check fixwing or rotor, default to fixwing
@@ -91,6 +96,9 @@ class OpenAP(PerfBase):
             # convert to known aircraft type
             if actype not in self.coeff.actypes_fixwing:
                 actype = "B744"
+                warn = f"Warning: {actype} replaced by B747-400"
+                print(warn)
+                bs.scr.echo(warn)
 
             # populate fuel flow model
             es = self.coeff.acs_fixwing[actype]["engines"]
@@ -170,11 +178,11 @@ class OpenAP(PerfBase):
                 "delta_cd_gear"
             ]
 
-        # append update actypes, after removing unkown types
+        # append update actypes, after removing unknown types
         self.actypes[-n:] = [actype] * n
 
     def update(self, dt):
-        """ Periodic update function for performance calculations. """
+        """Periodic update function for performance calculations."""
         # update phase, infer from spd, roc, alt
         lenph1 = len(self.phase)
         self.phase = ph.get(
@@ -243,6 +251,9 @@ class OpenAP(PerfBase):
             + self.ff_coeff_b[idx_fixwing] * thrustratio_fixwing
             + self.ff_coeff_c[idx_fixwing]
         )
+
+        # ----- update max acceleration ----
+        self.ax = self.calc_axmax()
 
         # TODO: implement thrust computation for rotor aircraft
         # idx_rotor = np.where(self.lifttype==coeff.LIFT_ROTOR)[0]
@@ -389,21 +400,26 @@ class OpenAP(PerfBase):
 
         return vmin, vmax
 
-    def acceleration(self):
+    def calc_axmax(self):
         # accelerations depending on phase and wing type
-        acc_fixwing_ground = 2
-        acc_rotor = 3.5
+        axmax_fixwing_ground = 2
+        axmax_rotor = 3.5
 
-        accs = np.zeros(bs.traf.ntraf)
-        accs = (self.max_thrust - self.drag) / self.mass
+        axmax = np.zeros(bs.traf.ntraf)
 
-        accs[self.phase == ph.GD] = acc_fixwing_ground
+        # fix-wing, in flight
+        axmax = (self.max_thrust - self.drag) / self.mass
 
-        accs[self.lifttype == coeff.LIFT_ROTOR] = acc_rotor
+        # fix-wing, on ground
+        axmax[self.phase == ph.GD] = axmax_fixwing_ground
 
-        accs[accs < 0.5] = 0.5  # minumum acceleration
+        # drones
+        axmax[self.lifttype == coeff.LIFT_ROTOR] = axmax_rotor
 
-        return accs
+        # global minumum acceleration
+        axmax[axmax < 0.5] = 0.5
+
+        return axmax
 
     def show_performance(self, acid):
         return (
