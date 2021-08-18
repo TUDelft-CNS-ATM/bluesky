@@ -227,7 +227,7 @@ class Traffic(Entity):
         aclon[aclon > 180.0] -= 360.0
         aclon[aclon < -180.0] += 360.0
 
-        achdg = refdata.hdg if achdg is None else achdg
+        achdg = (refdata.hdg or 0.0) if achdg is None else achdg
 
         # Aircraft Info
         self.id[-n:]   = acid
