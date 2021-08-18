@@ -37,7 +37,12 @@ class Coefficient:
                 else:
                     dataline = line.strip("\n")
                 acmod, synomod = dataline.split("=")
-                self.synodict[acmod.strip().upper()] = synomod.strip().upper()
+                acmod = acmod.strip().upper()
+                synomod = synomod.strip().upper()
+
+                if acmod == synomod:
+                    continue
+                self.synodict[acmod] = synomod
 
         self.acs_fixwing = self._load_all_fixwing_flavor()
         self.engines_fixwing = pd.read_csv(fixwing_engine_db, encoding="utf-8")
