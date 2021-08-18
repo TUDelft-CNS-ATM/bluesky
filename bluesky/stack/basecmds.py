@@ -381,12 +381,6 @@ def initbasecmds():
             bs.traf.setnoise,
             "Turbulence/noise switch",
         ],
-        "NOM": [
-            "NOM acid",
-            "acid",
-            bs.traf.nom,
-            "Set nominal acceleration for this aircraft (perf model)",
-        ],
         "OP": [
             "OP",
             "",

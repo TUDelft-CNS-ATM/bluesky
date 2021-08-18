@@ -550,7 +550,12 @@ class BADA(PerfBase):
 
         self.pf_flag = np.where ((bs.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
 
-        return
+        # define acceleration: aircraft taxiing and taking off use ground acceleration,
+        # landing aircraft use ground deceleration, others use standard acceleration
+        # --> BADA uses the same value for ground acceleration as for deceleration
+        self.axmax = ((self.phase == PHASE['IC']) + (self.phase == PHASE['CR']) + (self.phase == PHASE['AP']) + (self.phase == PHASE['LD'])) * 0.5 \
+            + ((self.phase == PHASE['TO']) + (self.phase == PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
+            + (self.phase == PHASE['GD']) * self.post_flight * self.gr_acc
 
     def limits(self, intent_v, intent_vs, intent_h, ax):
         """FLIGHT ENVELPOE"""
@@ -594,31 +599,6 @@ class BADA(PerfBase):
         allowed_vs = np.where(self.limvs_flag, self.limvs, intent_vs)
 
         return allowed_tas, allowed_vs, allowed_alt
-
-    def acceleration(self):
-        # define acceleration: aircraft taxiing and taking off use ground acceleration,
-        # landing aircraft use ground deceleration, others use standard acceleration
-        # --> BADA uses the same value for ground acceleration as for deceleration
-
-
-        ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + (self.phase==PHASE['AP']) + (self.phase==PHASE['LD'])) * 0.5 \
-                + ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
-                +  (self.phase==PHASE['GD']) * self.post_flight * self.gr_acc
-
-        return ax
-
-
-        #------------------------------------------------------------------------------
-        #DEBUGGING
-
-        #record data
-        # self.log.write(self.dt, str(bs.traf.alt[0]), str(bs.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.fuelflow[0]),  str(bs.traf.vs[0]), str(cd[0]))
-        # self.log.save()
-
-        # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \
-        # self.thrust, self.D, self.fuelflow,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
-        # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
-        # CD0f, kf, self.hmaxact
 
     def show_performance(self, acid):
         # PERF acid command

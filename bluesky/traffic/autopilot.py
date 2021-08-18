@@ -287,8 +287,7 @@ class Autopilot(Entity, replaceable=True):
         turntasdiff   = np.maximum(0.,(bs.traf.tas - turntas)*(turntas>0.0))
 
         # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
-        ax = bs.traf.perf.acceleration()
-        dxturnspdchg = distaccel(turntas,bs.traf.tas,ax)
+        dxturnspdchg = distaccel(turntas,bs.traf.tas, bs.traf.perf.axmax)
 #        dxturnspdchg = 0.5*np.abs(turntas*turntas-bs.traf.tas*bs.traf.tas)/(np.sign(turntas-bs.traf.tas)*np.maximum(0.01,np.abs(ax)))
 #        dxturnspdchg  = np.where(swturnspd, np.abs(turntasdiff)/np.maximum(0.01,ax)*(bs.traf.tas+0.5*np.abs(turntasdiff)),
 #                                                                   0.0*bs.traf.tas)
@@ -300,7 +299,7 @@ class Autopilot(Entity, replaceable=True):
 
         # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
 
-        dxspdconchg = distaccel(bs.traf.tas,nexttas,ax)
+        dxspdconchg = distaccel(bs.traf.tas, nexttas, bs.traf.perf.axmax)
 
         # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
         # and same for turn logic
@@ -477,8 +476,8 @@ class Autopilot(Entity, replaceable=True):
 
         deltime = torta-bs.sim.simt # Remaining time to next RTA [s] in simtime
         if deltime>0: # Still possible?
-            trafax = abs(bs.traf.perf.acceleration()[idx])
-            gsrta = calcvrta(bs.traf.gs[idx], xtorta, deltime, trafax)
+            gsrta = calcvrta(bs.traf.gs[idx], xtorta,
+                             deltime, bs.traf.perf.axmax[idx])
 
             # Subtract tail wind speed vector
             tailwind = (bs.traf.windnorth[idx]*bs.traf.gsnorth[idx] + bs.traf.windeast[idx]*bs.traf.gseast[idx]) / \
