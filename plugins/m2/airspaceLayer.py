@@ -8,7 +8,9 @@ Date: 14-07-2021
 from random import randint
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, stack, traf, settings, tools
+from bluesky import core, stack, traf, settings
+from bluesky.tools.aero import ft, kts
+
 
 
 def init_plugin():
@@ -40,10 +42,10 @@ class airspaceLayer(core.Entity):
         self.airspaceStructure = np.genfromtxt('plugins\\m2\\airspace structure spec.csv', delimiter=',',dtype=str, skip_header=2).T
         
         # Process airspace structure and convert to SI units
-        self.loweralt = self.airspaceStructure[2].astype(float)*tools.aero.ft  # [m]
-        self.upperalt = self.airspaceStructure[3].astype(float)*tools.aero.ft  # [m]
-        self.lowerspd = self.airspaceStructure[4].astype(float)*tools.aero.kts # [m/s]
-        self.upperspd = self.airspaceStructure[5].astype(float)*tools.aero.kts # [m/s]
+        self.loweralt = self.airspaceStructure[2].astype(float)*ft  # [m]
+        self.upperalt = self.airspaceStructure[3].astype(float)*ft  # [m]
+        self.lowerspd = self.airspaceStructure[4].astype(float)*kts # [m/s]
+        self.upperspd = self.airspaceStructure[5].astype(float)*kts # [m/s]
         self.layernames = self.airspaceStructure[1]
         
         # add the airspacelayertype as new array per aircraft

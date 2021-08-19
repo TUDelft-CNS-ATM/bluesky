@@ -7,7 +7,7 @@ from bluesky.tools.aero import nm#, ft
 from bluesky.tools import geo
 
 
-def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlookahead, intent=False, targetLat=9999, targetLon=9999, targetAlt=-9999, targetVs=-9999, targetGs=9999, targetTrk=9999):
+def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=-9999, intent=False, targetLat=9999, targetLon=9999, targetAlt=-9999, targetVs=-9999, targetGs=9999, targetTrk=9999):
     'Returns True if a conflict would occur if the ownship adopts the input target states'
     'Here the optional argument idxint is used to artifically supress a conflict with this intruder'
     
@@ -23,6 +23,9 @@ def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlook
     ownalt    = ownship.alt[idxown] if targetAlt == -9999 else targetAlt
     intentalt = ownship.alt[idxown] if targetAlt == -9999 else targetAlt
     ownvs     = ownship.vs[idxown]  if targetVs  == -9999 else targetVs
+    
+    # select the default look ahead if it is not given as an input parameter
+    dtlook = traf.cd.dtlookahead[idxown] if dtlook == -9999 else dtlook
     
     
     ###### First Do Statebased CD. This is mostly copy-pasted from statebased.py ######
@@ -120,6 +123,7 @@ def conflictProbe(ownship, intruder, idxown, idxint=-9999, dtlook=traf.cd.dtlook
     
     return probe
 
+
 def intentFilterCP(swconfl, ownship, intruder, idxown, intentalt):
     '''Function to check and remove conflicts from the swconfl
        if such a conflict is automatically solved by the intended routes of the aircraft '''
@@ -156,7 +160,7 @@ def intentFilterCP(swconfl, ownship, intruder, idxown, intentalt):
         diff = own_target_alt - intruder_target_alt
         
         # minimum horizontal separation 
-        rpz = (traf.cd.rpz[idxown]+traf.cd.rpz[i])#*1.05
+        rpz = max(traf.cd.rpz[idxown],traf.cd.rpz[i])#*1.05
         
         # Basically, there are two conditions to be met in order to skip
         # a conflict due to intent:

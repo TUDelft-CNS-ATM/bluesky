@@ -35,7 +35,8 @@ class flightphase(core.Entity):
             self.resoidint = np.array([], dtype=object) # list of intruder callsigns that ownship is curently resolving against. added here and used in hybridreso
             self.resoalt = np.array([]) # array to store the resolution altitude for each aircraft. added here and used in hybridreso
             self.resospd = np.array([]) # array to store the resolution speed for each aircraft. added here and used in hybridreso
-            self.resoHdgActive = np.array([], dtype=bool) # asas channels to delete 
+            self.recoveryspd = np.array([]) # array to store the pre-conflict speed for each aircraft. added here and used in hybridreso
+            self.resoHdgActive = np.array([], dtype=bool) # asas channels to delete. added here and used in hybridreso
             self.resoTasActive = np.array([], dtype=bool)
             self.resoAltActive = np.array([], dtype=bool)
             self.resoVsActive = np.array([], dtype=bool)
@@ -47,6 +48,7 @@ class flightphase(core.Entity):
         traf.resoidint = self.resoidint
         traf.resoalt = self.resoalt
         traf.resospd = self.resospd
+        traf.recoveryspd = self.recoveryspd
         traf.resoHdgActive = self.resoHdgActive
         traf.resoTasActive = self.resoTasActive
         traf.resoAltActive = self.resoAltActive
@@ -67,6 +69,7 @@ class flightphase(core.Entity):
         self.resoidint[-n:] = [[] for i in range(1)]
         self.resoalt[-n:] = -9999
         self.resospd[-n:] = -9999
+        self.recoveryspd[-n:] = -9999
         self.resoHdgActive[-n:] = False
         self.resoTasActive[-n:] = False
         self.resoAltActive[-n:] = False
@@ -78,6 +81,7 @@ class flightphase(core.Entity):
         traf.resoidint = self.resoidint
         traf.resoalt = self.resoalt
         traf.resospd = self.resospd
+        traf.recoveryspd = self.recoveryspd
         traf.resoHdgActive = self.resoHdgActive
         traf.resoTasActive = self.resoTasActive
         traf.resoAltActive = self.resoAltActive
