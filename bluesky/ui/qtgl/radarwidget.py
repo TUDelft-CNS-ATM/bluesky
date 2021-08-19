@@ -326,10 +326,7 @@ class RadarWidget(glh.RenderWidget):
             actdata = bs.net.get_nodedata()
             tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
                                             actdata.acdata, actdata.routedata)
-            if '\n' not in tocmdline:
-                console.append_cmdline(tocmdline)
-            if tostack:
-                bs.stack.stack(tostack)
+            console.process_cmdline(tostack + '\n' + tocmdline if tostack else tocmdline)
 
         elif event.type() == QEvent.MouseMove:
             self.mousedragged = True
