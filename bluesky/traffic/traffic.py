@@ -167,7 +167,8 @@ class Traffic(Entity):
         super().reset()
         
         # Reset conflict resolution
-        self.cr.do_cr = False
+        ConflictResolution.do_cr = False
+        ConflictResolution.select()
 
         # reset performance model
         self.perf.reset()
