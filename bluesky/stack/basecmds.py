@@ -182,7 +182,7 @@ def initbasecmds():
         ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
-            "txt,txt,latlon,hdg,alt,spd",
+            "txt,txt,latlon,[hdg,alt,spd]",
             bs.traf.cre,
             "Create an aircraft",
         ],
@@ -387,12 +387,6 @@ def initbasecmds():
             "[onoff]",
             bs.traf.setnoise,
             "Turbulence/noise switch",
-        ],
-        "NOM": [
-            "NOM acid",
-            "acid",
-            bs.traf.nom,
-            "Set nominal acceleration for this aircraft (perf model)",
         ],
         "OP": [
             "OP",

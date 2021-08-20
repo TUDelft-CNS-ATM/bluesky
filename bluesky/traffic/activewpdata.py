@@ -62,7 +62,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         # First calculate turn distance
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
         turntas = np.where(bs.traf.actwp.turnspd<0.0,bs.traf.tas,bs.traf.actwp.turnspd)
-        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.bank,qdr,next_qdr,turnradnm)
+        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnradnm)
 
         # Turb dist iz ero for flyover, calculated distance for others
         self.turndist = np.logical_or(flyby,flyturn)*flybyturndist

@@ -103,6 +103,9 @@ class Traffic(Entity):
             self.M       = np.array([])  # mach number
             self.vs      = np.array([])  # vertical speed [m/s]
 
+            # Acceleration
+            self.ax = np.array([])  # [m/s2] current longitudinal acceleration
+
             # Atmosphere
             self.p       = np.array([])  # air pressure [N/m2]
             self.rho     = np.array([])  # air density [kg/m3]
@@ -138,10 +141,6 @@ class Traffic(Entity):
             self.groups = TrafficGroups()
 
             # Traffic autopilot data
-            self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
-            self.aphi     = np.array([])  # [rad] bank angle setting of autopilot
-            self.ax       = np.array([])  # [m/s2] absolute value of longitudinal accelleration
-            self.bank     = np.array([])  # nominal bank angle, [radians]
             self.swhdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
             # Traffic autothrottle settings
@@ -228,7 +227,7 @@ class Traffic(Entity):
         aclon[aclon > 180.0] -= 360.0
         aclon[aclon < -180.0] += 360.0
 
-        achdg = refdata.hdg if achdg is None else achdg
+        achdg = (refdata.hdg or 0.0) if achdg is None else achdg
 
         # Aircraft Info
         self.id[-n:]   = acid
@@ -264,13 +263,6 @@ class Traffic(Entity):
         else:
             self.windnorth[-n:] = 0.0
             self.windeast[-n:]  = 0.0
-
-        # Traffic performance data
-        #(temporarily default values)
-        self.apvsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
-        self.aphi[-n:]    = 0.            # bank angle output of autopilot (optional)
-        self.ax[-n:]      = kts           # absolute value of longitudinal accelleration
-        self.bank[-n:]    = np.radians(25.)
 
         # Traffic autopilot settings
         self.selspd[-n:] = self.cas[-n:]
@@ -435,17 +427,15 @@ class Traffic(Entity):
     def update_airspeed(self):
         # Compute horizontal acceleration
         delta_spd = self.aporasas.tas - self.tas
-        ax = self.perf.acceleration()
-        need_ax = np.abs(delta_spd) > np.abs(bs.sim.simdt * ax)
-        self.ax = need_ax * np.sign(delta_spd) * ax
+        need_ax = np.abs(delta_spd) > np.abs(bs.sim.simdt * self.perf.axmax)
+        self.ax = need_ax * np.sign(delta_spd) * self.perf.axmax
         # Update velocities
         self.tas = np.where(need_ax, self.tas + self.ax * bs.sim.simdt, self.aporasas.tas)
         self.cas = vtas2cas(self.tas, self.alt)
         self.M = vtas2mach(self.tas, self.alt)
 
         # Turning
-
-        turnrate = np.degrees(g0 * np.tan(np.where(self.aphi>self.eps,self.aphi,self.bank) \
+        turnrate = np.degrees(g0 * np.tan(np.where(self.ap.turnphi>self.eps,self.ap.turnphi,self.ap.bankdef) \
                                           / np.maximum(self.tas, self.eps)))
         delhdg = (self.aporasas.hdg - self.hdg + 180) % 360 - 180  # [deg]
         self.swhdgsel = np.abs(delhdg) > np.abs(bs.sim.simdt * turnrate)
@@ -555,11 +545,6 @@ class Traffic(Entity):
         if vspd is not None:
             self.vs[idx]     = vspd
             self.swvnav[idx] = False
-
-
-    def nom(self, idx):
-        """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
-        self.ax[idx] = kts #[m/s2]
 
     def poscommand(self, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
         """POS command: Show info or an aircraft, airport, waypoint or navaid"""

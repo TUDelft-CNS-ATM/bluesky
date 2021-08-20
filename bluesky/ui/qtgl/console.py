@@ -31,10 +31,14 @@ def get_args():
     return Console._instance.args
 
 
-def append_cmdline(text):
+def process_cmdline(cmdlines):
     assert Console._instance is not None, 'No console created yet: can only change' + \
         ' command line after main window is created.'
-    Console._instance.append_cmdline(text)
+    lines = cmdlines.split('\n')
+    if lines:
+        Console._instance.append_cmdline(lines[-1])
+        for cmd in lines[:-1]:
+            Console._instance.stack(cmd)
 
 
 class Console(QWidget):

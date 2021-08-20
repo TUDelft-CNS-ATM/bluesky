@@ -3,6 +3,7 @@ import os
 import json
 import numpy as np
 import pandas as pd
+import bluesky as bs
 from bluesky import settings
 
 settings.set_variable_defaults(perf_path_openap="data/performance/OpenAP")
@@ -36,7 +37,12 @@ class Coefficient:
                 else:
                     dataline = line.strip("\n")
                 acmod, synomod = dataline.split("=")
-                self.synodict[acmod.strip().upper()] = synomod.strip().upper()
+                acmod = acmod.strip().upper()
+                synomod = synomod.strip().upper()
+
+                if acmod == synomod:
+                    continue
+                self.synodict[acmod] = synomod
 
         self.acs_fixwing = self._load_all_fixwing_flavor()
         self.engines_fixwing = pd.read_csv(fixwing_engine_db, encoding="utf-8")
@@ -153,13 +159,23 @@ class Coefficient:
         return limits_fixwing
 
     def _load_all_rotor_envelop(self):
-        """ load rotor aircraft envelop, all unit in SI"""
+        """load rotor aircraft envelop, all unit in SI"""
         limits_rotor = {}
         for mdl, ac in self.acs_rotor.items():
             limits_rotor[mdl] = {}
-            limits_rotor[mdl]["vmin"] = ac["envelop"]["v_min"]
-            limits_rotor[mdl]["vmax"] = ac["envelop"]["v_max"]
-            limits_rotor[mdl]["vsmin"] = ac["envelop"]["vs_min"]
-            limits_rotor[mdl]["vsmax"] = ac["envelop"]["vs_max"]
-            limits_rotor[mdl]["hmax"] = ac["envelop"]["h_max"]
+
+            limits_rotor[mdl]["vmin"] = ac["envelop"].get("v_min", -20)
+            limits_rotor[mdl]["vmax"] = ac["envelop"].get("v_max", 20)
+            limits_rotor[mdl]["vsmin"] = ac["envelop"].get("vs_min", -5)
+            limits_rotor[mdl]["vsmax"] = ac["envelop"].get("vs_max", 5)
+            limits_rotor[mdl]["hmax"] = ac["envelop"].get("h_max", 2500)
+
+            params = ["v_min", "v_max", "vs_min", "vs_max", "h_max"]
+            if set(params) <= set(ac["envelop"].keys()):
+                pass
+            else:
+                warn = f"Warning: Some performance parameters for {mdl} are not found, default values used."
+                print(warn)
+                bs.scr.echo(warn)
+
         return limits_rotor
