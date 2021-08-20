@@ -20,7 +20,7 @@ re_getarg = re.compile(
 # re_getarg = re.compile(r'[\'"]?((?<=[\'"])[^\'"]+|(?<![\'"])[^\s,]+)[\'"]?\s*,?\s*')
 
 # Stack reference data namespace
-refdata = SimpleNamespace(lat=None, lon=None, alt=None, ac=-1, hdg=None, cas=None)
+refdata = SimpleNamespace(lat=None, lon=None, alt=None, acidx=-1, hdg=None, cas=None)
 
 
 def getnextarg(cmdstring):
