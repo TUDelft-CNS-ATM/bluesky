@@ -37,7 +37,7 @@ class hybridreso(ConflictResolution):
     def __init__(self):
         super().__init__()
         
-        self.swvelocitymatch = False
+        self.swvelocitymatch = True
         
         # with self.settrafarrays():
         #     self.resostrategy = np.array([])
@@ -110,42 +110,42 @@ class hybridreso(ConflictResolution):
                 # ownship and intruder are cruising
                 if fpown == 0 and fpint == 0: 
                     if rlayerown:
-                        newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS) # use the speed resolution strategy
+                        newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS, qdr) # use the speed resolution strategy
                         stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                     else:
                         if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn):
                             newalt[idxown], newvs[idxown] = self.reso1(idxown) # use the "climb into resolution layer" strategy
                             stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso1: climb into resolution layer strategy")
                         else:
-                            newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS) # use the speed resolution strategy
+                            newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS, qdr) # use the speed resolution strategy
                             stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                             
                             
                 # ownship is cruising and intruder is climbing            
                 elif fpown == 0 and fpint == 1: 
                     if rlayerown:
-                        newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS) # use the speed resolution strategy
+                        newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS, qdr) # use the speed resolution strategy
                         stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                     else:
                         if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn):
                             newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso5(idxown) # use the climb into resolution layer + speed resolution strategy
                             # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: climb into resolution layer + speed resolution strategy")
                         else:
-                            newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS) # use the speed resolution strategy
+                            newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS, qdr) # use the speed resolution strategy
                             stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                             
                 
                 # ownship is cruising and intruder is descending
                 elif fpown == 0 and fpint == 2: 
                     if rlayerown:
-                        newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS) # use the speed resolution strategy
+                        newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS, qdr) # use the speed resolution strategy
                         stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                     else:
                         if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn):
                             newalt[idxown], newgs[idxown], traf.cr.altactive[idxown], traf.cr.tasactive[idxown] = self.reso5(idxown) # use the climb into resolution layer + speed resolution strategy
                             # stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: climb into resolution layer + speed resolution strategy")
                         else:
-                            newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS) # use the speed resolution strategy
+                            newgs[idxown] = self.reso2(conf, idxown, idxint, dcpa, tLOS, qdr) # use the speed resolution strategy
                             stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso2: speed strategy")
                 
                 # ownship is climbing and intruder is cruising
@@ -285,7 +285,7 @@ class hybridreso(ConflictResolution):
                 if traf.resostrategy[idx1] == "RESO2" and not self.swvelocitymatch:
                     # distnotok = conflictProbe(ownship, intruder, idx1, targetGs=traf.recoveryspd[idx1])
                     # distnotok = abs(traf.gs[idx1]-traf.resospd[idx1]) > 0.5
-                    distnotok = hdist <= (traf.gs[idx1]*conf.dtlookahead[idx1]*2.5)
+                    distnotok = hdist <= (traf.gs[idx1]*conf.dtlookahead[idx1]*1.0)
                 else:
                     distnotok = False
                 
@@ -479,7 +479,7 @@ class hybridreso(ConflictResolution):
         return resoalt, resovs
     
     
-    def reso2(self, conf, idxown, idxint, dcpa, tLOS): 
+    def reso2(self, conf, idxown, idxint, dcpa, tLOS, qdr): 
         'The speed resolution strategy'
         
         # update the resostrategy used by ownship
@@ -523,11 +523,15 @@ class hybridreso(ConflictResolution):
             # speed change to resolve 
             resoSpdChange = (rpz-dcpa)/tLOS
             
-            # TODO: determine if ownship is behind
-            ownshipBehind = owngs > intgs
+            # Determine if intruder is infront of ownship
+            qdrintruder = ((qdr - (traf.trk[idxown])%360) + 180) % 360 - 180  
+            if -90 <= qdrintruder <= 90:
+                intruderInfront = True
+            else:
+                intruderInfront = False
             
-            # Calculate new ownship spd. If ownship is behind the intruder, it has to slow down
-            if ownshipBehind:
+            # Calculate new ownship spd. If intruder is infront of ownship, ownship has to slow down
+            if intruderInfront:
                 resospd = owngs - resoSpdChange
             else:
                 resospd = owngs + resoSpdChange
