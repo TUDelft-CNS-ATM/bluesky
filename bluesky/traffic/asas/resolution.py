@@ -131,12 +131,13 @@ class ConflictResolution(Entity, replaceable=True):
                 # Check if conflict is past CPA
                 past_cpa = np.dot(dist, vrel) > 0.0
 
+                rpz = np.max(conf.rpz[[idx1, idx2]])
                 # hor_los:
                 # Aircraft should continue to resolve until there is no horizontal
                 # LOS. This is particularly relevant when vertical resolutions
                 # are used.
                 hdist = np.linalg.norm(dist)
-                hor_los = hdist < conf.rpz
+                hor_los = hdist < rpz
 
                 # Bouncing conflicts:
                 # If two aircraft are getting in and out of conflict continously,
@@ -144,7 +145,7 @@ class ConflictResolution(Entity, replaceable=True):
                 # the bouncing stops.
                 is_bouncing = \
                     abs(ownship.trk[idx1] - intruder.trk[idx2]) < 30.0 and \
-                    hdist < conf.rpz * self.resofach
+                    hdist < rpz * self.resofach
 
             # Start recovery for ownship if intruder is deleted, or if past CPA
             # and not in horizontal LOS or a bouncing conflict
@@ -229,10 +230,10 @@ class ConflictResolution(Entity, replaceable=True):
         ''' Set resolution factor vertical (to maneuver only a fraction of a resolution vector). '''
         if factor is None:
             return True, f'RFACV [FACTOR]\nCurrent vertical resolution factor is: {self.resofacv}'
-        else:
-            self.resofacv = factor
-            self.resodhrelative = True  # Size of resolution zone dh, vertically, set relative to CD zone
-            return True, f'Vertical resolution factor set to {self.resofacv}'
+        self.resofacv = factor
+        # Size of resolution zone dh, vertically, set relative to CD zone
+        self.resodhrelative = True
+        return True, f'Vertical resolution factor set to {self.resofacv}'
 
     @command(name='RSZONER', aliases=('RESOZONER',))
     def setresozoner(self, zoner : float = None):
@@ -241,13 +242,14 @@ class ConflictResolution(Entity, replaceable=True):
         '''
         if not bs.traf.cd.global_rpz:
             self.resorrelative = True
-            return False, f'RSZONER [radiusnm]\nCan only set resolution factor when simulation contains aircraft with different RPZ,\nUse RFACH instead.'
+            return False, 'RSZONER [radiusnm]\nCan only set resolution factor when simulation contains aircraft with different RPZ,\nUse RFACH instead.'
         if zoner is None:
             return True, f'RSZONER [radiusnm]\nCurrent horizontal resolution factor is: {self.resofach}, resulting in radius: {self.resofach*bs.traf.cd.rpz_def/nm} nm'
-        else:
-            self.resofach = zoner / bs.traf.cd.rpz_def * nm
-            self.resorrelative = False  # Size of resolution zone r, vertically, no longer relative to CD zone
-            return True, f'Horizontal resolution factor updated to {self.resofach}, resulting in radius: {zoner} nm'
+
+        self.resofach = zoner / bs.traf.cd.rpz_def * nm
+        # Size of resolution zone r, vertically, no longer relative to CD zone
+        self.resorrelative = False
+        return True, f'Horizontal resolution factor updated to {self.resofach}, resulting in radius: {zoner} nm'
 
     @command(name='RSZONEDH', aliases=('RESOZONEDH',))
     def setresozonedh(self, zonedh : float = None):
@@ -257,13 +259,14 @@ class ConflictResolution(Entity, replaceable=True):
         '''
         if not bs.traf.cd.global_hpz:
             self.resodhrelative = True
-            return False, f'RSZONEH [zonedhft]\nCan only set resolution factor when simulation contains aircraft with different HPZ,\nUse RFACV instead.'
+            return False, 'RSZONEH [zonedhft]\nCan only set resolution factor when simulation contains aircraft with different HPZ,\nUse RFACV instead.'
         if zonedh is None:
             return True, f'RSZONEDH [zonedhft]\nCurrent vertical resolution factor is: {self.resofacv}, resulting in height: {self.resofacv*bs.traf.cd.hpz_def/ft} ft'
-        else:
-            self.resofacv = zonedh / bs.traf.cd.hpz_def * ft
-            self.resodhrelative = False  # Size of resolution zone dh, vertically, no longer relative to CD zone
-            return True, f'Vertical resolution factor updated to {self.resofacv}, resulting in height: {zonedh} ft'
+
+        self.resofacv = zonedh / bs.traf.cd.hpz_def * ft
+        # Size of resolution zone dh, vertically, no longer relative to CD zone
+        self.resodhrelative = False
+        return True, f'Vertical resolution factor updated to {self.resofacv}, resulting in height: {zonedh} ft'
 
     @staticmethod
     @command(name='RESO')
