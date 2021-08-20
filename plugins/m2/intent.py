@@ -48,7 +48,7 @@ class intent(core.Entity):
 
     # Functions that need to be called periodically can be indicated to BlueSky
     # with the timed_function decorator
-    @core.timed_function(name='example', dt=settings.asas_dt)
+    @core.timed_function(name='example', dt=settings.asas_dt, hook='preupdate')
     def update(self):
         
         # calculate intent if the switch is on
@@ -95,7 +95,8 @@ class intent(core.Entity):
             # First point in intent line is the position of the aircraft itself
             linecoords = [(ac_lon, ac_lat)]
             # Target distance
-            distance_max = ac_tas * settings.asas_dtlookahead
+            distance_max = ac_tas * traf.cd.dtlookahead[idx]
+            
             
             while True:
                 # Stop if there are no waypoints, just create a line with current position and projected
