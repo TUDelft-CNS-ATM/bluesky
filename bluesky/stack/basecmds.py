@@ -62,12 +62,6 @@ def initbasecmds():
             bs.traf.airwaycmd,
             "Get info on airway or connections of a waypoint",
         ],
-        "ALT": [
-            "ALT acid, alt, [vspd]",
-            "acid,alt,[vspd]",
-            bs.traf.ap.selaltcmd,
-            "Altitude command (autopilot)",
-        ],
         "ATALT": [
             "acid ATALT alt cmd ",
             "acid,alt,string",
@@ -175,12 +169,7 @@ def initbasecmds():
             else bs.traf.delete(a),
             "Delete command (aircraft, wind, area)",
         ],
-        "DEST": [
-            "DEST acid, latlon/airport",
-            "acid,wpt",
-            lambda idx, *args: bs.traf.ap.setdestorig("DEST", idx, *args),
-            "Set destination of aircraft, aircraft wil fly to this airport",
-        ],
+
         "DIST": [
             "DIST lat0, lon0, lat1, lon1",
             "latlon,latlon",
@@ -244,12 +233,6 @@ def initbasecmds():
             + "Returns list of aircraft in group when only a groupname is passed.\n"
             + "A group is created when a group with the given name doesn't exist yet.",
         ],
-        "HDG": [
-            "HDG acid,hdg (deg,True or Magnetic)",
-            "acid,hdg",
-            bs.traf.ap.selhdgcmd,
-            "Heading command (autopilot)",
-        ],
         "HOLD": ["HOLD", "", bs.sim.hold, "Pause(hold) simulation"],
         "IMPLEMENTATION": [
             "IMPLEMENTATION [base, implementation]",
@@ -274,12 +257,6 @@ def initbasecmds():
             "txt,latlon,latlon",
             lambda name, *coords: areafilter.defineArea(name, "LINE", coords),
             "Draw a line on the radar screen",
-        ],
-        "LNAV": [
-            "LNAV acid,[ON/OFF]",
-            "acid,[onoff]",
-            bs.traf.ap.setLNAV,
-            "LNAV (lateral FMS mode) switch for autopilot",
         ],
         "LSVAR": [
             "LSVAR path.to.variable",
@@ -322,12 +299,6 @@ def initbasecmds():
             "",
             bs.sim.op,
             "Start/Run simulation or continue after hold"
-        ],
-        "ORIG": [
-            "ORIG acid, latlon/airport",
-            "acid,wpt",
-            lambda *args: bs.traf.ap.setdestorig("ORIG", *args),
-            "Set origin airport of aircraft",
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
@@ -380,12 +351,6 @@ def initbasecmds():
             bs.sim.setseed,
             "Set seed for all functions using a randomizer (e.g.mcre,noise)",
         ],
-        "SPD": [
-            "SPD acid,spd (CAS-kts/Mach)",
-            "acid,float",
-            bs.traf.ap.selspdcmd,
-            "Speed command (autopilot)",
-        ],
         "SSD": [
             "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
             "txt,[...]",
@@ -422,18 +387,6 @@ def initbasecmds():
             "txt,acid,...",
             bs.traf.groups.ungroup,
             "Remove aircraft from a group",
-        ],
-        "VNAV": [
-            "VNAV acid,[ON/OFF]",
-            "acid,[onoff]",
-            bs.traf.ap.setVNAV,
-            "Switch on/off VNAV mode, the vertical FMS mode (autopilot)",
-        ],
-        "VS": [
-            "VS acid,vspd (ft/min)",
-            "acid,vspd",
-            bs.traf.ap.selvspdcmd,
-            "Vertical speed command (autopilot)",
         ],
         "WIND": [
             "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
@@ -477,7 +430,6 @@ def initbasecmds():
         "END": "QUIT",
         "EXIT": "QUIT",
         "FWD": "FF",
-        "HEADING": "HDG",
         "IMPL": "IMPLEMENTATION",
         "IMPLEMENT": "IMPLEMENTATION",
         "LINES": "POLYLINE",
@@ -494,10 +446,8 @@ def initbasecmds():
         "RUN": "OP",
         "RUNWAYS": "POS",
         "SAVE": "SAVEIC",
-        "SPEED": "SPD",
         "START": "OP",
         "TRAILS": "TRAIL",
-        "TURN": "HDG",
         "VAR": "MAGVAR"
     }
 

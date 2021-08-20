@@ -7,6 +7,7 @@ except ImportError:
     # In python <3.3 collections.abc doesn't exist
     from collections import Collection
 import bluesky as bs
+from bluesky import stack
 from bluesky.tools import geo
 from bluesky.tools.misc import degto180
 from bluesky.tools.position import txt2pos
@@ -18,6 +19,7 @@ bs.settings.set_variable_defaults(fms_dt=10.5)
 
 
 class Autopilot(Entity, replaceable=True):
+    ''' BlueSky Autopilot implementation. '''
     def __init__(self):
         super().__init__()
 
@@ -507,9 +509,11 @@ class Autopilot(Entity, replaceable=True):
         else:
             return False
 
-
-    def selaltcmd(self, idx, alt, vspd=None):
-        """ Select altitude command: ALT acid, alt, [vspd] """
+    @stack.command(name='ALT')
+    def selaltcmd(self, idx: 'acid', alt: 'alt', vspd: 'vspd'=None):
+        """ ALT acid, alt, [vspd] 
+        
+            Select autopilot altitude command."""
         bs.traf.selalt[idx]   = alt
         bs.traf.swvnav[idx]   = False
 
@@ -526,14 +530,20 @@ class Autopilot(Entity, replaceable=True):
 
             bs.traf.selvs[idx[oppositevs]] = 0.
 
-    def selvspdcmd(self, idx, vspd):
-        """ Vertical speed autopilot command: VS acid vspd """
+    @stack.command(name='VS')
+    def selvspdcmd(self, idx: 'acid', vspd:'vspd'):
+        """ VS acid,vspd (ft/min)
+
+            Vertical speed command (autopilot) """
         bs.traf.selvs[idx] = vspd #[fpm]
         # bs.traf.vs[idx] = vspd
         bs.traf.swvnav[idx] = False
 
-    def selhdgcmd(self, idx, hdg):  # HDG command
-        """ Select heading command: HDG acid, hdg """
+    @stack.command(name='HDG', aliases=("HEADING", "TURN"))
+    def selhdgcmd(self, idx: 'acid', hdg: 'hdg'):  # HDG command
+        """ HDG acid,hdg (deg,True or Magnetic)
+        
+            Autopilot select heading command. """
         if not isinstance(idx, Collection):
             idx = np.array([idx])
         if not isinstance(hdg, Collection):
@@ -559,8 +569,11 @@ class Autopilot(Entity, replaceable=True):
         # Everything went ok!
         return True
 
-    def selspdcmd(self, idx, casmach):  # SPD command
-        """ Select speed command: SPD acid, casmach (= CASkts/Mach) """
+    @stack.command(name='SPD', aliases=("SPEED",))
+    def selspdcmd(self, idx: 'acid', casmach: 'float'):  # SPD command
+        """ SPD acid, casmach (= CASkts/Mach) 
+        
+            Select autopilot speed. """
         # Depending on or position relative to crossover altitude,
         # we will maintain CAS or Mach when altitude changes
         # We will convert values when needed
@@ -570,85 +583,93 @@ class Autopilot(Entity, replaceable=True):
         bs.traf.swvnavspd[idx]   = False
         return True
 
-    def setdestorig(self, cmd, idx, *args):
-        if len(args) == 0:
-            if cmd == 'DEST':
-                return True, 'DEST ' + bs.traf.id[idx] + ': ' + self.dest[idx]
-            return True, 'ORIG ' + bs.traf.id[idx] + ': ' + self.orig[idx]
+    @stack.command(name='DEST')
+    def setdest(self, acidx: 'acid', wpname:'wpt' = None):
+        ''' DEST acid, latlon/airport
 
-        route = self.route[idx]
-        name = args[0]
-        apidx = bs.navdb.getaptidx(name)
-
+            Set destination of aircraft, aircraft wil fly to this airport. '''
+        if wpname is None:
+            return True, 'DEST ' + bs.traf.id[acidx] + ': ' + self.dest[acidx]
+        route = self.route[acidx]
+        apidx = bs.navdb.getaptidx(wpname)
         if apidx < 0:
-            if cmd =="DEST" and bs.traf.ap.route[idx].nwp>0:
-                reflat = bs.traf.ap.route[idx].wplat[-1]
-                reflon = bs.traf.ap.route[idx].wplon[-1]
+            if bs.traf.ap.route[acidx].nwp > 0:
+                reflat = bs.traf.ap.route[acidx].wplat[-1]
+                reflon = bs.traf.ap.route[acidx].wplon[-1]
             else:
-                reflat = bs.traf.lat[idx]
-                reflon = bs.traf.lon[idx]
+                reflat = bs.traf.lat[acidx]
+                reflon = bs.traf.lon[acidx]
 
-            success, posobj = txt2pos(name, reflat, reflon)
+            success, posobj = txt2pos(wpname, reflat, reflon)
             if success:
                 lat = posobj.lat
                 lon = posobj.lon
             else:
-                return False, (cmd + ": Position " + name + " not found.")
+                return False, "DEST: Position " + wpname + " not found."
 
         else:
             lat = bs.navdb.aptlat[apidx]
             lon = bs.navdb.aptlon[apidx]
 
+        self.dest[acidx] = wpname
+        iwp = route.addwpt(acidx, self.dest[acidx], route.dest,
+                           lat, lon, 0.0, bs.traf.cas[acidx])
+        # If only waypoint: activate
+        if (iwp == 0) or (self.orig[acidx] != "" and route.nwp == 2):
+            bs.traf.actwp.lat[acidx] = route.wplat[iwp]
+            bs.traf.actwp.lon[acidx] = route.wplon[iwp]
+            bs.traf.actwp.nextaltco[acidx] = route.wpalt[iwp]
+            bs.traf.actwp.spd[acidx] = route.wpspd[iwp]
 
-        if cmd == "DEST":
-            self.dest[idx] = name
-            iwp = route.addwpt(idx, self.dest[idx], route.dest,
-                               lat, lon, 0.0, bs.traf.cas[idx])
-            # If only waypoint: activate
-            if (iwp == 0) or (self.orig[idx] != "" and route.nwp == 2):
-                bs.traf.actwp.lat[idx]       = route.wplat[iwp]
-                bs.traf.actwp.lon[idx]       = route.wplon[iwp]
-                bs.traf.actwp.nextaltco[idx] = route.wpalt[iwp]
-                bs.traf.actwp.spd[idx]       = route.wpspd[iwp]
+            bs.traf.swlnav[acidx] = True
+            bs.traf.swvnav[acidx] = True
+            route.iactwp = iwp
+            route.direct(acidx, route.wpname[iwp])
 
-                bs.traf.swlnav[idx] = True
-                bs.traf.swvnav[idx] = True
-                route.iactwp = iwp
-                route.direct(idx, route.wpname[iwp])
+        # If not found, say so
+        elif iwp < 0:
+            return False, ('DEST'+self.dest[acidx] + " not found.")
 
-            # If not found, say so
-            elif iwp < 0:
-                return False, ('DEST'+self.dest[idx] + " not found.")
+    @stack.command(name='ORIG')
+    def setorig(self, acidx: 'acid', wpname: 'wpt' = None):
+        ''' ORIG acid, latlon/airport
+
+            Set origin of aircraft. '''
+        if wpname is None:
+            return True, 'ORIG ' + bs.traf.id[acidx] + ': ' + self.orig[acidx]
+        route = self.route[acidx]
+        apidx = bs.navdb.getaptidx(wpname)
+        if apidx < 0:
+            if bs.traf.ap.route[acidx].nwp > 0:
+                reflat = bs.traf.ap.route[acidx].wplat[-1]
+                reflon = bs.traf.ap.route[acidx].wplon[-1]
+            else:
+                reflat = bs.traf.lat[acidx]
+                reflon = bs.traf.lon[acidx]
+
+            success, posobj = txt2pos(wpname, reflat, reflon)
+            if success:
+                lat = posobj.lat
+                lon = posobj.lon
+            else:
+                return False, (cmd + ": Position " + wpname + " not found.")
+
+        else:
+            lat = bs.navdb.aptlat[apidx]
+            lon = bs.navdb.aptlon[apidx]
 
         # Origin: bookkeeping only for now, store in route as origin
-        else:
-            self.orig[idx] = name
-            apidx = bs.navdb.getaptidx(name)
+        self.orig[acidx] = wpname
+        iwp = route.addwpt(acidx, self.orig[acidx], route.orig,
+                           lat, lon, 0.0, bs.traf.cas[acidx])
+        if iwp < 0:
+            return False, (self.orig[acidx] + " not found.")
 
-            if apidx < 0:
-
-                if cmd =="ORIG" and bs.traf.ap.route[idx].nwp>0:
-                    reflat = bs.traf.ap.route[idx].wplat[0]
-                    reflon = bs.traf.ap.route[idx].wplon[0]
-                else:
-                    reflat = bs.traf.lat[idx]
-                    reflon = bs.traf.lon[idx]
-
-                success, posobj = txt2pos(name, reflat, reflon)
-                if success:
-                    lat = posobj.lat
-                    lon = posobj.lon
-                else:
-                    return False, (cmd + ": Orig " + name + " not found.")
-
-
-            iwp = route.addwpt(idx, self.orig[idx], route.orig,
-                               lat, lon, 0.0, bs.traf.cas[idx])
-            if iwp < 0:
-                return False, (self.orig[idx] + " not found.")
-
-    def setLNAV(self, idx, flag=None):
-        """ Set LNAV on or off for specific or for all aircraft """
+    @stack.command(name='LNAV')
+    def setLNAV(self, idx: 'acid', flag: bool=None):
+        """ LNAV acid,[ON/OFF]
+        
+            LNAV (lateral FMS mode) switch for autopilot """
         if not isinstance(idx, Collection):
             if idx is None:
                 # All aircraft are targeted
@@ -672,18 +693,21 @@ class Autopilot(Entity, replaceable=True):
                    route.direct(i, route.wpname[route.findact(i)])
             else:
                 bs.traf.swlnav[i] = False
-        if flag == None:
+        if flag is None:
             return True, '\n'.join(output)
 
-    def setVNAV(self, idx, flag=None):
-        """ Set VNAV on or off for specific or for all aircraft """
+    @stack.command(name='VNAV')
+    def setVNAV(self, idx: 'acid', flag:bool=None):
+        """ VNAV acid,[ON/OFF]
+        
+            Switch on/off VNAV mode, the vertical FMS mode (autopilot) """
         if not isinstance(idx, Collection):
             if idx is None:
                 # All aircraft are targeted
                 bs.traf.swvnav    = np.array(bs.traf.ntraf * [flag])
                 bs.traf.swvnavspd = np.array(bs.traf.ntraf * [flag])
             else:
-                # Prepare for the loop                
+                # Prepare for the loop
                 idx = np.array([idx])
 
         # Set VNAV for all aircraft in idx array
