@@ -58,7 +58,7 @@ class flightphase(core.Entity):
         self.vslimit = 10*tools.aero.fpm
         
         # set the ground speed limit [m/s]
-        self.gslimit = 1*tools.aero.kts
+        self.gslimit = 0.5*tools.aero.kts
         
 
     def create(self, n=1):
@@ -88,9 +88,9 @@ class flightphase(core.Entity):
         traf.resoVsActive = self.resoVsActive
         
 
-    @core.timed_function(name='flightphase', dt=settings.asas_dt)
+    @core.timed_function(name='flightphase', dt=settings.asas_dt, hook='preupdate')
     def update(self):
-        ''' Periodically updates the flight phase of all aircraft '''
+        ''' Periodically updates the flight phase of all aircraft and their CD look-ahead times '''
         
         # Define the climb and descend conditions. Anything that is not climb or descend is cruise/hover
         # At the moment, it is assumed that cruise / hover are the same in terms of selecting resolutions
@@ -102,6 +102,19 @@ class flightphase(core.Entity):
         
         # set the flightphase into the traffic object so that it can be used in other plugins
         traf.flightphase = self.flightphase
+        
+        # ------- Adapt the lookahead time for climbing and descending aircraft -------
+        
+        # Get the max and min vertical speed of ownship 
+        vsMinOwn = traf.perf.vsmin
+        vsMaxOwn = traf.perf.vsmax
+        
+        # climbing/descending aircraft should only look up/down one layer at a time
+        dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)
+        dtlookdown = np.abs(traf.layerHeight/vsMinOwn)
+        
+        # update CD lookahead based on flight phase
+        traf.cd.dtlookahead = np.where(climbCondition, dtlookup, np.where(descendCondition, dtlookdown, settings.asas_dt))
         
         
     @stack.command
