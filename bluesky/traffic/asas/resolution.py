@@ -12,10 +12,6 @@ bs.settings.set_variable_defaults(asas_marh=1.01, asas_marv=1.01)
 
 class ConflictResolution(Entity, replaceable=True):
     ''' Base class for Conflict Resolution implementations. '''
-    # ConflictResolution on/off switch. Set to True whenever another
-    # implementation than the base implementation (ConflictResolution) is selected.
-    do_cr = False
-
     def __init__(self):
         super().__init__()
         # [-] switch to activate priority rules for conflict resolution
@@ -93,7 +89,8 @@ class ConflictResolution(Entity, replaceable=True):
 
     def update(self, conf, ownship, intruder):
         ''' Perform an update step of the Conflict Resolution implementation. '''
-        if ConflictResolution.do_cr:
+        if ConflictResolution.selected() is not ConflictResolution:
+            # Only perform CR when an actual method is selected
             if conf.confpairs:
                 self.trk, self.tas, self.vs, self.alt = self.resolve(conf, ownship, intruder)
             self.resumenav(conf, ownship, intruder)
@@ -283,7 +280,6 @@ class ConflictResolution(Entity, replaceable=True):
                          f'\nAvailable CR methods: {", ".join(names)}'
         # Check if the requested method exists
         if name == 'OFF':
-            ConflictResolution.do_cr = False
             ConflictResolution.select()
             return True, 'Conflict Resolution turned off.'
         method = methods.get(name, None)
@@ -293,5 +289,4 @@ class ConflictResolution(Entity, replaceable=True):
 
         # Select the requested method
         method.select()
-        ConflictResolution.do_cr = True
         return True, f'Selected {method.__name__} as CR method.'
