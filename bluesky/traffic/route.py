@@ -1,5 +1,6 @@
 """ Route implementation for the BlueSky FMS."""
 from os import path
+from weakref import WeakValueDictionary
 from numpy import *
 import bluesky as bs
 from bluesky.tools import geo
@@ -33,7 +34,12 @@ class Route(Replaceable):
     calcwp   = 4   # Calculated waypoint (T/C, T/D, A/C)
     runway   = 5   # Runway: Copy name and positions
 
+    # Aircraft route objects
+    _routes = WeakValueDictionary()
+
     def __init__(self, acid):
+        # Add self to dictionary of all aircraft routes
+        Route._routes[acid] = self
         # Aircraft id (callsign) of the aircraft to which this route belongs
         self.acid = acid
         self.nwp = 0
@@ -97,10 +103,27 @@ class Route(Replaceable):
             appi += 1
             name_ = name_[:-len_]+fmt_.format(appi)
         return name_
-
-    def addwptStack(self, idx, *args):  # args: all arguments of addwpt
+    # "ADDWPT": [
+    #         "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
+    #         "acid,wpt,[alt,spd,wpinroute,wpinroute]",
+    #         #
+    #         # lambda *arg: short-hand for using function output as argument, equivalent with:
+    #         #
+    #         # def fun(idx, args):
+    #         #     return bs.traf.ap.route[idx].addwptStack(idx, *args)
+    #         # fun(idx,*args)
+    #         #
+    #         lambda idx, *args: bs.traf.ap.route[idx].addwptStack(idx, *args),
+    #         "Add a waypoint to route of aircraft (FMS)",
+    #     ],
+    @stack.command(name='ADDWPT', annotations='acid,wpt,[alt,spd,wpinroute,wpinroute]', aliases=("WPTYPE",))
+    @staticmethod
+    def addwptStack(acidx, *args):  # args: all arguments of addwpt
         """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp],[beforewp]"""
-
+        # First get the appropriate ac route
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        
         #debug print ("addwptStack:",args)
         #print("active = ",self.wpname[self.iactwp])
         #print(args)
@@ -110,20 +133,18 @@ class Route(Replaceable):
             swwpmode = args[0].replace('-', '')
 
             if swwpmode == "FLYBY":
-                self.swflyby   = True
-                self.swflyturn = False
+                acrte.swflyby   = True
+                acrte.swflyturn = False
                 return True
 
             elif swwpmode == "FLYOVER":
-
-                self.swflyby   = False
-                self.swflyturn = False
+                acrte.swflyby   = False
+                acrte.swflyturn = False
                 return True
 
             elif swwpmode == "FLYTURN":
-
-                self.swflyby   = False
-                self.swflyturn = True
+                acrte.swflyby   = False
+                acrte.swflyturn = True
                 return True
 
         elif len(args) == 2:
@@ -133,7 +154,7 @@ class Route(Replaceable):
             if swwpmode == "TURNRAD" or swwpmode == "TURNRADIUS":
 
                 try:
-                    self.turnrad = float(args[1])/ft # arg was originally parsed as wpalt
+                    acrte.turnrad = float(args[1])/ft # arg was originally parsed as wpalt
                 except:
                     return False,"Error in processing value of turn radius"
                 return True
@@ -141,7 +162,7 @@ class Route(Replaceable):
             elif swwpmode == "TURNSPD" or swwpmode == "TURNSPEED":
 
                 try:
-                    self.turnspd = args[1]*kts/ft # [m/s] Arg was wpalt Keep it as IAS/CAS orig in kts, now in m/s
+                    acrte.turnspd = args[1]*kts/ft # [m/s] Arg was wpalt Keep it as IAS/CAS orig in kts, now in m/s
                 except:
                     return False, "Error in processing value of turn speed"
 
@@ -152,18 +173,18 @@ class Route(Replaceable):
 
         # Choose reference position ot look up VOR and waypoints
         # First waypoint: own position
-        if self.nwp == 0:
-            reflat = bs.traf.lat[idx]
-            reflon = bs.traf.lon[idx]
+        if acrte.nwp == 0:
+            reflat = bs.traf.lat[acidx]
+            reflon = bs.traf.lon[acidx]
 
         # Or last waypoint before destination
         else:
-            if self.wptype[-1] != Route.dest or self.nwp == 1:
-                reflat = self.wplat[-1]
-                reflon = self.wplon[-1]
+            if acrte.wptype[-1] != Route.dest or acrte.nwp == 1:
+                reflat = acrte.wplat[-1]
+                reflon = acrte.wplon[-1]
             else:
-                reflat = self.wplat[-2]
-                reflon = self.wplon[-2]
+                reflat = acrte.wplat[-2]
+                reflon = acrte.wplon[-2]
 
         # Default altitude, speed and afterwp
         alt     = -999.
@@ -190,7 +211,7 @@ class Route(Replaceable):
                     wptype  = Route.runway
 
                 else:  # treat as lat/lon
-                    name    = bs.traf.id[idx]
+                    name    = acid
                     wptype  = Route.wplatlon
 
                 if len(args) > 1 and args[1]:
@@ -214,8 +235,8 @@ class Route(Replaceable):
             # Look up runway in route
             rwyrteidx = -1
             i      = 0
-            while i<self.nwp and rwyrteidx<0:
-                if self.wpname[i].count("/") >0:
+            while i<acrte.nwp and rwyrteidx<0:
+                if acrte.wpname[i].count("/") >0:
 #                   print (self.wpname[i])
                     rwyrteidx = i
                 i += 1
@@ -227,19 +248,19 @@ class Route(Replaceable):
                 # print ("rwyrteidx =",rwyrteidx)
                 # We find a runway in the route, so use it
                 if rwyrteidx>0:
-                    rwylat   = self.wplat[rwyrteidx]
-                    rwylon   = self.wplon[rwyrteidx]
+                    rwylat   = acrte.wplat[rwyrteidx]
+                    rwylon   = acrte.wplon[rwyrteidx]
                     aptidx  = bs.navdb.getapinear(rwylat,rwylon)
                     aptname = bs.navdb.aptname[aptidx]
 
-                    rwyname = self.wpname[rwyrteidx].split("/")[1]
+                    rwyname = acrte.wpname[rwyrteidx].split("/")[1]
                     rwyid = rwyname.replace("RWY","").replace("RW","")
                     rwyhdg = bs.navdb.rwythresholds[aptname][rwyid][2]
 
                 else:
-                    rwylat  = bs.traf.lat[idx]
-                    rwylon  = bs.traf.lon[idx]
-                    rwyhdg = bs.traf.trk[idx]
+                    rwylat  = bs.traf.lat[acidx]
+                    rwylon  = bs.traf.lon[acidx]
+                    rwyhdg = bs.traf.trk[acidx]
 
             elif args[1].count("/") > 0 or len(args) > 2 and args[2]: # we need apt,rwy
                 # Take care of both EHAM/RW06 as well as EHAM,RWY18L (so /&, and RW/RWY)
@@ -267,8 +288,8 @@ class Route(Replaceable):
                 if success:
                     rwylat,rwylon = posobj.lat,posobj.lon
                 else:
-                    rwylat = bs.traf.lat[idx]
-                    rwylon = bs.traf.lon[idx]
+                    rwylat = bs.traf.lat[acidx]
+                    rwylon = bs.traf.lon[acidx]
 
             else:
                 return False,"Use ADDWPT TAKEOFF,AIRPORTID,RWYNAME"
@@ -280,258 +301,256 @@ class Route(Replaceable):
 
             # Add after the runwy in the route
             if rwyrteidx > 0:
-                afterwp = self.wpname[rwyrteidx]
+                afterwp = acrte.wpname[rwyrteidx]
 
-            elif self.wptype and self.wptype[0] == Route.orig:
-                afterwp = self.wpname[0]
+            elif acrte.wptype and acrte.wptype[0] == Route.orig:
+                afterwp = acrte.wpname[0]
 
             else:
                 # Assume we're called before other waypoints are added
                 afterwp = ""
 
-            name = "T/O-" + bs.traf.id[idx] # Use lat/lon naming convention
+            name = "T/O-" + acid # Use lat/lon naming convention
         # Add waypoint
-        wpidx = self.addwpt(idx, name, wptype, lat, lon, alt, spd, afterwp, beforewp)
+        wpidx = acrte.addwpt(acidx, name, wptype, lat, lon, alt, spd, afterwp, beforewp)
 
         # Recalculate flight plan
-        self.calcfp()
+        acrte.calcfp()
 
         # Check for success by checking inserted location in flight plan >= 0
         if wpidx < 0:
             return False, "Waypoint " + name + " not added."
 
         # check for presence of orig/dest
-        norig = int(bs.traf.ap.orig[idx] != "") # 1 if orig is present in route
-        ndest = int(bs.traf.ap.dest[idx] != "") # 1 if dest is present in route
+        norig = int(bs.traf.ap.orig[acidx] != "") # 1 if orig is present in route
+        ndest = int(bs.traf.ap.dest[acidx] != "") # 1 if dest is present in route
 
         # Check whether this is first 'real' waypoint (not orig & dest),
         # And if so, make active
-        if self.nwp - norig - ndest == 1:  # first waypoint: make active
-            self.direct(idx, self.wpname[norig])  # 0 if no orig
+        if acrte.nwp - norig - ndest == 1:  # first waypoint: make active
+            acrte.direct(acidx, acrte.wpname[norig])  # 0 if no orig
             #print("direct ",self.wpname[norig])
-            bs.traf.swlnav[idx] = True
+            bs.traf.swlnav[acidx] = True
 
-        if afterwp and self.wpname.count(afterwp) == 0:
-            return True, "Waypoint " + afterwp + " not found" + \
+        if afterwp and acrte.wpname.count(afterwp) == 0:
+            print(afterwp, acrte.wpname)
+            return True, "Waypoint " + afterwp + " not found\n" + \
                 "waypoint added at end of route"
         else:
             return True
 
+    #     "BEFORE": [
+    #     "acid BEFORE beforewp ADDWPT (wpname/lat,lon),[alt,spd]",
+    #     "acid,wpinroute,txt,wpt,[alt,spd]",
+    #     lambda idx, * \
+    #     args: bs.traf.ap.route[idx].beforeaddwptStack(idx, *args),
+    #     "",
+    # ],
+    @stack.command
+    @staticmethod
+    def before(acidx : 'acid', beforewp: 'wpinroute', addwpt, waypoint, alt: 'alt' = None, spd: 'spd' = None):
+        ''' BEFORE acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]
 
-    def afteraddwptStack(self, idx, *args):  # args: all arguments of addwpt
+            Before waypoint, add a waypoint to route of aircraft (FMS).
+        '''
+        return Route.addwptStack(acidx, waypoint, alt, spd, None, beforewp)
 
-        # AFTER acid, wpinroute ADDWPT (wpname/lat,lon),[alt],[spd]"
-        if len(args) < 3:
-            return False, "AFTER needs more arguments"
+    @stack.command
+    @staticmethod
+    def after(acidx: 'acid', afterwp: 'wpinroute', addwpt, waypoint, alt:'alt' = None, spd: 'spd' = None):
+        ''' AFTER acid, wpinroute ADDWPT (wpname/lat,lon),[alt],[spd]
 
-        # Change order of arguments
-        arglst = [args[2], None, None, args[0]]  # postxt,,,afterwp
+            After waypoint, add a waypoint to route of aircraft (FMS).
+        '''
+        return Route.addwptStack(acidx, waypoint, alt, spd, afterwp)
 
-
-        # Add alt when given
-        if len(args) > 3:
-            arglst[1] = args[3]  # alt
-
-        # Add speed when given
-        if len(args) > 4:
-            arglst[2] = args[4]  # spd
-
-        result = self.addwptStack(idx, *arglst)  # args: all arguments of addwpt
-
-        return result
-
-    def atwptStack(self, idx, *args):  # args: all arguments of addwpt
-        #print("args=",args)
-
-        # AT acid, wpinroute [DEL] ALT/SPD spd/alt"
+    @stack.command
+    @staticmethod
+    def at(acidx: 'acid', atwp : 'wpinroute', *args):
+        ''' AT acid, wpinroute [DEL] ALT/SPD/DO alt/spd/stack command'''
         # args = wpname,SPD/ALT, spd/alt(string)
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        if atwp in acrte.wpname:
+            wpidx = acrte.wpname.index(atwp)
 
-        if len(args) < 1:
-            return False, "AT needs at least an aicraft id and a waypoint name"
+            if not args or \
+                    (len(args) == 1 and not args[0].count("/") == 1):
+                # Only show Altitude and/or speed set in route at this waypoint:
+                #    KL204 AT LOPIK => acid AT wpinroute: show alt & spd constraints at this waypoint
+                #    KL204 AT LOPIK SPD => acid AT wpinroute SPD: show spd constraint at this waypoint
+                #    KL204 AT LOPIK ALT => acid AT wpinroute ALT: show alt constraint at this waypoint
+                txt = atwp + " : "
 
-        else:
-            name = args[0]
-            if name in self.wpname:
-                wpidx = self.wpname.index(name)
+                # Select what to show
+                if len(args) == 0:
+                    swalt = True
+                    swspd = True
+                    swat  = True
+                else:
+                    swalt = args[0].upper() == "ALT"
+                    swspd = args[0].upper() in ("SPD","SPEED")
+                    swat  = args[0].upper() in ("DO", "STACK")
 
-                if len(args) == 1 or \
-                        (len(args) == 2 and not args[1].count("/") == 1):
-                    # Only show Altitude and/or speed set in route at this waypoint:
-                    #    KL204 AT LOPIK => acid AT wpinroute: show alt & spd constraints at this waypoint
-                    #    KL204 AT LOPIK SPD => acid AT wpinroute SPD: show spd constraint at this waypoint
-                    #    KL204 AT LOPIK ALT => acid AT wpinroute ALT: show alt constraint at this waypoint
-
-                    txt = name + " : "
-
-                    # Select what to show
-                    if len(args)==1:
+                    # To be safe show both when we do not know what
+                    if not (swalt or swspd or swat):
                         swalt = True
                         swspd = True
                         swat  = True
+
+                # Show altitude
+                if swalt:
+                    if acrte.wpalt[wpidx] < 0:
+                        txt += "-----"
+
+                    elif acrte.wpalt[wpidx] > 4500 * ft:
+                        fl = int(round((acrte.wpalt[wpidx] / (100. * ft))))
+                        txt += "FL" + str(fl)
+
                     else:
-                        swalt = args[1].upper()=="ALT"
-                        swspd = args[1].upper() in ("SPD","SPEED")
-                        swat  = args[1].upper() in ("DO", "STACK")
+                        txt += str(int(round(acrte.wpalt[wpidx] / ft)))
 
-                        # To be safe show both when we do not know what
-                        if not (swalt or swspd or swat):
-                            swalt = True
-                            swspd = True
-                            swat  = True
-
-                    # Show altitude
-                    if swalt:
-                        if self.wpalt[wpidx] < 0:
-                            txt += "-----"
-
-                        elif self.wpalt[wpidx] > 4500 * ft:
-                            fl = int(round((self.wpalt[wpidx] / (100. * ft))))
-                            txt += "FL" + str(fl)
-
-                        else:
-                            txt += str(int(round(self.wpalt[wpidx] / ft)))
-
-                        if swspd:
-                            txt += "/"
-
-                    # Show speed
                     if swspd:
-                        if self.wpspd[wpidx] < 0:
-                            txt += "---"
-                        else:
-                            txt += str(int(round(self.wpspd[wpidx] / kts)))
+                        txt += "/"
 
-                    # Type
-                    if swalt and swspd:
-                        if self.wptype[wpidx] == Route.orig:
-                            txt += "[orig]"
-                        elif self.wptype[wpidx] == Route.dest:
-                            txt += "[dest]"
-
-                    # Show also stacked commands for when passing this waypoint
-                    if swat:
-                        if len(self.wpstack[wpidx])>0:
-                            txt = txt+"\nStack:\n"
-                            for stackedtxt in self.wpstack[wpidx]:
-                                txt = txt + stackedtxt + "\n"
-
-
-                    return True, txt
-
-                elif args[1].count("/")==1:
-                    # Set both alt & speed at this waypoint
-                    #     KL204 AT LOPIK FL090/250  => acid AT wpinroute alt/spd
-                    success = True
-
-                    # Use parse from stack.py to interpret alt & speed
-                    alttxt, spdtxt = args[1].split('/')
-
-                    # Edit waypoint altitude constraint
-                    if alttxt.count('-') > 1: # "----" = delete
-                        self.wpalt[wpidx]  = -999.
+                # Show speed
+                if swspd:
+                    if acrte.wpspd[wpidx] < 0:
+                        txt += "---"
                     else:
-                        try:
-                            self.wpalt[wpidx] = txt2alt(alttxt)
-                        except ValueError as e:
-                            success = False
+                        txt += str(int(round(acrte.wpspd[wpidx] / kts)))
 
-                    # Edit waypoint speed constraint
-                    if spdtxt.count('-') > 1: # "----" = delete
-                        self.wpspd[wpidx]  = -999.
+                # Type
+                if swalt and swspd:
+                    if acrte.wptype[wpidx] == Route.orig:
+                        txt += "[orig]"
+                    elif acrte.wptype[wpidx] == Route.dest:
+                        txt += "[dest]"
+
+                # Show also stacked commands for when passing this waypoint
+                if swat:
+                    if len(acrte.wpstack[wpidx])>0:
+                        txt = txt+"\nStack:\n"
+                        for stackedtxt in acrte.wpstack[wpidx]:
+                            txt = txt + stackedtxt + "\n"
+
+
+                return True, txt
+
+            elif args[0].count("/")==1:
+                # Set both alt & speed at this waypoint
+                #     KL204 AT LOPIK FL090/250  => acid AT wpinroute alt/spd
+                success = True
+
+                # Use parse from stack.py to interpret alt & speed
+                alttxt, spdtxt = args[0].split('/')
+
+                # Edit waypoint altitude constraint
+                if alttxt.count('-') > 1: # "----" = delete
+                    acrte.wpalt[wpidx]  = -999.
+                else:
+                    try:
+                        acrte.wpalt[wpidx] = txt2alt(alttxt)
+                    except ValueError as e:
+                        success = False
+
+                # Edit waypoint speed constraint
+                if spdtxt.count('-') > 1: # "----" = delete
+                    acrte.wpspd[wpidx]  = -999.
+                else:
+                    try:
+                        acrte.wpalt[wpidx] = txt2spd(spdtxt)
+                    except ValueError as e:
+                        success = False
+
+                if not success:
+                    return False,"Could not parse "+args[0]+" as alt / spd"
+
+                # If success: update flight plan and guidance
+                acrte.calcfp()
+                acrte.direct(acidx, acrte.wpname[acrte.iactwp])
+
+            #acid AT wpinroute ALT/SPD alt/spd
+            elif len(args)>=2:
+                # KL204 AT LOPIK ALT FL090 => set altitude to be reached at this waypoint in route
+                # KL204 AT LOPIK SPD 250 => Set speed at twhich is set at this waypoint
+                # KL204 AT LOPIK DO PAN LOPIK => When passing stack command after DO
+                # KL204 AT LOPIK STACK PAN LOPIK => AT...STACK synonym for AT...DO
+                # KL204 AT LOPIK DO ALT FL240 => => stack "KL204 ALT FL240" => use acid from beginning if omitted as first argument
+
+                swalt = args[0].upper()=="ALT"
+                swspd = args[0].upper() in ("SPD","SPEED")
+                swat  = args[0].upper() in ("DO","STACK")
+
+                # Use parse from stack.py to interpret alt & speed
+
+                # Edit waypoint altitude constraint
+                if swalt:
+                    try:
+                        acrte.wpalt[wpidx] = txt2alt(args[1])
+                    except ValueError as e:
+                        return False, e.args[0]
+
+                # Edit waypoint speed constraint
+                elif swspd:
+                    try:
+                        acrte.wpspd[wpidx] = txt2spd(args[1])
+                    except ValueError as e:
+                        return False, e.args[0]
+
+                # add stack command: args[1] is DO or STACK, args[2:] contains a command
+                elif swat:
+                    # Check if first argument is missing aircraft id, if so, use this acid
+
+                    # IF command starts with aircraft id, it is not missing
+                    cmd = args[1].upper()
+                    if not(cmd in bs.traf.id):
+                        # Look up arg types
+                        try:
+                            cmdobj = Command.cmddict.get(cmd)
+
+                            # Command found, check arguments
+                            argtypes = cmdobj.annotations
+
+                            if argtypes[0]=="acid" and not (args[2].upper() in bs.traf.id):
+                                # missing acid, so add ownship acid
+                                acrte.wpstack[wpidx].append(acid+" "+" ".join(args[1:]))
+                            else:
+                                # This command does not need an acid or it is already first argument
+                                acrte.wpstack[wpidx].append(" ".join(args[1:]))
+                        except:
+                            return False, "Stacked command "+cmd+"unknown"
                     else:
-                        try:
-                            self.wpalt[wpidx] = txt2spd(spdtxt)
-                        except ValueError as e:
-                            success = False
+                        # Command line starts with an aircraft id at the beginning of the command line, stack it
+                        acrte.wpstack[wpidx].append(" ".join(args[1:]))
 
-                    if not success:
-                        return False,"Could not parse "+args[1]+" as alt / spd"
-
-                    # If success: update flight plan and guidance
-                    self.calcfp()
-                    self.direct(idx, self.wpname[self.iactwp])
-
-                #acid AT wpinroute ALT/SPD alt/spd
-                elif len(args)>=3:
-                    # KL204 AT LOPIK ALT FL090 => set altitude to be reached at this waypoint in route
-                    # KL204 AT LOPIK SPD 250 => Set speed at twhich is set at this waypoint
-                    # KL204 AT LOPIK DO PAN LOPIK => When passing stack command after DO
-                    # KL204 AT LOPIK STACK PAN LOPIK => AT...STACK synonym for AT...DO
-                    # KL204 AT LOPIK DO ALT FL240 => => stack "KL204 ALT FL240" => use acid from beginning if omitted as first argument
-
+                # Delete a constraint (or both) at this waypoint
+                elif args[0]=="DEL" or args[0]=="DELETE" or args[0]=="CLR" or args[0]=="CLEAR" :
                     swalt = args[1].upper()=="ALT"
                     swspd = args[1].upper() in ("SPD","SPEED")
-                    swat  = args[1].upper() in ("DO","STACK")
+                    swboth  = args[1].upper()=="BOTH"
+                    swall   = args[1].upper()=="ALL"
 
-                    # Use parse from stack.py to interpret alt & speed
+                    if swspd or swboth or swall:
+                        acrte.wpspd[wpidx]  = -999.
 
-                    # Edit waypoint altitude constraint
-                    if swalt:
-                        try:
-                            self.wpalt[wpidx] = txt2alt(args[2])
-                        except ValueError as e:
-                            return False, e.args[0]
+                    if swalt or swboth or swall:
+                        acrte.wpalt[wpidx]  = -999.
 
-                    # Edit waypoint speed constraint
-                    elif swspd:
-                        try:
-                            self.wpspd[wpidx] = txt2spd(args[2])
-                        except ValueError as e:
-                            return False, e.args[0]
+                    if swall:
+                        acrte.wpstack[wpidx]=[]
 
-                    # add stack command: args[1] is DO or STACK, args[2:] contains a command
-                    elif swat:
-                        # Check if first argument is missing aircraft id, if so, use this acid
-
-                        # IF command starts with aircraft id, it is not missing
-                        cmd = args[2].upper()
-                        if not(cmd in bs.traf.id):
-                            # Look up arg types
-                            try:
-                                cmdobj = Command.cmddict.get(cmd)
-
-                                # Command found, check arguments
-                                argtypes = cmdobj.annotations
-
-                                if argtypes[0]=="acid" and not (args[3].upper() in bs.traf.id):
-                                    # missing acid, so add ownship acid
-                                    self.wpstack[wpidx].append(self.acid+" "+" ".join(args[2:]))
-                                else:
-                                    # This command does not need an acid or it is already first argument
-                                    self.wpstack[wpidx].append(" ".join(args[2:]))
-                            except:
-                                return False, "Stacked command "+cmd+"unknown"
-                        else:
-                            # Command line starts with an aircraft id at the beginning of the command line, stack it
-                            self.wpstack[wpidx].append(" ".join(args[2:]))
-
-                    # Delete a constraint (or both) at this waypoint
-                    elif args[1]=="DEL" or args[1]=="DELETE" or args[1]=="CLR" or args[1]=="CLEAR" :
-                        swalt = args[2].upper()=="ALT"
-                        swspd = args[2].upper() in ("SPD","SPEED")
-                        swboth  = args[2].upper()=="BOTH"
-                        swall   = args[2].upper()=="ALL"
-
-                        if swspd or swboth or swall:
-                            self.wpspd[wpidx]  = -999.
-
-                        if swalt or swboth or swall:
-                            self.wpalt[wpidx]  = -999.
-
-                        if swall:
-                            self.wpstack[wpidx]=[]
-
-                    else:
-                        return False,"No "+args[1]+" at ",name
+                else:
+                    return False,"No "+args[0]+" at ",atwp
 
 
-                    # If success: update flight plan and guidance
-                    self.calcfp()
-                    self.direct(idx, self.wpname[self.iactwp])
+                # If success: update flight plan and guidance
+                acrte.calcfp()
+                acrte.direct(acidx, acrte.wpname[acrte.iactwp])
 
-            # Waypoint not found in route
-            else:
-                return False, name + " not found in route " + bs.traf.id[idx]
+        # Waypoint not found in route
+        else:
+            return False, atwp + " not found in route " + acid
 
         return True
 
@@ -729,155 +748,147 @@ class Route(Replaceable):
 
         return idx
 
-    def beforeaddwptStack(self, idx, *args):  # args: all arguments of addwpt
-        # BEFORE acid, wpinroute ADDWPT acid, (wpname/lat,lon),[alt],[spd]"
-        if len(args) < 3:
-            return False, "BEFORE needs more arguments"
 
-        # Change order of arguments
-        arglst = [args[2], None, None, None, args[0]]  # postxt,,,,beforewp
+    # "DIRECT": [
+    #     "DIRECT acid wpname",
+    #     "acid,txt",
+    #     lambda idx, wpname: bs.traf.ap.route[idx].direct(idx, wpname),
+    #     "Go direct to specified waypoint in route (FMS)",
+    # ],
+    @stack.command(aliases=("DIRECTTO", "DIRTO"))
+    @staticmethod
+    def direct(acidx: 'acid', wpname: 'wpinroute'):
+        """DIRECT acid wpname
+        
+            Go direct to specified waypoint in route (FMS)"""
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        wpidx = acrte.wpname.index(wpname)
 
-        # Add alt when given
-        if len(args) > 3:
-            arglst[1] = args[3]  # alt
+        acrte.iactwp = wpidx
+        bs.traf.actwp.lat[acidx]    = acrte.wplat[wpidx]
+        bs.traf.actwp.lon[acidx]    = acrte.wplon[wpidx]
+        bs.traf.actwp.flyby[acidx]  = acrte.wpflyby[wpidx]
+        bs.traf.actwp.flyturn[acidx] = acrte.wpflyturn[wpidx]
+        bs.traf.actwp.turnrad[acidx] = acrte.wpturnrad[wpidx]
+        bs.traf.actwp.turnspd[acidx] = acrte.wpturnspd[wpidx]
 
-        # Add speed when given
-        if len(args) > 4:
-            arglst[2] = args[4]  # spd
+        # Do calculation for VNAV
+        acrte.calcfp()
 
-        result = self.addwptStack(idx, *arglst)  # args: all arguments of addwpt
+        bs.traf.actwp.xtoalt[acidx] = acrte.wpxtoalt[wpidx]
+        bs.traf.actwp.nextaltco[acidx] = acrte.wptoalt[wpidx]
 
-        return result
+        bs.traf.actwp.torta[acidx]    = acrte.wptorta[wpidx]    # available for active RTA-guidance
+        bs.traf.actwp.xtorta[acidx]  = acrte.wpxtorta[wpidx]  # available for active RTA-guidance
 
-    def direct(self, idx, wpnam):
-        #print("Hello from direct")
-        """Set active point to a waypoint by name"""
-        name = wpnam.upper().strip()
-        if name != "" and self.wpname.count(name) > 0:
-            wpidx = self.wpname.index(name)
+        #VNAV calculations like V/S and speed for RTA
+        bs.traf.ap.ComputeVNAV(acidx, acrte.wptoalt[wpidx], acrte.wpxtoalt[wpidx],\
+                                    acrte.wptorta[wpidx],acrte.wpxtorta[wpidx])
 
-            self.iactwp = wpidx
+        # If there is a speed specified, process it
+        if acrte.wpspd[wpidx]>0.:
+            # Set target speed for autopilot
 
-            bs.traf.actwp.lat[idx]    = self.wplat[wpidx]
-            bs.traf.actwp.lon[idx]    = self.wplon[wpidx]
-            bs.traf.actwp.flyby[idx]  = self.wpflyby[wpidx]
-            bs.traf.actwp.flyturn[idx] = self.wpflyturn[wpidx]
-            bs.traf.actwp.turnrad[idx] = self.wpturnrad[wpidx]
-            bs.traf.actwp.turnspd[idx] = self.wpturnspd[wpidx]
-
-            # Do calculation for VNAV
-            self.calcfp()
-
-            bs.traf.actwp.xtoalt[idx] = self.wpxtoalt[wpidx]
-            bs.traf.actwp.nextaltco[idx] = self.wptoalt[wpidx]
-
-            bs.traf.actwp.torta[idx]    = self.wptorta[wpidx]    # available for active RTA-guidance
-            bs.traf.actwp.xtorta[idx]  = self.wpxtorta[wpidx]  # available for active RTA-guidance
-
-            #VNAV calculations like V/S and speed for RTA
-            bs.traf.ap.ComputeVNAV(idx, self.wptoalt[wpidx], self.wpxtoalt[wpidx],\
-                                        self.wptorta[wpidx],self.wpxtorta[wpidx])
-
-            # If there is a speed specified, process it
-            if self.wpspd[wpidx]>0.:
-                # Set target speed for autopilot
-
-                if self.wpalt[wpidx] < 0.0:
-                    alt = bs.traf.alt[idx]
-                else:
-                    alt = self.wpalt[wpidx]
-
-                # Check for valid Mach or CAS
-                if self.wpspd[wpidx] <2.0:
-                    cas = mach2cas(self.wpspd[wpidx], alt)
-                else:
-                    cas = self.wpspd[wpidx]
-
-                # Save it for next leg
-                bs.traf.actwp.nextspd[idx] = cas
-
-            # No speed specified for next leg
+            if acrte.wpalt[wpidx] < 0.0:
+                alt = bs.traf.alt[acidx]
             else:
-                bs.traf.actwp.nextspd[idx] = -999.
+                alt = acrte.wpalt[wpidx]
 
-
-            qdr, dist = geo.qdrdist(bs.traf.lat[idx], bs.traf.lon[idx],
-                                bs.traf.actwp.lat[idx], bs.traf.actwp.lon[idx])
-
-            if self.wpflyturn[wpidx] or self.wpturnrad[wpidx]<0.:
-                turnrad = self.wpturnrad[wpidx]
+            # Check for valid Mach or CAS
+            if acrte.wpspd[wpidx] <2.0:
+                cas = mach2cas(acrte.wpspd[wpidx], alt)
             else:
-                turnrad = bs.traf.tas[idx]*bs.traf.tas[idx]/tan(radians(25.)) / g0 / nm  # [nm]default bank angle 25 deg
+                cas = acrte.wpspd[wpidx]
 
+            # Save it for next leg
+            bs.traf.actwp.nextspd[acidx] = cas
 
-            bs.traf.actwp.turndist[idx] = (bs.traf.actwp.flyby[idx] > 0.5)  *   \
-                     turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
-                        self.wpdirfrom[self.iactwp]))))))    # [nm]
-
-
-            bs.traf.swlnav[idx] = True
-            return True
+        # No speed specified for next leg
         else:
-            return False, "Waypoint " + wpnam + " not found"
+            bs.traf.actwp.nextspd[acidx] = -999.
 
 
-    def SetRTA(self, idx, name, txt):  # all arguments of setRTA
-        """SetRTA acid, wpname, time: add RTA to waypoint record"""
-        timeinsec = txt2tim(txt)
-        #print(timeinsec)
-        if name in self.wpname:
-            wpidx = self.wpname.index(name)
-            self.wprta[wpidx] = timeinsec
-            #print("Ik heb",self.wprta[wpidx],"op",self.wpname[wpidx],"gezet!")
+        qdr, _ = geo.qdrdist(bs.traf.lat[acidx], bs.traf.lon[acidx],
+                             bs.traf.actwp.lat[acidx], bs.traf.actwp.lon[acidx])
 
-            # Recompute route and update actwp because of RTA addition
-            self.direct(idx, self.wpname[self.iactwp])
+        if acrte.wpflyturn[wpidx] or acrte.wpturnrad[wpidx]<0.:
+            turnrad = acrte.wpturnrad[wpidx]
+        else:
+            turnrad = bs.traf.tas[acidx]*bs.traf.tas[acidx]/tan(radians(25.)) / g0 / nm  # [nm]default bank angle 25 deg
+
+
+        bs.traf.actwp.turndist[acidx] = (bs.traf.actwp.flyby[acidx] > 0.5)  *   \
+                    turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr -
+                    acrte.wpdirfrom[acrte.iactwp]))))))    # [nm]
+
+
+        bs.traf.swlnav[acidx] = True
+        return True
+
+    @stack.command(name='RTA')
+    @staticmethod
+    def SetRTA(acidx: 'acid', wpname: 'wpinroute', time: 'time'):  # all arguments of setRTA
+        """ RTA acid, wpname, time
+        
+            Add RTA to waypoint record"""
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        wpidx = acrte.wpname.index(wpname)
+        acrte.wprta[wpidx] = time
+
+        # Recompute route and update actwp because of RTA addition
+        acrte.direct(acidx, acrte.wpname[acrte.iactwp])
 
         return True
 
-    def listrte(self, idx, ipage=0):
-        """LISTRTE command: output route to screen"""
-        if self.nwp <= 0:
+    @stack.command
+    @staticmethod
+    def listrte(acidx: 'acid', ipage=0):
+        """ LISTRTE acid, [pagenr]
+
+            Show list of route in window per page of 5 waypoints/"""
+        # First get the appropriate ac route
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        if acrte.nwp <= 0:
             return False, "Aircraft has no route."
 
-        if idx<0:
-            return False, "Aircraft id not found."
-
         for i in range(ipage * 7, ipage * 7 + 7):
-            if 0 <= i < self.nwp:
+            if 0 <= i < acrte.nwp:
                 # Name
-                if i == self.iactwp:
-                    txt = "*" + self.wpname[i] + " : "
+                if i == acrte.iactwp:
+                    txt = "*" + acrte.wpname[i] + " : "
                 else:
-                    txt = " " + self.wpname[i] + " : "
+                    txt = " " + acrte.wpname[i] + " : "
 
                 # Altitude
-                if self.wpalt[i] < 0:
+                if acrte.wpalt[i] < 0:
                     txt += "-----/"
 
-                elif self.wpalt[i] > 4500 * ft:
-                    fl = int(round((self.wpalt[i] / (100. * ft))))
+                elif acrte.wpalt[i] > 4500 * ft:
+                    fl = int(round((acrte.wpalt[i] / (100. * ft))))
                     txt += "FL" + str(fl) + "/"
 
                 else:
-                    txt += str(int(round(self.wpalt[i] / ft))) + "/"
+                    txt += str(int(round(acrte.wpalt[i] / ft))) + "/"
 
                 # Speed
-                if self.wpspd[i] < 0.:
+                if acrte.wpspd[i] < 0.:
                     txt += "---"
-                elif self.wpspd[i] > 2.0:
-                    txt += str(int(round(self.wpspd[i] / kts)))
+                elif acrte.wpspd[i] > 2.0:
+                    txt += str(int(round(acrte.wpspd[i] / kts)))
                 else:
-                    txt += "M" + str(self.wpspd[i])
+                    txt += "M" + str(acrte.wpspd[i])
 
                 # Type: orig, dest, C = flyby, | = flyover, U = flyturn
-                if self.wptype[i] == Route.orig:
+                if acrte.wptype[i] == Route.orig:
                     txt += "[orig]"
-                elif self.wptype[i] == Route.dest:
+                elif acrte.wptype[i] == Route.dest:
                     txt += "[dest]"
-                elif self.wpflyturn[i]:
+                elif acrte.wpflyturn[i]:
                     txt += "[U]"
-                elif self.wpflyby[i]:
+                elif acrte.wpflyby[i]:
                     txt += "[C]"
                 else: # FLYOVER
                     txt += "[|]"
@@ -887,9 +898,9 @@ class Route(Replaceable):
                 bs.scr.echo(txt)
 
         # Add command for next page to screen command line
-        npages = int((self.nwp + 6) / 7)
+        npages = int((acrte.nwp + 6) / 7)
         if ipage + 1 < npages:
-            bs.scr.cmdline("LISTRTE " + bs.traf.id[idx] + "," + str(ipage + 1))
+            bs.scr.cmdline("LISTRTE " + acid + "," + str(ipage + 1))
 
     def getnextwp(self):
         """Go to next waypoint and return data"""
@@ -982,61 +993,69 @@ class Route(Replaceable):
             # stack.stack("ECHO "+self.acid+" AT "+self.wpname[self.iactwp]+" command issued:"+cmdline)
         return
 
-    def delrte(self,iac=None):
-        """Delete complete route"""
+    @stack.command(aliases=("DELROUTE",))
+    @staticmethod
+    def delrte(acidx: 'acid' = None):
+        """ DELRTE acid
+            Delete for this a/c the complete route/dest/orig (FMS)."""
+        if acidx is None:
+            if bs.traf.ntraf == 0:
+                return False, 'No aircraft in simulation'
+            if bs.traf.ntraf > 1:
+                return False, 'Specify callsign of aircraft to delete route of'
+            acidx = 0
         # Simple re-initialize this route as empty
-        self.__init__(bs.traf.id[iac])
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        acrte.__init__(acid)
 
         # Also disable LNAV,VNAV if route is deleted
-        if self.nwp == 0 and (iac or iac == 0):
-            bs.traf.swlnav[iac]    = False
-            bs.traf.swvnav[iac]    = False
-            bs.traf.swvnavspd[iac] = False
+        bs.traf.swlnav[acidx]    = False
+        bs.traf.swvnav[acidx]    = False
+        bs.traf.swvnavspd[acidx] = False
 
         return True
 
-    def delwpt(self,delwpname,iac=None):
-        """Delete waypoint"""
-
+    @stack.command(aliases=("DELWP",))
+    @staticmethod
+    def delwpt(acidx: 'acid', wpname: 'wpinroute'):
+        """DELWPT acid,wpname
+        
+           Delete a waypoint from a route (FMS). """
         # Delete complete route?
-        if delwpname =="*":
-            return self.delrte(iac)
+        if wpname == "*":
+            return Route.delrte(acidx)
 
         # Look up waypoint
-        idx = -1
-        i = len(self.wpname)
-        while idx == -1 and i > 0:
-            i -= 1
-            if self.wpname[i].upper() == delwpname.upper():
-                idx = i
-
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        try:
+            wpidx = acrte.wpname.index(wpname.upper())
+        except ValueError:
+            return False, "Waypoint " + wpname + " not found"
         # check if active way point is the one being deleted and that it is not the last wpt.
         # If active wpt is deleted then change path of aircraft
-        if self.iactwp == idx and not idx == self.nwp - 1:
-            self.direct(iac, self.wpname[idx + 1])
+        if acrte.iactwp == wpidx and not wpidx == acrte.nwp - 1:
+            acrte.direct(acidx, acrte.wpname[wpidx + 1])
 
-        # Delete waypoint
-        if idx == -1:
-            return False, "Waypoint " + delwpname + " not found"
+        acrte.nwp =acrte.nwp - 1
+        del acrte.wpname[wpidx]
+        del acrte.wplat[wpidx]
+        del acrte.wplon[wpidx]
+        del acrte.wpalt[wpidx]
+        del acrte.wpspd[wpidx]
+        del acrte.wprta[wpidx]
+        del acrte.wptype[wpidx]
+        if acrte.iactwp > wpidx:
+            acrte.iactwp = max(0, acrte.iactwp - 1)
 
-        self.nwp =self.nwp - 1
-        del self.wpname[idx]
-        del self.wplat[idx]
-        del self.wplon[idx]
-        del self.wpalt[idx]
-        del self.wpspd[idx]
-        del self.wprta[idx]
-        del self.wptype[idx]
-        if self.iactwp > idx:
-            self.iactwp = max(0, self.iactwp - 1)
-
-        self.iactwp = min(self.iactwp, self.nwp - 1)
+        acrte.iactwp = min(acrte.iactwp, acrte.nwp - 1)
 
         # If no waypoints left, make sure to disable LNAV/VNAV
-        if self.nwp==0 and (iac or iac==0):
-            bs.traf.swlnav[iac]    =  False
-            bs.traf.swvnav[iac]    =  False
-            bs.traf.swvnavspd[iac] =  False
+        if acrte.nwp==0 and (acidx or acidx==0):
+            bs.traf.swlnav[acidx]    =  False
+            bs.traf.swvnav[acidx]    =  False
+            bs.traf.swvnavspd[acidx] =  False
 
         return True
 
@@ -1333,8 +1352,15 @@ class Route(Replaceable):
 
         return iwpnear
 
-    def dumpRoute(self, idx):
-        acid = bs.traf.id[idx]
+    @stack.command
+    @staticmethod
+    def dumprte(acidx: 'acid'):
+        """ DUMPRTE acid
+
+            Write route to output/routelog.txt.
+        """
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
         # Open file in append mode, write header
         with open(path.join(bs.settings.log_path, 'routelog.txt'), "a") as f:
             f.write("\nRoute "+acid+":\n")
@@ -1342,11 +1368,11 @@ class Route(Replaceable):
             f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")
 
             # write flight plan VNAV data (Lateral is visible on screen)
-            for j in range(self.nwp):
-                f.write( str(( j, self.wpname[j], self.wptype[j],
-                      round(self.wplat[j], 4), round(self.wplon[j], 4),
-                      int(0.5+self.wpalt[j]/ft), int(0.5+self.wpspd[j]/kts),
-                      int(0.5+self.wptoalt[j]/ft), round(self.wpxtoalt[j]/nm, 3)
+            for j in range(acrte.nwp):
+                f.write( str(( j, acrte.wpname[j], acrte.wptype[j],
+                      round(acrte.wplat[j], 4), round(acrte.wplon[j], 4),
+                      int(0.5+acrte.wpalt[j]/ft), int(0.5+acrte.wpspd[j]/kts),
+                      int(0.5+acrte.wptoalt[j]/ft), round(acrte.wpxtoalt[j]/nm, 3)
                       )) + "\n")
 
             # End of data
