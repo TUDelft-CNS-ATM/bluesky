@@ -162,10 +162,9 @@ class WpinrouteArg(Parser):
     def parse(self, argstring):
         arg, argstring = re_getarg.match(argstring).groups()
         wpname = arg.upper()
-        if refdata.acidx >= 0 and wpname not in bs.traf.ap.route[refdata.acidx].wpname:
-            raise ArgumentError(f'{wpname} not found in the route of {bs.traf.id[refdata.acidx]}')
-        return wpname, argstring
-
+        if refdata.acidx >= 0 and wpname in bs.traf.ap.route[refdata.acidx].wpname or wpname == '*':
+            return wpname, argstring
+        raise ArgumentError(f'{wpname} not found in the route of {bs.traf.id[refdata.acidx]}')
 
 class WptArg(Parser):
     ''' Argument parser for waypoints.
