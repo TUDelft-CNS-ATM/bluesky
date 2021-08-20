@@ -165,10 +165,6 @@ class Traffic(Entity):
         # This ensures that the traffic arrays (which size is dynamic)
         # are all reset as well, so all lat,lon,sdp etc but also objects adsb
         super().reset()
-        
-        # Reset conflict resolution
-        ConflictResolution.do_cr = False
-        ConflictResolution.select()
 
         # reset performance model
         self.perf.reset()
