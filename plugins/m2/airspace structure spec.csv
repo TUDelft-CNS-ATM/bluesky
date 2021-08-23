@@ -2,16 +2,16 @@
 # Note: resolution_0 is the lowest reso layer and the only reso layer without direction
 0,a_and_d,0,100,0.0,999
 1,resolution_0,100,130,0.0,999
-2,cruising_1,130,160,10,15
+2,cruising_1,130,160,5,15
 3,resolution_1,160,190,0.0,999
-4,cruising_2,190,220,10,15
+4,cruising_2,190,220,10,20
 5,resolution_2,220,250,0.0,999
-6,cruising_3,250,280,10,15
+6,cruising_3,250,280,10,20
 7,resolution_3,280,310,0.0,999
-8,cruising_4,310,340,15,20
+8,cruising_4,310,340,10,25
 9,resolution_4,340,370,0.0,999
-10,cruising_5,370,400,20,25
+10,cruising_5,370,400,20,30
 11,resolution_5,400,430,0.0,999
-12,cruising_6,430,460,25,30
+12,cruising_6,430,460,25,35
 13,resolution_6,460,490,0.0,999
 14,outside,490,10000,0.0,999

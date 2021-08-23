@@ -67,7 +67,9 @@ class hybridreso(ConflictResolution):
             idxint = intruder.id.index(ac2)
             
             
-            # TODO: Check for multi-aircraft conflicts 
+            # TODO: Check for multi-aircraft conflicts. 
+            # At the very least, we can sort cofpairs by decreasing tcpa to solve the most urgent one first. 
+            # Don't forget to solve all the other conflict lists as well!
             
             # determine priority of the aircraft in conflict
             ownshipResolves = self.priorityChecker(idxown, idxint)
@@ -232,6 +234,7 @@ class hybridreso(ConflictResolution):
             should be followed or not, based on if the aircraft pairs passed
             their CPA.
         '''
+               
         # Add new conflicts to resopairs and confpairs_all and new losses to lospairs_all
         self.resopairs.update(conf.confpairs)
 
@@ -334,9 +337,8 @@ class hybridreso(ConflictResolution):
                         traf.ap.alt[idx] = traf.resoalt[idx]
                         traf.selalt[idx] = traf.resoalt[idx]
                     if traf.resostrategy[idx] == "RESO2":
-                        traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
+                        # traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
-                        traf.ap.tas[idx] = traf.resospd[idx]
                     if traf.resostrategy[idx] == "RESO3":
                         traf.ap.vs[idx] = traf.resovs[idx]
                         traf.ap.tas[idx] = traf.resospd[idx]
@@ -384,14 +386,10 @@ class hybridreso(ConflictResolution):
                     # if it is safe to resmue the original speed, go for it!
                     if not conflictProbe(ownship, intruder, idx, targetGs=traf.recoveryspd[idx]):
                         traf.resostrategy[idx] = "None"
-                        traf.ap.route[idx].wpspd[iwpid] = traf.recoveryspd[idx]
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
-                        traf.ap.tas[idx] = traf.recoveryspd[idx]
                     else:
                         # keep flying the reso spd
-                        traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
-                        traf.ap.tas[idx] = traf.resospd[idx]
                         
                 elif traf.resostrategy[idx] == "RESO3":
                     # conflict probe direction depends on whether the aircraft
