@@ -1,4 +1,4 @@
-# 0-0-0-True-Reso1-none-infront.scn
+# 0-0-0-True-Reso1-none-behind.scn
 # ownship flight phase: 0 (cruising) / 1 (climbing) / 2 (descending)
 # intruder flight phase: 0 (cruising) / 1 (climbing) / 2 (descending)
 # ownship layer: 0 (crusing layer) / 1 (resolution layer)
@@ -10,10 +10,17 @@
 
 00:00:00.00>PCALL TESTSETTINGS
 
-# Intruder
-00:00:00.00>CRE D1,M600,52.424512,2.465367,90,310,20
-00:00:00.00>PAN D1
+# Ownship in resolution layer
+00:00:00.00>CRE D2,M600,52.424512,2.465367,90,340,20
+00:00:00.00>PAN D2
 00:00:00.00>ZOOM 500
 
-# Ownship 
-00:00:00.00>creconfs d2 m600 d1 0 0 15 0 0 15
+# intruder
+00:00:00.00>creconfs d1 m600 d2 0 0 15 0 0 15
+
+# Add waypoints to D2
+00:00:00.00>ADDWPT D2 52.424523, 2.469586, 310, 20
+00:00:00.00>ADDWPT D2 52.454523, 2.469586, 310, 20
+00:00:00.00>ADDWPT D2 52.494523, 2.469586, 310, 20
+00:00:00.00>VNAV D2 ON
+00:00:00.00>LNAV D2 ON
