@@ -153,7 +153,7 @@ class hybridreso(ConflictResolution):
                 # ownship is climbing and intruder is cruising
                 elif fpown == 1 and fpint == 0: 
                     if rlayerown:
-                        newgs[idxown], newvs[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                        newgs[idxown], newvs[idxown], newalt[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
                         stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                     else:
                         if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn):
@@ -167,7 +167,7 @@ class hybridreso(ConflictResolution):
                 elif fpown == 1 and fpint == 1: 
                     if belowown:
                         if rlayerown:
-                            newgs[idxown], newvs[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                            newgs[idxown], newvs[idxown], newalt[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
                             stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                         else:
                             if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookup, targetVs=vsMaxOwn):
@@ -188,7 +188,7 @@ class hybridreso(ConflictResolution):
                 # ownship is descending and intruder is cruising
                 elif fpown == 2 and fpint == 0: 
                     if rlayerown:
-                        newgs[idxown], newvs[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                        newgs[idxown], newvs[idxown], newalt[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
                         stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                     else:
                         if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookdown, targetVs=vsMinOwn):
@@ -207,7 +207,7 @@ class hybridreso(ConflictResolution):
                 elif fpown == 2 and fpint == 2: 
                     if aboveown:
                         if rlayerown:
-                            newgs[idxown], newvs[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
+                            newgs[idxown], newvs[idxown], newalt[idxown] = self.reso3(idxown) # Hover in the resolution layer strategy
                             stack.stack(f"ECHO {traf.id[idxown]} is resolving conflict with {traf.id[idxint]} using reso5: hover in the resolution layer strategy")
                         else:
                             if not conflictProbe(ownship, intruder, idxown, idxint, dtlook=dtlookdown, targetVs=vsMinOwn):
@@ -292,8 +292,6 @@ class hybridreso(ConflictResolution):
                 
                 # boolean to maintain sufficient distance for speed resolution without velocity match
                 if traf.resostrategy[idx1] == "RESO2":
-                    # distnotok = conflictProbe(ownship, intruder, idx1, targetGs=traf.recoveryspd[idx1])
-                    # distnotok = abs(traf.gs[idx1]-traf.resospd[idx1]) > 0.5
                     distnotok = hdist <= (traf.gs[idx1]*conf.dtlookahead[idx1]*1.5)
                 else:
                     distnotok = False
@@ -337,11 +335,13 @@ class hybridreso(ConflictResolution):
                         traf.ap.alt[idx] = traf.resoalt[idx]
                         traf.selalt[idx] = traf.resoalt[idx]
                     if traf.resostrategy[idx] == "RESO2":
-                        # traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
+                        traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                     if traf.resostrategy[idx] == "RESO3":
                         traf.ap.vs[idx] = traf.resovs[idx]
                         traf.ap.tas[idx] = traf.resospd[idx]
+                        traf.ap.alt[idx] = traf.resoalt[idx]
+                        traf.selalt[idx] = traf.resoalt[idx]
                     
                     
         # Trajectory after the original conflict is finished and update intent
@@ -386,9 +386,11 @@ class hybridreso(ConflictResolution):
                     # if it is safe to resmue the original speed, go for it!
                     if not conflictProbe(ownship, intruder, idx, targetGs=traf.recoveryspd[idx]):
                         traf.resostrategy[idx] = "None"
+                        traf.ap.route[idx].wpspd[iwpid] = traf.recoveryspd[idx]
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                     else:
                         # keep flying the reso spd
+                        traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
                         traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                         
                 elif traf.resostrategy[idx] == "RESO3":
@@ -403,9 +405,13 @@ class hybridreso(ConflictResolution):
                         traf.resostrategy[idx] = "None"
                         traf.ap.vs[idx] = traf.recoveryvs[idx]
                         traf.ap.tas[idx] = traf.recoveryspd[idx]
+                        traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                     else:
+                        # keep hovering
                         traf.ap.vs[idx] = traf.resovs[idx]
                         traf.ap.tas[idx] = traf.resospd[idx]
+                        traf.ap.alt[idx] = traf.resoalt[idx]
+                        traf.selalt[idx] = traf.resoalt[idx]
                     
                 else:
                     traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
@@ -416,7 +422,6 @@ class hybridreso(ConflictResolution):
                 traf.resostrategy[idx] = "None"
                     
                             
-    
     # The four functions below control the four asas channels. These
     @property
     def hdgactive(self):
@@ -503,7 +508,7 @@ class hybridreso(ConflictResolution):
         # add resoalt to the traf variable. needed updating intent and trajectory recovery
         traf.resoalt[idxown] = resoalt
         traf.resovs[idxown] = resovs
-        traf.recoveryvs = traf.vs[idxown]
+        traf.recoveryvs = traf.ap.vs[idxown]
         
         return resoalt, resovs
     
@@ -534,7 +539,7 @@ class hybridreso(ConflictResolution):
         intvector = np.array([traf.gseast[idxint]], traf.gsnorth[idxint])
         
         # save the current ownship spd for recovery after conflict
-        traf.recoveryspd[idxown] = owngs
+        traf.recoveryspd[idxown] = traf.ap.tas[idxown]
         
         # use the velocity match routine only      
         if self.swvelocitymatch:
@@ -587,18 +592,26 @@ class hybridreso(ConflictResolution):
         # activate the spd and vs asas channel
         traf.resoTasActive[idxown] = True
         traf.resoVsActive[idxown]  = True
+        traf.resoAltActive[idxown] = True # needed to make sure that it hovers exactly at the lower alt of resolution layer
+        
+        #determine the hover altitude --> the lower alt of the current (resolution) layer
+        idxCurrentLayer = np.where(traf.layernames == traf.aclayername[idxown])[0]
+        resoalt = traf.layerLowerAlt[idxCurrentLayer][0]
         
         # Make the ownship hover
         resospd = 0.0
-        resovs = 0.0
+        
+        # Determine the initial vertical speed during this resolution. Final vertical speed when resoalt is achived is 0.0 m/s
+        resovs = 0.0 if abs(traf.alt[idxown]-resoalt)<abs(traf.layerHeight-traf.cd.hpz[idxown]) else traf.perf.vsmax[idxown]/3
         
         # Set the traffic variables
         traf.resospd[idxown] = resospd
         traf.resovs[idxown] = resovs
-        traf.recoveryspd[idxown] = traf.gs[idxown]
-        traf.recoveryvs = traf.vs[idxown]
+        traf.resoalt[idxown] = resoalt
+        traf.recoveryspd[idxown] = traf.ap.tas[idxown]
+        traf.recoveryvs = traf.ap.vs[idxown]
         
-        return resospd, resovs
+        return resospd, resovs, resoalt
     
     
     def reso4(self, idxown): 
