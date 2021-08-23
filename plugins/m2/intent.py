@@ -1,10 +1,12 @@
-""" BlueSky plugin template. The text you put here will be visible
-    in BlueSky as the description of your plugin. """
-from random import randint
-import numpy as np
+""" The intent plugin computes the intent of each aircraft with the CD lookahead
+in both horizontal and vertical directions and stores this in the traffic object.
+Created by: Emmanuel and Andrei
+Date: 27 July 2021
+"""
 from shapely.geometry import LineString
+
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, stack, traf, settings#, navdb, sim, scr, tools
+from bluesky import core, traf, settings, stack#, navdb, sim, scr, tools
 from bluesky.tools import geo
 from bluesky.tools.aero import nm#, ft
 
@@ -13,7 +15,7 @@ from bluesky.tools.aero import nm#, ft
 def init_plugin():
     ''' Plugin initialisation function. '''
     # Instantiate our example entity
-    Intents = intent()
+    Intent = intent()
 
     # Configuration parameters
     config = {
@@ -32,45 +34,52 @@ class intent(core.Entity):
     ''' Example new entity object for BlueSky. '''
     def __init__(self):
         super().__init__()
+        
+        # add acintent as a new variable per aircraft
         with self.settrafarrays():
             self.acintent = []
+        
+        # Flag for using intent filter
+        traf.swintent = True 
+        
+        # add intent to traffic make it available in the rest of bluesky and other plugins
         traf.intent = self.acintent
+        
 
     # Functions that need to be called periodically can be indicated to BlueSky
     # with the timed_function decorator
-    @core.timed_function(name='example', dt=settings.asas_dt)
+    @core.timed_function(name='example', dt=settings.asas_dt, hook='preupdate')
     def update(self):
-        # Called from within traffic
-        self.calc_intent()
+        
+        # calculate intent if the switch is on
+        if traf.swintent:
+            self.calc_intent() 
+        # self.calc_intent() 
+        
+        # update the traffic variable
         traf.intent = self.acintent
-        return
 
 
-    
     def calc_intent(self):
-        # The point of intent is to minimise false positive conflicts.
-        # For now, create some shapely linestrings that give the future coordinates of
-        # The aircraft. In Bluesky, drones fly in straight lines pretty much, so this
-        # approach should be pretty solid. 
-        # TODO: Add altitude intent information, so waypoints also include the altitude at
-        # which the aircraft will be at that waypoint.
-        # TODO: Should a fallback be impelented? If intent is not followed (how to decide this?!)
-        # do we fall back to 
+        ''''This function computes the intent of each aircraft up to the CD look-ahead time '''
+        
         ownship = traf
         ntraf = ownship.ntraf
         
         for idx in range(ntraf):
+            
             #------------ Vertical----------------
             # If there is a vertical maneuver going on, target altitude is intent.
             # Otherwise, intent is simply current altitude.
-            if abs(ownship.selalt[idx] - ownship.alt[idx]) > 1:
+            iwpid = traf.ap.route[idx].findact(idx)
+            if iwpid > -1:
                 # There is a maneuver going on
                 intentAlt = ownship.selalt[idx]
             else:
                 # No maneuver going on
                 intentAlt = ownship.alt[idx]
-
-
+                
+            #------------Horizontal-----------------
             # First, get route
             ac_route = ownship.ap.route[idx]
             # Current waypoint index
@@ -86,7 +95,8 @@ class intent(core.Entity):
             # First point in intent line is the position of the aircraft itself
             linecoords = [(ac_lon, ac_lat)]
             # Target distance
-            distance_max = ac_tas * settings.asas_dtlookahead
+            distance_max = ac_tas * traf.cd.dtlookahead[idx]
+            
             
             while True:
                 # Stop if there are no waypoints, just create a line with current position and projected
@@ -130,4 +140,12 @@ class intent(core.Entity):
                     self.acintent[idx] = (intentLine, intentAlt)
                     # Stop the while loop, go to next aircraft
                     break
-        return
+                
+    
+    @stack.command
+    def intentactive(self, active: 'onoff'):
+        '''Set the intent filter on/off'''
+        
+        traf.swintent = active
+        
+        return True, 'Intent Filter is now ON' if active else 'Intent Filter is now OFF'
