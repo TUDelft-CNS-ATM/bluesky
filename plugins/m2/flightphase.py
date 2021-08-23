@@ -96,7 +96,7 @@ class flightphase(core.Entity):
         traf.resoVsActive = self.resoVsActive
         
 
-    @core.timed_function(name='flightphase', dt=settings.asas_dt, hook='preupdate')
+    @core.timed_function(name='flightphase', dt=settings.asas_dt)
     def update(self):
         ''' Periodically updates the flight phase of all aircraft and their CD look-ahead times '''
         
