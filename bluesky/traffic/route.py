@@ -103,6 +103,41 @@ class Route(Replaceable):
             appi += 1
             name_ = name_[:-len_]+fmt_.format(appi)
         return name_
+    
+    @stack.command(name = 'ADDWPTMODE', annotations = 'acid, [wpt,alt]')
+    def addwptMode(acidx, mode = None, value = None):
+        '''Changes the mode of the ADDWPT command to add waypoints of type 'mode'.
+        Available modes: FLYBY, FLYOVER, FLYTURN. Also used to specify 
+        TURNSPEED or TURNRADIUS.'''
+        # Get aircraft route
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+        # First, we want to check what 'mode' is, and then call addwptStack 
+        # accordingly.
+        if mode in ['FLYBY', 'FLYOVER', 'FLYTURN']:
+            # We're just changing addwpt mode, call the appropriate function.
+            Route.addwptStack(acidx, mode)
+            return True
+        
+        elif mode in  ['TURNSPEED', 'TURNSPD', 'TURNRADIUS', 'TURNRAD']:
+            # We're changing the turn speed or radius
+            Route.addwptStack(acidx, mode, value)
+            return True
+            
+        elif mode == None:
+            # Just echo the current wptmode
+            if acrte.swflyby == True and acrte.swflyturn == False:
+                bs.scr.echo('Current ADDWPT mode is FLYBY.')
+                return True
+
+            elif acrte.swflyby == False and acrte.swflyturn == False:
+                bs.scr.echo('Current ADDWPT mode is FLYOVER.')
+                return True
+
+            else:
+                bs.scr.echo('Current ADDWPT mode is FLYTURN.')
+                return True
+            
     # "ADDWPT": [
     #         "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
     #         "acid,wpt,[alt,spd,wpinroute,wpinroute]",
