@@ -4,6 +4,7 @@
 2 = descending
 """
 import numpy as np
+import copy
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import core, stack, traf, settings, tools#, navdb, sim, scr, 
 
@@ -42,7 +43,7 @@ class flightphase(core.Entity):
             self.resoTasActive = np.array([], dtype=bool)
             self.resoAltActive = np.array([], dtype=bool)
             self.resoVsActive = np.array([], dtype=bool)
-            
+            self.preresoroute = []
         
         # update traf
         traf.flightphase  = self.flightphase
@@ -57,6 +58,7 @@ class flightphase(core.Entity):
         traf.resoTasActive = self.resoTasActive
         traf.resoAltActive = self.resoAltActive
         traf.resoVsActive = self.resoVsActive
+        traf.preresoroute = self.preresoroute
         
         # set the vertical speed limit for the cruising aircraft [m/s]
         self.vslimit = 10*tools.aero.fpm
@@ -80,6 +82,7 @@ class flightphase(core.Entity):
         self.resoTasActive[-n:] = False
         self.resoAltActive[-n:] = False
         self.resoVsActive[-n:] = False
+        self.preresoroute[-n:] = copy.deepcopy(traf.ap.route[-n:])
             
         # update traf
         traf.flightphase = self.flightphase
@@ -94,16 +97,18 @@ class flightphase(core.Entity):
         traf.resoTasActive = self.resoTasActive
         traf.resoAltActive = self.resoAltActive
         traf.resoVsActive = self.resoVsActive
+        traf.preresoroute = self.preresoroute
         
 
-    @core.timed_function(name='flightphase', dt=settings.asas_dt)
+    @core.timed_function(name='flightphase', dt=settings.asas_dt/2)
     def update(self):
         ''' Periodically updates the flight phase of all aircraft and their CD look-ahead times '''
         
         # Define the climb and descend conditions. Anything that is not climb or descend is cruise/hover
         # At the moment, it is assumed that cruise / hover are the same in terms of selecting resolutions
+        
         climbCondition   = (traf.vs > self.vslimit) * (np.abs(traf.gs) < self.gslimit)
-        descendCondition = (traf.vs < self.vslimit) * (np.abs(traf.gs) < self.gslimit)
+        descendCondition = (traf.vs < -self.vslimit) * (np.abs(traf.gs) < self.gslimit)
         
         # first check for climb. Then descend. Everything else is cruise/hover
         self.flightphase = np.where(climbCondition, 1, np.where(descendCondition, 2, 0))
@@ -118,8 +123,8 @@ class flightphase(core.Entity):
         vsMaxOwn = traf.perf.vsmax
         
         # climbing/descending aircraft should only look up/down one layer at a time
-        dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)
-        dtlookdown = np.abs(traf.layerHeight/vsMinOwn)
+        dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)*2.0
+        dtlookdown = np.abs(traf.layerHeight/vsMinOwn)*2.0
         
         # update CD lookahead based on flight phase
         traf.cd.dtlookahead = np.where(climbCondition, dtlookup, np.where(descendCondition, dtlookdown, settings.asas_dtlookahead))
