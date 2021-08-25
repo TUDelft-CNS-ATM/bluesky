@@ -168,7 +168,8 @@ def vcasormach(spd, h):
     return tas, cas, m
 
 def vcasormach2tas(spd, h):
-    tas = np.where(np.abs(spd) < 2.0, vmach2tas(spd, h), vcas2tas(spd, h))
+    tas = np.where(np.abs(spd) < 2.0, vmach2tas(
+        spd, h), vcas2tas(spd * kts, h))
     return tas
 
 
