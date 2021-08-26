@@ -18,21 +18,24 @@ class ActiveWaypoint(Entity, replaceable=True):
             self.vs         = np.array([])    # [m/s] Active vertical speed to use
             self.turndist   = np.array([])    # [m] Distance when to turn to next waypoint
             self.flyby      = np.array([])    # Flyby switch, when False, flyover (turndist=0.0)
-            self.flyturn    = np.array([])    # Flyturn switch, when False, when Fkase, use flyby/flyover
+            self.flyturn    = np.array([])    # Flyturn switch, customised turn parameters; when False, use flyby/flyover
             self.turnrad    = np.array([])    # Flyturn turn radius (<0 => not specified)
             self.turnspd    = np.array([])    # [m/s, CAS] Flyturn turn speed for next turn (<=0 => not specified)
             self.oldturnspd = np.array([])    # [TAS, m/s] Flyturn turn speed for previous turn (<=0 => not specified)
             self.turnfromlastwp = np.array([]) # Currently in flyturn-mode from last waypoint (old turn, beginning of leg)
             self.turntonextwp =  np.array([])  # Currently in flyturn-mode to next waypoint (new flyturn mode, end of leg)
-            self.torta      = np.array([])    # [s] NExt req Time of Arrival (RTA) (-999. = None)
-            self.xtorta     = np.array([])    # [m] distance ot next RTA
+            self.torta      = np.array([])    # [s] Next req Time of Arrival (RTA) (-999. = None)
+            self.xtorta     = np.array([])    # [m] distance to next RTA
             self.next_qdr   = np.array([])    # [deg] track angle of next leg
-            self.swlastwp   = np.array([],dtype=np.bool) # switch indicsting this is the last waypoint
+            self.swlastwp   = np.array([],dtype=np.bool) # switch indicating this is the last waypoint
+            self.curlegdir  = np.array([])    # [deg] direction to active waypoint upon activation
+            self.curleglen  = np.array([])    # [deg] direction to active waypoint upon activation
 
     def create(self, n=1):
         super().create(n)
         # LNAV route navigation
-        self.lat[-n:]        = 89.99    # [deg]Active WP latitude
+        self.lat[-n:]        = 0.       # [deg]Active WP latitude
+        self.lon[-n:]        = 0.       # [deg]Active WP longitude
         self.nextspd[-n:]    = -999.    # [CAS[m/s]/Mach]Next leg speed from current WP
         self.spd[-n:]        = -999.    # [CAS[m/s]/Mach]Active WP speed
         self.spdcon[-n:]     = -999.    # [CAS[m/s]/Mach]Active WP speed constraint
@@ -47,9 +50,10 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.torta[-n:]      = -999.0   # [s] Req Time of Arrival (RTA) for next wp (-999. = None)
         self.xtorta[-n:]     = 0.0      # Distance to next RTA
         self.next_qdr[-n:]   = -999.0   # [deg] bearing next leg
-        #self.curlegdir[-n:]  =
         self.swlastwp[-n:]   = False    # Switch indicating active waypoint is last waypoint
-
+        self.curlegdir[-n:]  = -999.0   # [deg] direction to active waypoint upon activation
+        self.curleglen[-n:]  = -999.0   # [nm] distance to active waypoint upon activation
+  
     def Reached(self, qdr, dist, flyby, flyturn, turnradnm,swlastwp):
         # Calculate distance before waypoint where to start the turn
         # Note: this is a vectorized function, called with numpy traffic arrays

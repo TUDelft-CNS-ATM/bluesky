@@ -38,12 +38,16 @@ class Autopilot(Entity, replaceable=True):
 
             # VNAV variables
             self.dist2vs  = np.array([])  # distance from coming waypoint to TOD
+            self.dist2accel = np.array([]) # Distance to go to acceleration(decelaration) for turn next waypoint [nm]
+
             self.swvnavvs = np.array([])  # whether to use given VS or not
             self.vnavvs   = np.array([])  # vertical speed in VNAV
 
             # LNAV variables
-            self.qdr2wp   = np.array([]) # Direction to waypoint from the last time passing was checked
-                                         # to avoid 180 turns due to updated qdr shortly before passing wp
+            self.qdr2wp      = np.array([]) # Direction to waypoint from the last time passing was checked
+                                            # to avoid 180 turns due to updated qdr shortly before passing wp
+            self.dist2wp     = np.array([]) # [nm] Distance to active waypoint
+
 
              # Traffic navigation information
             self.orig = []  # Four letter code of origin airport
@@ -68,11 +72,14 @@ class Autopilot(Entity, replaceable=True):
         self.alt[-n:] = bs.traf.alt[-n:]
 
         # LNAV variables
-        self.qdr2wp[-n:] = -999   # Direction to waypoint from the last time passing was checked
+        self.qdr2wp[-n:] = -999.   # Direction to waypoint from the last time passing was checked
+        self.dist2wp[-n:]  = -999. # Distance to go to next waypoint [nm]
+
         # to avoid 180 turns due to updated qdr shortly before passing wp
 
         # VNAV Variables
         self.dist2vs[-n:] = -999.
+        self.dist2accel[-n:] = -999.  # Distance to go to acceleration(decelaration) for turn next waypoint [nm]
 
         # Traffic performance data
         #(temporarily default values)
@@ -99,8 +106,6 @@ class Autopilot(Entity, replaceable=True):
             # Get speed for next leg from the waypoint we pass now
             bs.traf.actwp.spd[i]    = bs.traf.actwp.nextspd[i]
             bs.traf.actwp.spdcon[i] = bs.traf.actwp.nextspd[i]
-
-
 
             # Execute stack commands for the still active waypoint, which we pass
             self.route[i].runactwpstack()
@@ -169,6 +174,10 @@ class Autopilot(Entity, replaceable=True):
                                         bs.traf.actwp.lat[i], bs.traf.actwp.lon[i])
 
             dist[i] = distnmi*nm
+            self.dist2wp[i] = distnmi
+
+            bs.traf.actwp.curlegdir[i] = qdr[i]
+            bs.traf.actwp.curleglen[i] = distnmi
 
             # Update turndist so ComputeVNAV works, is there a next leg direction or not?
             if bs.traf.actwp.next_qdr[i] < -900.:
@@ -207,6 +216,8 @@ class Autopilot(Entity, replaceable=True):
             self.ComputeVNAV(i, toalt, bs.traf.actwp.xtoalt[i], bs.traf.actwp.torta[i],
                              bs.traf.actwp.xtorta[i])
 
+        
+
         # End of per waypoint i switching loop
         # Update qdr2wp with up-to-date qdr, now that we have checked passing wp
         self.qdr2wp = qdr%360.
@@ -236,10 +247,10 @@ class Autopilot(Entity, replaceable=True):
         qdr, distinnm = geo.qdrdist(bs.traf.lat, bs.traf.lon,
                                     bs.traf.actwp.lat, bs.traf.actwp.lon)  # [deg][nm])
         self.qdr2wp  = qdr
-        dist2wp = distinnm*nm  # Conversion to meters
+        self.dist2wp = distinnm*nm  # Conversion to meters
 
         # FMS route update and possibly waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
-        self.update_fms(qdr, dist2wp) # Updates self.qdr2wp when necessary
+        self.update_fms(qdr, self.dist2wp) # Updates self.qdr2wp when necessary
 
         #================= Continuous FMS guidance ========================
 
@@ -249,10 +260,10 @@ class Autopilot(Entity, replaceable=True):
         # Do VNAV start of descent check
         #dy = (bs.traf.actwp.lat - bs.traf.lat)  #[deg lat = 60 nm]
         #dx = (bs.traf.actwp.lon - bs.traf.lon) * bs.traf.coslat #[corrected deg lon = 60 nm]
-        #dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy) # [m]
+        #self.dist2wp   = 60. * nm * np.sqrt(dx * dx + dy * dy) # [m]
 
         # VNAV logic: descend as late as possible, climb as soon as possible
-        startdescent = (dist2wp < self.dist2vs) + (bs.traf.actwp.nextaltco > bs.traf.alt)
+        startdescent = (self.dist2wp < self.dist2vs) + (bs.traf.actwp.nextaltco > bs.traf.alt)
 
         # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
         #    (because there are no more waypoints). This is needed
@@ -260,12 +271,12 @@ class Autopilot(Entity, replaceable=True):
         #    while descending to the destination (the last waypoint)
         #    Use 0.1 nm (185.2 m) circle in case turndist might be zero
         self.swvnavvs = bs.traf.swvnav * np.where(bs.traf.swlnav, startdescent,
-                                        dist2wp <= np.maximum(185.2,bs.traf.actwp.turndist))
+                                        self.dist2wp <= np.maximum(185.2,bs.traf.actwp.turndist))
 
         #Recalculate V/S based on current altitude and distance to next alt constraint
         # How much time do we have before we need to descend?
 
-        t2go2alt = np.maximum(0.,(dist2wp + bs.traf.actwp.xtoalt - bs.traf.actwp.turndist)) \
+        t2go2alt = np.maximum(0.,(self.dist2wp + bs.traf.actwp.xtoalt - bs.traf.actwp.turndist)) \
                                     / np.maximum(0.5,bs.traf.gs)
 
         # use steepness to calculate V/S unless we need to descend faster
@@ -317,10 +328,11 @@ class Autopilot(Entity, replaceable=True):
 
         # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
         # and same for turn logic
-        usenextspdcon = (dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd> -990.) * \
+        usenextspdcon = (self.dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd> -990.) * \
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
-        useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,(dist2wp < dxturnspdchg+bs.traf.actwp.turndist) *\
-                                                              swturnspd*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav)
+        useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,\
+                                   (self.dist2wp < dxturnspdchg+bs.traf.actwp.turndist) * \
+                                        swturnspd*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav)
 
         # Hold turn mode can only be switched on here, cannot be switched off here (happeps upon passing wp)
         bs.traf.actwp.turntonextwp = np.logical_or(bs.traf.actwp.turntonextwp,useturnspd)

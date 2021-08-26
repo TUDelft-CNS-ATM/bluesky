@@ -44,11 +44,15 @@ class Route(Replaceable):
         self.acid = acid
         self.nwp = 0
 
+        #Vertical fms logc: enable Top of CLimb & Top of Descent logic
+        self.swtoc = True
+        self.swtod = True
+
         # Waypoint data
-        self.wpname = []
-        self.wptype = []
-        self.wplat  = []
-        self.wplon  = []
+        self.wpname = []    # List of waypoint names for this flight plan
+        self.wptype = []    # List of waypoint types
+        self.wplat  = []    # List of waypoint latitudes
+        self.wplon  = []    # List of waypoint longitudes
         self.wpalt  = []    # [m] negative value means not specified
         self.wpspd  = []    # [m/s] negative value means not specified
         self.wprta  = []    # [m/s] negative value means not specified
@@ -809,8 +813,12 @@ class Route(Replaceable):
             bs.traf.actwp.nextspd[acidx] = -999.
 
 
-        qdr, _ = geo.qdrdist(bs.traf.lat[acidx], bs.traf.lon[acidx],
+        qdr,dist = geo.qdrdist(bs.traf.lat[acidx], bs.traf.lon[acidx],
                              bs.traf.actwp.lat[acidx], bs.traf.actwp.lon[acidx])
+
+        # Save leg length & direction in actwp data
+        bs.traf.actwp.curlegdir[acidx] = qdr
+        bs.traf.actwp.curleglen[acidx] = dist
 
         if acrte.wpflyturn[wpidx] or acrte.wpturnrad[wpidx]<0.:
             turnrad = acrte.wpturnrad[wpidx]
