@@ -1,5 +1,6 @@
 """ Console interface for the QTGL implementation."""
 from PyQt5.QtCore import Qt
+from PyQt5.Qt import QDesktopServices, QUrl, QApplication
 from PyQt5.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
@@ -70,7 +71,8 @@ class Console(QWidget):
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:
-            self.stackText.setPlainText(nodedata.echo_text)
+            # self.stackText.setPlainText(nodedata.echo_text)
+            self.stackText.setHtml(nodedata.echo_text.replace('\n', '<br>'))
             self.stackText.verticalScrollBar().setValue(
                 self.stackText.verticalScrollBar().maximum())
 
@@ -88,7 +90,8 @@ class Console(QWidget):
     def echo(self, text):
         actdata = bs.net.get_nodedata()
         actdata.echo(text)
-        self.stackText.append(text)
+        # self.stackText.append(text)
+        self.stackText.insertHtml(text.replace('\n', '<br>'))
         self.stackText.verticalScrollBar().setValue(
             self.stackText.verticalScrollBar().maximum())
 
@@ -239,3 +242,14 @@ class Stackwin(QTextEdit):
         super().__init__(parent)
         Console.stackText = self
         self.setFocusPolicy(Qt.NoFocus)
+
+    def mousePressEvent(self, e):
+        self.anchor = self.anchorAt(e.pos())
+        if self.anchor:
+            QApplication.setOverrideCursor(Qt.PointingHandCursor)
+
+    def mouseReleaseEvent(self, e):
+        if self.anchor:
+            QDesktopServices.openUrl(QUrl(self.anchor))
+            QApplication.setOverrideCursor(Qt.ArrowCursor)
+            self.anchor = None
