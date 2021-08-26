@@ -123,8 +123,8 @@ class flightphase(core.Entity):
         vsMaxOwn = traf.perf.vsmax
         
         # climbing/descending aircraft should only look up/down one layer at a time
-        dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)*2.0
-        dtlookdown = np.abs(traf.layerHeight/vsMinOwn)*2.0
+        dtlookup   = np.abs(traf.layerHeight/vsMaxOwn)*1.5
+        dtlookdown = np.abs(traf.layerHeight/vsMinOwn)*1.5
         
         # update CD lookahead based on flight phase
         traf.cd.dtlookahead = np.where(climbCondition, dtlookup, np.where(descendCondition, dtlookdown, settings.asas_dtlookahead))

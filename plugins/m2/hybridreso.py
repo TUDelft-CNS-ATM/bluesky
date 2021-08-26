@@ -37,6 +37,7 @@ class hybridreso(ConflictResolution):
     def __init__(self):
         super().__init__()
         
+        # switch to control the velocity matching routine of reso2
         self.swvelocitymatch = True
         
         # with self.settrafarrays():
