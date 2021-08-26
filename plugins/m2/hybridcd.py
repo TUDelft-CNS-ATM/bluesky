@@ -110,6 +110,10 @@ class hybridcd(ConflictDetection):
         tcrosslo = (dalt - hpz) / -dvs
         tinver = np.minimum(tcrosshi, tcrosslo)
         toutver = np.maximum(tcrosshi, tcrosslo)
+        
+        # NEW: determine if each aircraft has a vertical conflcit
+        swverconf = np.any((tinver<=toutver)*(toutver>0.0)*(tinver<np.asmatrix(dtlookahead).T)*(1.0-I),1)
+        
 
         # Combine vertical and horizontal conflict----------------------------------
         tinconf = np.maximum(tinver, tinhor)
@@ -130,9 +134,10 @@ class hybridcd(ConflictDetection):
         swlos = (dist < rpz) * (np.abs(dalt) < hpz)
         lospairs = [(ownship.id[i], ownship.id[j]) for i, j in zip(*np.where(swlos))]
         
+        
         ####################### Second do intent filter #######################
         if traf.swintent:
-            confpairs, inconf = self.intentFilter(traf.cd, confpairs, inconf, ownship, intruder)
+            confpairs, inconf = self.intentFilter(traf.cd, confpairs, inconf, ownship, intruder, swverconf)
         
         ########## Finaly return with the filtered confpairs and inconf! ##########
 
@@ -141,7 +146,7 @@ class hybridcd(ConflictDetection):
                 tcpa[swconfl], tinconf[swconfl]
                 
     
-    def intentFilter(self, conf, confpairs, inconf, ownship, intruder):
+    def intentFilter(self, conf, confpairs, inconf, ownship, intruder, swverconf):
         '''Function to check and remove conflicts from the confpairs and inconf lists
            if such a conflict is automatically solved by the intended routes of the aircraft '''
            
@@ -157,6 +162,10 @@ class hybridcd(ConflictDetection):
             #idx of ownship and intruder
             idxown, idxint = traf.id2idx(conflict)
             
+            # minimum horizontal separation 
+            rpz = max(conf.rpz[idxown],conf.rpz[idxint])#*1.05
+            hpz = max(conf.hpz[idxown],conf.hpz[idxint])
+            
             # get the intents of ownship and intruder. This is calculated in the intent plugin.
             own_intent, own_target_alt = ownship.intent[idxown] 
             intruder_intent, intruder_target_alt = intruder.intent[idxint] 
@@ -169,17 +178,21 @@ class hybridcd(ConflictDetection):
             
             # Also do vertical intent
             # Difference between own altitude and intruder target
-            diff = own_target_alt - intruder_target_alt
+            fpown = traf.flightphase[idxown]
+            fpint = traf.flightphase[idxint]
             
-            # minimum horizontal separation 
-            rpz = max(conf.rpz[idxown],conf.rpz[idxint])#*1.05
-            
+            if fpown != fpint:
+                diff = own_target_alt - intruder_target_alt
+                verticalCondition = hpz >= abs(diff)
+            else:
+                verticalCondition = swverconf[idxown]      
+                
             # Basically, there are two conditions to be met in order to skip
             # a conflict due to intent:
             # 1. The minimum distance between the horizontal intent lines is greater than r;
             # 2. The difference between the current altitude and the target altitude of the 
             # intruder is greater than the vertical separation margin;
-            if (point_distance < rpz ) and (conf.hpz[idxown] >= abs(diff)):
+            if (point_distance < rpz ) and verticalCondition:
                 # if this is a real conflict, set it to active to True
                 changeactive[idxown] = True
                 changeactive[idxint] = True
@@ -201,5 +214,5 @@ class hybridcd(ConflictDetection):
             # resolved.
             # traf.cr.active[idx] = active
             inconf[idx] = active
-                
+        
         return confpairs, inconf
