@@ -33,6 +33,8 @@ def insertionNode( G, lon, lat, altitude ):
 
 def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capacity, name ):
     segments = defineSegment( segments, 0, 0, 0, 0, 0, 0, speed, capacity, name )
+    segments[name]['updated'] = False
+    segments[name]['new'] = False
 
     index = 0
     nodes_G = []

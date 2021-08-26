@@ -65,7 +65,7 @@ def divideAirspaceSegments( lon_min, lon_max, lat_min, lat_max, z_min, z_max, di
 
 
 def selectNodesWithNewSegments( G, segments ):
-    new_segments = list( segments.keys() )
+    new_segments = list( segments.index )
 
     nodes = ox.graph_to_gdfs( G, edges=False, node_geometry=False )
     cond = nodes['segment'] == 'new'
@@ -117,16 +117,16 @@ def updateSegmentVelocity( G, segments ):
         return G
     print( 'Updating segment velocity...' )
 
-    new_segments = list( segments.keys() )
+    new_segments = list( segments.index )
 
     edges = ox.utils_graph.graph_to_gdfs( G, nodes=False, fill_edge_geometry=False )
     cond = edges['segment'] == 'N/A'
-#     for n in new_segments:
-#         cond = cond | ( edges['segment'] == n )
-    cond = cond | ( edges['segment'].isin( new_segments ) )
-    edges[cond]['speed'] = edges[cond]['segment'].apply( lambda segment_name:
-                                                         segments[segment_name]['speed'] )
 
+    cond = cond | ( edges['segment'].isin( new_segments ) )
+
+    pd.set_option( 'mode.chained_assignment', None )
+    edges['speed'][cond] = edges[cond]['segment'].apply( lambda segment_name:
+                                                         segments.loc[segment_name]['speed'] )
 
     nx.set_edge_attributes( G, values=edges["speed"], name="speed" )
     return G
@@ -134,7 +134,7 @@ def updateSegmentVelocity( G, segments ):
 
 def addTravelTimes( G, precision=4 ):
     print( 'Updating travel times...' )
-    edges = ox.utils_graph.graph_to_gdfs( G, nodes=False )
+    edges = ox.utils_graph.graph_to_gdfs( G, nodes=False, fill_edge_geometry=False )
 
     # verify edge length and speed_kph attributes exist and contain no nulls
     if not ( "length" in edges.columns and "speed" in edges.columns ):
@@ -149,6 +149,8 @@ def addTravelTimes( G, precision=4 ):
 
     # calculate edge travel time in seconds
     travel_time = distance_km / speed_km_sec
+
+    travel_time.replace( [np.inf, -np.inf], 9999999999, inplace=True )
 
     # add travel time attribute to graph edges
     edges["travel_time"] = travel_time.round( precision ).values
@@ -175,11 +177,11 @@ def dynamicSegments( G, config, segments=None ):
     start = time.time()
     G = assignSegmet2Edge( G, new_segments )
     end = time.time()
-    print( end - start )
+#     print( end - start )
     start = time.time()
     G = updateSegmentVelocity( G, updated_segments )
     end = time.time()
-    print( end - start )
+#     print( end - start )
     G = addTravelTimes( G )
 
     segments_df['new'] = False

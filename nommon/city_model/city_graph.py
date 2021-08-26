@@ -83,10 +83,10 @@ def cityGraph( config ):
         G.defOneWay( config )
 
     # We plot the graph
-#     fig, ax = ox.plot_graph( G )
+    fig, ax = ox.plot_graph( G )
     print( 'Saving the graph...' )
 
-    filepath = r"C:\workspace3\USEPE-CityEnvironment\src\data\hannover.graphml"
+    filepath = "./data/hannover.graphml"
     ox.save_graphml( G, filepath )
     return G
 

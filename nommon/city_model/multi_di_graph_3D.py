@@ -4,15 +4,14 @@
 We create a class to define a MultiDiGrpah 3D. We add several useful methods
 """
 
-__author__ = 'jbueno'
-__copyright__ = '(c) Nommon 2021'
-
 import string
-
 from networkx.classes.multidigraph import MultiDiGraph
-
 import networkx as nx
 import osmnx as ox
+
+
+__author__ = 'jbueno'
+__copyright__ = '(c) Nommon 2021'
 
 
 class MultiDiGrpah3D ( MultiDiGraph ):
@@ -105,6 +104,7 @@ class MultiDiGrpah3D ( MultiDiGraph ):
 
     def addDiagonalEdges( self, sectors, config ):
         print( 'Creating diagonal edges...' )
+        G = self.copy()
         for i in range( len( sectors ) ):
             # The four corners of each sector
             point1_x = sectors.loc[[i], ['lon_min']].values[0][0]
@@ -117,10 +117,10 @@ class MultiDiGrpah3D ( MultiDiGraph ):
             point4_y = sectors.loc[[i], ['lat_max']].values[0][0]
 
             # The nodes that will be joined
-            node1 = ox.distance.nearest_nodes( self, X=point1_x, Y=point1_y )
-            node2 = ox.distance.nearest_nodes( self, X=point2_x, Y=point2_y )
-            node3 = ox.distance.nearest_nodes( self, X=point3_x, Y=point3_y )
-            node4 = ox.distance.nearest_nodes( self, X=point4_x, Y=point4_y )
+            node1 = ox.distance.nearest_nodes( G, X=point1_x, Y=point1_y )
+            node2 = ox.distance.nearest_nodes( G, X=point2_x, Y=point2_y )
+            node3 = ox.distance.nearest_nodes( G, X=point3_x, Y=point3_y )
+            node4 = ox.distance.nearest_nodes( G, X=point4_x, Y=point4_y )
 
             # Nodes in the middle of the edges
 #             node12 = ox.distance.nearest_nodes( self, X=( point1_x + point2_x ) / 2,
@@ -190,17 +190,44 @@ class MultiDiGrpah3D ( MultiDiGraph ):
             node_orig = ( node1, node2, node3, node4, node1, node2 )
             node_dest = ( node2, node3, node4, node1, node3, node4 )
 
+
             for elem in layers:
                 for x_orig_iter, x_dest_iter, y_orig_iter, y_dest_iter, orig_iter, dest_iter in zip( xx_orig, xx_dest, yy_orig, yy_dest, node_orig, node_dest ):
+                    control_points = 4
+                    xx_control = [x_orig_iter + element * ( ( x_dest_iter - x_orig_iter ) / ( control_points - 1 ) ) for element in range( control_points )]
+                    yy_control = [y_orig_iter + element * ( ( y_dest_iter - y_orig_iter ) / ( control_points - 1 ) ) for element in range( control_points )]
 
-                    self.add_edge( elem + orig_iter[1:], elem + dest_iter[1:], 0, oneway=False,
-                                   segment='new', speed=50.0,
-                                   length=ox.distance.great_circle_vec( y_orig_iter, x_orig_iter,
-                                                                        y_dest_iter, x_dest_iter ) )
-                    self.add_edge( elem + dest_iter[1:], elem + orig_iter[1:], 0, oneway=False,
-                                   segment='new', speed=50.0,
-                                   length=ox.distance.great_circle_vec( y_orig_iter, x_orig_iter,
-                                                                        y_dest_iter, x_dest_iter ) )
+                    nodes_edge = [elem + orig_iter[1:]]
+                    base_name = elem + orig_iter[1:] + '_' + elem + dest_iter[1:]
+                    index = 0
+                    for point_lon, point_lat in zip( xx_control[1:-1], yy_control[1:-1] ):
+                        index += 1
+                        nodes_edge += [base_name + '_' + str( index )]
+#                         print( nodes_edge[0] )
+#                         print( self.nodes[nodes_edge[0]] )
+                        self.add_node( nodes_edge[-1], y=point_lat, x=point_lon,
+                                       z=self.nodes[nodes_edge[0]]['z'], segment='new' )
+
+                    nodes_edge += [elem + dest_iter[1:]]
+
+                    for i in range( control_points - 1 ):
+                        name1 = nodes_edge[i]
+                        name2 = nodes_edge[i + 1]
+#                         print( name1 )
+#                         print( name2 )
+
+                        self.add_edge( name1, name2, 0, oneway=False,
+                                       segment='new', speed=50.0,
+                                       length=ox.distance.great_circle_vec( yy_control[i],
+                                                                            xx_control[i],
+                                                                            yy_control[i + 1],
+                                                                            xx_control[i + 1] ) )
+                        self.add_edge( name2, name1, 0, oneway=False,
+                                       segment='new', speed=50.0,
+                                       length=ox.distance.great_circle_vec( yy_control[i],
+                                                                            xx_control[i],
+                                                                            yy_control[i + 1],
+                                                                            xx_control[i + 1] ) )
 
     def defOneWay( self, config ):
         letters = list( string.ascii_uppercase )
