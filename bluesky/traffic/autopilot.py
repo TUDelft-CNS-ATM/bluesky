@@ -160,8 +160,8 @@ class Autopilot(Entity, replaceable=True):
             if alt >= -0.01:
                 bs.traf.actwp.nextaltco[i] = alt  # [m]
 
-            if not bs.traf.swlnav[i]:
-                bs.traf.actwp.spd[i] = -999.
+            #if not bs.traf.swlnav[i]:
+            #    bs.traf.actwp.spd[i] = -997.
 
             # VNAV spd mode: use speed of this waypoint as commanded speed
             # while passing waypoint and save next speed for passing next wp
@@ -328,7 +328,7 @@ class Autopilot(Entity, replaceable=True):
 
         # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
         # and same for turn logic
-        usenextspdcon = (self.dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd> -990.) * \
+        usenextspdcon = (self.dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd>-990.) * \
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
         useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,\
                                    (self.dist2wp < dxturnspdchg+bs.traf.actwp.turndist) * \
@@ -343,7 +343,7 @@ class Autopilot(Entity, replaceable=True):
 
         # Avoid using old turning speeds when turning of this leg to the next leg
         # by disabling (old) turningspd when on leg
-        bs.traf.actwp.oldturnspd = np.where(oncurrentleg*(bs.traf.actwp.oldturnspd>0.), -999.,
+        bs.traf.actwp.oldturnspd = np.where(oncurrentleg*(bs.traf.actwp.oldturnspd>0.), -998.,
                                             bs.traf.actwp.oldturnspd)
 
         # turnfromlastwp can only be switched off here, not on (latter happens upon passing wp)
@@ -355,10 +355,10 @@ class Autopilot(Entity, replaceable=True):
                                            np.where((bs.traf.actwp.spdcon>=0)*bs.traf.swvnavspd,bs.traf.actwp.spd,
                                                                             bs.traf.selspd)))
 
-
         # Temporary override when still in old turn
         bs.traf.selspd = np.where(inoldturn*(bs.traf.actwp.oldturnspd>0.)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
                                   bs.traf.actwp.oldturnspd,bs.traf.selspd)
+
 
         #debug if inoldturn[0]:
         #debug     print("inoldturn bs.traf.trk =",bs.traf.trk[0],"qdr =",qdr)
