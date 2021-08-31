@@ -4,9 +4,11 @@ from PyQt5.Qt import QDesktopServices, QUrl, QApplication
 from PyQt5.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
+from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
 from bluesky.core.signal import Signal
 from . import autocomplete
+
 
 cmdline_stacked = Signal('cmdline_stacked')
 
@@ -49,7 +51,11 @@ class Console(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.command_history = []
+        with cachefile.openfile('console_history.p') as cache:
+            try:
+                self.command_history = cache.load()
+            except:
+                self.command_history = []
         self.cmd = ''
         self.args = []
         self.history_pos = 0
@@ -63,6 +69,14 @@ class Console(QWidget):
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
         Console._instance = self
+
+        # Connect function to save command history on quit
+        QApplication.instance().aboutToQuit.connect(self.close)
+
+    def close(self):
+        ''' Save command history when BlueSky closes. '''
+        with cachefile.openfile('console_history.p') as cache:
+            cache.dump(self.command_history)
 
     def on_simevent_received(self, eventname, eventdata, sender_id):
         ''' Processing of events from simulation nodes. '''
