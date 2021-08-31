@@ -86,7 +86,7 @@ class Console(QWidget):
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:
             # self.stackText.setPlainText(nodedata.echo_text)
-            self.stackText.setHtml(nodedata.echo_text.replace('\n', '<br>'))
+            self.stackText.setHtml(nodedata.echo_text.replace('\n', '<br>') + '<br>')
             self.stackText.verticalScrollBar().setValue(
                 self.stackText.verticalScrollBar().maximum())
 
@@ -105,7 +105,7 @@ class Console(QWidget):
         actdata = bs.net.get_nodedata()
         actdata.echo(text)
         # self.stackText.append(text)
-        self.stackText.insertHtml(text.replace('\n', '<br>'))
+        self.stackText.insertHtml(text.replace('\n', '<br>') + '<br>')
         self.stackText.verticalScrollBar().setValue(
             self.stackText.verticalScrollBar().maximum())
 
