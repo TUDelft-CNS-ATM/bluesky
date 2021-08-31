@@ -174,6 +174,9 @@ class OpenAP(PerfBase):
         # append update actypes, after removing unknown types
         self.actype[-n:] = [actype] * n
 
+        # Update envelope speed limits
+        self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(self.actype[-1:], self.phase[-n:])
+
     def update(self, dt):
         """Periodic update function for performance calculations."""
         # update phase, infer from spd, roc, alt
@@ -283,7 +286,6 @@ class OpenAP(PerfBase):
         allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
 
         intent_v_cas = aero.vtas2cas(intent_v_tas, allow_h)
-
         allow_v_cas = np.where((intent_v_cas < self.vmin), self.vmin, intent_v_cas)
         allow_v_cas = np.where(intent_v_cas > self.vmax, self.vmax, allow_v_cas)
         allow_v_tas = aero.vcas2tas(allow_v_cas, allow_h)
