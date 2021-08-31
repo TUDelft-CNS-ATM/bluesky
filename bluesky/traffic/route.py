@@ -142,19 +142,6 @@ class Route(Replaceable):
                 bs.scr.echo('Current ADDWPT mode is FLYTURN.')
                 return True
             
-    # "ADDWPT": [
-    #         "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
-    #         "acid,wpt,[alt,spd,wpinroute,wpinroute]",
-    #         #
-    #         # lambda *arg: short-hand for using function output as argument, equivalent with:
-    #         #
-    #         # def fun(idx, args):
-    #         #     return bs.traf.ap.route[idx].addwptStack(idx, *args)
-    #         # fun(idx,*args)
-    #         #
-    #         lambda idx, *args: bs.traf.ap.route[idx].addwptStack(idx, *args),
-    #         "Add a waypoint to route of aircraft (FMS)",
-    #     ],
     @stack.command(name='ADDWPT', annotations='acid,wpt,[alt,spd,wpinroute,wpinroute]', aliases=("WPTYPE",))
     @staticmethod
     def addwptStack(acidx, *args):  # args: all arguments of addwpt
@@ -378,13 +365,6 @@ class Route(Replaceable):
         else:
             return True
 
-    #     "BEFORE": [
-    #     "acid BEFORE beforewp ADDWPT (wpname/lat,lon),[alt,spd]",
-    #     "acid,wpinroute,txt,wpt,[alt,spd]",
-    #     lambda idx, * \
-    #     args: bs.traf.ap.route[idx].beforeaddwptStack(idx, *args),
-    #     "",
-    # ],
     @stack.command
     @staticmethod
     def before(acidx : 'acid', beforewp: 'wpinroute', addwpt, waypoint, alt: 'alt' = None, spd: 'spd' = None):
@@ -787,13 +767,6 @@ class Route(Replaceable):
 
         return idx
 
-
-    # "DIRECT": [
-    #     "DIRECT acid wpname",
-    #     "acid,txt",
-    #     lambda idx, wpname: bs.traf.ap.route[idx].direct(idx, wpname),
-    #     "Go direct to specified waypoint in route (FMS)",
-    # ],
     @stack.command(aliases=("DIRECTTO", "DIRTO"))
     @staticmethod
     def direct(acidx: 'acid', wpname: 'wpinroute'):
