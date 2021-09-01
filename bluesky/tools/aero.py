@@ -3,6 +3,10 @@
 from math import *
 import numpy as np
 
+from bluesky import settings
+
+
+settings.set_variable_defaults(casmach_threshold=2.0)
 # International standard atmpshere only up to 72000 ft / 22 km
 
 #
@@ -27,6 +31,25 @@ gamma2 = 3.5                # gamma/(gamma-1) for air
 beta = -0.0065              # [K/m] ISA temp gradient below tropopause
 Rearth = 6371000.           # m  Average earth radius
 a0  = np.sqrt(gamma*R*T0)   # sea level speed of sound ISA
+casmach_thr = settings.casmach_threshold # Threshold below which speeds should
+                            # be considered as Mach numbers in casormach* functions
+
+
+def casmachthr(threshold:float=None):
+    """ CASMACHTHR threshold
+
+        Set a threshold below which speeds should be considered as Mach numbers
+        in CRE(ATE), ADDWPT, and SPD commands. Set to zero if speeds should
+        never be considered as Mach number (e.g., when simulating drones).
+
+        Argument:
+        - threshold: CAS speed threshold [m/s] 
+    """
+    if threshold is None:
+        return True, f'CASMACHTHR: The current CAS/Mach threshold is {casmach_thr} m/s ({casmach_thr / kts} kts'
+
+    globals()['casmach_thr'] = threshold
+    return True, f'CASMACHTHR: Set CAS/Mach threshold to {threshold}'
 
 
 #
@@ -279,11 +302,26 @@ def vcasormach(spd, h):
         - cas: Calibrated airspeed [m/s]
         - mach: Mach number [-]
     """
-    ismach = np.logical_and(spd > 0.1, spd < 2.0)
+    ismach = np.logical_and(spd > 0.1, spd < casmach_thr)
     tas = np.where(ismach, vmach2tas(spd, h), vcas2tas(spd, h))
     cas = np.where(ismach, vtas2cas(tas, h), spd)
     mach   = np.where(ismach, spd, vtas2mach(tas, h))
     return tas, cas, mach
+
+
+def vcasormach2tas(spd, h):
+    """ Interpret input speed as either CAS or a Mach number, and return TAS.
+
+        Arguments:
+        - spd: Airspeed. Interpreted as Mach number [-] when its value is below the
+               CAS/Mach threshold. Otherwise interpreted as CAS [m/s].
+        - h: Altitude [m]
+
+        Returns:
+        - tas: True airspeed [m/s]
+    """
+    ismach = np.logical_and(spd > 0.1, spd < casmach_thr)
+    return np.where(ismach, vmach2tas(spd, h), vcas2tas(spd, h))
 
 
 def crossoveralt(cas, mach):
@@ -506,7 +544,7 @@ def cas2mach(cas, h):
     return M
 
 def casormach(spd,h):
-    if 0.1 < spd < 2.0:
+    if 0.1 < spd < casmach_thr:
         # Interpret spd as Mach number
         tas = mach2tas(spd, h)
         cas = mach2cas(spd, h)
@@ -519,7 +557,7 @@ def casormach(spd,h):
     return tas, cas, m
 
 def casormach2tas(spd,h):
-    if 0.1 < spd < 2.0:
+    if 0.1 < spd < casmach_thr:
         # Interpret spd as Mach number
         tas = mach2tas(spd, h)
     else:

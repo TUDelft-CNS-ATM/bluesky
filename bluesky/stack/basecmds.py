@@ -5,7 +5,7 @@ import os
 import bluesky as bs
 from bluesky import settings
 from bluesky.core import select_implementation, simtime, varexplorer as ve
-from bluesky.tools import geo, areafilter, plotter
+from bluesky.tools import geo, aero, areafilter, plotter
 from bluesky.tools.calculator import calculator
 from bluesky.stack.cmdparser import append_commands
 
@@ -112,6 +112,14 @@ def initbasecmds():
             "string",
             calculator,
             "Simple in-line math calculator, evaluates expression",
+        ],
+        "CASMACHTHR": [
+            "CASMACHTHR threshold",
+            "float",
+            aero.casmachthr,
+            """Set a threshold below which speeds should be considered as Mach numbers
+               in CRE(ATE), ADDWPT, and SPD commands. Set to zero if speeds should
+               never be considered as Mach number(e.g., when simulating drones)."""
         ],
         "CD": [
             "CD [path]",
