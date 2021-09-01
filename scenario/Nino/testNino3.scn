@@ -1,0 +1,39 @@
+ Traffic generator scenario file made with an SLR fileT
+#
+00:00:00.00>SAVEIC contestSW
+
+00:00:00.00>plugin load trafgen
+# 00:00:00.00>CALL EHAM/FIR-NL-EHAA
+00:00:00.00>TAXI OFF 1800
+00:00:00.00>DTLOOK 10
+00:00:00.00>ZONER 1
+# 00:00:00.00>RSZONER 1
+
+
+# Add more oil rigs
+00:00:00.00>DEFWPT EHFE, N54'59'07",E004'54'00"
+
+# Define spawning circle SPAWN with centerlat[deg],centerlon[deg],radius[nm]
+00:00:00.01>trafgen CIRCLE 52.6,5.4,230.0
+
+# Global gain (factor) for traffic generation/density
+00:00:00.01>trafgen GAIN 1.0
+
+# Runways for all airport except Schiphol EHAM South-Western wind (most common wind direction NL)
+# 00:00:00.00>CALL Contest/runwayuse-SWwind
+
+# Wind profile
+00:00:00.00>WIND 52,4, 0,230,0, 5,230,0, 1000,230,10, 5000,235,15, FL70,245,50
+
+# Departing from EHAM 
+
+# 00:00:00.00>trafgen SRC EHAM DEST LTAI 4 B738:1 A320:1 A321:1 B38M:1
+00:00:00.00>trafgen SRC EHAM DEST EBBR 3 B738:3
+# 00:00:00.00>trafgen SRC EHAM DEST LGKR 2 B738:2
+# 00:00:00.00>trafgen SRC EHAM DEST LGKO 2 B738:2
+# 00:00:00.00>trafgen SRC EHAM DEST LGZA 4 B738:4
+# 00:00:00.00>trafgen SRC EHAM DEST LTFE 2 B738:2
+
+00:00:00.00>trafgen SRC EHAM FLOW 70.0
+00:00:00.00>LNAV ON
+00:00:00.00>VNAV ON
