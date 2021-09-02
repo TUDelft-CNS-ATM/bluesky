@@ -48,7 +48,7 @@ class intent(core.Entity):
 
     # Functions that need to be called periodically can be indicated to BlueSky
     # with the timed_function decorator
-    @core.timed_function(name='example', dt=settings.asas_dt, hook='preupdate')
+    @core.timed_function(name='example', dt=settings.asas_dt/2)
     def update(self):
         
         # calculate intent if the switch is on
