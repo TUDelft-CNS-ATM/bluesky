@@ -29,7 +29,7 @@ class ingeoFence(core.Entity):
         with self.settrafarrays():
             self.ingeofence = np.array([],dtype=bool)
 
-    @core.timed_function(name='ingeofence', dt=settings.asas_dt, hook='postupdate')
+    @core.timed_function(name='ingeofence', dt=settings.asas_dt)
     def update(self):
         #check for each aircraft if it interferes with one of the geofences
         for i in traf.id:
@@ -52,11 +52,7 @@ class ingeoFence(core.Entity):
 
         # get the aircraft intent to check against current geofence
         # at startup aircraft dont have intent yet, if so, return False
-        # TODO ask if there is a more elegant solution to this (instead of try and except).
-        try:
-            acintent = traf.intent[acid]
-        except:
-            return False
+        acintent = traf.intent[acid]
 
         #construct the multipolygon object from all the polygons
         #this way you only have to check each aircraft against one shapely object instead of when each geofence in its own.
