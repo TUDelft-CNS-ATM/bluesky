@@ -182,7 +182,6 @@ class hybridcd(ConflictDetection):
             fpint = traf.flightphase[idxint]
             
             if (fpown == 0 and fpint == 1) or (fpown == 2 and fpint == 0):
-                
                 if own_target_alt > intruder_target_alt:
                     diff = own_target_alt - intruder_target_alt
                     verticalCondition = hpz >= abs(diff)
@@ -196,10 +195,18 @@ class hybridcd(ConflictDetection):
                     verticalCondition = hpz >= abs(diff)
                 else:
                     verticalCondition = swverconf[idxown]
-            
+                    
+            elif (fpown == 0 and fpint == 0):
+                
+                if own_target_alt > intruder_target_alt:
+                    diff = own_target_alt - intruder_target_alt
+                    verticalCondition = hpz >= abs(diff)
+                else:
+                    verticalCondition = swverconf[idxown]
+                    
             else:
                 verticalCondition = swverconf[idxown]   
-            
+                
             # if fpown != fpint:
             #     diff = own_target_alt - intruder_target_alt
             #     verticalCondition = hpz >= abs(diff)
