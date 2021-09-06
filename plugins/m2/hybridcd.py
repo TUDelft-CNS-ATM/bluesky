@@ -181,11 +181,30 @@ class hybridcd(ConflictDetection):
             fpown = traf.flightphase[idxown]
             fpint = traf.flightphase[idxint]
             
-            if fpown != fpint:
-                diff = own_target_alt - intruder_target_alt
-                verticalCondition = hpz >= abs(diff)
+            if (fpown == 0 and fpint == 1) or (fpown == 2 and fpint == 0):
+                
+                if own_target_alt > intruder_target_alt:
+                    diff = own_target_alt - intruder_target_alt
+                    verticalCondition = hpz >= abs(diff)
+                else:
+                    verticalCondition = swverconf[idxown]  
+                    
+            elif (fpown == 0 and fpint == 2) or (fpown == 1 and fpint == 0) :
+                
+                if own_target_alt < intruder_target_alt:
+                    diff = own_target_alt - intruder_target_alt
+                    verticalCondition = hpz >= abs(diff)
+                else:
+                    verticalCondition = swverconf[idxown]
+            
             else:
-                verticalCondition = swverconf[idxown]      
+                verticalCondition = swverconf[idxown]   
+            
+            # if fpown != fpint:
+            #     diff = own_target_alt - intruder_target_alt
+            #     verticalCondition = hpz >= abs(diff)
+            # else:
+            #     verticalCondition = swverconf[idxown]      
                 
             # Basically, there are two conditions to be met in order to skip
             # a conflict due to intent:

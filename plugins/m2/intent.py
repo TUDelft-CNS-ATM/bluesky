@@ -71,13 +71,14 @@ class intent(core.Entity):
             #------------ Vertical----------------
             # If there is a vertical maneuver going on, target altitude is intent.
             # Otherwise, intent is simply current altitude.
-            iwpid = traf.ap.route[idx].findact(idx)
-            if iwpid > -1:
-                # There is a maneuver going on
-                intentAlt = ownship.selalt[idx]
-            else:
-                # No maneuver going on
-                intentAlt = ownship.alt[idx]
+            # iwpid = traf.ap.route[idx].findact(idx)
+            # if iwpid > -1:
+            #     # There is a maneuver going on
+            #     intentAlt = ownship.selalt[idx]
+            # else:
+            #     # No maneuver going on
+            #     intentAlt = ownship.alt[idx]
+            intentAlt = ownship.selalt[idx]
                 
             #------------Horizontal-----------------
             # First, get route
