@@ -58,7 +58,7 @@ class hybridreso(ConflictResolution):
         newgs  = copy.deepcopy(traf.gs)
         newalt = copy.deepcopy(traf.ap.alt)
         newtrk = copy.deepcopy(traf.ap.trk)
-        newvs  = copy.deepcopy(traf.vs)
+        newvs  = copy.deepcopy(traf.ap.vs)
         
         # Loop through each conflict, determine the resolution method, and set 
         # the resolution for the asas module
