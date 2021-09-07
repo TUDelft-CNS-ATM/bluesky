@@ -177,7 +177,7 @@ class OpenAP(PerfBase):
         # Update envelope speed limits
         mask = np.zeros_like(self.actype, dtype=bool)
         mask[-n:] = True
-        self.vmin, self.vmax = self._construct_v_limits(mask)
+        self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(mask)
 
     def update(self, dt):
         """Periodic update function for performance calculations."""
@@ -395,7 +395,9 @@ class OpenAP(PerfBase):
         vmin[ir] = vminr
         vmax[ir] = vmaxr
 
-        return vmin, vmax
+        if isinstance(mask, bool):
+            return vmin, vmax
+        return vmin[mask], vmax[mask]
 
     def calc_axmax(self):
         # accelerations depending on phase and wing type
