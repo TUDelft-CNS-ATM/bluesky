@@ -127,7 +127,7 @@ class flightphase(core.Entity):
         dtlookdown = np.abs(traf.layerHeight/vsMinOwn)*1.5
         
         # update CD lookahead based on flight phase
-        traf.cd.dtlookahead = np.where(climbCondition, dtlookup, np.where(descendCondition, dtlookdown, settings.asas_dtlookahead))
+        # traf.cd.dtlookahead = np.where(climbCondition, dtlookup, np.where(descendCondition, dtlookdown, settings.asas_dtlookahead))
         
         
     @stack.command
