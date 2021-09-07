@@ -322,7 +322,6 @@ class hybridreso(ConflictResolution):
                         traf.selalt[idx] = traf.resoalt[idx]
                     elif traf.resostrategy[idx] == "RESO2":
                         traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
-                        traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                     elif traf.resostrategy[idx] == "RESO3":
                         traf.ap.vs[idx] = traf.resovs[idx]
                         traf.ap.tas[idx] = traf.resospd[idx]
@@ -386,16 +385,12 @@ class hybridreso(ConflictResolution):
                     if not conflictProbe(ownship, intruder, idx, targetGs=traf.recoveryspd[idx]):
                         traf.resostrategy[idx] = "None"
                         traf.ap.route[idx] = traf.preresoroute[idx]
-                        stack.stack(f"ALT {traf.id[idx]} {traf.ap.route[idx].wpalt[iwpid]/ft}")
                         stack.stack(f"SPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts}")
-                        # stack.stack(f"ATSPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts} VNAV {traf.id[idx]} ON")
-                        # stack.stack(f"ATSPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts} LNAV {traf.id[idx]} ON")
-                        # stack.stack(f"DELAY 15 VNAV {traf.id[idx]} ON") # ----> MAY NEED TO BE CHANGED!!!
-                        # stack.stack(f"DELAY 15 LNAV {traf.id[idx]} ON")
+                        stack.stack(f"ATSPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts} VNAV {traf.id[idx]} ON")
+                        stack.stack(f"ATSPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts} LNAV {traf.id[idx]} ON")
                     else:
                         # keep flying the reso spd
                         traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
-                        traf.ap.route[idx].direct(idx, traf.ap.route[idx].wpname[iwpid])
                         
                 elif traf.resostrategy[idx] == "RESO3":
                     # conflict probe direction depends on whether the aircraft
