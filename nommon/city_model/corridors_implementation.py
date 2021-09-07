@@ -229,6 +229,7 @@ def corridorLoad( G, segments, config ):
     '''
     # reads the list of active corridors defined in the settings file
     active_corridors = str2intList( config['Corridors']['corridors'] )
+    print( 'Active corridors', active_corridors )
     # reads the path to the csv file containing the points of the corridors
     file_path_corridors = config['Corridors']['file_path_corridors']
     # Reads the altitude defined for the corridors
@@ -243,7 +244,7 @@ def corridorLoad( G, segments, config ):
         # Creates a unique name for the corridor
         name = 'COR_' + corridor
         # Creates a name for the a corridor in the opposite direction
-        name_rev = 'COR_r_'
+        name_rev = 'COR_r_' + corridor
         # Get corridor coordinates
         corridor_coordinates = getCorridorCoordinates( corridor, file_path_corridors )
         # Creates the segments of the corridor
