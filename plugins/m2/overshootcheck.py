@@ -37,7 +37,7 @@ class overshootCheck(core.Entity):
         ''' This function gets called automatically when new aircraft are created. '''
         # Don't forget to call the base class create when you reimplement this function!
         super().create(n)
-        # set the initial distance very high so the checker wont trigger when the last waypoing is incidentally very far away
+        # set the initial distance very high so the checker wont trigger when the last waypoint is incidentally very far away
         self.wptdist[-n:] = 99999
 
     @core.timed_function(name='overshotcheck', dt=5)
@@ -90,4 +90,18 @@ class overshootCheck(core.Entity):
             self.wptdist[acid] = dist
         elif dist is None:
             val = False
+        return val
+
+    @stack.command
+    def echoacovershot(self, acid: 'acid'):
+        ''' Print the if an acid is in conflict with a geofence '''
+        overshot = self.getacovershot(acid)
+        if overshot:
+            return True, f'{traf.id[acid]} has overshot.'
+        elif not overshot:
+            return True, f'{traf.id[acid]} has not overshot.'
+
+    def getacovershot(self, acid: 'acid'):
+        ''' return the bool value in ingeofence of a specific acid '''
+        val = self.overshot[acid]
         return val
