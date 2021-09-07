@@ -55,7 +55,7 @@ class hybridreso(ConflictResolution):
              
         # Make a copy of the traffic gs, alt, trk and vs. These are the outputs of this function.
         # The airborne algorithms of the hybrid algorithms will only affect alt and gs
-        newgs  = copy.deepcopy(traf.gs)
+        newgs  = copy.deepcopy(traf.ap.tas)
         newalt = copy.deepcopy(traf.ap.alt)
         newtrk = copy.deepcopy(traf.ap.trk)
         newvs  = copy.deepcopy(traf.ap.vs)
@@ -388,8 +388,8 @@ class hybridreso(ConflictResolution):
                         traf.ap.route[idx] = traf.preresoroute[idx]
                         stack.stack(f"ALT {traf.id[idx]} {traf.ap.route[idx].wpalt[iwpid]/ft}")
                         stack.stack(f"SPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts}")
-                        stack.stack(f"ATSPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts} VNAV {traf.id[idx]} ON")
-                        stack.stack(f"ATSPD {traf.id[idx]} {traf.ap.route[idx].wpspd[iwpid]/kts} LNAV {traf.id[idx]} ON")
+                        stack.stack(f"DELAY 15 VNAV {traf.id[idx]} ON") # ----> MAY NEED TO BE CHANGED!!!
+                        stack.stack(f"DELAY 15 LNAV {traf.id[idx]} ON")
                     else:
                         # keep flying the reso spd
                         traf.ap.route[idx].wpspd[iwpid] = traf.resospd[idx]
