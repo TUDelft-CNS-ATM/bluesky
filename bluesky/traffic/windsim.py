@@ -20,15 +20,15 @@ class WindSim(Entity, Windfield, replaceable=True):
             if winddata[1] is None or winddata[2] is None:
                return False, "Wind direction and speed needed."
 
-            self.addpoint(lat,lon,winddata[1],winddata[2]*kts)
+            self.addpoint(lat,lon,winddata[1],winddata[2]) #* kts)
 
         # More than one altitude is given
         elif ndata > 3:
             windarr = array(winddata)
             dirarr = windarr[1::3]
-            spdarr = windarr[2::3] * kts
+            spdarr = windarr[2::3] #* kts
             altarr = windarr[0::3]
-
+            
             self.addpoint(lat,lon,dirarr,spdarr,altarr)
 
         elif winddata.count("DEL") > 0:
@@ -39,13 +39,15 @@ class WindSim(Entity, Windfield, replaceable=True):
 
         return True
 
+
     def get(self, lat, lon, alt=None):
         """ Get wind vector at gioven position (and optioanlly altitude)"""
+        
         vn,ve = self.getdata(lat,lon,alt)
 
-        wdir = (degrees(arctan2(ve,vn)) + 180.) % 360.
+        wdir = (degrees(arctan2(ve,vn)) + 360.) % 360.
         wspd = sqrt(vn * vn + ve * ve)
 
-        txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,round(wdir),round(wspd/kts))
+        txt  = "WIND AT %.5f, %.5f: %03d/%d" % (lat,lon,round(wdir),round(wspd))#/kts))
 
         return True, txt

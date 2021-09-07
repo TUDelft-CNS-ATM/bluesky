@@ -88,8 +88,8 @@ class Windfield():
             prof3D = True # switch on 3D parameter as an altitude array is given
             wspd   = array(windspd)
             wdir   = array(winddir)
-            altvn  = wspd*cos(radians(wdir)+pi)
-            altve  = wspd*sin(radians(wdir)+pi)
+            altvn  = wspd*cos(radians(wdir))
+            altve  = wspd*sin(radians(wdir))
             alttab = windalt
 
             vnaxis = interp(self.altaxis, alttab, altvn)
