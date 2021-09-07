@@ -3,16 +3,29 @@ from numpy import arctan2,degrees,array,sqrt # to allow arrays, their functions 
 
 from bluesky.tools.aero import kts
 from bluesky.core import Entity
+from bluesky.stack import command
 from .windfield import Windfield
 
 
 class WindSim(Entity, Windfield, replaceable=True):
-    def add(self, *arg):
+    @command(name='WIND')
+    def add(self, lat: 'lat', lon: 'lon', *winddata: 'alt/float'):
+        """ Define a wind vector as part of the 2D or 3D wind field.
 
-        lat = arg[0]
-        lon = arg[1]
-        winddata = arg[2:]
-
+            Arguments:
+            - lat/lon: Horizonal position to define wind vector(s)
+            - winddata: 
+              - If the wind at this location is independent of altitude
+                winddata has two elements:
+                - direction [degrees]
+                - speed (magnitude) [knots]
+              - If the wind varies with altitude winddata has three elements:
+                - altitude [ft]
+                - direction [degrees]
+                - speed (magnitude) [knots]
+                In this case, repeating combinations of alt/dir/spd can be provided
+                to specify wind at multiple altitudes.
+        """
         ndata = len(winddata)
 
         # No altitude or just one: same wind for all altitudes at this position
@@ -39,8 +52,14 @@ class WindSim(Entity, Windfield, replaceable=True):
 
         return True
 
-    def get(self, lat, lon, alt=None):
-        """ Get wind vector at gioven position (and optioanlly altitude)"""
+    @command(name='GETWIND')
+    def get(self, lat: 'lat', lon: 'lon', alt: 'alt'=None):
+        """ Get wind at a specified position (and optionally at altitude) 
+        
+            Arguments:
+            - lat, lon: Horizontal position where wind should be determined [deg]
+            - alt: Altitude at which wind should be determined [ft]
+        """
         vn,ve = self.getdata(lat,lon,alt)
 
         wdir = (degrees(arctan2(ve,vn)) + 180.) % 360.

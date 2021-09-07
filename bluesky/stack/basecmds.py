@@ -226,12 +226,7 @@ def initbasecmds():
             lambda flag, *args: bs.sim.ff(*args) if flag else bs.op(),
             "Legacy function for TMX compatibility",
         ],
-        "GETWIND": [
-            "GETWIND lat,lon,[alt]",
-            "latlon,[alt]",
-            bs.traf.wind.get,
-            "Get wind at a specified position (and optionally at altitude)",
-        ],
+
         "GROUP": [
             "GROUP [grname, (areaname OR acid,...) ]",
             "[txt,acid/txt,...]",
@@ -396,13 +391,7 @@ def initbasecmds():
             bs.traf.groups.ungroup,
             "Remove aircraft from a group",
         ],
-        "WIND": [
-            "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
-            # last 3 args are repeated
-            "latlon,[alt],float,alt/float,...,",
-            bs.traf.wind.add,
-            "Define a wind vector as part of the 2D or 3D wind field",
-        ],
+
         "ZOOM": [
             "ZOOM IN/OUT or factor",
             "float/txt",
