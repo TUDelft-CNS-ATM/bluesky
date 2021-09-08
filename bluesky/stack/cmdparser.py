@@ -159,7 +159,7 @@ class Command:
 
     def helptext(self, subcmd=''):
         ''' Return complete help text. '''
-        msg = f'{self.help}\nUsage:\n{self.brief}'
+        msg = f'<div style="white-space: pre;">{self.help}</div>\nUsage:\n{self.brief}'
         if self.aliases:
             msg += ('\nCommand aliases: ' + ','.join(self.aliases))
         if self._callback.__name__ == '<lambda>':

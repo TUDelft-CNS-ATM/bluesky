@@ -11,7 +11,7 @@ from bluesky import stack
 from bluesky.tools import geo
 from bluesky.tools.misc import degto180
 from bluesky.tools.position import txt2pos
-from bluesky.tools.aero import ft, nm, fpm, kts, vmach2tas, vcas2tas, tas2cas, cas2tas, g0
+from bluesky.tools.aero import ft, nm, fpm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
 from bluesky.core import Entity, timed_function
 from .route import Route
 
@@ -321,9 +321,7 @@ class Autopilot(Entity, replaceable=True):
         # Note that because nextspd comes from the stack, and can be either a mach number or
         # a calibrated airspeed, it can only be converted from Mach / CAS [kts] to TAS [m/s]
         # once the altitude is known.
-        nexttas = np.where(np.abs(bs.traf.actwp.nextspd) < 2.0,
-                           vmach2tas(bs.traf.actwp.nextspd, bs.traf.alt),
-                           vcas2tas(bs.traf.actwp.nextspd * kts, bs.traf.alt))
+        nexttas = vcasormach2tas(bs.traf.actwp.nextspd, bs.traf.alt)
 
 #        tasdiff   = (nexttas - bs.traf.tas)*(bs.traf.actwp.spd>=0.) # [m/s]
 
@@ -378,9 +376,7 @@ class Autopilot(Entity, replaceable=True):
         #debug     print("no speed given")
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
-        self.tas = np.where(np.abs(bs.traf.selspd) < 2.0,
-                            vmach2tas(bs.traf.selspd, bs.traf.alt),
-                            vcas2tas(bs.traf.selspd, bs.traf.alt))
+        self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
 
     def ComputeVNAV(self, idx, toalt, xtoalt, torta, xtorta):
         # debug print ("ComputeVNAV for",bs.traf.id[idx],":",toalt/ft,"ft  ",xtoalt/nm,"nm")
@@ -513,7 +509,7 @@ class Autopilot(Entity, replaceable=True):
 
             # Subtract tail wind speed vector
             tailwind = (bs.traf.windnorth[idx]*bs.traf.gsnorth[idx] + bs.traf.windeast[idx]*bs.traf.gseast[idx]) / \
-                         bs.traf.gs[idx]*bs.traf.gs[idx]
+                        bs.traf.gs[idx]
 
             # Convert to CAS
             rtacas = tas2cas(gsrta-tailwind,bs.traf.alt[idx])
@@ -821,6 +817,7 @@ def calcvrta(v0, dx, deltime, trafax):
     # Normal case is one solution
     else:
         vtarg = vlst[0]
+
     return vtarg
 
 def distaccel(v0,v1,axabs):

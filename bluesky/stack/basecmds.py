@@ -5,7 +5,7 @@ import os
 import bluesky as bs
 from bluesky import settings
 from bluesky.core import select_implementation, simtime, varexplorer as ve
-from bluesky.tools import geo, areafilter, plotter
+from bluesky.tools import geo, aero, areafilter, plotter
 from bluesky.tools.calculator import calculator
 from bluesky.stack.cmdparser import append_commands
 
@@ -113,6 +113,14 @@ def initbasecmds():
             calculator,
             "Simple in-line math calculator, evaluates expression",
         ],
+        "CASMACHTHR": [
+            "CASMACHTHR threshold",
+            "float",
+            aero.casmachthr,
+            """Set a threshold below which speeds should be considered as Mach numbers
+               in CRE(ATE), ADDWPT, and SPD commands. Set to zero if speeds should
+               never be considered as Mach number(e.g., when simulating drones)."""
+        ],
         "CD": [
             "CD [path]",
             "[word]",
@@ -218,12 +226,7 @@ def initbasecmds():
             lambda flag, *args: bs.sim.ff(*args) if flag else bs.op(),
             "Legacy function for TMX compatibility",
         ],
-        "GETWIND": [
-            "GETWIND lat,lon,[alt]",
-            "latlon,[alt]",
-            bs.traf.wind.get,
-            "Get wind at a specified position (and optionally at altitude)",
-        ],
+
         "GROUP": [
             "GROUP [grname, (areaname OR acid,...) ]",
             "[txt,acid/txt,...]",
@@ -388,13 +391,7 @@ def initbasecmds():
             bs.traf.groups.ungroup,
             "Remove aircraft from a group",
         ],
-        "WIND": [
-            "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
-            # last 3 args are repeated
-            "latlon,[alt],float,alt/float,...,",
-            bs.traf.wind.add,
-            "Define a wind vector as part of the 2D or 3D wind field",
-        ],
+
         "ZOOM": [
             "ZOOM IN/OUT or factor",
             "float/txt",

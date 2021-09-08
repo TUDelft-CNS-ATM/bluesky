@@ -130,7 +130,7 @@ if np and sp and mpl:
 print("Checking bluesky modules")
 try:
     import bluesky
-    bluesky.init()
+    bluesky.init(mode='client')
     from bluesky.ui import *
     from bluesky.stack import *
     from bluesky.simulation import *

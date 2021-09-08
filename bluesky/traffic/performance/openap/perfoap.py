@@ -175,7 +175,9 @@ class OpenAP(PerfBase):
         self.actype[-n:] = [actype] * n
 
         # Update envelope speed limits
-        self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(self.actype[-1:], self.phase[-n:])
+        mask = np.zeros_like(self.actype, dtype=bool)
+        mask[-n:] = True
+        self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(mask)
 
     def update(self, dt):
         """Periodic update function for performance calculations."""
@@ -186,7 +188,7 @@ class OpenAP(PerfBase):
         )
 
         # update speed limits, based on phase change
-        self.vmin, self.vmax = self._construct_v_limits(self.actype, self.phase)
+        self.vmin, self.vmax = self._construct_v_limits()
 
         idx_fixwing = np.where(self.lifttype == coeff.LIFT_FIXWING)[0]
 
@@ -344,21 +346,21 @@ class OpenAP(PerfBase):
         else:
             return vtasmin, vtasmax, self.vsmin, self.vsmax
 
-    def _construct_v_limits(self, actypes, phases):
+    def _construct_v_limits(self, mask=True):
         """Compute speed limist base on aircraft model and flight phases
 
         Args:
-            actypes (String or 1D-array): aircraft type / model
-            phases (int or 1D-array): aircraft flight phases
+            mask: Indices (boolean) for aircraft to construct speed limits for.
+                  When no indices are passed, all aircraft are updated.
 
         Returns:
             2D-array: vmin, vmax
         """
-        n = len(actypes)
+        n = len(self.actype)
         vmin = np.zeros(n)
         vmax = np.zeros(n)
 
-        ifw = np.where(self.lifttype == coeff.LIFT_FIXWING)[0]
+        ifw = np.where(np.logical_and(self.lifttype == coeff.LIFT_FIXWING, mask))[0]
         vminfw = np.zeros(len(ifw))
         vmaxfw = np.zeros(len(ifw))
 
@@ -366,25 +368,25 @@ class OpenAP(PerfBase):
         # obtain flight envelope for speed, roc, and alt, based on flight phase
 
         # --- minimum speed ---
-        vminfw = np.where(phases[ifw] == ph.NA, 0, vminfw)
-        vminfw = np.where(phases[ifw] == ph.IC, self.vminic[ifw], vminfw)
+        vminfw = np.where(self.phase[ifw] == ph.NA, 0, vminfw)
+        vminfw = np.where(self.phase[ifw] == ph.IC, self.vminic[ifw], vminfw)
         vminfw = np.where(
-            (phases[ifw] >= ph.CL) | (phases[ifw] <= ph.DE), self.vminer[ifw], vminfw
+            (self.phase[ifw] >= ph.CL) | (self.phase[ifw] <= ph.DE), self.vminer[ifw], vminfw
         )
-        vminfw = np.where(phases[ifw] == ph.AP, self.vminap[ifw], vminfw)
-        vminfw = np.where(phases[ifw] == ph.GD, 0, vminfw)
+        vminfw = np.where(self.phase[ifw] == ph.AP, self.vminap[ifw], vminfw)
+        vminfw = np.where(self.phase[ifw] == ph.GD, 0, vminfw)
 
         # --- maximum speed ---
-        vmaxfw = np.where(phases[ifw] == ph.NA, self.vmaxer[ifw], vmaxfw)
-        vmaxfw = np.where(phases[ifw] == ph.IC, self.vmaxic[ifw], vmaxfw)
+        vmaxfw = np.where(self.phase[ifw] == ph.NA, self.vmaxer[ifw], vmaxfw)
+        vmaxfw = np.where(self.phase[ifw] == ph.IC, self.vmaxic[ifw], vmaxfw)
         vmaxfw = np.where(
-            (phases[ifw] >= ph.CL) | (phases[ifw] <= ph.DE), self.vmaxer[ifw], vmaxfw
+            (self.phase[ifw] >= ph.CL) | (self.phase[ifw] <= ph.DE), self.vmaxer[ifw], vmaxfw
         )
-        vmaxfw = np.where(phases[ifw] == ph.AP, self.vmaxap[ifw], vmaxfw)
-        vmaxfw = np.where(phases[ifw] == ph.GD, self.vmaxic[ifw], vmaxfw)
+        vmaxfw = np.where(self.phase[ifw] == ph.AP, self.vmaxap[ifw], vmaxfw)
+        vmaxfw = np.where(self.phase[ifw] == ph.GD, self.vmaxic[ifw], vmaxfw)
 
         # rotor
-        ir = np.where(self.lifttype == coeff.LIFT_ROTOR)[0]
+        ir = np.where(np.logical_and(self.lifttype == coeff.LIFT_ROTOR, mask))[0]
         vminr = self.vmin[ir]
         vmaxr = self.vmax[ir]
 
@@ -393,7 +395,9 @@ class OpenAP(PerfBase):
         vmin[ir] = vminr
         vmax[ir] = vmaxr
 
-        return vmin, vmax
+        if isinstance(mask, bool):
+            return vmin, vmax
+        return vmin[mask], vmax[mask]
 
     def calc_axmax(self):
         # accelerations depending on phase and wing type
