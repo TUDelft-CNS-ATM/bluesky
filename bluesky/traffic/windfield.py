@@ -70,7 +70,6 @@ class Windfield():
     def addpoint(self,lat,lon,winddir,windspd,windalt=None):
         """ addpoint: adds a lat,lon position with a wind direction [deg]
                                                      and wind speedd [m/s]
-
             Optionally an array with altitudes can be used in which case windspd
             and wind speed need to have the same dimension
         """
@@ -88,8 +87,8 @@ class Windfield():
             prof3D = True # switch on 3D parameter as an altitude array is given
             wspd   = array(windspd)
             wdir   = array(winddir)
-            altvn  = wspd*cos(radians(wdir))
-            altve  = wspd*sin(radians(wdir))
+            altvn  = wspd*cos(radians(wdir)+pi)
+            altve  = wspd*sin(radians(wdir)+pi)
             alttab = windalt
 
             vnaxis = interp(self.altaxis, alttab, altvn)
