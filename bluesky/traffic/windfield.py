@@ -67,6 +67,30 @@ class Windfield():
         self.nvec    = 0
         return
 
+    def addpointvne(self, lat, lon, vnorth, veast, windalt=None):
+        """ Add a lat/lon position with a (vector of) wind speed
+            in north and east component. """
+        if windalt is not None:
+            vnaxis = interp(self.altaxis, windalt, vnorth)
+            veaxis = interp(self.altaxis, windalt, veast)
+
+            self.winddim = 3
+            self.iprof.append(len(self.lat) + 1)
+        else:
+            vnaxis = vnorth
+            veaxis = veast
+
+        self.nvec += 1
+        self.lat = append(self.lat, lat)
+        self.lon = append(self.lon, lon)
+
+        self.vnorth = append(self.vnorth,array([vnaxis]).transpose(),axis=1)
+        self.veast  = append(self.veast, array([veaxis]).transpose(),axis=1)
+
+        if self.winddim<3: # No 3D => set dim to 0,1 or 2 dep on nr of points
+            self.winddim = min(2,len(self.lat))
+
+
     def addpoint(self,lat,lon,winddir,windspd,windalt=None):
         """ addpoint: adds a lat,lon position with a wind direction [deg]
                                                      and wind speedd [m/s]

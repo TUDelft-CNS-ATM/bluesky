@@ -1,15 +1,13 @@
 import os
 import sys
 import numpy as np
-import pandas as pd
 import pygrib
 import requests
 import bluesky as bs
-from bluesky import settings
-from bluesky.traffic.windfield import Windfield
+from bluesky.tools.aero import ft, kts
+from bluesky import settings, stack
+from bluesky.core import timed_function
 from bluesky.traffic.windsim import WindSim
-from bluesky import core, stack
-from bluesky.tools.aero import ft
 
 settings.set_variable_defaults(
     windgfs_url="https://www.ncei.noaa.gov/data/global-forecast-system/access/historical/analysis/")
@@ -23,23 +21,33 @@ if not os.path.exists(datadir):
 
 
 def init_plugin():
-    global windgfs, windfield
+    global windgfs
     windgfs = WindGFS()
-    windfield = Windfield()
 
     config = {
         'plugin_name': 'WINDGFS',
-        'plugin_type': 'sim',
+        'plugin_type': 'sim'
     }
-    
+
     return config
 
-
-class WindGFS(core.Entity):
+class WindGFS(WindSim):
     def __init__(self):
         super().__init__()
-        
-        
+        print('WINDGFS CTOR')
+        self.year = 0
+        self.month = 0
+        self.day = 0
+        self.hour = 0
+        self.lat0 = -90
+        self.lon0 = -180
+        self.lat1 = 90
+        self.lon1 = 180
+
+        # Switch for periodic loading of new GFS data
+        self.autoload = False
+
+
     def fetch_grb(self, year, month, day, hour, pred=0):
         ym = "%04d%02d" % (year, month)
         ymd = "%04d%02d%02d" % (year, month, day)
@@ -130,20 +138,21 @@ class WindGFS(core.Entity):
 
         return data
 
+    @stack.command(name='WINDGFS')
+    def loadwind(self, lat0: 'lat', lon0: 'lon', lat1: 'lat', lon1: 'lon',
+               year: int=None, month: int=None, day: int=None, hour: int=None):
+        ''' WINDGFS: Load a windfield directly from NOAA database.
 
-    def set_windgfs(self, *args):
-        if len(args) == 0:
-            pass
-
-        if len(args) == 4:
-            self.lat0, self.lon0, self.lat1, self.lon1 =  args
-            self.year, self.month, self.day = bs.sim.utc.year, bs.sim.utc.month, bs.sim.utc.day
-            self.hour = bs.sim.utc.hour
-
-        elif len(args) == 8:
-            self.lat0, self.lon0, self.lat1, self.lon1, \
-            self.year, self.month, self.day, self.hour =  args
-
+            Arguments:
+            - lat0, lon0, lat1, lon1 [deg]: Bounding box in which to generate wind field
+            - year, month, day, hour: Date and time of wind data (optional, will use
+              current simulation UTC if not specified).
+        '''
+        self.lat0, self.lon0, self.lat1, self.lon1 =  lat0, lon0, lat1, lon1
+        self.year = year or bs.sim.utc.year
+        self.month = month or bs.sim.utc.month
+        self.day = day or bs.sim.utc.day
+        self.hour = hour or bs.sim.utc.hour
 
         # round hour to 3 hours, check if it is a +3h prediction
         self.hour  = round(self.hour / 3) * 3
@@ -165,49 +174,38 @@ class WindGFS(core.Entity):
                 % (self.year, self.month, self.day, self.hour)
 
         # first clear exisiting wind field
-        windfield.clear()
+        self.clear()
 
         # add new wind field
-        data = self.extract_wind(grb, self.lat0, self.lon0, self.lat1, self.lon1).T
-        data = data[np.lexsort((data[:,2], data[:,1], data[:,0]))]  # Sort by lat, lon, alt
-        data = np.concatenate((data, np.degrees(np.arctan2(data[:,3], data[:,4])).reshape(-1,1), 
-                                np.sqrt(data[:,3]**2 + data[:,4]**2).reshape(-1,1)), axis=1)  # Append direction and speed to data
-         
-        splitvals = np.hstack((0, np.where(np.diff(data[:,1], axis=0))[0]+1, len(data))) # Find new lat, lon pair values in data
-        
+        data = self.extract_wind(
+            grb, self.lat0, self.lon0, self.lat1, self.lon1).T
+        # Sort by lat, lon, alt
+        data = data[np.lexsort((data[:, 2], data[:, 1], data[:, 0]))]
+        data = np.concatenate((data, np.degrees(np.arctan2(data[:, 3], data[:, 4])).reshape(-1, 1),
+                               np.sqrt(data[:, 3]**2 + data[:, 4]**2).reshape(-1, 1)), axis=1)  # Append direction and speed to data
+        data[:, 2] = data[:, 2]/ft  # input WindSim requires alt in ft
+        data[:, 6] = data[:, 6]/kts  # input WindSim requires spd in kts
+        # Find new lat, lon pair values in data
+        splitvals = np.hstack(
+            (0, np.where(np.diff(data[:, 1], axis=0))[0]+1, len(data)))
+
         # Construct flattend winddata input for add wind function
         for i in range(len(splitvals) - 1):
-            winddata = np.append(data[splitvals[i], [0,1]], 
-                                  data[splitvals[i]:splitvals[i+1], [2, 5, 6]].flatten())
-            WindSim.add(windfield, *winddata)
+            # self.addpointvne(lat, lon, vn, ve, alt)
+            lat = data[splitvals[i], 0]
+            lon = data[splitvals[i], 1]
+            winddata = data[splitvals[i]:splitvals[i+1], [2, 5, 6]].flatten()
+            # WindSim.add(self, lat, lon, *winddata)
+            # super().add(lat, lon, *winddata) # TODO: change if inherited from WindSim
+            self.add(lat, lon, *winddata)
+        
 
         return True, "Wind field update in area [%d, %d], [%d, %d]. " \
             % (self.lat0, self.lat1, self.lon0, self.lon1) \
             + "time: %04d-%02d-%02d %02d:00" \
             % (self.year, self.month, self.day, self.hour)
 
-
-    @core.timed_function(name='WINDGFS', dt=3600.)
+    @timed_function(name='WINDGFS', dt=3600)
     def update(self):
-        return self.set_windgfs(self.lat0, self.lon0, self.lat1, self.lon1)
-    
-
-    @stack.command(name='WINDGFS')
-    def setwinds(self, lat0:float=-90., lon0:float=-180., lat1:float=90., lon1:float=180., 
-                        year:int=bs.sim.utc.year, month:int=bs.sim.utc.month, 
-                        day:int=bs.sim.utc.day, hour:int=bs.sim.utc.hour):
-        ''' WINDGFS: Create windfield for lat0,lon0,lat1,lon1,[year,month,day,hour], 
-                    [deg,deg,deg,deg,int,int,int,int]
-        '''
-        
-        return self.set_windgfs(lat0, lon0, lat1, lon1, year, month, day, hour)
-        
-        
-    @stack.command(name='GETWINDDIRECT') 
-    def get_wind(self, lat:float, lon:float, alt:float=None):
-        ''' GETWINDDIRECT: Get location of wind at lat, lon, alt [deg, deg, ft] '''
-        
-        # Transform altitude to meter
-        _, txt = WindSim.get(windfield, lat, lon, alt*ft)
-        bs.scr.echo("%s" % txt)
-        
+        if self.autoload:
+            self.create(self.lat0, self.lon0, self.lat1, self.lon1)
