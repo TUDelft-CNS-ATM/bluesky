@@ -13,6 +13,7 @@ import osmnx as ox
 
 
 def trajectoryCalculation( G, orig, dest ):
+    print( 'Calculating the route...' )
     orig_node = ox.distance.nearest_nodes( G, X=orig[0], Y=orig[1] )
     dest_node = ox.distance.nearest_nodes( G, X=dest[0], Y=dest[1] )
 

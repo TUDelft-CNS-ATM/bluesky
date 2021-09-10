@@ -50,7 +50,7 @@ def divideAirspaceSegments( lon_min, lon_max, lat_min, lat_max, z_min, z_max, di
                 lat_max_seg = lat_min + ( j + 1 ) * delta_lat
                 z_min_seg = z_min + k * delta_z
                 z_max_seg = z_min + ( k + 1 ) * delta_z
-                speed_seg = float( random.randint( 30, 40 ) )
+                speed_seg = float( random.randint( 5, 15 ) )
                 capacity_seg = random.randint( 0, 20 )
 
                 segments = defineSegment( segments, lon_min_seg, lon_max_seg, lat_min_seg,

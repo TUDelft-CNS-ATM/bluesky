@@ -1,0 +1,32 @@
+00:00:00.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part1.scn
+00:00:00.00 > HOLD
+00:00:01.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part2.scn
+00:00:01.00 > HOLD
+00:00:02.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part3.scn
+00:00:02.00 > HOLD
+00:00:03.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part4.scn
+00:00:03.00 > HOLD
+00:00:04.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part5.scn
+00:00:04.00 > HOLD
+00:00:05.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part6.scn
+00:00:05.00 > HOLD
+00:00:06.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part7.scn
+00:00:06.00 > HOLD
+00:00:07.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part8.scn
+00:00:07.00 > HOLD
+00:00:08.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part9.scn
+00:00:08.00 > HOLD
+00:00:09.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part10.scn
+00:00:09.00 > HOLD
+00:00:10.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part11.scn
+00:00:10.00 > HOLD
+00:00:11.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part12.scn
+00:00:11.00 > HOLD
+00:00:12.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part13.scn
+00:00:12.00 > HOLD
+00:00:13.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario_buildings_part14.scn
+00:00:13.00 > HOLD
+
+
+# 00:00:10.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario1.scn
+# 00:00:30.00 > PCALL C:/workspace3/bluesky/nommon/city_model/scenario2.scn REL

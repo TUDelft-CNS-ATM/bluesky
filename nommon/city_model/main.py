@@ -6,12 +6,13 @@
 import configparser
 import time
 
-from nommon.city_model.auxiliar import read_my_graphml
+from nommon.city_model.auxiliar import read_my_graphml, layersDict
 from nommon.city_model.city_graph import cityGraph
 from nommon.city_model.corridors_implementation import corridorCreation
 from nommon.city_model.dynamic_segments import dynamicSegments
 from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
 from nommon.city_model.path_planning import trajectoryCalculation, printRoute
+from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings
 import numpy as np
 import osmnx as ox
 
@@ -60,18 +61,18 @@ if __name__ == '__main__':
 #     segments['segment_3_1_0']['updated'] = True
 #     segments['segment_3_1_1']['speed'] = 0
 #     segments['segment_3_1_1']['updated'] = True
-    segments['segment_2_2_0']['speed'] = 0
-    segments['segment_2_2_0']['updated'] = True
-    segments['segment_2_2_1']['speed'] = 0
-    segments['segment_2_2_1']['updated'] = True
-    segments['segment_1_2_0']['speed'] = 0
-    segments['segment_1_2_0']['updated'] = True
-    segments['segment_1_2_1']['speed'] = 0
-    segments['segment_1_2_1']['updated'] = True
-    segments['segment_1_3_0']['speed'] = 0
-    segments['segment_1_3_0']['updated'] = True
-    segments['segment_1_3_1']['speed'] = 0
-    segments['segment_1_3_1']['updated'] = True
+#     segments['segment_2_2_0']['speed'] = 0
+#     segments['segment_2_2_0']['updated'] = True
+#     segments['segment_2_2_1']['speed'] = 0
+#     segments['segment_2_2_1']['updated'] = True
+#     segments['segment_1_2_0']['speed'] = 0
+#     segments['segment_1_2_0']['updated'] = True
+#     segments['segment_1_2_1']['speed'] = 0
+#     segments['segment_1_2_1']['updated'] = True
+#     segments['segment_1_3_0']['speed'] = 0
+#     segments['segment_1_3_0']['updated'] = True
+#     segments['segment_1_3_1']['speed'] = 0
+#     segments['segment_1_3_1']['updated'] = True
 #     segments['segment_2_3_0']['speed'] = 0
 #     segments['segment_2_3_0']['updated'] = True
 #     segments['segment_2_3_1']['speed'] = 0
@@ -85,21 +86,37 @@ if __name__ == '__main__':
 #     segments['segment_3_3_1']['speed'] = 0
 #     segments['segment_3_3_1']['updated'] = True
 #
-    G, segments = dynamicSegments( G, config, segments )
+#     G, segments = dynamicSegments( G, config, segments )
 #     edges = ox.utils_graph.graph_to_gdfs( G, nodes=False, fill_edge_geometry=False )
 
     # Plot graph
-    ec = ["r" if G.edges[( u, v, k )]['speed'] == 0 else "gray" for u, v, k in G.edges( keys=True )]
-    fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
-                             edge_linewidth=2 )
+#     ec = ["r" if G.edges[( u, v, k )]['speed'] == 0 else "gray" for u, v, k in G.edges( keys=True )]
+#     fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
+#                              edge_linewidth=2 )
 
     # Route
-    orig = [9.73, 52.38]
-    dest = [9.77, 52.39 ]
-    length, route = trajectoryCalculation( G, orig, dest )
-    print( length )
-    printRoute( G, route )
+#     orig = [9.77, 52.39 ]
+#     dest = [9.73, 52.38]
+#     length, route = trajectoryCalculation( G, orig, dest )
+#     print( 'The length of the route is {0}'.format( length ) )
+#     print( 'The route is {0}'.format( route ) )
+#     printRoute( G, route )
 
-#     print( segments )
+    # Path Planning
+#     layers_dict = layersDict( config )
+#
+#     ac = 'U002'
+#     departure_time = '00:00:00.00'
+#     scenario_path = r'C:\workspace3\bluesky\nommon\city_model\scenario2.scn'
+#     scenario_file = open( scenario_path, 'w' )
+#     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
+#     scenario_file.close()
+#
+    # Drawing buildings
+    print( 'Creating scenario...' )
+    time = '00:00:00.00'
+    scenario_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings'
+    drawBuildings( config, scenario_path_base, time )
+
 
     print( 'Finish.' )

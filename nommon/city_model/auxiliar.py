@@ -3,6 +3,8 @@
 """
 Auxiliar functions for reading graphs
 """
+import string
+
 from osmnx.io import _convert_node_attr_types, _convert_bool_string, _convert_edge_attr_types
 
 from multi_di_graph_3D import MultiDiGrpah3D
@@ -48,6 +50,19 @@ def read_my_graphml( filepath ):
     G = MultiDiGrpah3D( G )
 
     return G
+
+
+def layersDict( config ):
+    letters = list( string.ascii_uppercase )
+    total_layers = letters[0:config['Layers'].getint( 'number_of_layers' )]
+    layer_width = config['Layers'].getint( 'layer_width' )
+    altitude = 0
+    layers_dict = {}
+    for layer in total_layers:
+        altitude += layer_width
+        layers_dict[layer] = altitude
+
+    return layers_dict
 
 
 if __name__ == '__main__':
