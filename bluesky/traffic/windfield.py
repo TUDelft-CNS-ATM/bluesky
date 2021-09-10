@@ -1,8 +1,8 @@
 """ Wind implementation for BlueSky."""
 from numpy import array, sin, cos, arange, radians, ones, append, ndarray, \
                   amin, minimum, repeat, delete, zeros, around, maximum, floor, \
-                  interp, pi
-
+                  interp, pi, concatenate
+from scipy import interpolate
 from bluesky.tools.aero import ft
 
 class Windfield():
@@ -68,11 +68,15 @@ class Windfield():
         return
 
     def addpointvne(self, lat, lon, vnorth, veast, windalt=None):
-        """ Add a lat/lon position with a (vector of) wind speed
-            in north and east component. """
+        """ Add a vector of lat/lon positions with a (2D vector of) wind speed [m/s]
+            in north and east component. 
+            Optionally an array with altitudes can be used
+        """      
         if windalt is not None:
-            vnaxis = interp(self.altaxis, windalt, vnorth)
-            veaxis = interp(self.altaxis, windalt, veast)
+            fnorth = interpolate.interp1d(windalt, vnorth.T, bounds_error=False, fill_value=(vnorth[0], vnorth[-1]), assume_sorted=True)
+            feast  = interpolate.interp1d(windalt, veast.T, bounds_error=False, fill_value=(veast[0], veast[-1]), assume_sorted=True)
+            vnaxis = fnorth(self.altaxis).T
+            veaxis = feast(self.altaxis).T
 
             self.winddim = 3
             self.iprof.append(len(self.lat) + 1)
@@ -80,12 +84,16 @@ class Windfield():
             vnaxis = vnorth
             veaxis = veast
 
-        self.nvec += 1
+        self.nvec += len(lat)
         self.lat = append(self.lat, lat)
         self.lon = append(self.lon, lon)
 
-        self.vnorth = append(self.vnorth,array([vnaxis]).transpose(),axis=1)
-        self.veast  = append(self.veast, array([veaxis]).transpose(),axis=1)
+        if self.vnorth.size == 0:
+            self.vnorth = vnaxis
+            self.veast  = veaxis
+        else:
+            self.vnorth = concatenate((self.vnorth, vnaxis), axis=1) 
+            self.veast  = concatenate((self.veast, veaxis), axis=1)
 
         if self.winddim<3: # No 3D => set dim to 0,1 or 2 dep on nr of points
             self.winddim = min(2,len(self.lat))

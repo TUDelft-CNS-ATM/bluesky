@@ -34,7 +34,6 @@ def init_plugin():
 class WindGFS(WindSim):
     def __init__(self):
         super().__init__()
-        print('WINDGFS CTOR')
         self.year = 0
         self.month = 0
         self.day = 0
@@ -45,7 +44,7 @@ class WindGFS(WindSim):
         self.lon1 = 180
 
         # Switch for periodic loading of new GFS data
-        self.autoload = False
+        self.autoload = True
 
 
     def fetch_grb(self, year, month, day, hour, pred=0):
@@ -177,28 +176,19 @@ class WindGFS(WindSim):
         self.clear()
 
         # add new wind field
-        data = self.extract_wind(
-            grb, self.lat0, self.lon0, self.lat1, self.lon1).T
-        # Sort by lat, lon, alt
-        data = data[np.lexsort((data[:, 2], data[:, 1], data[:, 0]))]
-        data = np.concatenate((data, np.degrees(np.arctan2(data[:, 3], data[:, 4])).reshape(-1, 1),
-                               np.sqrt(data[:, 3]**2 + data[:, 4]**2).reshape(-1, 1)), axis=1)  # Append direction and speed to data
-        data[:, 2] = data[:, 2]/ft  # input WindSim requires alt in ft
-        data[:, 6] = data[:, 6]/kts  # input WindSim requires spd in kts
-        # Find new lat, lon pair values in data
-        splitvals = np.hstack(
-            (0, np.where(np.diff(data[:, 1], axis=0))[0]+1, len(data)))
+        data = self.extract_wind(grb, self.lat0, self.lon0, self.lat1, self.lon1).T
 
-        # Construct flattend winddata input for add wind function
-        for i in range(len(splitvals) - 1):
-            # self.addpointvne(lat, lon, vn, ve, alt)
-            lat = data[splitvals[i], 0]
-            lon = data[splitvals[i], 1]
-            winddata = data[splitvals[i]:splitvals[i+1], [2, 5, 6]].flatten()
-            # WindSim.add(self, lat, lon, *winddata)
-            # super().add(lat, lon, *winddata) # TODO: change if inherited from WindSim
-            self.add(lat, lon, *winddata)
-        
+        data = data[np.lexsort((data[:, 2], data[:, 1], data[:, 0]))] # Sort by lat, lon, alt
+        reshapefactor = int((1 + max(self.lat0, self.lat1) - min(self.lat0, self.lat1)) * \
+                            (1 + max(self.lon0, self.lon1) - min(self.lon0, self.lon1)))
+
+        lat     = np.reshape(data[:,0], (reshapefactor, -1)).T[0,:]
+        lon     = np.reshape(data[:,1], (reshapefactor, -1)).T[0,:]
+        veast   = np.reshape(data[:,3], (reshapefactor, -1)).T
+        vnorth  = np.reshape(data[:,4], (reshapefactor, -1)).T
+        windalt = np.reshape(data[:,2], (reshapefactor, -1)).T[:,0]
+
+        self.addpointvne(lat, lon, vnorth, veast, windalt)        
 
         return True, "Wind field update in area [%d, %d], [%d, %d]. " \
             % (self.lat0, self.lat1, self.lon0, self.lon1) \
@@ -208,4 +198,4 @@ class WindGFS(WindSim):
     @timed_function(name='WINDGFS', dt=3600)
     def update(self):
         if self.autoload:
-            self.create(self.lat0, self.lon0, self.lat1, self.lon1)
+            self.loadwind(self.lat0, self.lon0, self.lat1, self.lon1)
