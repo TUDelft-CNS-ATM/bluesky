@@ -759,9 +759,9 @@ class Traffic(Entity):
     def setbanklim(self, idx, bankangle=None):
         ''' Set bank limit for given aircraft. '''
         if bankangle:
-            self.bank[idx] = np.radians(bankangle) # [rad]
+            self.ap.bankdef[idx] = np.radians(bankangle) # [rad]
             return True
-        return True, f"Banklimit of {self.id[idx]} is {int(np.degrees(self.bank[idx]))} deg"
+        return True, f"Banklimit of {self.id[idx]} is {int(np.degrees(self.ap.bankdef[idx]))} deg"
 
     def setthrottle(self,idx,throttle=""):
         """Set throttle to given value or AUTO, meaning autothrottle on (default)"""

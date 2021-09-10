@@ -81,8 +81,8 @@ def initbasecmds():
             "When a/c reaches given speed, execute a command cmd",
         ],
         "BANK": [
-            "BANK bankangle[deg]",
-            "acid,[float]",
+            "BANK acid bankangle[deg]",
+            "acid,float",
             bs.traf.setbanklim,
             "Set or show bank limit for this vehicle",
         ],
