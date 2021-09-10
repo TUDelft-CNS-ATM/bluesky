@@ -175,7 +175,7 @@ class OpenAP(PerfBase):
         self.actype[-n:] = [actype] * n
 
         # Update envelope speed limits
-        self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(self.actype[-1:], self.phase[-n:])
+        self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(self.actype[-n:], self.phase[-n:])
 
     def update(self, dt):
         """Periodic update function for performance calculations."""
