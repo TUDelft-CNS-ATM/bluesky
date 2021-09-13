@@ -69,15 +69,42 @@ class Client:
             to implement actual actnode change handling. '''
         print('Client active node changed.')
 
-    def subscribe(self, streamname, node_id=b''):
-        ''' Subscribe to a stream. '''
+    def subscribe(self, streamname, node_id=b'', actonly=False):
+        ''' Subscribe to a stream. 
+        
+            Arguments:
+            - streamname: The name of the stream to subscribe to
+            - node_id: The id of the node from which to receive the stream (optional)
+            - actonly: Set to true if you only want to receive this stream from 
+              the active node.
+        '''
+        if actonly and not node_id and streamname not in self.acttopics:
+            self.acttopics.append(streamname)
+            node_id = self.act
         self.stream_in.setsockopt(zmq.SUBSCRIBE, streamname + node_id)
 
     def unsubscribe(self, streamname, node_id=b''):
-        ''' Unsubscribe from a stream. '''
+        ''' Unsubscribe from a stream.
+
+            Arguments:
+            - streamname: The name of the stream to unsubscribe from.
+            - node_id: ID of the specific node to unsubscribe from.
+                       This is also used when switching active nodes.
+        '''
+        if not node_id and streamname in self.acttopics:
+            self.acttopics.remove(streamname)
+            node_id = self.act
         self.stream_in.setsockopt(zmq.UNSUBSCRIBE, streamname + node_id)
 
     def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
+        ''' Connect client to a server.
+        
+            Arguments:
+            - hostname: Network name or ip of the server to connect to
+            - event_port: Network port to use for event communication
+            - stream_port: Network port to use for stream communication
+            - protocol: Network protocol to use
+        '''
         conbase = '{}://{}'.format(protocol, hostname)
         econ = conbase + (':{}'.format(event_port) if event_port else '')
         scon = conbase + (':{}'.format(stream_port) if stream_port else '')
@@ -160,6 +187,7 @@ class Client:
         return None
 
     def actnode(self, newact=None):
+        ''' Set the new active node, or return the current active node. '''
         if newact:
             route = self._getroute(newact)
             if route is None:
@@ -178,9 +206,18 @@ class Client:
         return self.act
 
     def addnodes(self, count=1):
+        ''' Tell the server to add 'count' nodes. '''
         self.send_event(b'ADDNODES', count)
 
     def send_event(self, name, data=None, target=None):
+        ''' Send an event to one or all simulation node(s).
+        
+            Arguments:
+            - name: Name of the event
+            - data: Data to send as payload
+            - target: Destination of this event. Event is sent to all nodes
+              if * is specified as target.
+        '''
         pydata = msgpack.packb(data, default=encode_ndarray, use_bin_type=True)
         if not target:
             self.event_io.send_multipart(self.actroute + [self.act, name, pydata])
