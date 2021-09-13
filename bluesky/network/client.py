@@ -10,6 +10,7 @@ from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 
 
 class Client:
+    ''' Base class for (GUI) clients of a BlueSky server. '''
     def __init__(self, actnode_topics=b''):
         ctx = zmq.Context.instance()
         self.event_io = ctx.socket(zmq.DEALER)
@@ -38,20 +39,24 @@ class Client:
             bluesky.scr = self
 
     def start_discovery(self):
+        ''' Start UDP-based discovery of available BlueSky servers. '''
         if not self.discovery:
             self.discovery = Discovery(self.client_id)
             self.poller.register(self.discovery.handle, zmq.POLLIN)
             self.discovery.send_request()
 
     def stop_discovery(self):
+        ''' Stop UDP-based discovery. '''
         if self.discovery:
             self.poller.unregister(self.discovery.handle)
             self.discovery = None
 
     def get_hostid(self):
+        ''' Return the id of the host that this client is connected to. '''
         return self.host_id
 
     def sender(self):
+        ''' Return the id of the sender of the most recent event. '''
         return self.sender_id
 
     def event(self, name, data, sender_id):
@@ -70,12 +75,12 @@ class Client:
         print('Client active node changed.')
 
     def subscribe(self, streamname, node_id=b'', actonly=False):
-        ''' Subscribe to a stream. 
-        
+        ''' Subscribe to a stream.
+
             Arguments:
             - streamname: The name of the stream to subscribe to
             - node_id: The id of the node from which to receive the stream (optional)
-            - actonly: Set to true if you only want to receive this stream from 
+            - actonly: Set to true if you only want to receive this stream from
               the active node.
         '''
         if actonly and not node_id and streamname not in self.acttopics:
@@ -98,7 +103,7 @@ class Client:
 
     def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
         ''' Connect client to a server.
-        
+
             Arguments:
             - hostname: Network name or ip of the server to connect to
             - event_port: Network port to use for event communication
@@ -211,7 +216,7 @@ class Client:
 
     def send_event(self, name, data=None, target=None):
         ''' Send an event to one or all simulation node(s).
-        
+
             Arguments:
             - name: Name of the event
             - data: Data to send as payload
