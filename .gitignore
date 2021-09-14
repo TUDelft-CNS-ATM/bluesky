@@ -1,6 +1,6 @@
 output
 scenario/ic.scn
-scenario/Nino
+scenario/Nino/*
 data/cache
 data/grib
 data/performance/BADA/*
@@ -92,3 +92,4 @@ ssd.obj
 *-checkpoint.py
 *-checkpoint.ipynb
 .ropeproject/config.py
+plugins/invdKDtree.py
