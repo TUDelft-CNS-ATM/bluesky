@@ -82,7 +82,7 @@ def initbasecmds():
         ],
         "BANK": [
             "BANK acid bankangle[deg]",
-            "acid,float",
+            "acid,[float]",
             bs.traf.setbanklim,
             "Set or show bank limit for this vehicle",
         ],
