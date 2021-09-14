@@ -46,7 +46,6 @@ class WindGFS(WindSim):
         # Switch for periodic loading of new GFS data
         self.autoload = True
 
-
     def fetch_grb(self, year, month, day, hour, pred=0):
         ym = "%04d%02d" % (year, month)
         ymd = "%04d%02d%02d" % (year, month, day)
@@ -89,7 +88,6 @@ class WindGFS(WindSim):
         grb = pygrib.open(fpath)
 
         return grb
-
 
     def extract_wind(self, grb, lat0, lon0, lat1, lon1):
 
@@ -147,7 +145,8 @@ class WindGFS(WindSim):
             - year, month, day, hour: Date and time of wind data (optional, will use
               current simulation UTC if not specified).
         '''
-        self.lat0, self.lon0, self.lat1, self.lon1 =  lat0, lon0, lat1, lon1
+        self.lat0, self.lon0, self.lat1, self.lon1 =  min(lat0, lat1), \
+                              min(lon0, lon1), max(lat0, lat1), max(lon0, lon1)
         self.year = year or bs.sim.utc.year
         self.month = month or bs.sim.utc.month
         self.day = day or bs.sim.utc.day
@@ -198,4 +197,5 @@ class WindGFS(WindSim):
     @timed_function(name='WINDGFS', dt=3600)
     def update(self):
         if self.autoload:
-            self.loadwind(self.lat0, self.lon0, self.lat1, self.lon1)
+            _, txt = self.loadwind(self.lat0, self.lon0, self.lat1, self.lon1)
+            bs.scr.echo("%s" % txt)
