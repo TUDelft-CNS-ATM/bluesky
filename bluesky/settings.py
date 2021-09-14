@@ -5,6 +5,7 @@ import sys
 import shutil
 import site
 import inspect
+from pathlib import Path
 
 
 def init(cfgfile=''):
@@ -30,11 +31,19 @@ def init(cfgfile=''):
         root_dirs += site.getsitepackages()
 
         # search for bluesky shared data directory
+        found_dir = False
         for root_dir in root_dirs:
             dirpath = os.path.join(root_dir, 'share', 'bluesky')
             if os.path.exists(dirpath):
                 srcdir = dirpath
+                found_dir = True
                 break
+        
+        # if the path does not exist, it's worth trying the project root. This
+        # would work if the package was cloned from the git and is installed
+        # with "pip install -e ."
+        if not found_dir:
+            srcdir = get_project_root()
 
     datadir = os.path.join(rundir, 'data')
     cachedir = os.path.join(rundir, 'data/cache')
@@ -196,3 +205,10 @@ def save(fname=None, changes=None):
                 file_out.write(f'{key} = {value}\n')
 
     return True, f'Saved settings to {fname}'
+
+def get_project_root() -> str:
+    ''' Return the absolute path of the project root. '''
+
+    # return root dir relative to this file, make sure you update it if this
+    # file is moved in the project directory
+    return str(Path(__file__).absolute().parent.parent)

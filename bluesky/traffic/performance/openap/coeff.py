@@ -5,8 +5,12 @@ import numpy as np
 import pandas as pd
 import bluesky as bs
 from bluesky import settings
+from bluesky.settings import get_project_root
 
-settings.set_variable_defaults(perf_path_openap="data/performance/OpenAP")
+
+settings.set_variable_defaults(perf_path_openap=
+                               os.path.join(get_project_root(),
+                                            "data", "performance", "OpenAP"))
 
 LIFT_FIXWING = 1  # fixwing aircraft
 LIFT_ROTOR = 2  # rotor aircraft
