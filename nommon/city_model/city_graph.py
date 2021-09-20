@@ -3,13 +3,15 @@
 """
 Script to create the graph of a city
 """
-import configparser
+from nommon.city_model.auxiliar import read_my_graphml
+from nommon.city_model.building_height import readCity
+from nommon.city_model.city_structure import mainSectorsLimit
+from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
+import os
 import string
 
-from auxiliar import read_my_graphml
-from building_height import readCity
-from city_structure import mainSectorsLimit
-from multi_di_graph_3D import MultiDiGrpah3D
+import configparser
+
 import networkx as nx
 import osmnx as ox
 
@@ -91,7 +93,8 @@ def cityGraph( config ):
     return G
 
 if __name__ == '__main__':
-    config_path = "C:/workspace3/USEPE-CityEnvironment/src/settings.cfg"
+    config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
+    print( 'config path correct?', os.path.isfile( config_path ) )
     G = cityGraph( config_path )
     G = ox.speed.add_edge_speeds( G, fallback=10 )
     G = ox.speed.add_edge_travel_times( G )

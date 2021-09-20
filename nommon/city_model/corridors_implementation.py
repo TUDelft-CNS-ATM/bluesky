@@ -5,12 +5,13 @@
 """
 from builtins import int
 from distutils.command.config import config
-import configparser
+from nommon.city_model.dynamic_segments import defineSegment
 import csv
 import math
 import os
 
-from dynamic_segments import defineSegment
+import configparser
+
 import osmnx as ox
 
 

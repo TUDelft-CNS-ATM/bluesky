@@ -3,17 +3,18 @@
 """
 
 """
-import configparser
+from nommon.city_model.auxiliar import read_my_graphml
+from nommon.city_model.city_graph import cityGraph
+from nommon.city_model.corridors_implementation import corridorCreation, corridorLoad
+from nommon.city_model.dynamic_segments import dynamicSegments
+from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from nommon.city_model.no_fly_zones import restrictedSegments
+from nommon.city_model.path_planning import trajectoryCalculation, printRoute
 import os
 import time
 
-from auxiliar import read_my_graphml
-from city_graph import cityGraph
-from corridors_implementation import corridorCreation, corridorLoad
-from dynamic_segments import dynamicSegments
-from multi_di_graph_3D import MultiDiGrpah3D
-from no_fly_zones import restrictedSegments
-from path_planning import trajectoryCalculation, printRoute
+import configparser
+
 import numpy as np
 import osmnx as ox
 

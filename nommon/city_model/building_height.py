@@ -159,7 +159,8 @@ if __name__ == '__main__':
 #     path = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\CityGML_LoD1\5410_5806.gml"
 #     print( readSector( path ) )
 #     directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\CityGML_LoD1"
-    directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\Tests"
+    directory = r"C:\workspace3\USEPE_test\src\resources\cityModels\Stadtmodell_Hannover_CityGML_LoD1"
+#    directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\Tests"
     building_dict = readCity( directory )
     print( len( building_dict ) )
     print( building_dict )

@@ -50,7 +50,7 @@ def restrictedSegments( G, segments, coordinates, speed, capacity, config ):
         G
         segments
 
-    NOTE: THIS WOULD NOT WORK PROPOERLY IF THE RESTRICTION ZONE IS TOO LARGE. AN INTERIOR SEGMENT
+    NOTE: THIS WILL NOT WORK PROPOERLY IF THE RESTRICTION ZONE IS TOO LARGE. AN INTERIOR SEGMENT
         MAY NOT BE TAKEN INTO ACCOUNT
     """
     for segment in segments:
