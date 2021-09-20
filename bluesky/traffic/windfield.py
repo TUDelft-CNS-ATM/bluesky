@@ -2,7 +2,7 @@
 from numpy import array, sin, cos, arange, radians, ones, append, ndarray, \
                   amin, minimum, repeat, delete, zeros, around, maximum, floor, \
                   interp, pi, concatenate, linspace, vstack
-from scipy import interpolate
+from scipy.interpolate import interp1d, RegularGridInterpolator
 from bluesky.tools.aero import ft
 
 class Windfield():
@@ -75,8 +75,10 @@ class Windfield():
             Optionally an array with altitudes can be used
         """      
         if windalt is not None:
-            fnorth = interpolate.interp1d(windalt, vnorth.T, bounds_error=False, fill_value=(vnorth[0], vnorth[-1]), assume_sorted=True)
-            feast  = interpolate.interp1d(windalt, veast.T, bounds_error=False, fill_value=(veast[0], veast[-1]), assume_sorted=True)
+            fnorth = interp1d(windalt, vnorth.T, bounds_error=False, 
+                              fill_value=(vnorth[0], vnorth[-1]), assume_sorted=True)
+            feast  = interp1d(windalt, veast.T, bounds_error=False, 
+                              fill_value=(veast[0], veast[-1]), assume_sorted=True)
             vnaxis = fnorth(self.altaxis).T
             veaxis = feast(self.altaxis).T   
             
@@ -85,8 +87,10 @@ class Windfield():
             lons = linspace(int(min(lon)), int(max(lon)), int(abs(max(lon) - min(lon)) + 1))
             vevalues = veaxis.reshape((len(self.altaxis), len(lats), len(lons)))
             vnvalues = vnaxis.reshape((len(self.altaxis), len(lats), len(lons)))
-            self.fe = interpolate.RegularGridInterpolator((self.altaxis, lats, lons), vevalues, bounds_error=False)
-            self.fn = interpolate.RegularGridInterpolator((self.altaxis, lats, lons), vnvalues, bounds_error=False)
+            self.fe = RegularGridInterpolator((self.altaxis, lats, lons), 
+                                              vevalues, bounds_error=False, fill_value=0.)
+            self.fn = RegularGridInterpolator((self.altaxis, lats, lons), 
+                                              vnvalues, bounds_error=False, fill_value=0.)
         
             self.winddim = 3
             self.iprof.append(len(self.lat) + 1)
