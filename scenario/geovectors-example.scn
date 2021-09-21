@@ -11,7 +11,7 @@
 00:00:00.00>asas off
 
 # With resolutions:
-#00:00:00.00>reso mvp
+00:00:00.00>reso mvp
 
 # Go east and climb
 00:00:01.00>geovector goeast,,,85,105,400,450

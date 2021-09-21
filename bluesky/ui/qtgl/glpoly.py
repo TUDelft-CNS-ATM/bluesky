@@ -7,6 +7,9 @@ import bluesky as bs
 import numpy as np
 import numpy as np
 
+import bluesky as bs
+import numpy as np
+
 
 palette.set_default_colours( 
     polys=( 0, 0, 255 ),

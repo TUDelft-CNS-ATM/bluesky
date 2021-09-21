@@ -4,6 +4,7 @@
 
 """
 
+
 import configparser
 import os
 import time
@@ -57,7 +58,6 @@ if __name__ == '__main__':
 #    np.save( 'my_segments_2.npy', segments )
 
     # Corridors
-
 #     G, segments = corridorCreation( G, segments, ( [9.73, 52.375], [9.77, 52.399 ] ),
 #                                     200, 100, 50, 'COR_1' )
 #     G, segments = dynamicSegments( G, config, segments=None )
@@ -150,7 +150,6 @@ if __name__ == '__main__':
 #     # Plotting the route
 #     print( length )
 #     printRoute( G, route )
-
 
 
     print( 'Finish.' )
