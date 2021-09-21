@@ -3,14 +3,17 @@
 """
 
 """
+
 import configparser
+import os
 import time
 
 from nommon.city_model.auxiliar import read_my_graphml, layersDict
 from nommon.city_model.city_graph import cityGraph
-from nommon.city_model.corridors_implementation import corridorCreation
+from nommon.city_model.corridors_implementation import corridorCreation, corridorLoad
 from nommon.city_model.dynamic_segments import dynamicSegments
 from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from nommon.city_model.no_fly_zones import restrictedSegments
 from nommon.city_model.path_planning import trajectoryCalculation, printRoute
 from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings
 import numpy as np
@@ -38,21 +41,23 @@ if __name__ == '__main__':
     else:
         G = cityGraph( config )
 
-#     fig, ax = ox.plot_graph( G )
+
+#    fig, ax = ox.plot_graph( G )
     # Segments
-#     G, segments = dynamicSegments( G, config, segments=None )
+#    G, segments = dynamicSegments( G, config, segments=None )
+#
+#    segments[list( segments.keys() )[0]]['new'] = True
+#    segments[list( segments.keys() )[3]]['updated'] = True
+#    segments[list( segments.keys() )[3]]['speed'] = 0
+#    G, segments = dynamicSegments( G, config, segments )
 
-#     segments[list( segments.keys() )[0]]['new'] = True
-#     segments[list( segments.keys() )[3]]['updated'] = True
-#     segments[list( segments.keys() )[3]]['speed'] = 0
-#     G, segments = dynamicSegments( G, config, segments )
-
-#     print( 'Saving the graph...' )
-#     filepath = "./data/hannover_segments.graphml"
-#     ox.save_graphml( G, filepath )
-#     np.save( 'my_segments.npy', segments )
+#    print( 'Saving the graph...' )
+#    filepath = "./data/hannover_segments_2.graphml"
+#    ox.save_graphml( G, filepath )
+#    np.save( 'my_segments_2.npy', segments )
 
     # Corridors
+
 #     G, segments = corridorCreation( G, segments, ( [9.73, 52.375], [9.77, 52.399 ] ),
 #                                     200, 100, 50, 'COR_1' )
 #     G, segments = dynamicSegments( G, config, segments=None )
@@ -117,6 +122,35 @@ if __name__ == '__main__':
     time = '00:00:00.00'
     scenario_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings'
     drawBuildings( config, scenario_path_base, time )
+
+
+#     G, segments = corridorLoad( G, segments, config )
+#
+#     # No-fly zones
+#     # no_fly_coordinates = [[9.73, 52.39]]
+#     no_fly_coordinates = []
+#     restrictedSegments( G, segments, no_fly_coordinates, 0, 0, config )
+#
+#     # Plotting the graph with corridors and no-fly zones
+#     ec = []
+#     for u, v, k in G.edges( keys=True ):
+#         if G.edges[( u, v, k )]['speed'] == 0:
+#             ec.append( "r" )
+#         elif G.edges[( u, v, k )]['speed'] == 100:
+#             ec.append( "g" )
+#         else:
+#             ec.append( "gray" )
+#     fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
+#                              edge_linewidth=2 )
+#
+#     # Route
+#     orig = [9.72321, 52.3761]
+#     dest = [9.766, 52.39 ]
+#     length, route = trajectoryCalculation( G, orig, dest )
+#     # Plotting the route
+#     print( length )
+#     printRoute( G, route )
+
 
 
     print( 'Finish.' )

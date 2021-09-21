@@ -4,6 +4,7 @@
 A module for importing the building heights from gml file
 """
 import os
+import statistics
 
 from pyproj import Transformer
 
@@ -60,6 +61,7 @@ def readSector( path ):
         building = city_object.find( "{http://www.opengis.net/citygml/building/2.0}Building" )
         building_id = building.attrib[ '{http://www.opengis.net/gml}id' ]
         coord_building = []
+        deviation_min = 999999
 
         if city_object.find( "{http://www.opengis.net/citygml/building/2.0}Building/"
                             "{http://www.opengis.net/citygml/building/2.0}consistsOfBuildingPart" ):
@@ -78,7 +80,15 @@ def readSector( path ):
                                            "{http://www.opengis.net/gml}LinearRing/"
                                            "{http://www.opengis.net/gml}posList" ):
 
-                    coord_building += coord.text.split( sep=' ' )
+                    polygon_face = [float( x ) for x in coord.text.split( sep=' ' )]
+                    face_deviation = statistics.stdev( polygon_face[2::3] )
+
+                    if face_deviation < deviation_min:
+                        footprint = polygon_face
+                        deviation_min = face_deviation
+
+#                     coord_building += coord.text.split( sep=' ' )
+            coord_building += footprint
 
         else:
             for elem in city_object.findall( "{http://www.opengis.net/citygml/building/2.0}Building/"
@@ -93,10 +103,19 @@ def readSector( path ):
                                            "{http://www.opengis.net/gml}LinearRing/"
                                            "{http://www.opengis.net/gml}posList" ):
 
-                    coord_building += coord.text.split( sep=' ' )
+                    polygon_face = [float( x ) for x in coord.text.split( sep=' ' )]
+                    face_deviation = statistics.stdev( polygon_face[2::3] )
+
+                    if face_deviation < deviation_min:
+                        footprint = polygon_face
+                        deviation_min = face_deviation
+
+#                     coord_building += coord.text.split( sep=' ' )
+            coord_building += footprint
 
         footprint_duplicates = footprintListOfLists( coord_building )
-        building_footprint = removeDuplicatesList( footprint_duplicates )
+#         building_footprint = removeDuplicatesList( footprint_duplicates )
+        building_footprint = footprint_duplicates
         building_height = float( building.find( "{http://www.opengis.net/citygml/building/2.0}"
                                                 "measuredHeight" ).text )
 
@@ -159,7 +178,8 @@ if __name__ == '__main__':
 #     path = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\CityGML_LoD1\5410_5806.gml"
 #     print( readSector( path ) )
 #     directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\CityGML_LoD1"
-    directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\Tests"
+    directory = r"C:\workspace3\USEPE_test\src\resources\cityModels\Stadtmodell_Hannover_CityGML_LoD1"
+#    directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\Tests"
     building_dict = readCity( directory )
     print( len( building_dict ) )
     print( building_dict )

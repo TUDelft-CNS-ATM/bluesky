@@ -90,3 +90,7 @@ ssd.obj
 *-checkpoint.py
 *-checkpoint.ipynb
 .ropeproject/config.py
+
+# Files to be ignored
+*.scn
+*.graphml

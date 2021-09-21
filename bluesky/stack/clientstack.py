@@ -1,10 +1,11 @@
+from bluesky.stack import argparser
+from bluesky.stack.cmdparser import Command, command, commandgroup
+from bluesky.stack.stackbase import Stack, forward, stack
 import os
 import subprocess
 
 import bluesky as bs
-from bluesky.stack.stackbase import Stack, forward, stack
-from bluesky.stack.cmdparser import Command, command, commandgroup
-from bluesky.stack import argparser
+
 
 def init():
     ''' client-side stack initialisation. '''
@@ -20,15 +21,15 @@ def process():
         echoflags = bs.BS_OK
 
         # Get first argument from command line and check if it's a command
-        cmd, argstring = argparser.getnextarg(cmdline)
+        cmd, argstring = argparser.getnextarg( cmdline )
         cmdu = cmd.upper()
-        cmdobj = Command.cmddict.get(cmdu)
+        cmdobj = Command.cmddict.get( cmdu )
 
         # Proceed if a command object was found
         if cmdobj:
             try:
                 # Call the command, passing the argument string
-                success, echotext = cmdobj(argstring)
+                success, echotext = cmdobj( argstring )
                 if not success:
                     if not argstring:
                         echotext = echotext or cmdobj.brieftext()
@@ -58,20 +59,20 @@ def process():
 
         # Always return on command
         if echotext:
-            bs.scr.echo(echotext, echoflags, Stack.sender_rte)
+            bs.scr.echo( echotext, echoflags, Stack.sender_rte )
 
     # Clear the processed commands
     Stack.cmdstack.clear()
 
 
-@commandgroup(name='HELP', aliases=('?',))
-def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
+@commandgroup( name='HELP', aliases=( '?', ) )
+def showhelp( cmd: 'txt'='', subcmd: 'txt'='' ):
     """ HELP: Display general help text or help text for a specific command,
         or dump command reference in file when command is >filename.
 
         Arguments:
         - cmd: Argument can refer to:
-            - Command name to display help for. 
+            - Command name to display help for.
             - Call HELP >filename to generate a CSV file with help text for all commands.
             - Call HELP PDF to view a pdf containing information on all stack commands.
 
@@ -79,25 +80,25 @@ def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
     """
 
     # Check if help is asked for a specific command
-    cmdobj = Command.cmddict.get(cmd or 'HELP')
+    cmdobj = Command.cmddict.get( cmd or 'HELP' )
     if cmdobj:
-        return True, cmdobj.helptext(subcmd)
+        return True, cmdobj.helptext( subcmd )
 
     # If command is not a known Client command pass the help request on to the sim
-    bs.net.send_event(b'STACK', f'HELP {cmd} {subcmd}')
+    bs.net.send_event( b'STACK', f'HELP {cmd} {subcmd}' )
 
 
 @showhelp.subcommand
 def pdf():
     ''' Open a pdf file with BlueSky command help text. '''
-    os.chdir("docs")
+    os.chdir( "docs" )
     pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
-    if os.path.isfile(pdfhelp):
+    if os.path.isfile( pdfhelp ):
         try:
-            subprocess.Popen(pdfhelp, shell=True)
+            subprocess.Popen( pdfhelp, shell=True )
         except:
             return "Opening " + pdfhelp + " failed."
     else:
         return pdfhelp + "does not exist."
-    os.chdir("..")
+    os.chdir( ".." )
     return "Pdf window opened"

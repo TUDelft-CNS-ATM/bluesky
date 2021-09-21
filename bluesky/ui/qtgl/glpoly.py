@@ -3,6 +3,8 @@ from bluesky.ui import palette
 from bluesky.ui.qtgl import console
 from bluesky.ui.qtgl import glhelpers as glh
 import bluesky as bs
+import bluesky as bs
+import numpy as np
 import numpy as np
 
 
@@ -13,8 +15,6 @@ palette.set_default_colours(
 
 # Static defines
 POLYPREV_SIZE = 100
-POLYPREV_SIZE = 10
-POLY_SIZE = 2000
 POLY_SIZE = 2000000
 
 
