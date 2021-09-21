@@ -1,7 +1,7 @@
 """ Wind implementation for BlueSky."""
 from numpy import array, sin, cos, arange, radians, ones, append, ndarray, \
                   amin, minimum, repeat, delete, zeros, around, maximum, floor, \
-                  interp, pi, concatenate, linspace, vstack
+                  interp, pi, concatenate, linspace, hstack, vstack, unique
 from scipy.interpolate import interp1d, RegularGridInterpolator
 from bluesky.tools.aero import ft
 
@@ -59,7 +59,7 @@ class Windfield():
         # Windfield dimension will automatically be detected:
         # 0 = no wind, 1 = constant wind, 2 = 2D field (no alt profiles),
         # 3 = 3D field (alt matters), used to speed up interpolation
-        self.winddim     = 0
+        self.winddim = 0
         self.lat     = array([])
         self.lon     = array([])
         self.vnorth  = array([[]])
@@ -70,27 +70,44 @@ class Windfield():
         return
 
     def addpointvne(self, lat, lon, vnorth, veast, windalt=None):
-        """ Add a vector of lat/lon positions with a (2D vector of) wind speed [m/s]
-            in north and east component. 
+        """ Add a vector of lat/lon positions (arrays) with a (2D vector of) 
+            wind speed [m/s] in north and east component. 
             Optionally an array with altitudes can be used
-        """      
-        if windalt is not None:
+        """              
+        if windalt is not None and len(windalt) > 1:           
+            # Set altitude interpolation functions
             fnorth = interp1d(windalt, vnorth.T, bounds_error=False, 
                               fill_value=(vnorth[0], vnorth[-1]), assume_sorted=True)
             feast  = interp1d(windalt, veast.T, bounds_error=False, 
                               fill_value=(veast[0], veast[-1]), assume_sorted=True)
-            vnaxis = fnorth(self.altaxis).T
-            veaxis = feast(self.altaxis).T   
-            
+                       
             # Assume regular grida and set RegularGridInterpolator for future interpolation
-            lats = linspace(int(min(lat)), int(max(lat)), int(abs(max(lat) - min(lat)) + 1))
-            lons = linspace(int(min(lon)), int(max(lon)), int(abs(max(lon) - min(lon)) + 1))
-            vevalues = veaxis.reshape((len(self.altaxis), len(lats), len(lons)))
-            vnvalues = vnaxis.reshape((len(self.altaxis), len(lats), len(lons)))
-            self.fe = RegularGridInterpolator((self.altaxis, lats, lons), 
-                                              vevalues, bounds_error=False, fill_value=0.)
-            self.fn = RegularGridInterpolator((self.altaxis, lats, lons), 
-                                              vnvalues, bounds_error=False, fill_value=0.)
+            if len(lat) > 3: 
+                try:
+                    # Interpolate along windalt axis
+                    altaxis = hstack((0., windalt))
+                    vnaxis = fnorth(altaxis).T
+                    veaxis = feast(altaxis).T   
+                    
+                    # Get unique latitudes and longitudes for RGI
+                    lats = unique(lat)
+                    lons = unique(lon)
+                    
+                    # Set RGI interpolation functions
+                    vevalues = veaxis.reshape((len(altaxis), len(lats), len(lons)))
+                    vnvalues = vnaxis.reshape((len(altaxis), len(lats), len(lons)))
+                    self.fe = RegularGridInterpolator((altaxis, lats, lons), 
+                                                      vevalues, bounds_error=False, fill_value=0.)
+                    self.fn = RegularGridInterpolator((altaxis, lats, lons), 
+                                                      vnvalues, bounds_error=False, fill_value=0.) 
+                except:
+                    # Create vn, ve if RGI is not pausible
+                    vnaxis = fnorth(self.altaxis).T
+                    veaxis = feast(self.altaxis).T
+            else:
+                # Create vn, ve if less than 4 coords are present
+                vnaxis = fnorth(self.altaxis).T
+                veaxis = feast(self.altaxis).T
         
             self.winddim = 3
             self.iprof.append(len(self.lat) + 1)

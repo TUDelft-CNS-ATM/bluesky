@@ -103,7 +103,7 @@ class WindGFS(WindSim):
         for grbu, grbv in zip(grb_wind_u, grb_wind_v):
             level = grbu.level
 
-            if level < 140:  # lesss than 140 hPa, above about 45 k ft
+            if level < 100:  # lesss than 100 hPa, above about 54 k ft
                 continue
             else:
                 vxs_ = grbu.values
@@ -165,8 +165,8 @@ class WindGFS(WindSim):
 
         grb = self.fetch_grb(self.year, self.month, self.day, self.hour, pred)
 
-        if grb is None:
-            return False, "Wind data not exist in area [%d, %d], [%d, %d]. " \
+        if grb is None or self.lat0 == self.lat1 or self.lon0 == self.lon1:
+            return False, "Wind data non-existend in area [%d, %d], [%d, %d]. " \
                 % (self.lat0, self.lat1, self.lon0, self.lon1) \
                 + "time: %04d-%02d-%02d %02d:00" \
                 % (self.year, self.month, self.day, self.hour)
