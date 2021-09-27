@@ -3,15 +3,14 @@
 """
 Script to create the graph of a city
 """
+import configparser
+import os
+import string
+
 from nommon.city_model.auxiliar import read_my_graphml
 from nommon.city_model.building_height import readCity
 from nommon.city_model.city_structure import mainSectorsLimit
 from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
-import os
-import string
-
-import configparser
-
 import networkx as nx
 import osmnx as ox
 
@@ -45,6 +44,8 @@ def cityGraph( config ):
     G = ox.graph_from_bbox( hannover[1], hannover[0], hannover[3], hannover[2],
                             network_type="drive", simplify=False )
     G = MultiDiGrpah3D( G )  # We create a graph with our clase MultiDiGrpah3D
+
+    fig, ax = ox.plot_graph( G )
 
     # We save the nodes
     nodes_to_be_removed = list( G.nodes )

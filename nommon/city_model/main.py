@@ -16,7 +16,8 @@ from nommon.city_model.dynamic_segments import dynamicSegments
 from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
 from nommon.city_model.no_fly_zones import restrictedSegments
 from nommon.city_model.path_planning import trajectoryCalculation, printRoute
-from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings
+from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings, \
+    automaticFlightPlan
 import numpy as np
 import osmnx as ox
 
@@ -43,7 +44,7 @@ if __name__ == '__main__':
         G = cityGraph( config )
 
 
-#    fig, ax = ox.plot_graph( G )
+#     fig, ax = ox.plot_graph( G )
     # Segments
 #    G, segments = dynamicSegments( G, config, segments=None )
 #
@@ -108,20 +109,22 @@ if __name__ == '__main__':
 #     printRoute( G, route )
 
     # Path Planning
-#     layers_dict = layersDict( config )
-#
-#     ac = 'U002'
+    layers_dict = layersDict( config )
+
+#     ac = 'U005'
 #     departure_time = '00:00:00.00'
-#     scenario_path = r'C:\workspace3\bluesky\nommon\city_model\scenario2.scn'
+#     scenario_path = r'C:\workspace3\bluesky\nommon\city_model\scenario5.scn'
 #     scenario_file = open( scenario_path, 'w' )
 #     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
 #     scenario_file.close()
-#
+
+    automaticFlightPlan( 10, 'U', G, layers_dict )
+
     # Drawing buildings
-    print( 'Creating scenario...' )
-    time = '00:00:00.00'
-    scenario_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings'
-    drawBuildings( config, scenario_path_base, time )
+#     print( 'Creating scenario...' )
+#     time = '00:00:00.00'
+#     scenario_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings_graph'
+#     drawBuildings( config, scenario_path_base, time )
 
 
 #     G, segments = corridorLoad( G, segments, config )
