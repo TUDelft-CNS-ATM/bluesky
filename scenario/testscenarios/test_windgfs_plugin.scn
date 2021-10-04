@@ -24,7 +24,7 @@
 00:00:00.00>DEST KL101 JFK
 
 # Test 2: Verify wind incorporation by GETWIND values and TAS/GS difference 
-00:00:10.00>GETWIND 52, 5, 40000
+00:00:10.00>GETWIND 52, 5, 44320
 00:00:10.00>POS KL101
 
 # Test 3: Verify wind absences by no GETWIND values and equal TAS/GS

@@ -85,7 +85,7 @@ class Windfield():
             if len(lat) > 3: 
                 try:
                     # Interpolate along windalt axis
-                    altaxis = hstack((0., windalt))
+                    altaxis = hstack((0., windalt)) # TODO: change to concatenate
                     vnaxis = fnorth(altaxis).T
                     veaxis = feast(altaxis).T   
                     
@@ -206,8 +206,8 @@ class Windfield():
 
         # Check if RGI functions are present, if so use them
         if self.fe is not None and self.fn is not None:
-            vnorth = self.fn(vstack((alt, lat, lon)).T)
-            veast  = self.fe(vstack((alt, lat, lon)).T)
+            vnorth = self.fn(vstack((alt, lat, lon)).T) # TODO: change to concatenate
+            veast  = self.fe(vstack((alt, lat, lon)).T) # TODO: change to concatenate
         else:
             # Check dimension of wind field
             if self.winddim == 0:   # None = no wind
