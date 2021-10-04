@@ -2,7 +2,8 @@
 # This scenario file runs some tests via stack commands 
 # to verify the correct implementation of the windgfs plugin. 
 # Beware that the wind direction obtained via the GETWIND command 
-# contains incorrect results due to an interpretation difference.
+# contains incorrect results due to an interpretation difference
+# for winds loaded via the windgfs plugin (not applicable to WIND).
 # The GETWIND wind direction +-180deg yields the correct angle
 
 # Set simulation parameters

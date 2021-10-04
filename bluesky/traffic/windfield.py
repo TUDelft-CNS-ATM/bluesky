@@ -1,7 +1,7 @@
 """ Wind implementation for BlueSky."""
 from numpy import array, sin, cos, arange, radians, ones, append, ndarray, \
-                  amin, minimum, repeat, delete, zeros, around, maximum, floor, \
-                  interp, pi, concatenate, linspace, hstack, vstack, unique
+                  minimum, repeat, delete, zeros, maximum, floor, interp, \
+                  pi, concatenate, unique
 from scipy.interpolate import interp1d, RegularGridInterpolator
 from bluesky.tools.aero import ft
 
@@ -81,13 +81,13 @@ class Windfield():
             feast  = interp1d(windalt, veast.T, bounds_error=False, 
                               fill_value=(veast[0], veast[-1]), assume_sorted=True)
                        
-            # Assume regular grida and set RegularGridInterpolator for future interpolation
+            # Assume regular grid and set RGI for interpolation
             if len(lat) > 3: 
                 try:
                     # Interpolate along windalt axis
-                    altaxis = hstack((0., windalt)) # TODO: change to concatenate
+                    altaxis = concatenate((array([0.]), windalt))
                     vnaxis = fnorth(altaxis).T
-                    veaxis = feast(altaxis).T   
+                    veaxis = feast(altaxis).T
                     
                     # Get unique latitudes and longitudes for RGI
                     lats = unique(lat)
@@ -101,7 +101,7 @@ class Windfield():
                     self.fn = RegularGridInterpolator((altaxis, lats, lons), 
                                                       vnvalues, bounds_error=False, fill_value=0.) 
                 except:
-                    # Create vn, ve if RGI is not pausible
+                    # Create vn, ve if RGI is not possible
                     vnaxis = fnorth(self.altaxis).T
                     veaxis = feast(self.altaxis).T
             else:
@@ -204,10 +204,10 @@ class Windfield():
         else:
             alt = zeros(npos)
 
-        # Check if RGI functions are present, if so use them
+        # Check if RGI functions are present, if so use them for interpolation
         if self.fe is not None and self.fn is not None:
-            vnorth = self.fn(vstack((alt, lat, lon)).T) # TODO: change to concatenate
-            veast  = self.fe(vstack((alt, lat, lon)).T) # TODO: change to concatenate
+            vnorth = self.fn(concatenate((alt.reshape(1,-1), lat, lon), axis=0).T)
+            veast  = self.fe(concatenate((alt.reshape(1,-1), lat, lon), axis=0).T)
         else:
             # Check dimension of wind field
             if self.winddim == 0:   # None = no wind

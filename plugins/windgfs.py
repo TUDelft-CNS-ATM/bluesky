@@ -3,18 +3,10 @@ import sys
 import numpy as np
 import pygrib
 import requests
-
-# sys.path.append("C:/TUDelft/Thesis/blueskysimulator")
-# datadir = "C:/TUDelft/Thesis/blueskysimulator/data/grib/"
-
 import bluesky as bs
-from bluesky.tools.aero import ft, kts
 from bluesky import settings, stack
 from bluesky.core import timed_function
 from bluesky.traffic.windsim import WindSim
-
-# TODO: ADD FUNCTION TO DOWNLOAD ALL REQUIRED WIND DATA OF THE DAY BEFORE STARTING SIMULATION 
-# TODO: LOOK INTO HOW THE NOAA WINDFILES ARE LABELED AND IF THAT IS IMPLEMENTED CORRECT
 
 settings.set_variable_defaults(
     windgfs_url="https://www.ncei.noaa.gov/data/global-forecast-system/access/historical/analysis/")
@@ -41,14 +33,14 @@ def init_plugin():
 class WindGFS(WindSim):
     def __init__(self):
         super().__init__()
-        self.year = 0
+        self.year  = 0
         self.month = 0
-        self.day = 0
-        self.hour = 0
-        self.lat0 = -90
-        self.lon0 = -180
-        self.lat1 = 90
-        self.lon1 = 180
+        self.day   = 0
+        self.hour  = 0
+        self.lat0  = -90
+        self.lon0  = -180
+        self.lat1  = 90
+        self.lon1  = 180
 
         # Switch for periodic loading of new GFS data
         self.autoload = True
@@ -206,94 +198,3 @@ class WindGFS(WindSim):
         if self.autoload:
             _, txt = self.loadwind(self.lat0, self.lon0, self.lat1, self.lon1)
             bs.scr.echo("%s" % txt)
-            
-# # def main():           
-# if __name__ == '__main__':
-#     windgfs = WindGFS() 
-#     windgfs.loadwind(15, -165, 90, 85, 2019, 4, 3, 0)     
-#     vn, ve = windgfs.getdata(53, 5, 13509.)
-#     lats = np.around(np.linspace(15, 90, 600), 4)
-#     lons = np.around(np.linspace(-165, 85, 600), 4)
-#     alts = np.around(np.linspace(0., 15000., 600), 4)
-
-#     # vn, ve = windgfs.getdata(lats, lons, alts)
-
-#     ##############################################################################
-#     ### TESTING FUNCTIONS ###
-#     ##############################################################################
-    
-#     # Standard windfields
-#     windgfs.loadwind(52, 4, 52, 4, 2019, 4, 3, 0)
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 0, 0
-    
-#     windgfs.loadwind(52, 4, 53, 4, 2019, 4, 3, 0)
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 0, 0
-    
-#     windgfs.loadwind(52, 4, 53, 5, 2019, 4, 3, 0)
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 7.039, 10.744
-    
-#     windgfs.loadwind(15, -165, 90, 85, 2019, 4, 3, 0)    
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 7.039, 10.744
-#     windgfs.clear()
-    
-#     ##########################################################################
-#     # Two or three points (list or array)
-#     windgfs.addpointvne(np.array([52, 52]), np.array([3, 4]), np.array([[10, 4], [20, 8]]), np.array([[-6, 5], [-9, 10]]), np.array([1000., 13509.]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 8, 10
-#     windgfs.clear()
-    
-#     windgfs.addpointvne(np.array([52, 52, 53]), np.array([3, 4, 4]), np.array([[10, 4, -1], [20, 8, -2]]), np.array([[-6, 5, 2.1], [-9, 10, 5.6]]), np.array([1000., 13509.]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 8, 10
-#     windgfs.clear()
-    
-#     # Four coordinates, non square
-#     windgfs.addpointvne(np.array([52, 52, 52, 53]), np.array([3, 4, 5, 5]), np.array([[10, 4, -1, 7], [20, 8, -2, 2]]), np.array([[-6, 5, 2.1, -2], [-9, 10, 5.6, 9]]), np.array([1000., 13509.]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 8, 10
-#     windgfs.clear()
-        
-#     #  Single altitude test
-#     windgfs.addpointvne(np.array([52, 52, 53, 53]), np.array([3, 4, 3, 4]), np.array([[20, 10, 4, -1]]), np.array([[-10, -6, 5, 2.1]]), np.array([10000.]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 10, -6
-#     windgfs.clear()
-    
-#     #  Multiple altitude test
-#     windgfs.addpointvne(np.array([52, 52, 53, 53]), np.array([3, 4, 3, 4]), np.array([[20, 10, 4, -1], [30, 15, 10, -9]]), np.array([[-10, -6, 5, 2.1], [-20, -9, 3, 5.9]]), np.array([1000., 13509.]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 15, -9
-#     windgfs.clear()
-    
-#     # # Single point (array or float/int)
-#     windgfs.addpointvne(np.array([52]), np.array([4]), np.array([[20]]), np.array([[-10]]), np.array([10000.]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 20, -10
-#     windgfs.clear() 
-    
-#     # ##########################################################################
-#     # Without altitude
-#     # Single point (array or float/int)
-#     windgfs.addpointvne(np.array([52]), np.array([4]), np.array([[20]]), np.array([[-10]]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 20, -10
-#     windgfs.clear()
-    
-#     # Two or more points (No RGI method but old method)
-#     windgfs.addpointvne(np.array([52, 52, 53, 53]), np.array([3, 4, 3, 4]), np.array([[20, 10, 4, -1]]), np.array([[-10, -6, 5, 2.1]]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 10, -6
-#     windgfs.clear()
-    
-#     # Three coordinates
-#     windgfs.addpointvne(np.array([52, 52, 53]), np.array([3, 4, 4]), np.array([[10, 4, 7]]), np.array([[-6, 5, 1]]))
-#     vn, ve = windgfs.getdata(52, 4, 13509.)
-#     print(vn, ve) # 4, 5
-                
-                
-                
