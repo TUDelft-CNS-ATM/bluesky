@@ -1,0 +1,31 @@
+# Set simulation parameters for flight KLM101 from AMS to LHR
+#00:00:00.00>TIME UTC
+#00:00:00.00>TRAILS ON
+00:00:00.00>RESO OFF
+00:00:00.00>FF
+#00:00:00.00>SWRAD LABEL
+#00:00:00.00>SWRAD LABEL
+#00:00:00.00>SWRAD FIR
+00:00:00.00>noise off
+00:00:00.00>DATE 3, 4, 2019
+00:00:00.00>PLUGINS LOAD TRAFGEN
+00:00:00.00>PLUGINS LOAD WINDGFS
+00:00:00.00>IMPL WINDSIM WINDGFS
+00:00:00.00>WINDGFS 15, -165, 90, 85, 2019, 4, 3, 0
+
+# Define spawning circle SPAWN with centerlat[deg],centerlon[deg],radius[nm]
+00:00:00.00>TRAFGEN CIRCLE 52.6,5.4,2000.0
+
+#00:00:00.00>CRE KL101, B77W, 52, 5, 270, 40000, 0.8
+
+# Global gain (factor) for traffic generation/density
+00:00:00.00>TRAFGEN GAIN 20.0
+
+# Wave of JSFs coming throught
+# To exercise area over North Sea
+# And back
+00:00:00.00>TRAFGEN SRC EHVK DEST SEGM330 1 FGTN:1
+00:00:00.00>TRAFGEN SRC EHVK FLOW 600
+00:00:30.00>TRAFGEN SRC EHVK FLOW 10
+
+
