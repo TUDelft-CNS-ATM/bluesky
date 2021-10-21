@@ -92,7 +92,20 @@ if __name__ == '__main__':
     G, segments = restrictedSegments( G, segments, restricted_area, config )
 
     # -------------- 6. PATH PLANNING -----------------------
+    """
+    This section computes an optimal trajectory from origin to destination. The trajectory is
+    optimal according to travel time.
+    Comment it to no calculate an optimal trajectory
+    Introduce origin and destination points inside the graph
+    """
+    orig = [9.77, 52.39 ]  # origin point
+    dest = [9.73, 52.38]  # destination point
+    travel_time, route = trajectoryCalculation( G, orig, dest )
+    print( 'The travel time of the route is {0}'.format( travel_time ) )
+    print( 'The route is {0}'.format( route ) )
+    printRoute( G, route )
 
+    # -------------- 7. Scenario definition -----------------------
 
 #     fig, ax = ox.plot_graph( G )
     # Segments
