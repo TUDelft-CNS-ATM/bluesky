@@ -5,10 +5,6 @@
 """
 
 
-import configparser
-import os
-import time
-
 from nommon.city_model.city_graph import cityGraph
 from nommon.city_model.corridors_implementation import corridorCreation, corridorLoad
 from nommon.city_model.dynamic_segments import dynamicSegments
@@ -17,6 +13,10 @@ from nommon.city_model.no_fly_zones import restrictedSegments
 from nommon.city_model.path_planning import trajectoryCalculation, printRoute
 from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings, \
     automaticFlightPlan
+import configparser
+import os
+import time
+
 from nommon.city_model.utils import read_my_graphml, layersDict
 import numpy as np
 import osmnx as ox
@@ -46,10 +46,30 @@ if __name__ == '__main__':
         G = cityGraph( config )
 
     # -------------- 3. CORRIDORS ---------------------------
+    """
+    This section loads the corridors defined with the corridor section of the configuration file
+    Comment it to neglect the creation of corridors
+    """
+    G, segments = corridorLoad( G, segments, config )
 
     # -------------- 4. SEGMENTS ----------------------------
 
-    # -------------- 5. PATH PLANNING -----------------------
+    # -------------- 5. No-FLY ZONES ------------------------
+    """
+    This section adds restricted area (no-fly zones) by imposing zero verlocity to the sectors that
+    intersect with the area
+
+    restricted area definition: it should be defined as a list of tuples (longitude, latitude) of
+                                the vertices of the polygon defining the restricted area.
+                                First and last point should be the same
+    """
+    restricted_area = [( 9.78, 52.36 ),
+                       ( 9.78, 52.365 ),
+                       ( 9.77, 52.365 ),
+                       ( 9.78, 52.36 )]
+    G, segments = restrictedSegments( G, segments, restricted_area, config )
+
+    # -------------- 6. PATH PLANNING -----------------------
 
 
 #     fig, ax = ox.plot_graph( G )
@@ -126,7 +146,7 @@ if __name__ == '__main__':
 #     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
 #     scenario_file.close()
 
-    automaticFlightPlan( 1000, 'U', G, layers_dict )
+    automaticFlightPlan( 10, 'U', G, layers_dict )
 
     # Drawing buildings
 #     print( 'Creating scenario...' )

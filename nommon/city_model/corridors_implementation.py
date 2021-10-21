@@ -3,10 +3,10 @@
 """
 
 """
-from distutils.command.config import config
+
 from nommon.city_model.dynamic_segments import defineSegment
-import configparser
 import csv
+import json
 import math
 import os
 
@@ -228,24 +228,37 @@ def str2intList( string ):
 
 def getCorridorCoordinates( corridor, file_path ):
     '''
-    This function gets coordinates stored in a txt, csv or excel file
+    This function gets coordinates stored in a json or csv file
 
     Input:
         file_path: path to the file storing the coordinates and the corridors associated
-        corridor: number of the corridor required
+        corridor: number (csv) or name (geojson) of the corridor required
     Output:
         coordinates: a tuple containing lists of [longitude, latitude] for
             the points defining the corridor
     '''
-    with open( file_path, 'r' ) as csv_file:
-        reader = csv.reader( csv_file, delimiter=';' )
-        # fields = reader.next()
-        rows = []
-        corridor_row = []
-        for row in reader:
-            rows.append( row )
-            if row[0] == corridor:
-                corridor_row.append( [float( row[2] ), float( row[1] )] )
+    _, file_extension = os.path.splitext( file_path )
+    if file_extension == ".csv":
+        with open( file_path, 'r' ) as csv_file:
+            reader = csv.reader( csv_file, delimiter=';' )
+            # fields = reader.next()
+            rows = []
+            corridor_row = []
+            for row in reader:
+                rows.append( row )
+                if row[0] == corridor:
+                    corridor_row.append( [float( row[2] ), float( row[1] )] )
+
+    elif file_extension == ".geojson":
+        with open( file_path ) as json_file:
+            gj_in = json.load( json_file )
+            corridor_row = []
+            for feature in gj_in["features"]:
+                corr_id = feature['properties']['id']
+                if str( corr_id ) == corridor:
+                    geo = feature["geometry"]
+                    for point in geo["coordinates"]:
+                        corridor_row.append( [point[1], point[0]] )
 
     return tuple( corridor_row )
 
@@ -284,6 +297,10 @@ def corridorLoad( G, segments, config ):
         name_rev = 'COR_r_' + corridor
         # Get corridor coordinates
         corridor_coordinates = getCorridorCoordinates( corridor, file_path_corridors )
+        # Check if the corridor exists
+        if corridor_coordinates == ():
+            print( 'Corridor number {0} is not contained in {1}'.format( corridor, file_path_corridors ) )
+            continue
         # Creates the segments of the corridor
         G, segments = corridorCreation( G, segments, corridor_coordinates,
                                         altitude, speed, 50, name, config )
@@ -293,4 +310,10 @@ def corridorLoad( G, segments, config ):
 
 
 if __name__ == '__main__':
-    pass
+    file_path = "C:/workspace3/bluesky/nommon/city_model/data/usepe-hannover-corridors.geojson"
+    corridor = "10"
+    corridor_coord = getCorridorCoordinates( corridor, file_path )
+    print( corridor_coord )
+
+    if corridor_coord == ():
+        print( 'Corridor number {0} is not contained in {1}'.format( corridor, file_path ) )

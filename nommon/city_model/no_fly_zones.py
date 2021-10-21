@@ -14,7 +14,7 @@ from nommon.city_model.dynamic_segments import dynamicSegments
 from shapely.geometry import Polygon
 
 
-def intersection( restricted_area, segment ):
+def intersection( restricted_area, segment, segments ):
     """
     Returns True if the point is contained in the box
 
@@ -28,19 +28,20 @@ def intersection( restricted_area, segment ):
     """
 
     restricted_area_shape = Polygon( restricted_area )
-    segment_box = [( segment[segment]['lon_min'], segment[segment]['lat_min'] ),
-                   ( segment[segment]['lon_max'], segment[segment]['lat_min'] ),
-                   ( segment[segment]['lon_max'], segment[segment]['lat_max'] ),
-                   ( segment[segment]['lon_min'], segment[segment]['lat_max'] ),
-                   ( segment[segment]['lon_min'], segment[segment]['lat_min'] )]
+    segment_box = [( segments[segment]['lon_min'], segments[segment]['lat_min'] ),
+                   ( segments[segment]['lon_max'], segments[segment]['lat_min'] ),
+                   ( segments[segment]['lon_max'], segments[segment]['lat_max'] ),
+                   ( segments[segment]['lon_min'], segments[segment]['lat_max'] ),
+                   ( segments[segment]['lon_min'], segments[segment]['lat_min'] )]
 
     segmet_shape = Polygon( segment_box )
     return restricted_area_shape.intersects( segmet_shape )
 
 
-def restrictedSegments( G, segments, restricted_area, speed, capacity, config ):
+def restrictedSegments( G, segments, restricted_area, config ):
     """
-    This function imposes speed and capacity limitations to the desired segments
+    This function imposes zero speed limitations to the desired segments, creating a restricted
+    area for flying
 
     # Segments attributes example:
     # {'lon_min': 9.75, 'lon_max': 9.765,
@@ -53,15 +54,13 @@ def restrictedSegments( G, segments, restricted_area, speed, capacity, config ):
         G - graph
         segments - segments
         restricted_area - point, polygon defining the restriction zone [(lon1, lat1), (lon2, lat2)...]
-        speed - speed limitation
-        capacity - capacity limitation
 
     Output
         G - updated graph with restricted zones
         segments - updated segments with restricted zones
     """
     for segment in segments:
-        if intersection( restricted_area, segment ):
+        if intersection( restricted_area, segment, segments ):
             segments[segment]['speed'] = 0
             segments[segment]['updated'] = True
 
