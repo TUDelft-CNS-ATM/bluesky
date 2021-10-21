@@ -1,9 +1,16 @@
 #!/usr/bin/python
 
 """
+Main script which can be used to control all the other modules. This script can be adapted based
+on the execution needs. However, the general steps that are contained in this master script are
+explained below.
 
 """
 
+
+import configparser
+import os
+import time
 
 from nommon.city_model.city_graph import cityGraph
 from nommon.city_model.corridors_implementation import corridorCreation, corridorLoad
@@ -13,10 +20,6 @@ from nommon.city_model.no_fly_zones import restrictedSegments
 from nommon.city_model.path_planning import trajectoryCalculation, printRoute
 from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings, \
     automaticFlightPlan
-import configparser
-import os
-import time
-
 from nommon.city_model.utils import read_my_graphml, layersDict
 import numpy as np
 import osmnx as ox
@@ -29,12 +32,20 @@ __copyright__ = '(c) Nommon 2021'
 if __name__ == '__main__':
 
     # -------------- 1. CONFIGURATION FILE -----------------
+    """
+    This section reads the configuration file.
+    Change the config_path to read the desired file
+    """
     # CONFIG
     config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
     config = configparser.ConfigParser()
     config.read( config_path )
 
     # -------------- 2. CITY GRAPH -------------------------
+    """
+    This section creates a city graph or loads the graph defined with the city section of the
+    configuration file.
+    """
     # City
     if config['City'].getboolean( 'import' ):
         filepath = config['City']['imported_graph_path']
@@ -53,7 +64,18 @@ if __name__ == '__main__':
     G, segments = corridorLoad( G, segments, config )
 
     # -------------- 4. SEGMENTS ----------------------------
+    """
+    This section creates a airspace segmentation or loads the segmentation defined with the segment
+    section of the configuration file.
+    Comment it to neglect the segmentation
+    """
+    if config['Segments'].getboolean( 'import' ):
+        path = config['Segments']['path']
+        segments = np.load( path, allow_pickle='TRUE' ).item()
+    else:
+        segments = None
 
+    G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
     # -------------- 5. No-FLY ZONES ------------------------
     """
     This section adds restricted area (no-fly zones) by imposing zero verlocity to the sectors that

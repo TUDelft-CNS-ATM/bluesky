@@ -141,12 +141,12 @@ def mainSectorsLimit( lon_min, lon_max, lat_min, lat_max, divisions, building_di
 
 
 if __name__ == '__main__':
-    from nommon.city_model.building_height import readCity
-    directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\Tests"
-    building_dict = readCity( directory )
-    print( building_dict )
-    result = mainSectorsLimit( 9, 10, 40, 60, 4, building_dict )
-    sectors = result[0]
-    building_dict = result [1]
-    print( building_dict )
-    print( sectors )
+    # from nommon.city_model.building_height import readCity
+    # directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\Tests"
+    # building_dict = readCity( directory )
+    # print( building_dict )
+    # result = mainSectorsLimit( 9, 10, 40, 60, 4, building_dict )
+    # sectors = result[0]
+    # building_dict = result [1]
+    # print( building_dict )
+    # print( sectors )

@@ -106,12 +106,12 @@ def cityGraph( config ):
 
 
 if __name__ == '__main__':
-    config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
-    print( 'config path correct?', os.path.isfile( config_path ) )
-    G = cityGraph( config_path )
-    G = ox.speed.add_edge_speeds( G, fallback=10 )
-    G = ox.speed.add_edge_travel_times( G )
-    edges = ox.graph_to_gdfs( G, nodes=False )
-    edges["segment"] = edges["segment"].astype( str )
-    print( edges.groupby( "segment" )[["length", "speed_kph", "travel_time"]].mean().round( 1 ) )
-    print( edges.groupby( "segment" ) )
+    # config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
+    # print( 'config path correct?', os.path.isfile( config_path ) )
+    # G = cityGraph( config_path )
+    # G = ox.speed.add_edge_speeds( G, fallback=10 )
+    # G = ox.speed.add_edge_travel_times( G )
+    # edges = ox.graph_to_gdfs( G, nodes=False )
+    # edges["segment"] = edges["segment"].astype( str )
+    # print( edges.groupby( "segment" )[["length", "speed_kph", "travel_time"]].mean().round( 1 ) )
+    # print( edges.groupby( "segment" ) )
