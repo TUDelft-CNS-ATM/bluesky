@@ -3,15 +3,9 @@
 """
 
 """
-from builtins import int
-from distutils.command.config import config
 from nommon.city_model.dynamic_segments import defineSegment
 import csv
 import math
-import os
-
-import configparser
-
 import osmnx as ox
 
 
@@ -20,21 +14,36 @@ __copyright__ = '(c) Nommon 2021'
 
 
 def insertionNode( G, lon, lat, altitude ):
+    '''
+    This function gets the closest node of the city graph nodes with respect
+    to a given reference point (lat, lon, alt)
+
+    Input:
+        G - graph
+        lon - longitude of the reference point
+        lat - latitude of the reference point
+        altitude - altitude of the reference point
+
+    Output:
+        nearest_node - closest node of the city graph nodes with respect to the reference point
+        distance - distance between the nearest node and the reference point (lat, lon, alt)
+    '''
+
     # nearest_node = ox.distance.nearest_nodes( G, X=lon, Y=lat )
 
     nodes = list( G.nodes )
     # nearest_latlon = list( filter( lambda node: str( node )[1:] == nearest_node[1:]), nodes )
-    nearest_latlon = list( filter( lambda node: str( node )[:3] != 'COR' , nodes ) )
+    nearest_latlon = list( filter( lambda node: str( node )[:3] != 'COR', nodes ) )
 
     nearest_node = nearest_latlon[0]
     delta_xyz = ( ( G.nodes[nearest_node]['z'] - altitude ) ** 2 +
-                 ( G.nodes[nearest_node]['y'] - lat ) ** 2 +
-                 ( G.nodes[nearest_node]['x'] - lon ) ** 2 )
+                  ( G.nodes[nearest_node]['y'] - lat ) ** 2 +
+                  ( G.nodes[nearest_node]['x'] - lon ) ** 2 )
 
     for node in nearest_latlon[1:]:
         delta_xyz_aux = ( ( G.nodes[node]['z'] - altitude ) ** 2 +
-                  ( G.nodes[node]['y'] - lat ) ** 2 +
-                  ( G.nodes[node]['x'] - lon ) ** 2 )
+                          ( G.nodes[node]['y'] - lat ) ** 2 +
+                          ( G.nodes[node]['x'] - lon ) ** 2 )
         if delta_xyz_aux < delta_xyz:
             delta_xyz = delta_xyz_aux
             nearest_node = node
@@ -46,13 +55,13 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     This function creates the acceleration lanes for the entry points of the corridors
 
     Input:
-        G
-        segments
+        G - graph
+        segments - segments of the graph
         node - corridor node that will be an entrance
         name - for naming the segment ?
         speed - corridor speed
         next_node - next corridor node in the direction of the entrance
-        config - configparser.ConfigParser() that reads the configuration file
+        config - configparser.ConfigParser() object that reads the configuration file
             acceleration_lengh - length of the acceleration lane
             n_layers - number of layers of the city grid
             layer_width - width of each layer of the city grid
@@ -88,26 +97,27 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     entry_lat = math.degrees( entry_y / r )
 
     # Adding nodes
-    node_low = node + '_entry_1'
-    node_high = node + '_entry_2'
+    node_low = node + '_in_1'
+    node_high = node + '_in_2'
     n_layers = config['Layers'].getint( 'number_of_layers' )
     layer_width = config['Layers'].getint( 'layer_width' )
     entry_low_height = n_layers * layer_width
     G.addNodeAltitude( node_low, entry_lat, entry_lon, entry_low_height )
     G.addNodeAltitude( node_high, entry_lat, entry_lon, G.nodes[node]['z'] )
+
     # Adding edges for those nodes
-    # Verticval ascension to the acceleration lane
+    # Vertical ascension to the acceleration lane
     G.add_edge( node_low, node_high, 0, oneway=False, segment='new',
-                    speed=speed, length=G.nodes[node]['z'] - entry_low_height )
+                speed=speed, length=G.nodes[node]['z'] - entry_low_height )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_high, node_low, 0, oneway=False, segment=name,
-                    speed=speed, length=G.nodes[node]['z'] - entry_low_height )
+                speed=speed, length=G.nodes[node]['z'] - entry_low_height )
     # Acceleration lane
     G.add_edge( node_high, node, 0, oneway=False, segment='new', speed=speed,
-               length=acceleration_lenght )
+                length=acceleration_lenght )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node, node_high, 0, oneway=False, segment=name, speed=speed,
-               length=acceleration_lenght )
+                length=acceleration_lenght )
 
     # Linking the lower entry point with the city grid
     # Gets closest point in the city grid and distance to it
@@ -121,20 +131,40 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
 
     # Connection to the city grid
     G.add_edge( node_G, node_low, 0, oneway=False, segment='new', speed=50.0,
-                    length=length )
+                length=length )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_low, node_G, 0, oneway=False, segment=name, speed=speed,
-                    length=length )
+                length=length )
 
     return G, segments
 
+
 def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capacity, name, config ):
+    '''
+    This function creates a corridor as defined by its coordinates
+    and adds entry points for the corridor
+
+    Input:
+        G - graph
+        segments - graph segments
+        corridor_coordinates - coordinates that define the shape of the corridor
+        altitude - altitude of the corridor
+        speed - speed defined for the corridor
+        capacity - capacity of the corridor
+        name - name of the corridor
+        config - configparser.ConfigParser() object that reads the configuration file
+
+    Output:
+        G - graph updated with the corridors
+        segments - segments updated with the corridors
+    '''
+
     segments = defineSegment( segments, 0, 0, 0, 0, 0, 0, speed, capacity, name )
     segments[name]['updated'] = False
     segments[name]['new'] = False
 
     index = 0
-    nodes_G = []
+    # nodes_G = []
     nodes_corridor = []
     for point in corridor_coordinates:
         index += 1
@@ -142,7 +172,7 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
         point_lon = point[0]
         point_lat = point[1]
 
-                # nodes_G += [insertionNode( G, point_lon, point_lat, altitude )]
+        # nodes_G += [insertionNode( G, point_lon, point_lat, altitude )]
 
         G.addNodeAltitude( nodes_corridor[-1], point_lat, point_lon, altitude )
 
@@ -162,9 +192,9 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
     # Checks the distance between start and end points of the corridor.
     # If they are less than delta, it considers the corridor as circular and joins both nodes
     od_length = ox.distance.great_circle_vec( G.nodes[nodes_corridor[0]]['y'],
-                                                         G.nodes[nodes_corridor[0]]['x'],
-                                                         G.nodes[nodes_corridor[-1]]['y'],
-                                                         G.nodes[nodes_corridor[-1]]['x'] )
+                                              G.nodes[nodes_corridor[0]]['x'],
+                                              G.nodes[nodes_corridor[-1]]['y'],
+                                              G.nodes[nodes_corridor[-1]]['x'] )
     delta = 5.0  # tolerance distance (m) to consider the corridor as a closed path
     if od_length < delta:
         G.add_edge( nodes_corridor[-1], nodes_corridor[0], 0, oneway=True, segment=name,
@@ -175,6 +205,7 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
                                                          G.nodes[nodes_corridor[-1]]['x'] ) )
     return G, segments
 
+
 def str2intList( string ):
     '''
     This function transforms a string containing digits and other characters into a list of integers
@@ -184,11 +215,12 @@ def str2intList( string ):
     Output:
         list: list with the integers contained in the string, e.g., ['1', '2', '40']
     '''
-    list = []
+    int_list = []
     for s in string.split():
         if s.isdigit():
-             list.append( s )
-    return list
+            int_list.append( s )
+    return int_list
+
 
 def getCorridorCoordinates( corridor, file_path ):
     '''
@@ -217,12 +249,12 @@ def getCorridorCoordinates( corridor, file_path ):
 def corridorLoad( G, segments, config ):
     '''
     This function reads the parameters from the configuration file and executes the corridor
-    creation function for all the active corridors defined
+    creation function for all the active corridors defined in the configuration file
 
     Input:
         G - graph
         segments
-        config - configparser.ConfigParser() that reads the configuration file
+        config - configparser.ConfigParser() object that reads the configuration file
 
     Outputs:
         G
@@ -250,17 +282,11 @@ def corridorLoad( G, segments, config ):
         corridor_coordinates = getCorridorCoordinates( corridor, file_path_corridors )
         # Creates the segments of the corridor
         G, segments = corridorCreation( G, segments, corridor_coordinates,
-                                                      altitude, speed, 50, name, config )
+                                        altitude, speed, 50, name, config )
         G, segments = corridorCreation( G, segments, corridor_coordinates[::-1],
-                                                      altitude + delta_z, speed, 50, name_rev,
-                                                      config )
+                                        altitude + delta_z, speed, 50, name_rev, config )
     return G, segments
 
 
 if __name__ == '__main__':
-    # CONFIG
-    config = configparser.ConfigParser()
-    config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
-    config.read( config_path )
-
-    corridorLoad( G, segments, config )
+    pass
