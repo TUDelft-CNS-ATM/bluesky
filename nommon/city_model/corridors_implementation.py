@@ -3,9 +3,13 @@
 """
 
 """
-from nommon.city_model.dynamic_segments import defineSegment
+from distutils.command.config import config
+import configparser
 import csv
 import math
+import os
+
+from nommon.city_model.dynamic_segments import defineSegment
 import osmnx as ox
 
 

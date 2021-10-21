@@ -118,7 +118,7 @@ if __name__ == '__main__':
 #     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
 #     scenario_file.close()
 
-    automaticFlightPlan( 10, 'U', G, layers_dict )
+    automaticFlightPlan( 1000, 'U', G, layers_dict )
 
     # Drawing buildings
 #     print( 'Creating scenario...' )

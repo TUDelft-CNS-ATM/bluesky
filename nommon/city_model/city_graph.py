@@ -7,10 +7,10 @@ import configparser
 import os
 import string
 
-from nommon.city_model.auxiliar import read_my_graphml
 from nommon.city_model.building_height import readCity
 from nommon.city_model.city_structure import mainSectorsLimit
 from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from nommon.city_model.utils import read_my_graphml
 import networkx as nx
 import osmnx as ox
 
@@ -19,41 +19,49 @@ __author__ = 'jbueno'
 __copyright__ = '(c) Nommon 2021'
 
 
-
-
 def cityGraph( config ):
-#     config = configparser.ConfigParser()
-#     config.read( config_path )
-#
+    """
+    It creates a 3D graph of a city based on the parameters of the configuration file
+
+    Args:
+            config (configuration file): A configuration file with all the relevant information
+
+    Returns:
+            G (graph): graph representing the available urban airspace for drones
+    """
 
     # We import a graph of the city with all the streets = edges, and intersections = nodes
 
-    # Study zone
-#     hannover = ( config['City'].getfloat( 'hannover_lat' ),
-#                  config['City'].getfloat( 'hannover_lon' ) )  # Hannover coordinates
+    # Study zone + import the graph from OSM
+    if config['City']['mode'] == 'square':
+        hannover = ( config['City'].getfloat( 'hannover_lat' ),
+                     config['City'].getfloat( 'hannover_lon' ) )  # Hannover coordinates
+        zone_size = config['City'].getint( 'zone_size' )  # meters
 
-    hannover = ( config['City'].getfloat( 'hannover_lat_min' ),
-                 config['City'].getfloat( 'hannover_lat_max' ),
-                 config['City'].getfloat( 'hannover_lon_min' ),
-                 config['City'].getfloat( 'hannover_lon_max' ) )  # Hannover coordinates
+        print( 'Obtaining the graph from OSM...' )
+        G = ox.graph_from_point( hannover, dist=zone_size, network_type="drive", simplify=False )
+    else:
+        hannover = ( config['City'].getfloat( 'hannover_lat_min' ),
+                     config['City'].getfloat( 'hannover_lat_max' ),
+                     config['City'].getfloat( 'hannover_lon_min' ),
+                     config['City'].getfloat( 'hannover_lon_max' ) )  # Hannover coordinates
 
-#     zone_size = config['City'].getint( 'zone_size' )  # meters
+        print( 'Obtaining the graph from OSM...' )
+        G = ox.graph_from_bbox( hannover[1], hannover[0], hannover[3], hannover[2],
+                                network_type="drive", simplify=False )
 
-#     G = ox.graph_from_point( hannover, dist=zone_size, network_type="drive", simplify=False )
-    print( 'Obtaining the graph from OSM...' )
-    G = ox.graph_from_bbox( hannover[1], hannover[0], hannover[3], hannover[2],
-                            network_type="drive", simplify=False )
-    G = MultiDiGrpah3D( G )  # We create a graph with our clase MultiDiGrpah3D
+    # We create a graph with our class MultiDiGrpah3D
+    G = MultiDiGrpah3D( G )
 
     fig, ax = ox.plot_graph( G )
 
-    # We save the nodes
+    # We save the nodes of the streets
     nodes_to_be_removed = list( G.nodes )
 
     # An attribute "altitude" = 0 is defined for each node
     G.defGroundAltitude()
 
-    # We create some layers
+    # We create the first layers
     letters = list( string.ascii_uppercase )
     layers = letters[0:config['Layers'].getint( 'number_of_layers' )]
 
@@ -64,6 +72,7 @@ def cityGraph( config ):
     if config['Options'].getboolean( 'simplify' ):
         G.simplifyGraph( config )
 
+    # Create the rest of layers
     for elem in layers[1:]:
         G.addLayer( elem, config['Layers'].getint( 'layer_width' ) )
 
@@ -81,18 +90,20 @@ def cityGraph( config ):
     sectors, building_dict = mainSectorsLimit( lon_min, lon_max, lat_min, lat_max, divisions,
                                                building_dict )
 
+    # We allow drone movement above buildings
     G.addDiagonalEdges( sectors, config )
 
-    if config['Options'].getboolean( 'one_way' ):
+    if config['Options'].getboolean( 'one_way' ):  # if we want a one way graph
         G.defOneWay( config )
 
     # We plot the graph
     fig, ax = ox.plot_graph( G )
-    print( 'Saving the graph...' )
 
-    filepath = "./data/hannover.graphml"
+    print( 'Saving the graph...' )
+    filepath = config['Outputs']['graph_path']
     ox.save_graphml( G, filepath )
     return G
+
 
 if __name__ == '__main__':
     config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"

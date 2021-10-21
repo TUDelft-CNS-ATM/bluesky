@@ -15,6 +15,9 @@ __copyright__ = '(c) Nommon 2021'
 
 
 class MultiDiGrpah3D ( MultiDiGraph ):
+    """
+    A class to transform a graph into a 3-dimensional graph
+    """
     def __init__( self, G_copy=None, **attr ):
         MultiDiGraph.__init__( self, G_copy, **attr )
 
@@ -22,14 +25,36 @@ class MultiDiGrpah3D ( MultiDiGraph ):
         self.add_node( name, y=y_node, x=x_node, z=alttude_node, segment='new' )
 
     def filterNodes( self, nodes, layer ):
+        """
+        Filter the nodes to consider only those belonging to a layer
+
+        Args:
+                nodes (list): a list on nodes
+                layer (string): string indicating the layer
+        Returns:
+                nodes_filtered (list): filtered nodes
+        """
         nodes_filtered = filter( lambda node: str( node )[0] == layer, nodes )
         return list( nodes_filtered )
 
     def defGroundAltitude( self ):
+        """
+        Define a ground altitude for all the nodes
+        """
         for n in self:
             self.add_node( n, z=0 )
 
     def addLayer( self, layer, layer_width ):
+        """
+        Add a layer in the graph. It can be the first layer or an additional layer.
+        The layer are coded as letters: A, B, C, D,.... A is the lower layer and the rest are in
+        alphabetic order.
+
+        Args:
+                layer (string): string indicating the layer that will be created
+                layer_width (integer): integer representing the altitude difference between two
+                                       consecutive layers.
+        """
         increment_altitude = layer_width
 
         nodes = list( self.nodes )
@@ -103,6 +128,15 @@ class MultiDiGrpah3D ( MultiDiGraph ):
                                speed=50.0, length=increment_altitude )
 
     def addDiagonalEdges( self, sectors, config ):
+        """
+        Create edges in the graph to allow the movement above buildings. These edges connect the
+        sector corners and they are created in all the layers above the limit altitude of the
+        sector (the limit altitude is defined as the altitude of the tallest building in the sector
+
+        Args:
+                sectors (dataframe): dataframe cointaining all the information about the sectors
+                config (configuration file): configuration file containing all the relevant parameters
+        """
         print( 'Creating diagonal edges...' )
         G = self.copy()
         for i in range( len( sectors ) ):
@@ -193,7 +227,9 @@ class MultiDiGrpah3D ( MultiDiGraph ):
 
             for elem in layers:
                 for x_orig_iter, x_dest_iter, y_orig_iter, y_dest_iter, orig_iter, dest_iter in zip( xx_orig, xx_dest, yy_orig, yy_dest, node_orig, node_dest ):
-                    control_points = 4
+
+                    control_points = 4  # Variable indicating the number of nodes of the diagonal
+
                     xx_control = [x_orig_iter + element * ( ( x_dest_iter - x_orig_iter ) / ( control_points - 1 ) ) for element in range( control_points )]
                     yy_control = [y_orig_iter + element * ( ( y_dest_iter - y_orig_iter ) / ( control_points - 1 ) ) for element in range( control_points )]
 
@@ -203,8 +239,7 @@ class MultiDiGrpah3D ( MultiDiGraph ):
                     for point_lon, point_lat in zip( xx_control[1:-1], yy_control[1:-1] ):
                         index += 1
                         nodes_edge += [base_name + '_' + str( index )]
-#                         print( nodes_edge[0] )
-#                         print( self.nodes[nodes_edge[0]] )
+
                         self.add_node( nodes_edge[-1], y=point_lat, x=point_lon,
                                        z=self.nodes[nodes_edge[0]]['z'], segment='new' )
 
@@ -230,6 +265,15 @@ class MultiDiGrpah3D ( MultiDiGraph ):
                                                                             xx_control[i + 1] ) )
 
     def defOneWay( self, config ):
+        """
+        Transform the graph to consider one way edges.
+        Drone can fly from west to east in the layers: A, C, E,...
+        Drone can fly from east to west in the layers: B, D, F,...
+
+        Args:
+                config (configuration file): configuration file with the relevant parameters
+        """
+
         letters = list( string.ascii_uppercase )
         total_layers = letters[0:config['Layers'].getint( 'number_of_layers' )]
         layers_w2e = total_layers[0::2]
@@ -251,6 +295,12 @@ class MultiDiGrpah3D ( MultiDiGraph ):
                         self.remove_edge( node, elem, 0 )
 
     def simplifyGraph( self, config ):
+        """
+        Merge the nodes whose distance is less than a threshold
+
+        Args:
+                config (configuration file): configuration file with the relevant parameters
+        """
         nodes = list( self.nodes )
         for node in nodes:
             if self.has_node( node ):
@@ -276,6 +326,16 @@ class MultiDiGrpah3D ( MultiDiGraph ):
                 pass
 
     def distanceNearestNode( self, G, node_lon, node_lat ):
+        """
+        Find the nearest node to a node and compute the distance.
+
+        Args:
+                G (graph): graph
+                node_lon (float): longitude of the node
+                node_lat (float): latitude of the node
+        Returns:
+                (float): distance in meters
+        """
         node = ox.distance.nearest_nodes( G, X=node_lon, Y=node_lat )
         return ox.distance.great_circle_vec( node_lat, node_lon, self.nodes[node]['y'],
                                              self.nodes[node]['x'] )
