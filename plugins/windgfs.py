@@ -1,8 +1,8 @@
 import os
 import sys
-import numpy as np
 import pygrib
 import requests
+import numpy as np
 import bluesky as bs
 from bluesky import settings, stack
 from bluesky.core import timed_function
