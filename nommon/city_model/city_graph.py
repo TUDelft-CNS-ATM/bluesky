@@ -106,6 +106,7 @@ def cityGraph( config ):
 
 
 if __name__ == '__main__':
+    pass
     # config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
     # print( 'config path correct?', os.path.isfile( config_path ) )
     # G = cityGraph( config_path )

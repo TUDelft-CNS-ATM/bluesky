@@ -108,7 +108,7 @@ def divideAirspaceSegments( lon_min, lon_max, lat_min, lat_max, z_min, z_max, di
 
 def selectNodesWithNewSegments( G, segments, deleted_segments ):
     """
-    Select the nodes affected by the new segmentation. It takes the new nodes, the nodes belonging 
+    Select the nodes affected by the new segmentation. It takes the new nodes, the nodes belonging
     to new segments and the nodes belonging to segments that has been deleted
 
     Args:
@@ -135,14 +135,14 @@ def selectNodesWithNewSegments( G, segments, deleted_segments ):
 def assignSegmet2Edge( G, segments_df, deleted_segments ):
     """
     Assign to each node and edge the segment it belongs to. If the origin node of an edge belongs to
-    the segment, then the edge belongs to the segment. 
+    the segment, then the edge belongs to the segment.
 
     Args:
             G (graph): graph representing the city
             segments_df (DataFrame): dataframe with the segment information
             deleted_segments (list): a list containing the segments that has been deleted
 
-    Returns: 
+    Returns:
             G (graph): updated graph
     """
 
@@ -152,7 +152,7 @@ def assignSegmet2Edge( G, segments_df, deleted_segments ):
 
     print( 'Assigning segments...' )
     # We select the nodes belonging to the new segments
-    nodes_affected = selectNodesWithNewSegments( G, segments_df, deleted_segments)
+    nodes_affected = selectNodesWithNewSegments( G, segments_df, deleted_segments )
     for node in nodes_affected:
         if node[0:2] == 'COR':
             # corridors do not depend on this segmentation
@@ -176,7 +176,7 @@ def assignSegmet2Edge( G, segments_df, deleted_segments ):
         connected_edges = list( G.neighbors( node ) )
         for edge in connected_edges:
             # If the origin node of an edge belongs to the segment, then the edge belongs to the
-            # segment. 
+            # segment.
             G.edges[node, edge, 0 ]['segment'] = segment_name
 
     return G
@@ -303,6 +303,7 @@ def dynamicSegments( G, config, segments=None, deleted_segments=None ):
 
 
 if __name__ == '__main__':
+    pass
     # filepath = "./data/hannover.graphml"
     #
     # from utils import read_my_graphml

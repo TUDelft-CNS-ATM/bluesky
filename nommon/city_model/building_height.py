@@ -225,6 +225,7 @@ def readCity( directory ):
 
 
 if __name__ == '__main__':
+    pass
 # #     path = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\CityGML_LoD1\5410_5806.gml"
 # #     print( readSector( path ) )
 # #     directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\CityGML_LoD1"

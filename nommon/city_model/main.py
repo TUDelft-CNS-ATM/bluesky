@@ -51,19 +51,11 @@ if __name__ == '__main__':
         filepath = config['City']['imported_graph_path']
         G = read_my_graphml( filepath )
         G = MultiDiGrpah3D( G )
-#         fig, ax = ox.plot_graph( G )
-        segments = np.load( 'my_segments.npy', allow_pickle='TRUE' ).item()
+        fig, ax = ox.plot_graph( G )
     else:
         G = cityGraph( config )
 
-    # -------------- 3. CORRIDORS ---------------------------
-    """
-    This section loads the corridors defined with the corridor section of the configuration file
-    Comment it to neglect the creation of corridors
-    """
-    G, segments = corridorLoad( G, segments, config )
-
-    # -------------- 4. SEGMENTS ----------------------------
+    # -------------- 3. SEGMENTS ----------------------------
     """
     This section creates a airspace segmentation or loads the segmentation defined with the segment
     section of the configuration file.
@@ -76,6 +68,14 @@ if __name__ == '__main__':
         segments = None
 
     G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
+
+    # -------------- 4. CORRIDORS ---------------------------
+    """
+    This section loads the corridors defined with the corridor section of the configuration file
+    Comment it to neglect the creation of corridors
+    """
+    G, segments = corridorLoad( G, segments, config )
+
     # -------------- 5. No-FLY ZONES ------------------------
     """
     This section adds restricted area (no-fly zones) by imposing zero verlocity to the sectors that
@@ -106,97 +106,55 @@ if __name__ == '__main__':
     printRoute( G, route )
 
     # -------------- 7. Scenario definition -----------------------
+    """
+    This section computes scenarios to be used in BlueSky.
+    1. Path planning
+    2. Automatic flight plan
+    3. Print buildings
+    """
 
-#     fig, ax = ox.plot_graph( G )
-    # Segments
-#    G, segments = dynamicSegments( G, config, segments=None )
-#
-#    segments[list( segments.keys() )[0]]['new'] = True
-#    segments[list( segments.keys() )[3]]['updated'] = True
-#    segments[list( segments.keys() )[3]]['speed'] = 0
-#    G, segments = dynamicSegments( G, config, segments )
-
-#    print( 'Saving the graph...' )
-#    filepath = "./data/hannover_segments_2.graphml"
-#    ox.save_graphml( G, filepath )
-#    np.save( 'my_segments_2.npy', segments )
-
-    # Corridors
-#     G, segments = corridorCreation( G, segments, ( [9.73, 52.375], [9.77, 52.399 ] ),
-#                                     200, 100, 50, 'COR_1' )
-#     G, segments = dynamicSegments( G, config, segments=None )
-    # No-fly zones
-#     segments['segment_3_1_0']['speed'] = 0
-#     segments['segment_3_1_0']['updated'] = True
-#     segments['segment_3_1_1']['speed'] = 0
-#     segments['segment_3_1_1']['updated'] = True
-#     segments['segment_2_2_0']['speed'] = 0
-#     segments['segment_2_2_0']['updated'] = True
-#     segments['segment_2_2_1']['speed'] = 0
-#     segments['segment_2_2_1']['updated'] = True
-#     segments['segment_1_2_0']['speed'] = 0
-#     segments['segment_1_2_0']['updated'] = True
-#     segments['segment_1_2_1']['speed'] = 0
-#     segments['segment_1_2_1']['updated'] = True
-#     segments['segment_1_3_0']['speed'] = 0
-#     segments['segment_1_3_0']['updated'] = True
-#     segments['segment_1_3_1']['speed'] = 0
-#     segments['segment_1_3_1']['updated'] = True
-#     segments['segment_2_3_0']['speed'] = 0
-#     segments['segment_2_3_0']['updated'] = True
-#     segments['segment_2_3_1']['speed'] = 0
-#     segments['segment_2_3_1']['updated'] = True
-#     segments['segment_3_2_0']['speed'] = 0
-#     segments['segment_3_2_0']['updated'] = True
-#     segments['segment_3_2_1']['speed'] = 0
-#     segments['segment_3_2_1']['updated'] = True
-#     segments['segment_3_3_0']['speed'] = 0
-#     segments['segment_3_3_0']['updated'] = True
-#     segments['segment_3_3_1']['speed'] = 0
-#     segments['segment_3_3_1']['updated'] = True
-#
-#     G, segments = dynamicSegments( G, config, segments )
-#     edges = ox.utils_graph.graph_to_gdfs( G, nodes=False, fill_edge_geometry=False )
-
-    # Plot graph
-#     ec = ["r" if G.edges[( u, v, k )]['speed'] == 0 else "gray" for u, v, k in G.edges( keys=True )]
-#     fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
-#                              edge_linewidth=2 )
-
-    # Route
-#     orig = [9.77, 52.39 ]
-#     dest = [9.73, 52.38]
-#     length, route = trajectoryCalculation( G, orig, dest )
-#     print( 'The length of the route is {0}'.format( length ) )
-#     print( 'The route is {0}'.format( route ) )
-#     printRoute( G, route )
-
-    # Path Planning
+    # The layer information will be used by the "createFlightPlan" function
     layers_dict = layersDict( config )
 
-#     ac = 'U005'
-#     departure_time = '00:00:00.00'
-#     scenario_path = r'C:\workspace3\bluesky\nommon\city_model\scenario5.scn'
-#     scenario_file = open( scenario_path, 'w' )
-#     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
-#     scenario_file.close()
+    """
+    1.Path Planning
+    We generate the flight plan of one drone. A scenario file is generated, which can be loaded by
+    BlueSky. The "createFlightPlan" function transforms the optimal path (list of waypoints) to
+    BlueSky commands
+    """
 
-    automaticFlightPlan( 10, 'U', G, layers_dict )
+    ac = 'U001'
+    departure_time = '00:00:00.00'
+    scenario_path = r'C:\workspace3\bluesky\nommon\city_model\scenario_example.scn'
+    scenario_file = open( scenario_path, 'w' )
+    createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
+    scenario_file.close()
 
-    # Drawing buildings
-#     print( 'Creating scenario...' )
-#     time = '00:00:00.00'
-#     scenario_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings_graph'
-#     drawBuildings( config, scenario_path_base, time )
+    """
+    2. Automatic flight plan
+    We generate many flight plans. Origins and destinations of a defined number of trajectories are
+    randomly generated. We create a BlueSky scenario for each drone and a general BlueSky scenario
+    which calls all the drone flight plans. Loading this general path in BlueSKy, we can simulate
+    XX drones flying at the same time.
+    """
 
+    total_drones = 10
+    base_name = 'U'
+    scenario_general_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_10_drones'
+    automaticFlightPlan( total_drones, base_name, G, layers_dict, scenario_general_path_base )
 
-#     G, segments = corridorLoad( G, segments, config )
-#
-#     # No-fly zones
-#     # no_fly_coordinates = [[9.73, 52.39]]
-#     no_fly_coordinates = []
-#     restrictedSegments( G, segments, no_fly_coordinates, 0, 0, config )
-#
+    """
+    3. Draw buildings
+    We generate the scenarios needed for printing the buildings in BlueSky.
+    """
+    time = '00:00:00.00'
+    scenario_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings_graph'
+    drawBuildings( config, scenario_path_base, time )
+
+    # ---------------------------------------------------------------------------------
+
+    print( 'Finish.' )
+
 #     # Plotting the graph with corridors and no-fly zones
 #     ec = []
 #     for u, v, k in G.edges( keys=True ):
@@ -208,14 +166,8 @@ if __name__ == '__main__':
 #             ec.append( "gray" )
 #     fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
 #                              edge_linewidth=2 )
-#
-#     # Route
-#     orig = [9.72321, 52.3761]
-#     dest = [9.766, 52.39 ]
-#     length, route = trajectoryCalculation( G, orig, dest )
-#     # Plotting the route
-#     print( length )
-#     printRoute( G, route )
+#    # Plot graph
+#     ec = ["r" if G.edges[( u, v, k )]['speed'] == 0 else "gray" for u, v, k in G.edges( keys=True )]
+#     fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
+#                              edge_linewidth=2 )
 
-
-    print( 'Finish.' )

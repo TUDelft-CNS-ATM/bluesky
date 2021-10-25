@@ -141,6 +141,7 @@ def mainSectorsLimit( lon_min, lon_max, lat_min, lat_max, divisions, building_di
 
 
 if __name__ == '__main__':
+    pass
     # from nommon.city_model.building_height import readCity
     # directory = r"C:\Users\jbueno\Desktop\Stadtmodell_Hannover_CityGML_LoD1\Tests"
     # building_dict = readCity( directory )
