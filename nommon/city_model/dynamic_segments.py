@@ -126,7 +126,8 @@ def selectNodesWithNewSegments( G, segments, deleted_segments ):
     # Nodes belonging to new segments
     cond = cond | ( nodes['segment'].isin( new_segments ) )
     # Nodes belonging to deleted segments
-    cond = cond | ( nodes['segment'].isin( deleted_segments ) )
+    if deleted_segments is not None:
+        cond = cond | ( nodes['segment'].isin( deleted_segments ) )
 
     df = nodes[cond]
     return df.index

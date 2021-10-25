@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
     ac = 'U001'
     departure_time = '00:00:00.00'
-    scenario_path = r'C:\workspace3\bluesky\nommon\city_model\scenario_example.scn'
+    scenario_path = r'.\data\scenario_example.scn'
     scenario_file = open( scenario_path, 'w' )
     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
     scenario_file.close()
@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     total_drones = 10
     base_name = 'U'
-    scenario_general_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_10_drones'
+    scenario_general_path_base = r'.\data\scenario_10_drones'
     automaticFlightPlan( total_drones, base_name, G, layers_dict, scenario_general_path_base )
 
     """
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     We generate the scenarios needed for printing the buildings in BlueSky.
     """
     time = '00:00:00.00'
-    scenario_path_base = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings_graph'
+    scenario_path_base = r'.\data\scenario_buildings_graph'
     drawBuildings( config, scenario_path_base, time )
 
     # ---------------------------------------------------------------------------------
