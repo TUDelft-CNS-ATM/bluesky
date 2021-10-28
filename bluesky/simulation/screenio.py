@@ -221,9 +221,7 @@ class ScreenIO:
                         traillat0=bs.traf.trails.newlat0,
                         traillon0=bs.traf.trails.newlon0,
                         traillat1=bs.traf.trails.newlat1,
-                        traillon1=bs.traf.trails.newlon1)#,
-                        # traillastlat=bs.traf.trails.lastlat,
-                        # traillastlon=bs.traf.trails.lastlon)
+                        traillon1=bs.traf.trails.newlon1)
             bs.traf.trails.clearnew()
             bs.net.send_stream(b'TRAILS', data)
 
@@ -239,13 +237,16 @@ class ScreenIO:
         data['gs']         = bs.traf.gs
         data['ingroup']    = bs.traf.groups.ingroup
         data['inconf'] = bs.traf.cd.inconf
+        data['type'] = bs.traf.type
         data['tcpamax'] = bs.traf.cd.tcpamax
         data['rpz'] = bs.traf.cd.rpz
         data['nconf_cur'] = len(bs.traf.cd.confpairs_unique)
         data['nconf_tot'] = len(bs.traf.cd.confpairs_all)
         data['nlos_cur'] = len(bs.traf.cd.lospairs_unique)
         data['nlos_tot'] = len(bs.traf.cd.lospairs_all)
+        data['selhdg']        = bs.traf.selhdg
         data['trk']        = bs.traf.trk
+        data['selalt']     = bs.traf.selalt
         data['vs']         = bs.traf.vs
         data['vmin']       = bs.traf.perf.vmin
         data['vmax']       = bs.traf.perf.vmax

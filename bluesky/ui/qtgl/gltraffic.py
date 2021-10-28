@@ -1,5 +1,6 @@
 ''' Traffic OpenGL visualisation. '''
 import numpy as np
+import itertools
 from bluesky.ui.qtgl import glhelpers as glh
 
 import bluesky as bs
@@ -48,8 +49,9 @@ class Traffic(glh.RenderObject, layer=100):
 
         self.ssd = glh.VertexArrayObject(glh.gl.GL_POINTS, shader_type='ssd')
         self.protectedzone = glh.Circle()
-        self.ac_symbol = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN)
-        self.aclabels = glh.Text(settings.text_size, (8, 3))
+        # self.ac_symbol = glh.VertexArrayObject(glh.gl.GL_TRIANGLE_FAN)
+        self.ac_symbol = glh.VertexArrayObject(glh.gl.GL_LINE_LOOP)
+        self.aclabels = glh.Text(settings.text_size, (13, 4))
         self.cpalines = glh.VertexArrayObject(glh.gl.GL_LINES)
         self.route = glh.VertexArrayObject(glh.gl.GL_LINES)
         self.routelbl = glh.Text(settings.text_size, (12, 2))
@@ -85,13 +87,28 @@ class Traffic(glh.RenderObject, layer=100):
         self.protectedzone.set_attribs(lat=self.lat, lon=self.lon, scale=self.rpz,
                                        color=self.color, instance_divisor=1)
 
-        acvertices = np.array([(0.0, 0.5 * ac_size), (-0.5 * ac_size, -0.5 * ac_size),
-                               (0.0, -0.25 * ac_size), (0.5 * ac_size, -0.5 * ac_size)],
-                              dtype=np.float32)
+        # acvertices = np.array([(0.0, 0.5 * ac_size), (-0.5 * ac_size, -0.5 * ac_size),
+        #                        (0.0, -0.25 * ac_size), (0.5 * ac_size, -0.5 * ac_size)],
+        #                       dtype=np.float32)
+
+        acvertices_sizevar = 0.4
+        acvertices = np.array([(-acvertices_sizevar * ac_size, -acvertices_sizevar * ac_size),
+                               (acvertices_sizevar * ac_size, acvertices_sizevar * ac_size),
+                               (acvertices_sizevar * ac_size, -acvertices_sizevar * ac_size),
+                               (-acvertices_sizevar * ac_size, acvertices_sizevar * ac_size),
+                               (-acvertices_sizevar * ac_size, -acvertices_sizevar * ac_size),
+                               (acvertices_sizevar * ac_size, -acvertices_sizevar * ac_size),
+                               (acvertices_sizevar * ac_size, acvertices_sizevar * ac_size),
+                               (-acvertices_sizevar * ac_size, acvertices_sizevar * ac_size)],
+                              dtype=np.float32)  # a square
+
         self.ac_symbol.create(vertex=acvertices)
 
+        # self.ac_symbol.set_attribs(lat=self.lat, lon=self.lon, color=self.color,
+        #                            orientation=self.hdg, instance_divisor=1)
+
         self.ac_symbol.set_attribs(lat=self.lat, lon=self.lon, color=self.color,
-                                   orientation=self.hdg, instance_divisor=1)
+                                    instance_divisor=1)
 
         self.aclabels.create(self.lbl, self.lat, self.lon, self.color,
                              (ac_size, -0.5 * ac_size), instanced=True)
@@ -253,11 +270,14 @@ class Traffic(glh.RenderObject, layer=100):
                 (data.alt >= actdata.filteralt[0]) * (data.alt <= actdata.filteralt[1]))
             data.lat = data.lat[idx]
             data.lon = data.lon[idx]
+            data.selhdg = data.selhdg[idx]
             data.trk = data.trk[idx]
+            data.selalt = data.selalt[idx]
             data.alt = data.alt[idx]
             data.tas = data.tas[idx]
             data.vs = data.vs[idx]
             data.rpz = data.rpz[idx]
+            data.type = data.type[idx]
         naircraft = len(data.lat)
         actdata.translvl = data.translvl
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
@@ -290,26 +310,33 @@ class Traffic(glh.RenderObject, layer=100):
             selssd = np.zeros(naircraft, dtype=np.uint8)
             confidx = 0
 
-            zdata = zip(data.id, data.ingroup, data.inconf, data.tcpamax, data.trk, data.gs,
-                        data.cas, data.vs, data.alt, data.lat, data.lon)
+            zdata = zip(data.id, data.ingroup, data.inconf, data.tcpamax, data.selhdg, data.trk, data.gs,
+                        data.cas, data.vs, data.selalt, data.alt, data.lat, data.lon, itertools.repeat(data.type))
             for i, (acid, ingroup, inconf, tcpa,
-                    trk, gs, cas, vs, alt, lat, lon) in enumerate(zdata):
+                    selhdg, trk, gs, cas, vs, selalt, alt, lat, lon, type) in enumerate(zdata):
                 if i >= MAX_NAIRCRAFT:
                     break
 
-                # Make label: 3 lines of 8 characters per aircraft
+                    # Make label: 3 lines of 8 characters per aircraft
                 if actdata.show_lbl >= 1:
-                    rawlabel += '%-8s' % acid[:8]
+                    rawlabel += '%-13s' % acid[:8]  # Line 1: Flight code (ex. KL001)
                     if actdata.show_lbl == 2:
                         if alt <= data.translvl:
-                            rawlabel += '%-5d' % int(alt / ft + 0.5)
+                            rawlabel += '%-8s' % int(alt / ft + 0.5) # Line 2.1:
+                            rawlabel += '%-5s' % int(selalt / ft + 0.5)  # Line 2.2: altitiude
                         else:
-                            rawlabel += 'FL%03d' % int(alt / ft / 100. + 0.5)
+                            rawlabel += 'FL%-6s' % int(alt / ft / 100. + 0.5)  # Line 2.2: flight level
+                            rawlabel += 'FL%-3s' % int(selalt / ft / 100. + 0.5)  # Line 2.2: flight level
+                        rawlabel += '%-8s' % '.EAT' #int(hdg)  # Line 3.1:
+                        if selhdg == 0:
+                            rawlabel += '%-5s' % int(trk)  # Line 3.2: Heading
+                        else:
+                            rawlabel += '%-5s' % int(selhdg)  # Line 3.2: Heading
+                        rawlabel += '%-8s' % str(type[i])  # Line 4.1: Aircraft type
                         vsarrow = 30 if vs > 0.25 else 31 if vs < -0.25 else 32
-                        rawlabel += '%1s  %-8d' % (chr(vsarrow),
-                                                   int(cas / kts + 0.5))
+                        rawlabel += '%-5s' % str(str(int(cas / kts + 0.5)) + chr(vsarrow))  # Line 4.2: Speed
                     else:
-                        rawlabel += 16 * ' '
+                        rawlabel += 39 * ' '
 
                 if inconf:
                     if actdata.ssd_conflicts:

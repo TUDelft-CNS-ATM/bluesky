@@ -58,17 +58,17 @@ class Navdatabase:
         self.wpfreq   = wptdata['wpfreq']       # frequency [kHz/MHz]
         self.wpdesc   = wptdata['wpdesc']     # description
 
-        # Get airway legs data
-        self.awfromwpid = awydata['awfromwpid']  # identifier (string)
-        self.awfromlat  = awydata['awfromlat']   # latitude [deg]
-        self.awfromlon  = awydata['awfromlon']   # longitude [deg]
-        self.awtowpid   = awydata['awtowpid']    # identifier (string)
-        self.awtolat    = awydata['awtolat']     # latitude [deg]
-        self.awtolon    = awydata['awtolon']     # longitude [deg]
-        self.awid       = awydata['awid']        # airway identifier (string)
-        self.awndir     = awydata['awndir']      # number of directions (1 or 2)
-        self.awlowfl    = awydata['awlowfl']     # lower flight level (int)
-        self.awupfl     = awydata['awupfl']      # upper flight level (int)
+        # # Get airway legs data
+        # self.awfromwpid = awydata['awfromwpid']  # identifier (string)
+        # self.awfromlat  = awydata['awfromlat']   # latitude [deg]
+        # self.awfromlon  = awydata['awfromlon']   # longitude [deg]
+        # self.awtowpid   = awydata['awtowpid']    # identifier (string)
+        # self.awtolat    = awydata['awtolat']     # latitude [deg]
+        # self.awtolon    = awydata['awtolon']     # longitude [deg]
+        # self.awid       = awydata['awid']        # airway identifier (string)
+        # self.awndir     = awydata['awndir']      # number of directions (1 or 2)
+        # self.awlowfl    = awydata['awlowfl']     # lower flight level (int)
+        # self.awupfl     = awydata['awupfl']      # upper flight level (int)
 
         # Get airpoint data
         self.aptid     = aptdata['apid']      # 4 char identifier (string)
@@ -348,29 +348,29 @@ class Navdatabase:
 
         return airway #,connect
 
-    def listconnections(self, wpid,wplat,wplon):
-
-        # Return list of connecting airway legs
-        connect = []
-
-        # Check from-list first
-        if wpid in self.awfromwpid:
-            idx = findall(self.awfromwpid,wpid)
-            for i in idx:
-                newitem = [self.awid[i],self.awtowpid[i]]
-                if (newitem not in connect) and \
-                         geo.kwikdist(self.awfromlat[i],self.awfromlon[i],
-                                  wplat,wplon) < 10.:
-                    connect.append(newitem)
-
-        # Check to-list nextt
-        if wpid in self.awtowpid:
-            idx = findall(self.awtowpid,wpid)
-            for i in idx:
-                newitem = [self.awid[i],self.awfromwpid[i]]
-                if (newitem not in connect) and \
-                         geo.kwikdist(self.awtolat[i],self.awtolon[i],
-                                  wplat,wplon) < 10.:
-                    connect.append(newitem)
-
-        return connect # return list of [awid,wpid]
+    # def listconnections(self, wpid,wplat,wplon):
+        #
+        # # Return list of connecting airway legs
+        # connect = []
+        #
+        # # Check from-list first
+        # if wpid in self.awfromwpid:
+        #     idx = findall(self.awfromwpid,wpid)
+        #     for i in idx:
+        #         newitem = [self.awid[i],self.awtowpid[i]]
+        #         if (newitem not in connect) and \
+        #                  geo.kwikdist(self.awfromlat[i],self.awfromlon[i],
+        #                           wplat,wplon) < 10.:
+        #             connect.append(newitem)
+        #
+        # # Check to-list nextt
+        # if wpid in self.awtowpid:
+        #     idx = findall(self.awtowpid,wpid)
+        #     for i in idx:
+        #         newitem = [self.awid[i],self.awfromwpid[i]]
+        #         if (newitem not in connect) and \
+        #                  geo.kwikdist(self.awtolat[i],self.awtolon[i],
+        #                           wplat,wplon) < 10.:
+        #             connect.append(newitem)
+        #
+        # return connect # return list of [awid,wpid]

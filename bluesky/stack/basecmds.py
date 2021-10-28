@@ -273,6 +273,13 @@ def initbasecmds():
             bs.tools.geo.magdeccmd,
             "Show magnetic variation/declination at position",
         ],
+        "MANUAL": [
+            "MANUAL acid ,[ON/OFF]",
+            "acid,[onoff]",
+            bs.traf.mnual,
+            # --------------------------------------------------------------------------------------------------
+            "Manuel Switch per aircraft (using ADSB data)",
+        ],
         "MCRE": [
             "MCRE n, [type/*, alt/*, spd/*, dest/*]",
             "int,[txt,alt,spd,txt]",

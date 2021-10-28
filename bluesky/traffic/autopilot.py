@@ -9,7 +9,7 @@ except ImportError:
 import bluesky as bs
 from bluesky import stack
 from bluesky.tools import geo
-from bluesky.tools.misc import degto180
+from bluesky.tools.misc import degto180, angleFromCoordinate
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, fpm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
 from bluesky.core import Entity, timed_function
@@ -524,12 +524,12 @@ class Autopilot(Entity, replaceable=True):
             return False
 
     @stack.command(name='ALT')
-    def selaltcmd(self, idx: 'acid', alt: 'alt', vspd: 'vspd'=None):
-        """ ALT acid, alt, [vspd] 
-        
+    def selaltcmd(self, idx: 'acid', alt: 'alt', vspd: 'vspd' = None):
+        """ ALT acid, alt, [vspd]
+
             Select autopilot altitude command."""
-        bs.traf.selalt[idx]   = alt
-        bs.traf.swvnav[idx]   = False
+        bs.traf.selalt[idx] = alt
+        bs.traf.swvnav[idx] = False
 
         # Check for optional VS argument
         if vspd:
@@ -537,17 +537,15 @@ class Autopilot(Entity, replaceable=True):
         else:
             if not isinstance(idx, Collection):
                 idx = np.array([idx])
-            delalt        = alt - bs.traf.alt[idx]
+            delalt = alt - bs.traf.alt[idx]
             # Check for VS with opposite sign => use default vs
             # by setting autopilot vs to zero
             oppositevs = np.logical_and(bs.traf.selvs[idx] * delalt < 0., abs(bs.traf.selvs[idx]) > 0.01)
-
             bs.traf.selvs[idx[oppositevs]] = 0.
 
     @stack.command(name='VS')
     def selvspdcmd(self, idx: 'acid', vspd:'vspd'):
         """ VS acid,vspd (ft/min)
-
             Vertical speed command (autopilot) """
         bs.traf.selvs[idx] = vspd #[fpm]
         # bs.traf.vs[idx] = vspd
@@ -556,8 +554,18 @@ class Autopilot(Entity, replaceable=True):
     @stack.command(name='HDG', aliases=("HEADING", "TURN"))
     def selhdgcmd(self, idx: 'acid', hdg: 'hdg'):  # HDG command
         """ HDG acid,hdg (deg,True or Magnetic)
-        
             Autopilot select heading command. """
+        if hdg.upper() in bs.navdb.wpid:
+            index = bs.navdb.wpid.index(hdg.upper())
+            templat_hdg = bs.navdb.wplat[index]
+            templon_hdg = bs.navdb.wplon[index]
+            templat_ac = bs.traf.lat[idx]
+            templon_ac = bs.traf.lon[idx]
+
+            hdg = angleFromCoordinate(templat_ac, templon_ac, templat_hdg, templon_hdg) % 360.0
+        else:
+            hdg = float(hdg) % 360.0
+
         if not isinstance(idx, Collection):
             idx = np.array([idx])
         if not isinstance(hdg, Collection):
@@ -578,7 +586,7 @@ class Autopilot(Entity, replaceable=True):
             self.trk[ibel] = hdg
         else:
             self.trk[idx] = hdg
-
+        bs.traf.selhdg[idx] = hdg
         bs.traf.swlnav[idx] = False
         # Everything went ok!
         return True
@@ -596,6 +604,14 @@ class Autopilot(Entity, replaceable=True):
         # Used to be: Switch off VNAV: SPD command overrides
         bs.traf.swvnavspd[idx]   = False
         return True
+
+    @stack.command(name='UCO')
+    def selucocmd(self, idx: 'acid', efl: 'alt', hdg: 'hdg', spd: 'spd'):  # UCO command
+        bs.traf.ap.selaltcmd(idx, efl)
+        bs.traf.ap.selhdgcmd(idx, hdg)
+        bs.traf.ap.selspdcmd(idx, spd)
+        bs.traf.mnual(idx, 'ON')
+        bs.scr.echo('UCO ')
 
     @stack.command(name='DEST')
     def setdest(self, acidx: 'acid', wpname:'wpt' = None):

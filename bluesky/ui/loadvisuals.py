@@ -58,3 +58,4 @@ def load_aptsurface():
 
     return vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \
         apt_ctr_lat, apt_ctr_lon, apt_indices
+

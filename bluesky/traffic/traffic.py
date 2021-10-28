@@ -14,7 +14,7 @@ from bluesky.core import Entity, timed_function
 from bluesky.stack import refdata
 from bluesky.stack.recorder import savecmd
 from bluesky.tools import geo
-from bluesky.tools.misc import latlon2txt
+from bluesky.tools.misc import latlon2txt, angleFromCoordinate
 from bluesky.tools.aero import cas2tas, casormach2tas, fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach
 
@@ -121,11 +121,13 @@ class Traffic(Entity):
             self.aptas  = np.array([])  # just for initializing
             self.selalt = np.array([])  # selected alt[m]
             self.selvs  = np.array([])  # selected vertical speed [m/s]
+            self.selhdg = np.array([])  # selected heading [deg]
 
             # Whether to perform LNAV and VNAV
             self.swlnav    = np.array([], dtype=np.bool)
             self.swvnav    = np.array([], dtype=np.bool)
             self.swvnavspd = np.array([], dtype=np.bool)
+            self.manual = np.array([], dtype=np.bool)
 
             # Flight Models
             self.cd       = ConflictDetection()
@@ -238,6 +240,19 @@ class Traffic(Entity):
         self.lon[-n:]  = aclon
         self.alt[-n:]  = acalt
 
+        if achdg.upper() in bs.navdb.wpid:
+            index = bs.navdb.wpid.index(achdg.upper())
+            templat_hdg = bs.navdb.wplat[index]
+            templon_hdg = bs.navdb.wplon[index]
+            templat_ac = aclat
+            templon_ac = aclon
+
+            achdg = angleFromCoordinate(templat_ac, templon_ac, templat_hdg, templon_hdg)
+
+        else:
+            achdg = float(achdg)
+
+
         self.hdg[-n:]  = achdg
         self.trk[-n:]  = achdg
 
@@ -304,7 +319,7 @@ class Traffic(Entity):
             - tlosh: Horizontal time to loss of separation ((hh:mm:)sec)
             - dH: Vertical distance (ft)
             - tlosv: Vertical time to loss of separation
-            - spd: Speed of new aircraft (CAS/Mach, kts/-)
+            - spd: Speed of new aircraft (CAS/Mach, kts/-) manual
         '''
         latref  = self.lat[targetidx]  # deg
         lonref  = self.lon[targetidx]  # deg
@@ -513,6 +528,26 @@ class Traffic(Entity):
             except:
                 return -1
 
+    def mnual(self, idx, flag=None):
+        """ This function is entered when an aircraft goes into manual (usefull when using ADSB data scenarios)"""
+        self.manual[idx] = flag
+        route = self.ap.route[idx]
+        if len(route.wpname) == 0:
+            print("ADSB FILE")
+            """ When there are no waypoints, the sim is running on a scn-file made from radar or ADSB"""
+            bs.stack.stackbase.manual_del()
+        else:
+            """" There are waypoints, so the ac has a route to follow"""
+            if flag:
+                """ Manual Mode on """
+                print("MANUAL ON")
+                bs.traf.swlnav[idx] = False
+
+            elif not flag:
+                """ Manual Mode off """
+                print("MANUAL OFF")
+                bs.traf.swlnav[idx] = True
+
     def setnoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
         if noise is None:
@@ -691,9 +726,10 @@ class Traffic(Entity):
                                    " other waypoint(s) also named " + wp
 
                     # In which airways?
-                    connect = bs.navdb.listconnections(wp, \
-                                                bs.navdb.wplat[iwp],
-                                                bs.navdb.wplon[iwp])
+                    connect = ""
+                    # connect = bs.navdb.listconnections(wp, \
+                    #                             bs.navdb.wplat[iwp],
+                    #                             bs.navdb.wplon[iwp])
                     if len(connect)>0:
                         awset = set([])
                         for c in connect:
@@ -733,7 +769,7 @@ class Traffic(Entity):
 
         wplat = bs.navdb.wplat[iwp]
         wplon = bs.navdb.wplon[iwp]
-        connect = bs.navdb.listconnections(key, wplat, wplon)
+        # connect = bs.navdb.listconnections(key, wplat, wplon)
         if connect:
             lines = ""
             for c in connect:

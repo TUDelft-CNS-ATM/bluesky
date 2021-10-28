@@ -48,6 +48,24 @@ def checkscen():
         del Stack.scencmd[:idx]
         del Stack.scentime[:idx]
 
+def manual_del():
+    """ deletes the scenario lines for aircraft when they enter manual mode (usefull on ADSB data)"""
+    if Stack.scencmd:
+        for ac_idx in range(len(bs.traf.id)):
+            if bs.traf.manual[ac_idx]:
+                line = 0
+                while line < (len(Stack.scencmd)):
+                    if str(bs.traf.id[ac_idx]) in Stack.scencmd[line]:
+                        del Stack.scencmd[line]
+                    else:
+                        line += 1
+
+def all_manual():
+    """ Deletes the whole scenario, so all aircraft go manual (usefull on ADSB data)"""
+    if Stack.scencmd:
+        del Stack.scencmd[:]
+
+
 
 def stack(*cmdlines, sender_id=None):
     """ Stack one or more commands separated by ";" """

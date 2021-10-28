@@ -229,4 +229,9 @@ class Client:
         elif target == b'*':
             self.event_io.send_multipart([target, name, pydata])
         else:
-            self.event_io.send_multipart(self._getroute(target) + [target, name, pydata])
+            if self._getroute(target) != 'None':
+                self.event_io.send_multipart([target, name, pydata])
+            else:
+                self.event_io.send_multipart(self._getroute(target) + [target, name, pydata])
+            #self.event_io.send_multipart(self._getroute(target) + [target, name, pydata])
+

@@ -19,6 +19,7 @@ tmxlist = ("BGPASAS", "DFFLEVEL", "FFLEVEL", "FILTCONF", "FILTTRED", "FILTTAMB",
            "GRAB", "HDGREF", "MOVIE", "NAVDB", "PREDASAS", "RENAME", "RETYPE",
            "SWNLRPASAS", "TRAFRECDT", "TRAFLOGDT", "TREACT", "WINDGRID")
 
+maps_loaded = []
 
 def init():
     """ Initialization of the default stack commands. This function is called
@@ -45,9 +46,6 @@ def reset():
     recorder.reset()
     # Reset parser reference values
     argparser.reset()
-
-
-
 
 
 def process():
@@ -242,6 +240,53 @@ def pcall(fname, *pcall_arglst):
     except FileNotFoundError as e:
         return False, f"PCALL: File not found'{e.filename}'"
 
+def maptoggle_func(fname):
+    t_offset = bs.sim.simt
+    # Read the scenario file
+    # readscn(fname, pcall_arglst, t_offset)
+    fname = 'mapid/'+fname
+    insidx = 0
+    instime = bs.sim.simt
+
+    try:
+        for (cmdtime, cmdline) in readscn(fname):
+
+            # Time offset correction
+            cmdtime += t_offset
+
+            if not Stack.scentime or cmdtime >= Stack.scentime[-1]:
+                Stack.scentime.append(cmdtime)
+                Stack.scencmd.append(cmdline)
+            else:
+                if cmdtime > instime:
+                    insidx, instime = next(
+                        ((j, t) for j, t in enumerate(Stack.scentime) if t >= cmdtime),
+                        (len(Stack.scentime), Stack.scentime[-1]),
+                    )
+                Stack.scentime.insert(insidx, cmdtime)
+                Stack.scencmd.insert(insidx, cmdline)
+                insidx += 1
+
+        # stack any commands that are already due
+        checkscen()
+    except FileNotFoundError as e:
+        return False, f"maptoggle: File not found'{e.filename}'"
+
+
+@command( brief="map filename")
+def map(fname):
+    if fname in maps_loaded:
+        maps_loaded.remove(fname)
+        fname = 'del_' + fname
+        maptoggle_func(fname)
+    else:
+        maps_loaded.append(fname)
+        maptoggle_func(fname)
+
+# @command( brief="map_del filename")
+# def map_del(fname):
+#     fname = 'del_' + fname
+#     maptoggle_func(fname)
 
 @command(aliases=('LOAD', 'OPEN'))
 def ic(filename : 'string' = ''):

@@ -13,7 +13,9 @@ from time import strftime, gmtime
 import numpy as np
 
 from .aero import cas2tas, mach2tas, kts, fpm, ft
-from .geo import magdec
+from .geo import magdec, latlondist
+import bluesky as bs
+import math
 
 
 def txt2alt(txt):
@@ -72,18 +74,86 @@ def i2txt(i, n):
     """Convert integer to string with leading zeros to make it n chars long"""
     return '{:0{}d}'.format(i, n)
 
+def angleFromCoordinate(lat1, long1, lat2, long2):
+    dLon = (long2 - long1)
 
-def txt2hdg(txt, lat=None, lon=None):
+    y = math.sin(np.deg2rad(dLon)) * math.cos((np.deg2rad(lat2)))
+    x = math.cos(np.deg2rad(lat1)) * math.sin(np.deg2rad(lat2)) - math.sin(np.deg2rad(lat1)) * math.cos(np.deg2rad(lat2)) * math.cos(np.deg2rad(dLon))
+
+    brng = math.atan2(y, x)
+
+    brng = math.degrees(brng)
+    brng = (brng + 360) % 360
+    # brng = 360 - brng # count degrees clockwise - remove to make counter-clockwise
+
+    return brng
+
+def txt2hdg(txt, idx, lat=None, lon=None):
     ''' Convert text to true or magnetic heading.
     Modified by : Yaofu Zhou'''
-    heading = float(txt.upper().replace("T", "").replace("M", ""))
 
-    if "M" in txt.upper():
-        if None in (lat, lon):
-            raise ValueError('txt2hdg needs a reference latitude and longitude '
-                             'when a magnetic heading is parsed.')
-        magnetic_declination = magdec(lat, lon)
-        heading = (heading + magnetic_declination) % 360.0
+    # if txt.upper() in bs.navdb.wpid:
+    #     index = bs.navdb.wpid.index(txt.upper())
+    #     templat_hdg = bs.navdb.wplat[index]
+    #     templon_hdg = bs.navdb.wplon[index]
+    #     templat_ac = bs.traf.lat[idx]
+    #     templon_ac = bs.traf.lon[idx]
+    #
+    #     brg_ac_wpt = angleFromCoordinate(templat_ac, templon_ac, templat_hdg, templon_hdg)
+    #
+    #     dist_ac_wpt = latlondist(templat_hdg, templon_hdg, templat_ac, templon_ac)
+    #
+    #     turnrad_ac_wpt = bs.traf.tas[idx] * bs.traf.tas[idx] / (np.maximum(0.01, np.tan(bs.traf.ap.bankdef[idx])) * bs.tools.aero.g0)
+    #
+    #     brg_ac = bs.traf.trk[idx]
+    #
+    #     delta_brg = (brg_ac_wpt - brg_ac) % 360
+    #     if delta_brg > 180:
+    #         delta_brg = - (360-delta_brg)
+    #
+    #     if abs(delta_brg) < 90:
+    #         if delta_brg < 0:
+    #             delta_brg = -delta_brg
+    #             test_y = (1-np.cos(np.deg2rad(delta_brg))) * turnrad_ac_wpt
+    #             test_x = dist_ac_wpt - (np.sin(np.deg2rad(delta_brg)) * turnrad_ac_wpt)
+    #             delta_brg_ac_wpt = np.rad2deg(np.arctan2(test_y,test_x))
+    #             brg_ac_wpt = brg_ac_wpt - delta_brg_ac_wpt
+    #         else:
+    #             test_y = (1-np.cos(np.deg2rad(delta_brg))) * turnrad_ac_wpt
+    #             test_x = dist_ac_wpt - (np.sin(np.deg2rad(delta_brg)) * turnrad_ac_wpt)
+    #             delta_brg_ac_wpt = np.rad2deg(np.arctan2(test_y, test_x))
+    #             brg_ac_wpt = brg_ac_wpt + delta_brg_ac_wpt
+    #     else:
+    #         if delta_brg < 0:
+    #             delta_brg = delta_brg + 90
+    #             delta_brg = -delta_brg
+    #             test_y = (1+np.sin(np.deg2rad(delta_brg))) * turnrad_ac_wpt
+    #             test_x = dist_ac_wpt + ((np.cos(np.deg2rad(delta_brg))) * turnrad_ac_wpt)
+    #             delta_brg_ac_wpt = np.rad2deg(np.arctan2(test_y,test_x))
+    #             brg_ac_wpt = brg_ac_wpt - delta_brg_ac_wpt
+    #         else:
+    #             delta_brg = delta_brg - 90
+    #             test_y = (1+np.sin(np.deg2rad(delta_brg))) * turnrad_ac_wpt
+    #             test_x = dist_ac_wpt + ((np.cos(np.deg2rad(delta_brg))) * turnrad_ac_wpt)
+    #             delta_brg_ac_wpt = np.rad2deg(np.arctan2(test_y, test_x))
+    #             brg_ac_wpt = brg_ac_wpt + delta_brg_ac_wpt
+    #
+    #     # bs.scr.echo(str(delta_brg))
+    #     #
+    #     # bs.scr.echo(str(brg_ac_wpt)+" "+str(dist_ac_wpt)+" "+str(turnrad_ac_wpt)+" "+str(brg_ac))
+    #
+    #     brg_ac_wpt = brg_ac_wpt % 360
+    #     txt = str(brg_ac_wpt)
+    #
+    # heading = float(txt.upper().replace("T", "").replace("M", ""))
+    #
+    # if "M" in txt.upper():
+    #     if None in (lat, lon):
+    #         raise ValueError('txt2hdg needs a reference latitude and longitude '
+    #                          'when a magnetic heading is parsed.')
+    #     magnetic_declination = magdec(lat, lon)
+    #     heading = (heading + magnetic_declination) % 360.0
+    heading = txt
 
     return heading
 

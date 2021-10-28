@@ -1,7 +1,8 @@
 """ BlueSky sector occupancy count plugin. """
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import traf, scr  #, stack, settings, navdb, traf, sim, scr, tools
+import bluesky as bs
+# from bluesky import traf, scr  #, stack, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import areafilter, datalog
 
 # List of sectors known to this plugin.

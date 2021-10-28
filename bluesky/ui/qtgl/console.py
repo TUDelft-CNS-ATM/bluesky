@@ -1,6 +1,7 @@
 """ Console interface for the QTGL implementation."""
 from PyQt5.QtCore import Qt
 from PyQt5.Qt import QDesktopServices, QUrl, QApplication
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
@@ -154,6 +155,11 @@ class Console(QWidget):
             newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
             # Update the cursor position with the length of the added text
             cursorpos = pos + len(event.text())
+        elif event.matches(QKeySequence.Paste):
+            pos = self.lineEdit.cursor_pos()
+            newcmd = newcmd[:pos] + QApplication.clipboard().text() + newcmd[pos:]
+            # Update the cursor position with the length of the added text
+            cursorpos = pos + len(QApplication.clipboard().text())
         elif event.key() == Qt.Key_Backspace:
             pos = self.lineEdit.cursor_pos()
             newcmd = newcmd[:pos - 1] + newcmd[pos:]

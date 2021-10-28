@@ -1,7 +1,7 @@
 ''' BlueSky colour palette loader. '''
 from os import path
 from bluesky import settings
-settings.set_variable_defaults(colour_palette='bluesky-default', gfx_path='data/graphics')
+settings.set_variable_defaults(colour_palette='bluesky-lvnl', gfx_path='data/graphics')
 
 def init():
     # Load the palette file selected in settings

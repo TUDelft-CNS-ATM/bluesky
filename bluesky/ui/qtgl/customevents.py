@@ -31,6 +31,7 @@ class ACDataEvent(QEvent):
         self.lon        = []
         self.alt        = []
         self.tas        = []
+        self.hdg        = []
         self.trk        = []
         self.vs         = []
         self.iconf      = []

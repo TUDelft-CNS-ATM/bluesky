@@ -1,0 +1,184 @@
+    def showdialog(self):
+        dlg = QDialog()
+#        uic.loadUi(os.path.join(bs.settings.gfx_path, 'TID_Base.ui'), self)
+        uic.loadUi('C:/Users/LVNL_ILAB3/Desktop/bluesky-lvnl_2/bluesky-master2/data/graphics/TID_Base.ui', dlg)
+        buttonoffsetx = 0
+        buttonoffsety = 0
+        vertsize = 250
+        horisize = 300
+        TID_textsize = 40
+
+        # for i in range(6):
+        #     for j in range(4):
+        #         name = chr(97+i)+str(j+1)
+        #         self.name = QPushButton(str(name), dlg)
+        #         print(name)
+        #         self.name.resize(horisize,vertsize)
+        #         self.name.move(horisize*i, vertsize*j)
+                # self.name.clicked.connect(lambda: console.process_cmdline(str(name)))
+        dlg.pushButton_b1.setText('Test')
+        dlg.pushButton_b1.setToolTip('Test')
+        dlg.pushButton_b1.clicked.connect(lambda: console.process_cmdline("HDG "))
+
+        self.a1 = QPushButton('UCO', dlg)
+        self.a1.resize(horisize, vertsize)
+        self.a1.setFont(QFont('Times', TID_textsize))
+        self.a1.move(buttonoffsetx + (horisize * 0), buttonoffsety + (vertsize * 0))
+        self.a1.clicked.connect(lambda: console.process_cmdline("UCO "))
+
+        self.a2 = QPushButton('HDG', dlg)
+        self.a2.resize(horisize, vertsize)
+        self.a2.setFont(QFont('Times', TID_textsize))
+        self.a2.move(buttonoffsetx + (horisize * 0), buttonoffsety + (vertsize * 1))
+        self.a2.clicked.connect(lambda: console.process_cmdline("HDG "))
+
+        self.a3 = QPushButton('EFL', dlg)
+        self.a3.resize(horisize, vertsize)
+        self.a3.setFont(QFont('Times', TID_textsize))
+        self.a3.move(buttonoffsetx + (horisize * 0), buttonoffsety + (vertsize * 2))
+        self.a3.clicked.connect(lambda: console.process_cmdline("ALT FL"))
+
+        self.a4 = QPushButton('SPD', dlg)
+        self.a4.resize(horisize, vertsize)
+        self.a4.setFont(QFont('Times', TID_textsize))
+        self.a4.move(buttonoffsetx + (horisize * 0), buttonoffsety + (vertsize * 3))
+        self.a4.clicked.connect(lambda: console.process_cmdline("SPD "))
+
+        self.c1 = QPushButton('7', dlg)
+        self.c1.resize(horisize, vertsize)
+        self.c1.setFont(QFont('Times', TID_textsize))
+        self.c1.move(buttonoffsetx + (horisize * 2), buttonoffsety + (vertsize * 0))
+        self.c1.clicked.connect(lambda: console.process_cmdline("7"))
+
+        self.c2 = QPushButton('4', dlg)
+        self.c2.resize(horisize, vertsize)
+        self.c2.setFont(QFont('Times', TID_textsize))
+        self.c2.move(buttonoffsetx + (horisize * 2), buttonoffsety + (vertsize * 1))
+        self.c2.clicked.connect(lambda: console.process_cmdline("4"))
+
+        self.c3 = QPushButton('1', dlg)
+        self.c3.resize(horisize, vertsize)
+        self.c3.setFont(QFont('Times', TID_textsize))
+        self.c3.move(buttonoffsetx + (horisize * 2), buttonoffsety + (vertsize * 2))
+        self.c3.clicked.connect(lambda: console.process_cmdline("1"))
+
+        self.c4 = QPushButton('0', dlg)
+        self.c4.resize(horisize*2, vertsize)
+        self.c4.setFont(QFont('Times', TID_textsize))
+        self.c4.move(buttonoffsetx + (horisize * 2), buttonoffsety + (vertsize * 3))
+        self.c4.clicked.connect(lambda: console.process_cmdline("0"))
+
+        self.d1 = QPushButton('8', dlg)
+        self.d1.resize(horisize, vertsize)
+        self.d1.setFont(QFont('Times', TID_textsize))
+        self.d1.move(buttonoffsetx + (horisize * 3), buttonoffsety + (vertsize * 0))
+        self.d1.clicked.connect(lambda: console.process_cmdline("8"))
+
+        self.d2 = QPushButton('5', dlg)
+        self.d2.resize(horisize, vertsize)
+        self.d2.setFont(QFont('Times', TID_textsize))
+        self.d2.move(buttonoffsetx + (horisize * 3), buttonoffsety + (vertsize * 1))
+        self.d2.clicked.connect(lambda: console.process_cmdline("5"))
+
+        self.d3 = QPushButton('2', dlg)
+        self.d3.resize(horisize, vertsize)
+        self.d3.setFont(QFont('Times', TID_textsize))
+        self.d3.move(buttonoffsetx + (horisize * 3), buttonoffsety + (vertsize * 2))
+        self.d3.clicked.connect(lambda: console.process_cmdline("2"))
+
+        self.e1 = QPushButton('9', dlg)
+        self.e1.resize(horisize, vertsize)
+        self.e1.setFont(QFont('Times', TID_textsize))
+        self.e1.move(buttonoffsetx + (horisize * 4), buttonoffsety + (vertsize * 0))
+        self.e1.clicked.connect(lambda: console.process_cmdline("9"))
+
+        self.e2 = QPushButton('6', dlg)
+        self.e2.resize(horisize, vertsize)
+        self.e2.setFont(QFont('Times', TID_textsize))
+        self.e2.move(buttonoffsetx + (horisize * 4), buttonoffsety + (vertsize * 1))
+        self.e2.clicked.connect(lambda: console.process_cmdline("6"))
+
+        self.e3 = QPushButton('3', dlg)
+        self.e3.resize(horisize, vertsize)
+        self.e3.setFont(QFont('Times', TID_textsize))
+        self.e3.move(buttonoffsetx + (horisize * 4), buttonoffsety + (vertsize * 2))
+        self.e3.clicked.connect(lambda: console.process_cmdline("3"))
+
+        self.e4 = QPushButton('SPACE', dlg)
+        self.e4.resize(horisize, vertsize)
+        self.e4.setFont(QFont('Times', TID_textsize))
+        self.e4.move(buttonoffsetx + (horisize * 4), buttonoffsety + (vertsize * 3))
+        self.e4.clicked.connect(lambda: console.process_cmdline(" "))
+
+        self.f1 = QPushButton('COR', dlg)
+        self.f1.resize(horisize, vertsize)
+        self.f1.setFont(QFont('Times', TID_textsize))
+        self.f1.move(buttonoffsetx + (horisize * 5), buttonoffsety + (vertsize * 0))
+        self.f1.clicked.connect(lambda: console.Console._instance.set_cmdline(console.Console._instance.command_line[:-1]))
+
+
+        self.f2 = QPushButton('CLR', dlg)
+        self.f2.resize(horisize, vertsize)
+        self.f2.setFont(QFont('Times', TID_textsize))
+        self.f2.move(buttonoffsetx + (horisize * 5), buttonoffsety + (vertsize * 1))
+        self.f2.clicked.connect(lambda: console.Console._instance.set_cmdline(''))
+
+        self.f4 = QPushButton('EXQ', dlg)
+        self.f4.resize(horisize, vertsize)
+        self.f4.setFont(QFont('Times', TID_textsize))
+        self.f4.move(buttonoffsetx + (horisize * 5), buttonoffsety + (vertsize * 3))
+        self.f4.clicked.connect(lambda: console.Console._instance.stack(console.Console._instance.command_line))
+        # self.f4.clicked.connect(lambda: console.Console._instance.stack( 'HDG JP001 001'))
+        # self.f4.clicked.connect(lambda: bs.scr.echo(console.Console._instance.command_line))
+        # self.f4.clicked.connect(lambda:  bs.ui.qtgl.console.Console.stack(bs.ui.qtgl.console.Console.command_line))
+        # self.f4.clicked.connect(print(bs.ui.qtgl.console.Console.command_line()))
+
+
+
+        # self.a2.clicked.connect(lambda: console.process_cmdline("HDG "))
+        # self.a3.clicked.connect(lambda: console.process_cmdline("SPD "))
+        # self.a4.clicked.connect(lambda: console.process_cmdline("ALT "))
+        #
+        # self.b1.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.b2.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.b3.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.b4.clicked.connect(lambda: console.process_cmdline("8"))
+        #
+        # self.c1.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.c2.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.c3.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.c4.clicked.connect(lambda: console.process_cmdline("8"))
+        #
+        # self.d1.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.d2.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.d3.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.d4.clicked.connect(lambda: console.process_cmdline("8"))
+        #
+        # self.e1.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.e2.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.e3.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.e4.clicked.connect(lambda: console.process_cmdline("8"))
+        #
+        # self.f1.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.f2.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.f3.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.f4.clicked.connect(lambda: console.process_cmdline("8"))
+
+        # self.a1 = QPushButton("a1", dlg)
+        # self.a2 = QPushButton("a2", dlg)
+        # self.a3 = QPushButton("a3", dlg)
+        # self.a4 = QPushButton("a4", dlg)
+        # self.a1.resize(horisize,vertsize)
+        # self.a2.resize(horisize,vertsize)
+        # self.a3.resize(horisize,vertsize)
+        # self.a4.resize(horisize,vertsize)
+        # self.a1.move(horisize*0, vertsize*0)
+        # self.a2.move(horisize*0, vertsize)
+        # self.a3.move(horisize*0, vertsize*2)
+        # self.a4.move(horisize*0, vertsize*3)
+
+        # # self.b1.clicked.connect(lambda: console.process_cmdline("8"))
+        # self.b2.clicked.connect(lambda: console.process_cmdline("9"))
+        dlg.setWindowTitle("Dialog")
+        dlg.setWindowModality(Qt.WindowModal)
+        dlg.exec()
