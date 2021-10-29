@@ -3,6 +3,9 @@
 """
 
 """
+from nommon.city_model.building_height import readCity
+from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from nommon.city_model.path_planning import trajectoryCalculation
 import configparser
 import math
 import os
@@ -12,9 +15,6 @@ import string
 from pyproj import Transformer
 
 from nommon.city_model.auxiliar import read_my_graphml
-from nommon.city_model.building_height import readCity
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
-from nommon.city_model.path_planning import trajectoryCalculation
 import osmnx as ox
 
 
@@ -671,7 +671,8 @@ def automaticFlightPlan( total_drones, base_name, G, layers_dict ):
         # Path Planning
         ac = name
         departure_time = '00:00:00.00'
-        scenario_path = r'C:\workspace3\bluesky\nommon\city_model\highV3\scenario_test_' + str( n ) + '.scn'
+        scenario_path = r'C:\workspace3\bluesky\nommon\city_model\data\Drone_trajectory\scenario_1000_drones\scenario_test_' + str( n ) + '.scn'
+
         scenario_file = open( scenario_path, 'w' )
         createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
         scenario_file.close()
@@ -681,6 +682,21 @@ def automaticFlightPlan( total_drones, base_name, G, layers_dict ):
         n += 1
 
     scenario_general_file.close()
+
+
+def createAllDroneScenario( total_drones ):
+
+    departure_time = '00:00:00.00'
+    folder_path = r'C:\workspace3\bluesky\nommon\city_model\data\Drone_trajectory\scenario_1000_drones'
+    scenario_path = folder_path + '\scenario_base_' + str( total_drones ) + '.scn'
+    scenario_file = open( scenario_path, 'w' )
+    n = 1
+    while n <= total_drones:
+        new_line = '{0} > PCALL {1} REL'.format( 
+            departure_time, folder_path + '\scenario_test_' + str( n ) + '.scn' )
+        scenario_file.write( new_line + '\n' )
+        n += 1
+    scenario_file.close()
 
 
 def drawBuildings( config, scenario_path_base, time='00:00:00.00' ):
@@ -745,13 +761,14 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
     config.read( config_path )
-
+    """
     # Drawing buildings
     time = '00:00:00.00'
     scenario_path = r'C:\workspace3\bluesky\nommon\city_model\scenario_buildings.scn'
     scenario_file = open( scenario_path, 'w' )
     drawBuildings( config, scenario_file, time )
     scenario_file.close()
-#
+    """
+    createAllDroneScenario( 100 )
 
     print( 'Finish' )

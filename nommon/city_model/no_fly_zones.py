@@ -9,30 +9,40 @@ __author__ = 'mbaena'
 __copyright__ = '(c) Nommon 2021'
 
 
-from dynamic_segments import dynamicSegments
+from nommon.city_model.dynamic_segments import dynamicSegments
+
+from shapely.geometry import Polygon
 
 
-def isContained( point, box ):
+def intersection( restricted_area, segment ):
     """
     Returns True if the point is contained in the box
 
-    Input
-        point - list with 2 variables [lon, lat]
-        box - list with 4 variables [lon_min, lon_max, lat_min, lat_max]
-    """
-    if ( point[0] > box[0] ) and ( point[0] < box[1] ):
-        if ( point[1] > box[2] ) and ( point[1] < box[3] ):
-            return True
-        else:
-            return False
-    else:
-        return False
+    Input:
+        restricted_area - shape of the restricted area.
+                            Polygon defined by its edges  [(lon1, lat1), (lon2, lat2)...]
+        segment - segment. Only segment coordinates are used [lon_min, lon_max, lat_min, lat_max]
 
-def restrictedSegments( G, segments, coordinates, speed, capacity, config ):
+    Output:
+        boolean - true if restricted area intersects the segment area
+    """
+
+    restricted_area_shape = Polygon( restricted_area )
+    segment_box = [( segment[segment]['lon_min'], segment[segment]['lat_min'] ),
+                   ( segment[segment]['lon_max'], segment[segment]['lat_min'] ),
+                   ( segment[segment]['lon_max'], segment[segment]['lat_max'] ),
+                   ( segment[segment]['lon_min'], segment[segment]['lat_max'] ),
+                   ( segment[segment]['lon_min'], segment[segment]['lat_min'] )]
+
+    segmet_shape = Polygon( segment_box )
+    return restricted_area_shape.intersects( segmet_shape )
+
+
+def restrictedSegments( G, segments, restricted_area, speed, capacity, config ):
     """
     This function imposes speed and capacity limitations to the desired segments
 
-    # Segments attributes
+    # Segments attributes example:
     # {'lon_min': 9.75, 'lon_max': 9.765,
         'lat_min': 52.375, 'lat_max': 52.3875,
         'z_min': 0.0, 'z_max': 125.0,
@@ -40,35 +50,24 @@ def restrictedSegments( G, segments, coordinates, speed, capacity, config ):
         'new': False, 'updated': False}
 
     Input
-        G
-        segments
-        coordinates - point, polygon defining the restriction zone ([lon, lat])
+        G - graph
+        segments - segments
+        restricted_area - point, polygon defining the restriction zone [(lon1, lat1), (lon2, lat2)...]
         speed - speed limitation
         capacity - capacity limitation
 
     Output
-        G
-        segments
-
-    NOTE: THIS WILL NOT WORK PROPOERLY IF THE RESTRICTION ZONE IS TOO LARGE. AN INTERIOR SEGMENT
-        MAY NOT BE TAKEN INTO ACCOUNT
+        G - updated graph with restricted zones
+        segments - updated segments with restricted zones
     """
     for segment in segments:
-        box = [ segments[segment]['lon_min'] , segments[segment]['lon_max'],
-               segments[segment]['lat_min'], segments[segment]['lat_max'] ]
-        for coordinate in coordinates:
-            if isContained( coordinate, box ):
-                segments[segment]['speed'] = 0
-                segments[segment]['updated'] = True
+        if intersection( restricted_area, segment ):
+            segments[segment]['speed'] = 0
+            segments[segment]['updated'] = True
 
     G, segments = dynamicSegments( G, config, segments )
     return G, segments
 
+
 if __name__ == '__main__':
-    point_contained = [1, 1]
-    point_not_contained = [3, 4]
-    box = [0, 2, 0, 2]
-
-    print( 'Contained:', isContained( point_contained, box ) )
-    print( 'Not Contained:', isContained( point_not_contained, box ) )
-
+    pass

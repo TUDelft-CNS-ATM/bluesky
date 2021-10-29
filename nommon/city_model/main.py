@@ -9,7 +9,6 @@ import configparser
 import os
 import time
 
-from nommon.city_model.auxiliar import read_my_graphml, layersDict
 from nommon.city_model.city_graph import cityGraph
 from nommon.city_model.corridors_implementation import corridorCreation, corridorLoad
 from nommon.city_model.dynamic_segments import dynamicSegments
@@ -18,6 +17,7 @@ from nommon.city_model.no_fly_zones import restrictedSegments
 from nommon.city_model.path_planning import trajectoryCalculation, printRoute
 from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings, \
     automaticFlightPlan
+from nommon.city_model.utils import read_my_graphml, layersDict
 import numpy as np
 import osmnx as ox
 
@@ -28,20 +28,28 @@ __copyright__ = '(c) Nommon 2021'
 
 if __name__ == '__main__':
 
+    # -------------- 1. CONFIGURATION FILE -----------------
     # CONFIG
-    config = configparser.ConfigParser()
     config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
+    config = configparser.ConfigParser()
     config.read( config_path )
 
+    # -------------- 2. CITY GRAPH -------------------------
     # City
     if config['City'].getboolean( 'import' ):
-        filepath = r"C:\workspace3\bluesky\nommon\city_model\data\hannover_segments.graphml"
+        filepath = config['City']['imported_graph_path']
         G = read_my_graphml( filepath )
         G = MultiDiGrpah3D( G )
 #         fig, ax = ox.plot_graph( G )
         segments = np.load( 'my_segments.npy', allow_pickle='TRUE' ).item()
     else:
         G = cityGraph( config )
+
+    # -------------- 3. CORRIDORS ---------------------------
+
+    # -------------- 4. SEGMENTS ----------------------------
+
+    # -------------- 5. PATH PLANNING -----------------------
 
 
 #     fig, ax = ox.plot_graph( G )

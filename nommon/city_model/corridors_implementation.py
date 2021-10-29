@@ -4,12 +4,12 @@
 
 """
 from distutils.command.config import config
+from nommon.city_model.dynamic_segments import defineSegment
 import configparser
 import csv
 import math
 import os
 
-from nommon.city_model.dynamic_segments import defineSegment
 import osmnx as ox
 
 

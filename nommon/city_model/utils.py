@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-Auxiliar functions for reading graphs
+Additional functions
 """
 import string
 
@@ -16,6 +16,16 @@ __copyright__ = '(c) Nommon 2021'
 
 
 def read_my_graphml( filepath ):
+    """
+    Read a previously computed graph
+
+    Args:
+            filepath (string): string representing the path where the graph is stored
+
+    Returns:
+            G (graph): graph stored at the filepath
+    """
+
     default_node_dtypes = {
         "elevation": float,
         "elevation_res": float,
@@ -53,6 +63,14 @@ def read_my_graphml( filepath ):
 
 
 def layersDict( config ):
+    """
+    Create a dictionary with the information about the altitude of each layer
+
+    Args:
+            config (configuration file): A configuration file with all the relevant information
+    Returns:
+            layers_dict (dict): dictionary with keys=layers values=altitude [m]
+    """
     letters = list( string.ascii_uppercase )
     total_layers = letters[0:config['Layers'].getint( 'number_of_layers' )]
     layer_width = config['Layers'].getint( 'layer_width' )

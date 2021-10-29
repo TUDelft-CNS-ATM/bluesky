@@ -172,16 +172,13 @@ def dynamicSegments( G, config, segments=None ):
                                            4, 4, 2 )
 
     segments_df = pd.DataFrame.from_dict( segments, orient='index' )
-    new_segments = segments_df[segments_df['new'] == True]
-    updated_segments = segments_df[segments_df['updated'] == True]
-    start = time.time()
+    new_segments = segments_df[segments_df['new'] == True ]
+    updated_segments = segments_df[segments_df['updated'] == True ]
+    # Assign segments
     G = assignSegmet2Edge( G, new_segments )
-    end = time.time()
-#     print( end - start )
-    start = time.time()
+    # Update segment velocity
     G = updateSegmentVelocity( G, updated_segments )
-    end = time.time()
-#     print( end - start )
+    # Add travel times
     G = addTravelTimes( G )
 
     segments_df['new'] = False
@@ -194,8 +191,8 @@ def dynamicSegments( G, config, segments=None ):
 
 if __name__ == '__main__':
     filepath = "./data/hannover.graphml"
-    from auxiliar import read_my_graphml
-    from multi_di_graph_3D import MultiDiGrpah3D
+    from nommon.city_model.auxiliar import read_my_graphml
+    from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
     G = read_my_graphml( filepath )
     G = MultiDiGrpah3D( G )
     segments = divideAirspaceSegments( 0, 20, 50, 54, 0, 250, 4, 4, 2 )
@@ -208,7 +205,7 @@ if __name__ == '__main__':
     print( segments['segment_1_2_0'] )
     G = addTravelTimes( G )
 
-    from path_planning import trajectoryCalculation
+    from nommon.city_model.path_planning import trajectoryCalculation
     orig = ( 9.74 , 52.36 )
     dest = ( 9.78 , 53.38 )
     print( trajectoryCalculation( G, orig, dest ) )
