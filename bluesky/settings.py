@@ -108,6 +108,18 @@ def init(cfgfile=''):
 
     exec(compile(open(cfgfile).read(), cfgfile, 'exec'), globals())
 
+    # Use the path specified in cfgfile if available
+    if 'cache_path' in globals():
+        cachedir = globals()['cache_path']
+    if 'log_path' in globals():
+        outdir = globals()['log_path']
+    if 'perf_path_bada' in globals():
+        badadir = globals()['perf_path_bada']
+    if 'scenario_path' in globals():
+        scndir = globals()['scenario_path']
+    if 'plugin_path' in globals():
+        plgdir = globals()['plugin_path']
+
     # Update cachedir with python version-specific subfolder
     cachedir = os.path.join(cachedir, 'py%d' % sys.version_info[0])
     globals()['cache_path'] = cachedir
