@@ -181,7 +181,7 @@ class Windfield():
         self.nvec = self.nvec+1
 
         return idx # return index of added point
-
+    
     def getdata(self,userlat,userlon,useralt=0.0): # in case no altitude specified and field is 3D, use sea level wind
         eps = 1e-20 # [m2] to avoid divison by zero for using exact same points
 

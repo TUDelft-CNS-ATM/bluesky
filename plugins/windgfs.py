@@ -89,7 +89,6 @@ class WindGFS(WindSim):
 
         return grb
 
-
     def extract_wind(self, grb, lat0, lon0, lat1, lon1):
 
         grb_wind_v = grb.select(shortName="v", typeOfLevel=['isobaricInhPa'])

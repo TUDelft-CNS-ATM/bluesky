@@ -11,7 +11,7 @@ class WindSim(Entity, Windfield, replaceable=True):
     @command(name='WIND')
     def add(self, lat: 'lat', lon: 'lon', *winddata: 'float'):
         """ Define a wind vector as part of the 2D or 3D wind field.
-
+        
             Arguments:
             - lat/lon: Horizonal position to define wind vector(s)
             - winddata: 
@@ -43,7 +43,7 @@ class WindSim(Entity, Windfield, replaceable=True):
             altarr = windarr[0::3] * ft
 
             self.addpoint(lat,lon,dirarr,spdarr,altarr)
-
+            
         elif winddata.count("DEL") > 0:
             self.clear()
 
