@@ -1,4 +1,5 @@
 ''' Tile texture manager for BlueSky Qt/OpenGL gui. '''
+import traceback
 import math
 from os import makedirs, path
 import weakref
@@ -7,7 +8,7 @@ from urllib.request import urlopen
 from urllib.error import URLError
 import numpy as np
 
-from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
+from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, QMutex
 from PyQt5.QtGui import QImage
 
 import bluesky as bs
@@ -73,7 +74,8 @@ class Tile:
                         fout.write(data)
                     break
                 except URLError as e:
-                    print(e, f'({url.format(zoom=zoom, x=tilex, y=tiley)})')
+                    print(f'Error loading {url.format(zoom=zoom, x=tilex, y=tiley)}:')
+                    print(traceback.format_exc())
 
 
 class TileLoader(QRunnable):
@@ -120,8 +122,11 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         max_dl = tileinfo.get('max_download_workers', bs.settings.max_download_workers)
         self.maxzoom = tileinfo.get('max_tile_zoom', bs.settings.max_tile_zoom)
         self.threadpool.setMaxThreadCount(min(bs.settings.max_download_workers, max_dl))
+        self.mutex = QMutex()
         self.tilesource = tilesource
-        self.tilesize = (256,256)
+        self.tilesize = (256, 256)
+        self.curtileext = (0, 0, 0, 0)
+        self.curtilezoom = 1
         self.curtiles = OrderedDict()
         self.fullscreen = False
         self.offsetscale = np.array([0, 0, 1], dtype=np.float32)
@@ -219,24 +224,25 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # Estimated width in longitude of one tile
         est_tilewidth = abs(viewport[3] - viewport[1]) / ntiles_hor
 
-        zoom = tilezoom(est_tilewidth, self.maxzoom)
+        self.curtilezoom = tilezoom(est_tilewidth, self.maxzoom)
         # With the tile zoom level get the required number of tiles
         # Top-left and bottom-right tiles:
-        x0, y0 = latlon2tilenum(*viewport[:2], zoom)
-        x1, y1 = latlon2tilenum(*viewport[2:], zoom)
+        x0, y0 = latlon2tilenum(*viewport[:2], self.curtilezoom)
+        x1, y1 = latlon2tilenum(*viewport[2:], self.curtilezoom)
         nx = abs(x1 - x0) + 1
         ny = abs(y1 - y0) + 1
+        self.curtileext = (x0, y0, x1, y1)
 
         # Calculate the offset of the top-left tile w.r.t. the screen top-left corner
-        tile0_topleft = np.array(tilenum2latlon(x0, y0, zoom))
-        tile0_bottomright = np.array(tilenum2latlon(x0 + 1, y0 + 1, zoom))
+        tile0_topleft = np.array(tilenum2latlon(x0, y0, self.curtilezoom))
+        tile0_bottomright = np.array(tilenum2latlon(x0 + 1, y0 + 1, self.curtilezoom))
         tilesize_latlon0 = np.abs(tile0_bottomright - tile0_topleft)
         offset_latlon0 = viewport[:2] - tile0_topleft
         tex_y0, tex_x0 = np.abs(offset_latlon0 / tilesize_latlon0)
 
         # Calculate the offset of the bottom-right tile w.r.t. the screen bottom right corner
-        tile1_topleft = np.array(tilenum2latlon(x1, y1, zoom))
-        tile1_bottomright = np.array(tilenum2latlon(x1 + 1, y1 + 1, zoom))
+        tile1_topleft = np.array(tilenum2latlon(x1, y1, self.curtilezoom))
+        tile1_bottomright = np.array(tilenum2latlon(x1 + 1, y1 + 1, self.curtilezoom))
         tilesize_latlon1 = np.abs(tile1_bottomright - tile1_topleft)
         offset_latlon1 = viewport[2:] - tile1_topleft
         tex_y1, tex_x1 = np.abs(offset_latlon1 / tilesize_latlon1) + [ny - 1, nx - 1]
@@ -250,25 +256,25 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         for j, y in enumerate(range(y0, y1 + 1)):
             for i, x in enumerate(range(x0, x1 + 1)):
                 # Find tile index if already loaded
-                idx = self.curtiles.pop((x, y, zoom), None)
+                idx = self.curtiles.pop((x, y, self.curtilezoom), None)
                 if idx is not None:
                     # correct zoom, so dx,dy=0, zoomfac=1
                     index_tex.extend((0, 0, 1, idx))
-                    curtiles[(x, y, zoom)] = idx
+                    curtiles[(x, y, self.curtilezoom)] = idx
                 else:
                     if finished:
                         # Tile not loaded yet, fetch in the background
-                        task = TileLoader(self.tilesource, zoom, x, y, i, j)
+                        task = TileLoader(self.tilesource, self.curtilezoom, x, y, i, j)
                         task.signals.finished.connect(self.load_tile)
                         self.threadpool.start(task)
 
                     # In the mean time, check if more zoomed-out tiles are loaded that can be used
-                    for z in range(zoom - 1, max(2, zoom - 5), -1):
-                        zx, zy, dx, dy = zoomout_tilenum(x, y, z - zoom)
+                    for z in range(self.curtilezoom - 1, max(2, self.curtilezoom - 5), -1):
+                        zx, zy, dx, dy = zoomout_tilenum(x, y, z - self.curtilezoom)
                         idx = self.curtiles.pop((zx, zy, z), None)
                         if idx is not None:
                             curtiles_difzoom[(zx, zy, z)] = idx
-                            zoomfac = int(2 ** (zoom - z))
+                            zoomfac = int(2 ** (self.curtilezoom - z))
                             dxi = int(round(dx * zoomfac))
                             dyi = int(round(dy * zoomfac))
                             # offset zoom, so possible offset dxi, dyi
@@ -294,6 +300,17 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             This function is called on callback from the
             asynchronous image load function.
         '''
+        # First check whether tile is still relevant
+        # If there's a lot of panning/zooming, sometimes tiles are loaded that
+        # become obsolete before they are even downloaded.
+        if not ((self.curtilezoom == tile.zoom) and
+                (self.curtileext[0] <= tile.tilex <= self.curtileext[2]) and
+                (self.curtileext[1] <= tile.tiley <= self.curtileext[3])):
+            return
+
+        # This function is called in the worker thread. Use a mutex to make sure
+        # we only modify the tile list one at a time
+        self.mutex.lock()
         layer = len(self.curtiles)
         if layer >= bs.settings.tile_array_size:
             # we're exceeding the size of the GL texture array. Replace the least-recent tile
@@ -301,7 +318,9 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
 
         self.curtiles[(tile.tilex, tile.tiley, tile.zoom)] = layer
         # Update the ordering of the tile dict: the new tile should be on top
-        self.curtiles.move_to_end((tile.tilex, tile.tiley, tile.zoom), last=False)
+        self.curtiles.move_to_end(
+            (tile.tilex, tile.tiley, tile.zoom), last=False)
+        self.mutex.unlock()
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
