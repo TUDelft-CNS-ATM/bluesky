@@ -680,7 +680,7 @@ class Autopilot(Entity, replaceable=True):
             return False, (self.orig[acidx] + " not found.")
 
     @stack.command(name='LNAV')
-    def setLNAV(self, idx: 'acid', flag: bool=None):
+    def setLNAV(self, idx: 'acid', flag: 'bool'=None):
         """ LNAV acid,[ON/OFF]
         
             LNAV (lateral FMS mode) switch for autopilot """
@@ -711,7 +711,7 @@ class Autopilot(Entity, replaceable=True):
             return True, '\n'.join(output)
 
     @stack.command(name='VNAV')
-    def setVNAV(self, idx: 'acid', flag:bool=None):
+    def setVNAV(self, idx: 'acid', flag: 'bool'=None):
         """ VNAV acid,[ON/OFF]
         
             Switch on/off VNAV mode, the vertical FMS mode (autopilot) """
