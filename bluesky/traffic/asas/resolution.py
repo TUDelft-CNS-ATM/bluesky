@@ -108,6 +108,17 @@ class ConflictResolution(Entity, replaceable=True):
         delpairs = set()
         changeactive = dict()
 
+        # smallest relative angle between vectors of heading a and b
+        def anglediff(a, b):
+            d = a - b
+            if d > 180:
+                return anglediff(a, b + 360)
+            elif d < -180:
+                return anglediff(a + 360, b)
+            else:
+                return d
+            
+
         # Look at all conflicts, also the ones that are solved but CPA is yet to come
         for conflict in self.resopairs:
             idx1, idx2 = bs.traf.id2idx(conflict)
@@ -144,7 +155,7 @@ class ConflictResolution(Entity, replaceable=True):
                 # then they it is a bouncing conflict. ASAS should stay active until
                 # the bouncing stops.
                 is_bouncing = \
-                    abs(ownship.trk[idx1] - intruder.trk[idx2]) < 30.0 and \
+                    abs(anglediff(ownship.trk[idx1], intruder.trk[idx2])) < 30.0 and \
                     hdist < rpz * self.resofach
 
             # Start recovery for ownship if intruder is deleted, or if past CPA
