@@ -1,7 +1,7 @@
 """Area filter module"""
-from matplotlib.path import Path
 from weakref import WeakValueDictionary
 import numpy as np
+from matplotlib.path import Path
 from rtree import index
 import bluesky as bs
 from bluesky.tools.geo import kwikdist
@@ -40,6 +40,9 @@ def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
     # Pass the shape on to the screen object
     bs.scr.objappend(areatype, areaname, coordinates)
 
+    return True, f'Created {areatype} {areaname}'
+
+
 def checkInside(areaname, lat, lon, alt):
     """ Check if points with coordinates lat, lon, alt are inside area with name 'areaname'.
         Returns an array of booleans. True ==  Inside"""
@@ -57,11 +60,12 @@ def deleteArea(areaname):
 def reset():
     """ Clear all data. """
     basic_shapes.clear()
+    Shape.reset()
 
 
 def get_intersecting(lat0, lon0, lat1, lon1):
     ''' Return all shapes that intersect with a specified rectangular area.
-    
+
         Arguments:
         - lat0/1, lon0/1: Coordinates of the top-left and bottom-right corner
           of the intersection area.
@@ -72,7 +76,7 @@ def get_intersecting(lat0, lon0, lat1, lon1):
 
 def get_knearest(lat0, lon0, lat1, lon1, k=1):
     ''' Return the k nearest shapes to a specified rectangular area.
-    
+
         Arguments:
         - lat0/1, lon0/1: Coordinates of the top-left and bottom-right corner
           of the relevant area.
@@ -83,6 +87,9 @@ def get_knearest(lat0, lon0, lat1, lon1, k=1):
 
 
 class Shape:
+    '''
+        Base class of BlueSky shapes
+    '''
     # Global counter to keep track of used shape ids
     max_area_id = 0
 
@@ -93,6 +100,13 @@ class Shape:
     # RTree of all areas for efficient geospatial searching
     areatree = index.Index()
 
+    @classmethod
+    def reset(cls):
+        ''' Reset shape data when simulation is reset. '''
+        # Weak dicts and areatree should be cleared automatically
+        # Reset max area id
+        cls.max_area_id = 0
+
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
         self.raw = dict(name=name, shape=self.kind(), coordinates=coordinates)
         self.name = name
@@ -102,7 +116,7 @@ class Shape:
         lat = coordinates[::2]
         lon = coordinates[1::2]
         self.bbox = [min(lat), min(lon), max(lat), max(lon)]
-        
+
         # Global weak reference and tree storage
         self.area_id = Shape.max_area_id
         Shape.max_area_id += 1
@@ -110,12 +124,18 @@ class Shape:
         Shape.areas_by_name[self.name] = self
         Shape.areatree.insert(self.area_id, self.bbox)
 
-    def __delete__(self):
+    def __del__(self):
         # Objects are removed automatically from the weak-value dicts,
         # but need to be manually removed from the rtree
         Shape.areatree.delete(self.area_id, self.bbox)
 
     def checkInside(self, lat, lon, alt):
+        ''' Returns True (or boolean array) if coordinate lat, lon, alt lies
+            within this shape.
+
+            Reimplement this function in the derived shape classes for this to
+            work.
+        '''
         return False
 
     def _str_vrange(self):
@@ -139,6 +159,7 @@ class Shape:
 
 
 class Line(Shape):
+    ''' A line shape '''
     def __init__(self, name, coordinates):
         super().__init__(name, coordinates)
 
@@ -149,6 +170,7 @@ class Line(Shape):
 
 
 class Box(Shape):
+    ''' A box shape '''
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
         super().__init__(name, coordinates, top, bottom)
         # Sort the order of the corner points
@@ -163,8 +185,8 @@ class Box(Shape):
                ((self.bottom <= alt) & (alt <= self.top))
 
 
-
 class Circle(Shape):
+    ''' A circle shape '''
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
         super().__init__(name, coordinates, top, bottom)
         self.clat   = coordinates[0]
@@ -183,6 +205,7 @@ class Circle(Shape):
 
 
 class Poly(Shape):
+    ''' A polygon shape '''
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
         super().__init__(name, coordinates, top, bottom)
         self.border = Path(np.reshape(coordinates, (len(coordinates) // 2, 2)))
