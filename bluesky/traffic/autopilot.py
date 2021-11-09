@@ -46,7 +46,7 @@ class Autopilot(Entity, replaceable=True):
             # LNAV variables
             self.qdr2wp      = np.array([]) # Direction to waypoint from the last time passing was checked
                                             # to avoid 180 turns due to updated qdr shortly before passing wp
-            self.dist2wp     = np.array([]) # [nm] Distance to active waypoint
+            self.dist2wp     = np.array([]) # [m] Distance to active waypoint
 
 
              # Traffic navigation information
@@ -73,7 +73,7 @@ class Autopilot(Entity, replaceable=True):
 
         # LNAV variables
         self.qdr2wp[-n:] = -999.   # Direction to waypoint from the last time passing was checked
-        self.dist2wp[-n:]  = -999. # Distance to go to next waypoint [nm]
+        self.dist2wp[-n:]  = -999. # Distance to go to next waypoint [m]
 
         # to avoid 180 turns due to updated qdr shortly before passing wp
 
@@ -278,11 +278,6 @@ class Autopilot(Entity, replaceable=True):
 
         t2go2alt = np.maximum(0.,(self.dist2wp + bs.traf.actwp.xtoalt - bs.traf.actwp.turndist)) \
                                     / np.maximum(0.5,bs.traf.gs)
-
-        # use steepness to calculate V/S unless we need to descend faster
-        bs.traf.actwp.vs = np.maximum(self.steepness*bs.traf.gs, \
-                                np.abs((bs.traf.actwp.nextaltco-bs.traf.alt))  \
-                                /np.maximum(1.0,t2go2alt))
 
         self.vnavvs  = np.where(self.swvnavvs, bs.traf.actwp.vs, self.vnavvs)
         #was: self.vnavvs  = np.where(self.swvnavvs, self.steepness * bs.traf.gs, self.vnavvs)
@@ -680,7 +675,7 @@ class Autopilot(Entity, replaceable=True):
             return False, (self.orig[acidx] + " not found.")
 
     @stack.command(name='LNAV')
-    def setLNAV(self, idx: 'acid', flag: 'bool'=None):
+    def setLNAV(self, idx: 'acid', flag: bool=None):
         """ LNAV acid,[ON/OFF]
         
             LNAV (lateral FMS mode) switch for autopilot """
@@ -711,7 +706,7 @@ class Autopilot(Entity, replaceable=True):
             return True, '\n'.join(output)
 
     @stack.command(name='VNAV')
-    def setVNAV(self, idx: 'acid', flag: 'bool'=None):
+    def setVNAV(self, idx: 'acid', flag:bool=None):
         """ VNAV acid,[ON/OFF]
         
             Switch on/off VNAV mode, the vertical FMS mode (autopilot) """
