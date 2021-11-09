@@ -105,8 +105,8 @@ def init(bada_path=''):
     releasefile = path.join(path.normpath(bada_path), 'ReleaseSummary')
     if path.isfile(releasefile):
         global release_date, bada_version
-        re_reldate = re.compile('Summary Date:\s+(.+(?<!\s))\s*', re.IGNORECASE)
-        re_badaver = re.compile('\s*BADA Release:\s+([\d.]+)\s*', re.IGNORECASE)
+        re_reldate = re.compile(r'Summary Date:\s+(.+(?<!\s))\s*', re.IGNORECASE)
+        re_badaver = re.compile(r'\s*BADA Release:\s+([\d.]+)\s*', re.IGNORECASE)
         with open(releasefile) as f:
             for line in f:
                 if re_reldate.match(line):
