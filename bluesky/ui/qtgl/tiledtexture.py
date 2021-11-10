@@ -8,7 +8,8 @@ from urllib.request import urlopen
 from urllib.error import URLError
 import numpy as np
 
-from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, QMutex
+from PyQt5.Qt import Qt
+from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QImage
 
 import bluesky as bs
@@ -113,6 +114,18 @@ class TiledTextureMeta(type(glh.Texture)):
 
 class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
     ''' Tiled texture implementation for the BlueSky GL gui. '''
+    class SlotHolder(QObject):
+        ''' Wrapper class for Qt slot, which can only be owned by a
+            QObject-derived parent. We need slots to allow signal receiver
+            to be executed in the receiving (main) thread. '''
+        def __init__(self, callback):
+            super().__init__()
+            self.cb = callback
+
+        @pyqtSlot(Tile)
+        def slot(self, *args, **kwargs):
+            self.cb(*args, **kwargs)
+
     def __init__(self, glsurface, tilesource='opentopomap'):
         super().__init__(target=glh.Texture.Target2DArray)
         self.threadpool = QThreadPool()
@@ -122,7 +135,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         max_dl = tileinfo.get('max_download_workers', bs.settings.max_download_workers)
         self.maxzoom = tileinfo.get('max_tile_zoom', bs.settings.max_tile_zoom)
         self.threadpool.setMaxThreadCount(min(bs.settings.max_download_workers, max_dl))
-        self.mutex = QMutex()
+        self.tileslot = TiledTexture.SlotHolder(self.load_tile)
         self.tilesource = tilesource
         self.tilesize = (256, 256)
         self.curtileext = (0, 0, 0, 0)
@@ -137,7 +150,6 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.arraysampler_loc = 0
         bs.net.actnodedata_changed.connect(self.actdata_changed)
         Signal('panzoom').connect(self.on_panzoom_changed)
-
 
     def add_bounding_box(self, lat0, lon0, lat1, lon1):
         ''' Add the bounding box of a textured shape.
@@ -251,6 +263,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             [tex_x0, tex_y0, tex_x1 - tex_x0, tex_y1 - tex_y0], dtype=np.float32)
         # Determine required tiles
         index_tex = []
+
         curtiles = OrderedDict()
         curtiles_difzoom = OrderedDict()
         for j, y in enumerate(range(y0, y1 + 1)):
@@ -265,7 +278,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
                     if finished:
                         # Tile not loaded yet, fetch in the background
                         task = TileLoader(self.tilesource, self.curtilezoom, x, y, i, j)
-                        task.signals.finished.connect(self.load_tile)
+                        task.signals.finished.connect(self.tileslot.slot, Qt.QueuedConnection)
                         self.threadpool.start(task)
 
                     # In the mean time, check if more zoomed-out tiles are loaded that can be used
@@ -287,6 +300,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         curtiles.update(curtiles_difzoom)
         curtiles.update(self.curtiles)
         self.curtiles = curtiles
+
         data = np.array(index_tex, dtype=np.int32)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
@@ -308,29 +322,38 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
                 (self.curtileext[1] <= tile.tiley <= self.curtileext[3])):
             return
 
-        # This function is called in the worker thread. Use a mutex to make sure
-        # we only modify the tile list one at a time
-        self.mutex.lock()
-        layer = len(self.curtiles)
-        if layer >= bs.settings.tile_array_size:
-            # we're exceeding the size of the GL texture array. Replace the least-recent tile
-            _, layer = self.curtiles.popitem()
+        # Make sure our GL context is current
+        self.glsurface.makeCurrent()
 
-        self.curtiles[(tile.tilex, tile.tiley, tile.zoom)] = layer
+        # Check if tile is already loaded. This can happen here with multiple
+        # pans/zooms shortly after each other
+        layer = self.curtiles.get((tile.tilex, tile.tiley, tile.zoom), None)
+        if layer is None:
+            # This tile is not loaded yet. Select layer to upload it to
+            layer = len(self.curtiles)
+            if layer >= bs.settings.tile_array_size:
+                # we're exceeding the size of the GL texture array.
+                # Replace the least-recent tile
+                _, layer = self.curtiles.popitem()
+
+            self.curtiles[(tile.tilex, tile.tiley, tile.zoom)] = layer
+            # Upload tile to texture array
+            super().bind(4)
+            self.setLayerData(layer, tile.image)
+            self.release()
+
         # Update the ordering of the tile dict: the new tile should be on top
         self.curtiles.move_to_end(
             (tile.tilex, tile.tiley, tile.zoom), last=False)
-        self.mutex.unlock()
+
+        # Update index texture
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
-        self.glsurface.makeCurrent()
         self.indextexture.bind(2)
         glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0, tile.idxx, tile.idxy,
                                    1, 1, glh.Texture.RGBA_Integer,
                                    glh.Texture.Int32, idxdata.tobytes())
-        super().bind(4)
-        self.setLayerData(layer, tile.image)
+
         self.indextexture.release()
-        self.release()
 
 
 def latlon2tilenum(lat_deg, lon_deg, zoom):
