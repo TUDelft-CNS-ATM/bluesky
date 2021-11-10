@@ -40,7 +40,6 @@ class PerfBase(Entity, replaceable=True):
         super().create(n=n)
         self.axmax[-n:] = 2.0  # Default acceleration limit is 2 m/s2
 
-    @timed_function(name="performance", dt=settings.performance_dt, manual=True)
     def update(self, dt=settings.performance_dt):
         """implement this method"""
         pass

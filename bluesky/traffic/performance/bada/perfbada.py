@@ -115,7 +115,7 @@ class BADA(PerfBase):
             self.ctct2      = np.array([])    # [1/k]
             self.dtemp      = np.array([])    # [k]
 
-            # Descent Thrust Coefficients
+            # Descent Fuel Flow Coefficients
             # Note: Ctdes,app and Ctdes,lnd assume a 3 degree descent gradient during app and lnd
             self.ctdesl      = np.array([])   # low alt descent thrust coefficient [-]
             self.ctdesh      = np.array([])   # high alt descent thrust coefficient [-]
@@ -452,13 +452,9 @@ class BADA(PerfBase):
         # switch for given vertical speed selvs
         if (bs.traf.selvs.any()>0.) or (bs.traf.selvs.any()<0.):
             # thrust = f(selvs)
-            T_vs = ((bs.traf.selvs!=0) * \
-                    (((bs.traf.aporasas.vs * np.sign(delalt)*self.mass*g0)/ \
-                    (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
-                    + self.D)) + ((bs.traf.selvs==0)*T)
-
-            # limit minimum thrust in descent to idle thrust
-            T = np.where(descent, np.maximum(T_vs, T), T)
+            T = ((bs.traf.selvs!=0)*(((bs.traf.aporasas.vs*self.mass*g0)/     \
+                      (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
+                      + self.D)) + ((bs.traf.selvs==0)*T)
 
         self.thrust = T
 
