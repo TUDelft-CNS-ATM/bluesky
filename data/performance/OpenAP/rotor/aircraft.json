@@ -166,6 +166,23 @@
       "h_max": 2500,
       "d_range_max": 5      
    }
+  },
+  "W178": {
+    "name": "Wingcopter 178 Heavy Lift",
+    "n_engines": 4,
+    "engine_type": "TS",
+    "mtow": 18,
+    "oew": 12,
+    "mfc": 0,
+    "engines": [["SII-4035-560KV", 3.50], ["SII-4035-560KV", 3.50], ["SII-4035-560KV", 3.50], ["SII-4035-560KV", 3.50]],
+    "envelop": {
+      "v_min": -14,
+      "v_max": 41,
+      "vs_min": -5,
+      "vs_max": 6,
+      "h_max": 5000,
+      "d_range_max": 120
+    }
   }
 }  
       
