@@ -81,6 +81,8 @@ class Traffic(Entity):
         self.turbulence = Turbulence()
         self.translvl = 5000.*ft # [m] Default transition level
 
+        self.HighRes = False
+
         with self.settrafarrays():
             # Aircraft Info
             self.id      = []  # identifier (string)
@@ -548,6 +550,9 @@ class Traffic(Entity):
                 print("MANUAL OFF")
                 bs.traf.swlnav[idx] = True
 
+    def activate_HighRes(self, flag=None):
+        """ Function for meteo data """
+        print(flag)
     def setnoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
         if noise is None:

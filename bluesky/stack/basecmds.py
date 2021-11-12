@@ -236,6 +236,12 @@ def initbasecmds():
             + "Returns list of aircraft in group when only a groupname is passed.\n"
             + "A group is created when a group with the given name doesn't exist yet.",
         ],
+        "HIGHRES": [
+            "HIGHRES [ON/OFF]",
+            "[onoff]",
+            bs.traf.activate_HighRes,
+            "Manuel Switch per aircraft (using ADSB data)",
+        ],
         "HOLD": ["HOLD", "", bs.sim.hold, "Pause(hold) simulation"],
         "IMPLEMENTATION": [
             "IMPLEMENTATION [base, implementation]",
@@ -277,7 +283,6 @@ def initbasecmds():
             "MANUAL acid ,[ON/OFF]",
             "acid,[onoff]",
             bs.traf.mnual,
-            # --------------------------------------------------------------------------------------------------
             "Manuel Switch per aircraft (using ADSB data)",
         ],
         "MCRE": [
@@ -398,7 +403,6 @@ def initbasecmds():
             bs.traf.groups.ungroup,
             "Remove aircraft from a group",
         ],
-
         "ZOOM": [
             "ZOOM IN/OUT or factor",
             "float/txt",
