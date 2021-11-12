@@ -1,5 +1,8 @@
 """ BlueSky traffic implementation."""
 from __future__ import print_function
+
+import pandas as pd
+
 try:
     from collections.abc import Collection
 except ImportError:
@@ -82,7 +85,7 @@ class Traffic(Entity):
         self.translvl = 5000.*ft # [m] Default transition level
 
         self.HighRes = False
-
+        self.Wind_DB = ""
         with self.settrafarrays():
             # Aircraft Info
             self.id      = []  # identifier (string)
@@ -113,7 +116,7 @@ class Traffic(Entity):
             self.rho     = np.array([])  # air density [kg/m3]
             self.Temp    = np.array([])  # air temperature [K]
             self.dtemp   = np.array([])  # delta t for non-ISA conditions
-
+            self.topwind = pd.DataFrame  # dataframe for the wind on
             # Wind speeds
             self.windnorth = np.array([])  # wind speed north component a/c pos [m/s]
             self.windeast  = np.array([])  # wind speed east component a/c pos [m/s]
@@ -404,6 +407,8 @@ class Traffic(Entity):
 
         #---------- Atmosphere --------------------------------
         self.p, self.rho, self.Temp = vatmos(self.alt)
+        if self.HighRes == True:
+            "update df's"
 
         #---------- ADSB Update -------------------------------
         self.adsb.update()
@@ -479,6 +484,8 @@ class Traffic(Entity):
         self.vs = np.where(np.isfinite(self.vs), self.vs, 0)    # fix vs nan issue
 
     def update_groundspeed(self):
+        if self.HighRes == True:
+            print("hello")
         # Compute ground speed and track from heading, airspeed and wind
         if self.wind.winddim == 0:  # no wind
             self.gsnorth  = self.tas * np.cos(np.radians(self.hdg))
@@ -550,9 +557,11 @@ class Traffic(Entity):
                 print("MANUAL OFF")
                 bs.traf.swlnav[idx] = True
 
-    def activate_HighRes(self, flag=None):
+    def activate_HighRes(self, name,  flag=None):
         """ Function for meteo data """
-        print(flag)
+        self.HighRes = flag
+        self.Wind_DB = name
+
     def setnoise(self, noise=None):
         """Noise (turbulence, ADBS-transmission noise, ADSB-truncated effect)"""
         if noise is None:

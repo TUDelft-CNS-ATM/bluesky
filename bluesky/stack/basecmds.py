@@ -237,8 +237,8 @@ def initbasecmds():
             + "A group is created when a group with the given name doesn't exist yet.",
         ],
         "HIGHRES": [
-            "HIGHRES [ON/OFF]",
-            "[onoff]",
+            "HIGHRES db_Name, [ON/OFF]",
+            "word, [onoff]",
             bs.traf.activate_HighRes,
             "Manuel Switch per aircraft (using ADSB data)",
         ],
