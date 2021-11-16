@@ -407,7 +407,7 @@ class Traffic(Entity):
         self.aporasas.update()   # Decide to use autopilot or ASAS for commands
 
         #---------- Performance Update ------------------------
-        self.perf.update(dt=bs.settings.performance_dt)
+        self.perf.update()
 
         #---------- Limit commanded speeds based on performance ------------------------------
         self.aporasas.tas, self.aporasas.vs, self.aporasas.alt = \
