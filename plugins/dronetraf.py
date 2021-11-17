@@ -64,8 +64,12 @@ class Dronetraf(core.Entity):
         
         # Sending the commands to the simulator
         stack.stack("CRE " + acid + ", M600, " + origin["lat"] + ", " + origin["lon"] + ", " + hdg + ", " + alt + ", " + spd)
-        stack.stack("DEST " + acid + ", " + dst["lat"] + ", " + dst["lon"])
-        stack.stack(acid + " ATALT 0 DEL " + acid)
+        stack.stack("ADDWPT " + acid + ", " + dst["lat"] + ", " + dst["lon"])
+        stack.stack(acid + " ATALT 0, DEL " + acid)
+        stack.stack("VS " + acid + ", 900")
+        stack.stack("VNAV " + acid + ", ON")
+        stack.stack(acid + " AT " + acid + "001 DO SPD " + acid + " 0")
+        stack.stack(acid + " AT " + acid + "001 DO ALT " + acid + " 0")
 
     # Assigns a new ID not already in use
     def assign_id(self):
