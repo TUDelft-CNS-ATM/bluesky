@@ -6,9 +6,6 @@ from bluesky import core, stack, traf  #, settings, navdb, sim, scr, tools
 
 CHANCE_OF_TRAFFIC = 30
 
-# List of IDs in use
-drones_active = list()
-
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
@@ -26,18 +23,25 @@ def init_plugin():
     return config
 
 class Dronetraf(core.Entity):
-    ''' Generates new drones and maintains a list of active drones. '''
+    ''' Generates new drones within a given area and maintains a list of active drones. '''
 
     def __init__(self):
         super().__init__()
 
-    # Called automatically when a done is deleted
+        # List of IDs in use
+        self.drones_active = list()
+        # Area of interest
+        self.area_coords = [
+            {"lat": 52.42738, "lon": 9.65979},
+            {"lat": 52.45014, "lon": 9.72837}]
+
+    # Called automatically when a drone is deleted
     def delete(self, idx):
         super().delete(idx)
-        drones_active.remove(traf.id[idx[0]])
+        self.drones_active.remove(traf.id[idx[0]])
 
-    # Called every 10 simulation steps(seconds)
-    @core.timed_function(name='drone_traffic', dt=10)
+    # Called every 5 simulation steps(seconds)
+    @core.timed_function(name='drone_traffic', dt=5)
     def update(self):
         new_traffic = randint(1, 100)
         if new_traffic <= CHANCE_OF_TRAFFIC:
@@ -46,14 +50,9 @@ class Dronetraf(core.Entity):
     def create_drone(self):
         acid = self.assign_id()
 
-        # Origin chosen at random from predefined points outside the area of interest
-        origins = ["52.44853, 9.62503", "52.41137, 9.65701", "52.40540, 9.69458", "52.41673, 9.73632", "52.44602, 9.75462"]
-        origin = {}
-        origin["lat"], origin["lon"] = choice(origins).split(", ")
-        # Destination point chosen at random fom within the area of interest
-        dst = {}
-        dst["lat"] = str(round(uniform(52.42971, 52.44556), 5))
-        dst["lon"] = str(round(uniform(9.67770, 9.71830), 5))
+        # Origin and destination chosen at random from within the area of interest
+        origin = self.assign_wpt(self.area_coords[0], self.area_coords[1])
+        dst = self.assign_wpt(self.area_coords[0], self.area_coords[1])
 
         # Orienting the drone towards the destination, as too great a turn breaks the autopilot
         if float(origin["lat"]) < float(dst["lat"]):
@@ -74,7 +73,15 @@ class Dronetraf(core.Entity):
 
         while not approved:
             newid = "D" + str(randint(1, 999))
-            if newid not in drones_active: approved = True
+            if newid not in self.drones_active: approved = True
 
-        drones_active.append(newid)
+        self.drones_active.append(newid)
         return newid
+    
+    # Takes 2 coordinates and returns a point from within the rectangle they form
+    def assign_wpt(self, coord1, coord2):
+        wpt = {}
+        wpt["lat"] = str(round(uniform(coord1["lat"], coord2["lat"]), 5))
+        wpt["lon"] = str(round(uniform(coord1["lon"], coord2["lon"]), 5))
+
+        return wpt
