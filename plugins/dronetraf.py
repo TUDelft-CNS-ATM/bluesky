@@ -6,7 +6,7 @@ from bluesky import core, stack, traf  #, settings, navdb, sim, scr, tools
 
 CHANCE_OF_TRAFFIC = 30
 
-### Initialization function of your plugin. Do not change the name of this
+### Initialisation function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
     ''' Plugin initialisation function. '''
@@ -18,9 +18,18 @@ def init_plugin():
         'plugin_name':     'DRONETRAF',
         'plugin_type':     'sim',
         }
+    
+    stackfunctions = {
+        'DRONETRAF': [
+            'DRONETRAF lat,lon,lat,lon',
+            'float,float,float,float',
+            dronetraf.dronetraf,
+            'Define the area of operation as an arbitrary rectangle with 2 coordinates.'
+        ]
+    }
 
     # init_plugin() should always return a configuration dict.
-    return config
+    return config, stackfunctions
 
 class Dronetraf(core.Entity):
     ''' Generates new drones within a given area and maintains a list of active drones. '''
@@ -92,8 +101,7 @@ class Dronetraf(core.Entity):
 
         return wpt
 
-    @stack.command
-    def dronetraf(self, lat1: float, lon1: float, lat2: float, lon2: float):
+    def dronetraf(self, lat1, lon1, lat2, lon2):
         ''' Define the area of operation as an arbitrary rectangle with 2 coordinates. '''
         self.area_coords = [
             {"lat": lat1, "lon": lon1},
