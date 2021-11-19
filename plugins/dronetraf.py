@@ -30,13 +30,14 @@ class Dronetraf(core.Entity):
 
         # List of IDs in use
         self.drones_active = list()
-        # Area of interest
+        # Area of operation
         self.area_coords = [
             {"lat": 52.42738, "lon": 9.65979},
             {"lat": 52.45014, "lon": 9.72837}]
 
     # Called automatically when a drone is deleted
     def delete(self, idx):
+        ''' Removes the deleted drone's ID from the list. '''
         super().delete(idx)
         self.drones_active.remove(traf.id[idx[0]])
 
@@ -48,9 +49,10 @@ class Dronetraf(core.Entity):
             self.create_drone()
 
     def create_drone(self):
+        ''' Creates a drone within the the stated area and assigns it a flight plan. '''
         acid = self.assign_id()
 
-        # Origin and destination chosen at random from within the area of interest
+        # Origin and destination chosen at random from within the area of operation
         origin = self.assign_wpt(self.area_coords[0], self.area_coords[1])
         dst = self.assign_wpt(self.area_coords[0], self.area_coords[1])
 
@@ -71,8 +73,8 @@ class Dronetraf(core.Entity):
         stack.stack(acid + " AT " + acid + "001 DO SPD " + acid + " 0")
         stack.stack(acid + " AT " + acid + "001 DO ALT " + acid + " 0")
 
-    # Assigns a new ID not already in use
     def assign_id(self):
+        ''' Assigns a new ID not already in use. '''
         approved = False
 
         while not approved:
@@ -81,11 +83,20 @@ class Dronetraf(core.Entity):
 
         self.drones_active.append(newid)
         return newid
-    
-    # Takes 2 coordinates and returns a point from within the rectangle they form
+
     def assign_wpt(self, coord1, coord2):
+        ''' Returns the coordinate of a random point within a given rectangle, defined by 2 coordinates. '''
         wpt = {}
         wpt["lat"] = str(round(uniform(coord1["lat"], coord2["lat"]), 5))
         wpt["lon"] = str(round(uniform(coord1["lon"], coord2["lon"]), 5))
 
         return wpt
+
+    @stack.command
+    def dronetraf(self, lat1: float, lon1: float, lat2: float, lon2: float):
+        ''' Define the area of operation as an arbitrary rectangle with 2 coordinates. '''
+        self.area_coords = [
+            {"lat": lat1, "lon": lon1},
+            {"lat": lat2, "lon": lon2}]
+        
+        return True, f'New area has been set for drone traffic.'
