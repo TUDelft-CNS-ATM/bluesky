@@ -280,7 +280,7 @@ class ScreenIO:
             # Check if there are other senders and also a scenario-selected route
             if self.route_all:
                 remclients = bs.sim.clients.difference(self.client_route.keys())
-                print(bs.sim.clients, remclients)
+                #print(bs.sim.clients, remclients)
                 for sender in remclients:
                     _sendrte(sender, self.route_all)
         # Case 2: only a route selected from scenario file:
