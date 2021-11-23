@@ -272,7 +272,7 @@ class ScreenIO:
 
     def send_route_data(self):
         ''' Send route data to client(s) '''
-        print(self.client_route, self.route_all)
+        # print(self.client_route, self.route_all)
         # Case 1: A route is selected by one or more specific clients
         if self.client_route:
             for sender, acid in self.client_route.items():
