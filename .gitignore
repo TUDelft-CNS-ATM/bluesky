@@ -94,3 +94,4 @@ ssd.obj
 # Files to be ignored
 *.scn
 *.graphml
+*.nc
