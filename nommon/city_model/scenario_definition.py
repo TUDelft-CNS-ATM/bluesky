@@ -282,7 +282,87 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
 
         return state
 
-    if wpt1[0] == wpt2[0]:  # wpt1 and wpt2 in the same layer
+    if wpt1[0:3] == 'COR':  # in a corridor
+        """
+        Steps of the corridor:
+
+        if state['action'] == 'entering_corridor' --> wpt1 = COR_XXX_in_1 and wpt2 = COR_XXX_in_2 -->
+            state['action'] == 'climbing_corridor'
+
+        if state['action'] == 'climbing_corridor' --> wpt1 = COR_XXX_in_2 and wpt2 = COR_XXX -->
+            state['action'] == 'corridor'
+
+        if state['action'] == 'corridor' --> wpt1 = COR_XXX and wpt2 = COR_XXX -->
+            state['action'] == 'corridor'        (n times)
+
+        if state['action'] == 'corridor' --> wpt1 = COR_XXX and wpt2 = COR_XXX_in_2 -->
+            state['action'] == 'descending_corridor'
+
+        if state['action'] == 'descending_corridor' --> wpt1 = COR_XXX_in_2 and wpt2 = COR_XXX_in_1 -->
+            state['action'] == 'leaving_corridor'
+
+        if state['action'] == 'leaving_corridor' --> wpt1 = COR_XXX_in_1 and wpt2 = YXXX -->
+            state['action'] == 'cruise'
+        """
+        if state['action'] == 'entering_corridor' or state['action'] == 'descending_corridor':
+            new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
+                time, wpt1, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'] )
+            new_line1 = '{0} > ADDWPT {1} FLYOVER'.format( time, ac )
+            new_line2 = '{0} > ADDWPT {1} {2}, ,{3}'.format( 
+                time, ac, wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
+            new_line3 = '{0} > {1} ATDIST {2} {3} SPD {4} {5}'.format( 
+                time, ac, wpt1, 0.03, ac, 5 )
+            new_line4 = '{0} > {1} AT {2} DO SPD {3} 0'.format( 
+                time, ac, wpt1, ac )
+            new_line5 = '{0} > {1} AT {2} DO ALT {3} {4}'.format( 
+                time, ac, wpt1, ac, route_parameters[str( i + 1 )]['alt'] * m2ft )
+            new_line6 = '{0} > {1} AT {2} DO VS {3} {4}'.format( 
+                time, ac, wpt1, ac, str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
+
+            scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' +
+                                 new_line3 + '\n' + new_line4 + '\n' + new_line5 + '\n' +
+                                 new_line6 + '\n' )
+            state['ref_wpt'] = wpt1
+            if wpt1[-4:] == 'in_2' and wpt2[-4:] == 'in_1':
+                state['action'] = 'leaving_corridor'
+            else:
+                state['action'] = 'climbing_corridor'
+        elif state['action'] == 'climbing_corridor' or state['action'] == 'leaving_corridor':
+            new_line1 = '{0} > {1} AT {2} DO {3} ATALT {4}, LNAV {5} ON'.format( 
+                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac )
+            new_line2 = '{0} > {1} AT {2} DO {3} ATALT {4}, VNAV {5} ON'.format( 
+                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac )
+            new_line3 = '{0} > {1} AT {2} DO {3} ATALT {4}, ADDWPT {5} {6} {7}, {8}, {9}, {10}'.format( 
+                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac,
+                route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
+                route_parameters[str( i )]['alt'] * m2ft,
+                str( route_parameters[str( i )]['speed'] * m_s2knot ), state['ref_wpt'] )
+
+            scenario_file.write( new_line1 + '\n' + new_line2 + '\n' +
+                                 new_line3 + '\n' )
+            if wpt1[-4:] == 'in_1' and wpt2[-4:] != 'in_2':
+                state['action'] = 'cruise'
+            else:
+                state['action'] = 'corridor'
+            state['heading'] = route_parameters[str( i )]['hdg']
+        elif state['action'] == 'corridor':
+            new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac )
+            new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac, 15 )
+            new_line3 = '{0} > ADDWPT {1} {2} {3} {4} {5}'.format( 
+                time, ac, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
+                route_parameters[str( i )]['alt'] * m2ft,
+                str( route_parameters[str( i )]['speed'] * m_s2knot ) )
+
+            scenario_file.write( new_line1 + '\n' + new_line2 + '\n' + new_line3 + '\n' )
+
+            if wpt2[-4:] == 'in_2':
+                state['action'] = 'descending_corridor'
+            else:
+                state['action'] = 'corridor'
+
+        return state
+
+    if wpt1[0] == wpt2[0] or wpt2[0:3] == 'COR':  # wpt1 and wpt2 in the same layer or it is going to enter in a corridor
         if state['action'] == 'cruise':  # drone was flying horizontally
             turn_speed = route_parameters[str( i )]['turn speed']
             turn_dist = route_parameters[str( i )]['turn dist']
@@ -354,7 +434,10 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
             scenario_file.write( new_line1 + '\n' + new_line2 + '\n' +
                                  new_line3 + '\n' )
 
-        state['action'] = 'cruise'
+        if wpt2[0:3] == 'COR':
+            state['action'] = 'entering_corridor'
+        else:
+            state['action'] = 'cruise'
         state['heading'] = route_parameters[str( i )]['hdg']
         return state
 
@@ -381,14 +464,14 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
             state['ref_wpt'] = wpt1
 
         elif state['action'] == 'climbing':  # drone was climbing
-            new_line0 = '{0} > {1} AT {2} DO {3} ATALT {4}, ALT {5} {6}'.format( 
+            new_line1 = '{0} > {1} AT {2} DO {3} ATALT {4}, ALT {5} {6}'.format( 
                 time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac,
                 route_parameters[str( i + 1 )]['alt'] * m2ft )
-            new_line1 = '{0} > {1} AT {2} DO {3} ATALT {4}, VS {5} {6}'.format( 
+            new_line2 = '{0} > {1} AT {2} DO {3} ATALT {4}, VS {5} {6}'.format( 
                 time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac,
                 str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
 
-            scenario_file.write( new_line0 + '\n' + new_line1 + '\n' )
+            scenario_file.write( new_line1 + '\n' + new_line2 + '\n' )
 
         state['action'] = 'climbing'
         state['heading'] = 0

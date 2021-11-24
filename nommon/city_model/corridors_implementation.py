@@ -4,12 +4,12 @@
 
 """
 
-from nommon.city_model.dynamic_segments import defineSegment
 import csv
 import json
 import math
 import os
 
+from nommon.city_model.dynamic_segments import defineSegment
 import osmnx as ox
 
 
@@ -111,13 +111,13 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
 
     # Adding edges for those nodes
     # Vertical ascension to the acceleration lane
-    G.add_edge( node_low, node_high, 0, oneway=False, segment='new',
+    G.add_edge( node_low, node_high, 0, oneway=False, segment=name,
                 speed=speed, length=G.nodes[node]['z'] - entry_low_height )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_high, node_low, 0, oneway=False, segment=name,
                 speed=speed, length=G.nodes[node]['z'] - entry_low_height )
     # Acceleration lane
-    G.add_edge( node_high, node, 0, oneway=False, segment='new', speed=speed,
+    G.add_edge( node_high, node, 0, oneway=False, segment=name, speed=speed,
                 length=acceleration_lenght )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node, node_high, 0, oneway=False, segment=name, speed=speed,
@@ -137,7 +137,7 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     G.add_edge( node_G, node_low, 0, oneway=False, segment='new', speed=50.0,
                 length=length )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
-    G.add_edge( node_low, node_G, 0, oneway=False, segment=name, speed=speed,
+    G.add_edge( node_low, node_G, 0, oneway=False, segment='new', speed=50.0,
                 length=length )
 
     return G, segments
@@ -179,6 +179,7 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
         # nodes_G += [insertionNode( G, point_lon, point_lat, altitude )]
 
         G.addNodeAltitude( nodes_corridor[-1], point_lat, point_lon, altitude )
+        G.add_node( nodes_corridor[-1], y=point_lat, x=point_lon, z=altitude, segment=name )
 
         # Adds corridor edges to G
         if len( nodes_corridor ) == 1:

@@ -37,7 +37,7 @@ if __name__ == '__main__':
     Change the config_path to read the desired file
     """
     # CONFIG
-    config_path = "C:/workspace3/bluesky/nommon/city_model/settings.cfg"
+    config_path = "C:/workspace3/bluesky_USEPE/nommon/city_model/settings.cfg"
     config = configparser.ConfigParser()
     config.read( config_path )
 
@@ -75,10 +75,11 @@ if __name__ == '__main__':
     Comment it to neglect the creation of corridors
     """
     G, segments = corridorLoad( G, segments, config )
+    G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
 
     # -------------- 5. No-FLY ZONES ------------------------
     """
-    This section adds restricted area (no-fly zones) by imposing zero verlocity to the sectors that
+    This section adds restricted area (no-fly zones) by imposing zero velocity to the sectors that
     intersect with the area
 
     restricted area definition: it should be defined as a list of tuples (longitude, latitude) of
@@ -102,10 +103,13 @@ if __name__ == '__main__':
     dest = [9.73, 52.38]  # destination point
     travel_time, route = trajectoryCalculation( G, orig, dest )
     print( 'The travel time of the route is {0}'.format( travel_time ) )
-    print( 'The route is {0}'.format( route ) )
-    printRoute( G, route )
+    # print( 'The route is {0}'.format( route ) )
+    # printRoute( G, route )
 
     # -------------- 7. Scenario definition -----------------------
+    step1 = True
+    step2 = False
+    step3 = False
     """
     This section computes scenarios to be used in BlueSky.
     1. Path planning
@@ -116,40 +120,43 @@ if __name__ == '__main__':
     # The layer information will be used by the "createFlightPlan" function
     layers_dict = layersDict( config )
 
-    """
-    1.Path Planning
-    We generate the flight plan of one drone. A scenario file is generated, which can be loaded by
-    BlueSky. The "createFlightPlan" function transforms the optimal path (list of waypoints) to
-    BlueSky commands
-    """
+    if step1:
+        """
+        1.Path Planning
+        We generate the flight plan of one drone. A scenario file is generated, which can be loaded by
+        BlueSky. The "createFlightPlan" function transforms the optimal path (list of waypoints) to
+        BlueSky commands
+        """
 
-    ac = 'U001'
-    departure_time = '00:00:00.00'
-    scenario_path = r'.\data\scenario_example.scn'
-    scenario_file = open( scenario_path, 'w' )
-    createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
-    scenario_file.close()
+        ac = 'U001'
+        departure_time = '00:00:00.00'
+        scenario_path = r'.\scenario\scenario_corridor.scn'
+        scenario_file = open( scenario_path, 'w' )
+        createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
+        scenario_file.close()
 
-    """
-    2. Automatic flight plan
-    We generate many flight plans. Origins and destinations of a defined number of trajectories are
-    randomly generated. We create a BlueSky scenario for each drone and a general BlueSky scenario
-    which calls all the drone flight plans. Loading this general path in BlueSKy, we can simulate
-    XX drones flying at the same time.
-    """
+    if step2:
+        """
+        2. Automatic flight plan
+        We generate many flight plans. Origins and destinations of a defined number of trajectories are
+        randomly generated. We create a BlueSky scenario for each drone and a general BlueSky scenario
+        which calls all the drone flight plans. Loading this general path in BlueSKy, we can simulate
+        XX drones flying at the same time.
+        """
 
-    total_drones = 10
-    base_name = 'U'
-    scenario_general_path_base = r'.\data\scenario_10_drones'
-    automaticFlightPlan( total_drones, base_name, G, layers_dict, scenario_general_path_base )
+        total_drones = 10
+        base_name = 'U'
+        scenario_general_path_base = r'.\scenario\scenario_10_drones'
+        automaticFlightPlan( total_drones, base_name, G, layers_dict, scenario_general_path_base )
 
-    """
-    3. Draw buildings
-    We generate the scenarios needed for printing the buildings in BlueSky.
-    """
-    time = '00:00:00.00'
-    scenario_path_base = r'.\data\scenario_buildings_graph'
-    drawBuildings( config, scenario_path_base, time )
+    if step3:
+        """
+        3. Draw buildings
+        We generate the scenarios needed for printing the buildings in BlueSky.
+        """
+        time = '00:00:00.00'
+        scenario_path_base = r'.\scenario\scenario_buildings_graph'
+        drawBuildings( config, scenario_path_base, time )
 
     # ---------------------------------------------------------------------------------
 
