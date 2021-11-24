@@ -39,6 +39,16 @@ class ConflictResolution(Entity, replaceable=True):
             self.alt = np.array([])  # alt provided by the ASAS [m]
             self.vs = np.array([])  # vspeed provided by the ASAS [m/s]
 
+    def reset(self):
+        super().reset()
+        self.swprio = False
+        self.priocode = ''
+        self.resopairs.clear()
+        self.resofach = bs.settings.asas_marh
+        self.resofacv = bs.settings.asas_marv
+        self.resodhrelative = True
+        self.resorrelative  = True
+
     # By default all channels are controlled by self.active,
     # but they can be overloaded with separate variables or functions in a
     # derived ASAS Conflict Resolution class (@property decorator takes away
