@@ -4,6 +4,7 @@
 A module responsible for strategic deconfliction
 """
 from operator import add
+import datetime
 import math
 
 from nommon.city_model.dynamic_segments import dynamicSegments
@@ -39,6 +40,24 @@ def initialPopulation( segments, t0, tf ):
 
 
 def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time ):
+    """
+    Computes how the new user populates the segments. It returns the information of how the segments
+    are populated including the tentative flight plan of the new drone.
+
+    Args:
+            G (graph): a graph representing the city
+            route (list): list containing the waypoints of the optimal route
+            time (int): integer representing the departure time in seconds relative to initial_time
+            users (dictionary): information of how the segments are populated from t0 to tf
+            initial_time (int): integer representing the initial time in seconds of the period under
+                study
+            final_time (int): integer representing the final time in seconds of the period under
+                study
+
+    Returns:
+            users (dictionary): information of how the segments are populated from t0 to tf
+                including the tentative flight plan of the new drone
+    """
     users = users_planned.copy()
     actual_segment = None
     actual_time = time
@@ -75,6 +94,24 @@ def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time 
 
 
 def checkOverpopulatedSegment( segments, users, initial_time, final_time ):
+    """
+    Check if any segment is overpopulated. It returns the segment name and the time when the segment
+    gets overcrowded. If no segment is overpopulated, it retunrs None.
+
+    Args:
+            segments (dictionary): dictionary with the segment information
+            users (dictionary): information of how the segments are populated from t0 to tf
+            initial_time (int): integer representing the initial time in seconds of the period under
+                study
+            final_time (int): integer representing the final time in seconds of the period under
+                study
+
+    Returns:
+            overpopulated_segment (string): segment name
+            overpopulated_time (int): time when the segment gets overcrowded. Value in seconds and
+                relative to the initial time.
+
+    """
     overpopulated_segment = None
     overpopulated_time = None
     cond = False
@@ -94,7 +131,41 @@ def checkOverpopulatedSegment( segments, users, initial_time, final_time ):
     return overpopulated_segment, overpopulated_time
 
 
-def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_time, segments ):
+def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_time, segments,
+                              config ):
+    """
+    Computes an optimal flight plan without exceeding the segment capacity limit. The procedure
+    consist in:
+    1. Compute optimal path from origin to destination.
+    2. While including the new drone a segment capacity limit is exceeded:
+        2.1. A sub-optimal trajectory is computed without considering the overpopulated segment.
+        2.2. If the travel time of the sub-optimal trajectory divided by the optimal travel time is
+            higher than a configurable threshold:
+            2.2.1. The flight is delayed by a configurable value.
+            2.2.2. Repeat step 2 with the new departure time.
+    3. It returns the flight plan, the departure time and the new information about how the segments
+        are populated
+    Args:
+            orig (list): with the coordinates of the origin point [longitude, latitude]
+            dest (list): with the coordinates of the destination point [longitude, latitude]
+            time (int): integer representing the departure time in seconds relative to initial_time
+            G (graph): a graph representing the city
+            users (dictionary): information of how the segments are populated from initial time to
+                final time.
+            initial_time (int): integer representing the initial time in seconds of the period under
+                study
+            final_time (int): integer representing the final time in seconds of the period under
+                study
+            segments (dictionary): dictionary with the segment information
+
+    Returns:
+            users_step (dictionary): information of how the segments are populated from initial time to
+                final time including the deconflcited trajectory of the new dorne.
+            route (list): list containing the waypoints of the optimal route
+            delayed_time (int): indicating how many seconds the fligth is delayed respect to the
+                desired departure time
+
+    """
     delayed_time = time
     opt_travel_time, route = trajectoryCalculation( G, orig, dest )
 
@@ -124,8 +195,8 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
         overpopulated_segment, overpopulated_time = checkOverpopulatedSegment( 
             segments_step, users_step, initial_time, final_time )
 
-        if travel_time / opt_travel_time > 3:
-            delayed_time += 60
+        if travel_time / opt_travel_time > config['Strategic_Deconfliction'].getint( 'ratio' ):
+            delayed_time += config['Strategic_Deconfliction'].getint( 'delay' )
             overpopulated_segment = True
             segments_step = segments.copy()
             G_step = G.copy()
@@ -142,12 +213,38 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
 
 
 def deconflcitedScenario( orig, dest, ac, departure_time, G, users, initial_time, final_time,
-                          segments, layers_dict, scenario_file ):
+                          segments, layers_dict, scenario_file, config ):
+    """
+    A strategic deconflicted trajectory from origin to destination is computed and a BluSky scenario
+    is generated.
+
+    Args:
+            orig (list): with the coordinates of the origin point [longitude, latitude]
+            dest (list): with the coordinates of the destination point [longitude, latitude]
+            ac (string): aircraft name
+            departure_time (int): integer representing the departure time in seconds relative to initial_time
+            G (graph): a graph representing the city
+            users (dictionary): information of how the segments are populated from initial time to
+                final time.
+            initial_time (int): integer representing the initial time in seconds of the period under
+                study
+            final_time (int): integer representing the final time in seconds of the period under
+                study
+            segments (dictionary): dictionary with the segment information
+            layers_dict (dictionary): dictionary with the information about layers and altitudes
+            scenario_file (object): text file object where the commands are written
+
+    Returns:
+            users (dictionary): information of how the segments are populated from initial time to
+                final time.
+    """
 
     users, route, delayed_time = deconflictedPathPlanning( orig, dest, departure_time, G, users,
-                                                           initial_time, final_time, segments )
+                                                           initial_time, final_time, segments,
+                                                           config )
 
-    departure_time = delayed_time
+    departure_time = str( datetime.timedelta( seconds=delayed_time ) )
+
     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
 
     return users

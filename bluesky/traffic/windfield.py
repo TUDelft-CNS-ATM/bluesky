@@ -1,6 +1,4 @@
 """ Wind implementation for BlueSky."""
-import time
-
 from numpy import array, sin, cos, arange, radians, ones, append, ndarray, \
                   amin, minimum, repeat, delete, zeros, around, maximum, floor, \
                   interp, pi
@@ -159,17 +157,12 @@ class Windfield():
             #---- Get horizontal weight factors
 
             # Average cosine for flat-eartyh approximation
-            start = time.time()
-
             cavelat = cos( radians( 0.5 * ( lat + array( [self.lat] ).transpose() ) ) )
-            print( 'cavelat' )
-            print( cavelat )
+
             # Lat and lon distance in 60 nm units (1 lat degree)
             dy = lat - array( [self.lat] ).transpose()  # (nvec,npos)
             dx = cavelat * ( lon - array( [self.lon] ).transpose() )
-            print( 'dydx' )
-            print( dy )
-            print( dx )
+
             # Calulate invesre distance squared
             invd2 = 1. / ( eps + dx * dx + dy * dy )  # inverse of distance squared
 
@@ -178,8 +171,7 @@ class Windfield():
             totals = repeat( sumsid2, self.nvec, axis=0 )  # scale up dims to (nvec,npos)
 
             horfact = invd2 / totals  # rows x col = nvec x npos, weight factors
-            end = time.time()
-            print( end - start )
+
             #---- Altitude interpolation
 
             # No altitude profiles used: do 2D planar interpolation only

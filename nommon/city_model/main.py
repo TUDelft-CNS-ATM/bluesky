@@ -20,6 +20,7 @@ from nommon.city_model.no_fly_zones import restrictedSegments
 from nommon.city_model.path_planning import trajectoryCalculation, printRoute
 from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings, \
     automaticFlightPlan
+from nommon.city_model.strategic_deconfliction import deconflcitedScenario, initialPopulation
 from nommon.city_model.utils import read_my_graphml, layersDict
 import numpy as np
 import osmnx as ox
@@ -51,7 +52,7 @@ if __name__ == '__main__':
         filepath = config['City']['imported_graph_path']
         G = read_my_graphml( filepath )
         G = MultiDiGrpah3D( G )
-        fig, ax = ox.plot_graph( G )
+        # fig, ax = ox.plot_graph( G )
     else:
         G = cityGraph( config )
 
@@ -86,11 +87,13 @@ if __name__ == '__main__':
                                 the vertices of the polygon defining the restricted area.
                                 First and last point should be the same
     """
-    restricted_area = [( 9.78, 52.36 ),
-                       ( 9.78, 52.365 ),
-                       ( 9.77, 52.365 ),
-                       ( 9.78, 52.36 )]
-    G, segments = restrictedSegments( G, segments, restricted_area, config )
+    step = False
+    if step:
+        restricted_area = [( 9.78, 52.36 ),
+                           ( 9.78, 52.365 ),
+                           ( 9.77, 52.365 ),
+                           ( 9.78, 52.36 )]
+        G, segments = restrictedSegments( G, segments, restricted_area, config )
 
     # -------------- 6. PATH PLANNING -----------------------
     """
@@ -107,7 +110,7 @@ if __name__ == '__main__':
     # printRoute( G, route )
 
     # -------------- 7. Scenario definition -----------------------
-    step1 = True
+    step1 = False
     step2 = False
     step3 = False
     """
@@ -158,7 +161,29 @@ if __name__ == '__main__':
         scenario_path_base = r'.\scenario\scenario_buildings_graph'
         drawBuildings( config, scenario_path_base, time )
 
-    # ---------------------------------------------------------------------------------
+    # -------------- 8. Strategic deconfliction -----------------------
+    """
+    This section computes an strategic deconflicted trajectory from origin to destination. An
+    empty initial population is generated.
+    """
+
+    step = True
+
+    if step:
+        orig = [9.77, 52.39 ]  # origin point
+        dest = [9.73, 52.38]  # destination point
+        ac = 'U1'
+        departure_time = 60  # seconds
+        initial_time = 0  # seconds
+        final_time = 1800  # seconds
+        users = initialPopulation( segments, initial_time, final_time )
+        scenario_path = r'.\scenario\deconflicted_scenario.scn'
+        scenario_file = open( scenario_path, 'w' )
+        users = deconflcitedScenario( orig, dest, ac, departure_time, G, users, initial_time,
+                                      final_time, segments, layers_dict, scenario_file, config )
+        scenario_file.close()
+
+    # -----------------------------------------------------------------
 
     print( 'Finish.' )
 

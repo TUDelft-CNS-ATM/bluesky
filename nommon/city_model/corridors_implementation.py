@@ -106,8 +106,8 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     n_layers = config['Layers'].getint( 'number_of_layers' )
     layer_width = config['Layers'].getint( 'layer_width' )
     entry_low_height = n_layers * layer_width
-    G.addNodeAltitude( node_low, entry_lat, entry_lon, entry_low_height )
-    G.addNodeAltitude( node_high, entry_lat, entry_lon, G.nodes[node]['z'] )
+    G.addNodeAltitude( node_low, entry_lat, entry_lon, entry_low_height, name )
+    G.addNodeAltitude( node_high, entry_lat, entry_lon, G.nodes[node]['z'], name )
 
     # Adding edges for those nodes
     # Vertical ascension to the acceleration lane
@@ -137,7 +137,7 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     G.add_edge( node_G, node_low, 0, oneway=False, segment='new', speed=50.0,
                 length=length )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
-    G.add_edge( node_low, node_G, 0, oneway=False, segment='new', speed=50.0,
+    G.add_edge( node_low, node_G, 0, oneway=False, segment=name, speed=speed,
                 length=length )
 
     return G, segments
@@ -178,8 +178,8 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
 
         # nodes_G += [insertionNode( G, point_lon, point_lat, altitude )]
 
-        G.addNodeAltitude( nodes_corridor[-1], point_lat, point_lon, altitude )
-        G.add_node( nodes_corridor[-1], y=point_lat, x=point_lon, z=altitude, segment=name )
+        G.addNodeAltitude( nodes_corridor[-1], point_lat, point_lon, altitude, name )
+        # G.add_node( nodes_corridor[-1], y=point_lat, x=point_lon, z=altitude, segment=name )
 
         # Adds corridor edges to G
         if len( nodes_corridor ) == 1:

@@ -21,8 +21,11 @@ class MultiDiGrpah3D ( MultiDiGraph ):
     def __init__( self, G_copy=None, **attr ):
         MultiDiGraph.__init__( self, G_copy, **attr )
 
-    def addNodeAltitude( self, name, y_node, x_node, alttude_node ):
-        self.add_node( name, y=y_node, x=x_node, z=alttude_node, segment='new' )
+    def addNodeAltitude( self, name, y_node, x_node, alttude_node, segment_node=None ):
+        if segment_node:
+            self.add_node( name, y=y_node, x=x_node, z=alttude_node, segment=segment_node )
+        else:
+            self.add_node( name, y=y_node, x=x_node, z=alttude_node, segment='new' )
 
     def filterNodes( self, nodes, layer ):
         """
