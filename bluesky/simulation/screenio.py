@@ -71,6 +71,9 @@ class ScreenIO:
         self.prevcount   = 0
         self.prevtime    = 0.0
 
+        self.def_pan = (0.0, 0.0)
+        self.def_zoom = 1.0
+
         # Communicate reset to gui
         bs.net.send_event(b'RESET', b'ALL')
 
