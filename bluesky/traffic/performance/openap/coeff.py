@@ -3,9 +3,14 @@ import os
 import json
 import numpy as np
 import pandas as pd
+import bluesky as bs
 from bluesky import settings
+from bluesky.settings import get_project_root
 
-settings.set_variable_defaults(perf_path_openap="data/performance/OpenAP")
+
+settings.set_variable_defaults(
+    perf_path_openap=os.path.join(get_project_root(), "data", "performance", "OpenAP")
+)
 
 LIFT_FIXWING = 1  # fixwing aircraft
 LIFT_ROTOR = 2  # rotor aircraft
@@ -36,7 +41,12 @@ class Coefficient:
                 else:
                     dataline = line.strip("\n")
                 acmod, synomod = dataline.split("=")
-                self.synodict[acmod.strip().upper()] = synomod.strip().upper()
+                acmod = acmod.strip().upper()
+                synomod = synomod.strip().upper()
+
+                if acmod == synomod:
+                    continue
+                self.synodict[acmod] = synomod
 
         self.acs_fixwing = self._load_all_fixwing_flavor()
         self.engines_fixwing = pd.read_csv(fixwing_engine_db, encoding="utf-8")
@@ -94,10 +104,10 @@ class Coefficient:
         All unit in SI"""
         limits_fixwing = {}
         for mdl, ac in self.acs_fixwing.items():
-            fenv = fixwing_envelops_dir + mdl.lower() + ".csv"
+            fenv = fixwing_envelops_dir + mdl.lower() + ".txt"
 
             if os.path.exists(fenv):
-                df = pd.read_csv(fenv, index_col="param")
+                df = pd.read_fwf(fenv).set_index("variable")
                 limits_fixwing[mdl] = {}
                 limits_fixwing[mdl]["vminto"] = df.loc["to_v_lof"]["min"]
                 limits_fixwing[mdl]["vmaxto"] = df.loc["to_v_lof"]["max"]
@@ -132,17 +142,17 @@ class Coefficient:
                 limits_fixwing[mdl]["axmax"] = df.loc["to_acc_tof"]["max"]
 
                 limits_fixwing[mdl]["vsmax"] = max(
-                    df.loc["ic_vz_avg"]["max"],
-                    df.loc["cl_vz_avg_pre_cas"]["max"],
-                    df.loc["cl_vz_avg_cas_const"]["max"],
-                    df.loc["cl_vz_avg_mach_const"]["max"],
+                    df.loc["ic_vs_avg"]["max"],
+                    df.loc["cl_vs_avg_pre_cas"]["max"],
+                    df.loc["cl_vs_avg_cas_const"]["max"],
+                    df.loc["cl_vs_avg_mach_const"]["max"],
                 )
 
                 limits_fixwing[mdl]["vsmin"] = min(
-                    df.loc["ic_vz_avg"]["min"],
-                    df.loc["de_vz_avg_after_cas"]["min"],
-                    df.loc["de_vz_avg_cas_const"]["min"],
-                    df.loc["de_vz_avg_mach_const"]["min"],
+                    df.loc["ic_vs_avg"]["min"],
+                    df.loc["de_vs_avg_after_cas"]["min"],
+                    df.loc["de_vs_avg_cas_const"]["min"],
+                    df.loc["de_vs_avg_mach_const"]["min"],
                 )
 
         # create envolop based on synonym
@@ -153,13 +163,23 @@ class Coefficient:
         return limits_fixwing
 
     def _load_all_rotor_envelop(self):
-        """ load rotor aircraft envelop, all unit in SI"""
+        """load rotor aircraft envelop, all unit in SI"""
         limits_rotor = {}
         for mdl, ac in self.acs_rotor.items():
             limits_rotor[mdl] = {}
-            limits_rotor[mdl]["vmin"] = ac["envelop"]["v_min"]
-            limits_rotor[mdl]["vmax"] = ac["envelop"]["v_max"]
-            limits_rotor[mdl]["vsmin"] = ac["envelop"]["vs_min"]
-            limits_rotor[mdl]["vsmax"] = ac["envelop"]["vs_max"]
-            limits_rotor[mdl]["hmax"] = ac["envelop"]["h_max"]
+
+            limits_rotor[mdl]["vmin"] = ac["envelop"].get("v_min", -20)
+            limits_rotor[mdl]["vmax"] = ac["envelop"].get("v_max", 20)
+            limits_rotor[mdl]["vsmin"] = ac["envelop"].get("vs_min", -5)
+            limits_rotor[mdl]["vsmax"] = ac["envelop"].get("vs_max", 5)
+            limits_rotor[mdl]["hmax"] = ac["envelop"].get("h_max", 2500)
+
+            params = ["v_min", "v_max", "vs_min", "vs_max", "h_max"]
+            if set(params) <= set(ac["envelop"].keys()):
+                pass
+            else:
+                warn = f"Warning: Some performance parameters for {mdl} are not found, default values used."
+                print(warn)
+                bs.scr.echo(warn)
+
         return limits_rotor

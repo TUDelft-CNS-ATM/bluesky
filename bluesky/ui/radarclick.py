@@ -186,6 +186,7 @@ def radarclick(cmdline, lat, lon, acdata=None, route=None):
                 # Is it the last argument? (then we will insert ENTER as well)
                 if curarg + 1 >= totargs:
                     tostack = cmdline + todisplay
-                    todisplay = todisplay + '\n'
+                    # todisplay = todisplay + '\n'
+                    todisplay = ''
 
     return tostack, todisplay

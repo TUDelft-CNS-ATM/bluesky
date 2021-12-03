@@ -5,7 +5,7 @@ import os
 import bluesky as bs
 from bluesky import settings
 from bluesky.core import select_implementation, simtime, varexplorer as ve
-from bluesky.tools import geo, areafilter, plotter
+from bluesky.tools import geo, aero, areafilter, plotter
 from bluesky.tools.calculator import calculator
 from bluesky.stack.cmdparser import append_commands
 
@@ -56,43 +56,11 @@ def initbasecmds():
             bs.net.addnodes,
             "Add a simulation instance/node",
         ],
-        "ADDWPT": [
-            "ADDWPT acid, (wpname/lat,lon/FLYBY/FLYOVER/ TAKEOFF,APT/RWY),[alt,spd,afterwp]",
-            "acid,wpt,[alt,spd,wpinroute,wpinroute]",
-            #
-            # lambda *arg: short-hand for using function output as argument, equivalent with:
-            #
-            # def fun(idx, args):
-            #     return bs.traf.ap.route[idx].addwptStack(idx, *args)
-            # fun(idx,*args)
-            #
-            lambda idx, *args: bs.traf.ap.route[idx].addwptStack(idx, *args),
-            "Add a waypoint to route of aircraft (FMS)",
-        ],
-        "AFTER": [
-            "acid AFTER afterwp ADDWPT (wpname/lat,lon),[alt,spd]",
-            "acid,wpinroute,txt,wpt,[alt,spd]",
-            lambda idx, * \
-            args: bs.traf.ap.route[idx].afteraddwptStack(idx, *args),
-            "After waypoint, add a waypoint to route of aircraft (FMS)",
-        ],
         "AIRWAY": [
             "AIRWAY wp/airway",
             "txt",
             bs.traf.airwaycmd,
             "Get info on airway or connections of a waypoint",
-        ],
-        "ALT": [
-            "ALT acid, alt, [vspd]",
-            "acid,alt,[vspd]",
-            bs.traf.ap.selaltcmd,
-            "Altitude command (autopilot)",
-        ],
-        "AT": [
-            "acid AT wpname [DEL] SPD/ALT/DO [spd/alt/command line]",
-            "acid,wpinroute,[txt,txt,...]",
-            lambda idx, *args: bs.traf.ap.route[idx].atwptStack(idx, *args),
-            "Edit, delete or show spd/alt constraints at a waypoint in the route",
         ],
         "ATALT": [
             "acid ATALT alt cmd ",
@@ -113,7 +81,7 @@ def initbasecmds():
             "When a/c reaches given speed, execute a command cmd",
         ],
         "BANK": [
-            "BANK bankangle[deg]",
+            "BANK acid bankangle[deg]",
             "acid,[float]",
             bs.traf.setbanklim,
             "Set or show bank limit for this vehicle",
@@ -123,14 +91,6 @@ def initbasecmds():
             "string",
             bs.sim.batch,
             "Start a scenario file as batch simulation",
-        ],
-
-        "BEFORE": [
-            "acid BEFORE beforewp ADDWPT (wpname/lat,lon),[alt,spd]",
-            "acid,wpinroute,txt,wpt,[alt,spd]",
-            lambda idx, * \
-            args: bs.traf.ap.route[idx].beforeaddwptStack(idx, *args),
-            "Before waypoint, add a waypoint to route of aircraft (FMS)",
         ],
         "BLUESKY": ["BLUESKY", "", singbluesky, "Sing"],
         "BENCHMARK": [
@@ -153,6 +113,14 @@ def initbasecmds():
             calculator,
             "Simple in-line math calculator, evaluates expression",
         ],
+        "CASMACHTHR": [
+            "CASMACHTHR threshold",
+            "float",
+            aero.casmachthr,
+            """Set a threshold below which speeds should be considered as Mach numbers
+               in CRE(ATE), ADDWPT, and SPD commands. Set to zero if speeds should
+               never be considered as Mach number(e.g., when simulating drones)."""
+        ],
         "CD": [
             "CD [path]",
             "[word]",
@@ -167,17 +135,30 @@ def initbasecmds():
             ),
             "Define a circle-shaped area",
         ],
+        "CLRCRECMD": [
+            "CLRCRECMD",
+            "",
+            bs.traf.clrcrecmd,
+            "CLRCRECMD will clear CRECMD list of commands a/c creation",
+        ],
         "COLOR": [
             "COLOR name,color (named color or r,g,b)",
             "txt,color",
             bs.scr.color,
             "Set a custom color for an aircraft or shape",
+
         ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
-            "txt,txt,latlon,hdg,alt,spd",
+            "txt,txt,latlon,[hdg,alt,spd]",
             bs.traf.cre,
             "Create an aircraft",
+        ],
+        "CRECMD": [
+            "CRECMD cmdline (to be added after a/c id )",
+            "string",
+            bs.traf.crecmd,
+            "Add a command for each aircraft to be issued after creation of aircraft",
         ],
         "CRECONFS": [
             "CRECONFS id, type, targetid, dpsi, cpa, tlos_hor, dH, tlos_ver, spd",
@@ -197,7 +178,7 @@ def initbasecmds():
             bs.navdb.defwpt,
             "Define a waypoint only for this scenario/run",
         ],
-        "DEL": [
+               "DEL": [
             "DEL acid/ALL/WIND/shape",
             "acid/txt,...",
             lambda *a: bs.traf.wind.clear()
@@ -209,30 +190,7 @@ def initbasecmds():
             else bs.traf.delete(a),
             "Delete command (aircraft, wind, area)",
         ],
-        "DELRTE": [
-            "DELRTE acid",
-            "acid",
-            lambda idx: bs.traf.ap.route[idx].delrte(idx),
-            "Delete for this a/c the complete route/dest/orig (FMS)",
-        ],
-        "DELWPT": [
-            "DELWPT acid,wpname",
-            "acid,wpinroute",
-            lambda idx, wpname: bs.traf.ap.route[idx].delwpt(wpname, idx),
-            "Delete a waypoint from a route (FMS)",
-        ],
-        "DEST": [
-            "DEST acid, latlon/airport",
-            "acid,wpt",
-            lambda idx, *args: bs.traf.ap.setdestorig("DEST", idx, *args),
-            "Set destination of aircraft, aircraft wil fly to this airport",
-        ],
-        "DIRECT": [
-            "DIRECT acid wpname",
-            "acid,txt",
-            lambda idx, wpname: bs.traf.ap.route[idx].direct(idx, wpname),
-            "Go direct to specified waypoint in route (FMS)",
-        ],
+
         "DIST": [
             "DIST lat0, lon0, lat1, lon1",
             "latlon,latlon",
@@ -256,12 +214,6 @@ def initbasecmds():
             "float",
             bs.sim.set_dtmult,
             "Sel multiplication factor for fast-time simulation",
-        ],
-        "DUMPRTE": [
-            "DUMPRTE acid",
-            "acid",
-            lambda idx: bs.traf.ap.route[idx].dumpRoute(idx),
-            "Write route to output/routelog.txt",
         ],
         "ECHO": [
             "ECHO txt",
@@ -287,12 +239,7 @@ def initbasecmds():
             lambda flag, *args: bs.sim.ff(*args) if flag else bs.op(),
             "Legacy function for TMX compatibility",
         ],
-        "GETWIND": [
-            "GETWIND lat,lon,[alt]",
-            "latlon,[alt]",
-            bs.traf.wind.get,
-            "Get wind at a specified position (and optionally at altitude)",
-        ],
+
         "GROUP": [
             "GROUP [grname, (areaname OR acid,...) ]",
             "[txt,acid/txt,...]",
@@ -301,12 +248,6 @@ def initbasecmds():
             + "Returns list of groups when no argument is passed.\n"
             + "Returns list of aircraft in group when only a groupname is passed.\n"
             + "A group is created when a group with the given name doesn't exist yet.",
-        ],
-        "HDG": [
-            "HDG acid,hdg (deg,True or Magnetic)",
-            "acid,hdg",
-            bs.traf.ap.selhdgcmd,
-            "Heading command (autopilot)",
         ],
         "HOLD": ["HOLD", "", bs.sim.hold, "Pause(hold) simulation"],
         "IMPLEMENTATION": [
@@ -332,18 +273,6 @@ def initbasecmds():
             "txt,latlon,latlon",
             lambda name, *coords: areafilter.defineArea(name, "LINE", coords),
             "Draw a line on the radar screen",
-        ],
-        "LISTRTE": [
-            "LISTRTE acid, [pagenr]",
-            "acid,[int]",
-            lambda idx, *args: bs.traf.ap.route[idx].listrte(idx, *args),
-            "Show list of route in window per page of 5 waypoints",
-        ],
-        "LNAV": [
-            "LNAV acid,[ON/OFF]",
-            "acid,[onoff]",
-            bs.traf.ap.setLNAV,
-            "LNAV (lateral FMS mode) switch for autopilot",
         ],
         "LSVAR": [
             "LSVAR path.to.variable",
@@ -381,23 +310,11 @@ def initbasecmds():
             bs.traf.setnoise,
             "Turbulence/noise switch",
         ],
-        "NOM": [
-            "NOM acid",
-            "acid",
-            bs.traf.nom,
-            "Set nominal acceleration for this aircraft (perf model)",
-        ],
         "OP": [
             "OP",
             "",
             bs.sim.op,
             "Start/Run simulation or continue after hold"
-        ],
-        "ORIG": [
-            "ORIG acid, latlon/airport",
-            "acid,wpt",
-            lambda *args: bs.traf.ap.setdestorig("ORIG", *args),
-            "Set origin airport of aircraft",
         ],
         "PAN": [
             "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
@@ -444,23 +361,11 @@ def initbasecmds():
             bs.sim.realtime,
             "En-/disable realtime running allowing a variable timestep."],
         "RESET": ["RESET", "", bs.sim.reset, "Reset simulation"],
-        "RTA": [
-            "RTA acid,wpinroute,RTAtime",
-            "acid,wpinroute,txt",
-            lambda idx, *args: bs.traf.ap.route[idx].SetRTA(idx, *args),
-            "Set required time of arrival (RTA) at waypoint in route",
-        ],
         "SEED": [
             "SEED value",
             "int",
             bs.sim.setseed,
             "Set seed for all functions using a randomizer (e.g.mcre,noise)",
-        ],
-        "SPD": [
-            "SPD acid,spd (CAS-kts/Mach)",
-            "acid,spd",
-            bs.traf.ap.selspdcmd,
-            "Speed command (autopilot)",
         ],
         "SSD": [
             "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
@@ -499,25 +404,7 @@ def initbasecmds():
             bs.traf.groups.ungroup,
             "Remove aircraft from a group",
         ],
-        "VNAV": [
-            "VNAV acid,[ON/OFF]",
-            "acid,[onoff]",
-            bs.traf.ap.setVNAV,
-            "Switch on/off VNAV mode, the vertical FMS mode (autopilot)",
-        ],
-        "VS": [
-            "VS acid,vspd (ft/min)",
-            "acid,vspd",
-            bs.traf.ap.selvspdcmd,
-            "Vertical speed command (autopilot)",
-        ],
-        "WIND": [
-            "WIND lat,lon,alt/*,dir,spd,[alt,dir,spd,alt,...]",
-            # last 3 args are repeated
-            "latlon,[alt],float,alt/float,...,",
-            bs.traf.wind.add,
-            "Define a wind vector as part of the 2D or 3D wind field",
-        ],
+
         "ZOOM": [
             "ZOOM IN/OUT or factor",
             "float/txt",
@@ -549,15 +436,10 @@ def initbasecmds():
         "CLOSE": "QUIT",
         "DEBUG": "CALC",
         "DELETE": "DEL",
-        "DELWP": "DELWPT",
-        "DELROUTE": "DELRTE",
-        "DIRECTTO": "DIRECT",
-        "DIRTO": "DIRECT",
         "DISP": "SWRAD",
         "END": "QUIT",
         "EXIT": "QUIT",
         "FWD": "FF",
-        "HEADING": "HDG",
         "IMPL": "IMPLEMENTATION",
         "IMPLEMENT": "IMPLEMENTATION",
         "LINES": "POLYLINE",
@@ -574,12 +456,9 @@ def initbasecmds():
         "RUN": "OP",
         "RUNWAYS": "POS",
         "SAVE": "SAVEIC",
-        "SPEED": "SPD",
         "START": "OP",
         "TRAILS": "TRAIL",
-        "TURN": "HDG",
-        "VAR": "MAGVAR",
-        "WPTYPE":"ADDWPT"
+        "VAR": "MAGVAR"
     }
 
     append_commands(cmddict, synonyms)

@@ -2,6 +2,7 @@
 from bluesky import settings
 from bluesky.core import Signal
 from bluesky import stack
+from bluesky import tools
 
 
 # Constants
@@ -35,9 +36,6 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
         - pygame: indicate if BlueSky is started with BlueSky_pygame.py
         - discovery: Enable network discovery
     '''
-    # Initialize global settings first, possibly loading a custom config file
-    settings.init(cfgfile)
-
     # Is this a server running headless?
     headless = (mode[-8:] == 'headless')
 
@@ -45,6 +43,12 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
     global gui_type
     gui_type = 'pygame' if pygame else \
                'none' if headless or mode[:3] == 'sim' else 'qtgl'
+
+    # Initialize global settings first, possibly loading a custom config file
+    settings.init(cfgfile)
+
+    # Initialise tools
+    tools.init()
 
     # Load navdatabase in all versions of BlueSky
     # Only the headless server doesn't need this

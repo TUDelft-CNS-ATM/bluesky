@@ -5,6 +5,7 @@ from bluesky.traffic.asas import ConflictResolution
 
 
 class MVP(ConflictResolution):
+    ''' Conflict resolution using the Modified Voltage Potential Method. '''
     def __init__(self):
         super().__init__()
         # [-] switch to limit resolution to the horizontal direction
@@ -15,21 +16,6 @@ class MVP(ConflictResolution):
         self.swresohdg = False
         # [-] switch to limit resolution to the vertical direction
         self.swresovert = False
-
-        mvp_stackfuns = {
-            "RMETHH": [
-                "RMETHH [method]",
-                "[txt]",
-                self.setresometh,
-                "Set resolution method to be used horizontally",
-            ],
-            "RMETHV": [
-                "RMETHV [method]",
-                "[txt]",
-                self.setresometv,
-                "Set resolution method to be used vertically",
-            ]}
-        stack.append_commands(mvp_stackfuns)
 
     def setprio(self, flag=None, priocode=''):
         '''Set the prio switch and the type of prio '''
@@ -49,6 +35,7 @@ class MVP(ConflictResolution):
             return False, "Priority code Not Understood. Available Options: " + str(options)
         return super().setprio(flag, priocode)
 
+    @stack.command(name="RMETHH")
     def setresometh(self, value=''):
         """ Processes the RMETHH command. Sets swresovert = False"""
         # Acceptable arguments for this command
@@ -83,7 +70,7 @@ class MVP(ConflictResolution):
                 self.swresohdg = True
                 self.swresovert = False
 
-
+    @stack.command(name='RMETHV')
     def setresometv(self, value=''):
         """ Processes the RMETHV command. Sets swresohoriz = False."""
         # Acceptable arguments for this command
@@ -94,15 +81,15 @@ class MVP(ConflictResolution):
                 ("ON" if self.swresovert else "OFF")
         if value not in options:
             return False, "RMETV Not Understood" + "\nRMETHV [ON / V/S / OFF / NONE]"
-        else:
-            if value == "ON" or value == "V/S":
-                self.swresovert = True
-                self.swresohoriz = False
-                self.swresospd = False
-                self.swresohdg = False
-            elif value == "OFF" or value == "OF" or value == "NONE":
-                # Do NOT swtich off self.swresohoriz if value == OFF
-                self.swresovert = False
+
+        if value == "ON" or value == "V/S":
+            self.swresovert = True
+            self.swresohoriz = False
+            self.swresospd = False
+            self.swresohdg = False
+        elif value == "OFF" or value == "OF" or value == "NONE":
+            # Do NOT swtich off self.swresohoriz if value == OFF
+            self.swresovert = False
 
     def applyprio(self, dv_mvp, dv1, dv2, vs1, vs2):
         ''' Apply the desired priority setting to the resolution '''
@@ -280,29 +267,32 @@ class MVP(ConflictResolution):
     def MVP(self, ownship, intruder, conf, qdr, dist, tcpa, tLOS, idx1, idx2):
         """Modified Voltage Potential (MVP) resolution method"""
         # Preliminary calculations-------------------------------------------------
-
+        # Determine largest RPZ and HPZ of the conflict pair, use lookahead of ownship
+        rpz_m = np.max(conf.rpz[[idx1, idx2]] * self.resofach)
+        hpz_m = np.max(conf.hpz[[idx1, idx2]] * self.resofacv)
+        dtlook = conf.dtlookahead[idx1]
         # Convert qdr from degrees to radians
         qdr = np.radians(qdr)
 
         # Relative position vector between id1 and id2
-        drel = np.array([np.sin(qdr)*dist, \
-                        np.cos(qdr)*dist, \
-                        intruder.alt[idx2]-ownship.alt[idx1]])
+        drel = np.array([np.sin(qdr) * dist, \
+                        np.cos(qdr) * dist, \
+                        intruder.alt[idx2] - ownship.alt[idx1]])
 
         # Write velocities as vectors and find relative velocity vector
         v1 = np.array([ownship.gseast[idx1], ownship.gsnorth[idx1], ownship.vs[idx1]])
         v2 = np.array([intruder.gseast[idx2], intruder.gsnorth[idx2], intruder.vs[idx2]])
-        vrel = np.array(v2-v1)
+        vrel = v2 - v1
 
 
         # Horizontal resolution----------------------------------------------------
 
         # Find horizontal distance at the tcpa (min horizontal distance)
         dcpa  = drel + vrel*tcpa
-        dabsH = np.sqrt(dcpa[0]*dcpa[0]+dcpa[1]*dcpa[1])
+        dabsH = np.sqrt(dcpa[0] * dcpa[0] + dcpa[1] * dcpa[1])
 
         # Compute horizontal intrusion
-        iH = (conf.rpz * self.resofach) - dabsH
+        iH = rpz_m - dabsH
 
         # Exception handlers for head-on conflicts
         # This is done to prevent division by zero in the next step
@@ -313,12 +303,12 @@ class MVP(ConflictResolution):
 
         # If intruder is outside the ownship PZ, then apply extra factor
         # to make sure that resolution does not graze IPZ
-        if (conf.rpz * self.resofach) < dist and dabsH < dist:
+        if rpz_m < dist and dabsH < dist:
             # Compute the resolution velocity vector in horizontal direction.
             # abs(tcpa) because it bcomes negative during intrusion.
-            erratum=np.cos(np.arcsin((conf.rpz * self.resofach)/dist)-np.arcsin(dabsH/dist))
-            dv1 = (((conf.rpz * self.resofach)/erratum - dabsH)*dcpa[0])/(abs(tcpa)*dabsH)
-            dv2 = (((conf.rpz * self.resofach)/erratum - dabsH)*dcpa[1])/(abs(tcpa)*dabsH)
+            erratum = np.cos(np.arcsin(rpz_m / dist)-np.arcsin(dabsH / dist))
+            dv1 = ((rpz_m / erratum - dabsH) * dcpa[0]) / (abs(tcpa) * dabsH)
+            dv2 = ((rpz_m / erratum - dabsH) * dcpa[1]) / (abs(tcpa) * dabsH)
         else:
             dv1 = (iH * dcpa[0]) / (abs(tcpa) * dabsH)
             dv2 = (iH * dcpa[1]) / (abs(tcpa) * dabsH)
@@ -327,35 +317,35 @@ class MVP(ConflictResolution):
 
         # Compute the  vertical intrusion
         # Amount of vertical intrusion dependent on vertical relative velocity
-        iV = (conf.hpz * self.resofacv) if abs(vrel[2])>0.0 else (conf.hpz * self.resofacv)-abs(drel[2])
+        iV = hpz_m if abs(vrel[2]) > 0.0 else hpz_m - abs(drel[2])
 
         # Get the time to solve the conflict vertically - tsolveV
-        tsolV = abs(drel[2]/vrel[2]) if abs(vrel[2])>0.0 else tLOS
+        tsolV = abs(drel[2] / vrel[2]) if abs(vrel[2]) > 0.0 else tLOS
 
         # If the time to solve the conflict vertically is longer than the look-ahead time,
         # because the the relative vertical speed is very small, then solve the intrusion
         # within tinconf
-        if tsolV>conf.dtlookahead:
+        if tsolV > dtlook:
             tsolV = tLOS
-            iV    = (conf.hpz * self.resofacv)
+            iV    = hpz_m
 
         # Compute the resolution velocity vector in the vertical direction
         # The direction of the vertical resolution is such that the aircraft with
         # higher climb/decent rate reduces their climb/decent rate
-        dv3 = np.where(abs(vrel[2])>0.0,  (iV/tsolV)*(-vrel[2]/abs(vrel[2])), (iV/tsolV))
+        dv3 = np.where(abs(vrel[2]) > 0.0, (iV / tsolV) * (-vrel[2] / abs(vrel[2])), (iV / tsolV))
 
         # It is necessary to cap dv3 to prevent that a vertical conflict
         # is solved in 1 timestep, leading to a vertical separation that is too
         # high (high vs assumed in traf). If vertical dynamics are included to
         # aircraft  model in traffic.py, the below three lines should be deleted.
-    #    mindv3 = -400*fpm# ~ 2.016 [m/s]
-    #    maxdv3 = 400*fpm
-    #    dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
+        #    mindv3 = -400*fpm# ~ 2.016 [m/s]
+        #    maxdv3 = 400*fpm
+        #    dv3 = np.maximum(mindv3,np.minimum(maxdv3,dv3))
 
 
         # Combine resolutions------------------------------------------------------
 
         # combine the dv components
-        dv = np.array([dv1,dv2,dv3])
+        dv = np.array([dv1, dv2, dv3])
 
         return dv, tsolV

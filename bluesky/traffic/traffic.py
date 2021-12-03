@@ -81,6 +81,9 @@ class Traffic(Entity):
         self.turbulence = Turbulence()
         self.translvl = 5000.*ft # [m] Default transition level
 
+        # Default commands issued for an aircraft after creation
+        self.crecmdlist = []
+
         with self.settrafarrays():
             # Aircraft Info
             self.id      = []  # identifier (string)
@@ -102,6 +105,9 @@ class Traffic(Entity):
             self.cas     = np.array([])  # calibrated airspeed [m/s]
             self.M       = np.array([])  # mach number
             self.vs      = np.array([])  # vertical speed [m/s]
+
+            # Acceleration
+            self.ax = np.array([])  # [m/s2] current longitudinal acceleration
 
             # Atmosphere
             self.p       = np.array([])  # air pressure [N/m2]
@@ -138,10 +144,6 @@ class Traffic(Entity):
             self.groups = TrafficGroups()
 
             # Traffic autopilot data
-            self.apvsdef  = np.array([])  # [m/s]default vertical speed of autopilot
-            self.aphi     = np.array([])  # [rad] bank angle setting of autopilot
-            self.ax       = np.array([])  # [m/s2] absolute value of longitudinal accelleration
-            self.bank     = np.array([])  # nominal bank angle, [radians]
             self.swhdgsel = np.array([], dtype=np.bool)  # determines whether aircraft is turning
 
             # Traffic autothrottle settings
@@ -228,7 +230,7 @@ class Traffic(Entity):
         aclon[aclon > 180.0] -= 360.0
         aclon[aclon < -180.0] += 360.0
 
-        achdg = refdata.hdg if achdg is None else achdg
+        achdg = (refdata.hdg or 0.0) if achdg is None else achdg
 
         # Aircraft Info
         self.id[-n:]   = acid
@@ -265,13 +267,6 @@ class Traffic(Entity):
             self.windnorth[-n:] = 0.0
             self.windeast[-n:]  = 0.0
 
-        # Traffic performance data
-        #(temporarily default values)
-        self.apvsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
-        self.aphi[-n:]    = 0.            # bank angle output of autopilot (optional)
-        self.ax[-n:]      = kts           # absolute value of longitudinal accelleration
-        self.bank[-n:]    = np.radians(25.)
-
         # Traffic autopilot settings
         self.selspd[-n:] = self.cas[-n:]
         self.aptas[-n:]  = self.tas[-n:]
@@ -299,6 +294,13 @@ class Traffic(Entity):
             # Savecmd(cmd,line): line is saved, cmd is used to prevent recording PAN & ZOOM commands and CRE
             # So insert a dummy command to record the line
             savecmd("---",line)
+
+        # Check for crecmdlist: contains commands to be issued for this a/c
+        # If any are there, then stack them for all aircraft
+        for j in range(self.ntraf - n, self.ntraf):
+            for cmdtxt in self.crecmdlist:
+                 bs.stack.stack(self.id[j]+" "+cmdtxt)
+
 
     def creconfs(self, acid, actype, targetidx, dpsi, dcpa, tlosh, dH=None, tlosv=None, spd=None):
         ''' Create an aircraft in conflict with target aircraft.
@@ -435,17 +437,15 @@ class Traffic(Entity):
     def update_airspeed(self):
         # Compute horizontal acceleration
         delta_spd = self.aporasas.tas - self.tas
-        ax = self.perf.acceleration()
-        need_ax = np.abs(delta_spd) > np.abs(bs.sim.simdt * ax)
-        self.ax = need_ax * np.sign(delta_spd) * ax
+        need_ax = np.abs(delta_spd) > np.abs(bs.sim.simdt * self.perf.axmax)
+        self.ax = need_ax * np.sign(delta_spd) * self.perf.axmax
         # Update velocities
         self.tas = np.where(need_ax, self.tas + self.ax * bs.sim.simdt, self.aporasas.tas)
         self.cas = vtas2cas(self.tas, self.alt)
         self.M = vtas2mach(self.tas, self.alt)
 
         # Turning
-
-        turnrate = np.degrees(g0 * np.tan(np.where(self.aphi>self.eps,self.aphi,self.bank) \
+        turnrate = np.degrees(g0 * np.tan(np.where(self.ap.turnphi>self.eps,self.ap.turnphi,self.ap.bankdef) \
                                           / np.maximum(self.tas, self.eps)))
         delhdg = (self.aporasas.hdg - self.hdg + 180) % 360 - 180  # [deg]
         self.swhdgsel = np.abs(delhdg) > np.abs(bs.sim.simdt * turnrate)
@@ -555,11 +555,6 @@ class Traffic(Entity):
         if vspd is not None:
             self.vs[idx]     = vspd
             self.swvnav[idx] = False
-
-
-    def nom(self, idx):
-        """ Reset acceleration back to nominal (1 kt/s^2): NOM acid """
-        self.ax[idx] = kts #[m/s2]
 
     def poscommand(self, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
         """POS command: Show info or an aircraft, airport, waypoint or navaid"""
@@ -774,9 +769,9 @@ class Traffic(Entity):
     def setbanklim(self, idx, bankangle=None):
         ''' Set bank limit for given aircraft. '''
         if bankangle:
-            self.bank[idx] = np.radians(bankangle) # [rad]
+            self.ap.bankdef[idx] = np.radians(bankangle) # [rad]
             return True
-        return True, f"Banklimit of {self.id[idx]} is {int(np.degrees(self.bank[idx]))} deg"
+        return True, f"Banklimit of {self.id[idx]} is {int(np.degrees(self.ap.bankdef[idx]))} deg"
 
     def setthrottle(self,idx,throttle=""):
         """Set throttle to given value or AUTO, meaning autothrottle on (default)"""
@@ -817,3 +812,35 @@ class Traffic(Entity):
         if self.swats[idx]:
             return True,"ATS of "+self.id[idx]+" is ON"
         return True, "ATS of " + self.id[idx] + " is OFF. THR is "+str(self.thr[idx])
+
+    def crecmd(self,cmdline):
+        """CRECMD command: list of commands to be issued for each aircraft after creation
+           This commands adds a command to the list of default commands.
+           """
+        # Help text need or info on current list?
+        if cmdline=="" or cmdline=="?":
+            if len(self.crecmdlist)>0:
+                allcmds = ""
+                for i,txt in enumerate(self.crecmdlist):
+                    if i==0:
+                        allcmds = "[acid] "+txt
+                    else:
+                        allcmds +="; [acid] "+txt
+                return True,"CRECMD list: "+allcmds
+            else:
+                return True,"CRECMD will add a/c specific commands to an aircraft after creation"
+        # Command to be added to list
+        else:
+            self.crecmdlist.append(cmdline)
+        return True, ""
+
+    def clrcrecmd(self):
+        """CRECMD command: list of commands to be issued for each aircraft after creation
+           This commands adds a command to the list of default commands.
+       """
+        ncrecmd = len(self.crecmdlist)
+        if ncrecmd==0:
+            return True,"CLRCRECMD deletes all commands on clears command"
+        else:
+            self.crecmdlist = []
+            return True,str("All",ncrecmd,"crecmd commands deleted.")

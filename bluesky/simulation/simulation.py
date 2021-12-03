@@ -50,6 +50,9 @@ class Simulation:
         # Flag indicating whether timestep can be varied to ensure realtime op
         self.rtmode = False
 
+        # Keep track of known clients
+        self.clients = set()
+
     def step(self):
         ''' Perform a simulation timestep. '''
         # Simulation starts as soon as there is traffic, or pending commands
@@ -218,6 +221,8 @@ class Simulation:
             event_processed = True
 
         elif eventname == b'GETSIMSTATE':
+            # Add this client to the list of known clients
+            self.clients.add(sender_rte[-1])
             # Send list of stack functions available in this sim to gui at start
             stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
             shapes = [shape.raw for shape in areafilter.basic_shapes.values()]

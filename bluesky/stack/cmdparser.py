@@ -1,6 +1,6 @@
 ''' Stack Command implementation. '''
 import inspect
-
+import sys, os
 from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 
 
@@ -159,9 +159,21 @@ class Command:
 
     def helptext(self, subcmd=''):
         ''' Return complete help text. '''
-        msg = f'{self.help}\nUsage:\n{self.brief}'
+        msg = f'<div style="white-space: pre;">{self.help}</div>\nUsage:\n{self.brief}'
         if self.aliases:
             msg += ('\nCommand aliases: ' + ','.join(self.aliases))
+        if self._callback.__name__ == '<lambda>':
+            msg += '\nAnonymous (lambda) function, implemented in '
+        else:
+            msg += f'\nFunction {self._callback.__name__}(), implemented in '
+        if hasattr(self._callback, '__code__'):
+            fname = self._callback.__code__.co_filename
+            fname_stripped = fname.replace(os.getcwd(), '').lstrip('/')
+            firstline = self._callback.__code__.co_firstlineno
+            msg += f'<a href="file://{fname}">{fname_stripped} on line {firstline}</a>'
+        else:
+            msg += f'module {self._callback.__module__}'
+
         return msg
 
     def brieftext(self):

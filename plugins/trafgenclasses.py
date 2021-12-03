@@ -5,7 +5,7 @@ from math import degrees,radians,cos,sin,atan2,sqrt
 from bluesky import stack,traf,sim,tools,navdb
 from bluesky.tools.position import txt2pos
 from bluesky.tools.geo import kwikqdrdist,kwikpos,latlondist,qdrdist
-from bluesky.tools.misc import degto180,txt2alt,txt2tas
+from bluesky.tools.misc import degto180,txt2alt,txt2spd
 from bluesky.tools.aero import nm,ft
 
 # Default values
@@ -163,11 +163,11 @@ class Source():
 
     def setspd(self,cmdargs):
         if len(cmdargs)==1:
-            spd = txt2tas(cmdargs[0])
+            spd = txt2spd(cmdargs[0])
             self.startspdmin = spd
             self.startapdmax = spd
         elif len(cmdargs)>1:
-            spd0,spd1 = txt2tas(cmdargs[0]),txt2tas(cmdargs[1])
+            spd0,spd1 = txt2spd(cmdargs[0]),txt2spd(cmdargs[1])
             self.startspdmin = min(spd0,spd1)
             self.startspdmax = max(spd0,spd1)
         else:
@@ -597,11 +597,11 @@ class Drain():
 
     def setspd(self,cmdargs):
         if len(cmdargs)==1:
-            spd = txt2tas(cmdargs[0])
+            spd = txt2spd(cmdargs[0])
             self.startspdmin = spd
             self.startapdmax = spd
         elif len(cmdargs)>1:
-            spd0,spd1 = txt2tas(cmdargs[0]),txt2tas(cmdargs[1])
+            spd0,spd1 = txt2spd(cmdargs[0]),txt2spd(cmdargs[1])
             self.startspdmin = min(spd0,spd1)
             self.startspdmax = max(spd0,spd1)
         else:

@@ -198,7 +198,7 @@ class Legacy(PerfBase):
         # allocate aircraft to their flight phase
         self.phase, self.bank = phases(bs.traf.alt, bs.traf.gs, delalt,
             bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld,
-            bs.traf.bank, bs.traf.bphase, bs.traf.swhdgsel,swbada)
+            bs.traf.ap.bankdef, bs.traf.bphase, bs.traf.swhdgsel,swbada)
 
         # AERODYNAMICS
         # compute CL: CL = 2*m*g/(VTAS^2*rho*S)
@@ -317,7 +317,11 @@ class Legacy(PerfBase):
         # otherwise taxiing will be impossible afterwards
         self.pf_flag = np.where ((bs.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
 
-        return
+        # define acceleration: aircraft taxiing and taking off use ground acceleration,
+        # landing aircraft use ground deceleration, others use standard acceleration
+        self.axmax = ((self.phase == PHASE['IC']) + (self.phase == PHASE['CR']) + (self.phase == PHASE['AP']) + (self.phase == PHASE['LD'])) * 0.5 \
+            + ((self.phase == PHASE['TO']) + (self.phase == PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
+            + (self.phase == PHASE['GD']) * self.post_flight * self.gr_dec
 
     def limits(self, intent_v, intent_vs, intent_h, ax):
         """Flight envelope""" # Connect this with function limits in performance.py
@@ -358,17 +362,6 @@ class Legacy(PerfBase):
         allowed_vs = np.where(self.limvs_flag, self.limvs, intent_vs)
 
         return allowed_tas, allowed_vs, allowed_alt
-
-    def acceleration(self):
-        # define acceleration: aircraft taxiing and taking off use ground acceleration,
-        # landing aircraft use ground deceleration, others use standard acceleration
-
-        ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + (self.phase==PHASE['AP']) + (self.phase==PHASE['LD'])) * 0.5 \
-                + ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
-                +  (self.phase==PHASE['GD']) * self.post_flight * self.gr_dec
-
-        return ax
-
 
     def engchange(self, idx, engid=None):
         """change of engines - for jet aircraft only!"""

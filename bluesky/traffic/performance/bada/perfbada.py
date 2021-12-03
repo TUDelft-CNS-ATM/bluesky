@@ -115,7 +115,7 @@ class BADA(PerfBase):
             self.ctct2      = np.array([])    # [1/k]
             self.dtemp      = np.array([])    # [k]
 
-            # Descent Fuel Flow Coefficients
+            # Descent Thrust Coefficients
             # Note: Ctdes,app and Ctdes,lnd assume a 3 degree descent gradient during app and lnd
             self.ctdesl      = np.array([])   # low alt descent thrust coefficient [-]
             self.ctdesh      = np.array([])   # high alt descent thrust coefficient [-]
@@ -333,7 +333,7 @@ class BADA(PerfBase):
         # flight phase
         self.phase, self.bank = phases(bs.traf.alt, bs.traf.gs, delalt,
             bs.traf.cas, self.vmto, self.vmic, self.vmap, self.vmcr, self.vmld,
-            bs.traf.bank, bs.traf.bphase, bs.traf.swhdgsel, swbada)
+            bs.traf.ap.bankdef, bs.traf.bphase, bs.traf.swhdgsel, swbada)
 
         # AERODYNAMICS
         # Lift
@@ -452,10 +452,13 @@ class BADA(PerfBase):
         # switch for given vertical speed selvs
         if (bs.traf.selvs.any()>0.) or (bs.traf.selvs.any()<0.):
             # thrust = f(selvs)
-            T = ((bs.traf.selvs!=0)*(((bs.traf.aporasas.vs*self.mass*g0)/     \
-                      (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
-                      + self.D)) + ((bs.traf.selvs==0)*T)
+            T_vs = ((bs.traf.selvs!=0) * \
+                    (((bs.traf.aporasas.vs * np.sign(delalt)*self.mass*g0)/ \
+                    (self.ESF*np.maximum(bs.traf.eps,bs.traf.tas)*cpred)) \
+                    + self.D)) + ((bs.traf.selvs==0)*T)
 
+            # limit minimum thrust in descent to idle thrust
+            T = np.where(descent, np.maximum(T_vs, T), T)
         self.thrust = T
 
 
@@ -550,7 +553,12 @@ class BADA(PerfBase):
 
         self.pf_flag = np.where ((bs.traf.alt <0.5)*(self.post_flight), False, self.pf_flag)
 
-        return
+        # define acceleration: aircraft taxiing and taking off use ground acceleration,
+        # landing aircraft use ground deceleration, others use standard acceleration
+        # --> BADA uses the same value for ground acceleration as for deceleration
+        self.axmax = ((self.phase == PHASE['IC']) + (self.phase == PHASE['CR']) + (self.phase == PHASE['AP']) + (self.phase == PHASE['LD'])) * 0.5 \
+            + ((self.phase == PHASE['TO']) + (self.phase == PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
+            + (self.phase == PHASE['GD']) * self.post_flight * self.gr_acc
 
     def limits(self, intent_v, intent_vs, intent_h, ax):
         """FLIGHT ENVELPOE"""
@@ -594,31 +602,6 @@ class BADA(PerfBase):
         allowed_vs = np.where(self.limvs_flag, self.limvs, intent_vs)
 
         return allowed_tas, allowed_vs, allowed_alt
-
-    def acceleration(self):
-        # define acceleration: aircraft taxiing and taking off use ground acceleration,
-        # landing aircraft use ground deceleration, others use standard acceleration
-        # --> BADA uses the same value for ground acceleration as for deceleration
-
-
-        ax = ((self.phase==PHASE['IC']) + (self.phase==PHASE['CR']) + (self.phase==PHASE['AP']) + (self.phase==PHASE['LD'])) * 0.5 \
-                + ((self.phase==PHASE['TO']) + (self.phase==PHASE['GD'])*(1-self.post_flight)) * self.gr_acc  \
-                +  (self.phase==PHASE['GD']) * self.post_flight * self.gr_acc
-
-        return ax
-
-
-        #------------------------------------------------------------------------------
-        #DEBUGGING
-
-        #record data
-        # self.log.write(self.dt, str(bs.traf.alt[0]), str(bs.traf.tas[0]), str(self.D[0]), str(self.T[0]), str(self.fuelflow[0]),  str(bs.traf.vs[0]), str(cd[0]))
-        # self.log.save()
-
-        # print self.id, self.phase, self.alt/ft, self.tas/kts, self.cas/kts, self.M,  \
-        # self.thrust, self.D, self.fuelflow,  cl, cd, self.vs/fpm, self.ESF,self.atrans, maxthr, \
-        # self.vmto/kts, self.vmic/kts ,self.vmcr/kts, self.vmap/kts, self.vmld/kts, \
-        # CD0f, kf, self.hmaxact
 
     def show_performance(self, acid):
         # PERF acid command

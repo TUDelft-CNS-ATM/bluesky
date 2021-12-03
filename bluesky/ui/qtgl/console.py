@@ -1,11 +1,14 @@
 """ Console interface for the QTGL implementation."""
 from PyQt5.QtCore import Qt
+from PyQt5.Qt import QDesktopServices, QUrl, QApplication
 from PyQt5.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
+from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
 from bluesky.core.signal import Signal
 from . import autocomplete
+
 
 cmdline_stacked = Signal('cmdline_stacked')
 
@@ -31,10 +34,14 @@ def get_args():
     return Console._instance.args
 
 
-def append_cmdline(text):
+def process_cmdline(cmdlines):
     assert Console._instance is not None, 'No console created yet: can only change' + \
         ' command line after main window is created.'
-    Console._instance.append_cmdline(text)
+    lines = cmdlines.split('\n')
+    if lines:
+        Console._instance.append_cmdline(lines[-1])
+        for cmd in lines[:-1]:
+            Console._instance.stack(cmd)
 
 
 class Console(QWidget):
@@ -44,7 +51,11 @@ class Console(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.command_history = []
+        with cachefile.openfile('console_history.p') as cache:
+            try:
+                self.command_history = cache.load()
+            except:
+                self.command_history = []
         self.cmd = ''
         self.args = []
         self.history_pos = 0
@@ -59,6 +70,14 @@ class Console(QWidget):
             "already exists! Cannot have more than one console."
         Console._instance = self
 
+        # Connect function to save command history on quit
+        QApplication.instance().aboutToQuit.connect(self.close)
+
+    def close(self):
+        ''' Save command history when BlueSky closes. '''
+        with cachefile.openfile('console_history.p') as cache:
+            cache.dump(self.command_history)
+
     def on_simevent_received(self, eventname, eventdata, sender_id):
         ''' Processing of events from simulation nodes. '''
         if eventname == b'CMDLINE':
@@ -66,7 +85,8 @@ class Console(QWidget):
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:
-            self.stackText.setPlainText(nodedata.echo_text)
+            # self.stackText.setPlainText(nodedata.echo_text)
+            self.stackText.setHtml(nodedata.echo_text.replace('\n', '<br>') + '<br>')
             self.stackText.verticalScrollBar().setValue(
                 self.stackText.verticalScrollBar().maximum())
 
@@ -84,7 +104,8 @@ class Console(QWidget):
     def echo(self, text):
         actdata = bs.net.get_nodedata()
         actdata.echo(text)
-        self.stackText.append(text)
+        # self.stackText.append(text)
+        self.stackText.insertHtml(text.replace('\n', '<br>') + '<br>')
         self.stackText.verticalScrollBar().setValue(
             self.stackText.verticalScrollBar().maximum())
 
@@ -235,3 +256,14 @@ class Stackwin(QTextEdit):
         super().__init__(parent)
         Console.stackText = self
         self.setFocusPolicy(Qt.NoFocus)
+
+    def mousePressEvent(self, e):
+        self.anchor = self.anchorAt(e.pos())
+        if self.anchor:
+            QApplication.setOverrideCursor(Qt.PointingHandCursor)
+
+    def mouseReleaseEvent(self, e):
+        if self.anchor:
+            QDesktopServices.openUrl(QUrl(self.anchor))
+            QApplication.setOverrideCursor(Qt.ArrowCursor)
+            self.anchor = None

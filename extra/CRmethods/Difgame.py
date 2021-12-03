@@ -108,7 +108,7 @@ def resolve(dbconf, traf):
         np.where(bankcontrol>0,traf.trk+90,traf.trk-90))%360
 
     # Set bank angle for aircraft in conflict
-    traf.aphi=np.radians(np.where(dbconf.asasactive,np.abs(bankcontrol),25.))
+    traf.ap.aphi=np.radians(np.where(dbconf.asasactive,np.abs(bankcontrol),25.))
 
     # Change autopilot desired altitude
     traf.aalt=np.where(climbcontrol==0,traf.alt,\

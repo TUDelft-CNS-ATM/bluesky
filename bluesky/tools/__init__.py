@@ -8,12 +8,13 @@ if settings.prefer_compiled:
     except ImportError:
         from . import geo
         print('Using Python-based geo functions')
-        print("Reading magnetic variation data")
-        geo.initdecl_data()
 else:
     from . import geo
     print('Using Python-based geo functions')
-    print("Reading magnetic variation data")
-    geo.initdecl_data()
 
 from . import cachefile
+
+
+def init():
+    print("Reading magnetic variation data")
+    geo.initdecl_data()
