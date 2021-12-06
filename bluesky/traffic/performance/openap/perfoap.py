@@ -51,9 +51,6 @@ class OpenAP(PerfBase):
             self.vmaxer = np.array([])
             self.vmaxap = np.array([])
 
-            self.vsmin = np.array([])
-            self.vsmax = np.array([])
-            self.hmax = np.array([])
             self.vminto = np.array([])
             self.hcross = np.array([])
             self.mmo = np.array([])
