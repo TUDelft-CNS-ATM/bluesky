@@ -8,9 +8,9 @@ from bluesky import settings
 from bluesky.settings import get_project_root
 
 
-settings.set_variable_defaults(perf_path_openap=
-                               os.path.join(get_project_root(),
-                                            "data", "performance", "OpenAP"))
+settings.set_variable_defaults(
+    perf_path_openap=os.path.join(get_project_root(), "data", "performance", "OpenAP")
+)
 
 LIFT_FIXWING = 1  # fixwing aircraft
 LIFT_ROTOR = 2  # rotor aircraft
@@ -104,10 +104,10 @@ class Coefficient:
         All unit in SI"""
         limits_fixwing = {}
         for mdl, ac in self.acs_fixwing.items():
-            fenv = fixwing_envelops_dir + mdl.lower() + ".csv"
+            fenv = fixwing_envelops_dir + mdl.lower() + ".txt"
 
             if os.path.exists(fenv):
-                df = pd.read_csv(fenv, index_col="param")
+                df = pd.read_fwf(fenv).set_index("variable")
                 limits_fixwing[mdl] = {}
                 limits_fixwing[mdl]["vminto"] = df.loc["to_v_lof"]["min"]
                 limits_fixwing[mdl]["vmaxto"] = df.loc["to_v_lof"]["max"]
@@ -142,17 +142,17 @@ class Coefficient:
                 limits_fixwing[mdl]["axmax"] = df.loc["to_acc_tof"]["max"]
 
                 limits_fixwing[mdl]["vsmax"] = max(
-                    df.loc["ic_vz_avg"]["max"],
-                    df.loc["cl_vz_avg_pre_cas"]["max"],
-                    df.loc["cl_vz_avg_cas_const"]["max"],
-                    df.loc["cl_vz_avg_mach_const"]["max"],
+                    df.loc["ic_vs_avg"]["max"],
+                    df.loc["cl_vs_avg_pre_cas"]["max"],
+                    df.loc["cl_vs_avg_cas_const"]["max"],
+                    df.loc["cl_vs_avg_mach_const"]["max"],
                 )
 
                 limits_fixwing[mdl]["vsmin"] = min(
-                    df.loc["ic_vz_avg"]["min"],
-                    df.loc["de_vz_avg_after_cas"]["min"],
-                    df.loc["de_vz_avg_cas_const"]["min"],
-                    df.loc["de_vz_avg_mach_const"]["min"],
+                    df.loc["ic_vs_avg"]["min"],
+                    df.loc["de_vs_avg_after_cas"]["min"],
+                    df.loc["de_vs_avg_cas_const"]["min"],
+                    df.loc["de_vs_avg_mach_const"]["min"],
                 )
 
         # create envolop based on synonym

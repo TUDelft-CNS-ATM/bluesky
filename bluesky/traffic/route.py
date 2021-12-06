@@ -44,11 +44,7 @@ class Route(Replaceable):
         self.acid = acid
         self.nwp = 0
 
-        #Vertical fms logc: enable Top of CLimb & Top of Descent logic
-        self.swtoc = True
-        self.swtod = True
-
-        # Waypoint data
+       # Waypoint data
         self.wpname = []    # List of waypoint names for this flight plan
         self.wptype = []    # List of waypoint types
         self.wplat  = []    # List of waypoint latitudes
@@ -365,6 +361,90 @@ class Route(Replaceable):
                 "waypoint added at end of route"
         else:
             return True
+
+    @stack.command
+    def addwaypoints(acidx: 'acid', *args):
+        # Args come in this order: lat, lon, alt, spd, TURNSPD/TURNRAD/FLYBY, turnspeed or turnrad value
+        # If turn is '0', then ignore turnspeed
+        if len(args)%6 !=0:
+            bs.scr.echo('You missed a waypoint value, arguement number must be a multiple of 6.')
+            return
+
+        acid = bs.traf.id[acidx]
+        acrte = Route._routes.get(acid)
+
+        args = reshape(args, (int(len(args)/6), 6))
+
+        for wpdata in args:
+            # Get needed values
+            lat = float(wpdata[0]) # deg
+            lon = float(wpdata[1]) # deg
+            if wpdata[2]:
+                alt = txt2alt(wpdata[2]) # comes in feet, convert
+            else:
+                alt = -999
+            if wpdata[3]:
+                spd = txt2spd(wpdata[3])
+            else:
+                spd = -999
+
+            # Do flyby or flyturn processing
+            if wpdata[4] in ['TURNSPD', 'TURNSPEED']:
+                acrte.turnspd = txt2spd(wpdata[5])
+                acrte.swflyby   = False
+                acrte.swflyturn = True
+            elif wpdata[4] in ['TURNRAD', 'TURNRADIUS']:
+                acrte.turnrad = float(wpdata[5])
+                acrte.swflyby   = False
+                acrte.swflyturn = True
+            else:
+                # Either it's a flyby, or a typo.
+                acrte.swflyby   = True
+                acrte.swflyturn = False
+
+
+            name    = acid
+            wptype  = Route.wplatlon
+
+            wpidx = acrte.addwpt_simple(acidx, name, wptype, lat, lon, alt, spd)
+
+        # Calculate flight plan
+        acrte.calcfp()
+
+        # Check for success by checking inserted location in flight plan >= 0
+        if wpidx < 0:
+            return False, "Waypoint " + name + " not added."
+
+    def addwpt_simple(self, iac, name, wptype, lat, lon, alt=-999., spd=-999.):
+        """Adds waypoint in the most simple way possible"""
+        # For safety
+        self.nwp = len(self.wplat)
+
+        name = name.upper().strip()
+
+        wplat = lat
+        wplon = lon
+
+        # Check if name already exists, if so add integer 01, 02, 03 etc.
+        newname = Route.get_available_name(
+            self.wpname, name, 3)
+
+        self.addwpt_data(
+            False, self.nwp, newname, wplat, wplon, wptype, alt, spd)
+
+        idx = self.nwp
+        self.nwp += 1
+
+        #update qdr and "last waypoint switch" in traffic
+        if idx>=0:
+            bs.traf.actwp.next_qdr[iac] = self.getnextqdr()
+            bs.traf.actwp.swlastwp[iac] = (self.iactwp==self.nwp-1)
+
+        # Update autopilot settings
+        if 0 <= self.iactwp < self.nwp:
+            self.direct(iac, self.wpname[self.iactwp])
+
+        return idx
 
     @stack.command
     @staticmethod
@@ -786,6 +866,13 @@ class Route(Replaceable):
         bs.traf.actwp.turnrad[acidx] = acrte.wpturnrad[wpidx]
         bs.traf.actwp.turnspd[acidx] = acrte.wpturnspd[wpidx]
 
+        bs.traf.actwp.nextturnlat[acidx], bs.traf.actwp.nextturnlon[acidx], \
+        bs.traf.actwp.nextturnspd[acidx], bs.traf.actwp.nextturnrad[acidx], \
+        bs.traf.actwp.nextturnidx[acidx] = acrte.getnextturnwp()
+
+        # Determine next turn waypoint data
+
+
         # Do calculation for VNAV
         acrte.calcfp()
 
@@ -826,8 +913,8 @@ class Route(Replaceable):
                              bs.traf.actwp.lat[acidx], bs.traf.actwp.lon[acidx])
 
         # Save leg length & direction in actwp data
-        bs.traf.actwp.curlegdir[acidx] = qdr
-        bs.traf.actwp.curleglen[acidx] = dist
+        bs.traf.actwp.curlegdir[acidx] = qdr      #[deg]
+        bs.traf.actwp.curleglen[acidx] = dist*nm  #[m]
 
         if acrte.wpflyturn[wpidx] or acrte.wpturnrad[wpidx]<0.:
             turnrad = acrte.wpturnrad[wpidx]
@@ -918,6 +1005,24 @@ class Route(Replaceable):
         npages = int((acrte.nwp + 6) / 7)
         if ipage + 1 < npages:
             bs.scr.cmdline("LISTRTE " + acid + "," + str(ipage + 1))
+
+    def getnextturnwp(self):
+        """Give the next turn waypoint data."""
+        # Starting point
+        wpidx = self.iactwp
+        # Find next turn waypoint index
+        turnidx_all = where(self.wpflyturn)[0]
+        argwhere_arr = argwhere(turnidx_all>=wpidx)
+        if argwhere_arr.size == 0:
+            # No turn waypoints, return default values
+            return [0., 0., -999., -999., -999.]
+
+        trnidx = turnidx_all[argwhere(turnidx_all>=wpidx)[0]][0]
+
+
+
+        # Return the next turn waypoint info
+        return [self.wplat[trnidx], self.wplon[trnidx], self.wpturnspd[trnidx], self.wpturnrad[trnidx], trnidx]
 
     def getnextwp(self):
         """Go to next waypoint and return data"""

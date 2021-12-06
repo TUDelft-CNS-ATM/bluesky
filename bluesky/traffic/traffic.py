@@ -81,6 +81,9 @@ class Traffic(Entity):
         self.turbulence = Turbulence()
         self.translvl = 5000.*ft # [m] Default transition level
 
+        # Default commands issued for an aircraft after creation
+        self.crecmdlist = []
+
         with self.settrafarrays():
             # Aircraft Info
             self.id      = []  # identifier (string)
@@ -291,6 +294,13 @@ class Traffic(Entity):
             # Savecmd(cmd,line): line is saved, cmd is used to prevent recording PAN & ZOOM commands and CRE
             # So insert a dummy command to record the line
             savecmd("---",line)
+
+        # Check for crecmdlist: contains commands to be issued for this a/c
+        # If any are there, then stack them for all aircraft
+        for j in range(self.ntraf - n, self.ntraf):
+            for cmdtxt in self.crecmdlist:
+                 bs.stack.stack(self.id[j]+" "+cmdtxt)
+
 
     def creconfs(self, acid, actype, targetidx, dpsi, dcpa, tlosh, dH=None, tlosv=None, spd=None):
         ''' Create an aircraft in conflict with target aircraft.
@@ -802,3 +812,35 @@ class Traffic(Entity):
         if self.swats[idx]:
             return True,"ATS of "+self.id[idx]+" is ON"
         return True, "ATS of " + self.id[idx] + " is OFF. THR is "+str(self.thr[idx])
+
+    def crecmd(self,cmdline):
+        """CRECMD command: list of commands to be issued for each aircraft after creation
+           This commands adds a command to the list of default commands.
+           """
+        # Help text need or info on current list?
+        if cmdline=="" or cmdline=="?":
+            if len(self.crecmdlist)>0:
+                allcmds = ""
+                for i,txt in enumerate(self.crecmdlist):
+                    if i==0:
+                        allcmds = "[acid] "+txt
+                    else:
+                        allcmds +="; [acid] "+txt
+                return True,"CRECMD list: "+allcmds
+            else:
+                return True,"CRECMD will add a/c specific commands to an aircraft after creation"
+        # Command to be added to list
+        else:
+            self.crecmdlist.append(cmdline)
+        return True, ""
+
+    def clrcrecmd(self):
+        """CRECMD command: list of commands to be issued for each aircraft after creation
+           This commands adds a command to the list of default commands.
+       """
+        ncrecmd = len(self.crecmdlist)
+        if ncrecmd==0:
+            return True,"CLRCRECMD deletes all commands on clears command"
+        else:
+            self.crecmdlist = []
+            return True,str("All",ncrecmd,"crecmd commands deleted.")
