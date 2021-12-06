@@ -10,6 +10,11 @@ class ActiveWaypoint(Entity, replaceable=True):
         with self.settrafarrays():
             self.lat        = np.array([])    # [deg] Active WP latitude
             self.lon        = np.array([])    # [deg] Active WP longitude
+            self.nextturnlat= np.array([])    # [deg] Next turn WP latitude
+            self.nextturnlon= np.array([])    # [deg] Next turn WP longitude
+            self.nextturnspd= np.array([])    # [m/s] Next turn WP speed
+            self.nextturnrad= np.array([])    # [m]   Next turn WP turn radius
+            self.nextturnidx= np.array([])    # [-]   Next turn WP index
             self.nextaltco  = np.array([])    # [m] Altitude to arrive at after distance xtoalt
             self.xtoalt     = np.array([])    # [m] Distance to next altitude constraint
             self.nextspd    = np.array([])    # [CAS[m/s]/Mach] save speed from next wp for next leg
@@ -36,6 +41,11 @@ class ActiveWaypoint(Entity, replaceable=True):
         # LNAV route navigation
         self.lat[-n:]        = 0.       # [deg]Active WP latitude
         self.lon[-n:]        = 0.       # [deg]Active WP longitude
+        self.nextturnlat[-n:]= 0        # [deg] Next turn WP latitude
+        self.nextturnlon[-n:]= 0        # [deg] Next turn WP longitude
+        self.nextturnspd[-n:]= -999.    # [m/s] Next turn WP speed
+        self.nextturnrad[-n:]= -999.    # [m]   Next turn WP radius
+        self.nextturnidx[-n:]= -999.    # [-] Next turn WP index
         self.nextspd[-n:]    = -999.    # [CAS[m/s]/Mach]Next leg speed from current WP
         self.spd[-n:]        = -999.    # [CAS[m/s]/Mach]Active WP speed
         self.spdcon[-n:]     = -999.    # [CAS[m/s]/Mach]Active WP speed constraint

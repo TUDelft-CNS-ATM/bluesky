@@ -28,7 +28,7 @@ def compute_max_thr_ratio(phase, bpr, v, h, vs, thr0):
 
     # ---- thrust ratio for descent ----
     # considering 15% of inflight model thrust
-    ratio_idle = 0.15 * ratio_inflight
+    ratio_idle = 0.07 * ratio_inflight
 
     # thrust ratio array
     #   LD and GN assume ZERO thrust

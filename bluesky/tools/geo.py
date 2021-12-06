@@ -173,7 +173,7 @@ def qdrdist_matrix(lat1, lon1, lat2, lon2):
 
 
 def latlondist(latd1, lond1, latd2, lond2):
-    """ Calculates distance using haversine formulae and avaerage r from wgs'84
+    """ Calculates only distance using haversine notation of the same formulae and average r from wgs'84
         Input:
               two lat/lon positions in degrees
         Out:

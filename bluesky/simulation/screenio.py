@@ -27,11 +27,13 @@ class ScreenIO:
         # Screen state defaults
         self.def_pan     = (0.0, 0.0)
         self.def_zoom    = 1.0
+        self.route_all   = ""
+
         # Screen state overrides per client
         self.client_pan  = dict()
         self.client_zoom = dict()
         self.client_ar   = dict()
-        self.route_acid  = dict()
+        self.client_route = dict()
 
         # Dicts of custom aircraft and group colors
         self.custacclr = dict()
@@ -58,11 +60,19 @@ class ScreenIO:
             self.samplecount += 1
 
     def reset(self):
+        self.client_pan = dict()
+        self.client_zoom = dict()
+        self.client_ar = dict()
+        self.client_route = dict()
+        self.route_all = ''
         self.custacclr = dict()
         self.custgrclr = dict()
         self.samplecount = 0
         self.prevcount   = 0
         self.prevtime    = 0.0
+
+        self.def_pan = (0.0, 0.0)
+        self.def_zoom = 1.0
 
         # Communicate reset to gui
         bs.net.send_event(b'RESET', b'ALL')
@@ -164,7 +174,11 @@ class ScreenIO:
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
-        self.route_acid[stack.sender()] = acid
+        if not stack.sender():
+            self.route_all = acid
+            self.client_route.clear()
+        else:
+            self.client_route[stack.sender()] = acid
         return True
 
     def addnavwpt(self, name, lat, lon):
@@ -260,24 +274,42 @@ class ScreenIO:
         bs.net.send_stream(b'ACDATA', data)
 
     def send_route_data(self):
-        for sender, acid in self.route_acid.items():
-            data               = dict()
-            data['acid']       = acid
-            idx   = bs.traf.id2idx(acid)
-            if idx >= 0:
-                route          = bs.traf.ap.route[idx]
-                data['iactwp'] = route.iactwp
+        ''' Send route data to client(s) '''
+        # print(self.client_route, self.route_all)
+        # Case 1: A route is selected by one or more specific clients
+        if self.client_route:
+            for sender, acid in self.client_route.items():
+                _sendrte(sender, acid)
+            # Check if there are other senders and also a scenario-selected route
+            if self.route_all:
+                remclients = bs.sim.clients.difference(self.client_route.keys())
+                #print(bs.sim.clients, remclients)
+                for sender in remclients:
+                    _sendrte(sender, self.route_all)
+        # Case 2: only a route selected from scenario file:
+        # Broadcast the same route to everyone
+        elif self.route_all:
+            _sendrte(b'*', self.route_all)
+        
+def _sendrte(sender, acid):
+    ''' Local shorthand function to send route. '''
+    data               = dict()
+    data['acid']       = acid
+    idx   = bs.traf.id2idx(acid)
+    if idx >= 0:
+        route          = bs.traf.ap.route[idx]
+        data['iactwp'] = route.iactwp
 
-                # We also need the corresponding aircraft position
-                data['aclat']  = bs.traf.lat[idx]
-                data['aclon']  = bs.traf.lon[idx]
+        # We also need the corresponding aircraft position
+        data['aclat']  = bs.traf.lat[idx]
+        data['aclon']  = bs.traf.lon[idx]
 
-                data['wplat']  = route.wplat
-                data['wplon']  = route.wplon
+        data['wplat']  = route.wplat
+        data['wplon']  = route.wplon
 
-                data['wpalt']  = route.wpalt
-                data['wpspd']  = route.wpspd
+        data['wpalt']  = route.wpalt
+        data['wpspd']  = route.wpspd
 
-                data['wpname'] = route.wpname
+        data['wpname'] = route.wpname
 
-            bs.net.send_stream(b'ROUTEDATA' + (sender or b'*'), data)  # Send route data to GUI
+    bs.net.send_stream(b'ROUTEDATA' + (sender or b'*'), data)  # Send route data to GUI

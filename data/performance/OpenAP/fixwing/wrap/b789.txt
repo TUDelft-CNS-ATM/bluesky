@@ -1,0 +1,36 @@
+variable              flight phase    name                                   opt    min     max    model    parameters
+to_v_lof              takeoff         Liftoff speed                          96.1   81.1    111.2  norm     96.15|10.46
+to_d_tof              takeoff         Takeoff distance                       2.49   1.31    3.69   norm     2.50|0.72
+to_acc_tof            takeoff         Mean takeoff accelaration              1.63   1.2     2.06   norm     1.63|0.26
+ic_va_avg             initial_climb   Mean airspeed                          92     81      103    beta     3.43|3.27|72.17|39.84
+ic_vs_avg             initial_climb   Mean vertical rate                     10.6   6.48    14.74  norm     10.61|2.51
+cl_d_range            climb           Climb range                            263    173     420    beta     2.91|5.02|156.74|333.07
+cl_v_cas_const        climb           Constant CAS                           163    151     174    norm     163.14|7.01
+cl_v_mach_const       climb           Constant Mach                          0.84   0.82    0.87   norm     0.84|0.02
+cl_h_cas_const        climb           Constant CAS crossover altitude        4.1    2.3     5.9    norm     4.10|1.07
+cl_h_mach_const       climb           Constant Mach crossover altitude       9.1    8.1     10.2   norm     9.14|0.66
+cl_vs_avg_pre_cas     climb           Mean climb rate, pre-constant-CAS      9.46   7.18    11.75  norm     9.47|1.39
+cl_vs_avg_cas_const   climb           Mean climb rate, constant-CAS          8.68   6.04    11.81  beta     3.89|4.77|3.94|10.92
+cl_vs_avg_mach_const  climb           Mean climb rate, constant-Mach         6.05   3.63    8.47   norm     6.05|1.47
+cr_d_range            cruise          Cruise range                           5695   -3140   14555  norm     5707.50|3434.94
+cr_v_cas_mean         cruise          Mean cruise CAS                        139    129     149    norm     139.87|6.06
+cr_v_cas_max          cruise          Maximum cruise CAS                     148    133     170    beta     2.67|4.04|125.61|63.39
+cr_v_mach_mean        cruise          Mean cruise Mach                       0.85   0.83    0.87   norm     0.85|0.01
+cr_v_mach_max         cruise          Maximum cruise Mach                    0.87   0.85    0.92   gamma    6.01|0.83|0.01
+cr_h_init             cruise          Initial cruise altitude                11.3   9.42    12.44  beta     4.59|2.75|7.61|5.49
+cr_h_mean             cruise          Mean cruise altitude                   11.58  10.72   12.44  norm     11.58|0.52
+cr_h_max              cruise          Maximum cruise altitude                11.99  11.28   12.7   norm     11.99|0.43
+de_d_range            descent         Descent range                          293    224     550    gamma    3.57|207.20|33.45
+de_v_mach_const       descent         Constant Mach                          0.84   0.79    0.87   beta     7.21|3.08|0.71|0.17
+de_v_cas_const        descent         Constant CAS                           154    139     169    norm     154.59|8.89
+de_h_mach_const       descent         Constant Mach crossover altitude       10.5   8.6     11.6   beta     3.21|2.22|7.41|4.75
+de_h_cas_const        descent         Constant CAS crossover altitude        7      4.3     9.6    norm     6.99|1.61
+de_vs_avg_mach_const  descent         Mean descent rate, constant-Mach       -7.16  -12.88  -2.81  beta     2.83|2.31|-16.09|15.29
+de_vs_avg_cas_const   descent         Mean descent rate, constant-CAS        -9.14  -13.41  -4.84  norm     -9.13|2.61
+de_vs_avg_after_cas   descent         Mean descent rate, after-constant-CAS  -6.19  -7.91   -4.46  norm     -6.18|1.05
+fa_va_avg             final_approach  Mean airspeed                          77     72      83     norm     77.88|3.71
+fa_vs_avg             final_approach  Mean vertical rate                     -4.15  -4.71   -3.15  gamma    11.92|-5.65|0.14
+fa_agl                final_approach  Approach angle                         2.89   2.36    3.43   norm     2.89|0.32
+ld_v_app              landing         Touchdown speed                        74     64.8    83.3   norm     74.07|6.42
+ld_d_brk              landing         Braking distance                       2.49   0.68    4.31   norm     2.49|1.11
+ld_acc_brk            landing         Mean braking acceleration              -1.11  -1.74   -0.47  norm     -1.11|0.38

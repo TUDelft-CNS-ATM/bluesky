@@ -135,17 +135,30 @@ def initbasecmds():
             ),
             "Define a circle-shaped area",
         ],
+        "CLRCRECMD": [
+            "CLRCRECMD",
+            "",
+            bs.traf.clrcrecmd,
+            "CLRCRECMD will clear CRECMD list of commands a/c creation",
+        ],
         "COLOR": [
             "COLOR name,color (named color or r,g,b)",
             "txt,color",
             bs.scr.color,
             "Set a custom color for an aircraft or shape",
+
         ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
             "txt,txt,latlon,[hdg,alt,spd]",
             bs.traf.cre,
             "Create an aircraft",
+        ],
+        "CRECMD": [
+            "CRECMD cmdline (to be added after a/c id )",
+            "string",
+            bs.traf.crecmd,
+            "Add a command for each aircraft to be issued after creation of aircraft",
         ],
         "CRECONFS": [
             "CRECONFS id, type, targetid, dpsi, cpa, tlos_hor, dH, tlos_ver, spd",
@@ -165,7 +178,7 @@ def initbasecmds():
             bs.navdb.defwpt,
             "Define a waypoint only for this scenario/run",
         ],
-        "DEL": [
+               "DEL": [
             "DEL acid/ALL/WIND/shape",
             "acid/txt,...",
             lambda *a: bs.traf.wind.clear()
