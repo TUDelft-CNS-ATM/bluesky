@@ -18,6 +18,15 @@ except (ImportError, OSError):
         def nearest(*args, **kwargs):
             return []
 
+        @staticmethod
+        def insert(*args, **kwargs):
+            return
+
+        @staticmethod
+        def delete(*args, **kwargs):
+            return
+
+
 import bluesky as bs
 from bluesky.tools.geo import kwikdist
 
