@@ -26,19 +26,10 @@ def compute_max_thr_ratio(phase, bpr, v, h, vs, thr0):
     # ---- thrust ratio in flight ----
     ratio_inflight = inflight(v, h, vs, thr0)
 
-    # ---- thrust ratio for descent ----
-    # considering 15% of inflight model thrust
-    ratio_idle = 0.07 * ratio_inflight
-
     # thrust ratio array
     #   LD and GN assume ZERO thrust
-    tr = np.zeros(n)
+    tr = np.ones(n) * ratio_inflight
     tr = np.where(phase == ph.GD, ratio_takeoff, tr)
-    tr = np.where(
-        (phase == ph.IC) | (phase == ph.CL) | (phase == ph.CR) | (phase == ph.DE),
-        ratio_inflight,
-        tr,
-    )
 
     return tr
 
