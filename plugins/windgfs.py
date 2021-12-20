@@ -1,8 +1,9 @@
 import os
 import sys
-import numpy as np
 import pygrib
+import datetime
 import requests
+import numpy as np
 import bluesky as bs
 from bluesky import settings, stack
 from bluesky.core import timed_function
@@ -152,10 +153,20 @@ class WindGFS(WindSim):
         self.hour = hour or bs.sim.utc.hour
 
         # round hour to 3 hours, check if it is a +3h prediction
-        self.hour  = round(self.hour / 3) * 3
+        self.hour = round(self.hour/3) * 3
         if self.hour in [3, 9, 15, 21]:
             self.hour = self.hour - 3
             pred = 3
+        elif self.hour == 24:
+            ymd0 = "%04d%02d%02d" % (self.year, self.month, self.day)
+            print(ymd0)
+            ymd1 = (datetime.datetime.strptime(ymd0, '%Y%m%d') + 
+                    datetime.timedelta(days=1))
+            self.year  = ymd1.year
+            self.month = ymd1.month
+            self.day   = ymd1.day    
+            self.hour  = 0
+            pred = 0
         else:
             pred = 0
 

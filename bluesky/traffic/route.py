@@ -1043,10 +1043,17 @@ class Route(Replaceable):
             # Change RW06,RWY18C,RWY24001 to resp. 06,18C,24
             if "RWY" in name:
                 rwykey = name[8:10]
+                if len(name)>10:
+                    if not name[10].isdigit():
+                        rwykey = name[8:11]
             # also if it is only RW
             else:
                 rwykey = name[7:9]
+                if len(name) > 9:
+                    if not name[9].isdigit():
+                        rwykey = name[7:10]
 
+            # Use this code to look up runway heading
             wphdg = bs.navdb.rwythresholds[name[:4]][rwykey][2]
 
             # keep constant runway heading

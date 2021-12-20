@@ -41,7 +41,7 @@ class WindSim(Entity, Windfield, replaceable=True):
             dirarr = windarr[1::3]
             spdarr = windarr[2::3] * kts
             altarr = windarr[0::3] * ft
-            
+
             self.addpoint(lat,lon,dirarr,spdarr,altarr)
             
         elif winddata.count("DEL") > 0:

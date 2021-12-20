@@ -47,6 +47,20 @@ def main():
     # server-headless: start server only
     # detached: start only one simulation node, without networking
     #   ==> useful for calling bluesky from within another python script/program
+    if '--help' in sys.argv:
+        print("   *****   BlueSky Open ATM simulator *****")
+        print("Distributed under GNU General Public License v3")
+        print("Usage: python BlueSky.py [options]")
+        print("Options:")
+        print("--help               Display this information.")
+        print("--headless           Start simulation server only, without GUI.")
+        print("--client             Start client only, which can connect to an already running server.")
+        print("--sim                Start only one simulation node.")  
+        print("--detached           Start only one simulation node, without networking.")
+        print("--discoverable       Make simulation server discoverable. (Default in headless mode.)")
+        print("--scenfile <file>    Load scenario file on startup.")
+        quit()  
+
     if '--detached' in sys.argv:
         mode = 'sim-detached'
     elif '--sim' in sys.argv:
