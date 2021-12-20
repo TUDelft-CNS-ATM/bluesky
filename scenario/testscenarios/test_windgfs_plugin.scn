@@ -1,0 +1,80 @@
+### Windgfs Plugin Tests ###
+# This scenario file runs some tests via stack commands 
+# to verify the correct implementation of the windgfs plugin. 
+# Beware that the wind direction obtained via the GETWIND command 
+# contains incorrect results due to an interpretation difference
+# for winds loaded via the windgfs plugin (not applicable to WIND).
+# The GETWIND wind direction +-180deg yields the correct angle
+
+# Set simulation parameters
+#00:00:00.00>TIME UTC
+00:00:00.00>TRAILS ON
+00:00:00.00>RESO OFF
+#00:00:00.00>FF
+#00:00:00.00>SWRAD LABEL
+#00:00:00.00>SWRAD LABEL
+#00:00:00.00>SWRAD FIR
+00:00:00.00>noise off
+00:00:00.00>DATE 3, 4, 2019
+
+# Test 1: Load wind field and create single AC
+00:00:00.00>PLUGINS LOAD WINDGFS
+00:00:00.00>IMPL WINDSIM WINDGFS
+00:00:00.00>WINDGFS 15, -165, 90, 85, 2019, 4, 3, 0
+00:00:00.00>CRE KL101, B77W, 52, 5, 270, 40000, 0.8
+00:00:00.00>DEST KL101 JFK
+
+# Test 2: Verify wind incorporation by GETWIND values and TAS/GS difference 
+00:00:10.00>GETWIND 52, 5, 44320
+00:00:10.00>POS KL101
+
+# Test 3: Verify wind absences by no GETWIND values and equal TAS/GS
+00:00:20.00>DEL WIND 
+00:00:20.00>GETWIND 52, 5, 40000
+00:00:24.00>POS KL101
+00:00:29.00>DEL KL101
+
+# Test 4: Constuct wind at single location via command stack, verified by GETWIND
+00:00:30.00>WIND 53, 4, 10000, 100, 20, 20000, 181, 40, 30000.0, -26.2, 32.2
+00:00:30.00>CRE KL201, B77W, 53, 4, 270, 25000, 0.8
+00:00:30.00>DEST KL201 JFK
+00:00:30.00>POS KL201
+00:00:35.00>GETWIND 52, 4, 10000
+00:00:35.00>GETWIND 53, 4, 15000
+00:00:35.00>GETWIND 53, 4, 25000
+00:00:35.00>GETWIND 53, 4, 30000
+00:00:35.00>GETWIND 53, 4, 45001
+00:00:35.00>POS KL201
+00:00:37.00>DEL WIND
+
+# Test 5: Verify correct implementation for interchanged lat/lon input
+00:00:40.00>WINDGFS 90, 85, 15, -165
+00:00:40.00>GETWIND 52, 4, 40000
+00:00:42.00>DEL WIND
+
+# Test 6: Verify stable simulation with AC outside windfield area [0 outside this area]
+00:00:45.00>WINDGFS 15, 60, 90, 70
+00:00:45.00>CRE KL301, B77W, 60, 65, 90, 40000, 0.8
+00:00:45.00>POS KL301
+00:00:45.00>GETWIND 60, 65, 30000
+00:00:45.00>GETWIND 45, -10, 24399
+00:00:45.00>POS KL201
+00:00:50.00>DEL WIND
+
+# Test 7: Test simulation performance over large area with large amount of AC 
+# Define spawning circle SPAWN with centerlat[deg],centerlon[deg],radius[nm]
+00:01:00.00>PLUGINS LOAD TRAFGEN
+00:01:00.00>TRAFGEN CIRCLE 52.6,5.4,2000.0
+00:01:00.00>WINDGFS 15, -165, 90, 85
+00:01:00.00>FF
+
+# Global gain (factor) for traffic generation/density
+00:01:00.00>TRAFGEN GAIN 20.0
+
+# Wave of JSFs coming throught
+00:01:00.00>TRAFGEN SRC EHVK DEST SEGM330 1 FGTN:1
+00:01:00.00>TRAFGEN SRC EHVK FLOW 600
+00:01:30.00>TRAFGEN SRC EHVK FLOW 10
+
+# Test 8: Test if reset functions, gives warning: "Maximum recursion depth exceeded
+#RESET...

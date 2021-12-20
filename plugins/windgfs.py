@@ -1,11 +1,13 @@
 import os
 import sys
-import numpy as np
-import pandas as pd
 import pygrib
+import datetime
 import requests
+import numpy as np
 import bluesky as bs
 from bluesky import settings, stack
+from bluesky.core import timed_function
+from bluesky.traffic.windsim import WindSim
 
 settings.set_variable_defaults(
     windgfs_url="https://www.ncei.noaa.gov/data/global-forecast-system/access/historical/analysis/")
@@ -24,31 +26,25 @@ def init_plugin():
 
     config = {
         'plugin_name': 'WINDGFS',
-        'plugin_type': 'sim',
-        'update_interval': 3600,
-        'update': windgfs.update
+        'plugin_type': 'sim'
     }
 
-    stackfunctions = {
-        "WINDGFS": [
-            "WINDGFS lat0,lon0,lat1,lon1,[year,month,day,hour]",
-            "latlon,latlon,[int,int,int,int]",
-            windgfs.create,
-            "Select an ADS-B data source for traffic"]}
+    return config
 
-    return config, stackfunctions
-
-class WindGFS:
+class WindGFS(WindSim):
     def __init__(self):
-        self.year = 0
+        super().__init__()
+        self.year  = 0
         self.month = 0
-        self.day = 0
-        self.hour = 0
-        self.lat0 = -90
-        self.lon0 = -180
-        self.lat1 = 90
-        self.lon1 = 180
+        self.day   = 0
+        self.hour  = 0
+        self.lat0  = -90
+        self.lon0  = -180
+        self.lat1  = 90
+        self.lon1  = 180
 
+        # Switch for periodic loading of new GFS data
+        self.autoload = True
 
     def fetch_grb(self, year, month, day, hour, pred=0):
         ym = "%04d%02d" % (year, month)
@@ -93,7 +89,6 @@ class WindGFS:
 
         return grb
 
-
     def extract_wind(self, grb, lat0, lon0, lat1, lon1):
 
         grb_wind_v = grb.select(shortName="v", typeOfLevel=['isobaricInhPa'])
@@ -108,7 +103,7 @@ class WindGFS:
         for grbu, grbv in zip(grb_wind_u, grb_wind_v):
             level = grbu.level
 
-            if level < 140:  # lesss than 140 hPa, above about 45 k ft
+            if level < 100:  # lesss than 100 hPa, above about 54 k ft
                 continue
             else:
                 vxs_ = grbu.values
@@ -134,32 +129,44 @@ class WindGFS:
         lon0_ = min(lon0, lon1)
         lon1_ = max(lon0, lon1)
 
-        mask = (lats > lat0_) & (lats < lat1_) & (lons > lon0_) & (lons < lon1_)
+        mask = (lats >= lat0_) & (lats <= lat1_) & (lons >= lon0_) & (lons <= lon1_)
 
         data = np.array([lats[mask], lons[mask], alts[mask], vxs[mask], vys[mask]])
 
         return data
 
+    @stack.command(name='WINDGFS')
+    def loadwind(self, lat0: 'lat', lon0: 'lon', lat1: 'lat', lon1: 'lon',
+               year: int=None, month: int=None, day: int=None, hour: int=None):
+        ''' WINDGFS: Load a windfield directly from NOAA database.
 
-    def create(self, *args):
-        if len(args) == 0:
-            pass
-
-        if len(args) == 4:
-            self.lat0, self.lon0, self.lat1, self.lon1 =  args
-            self.year, self.month, self.day = bs.sim.utc.year, bs.sim.utc.month, bs.sim.utc.day
-            self.hour = bs.sim.utc.hour
-
-        elif len(args) == 8:
-            self.lat0, self.lon0, self.lat1, self.lon1, \
-            self.year, self.month, self.day, self.hour =  args
-
+            Arguments:
+            - lat0, lon0, lat1, lon1 [deg]: Bounding box in which to generate wind field
+            - year, month, day, hour: Date and time of wind data (optional, will use
+              current simulation UTC if not specified).
+        '''
+        self.lat0, self.lon0, self.lat1, self.lon1 =  min(lat0, lat1), \
+                              min(lon0, lon1), max(lat0, lat1), max(lon0, lon1)
+        self.year = year or bs.sim.utc.year
+        self.month = month or bs.sim.utc.month
+        self.day = day or bs.sim.utc.day
+        self.hour = hour or bs.sim.utc.hour
 
         # round hour to 3 hours, check if it is a +3h prediction
-        self.hour  = round(self.hour / 3) * 3
+        self.hour = round(self.hour/3) * 3
         if self.hour in [3, 9, 15, 21]:
             self.hour = self.hour - 3
             pred = 3
+        elif self.hour == 24:
+            ymd0 = "%04d%02d%02d" % (self.year, self.month, self.day)
+            print(ymd0)
+            ymd1 = (datetime.datetime.strptime(ymd0, '%Y%m%d') + 
+                    datetime.timedelta(days=1))
+            self.year  = ymd1.year
+            self.month = ymd1.month
+            self.day   = ymd1.day    
+            self.hour  = 0
+            pred = 0
         else:
             pred = 0
 
@@ -168,32 +175,37 @@ class WindGFS:
 
         grb = self.fetch_grb(self.year, self.month, self.day, self.hour, pred)
 
-        if grb is None:
-            return False, "Wind data not exist in area [%d, %d], [%d, %d]. " \
+        if grb is None or self.lat0 == self.lat1 or self.lon0 == self.lon1:
+            return False, "Wind data non-existend in area [%d, %d], [%d, %d]. " \
                 % (self.lat0, self.lat1, self.lon0, self.lon1) \
                 + "time: %04d-%02d-%02d %02d:00" \
                 % (self.year, self.month, self.day, self.hour)
 
         # first clear exisiting wind field
-        stack.stack('DEL wind')
+        self.clear()
 
         # add new wind field
-        data = self.extract_wind(grb, self.lat0, self.lon0, self.lat1, self.lon1)
-        df = pd.DataFrame(data.T, columns=['lat','lon','alt','vx','vy'])
-        df['dir'] = np.degrees(np.arctan2(df.vx, df.vy))
-        df['spd'] = np.sqrt(df.vx**2 + df.vy**2)
+        data = self.extract_wind(grb, self.lat0, self.lon0, self.lat1, self.lon1).T
 
-        for (lat, lon), d in df.groupby(['lat', 'lon']):
-            cmd = "WIND %d,%d," % (lat, lon)
-            for idx, r in d.iterrows():
-                cmd += "%d,%d,%d," % (r.alt, r.dir, r.spd)
-            stack.stack(cmd)
+        data = data[np.lexsort((data[:, 2], data[:, 1], data[:, 0]))] # Sort by lat, lon, alt
+        reshapefactor = int((1 + max(self.lat0, self.lat1) - min(self.lat0, self.lat1)) * \
+                            (1 + max(self.lon0, self.lon1) - min(self.lon0, self.lon1)))
 
-        return True, "Wind field update in area [%d, %d], [%d, %d]. " \
+        lat     = np.reshape(data[:,0], (reshapefactor, -1)).T[0,:]
+        lon     = np.reshape(data[:,1], (reshapefactor, -1)).T[0,:]
+        veast   = np.reshape(data[:,3], (reshapefactor, -1)).T
+        vnorth  = np.reshape(data[:,4], (reshapefactor, -1)).T
+        windalt = np.reshape(data[:,2], (reshapefactor, -1)).T[:,0]
+
+        self.addpointvne(lat, lon, vnorth, veast, windalt)        
+
+        return True, "Wind field updated in area [%d, %d], [%d, %d]. " \
             % (self.lat0, self.lat1, self.lon0, self.lon1) \
             + "time: %04d-%02d-%02d %02d:00" \
             % (self.year, self.month, self.day, self.hour)
 
-
+    @timed_function(name='WINDGFS', dt=3600)
     def update(self):
-        return self.create(self.lat0, self.lon0, self.lat1, self.lon1)
+        if self.autoload:
+            _, txt = self.loadwind(self.lat0, self.lon0, self.lat1, self.lon1)
+            bs.scr.echo("%s" % txt)
