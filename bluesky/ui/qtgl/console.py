@@ -1,7 +1,8 @@
 """ Console interface for the QTGL implementation."""
-from PyQt5.QtCore import Qt
-from PyQt5.Qt import QDesktopServices, QUrl, QApplication
-from PyQt5.QtWidgets import QWidget, QTextEdit
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
 from bluesky.tools import cachefile
@@ -255,15 +256,15 @@ class Stackwin(QTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         Console.stackText = self
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
     def mousePressEvent(self, e):
         self.anchor = self.anchorAt(e.pos())
         if self.anchor:
-            QApplication.setOverrideCursor(Qt.PointingHandCursor)
+            QApplication.setOverrideCursor(Qt.CursorShape.PointingHandCursor)
 
     def mouseReleaseEvent(self, e):
         if self.anchor:
             QDesktopServices.openUrl(QUrl(self.anchor))
-            QApplication.setOverrideCursor(Qt.ArrowCursor)
+            QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
             self.anchor = None

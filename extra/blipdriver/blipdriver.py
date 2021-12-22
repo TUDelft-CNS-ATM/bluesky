@@ -1,7 +1,9 @@
-from PyQt5.QtCore import Qt, QEvent, QTimer, pyqtSlot
-from PyQt5.QtGui import QImage
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtOpenGL import QGLWidget, QGLFormat
+from PyQt6.QtCore import Qt, QEvent, QTimer, pyqtSlot
+from PyQt6.QtGui import QImage
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QSurfaceFormat as QGLFormat
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget as QGLWidget
+
 import OpenGL.GL as gl
 import numpy as np
 from glob import glob
@@ -460,7 +462,7 @@ if __name__ == "__main__":
     else:
         f = QGLFormat()
         f.setVersion(3, 3)
-        f.setProfile(QGLFormat.CoreProfile)
+        f.setProfile(QGLFormat.OpenGLContextProfile.CoreProfile)
         f.setDoubleBuffer(True)
         QGLFormat.setDefaultFormat(f)
         print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))

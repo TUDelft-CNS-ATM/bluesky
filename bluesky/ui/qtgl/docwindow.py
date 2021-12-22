@@ -1,13 +1,15 @@
 """ Documentation window for the QTGL version of BlueSky."""
-from PyQt5.QtCore import QUrl, QFileInfo
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel
+from PyQt6.QtCore import QUrl, QFileInfo
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel
 try:
     try:
-        # Within PyQt5 there are different locations for QWebView and QWebPage,
+        # Within PyQt6 there are different locations for QWebView and QWebPage,
         # depending on release version.
-        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+        from PyQt6.QtWebEngineWidgets import QWebEngineView as QWebView
+        from PyQt6.QtWebEngineCore import QWebEnginePage as QWebPage
     except ImportError:
-        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+        from PyQt6.QtWebEngineWidgets import QWebView
+        from PyQt6.QtWebEngineCore import QWebPage
 
     class DocView(QWebView):
         def __init__(self, parent=None):

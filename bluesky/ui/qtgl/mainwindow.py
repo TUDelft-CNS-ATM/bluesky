@@ -2,13 +2,13 @@
 import platform
 import os
 
-from PyQt5.QtWidgets import QApplication as app
-from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
-from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
+from PyQt6.QtWidgets import QApplication as app
+from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
+from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
     QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
     QDialogButtonBox
-from PyQt5 import uic
+from PyQt6 import uic
 
 # Local imports
 import bluesky as bs
@@ -38,7 +38,7 @@ bg = palette.stack_background
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super().__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
+        super().__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowType.WindowStaysOnTopHint)
 
 
 class DiscoveryDialog(QDialog):
@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
         self.nodetree.setStyleSheet('padding:0px')
-        self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
+        self.nodetree.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
         self.maxhostnum = 0

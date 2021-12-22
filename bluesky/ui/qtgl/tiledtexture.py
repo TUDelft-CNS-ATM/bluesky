@@ -8,9 +8,9 @@ from urllib.request import urlopen
 from urllib.error import URLError
 import numpy as np
 
-from PyQt5.Qt import Qt
-from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QImage
+from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QImage
 
 import bluesky as bs
 from bluesky.core import Signal

@@ -82,8 +82,8 @@ def load_coastline_txt():
 
 # Only try this if BlueSky is started in qtgl gui mode
 if bs.gui_type == 'qtgl':
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QApplication, QProgressDialog
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QApplication, QProgressDialog
     from bluesky.ui.polytools import PolygonSet, BoundingBox
 
 

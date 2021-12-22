@@ -1,8 +1,9 @@
 """ QTGL Gui for BlueSky."""
-from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
-    QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
+from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, \
     QT_VERSION, QT_VERSION_STR
-from PyQt5.QtWidgets import QApplication, QErrorMessage
+
+from PyQt6.QtCore import QtMsgType
+from PyQt6.QtWidgets import QApplication, QErrorMessage
 
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
@@ -12,13 +13,13 @@ from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
-
+QtMsgType
 def gui_msg_handler(msgtype, context, msg):
-    if msgtype == QtWarningMsg:
+    if msgtype == QtMsgType.QtWarningMsg:
         print('Qt gui warning:', msg)
-    elif msgtype == QtCriticalMsg:
+    elif msgtype == QtMsgType.QtCriticalMsg:
         print('Qt gui critical error:', msg)
-    if msgtype == QtFatalMsg:
+    if msgtype == QtMsgType.QtFatalMsg:
         print('Qt gui fatal error:', msg)
         exit()
 
@@ -33,9 +34,9 @@ def start(mode):
     # Start the bluesky network client
     client = GuiClient()
 
-    # Enable HiDPI support (Qt5 only)
-    if QT_VERSION >= 0x050000:
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    # # Enable HiDPI support (Qt5 only)
+    # if QT_VERSION >= 0x050000:
+    #     app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     splash = Splash()
 
@@ -49,7 +50,7 @@ def start(mode):
 
     # Install error message handler
     handler = QErrorMessage.qtHandler()
-    handler.setWindowFlags(Qt.WindowStaysOnTopHint)
+    handler.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
 
     splash.showMessage('Constructing main window')
     app.processEvents()
