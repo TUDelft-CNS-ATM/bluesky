@@ -48,7 +48,8 @@ class Dronetraf(core.Entity):
     def delete(self, idx):
         ''' Removes the deleted drone's ID from the list. '''
         super().delete(idx)
-        self.drones_active.remove(traf.id[idx[0]])
+        if traf.id[idx[0]] in self.drones_active:
+            self.drones_active.remove(traf.id[idx[0]])
 
     # Called every 5 simulation steps(seconds)
     @core.timed_function(name='drone_traffic', dt=5)
