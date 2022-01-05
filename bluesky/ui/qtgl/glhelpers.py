@@ -191,7 +191,7 @@ def init_glcontext(ctx):
                                ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
     funcptr = ctx.getProcAddress(b'glTexSubImage2D')
     gl.glTexSubImage2D_alt = funtype(funcptr.__int__())
-
+    
     if getattr(gl, '__name__', '') == 'OpenGL.GL':
         # In case we are using PyOpenGL, get some of the functions to behave in the
         # same way as their counterparts in Qt
@@ -918,7 +918,8 @@ class UniformBufferObject(GLBuffer):
     ufo_max_binding = 1
 
     def __init__(self):
-        super().__init__(gl.GL_UNIFORM_BUFFER)
+        # super().__init__(gl.GL_UNIFORM_BUFFER)
+        super().__init__(QOpenGLBuffer.Type.VertexBuffer)
         self.binding = 0
 
     def create(self, size=None, usage=QOpenGLBuffer.UsagePattern.StaticDraw, data=None):
@@ -987,7 +988,7 @@ class Font(Texture):
         self.char_ar = float(imgsize[1]) / imgsize[0]
 
         super().create()
-        self.setFormat(QOpenGLTexture.RGBA8_UNorm)
+        self.setFormat(QOpenGLTexture.TextureFormat.RGBA8_UNorm)
         self.setSize(img.width(), img.height())
         self.setLayers(127 - 30)
 
@@ -996,17 +997,17 @@ class Font(Texture):
         # gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8,
         #                 imgsize[0], imgsize[1], 127 - 30, 0, gl.GL_BGRA,
         #                 gl.GL_UNSIGNED_BYTE, None)
-        self.setWrapMode(QOpenGLTexture.DirectionS,
-                         QOpenGLTexture.ClampToBorder)
-        self.setWrapMode(QOpenGLTexture.DirectionT,
-                         QOpenGLTexture.ClampToBorder)
-        self.setMinMagFilters(QOpenGLTexture.Linear, QOpenGLTexture.Linear)
+        self.setWrapMode(QOpenGLTexture.CoordinateDirection.DirectionS,
+                         QOpenGLTexture.WrapMode.ClampToBorder)
+        self.setWrapMode(QOpenGLTexture.CoordinateDirection.DirectionT,
+                         QOpenGLTexture.WrapMode.ClampToBorder)
+        self.setMinMagFilters(QOpenGLTexture.Filter.Linear, QOpenGLTexture.Filter.Linear)
 
         # We're using the ASCII range 32-126; space, uppercase, lower case,
         # numbers, brackets, punctuation marks
         for i in range(30, 127):
             img = QImage(path.join(settings.gfx_path, 'font/%d.png' %
-                                   i)).convertToFormat(QImage.Format_ARGB32)
+                                   i)).convertToFormat(QImage.Format.Format_ARGB32)
             self.setLayerData(i - 30, img)
 
     @classmethod
