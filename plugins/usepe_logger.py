@@ -1,10 +1,12 @@
-""" To-Do """
+""" This plugin manages all the datalogs for the USEPE project. """
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import core, traf  #, stack, settings, navdb, sim, scr, tools
 from bluesky.tools import datalog
 
-logger = None
+# Datalog for all conflicts
+conflog = None
 
+# Parameters used when logging
 confheader = \
     'CONFLICTS LOG\n' + \
     'Beginning and end of all conflicts\n\n' + \
@@ -17,8 +19,8 @@ def init_plugin():
     # Instantiate the UsepeLogger entity
     usepelogger = UsepeLogger()
 
-    global logger
-    logger = datalog.crelog('USEPECONFLOG', None, confheader)
+    global conflog
+    conflog = datalog.crelog('USEPECONFLOG', None, confheader)
 
     # Configuration parameters
     config = {
@@ -32,25 +34,32 @@ def init_plugin():
     return config
 
 class UsepeLogger(core.Entity):
-    ''' To-Do '''
+    ''' Provides the needed funcionality for each log '''
 
     def __init__(self):
         super().__init__()
         
+        # This list stores the conflicts from the previous step, 
+        # ensuring each conflict is logged only once and that we know when they have ended.
         self.prevconf = list()
 
     def update(self):
         currentconf = list()
+        
+        # Go through all conflict pairs and sort the IDs for easier matching
+        # Log any new conflict
         for pair in traf.cd.confpairs_unique:
             uas1, uas2 = pair
             sortedpair = [uas1, uas2]
             sortedpair.sort()
             currentconf.append(sortedpair)
             if sortedpair not in self.prevconf:
-                logger.log(f' {sortedpair[0]}, {sortedpair[1]}, start')
+                conflog.log(f' {sortedpair[0]}, {sortedpair[1]}, start')
         
+        # Log all ended conflicts
         for pair in self.prevconf:
             if pair not in currentconf:
-                logger.log(f' {pair[0]}, {pair[1]}, end')
-        
+                conflog.log(f' {pair[0]}, {pair[1]}, end')
+
+        # Store the new conflict environment
         self.prevconf = currentconf
