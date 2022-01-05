@@ -18,7 +18,7 @@ import numpy as np
 
 from PyQt6.QtOpenGL import (QOpenGLShader, QOpenGLShaderProgram,
                          QOpenGLVertexArrayObject, QOpenGLBuffer,
-                         QOpenGLVersionProfile, QOpenGLTexture, QAbstractOpenGLFunctions)
+                         QOpenGLVersionProfile, QOpenGLTexture, QOpenGLVersionFunctionsFactory)
 from PyQt6.QtGui import QSurfaceFormat, QOpenGLContext, QImage
 
 from bluesky import settings
@@ -64,9 +64,8 @@ def init():
             # Use a dummy context to get GL functions
             glprofile = QOpenGLVersionProfile(fmt)
             ctx = QOpenGLContext()
-            # globals()['gl'] = ctx.versionFunctions(glprofile)
-            globals()['gl'] = QAbstractOpenGLFunctions()
-            print(dir(gl))
+            function_factory = QOpenGLVersionFunctionsFactory()
+            globals()['gl'] = function_factory.get(glprofile, ctx)
             # Check and set OpenGL capabilities
             if not glprofile.hasProfiles():
                 raise RuntimeError(
@@ -102,8 +101,8 @@ def init_glcontext(ctx):
         # The OpenGL functions are provided by the Qt library. Update them from the current context
         fmt = QSurfaceFormat.defaultFormat()
         glprofile = QOpenGLVersionProfile(fmt)
-        globals()['gl'] = ctx.versionFunctions(glprofile)
-    
+        function_factory = QOpenGLVersionFunctionsFactory()
+        globals()['gl'] = function_factory.get(glprofile, ctx)
     # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
     # void glGetActiveUniformBlockName(	GLuint program,
@@ -401,11 +400,11 @@ class ShaderProgram(QOpenGLShaderProgram):
             Typically executed in initializeGL(). '''
         # Compile shaders from file
         success = True and \
-            self.addShaderFromSourceFile(QOpenGLShader.Vertex, fname_vertex) and \
-            self.addShaderFromSourceFile(QOpenGLShader.Fragment, fname_frag)
+            self.addShaderFromSourceFile(QOpenGLShader.ShaderTypeBit.Vertex, fname_vertex) and \
+            self.addShaderFromSourceFile(QOpenGLShader.ShaderTypeBit.Fragment, fname_frag)
         if fname_geom:
             success = success and \
-                self.addShaderFromSourceFile(QOpenGLShader.Geometry, fname_geom)
+                self.addShaderFromSourceFile(QOpenGLShader.ShaderTypeBit.Geometry, fname_geom)
 
         # Link program
         if success:
@@ -940,14 +939,14 @@ class Texture(QOpenGLTexture):
         ''' Load the texture into GPU memory. '''
         if fname[-3:].lower() == 'dds':
             tex = DDSTexture(fname)
-            self.setFormat(QOpenGLTexture.RGB_DXT1)
+            self.setFormat(QOpenGLTexture.TextureFormat.RGB_DXT1)
             self.setSize(tex.width, tex.height)
-            self.setWrapMode(QOpenGLTexture.Repeat)
+            self.setWrapMode(QOpenGLTexture.WrapMode.Repeat)
             self.allocateStorage()
             self.setCompressedData(len(tex.data), tex.data)
         else:
             self.setData(QImage(fname))
-            self.setWrapMode(QOpenGLTexture.Repeat)
+            self.setWrapMode(QOpenGLTexture.WrapMode.Repeat)
 
     def bind(self, unit=0):
         # Overload texture bind with default texture unit to make sure that, unless an explicit

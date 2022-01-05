@@ -5,7 +5,7 @@ except ImportError:
     from collections import Collection
 import numpy as np
 import matplotlib
-matplotlib.use('Qt5Agg')
+matplotlib.use('QtAgg')
 matplotlib.rcParams['font.size'] = 5
 
 from matplotlib.figure import Figure
@@ -13,7 +13,7 @@ from matplotlib.backend_bases import key_press_handler
 import matplotlib.pyplot as plt
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea, QWidget
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, \
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas, \
     NavigationToolbar2QT as NavigationToolbar
 
 import bluesky as bs
