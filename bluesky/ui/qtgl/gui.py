@@ -71,4 +71,5 @@ def start(mode):
                        stream_port=bs.settings.stream_port)
 
     # Start the Qt main loop
-    app.exec_()
+    # app.exec_()
+    app.exec()

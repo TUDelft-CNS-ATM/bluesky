@@ -188,23 +188,23 @@ class MainWindow(QMainWindow):
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
 
     def keyPressEvent(self, event):
-        if event.modifiers() & Qt.ShiftModifier \
-                and event.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier \
+                and event.key() in [Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Left, Qt.Key.Key_Right]:
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
-            if event.key() == Qt.Key_Up:
+            if event.key() == Qt.Key.Key_Up:
                 self.radarwidget.panzoom(pan=(dlat, 0.0))
-            elif event.key() == Qt.Key_Down:
+            elif event.key() == Qt.Key.Key_Down:
                 self.radarwidget.panzoom(pan=(-dlat, 0.0))
-            elif event.key() == Qt.Key_Left:
+            elif event.key() == Qt.Key.Key_Left:
                 self.radarwidget.panzoom(pan=(0.0, -dlon))
-            elif event.key() == Qt.Key_Right:
+            elif event.key() == Qt.Key.Key_Right:
                 self.radarwidget.panzoom(pan=(0.0, dlon))
 
-        elif event.key() == Qt.Key_Escape:
+        elif event.key() == Qt.Key.Key_Escape:
             self.closeEvent()
 
-        elif event.key() == Qt.Key_F11:  # F11 = Toggle Full Screen mode
+        elif event.key() == Qt.Key.Key_F11:  # F11 = Toggle Full Screen mode
             if not self.isFullScreen():
                 self.showFullScreen()
             else:
@@ -227,7 +227,7 @@ class MainWindow(QMainWindow):
             self.actnode = nodeid
             node = self.nodes[nodeid]
             self.nodelabel.setText('<b>Node</b> {}:{}'.format(node.host_num, node.node_num))
-            self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
+            self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.SelectionFlag.ClearAndSelect)
 
     def nodesChanged(self, data):
         for host_id, host_data in data.items():
@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
 
                 btn.setIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icons/addnode.svg')))
                 btn.setIconSize(QSize(24, 16))
-                btn.setLayoutDirection(Qt.RightToLeft)
+                btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 btn.setMaximumHeight(16)
                 btn.clicked.connect(self.buttonClicked)
                 self.nodetree.setItemWidget(host, 0, btn)

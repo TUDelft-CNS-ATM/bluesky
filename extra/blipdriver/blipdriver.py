@@ -34,7 +34,7 @@ def load_lcd_font():
     gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
 
     for i, fname in enumerate(files):
-        img = QImage(fname).convertToFormat(QImage.Format_ARGB32)
+        img = QImage(fname).convertToFormat(QImage.Format.Format_ARGB32)
         ptr = c_void_p(int(img.constBits()))
         gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 

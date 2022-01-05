@@ -318,11 +318,11 @@ class RadarWidget(glh.RenderWidget):
             self.mousedragged = False
             # For mice we pan with control/command and mouse movement.
             # Mouse button press marks the beginning of a pan
-            self.prevmousepos = (event.x(), event.y())
+            self.prevmousepos = (event.pos().x(), event.pos().y())
 
         elif event.type() == QEvent.Type.MouseButtonRelease and \
                 event.button() & Qt.MouseButton.LeftButton and not self.mousedragged:
-            lat, lon = self.pixelCoordsToLatLon(event.x(), event.y())
+            lat, lon = self.pixelCoordsToLatLon(event.pos().x(), event.pos().y())
             actdata = bs.net.get_nodedata()
             tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
                                             actdata.acdata, actdata.routedata)
@@ -331,14 +331,14 @@ class RadarWidget(glh.RenderWidget):
 
         elif event.type() == QEvent.Type.MouseMove:
             self.mousedragged = True
-            self.mousepos = (event.x(), event.y())
+            self.mousepos = (event.pos().x(), event.pos().y())
             if event.buttons() & Qt.MouseButton.LeftButton:
                 dlat = 0.003 * \
-                    (event.y() - self.prevmousepos[1]) / (self.zoom * self.ar)
+                    (event.pos().y() - self.prevmousepos[1]) / (self.zoom * self.ar)
                 dlon = 0.003 * \
-                    (self.prevmousepos[0] - event.x()) / \
+                    (self.prevmousepos[0] - event.pos().x()) / \
                     (self.zoom * self.flat_earth)
-                self.prevmousepos = (event.x(), event.y())
+                self.prevmousepos = (event.pos().x(), event.pos().y())
                 self.panzoomchanged = True
                 return self.panzoom(pan=(dlat, dlon))
 
