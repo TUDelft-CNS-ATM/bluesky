@@ -48,7 +48,8 @@ class Dronetraf(core.Entity):
     def delete(self, idx):
         ''' Removes the deleted drone's ID from the list. '''
         super().delete(idx)
-        self.drones_active.remove(traf.id[idx[0]])
+        if traf.id[idx[0]] in self.drones_active:
+            self.drones_active.remove(traf.id[idx[0]])
 
     # Called every 5 simulation steps(seconds)
     @core.timed_function(name='drone_traffic', dt=5)
@@ -76,13 +77,14 @@ class Dronetraf(core.Entity):
         spd = str(randint(15, 34))
         
         # Sending the commands to the stack
-        stack.stack("CRE " + acid + ", M600, " + origin["lat"] + ", " + origin["lon"] + ", " + hdg + ", " + alt + ", " + spd)
-        stack.stack("ADDWPT " + acid + ", " + dst["lat"] + ", " + dst["lon"])
-        stack.stack(acid + " ATALT 0, DEL " + acid)
-        stack.stack("VS " + acid + ", 900")
-        stack.stack("VNAV " + acid + ", ON")
-        stack.stack(acid + " AT " + acid + "001 DO SPD " + acid + " 0")
-        stack.stack(acid + " AT " + acid + "001 DO ALT " + acid + " 0")
+        stack.stack(f'CRE {acid} M600 {origin["lat"]} {origin["lon"]} {hdg} {alt} {spd}')
+        stack.stack(f'ADDWPT {acid} {dst["lat"]} {dst["lon"]}')
+        stack.stack(f'{acid} ATALT 0 DEL {acid}')
+        stack.stack(f'VS {acid} 900')
+        stack.stack(f'VNAV {acid} ON')
+        stack.stack(f'{acid} ATDIST {dst["lat"]} {dst["lon"]} 0.03 SPD {acid} 10')
+        stack.stack(f'{acid} ATDIST {dst["lat"]} {dst["lon"]} 0.001 SPD {acid} 0')
+        stack.stack(f'{acid} ATSPD 0 ALT {acid} 0')
 
     def assign_id(self):
         ''' Assigns a new ID not already in use. '''
