@@ -193,9 +193,9 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
 
         idxdata = np.array(itexw * itexh *
                            [(0, 0, 0, -1)], dtype=np.int32)
-        glh.gl.glTexImage2D_alt(glh.Texture.Target.Target2D, 0, glh.Texture.TextureFormat.RGBA32I,
-                                itexw, itexh, 0, glh.Texture.PixelFormat.RGBA_Integer,
-                                glh.Texture.PixelType.Int32, idxdata.tobytes())
+        glh.gl.glTexImage2D_alt(glh.Texture.Target.Target2D.value, 0, glh.Texture.TextureFormat.RGBA32I.value,
+                                itexw, itexh, 0, glh.Texture.PixelFormat.RGBA_Integer.value,
+                                glh.Texture.PixelType.Int32.value, idxdata.tobytes())
 
         self.indextexture.setWrapMode(glh.Texture.CoordinateDirection.DirectionS,
                                       glh.Texture.WrapMode.ClampToBorder)
@@ -278,7 +278,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
                     if finished:
                         # Tile not loaded yet, fetch in the background
                         task = TileLoader(self.tilesource, self.curtilezoom, x, y, i, j)
-                        task.signals.finished.connect(self.tileslot.slot, Qt.QueuedConnection)
+                        task.signals.finished.connect(self.tileslot.slot, Qt.ConnectionType.QueuedConnection)
                         self.threadpool.start(task)
 
                     # In the mean time, check if more zoomed-out tiles are loaded that can be used
@@ -304,9 +304,10 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         data = np.array(index_tex, dtype=np.int32)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D, 0, 0, 0, nx, ny,
-                                   glh.Texture.PixelFormat.RGBA_Integer,
-                                   glh.Texture.PixelType.Int32, data.tobytes())
+
+        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D.value, 0, 0, 0, nx, ny,
+                                   glh.Texture.PixelFormat.RGBA_Integer.value,
+                                   glh.Texture.PixelType.Int32.value, data.tobytes())
 
     def load_tile(self, tile):
         ''' Send loaded image data to GPU texture array.
@@ -349,9 +350,10 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # Update index texture
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
         self.indextexture.bind(2)
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D, 0, tile.idxx, tile.idxy,
-                                   1, 1, glh.Texture.PixelFormat.RGBA_Integer,
-                                   glh.Texture.PixelType.Int32, idxdata.tobytes())
+
+        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D.value, 0, tile.idxx, tile.idxy,
+                                   1, 1, glh.Texture.PixelFormat.RGBA_Integer.value,
+                                   glh.Texture.PixelType.Int32.value, idxdata.tobytes())
 
         self.indextexture.release()
 
