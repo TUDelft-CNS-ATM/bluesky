@@ -1,6 +1,6 @@
 from bluesky import settings
 # Register settings defaults
-settings.set_variable_defaults(prefer_compiled=False)
+settings.set_variable_defaults(prefer_compiled=True)
 if settings.prefer_compiled:
     try:
         from . import cgeo as geo
