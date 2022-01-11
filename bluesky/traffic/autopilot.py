@@ -84,8 +84,11 @@ class Autopilot(Entity, replaceable=True):
             # Route objects
             self.route = []
 
-    def create( self, n=1 ):
-        super().create( n )
+
+        self.reached = []    # List indices of aircraft who have reached their active waypoint
+
+    def create(self, n=1):
+        super().create(n)
 
         # FMS directions
         self.tas[-n:] = bs.traf.tas[-n:]
@@ -124,8 +127,10 @@ class Autopilot(Entity, replaceable=True):
         - Shift waypoint (last,next etc.) data for aircraft i where necessary
         - Compute VNAV profile for this new leg
         """
-        for i in bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
-                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad,bs.traf.actwp.swlastwp):
+        # List of indices of aircraft which have reached their active waypoint
+        self.idxreached = bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
+                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad,bs.traf.actwp.swlastwp)
+        for i in self.idxreached:
 
             # Save current wp speed for use on next leg when we pass this waypoint
             # VNAV speeds are always FROM-speeds, so we accelerate/decellerate at the waypoint
@@ -387,11 +392,15 @@ class Autopilot(Entity, replaceable=True):
         usenextspdcon = (self.dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd>-990.) * \
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
         useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,
-                                   (self.dist2turn < (dxturnspdchg+bs.traf.actwp.turndist)) * \
-                                        swturnspd*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav)
+                                   (self.dist2turn < (dxturnspdchg+bs.traf.actwp.turndist))) * \
+                                        swturnspd*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
 
         # Hold turn mode can only be switched on here, cannot be switched off here (happeps upon passing wp)
+<<<<<<< HEAD
         bs.traf.actwp.turntonextwp = np.logical_or( bs.traf.actwp.turntonextwp, useturnspd )
+=======
+        bs.traf.actwp.turntonextwp = bs.traf.swlnav*np.logical_or(bs.traf.actwp.turntonextwp,useturnspd)
+>>>>>>> 55a538a3cd936f33cff9df650c38924aa97557b1
 
         # Which CAS/Mach do we have to keep? VNAV, last turn or next turn?
         oncurrentleg = ( abs( degto180( bs.traf.trk - qdr ) ) < 2.0 )  # [deg]
@@ -535,9 +544,16 @@ class Autopilot(Entity, replaceable=True):
                 # Distance to next waypoint where we need to start descent (top of descent) [m]
                 descdist = abs(bs.traf.alt[idx] - toalt) / self.steepness  # [m] required length for descent
                 self.dist2vs[idx] = descdist - xtoalt   # [m] part of that length on this leg
+<<<<<<< HEAD
                 print(bs.traf.id[idx],"traf.alt =",bs.traf.alt[idx]/ft,"ft toalt = ",toalt/ft,"ft descdist =",descdist/nm,"nm")
                 print ("d2wp = ",self.dist2wp[idx]/nm,"nm d2vs = ",self.dist2vs[idx]/nm,"nm")
                 print("xtoalt =",xtoalt/nm,"nm descdist =",descdist/nm,"nm")
+=======
+
+                #print(bs.traf.id[idx],"traf.alt =",bs.traf.alt[idx]/ft,"ft toalt = ",toalt/ft,"ft descdist =",descdist/nm,"nm")
+                #print ("d2wp = ",self.dist2wp[idx]/nm,"nm d2vs = ",self.dist2vs[idx]/nm,"nm")
+                #print("xtoalt =",xtoalt/nm,"nm descdist =",descdist/nm,"nm")
+>>>>>>> 55a538a3cd936f33cff9df650c38924aa97557b1
 
                 # Exceptions: Descend now? Or never on this leg?
                 if self.dist2wp[idx] < self.dist2vs[idx]:  # Urgent descent, we're late![m]
