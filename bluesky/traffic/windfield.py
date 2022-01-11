@@ -61,16 +61,6 @@ class Windfield():
         # 0 = no wind, 1 = constant wind, 2 = 2D field (no alt profiles),
         # 3 = 3D field (alt matters), used to speed up interpolation
         self.winddim = 0
-<<<<<<< HEAD
-        self.lat = array( [] )
-        self.lon = array( [] )
-        self.vnorth = array( [[]] )
-        self.veast = array( [[]] )
-        self.nvec = 0
-        return
-
-    def addpoint( self, lat, lon, winddir, windspd, windalt=None ):
-=======
         self.lat     = array([])
         self.lon     = array([])
         self.vnorth  = array([[]])
@@ -142,7 +132,6 @@ class Windfield():
             self.winddim = min(2,len(self.lat))
 
     def addpoint(self,lat,lon,winddir,windspd,windalt=None):
->>>>>>> 55a538a3cd936f33cff9df650c38924aa97557b1
         """ addpoint: adds a lat,lon position with a wind direction [deg]
                                                      and wind speedd [m/s]
             Optionally an array with altitudes can be used in which case windspd
@@ -192,21 +181,12 @@ class Windfield():
 
         self.nvec = self.nvec + 1
 
-<<<<<<< HEAD
-        return idx  # return index of added point
-
-    def getdata( self, userlat, userlon, useralt=0.0 ):  # in case no altitude specified and field is 3D, use sea level wind
-        eps = 1e-20  # [m2] to avoid divison by zero for using exact same points
-
-        swvector = ( type( userlat ) == list or type( userlat ) == ndarray )
-=======
         return idx # return index of added point
     
     def getdata(self,userlat,userlon,useralt=0.0): # in case no altitude specified and field is 3D, use sea level wind
         eps = 1e-20 # [m2] to avoid divison by zero for using exact same points
 
         swvector = (type(userlat)==list or type(userlat)==ndarray)
->>>>>>> 55a538a3cd936f33cff9df650c38924aa97557b1
         if swvector:
             npos = len( userlat )
         else:
@@ -225,71 +205,6 @@ class Windfield():
         else:
             alt = zeros( npos )
 
-<<<<<<< HEAD
-        # Check dimension of wind field
-        if self.winddim == 0:  # None = no wind
-            vnorth = zeros( npos )
-            veast = zeros( npos )
-
-        elif self.winddim == 1:  # Constant = one point defined, so constant wind
-            vnorth = ones( npos ) * self.vnorth[0, 0]
-            veast = ones( npos ) * self.veast[0, 0]
-
-        elif self.winddim >= 2:  # 2D/3D field = more points defined but no altitude profile
-
-            #---- Get horizontal weight factors
-
-            # Average cosine for flat-eartyh approximation
-            cavelat = cos( radians( 0.5 * ( lat + array( [self.lat] ).transpose() ) ) )
-
-            # Lat and lon distance in 60 nm units (1 lat degree)
-            dy = lat - array( [self.lat] ).transpose()  # (nvec,npos)
-            dx = cavelat * ( lon - array( [self.lon] ).transpose() )
-
-            # Calulate invesre distance squared
-            invd2 = 1. / ( eps + dx * dx + dy * dy )  # inverse of distance squared
-
-            # Normalize weights
-            sumsid2 = ones( ( 1, self.nvec ) ).dot( invd2 )  # totals to normalize weights
-            totals = repeat( sumsid2, self.nvec, axis=0 )  # scale up dims to (nvec,npos)
-
-            horfact = invd2 / totals  # rows x col = nvec x npos, weight factors
-
-            #---- Altitude interpolation
-
-            # No altitude profiles used: do 2D planar interpolation only
-            if self.winddim == 2 or ( ( type( useralt ) not in ( list, ndarray ) ) and useralt == 0.0 ):  # 2D field no altitude interpolation
-                vnorth = self.vnorth[0,:].dot( horfact )
-                veast = self.veast[0,:].dot( horfact )
-
-            # 3D interpolation as one or more points contain altitude profile
-            else:
-
-                # Get altitude index as float for alt interpolation
-                idxalt = maximum( 0., minimum( self.altaxis[-1] - eps, alt ) / self.altstep )  # find right index
-
-                # Convert to index and factor
-                ialt = floor( idxalt ).astype( int )  # index array for lower altitude
-                falt = idxalt - ialt  # factor for upper value
-
-                # Altitude interpolation combined with horizontal
-                nvec = len( self.lon )  # Get number of definition points
-
-                # North wind (y-direction ot lat direction)
-                vn0 = ( self.vnorth[ialt,:] * horfact.T ).dot( ones( ( nvec, 1 ) ) )  # hor interpolate lower alt (npos x)
-                vn1 = ( self.vnorth[ialt + 1,:] * horfact.T ).dot( ones( ( nvec, 1 ) ) )  # hor interpolate lower alts (npos x)
-                vnorth = ( 1. - falt ) * ( vn0.reshape( npos ) ) + falt * ( vn1.reshape( npos ) )  # As 1D array
-                print( 'vnorth' )
-                print( vnorth )
-                print( self.vnorth[ialt,:] )
-                # East wind (x-direction or lon direction)
-                ve0 = ( self.veast[ialt,:] * horfact.T ).dot( ones( ( nvec, 1 ) ) )
-                ve1 = ( self.veast[ialt + 1,:] * horfact.T ).dot( ones( ( nvec, 1 ) ) )
-                veast = ( 1. - falt ) * ( ve0.reshape( npos ) ) + falt * ( ve1.reshape( npos ) )  # As 1D array
-                end2 = time.time()
-                print( end2 - end )
-                print( 'hola' )
-=======
         # Check if RGI functions are present, if so use them for interpolation
         if self.fe is not None and self.fn is not None:
             vnorth = self.fn(concatenate((alt.reshape(1,-1), lat, lon), axis=0).T)
@@ -353,7 +268,6 @@ class Windfield():
                     ve0    = (self.veast[ialt,:]*horfact.T).dot(ones((nvec,1)))
                     ve1    = (self.veast[ialt+1,:]*horfact.T).dot(ones((nvec,1)))
                     veast  = (1.-falt)*(ve0.reshape(npos)) + falt*(ve1.reshape(npos)) # As 1D array
->>>>>>> 55a538a3cd936f33cff9df650c38924aa97557b1
 
         # Return same type as positons were given
         if type( userlat ) == ndarray:
