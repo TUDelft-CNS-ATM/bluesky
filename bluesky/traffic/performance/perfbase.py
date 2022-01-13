@@ -31,14 +31,25 @@ class PerfBase(Entity, replaceable=True):
             self.drag = np.array([])  # drag
             self.fuelflow = np.array([])  # fuel flow
 
-            # Performance limits per aircraft
-            self.vmin = np.array([])
-            self.vmax = np.array([])
+            # Envelope limits per aircraft
+            self.hmax = np.array([])  # Flight ceiling [m]
+            self.vmin = np.array([])  # Minimum operating speed [m/s]
+            self.vmax = np.array([])  # Maximum operating speed [m/s]
+            self.vsmin = np.array([])  # Maximum descent speed [m/s]
+            self.vsmax = np.array([])  # Maximum climb speed [m/s]
             self.axmax = np.array([])  # Max/min acceleration [m/s2]
 
     def create(self, n):
         super().create(n=n)
+        # Set wide default limits, so that no envelope limiting occurs
+        # when the actual performance model used doesn't support it
         self.axmax[-n:] = 2.0  # Default acceleration limit is 2 m/s2
+        self.hmax[-n:] = 1e6
+        self.vmin[-n:] = -1e6
+        self.vmax[-n:] = 1e6
+        self.vsmin[-n:] = -1e6
+        self.vsmax[-n:] = 1e6
+
 
     @timed_function(name="performance", dt=settings.performance_dt, manual=True)
     def update(self, dt=settings.performance_dt):

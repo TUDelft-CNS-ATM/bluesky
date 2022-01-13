@@ -2,7 +2,31 @@
 from weakref import WeakValueDictionary
 import numpy as np
 from matplotlib.path import Path
-from rtree import index
+try:
+    from rtree.index import Index
+except (ImportError, OSError):
+    print('Warning: RTree could not be loaded. areafilter get_intersecting and get_knearest won\'t work')
+    class Index:
+        ''' Dummy index class for installations where rtree is missing
+            or doesn't work.
+        '''
+        @staticmethod
+        def intersection(*args, **kwargs):
+            return []
+
+        @staticmethod
+        def nearest(*args, **kwargs):
+            return []
+
+        @staticmethod
+        def insert(*args, **kwargs):
+            return
+
+        @staticmethod
+        def delete(*args, **kwargs):
+            return
+
+
 import bluesky as bs
 from bluesky.tools.geo import kwikdist
 
@@ -98,7 +122,7 @@ class Shape:
     areas_by_name = WeakValueDictionary()
 
     # RTree of all areas for efficient geospatial searching
-    areatree = index.Index()
+    areatree = Index()
 
     @classmethod
     def reset(cls):

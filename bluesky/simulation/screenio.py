@@ -75,7 +75,7 @@ class ScreenIO:
         self.def_zoom = 1.0
 
         # Communicate reset to gui
-        bs.net.send_event(b'RESET', b'ALL')
+        bs.net.send_event(b'RESET', b'ALL', target=[b'*'])
 
     def echo(self, text='', flags=0):
         bs.net.send_event(b'ECHO', dict(text=text, flags=flags))
@@ -127,7 +127,7 @@ class ScreenIO:
             areafilter.basic_shapes[name].raw['color'] = (r, g, b)
         else:
             return False, 'No object found with name ' + name
-        bs.net.send_event(b'COLOR', data)
+        bs.net.send_event(b'COLOR', data, target=[b'*'])
         return True
 
     def pan(self, *args):
@@ -183,7 +183,8 @@ class ScreenIO:
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        bs.net.send_event(b'DEFWPT', dict(name=name, lat=lat, lon=lon))
+        bs.net.send_event(b'DEFWPT', dict(
+            name=name, lat=lat, lon=lon), target=[b'*'])
         return True
 
     def show_file_dialog(self):
@@ -205,7 +206,8 @@ class ScreenIO:
                     BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
                     CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
         """
-        bs.net.send_event(b'SHAPE', dict(name=objname, shape=objtype, coordinates=data))
+        bs.net.send_event(b'SHAPE', dict(
+            name=objname, shape=objtype, coordinates=data), target=[b'*'])
 
     def event(self, eventname, eventdata, sender_rte):
         if eventname == b'PANZOOM':
