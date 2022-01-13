@@ -5,11 +5,17 @@ from bluesky.tools import datalog
 
 # Datalog for all conflicts
 conflog = None
+loslog = None
 
 # Parameters used when logging
 confheader = \
     'CONFLICTS LOG\n' + \
-    'Beginning and end of all conflicts\n\n' + \
+    'Start and end of all conflicts\n\n' + \
+    'Simulation Time [s], UAS1, UAS2, Start/End'
+
+losheader = \
+    'LOSS OF SEPARATION LOG\n' + \
+    'Start and end of all loss of separation\n\n' + \
     'Simulation Time [s], UAS1, UAS2, Start/End'
 
 ### Initialisation function of your plugin. Do not change the name of this
@@ -20,7 +26,9 @@ def init_plugin():
     usepelogger = UsepeLogger()
 
     global conflog
+    global loslog
     conflog = datalog.crelog('USEPECONFLOG', None, confheader)
+    loslog = datalog.crelog('USEPELOSLOG', None, losheader)
 
     # Configuration parameters
     config = {
@@ -43,7 +51,11 @@ class UsepeLogger(core.Entity):
         # ensuring each conflict is logged only once and that we know when they have ended.
         self.prevconf = list()
 
+        self.prevlos = list()
+
     def update(self):
+        self.los_logger()
+
         currentconf = list()
         
         # Go through all conflict pairs and sort the IDs for easier matching
@@ -63,3 +75,24 @@ class UsepeLogger(core.Entity):
 
         # Store the new conflict environment
         self.prevconf = currentconf
+    
+    def los_logger(self):
+        currentlos = list()
+
+        # Go through all loss of separation pairs and sort the IDs for easier matching
+        # Log any new loss of separation
+        for pair in traf.cd.lospairs_unique:
+            uas1, uas2 = pair
+            sortedpair = [uas1, uas2]
+            sortedpair.sort()
+            currentlos.append(sortedpair)
+            if sortedpair not in self.prevlos:
+                loslog.log(f' {sortedpair[0]}, {sortedpair[1]}, start')
+
+        # Log all ended loss of separation
+        for pair in self.prevlos:
+            if pair not in currentlos:
+                loslog.log(f' {pair[0]}, {pair[1]}, end')
+        
+        # Store the new loss of separation environment
+        self.prevlos = currentlos
