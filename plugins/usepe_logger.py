@@ -79,8 +79,7 @@ class UsepeLogger(core.Entity):
         currentlos = list()
 
         # Go through all loss of separation pairs and sort the IDs for easier matching
-        currentlos = [list(pair) for pair in traf.cd.lospairs_unique]
-        for pair in currentlos: pair.sort()
+        currentlos = [sorted(pair) for pair in traf.cd.lospairs_unique]
         
         # Create lists of all new and ended LoS
         startlos = [currpair for currpair in currentlos if currpair not in self.prevlos]
