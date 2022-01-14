@@ -47,10 +47,9 @@ class UsepeLogger(core.Entity):
     def __init__(self):
         super().__init__()
         
-        # This list stores the conflicts from the previous step, 
-        # ensuring each conflict is logged only once and that we know when they have ended.
+        # These lists stores the events from the previous step, 
+        # ensuring each event is logged only once and that we know when they have ended.
         self.prevconf = list()
-
         self.prevlos = list()
 
     def update(self):
@@ -80,19 +79,29 @@ class UsepeLogger(core.Entity):
         currentlos = list()
 
         # Go through all loss of separation pairs and sort the IDs for easier matching
-        # Log any new loss of separation
-        for pair in traf.cd.lospairs_unique:
-            uas1, uas2 = pair
-            sortedpair = [uas1, uas2]
-            sortedpair.sort()
-            currentlos.append(sortedpair)
-            if sortedpair not in self.prevlos:
-                loslog.log(f' {sortedpair[0]}, {sortedpair[1]}, start')
+        currentlos = [list(pair) for pair in traf.cd.lospairs_unique]
+        for pair in currentlos: pair.sort()
+        
+        # Create lists of all new and ended LoS
+        startlos = [currpair for currpair in currentlos if currpair not in self.prevlos]
+        endlos = [prevpair for prevpair in self.prevlos if prevpair not in currentlos]
 
-        # Log all ended loss of separation
-        for pair in self.prevlos:
-            if pair not in currentlos:
-                loslog.log(f' {pair[0]}, {pair[1]}, end')
+        # Log start and end of LoS
+        loslog.log(startlos, 'start')
+        loslog.log(endlos, 'end')
+
+        # for pair in traf.cd.lospairs_unique:
+        #     uas1, uas2 = pair
+        #     sortedpair = [uas1, uas2]
+        #     sortedpair.sort()
+        #     currentlos.append(sortedpair)
+        #     if sortedpair not in self.prevlos:
+        #         loslog.log(f' {sortedpair[0]}, {sortedpair[1]}, start')
+
+        # # Log all ended loss of separation
+        # for pair in self.prevlos:
+        #     if pair not in currentlos:
+        #         loslog.log(f' {pair[0]}, {pair[1]}, end')
         
         # Store the new loss of separation environment
         self.prevlos = currentlos
