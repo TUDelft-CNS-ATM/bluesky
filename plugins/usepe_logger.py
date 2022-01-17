@@ -55,24 +55,23 @@ class UsepeLogger(core.Entity):
 
     def update(self):
         ''' Periodic function calling each logger function. '''
+        self.conf_logger()
         self.los_logger()
 
+    def conf_logger(self):
+        ''' Sorts current conflicts and logs new and ended events. '''
         currentconf = list()
         
         # Go through all conflict pairs and sort the IDs for easier matching
-        # Log any new conflict
-        for pair in traf.cd.confpairs_unique:
-            uas1, uas2 = pair
-            sortedpair = [uas1, uas2]
-            sortedpair.sort()
-            currentconf.append(sortedpair)
-            if sortedpair not in self.prevconf:
-                conflog.log(f' {sortedpair[0]}, {sortedpair[1]}, start')
-        
-        # Log all ended conflicts
-        for pair in self.prevconf:
-            if pair not in currentconf:
-                conflog.log(f' {pair[0]}, {pair[1]}, end')
+        currentconf = [sorted(pair) for pair in traf.cd.confpairs_unique]
+
+        # Create lists of all new and ended conflicts
+        startconf = [currpair for currpair in currentconf if currpair not in self.prevconf]
+        endconf = [prevpair for prevpair in self.prevconf if prevpair not in currentconf]
+
+        # Log start and end of conflicts
+        conflog.log(startconf, 'start')
+        conflog.log(endconf, 'end')
 
         # Store the new conflict environment
         self.prevconf = currentconf
