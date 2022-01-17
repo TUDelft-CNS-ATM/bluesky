@@ -1,7 +1,10 @@
 """ This plugin manages all the data loggers for the USEPE project. """
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, traf  #, stack, settings, navdb, sim, scr, tools
+from bluesky import core, traf, stack #, settings, navdb, sim, scr, tools
 from bluesky.tools import datalog
+
+# List of the names of all the data loggers
+loggers = ['USEPECONFLOG', 'USEPELOSLOG']
 
 # The data loggers
 conflog = None
@@ -39,8 +42,17 @@ def init_plugin():
         'update': usepelogger.update
         }
 
+    stackfunctions = {
+        'USEPELOGGER': [
+            'USEPELOGGER LIST/ON',
+            'txt',
+            usepelogger.usepelogger,
+            'List/enable all the available data loggers'
+        ]
+    }
+
     # init_plugin() should always return a configuration dict.
-    return config
+    return config, stackfunctions
 
 class UsepeLogger(core.Entity):
     ''' Provides the needed funcionality for each log. '''
@@ -93,3 +105,17 @@ class UsepeLogger(core.Entity):
         
         # Store the new loss of separation environment
         self.prevlos = currentlos
+
+    def usepelogger(self, cmd):
+        ''' USEPELOGGER command for the plugin.
+            Options:
+            LIST: List all the available data loggers for the project
+            ON: Enable all the data loggers '''
+        if cmd == 'LIST':
+            return True, f'Available data loggers: {str.join(", ", loggers)}'
+        elif cmd == 'ON':
+            for x in range(len(loggers)):
+                stack.stack(f'{loggers[x]} ON')
+            return True, f'All data loggers for USEPE enabled.'
+        else:
+            return False, f'Available commands are: LIST, ON'
