@@ -1,9 +1,9 @@
-""" This plugin manages all the datalogs for the USEPE project. """
+""" This plugin manages all the data loggers for the USEPE project. """
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import core, traf  #, stack, settings, navdb, sim, scr, tools
 from bluesky.tools import datalog
 
-# Datalog for all conflicts
+# The data loggers
 conflog = None
 loslog = None
 
@@ -25,6 +25,7 @@ def init_plugin():
     # Instantiate the UsepeLogger entity
     usepelogger = UsepeLogger()
 
+    # Create the loggers
     global conflog
     global loslog
     conflog = datalog.crelog('USEPECONFLOG', None, confheader)
@@ -42,7 +43,7 @@ def init_plugin():
     return config
 
 class UsepeLogger(core.Entity):
-    ''' Provides the needed funcionality for each log '''
+    ''' Provides the needed funcionality for each log. '''
 
     def __init__(self):
         super().__init__()
@@ -53,6 +54,7 @@ class UsepeLogger(core.Entity):
         self.prevlos = list()
 
     def update(self):
+        ''' Periodic function calling each logger function. '''
         self.los_logger()
 
         currentconf = list()
@@ -76,6 +78,7 @@ class UsepeLogger(core.Entity):
         self.prevconf = currentconf
     
     def los_logger(self):
+        ''' Sorts current LoS and logs new and ended events. '''
         currentlos = list()
 
         # Go through all loss of separation pairs and sort the IDs for easier matching
@@ -88,19 +91,6 @@ class UsepeLogger(core.Entity):
         # Log start and end of LoS
         loslog.log(startlos, 'start')
         loslog.log(endlos, 'end')
-
-        # for pair in traf.cd.lospairs_unique:
-        #     uas1, uas2 = pair
-        #     sortedpair = [uas1, uas2]
-        #     sortedpair.sort()
-        #     currentlos.append(sortedpair)
-        #     if sortedpair not in self.prevlos:
-        #         loslog.log(f' {sortedpair[0]}, {sortedpair[1]}, start')
-
-        # # Log all ended loss of separation
-        # for pair in self.prevlos:
-        #     if pair not in currentlos:
-        #         loslog.log(f' {pair[0]}, {pair[1]}, end')
         
         # Store the new loss of separation environment
         self.prevlos = currentlos
