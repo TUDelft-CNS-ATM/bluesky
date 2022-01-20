@@ -10,6 +10,7 @@ loggers = ['USEPECONFLOG', 'USEPELOSLOG', 'USEPECPALOG']
 conflog = None
 loslog = None
 cpalog = None
+updateInterval = 1.0
 
 # Parameters used when logging
 confheader = \
@@ -46,7 +47,7 @@ def init_plugin():
     config = {
         'plugin_name':     'USEPELOGGER',
         'plugin_type':     'sim',
-        'update_interval': 1.0,
+        'update_interval': updateInterval,
         'update': usepelogger.update
         }
 
@@ -122,7 +123,7 @@ class UsepeLogger(core.Entity):
         # For the best estimate, CPA is logged just after it happens (when tcpa turns negative)
         for x in range(len(traf.cd.confpairs)):
             pair = sorted(traf.cd.confpairs[x])
-            if (-1 < traf.cd.tcpa[x] <= 0) and (pair not in loggedpair):
+            if (-1 * updateInterval < traf.cd.tcpa[x] <= 0) and (pair not in loggedpair):
                 cpalog.log(pair[0], pair[1], traf.cd.dcpa[x])
                 loggedpair.append(pair)
 
