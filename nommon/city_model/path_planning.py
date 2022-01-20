@@ -3,14 +3,9 @@
 """
 A module to compute an optimal route from origin to destination
 """
-from nommon.city_model.utils import nearestNode3d
-
 from networkx.algorithms.shortest_paths.weighted import single_source_dijkstra
 
-<<<<<<< HEAD
 from nommon.city_model.utils import nearestNode3d
-=======
->>>>>>> branch 'nommon' of https://github.com/USEPE-SesarJU/bluesky.git
 import networkx as nx
 import osmnx as ox
 
