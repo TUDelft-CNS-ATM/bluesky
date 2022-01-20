@@ -3,13 +3,17 @@
 """
 A module to compute an optimal route from origin to destination
 """
+from nommon.city_model.utils import nearestNode3d
+
 from networkx.algorithms.shortest_paths.weighted import single_source_dijkstra
+
+import networkx as nx
+import osmnx as ox
+
 
 __author__ = 'jbueno'
 __copyright__ = '(c) Nommon 2021'
 
-import networkx as nx
-import osmnx as ox
 
 
 def trajectoryCalculation( G, orig, dest ):
@@ -28,8 +32,24 @@ def trajectoryCalculation( G, orig, dest ):
             route (list): list containing the waypoints of the optimal route.
     """
     print( 'Calculating the route...' )
-    orig_node = ox.distance.nearest_nodes( G, X=orig[0], Y=orig[1] )
-    dest_node = ox.distance.nearest_nodes( G, X=dest[0], Y=dest[1] )
+    # Origin
+    if len( orig ) == 2:
+        orig_node = ox.distance.nearest_nodes( G, X=orig[0], Y=orig[1] )
+    elif len( orig ) == 3:
+        orig_node = nearestNode3d( G, lon=orig[0], lat=orig[1], altitude=orig[2] )
+    elif len( orig ) == 1:
+        raise ValueError( 'Origin node needs at least 2 values' )
+    else:
+        raise ValueError( 'Origin node has too many values' )
+    # Destination
+    if len( dest ) == 2:
+        dest_node = ox.distance.nearest_nodes( G, X=dest[0], Y=dest[1] )
+    elif len( dest ) == 3:
+        dest_node = nearestNode3d( G, lon=dest[0], lat=dest[1], altitude=dest[2] )
+    elif len( dest ) == 1:
+        raise ValueError( 'Destination node needs at least 2 values' )
+    else:
+        raise ValueError( 'Destination node has too many values' )
 
     # find the shortest path between nodes, minimizing travel time
     weight, route = single_source_dijkstra( G, source=orig_node, target=dest_node,

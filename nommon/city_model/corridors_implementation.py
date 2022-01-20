@@ -5,6 +5,7 @@
 """
 
 from nommon.city_model.dynamic_segments import defineSegment
+from nommon.city_model.utils import nearestNode3d
 import csv
 import json
 import math
@@ -15,40 +16,6 @@ import osmnx as ox
 
 __author__ = 'jbueno'
 __copyright__ = '(c) Nommon 2021'
-
-
-def insertionNode( G, lon, lat, altitude ):
-    '''
-    This function gets the closest node of the city graph nodes with respect
-    to a given reference point (lat, lon, alt)
-
-    Input:
-        G - graph
-        lon - longitude of the reference point
-        lat - latitude of the reference point
-        altitude - altitude of the reference point
-
-    Output:
-        nearest_node - closest node of the city graph nodes with respect to the reference point
-        distance - distance between the nearest node and the reference point (lat, lon, alt)
-    '''
-    # The nodes are filtered to exclude corridor nodes
-    nodes = list( G.nodes )
-    filtered_latlon = list( filter( lambda node: str( node )[:3] != 'COR', nodes ) )
-    # Iterates to get the closest one
-    nearest_node = filtered_latlon[0]
-    delta_xyz = ( ( G.nodes[nearest_node]['z'] - altitude ) ** 2 +
-                  ( G.nodes[nearest_node]['y'] - lat ) ** 2 +
-                  ( G.nodes[nearest_node]['x'] - lon ) ** 2 )
-
-    for node in filtered_latlon[1:]:
-        delta_xyz_aux = ( ( G.nodes[node]['z'] - altitude ) ** 2 +
-                          ( G.nodes[node]['y'] - lat ) ** 2 +
-                          ( G.nodes[node]['x'] - lon ) ** 2 )
-        if delta_xyz_aux < delta_xyz:
-            delta_xyz = delta_xyz_aux
-            nearest_node = node
-    return nearest_node
 
 
 def entryNodes( G, segments, node, name, speed, next_node, config ):
@@ -125,7 +92,7 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
 
     # Linking the lower entry point with the city grid
     # Gets closest point in the city grid and distance to it
-    node_G = insertionNode( G, entry_lon, entry_lat, entry_low_height )
+    node_G = nearestNode3d( G, entry_lon, entry_lat, entry_low_height )
 
     # delta_z = G.nodes[node_G]['z'] - G.nodes[node_low]['z']
     # delta_xy = ox.distance.great_circle_vec( G.nodes[node_G]['y'], G.nodes[node_G]['x'],
@@ -247,14 +214,13 @@ def getCorridorCoordinates( corridor, file_path ):
     _, file_extension = os.path.splitext( file_path )
     if file_extension == ".csv":
         with open( file_path, 'r' ) as csv_file:
-            reader = csv.reader( csv_file, delimiter=';' )
-            # fields = reader.next()
+            reader = csv.DictReader( csv_file )
             rows = []
             corridor_row = []
             for row in reader:
                 rows.append( row )
-                if row[0] == corridor:
-                    corridor_row.append( [float( row[2] ), float( row[1] )] )
+                if row['corridor'] == corridor:
+                    corridor_row.append( [float( row['lon'] ), float( row['lat'] )] )
 
     elif file_extension == ".geojson":
         with open( file_path ) as json_file:
@@ -317,8 +283,8 @@ def corridorLoad( G, segments, config ):
 
 
 if __name__ == '__main__':
-    file_path = "C:/workspace3/bluesky/nommon/city_model/data/usepe-hannover-corridors.geojson"
-    corridor = "10"
+    file_path = "C:/workspace3/bluesky_organisation_clone/nommon/city_model/data/usepe-hannover-corridors.csv"
+    corridor = "1"
     corridor_coord = getCorridorCoordinates( corridor, file_path )
     print( corridor_coord )
 

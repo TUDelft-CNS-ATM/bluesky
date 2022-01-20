@@ -3,11 +3,11 @@
 """
 Additional functions
 """
+from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
 import string
 
 from osmnx.io import _convert_node_attr_types, _convert_bool_string, _convert_edge_attr_types
 
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
 import networkx as nx
 
 
@@ -82,6 +82,39 @@ def layersDict( config ):
 
     return layers_dict
 
+
+def nearestNode3d( G, lon, lat, altitude ):
+    '''
+    This function gets the closest node of the city graph nodes with respect
+    to a given reference point (lat, lon, alt)
+
+    Input:
+        G - graph
+        lon - longitude of the reference point
+        lat - latitude of the reference point
+        altitude - altitude of the reference point
+
+    Output:
+        nearest_node - closest node of the city graph nodes with respect to the reference point
+        distance - distance between the nearest node and the reference point (lat, lon, alt)
+    '''
+    # The nodes are filtered to exclude corridor nodes
+    nodes = list( G.nodes )
+    filtered_latlon = list( filter( lambda node: str( node )[:3] != 'COR', nodes ) )
+    # Iterates to get the closest one
+    nearest_node = filtered_latlon[0]
+    delta_xyz = ( ( G.nodes[nearest_node]['z'] - altitude ) ** 2 +
+                  ( G.nodes[nearest_node]['y'] - lat ) ** 2 +
+                  ( G.nodes[nearest_node]['x'] - lon ) ** 2 )
+
+    for node in filtered_latlon[1:]:
+        delta_xyz_aux = ( ( G.nodes[node]['z'] - altitude ) ** 2 +
+                          ( G.nodes[node]['y'] - lat ) ** 2 +
+                          ( G.nodes[node]['x'] - lon ) ** 2 )
+        if delta_xyz_aux < delta_xyz:
+            delta_xyz = delta_xyz_aux
+            nearest_node = node
+    return nearest_node
 
 if __name__ == '__main__':
     pass
