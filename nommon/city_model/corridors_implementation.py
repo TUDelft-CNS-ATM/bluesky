@@ -4,12 +4,12 @@
 
 """
 
+from nommon.city_model.dynamic_segments import defineSegment
 import csv
 import json
 import math
 import os
 
-from nommon.city_model.dynamic_segments import defineSegment
 import osmnx as ox
 
 
@@ -51,7 +51,8 @@ def insertionNode( G, lon, lat, altitude ):
         if delta_xyz_aux < delta_xyz:
             delta_xyz = delta_xyz_aux
             nearest_node = node
-    return nearest_node, math.sqrt( delta_xyz )
+
+    return nearest_node
 
 
 def entryNodes( G, segments, node, name, speed, next_node, config ):
@@ -91,7 +92,8 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     mod = math.sqrt( ( y_next - y ) ** 2 + ( x_next - x ) ** 2 )
     unit_vector_x = ( x - x_next ) / mod
     unit_vector_y = ( y - y_next ) / mod
-    entry_angle = math.atan2( unit_vector_y, unit_vector_x ) + math.pi / 6
+    delta_angle = math.pi / 6  # 30 degrees
+    entry_angle = math.atan2( unit_vector_y, unit_vector_x ) + delta_angle
 
     # Entry point coordinates
     acceleration_lenght = config['Corridors'].getint( 'acceleration_length' )
@@ -110,12 +112,14 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     G.addNodeAltitude( node_high, entry_lat, entry_lon, G.nodes[node]['z'], name )
 
     # Adding edges for those nodes
+
     # Vertical ascension to the acceleration lane
     G.add_edge( node_low, node_high, 0, oneway=False, segment=name,
                 speed=speed, length=G.nodes[node]['z'] - entry_low_height )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_high, node_low, 0, oneway=False, segment=name,
                 speed=speed, length=G.nodes[node]['z'] - entry_low_height )
+
     # Acceleration lane
     G.add_edge( node_high, node, 0, oneway=False, segment=name, speed=speed,
                 length=acceleration_lenght )
@@ -125,7 +129,7 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
 
     # Linking the lower entry point with the city grid
     # Gets closest point in the city grid and distance to it
-    node_G, length = insertionNode( G, entry_lon, entry_lat, entry_low_height )
+    node_G = insertionNode( G, entry_lon, entry_lat, entry_low_height )
 
     # delta_z = G.nodes[node_G]['z'] - G.nodes[node_low]['z']
     # delta_xy = ox.distance.great_circle_vec( G.nodes[node_G]['y'], G.nodes[node_G]['x'],
@@ -135,10 +139,16 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
 
     # Connection to the city grid
     G.add_edge( node_G, node_low, 0, oneway=False, segment='new', speed=50.0,
-                length=length )
+                length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
+                                                     G.nodes[node_G]['x'],
+                                                     G.nodes[node_low]['y'],
+                                                     G.nodes[node_low]['x'] ) )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_low, node_G, 0, oneway=False, segment=name, speed=speed,
-                length=length )
+                length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
+                                                     G.nodes[node_G]['x'],
+                                                     G.nodes[node_low]['y'],
+                                                     G.nodes[node_low]['x'] ) )
 
     return G, segments
 
@@ -200,7 +210,7 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
                                               G.nodes[nodes_corridor[0]]['x'],
                                               G.nodes[nodes_corridor[-1]]['y'],
                                               G.nodes[nodes_corridor[-1]]['x'] )
-    delta = 5.0  # tolerance distance (m) to consider the corridor as a closed path
+    delta = 25.0  # tolerance distance (m) to consider the corridor as a closed path
     if od_length < delta:
         G.add_edge( nodes_corridor[-1], nodes_corridor[0], 0, oneway=True, segment=name,
                     speed=speed,
@@ -259,7 +269,7 @@ def getCorridorCoordinates( corridor, file_path ):
                 if str( corr_id ) == corridor:
                     geo = feature["geometry"]
                     for point in geo["coordinates"]:
-                        corridor_row.append( [point[1], point[0]] )
+                        corridor_row.append( [point[0], point[1]] )
 
     return tuple( corridor_row )
 
@@ -293,9 +303,9 @@ def corridorLoad( G, segments, config ):
 
     for corridor in active_corridors:
         # Creates a unique name for the corridor
-        name = 'COR_' + corridor
+        name = 'COR' + corridor
         # Creates a name for the a corridor in the opposite direction
-        name_rev = 'COR_r_' + corridor
+        name_rev = 'COR' + corridor + 'r'
         # Get corridor coordinates
         corridor_coordinates = getCorridorCoordinates( corridor, file_path_corridors )
         # Check if the corridor exists
