@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 """
-
 """
 
 import csv
@@ -10,6 +9,7 @@ import math
 import os
 
 from nommon.city_model.dynamic_segments import defineSegment
+from nommon.city_model.utils import nearestNode3d
 import osmnx as ox
 
 
@@ -17,44 +17,9 @@ __author__ = 'jbueno'
 __copyright__ = '(c) Nommon 2021'
 
 
-def insertionNode( G, lon, lat, altitude ):
-    '''
-    This function gets the closest node of the city graph nodes with respect
-    to a given reference point (lat, lon, alt)
-
-    Input:
-        G - graph
-        lon - longitude of the reference point
-        lat - latitude of the reference point
-        altitude - altitude of the reference point
-
-    Output:
-        nearest_node - closest node of the city graph nodes with respect to the reference point
-        distance - distance between the nearest node and the reference point (lat, lon, alt)
-    '''
-    # The nodes are filtered to exclude corridor nodes
-    nodes = list( G.nodes )
-    nearest_latlon = list( filter( lambda node: str( node )[:3] != 'COR', nodes ) )
-    # Iterates to get the closest one
-    nearest_node = nearest_latlon[0]
-    delta_xyz = ( ( G.nodes[nearest_node]['z'] - altitude ) ** 2 +
-                  ( G.nodes[nearest_node]['y'] - lat ) ** 2 +
-                  ( G.nodes[nearest_node]['x'] - lon ) ** 2 )
-
-    for node in nearest_latlon[1:]:
-        delta_xyz_aux = ( ( G.nodes[node]['z'] - altitude ) ** 2 +
-                          ( G.nodes[node]['y'] - lat ) ** 2 +
-                          ( G.nodes[node]['x'] - lon ) ** 2 )
-        if delta_xyz_aux < delta_xyz:
-            delta_xyz = delta_xyz_aux
-            nearest_node = node
-    return nearest_node
-
-
 def entryNodes( G, segments, node, name, speed, next_node, config ):
     """
     This function creates the acceleration lanes for the entry points of the corridors
-
     Input:
         G - graph
         segments - segments of the graph
@@ -88,7 +53,8 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     mod = math.sqrt( ( y_next - y ) ** 2 + ( x_next - x ) ** 2 )
     unit_vector_x = ( x - x_next ) / mod
     unit_vector_y = ( y - y_next ) / mod
-    entry_angle = math.atan2( unit_vector_y, unit_vector_x ) + math.pi / 6
+    delta_angle = math.pi / 6  # 30 degrees
+    entry_angle = math.atan2( unit_vector_y, unit_vector_x ) + delta_angle
 
     # Entry point coordinates
     acceleration_lenght = config['Corridors'].getint( 'acceleration_length' )
@@ -107,12 +73,14 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     G.addNodeAltitude( node_high, entry_lat, entry_lon, G.nodes[node]['z'], name )
 
     # Adding edges for those nodes
+
     # Vertical ascension to the acceleration lane
     G.add_edge( node_low, node_high, 0, oneway=False, segment=name,
                 speed=speed, length=G.nodes[node]['z'] - entry_low_height )
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_high, node_low, 0, oneway=False, segment=name,
                 speed=speed, length=G.nodes[node]['z'] - entry_low_height )
+
     # Acceleration lane
     G.add_edge( node_high, node, 0, oneway=False, segment=name, speed=speed,
                 length=acceleration_lenght )
@@ -122,20 +90,21 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
 
     # Linking the lower entry point with the city grid
     # Gets closest point in the city grid and distance to it
-    node_G = insertionNode( G, entry_lon, entry_lat, entry_low_height )
+    node_G = nearestNode3d( G, entry_lon, entry_lat, entry_low_height )
 
     # Connection to the city grid
     G.add_edge( node_G, node_low, 0, oneway=False, segment='new', speed=50.0,
                 length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
                                                      G.nodes[node_G]['x'],
                                                      G.nodes[node_low]['y'],
-                                                     G.nodes[node_low]['x'] )  )
+                                                     G.nodes[node_low]['x'] ) )
+
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_low, node_G, 0, oneway=False, segment=name, speed=speed,
                 length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
                                                      G.nodes[node_G]['x'],
                                                      G.nodes[node_low]['y'],
-                                                     G.nodes[node_low]['x'] )  )
+                                                     G.nodes[node_low]['x'] ) )
 
     return G, segments
 
@@ -144,7 +113,6 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
     '''
     This function creates a corridor as defined by its coordinates
     and adds entry points for the corridor
-
     Input:
         G - graph
         segments - graph segments
@@ -154,7 +122,6 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
         capacity - capacity of the corridor
         name - name of the corridor
         config - configparser.ConfigParser() object that reads the configuration file
-
     Output:
         G - graph updated with the corridors
         segments - segments updated with the corridors
@@ -197,7 +164,7 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
                                               G.nodes[nodes_corridor[0]]['x'],
                                               G.nodes[nodes_corridor[-1]]['y'],
                                               G.nodes[nodes_corridor[-1]]['x'] )
-    delta = 5.0  # tolerance distance (m) to consider the corridor as a closed path
+    delta = 25.0  # tolerance distance (m) to consider the corridor as a closed path
     if od_length < delta:
         G.add_edge( nodes_corridor[-1], nodes_corridor[0], 0, oneway=True, segment=name,
                     speed=speed,
@@ -211,7 +178,6 @@ def corridorCreation( G, segments, corridor_coordinates, altitude, speed, capaci
 def str2intList( string ):
     '''
     This function transforms a string containing digits and other characters into a list of integers
-
     Input:
         string: any string, e.g., '1, 2, 40,,w'
     Output:
@@ -227,7 +193,6 @@ def str2intList( string ):
 def getCorridorCoordinates( corridor, file_path ):
     '''
     This function gets coordinates stored in a json or csv file
-
     Input:
         file_path: path to the file storing the coordinates and the corridors associated
         corridor: number (csv) or name (geojson) of the corridor required
@@ -238,14 +203,13 @@ def getCorridorCoordinates( corridor, file_path ):
     _, file_extension = os.path.splitext( file_path )
     if file_extension == ".csv":
         with open( file_path, 'r' ) as csv_file:
-            reader = csv.reader( csv_file, delimiter=';' )
-            # fields = reader.next()
+            reader = csv.DictReader( csv_file )
             rows = []
             corridor_row = []
             for row in reader:
                 rows.append( row )
-                if row[0] == corridor:
-                    corridor_row.append( [float( row[2] ), float( row[1] )] )
+                if row['corridor'] == corridor:
+                    corridor_row.append( [float( row['lon'] ), float( row['lat'] )] )
 
     elif file_extension == ".geojson":
         with open( file_path ) as json_file:
@@ -265,12 +229,10 @@ def corridorLoad( G, segments, config ):
     '''
     This function reads the parameters from the configuration file and executes the corridor
     creation function for all the active corridors defined in the configuration file
-
     Input:
         G - graph
         segments
         config - configparser.ConfigParser() object that reads the configuration file
-
     Outputs:
         G
         segments
@@ -308,8 +270,8 @@ def corridorLoad( G, segments, config ):
 
 
 if __name__ == '__main__':
-    file_path = "C:/workspace3/bluesky/nommon/city_model/data/usepe-hannover-corridors.geojson"
-    corridor = "10"
+    file_path = "C:/workspace3/bluesky_organisation_clone/nommon/city_model/data/usepe-hannover-corridors.csv"
+    corridor = "1"
     corridor_coord = getCorridorCoordinates( corridor, file_path )
     print( corridor_coord )
 

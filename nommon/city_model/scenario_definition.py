@@ -193,6 +193,9 @@ def routeParameters( G, route ):
             new_heading, increment = headingIncrement( route_parameters[str( i - 1 )]['hdg'], name,
                                                        route[i + 1], G )
             turn_speed, turn_dist, turn_rad = turnDefinition( increment )
+            if turn_speed:
+                if turn_speed > route_parameters[str( i - 1 )]['speed']:
+                    turn_speed = route_parameters[str( i - 1 )]['speed']
             node['name'] = name
             node['lat'] = G.nodes[name]['y']
             node['lon'] = G.nodes[name]['x']
