@@ -94,18 +94,13 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
     # Gets closest point in the city grid and distance to it
     node_G = nearestNode3d( G, entry_lon, entry_lat, entry_low_height )
 
-    # delta_z = G.nodes[node_G]['z'] - G.nodes[node_low]['z']
-    # delta_xy = ox.distance.great_circle_vec( G.nodes[node_G]['y'], G.nodes[node_G]['x'],
-    #                                             G.nodes[node_low]['y'],
-    #                                             G.nodes[node_low]['x'] )
-    # length = ( delta_z ** 2 + delta_xy ** 2 ) ** ( 1 / 2 )
-
     # Connection to the city grid
     G.add_edge( node_G, node_low, 0, oneway=False, segment='new', speed=50.0,
                 length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
                                                      G.nodes[node_G]['x'],
                                                      G.nodes[node_low]['y'],
                                                      G.nodes[node_low]['x'] ) )
+
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_low, node_G, 0, oneway=False, segment=name, speed=speed,
                 length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
