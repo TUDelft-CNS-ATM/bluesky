@@ -4,11 +4,12 @@ from bluesky import core, traf, stack #, settings, navdb, sim, scr, tools
 from bluesky.tools import datalog
 
 # List of the names of all the data loggers
-loggers = ['USEPECONFLOG', 'USEPELOSLOG']
+loggers = ['USEPECONFLOG', 'USEPELOSLOG', 'USEPECPALOG']
 
 # The data loggers
 conflog = None
 loslog = None
+cpalog = None
 
 # Parameters used when logging
 confheader = \
@@ -21,6 +22,11 @@ losheader = \
     'Start and end of all loss of separation\n\n' + \
     'Simulation Time [s], UAS1, UAS2, Start/End'
 
+cpaheader = \
+    'CLOSEST POINT OF APPROACH LOG\n' + \
+    'Shortest distance between 2 UAS during their conflict\n\n'+ \
+    'Simulation Time [s], UAS1, UAS2, Distance [m]'
+
 ### Initialisation function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
@@ -31,14 +37,16 @@ def init_plugin():
     # Create the loggers
     global conflog
     global loslog
+    global cpalog
     conflog = datalog.crelog('USEPECONFLOG', None, confheader)
     loslog = datalog.crelog('USEPELOSLOG', None, losheader)
+    cpalog = datalog.crelog('USEPECPALOG', None, cpaheader)
 
     # Configuration parameters
     config = {
         'plugin_name':     'USEPELOGGER',
         'plugin_type':     'sim',
-        'update_interval': 5.0,
+        'update_interval': 1.0,
         'update': usepelogger.update
         }
 
@@ -69,6 +77,7 @@ class UsepeLogger(core.Entity):
         ''' Periodic function calling each logger function. '''
         self.conf_logger()
         self.los_logger()
+        self.cpa_logger()
 
     def conf_logger(self):
         ''' Sorts current conflicts and logs new and ended events. '''
@@ -105,6 +114,17 @@ class UsepeLogger(core.Entity):
         
         # Store the new loss of separation environment
         self.prevlos = currentlos
+
+    def cpa_logger(self):
+        ''' Logs CPA for each conflict. '''
+        loggedpair = list()
+
+        # For the best estimate, CPA is logged just after it happens (when tcpa turns negative)
+        for x in range(len(traf.cd.confpairs)):
+            pair = sorted(traf.cd.confpairs[x])
+            if (-1 < traf.cd.tcpa[x] <= 0) and (pair not in loggedpair):
+                cpalog.log(pair[0], pair[1], traf.cd.dcpa[x])
+                loggedpair.append(pair)
 
     def usepelogger(self, cmd):
         ''' USEPELOGGER command for the plugin.
