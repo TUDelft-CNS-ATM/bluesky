@@ -3,20 +3,29 @@
 """
 """
 
+from nommon.city_model.dynamic_segments import defineSegment
+from nommon.city_model.utils import nearestNode3d
 import csv
 import json
 import math
 import os
 
+<<<<<<< HEAD
 from nommon.city_model.dynamic_segments import defineSegment
 from nommon.city_model.utils import nearestNode3d
+=======
+>>>>>>> branch 'nommon' of https://github.com/USEPE-SesarJU/bluesky.git
 import osmnx as ox
 
 
 __author__ = 'jbueno'
 __copyright__ = '(c) Nommon 2021'
 
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> branch 'nommon' of https://github.com/USEPE-SesarJU/bluesky.git
 def entryNodes( G, segments, node, name, speed, next_node, config ):
     """
     This function creates the acceleration lanes for the entry points of the corridors
@@ -89,21 +98,36 @@ def entryNodes( G, segments, node, name, speed, next_node, config ):
                 length=acceleration_lenght )
 
     # Linking the lower entry point with the city grid
+<<<<<<< HEAD
     # Gets closest point in the city grid and distance to it
     node_G = nearestNode3d( G, entry_lon, entry_lat, entry_low_height )
+=======
+    # Gets closest point in the city grid and distance to it
+    node_G = nearestNode3d( G, entry_lon, entry_lat, entry_low_height )
+>>>>>>> branch 'nommon' of https://github.com/USEPE-SesarJU/bluesky.git
 
     # Connection to the city grid
     G.add_edge( node_G, node_low, 0, oneway=False, segment='new', speed=50.0,
                 length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
                                                      G.nodes[node_G]['x'],
+<<<<<<< HEAD
                                                      G.nodes[node_low]['y'],
                                                      G.nodes[node_low]['x'] ) )
 
+=======
+                                                     G.nodes[node_low]['y'],
+                                                     G.nodes[node_low]['x'] ) )
+
+>>>>>>> branch 'nommon' of https://github.com/USEPE-SesarJU/bluesky.git
     # NOTE: opposite direction - it is entry and exit. TODO: To separate entry and exit points!
     G.add_edge( node_low, node_G, 0, oneway=False, segment=name, speed=speed,
                 length=ox.distance.great_circle_vec( G.nodes[node_G]['y'],
                                                      G.nodes[node_G]['x'],
+<<<<<<< HEAD
                                                      G.nodes[node_low]['y'],
+=======
+                                                     G.nodes[node_low]['y'],
+>>>>>>> branch 'nommon' of https://github.com/USEPE-SesarJU/bluesky.git
                                                      G.nodes[node_low]['x'] ) )
 
     return G, segments

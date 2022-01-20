@@ -3,11 +3,11 @@
 """
 Additional functions
 """
+from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
 import string
 
 from osmnx.io import _convert_node_attr_types, _convert_bool_string, _convert_edge_attr_types
 
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
 import networkx as nx
 
 
@@ -84,11 +84,21 @@ def nearestNode3d( G, lon, lat, altitude ):
     '''
     This function gets the closest node of the city graph nodes with respect
     to a given reference point (lat, lon, alt)
+<<<<<<< HEAD
     Input:
         G - graph
         lon - longitude of the reference point
         lat - latitude of the reference point
         altitude - altitude of the reference point
+=======
+
+    Input:
+        G - graph
+        lon - longitude of the reference point
+        lat - latitude of the reference point
+        altitude - altitude of the reference point
+
+>>>>>>> branch 'nommon' of https://github.com/USEPE-SesarJU/bluesky.git
     Output:
         nearest_node - closest node of the city graph nodes with respect to the reference point
         distance - distance between the nearest node and the reference point (lat, lon, alt)
