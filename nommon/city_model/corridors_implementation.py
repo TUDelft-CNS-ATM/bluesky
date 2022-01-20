@@ -238,14 +238,13 @@ def getCorridorCoordinates( corridor, file_path ):
     _, file_extension = os.path.splitext( file_path )
     if file_extension == ".csv":
         with open( file_path, 'r' ) as csv_file:
-            reader = csv.reader( csv_file, delimiter=';' )
-            # fields = reader.next()
+            reader = csv.DictReader( csv_file )
             rows = []
             corridor_row = []
             for row in reader:
                 rows.append( row )
-                if row[0] == corridor:
-                    corridor_row.append( [float( row[1] ), float( row[2] )] )
+                if row['corridor'] == corridor:
+                    corridor_row.append( [float( row['lon'] ), float( row['lat'] )] )
 
     elif file_extension == ".geojson":
         with open( file_path ) as json_file:
