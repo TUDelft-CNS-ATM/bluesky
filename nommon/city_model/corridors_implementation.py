@@ -245,7 +245,7 @@ def getCorridorCoordinates( corridor, file_path ):
             for row in reader:
                 rows.append( row )
                 if row[0] == corridor:
-                    corridor_row.append( [float( row[2] ), float( row[1] )] )
+                    corridor_row.append( [float( row[1] ), float( row[2] )] )
 
     elif file_extension == ".geojson":
         with open( file_path ) as json_file:
