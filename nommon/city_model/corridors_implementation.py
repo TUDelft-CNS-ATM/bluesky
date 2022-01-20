@@ -32,26 +32,22 @@ def insertionNode( G, lon, lat, altitude ):
         nearest_node - closest node of the city graph nodes with respect to the reference point
         distance - distance between the nearest node and the reference point (lat, lon, alt)
     '''
-
-    # nearest_node = ox.distance.nearest_nodes( G, X=lon, Y=lat )
-
+    # The nodes are filtered to exclude corridor nodes
     nodes = list( G.nodes )
-    # nearest_latlon = list( filter( lambda node: str( node )[1:] == nearest_node[1:]), nodes )
-    nearest_latlon = list( filter( lambda node: str( node )[:3] != 'COR', nodes ) )
-
-    nearest_node = nearest_latlon[0]
+    filtered_latlon = list( filter( lambda node: str( node )[:3] != 'COR', nodes ) )
+    # Iterates to get the closest one
+    nearest_node = filtered_latlon[0]
     delta_xyz = ( ( G.nodes[nearest_node]['z'] - altitude ) ** 2 +
                   ( G.nodes[nearest_node]['y'] - lat ) ** 2 +
                   ( G.nodes[nearest_node]['x'] - lon ) ** 2 )
 
-    for node in nearest_latlon[1:]:
+    for node in filtered_latlon[1:]:
         delta_xyz_aux = ( ( G.nodes[node]['z'] - altitude ) ** 2 +
                           ( G.nodes[node]['y'] - lat ) ** 2 +
                           ( G.nodes[node]['x'] - lon ) ** 2 )
         if delta_xyz_aux < delta_xyz:
             delta_xyz = delta_xyz_aux
             nearest_node = node
-
     return nearest_node
 
 
