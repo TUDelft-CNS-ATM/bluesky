@@ -35,8 +35,10 @@ class Poly(glh.RenderObject, layer=-20):
         bs.net.actnodedata_changed.connect(self.actdata_changed)
 
     def create(self):
+        # self.polyprev.create(vertex=POLYPREV_SIZE * 8,
+        #                      color=palette.previewpoly, usage=glh.gl.GL_DYNAMIC_DRAW)
         self.polyprev.create(vertex=POLYPREV_SIZE * 8,
-                             color=palette.previewpoly, usage=glh.gl.GL_DYNAMIC_DRAW)
+                             color=palette.previewpoly, usage=glh.GLBuffer.UsagePattern.DynamicDraw)
         self.allpolys.create(vertex=POLY_SIZE * 16, color=POLY_SIZE * 8)
         self.allpfill.create(vertex=POLY_SIZE * 24,
                              color=np.append(palette.polys, 50))
@@ -65,9 +67,9 @@ class Poly(glh.RenderObject, layer=-20):
 
     # def previewpoly(self, shape_type, data_in=None):
     def previewpoly(self, mouseevent):
-        if mouseevent.type() != mouseevent.MouseMove:
+        if mouseevent.type() != mouseevent.Type.MouseMove:
             return
-        mousepos = (mouseevent.x(), mouseevent.y())
+        mousepos = (mouseevent.pos().x(), mouseevent.pos().y())
         # Check if we are updating a preview poly
         if mousepos != self.prevmousepos:
             cmd = console.get_cmd()

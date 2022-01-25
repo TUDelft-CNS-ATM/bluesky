@@ -1,8 +1,8 @@
 from os import path
 from glob import glob
 from collections import defaultdict
-from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
+from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
     QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
         QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
         QListWidget, QListWidgetItem
@@ -88,7 +88,7 @@ class SettingsWindow(QWidget):
         self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
         self.nodetree.setStyleSheet('padding:0px')
-        self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
+        self.nodetree.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.setHeaderHidden(True)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
@@ -96,7 +96,7 @@ class SettingsWindow(QWidget):
         self.nodesettings.setLayout(QVBoxLayout())
         container = QWidget()
         container.setLayout(self.scrollarea.layout)
-        self.scrollarea.layout.setAlignment(Qt.AlignTop|Qt.AlignLeft)
+        self.scrollarea.layout.setAlignment(Qt.AlignmentFlag.AlignTop|Qt.AlignmentFlag.AlignLeft)
         self.scrollarea.setWidget(container)
         self.scrollarea.setWidgetResizable(True)
 

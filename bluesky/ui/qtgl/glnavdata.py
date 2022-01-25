@@ -83,7 +83,8 @@ class Navdata(glh.RenderObject, layer=-10):
     def create(self):
         apt_size = settings.apt_size
         wpt_size = settings.wpt_size
-        self.custwplblbuf.create(CUSTWP_SIZE * 10, usage=glh.gl.GL_STATIC_DRAW)
+        # self.custwplblbuf.create(CUSTWP_SIZE * 10, usage=glh.gl.GL_STATIC_DRAW)
+        self.custwplblbuf.create(CUSTWP_SIZE * 10, usage=glh.GLBuffer.UsagePattern.StaticDraw)
 
         # Load vertex data
         vbuf_asphalt, vbuf_concrete, vbuf_runways, vbuf_rwythr, \

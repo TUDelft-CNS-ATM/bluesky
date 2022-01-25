@@ -3,9 +3,10 @@ import importlib
 from os import path
 from collections import namedtuple
 from collections import OrderedDict
-from PyQt5.QtCore import qCritical
+import PyQt6
+from PyQt6.QtCore import qCritical
 
-from PyQt5.QtWidgets import QOpenGLWidget
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 
 try:
     from collections.abc import Collection, MutableMapping
@@ -15,10 +16,11 @@ except ImportError:
 import ctypes
 import numpy as np
 
-from PyQt5.QtGui import (QSurfaceFormat, QOpenGLShader, QOpenGLShaderProgram,
+from PyQt6.QtOpenGL import (QOpenGLShader, QOpenGLShaderProgram,
                          QOpenGLVertexArrayObject, QOpenGLBuffer,
-                         QOpenGLContext, QOpenGLVersionProfile,
-                         QOpenGLTexture, QImage)
+                         QOpenGLVersionProfile, QOpenGLTexture, QOpenGLVersionFunctionsFactory)
+from PyQt6.QtGui import QSurfaceFormat, QOpenGLContext, QImage
+
 from bluesky import settings
 from bluesky.core import Entity
 from bluesky.stack import command
@@ -35,12 +37,12 @@ _glvar_sizes = dict()
 
 
 def get_profile_settings():
-    for version in ((4, 5), (4, 4), (4, 3), (4, 2), (4, 1), (4, 0), (3, 3)):
+    for version in ((4, 1), (2, 1), (2, 0)):
         for profile in ('Core', 'Compatibility'):
             try:
-                importlib.import_module(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                importlib.import_module(f'PyQt6.QtOpenGL', package=f'QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
                 print(f'Found Qt-provided OpenGL functions for OpenGL {version} {profile}')
-                return version, QSurfaceFormat.CoreProfile if profile == 'Core' else QSurfaceFormat.CompatibilityProfile
+                return version, QSurfaceFormat.OpenGLContextProfile.CoreProfile if profile == 'Core' else QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile
             except:
                 continue
     return (4, 1), None
@@ -55,20 +57,21 @@ def init():
         fmt.setVersion(*version)
         # profile = QSurfaceFormat.CoreProfile if sys.platform == 'darwin' else QSurfaceFormat.CompatibilityProfile
 
-        fmt.setProfile(profile or QSurfaceFormat.CompatibilityProfile)
+        fmt.setProfile(profile or QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile)
         QSurfaceFormat.setDefaultFormat(fmt)
 
         if profile is not None:
             # Use a dummy context to get GL functions
             glprofile = QOpenGLVersionProfile(fmt)
             ctx = QOpenGLContext()
-            globals()['gl'] = ctx.versionFunctions(glprofile)
+            function_factory = QOpenGLVersionFunctionsFactory()
+            globals()['gl'] = function_factory.get(glprofile, ctx)
             # Check and set OpenGL capabilities
             if not glprofile.hasProfiles():
                 raise RuntimeError(
                     'No OpenGL version >= 3.3 support detected for this system!')
         else:
-            # If profile was none, PyQt5 is not shipped with any OpenGL function modules. Use PyOpenGL instead
+            # If profile was none, PyQt6 is not shipped with any OpenGL function modules. Use PyOpenGL instead
             print("Couldn't find OpenGL functions in Qt. Falling back to PyOpenGL")
             globals()['gl'] = importlib.import_module('OpenGL.GL')
 
@@ -98,8 +101,8 @@ def init_glcontext(ctx):
         # The OpenGL functions are provided by the Qt library. Update them from the current context
         fmt = QSurfaceFormat.defaultFormat()
         glprofile = QOpenGLVersionProfile(fmt)
-        globals()['gl'] = ctx.versionFunctions(glprofile)
-    
+        function_factory = QOpenGLVersionFunctionsFactory()
+        globals()['gl'] = function_factory.get(glprofile, ctx)
     # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
     # void glGetActiveUniformBlockName(	GLuint program,
@@ -188,7 +191,7 @@ def init_glcontext(ctx):
                                ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p)
     funcptr = ctx.getProcAddress(b'glTexSubImage2D')
     gl.glTexSubImage2D_alt = funtype(funcptr.__int__())
-
+    
     if getattr(gl, '__name__', '') == 'OpenGL.GL':
         # In case we are using PyOpenGL, get some of the functions to behave in the
         # same way as their counterparts in Qt
@@ -397,11 +400,11 @@ class ShaderProgram(QOpenGLShaderProgram):
             Typically executed in initializeGL(). '''
         # Compile shaders from file
         success = True and \
-            self.addShaderFromSourceFile(QOpenGLShader.Vertex, fname_vertex) and \
-            self.addShaderFromSourceFile(QOpenGLShader.Fragment, fname_frag)
+            self.addShaderFromSourceFile(QOpenGLShader.ShaderTypeBit.Vertex, fname_vertex) and \
+            self.addShaderFromSourceFile(QOpenGLShader.ShaderTypeBit.Fragment, fname_frag)
         if fname_geom:
             success = success and \
-                self.addShaderFromSourceFile(QOpenGLShader.Geometry, fname_geom)
+                self.addShaderFromSourceFile(QOpenGLShader.ShaderTypeBit.Geometry, fname_geom)
 
         # Link program
         if success:
@@ -513,7 +516,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
 
         self.set_attribs(**attribs)
 
-    def set_attribs(self, usage=QOpenGLBuffer.StaticDraw, instance_divisor=0,
+    def set_attribs(self, usage=QOpenGLBuffer.UsagePattern.StaticDraw, instance_divisor=0,
                     datatype=None, stride=0, offset=None, normalize=False,
                     **attribs):
         ''' Set attributes for this VAO. '''
@@ -879,7 +882,7 @@ class Rectangle(VertexArrayObject):
 class GLBuffer(QOpenGLBuffer):
     ''' Wrapper class for vertex and index buffers. '''
 
-    def create(self, size=None, usage=QOpenGLBuffer.StaticDraw, data=None):
+    def create(self, size=None, usage=QOpenGLBuffer.UsagePattern.StaticDraw, data=None):
         ''' Create the buffer. '''
         if size is None and data is None:
             raise ValueError(
@@ -915,10 +918,11 @@ class UniformBufferObject(GLBuffer):
     ufo_max_binding = 1
 
     def __init__(self):
-        super().__init__(gl.GL_UNIFORM_BUFFER)
+        # super().__init__(gl.GL_UNIFORM_BUFFER)
+        super().__init__(QOpenGLBuffer.Type.VertexBuffer)
         self.binding = 0
 
-    def create(self, size=None, usage=QOpenGLBuffer.StaticDraw, data=None):
+    def create(self, size=None, usage=QOpenGLBuffer.UsagePattern.StaticDraw, data=None):
         ''' Create this UBO. '''
         super().create(size, usage, data)
         self.binding = UniformBufferObject.ufo_max_binding
@@ -929,21 +933,21 @@ class UniformBufferObject(GLBuffer):
 
 class Texture(QOpenGLTexture):
     ''' BlueSky OpenGL Texture class. '''
-    def __init__(self, target=QOpenGLTexture.Target2D):
+    def __init__(self, target=QOpenGLTexture.Target.Target2D):
         super().__init__(target)
 
     def load(self, fname):
         ''' Load the texture into GPU memory. '''
         if fname[-3:].lower() == 'dds':
             tex = DDSTexture(fname)
-            self.setFormat(QOpenGLTexture.RGB_DXT1)
+            self.setFormat(QOpenGLTexture.TextureFormat.RGB_DXT1)
             self.setSize(tex.width, tex.height)
-            self.setWrapMode(QOpenGLTexture.Repeat)
+            self.setWrapMode(QOpenGLTexture.WrapMode.Repeat)
             self.allocateStorage()
             self.setCompressedData(len(tex.data), tex.data)
         else:
             self.setData(QImage(fname))
-            self.setWrapMode(QOpenGLTexture.Repeat)
+            self.setWrapMode(QOpenGLTexture.WrapMode.Repeat)
 
     def bind(self, unit=0):
         # Overload texture bind with default texture unit to make sure that, unless an explicit
@@ -966,7 +970,7 @@ class Font(Texture):
     _fonts = list()
 
     def __init__(self):
-        super().__init__(QOpenGLTexture.Target2DArray)
+        super().__init__(QOpenGLTexture.Target.Target2DArray)
         self.char_ar = 1.0
         self.loc_char_size = 0
         self.loc_block_size = 0
@@ -984,7 +988,7 @@ class Font(Texture):
         self.char_ar = float(imgsize[1]) / imgsize[0]
 
         super().create()
-        self.setFormat(QOpenGLTexture.RGBA8_UNorm)
+        self.setFormat(QOpenGLTexture.TextureFormat.RGBA8_UNorm)
         self.setSize(img.width(), img.height())
         self.setLayers(127 - 30)
 
@@ -993,17 +997,17 @@ class Font(Texture):
         # gl.glTexImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, gl.GL_RGBA8,
         #                 imgsize[0], imgsize[1], 127 - 30, 0, gl.GL_BGRA,
         #                 gl.GL_UNSIGNED_BYTE, None)
-        self.setWrapMode(QOpenGLTexture.DirectionS,
-                         QOpenGLTexture.ClampToBorder)
-        self.setWrapMode(QOpenGLTexture.DirectionT,
-                         QOpenGLTexture.ClampToBorder)
-        self.setMinMagFilters(QOpenGLTexture.Linear, QOpenGLTexture.Linear)
+        self.setWrapMode(QOpenGLTexture.CoordinateDirection.DirectionS,
+                         QOpenGLTexture.WrapMode.ClampToBorder)
+        self.setWrapMode(QOpenGLTexture.CoordinateDirection.DirectionT,
+                         QOpenGLTexture.WrapMode.ClampToBorder)
+        self.setMinMagFilters(QOpenGLTexture.Filter.Linear, QOpenGLTexture.Filter.Linear)
 
         # We're using the ASCII range 32-126; space, uppercase, lower case,
         # numbers, brackets, punctuation marks
         for i in range(30, 127):
             img = QImage(path.join(settings.gfx_path, 'font/%d.png' %
-                                   i)).convertToFormat(QImage.Format_ARGB32)
+                                   i)).convertToFormat(QImage.Format.Format_ARGB32)
             self.setLayerData(i - 30, img)
 
     @classmethod

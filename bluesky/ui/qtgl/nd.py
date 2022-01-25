@@ -1,6 +1,6 @@
 """ Navigation display for the QTGL gui."""
-from PyQt5.QtCore import qCritical, QTimer
-from PyQt5.QtOpenGL import QGLWidget
+from PyQt6.QtCore import qCritical, QTimer
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget as QGLWidget
 import OpenGL.GL as gl
 from math import sin, cos, radians
 import numpy as np
