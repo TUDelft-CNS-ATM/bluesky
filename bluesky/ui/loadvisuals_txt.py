@@ -94,12 +94,13 @@ if bs.gui_type == 'qtgl':
                 print(text)
             else:
                 self.dialog = QProgressDialog(text, 'Cancel', 0, 100)
-                self.dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
+                # self.dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
+                self.dialog.setModal(True)
                 self.dialog.show()
 
         def update(self, value):
             if self.dialog:
-                self.dialog.setValue(value)
+                self.dialog.setValue(int(value))
                 QApplication.processEvents()
             else:
                 print('Progress: %.2f%% done' % value)
