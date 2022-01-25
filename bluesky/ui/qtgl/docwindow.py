@@ -16,7 +16,7 @@ try:
             super().__init__(parent)
             class DocPage(QWebPage):
                 def acceptNavigationRequest(self, url, navtype, ismainframe):
-                    if navtype == self.NavigationTypeLinkClicked:
+                    if navtype == self.NavigationType.NavigationTypeLinkClicked:
                         if url.url()[:6].lower() == 'stack:':
                             DocWindow.app.stack(url.url()[6:].lower())
                             return False
