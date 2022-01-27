@@ -1,0 +1,77 @@
+{
+    "vll": [0, 500],
+    "classes": {
+        "black": { "enter": false },
+        "red": { "enter": false },
+        "yellow": { "enter": { "rnp": 0.1 }, "altitude": [50, 500], "velocity": [10, 100], "capacity_factor": 0.5 },
+        "green": { "enter": true, "altitude": [100, 500], "velocity": [0, 10], "capacity_factor": 0.5 },
+        "grey": { "enter": { "rnp": 0.5, "tmz": true, "rmz": true }, "altitude": [0, 400], "velocity": [1, 10] },
+        "white": { "enter": true }
+    },
+    "ground": {
+        "aerodrome": {
+            "buffer": 1500,
+            "osm": { "aeroway": ["aerodrome", "heliport"] },
+            "class": "red"
+        },
+        "hospital": {
+            "buffer": 100,
+            "osm": { "healthcare": ["hospital", "clinic"], "amenity": ["hospital"] },
+            "class": "red"
+        },
+        "prison": {
+            "buffer": 100,
+            "osm": { "amenity": ["prison"] },
+            "class": "red"
+        },
+        "government": {
+            "buffer": 100,
+            "osm": { "government": ["presidency", "ministry", "legislative", "intelligence"] },
+            "class": "red"
+        },
+        "police": {
+            "buffer": 100,
+            "osm": { "police": ["academy", "naval_base", "detention", "range", "barracks"], "amenity": ["police"] },
+            "class": "red"
+        },
+        "harbour": {
+            "buffer": 10,
+            "osm": { "landuse": ["harbour", "port"] },
+            "class": "red"
+        },
+        "railway": {
+            "buffer": 10,
+            "osm": { "railway": ["station"] },
+            "class": "red"
+        },
+        "power": {
+            "buffer": 100,
+            "osm": { "power": ["plant"] },
+            "class": "yellow"
+        },
+        "military": {
+            "buffer": 100,
+            "osm": { "landuse": ["military"] },
+            "class": "black"
+        },
+        "crowds": {
+            "osm": { "leisure": ["stadium"], "landuse": ["religous"] },
+            "class": "yellow"
+        },
+        "nature": {
+            "osm": { "leisure": ["nature_reserve"], "protect_class": ["1", "2", "3", "4", "97", "98", "99", "13"] },
+            "class": "green"
+        }
+    },
+    "air": {
+        "prohibited": {
+            "class": "black"
+        },
+        "restricted": {
+            "class": "red"
+        },
+        "danger": {
+            "class": "red"
+        }
+    }
+}

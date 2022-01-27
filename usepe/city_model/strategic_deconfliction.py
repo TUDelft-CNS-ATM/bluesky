@@ -7,9 +7,9 @@ from operator import add
 import datetime
 import math
 
-from nommon.city_model.dynamic_segments import dynamicSegments
-from nommon.city_model.path_planning import trajectoryCalculation, printRoute
-from nommon.city_model.scenario_definition import createFlightPlan
+from usepe.city_model.dynamic_segments import dynamicSegments
+from usepe.city_model.path_planning import trajectoryCalculation, printRoute
+from usepe.city_model.scenario_definition import createFlightPlan
 
 
 __author__ = 'jbueno'
@@ -162,7 +162,7 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
             users_step (dictionary): information of how the segments are populated from initial time to
                 final time including the deconflcited trajectory of the new dorne.
             route (list): list containing the waypoints of the optimal route
-            delayed_time (int): indicating how many seconds the fligth is delayed respect to the
+            delayed_time (int): indicating how many seconds the flight is delayed respect to the
                 desired departure time
 
     """
@@ -178,7 +178,6 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
     G_step = G.copy()
     while overpopulated_segment:
         if type( overpopulated_segment ) == str:
-            print( 'hola' )
             segments_step[overpopulated_segment]['speed'] = 0
             segments_step[overpopulated_segment]['updated'] = True
 
@@ -207,7 +206,7 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
             # b, route = trajectoryCalculation( G_step, orig, dest )
             # print( b )
             # print( a / b )
-            print( 'The fligth is delayed {0} seconds'.format( delayed_time ) )
+            print( 'The flight is delayed {0} seconds'.format( delayed_time - time ) )
 
     return users_step, route, delayed_time
 
@@ -247,7 +246,7 @@ def deconflcitedScenario( orig, dest, ac, departure_time, G, users, initial_time
 
     createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
 
-    return users
+    return users, route
 
 
 if __name__ == '__main__':

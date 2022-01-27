@@ -322,7 +322,7 @@ if __name__ == '__main__':
     # print( segments['segment_1_2_0'] )
     # G = addTravelTimes( G )
     #
-    # from nommon.city_model.path_planning import trajectoryCalculation
+    # from usepe.city_model.path_planning import trajectoryCalculation
     # orig = ( 9.74 , 52.36 )
     # dest = ( 9.78 , 53.38 )
     # print( trajectoryCalculation( G, orig, dest ) )

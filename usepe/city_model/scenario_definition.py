@@ -11,10 +11,10 @@ import string
 
 from pyproj import Transformer
 
-from nommon.city_model.building_height import readCity
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
-from nommon.city_model.path_planning import trajectoryCalculation
-from nommon.city_model.utils import read_my_graphml
+from usepe.city_model.building_height import readCity
+from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from usepe.city_model.path_planning import trajectoryCalculation
+from usepe.city_model.utils import read_my_graphml
 import osmnx as ox
 
 
@@ -193,6 +193,9 @@ def routeParameters( G, route ):
             new_heading, increment = headingIncrement( route_parameters[str( i - 1 )]['hdg'], name,
                                                        route[i + 1], G )
             turn_speed, turn_dist, turn_rad = turnDefinition( increment )
+            if turn_speed:
+                if turn_speed > route_parameters[str( i - 1 )]['speed']:
+                    turn_speed = route_parameters[str( i - 1 )]['speed']
             node['name'] = name
             node['lat'] = G.nodes[name]['y']
             node['lon'] = G.nodes[name]['x']

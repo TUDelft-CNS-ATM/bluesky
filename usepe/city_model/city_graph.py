@@ -7,10 +7,10 @@ import configparser
 import os
 import string
 
-from nommon.city_model.building_height import readCity
-from nommon.city_model.city_structure import mainSectorsLimit
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
-from nommon.city_model.utils import read_my_graphml
+from usepe.city_model.building_height import readCity
+from usepe.city_model.city_structure import mainSectorsLimit
+from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from usepe.city_model.utils import read_my_graphml
 import networkx as nx
 import osmnx as ox
 

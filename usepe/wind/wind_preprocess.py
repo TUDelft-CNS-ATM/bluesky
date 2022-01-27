@@ -264,15 +264,15 @@ def createWindScenario( scenario_file, grid_lat, grid_lon, grid_z, grid_u, grid_
             scenario_file.write( new_line + '\n' )
 
 
-def main():
+def main( path, grid_spacing_list, time ):
     """
     Main function to generate BlueSky scenarios with the wind commands.
     """
     # ------------ Defined by the user ------------------------------
-    path = r".\data\test_hannover_1m_3d.000.nc"
+    # path = r".\data\test_hannover_1m_3d.000.nc"
     # path = r".\data\test_hannover_1m_masked_M03.000.nc"
-    grid_spacing_list = [5, 10, 20, 50]
-    time = 0
+    # grid_spacing_list = [5, 10, 20, 50]
+    # time = 0
     # ----------------------------------------------------------------
 
     print( "Reading data..." )
@@ -281,7 +281,7 @@ def main():
     points_u, values_u, points_v, values_v, points_w, values_w = removedMaskedValues( wind, time )
 
     for grid_spacing in grid_spacing_list:
-        scenario_path = r"C:\workspace3\bluesky_USEPE\nommon\wind\scenario\wind_test_{0}m_{1}s.scn"\
+        scenario_path = r".\scenario\wind_test_{0}m_{1}s.scn"\
             .format( grid_spacing, time )
 
         x = list( wind['x'][:].data )
@@ -297,7 +297,7 @@ def main():
         grid_z, grid_y, grid_x, grid_u, grid_v, grid_w = interpolateWind( 
             points_u, values_u, points_v, values_v, points_w, values_w, grid_z, grid_y, grid_x )
 
-        print( "Interpolating laittude and longitude..." )
+        print( "Interpolating latitude and longitude..." )
         grid_lat = interpolateLat( wind, grid_y[0], grid_x[0] )
         grid_lon = interpolateLon( wind, grid_y[0], grid_x[0] )
 

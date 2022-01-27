@@ -303,7 +303,9 @@ class MultiDiGrpah3D ( MultiDiGraph ):
 
         Args:
                 config (configuration file): configuration file with the relevant parameters
+
         """
+        print( "Simplifying the graph..." )
         nodes = list( self.nodes )
         for node in nodes:
             if self.has_node( node ):
