@@ -264,15 +264,15 @@ def createWindScenario( scenario_file, grid_lat, grid_lon, grid_z, grid_u, grid_
             scenario_file.write( new_line + '\n' )
 
 
-def main():
+def main( path, grid_spacing_list, time ):
     """
     Main function to generate BlueSky scenarios with the wind commands.
     """
     # ------------ Defined by the user ------------------------------
-    path = r".\data\test_hannover_1m_3d.000.nc"
+    # path = r".\data\test_hannover_1m_3d.000.nc"
     # path = r".\data\test_hannover_1m_masked_M03.000.nc"
-    grid_spacing_list = [5, 10, 20, 50]
-    time = 0
+    # grid_spacing_list = [5, 10, 20, 50]
+    # time = 0
     # ----------------------------------------------------------------
 
     print( "Reading data..." )
