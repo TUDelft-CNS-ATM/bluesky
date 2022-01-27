@@ -11,10 +11,10 @@ import string
 
 from pyproj import Transformer
 
-from nommon.city_model.building_height import readCity
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
-from nommon.city_model.path_planning import trajectoryCalculation
-from nommon.city_model.utils import read_my_graphml
+from usepe.city_model.building_height import readCity
+from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from usepe.city_model.path_planning import trajectoryCalculation
+from usepe.city_model.utils import read_my_graphml
 import osmnx as ox
 
 

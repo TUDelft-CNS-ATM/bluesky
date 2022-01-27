@@ -12,16 +12,16 @@ import configparser
 import os
 import time
 
-from nommon.city_model.city_graph import cityGraph
-from nommon.city_model.corridors_implementation import corridorCreation, corridorLoad
-from nommon.city_model.dynamic_segments import dynamicSegments
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
-from nommon.city_model.no_fly_zones import restrictedSegments
-from nommon.city_model.path_planning import trajectoryCalculation, printRoute
-from nommon.city_model.scenario_definition import createFlightPlan, drawBuildings, \
+from usepe.city_model.city_graph import cityGraph
+from usepe.city_model.corridors_implementation import corridorCreation, corridorLoad
+from usepe.city_model.dynamic_segments import dynamicSegments
+from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from usepe.city_model.no_fly_zones import restrictedSegments
+from usepe.city_model.path_planning import trajectoryCalculation, printRoute
+from usepe.city_model.scenario_definition import createFlightPlan, drawBuildings, \
     automaticFlightPlan
-from nommon.city_model.strategic_deconfliction import deconflcitedScenario, initialPopulation
-from nommon.city_model.utils import read_my_graphml, layersDict
+from usepe.city_model.strategic_deconfliction import deconflcitedScenario, initialPopulation
+from usepe.city_model.utils import read_my_graphml, layersDict
 import numpy as np
 import osmnx as ox
 

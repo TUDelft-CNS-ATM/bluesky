@@ -9,7 +9,7 @@ __author__ = 'mbaena'
 __copyright__ = '(c) Nommon 2021'
 
 
-from nommon.city_model.dynamic_segments import dynamicSegments
+from usepe.city_model.dynamic_segments import dynamicSegments
 
 from shapely.geometry import Polygon
 

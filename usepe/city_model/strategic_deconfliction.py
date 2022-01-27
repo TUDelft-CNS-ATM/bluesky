@@ -7,9 +7,9 @@ from operator import add
 import datetime
 import math
 
-from nommon.city_model.dynamic_segments import dynamicSegments
-from nommon.city_model.path_planning import trajectoryCalculation, printRoute
-from nommon.city_model.scenario_definition import createFlightPlan
+from usepe.city_model.dynamic_segments import dynamicSegments
+from usepe.city_model.path_planning import trajectoryCalculation, printRoute
+from usepe.city_model.scenario_definition import createFlightPlan
 
 
 __author__ = 'jbueno'

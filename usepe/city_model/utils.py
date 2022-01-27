@@ -7,7 +7,7 @@ import string
 
 from osmnx.io import _convert_node_attr_types, _convert_bool_string, _convert_edge_attr_types
 
-from nommon.city_model.multi_di_graph_3D import MultiDiGrpah3D
+from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
 import networkx as nx
 
 

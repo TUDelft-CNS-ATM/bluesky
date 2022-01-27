@@ -5,7 +5,7 @@ A module to compute an optimal route from origin to destination
 """
 from networkx.algorithms.shortest_paths.weighted import single_source_dijkstra
 
-from nommon.city_model.utils import nearestNode3d
+from usepe.city_model.utils import nearestNode3d
 import networkx as nx
 import osmnx as ox
 

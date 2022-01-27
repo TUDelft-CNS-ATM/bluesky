@@ -8,8 +8,8 @@ import json
 import math
 import os
 
-from nommon.city_model.dynamic_segments import defineSegment
-from nommon.city_model.utils import nearestNode3d
+from usepe.city_model.dynamic_segments import defineSegment
+from usepe.city_model.utils import nearestNode3d
 import osmnx as ox
 
 
