@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, \
 
 from PyQt6.QtCore import QtMsgType
 from PyQt6.QtWidgets import QApplication, QErrorMessage
+from PyQt6.QtGui import QFont
 
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
@@ -30,6 +31,9 @@ def start(mode):
 
     # Start the Qt main object
     app = QApplication([])
+
+    # Explicitly set font to avoid font loading warning dialogs
+    app.setFont(QFont('Sans'))
 
     # Start the bluesky network client
     client = GuiClient()
