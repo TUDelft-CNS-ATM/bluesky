@@ -40,6 +40,30 @@ def getvarsfromobj(obj):
     except TypeError:
         return None
 
+def access_plugin_object(plugin_name):
+    """
+    Access a BlueSky plugin module by name. This can be used to access
+    the objects in a plugin module.
+
+    Parameters
+    ----------
+    plugin_name : str
+
+    Returns
+    -------
+    plugin module : module
+        The plugin module object.
+    """
+    # first make everything lowercase
+    plugin_name = plugin_name.lower()
+
+    # get the plugin module
+    try:
+        return varlist[plugin_name][0]
+
+    except:
+        bs.scr.echo(f'Plugin {plugin_name} not found')
+        return
 
 def lsvar(varname=''):
     ''' Stack function to list information on simulation variables in the
