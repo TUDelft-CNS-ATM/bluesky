@@ -652,7 +652,8 @@ class Screen:
                 ltx, lty = self.ll2xy(bs.traf.trails.lastlat, bs.traf.trails.lastlon)
 
             # Find pixel size of horizontal separation on screen
-            pixelrad=self.dtopix_eq(bs.traf.cd.rpz/2)
+            # pixelrad=self.dtopix_eq(bs.traf.cd.rpz/2)
+            pixelrad = self.dtopix_eq(5 * nm / 2)
 
             # Loop through all traffic indices which we found on screen
             for i in trafsel:
