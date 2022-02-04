@@ -5,7 +5,7 @@ import glob
 from bluesky.stack.stackbase import sender
 from os import path
 import sys
-import imp
+import importlib
 import bluesky as bs
 from bluesky import settings
 from bluesky.core import timed_function, varexplorer as ve
@@ -46,8 +46,15 @@ class Plugin:
 
         try:
             # Load the plugin
-            mod = imp.find_module(self.module_name, [self.module_path])
-            self.imp = imp.load_module(self.module_name, *mod)
+            # First check if plugin is already locally imported by another plugin in the same directory
+            # In either case update the other import name to avoid double imports
+            self.imp = sys.modules.get(self.module_name)
+            if self.imp:
+                sys.modules[self.module_imp] = self.imp
+            else:
+                self.imp = importlib.import_module(self.module_imp)
+                sys.modules[self.module_name] = self.imp
+
             # Initialize the plugin
             result = self.imp.init_plugin()
             config = result if isinstance(result, dict) else result[0]
