@@ -25,10 +25,10 @@ def init_plugin():
     
     stackfunctions = {
         'DRONETRAF': [
-            'DRONETRAF AREA/OFF, [shape]',
-            'txt,[txt]',
+            'DRONETRAF AREA/INSERT/OFF, [shape/n]',
+            'txt,[txt/int]',
             dronetraf.dronetraf,
-            'Set/list the area for drone traffic or stop all traffic.'
+            'Set/list the area for drone traffic, insert n drones into the area, or stop all traffic.'
         ]
     }
 
@@ -127,25 +127,38 @@ class Dronetraf(core.Entity):
             {"lat": lat0, "lon": lon0},
             {"lat": lat1, "lon": lon1}]
 
-    def dronetraf(self, cmd, area=''):
+    def dronetraf(self, cmd, args=''):
         ''' The commands available for the plugin.
             AREA: Takes the name of a defined shape and sets it as the area.
                   Without the name of a shape this lists the current area.
+            INSERT: Creates a number of drones in the defined area.
             OFF: Stops creating new drone traffic. '''
         if cmd == 'AREA':
-            if area == '':
+            if args == '':
                 if self.area == '':
                     return True, f'No area has been set for drone traffic.'
                 return True, f'Drone traffic area: {self.area}'
-            elif area == self.area:
-                return True, f'Area "{area}" is already set.'
-            elif areafilter.hasArea(area):
-                self.set_area(area)
-                return True, f'"{area}" has been set as the new area for drone traffic.'
+            elif args == self.area:
+                return True, f'Area "{args}" is already set.'
+            elif areafilter.hasArea(args):
+                self.set_area(args)
+                return True, f'"{args}" has been set as the new area for drone traffic.'
             else:
-                return False, f'No area found with name "{area}", create it first with one of the shape commands.'
+                return False, f'No area found with name "{args}", create it first with one of the shape commands.'
+
+        elif cmd == 'INSERT':
+            if self.area == '':
+                return False, f'Area for drone traffic is not set. First use "DRONETRAF AREA shape"'
+            elif args.isdigit() and (int(args) > 0):
+                n = int(args)
+                for _ in range(n): self.create_drone()
+                return True, f'{n} drones created in the area.'
+            else:
+                return False, f'"DRONETRAF INSERT" needs a positive integer as a parameter.'
+
         elif cmd == 'OFF':
             self.area = ''
             return True, f'All drone traffic stopped.'
+
         else:
-            return False, f'Available commands are: AREA, OFF'
+            return False, f'Available commands are: AREA, INSERT, OFF'
