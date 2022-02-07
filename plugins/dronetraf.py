@@ -6,6 +6,7 @@ from bluesky import core, stack, traf  #, settings, navdb, sim, scr, tools
 from bluesky.tools import areafilter
 
 CHANCE_OF_TRAFFIC = 30
+UPDATE_INTERVAL = 5.0
 
 ### Initialisation function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
@@ -18,14 +19,16 @@ def init_plugin():
     config = {
         'plugin_name':     'DRONETRAF',
         'plugin_type':     'sim',
+        'update_interval': UPDATE_INTERVAL,
+        'update': dronetraf.update
         }
     
     stackfunctions = {
         'DRONETRAF': [
-            'DRONETRAF cmd, [area]',
-            'txt,[txt]',
+            'DRONETRAF AREA/INSERT/OFF, [shape/n]',
+            'txt,[txt/int]',
             dronetraf.dronetraf,
-            'Define the area of operation as any of the shapes available in the simulator.'
+            'Set/list the area for drone traffic, insert n drones into the area, or stop all traffic.'
         ]
     }
 
@@ -52,7 +55,6 @@ class Dronetraf(core.Entity):
             self.drones_active.remove(traf.id[idx[0]])
 
     # Called every 5 simulation steps(seconds)
-    @core.timed_function(name='drone_traffic', dt=5)
     def update(self):
         # Only generate drones if the area is set
         if len(self.area) > 0:
@@ -91,7 +93,7 @@ class Dronetraf(core.Entity):
         approved = False
 
         while not approved:
-            newid = "D" + str(randint(1, 999))
+            newid = "D" + str(randint(1, 999)).zfill(3)
             if newid not in self.drones_active: approved = True
 
         self.drones_active.append(newid)
@@ -125,18 +127,38 @@ class Dronetraf(core.Entity):
             {"lat": lat0, "lon": lon0},
             {"lat": lat1, "lon": lon1}]
 
-    def dronetraf(self, cmd, area=''):
+    def dronetraf(self, cmd, args=''):
         ''' The commands available for the plugin.
-            AREA: Takes the name of a defined shape and sets it as the area. '''
+            AREA: Takes the name of a defined shape and sets it as the area.
+                  Without the name of a shape this lists the current area.
+            INSERT: Creates a number of drones in the defined area.
+            OFF: Stops creating new drone traffic. '''
         if cmd == 'AREA':
-            if area == self.area:
-                if area == '':
-                    return False, f'Area name must be specified.'
-                return True, f'Area {area} is already set.'
-            elif areafilter.hasArea(area):
-                self.set_area(area)
-                return True, f'{area} has been set as the new area for drone traffic.'
+            if args == '':
+                if self.area == '':
+                    return True, f'No area has been set for drone traffic.'
+                return True, f'Drone traffic area: {self.area}'
+            elif args == self.area:
+                return True, f'Area "{args}" is already set.'
+            elif areafilter.hasArea(args):
+                self.set_area(args)
+                return True, f'"{args}" has been set as the new area for drone traffic.'
             else:
-                return False, f'No area found with name "{area}", create it first with one of the shape commands.'
+                return False, f'No area found with name "{args}", create it first with one of the shape commands.'
+
+        elif cmd == 'INSERT':
+            if self.area == '':
+                return False, f'Area for drone traffic is not set. First use "DRONETRAF AREA shape"'
+            elif args.isdigit() and (int(args) > 0):
+                n = int(args)
+                for _ in range(n): self.create_drone()
+                return True, f'{n} drones created in the area.'
+            else:
+                return False, f'"DRONETRAF INSERT" needs a positive integer as a parameter.'
+
+        elif cmd == 'OFF':
+            self.area = ''
+            return True, f'All drone traffic stopped.'
+
         else:
-            return False, f'Available commands are: AREA'
+            return False, f'Available commands are: AREA, INSERT, OFF'
