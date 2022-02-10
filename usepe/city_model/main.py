@@ -130,8 +130,8 @@ if __name__ == '__main__':
         BlueSky. The "createFlightPlan" function transforms the optimal path (list of waypoints) to
         BlueSky commands
         """
-
-        ac = 'U001'
+        name = 'U001'
+        ac = {'id': name, 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5 }
         departure_time = '00:00:00.00'
         scenario_path = r'.\scenario\scenario_corridor.scn'
         scenario_file = open( scenario_path, 'w' )

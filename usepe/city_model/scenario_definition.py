@@ -45,53 +45,91 @@ def headingIncrement( actual_heading, wpt1, wpt2, G ):
         theta += 360
 
     new_heading = theta + 90
-    if new_heading == 360:
+    if new_heading >= 360:
         new_heading = new_heading - 360
     increment = abs( new_heading - actual_heading )
     return new_heading, increment
 
 
-def turnDefinition( increment ):
+def calcDistAccel( speed_t0, speed_tf, ac ):
+    """
+    Compute the distance used to decelerate or accelerate
+
+    Args:
+            speed_t0 (float): initial speed [m/s]
+            speed_tf (float): final speed [m/s]
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
+
+    Returns:
+            dist (float): distance [m]
+            time (float): time needed to decelerate or accelerate [s]
+    """
+    time = abs( speed_tf - speed_t0 ) / ac['accel']
+    if speed_t0 > speed_tf:
+        dist = speed_t0 * time - ac['accel'] * time * time / 2
+    else:
+        dist = speed_t0 * time + ac['accel'] * time * time / 2
+
+    return dist, time
+
+
+def turnDefinition( increment, ac, speed, climbing=None ):
     """
     Compute some parameters needed to control the change of direction of the drone. It returns the
     turn speed, the turn distance and turn radius.
 
     Args:
             increment (float): float indicating the change of heading
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
+            speed (float): drone's speed before the turn [m/s]
 
     Returns:
             turn_speed (float or None): indicating the velocity when performing the turn
             turn_dist (float or None): indicating the distance at which the drone has to start to
-            decelerate
+            decelerate [nm]
             turn_rad (float or None): indicating the turn radius
     """
+    m2nm = 0.000539957
+    m_s2knot = 1.944  # m/s to knots
+
     if increment < 20:
         turn_speed = None
         turn_dist = None
         turn_rad = None
     elif increment < 45:
         turn_speed = 20
-        turn_dist = 0.01
+        dist, time = calcDistAccel( speed, turn_speed / m_s2knot, ac )
+        turn_dist = dist * m2nm
         turn_rad = 0.0003
     elif increment < 60:
         turn_speed = 17
-        turn_dist = 0.011
+        dist, time = calcDistAccel( speed, turn_speed / m_s2knot, ac )
+        turn_dist = dist * m2nm
         turn_rad = 0.0003
     elif increment < 70:
         turn_speed = 15
-        turn_dist = 0.013
+        dist, time = calcDistAccel( speed, turn_speed / m_s2knot, ac )
+        turn_dist = dist * m2nm
         turn_rad = 0.0003
     elif increment < 80:
         turn_speed = 10
-        turn_dist = 0.015
+        dist, time = calcDistAccel( speed, turn_speed / m_s2knot, ac )
+        turn_dist = dist * m2nm
         turn_rad = 0.0003
     elif increment < 90:
         turn_speed = 8
-        turn_dist = 0.017
+        dist, time = calcDistAccel( speed, turn_speed / m_s2knot, ac )
+        turn_dist = dist * m2nm
         turn_rad = 0.0002
+    elif climbing:
+        turn_speed = 1
+        dist, time = calcDistAccel( speed, turn_speed / m_s2knot, ac )
+        turn_dist = dist * m2nm
+        turn_rad = 0.0001
     else:
         turn_speed = 5
-        turn_dist = 0.021
+        dist, time = calcDistAccel( speed, turn_speed / m_s2knot, ac )
+        turn_dist = dist * m2nm
         turn_rad = 0.0001
 
     return turn_speed, turn_dist, turn_rad
@@ -161,7 +199,7 @@ def turnDetectionV2( route_parameters, i ):
     return option
 
 
-def routeParameters( G, route ):
+def routeParameters( G, route, ac ):
     """
     Compute all the information about the route (e.g. turn distance, turn speed, altitude, etc.). It
     is stored as a dictionary.
@@ -169,6 +207,7 @@ def routeParameters( G, route ):
     Args:
             G (grah)
             route (list): list of waypoints
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
 
     Returns:
             route_parameters (dictionary): dictionary with all the information about the route
@@ -187,15 +226,30 @@ def routeParameters( G, route ):
             node['turn rad'] = None
             node['turn dist'] = None
             node['hdg'] = new_heading
-            node['speed'] = G.edges[( name, route[i + 1], 0 )]['speed']
+            if name[0] == route[i + 1][0]:
+                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['v_max'] )
+            else:
+                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] )
             node['dist'] = G.edges[( name, route[i + 1], 0 )]['length']
         else:
             new_heading, increment = headingIncrement( route_parameters[str( i - 1 )]['hdg'], name,
                                                        route[i + 1], G )
-            turn_speed, turn_dist, turn_rad = turnDefinition( increment )
+            if name[0] == route[i + 1][0]:
+                turn_speed, turn_dist, turn_rad = turnDefinition( increment, ac,
+                                                                  route_parameters[str( i - 1 )]['speed'] )
+            else:
+                turn_speed, turn_dist, turn_rad = turnDefinition( increment, ac,
+                                                                  route_parameters[str( i - 1 )]['speed'],
+                                                                  climbing=True )
+
             if turn_speed:
-                if turn_speed > route_parameters[str( i - 1 )]['speed']:
-                    turn_speed = route_parameters[str( i - 1 )]['speed']
+                if turn_speed > route_parameters[str( i - 1 )]['speed'] * 1.944:
+                    turn_speed = None
+                    turn_dist = None
+                    turn_rad = None
+            if i == 1:
+                if turn_dist:
+                    turn_dist = ( G.edges[( route[i - 1], name, 0 )]['length'] ) * 0.000539957 - 0.0001
             node['name'] = name
             node['lat'] = G.nodes[name]['y']
             node['lon'] = G.nodes[name]['x']
@@ -204,23 +258,26 @@ def routeParameters( G, route ):
             node['turn rad'] = turn_rad
             node['turn dist'] = turn_dist
             node['hdg'] = new_heading
-            node['speed'] = G.edges[( name, route[i + 1], 0 )]['speed']
+            if name[0] == route[i + 1][0]:
+                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['v_max'] )
+            else:
+                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] )
             node['dist'] = G.edges[( name, route[i + 1], 0 )]['length']
         route_parameters[str( i )] = node
 
-        final_node = {}
-        final_node['name'] = route[-1]
-        final_node['lat'] = G.nodes[route[-1]]['y']
-        final_node['lon'] = G.nodes[route[-1]]['x']
-        final_node['alt'] = G.nodes[route[-1]]['z']
-        final_node['turn speed'] = None
-        final_node['turn rad'] = None
-        final_node['turn dist'] = None
-        final_node['hdg'] = None
-        final_node['speed'] = None
-        final_node['dist'] = None
+    final_node = {}
+    final_node['name'] = route[-1]
+    final_node['lat'] = G.nodes[route[-1]]['y']
+    final_node['lon'] = G.nodes[route[-1]]['x']
+    final_node['alt'] = G.nodes[route[-1]]['z']
+    final_node['turn speed'] = None
+    final_node['turn rad'] = None
+    final_node['turn dist'] = None
+    final_node['hdg'] = None
+    final_node['speed'] = None
+    final_node['dist'] = None
 
-        route_parameters[str( len( route ) - 1 )] = final_node
+    route_parameters[str( len( route ) - 1 )] = final_node
 
     return route_parameters
 
@@ -235,7 +292,7 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
             scenario_file: text file where we write the commands
             route_parameters (dictionary): dictionary with all the information about the route
             i (integer): integer indicating the node of the route list
-            ac (string): aircraft name
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
             G (graph)
             layers_dict (dictionary): dictionary with the information about layers and altitudes
             time (string): time for the instructions
@@ -256,26 +313,29 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
 
         if wpt1[0] == wpt2[0]:  # wpt1 and wpt2 in the same layer
             hdg = route_parameters[str( i )]['hdg']
-            new_line1 = '{0} > CRE {1} M600 {2} {3} {4} {5} {6}'.format( 
-                time, ac, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
+            new_line1 = '{0} > CRE {1} {7} {2} {3} {4} {5} {6}'.format( 
+                time, ac['id'], route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
                 hdg, route_parameters[str( i )]['alt'] * m2ft,
-                str( G.edges[( wpt1, wpt2, 0 )]['speed'] * m_s2knot ) )
+                0, ac['type'] )
+
+            new_line2 = '{0} > SPD {1} {2}'.format( 
+                time, ac['id'], str( route_parameters[str( i )]['speed'] * m_s2knot ) )
 
             state['action'] = 'cruise'
             state['heading'] = hdg
 
-            scenario_file.write( new_line1 + '\n' )
+            scenario_file.write( new_line1 + '\n' + new_line2 + '\n' )
         else:
             new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
                 time, wpt1, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'] )
-            new_line1 = '{0} > CRE {1} M600 {2} 0 {3} 0'.format( 
-                time, ac, wpt1, route_parameters[str( i )]['alt'] * m2ft )
+            new_line1 = '{0} > CRE {1} {4} {2} 0 {3} 0'.format( 
+                time, ac['id'], wpt1, route_parameters[str( i )]['alt'] * m2ft, ac['type'] )
             new_line2 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
-                time, ac, wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
-            new_line3 = '{0} > ALT {1} {2}'.format( time, ac,
+                time, ac['id'], wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
+            new_line3 = '{0} > ALT {1} {2}'.format( time, ac['id'],
                                                     route_parameters[str( i + 1 )]['alt'] * m2ft )
             new_line4 = '{0} > VS {1} {2}'.format( 
-                time, ac, str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
+                time, ac['id'], str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
             state['ref_wpt'] = wpt1
             state['action'] = 'climbing'
             state['heading'] = 0
@@ -310,17 +370,17 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
         if state['action'] == 'entering_corridor' or state['action'] == 'descending_corridor':
             new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
                 time, wpt1, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'] )
-            new_line1 = '{0} > ADDWPT {1} FLYOVER'.format( time, ac )
+            new_line1 = '{0} > ADDWPT {1} FLYOVER'.format( time, ac['id'] )
             new_line2 = '{0} > ADDWPT {1} {2}, ,{3}'.format( 
-                time, ac, wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
+                time, ac['id'], wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
             new_line3 = '{0} > {1} ATDIST {2} {3} SPD {4} {5}'.format( 
-                time, ac, wpt1, 0.03, ac, 5 )
-            new_line4 = '{0} > {1} AT {2} DO SPD {3} 0'.format( 
-                time, ac, wpt1, ac )
-            new_line5 = '{0} > {1} AT {2} DO ALT {3} {4}'.format( 
-                time, ac, wpt1, ac, route_parameters[str( i + 1 )]['alt'] * m2ft )
-            new_line6 = '{0} > {1} AT {2} DO VS {3} {4}'.format( 
-                time, ac, wpt1, ac, str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
+                time, ac['id'], wpt1, 0.03, ac['id'], 5 )
+            new_line4 = '{0} > {1} AT {2} DO {3} SPD 0'.format( 
+                time, ac['id'], wpt1, ac['id'] )
+            new_line5 = '{0} > {1} AT {2} DO {3} ALT {4}'.format( 
+                time, ac['id'], wpt1, ac['id'], route_parameters[str( i + 1 )]['alt'] * m2ft )
+            new_line6 = '{0} > {1} AT {2} DO {3} VS {4}'.format( 
+                time, ac['id'], wpt1, ac['id'], str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
 
             scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' +
                                  new_line3 + '\n' + new_line4 + '\n' + new_line5 + '\n' +
@@ -332,11 +392,11 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
                 state['action'] = 'climbing_corridor'
         elif state['action'] == 'climbing_corridor' or state['action'] == 'leaving_corridor':
             new_line1 = '{0} > {1} AT {2} DO {3} ATALT {4}, LNAV {5} ON'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac )
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'] )
             new_line2 = '{0} > {1} AT {2} DO {3} ATALT {4}, VNAV {5} ON'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac )
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'] )
             new_line3 = '{0} > {1} AT {2} DO {3} ATALT {4}, ADDWPT {5} {6} {7}, {8}, {9}, {10}'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac,
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'],
                 route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
                 route_parameters[str( i )]['alt'] * m2ft,
                 str( route_parameters[str( i )]['speed'] * m_s2knot ), state['ref_wpt'] )
@@ -349,10 +409,10 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
                 state['action'] = 'corridor'
             state['heading'] = route_parameters[str( i )]['hdg']
         elif state['action'] == 'corridor':
-            new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac )
-            new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac, 15 )
+            new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac['id'] )
+            new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac['id'], 15 )
             new_line3 = '{0} > ADDWPT {1} {2} {3} {4} {5}'.format( 
-                time, ac, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
+                time, ac['id'], route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
                 route_parameters[str( i )]['alt'] * m2ft,
                 str( route_parameters[str( i )]['speed'] * m_s2knot ) )
 
@@ -371,9 +431,9 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
             turn_dist = route_parameters[str( i )]['turn dist']
             turn_rad = route_parameters[str( i )]['turn rad']
             if turn_speed is None:
-                new_line1 = '{0} > ADDWPT {1} FLYOVER'.format( time, ac )
+                new_line1 = '{0} > ADDWPT {1} FLYOVER'.format( time, ac['id'] )
                 new_line2 = '{0} > ADDWPT {1} {2} {3}, , {4}'.format( 
-                    time, ac, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
+                    time, ac['id'], route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
                     str( route_parameters[str( i )]['speed'] * m_s2knot ) )
 
                 scenario_file.write( new_line1 + '\n' + new_line2 + '\n' )
@@ -383,17 +443,17 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
                 if option == 1:
                     new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
                         time, wpt1, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'] )
-                    new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac )
-                    new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac, turn_speed )
-                    new_line3 = '{0} > ADDWPT {1} TURNRAD {2}'.format( time, ac, turn_rad )
+                    new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac['id'] )
+                    new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac['id'], turn_speed )
+                    new_line3 = '{0} > ADDWPT {1} TURNRAD {2}'.format( time, ac['id'], turn_rad )
                     new_line4 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
-                        time, ac, wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
+                        time, ac['id'], wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
                     new_line5 = '{0} > {1} ATDIST {2} {3} SPD {4} {5}'.format( 
-                        time, ac, wpt1, turn_dist, ac, turn_speed )
-                    new_line6 = '{0} > {1} AT {2} DO LNAV {3} ON'.format( 
-                        time, ac, wpt1, ac )
-                    new_line7 = '{0} > {1} AT {2} DO VNAV {3} ON'.format( 
-                        time, ac, wpt1, ac )
+                        time, ac['id'], wpt1, turn_dist, ac['id'], turn_speed )
+                    new_line6 = '{0} > {1} AT {2} DO {3} LNAV ON'.format( 
+                        time, ac['id'], wpt1, ac['id'] )
+                    new_line7 = '{0} > {1} AT {2} DO {3} VNAV ON'.format( 
+                        time, ac['id'], wpt1, ac['id'] )
 
                     scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' +
                                          new_line3 + '\n' + new_line4 + '\n' + new_line5 + '\n' +
@@ -401,22 +461,22 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
                 elif option == 2:
                     new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
                         time, wpt1, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'] )
-                    new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac )
-                    new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac, turn_speed )
-                    new_line3 = '{0} > ADDWPT {1} TURNRAD {2}'.format( time, ac, turn_rad )
+                    new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac['id'] )
+                    new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac['id'], turn_speed )
+                    new_line3 = '{0} > ADDWPT {1} TURNRAD {2}'.format( time, ac['id'], turn_rad )
                     new_line4 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
-                        time, ac, wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
+                        time, ac['id'], wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
                     new_line5 = '{0} > {1} ATDIST {2} {3} SPD {4} {5}'.format( 
-                        time, ac, wpt1, turn_dist, ac, turn_speed )
+                        time, ac['id'], wpt1, turn_dist, ac['id'], turn_speed )
 
                     scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' +
                                          new_line3 + '\n' + new_line4 + '\n' + new_line5 + '\n' )
                 elif option == 3:
-                    new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac )
-                    new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac, turn_speed )
-                    new_line3 = '{0} > ADDWPT {1} TURNRAD {2}'.format( time, ac, turn_rad )
+                    new_line1 = '{0} > ADDWPT {1} FLYTURN'.format( time, ac['id'] )
+                    new_line2 = '{0} > ADDWPT {1} TURNSPD {2}'.format( time, ac['id'], turn_speed )
+                    new_line3 = '{0} > ADDWPT {1} TURNRAD {2}'.format( time, ac['id'], turn_rad )
                     new_line4 = '{0} > ADDWPT {1} {2} {3}, , {4}'.format( 
-                        time, ac, route_parameters[str( i )]['lat'],
+                        time, ac['id'], route_parameters[str( i )]['lat'],
                         route_parameters[str( i )]['lon'],
                         str( route_parameters[str( i )]['speed'] * m_s2knot ) )
 
@@ -425,11 +485,11 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
 
         elif state['action'] == 'climbing':  # drone was climbing
             new_line1 = '{0} > {1} AT {2} DO {3} ATALT {4}, LNAV {5} ON'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac )
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'] )
             new_line2 = '{0} > {1} AT {2} DO {3} ATALT {4}, VNAV {5} ON'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac )
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'] )
             new_line3 = '{0} > {1} AT {2} DO {3} ATALT {4}, ADDWPT {5} {6} {7}, {8}, {9}, {10}'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac,
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'],
                 route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'],
                 route_parameters[str( i )]['alt'] * m2ft,
                 str( route_parameters[str( i )]['speed'] * m_s2knot ), state['ref_wpt'] )
@@ -448,17 +508,17 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
         new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
             time, wpt1, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'] )
         if state['action'] == 'cruise':  # drone was flying horizontally
-            new_line1 = '{0} > ADDWPT {1} FLYOVER'.format( time, ac )
+            new_line1 = '{0} > ADDWPT {1} FLYOVER'.format( time, ac['id'] )
             new_line2 = '{0} > ADDWPT {1} {2}, ,{3}'.format( 
-                time, ac, wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
+                time, ac['id'], wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
             new_line3 = '{0} > {1} ATDIST {2} {3} SPD {4} {5}'.format( 
-                time, ac, wpt1, 0.015, ac, 5 )
-            new_line4 = '{0} > {1} AT {2} DO SPD {3} 0'.format( 
-                time, ac, wpt1, ac )
-            new_line5 = '{0} > {1} AT {2} DO ALT {3} {4}'.format( 
-                time, ac, wpt1, ac, route_parameters[str( i + 1 )]['alt'] * m2ft )
-            new_line6 = '{0} > {1} AT {2} DO VS {3} {4}'.format( 
-                time, ac, wpt1, ac, str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
+                time, ac['id'], wpt1, 0.015, ac['id'], 5 )
+            new_line4 = '{0} > {1} AT {2} DO {3} SPD 0'.format( 
+                time, ac['id'], wpt1, ac['id'] )
+            new_line5 = '{0} > {1} AT {2} DO {3} ALT {4}'.format( 
+                time, ac['id'], wpt1, ac['id'], route_parameters[str( i + 1 )]['alt'] * m2ft )
+            new_line6 = '{0} > {1} AT {2} DO {3} VS {4}'.format( 
+                time, ac['id'], wpt1, ac['id'], str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
 
             scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' +
                                  new_line3 + '\n' + new_line4 + '\n' + new_line5 + '\n' +
@@ -468,10 +528,10 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
 
         elif state['action'] == 'climbing':  # drone was climbing
             new_line1 = '{0} > {1} AT {2} DO {3} ATALT {4}, ALT {5} {6}'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac,
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'],
                 route_parameters[str( i + 1 )]['alt'] * m2ft )
             new_line2 = '{0} > {1} AT {2} DO {3} ATALT {4}, VS {5} {6}'.format( 
-                time, ac, state['ref_wpt'], ac, route_parameters[str( i )]['alt'] * m2ft, ac,
+                time, ac['id'], state['ref_wpt'], ac['id'], route_parameters[str( i )]['alt'] * m2ft, ac['id'],
                 str( route_parameters[str( i )]['speed'] * m_s2ft_min ) )
 
             scenario_file.write( new_line1 + '\n' + new_line2 + '\n' )
@@ -769,16 +829,16 @@ def createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
 
     Args:
             route (list): list of all waypoints of the route
-            ac (string): aircraft name
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
             departure_time (string): string indicating the departure time
             G (graph)
             layers_dict (dictionary): dictionary with the information about layers and altitudes
             scenario_file (object): text file object where the commands are written
 
     """
-    print( 'Creating flight plan of {0}...'.format( ac ) )
+    print( 'Creating flight plan of {0}...'.format( ac['id'] ) )
     state = {}
-    route_parameters = routeParameters( G, route )
+    route_parameters = routeParameters( G, route, ac )
     state['action'] = None
     for i in range( len( route ) - 1 ):
         state = createInstructionV3( 
@@ -789,15 +849,15 @@ def createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
         new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
             departure_time, route[-1], G.nodes[route[-1]]['y'], G.nodes[route[-1]]['x'] )
         new_line1 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
-            departure_time, ac, route[-1],
+            departure_time, ac['id'], route[-1],
             str( G.edges[( route[-2], route[-1], 0 )]['speed'] * m_s2knot ) )
         new_line2 = '{0} > {1} ATDIST {2} 0.001 DEL {3}'.format( 
-            departure_time, ac, route[-1], ac )
+            departure_time, ac['id'], route[-1], ac['id'] )
         scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' )
     elif state['action'] == 'climbing':
         m2ft = 3.281
         new_line0 = '{0} > {1} AT {2} DO {3} ATALT {4}, DEL {5}'.format( 
-            departure_time, ac, state['ref_wpt'], ac, layers_dict[route[-1][0]] * m2ft, ac )
+            departure_time, ac['id'], state['ref_wpt'], ac['id'], layers_dict[route[-1][0]] * m2ft, ac['id'] )
         scenario_file.write( new_line0 + '\n' )
 
 
@@ -843,7 +903,7 @@ def automaticFlightPlan( total_drones, base_name, G, layers_dict, scenario_gener
         print( 'The route is {0}'.format( route ) )
 
         # Path Planning
-        ac = name
+        ac = {'id': name, 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5 }
         departure_time = '00:00:00.00'
         scenario_path = scenario_general_path_base + '_test_' + str( n ) + '.scn'
 

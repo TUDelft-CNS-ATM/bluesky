@@ -234,11 +234,11 @@ def addTravelTimes( G, precision=4 ):
             raise ValueError( "edge `length` and `speed_kph` values must be non-null." )
 
     # convert distance meters to km, and speed km per hour to km per second
-    distance_km = edges["length"] / 1000
-    speed_km_sec = edges["speed"] / ( 60 * 60 )
+    distance_m = edges["length"]
+    speed_m_sec = edges["speed"]
 
     # calculate edge travel time in seconds
-    travel_time = distance_km / speed_km_sec
+    travel_time = distance_m / speed_m_sec
 
     # replace the infinity values by a high number
     travel_time.replace( [np.inf, -np.inf], 9999999999, inplace=True )
