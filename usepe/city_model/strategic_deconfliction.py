@@ -118,7 +118,7 @@ def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time,
             final_time (int): integer representing the final time in seconds of the period under
                 study
             route_parameters (dictionary): dictionary with all the information about the route
-            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max, safety_volume_size}
 
     Returns:
             users (dictionary): information of how the segments are populated from t0 to tf
@@ -140,12 +140,12 @@ def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time,
 
             if wpt2 == route[-1]:
                 tf = math.floor( actual_time )
-                segment_list = [1 if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
+                segment_list = [1 * ac['safety_volume_size'] if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
                 users[actual_segment] = list( map( add, users[actual_segment], segment_list ) )
         else:
             actual_time += calcTravelTime( route_parameters, ac, step )
             tf = math.floor( actual_time )
-            segment_list = [1 if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
+            segment_list = [1 * ac['safety_volume_size'] if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
 
             users[actual_segment] = list( map( add, users[actual_segment], segment_list ) )
 
