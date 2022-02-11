@@ -55,7 +55,7 @@ class DiscoveryDialog(QDialog):
         self.serverview.setStyleSheet('padding:0px')
         self.serverview.header().resizeSection(0, 180)
         layout.addWidget(self.serverview)
-        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         layout.addWidget(btns)
         btns.accepted.connect(self.on_accept)
         btns.rejected.connect(parent.closeEvent)
