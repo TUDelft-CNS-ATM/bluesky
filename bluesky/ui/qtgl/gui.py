@@ -14,15 +14,17 @@ from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
-QtMsgType
 def gui_msg_handler(msgtype, context, msg):
     if msgtype == QtMsgType.QtWarningMsg:
         print('Qt gui warning:', msg)
     elif msgtype == QtMsgType.QtCriticalMsg:
         print('Qt gui critical error:', msg)
-    if msgtype == QtMsgType.QtFatalMsg:
+    elif msgtype == QtMsgType.QtFatalMsg:
         print('Qt gui fatal error:', msg)
-        exit()
+    elif msgtype == QtMsgType.QtInfoMsg:
+        print('Qt information message:', msg)
+    elif msgtype == QtMsgType.QtDebugMsg:
+        print('Qt debug message:', msg)
 
 
 def start(mode):
@@ -53,8 +55,8 @@ def start(mode):
     splash.show()
 
     # Install error message handler
-    handler = QErrorMessage.qtHandler()
-    handler.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+    # handler = QErrorMessage.qtHandler()
+    # handler.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
 
     splash.showMessage('Constructing main window')
     app.processEvents()
