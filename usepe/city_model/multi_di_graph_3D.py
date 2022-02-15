@@ -5,7 +5,9 @@ We create a class to define a MultiDiGrpah 3D. We add several useful methods
 """
 
 import string
+
 from networkx.classes.multidigraph import MultiDiGraph
+from pyproj import Transformer
 import networkx as nx
 import osmnx as ox
 
@@ -298,37 +300,84 @@ class MultiDiGrpah3D ( MultiDiGraph ):
                         self.remove_edge( node, elem, 0 )
 
     def simplifyGraph( self, config ):
-        """
-        Merge the nodes whose distance is less than a threshold
-
-        Args:
-                config (configuration file): configuration file with the relevant parameters
-
-        """
+        from usepe.city_model.utils import shortest_dist_to_point
         print( "Simplifying the graph..." )
+        print( "Removing nodes from the straight lines..." )
+        threshold = config['Options'].getint( 'simplification_error' )
+        transformer = Transformer.from_crs( "EPSG:4326", "EPSG:25832", always_xy=True )
         nodes = list( self.nodes )
         for node in nodes:
             if self.has_node( node ):
-                G = MultiDiGrpah3D( self )
-                node_lon = self.nodes[node]['x']
-                node_lat = self.nodes[node]['y']
-                G.remove_node( node )
-                while self.distanceNearestNode( G, node_lon, node_lat ) < config['Options'].getint( 'simplification_distance' ):
-                    nearest_node = ox.distance.nearest_nodes( G, X=node_lon, Y=node_lat )
-                    connected_edges = list( G.neighbors( nearest_node ) )
-                    G.remove_node( nearest_node )
-                    self.remove_node( nearest_node )
-                    for elem in connected_edges:
-                        self.add_edge( node, elem, 0, oneway=False, segment='new', speed=50.0,
-                                       length=ox.distance.great_circle_vec( node_lat, node_lon,
-                                                                            self.nodes[elem]['y'],
-                                                                            self.nodes[elem]['x'] ) )
-                        self.add_edge( elem, node, 0, oneway=False, segment='new', speed=50.0,
-                                       length=ox.distance.great_circle_vec( node_lat, node_lon,
-                                                                            self.nodes[elem]['y'],
-                                                                            self.nodes[elem]['x'] ) )
-            else:
-                pass
+                neighbors = list( self.neighbors( node ) )
+                if len( neighbors ) == 2:
+                    lon_node = self.nodes[node]['x']
+                    lat_node = self.nodes[node]['y']
+                    lon_1 = self.nodes[neighbors[0]]['x']
+                    lat_1 = self.nodes[neighbors[0]]['y']
+                    lon_2 = self.nodes[neighbors[1]]['x']
+                    lat_2 = self.nodes[neighbors[1]]['y']
+
+                    point_1 = transformer.transform( lon_1, lat_1 )
+                    x1 = point_1[0]
+                    y1 = point_1[1]
+                    point_2 = transformer.transform( lon_2, lat_2 )
+                    x2 = point_2[0]
+                    y2 = point_2[1]
+                    point = transformer.transform( lon_node, lat_node )
+                    x = point[0]
+                    y = point[1]
+
+                    error = shortest_dist_to_point( x1, y1, x2, y2, x, y )
+
+                    if error < threshold:
+                        self.remove_node( node )
+
+                        self.add_edge( neighbors[0], neighbors[1], 0, oneway=False, segment='new',
+                                       speed=50.0,
+                                       length=ox.distance.great_circle_vec( lat_1, lon_1, lat_2, lon_2 ) )
+
+                        self.add_edge( neighbors[1], neighbors[0], 0, oneway=False, segment='new',
+                                       speed=50.0,
+                                       length=ox.distance.great_circle_vec( lat_1, lon_1, lat_2, lon_2 ) )
+
+                else:
+                    pass
+
+        if config['Options'].getint( 'simplification_distance' ) > 0:
+            print( "Merging nearest nodes..." )
+            nodes = list( self.nodes )
+            for node in nodes:
+                min_distance = 2 * config['Options'].getint( 'simplification_distance' )
+                nearest_node = False
+                if self.has_node( node ):
+                    neighbors = list( self.neighbors( node ) )
+                    for neighbor in neighbors:
+                        lon_node = self.nodes[node]['x']
+                        lat_node = self.nodes[node]['y']
+                        lon_1 = self.nodes[neighbor]['x']
+                        lat_1 = self.nodes[neighbor]['y']
+
+                        distance = ox.distance.great_circle_vec( lat_1, lon_1, lat_node, lon_node )
+
+                        if distance < min_distance:
+                            min_distance = distance
+                            nearest_node = neighbor
+
+                    if min_distance < config['Options'].getint( 'simplification_distance' ):
+                        for neighbor in neighbors:
+                            lon_node = self.nodes[nearest_node]['x']
+                            lat_node = self.nodes[nearest_node]['y']
+                            if neighbor == nearest_node:
+                                pass
+                            else:
+                                lon_1 = self.nodes[neighbor]['x']
+                                lat_1 = self.nodes[neighbor]['y']
+                                self.add_edge( neighbor, nearest_node, 0, oneway=False, segment='new', speed=50.0,
+                                        length=ox.distance.great_circle_vec( lat_1, lon_1, lat_node, lon_node ) )
+                                self.add_edge( nearest_node, neighbor, 0, oneway=False, segment='new', speed=50.0,
+                                        length=ox.distance.great_circle_vec( lat_1, lon_1, lat_node, lon_node ) )
+
+                        self.remove_node( node )
 
     def distanceNearestNode( self, G, node_lon, node_lat ):
         """
