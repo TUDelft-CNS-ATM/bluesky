@@ -9,7 +9,7 @@ import math
 
 from usepe.city_model.dynamic_segments import dynamicSegments
 from usepe.city_model.path_planning import trajectoryCalculation, printRoute
-from usepe.city_model.scenario_definition import createFlightPlan
+from usepe.city_model.scenario_definition import createFlightPlan, calcDistAccel, routeParameters
 
 
 __author__ = 'jbueno'
@@ -39,7 +39,71 @@ def initialPopulation( segments, t0, tf ):
     return users
 
 
-def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time ):
+def calcTravelTime( route_parameters, ac, step ):
+    """
+    Calculate the travel time of a segment considering the times needed to accelerate and decelerate
+
+    Args:
+            route_parameters (dictionary): dictionary with all the information about the route
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
+            step (integer): indicating the the step of the route
+
+    Returns:
+            t (float): travel time in seconds
+    """
+    m2nm = 0.000539957
+    m_s2knot = 1.944
+
+    if route_parameters[str( step - 1 )]['turn speed']:
+        v0 = route_parameters[str( step - 1 )]['turn speed'] / m_s2knot
+    elif step == 1:
+        v0 = 0
+    else:
+        v0 = route_parameters[str( step - 2 )]['speed']
+
+    if route_parameters[str( step )]['turn speed']:
+        vn = route_parameters[str( step )]['turn speed'] / m_s2knot
+        d3 = min( route_parameters[str( step )]['turn dist'] / m2nm, route_parameters[str( step - 1 )]['dist'] )
+    else:
+        vn = route_parameters[str( step - 1 )]['speed']
+        d3 = 0
+
+    v1 = route_parameters[str( step - 1 )]['speed']
+
+    d1, t1 = calcDistAccel( v0, v1, ac )
+
+    if d1 < route_parameters[str( step - 1 )]['dist'] - d3:
+        d2 = route_parameters[str( step - 1 )]['dist'] - d1 - d3
+        t2 = d2 / v1
+
+        d3, t3 = calcDistAccel( v1, vn, ac )
+
+    else:
+        d1 = max( route_parameters[str( step - 1 )]['dist'] - d3, 0 )
+
+        if v1 >= v0:
+            accel = ac['accel']
+        else:
+            accel = -ac['accel']
+        t1 = ( -2 * v0 / accel + math.sqrt( 4 * v0 ** 2 / accel ** 2 + 8 * d1 / accel ) ) / 2
+
+        v1 = v0 + accel * t1
+
+        if d3 == 0:
+            t3 = 0
+        else:
+            d3, t3 = calcDistAccel( v1, vn, ac )
+
+        d2 = max( route_parameters[str( step - 1 )]['dist'] - d1 - d3, 0 )
+        t2 = d2 / vn
+
+    t = t1 + t2 + t3
+
+    return t
+
+
+def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time,
+                        route_parameters, ac ):
     """
     Computes how the new user populates the segments. It returns the information of how the segments
     are populated including the tentative flight plan of the new drone.
@@ -53,6 +117,8 @@ def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time 
                 study
             final_time (int): integer representing the final time in seconds of the period under
                 study
+            route_parameters (dictionary): dictionary with all the information about the route
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max, safety_volume_size}
 
     Returns:
             users (dictionary): information of how the segments are populated from t0 to tf
@@ -62,30 +128,31 @@ def droneAirspaceUsage( G, route, time, users_planned, initial_time, final_time 
     actual_segment = None
     actual_time = time
     t0 = time
+    step = 0
     for wpt2 in route:
         if not actual_segment:
             actual_segment = G.nodes[wpt2]['segment']
-            wpt1 = wpt2
+            step += 1
             continue
 
         if G.nodes[wpt2]['segment'] == actual_segment:
-            actual_time += G.edges[wpt1, wpt2, 0]['travel_time']
+            actual_time += calcTravelTime( route_parameters, ac, step )
 
             if wpt2 == route[-1]:
                 tf = math.floor( actual_time )
-                segment_list = [1 if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
+                segment_list = [1 * ac['safety_volume_size'] if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
                 users[actual_segment] = list( map( add, users[actual_segment], segment_list ) )
         else:
-            actual_time += G.edges[wpt1, wpt2, 0]['travel_time']
+            actual_time += calcTravelTime( route_parameters, ac, step )
             tf = math.floor( actual_time )
-            segment_list = [1 if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
+            segment_list = [1 * ac['safety_volume_size'] if ( i >= t0 ) & ( i < tf ) else 0 for i in range( final_time - initial_time )]
 
             users[actual_segment] = list( map( add, users[actual_segment], segment_list ) )
 
             t0 = math.floor( actual_time )
             actual_segment = G.nodes[wpt2]['segment']
 
-        wpt1 = wpt2
+        step += 1
 
     if tf > final_time:
         print( 'Warning! Drone ends its trajectory at {0}, but the simulation ends at {1}'.format( tf, final_time ) )
@@ -132,7 +199,7 @@ def checkOverpopulatedSegment( segments, users, initial_time, final_time ):
 
 
 def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_time, segments,
-                              config ):
+                              config, ac ):
     """
     Computes an optimal flight plan without exceeding the segment capacity limit. The procedure
     consist in:
@@ -158,6 +225,8 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
                 study
             segments (dictionary): dictionary with the segment information
 
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
+
     Returns:
             users_step (dictionary): information of how the segments are populated from initial time to
                 final time including the deconflcited trajectory of the new dorne.
@@ -169,7 +238,10 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
     delayed_time = time
     opt_travel_time, route = trajectoryCalculation( G, orig, dest )
 
-    users_step = droneAirspaceUsage( G, route, delayed_time, users, initial_time, final_time )
+    route_parameters = routeParameters( G, route, ac )
+
+    users_step = droneAirspaceUsage( G, route, delayed_time, users, initial_time, final_time,
+                                     route_parameters, ac )
 
     overpopulated_segment, overpopulated_time = checkOverpopulatedSegment( 
         segments, users_step, initial_time, final_time )
@@ -189,7 +261,8 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
         travel_time, route = trajectoryCalculation( G_step, orig, dest )
         # print( travel_time / opt_travel_time )
 
-        users_step = droneAirspaceUsage( G_step, route, delayed_time, users, initial_time, final_time )
+        users_step = droneAirspaceUsage( G_step, route, delayed_time, users, initial_time,
+                                         final_time, route_parameters, ac )
 
         overpopulated_segment, overpopulated_time = checkOverpopulatedSegment( 
             segments_step, users_step, initial_time, final_time )
@@ -220,7 +293,7 @@ def deconflcitedScenario( orig, dest, ac, departure_time, G, users, initial_time
     Args:
             orig (list): with the coordinates of the origin point [longitude, latitude]
             dest (list): with the coordinates of the destination point [longitude, latitude]
-            ac (string): aircraft name
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
             departure_time (int): integer representing the departure time in seconds relative to initial_time
             G (graph): a graph representing the city
             users (dictionary): information of how the segments are populated from initial time to
@@ -240,7 +313,7 @@ def deconflcitedScenario( orig, dest, ac, departure_time, G, users, initial_time
 
     users, route, delayed_time = deconflictedPathPlanning( orig, dest, departure_time, G, users,
                                                            initial_time, final_time, segments,
-                                                           config )
+                                                           config, ac )
 
     departure_time = str( datetime.timedelta( seconds=delayed_time ) )
 
