@@ -95,5 +95,5 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
             stack.stack(f'IC {scnfile}')
 
     from bluesky.core import plugin
-    plugin.init(mode)
-    stack.init(mode)
+    plugin.init('sim' if mode[:3] == 'sim' else 'client')
+    stack.init('sim' if mode[:3] == 'sim' else 'client')

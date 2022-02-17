@@ -65,6 +65,8 @@ def main():
         mode = 'sim-detached'
     elif '--sim' in sys.argv:
         mode = 'sim'
+    elif '--console' in sys.argv:
+        mode = 'client-console'
     elif '--client' in sys.argv:
         mode = 'client'
     elif '--headless' in sys.argv:
@@ -111,6 +113,10 @@ def main():
         if mode in ('client', 'server-gui'):
             from bluesky.ui import qtgl
             qtgl.start(mode)
+
+        elif mode == 'client-console':
+            from bluesky.ui import console
+            console.start()
 
     # Give info on missing module
     except ImportError as error:
