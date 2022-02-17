@@ -75,7 +75,7 @@ class Plot:
         elif fig > Plot.maxfig:
             Plot.maxfig = fig
 
-        self.fig = fig
+        self.fig = str(fig)
 
         self.stream_id = b'PLOT' + (bs.stack.sender() or b'*')
 
@@ -84,6 +84,7 @@ class Plot:
 
         # if not self.x.is_num() or not self.y.is_num():
         #     raise IndexError('Variable {} not numeric'.format(varx if not self.x.is_num() else (vary or varx)))
+        print(self.stream_id, type(self.stream_id), {self.fig: params})
         bs.net.send_stream(self.stream_id, {self.fig: params})
 
     def send(self):
