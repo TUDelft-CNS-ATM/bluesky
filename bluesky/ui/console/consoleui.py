@@ -6,6 +6,7 @@ from textual.keys import Keys
 from textual.widgets import Placeholder, ScrollView
 from textual.widget import Widget
 from textual.reactive import Reactive
+from textual.views import DockView
 from rich import box
 from rich.console import RenderableType
 from rich.panel import Panel
@@ -93,6 +94,8 @@ class ConsoleUI(App):
         ConsoleUI.instance = self
 
     def echo(self, text, flags=None):
+        # if flags != bs.BS_OK:
+        #     text = f'[red]{text}[/red]'
         self.echotext = text + '\n' + self.echotext
 
     def set_infoline(self, text):
@@ -127,7 +130,13 @@ class ConsoleUI(App):
         self.infoline = Textline("[black]Current node: [/black]")
 
         await self.view.dock(self.cmdbox, edge="bottom", size=1)
-        await self.view.dock(self.echobox, edge="bottom", size=8)
+        # await self.view.dock(self.echobox, edge="bottom", size=8)
+        echorow = DockView()
+        await echorow.dock(Placeholder(), edge="right", size=20)
+        await echorow.dock(self.echobox, edge="left")
+        
+        await self.view.dock(echorow, edge="bottom", size=8)
+        # await self.view.dock(Placeholder(), edge="right", size=20)
         await self.view.dock(self.infoline, edge="bottom", size=1)
 
         await self.view.dock(Placeholder(), edge="top")
