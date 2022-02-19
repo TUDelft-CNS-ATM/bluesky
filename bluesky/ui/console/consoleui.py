@@ -10,9 +10,12 @@ from textual.views import DockView
 from rich import box
 from rich.console import RenderableType
 from rich.panel import Panel
+from rich.table import Table
 from rich.text import Text
 from rich.markdown import Markdown
 from rich.style import Style
+import numpy as np
+import copy
 
 import bluesky as bs
 from bluesky.network.client import Client
@@ -30,6 +33,9 @@ class ConsoleClient(Client):
     def __init__(self, actnode_topics=b''):
         super().__init__(actnode_topics)
         self.subscribe(b'SIMINFO')
+        
+        self.count = 0
+        self.nodes = dict()
 
     def event(self, name, data, sender_id):
         ''' Overridden event function. '''
@@ -47,13 +53,28 @@ class ConsoleClient(Client):
         if name == b'SIMINFO' and ConsoleUI.instance is not None:
             speed, simdt, simt, simutc, ntraf, state, scenname = data
             simt = tim2txt(simt)[:-3]
-            # self.setNodeInfo(sender_id, simt, scenname)
+            self.setNodeInfo(sender_id, simt, scenname)
             if sender_id == bs.net.actnode():
                 ConsoleUI.instance.set_infoline(f'[b]t:[/b] {simt} [b]dt:[/b] {simdt} [b]Speed:[/b] {speed:.1f} [b]UTC:[/b] {simutc} [b]Mode:[/b] {self.modes[state]} [b]Aircraft[/b] {ntraf}')
                 # acdata = bs.net.get_nodedata().acdata
                 # self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
                 #                           % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
 
+            ConsoleUI.instance.set_nodes(copy.deepcopy(self.nodes))
+            
+    def setNodeInfo(self, connid, time, scenname):
+        
+        # check if it is inside self.nodes
+        if connid in self.nodes:
+            self.nodes[connid]['scenename'] = scenname
+            self.nodes[connid]['time'] = time
+        
+        else:
+            node_count = self.count + 1
+            self.nodes[connid] = {'num': f'{node_count}','scenename': scenname, 'time': time}
+        
+            self.count += 1
+            
 class Echobox(ScrollView):
     text: Union[Reactive[str], str] = Reactive("")
 
@@ -78,15 +99,46 @@ class Textline(Widget):
     def set_text(self, text: str) -> None:
         self.text = text
 
+class NodeInfo(Widget):
+    nodepanel: Union[Reactive[Panel], Panel] = Reactive(Panel(Table()))
+
+    def __init__(self, text: str = "", name: str | None = None) -> None:
+        super().__init__(name)
+        self.text = text
+        self.table = Table()
+        self.table.add_column('Node #')
+        self.table.add_column('Node id')
+        self.table.add_column('Scenario')
+        self.table.add_column('Time')
+        self.nodepanel = Panel(self.table)
+
+    def render(self) -> RenderableType:
+        return self.nodepanel
+
+    def set_nodes(self, nodedict: dict) -> None:
+        # add rows to table
+        self.table = Table()
+        self.table.add_column('Node #')
+        self.table.add_column('Node')
+        self.table.add_column('Scenario')
+        self.table.add_column('Time')
+        
+        for node_id, node in nodedict.items():
+            self.table.add_row(node['num'], f'{node_id}', node['scenename'], node['time'])
+        
+        self.nodepanel = Panel(self.table)
+
 
 class ConsoleUI(App):
     cmdtext: Union[Reactive[str], str] = Reactive("")
     echotext: Union[Reactive[str], str] = Reactive("")
     infotext: Union[Reactive[str], str] = Reactive("")
+    nodedict = Reactive(dict())
 
     cmdbox: Textline
     echobox: Echobox
     infoline: Textline
+    nodeinfo: NodeInfo
     instance: App
 
     def __init__(self, *args, **kwargs):
@@ -100,6 +152,9 @@ class ConsoleUI(App):
 
     def set_infoline(self, text):
         self.infotext = text
+        
+    def set_nodes(self, nodes):
+        self.nodedict = nodes
 
     async def on_key(self, key: events.Key) -> None:
         if key.key == Keys.ControlH:
@@ -120,6 +175,9 @@ class ConsoleUI(App):
 
     async def watch_cmdtext(self, cmdtext) -> None:
         self.cmdbox.set_text(f"[blue]>>[/blue] {cmdtext}")
+        
+    async def watch_nodedict(self, nodedict) -> None:
+        self.nodeinfo.set_nodes(nodedict)
 
     async def watch_echotext(self, echotext) -> None:
         self.echobox.set_text(echotext)
@@ -128,7 +186,8 @@ class ConsoleUI(App):
         self.cmdbox = Textline("[blue]>>[/blue]")
         self.echobox = Echobox(Panel(Text(), height=8, box=box.SIMPLE, style=Style(bgcolor="grey53")))
         self.infoline = Textline("[black]Current node: [/black]")
-
+        self.nodeinfo = NodeInfo()
+        
         await self.view.dock(self.cmdbox, edge="bottom", size=1)
         # await self.view.dock(self.echobox, edge="bottom", size=8)
         echorow = DockView()
@@ -139,7 +198,7 @@ class ConsoleUI(App):
         # await self.view.dock(Placeholder(), edge="right", size=20)
         await self.view.dock(self.infoline, edge="bottom", size=1)
 
-        await self.view.dock(Placeholder(), edge="top")
+        await self.view.dock(self.nodeinfo, edge="top")
         await self.set_focus(self.cmdbox)
 
         self.set_interval(0.2, bs.net.update, name='Network')
