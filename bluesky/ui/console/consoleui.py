@@ -4,7 +4,7 @@ from typing import Union
 from textual import events
 from textual.app import App
 from textual.keys import Keys
-from textual.widgets import Placeholder, ScrollView
+from textual.widgets import Placeholder, ScrollView, Footer
 from textual.widget import Widget
 from textual.reactive import Reactive
 from textual.views import DockView
@@ -265,8 +265,13 @@ class ConsoleUI(App):
         self.echobox = Echobox(Panel(Text(), height=8, box=box.SIMPLE, style=Style(bgcolor="grey53")))
         self.infoline = Textline("[black]Current node: [/black]")
         self.nodeinfo = NodeInfo()
-        self.traffic = Traffic()
+        self.traffic = Traffic(name="traffic")
         
+        await self.bind(Keys.Escape, "quit", "Quit")
+        await self.bind(Keys.ControlT, "view.toggle('traffic')", "Show traffic")
+        await self.bind(Keys.ControlB, "showbatch", "Show batch")
+
+        await self.view.dock(Footer(), edge="bottom", size=1)
         await self.view.dock(self.cmdbox, edge="bottom", size=1)
         # await self.view.dock(self.echobox, edge="bottom", size=8)
         echorow = DockView()
