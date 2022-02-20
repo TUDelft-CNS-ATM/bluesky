@@ -1,8 +1,14 @@
-from PyQt6.QtCore import Qt, QEvent, QTimer, pyqtSlot
-from PyQt6.QtGui import QImage
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QSurfaceFormat as QGLFormat
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget as QGLWidget
+try:
+    from PyQt5.QtCore import Qt, QEvent, QTimer, pyqtSlot
+    from PyQt5.QtGui import QImage
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtOpenGL import QGLWidget, QGLFormat
+except ImportError:
+    from PyQt6.QtCore import Qt, QEvent, QTimer, pyqtSlot
+    from PyQt6.QtGui import QImage
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtGui import QSurfaceFormat as QGLFormat
+    from PyQt6.QtOpenGLWidgets import QOpenGLWidget as QGLWidget
 
 import OpenGL.GL as gl
 import numpy as np

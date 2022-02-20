@@ -1,11 +1,18 @@
 from os import path
 from glob import glob
 from collections import defaultdict
-from PyQt6.QtCore import Qt, pyqtSlot
-from PyQt6.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
-    QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
-        QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
-        QListWidget, QListWidgetItem
+try:
+    from PyQt5.QtCore import Qt, pyqtSlot
+    from PyQt5.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
+        QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
+            QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
+            QListWidget, QListWidgetItem
+except ImportError:
+    from PyQt6.QtCore import Qt, pyqtSlot
+    from PyQt6.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
+        QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
+            QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
+            QListWidget, QListWidgetItem
 
 import bluesky as bs
 

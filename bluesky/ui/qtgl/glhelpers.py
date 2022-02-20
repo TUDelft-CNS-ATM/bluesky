@@ -3,10 +3,27 @@ import importlib
 from os import path
 from collections import namedtuple
 from collections import OrderedDict
-import PyQt6
-from PyQt6.QtCore import qCritical
 
-from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+try:
+    from PyQt5.QtCore import qCritical
+    from PyQt5.QtWidgets import QOpenGLWidget
+    from PyQt5.QtGui import (QSurfaceFormat, QOpenGLShader, QOpenGLShaderProgram,
+                            QOpenGLVertexArrayObject, QOpenGLBuffer,
+                            QOpenGLContext, QOpenGLVersionProfile,
+                            QOpenGLTexture, QImage)
+    opengl_versions = ((4, 5), (4, 4), (4, 3), (4, 2), (4, 1), (4, 0), (3, 3))
+
+
+except ImportError:
+    from PyQt6.QtCore import qCritical
+    from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+    from PyQt6.QtOpenGL import (QOpenGLShader, QOpenGLShaderProgram,
+                         QOpenGLVertexArrayObject, QOpenGLBuffer,
+                         QOpenGLVersionProfile, QOpenGLTexture, QOpenGLVersionFunctionsFactory)
+    from PyQt6.QtGui import QSurfaceFormat, QOpenGLContext, QImage
+    
+    opengl_versions = ((4, 1), (2, 1), (2, 0))
+
 
 try:
     from collections.abc import Collection, MutableMapping
@@ -16,10 +33,7 @@ except ImportError:
 import ctypes
 import numpy as np
 
-from PyQt6.QtOpenGL import (QOpenGLShader, QOpenGLShaderProgram,
-                         QOpenGLVertexArrayObject, QOpenGLBuffer,
-                         QOpenGLVersionProfile, QOpenGLTexture, QOpenGLVersionFunctionsFactory)
-from PyQt6.QtGui import QSurfaceFormat, QOpenGLContext, QImage
+
 
 from bluesky import settings
 from bluesky.core import Entity
@@ -37,10 +51,14 @@ _glvar_sizes = dict()
 
 
 def get_profile_settings():
-    for version in ((4, 1), (2, 1), (2, 0)):
+    for version in opengl_versions:
         for profile in ('Core', 'Compatibility'):
             try:
-                importlib.import_module(f'PyQt6.QtOpenGL', package=f'QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                try:
+                     importlib.import_module(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                except ImportError:
+                    importlib.import_module(f'PyQt6.QtOpenGL', package=f'QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                
                 print(f'Found Qt-provided OpenGL functions for OpenGL {version} {profile}')
                 return version, QSurfaceFormat.OpenGLContextProfile.CoreProfile if profile == 'Core' else QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile
             except:

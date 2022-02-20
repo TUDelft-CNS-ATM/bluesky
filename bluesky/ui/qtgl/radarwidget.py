@@ -3,7 +3,10 @@ from os import path
 from ctypes import c_float, c_int, Structure
 import numpy as np
 
-from PyQt6.QtCore import Qt, QEvent, QT_VERSION
+try:
+    from PyQt5.QtCore import Qt, QEvent, QT_VERSION
+except ImportError:
+    from PyQt6.QtCore import Qt, QEvent, QT_VERSION
 
 import bluesky as bs
 from bluesky.core import Signal

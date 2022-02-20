@@ -1,10 +1,18 @@
 """ QTGL Gui for BlueSky."""
-from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, \
-    QT_VERSION, QT_VERSION_STR
+try:
+    from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
+        QT_VERSION, QT_VERSION_STR
+    from PyQt5.QtWidgets import QApplication, QErrorMessage
+    from PyQt5.QtGui import QFont
+    
+except ImportError:
+    from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QT_VERSION, QT_VERSION_STR
 
-from PyQt6.QtCore import QtMsgType
-from PyQt6.QtWidgets import QApplication, QErrorMessage
-from PyQt6.QtGui import QFont
+    from PyQt6.QtCore import QtMsgType
+    from PyQt6.QtWidgets import QApplication, QErrorMessage
+    from PyQt6.QtGui import QFont
 
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
@@ -40,9 +48,9 @@ def start(mode):
     # Start the bluesky network client
     client = GuiClient()
 
-    # # Enable HiDPI support (Qt5 only)
-    # if QT_VERSION >= 0x050000:
-    #     app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    # Enable HiDPI support (Qt5 only)
+    if QT_VERSION_STR[0] == '5' and QT_VERSION >= 0x050000:
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     splash = Splash()
 
