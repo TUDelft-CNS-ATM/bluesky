@@ -264,12 +264,12 @@ class ConsoleUI(App):
         self.cmdbox = Textline("[blue]>>[/blue]")
         self.echobox = Echobox(Panel(Text(), height=8, box=box.SIMPLE, style=Style(bgcolor="grey53")))
         self.infoline = Textline("[black]Current node: [/black]")
-        self.nodeinfo = NodeInfo()
+        self.nodeinfo = NodeInfo(name="nodeinfo")
         self.traffic = Traffic(name="traffic")
         
         await self.bind(Keys.Escape, "quit", "Quit")
         await self.bind(Keys.ControlT, "view.toggle('traffic')", "Show traffic")
-        await self.bind(Keys.ControlB, "showbatch", "Show batch")
+        await self.bind(Keys.ControlB, "view.toggle('nodeinfo')", "Show batch")
 
         await self.view.dock(Footer(), edge="bottom", size=1)
         await self.view.dock(self.cmdbox, edge="bottom", size=1)
@@ -283,6 +283,8 @@ class ConsoleUI(App):
         await self.view.dock(self.infoline, edge="bottom", size=1)
 
         await self.view.dock(self.traffic, edge="top")
+        await self.view.dock(self.nodeinfo, edge="top")
+        
         await self.set_focus(self.cmdbox)
 
         self.set_interval(0.2, bs.net.update, name='Network')
