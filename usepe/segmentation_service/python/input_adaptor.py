@@ -53,12 +53,7 @@ def defineSegment( segments, lon_min, lon_max, lat_min, lat_max, z_min, z_max,
     return segments
 
 
-if __name__ == '__main__':
-    # ----------------- Defined by user ------------------ #
-    rules_path = r'../config/rules.json'
-    segment_path = r"../data/examples/hannover.geojson"
-
-    # ----------------------------------------------------- #
+def offlineSegments( rules_path, segment_path ):
     f = open( rules_path )
     rules = json.load( f )
 
@@ -119,4 +114,55 @@ if __name__ == '__main__':
 
     with open( 'offline_segments.pkl', 'rb' ) as f:
         loaded_dict = pickle.load( f )
+
+
+def referenceSegments( rules_path, segment_path ):
+    f = open( rules_path )
+    rules = json.load( f )
+
+    cells = gpd.read_file( segment_path, driver="GeoJSON" )
+
+    segments = {}
+    for index, row in cells.iterrows():
+        lon_min = min( row["geometry"].boundary.coords.xy[0] )
+        lon_max = max( row["geometry"].boundary.coords.xy[0] )
+        lat_min = min( row["geometry"].boundary.coords.xy[1] )
+        lat_max = max( row["geometry"].boundary.coords.xy[1] )
+        z_min = row["floor"]
+        z_max = row["ceiling"]
+        name = str( index )
+        # speed = float( random.randint( 5, 15 ) )
+        # capacity = random.randint( 1, 20 )
+
+        speed = 30
+        capacity = 999
+
+        new = True
+        updated = True
+        if row["class"] == "black":
+            speed = 0
+            capacity = 0
+            defineSegment( segments, lon_min, lon_max, lat_min, lat_max, z_min, z_max,
+                           speed, capacity, name, 'black' )
+        else:
+            # speed = float( random.randint( 5, 50 ) )
+            # capacity = random.randint( 1, 20 )
+            defineSegment( segments, lon_min, lon_max, lat_min, lat_max, z_min, z_max,
+                           speed, capacity, name, 'white' )
+
+    with open( 'reference_segments.pkl', 'wb' ) as f:
+        pickle.dump( segments, f )
+
+    with open( 'reference_segments.pkl', 'rb' ) as f:
+        loaded_dict = pickle.load( f )
+
+
+if __name__ == '__main__':
+    # ----------------- Defined by user ------------------ #
+    rules_path = r'../config/rules.json'
+    segment_path = r"../data/examples/hannover.geojson"
+
+    # ----------------------------------------------------- #
+    # offlineSegments(rules_path, segment_path)
+    referenceSegments( rules_path, segment_path )
 
