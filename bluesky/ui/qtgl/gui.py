@@ -1,8 +1,7 @@
 """ QTGL Gui for BlueSky."""
 try:
     from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
-        QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
-        QT_VERSION, QT_VERSION_STR
+        QtMsgType, QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QErrorMessage
     from PyQt5.QtGui import QFont
     
