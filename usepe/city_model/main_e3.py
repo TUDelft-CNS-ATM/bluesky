@@ -9,11 +9,12 @@ explained below.
 
 
 import configparser
+import pickle
 import os
 import time
 
 from usepe.city_model.city_graph import cityGraph
-from usepe.city_model.corridors_implementation import corridorCreation, corridorLoad
+from usepe.city_model.corridors_implementation import corridorLoad
 from usepe.city_model.dynamic_segments import dynamicSegments
 from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
 from usepe.city_model.no_fly_zones import restrictedSegments
@@ -64,11 +65,12 @@ if __name__ == '__main__':
     """
     if config['Segments'].getboolean( 'import' ):
         path = config['Segments']['path']
-        segments = np.load( path, allow_pickle='TRUE' ).item()
+        with open(path, 'rb') as f:
+            segments = pickle.load(f)
     else:
         segments = None
 
-    G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
+    # G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
 
     # -------------- 4. CORRIDORS ---------------------------
     """
@@ -102,7 +104,7 @@ if __name__ == '__main__':
     Comment it to no calculate an optimal trajectory
     Introduce origin and destination points inside the graph
     """
-    orig = [9.72996, 52.44893 ]  # origin point
+    orig = [9.72996, 52.44893]  # origin point
     dest = [9.71846, 52.45044]  # destination point
     travel_time, route = trajectoryCalculation( G, orig, dest )
     print( 'The travel time of the route is {0}'.format( travel_time ) )
