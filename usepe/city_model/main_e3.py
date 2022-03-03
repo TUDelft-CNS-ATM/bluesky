@@ -27,10 +27,6 @@ import numpy as np
 import osmnx as ox
 
 
-__author__ = 'jbueno'
-__copyright__ = '(c) Nommon 2021'
-
-
 if __name__ == '__main__':
 
     # -------------- 1. CONFIGURATION FILE -----------------
@@ -61,7 +57,6 @@ if __name__ == '__main__':
     """
     This section creates a airspace segmentation or loads the segmentation defined with the segment
     section of the configuration file.
-    Comment it to neglect the segmentation
     """
     if config['Segments'].getboolean( 'import' ):
         path = config['Segments']['path']
@@ -78,6 +73,8 @@ if __name__ == '__main__':
     Comment it to neglect the creation of corridors
     """
     G, segments = corridorLoad( G, segments, config )
+    segments['873']['speed'] = 15
+    segments['873']['capacity'] = 10
     G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
 
     # -------------- 5. No-FLY ZONES ------------------------
@@ -165,11 +162,12 @@ if __name__ == '__main__':
 
     # -------------- 8. Strategic deconfliction -----------------------
     """
-    This section computes an strategic deconflicted trajectory from origin to destination. An
+    This section computes a strategic deconflicted trajectory from origin to destination. An
     empty initial population is generated.
     """
 
-    step = True
+    step = False
+    sec_8_multi = True
 
     if step:
         orig = [9.72996, 52.44893 ]  # origin point
@@ -185,23 +183,32 @@ if __name__ == '__main__':
                                       final_time, segments, layers_dict, scenario_file, config )
         scenario_file.close()
 
+    if sec_8_multi:
+        op_plans = [
+            {"acid": "UAS1", "base_coord": [9.72996, 52.44893], "op_coord": [9.71846, 52.45044], "departure_time": 0},
+            {"acid": "UAS2", "base_coord": [9.69446, 52.43906], "op_coord": [9.67161, 52.44252], "departure_time": 0},
+            {"acid": "UAS3", "base_coord": [9.65075, 52.42035], "op_coord": [9.68234, 52.44066], "departure_time": 0},
+            {"acid": "UAS4", "base_coord": [9.65075, 52.42035], "op_coord": [9.67879, 52.43126], "departure_time": 30},
+            {"acid": "UAS5", "base_coord": [9.68395, 52.43218], "op_coord": [9.68334, 52.43572], "departure_time": 285}
+        ]
+        initial_time = 0
+        final_time = 1800
+        users = initialPopulation(segments, initial_time, final_time)
+        for plan in op_plans:
+            scenario_path = r'scenario/USEPE/exercise_3/' + plan["acid"] + r'_stage1.scn'
+            scenario_file = open(scenario_path, 'w')
+            users, route = deconflcitedScenario( plan["base_coord"], plan["op_coord"], plan["acid"], 
+                                          plan["departure_time"], G, users, initial_time, 
+                                          final_time, segments, layers_dict, scenario_file, config )
+            scenario_file.close()
+
+            scenario_path = r'scenario/USEPE/exercise_3/' + plan["acid"] + r'_stage2.scn'
+            scenario_file = open(scenario_path, 'w')
+            users, route = deconflcitedScenario( plan["op_coord"], plan["base_coord"], plan["acid"], 
+                                          plan["departure_time"] + 600, G, users, initial_time, 
+                                          final_time, segments, layers_dict, scenario_file, config )
+            scenario_file.close()
+
     # -----------------------------------------------------------------
 
     print( 'Finish.' )
-
-#     # Plotting the graph with corridors and no-fly zones
-#     ec = []
-#     for u, v, k in G.edges( keys=True ):
-#         if G.edges[( u, v, k )]['speed'] == 0:
-#             ec.append( "r" )
-#         elif G.edges[( u, v, k )]['speed'] == 100:
-#             ec.append( "g" )
-#         else:
-#             ec.append( "gray" )
-#     fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
-#                              edge_linewidth=2 )
-#    # Plot graph
-#     ec = ["r" if G.edges[( u, v, k )]['speed'] == 0 else "gray" for u, v, k in G.edges( keys=True )]
-#     fig, ax = ox.plot_graph( G, node_color="w", node_edgecolor="k", edge_color=ec,
-#                              edge_linewidth=2 )
-
