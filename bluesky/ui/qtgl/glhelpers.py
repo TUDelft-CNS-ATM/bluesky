@@ -5,7 +5,7 @@ from collections import namedtuple
 from collections import OrderedDict
 
 try:
-    from PyQt5.QtCore import qCritical
+    from PyQt5.QtCore import qCritical, QT_VERSION_STR
     from PyQt5.QtWidgets import QOpenGLWidget
     from PyQt5.QtGui import (QSurfaceFormat, QOpenGLShader, QOpenGLShaderProgram,
                             QOpenGLVertexArrayObject, QOpenGLBuffer,
@@ -15,7 +15,7 @@ try:
 
 
 except ImportError:
-    from PyQt6.QtCore import qCritical
+    from PyQt6.QtCore import qCritical, QT_VERSION_STR
     from PyQt6.QtOpenGLWidgets import QOpenGLWidget
     from PyQt6.QtOpenGL import (QOpenGLShader, QOpenGLShaderProgram,
                          QOpenGLVertexArrayObject, QOpenGLBuffer,
@@ -82,8 +82,11 @@ def init():
             # Use a dummy context to get GL functions
             glprofile = QOpenGLVersionProfile(fmt)
             ctx = QOpenGLContext()
-            function_factory = QOpenGLVersionFunctionsFactory()
-            globals()['gl'] = function_factory.get(glprofile, ctx)
+            if QT_VERSION_STR[0] == '5':
+                globals()['gl'] = ctx.versionFunctions(glprofile)
+            elif QT_VERSION_STR[0] == '6':
+                function_factory = QOpenGLVersionFunctionsFactory()
+                globals()['gl'] = function_factory.get(glprofile, ctx)
             # Check and set OpenGL capabilities
             if not glprofile.hasProfiles():
                 raise RuntimeError(
@@ -119,8 +122,11 @@ def init_glcontext(ctx):
         # The OpenGL functions are provided by the Qt library. Update them from the current context
         fmt = QSurfaceFormat.defaultFormat()
         glprofile = QOpenGLVersionProfile(fmt)
-        function_factory = QOpenGLVersionFunctionsFactory()
-        globals()['gl'] = function_factory.get(glprofile, ctx)
+        if QT_VERSION_STR[0] == '5':
+            globals()['gl'] = ctx.versionFunctions(glprofile)
+        elif QT_VERSION_STR[0] == '6':
+            function_factory = QOpenGLVersionFunctionsFactory()
+            globals()['gl'] = function_factory.get(glprofile, ctx)
     # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
     # void glGetActiveUniformBlockName(	GLuint program,
