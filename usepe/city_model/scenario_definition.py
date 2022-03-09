@@ -3,13 +3,13 @@
 """
 
 """
-import configparser
 import math
 import os
 import random
 import string
 
 from pyproj import Transformer
+import configparser
 
 from usepe.city_model.building_height import readCity
 from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
@@ -328,7 +328,7 @@ def createInstructionV3( scenario_file, route_parameters, i, ac, G, layers_dict,
         else:
             new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
                 time, wpt1, route_parameters[str( i )]['lat'], route_parameters[str( i )]['lon'] )
-            new_line1 = '{0} > CRE {1} {4} {2} 0 {3} 0'.format( 
+            new_line1 = '{0} > CRE {1} {4} {2} 0 {3} 0.1'.format( 
                 time, ac['id'], wpt1, route_parameters[str( i )]['alt'] * m2ft, ac['type'] )
             new_line2 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
                 time, ac['id'], wpt1, str( route_parameters[str( i )]['speed'] * m_s2knot ) )
@@ -851,9 +851,12 @@ def createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
         new_line1 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
             departure_time, ac['id'], route[-1],
             str( G.edges[( route[-2], route[-1], 0 )]['speed'] * m_s2knot ) )
-        new_line2 = '{0} > {1} ATDIST {2} 0.001 DEL {3}'.format( 
+        new_line2 = '{0} > {1} ATDIST {2} {3} SPD {4}'.format( 
+            departure_time, ac['id'], route[-1], 0.015, 5 )
+        new_line3 = '{0} > {1} ATDIST {2} 0.001 DEL {3}'.format( 
             departure_time, ac['id'], route[-1], ac['id'] )
-        scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' )
+        scenario_file.write( new_line0 + '\n' + new_line1 + '\n' +
+                             new_line2 + '\n' + new_line3 + '\n' )
     elif state['action'] == 'climbing':
         m2ft = 3.281
         new_line0 = '{0} > {1} AT {2} DO {3} ATALT {4}, DEL {5}'.format( 
