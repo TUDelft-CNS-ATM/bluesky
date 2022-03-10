@@ -134,7 +134,7 @@ def referenceSegments( rules_path, segment_path ):
         # speed = float( random.randint( 5, 15 ) )
         # capacity = random.randint( 1, 20 )
 
-        speed = 30
+        speed = 20
         capacity = 999
 
         new = True
