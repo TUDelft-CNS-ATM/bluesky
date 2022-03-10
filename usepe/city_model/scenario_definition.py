@@ -3,13 +3,13 @@
 """
 
 """
+import configparser
 import math
 import os
 import random
 import string
 
 from pyproj import Transformer
-import configparser
 
 from usepe.city_model.building_height import readCity
 from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
@@ -212,6 +212,11 @@ def routeParameters( G, route, ac ):
     Returns:
             route_parameters (dictionary): dictionary with all the information about the route
     """
+
+    points_to_check_speed_reduction = 5
+    speed_reduction = len( route ) > points_to_check_speed_reduction
+    distance_speed_reduction = 125  # m
+
     route_parameters = {}
     for i in range( len( route ) - 1 ):
         node = {}
@@ -227,9 +232,9 @@ def routeParameters( G, route, ac ):
             node['turn dist'] = None
             node['hdg'] = new_heading
             if name[0] == route[i + 1][0]:
-                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['v_max'] )
+                node['speed'] = max( min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['v_max'] ), 0.001 )
             else:
-                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] )
+                node['speed'] = max( min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] ), 0.001 )
             node['dist'] = G.edges[( name, route[i + 1], 0 )]['length']
         else:
             new_heading, increment = headingIncrement( route_parameters[str( i - 1 )]['hdg'], name,
@@ -259,10 +264,21 @@ def routeParameters( G, route, ac ):
             node['turn dist'] = turn_dist
             node['hdg'] = new_heading
             if name[0] == route[i + 1][0]:
-                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['v_max'] )
+                node['speed'] = max( min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['v_max'] ), 0.001 )
             else:
-                node['speed'] = min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] )
+                node['speed'] = max( min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] ), 0.001 )
             node['dist'] = G.edges[( name, route[i + 1], 0 )]['length']
+
+            # Apply speed limitation for last nodes when too close to the end
+            if speed_reduction:
+                if i > ( len( route ) - points_to_check_speed_reduction ):
+                    distance = ox.distance.great_circle_vec( G.nodes[route[i]]['x'],
+                                                             G.nodes[route[i]]['y'],
+                                                             G.nodes[route[i + 1]]['x'],
+                                                             G.nodes[route[i + 1]]['y'] )
+                    if distance < distance_speed_reduction:
+                        node['speed'] = 5  # m/s
+
         route_parameters[str( i )] = node
 
     final_node = {}
@@ -846,17 +862,15 @@ def createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
 
     if state['action'] == 'cruise':
         m_s2knot = 1.944
+
         new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
             departure_time, route[-1], G.nodes[route[-1]]['y'], G.nodes[route[-1]]['x'] )
         new_line1 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
             departure_time, ac['id'], route[-1],
             str( G.edges[( route[-2], route[-1], 0 )]['speed'] * m_s2knot ) )
-        new_line2 = '{0} > {1} ATDIST {2} {3} SPD {4}'.format( 
-            departure_time, ac['id'], route[-1], 0.015, 5 )
-        new_line3 = '{0} > {1} ATDIST {2} 0.001 DEL {3}'.format( 
+        new_line2 = '{0} > {1} ATDIST {2} 0.003 DEL {3}'.format( 
             departure_time, ac['id'], route[-1], ac['id'] )
-        scenario_file.write( new_line0 + '\n' + new_line1 + '\n' +
-                             new_line2 + '\n' + new_line3 + '\n' )
+        scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' )
     elif state['action'] == 'climbing':
         m2ft = 3.281
         new_line0 = '{0} > {1} AT {2} DO {3} ATALT {4}, DEL {5}'.format( 
