@@ -867,7 +867,7 @@ def createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
             departure_time, route[-1], G.nodes[route[-1]]['y'], G.nodes[route[-1]]['x'] )
         new_line1 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
             departure_time, ac['id'], route[-1],
-            str( G.edges[( route[-2], route[-1], 0 )]['speed'] * m_s2knot ) )
+            str( route_parameters[str( len( route ) - 1 )]['speed'] * m_s2knot ) )
         new_line2 = '{0} > {1} ATDIST {2} 0.003 DEL {3}'.format( 
             departure_time, ac['id'], route[-1], ac['id'] )
         scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' )
