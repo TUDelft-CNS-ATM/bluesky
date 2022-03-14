@@ -276,7 +276,7 @@ def routeParameters( G, route, ac ):
                                                              G.nodes[route[i]]['y'],
                                                              G.nodes[route[i + 1]]['x'],
                                                              G.nodes[route[i + 1]]['y'] )
-                    if distance < distance_speed_reduction:
+                    if distance < distance_speed_reduction or i == len( route ) - 2:
                         node['speed'] = 5  # m/s
 
         route_parameters[str( i )] = node
@@ -876,6 +876,94 @@ def createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
         new_line0 = '{0} > {1} AT {2} DO {3} ATALT {4}, DEL {5}'.format( 
             departure_time, ac['id'], state['ref_wpt'], ac['id'], layers_dict[route[-1][0]] * m2ft, ac['id'] )
         scenario_file.write( new_line0 + '\n' )
+
+
+def createDeliveryFlightPlan( route1, route2, ac, departure_time, G, layers_dict, scenario_file,
+                              scenario_path, hovering_time=30 ):
+    """
+    Create a flight plan for a drone. All the commands are written in a text file.
+
+    Args:
+            route1 (list): list of all waypoints of the route to the delivery point
+            route2 (list): list of all waypoints of the return route
+            ac (dictionary): aircraft parameters {id, type, accel, v_max, vs_max}
+            departure_time (string): string indicating the departure time
+            G (graph)
+            layers_dict (dictionary): dictionary with the information about layers and altitudes
+            scenario_file (object): text file object where the commands are written
+            scenario_path (string): string indicating the path of the delivery scenario
+            hovering_time (integer): number of seconds the parcel takes to be delivered
+
+    """
+    print( 'Creating delivery flight plan of {0}...'.format( ac['id'] ) )
+    return_path = scenario_path[:-4] + '_return.scn'
+    m2ft = 3.281
+    m_s2knot = 1.944
+    m_s2ft_min = 197  # m/s to ft/min
+    state = {}
+    route_parameters1 = routeParameters( G, route1, ac )
+    state['action'] = None
+    for i in range( len( route1 ) - 1 ):
+        state = createInstructionV3( 
+            scenario_file, route_parameters1, i, ac, G, layers_dict, departure_time, state )
+
+    if state['action'] == 'cruise':
+
+        new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
+            departure_time, route1[-1], G.nodes[route1[-1]]['y'], G.nodes[route1[-1]]['x'] )
+        new_line1 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
+            departure_time, ac['id'], route1[-1],
+            str( route_parameters1[str( len( route1 ) - 2 )]['speed'] * m_s2knot ) )
+        new_line2 = '{0} > {1} ATDIST {2} 0.03 SPD {3} 5'.format( 
+            departure_time, ac['id'], route1[-1], ac['id'] )
+        new_line3 = '{0} > {1} AT {2} DO {3} SPD 0'.format( 
+            departure_time, ac['id'], route1[-1], ac['id'] )
+        new_line4 = '{0} > {1} AT {2} DO {3} ATSPD 0, DELAY {4} DEL {5}'.format( 
+            departure_time, ac['id'], route1[-1], ac['id'], str( hovering_time ), ac['id'] )
+        new_line5 = '{0} > {1} AT {2} DO {3} ATSPD 0, DELAY {4} PCALL {5} REL '.format( 
+            departure_time, ac['id'], route1[-1], ac['id'], str( hovering_time + 3 ), return_path )
+
+        scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' + \
+                             new_line3 + '\n' + new_line4 + '\n' + new_line5 + '\n' )
+    elif state['action'] == 'climbing':
+
+        new_line0 = '{0} > {1} AT {2} DO {3} ATALT {4}, VS {5} 0'.format( 
+            departure_time, ac['id'], state['ref_wpt'], ac['id'], layers_dict[route1[-1][0]] * m2ft,
+            ac['id'] )
+        new_line1 = '{0} > {1} AT {2} DO {3} ATALT {6}, DELAY {4} DEL {5}'.format( 
+            departure_time, ac['id'], route1[-1], ac['id'], str( hovering_time ), ac['id'],
+            layers_dict[route1[-1][0]] * m2ft )
+        new_line2 = '{0} > {1} AT {2} DO {3} ATALT {6}, DELAY {4} PCALL {5} REL'.format( 
+            departure_time, ac['id'], route1[-1], ac['id'], str( hovering_time + 3 ), return_path,
+            layers_dict[route1[-1][0]] * m2ft )
+
+        scenario_file.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' )
+
+    scenario_file_return = open( return_path, 'w' )
+    state2 = {}
+    state2['action'] = None
+    route_parameters2 = routeParameters( G, route2, ac )
+
+    for i in range( len( route2 ) - 1 ):
+        state2 = createInstructionV3( 
+            scenario_file_return, route_parameters2, i, ac, G, layers_dict, departure_time, state2 )
+
+    if state2['action'] == 'cruise':
+
+        new_line0 = '{0} > DEFWPT {1},{2},{3}'.format( 
+            departure_time, route2[-1], G.nodes[route2[-1]]['y'], G.nodes[route2[-1]]['x'] )
+        new_line1 = '{0} > ADDWPT {1} {2}, , {3}'.format( 
+            departure_time, ac['id'], route2[-1],
+            str( route_parameters2[str( len( route2 ) - 2 )]['speed'] * m_s2knot ) )
+        new_line2 = '{0} > {1} ATDIST {2} 0.003 DEL {3}'.format( 
+            departure_time, ac['id'], route2[-1], ac['id'] )
+        scenario_file_return.write( new_line0 + '\n' + new_line1 + '\n' + new_line2 + '\n' )
+    elif state2['action'] == 'climbing':
+        new_line0 = '{0} > {1} AT {2} DO {3} ATALT {4}, DEL {5}'.format( 
+            departure_time, ac['id'], state['ref_wpt'], ac['id'], layers_dict[route2[-1][0]] * m2ft, ac['id'] )
+        scenario_file_return.write( new_line0 + '\n' )
+
+    scenario_file_return.close()
 
 
 def automaticFlightPlan( total_drones, base_name, G, layers_dict, scenario_general_path_base ):
