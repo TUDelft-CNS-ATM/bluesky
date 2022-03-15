@@ -233,18 +233,10 @@ def addTravelTimes( G, precision=4 ):
         if ( pd.isnull( edges["length"] ).any() or pd.isnull( edges["speed"] ).any() ):
             raise ValueError( "edge `length` and `speed_kph` values must be non-null." )
 
-    # convert distance meters to km, and speed km per hour to km per second
-    distance_m = edges["length"]
-    speed_m_sec = edges["speed"]
-
-    # calculate edge travel time in seconds
-    travel_time = distance_m / speed_m_sec
-
-    # replace the infinity values by a high number
-    travel_time.replace( [np.inf, -np.inf], 9999999999, inplace=True )
-
     # add travel time attribute to graph edges
-    edges["travel_time"] = travel_time.round( precision ).values
+    edges['travel_time'] = edges.apply( lambda x: x.length / x.speed if ( x.speed > 0 )
+                                       else x.length * 100000, axis=1 )
+
     nx.set_edge_attributes( G, values=edges["travel_time"], name="travel_time" )
 
     return G
