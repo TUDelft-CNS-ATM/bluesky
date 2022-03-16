@@ -102,4 +102,4 @@ if __name__ == '__main__':
     bsclient.connect(event_port=11000, stream_port=11001)
 
     # Start the Qt main loop
-    app.exec_()
+    app.exec()
