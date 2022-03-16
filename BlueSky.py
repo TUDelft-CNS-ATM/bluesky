@@ -55,6 +55,7 @@ def main():
         print("--help               Display this information.")
         print("--headless           Start simulation server only, without GUI.")
         print("--client             Start client only, which can connect to an already running server.")
+        print("--console            Start console client only, which can connect to an already running server.")
         print("--sim                Start only one simulation node.")  
         print("--detached           Start only one simulation node, without networking.")
         print("--discoverable       Make simulation server discoverable. (Default in headless mode.)")

@@ -942,7 +942,6 @@ class UniformBufferObject(GLBuffer):
     ufo_max_binding = 1
 
     def __init__(self):
-        # super().__init__(gl.GL_UNIFORM_BUFFER)
         super().__init__(QOpenGLBuffer.Type.VertexBuffer)
         self.binding = 0
 
