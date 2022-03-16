@@ -27,12 +27,12 @@ def legend(legend, fig=None):
     try:
         # Get the plot with the corresponding figure number
         p = plots[-1] if fig is None else next(
-            plot for plot in plots if plot.fig == fig)
+            plot for plot in plots if plot.fig == str(fig))
 
         data = {p.fig: dict(legend=legend)}
         bs.net.send_stream(p.stream_id, data)
         return True
-    except IndexError as e:
+    except (IndexError, StopIteration) as e:
         return False, e.args[0]
 
 def reset():
