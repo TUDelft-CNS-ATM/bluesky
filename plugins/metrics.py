@@ -1,10 +1,5 @@
 """ Airspace metrics plugin. """
 import numpy as np
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
 from bluesky import stack, traf, sim  #, settings, navdb, traf, sim, scr, tools
 from bluesky.core import Entity, timed_function
 from bluesky.tools import areafilter, datalog, plotter, geo
@@ -25,7 +20,7 @@ class SectorData:
         # Fast way of finding indices of all ACID's in our list
         tmp = dict((v, i) for i, v in enumerate(self.acid))
         # Return only the indices
-        return [tmp.get(acidi, -1) for acidi in acid]
+        return np.array([tmp.get(acidi, -1) for acidi in acid], dtype=int)
 
     def get(self, acid):
         # Get lat,lon and distance flown for this a/c
@@ -185,8 +180,9 @@ class Metrics(Entity):
             self.feff.close()
 
     @stack.command(name='METRICS')
-    def stackio(self, cmd, name):
+    def stackio(self, cmd:'txt', name:'txt'=''):
         ''' Calculate a set of metrics within specified sectors. '''
+        print('BLAAA', cmd, name)
         if cmd == 'LIST':
             if not self.sectors:
                 return True, 'No registered sectors available'
@@ -200,9 +196,9 @@ class Metrics(Entity):
                 return False, 'Sector %s already registered.' % name
             elif areafilter.hasArea(name):
                 if not self.sectors:
-                    self.fconv = open('output/'+stack.scenname+'convergence.csv', 'w')
-                    self.fsd = open('output/'+stack.scenname+'density.csv', 'w')
-                    self.feff = open('output/'+stack.scenname+'efficiency.csv', 'w')
+                    self.fconv = open('output/'+stack.get_scenname()+'convergence.csv', 'w')
+                    self.fsd = open('output/'+stack.get_scenname()+'density.csv', 'w')
+                    self.feff = open('output/'+stack.get_scenname()+'efficiency.csv', 'w')
                     # Create the plot if this is the first sector
                     plotter.plot('metrics.metrics.sectorsd', dt=2.5, title='Static Density',
                                 xlabel='Time', ylabel='Aircraft count', fig=1)
