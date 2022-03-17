@@ -4,18 +4,23 @@
 
 """
 import configparser
+import datetime
+import json
 import math
 import os
 import random
 import string
+import sys
 
 from pyproj import Transformer
 
 from usepe.city_model.building_height import readCity
 from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
 from usepe.city_model.path_planning import trajectoryCalculation
-from usepe.city_model.utils import read_my_graphml
+# from usepe.city_model.strategic_deconfliction import initialPopulation, deconflcitedScenario
+from usepe.city_model.utils import read_my_graphml, checkIfNoFlyZone, layersDict
 import osmnx as ox
+import pandas as pd
 
 
 __author__ = 'jbueno'
@@ -1031,6 +1036,242 @@ def automaticFlightPlan( total_drones, base_name, G, layers_dict, scenario_gener
     scenario_general_file.close()
 
 
+def addFlightData( orig_lat, orig_lon, orig_alt,
+                  dest_lat, dest_lon, dest_alt,
+                  departure_time_seconds,
+                  drone_type,
+                  purpose, data ):
+    if departure_time_seconds < 36000:
+            departure_time = '0{}'.format( str( datetime.timedelta( seconds=departure_time_seconds ) ) )
+    else:
+        departure_time = str( datetime.timedelta( seconds=departure_time_seconds ) )
+    departure_time = departure_time[:11]
+
+    data['origin_lat'].append( orig_lat )
+    data['origin_lon'].append( orig_lon )
+    data['origin_alt'].append( orig_alt )
+    data['destination_lat'].append( dest_lat )
+    data['destination_lon'].append( dest_lon )
+    data['destination_alt'].append( dest_alt )
+    data['departure'].append( departure_time )
+    data['departure_s'].append( departure_time_seconds )
+    data['drone'].append( drone_type )
+    data['purpose'].append( purpose )
+
+
+def createBackgroundTrafficCSV( density, avg_flight_duration, simulation_time, G, segments, config ):
+    '''
+    This function creates distributed origins and destinations for the background traffic in
+    the city area defined in the configuration file
+
+    Input:
+        density - density desired
+        avg_flight_duration - duration of the flights in average
+        simulation time - duration of the simulation (seconds)
+        G - city graph
+        segments -
+        config - configuration object
+    Output:
+        csv file
+    '''
+    # Data to be included in the CSV file
+    data = { 'origin_lat': [], 'origin_lon': [], 'origin_alt': [],
+             'destination_lat': [], 'destination_lon': [], 'destination_alt': [],
+             'departure': [],
+             'departure_s': [],
+             'drone': [],
+             'purpose': []}
+
+    # Area of study
+    mode = config['City'].get( 'mode' )
+
+    if mode == 'rectangle':
+        lat_min = config['City'].getfloat( 'hannover_lat_min' )
+        lat_max = config['City'].getfloat( 'hannover_lat_max' )
+        lon_min = config['City'].getfloat( 'hannover_lon_min' )
+        lon_max = config['City'].getfloat( 'hannover_lon_max' )
+
+        latitude_distance = ox.distance.great_circle_vec( lat_min, lon_min, lat_max, lon_min )
+        longitude_distance = ox.distance.great_circle_vec( lat_min, lon_min, lat_min, lon_max )
+
+        area = ( latitude_distance / 1000 ) * ( longitude_distance / 1000 )
+
+    elif mode == 'square':
+        raise ValueError( 'latitudes and longitudes min and max not implemented for the Square method!!' )
+        zone_size = config['City'].getint( 'zone_size' )
+
+        area = ( zone_size / 1000 ) ** 2
+
+    flights_second = density * area / avg_flight_duration
+    time_spacing = 1 / flights_second
+    total_flights = flights_second * simulation_time
+
+    # Drone flight plan
+    min_flight_distance = 2500
+    max_flight_distance = 20000
+    # Consider that the background traffic includes different types of drones
+    drone_type_distribution = { "M600": 0.5,
+                                "Amzn": 0.3,
+                                "W178": 0.2 }
+    n = 1
+    while n <= total_flights:
+
+        orig_lat = random.uniform( lat_min, lat_max )
+        orig_lon = random.uniform( lon_min, lon_max )
+        dest_lat = random.uniform( lat_min, lat_max )
+        dest_lon = random.uniform( lon_min, lon_max )
+
+        if ox.distance.great_circle_vec( orig_lon, orig_lat, dest_lon, dest_lat ) < min_flight_distance:
+            # We discard the trajectory if the origin and destination are too close
+            continue
+        elif ox.distance.great_circle_vec( orig_lon, orig_lat, dest_lon, dest_lat ) > max_flight_distance:
+            # We discard the trajectory if the origin and destination are too far away
+            continue
+
+        # Check if the origin or destination is in a restricted area (spd = 0)
+        if checkIfNoFlyZone( orig_lat, orig_lon, None, G, segments ):
+            continue
+        if checkIfNoFlyZone( dest_lat, dest_lon, None, G, segments ):
+            continue
+
+        print( 'Creating flight {0}...'.format( n ) )
+        drone_type = random.choices( list( drone_type_distribution.keys() ),
+                                     weights=tuple( drone_type_distribution.values() ) )[0]
+
+        departure_time = '{}'.format( n * time_spacing )
+        departure_time_seconds = n * time_spacing
+
+        addFlightData( orig_lat, orig_lon, None,
+                  dest_lat, dest_lon, None,
+                  departure_time_seconds,
+                  drone_type,
+                  'background', data )
+
+        n += 1
+    # return data
+    # CSV creation
+    data_frame = pd.DataFrame( data )
+
+    file_name = 'background_traffic_' + str( density ).replace( '.', '-' ) + '_' + str( int( avg_flight_duration ) ) + '_' + str( simulation_time ) + '.csv'
+
+    path = sys.path[0] + '\\data\\' + file_name
+
+    data_frame.to_csv( path )
+
+    print( 'Background traffic stored in : {0}'.format( path ) )
+
+def createDeliveryDrone( orig, dest, departure_time, frequency, simulation_time, data ):
+    ( orig_lat, orig_lon, orig_alt ) = orig
+    ( dest_lat, dest_lon, dest_alt ) = dest
+
+    if frequency != None:
+
+        while departure_time < simulation_time:
+            # Add one flight to data
+            addFlightData( orig_lat, orig_lon, orig_alt,
+                          dest_lat, dest_lon, dest_alt,
+                          departure_time,
+                          'M600',
+                          'delivery', data )
+
+            departure_time += frequency
+
+    else:
+        # Add one flight to data
+        addFlightData( orig_lat, orig_lon, orig_alt,
+                      dest_lat, dest_lon, dest_alt,
+                      departure_time,
+                      'M600',
+                      'delivery', data )
+
+def createDeliveryCSV( departure_times, frequencies, simulation_time ):
+    '''
+    This function creates the csv containing the data of the delivery drones
+
+    Input:
+        departure_times - list with 3 values []
+                        - times must be integers (seconds)
+                        - None for the drones that do not take part in the simulation
+        frequencies - list with 3 values []
+                    - None fro the drones that only fly once
+        simulation time - duration of the simulation (seconds)
+
+    Output:
+        csv
+    '''
+    # Data to be included in the CSV file
+    data = { 'origin_lat': [], 'origin_lon': [], 'origin_alt': [],
+             'destination_lat': [], 'destination_lon': [], 'destination_alt': [],
+             'departure': [],
+             'departure_s': [],
+             'drone': [],
+             'purpose': []}
+
+    # Define the origin and destination points
+
+    # (orig_1_lat, orig_1_lon, orig_1_alt) = (52.4216, 9.6704, 50)
+    # (orig_2_lat, orig_2_lon, orig_2_alt) = (52.3145, 9.8171, 50)
+    # (orig_3_lat, orig_3_lon, orig_3_alt) = (52.3701, 9.7422, 50)
+    orig_1 = ( 52.4216, 9.6704, 50 )
+    orig_2 = ( 52.3145, 9.8171, 50 )
+    orig_3 = ( 52.3701, 9.7422, 50 )
+    origins = [orig_1, orig_2, orig_3]
+
+    # (dest_1_lat, dest_1_lon, dest_1_alt) = (52.3594, 9.7499, 25)
+    dest_1 = ( 52.3594, 9.7499, 25 )
+
+    # Checks the format
+    idx = 0
+    for time in departure_times:
+        # if time is int:
+        #    time = '0{}'.format( str( datetime.timedelta( seconds=time) ) )
+        if time != None:
+            print( 'Create flight plan orig {0}'.format( idx + 1 ) )
+            createDeliveryDrone( origins[idx], dest_1, time, frequencies[idx], simulation_time, data )
+        idx += 1
+    # CSV creation
+    data_frame = pd.DataFrame( data )
+
+    file_name = 'delivery_' + str( departure_times ).replace( '[', '' ).replace( ']', '' ).replace( ', ', '-' ) + '_' + \
+        str( frequencies ).replace( '[', '' ).replace( ']', '' ).replace( ', ', '-' ) + '_' + \
+        str( simulation_time ) + '.csv'
+
+    path = sys.path[0] + '\\data\\' + file_name
+
+    data_frame.to_csv( path )
+
+    print( 'Delivery drones stored in : {0}'.format( path ) )
+
+def createScenarioCSV( density, avg_flight_duration, departure_times, frequencies, simulation_time, G, segments, config ):
+    '''
+    This function creates distributed origins and destinations for the background traffic in
+    the city area defined in the configuration file and for the delivery drones defined by the user
+
+    Input:
+        density - density desired
+        avg_flight_duration - duration of the flights in average
+        departure_times - list with 3 values []
+                        - times must be integers (seconds)
+                        - None for the drones that do not take part in the simulation
+        frequencies - list with 3 values []
+                    - None fro the drones that only fly once
+        simulation time - duration of the simulation (seconds)
+        config - configuration object
+
+    Output:
+        background csv file
+        delivery csv file
+    '''
+    # Add background traffic
+    print( 'Creating background traffic...' )
+    createBackgroundTrafficCSV( density, avg_flight_duration, simulation_time, G, segments, config )
+
+    # Add operation scenario (delivery)
+    print( 'Creating delivery drones...' )
+    createDeliveryCSV( departure_times, frequencies, simulation_time )
+
+
+
 # def createAllDroneScenario( total_drones ):
 #
 #     departure_time = '00:00:00.00'
@@ -1099,6 +1340,114 @@ def drawBuildings( config, scenario_path_base, time='00:00:00.00' ):
             scenario_file = open( scenario_path_base + '_part' + str( scenario_idx ) + '.scn', 'w' )
 
     scenario_file.close()
+
+def createFlightPlansFromCSV( default_path, path_csv, strategic_deconfliction, G, segments, config ):
+    '''
+    This function reads the data stored in a csv file and creates the flight plans accordingly
+    '''
+
+    # Open csv
+    data_frame = pd.read_csv( path_csv )
+
+    # Date
+    date_string = datetime.datetime.now().strftime( "%Y%m%d_%H%M%S" )
+
+    # Create the path where the scenarios are stored
+    # scenario_general_path_base = path_csv[:-4]
+    scenario_general_path_base = default_path + '\\scenario\\usepe\\exercise1\\' + \
+        date_string + '_' + path_csv.split( '/' )[-1][:-4]
+
+    # General scenario that calls all drone scenarios
+    scenario_general_path = scenario_general_path_base + '\\' + 'scenario_master.scn'
+    if not os.path.exists( os.path.dirname( scenario_general_path ) ):
+        os.makedirs( os.path.dirname( scenario_general_path ) )
+    scenario_general_file = open( scenario_general_path, 'w' )
+
+    layers_dict = layersDict( config )
+
+    for idx, row in data_frame.iterrows():
+
+        # print(row)
+
+        orig_lat = row['origin_lat']
+        orig_lon = row['origin_lon']
+        orig_alt = row['origin_alt']
+        dest_lat = row['destination_lat']
+        dest_lon = row['destination_lon']
+        dest_alt = row['destination_alt']
+
+        purpose = row['purpose']
+
+        if purpose == 'background':
+            orig = [orig_lon, orig_lat]
+            dest = [dest_lon, dest_lat]
+            # basename for the drones
+            base_name = 'U'
+            name = base_name + str( idx + 1 )  # drone name
+            # Paths
+            scenario_path = scenario_general_path_base + '\\' + 'scenario_background_traffic_drone' + str( idx + 1 ) + '.scn'
+            relative_path = './usepe/exercise1/' + date_string + '_' + path_csv.split( '/' )[-1][:-4] + '/' + \
+                'scenario_background_traffic_drone' + str( idx + 1 ) + '.scn'
+        elif purpose == 'delivery':
+            orig = [orig_lon, orig_lat, orig_alt]
+            dest = [dest_lon, dest_lat, dest_alt]
+            # basename for the drones
+            base_name = 'D'
+            name = base_name + str( idx + 1 )  # drone name
+            # Paths
+            scenario_path = scenario_general_path_base + '\\' + 'scenario_delivery_drone' + str( idx + 1 ) + '.scn'
+            relative_path = './usepe/exercise1/' + date_string + '_' + path_csv.split( '/' )[-1][:-4] + '/' + \
+                'scenario_delivery_drone' + str( idx + 1 ) + '.scn'
+
+        # Get the drone features
+        script_path = os.path.realpath( __file__ )
+        drones_data_json_file = script_path[:-39] + '\\data\\performance\\OpenAP\\rotor\\aircraft.json'
+        with open( drones_data_json_file ) as json_file:
+            drone_features = json.load( json_file )
+
+        ac = {'id': name,
+              'type': row['drone'],
+              'accel': 3.5,
+              'v_max': drone_features[row['drone']]["envelop"]['v_max'],
+              'vs_max': drone_features[row['drone']]["envelop"]['vs_max'],
+              'safety_volume_size': 1}
+
+        scenario_file = open( scenario_path, 'w' )
+        if not strategic_deconfliction:
+            if purpose == 'background':
+                # Calculate optimum trajectory
+                travel_time, route = trajectoryCalculation( G, orig, dest )
+                # Path Planning
+                departure_time = row['departure']
+                createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
+            elif purpose == 'delivery':
+                # Calculate optimum trajectories (origin-delivery and delivery-origin)
+                travel_time1, route1 = trajectoryCalculation( G, orig, dest )
+                travel_time2, route2 = trajectoryCalculation( G, dest, orig )
+                departure_time = row['departure']
+
+                # Check scenario_file and scenario_path
+                createDeliveryFlightPlan( route1, route2, ac, departure_time,
+                                          G, layers_dict,
+                                          scenario_file, scenario_path,
+                                          hovering_time=30 )
+
+        else:
+            # TODO: finalise strategic deconfliction
+            departure_time = row['departure_s']
+            # initial_time = 0  # seconds
+            # final_time = 2 * 3600  # seconds
+            # users = initialPopulation( segments, initial_time, final_time )
+
+            # users = deconflcitedScenario( orig, dest, ac, departure_time, G, users, initial_time,
+            #                              final_time, segments, layers_dict, scenario_file, config )
+        scenario_file.close()
+
+        scenario_general_file.write( '00:00:00.00 > PCALL ' + relative_path + ' REL' + '\n' )
+    scenario_general_file.close()
+    print( 'Output scenario stored in the following directory {0}'.format( scenario_general_path_base ) )
+
+
 
 
 if __name__ == '__main__':
