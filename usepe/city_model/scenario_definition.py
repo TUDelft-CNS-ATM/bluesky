@@ -949,6 +949,9 @@ def createDeliveryFlightPlan( route1, route2, ac, departure_time, G, layers_dict
     state2['action'] = None
     route_parameters2 = routeParameters( G, route2, ac )
 
+    # Redefine departure time for the return trip - relative with respect to the initial departure
+    departure_time = '00:00:00'
+
     for i in range( len( route2 ) - 1 ):
         state2 = createInstructionV3( 
             scenario_file_return, route_parameters2, i, ac, G, layers_dict, departure_time, state2 )
