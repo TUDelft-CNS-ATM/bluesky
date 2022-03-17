@@ -218,6 +218,7 @@ def routeParameters( G, route, ac ):
     distance_speed_reduction = 125  # m
 
     route_parameters = {}
+    final_node = {}
     for i in range( len( route ) - 1 ):
         node = {}
         name = route[i]
@@ -278,10 +279,14 @@ def routeParameters( G, route, ac ):
                                                              G.nodes[route[i + 1]]['y'] )
                     if distance < distance_speed_reduction:
                         node['speed'] = 5  # m/s
+                        final_node['speed'] = 5  # m/s
+                    else:
+                        final_node['speed'] = max( min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] ), 0.001 )
+            else:
+                final_node['speed'] = max( min( G.edges[( name, route[i + 1], 0 )]['speed'], ac['vs_max'] ), 0.001 )
 
         route_parameters[str( i )] = node
 
-    final_node = {}
     final_node['name'] = route[-1]
     final_node['lat'] = G.nodes[route[-1]]['y']
     final_node['lon'] = G.nodes[route[-1]]['x']
@@ -290,7 +295,7 @@ def routeParameters( G, route, ac ):
     final_node['turn rad'] = None
     final_node['turn dist'] = None
     final_node['hdg'] = None
-    final_node['speed'] = None
+    # final_node['speed'] = None
     final_node['dist'] = None
 
     route_parameters[str( len( route ) - 1 )] = final_node
