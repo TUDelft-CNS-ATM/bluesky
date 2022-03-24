@@ -908,7 +908,8 @@ def createDeliveryFlightPlan( route1, route2, ac, departure_time, G, layers_dict
     """
     print( 'Creating delivery flight plan of {0}...'.format( ac['id'] ) )
     return_path = scenario_path[:-4] + '_return.scn'
-    return_path_rel = './' + '/'.join( scenario_path.split( '\\' )[4:] ) + '_return.scn'
+    return_path_rel = './' + '/'.join( scenario_path.split( '\\' )[4:] )
+    return_path_rel = return_path_rel[:-4] + '_return.scn'
     m2ft = 3.281
     m_s2knot = 1.944
     m_s2ft_min = 197  # m/s to ft/min
