@@ -174,6 +174,9 @@ class Client:
 
                 strmname = msg[0][:-5]
                 sender_id = msg[0][-5:]
+                if self._getroute(sender_id) is None:
+                    print('Client: Skipping stream data from unknown node')
+                    return False
                 pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
                 self.stream(strmname, pydata, sender_id)
 
@@ -229,4 +232,8 @@ class Client:
         elif target == b'*':
             self.event_io.send_multipart([target, name, pydata])
         else:
-            self.event_io.send_multipart(self._getroute(target) + [target, name, pydata])
+            rte = self._getroute(target)
+            if rte is None:
+                print(f'Client: Not sending event {name} to unknown target {target}')
+                return
+            self.event_io.send_multipart(rte + [target, name, pydata])

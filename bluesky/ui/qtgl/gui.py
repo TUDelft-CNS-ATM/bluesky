@@ -24,7 +24,7 @@ def gui_msg_handler( msgtype, context, msg ):
         exit()
 
 
-def start( mode ):
+def start(mode, hostname=None):
     # Install message handler for Qt messages
     qInstallMessageHandler( gui_msg_handler )
 
@@ -61,14 +61,15 @@ def start( mode ):
     splash.finish( win )
     # If this instance of the gui is started in client-only mode, show
     # server selection dialog
-    if mode == 'client':
-        dialog = DiscoveryDialog( win )
+    if mode == 'client' and hostname is None:
+        dialog = DiscoveryDialog(win)
         dialog.show()
         bs.net.start_discovery()
 
     else:
-        client.connect( event_port=bs.settings.event_port,
-                       stream_port=bs.settings.stream_port )
+        client.connect(hostname=hostname or 'localhost',
+                       event_port=bs.settings.event_port,
+                       stream_port=bs.settings.stream_port)
 
     # Start the Qt main loop
     app.exec_()
