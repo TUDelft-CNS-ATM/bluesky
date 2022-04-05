@@ -8,7 +8,7 @@ import inspect
 from pathlib import Path
 
 
-def init(cfgfile=''):
+def init(cfgfile='', scenfile=''):
     '''Initialize configuration.
        Import config settings from settings.cfg if this exists, if it doesn't
        create an initial config file'''
@@ -62,13 +62,7 @@ def init(cfgfile=''):
     if not cfgfile:
         cfgfile = os.path.join(rundir, 'settings.cfg')
     
-    # Check if alternate config file is passed
-    for i in range(len(sys.argv)):
-        if len(sys.argv) > i + 1:
-            if sys.argv[i] == '--config-file':
-                cfgfile = sys.argv[i + 1]
-            elif sys.argv[i] == '--scenfile':
-                globals()['scenfile'] = sys.argv[i + 1]
+    globals()['scenfile'] = scenfile
 
     # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
     # was started with BlueSky.py

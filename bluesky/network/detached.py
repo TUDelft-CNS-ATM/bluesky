@@ -31,6 +31,10 @@ class Node:
             self.step()
             bs.sim.step()
 
+    def connect(self):
+        ''' Connect node to the BlueSky server. This does nothing in detached mode. '''
+        pass
+
     def addnodes(self, count=1):
         pass
 
