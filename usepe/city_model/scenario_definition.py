@@ -1043,7 +1043,9 @@ def addFlightData( orig_lat, orig_lon, orig_alt,
                   dest_lat, dest_lon, dest_alt,
                   departure_time_seconds,
                   drone_type,
-                  purpose, data ):
+                  purpose,
+                  planned_time_s,
+                  data ):
     if departure_time_seconds < 36000:
             departure_time = '0{}'.format( str( datetime.timedelta( seconds=departure_time_seconds ) ) )
     else:
@@ -1060,6 +1062,7 @@ def addFlightData( orig_lat, orig_lon, orig_alt,
     data['departure_s'].append( departure_time_seconds )
     data['drone'].append( drone_type )
     data['purpose'].append( purpose )
+    data['planned_time_s'].append( planned_time_s )
 
 
 def createBackgroundTrafficCSV( density, avg_flight_duration, simulation_time, G, segments, config ):
@@ -1083,7 +1086,8 @@ def createBackgroundTrafficCSV( density, avg_flight_duration, simulation_time, G
              'departure': [],
              'departure_s': [],
              'drone': [],
-             'purpose': []}
+             'purpose': [],
+             'planned_time_s': []}
 
     # Area of study
     mode = config['City'].get( 'mode' )
@@ -1141,14 +1145,19 @@ def createBackgroundTrafficCSV( density, avg_flight_duration, simulation_time, G
         drone_type = random.choices( list( drone_type_distribution.keys() ),
                                      weights=tuple( drone_type_distribution.values() ) )[0]
 
-        departure_time = '{}'.format( n * time_spacing )
-        departure_time_seconds = n * time_spacing
+        # Max time for flight plan
+        time_submit_flight_plan = 15 * 60
+        planned_time_s = n * time_spacing
+        departure_time = '{}'.format( planned_time_s + time_submit_flight_plan )
+        departure_time_seconds = planned_time_s + time_submit_flight_plan
 
         addFlightData( orig_lat, orig_lon, None,
                   dest_lat, dest_lon, None,
                   departure_time_seconds,
                   drone_type,
-                  'background', data )
+                  'background',
+                  planned_time_s,
+                  data )
 
         n += 1
     # return data
@@ -1167,6 +1176,10 @@ def createDeliveryDrone( orig, dest, departure_time, frequency, uncertainty, dis
     ( orig_lat, orig_lon, orig_alt ) = orig
     ( dest_lat, dest_lon, dest_alt ) = dest
 
+    # Max time for flight plan
+    time_submit_flight_plan = 10 * 60
+    # planned_time_s = n * time_spacing
+
     if frequency != None:
         while departure_time < simulation_time:
             departure_time_aux = copy.deepcopy( departure_time )
@@ -1177,9 +1190,11 @@ def createDeliveryDrone( orig, dest, departure_time, frequency, uncertainty, dis
             # Add one flight to data
             addFlightData( orig_lat, orig_lon, orig_alt,
                           dest_lat, dest_lon, dest_alt,
-                          departure_time,
+                          departure_time + time_submit_flight_plan,
                           'M600',
-                          'delivery', data )
+                          'delivery',
+                          departure_time,
+                          data )
 
             departure_time = departure_time_aux
             departure_time += frequency
@@ -1188,9 +1203,11 @@ def createDeliveryDrone( orig, dest, departure_time, frequency, uncertainty, dis
         # Add one flight to data
         addFlightData( orig_lat, orig_lon, orig_alt,
                       dest_lat, dest_lon, dest_alt,
-                      departure_time,
+                      departure_time + time_submit_flight_plan,
                       'M600',
-                      'delivery', data )
+                      'delivery',
+                      departure_time,
+                      data )
 
 def createDeliveryCSV( departure_times, frequencies, uncertainties, distributed, simulation_time ):
     '''
@@ -1217,7 +1234,8 @@ def createDeliveryCSV( departure_times, frequencies, uncertainties, distributed,
              'departure': [],
              'departure_s': [],
              'drone': [],
-             'purpose': []}
+             'purpose': [],
+             'planned_time_s': []}
 
     # Define the origin and destination points
 
