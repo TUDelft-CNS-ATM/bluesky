@@ -1,7 +1,15 @@
-from PyQt5.QtCore import Qt, QEvent, QTimer, pyqtSlot
-from PyQt5.QtGui import QImage
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtOpenGL import QGLWidget, QGLFormat
+try:
+    from PyQt5.QtCore import Qt, QEvent, QTimer, pyqtSlot
+    from PyQt5.QtGui import QImage
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtOpenGL import QGLWidget, QGLFormat
+except ImportError:
+    from PyQt6.QtCore import Qt, QEvent, QTimer, pyqtSlot
+    from PyQt6.QtGui import QImage
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtGui import QSurfaceFormat as QGLFormat
+    from PyQt6.QtOpenGLWidgets import QOpenGLWidget as QGLWidget
+
 import OpenGL.GL as gl
 import numpy as np
 from glob import glob
@@ -32,7 +40,7 @@ def load_lcd_font():
     gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
 
     for i, fname in enumerate(files):
-        img = QImage(fname).convertToFormat(QImage.Format_ARGB32)
+        img = QImage(fname).convertToFormat(QImage.Format.Format_ARGB32)
         ptr = c_void_p(int(img.constBits()))
         gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 
@@ -460,7 +468,7 @@ if __name__ == "__main__":
     else:
         f = QGLFormat()
         f.setVersion(3, 3)
-        f.setProfile(QGLFormat.CoreProfile)
+        f.setProfile(QGLFormat.OpenGLContextProfile.CoreProfile)
         f.setDoubleBuffer(True)
         QGLFormat.setDefaultFormat(f)
         print(('QGLWidget initialized for OpenGL version %d.%d' % (f.majorVersion(), f.minorVersion())))

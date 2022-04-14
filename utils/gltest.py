@@ -1,6 +1,13 @@
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtOpenGL import QGLWidget, QGLFormat, QGLContext
+try:
+    from PyQt5.QtCore import QTimer
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtOpenGL import QGLWidget, QGLFormat, QGLContext
+except ImportError:
+    from PyQt6.QtCore import QTimer
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtGui import QSurfaceFormat as QGLFormat
+    from PyQt6.QtOpenGLWidgets import QOpenGLWidget as QGLWidget
+    from PyQt6.QtGui import QOpenGLContext as QGLContext
 import OpenGL.GL as gl
 
 
@@ -9,7 +16,7 @@ class GLTest(QGLWidget):
         self.first = True
         f = QGLFormat()
         f.setVersion(3, 3)
-        f.setProfile(QGLFormat.CoreProfile)
+        f.setProfile(QGLFormat.OpenGLContextProfile.CoreProfile)
         f.setDoubleBuffer(True)
         QGLWidget.__init__(self, QGLContext(f), parent)
 

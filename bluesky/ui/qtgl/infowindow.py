@@ -5,38 +5,59 @@ except ImportError:
     from collections import Collection
 import numpy as np
 import matplotlib
-matplotlib.use('Qt5Agg')
 matplotlib.rcParams['font.size'] = 5
 
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import key_press_handler
 import matplotlib.pyplot as plt
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea, QWidget
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, \
-    NavigationToolbar2QT as NavigationToolbar
+try:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea, QWidget
+    matplotlib.use('Qt5Agg')
+    
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, \
+        NavigationToolbar2QT as NavigationToolbar
+        
+except ImportError:
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea, QWidget
+    matplotlib.use('QtAgg')
+
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas, \
+        NavigationToolbar2QT as NavigationToolbar
 
 import bluesky as bs
+from bluesky import stack
+from bluesky.core import Entity
 
 
-class InfoWindow(QTabWidget):
+class InfoWindow(Entity):
     ''' Top-level window containing simulation information such as plots. '''
     def __init__(self):
         super().__init__()
-        self.setDocumentMode(True)
-        self.resize(600, 500)
+        self.view = QTabWidget()
+        self.view.setDocumentMode(True)
+        self.view.resize(600, 500)
         self.plottab = None
+        self.statetab = StateTab(self.view)
+        self.view.addTab(self.statetab, 'Simulation state')
 
         # Connect to sim data events
         bs.net.stream_received.connect(self.on_simstream_received)
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            self.close()
+
+    @stack.command(name="INFO")
+    def show(self) -> None:
+        self.view.show()
+        return True
+
+    # def keyPressEvent(self, event):
+    #     if event.key() == Qt.Key_Escape:
+    #         self.close()
 
     def add_plot_tab(self):
         self.plottab = PlotTab()
-        self.addTab(self.plottab, 'Graphs')
+        self.view.addTab(self.plottab, 'Graphs')
 
     def on_simstream_received(self, streamname, data, sender_id):
         if streamname[:4] != b'PLOT':
@@ -56,6 +77,14 @@ class InfoWindow(QTabWidget):
 
         self.plottab.update_plots(data, sender_id)
 
+
+class StateTab(QScrollArea):
+    def __init__(self, parent):
+        super().__init__(parent)
+        container = QWidget()
+        self.setWidget(container)
+        self.setWidgetResizable(True)
+
 class PlotTab(QScrollArea):
     ''' InfoWindow tab for plots. '''
     def __init__(self):
@@ -63,7 +92,7 @@ class PlotTab(QScrollArea):
         self.layout = QVBoxLayout()
         container = QWidget()
         container.setLayout(self.layout)
-        self.layout.setAlignment(Qt.AlignTop)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setWidget(container)
         self.setWidgetResizable(True)
         self.plots = dict()
@@ -98,7 +127,7 @@ class Plot(FigureCanvas):
     def __init__(self, parent, plot_type='line', **kwargs):
         super().__init__(plt.figure())
         self.setParent(parent)
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setFocus()
         self.setFixedHeight(350)
         self.axes = self.figure.add_subplot(111, **kwargs)

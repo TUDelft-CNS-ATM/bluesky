@@ -2,13 +2,22 @@
 import platform
 import os
 
-from PyQt5.QtWidgets import QApplication as app
-from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
-from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
-    QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-    QDialogButtonBox
-from PyQt5 import uic
+try:
+    from PyQt5.QtWidgets import QApplication as app
+    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
+    from PyQt5.QtGui import QPixmap, QIcon
+    from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
+        QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
+        QDialogButtonBox
+    from PyQt5 import uic
+except ImportError:
+    from PyQt6.QtWidgets import QApplication as app
+    from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
+    from PyQt6.QtGui import QPixmap, QIcon
+    from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
+        QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
+        QDialogButtonBox
+    from PyQt6 import uic
 
 # Local imports
 import bluesky as bs
@@ -38,7 +47,7 @@ bg = palette.stack_background
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super().__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowStaysOnTopHint)
+        super().__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowType.WindowStaysOnTopHint)
 
 
 class DiscoveryDialog(QDialog):
@@ -55,7 +64,7 @@ class DiscoveryDialog(QDialog):
         self.serverview.setStyleSheet('padding:0px')
         self.serverview.header().resizeSection(0, 180)
         layout.addWidget(self.serverview)
-        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         layout.addWidget(btns)
         btns.accepted.connect(self.on_accept)
         btns.rejected.connect(parent.closeEvent)
@@ -173,7 +182,7 @@ class MainWindow(QMainWindow):
         self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
         self.nodetree.setStyleSheet('padding:0px')
-        self.nodetree.setAttribute(Qt.WA_MacShowFocusRect, False)
+        self.nodetree.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
         self.maxhostnum = 0
@@ -188,23 +197,23 @@ class MainWindow(QMainWindow):
         self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
 
     def keyPressEvent(self, event):
-        if event.modifiers() & Qt.ShiftModifier \
-                and event.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier \
+                and event.key() in [Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Left, Qt.Key.Key_Right]:
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
-            if event.key() == Qt.Key_Up:
+            if event.key() == Qt.Key.Key_Up:
                 self.radarwidget.panzoom(pan=(dlat, 0.0))
-            elif event.key() == Qt.Key_Down:
+            elif event.key() == Qt.Key.Key_Down:
                 self.radarwidget.panzoom(pan=(-dlat, 0.0))
-            elif event.key() == Qt.Key_Left:
+            elif event.key() == Qt.Key.Key_Left:
                 self.radarwidget.panzoom(pan=(0.0, -dlon))
-            elif event.key() == Qt.Key_Right:
+            elif event.key() == Qt.Key.Key_Right:
                 self.radarwidget.panzoom(pan=(0.0, dlon))
 
-        elif event.key() == Qt.Key_Escape:
+        elif event.key() == Qt.Key.Key_Escape:
             self.closeEvent()
 
-        elif event.key() == Qt.Key_F11:  # F11 = Toggle Full Screen mode
+        elif event.key() == Qt.Key.Key_F11:  # F11 = Toggle Full Screen mode
             if not self.isFullScreen():
                 self.showFullScreen()
             else:
@@ -227,7 +236,7 @@ class MainWindow(QMainWindow):
             self.actnode = nodeid
             node = self.nodes[nodeid]
             self.nodelabel.setText('<b>Node</b> {}:{}'.format(node.host_num, node.node_num))
-            self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.ClearAndSelect)
+            self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.SelectionFlag.ClearAndSelect)
 
     def nodesChanged(self, data):
         for host_id, host_data in data.items():
@@ -249,7 +258,7 @@ class MainWindow(QMainWindow):
 
                 btn.setIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icons/addnode.svg')))
                 btn.setIconSize(QSize(24, 16))
-                btn.setLayoutDirection(Qt.RightToLeft)
+                btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 btn.setMaximumHeight(16)
                 btn.clicked.connect(self.buttonClicked)
                 self.nodetree.setItemWidget(host, 0, btn)

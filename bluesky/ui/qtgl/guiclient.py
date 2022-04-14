@@ -1,5 +1,8 @@
 ''' I/O Client implementation for the QtGL gui. '''
-from PyQt5.QtCore import QTimer
+try:
+    from PyQt5.QtCore import QTimer
+except ImportError:
+    from PyQt6.QtCore import QTimer
 import numpy as np
 
 from bluesky.ui import palette

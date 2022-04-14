@@ -1,28 +1,57 @@
 """ Documentation window for the QTGL version of BlueSky."""
-from PyQt5.QtCore import QUrl, QFileInfo
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel
 try:
+    from PyQt5.QtCore import QUrl, QFileInfo
+    from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel
     try:
-        # Within PyQt5 there are different locations for QWebView and QWebPage,
-        # depending on release version.
-        from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
-    except ImportError:
-        from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+        try:
+            # Within PyQt5 there are different locations for QWebView and QWebPage,
+            # depending on release version.
+            from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView, QWebEnginePage as QWebPage
+        except ImportError:
+            from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
-    class DocView(QWebView):
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            class DocPage(QWebPage):
-                def acceptNavigationRequest(self, url, navtype, ismainframe):
-                    if navtype == self.NavigationTypeLinkClicked:
-                        if url.url()[:6].lower() == 'stack:':
-                            DocWindow.app.stack(url.url()[6:].lower())
-                            return False
-                    return True
-            self.page = DocPage()
-            self.setPage(self.page)
+        class DocView(QWebView):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                class DocPage(QWebPage):
+                    def acceptNavigationRequest(self, url, navtype, ismainframe):
+                        if navtype == self.NavigationTypeLinkClicked:
+                            if url.url()[:6].lower() == 'stack:':
+                                DocWindow.app.stack(url.url()[6:].lower())
+                                return False
+                        return True
+                self.page = DocPage()
+                self.setPage(self.page)
+    except ImportError:
+        DocView = None
+        
 except ImportError:
-    DocView = None
+    from PyQt6.QtCore import QUrl, QFileInfo
+    from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel
+    try:
+        try:
+            # Within PyQt6 there are different locations for QWebView and QWebPage,
+            # depending on release version.
+            from PyQt6.QtWebEngineWidgets import QWebEngineView as QWebView
+            from PyQt6.QtWebEngineCore import QWebEnginePage as QWebPage
+        except ImportError:
+            from PyQt6.QtWebEngineWidgets import QWebView
+            from PyQt6.QtWebEngineCore import QWebPage
+
+        class DocView(QWebView):
+            def __init__(self, parent=None):
+                super().__init__(parent)
+                class DocPage(QWebPage):
+                    def acceptNavigationRequest(self, url, navtype, ismainframe):
+                        if navtype == self.NavigationType.NavigationTypeLinkClicked:
+                            if url.url()[:6].lower() == 'stack:':
+                                DocWindow.app.stack(url.url()[6:].lower())
+                                return False
+                        return True
+                self.page = DocPage()
+                self.setPage(self.page)
+    except ImportError:
+        DocView = None
 
 
 class DocWindow(QWidget):
