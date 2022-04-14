@@ -357,9 +357,15 @@ def kwikqdrdist_matrix(lata, lona, latb, lonb):
        from lat/lon vectors. (note: does not work well close to poles)"""
 
     re      = 6371000.  # radius earth [m]
-    dlat    = np.radians(latb - lata.T)
-    dlon    = np.radians(lonb - lona.T)
-    cavelat = np.cos(np.radians(lata + latb.T) * 0.5)
+
+    latb = np.radians(latb)
+    lata = np.radians(lata)
+    lonb = np.radians(lonb)
+    lona = np.radians(lona)
+    
+    dlat    = latb - lata.T
+    dlon    = ((lonb - lona.T)+ 180) % 360 - 180
+    cavelat = np.cos((latb + lata.T) * 0.5)
 
     dangle  = np.sqrt(np.multiply(dlat, dlat) +
                       np.multiply(np.multiply(dlon, dlon),
@@ -369,7 +375,6 @@ def kwikqdrdist_matrix(lata, lona, latb, lonb):
     qdr     = np.degrees(np.arctan2(np.multiply(dlon, cavelat), dlat)) % 360.
 
     return qdr, dist
-
 def kwikpos(latd1, lond1, qdr, dist):
     """ Fast, but quick and dirty, position calculation from vectors of reference position,
         bearing and distance using flat earth approximation
