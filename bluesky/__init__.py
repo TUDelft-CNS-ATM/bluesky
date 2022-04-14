@@ -27,7 +27,7 @@ scr = None
 server = None
 
 
-def init(mode='sim', hostname=None, configfile=None,
+def init(mode='sim', configfile=None,
          scenfile=None, discoverable=False, gui=None, detached=False):
     ''' Initialize bluesky modules.
 
@@ -40,7 +40,7 @@ def init(mode='sim', hostname=None, configfile=None,
     globals()['gui'] = gui
 
     # Initialize global settings first, possibly loading a custom config file
-    settings.init(configfile, scenfile)
+    settings.init(configfile)
 
     # Initialise tools
     tools.init()

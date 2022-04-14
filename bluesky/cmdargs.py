@@ -43,7 +43,7 @@ def parse():
                         help="Load scenario file on startup.")
 
     parser.add_argument("--discoverable", dest="discoverable", action="store_const", const=True,
-                        default=False, help="Make simulation server discoverable. (Default in headless mode.")
+                        default=False, help="Make simulation server discoverable. (Default in headless mode).")
     cmdargs = parser.parse_args()
 
     return vars(cmdargs)
