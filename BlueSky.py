@@ -30,8 +30,10 @@ def main():
 
     # Catch import errors
     try:
+        # Parse command-line arguments
+        args = cmdargs.parse()
         # Initialize bluesky modules. Pass command-line arguments parsed by cmdargs
-        bs.init(**cmdargs.parse())
+        bs.init(**args)
 
         # Only start a simulation node if called with --sim or --detached
         if bs.mode == 'sim':
@@ -53,11 +55,11 @@ def main():
         # Start gui if client or main server/gui combination is started here
         if bs.gui == 'qtgl':
             from bluesky.ui import qtgl
-            qtgl.start(bs.mode)
+            qtgl.start(hostname=args.get('hostname'))
 
         elif bs.gui == 'console':
             from bluesky.ui import console
-            console.start()
+            console.start(hostname=args.get('hostname'))
 
     # Give info on missing module
     except ImportError as error:

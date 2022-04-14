@@ -34,7 +34,7 @@ def gui_msg_handler(msgtype, context, msg):
         print('Qt debug message:', msg)
 
 
-def start(mode, hostname=None):
+def start(hostname=None):
     # Install message handler for Qt messages
     qInstallMessageHandler(gui_msg_handler)
 
@@ -67,22 +67,20 @@ def start(mode, hostname=None):
 
     splash.showMessage('Constructing main window')
     app.processEvents()
-    win = MainWindow(mode)
+    win = MainWindow(bs.mode)
     win.show()
     splash.showMessage('Done!')
     app.processEvents()
     splash.finish(win)
     # If this instance of the gui is started in client-only mode, show
     # server selection dialog
-    if mode == 'client' and hostname is None:
+    if bs.mode == 'client' and hostname is None:
         dialog = DiscoveryDialog(win)
         dialog.show()
         bs.net.start_discovery()
 
     else:
-        client.connect(hostname=hostname or 'localhost',
-                       event_port=bs.settings.event_port,
-                       stream_port=bs.settings.stream_port)
+        client.connect(hostname=hostname)
 
     # Start the Qt main loop
     # app.exec_()

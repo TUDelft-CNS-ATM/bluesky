@@ -3,6 +3,7 @@ import os
 import zmq
 import msgpack
 import bluesky
+from bluesky import settings
 from bluesky.core import Signal
 from bluesky.stack.clientstack import stack, process
 from bluesky.network.discovery import Discovery
@@ -101,7 +102,7 @@ class Client:
             node_id = self.act
         self.stream_in.setsockopt(zmq.UNSUBSCRIBE, streamname + node_id)
 
-    def connect(self, hostname='localhost', event_port=0, stream_port=0, protocol='tcp'):
+    def connect(self, hostname=None, event_port=None, stream_port=None, protocol='tcp'):
         ''' Connect client to a server.
 
             Arguments:
@@ -110,9 +111,9 @@ class Client:
             - stream_port: Network port to use for stream communication
             - protocol: Network protocol to use
         '''
-        conbase = '{}://{}'.format(protocol, hostname)
-        econ = conbase + (':{}'.format(event_port) if event_port else '')
-        scon = conbase + (':{}'.format(stream_port) if stream_port else '')
+        conbase = f'{protocol}://{hostname or "localhost"}'
+        econ = conbase + f':{event_port or settings.event_port}'
+        scon = conbase + f':{stream_port or settings.stream_port}'
         self.event_io.setsockopt(zmq.IDENTITY, self.client_id)
         self.event_io.connect(econ)
         self.send_event(b'REGISTER')

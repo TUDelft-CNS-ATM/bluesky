@@ -27,8 +27,8 @@ scr = None
 server = None
 
 
-def init(mode='sim', configfile=None,
-         scenfile=None, discoverable=False, gui=None, detached=False):
+def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
+         gui=None, detached=False, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:

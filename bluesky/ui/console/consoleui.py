@@ -430,11 +430,9 @@ class ConsoleUI(App):
 
         self.set_interval(0.2, bs.net.update, name='Network')
 
-def start():
-    bs.init(mode="client")
-
-    # Create and start BlueSky client
+def start(hostname=None):
+    ''' Create and start BlueSky text-based client. '''
     bsclient = ConsoleClient()
-    bsclient.connect(event_port=11000, stream_port=11001)
+    bsclient.connect(hostname=hostname)
 
     ConsoleUI.run(log="textual.log")
