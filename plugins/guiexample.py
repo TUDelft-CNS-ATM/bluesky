@@ -3,7 +3,7 @@
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import stack, ui  #, settings, navdb, sim, scr, tools
-from bluesky.ui import gl
+from bluesky.ui.qtgl.glhelpers import gl, RenderObject, VertexArrayObject
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -29,11 +29,11 @@ def init_plugin():
 ### inherits from bluesky.core.Entity.
 ### To replace existing functionality in BlueSky, inherit from the class that
 ### provides the original implementation (see for example the asas/eby plugin).
-class MyVisual(ui.RenderObject, layer=100):
+class MyVisual(RenderObject, layer=100):
     ''' Example new render object for BlueSky. '''
     def __init__(self, parent):
         super().__init__(parent=parent)
-        self.shape = ui.VertexArrayObject(gl.GL_TRIANGLE_FAN)
+        self.shape = VertexArrayObject(gl.GL_TRIANGLE_FAN)
 
     def create(self):
         vertices = np.array([52, 5, 52, 4, 54, 4, 54, 5], dtype = np.float32)
