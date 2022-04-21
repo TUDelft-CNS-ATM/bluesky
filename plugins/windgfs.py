@@ -159,7 +159,6 @@ class WindGFS(WindSim):
             pred = 3
         elif self.hour == 24:
             ymd0 = "%04d%02d%02d" % (self.year, self.month, self.day)
-            print(ymd0)
             ymd1 = (datetime.datetime.strptime(ymd0, '%Y%m%d') + 
                     datetime.timedelta(days=1))
             self.year  = ymd1.year
