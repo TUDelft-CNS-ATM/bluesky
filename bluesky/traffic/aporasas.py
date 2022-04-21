@@ -23,21 +23,11 @@ class APorASAS(TrafficArrays):
 
     def update(self):
         #--------- Input to Autopilot settings to follow: destination or ASAS ----------
-        # Convert the ASAS commanded speed from ground speed to TAS
-        if bs.traf.wind.winddim > 0:
-            vwn, vwe     = bs.traf.wind.getdata(bs.traf.lat, bs.traf.lon, bs.traf.alt)
-            asastasnorth = bs.traf.cr.tas * np.cos(np.radians(bs.traf.cr.trk)) - vwn
-            asastaseast  = bs.traf.cr.tas * np.sin(np.radians(bs.traf.cr.trk)) - vwe
-            asastas      = np.sqrt(asastasnorth**2 + asastaseast**2)
-        # no wind, then ground speed = TAS
-        else:
-            asastas = bs.traf.cr.tas # TAS [m/s]
-
         # Select asas if there is a conflict AND resolution is on
         # Determine desired states per channel whether to use value from ASAS or AP.
         # bs.traf.cr.active may be used as well, will set all of these channels
         self.trk = np.where(bs.traf.cr.hdgactive, bs.traf.cr.trk, bs.traf.ap.trk)
-        self.tas = np.where(bs.traf.cr.tasactive, asastas, bs.traf.ap.tas)
+        self.tas = np.where(bs.traf.cr.tasactive, bs.traf.cr.tas, bs.traf.ap.tas)
         self.alt = np.where(bs.traf.cr.altactive, bs.traf.cr.alt, bs.traf.ap.alt)
         self.vs  = np.where(bs.traf.cr.vsactive, bs.traf.cr.vs, bs.traf.ap.vs)
 
