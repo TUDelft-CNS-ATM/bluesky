@@ -150,7 +150,7 @@ class OpenSkyListener(Entity):
         if n_new:
             actype = [actypes.get(str(i), 'B744') for i in icao24[newac]]
             for j in range(n_new):
-                traf.cre(n_new, acid[newac][j], actype[j], lat[newac][j], lon[newac][j],\
+                traf.cre(acid[newac][j], actype[j], lat[newac][j], lon[newac][j],\
                          hdg[newac][j], alt[newac][j], spd[newac][j])
             self.my_ac[-n_new:] = True
 
