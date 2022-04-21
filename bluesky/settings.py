@@ -61,14 +61,6 @@ def init(cfgfile=''):
 
     if not cfgfile:
         cfgfile = os.path.join(rundir, 'settings.cfg')
-    
-    # Check if alternate config file is passed
-    for i in range(len(sys.argv)):
-        if len(sys.argv) > i + 1:
-            if sys.argv[i] == '--config-file':
-                cfgfile = sys.argv[i + 1]
-            elif sys.argv[i] == '--scenfile':
-                globals()['scenfile'] = sys.argv[i + 1]
 
     # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
     # was started with BlueSky.py

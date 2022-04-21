@@ -22,7 +22,7 @@ class Trails(TrafficArrays):
         super().__init__()
         self.active = False  # Wether or not to show trails
         self.dt = dttrail    # Resolution of trail pieces in time
-        self.pygame = (bs.gui_type == 'pygame') # Trails are different for pygame
+        self.pygame = (bs.gui == 'pygame') # Trails are different for pygame
         self.tcol0 = 60.  # After how many seconds old colour
 
         # This list contains some standard colors

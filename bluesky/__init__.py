@@ -15,8 +15,8 @@ BS_CMDERR = 4
 INIT, HOLD, OP, END = list(range(4))
 
 # Startup flags
-gui_type = ''
-startup_scnfile = ''
+mode = ''
+gui = ''
 
 # Main singleton objects in BlueSky
 net = None
@@ -27,49 +27,42 @@ scr = None
 server = None
 
 
-def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
+def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
+         gui=None, detached=False, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
-        - mode: can be 'sim', 'sim-detached', 'server-gui', 'server-headless',
-          or 'client'
-        - pygame: indicate if BlueSky is started with BlueSky_pygame.py
-        - discovery: Enable network discovery
-    '''
-    # Is this a server running headless?
-    headless = (mode[-8:] == 'headless')
 
-    # Keep track of the gui type.
-    global gui_type
-    gui_type = 'pygame' if pygame else \
-               'none' if headless or mode[:3] == 'sim' else 'qtgl'
+    '''
+
+    # Keep track of mode and gui type.
+    globals()['mode'] = mode
+    globals()['gui'] = gui
 
     # Initialize global settings first, possibly loading a custom config file
-    settings.init(cfgfile)
+    settings.init(configfile)
 
     # Initialise tools
     tools.init()
 
     # Load navdatabase in all versions of BlueSky
     # Only the headless server doesn't need this
-    if not headless:
+    if mode == "sim" or gui is not None:
         from bluesky.navdatabase import Navdatabase
         global navdb
         navdb = Navdatabase()
 
     # If mode is server-gui or server-headless start the networking server
-    if mode[:6] == 'server':
+    if mode == 'server':
         global server
         from bluesky.network.server import Server
-        server = Server(discovery)
+        server = Server(discoverable, configfile, scenfile)
 
     # The remaining objects are only instantiated in the sim nodes
-    if mode[:3] == 'sim':
-        # Check whether simulation node should run detached
-        detached = (mode[-8:] == 'detached')
+    if mode == 'sim':
         from bluesky.traffic import Traffic
         from bluesky.simulation import Simulation
-        if pygame:
+        if gui == 'pygame':
             from bluesky.ui.pygame import Screen
             from bluesky.network.detached import Node
         else:
@@ -91,8 +84,8 @@ def init(mode='sim', pygame=False, discovery=False, cfgfile='', scnfile=''):
 
         # Initialize remaining modules
         varexplorer.init()
-        if scnfile:
-            stack.stack(f'IC {scnfile}')
+        if scenfile:
+            stack.stack(f'IC {scenfile}')
 
     from bluesky.core import plugin
     plugin.init(mode)

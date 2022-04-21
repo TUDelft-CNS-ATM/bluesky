@@ -27,9 +27,10 @@ class Stack:
         cls.sender_rte = None
 
     @classmethod
-    def commands(cls):
+    def commands(cls, from_pcall=None):
         ''' Generator function to iterate over stack commands. '''
-        for cls.current, cls.sender_rte in cls.cmdstack:
+        # Return commands from PCALL if passed, otherwise own command stack
+        for cls.current, cls.sender_rte in from_pcall or cls.cmdstack:
             yield cls.current
 
     @classmethod

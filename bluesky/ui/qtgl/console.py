@@ -1,7 +1,14 @@
 """ Console interface for the QTGL implementation."""
-from PyQt5.QtCore import Qt
-from PyQt5.Qt import QDesktopServices, QUrl, QApplication
-from PyQt5.QtWidgets import QWidget, QTextEdit
+try:
+    from PyQt5.QtCore import Qt
+    from PyQt5.Qt import QDesktopServices, QUrl, QApplication
+    from PyQt5.QtWidgets import QWidget, QTextEdit
+    
+except ImportError:
+    from PyQt6.QtCore import Qt, QUrl
+    from PyQt6.QtGui import QDesktopServices
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
 from bluesky.tools import cachefile
@@ -139,7 +146,7 @@ class Console(QWidget):
     def keyPressEvent(self, event):
         ''' Handle keyboard input for bluesky. '''
         # Enter-key: enter command
-        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+        if event.key() == Qt.Key.Key_Enter or event.key() == Qt.Key.Key_Return:
             if self.command_line:
                 # emit a signal with the command for the simulation thread
                 self.stack(self.command_line)
@@ -149,30 +156,30 @@ class Console(QWidget):
 
         newcmd = self.command_line
         cursorpos = None
-        if event.key() >= Qt.Key_Space and event.key() <= Qt.Key_AsciiTilde:
+        if event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde:
             pos = self.lineEdit.cursor_pos()
             newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
             # Update the cursor position with the length of the added text
             cursorpos = pos + len(event.text())
-        elif event.key() == Qt.Key_Backspace:
+        elif event.key() == Qt.Key.Key_Backspace:
             pos = self.lineEdit.cursor_pos()
             newcmd = newcmd[:pos - 1] + newcmd[pos:]
             cursorpos = pos - 1
-        elif event.key() == Qt.Key_Tab:
+        elif event.key() == Qt.Key.Key_Tab:
             if newcmd:
                 newcmd, displaytext = autocomplete.complete(newcmd)
                 if displaytext:
                     self.echo(displaytext)
-        elif not event.modifiers() & (Qt.ControlModifier | Qt.ShiftModifier | 
-                                        Qt.AltModifier | Qt.MetaModifier):
-            if event.key() == Qt.Key_Up:
+        elif not event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier | 
+                                        Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier):
+            if event.key() == Qt.Key.Key_Up:
                 if self.history_pos == 0:
                     self.command_mem = newcmd
                 if len(self.command_history) >= self.history_pos + 1:
                     self.history_pos += 1
                     newcmd = self.command_history[-self.history_pos]
 
-            elif event.key() == Qt.Key_Down:
+            elif event.key() == Qt.Key.Key_Down:
                 if self.history_pos > 0:
                     self.history_pos -= 1
                     if self.history_pos == 0:
@@ -180,10 +187,10 @@ class Console(QWidget):
                     else:
                         newcmd = self.command_history[-self.history_pos]
 
-            elif event.key() == Qt.Key_Left:
+            elif event.key() == Qt.Key.Key_Left:
                 self.lineEdit.cursor_left()
 
-            elif event.key() == Qt.Key_Right:
+            elif event.key() == Qt.Key.Key_Right:
                 self.lineEdit.cursor_right()
             else:
                 # Remaining keys are things like sole modifier keys, and function keys
@@ -255,15 +262,15 @@ class Stackwin(QTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         Console.stackText = self
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
     def mousePressEvent(self, e):
         self.anchor = self.anchorAt(e.pos())
         if self.anchor:
-            QApplication.setOverrideCursor(Qt.PointingHandCursor)
+            QApplication.setOverrideCursor(Qt.CursorShape.PointingHandCursor)
 
     def mouseReleaseEvent(self, e):
         if self.anchor:
             QDesktopServices.openUrl(QUrl(self.anchor))
-            QApplication.setOverrideCursor(Qt.ArrowCursor)
+            QApplication.setOverrideCursor(Qt.CursorShape.ArrowCursor)
             self.anchor = None

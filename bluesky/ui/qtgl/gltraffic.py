@@ -61,16 +61,16 @@ class Traffic(glh.RenderObject, layer=100):
     def create(self):
         ac_size = settings.ac_size
         wpt_size = settings.wpt_size
-        self.hdg.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
-        self.lat.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
-        self.lon.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
-        self.alt.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
-        self.tas.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
-        self.color.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
-        self.lbl.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
-        self.asasn.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
-        self.asase.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.StreamDraw)
-        self.rpz.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.StreamDraw)
+        self.hdg.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.lat.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.lon.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.alt.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.tas.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.color.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.lbl.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.asasn.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.asase.create(MAX_NAIRCRAFT * 24, glh.GLBuffer.UsagePattern.StreamDraw)
+        self.rpz.create(MAX_NAIRCRAFT * 4, glh.GLBuffer.UsagePattern.StreamDraw)
 
         self.ssd.create(lat1=self.lat, lon1=self.lon, alt1=self.alt,
                         tas1=self.tas, trk1=self.hdg)
@@ -96,10 +96,10 @@ class Traffic(glh.RenderObject, layer=100):
         self.aclabels.create(self.lbl, self.lat, self.lon, self.color,
                              (ac_size, -0.5 * ac_size), instanced=True)
 
-        self.cpalines.create(vertex=MAX_NCONFLICTS * 16, color=palette.conflict, usage=glh.GLBuffer.StreamDraw)
+        self.cpalines.create(vertex=MAX_NCONFLICTS * 16, color=palette.conflict, usage=glh.GLBuffer.UsagePattern.StreamDraw)
 
         # ------- Aircraft Route -------------------------
-        self.route.create(vertex=ROUTE_SIZE * 8, color=palette.route, usage=glh.gl.GL_DYNAMIC_DRAW)
+        self.route.create(vertex=ROUTE_SIZE * 8, color=palette.route, usage=glh.GLBuffer.UsagePattern.DynamicDraw)
 
         self.routelbl.create(ROUTE_SIZE * 24, ROUTE_SIZE * 4, ROUTE_SIZE * 4,
                              palette.route, (wpt_size, 0.5 * wpt_size), instanced=True)

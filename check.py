@@ -1,6 +1,8 @@
 #!/usr/bin/python
 from __future__ import print_function
 import traceback
+
+import PyQt6
 print("This script checks the availability of the libraries required by BlueSky, and the capabilities of your system.")
 print()
 np = sp = mpl = qt = gl = glhw = pg = False
@@ -37,9 +39,11 @@ else:
 
 print("Checking for pyqt               ", end=' ')
 try:
-    from PyQt5.QtCore import QT_VERSION_STR
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtOpenGL import QGLWidget, QGLFormat
+    from PyQt6.QtCore import QT_VERSION_STR
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtGui import QSurfaceFormat as QGLFormat
+    from PyQt6.QtOpenGLWidgets import QOpenGLWidget as QGLWidget
+    
     qt = True
 except ImportError:
     print("[FAIL]")
@@ -74,7 +78,7 @@ if qt:
             try:
                 f = QGLFormat()
                 f.setVersion(3, 3)
-                f.setProfile(QGLFormat.CoreProfile)
+                f.setProfile(QGLFormat.OpenGLContextProfile.CoreProfile)
                 f.setDoubleBuffer(True)
                 QGLFormat.setDefaultFormat(f)
 

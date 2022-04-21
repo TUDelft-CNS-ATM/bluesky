@@ -5,8 +5,12 @@
 
     PYTHONPATH=/path/to/your/bluesky python textclient.py
 '''
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit
+try:
+    from PyQt5.QtCore import Qt, QTimer
+    from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit
+except ImportError:
+    from PyQt6.QtCore import Qt, QTimer
+    from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit
 
 from bluesky.network import Client
 
@@ -98,4 +102,4 @@ if __name__ == '__main__':
     bsclient.connect(event_port=11000, stream_port=11001)
 
     # Start the Qt main loop
-    app.exec_()
+    app.exec()

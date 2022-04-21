@@ -8,9 +8,14 @@ from urllib.request import urlopen
 from urllib.error import URLError
 import numpy as np
 
-from PyQt5.Qt import Qt
-from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QImage
+try:
+    from PyQt5.Qt import Qt
+    from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+    from PyQt5.QtGui import QImage
+except ImportError:
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+    from PyQt6.QtGui import QImage
 
 import bluesky as bs
 from bluesky.core import Signal
@@ -60,7 +65,7 @@ class Tile:
         fpath = path.join(bs.settings.cache_path, source, str(zoom), str(tilex))
         fname = path.join(fpath, f'{tiley}{self.ext}')
         if path.exists(fname):
-            self.image = QImage(fname).convertToFormat(QImage.Format_ARGB32)
+            self.image = QImage(fname).convertToFormat(QImage.Format.Format_ARGB32)
         else:
             # Make sure cache directory exists
             makedirs(fpath, exist_ok=True)
@@ -70,7 +75,7 @@ class Tile:
                         zoom=zoom, x=tilex, y=tiley))
                     data = url_request.read()
                     self.image = QImage.fromData(
-                        data).convertToFormat(QImage.Format_ARGB32)
+                        data).convertToFormat(QImage.Format.Format_ARGB32)
                     with open(fname, 'wb') as fout:
                         fout.write(data)
                     break
@@ -127,7 +132,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             self.cb(*args, **kwargs)
 
     def __init__(self, glsurface, tilesource='opentopomap'):
-        super().__init__(target=glh.Texture.Target2DArray)
+        super().__init__(target=glh.Texture.Target.Target2DArray)
         self.threadpool = QThreadPool()
         tileinfo = bs.settings.tile_sources.get(tilesource)
         if not tileinfo:
@@ -145,7 +150,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.offsetscale = np.array([0, 0, 1], dtype=np.float32)
         self.bbox = list()
         self.glsurface = glsurface
-        self.indextexture = glh.Texture(target=glh.Texture.Target2D)
+        self.indextexture = glh.Texture(target=glh.Texture.Target.Target2D)
         self.indexsampler_loc = 0
         self.arraysampler_loc = 0
         bs.net.actnodedata_changed.connect(self.actdata_changed)
@@ -169,39 +174,39 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # Fetch a temporary tile image to get dimensions
         tmptile = Tile(self.tilesource, 1, 1, 1, 0, 0)
         img = tmptile.image
-        self.setFormat(glh.Texture.RGBA8_UNorm)
+        self.setFormat(glh.Texture.TextureFormat.RGBA8_UNorm)
         self.tilesize = (img.width(), img.height())
         self.setSize(img.width(), img.height())
         self.setLayers(bs.settings.tile_array_size)
         super().bind()
         self.allocateStorage()
-        self.setWrapMode(glh.Texture.DirectionS,
-                         glh.Texture.ClampToBorder)
-        self.setWrapMode(glh.Texture.DirectionT,
-                         glh.Texture.ClampToBorder)
-        self.setMinMagFilters(glh.Texture.Linear, glh.Texture.Linear)
+        self.setWrapMode(glh.Texture.CoordinateDirection.DirectionS,
+                         glh.Texture.WrapMode.ClampToBorder)
+        self.setWrapMode(glh.Texture.CoordinateDirection.DirectionT,
+                         glh.Texture.WrapMode.ClampToBorder)
+        self.setMinMagFilters(glh.Texture.Filter.Linear, glh.Texture.Filter.Linear)
 
         # Initialize index texture
         # RG = texcoord offset, B = zoom factor, A = array index
         itexw = int(np.sqrt(bs.settings.tile_array_size) * 4 / 3 + 10)
         itexh = int(np.sqrt(bs.settings.tile_array_size) * 3 / 4 + 10)
         self.indextexture.create()
-        self.indextexture.setFormat(glh.Texture.RGBA32I)
+        self.indextexture.setFormat(glh.Texture.TextureFormat.RGBA32I)
         self.indextexture.setSize(itexw, itexh)
         self.indextexture.bind(1)
         # self.indextexture.allocateStorage(glh.Texture.RGBA_Integer, glh.Texture.Int32)
 
         idxdata = np.array(itexw * itexh *
                            [(0, 0, 0, -1)], dtype=np.int32)
-        glh.gl.glTexImage2D_alt(glh.Texture.Target2D, 0, glh.Texture.RGBA32I,
-                                itexw, itexh, 0, glh.Texture.RGBA_Integer,
-                                glh.Texture.Int32, idxdata.tobytes())
+        glh.gl.glTexImage2D_alt(glh.Texture.Target.Target2D.value, 0, glh.Texture.TextureFormat.RGBA32I.value,
+                                itexw, itexh, 0, glh.Texture.PixelFormat.RGBA_Integer.value,
+                                glh.Texture.PixelType.Int32.value, idxdata.tobytes())
 
-        self.indextexture.setWrapMode(glh.Texture.DirectionS,
-                                      glh.Texture.ClampToBorder)
-        self.indextexture.setWrapMode(glh.Texture.DirectionT,
-                                      glh.Texture.ClampToBorder)
-        self.indextexture.setMinMagFilters(glh.Texture.Nearest, glh.Texture.Nearest)
+        self.indextexture.setWrapMode(glh.Texture.CoordinateDirection.DirectionS,
+                                      glh.Texture.WrapMode.ClampToBorder)
+        self.indextexture.setWrapMode(glh.Texture.CoordinateDirection.DirectionT,
+                                      glh.Texture.WrapMode.ClampToBorder)
+        self.indextexture.setMinMagFilters(glh.Texture.Filter.Nearest, glh.Texture.Filter.Nearest)
 
         shader = glh.ShaderSet.get_shader('tiled')
         self.indexsampler_loc = shader.uniformLocation('tile_index')
@@ -278,7 +283,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
                     if finished:
                         # Tile not loaded yet, fetch in the background
                         task = TileLoader(self.tilesource, self.curtilezoom, x, y, i, j)
-                        task.signals.finished.connect(self.tileslot.slot, Qt.QueuedConnection)
+                        task.signals.finished.connect(self.tileslot.slot, Qt.ConnectionType.QueuedConnection)
                         self.threadpool.start(task)
 
                     # In the mean time, check if more zoomed-out tiles are loaded that can be used
@@ -304,9 +309,10 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         data = np.array(index_tex, dtype=np.int32)
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0, 0, 0, nx, ny,
-                                   glh.Texture.RGBA_Integer,
-                                   glh.Texture.Int32, data.tobytes())
+
+        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D.value, 0, 0, 0, nx, ny,
+                                   glh.Texture.PixelFormat.RGBA_Integer.value,
+                                   glh.Texture.PixelType.Int32.value, data.tobytes())
 
     def load_tile(self, tile):
         ''' Send loaded image data to GPU texture array.
@@ -349,9 +355,10 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # Update index texture
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
         self.indextexture.bind(2)
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target2D, 0, tile.idxx, tile.idxy,
-                                   1, 1, glh.Texture.RGBA_Integer,
-                                   glh.Texture.Int32, idxdata.tobytes())
+
+        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D.value, 0, tile.idxx, tile.idxy,
+                                   1, 1, glh.Texture.PixelFormat.RGBA_Integer.value,
+                                   glh.Texture.PixelType.Int32.value, idxdata.tobytes())
 
         self.indextexture.release()
 

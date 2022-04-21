@@ -27,12 +27,12 @@ def legend(legend, fig=None):
     try:
         # Get the plot with the corresponding figure number
         p = plots[-1] if fig is None else next(
-            plot for plot in plots if plot.fig == fig)
+            plot for plot in plots if plot.fig == str(fig))
 
         data = {p.fig: dict(legend=legend)}
         bs.net.send_stream(p.stream_id, data)
         return True
-    except IndexError as e:
+    except (IndexError, StopIteration) as e:
         return False, e.args[0]
 
 def reset():
@@ -75,7 +75,7 @@ class Plot:
         elif fig > Plot.maxfig:
             Plot.maxfig = fig
 
-        self.fig = fig
+        self.fig = str(fig)
 
         self.stream_id = b'PLOT' + (bs.stack.sender() or b'*')
 
@@ -84,6 +84,7 @@ class Plot:
 
         # if not self.x.is_num() or not self.y.is_num():
         #     raise IndexError('Variable {} not numeric'.format(varx if not self.x.is_num() else (vary or varx)))
+        print(self.stream_id, type(self.stream_id), {self.fig: params})
         bs.net.send_stream(self.stream_id, {self.fig: params})
 
     def send(self):

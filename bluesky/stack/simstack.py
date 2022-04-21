@@ -47,16 +47,14 @@ def reset():
     argparser.reset()
 
 
-
-
-
-def process():
+def process(from_pcall=None):
     ''' Sim-side stack processing. '''
     # First check for commands in scenario file
-    checkscen()
+    if from_pcall is None:
+        checkscen()
 
     # Process stack of commands
-    for cmdline in Stack.commands():
+    for cmdline in Stack.commands(from_pcall):
         success = True
         echotext = ''
         echoflags = bs.BS_OK
@@ -133,7 +131,8 @@ def process():
             bs.scr.echo(echotext, echoflags)
 
     # Clear the processed commands
-    Stack.clear()
+    if from_pcall is None:
+        Stack.clear()
 
 
 def readscn(fname):
@@ -214,6 +213,8 @@ def pcall(fname, *pcall_arglst):
     instime = bs.sim.simt
 
     try:
+        # All commands with timestamps at the current sim time or earlier should be called immediately
+        callnow = []
         for (cmdtime, cmdline) in readscn(fname):
 
             # Time offset correction
@@ -224,7 +225,9 @@ def pcall(fname, *pcall_arglst):
                 for i, argtxt in enumerate(pcall_arglst):
                     cmdline = cmdline.replace(f"%{i}", argtxt)
 
-            if not Stack.scentime or cmdtime >= Stack.scentime[-1]:
+            if cmdtime <= bs.sim.simt:
+                callnow.append((cmdline, None))
+            elif not Stack.scentime or cmdtime >= Stack.scentime[-1]:
                 Stack.scentime.append(cmdtime)
                 Stack.scencmd.append(cmdline)
             else:
@@ -237,8 +240,10 @@ def pcall(fname, *pcall_arglst):
                 Stack.scencmd.insert(insidx, cmdline)
                 insidx += 1
 
-        # stack any commands that are already due
-        checkscen()
+        # execute any commands that are already due
+        if callnow:
+            process(callnow)
+
     except FileNotFoundError as e:
         return False, f"PCALL: File not found'{e.filename}'"
 

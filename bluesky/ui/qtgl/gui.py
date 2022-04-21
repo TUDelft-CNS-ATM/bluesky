@@ -1,8 +1,17 @@
 """ QTGL Gui for BlueSky."""
-from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
-    QtWarningMsg, QtCriticalMsg, QtFatalMsg, \
-    QT_VERSION, QT_VERSION_STR
-from PyQt5.QtWidgets import QApplication, QErrorMessage
+try:
+    from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QtMsgType, QT_VERSION, QT_VERSION_STR
+    from PyQt5.QtWidgets import QApplication, QErrorMessage
+    from PyQt5.QtGui import QFont
+    
+except ImportError:
+    from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, \
+        QT_VERSION, QT_VERSION_STR
+
+    from PyQt6.QtCore import QtMsgType
+    from PyQt6.QtWidgets import QApplication, QErrorMessage
+    from PyQt6.QtGui import QFont
 
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
@@ -12,29 +21,34 @@ from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
-
 def gui_msg_handler(msgtype, context, msg):
-    if msgtype == QtWarningMsg:
+    if msgtype == QtMsgType.QtWarningMsg:
         print('Qt gui warning:', msg)
-    elif msgtype == QtCriticalMsg:
+    elif msgtype == QtMsgType.QtCriticalMsg:
         print('Qt gui critical error:', msg)
-    if msgtype == QtFatalMsg:
+    elif msgtype == QtMsgType.QtFatalMsg:
         print('Qt gui fatal error:', msg)
-        exit()
+    elif msgtype == QtMsgType.QtInfoMsg:
+        print('Qt information message:', msg)
+    elif msgtype == QtMsgType.QtDebugMsg:
+        print('Qt debug message:', msg)
 
 
-def start(mode):
+def start(hostname=None):
     # Install message handler for Qt messages
     qInstallMessageHandler(gui_msg_handler)
 
     # Start the Qt main object
     app = QApplication([])
 
+    # Explicitly set font to avoid font loading warning dialogs
+    app.setFont(QFont('Sans'))
+
     # Start the bluesky network client
     client = GuiClient()
 
     # Enable HiDPI support (Qt5 only)
-    if QT_VERSION >= 0x050000:
+    if QT_VERSION_STR[0] == '5' and QT_VERSION >= 0x050000:
         app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     splash = Splash()
@@ -48,26 +62,26 @@ def start(mode):
     splash.show()
 
     # Install error message handler
-    handler = QErrorMessage.qtHandler()
-    handler.setWindowFlags(Qt.WindowStaysOnTopHint)
+    # handler = QErrorMessage.qtHandler()
+    # handler.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
 
     splash.showMessage('Constructing main window')
     app.processEvents()
-    win = MainWindow(mode)
+    win = MainWindow(bs.mode)
     win.show()
     splash.showMessage('Done!')
     app.processEvents()
     splash.finish(win)
     # If this instance of the gui is started in client-only mode, show
     # server selection dialog
-    if mode == 'client':
+    if bs.mode == 'client' and hostname is None:
         dialog = DiscoveryDialog(win)
         dialog.show()
         bs.net.start_discovery()
 
     else:
-        client.connect(event_port=bs.settings.event_port,
-                       stream_port=bs.settings.stream_port)
+        client.connect(hostname=hostname)
 
     # Start the Qt main loop
-    app.exec_()
+    # app.exec_()
+    app.exec()

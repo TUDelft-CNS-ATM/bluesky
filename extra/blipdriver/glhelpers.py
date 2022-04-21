@@ -20,7 +20,10 @@ By            :
 Date          :
 ------------------------------------------------------------------
 """
-from PyQt5.QtGui import QImage
+try:
+    from PyQt5.QtGui import QImage
+except ImportError:
+    from PyQt6.QtGui import QImage
 import OpenGL.GL as gl
 import numpy as np
 from ctypes import c_void_p, pointer, sizeof
@@ -316,7 +319,7 @@ class Font:
         gl.glTexParameterf(gl.GL_TEXTURE_2D_ARRAY, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
         # We're using the ASCII range 32-126; space, uppercase, lower case, numbers, brackets, punctuation marks
         for i in range(32, 127):
-            img = QImage(path + '%d.png' % i).convertToFormat(QImage.Format_ARGB32)
+            img = QImage(path + '%d.png' % i).convertToFormat(QImage.Format.Format_ARGB32)
             ptr = c_void_p(int(img.constBits()))
             gl.glTexSubImage3D(gl.GL_TEXTURE_2D_ARRAY, 0, 0, 0, i - 32, imgsize[0], imgsize[1], 1, gl.GL_BGRA, gl.GL_UNSIGNED_BYTE, ptr)
 

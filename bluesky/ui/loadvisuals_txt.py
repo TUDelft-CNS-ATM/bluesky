@@ -81,9 +81,13 @@ def load_coastline_txt():
 
 
 # Only try this if BlueSky is started in qtgl gui mode
-if bs.gui_type == 'qtgl':
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QApplication, QProgressDialog
+if bs.gui == 'qtgl':
+    try:
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtWidgets import QApplication, QProgressDialog
+    except ImportError:
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QApplication, QProgressDialog
     from bluesky.ui.polytools import PolygonSet, BoundingBox
 
 
@@ -94,12 +98,13 @@ if bs.gui_type == 'qtgl':
                 print(text)
             else:
                 self.dialog = QProgressDialog(text, 'Cancel', 0, 100)
-                self.dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
+                # self.dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
+                self.dialog.setModal(True)
                 self.dialog.show()
 
         def update(self, value):
             if self.dialog:
-                self.dialog.setValue(value)
+                self.dialog.setValue(int(value))
                 QApplication.processEvents()
             else:
                 print('Progress: %.2f%% done' % value)
