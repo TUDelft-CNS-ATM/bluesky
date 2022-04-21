@@ -1,6 +1,6 @@
 ''' Conflict resolution based on the Modified Voltage Potential algorithm. '''
 import numpy as np
-from bluesky import stack
+from bluesky import stack, settings
 from bluesky.traffic.asas import ConflictResolution
 
 
@@ -166,19 +166,34 @@ class MVP(ConflictResolution):
 
         # Initialize an array to store time needed to resolve vertically
         timesolveV = np.ones(ownship.ntraf) * 1e9
+        
+        # Initialize an array to store if vs action is required irrespective of resolution domain
+        swvsact = np.zeros(ownship.ntraf, dtype=bool) 
 
         # Call MVP function to resolve conflicts-----------------------------------
         for ((ac1, ac2), qdr, dist, tcpa, tLOS) in zip(conf.confpairs, conf.qdr, conf.dist, conf.tcpa, conf.tLOS):
             idx1 = ownship.id.index(ac1)
             idx2 = intruder.id.index(ac2)
-
+            
+            # Determine largest RPZ and HPZ of the conflict pair
+            rpz_m = np.max(conf.rpz[[idx1, idx2]] * self.resofach)
+            hpz_m = np.max(conf.hpz[[idx1, idx2]] * self.resofacv)
+            
             # If A/C indexes are found, then apply MVP on this conflict pair
             # Because ADSB is ON, this is done for each aircraft separately
             if idx1 >-1 and idx2 > -1:
-                dv_mvp, tsolV = self.MVP(ownship, intruder, conf, qdr, dist, tcpa, tLOS, idx1, idx2)
+                dv_mvp, tsolV = self.MVP(ownship, intruder, conf, qdr, dist, tcpa, tLOS, idx1, idx2, rpz_m, hpz_m)
                 if tsolV < timesolveV[idx1]:
                     timesolveV[idx1] = tsolV
 
+                # Check if AC pair is in rpz and predicted to be in hpz next step
+                # hpz_m scaled with at least 1.2 resofacv for fast CL/DE traffic
+                hor_int = dist < rpz_m
+                ver_int = abs((ownship.alt[idx1] + ownship.vs[idx1]*settings.asas_dt) - \
+                              (intruder.alt[idx2] + intruder.vs[idx2]*settings.asas_dt)) < \
+                          hpz_m / self.resofacv * max(self.resofacv, 1.2)
+                swvsact[idx1] = np.logical_and(hor_int, ver_int)
+                
                 # Use priority rules if activated
                 if self.swprio:
                     dv[idx1], _ = self.applyprio(dv_mvp, dv[idx1], dv[idx2], ownship.vs[idx1], intruder.vs[idx2])
@@ -261,15 +276,17 @@ class MVP(ConflictResolution):
         # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed
         # using the auto pilot vertical speed (ownship.avs) using the code in line 106 (asasalttemp) when only
         # horizontal resolutions are allowed.
-        alt = alt * (1 - self.swresohoriz) + ownship.selalt * self.swresohoriz
-        return newtrack, newgscapped, vscapped, alt
+        # Additionally remaining at current alt (ownship.alt) is forced when AC are 
+        # in each others rpz and predicted to enter hpz based on vs and dt ASAS
+        alt = (alt * (1 - self.swresohoriz) + ownship.selalt * self.swresohoriz) * (1 - swvsact) \
+              + ownship.alt * swvsact
 
-    def MVP(self, ownship, intruder, conf, qdr, dist, tcpa, tLOS, idx1, idx2):
+        return newtrack, tascapped, vscapped, alt
+
+    def MVP(self, ownship, intruder, conf, qdr, dist, tcpa, tLOS, idx1, idx2, rpz_m, hpz_m):
         """Modified Voltage Potential (MVP) resolution method"""
         # Preliminary calculations-------------------------------------------------
-        # Determine largest RPZ and HPZ of the conflict pair, use lookahead of ownship
-        rpz_m = np.max(conf.rpz[[idx1, idx2]] * self.resofach)
-        hpz_m = np.max(conf.hpz[[idx1, idx2]] * self.resofacv)
+        # Use lookahead of ownship
         dtlook = conf.dtlookahead[idx1]
         # Convert qdr from degrees to radians
         qdr = np.radians(qdr)
