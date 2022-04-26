@@ -130,7 +130,9 @@ if __name__ == '__main__':
         BlueSky commands
         """
 
-        ac = 'U001'
+        name = 'U001'
+        ac = {'id': name, 'type': 'M600', 'accel': 3.5, 'v_max': 18, 
+            'vs_max': 5, 'safety_volume_size': 1}
         departure_time = '00:00:00.00'
         scenario_path = r'usepe/city_model/scenario/scenario_corridor.scn'
         scenario_file = open( scenario_path, 'w' )
@@ -172,7 +174,9 @@ if __name__ == '__main__':
     if step:
         orig = [9.72996, 52.44893 ]  # origin point
         dest = [9.71846, 52.45044]  # destination point
-        ac = 'U1'
+        name = 'U1'
+        ac = {'id': name, 'type': 'M600', 'accel': 3.5, 'v_max': 18, 
+            'vs_max': 5, 'safety_volume_size': 1}
         departure_time = 60  # seconds
         initial_time = 0  # seconds
         final_time = 1800  # seconds
@@ -185,27 +189,32 @@ if __name__ == '__main__':
 
     if sec_8_multi:
         op_plans = [
-            {"acid": "UAS1", "base_coord": [9.72996, 52.44893], "op_coord": [9.71846, 52.45044], "departure_time": 0},
-            {"acid": "UAS2", "base_coord": [9.69446, 52.43906], "op_coord": [9.67161, 52.44252], "departure_time": 0},
-            {"acid": "UAS3", "base_coord": [9.65075, 52.42035], "op_coord": [9.68234, 52.44066], "departure_time": 0},
-            {"acid": "UAS4", "base_coord": [9.65075, 52.42035], "op_coord": [9.67879, 52.43126], "departure_time": 30},
-            {"acid": "UAS5", "base_coord": [9.68395, 52.43218], "op_coord": [9.68334, 52.43572], "departure_time": 285}
+            {'ac': {'id': 'UAS1', 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5, 'safety_volume_size': 1}, 
+                'base_coord': [9.72996, 52.44893], 'op_coord': [9.71846, 52.45044], 'departure_time': 0},
+            {'ac': {'id': 'UAS2', 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5, 'safety_volume_size': 1}, 
+                'base_coord': [9.69446, 52.43906], 'op_coord': [9.67161, 52.44252], 'departure_time': 0},
+            {'ac': {'id': 'UAS3', 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5, 'safety_volume_size': 1}, 
+                'base_coord': [9.65075, 52.42035], 'op_coord': [9.68234, 52.44066], 'departure_time': 0},
+            {'ac': {'id': 'UAS4', 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5, 'safety_volume_size': 1}, 
+                'base_coord': [9.65075, 52.42035], 'op_coord': [9.67879, 52.43126], 'departure_time': 30},
+            {'ac': {'id': 'UAS5', 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5, 'safety_volume_size': 1}, 
+                'base_coord': [9.68395, 52.43218], 'op_coord': [9.68334, 52.43572], 'departure_time': 285}
         ]
         initial_time = 0
         final_time = 1800
         users = initialPopulation(segments, initial_time, final_time)
         for plan in op_plans:
-            scenario_path = r'scenario/USEPE/exercise_3/' + plan["acid"] + r'_stage1.scn'
+            scenario_path = r'scenario/USEPE/exercise_3/' + plan['ac']['id'] + r'_stage1.scn'
             scenario_file = open(scenario_path, 'w')
-            users, route = deconflcitedScenario( plan["base_coord"], plan["op_coord"], plan["acid"], 
-                                          plan["departure_time"], G, users, initial_time, 
+            users, route = deconflcitedScenario( plan['base_coord'], plan['op_coord'], plan['ac'], 
+                                          plan['departure_time'], G, users, initial_time, 
                                           final_time, segments, layers_dict, scenario_file, config )
             scenario_file.close()
 
-            scenario_path = r'scenario/USEPE/exercise_3/' + plan["acid"] + r'_stage2.scn'
+            scenario_path = r'scenario/USEPE/exercise_3/' + plan['ac']['id'] + r'_stage2.scn'
             scenario_file = open(scenario_path, 'w')
-            users, route = deconflcitedScenario( plan["op_coord"], plan["base_coord"], plan["acid"], 
-                                          plan["departure_time"] + 600, G, users, initial_time, 
+            users, route = deconflcitedScenario( plan['op_coord'], plan['base_coord'], plan['ac'], 
+                                          plan['departure_time'] + 600, G, users, initial_time, 
                                           final_time, segments, layers_dict, scenario_file, config )
             scenario_file.close()
 
