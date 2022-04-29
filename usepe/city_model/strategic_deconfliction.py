@@ -259,13 +259,7 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
         # print( b )
 
         travel_time, route = trajectoryCalculation( G_step, orig, dest )
-        # print( travel_time / opt_travel_time )
-
-        users_step = droneAirspaceUsage( G_step, route, delayed_time, users, initial_time,
-                                         final_time, route_parameters, ac )
-
-        overpopulated_segment, overpopulated_time = checkOverpopulatedSegment( 
-            segments_step, users_step, initial_time, final_time )
+        route_parameters = routeParameters( G_step, route, ac )
 
         if travel_time / opt_travel_time > config['Strategic_Deconfliction'].getint( 'ratio' ):
             delayed_time += config['Strategic_Deconfliction'].getint( 'delay' )
@@ -280,6 +274,12 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
             # print( b )
             # print( a / b )
             print( 'The flight is delayed {0} seconds'.format( delayed_time - time ) )
+        else:
+            users_step = droneAirspaceUsage( G_step, route, delayed_time, users, initial_time,
+                                             final_time, route_parameters, ac )
+
+            overpopulated_segment, overpopulated_time = checkOverpopulatedSegment( 
+                segments_step, users_step, initial_time, final_time )
 
     return users_step, route, delayed_time
 

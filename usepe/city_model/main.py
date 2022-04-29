@@ -10,6 +10,7 @@ explained below.
 
 import configparser
 import os
+import pickle
 import time
 
 from usepe.city_model.city_graph import cityGraph
@@ -64,7 +65,8 @@ if __name__ == '__main__':
     """
     if config['Segments'].getboolean( 'import' ):
         path = config['Segments']['path']
-        segments = np.load( path, allow_pickle='TRUE' ).item()
+        with open( path, 'rb' ) as f:
+            segments = pickle.load( f )
     else:
         segments = None
 
