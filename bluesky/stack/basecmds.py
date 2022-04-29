@@ -178,7 +178,7 @@ def initbasecmds():
             bs.navdb.defwpt,
             "Define a waypoint only for this scenario/run",
         ],
-               "DEL": [
+        "DEL": [
             "DEL acid/ALL/WIND/shape",
             "acid/txt,...",
             lambda *a: bs.traf.wind.clear()
