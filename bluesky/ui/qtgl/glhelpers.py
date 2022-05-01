@@ -54,9 +54,9 @@ def get_profile_settings():
     for version in opengl_versions:
         for profile in ('Core', 'Compatibility'):
             try:
-                try:
-                     importlib.import_module(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
-                except ImportError:
+                if QT_VERSION_STR[0] == '5':
+                    importlib.import_module(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                elif QT_VERSION_STR[0] == '6':
                     importlib.import_module(f'PyQt6.QtOpenGL', package=f'QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
                 
                 print(f'Found Qt-provided OpenGL functions for OpenGL {version} {profile}')
