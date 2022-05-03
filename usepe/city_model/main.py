@@ -10,6 +10,7 @@ explained below.
 
 import configparser
 import os
+import pickle
 import time
 
 from usepe.city_model.city_graph import cityGraph
@@ -64,19 +65,20 @@ if __name__ == '__main__':
     """
     if config['Segments'].getboolean( 'import' ):
         path = config['Segments']['path']
-        segments = np.load( path, allow_pickle='TRUE' ).item()
+        with open( path, 'rb' ) as f:
+            segments = pickle.load( f )
     else:
         segments = None
 
-    G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
+    # G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
 
     # -------------- 4. CORRIDORS ---------------------------
     """
     This section loads the corridors defined with the corridor section of the configuration file
     Comment it to neglect the creation of corridors
     """
-    G, segments = corridorLoad( G, segments, config )
-    G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
+    # G, segments = corridorLoad( G, segments, config )
+    # G, segments = dynamicSegments( G, config, segments, deleted_segments=None )
 
     # -------------- 5. No-FLY ZONES ------------------------
     """
@@ -110,7 +112,7 @@ if __name__ == '__main__':
     # printRoute( G, route )
 
     # -------------- 7. Scenario definition -----------------------
-    step1 = False
+    step1 = True
     step2 = False
     step3 = False
     """
@@ -134,7 +136,7 @@ if __name__ == '__main__':
         ac = {'id': name, 'type': 'M600', 'accel': 3.5, 'v_max': 18, 'vs_max': 5,
               'safety_volume_size': 1 }
         departure_time = '00:00:00.00'
-        scenario_path = r'.\scenario\scenario_corridor.scn'
+        scenario_path = "C:/workspace3/bluesky/scenario/usepe/testscenario_test.scn"
         scenario_file = open( scenario_path, 'w' )
         createFlightPlan( route, ac, departure_time, G, layers_dict, scenario_file )
         scenario_file.close()
@@ -168,7 +170,7 @@ if __name__ == '__main__':
     empty initial population is generated.
     """
 
-    step = True
+    step = False
 
     if step:
         orig = [9.77, 52.39 ]  # origin point

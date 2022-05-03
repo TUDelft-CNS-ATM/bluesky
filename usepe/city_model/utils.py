@@ -10,6 +10,7 @@ from osmnx.io import _convert_node_attr_types, _convert_bool_string, _convert_ed
 
 from usepe.city_model.multi_di_graph_3D import MultiDiGrpah3D
 import networkx as nx
+import osmnx as ox
 
 
 __author__ = 'jbueno'
@@ -114,6 +115,32 @@ def nearestNode3d( G, lon, lat, altitude ):
             nearest_node = node
     return nearest_node
 
+def checkIfNoFlyZone( lat, lon, alt, G, segments ):
+    '''
+    This function checks if the point or its nearest node is within a no-fly zone
+    '''
+    # Get closed segments
+    closed_segments = {}
+    for segment_id, segment in segments.items():
+        if segment['speed'] == 0:
+            closed_segments[segment_id] = segment
+    # Check if the point is inside a no-fly zone
+    for segment_id, segment in closed_segments.items():
+        # Origin
+        if lat > segment['lat_min'] and  lat < segment['lat_max']:
+            if lon > segment['lon_min'] and  lon < segment['lon_max']:
+                print( 'Point in no fly zone: lat {0}, lon {1}'.format( lat, lon ) )
+                return True
+    # Check if the closest node of the graph is inside a no-fly zone
+    if alt == None:
+        nearest_node = ox.distance.nearest_nodes( G, X=lon, Y=lat )
+    else:
+        nearest_node = nearestNode3d( G, lon, lat, alt )
+    speed = segments[G.nodes[nearest_node]['segment']]['speed']
+    cap = segments[G.nodes[nearest_node]['segment']]['capacity']
+    if speed == 0:
+        return True
+    return False
 
 def shortest_dist_to_point( x1, y1, x2, y2, x, y ):
     '''
