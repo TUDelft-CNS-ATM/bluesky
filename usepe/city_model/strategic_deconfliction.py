@@ -199,7 +199,7 @@ def checkOverpopulatedSegment( segments, users, initial_time, final_time ):
 
 
 def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_time, segments,
-                              config, ac ):
+                              config, ac, only_rerouting=False ):
     """
     Computes an optimal flight plan without exceeding the segment capacity limit. The procedure
     consist in:
@@ -261,7 +261,7 @@ def deconflictedPathPlanning( orig, dest, time, G, users, initial_time, final_ti
         travel_time, route = trajectoryCalculation( G_step, orig, dest )
         route_parameters = routeParameters( G_step, route, ac )
 
-        if travel_time / opt_travel_time > config['Strategic_Deconfliction'].getint( 'ratio' ):
+        if ( travel_time / opt_travel_time > config['Strategic_Deconfliction'].getint( 'ratio' ) ) and not only_rerouting:
             delayed_time += config['Strategic_Deconfliction'].getint( 'delay' )
             overpopulated_segment = True
             segments_step = segments.copy()
