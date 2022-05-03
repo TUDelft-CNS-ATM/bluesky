@@ -96,5 +96,7 @@ ssd.obj
 # Files to be ignored
 *.scn
 *.graphml
+*.gml
+*.gfs
 *.nc
 plugins/invdKDtree.py

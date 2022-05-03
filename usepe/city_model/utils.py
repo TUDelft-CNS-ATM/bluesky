@@ -3,6 +3,7 @@
 """
 Additional functions
 """
+import math
 import string
 
 from osmnx.io import _convert_node_attr_types, _convert_bool_string, _convert_edge_attr_types
@@ -140,6 +141,41 @@ def checkIfNoFlyZone( lat, lon, alt, G, segments ):
     if speed == 0:
         return True
     return False
+
+def shortest_dist_to_point( x1, y1, x2, y2, x, y ):
+    '''
+    This function gets the shortest distance from a point (x,y) to a line defined by two points:
+    (x1,y1) and (x2,y2)
+
+    Input:
+        x1 (float): x coordinate
+        y1 (float): y coordinate
+        x2 (float): x coordinate
+        y2 (float): y coordinate
+        x (float): x coordinate
+        y (float): y coordinate
+
+    Output:
+        shortest distance from a point (x,y) to a line
+    '''
+    dx = x2 - x1
+    dy = y2 - y1
+    dr2 = float( dx ** 2 + dy ** 2 )
+
+    lerp = ( ( x - x1 ) * dx + ( y - y1 ) * dy ) / dr2
+    if lerp < 0:
+        lerp = 0
+    elif lerp > 1:
+        lerp = 1
+
+    x0 = lerp * dx + x1
+    y0 = lerp * dy + y1
+
+    _dx = x0 - x
+    _dy = y0 - y
+    square_dist = _dx ** 2 + _dy ** 2
+    return math.sqrt( square_dist )
+
 
 if __name__ == '__main__':
     pass

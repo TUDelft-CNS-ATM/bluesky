@@ -40,6 +40,8 @@ def main():
     # also advise latest version
     missingmodules = {"OpenGL": "pyopengl and pyopengl-accelerate"}
 
+    serv_addr = None
+
     ### Parse command-line arguments ###
     # BlueSky.py modes:
     # server-gui: Start gui and simulation server
@@ -67,6 +69,9 @@ def main():
         mode = 'sim'
     elif '--client' in sys.argv:
         mode = 'client'
+        pos = sys.argv.index('--client')
+        if len(sys.argv) > pos + 1:
+            serv_addr = sys.argv[pos + 1]
     elif '--headless' in sys.argv:
         mode = 'server-headless'
     else:
@@ -110,7 +115,7 @@ def main():
         # Start gui if client or main server/gui combination is started here
         if mode in ('client', 'server-gui'):
             from bluesky.ui import qtgl
-            qtgl.start(mode)
+            qtgl.start(mode, serv_addr)
 
     # Give info on missing module
     except ImportError as error:

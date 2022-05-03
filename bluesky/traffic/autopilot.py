@@ -85,7 +85,7 @@ class Autopilot(Entity, replaceable=True):
             self.route = []
 
 
-        self.reached = []    # List indices of aircraft who have reached their active waypoint
+        self.idxreached = []    # List indices of aircraft who have reached their active waypoint
 
     def create(self, n=1):
         super().create(n)
@@ -519,7 +519,7 @@ class Autopilot(Entity, replaceable=True):
             # then stop immediately, as in: do not make it worse.
             if bs.traf.vs[idx]>0.0001:
                 self.vnavvs[idx] = 0.0
-                self.alt = bs.traf.alt[idx]
+                self.alt[idx] = bs.traf.alt[idx]
                 if bs.traf.swvnav[idx]:
                     bs.traf.selalt[idx] = bs.traf.alt[idx]
 
@@ -574,7 +574,7 @@ class Autopilot(Entity, replaceable=True):
             # then stop immediately, as in: do not make it worse.
             if bs.traf.vs[idx] < -0.0001:
                 self.vnavvs[idx] = 0.0
-                self.alt = bs.traf.alt[idx]
+                self.alt[idx] = bs.traf.alt[idx]
                 if bs.traf.swvnav[idx]:
                     bs.traf.selalt[idx] = bs.traf.alt[idx]
 
