@@ -1,6 +1,5 @@
 ''' Conflict resolution based on the Modified Voltage Potential algorithm. '''
 import numpy as np
-import bluesky as bs
 from bluesky import stack, settings
 from bluesky.traffic.asas import ConflictResolution
 
@@ -251,16 +250,11 @@ class MVP(ConflictResolution):
 
         # Determine ASAS module commands for all aircraft--------------------------
 
-        # Compute the true airspeed from newgs (GS=TAS if no wind)
-        vwn, vwe     = bs.traf.wind.getdata(bs.traf.lat, bs.traf.lon, bs.traf.alt)
-        newtasnorth = newgs * np.cos(np.radians(newtrack)) - vwn
-        newtaseast  = newgs * np.sin(np.radians(newtrack)) - vwe
-        newtas      = np.sqrt(newtasnorth**2 + newtaseast**2)
-        
-        # Cap the velocity and vertical speed
-        tascapped, vscapped, altcapped = bs.traf.perf.limits(newtas, newvs, ownship.alt, ownship.ax)
-        signvs = np.sign(newvs)
-        vscapped = np.where(np.logical_or(signvs == 0, signvs == np.sign(vscapped)), vscapped, -vscapped)
+        # Cap the velocity
+        newgscapped = np.maximum(ownship.perf.vmin,np.minimum(ownship.perf.vmax,newgs))
+
+        # Cap the vertical speed
+        vscapped = np.maximum(ownship.perf.vsmin,np.minimum(ownship.perf.vsmax,newvs))
 
         # Calculate if Autopilot selected altitude should be followed. This avoids ASAS from
         # climbing or descending longer than it needs to if the autopilot leveloff
