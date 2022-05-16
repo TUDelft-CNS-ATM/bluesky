@@ -148,43 +148,6 @@ class Textline(Widget):
     def set_text(self, text):
         self.text = text
 
-class EchoInfo(Widget, can_focus=True):
-
-    has_focus = Reactive(False)
-    mouse_over = Reactive(False)
-    style = Reactive("")
-    height = Reactive(None)
-
-    def __init__(self, name=None, height=None):
-        super().__init__(name=name)
-        self.height = height
-        self.pretty_text = Text('BlueSky   Console Client', style=Style(color='blue', bold=True), justify='center')
-
-    def __rich_repr__(self) -> rich.repr.Result:
-        yield "name", self.name
-
-    def render(self) -> RenderableType:
-        return Panel(
-            Align.center(self.pretty_text, vertical="middle"),
-            # title=self.name,
-            border_style="green" if self.mouse_over else "blue",
-            box=box.HEAVY if self.has_focus else box.ROUNDED,
-            style=self.style,
-            height=self.height,
-        )
-
-    async def on_focus(self, event: events.Focus):
-        self.has_focus = True
-
-    async def on_blur(self, event: events.Blur):
-        self.has_focus = False
-
-    async def on_enter(self, event: events.Enter):
-        self.mouse_over = True
-
-    async def on_leave(self, event: events.Leave):
-        self.mouse_over = False
-
 class NodeInfo(Widget):
     table: Union[Reactive[Table], Table] = Reactive(Table())
 
@@ -325,7 +288,6 @@ class ConsoleUI(App):
     cmdbox: Textline
     echobox: Echobox
     infoline: Textline
-    echoinfo: EchoInfo
     nodeinfo: NodeInfo
     traffic: Traffic
     tree: NodeTree
@@ -395,7 +357,6 @@ class ConsoleUI(App):
         self.cmdbox = Textline("[blue]>>[/blue]")
         self.echobox = Echobox(Panel(Text(), height=8, box=box.SIMPLE, style=Style(bgcolor="grey53")))
         self.infoline = Textline("[black]Current node: [/black]")
-        self.echoinfo = EchoInfo("BlueSky")
         self.nodeinfo = NodeInfo(name="nodeinfo")
         self.traffic = Traffic(name="traffic")
         self.tree = NodeTree("Switch Nodes", {})
@@ -408,7 +369,8 @@ class ConsoleUI(App):
         await self.view.dock(self.cmdbox, edge="bottom", size=1)
 
         echorow = DockView()
-        await echorow.dock(self.echoinfo, edge="right", size=20)
+        self.treebody = ScrollView(self.tree)
+        await echorow.dock(self.treebody, edge="right", size=20)
         await echorow.dock(self.echobox, edge="left")
         
         await self.view.dock(echorow, edge="bottom", size=8)
@@ -417,14 +379,8 @@ class ConsoleUI(App):
         self.trafbody = ScrollView(self.traffic, name="trafficbody")
         await self.view.dock(self.trafbody, edge='top')
 
-        nodedock = DockView(name='nodedock')
         self.nodebody = ScrollView(self.nodeinfo, name="nodeinfobody")
-        await nodedock.dock(self.nodebody, edge='left', size=90)
-
-        # Add the node tree to a scroll view
-        self.treebody = ScrollView(self.tree)
-        await nodedock.dock(self.treebody)
-        await self.view.dock(nodedock, edge="right")
+        await self.view.dock(self.nodebody, edge='top')
 
         await self.set_focus(self.cmdbox)
 
