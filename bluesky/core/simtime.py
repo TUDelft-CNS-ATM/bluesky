@@ -27,14 +27,14 @@ def setdt(newdt=None, target='simdt'):
     ''' Set the timestep for the simulation clock.
         Returns a floating-point representation of the new timestep. '''
     if newdt is None:
-        text = 'Simulation timesteps:\nbase dt = {}'.format(_clock.fdt)
+        text = f'Simulation timesteps:\nbase dt = {_clock.fdt}'
         for timer in _timers.values():
-            text += '\n{} = {}'.format(timer.name, timer.dt_act)
+            text += f'\n{timer.name} = {timer.dt_act}'
         return True, text
     if target == 'simdt':
         _clock.dt = Decimal(repr(newdt))
         _clock.fdt = float(_clock.dt)
-        msg = 'Base dt set to {}'.format(_clock.dt)
+        msg = f'Base dt set to {_clock.dt}'
         for timer in _timers.values():
             _, tmsg = timer.setdt()
             msg = msg + '\n' + tmsg
@@ -42,7 +42,7 @@ def setdt(newdt=None, target='simdt'):
         return True, msg
     timer = _timers.get(target, None)
     if timer is None:
-        return False, 'Timer {} not found'.format(target)
+        return False, f'Timer {target} not found'
     return timer.setdt(newdt)
 
 
@@ -139,8 +139,8 @@ class Timer:
         self.dt_act = dtnew
         if abs(self.dt_act - self.dt_requested) > 0.0001:
             return True, self.name + \
-                ' dt set to {} to match integer multiple of base dt.'.format(self.dt_act)
-        return True, self.name + ' dt set to {}'.format(self.dt_act)
+                f' dt set to {self.dt_act} to match integer multiple of base dt.'
+        return True, self.name + f' dt set to {self.dt_act}'
 
     def step(self):
         ''' Step is called each base timestep to update this timer. '''

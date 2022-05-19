@@ -83,7 +83,7 @@ def printrecv(data, stackpos=2):
     Args:
         data: Received data.
     """
-    print("-- {} --: Data received: {}".format(funname(stackpos), data))
+    print(f"-- {funname(stackpos)} --: Data received: {data}")
 
 
 def wait_for(test, iters, period):

@@ -70,7 +70,7 @@ def txt2bool(txt):
 
 def i2txt(i, n):
     """Convert integer to string with leading zeros to make it n chars long"""
-    return '{:0{}d}'.format(i, n)
+    return f'{i:0{n}d}'
 
 
 def txt2hdg(txt, lat=None, lon=None):

@@ -60,15 +60,15 @@ def lsvar(varname=''):
         if isinstance(v.parent, TrafficArrays) and v.parent.istrafarray(v.varname):
             vartype += ' (TrafficArray)'
         txt = \
-            'Variable:   {}\n'.format(v.varname) + \
-            'Type:       {}\n'.format(vartype)
+            f'Variable:   {v.varname}\n' + \
+            f'Type:       {vartype}\n'
         if isinstance(thevar, Collection):
-            txt += 'Size:       {}\n'.format(len(thevar))
-        txt += 'Parent:     {}'.format(v.parentname)
+            txt += f'Size:       {len(thevar)}\n'
+        txt += f'Parent:     {v.parentname}'
         if attrs:
             txt += '\nAttributes: ' + str.join(', ', attrs) + '\n'
         return True, '\n' + txt
-    return False, 'Variable {} not found'.format(varname)
+    return False, f'Variable {varname} not found'
 
 
 def findvar(varname):

@@ -36,7 +36,7 @@ class TrafficGroups(TrafficArrays):
             return False, 'Maximum number of 64 groups reached'
         if groupname not in self.groups:
             if not args:
-                return False, 'Group {} doesn\'t exist'.format(groupname)
+                return False, f'Group {groupname} doesn\'t exist'
             # Get first unused group mask
             for i in range(64):
                 groupmask = (1 << i)
@@ -74,7 +74,7 @@ class TrafficGroups(TrafficArrays):
         ''' Remove members from the group by aircraft id. '''
         groupmask = self.groups.get(groupname, None)
         if groupmask is None:
-            return False, "Group {} doesn't exist".format(groupname)
+            return False, f"Group {groupname} doesn't exist"
         self.ingroup[list(args)] ^= groupmask
 
     def listgroup(self, groupname):
@@ -84,5 +84,5 @@ class TrafficGroups(TrafficArrays):
             return GroupArray(range(bs.traf.ntraf), groupname='*')
         groupmask = self.groups.get(groupname, None)
         if groupmask is None:
-            return False, "Group {} doesn't exist".format(groupname)
+            return False, f"Group {groupname} doesn't exist"
         return GroupArray(np.where((self.ingroup & groupmask) > 0)[0], groupname=groupname)

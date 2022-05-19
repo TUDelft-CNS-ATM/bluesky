@@ -144,7 +144,7 @@ class CSVLogger:
                 if varobj:
                     selvars.append(varobj)
                 else:
-                    return False, 'Variable {} not found'.format(v)
+                    return False, f'Variable {v} not found'
 
         self.selvars = selvars
         return True
