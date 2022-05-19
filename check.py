@@ -49,7 +49,7 @@ except ImportError:
     print("[FAIL]")
 
 if qt:
-    print("[QT {}]" .format(QT_VERSION_STR))
+    print(f"[QT {QT_VERSION_STR}]")
     print("Checking for pyopengl           ", end=' ')
     try:
         import OpenGL

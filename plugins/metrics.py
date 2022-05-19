@@ -142,7 +142,7 @@ class Metrics(Entity):
                 names = np.array(left_del + left_intraf)[mask]
 
                 for name, eff in zip(names, sectoreff):
-                    self.feff.write('{}, {}, {}\n'.format(sim.simt, name, eff))
+                    self.feff.write(f'{sim.simt}, {name}, {eff}\n')
                 sendeff = True
 
                 # print('{} aircraft left sector {}, distance flown (acid:dist):'.format(len(left), sector))
@@ -166,8 +166,8 @@ class Metrics(Entity):
             else:
                 self.sectorconv[idx] = 0
 
-            self.fconv.write('{}, {}\n'.format(sim.simt, self.sectorconv[idx]))
-            self.fsd.write('{}, {}\n'.format(sim.simt, self.sectorsd[idx]))
+            self.fconv.write(f'{sim.simt}, {self.sectorconv[idx]}\n')
+            self.fsd.write('{sim.simt}, {self.sectorsd[idx]}\n')
         if sendeff:
             self.effplot.send()
 
