@@ -55,7 +55,7 @@ class Node:
 
     def event(self, eventname, eventdata, sender_id):
         ''' Event data handler. Reimplemented in Simulation. '''
-        print('Received {} data from {}'.format(eventname, sender_id))
+        print(f'Received {eventname} data from {sender_id}')
 
     def step(self):
         ''' Perform one iteration step. Reimplemented in Simulation. '''
@@ -74,7 +74,7 @@ class Node:
         self.send_event(b'REGISTER')
         self.node_id = self.event_io.recv_multipart()[-1]
         self.host_id = self.node_id[:5]
-        print('Node started, id={}'.format(self.node_id))
+        print(f'Node started, id={self.node_id}')
 
         # run() implements the main loop
         self.run()

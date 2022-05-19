@@ -145,7 +145,7 @@ class Server(Thread):
                     src, dest = (self.fe_event, self.be_event) if srcisclient else (self.be_event, self.fe_event)
 
                     # Message format: [route0, ..., routen, name, data]
-                    route, eventname, data = msg[:-2], msg[-2], msg[-1]
+                    *route, eventname, data = msg
                     sender_id = route[0]
 
                     if eventname == b'REGISTER':
