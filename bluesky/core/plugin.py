@@ -1,6 +1,5 @@
 """ Implementation of BlueSky's plugin system. """
 import ast
-import glob
 
 from pathlib import Path
 import sys
@@ -51,8 +50,12 @@ class Plugin:
             if self.imp:
                 sys.modules[self.module_imp] = self.imp
             else:
-                self.imp = importlib.import_module(self.module_imp)
+                # self.imp = importlib.import_module(self.module_imp)
+                # sys.modules[self.module_name] = self.imp
+                spec = importlib.util.spec_from_file_location(self.module_name, Path(self.module_path) / (self.module_name + '.py'))
+                self.imp = importlib.util.module_from_spec(spec)
                 sys.modules[self.module_name] = self.imp
+                spec.loader.exec_module(self.imp)
 
             # Initialize the plugin
             result = self.imp.init_plugin()

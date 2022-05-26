@@ -1,18 +1,6 @@
-pyqt6
-
-pyqtwebengine
-
 numpy
-
 scipy
-
 matplotlib
-
-pandas
-
-msgpack
-
+msgpack >= 1.0.0
 zmq
-
-pygame
-
+pandas
