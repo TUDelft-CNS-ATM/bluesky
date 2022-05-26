@@ -34,7 +34,11 @@ if not path.exists('bluesky/resources'):
 
 setup(
     name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
-    version=datetime.date.today().strftime('%Y%M%d'),
+    use_calver=True,
+    setup_requires=['calver'],
+    author='The BlueSky community',
+    license='GNU General Public License v3 (GPLv3)',
+    maintainer='Jacco Hoekstra and Joost Ellerbroek',
     description='The Open Air Traffic Simulator',
     long_description=long_description,
     long_description_content_type="text/markdown",
