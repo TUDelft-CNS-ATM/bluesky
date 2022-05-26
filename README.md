@@ -1,6 +1,12 @@
 # BlueSky - The Open Air Traffic Simulator
 
-[![Open in Visual Studio Code](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/TUDelft-CNS-ATM/bluesky)
+[![Open in Visual Studio Code](https://img.shields.io/static/v1?logo=visualstudiocode&label=&message=Open%20in%20Visual%20Studio%20Code&labelColor=2c2c32&color=007acc&logoColor=007acc)](https://open.vscode.dev/TUDelft-CNS-ATM/bluesky) ![calver](https://img.shields.io/badge/calver-2022.05.26-22bfda.svg)
+![GitHub all releases](https://img.shields.io/github/downloads/TUDelft-CNS-ATM/bluesky/total?style=social)
+
+![PyPI - Downloads](https://img.shields.io/pypi/dm/bluesky-simulator?style=plastic)
+[![PyPI version shields.io](https://img.shields.io/pypi/v/bluesky-simulator?style=plastic)](https://pypi.python.org/pypi/bluesky-simulator/)
+[![PyPI license](https://img.shields.io/pypi/l/bluesky-simulator?style=plastic)](https://pypi.python.org/pypi/bluesky-simulator/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/bluesky-simulator?style=plastic)](https://pypi.python.org/pypi/bluesky-simulator/)
 
 BlueSky is meant as a tool to perform research on Air Traffic Management and Air Traffic Flows, and is distributed under the GNU General Public License v3.
 
