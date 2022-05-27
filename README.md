@@ -23,7 +23,7 @@ The BlueSky pip package is installed with the following command:
 
     pip install bluesky-simulator[full]
 
-For more installation instructions go to the Wiki.
+Using ZSH? Add quotes around the package name: `"bluesky-simulator[full]"`. For more installation instructions go to the Wiki.
 
 ## BlueSky Wiki
 Installation and user guides are accessible at:
