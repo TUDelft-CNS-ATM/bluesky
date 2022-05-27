@@ -17,8 +17,13 @@ modified, cited, etc. without any limitations.
 **Citation info:** J. M. Hoekstra and J. Ellerbroek, "[BlueSky ATC Simulator Project: an Open Data and Open Source Approach](https://www.researchgate.net/publication/304490055_BlueSky_ATC_Simulator_Project_an_Open_Data_and_Open_Source_Approach)", Proceedings of the seventh International Conference for Research on Air Transport (ICRAT), 2016.
 
 ## BlueSky Releases
-If you are not (yet) interested in reading and editing the source of BlueSky, you can also download a release version of BlueSky, that you can install directly, without having to worry about python and library dependencies. You can find the latest release here:
+BlueSky is also available as a pip package, for which periodically version releases are made. You can find the latest release here:
 https://github.com/TUDelft-CNS-ATM/bluesky/releases
+The BlueSky pip package is installed with the following command:
+
+    pip install bluesky-simulator[full]
+
+For more installation instructions go to the Wiki.
 
 ## BlueSky Wiki
 Installation and user guides are accessible at:
