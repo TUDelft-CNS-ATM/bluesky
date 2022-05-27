@@ -8,3 +8,4 @@ pandas
 matplotlib
 msgpack
 zmq
+textual

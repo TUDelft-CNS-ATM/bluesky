@@ -1,11 +1,8 @@
 # Always prefer setuptools over distutils
-import os
 from os import path
 from setuptools import setup, find_packages
 from codecs import open
-import glob
 import shutil
-import datetime
 import configparser
 
 here = path.abspath(path.dirname(__file__))
@@ -13,6 +10,11 @@ here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
+
+# Get base requirements from requirements.txt
+with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
+    install_requires = f.readlines()
+
 
 # get extra requirements from setup.cfg
 parser = configparser.ConfigParser()
@@ -36,6 +38,8 @@ setup(
     name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
     use_calver=True,
     setup_requires=['calver'],
+    install_requires=install_requires,
+    extras_require=extras_requirements,
     author='The BlueSky community',
     license='GNU General Public License v3 (GPLv3)',
     maintainer='Jacco Hoekstra and Joost Ellerbroek',
@@ -64,8 +68,6 @@ setup(
     # This field adds keywords for your project which will appear on the
     keywords='atm transport simulation aviation aircraft',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),  # Required
-    install_requires=open(here + '/requirements.txt', 'r').readlines(),
-    extras_require=extras_requirements,
     include_package_data=True,
     # package_data={
     #       'bluesky.resources': [f for f in glob.glob('data/**/*') if path.isfile(f)] + ['data/default.cfg']
