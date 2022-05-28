@@ -42,16 +42,18 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     '''
 
     # Argument checking
-    assert mode in ('sim', 'client', 'server'), f'BlueSky init: Unrecognised mode {mode}'
-    assert gui in (None, 'qtgl', 'pygame', 'console'), f'BlueSky init: Unrecognised gui type {gui}'
+    assert mode in ('sim', 'client', 'server'), f'BlueSky init: Unrecognised mode {mode}. '\
+        'Possible modes are sim, client, and server.'
+    assert gui in (None, 'qtgl', 'pygame', 'console'), f'BlueSky init: Unrecognised gui type {gui}. '\
+        'Possible types are qtgl, pygame, and console.'
     if discoverable:
-        assert mode == 'server', 'BlueSky init: Discoverable can only be set in server mode'
+        assert mode == 'server', 'BlueSky init: Discoverable can only be set in server mode.'
     if scenfile:
-        assert mode != 'client', 'BlueSky init: Scenario file cannot be passed to a client'
+        assert mode != 'client', 'BlueSky init: Scenario file cannot be passed to a client.'
     if gui:
-        assert mode != 'sim' or gui == 'pygame', 'BlueSky init: Gui type specified in sim mode'
+        assert mode != 'sim' or gui == 'pygame', 'BlueSky init: Gui type shouldn\'t be specified in sim mode.'
     if detached:
-        assert mode == 'sim', 'BlueSky init: Detached operation is only available in sim mode'
+        assert mode == 'sim', 'BlueSky init: Detached operation is only available in sim mode.'
 
     # Keep track of mode and gui type.
     globals()['mode'] = mode
