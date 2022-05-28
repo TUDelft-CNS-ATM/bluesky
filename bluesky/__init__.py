@@ -32,8 +32,26 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     ''' Initialize bluesky modules.
 
         Arguments:
-
+        - mode: Running mode of this bluesky process [sim/client/server]
+        - configfile: Load a different configuration file [filename]
+        - scenfile: Start with a running scenario [filename]
+        - discoverable: Make server discoverable through UDP (only relevant 
+          when this process is running a server) [True/False]
+        - gui: Gui type (only when mode is client or server) [qtgl/pygame/console]
+        - detached: Run with or without networking (only when mode is sim) [True/False]
     '''
+
+    # Argument checking
+    assert mode in ('sim', 'client', 'server'), f'BlueSky init: Unrecognised mode {mode}'
+    assert gui in (None, 'qtgl', 'pygame', 'console'), f'BlueSky init: Unrecognised gui type {gui}'
+    if discoverable:
+        assert mode == 'server', 'BlueSky init: Discoverable can only be set in server mode'
+    if scenfile:
+        assert mode != 'client', 'BlueSky init: Scenario file cannot be passed to a client'
+    if gui:
+        assert mode != 'sim' or gui == 'pygame', 'BlueSky init: Gui type specified in sim mode'
+    if detached:
+        assert mode == 'sim', 'BlueSky init: Detached operation is only available in sim mode'
 
     # Keep track of mode and gui type.
     globals()['mode'] = mode
