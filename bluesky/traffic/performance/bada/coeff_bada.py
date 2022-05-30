@@ -7,8 +7,7 @@
    report: EEC Technical/Scientific Report No. 14/04/24-44. This report can be obtained here:
    https://www.eurocontrol.int/sites/default/files/field_tabs/content/documents/sesar/user-manual-bada-3-12.pdf
 '''
-from glob import glob
-from os import path
+from pathlib import Path
 import re
 from .fwparser import FixedWidthParser, ParseError
 
@@ -88,11 +87,11 @@ def getCoefficients(actype):
 
 def check(bada_path=''):
     ''' Import check for BADA performance model. '''
-    releasefile = path.join(path.normpath(bada_path), 'ReleaseSummary')
-    if not path.isfile(releasefile):
+    releasefile = Path(bada_path) / 'ReleaseSummary'
+    if not releasefile.is_file():
         return False
-    synonymfile = path.join(path.normpath(bada_path), 'SYNONYM.NEW')
-    if not path.isfile(synonymfile):
+    synonymfile = Path(bada_path) / 'SYNONYM.NEW'
+    if not synonymfile.is_file():
         return False
     return True
 
@@ -102,8 +101,8 @@ def init(bada_path=''):
     if accoeffs:
         return True
 
-    releasefile = path.join(path.normpath(bada_path), 'ReleaseSummary')
-    if path.isfile(releasefile):
+    releasefile = Path(bada_path) / 'ReleaseSummary'
+    if releasefile.is_file():
         global release_date, bada_version
         re_reldate = re.compile(r'Summary Date:\s+(.+(?<!\s))\s*', re.IGNORECASE)
         re_badaver = re.compile(r'\s*BADA Release:\s+([\d.]+)\s*', re.IGNORECASE)
@@ -120,8 +119,8 @@ def init(bada_path=''):
     else:
         print('No BADA release summary found: can not determine version.')
 
-    synonymfile = path.join(path.normpath(bada_path), 'SYNONYM.NEW')
-    if not path.isfile(synonymfile):
+    synonymfile = Path(bada_path) / 'SYNONYM.NEW'
+    if not synonymfile.is_file():
         print('SYNONYM.NEW not found in BADA path, could not load BADA.')
         return False
 
@@ -137,13 +136,13 @@ def init(bada_path=''):
     print('%d aircraft entries loaded' % len(synonyms))
 
     # Load aircraft coefficient data
-    for fname in glob(path.join(path.normpath(bada_path), '*.OPF')):
+    for fname in Path(bada_path).glob('*.OPF'):
         ac = ACData()
         try:
             ac.setOPFData(opf_parser.parse(fname))
-
-            if path.isfile(fname[:-4] + '.APF'):
-                ac.setAPFData(apf_parser.parse(fname[:-4] + '.APF'))
+            apf = fname.with_suffix('.APF')
+            if apf.is_file():
+                ac.setAPFData(apf_parser.parse(apf))
 
         except ParseError as e:
             print('Error reading {} on line {}'.format(e.fname, e.lineno))

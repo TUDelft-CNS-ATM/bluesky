@@ -1,5 +1,3 @@
-import warnings
-from bluesky.stack.stackbase import stack
 import numpy as np
 import bluesky as bs
 from bluesky.tools import aero
