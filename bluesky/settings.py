@@ -18,7 +18,8 @@ def init(cfgfile=''):
 
     # If BlueSky is run from a compiled bundle instead of from source, or installed as a package
     # adjust the startup path and change the path of configurable files to $home/bluesky
-    if __file__ != os.path.join(os.getcwd(), 'bluesky/settings.py'):
+
+    if Path(__file__) != Path(os.getcwd()+'/bluesky/settings.py'):
         # In this case, the run dir is a (to be created) bluesky folder in the user directory
         rundir = os.path.join(os.path.expanduser('~'), 'bluesky')
         if not os.path.isdir(rundir):
@@ -45,7 +46,6 @@ def init(cfgfile=''):
         print(f'Reading config from {cfgfile}')
     else:
         cfgfile = os.path.join(rundir, 'settings.cfg')
-
         # Create config file if it doesn't exist yet. Ask for gui settings if bluesky
         # was started with BlueSky.py
         if not os.path.isfile(cfgfile):
