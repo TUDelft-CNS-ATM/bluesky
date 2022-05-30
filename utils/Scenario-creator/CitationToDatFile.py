@@ -10,18 +10,17 @@ Date        :
 
 """
 import scipy.io
-import numpy as np
 import math
-from datetime import datetime, timedelta
-import os
+from datetime import datetime
+from pathlib import Path
 
 class CitationToDatFile:
 
     def __init__(self, datalocation):
         self.datalocation = datalocation
-        directory = 'tempData/citationData'
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        directory = Path('tempData/citationData')
+        if not directory.is_dir():
+            directory.mkdir()
         self.matlabFile = self.datalocation
         self.tempStr = self.matlabFile[len(self.matlabFile) - 14:]
         self.tempStr = self.tempStr[:len(self.tempStr) - 4]

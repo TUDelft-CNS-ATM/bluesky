@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import subprocess
 
 import bluesky as bs
@@ -90,14 +90,13 @@ def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
 @showhelp.subcommand
 def pdf():
     ''' Open a pdf file with BlueSky command help text. '''
-    os.chdir("docs")
-    pdfhelp = "BLUESKY-COMMAND-TABLE.pdf"
-    if os.path.isfile(pdfhelp):
+    pdfhelp = Path("BLUESKY-COMMAND-TABLE.pdf")
+    if (Path('docs') / pdfhelp).is_file():
         try:
-            subprocess.Popen(pdfhelp, shell=True)
+            subprocess.Popen(pdfhelp, shell=True, cwd='docs')
         except:
-            return "Opening " + pdfhelp + " failed."
+            return "Opening " + pdfhelp.as_posix() + " failed."
     else:
-        return pdfhelp + "does not exist."
-    os.chdir("..")
+        return pdfhelp.as_posix() + "does not exist."
+
     return "Pdf window opened"

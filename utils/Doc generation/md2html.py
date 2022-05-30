@@ -1,10 +1,9 @@
 from subprocess import Popen, PIPE
-from glob import glob
-import os
+from pathlib import Path
 import re
 
 
-source_path = 'bluesky.wiki/'
+source_path = Path('bluesky.wiki/')
 
 # Regular expression to match Github internal references like [[name|link]]
 re_gitlink2 = re.compile('\[\[([^|]+)\|([^]]+)\]\]')
@@ -21,16 +20,13 @@ def wsrepl(matchobj):
     return '[%s](%s.html)' % (name, link)
 
 
-files = glob(source_path + '*.md')
-for file in files:
-
+for file in source_path.glob('*.md'):
     with open(file) as f:
         lines   = f.read()
         lines   = re_gitlink1.sub(wsrepl, lines)
         lines   = re_gitlink2.sub(wsrepl, lines)
 
-    path, fname = os.path.split(file.lower())
-    fileout     = os.path.splitext(fname)[0] + ".html"
+    fileout = Path(file).with_suffix(".html").name
     print(file, '->', fileout)
     p = Popen('pandoc -o html/' + fileout + ' --template template.html --css doc.css -f markdown_github', stdin=PIPE, shell=True)
     p.communicate(lines)

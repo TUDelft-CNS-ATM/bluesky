@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import cdsapi
 import datetime
@@ -8,13 +9,17 @@ from bluesky import settings, stack
 from bluesky.core import timed_function
 from bluesky.traffic.windsim import WindSim
 
-datadir = settings.data_path + '/NetCDF/'
 
-if not os.path.exists(datadir):
-    os.makedirs(datadir)
+datadir = Path('')
 
 
 def init_plugin():
+    global datadir
+    datadir = Path(settings.data_path) / 'NetCDF'
+
+    if not datadir.is_dir():
+        datadir.mkdir()
+
     global windecmwf
     windecmwf = WindECMWF()
 
@@ -47,10 +52,10 @@ class WindECMWF(WindSim):
         
         ymd = "%04d%02d%02d" % (year, month, day)
         
-        fname = 'p_levels_%s.nc' % (ymd)
-        fpath = datadir + fname
+        fname = f'p_levels_{ymd}.nc'
+        fpath = datadir / fname
         
-        if not os.path.isfile(fpath):
+        if not fpath.is_file():
             bs.scr.echo("Downloading file, please wait...")
     
             # Set client

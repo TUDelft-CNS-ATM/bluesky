@@ -1,5 +1,5 @@
 ''' Load navigation data from text files.'''
-import os
+from pathlib import Path
 import numpy as np
 from zipfile import ZipFile
 from bluesky import settings
@@ -23,7 +23,7 @@ def loadnavdata_txt():
     wptdata['wpdesc']  = []              # description
 
 
-    with open(os.path.join(settings.navdata_path, 'nav.dat'), 'rb') as f:
+    with open(Path(settings.navdata_path) / 'nav.dat', 'rb') as f:
         print("Reading nav.dat")
 
         for line in f:
@@ -101,7 +101,7 @@ def loadnavdata_txt():
                 wptdata['wpdesc'].append("   ")  # Description
 
     #----------  Read  fix.dat file ----------
-    with open(os.path.join(settings.navdata_path, 'fix.dat'), 'rb') as f:
+    with open(Path(settings.navdata_path) / 'fix.dat', 'rb') as f:
         print("Reading fix.dat")
         for line in f:
             line = line.decode(encoding="ascii", errors="ignore").strip()
@@ -152,7 +152,7 @@ def loadnavdata_txt():
     awydata['awupfl']      = []              # highest flight level (int)
 
 
-    with open(os.path.join(settings.navdata_path, 'awy.dat'), 'rb') as f:
+    with open(Path(settings.navdata_path) / 'awy.dat', 'rb') as f:
         print("Reading awy.dat")
 
         for line in f:
@@ -220,7 +220,7 @@ def loadnavdata_txt():
     aptdata['aptype']    = []              # type (int, 1=large, 2=medium, 3=small)
     aptdata['apco']      = []              # two char country code (string)
     aptdata['apelev']    = []              # field elevation ft-> m
-    with open(os.path.join(settings.navdata_path, 'airports.dat'), 'rb') as f:
+    with open(Path(settings.navdata_path) / 'airports.dat', 'rb') as f:
         types = {'L': 1, 'M': 2, 'S': 3}
         for line in f:
             line = line.decode(encoding="ascii", errors="ignore").strip()
@@ -276,15 +276,12 @@ def loadnavdata_txt():
     firdata['firlat1'] = []
     firdata['firlon1'] = []
 
-    files = os.listdir(os.path.join(settings.navdata_path, 'fir'))
-
     # Get fir names
-    for filname in files:
-        if ".txt" in filname:
-            firname = filname[:filname.index(".txt")]
+    for filname in (Path(settings.navdata_path) / 'fir').iterdir():
+        if filname.suffix == '.txt':
+            firname = filname.stem
             firdata['fir'].append([firname, [], []])
-
-            with open(os.path.join(settings.navdata_path, 'fir/' + filname), 'rb') as f:
+            with open(filname, 'rb') as f:
                 for line in f:
                     rec = line.decode(encoding="ascii", errors="ignore").upper().strip()
 
@@ -326,7 +323,7 @@ def loadnavdata_txt():
     codata['cocode2']  = []              # 2 char code
     codata['cocode3']  = []              # 3 char code
     codata['conr']     = []              # country nr
-    with open(os.path.join(settings.navdata_path, 'icao-countries.dat'), 'rb') as f:
+    with open(Path(settings.navdata_path) / 'icao-countries.dat', 'rb') as f:
         for line in f:
             line = line.decode(encoding="ascii", errors="ignore").strip()
             # Skip empty lines or comments
@@ -359,7 +356,7 @@ def loadthresholds_txt():
     ''' Runway threshold loader for navdatabase. '''
     rwythresholds = dict()
     curthresholds = None
-    zfile = ZipFile(os.path.join(settings.navdata_path, 'apt.zip'))
+    zfile = ZipFile(Path(settings.navdata_path) / 'apt.zip')
     print("Reading apt.dat from apt.zip")
     with zfile.open('apt.dat', 'r') as f:
         for line in f:

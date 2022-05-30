@@ -1,6 +1,6 @@
 ''' BlueSky base stack commands. '''
 import webbrowser
-import os
+from pathlib import Path
 
 import bluesky as bs
 from bluesky import settings
@@ -482,11 +482,12 @@ def setscenpath(newpath):
     if not newpath:
         return False, "Needs an absolute or relative path"
 
+    newpath = Path(newpath)
     # If this is a relative path we need to prefix scenario folder
-    if not os.path.isabs(newpath):
-        newpath = os.path.join(settings.scenario_path, newpath)
+    if not newpath.is_absolute():
+        newpath = Path(settings.scenario_path) / newpath
 
-    if not os.path.exists(newpath):
+    if not newpath.is_dir():
         return False, "Error: cannot find path: " + newpath
 
     # Change path

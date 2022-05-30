@@ -1,4 +1,5 @@
-import os
+from glob import glob
+from pathlib import Path
 import sys
 import pygrib
 import datetime
@@ -14,13 +15,15 @@ settings.set_variable_defaults(
 
 # nlayer = 23
 
-datadir = settings.data_path + '/grib/'
-
-if not os.path.exists(datadir):
-    os.makedirs(datadir)
-
+datadir = Path('')
 
 def init_plugin():
+    global datadir
+    datadir = Path(settings.data_path) / 'grib'
+
+    if not datadir.is_dir():
+        datadir.mkdir()
+
     global windgfs
     windgfs = WindGFS()
 
@@ -55,11 +58,11 @@ class WindGFS(WindSim):
         remote_loc = "/%s/%s/gfsanl_3_%s_%s_%s.grb2" % (ym, ymd, ymd, hm, pred)
 
         fname = "gfsanl_3_%s_%s_%s.grb2" % (ymd, hm, pred)
-        fpath = datadir + fname
+        fpath = datadir / fname
 
         remote_url = settings.windgfs_url + remote_loc
 
-        if not os.path.isfile(fpath):
+        if not fpath.is_file():
             bs.scr.echo("Downloading file, please wait...")
             print("Downloading %s" % remote_url)
 

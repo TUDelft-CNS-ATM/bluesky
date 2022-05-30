@@ -1,6 +1,7 @@
 ''' Main simulation-side stack functions. '''
+from fnmatch import fnmatch
 import math
-import os
+from pathlib import Path
 import traceback
 import bluesky as bs
 from bluesky.stack.stackbase import Stack, stack, checkscen, forward
@@ -137,16 +138,12 @@ def process(from_pcall=None):
 
 def readscn(fname):
     ''' Read a scenario file. '''
-    # Split the incoming filename into a path + filename and an extension
-    base, ext = os.path.splitext(fname.replace("\\", "/"))
-    if not os.path.isabs(base):
-        base = os.path.join(settings.scenario_path, base)
-    ext = ext or ".scn"
-
-    # The entire filename, possibly with added path and extension
-    fname_full = os.path.normpath(base + ext)
-
-    with open(fname_full, "r") as fscen:
+    # Ensure .scn suffix and specify path if necessary
+    fname = Path(fname).with_suffix('.scn')
+    if not fname.is_absolute():
+        fname = Path(settings.scenario_path) / fname
+    
+    with open(fname, "r") as fscen:
         prevline = ''
         for line in fscen:
             line = line.strip()
@@ -264,7 +261,7 @@ def ic(filename : 'string' = ''):
         filename = bs.scr.show_file_dialog()
 
     # Clean up filename
-    filename = filename.strip()
+    filename = Path(filename)
 
     # Reset sim and open new scenario file
     if filename:
@@ -272,17 +269,17 @@ def ic(filename : 'string' = ''):
             for (cmdtime, cmd) in readscn(filename):
                 Stack.scentime.append(cmdtime)
                 Stack.scencmd.append(cmd)
-            Stack.scenname, _ = os.path.splitext(os.path.basename(filename))
+            Stack.scenname = filename.stem
 
             # Remember this filename in IC.scn in scenario folder
-            with open(settings.scenario_path + "/" + "ic.scn", "w") as keepicfile:
+            with open(Path(settings.scenario_path) / "ic.scn", "w") as keepicfile:
                 keepicfile.write(
                     "# This file is used by BlueSky to save the last used scenario file\n"
                 )
                 keepicfile.write(
                     "# So in the console type 'IC IC' to restart the previously used scenario file\n"
                 )
-                keepicfile.write("00:00:00.00>IC " + filename + "\n")
+                keepicfile.write(f"00:00:00.00>IC {filename}\n")
 
             return True, f"IC: Opened {filename}"
         except FileNotFoundError:
@@ -380,13 +377,14 @@ def makedoc():
     ''' MAKEDOC: Make markdown templates for all stack functions
         that don't have a doc page yet.
     '''
-    if not os.path.isdir("tmp"):
-        os.mkdir("tmp")
+    tmp = Path('tmp')
+    if not tmp.is_dir():
+        tmp.mkdir()
     # Get unique set of commands
     cmdobjs = set(Command.cmddict.values())
     for o in cmdobjs:
-        if not os.path.isfile(f"data/html/{o.name}.html"):
-            with open(f"tmp/{o.name.lower()}.md", "w") as f:
+        if not Path(f"data/html/{o.name}.html").is_file():
+            with open(tmp / f"{o.name.lower()}.md", "w") as f:
                 f.write(
                     f"# {o.name}: {o.name.capitalize()}\n"
                     + o.help

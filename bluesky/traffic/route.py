@@ -1,5 +1,5 @@
 """ Route implementation for the BlueSky FMS."""
-from os import path
+from pathlib import Path
 from weakref import WeakValueDictionary
 from numpy import *
 import bluesky as bs
@@ -1487,7 +1487,7 @@ class Route(Replaceable):
         acid = bs.traf.id[acidx]
         acrte = Route._routes.get(acid)
         # Open file in append mode, write header
-        with open(path.join(bs.settings.log_path, 'routelog.txt'), "a") as f:
+        with open(Path(bs.settings.log_path) / 'routelog.txt', "a") as f:
             f.write("\nRoute "+acid+":\n")
             f.write("(name,type,lat,lon,alt,spd,toalt,xtoalt)  ")
             f.write("type: 0=latlon 1=navdb  2=orig  3=dest  4=calwp\n")

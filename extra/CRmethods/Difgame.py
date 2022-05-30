@@ -4,15 +4,15 @@ Created on Wed Mar 04 14:27:44 2015
 
 @author: Jerom Maas
 """
-import os
+from pathlib import Path
 import numpy as np
 import Difgamelearnerfunctions as dg
 from bluesky.tools.aero import nm, kts, vtas2eas
 
 
 def start(dbconf):
-    filepath=os.path.abspath("Difgame.py")
-    fpath=filepath[:-10]+"\CDRmethods\DifgameActions.npy"
+    filepath=Path(__file__).parent
+    fpath = filepath / 'CDRmethods' / 'DifgameActions.npy'
     dbconf.Controls = np.load(fpath)
 
     # Discretization numbers: in how many elements is discretized
