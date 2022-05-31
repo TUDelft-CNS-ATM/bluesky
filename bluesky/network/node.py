@@ -41,13 +41,13 @@ class Node:
         ''' Connect node to the BlueSky server. '''
         # Initialization of sockets.
         self.event_io.setsockopt(zmq.IDENTITY, self.node_id)
-        self.event_io.connect('tcp://localhost:{}'.format(self.event_port))
-        self.stream_out.connect('tcp://localhost:{}'.format(self.stream_port))
+        self.event_io.connect(f'tcp://localhost:{self.event_port}')
+        self.stream_out.connect(f'tcp://localhost:{self.stream_port}')
 
         # Start communication, and receive this node's ID
         self.send_event(b'REGISTER')
         self.host_id = self.event_io.recv_multipart()[0]
-        # print('Node connected, id={}'.format(self.node_id))
+        # print(f'Node connected, id={self.node_id}')
 
     def quit(self):
         ''' Quit the simulation process. '''

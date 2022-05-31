@@ -127,7 +127,7 @@ def init(bada_path=''):
     try:
         data = syn_parser.parse(synonymfile)
     except ParseError as e:
-        print('Error reading synonym file {} on line {}'.format(e.fname, e.lineno))
+        print(f'Error reading synonym file {e.fname} on line {e.lineno}')
         return False
 
     for line in data:
@@ -145,7 +145,7 @@ def init(bada_path=''):
                 ac.setAPFData(apf_parser.parse(apf))
 
         except ParseError as e:
-            print('Error reading {} on line {}'.format(e.fname, e.lineno))
+            print(f'Error reading {e.fname} on line {e.lineno}')
             ac = None
 
         if ac:

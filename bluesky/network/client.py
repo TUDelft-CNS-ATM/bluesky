@@ -118,7 +118,7 @@ class Client:
         self.event_io.connect(econ)
         self.send_event(b'REGISTER')
         self.host_id = self.event_io.recv_multipart()[0]
-        print('Client {} connected to host {}'.format(self.client_id, self.host_id))
+        print(f'Client {self.client_id} connected to host {self.host_id}')
         self.stream_in.connect(scon)
 
         self.poller.register(self.event_io, zmq.POLLIN)
@@ -149,9 +149,7 @@ class Client:
                 # Remove send-to-all flag if present
                 if msg[0] == b'*':
                     msg.pop(0)
-                route, eventname, data = msg[:-2], msg[-2], msg[-1]
-                self.sender_id = route[0]
-                route.reverse()
+                self.sender_id, *_, eventname, data = msg
                 pydata = msgpack.unpackb(data, object_hook=decode_ndarray, raw=False)
                 if eventname == b'STACK':
                     stack(pydata, sender_id=self.sender_id)

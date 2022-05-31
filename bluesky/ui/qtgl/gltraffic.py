@@ -231,7 +231,7 @@ class Traffic(glh.RenderObject, layer=100):
                     elif spd > 2.0:
                         txt += "%03d" % int(round(spd / kts))
                     else:
-                        txt += "M{:.2f}".format(spd)  # Mach number
+                        txt += f"M{spd:.2f}" # Mach number
 
                 wpname += txt.ljust(24)  # Fill out with spaces
             self.routelbl.update(texdepth=np.array(wpname.encode('ascii', 'ignore')),
