@@ -61,23 +61,23 @@ def init(cfgfile=''):
             with open(configsrc, 'r') as fin, open(cfgfile, 'w') as file_out:
                 for line in fin:
                     if line[:9] == 'data_path':
-                        line = "data_path = '" + datadir.replace('\\', '/') + "'\n"
+                        line = f"data_path = '{datadir.as_posix()}'\n"
                     if line[:10] == 'cache_path':
-                        line = "cache_path = '" + cachedir.replace('\\', '/') + "'\n"
+                        line = f"cache_path = '{cachedir.as_posix()}'\n"
                     elif line[:8] == 'log_path':
-                        line = "log_path = '" + outdir.replace('\\', '/') + "'\n"
+                        line = f"log_path = '{outdir.as_posix()}'\n"
                     elif line[:13] == 'scenario_path':
-                        line = "scenario_path = '" + scndir.replace('\\', '/') + "'\n"
+                        line = f"scenario_path = '{scndir.as_posix()}'\n"
                     elif line[:11] == 'plugin_path':
-                        line = "plugin_path = '" + plgdir.replace('\\', '/') + "'\n"
+                        line = f"plugin_path = '{plgdir.as_posix()}'\n"
                     elif line[:14] == 'perf_path_bada':
-                        line = "perf_path_bada = '" + badadir.replace('\\', '/') + "'\n"
+                        line = f"perf_path_bada = '{badadir.as_posix()}'\n"
                     elif line[:9] == 'perf_path':
-                        line = "perf_path = '" + perfdir.replace('\\', '/') + "'\n"
+                        line = f"perf_path = '{perfdir.as_posix()}'\n"
                     elif line[:8] == 'gfx_path':
-                        line = "gfx_path = '" + gfxdir.replace('\\', '/') + "'\n"
+                        line = f"gfx_path = '{gfxdir.as_posix()}'\n"
                     elif line[:12] == 'navdata_path':
-                        line = "navdata_path = '" + navdir.replace('\\', '/') + "'\n"
+                        line = f"navdata_path = '{navdir.as_posix()}'\n"
 
                     file_out.write(line)
 

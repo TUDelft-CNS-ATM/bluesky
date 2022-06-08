@@ -1,12 +1,12 @@
 ''' BlueSky colour palette loader. '''
-from os import path
+from pathlib import Path
 from bluesky import settings
 settings.set_variable_defaults(colour_palette='bluesky-default', gfx_path='data/graphics')
 
 def init():
     # Load the palette file selected in settings
-    pfile = path.join(settings.gfx_path, 'palettes', settings.colour_palette)
-    if path.isfile(pfile):
+    pfile = Path(settings.gfx_path) / 'palettes' / settings.colour_palette
+    if pfile.is_file():
         print('Loading palette ' + settings.colour_palette)
         exec(compile(open(pfile).read(), pfile, 'exec'), globals())
         return True
