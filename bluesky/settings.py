@@ -61,23 +61,23 @@ def init(cfgfile=''):
             with open(configsrc, 'r') as fin, open(cfgfile, 'w') as file_out:
                 for line in fin:
                     if line[:9] == 'data_path':
-                        line = f"data_path = '{datadir.as_posix()}'\n"
+                        line = f"data_path = '{datadir}'\n"
                     if line[:10] == 'cache_path':
-                        line = f"cache_path = '{cachedir.as_posix()}'\n"
+                        line = f"cache_path = '{cachedir}'\n"
                     elif line[:8] == 'log_path':
-                        line = f"log_path = '{outdir.as_posix()}'\n"
+                        line = f"log_path = '{outdir}'\n"
                     elif line[:13] == 'scenario_path':
-                        line = f"scenario_path = '{scndir.as_posix()}'\n"
+                        line = f"scenario_path = '{scndir}'\n"
                     elif line[:11] == 'plugin_path':
-                        line = f"plugin_path = '{plgdir.as_posix()}'\n"
+                        line = f"plugin_path = '{plgdir}'\n"
                     elif line[:14] == 'perf_path_bada':
-                        line = f"perf_path_bada = '{badadir.as_posix()}'\n"
+                        line = f"perf_path_bada = '{badadir}'\n"
                     elif line[:9] == 'perf_path':
-                        line = f"perf_path = '{perfdir.as_posix()}'\n"
+                        line = f"perf_path = '{perfdir}'\n"
                     elif line[:8] == 'gfx_path':
-                        line = f"gfx_path = '{gfxdir.as_posix()}'\n"
+                        line = f"gfx_path = '{gfxdir}'\n"
                     elif line[:12] == 'navdata_path':
-                        line = f"navdata_path = '{navdir.as_posix()}'\n"
+                        line = f"navdata_path = '{navdir}'\n"
 
                     file_out.write(line)
 
