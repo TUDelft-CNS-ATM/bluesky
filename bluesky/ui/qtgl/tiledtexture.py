@@ -10,11 +10,11 @@ import numpy as np
 
 try:
     from PyQt5.Qt import Qt
-    from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+    from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot, QT_VERSION_STR
     from PyQt5.QtGui import QImage
 except ImportError:
     from PyQt6.QtCore import Qt
-    from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+    from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot, QT_VERSION_STR
     from PyQt6.QtGui import QImage
 
 import bluesky as bs
@@ -168,9 +168,11 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
 
     def create(self):
         ''' Create this texture in GPU memory. '''
+
         if self.isCreated():
             return
         super().create()
+
         # Fetch a temporary tile image to get dimensions
         tmptile = Tile(self.tilesource, 1, 1, 1, 0, 0)
         img = tmptile.image
@@ -198,9 +200,21 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
 
         idxdata = np.array(itexw * itexh *
                            [(0, 0, 0, -1)], dtype=np.int32)
-        glh.gl.glTexImage2D_alt(glh.Texture.Target.Target2D.value, 0, glh.Texture.TextureFormat.RGBA32I.value,
-                                itexw, itexh, 0, glh.Texture.PixelFormat.RGBA_Integer.value,
-                                glh.Texture.PixelType.Int32.value, idxdata.tobytes())
+        if QT_VERSION_STR[0] == '5':
+            target_value = glh.Texture.Target.Target2D
+            text_rgba_value = glh.Texture.TextureFormat.RGBA32I
+            pixel_rgba_value = glh.Texture.PixelFormat.RGBA_Integer
+            pixel_type_value = glh.Texture.PixelType.Int32
+
+        if QT_VERSION_STR[0] == '6':
+            target_value = glh.Texture.Target.Target2D.value
+            text_rgba_value = glh.Texture.TextureFormat.RGBA32I.value
+            pixel_rgba_value = glh.Texture.PixelFormat.RGBA_Integer.value
+            pixel_type_value = glh.Texture.PixelType.Int32.value
+
+        glh.gl.glTexImage2D_alt(target_value, 0, text_rgba_value,
+                                itexw, itexh, 0, pixel_rgba_value,
+                                pixel_type_value, idxdata.tobytes())
 
         self.indextexture.setWrapMode(glh.Texture.CoordinateDirection.DirectionS,
                                       glh.Texture.WrapMode.ClampToBorder)
@@ -356,9 +370,20 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         idxdata = np.array([0, 0, 1, layer], dtype=np.int32)
         self.indextexture.bind(2)
 
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D.value, 0, tile.idxx, tile.idxy,
-                                   1, 1, glh.Texture.PixelFormat.RGBA_Integer.value,
-                                   glh.Texture.PixelType.Int32.value, idxdata.tobytes())
+        if QT_VERSION_STR[0] == '5':
+            target_value = glh.Texture.Target.Target2D
+            pixel_rgba_value = glh.Texture.PixelFormat.RGBA_Integer
+            pixel_type_value = glh.Texture.PixelType.Int32
+
+        if QT_VERSION_STR[0] == '6':
+            target_value = glh.Texture.Target.Target2D.value
+            pixel_rgba_value = glh.Texture.PixelFormat.RGBA_Integer.value
+            pixel_type_value = glh.Texture.PixelType.Int32.value
+
+
+        glh.gl.glTexSubImage2D_alt(target_value, 0, tile.idxx, tile.idxy,
+                                   1, 1, pixel_rgba_value,
+                                   pixel_type_value, idxdata.tobytes())
 
         self.indextexture.release()
 
