@@ -81,7 +81,7 @@ def loadgeofences(filename: 'txt'):
     bs.scr.echo(f'Geofences loaded from {filename}.')
 
 @stack.command()
-def loadgeojson(filename: 'txt', name_col: 'txt', top_col: 'txt', bottom_col: 'txt'=None):
+def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', bottom_col: 'txt'='bottom'):
     '''Load geofences from a GeoJSON file. Must be in EPSG:4326 format.'''
     try:
         import geopandas as gpd
@@ -134,6 +134,7 @@ def loadgeojson(filename: 'txt', name_col: 'txt', top_col: 'txt', bottom_col: 't
         coordinates[1::2] = lons
         
         Geofence(geofence[name_col], coordinates, geofence[top_col], geofence[bottom_col])
+        bs.scr.objappend("POLY", geofence[name_col], coordinates)
     bs.scr.echo(f'Geofences loaded from {filename}.')
 
 class Geofence(areafilter.Poly):
