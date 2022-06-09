@@ -1,12 +1,12 @@
 from matplotlib.path import Path
 import json
 import os
-
+import numpy as np
 try:
-    from rtree import index
+    from rtree.index import Index
 except ImportError:
     print('Geofence plugin needs rtree.')
-
+    class Index: ...
 try:
     from shapely.geometry import Point
     from shapely.ops import nearest_points
@@ -151,7 +151,7 @@ class Geofence(areafilter.Poly):
     geo_save_dict = dict()
 
     # Keep an Rtree of geofences
-    geo_tree = index.Index()
+    geo_tree = Index()
 
     # Keep track of the geofences themselves that aircraft are hitting or intruding in
     # "intrusions" contains aircraft that are currently intruding inside a geofence, and a list
