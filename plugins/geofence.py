@@ -1,7 +1,7 @@
 from matplotlib.path import Path
 import json
 import os
-import numpy as np
+
 try:
     from rtree.index import Index
 except ImportError:
@@ -71,7 +71,7 @@ def loadgeofences(filename: 'txt'):
     with open(filepath, 'r') as f:
         try:
             loaded_geo_dict = json.loads(f.read())
-        except:
+        except FileNotFoundError:
             bs.scr.echo(f'File empty or does not exist.')
             return
         
@@ -94,48 +94,58 @@ def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', b
     if filename[-5:] != '.geojson':
         filename = filename + '.geojson'
     
-    try:
-        filepath = os.path.join(settings.data_path, 'geofences', filename)
-        loaded_gpd = gpd.read_file(filepath, driver='GeoJSON')
-    except DriverError:
-        bs.scr.echo(f'File empty or does not exist: {filepath}')
-        return
+    filepath = os.path.join(settings.data_path, 'geofences', filename)
 
-    # now try to check if the column exists and put in lower case if not
-    try:
+    with open(filepath, 'r') as f:
+        try:
+            loaded_geo_dict = json.loads(f.read())
+        except FileNotFoundError:
+            bs.scr.echo(f'File empty or does not exist.')
 
-        # lowercase since bluesky capitalizes stack commands
-        if name_col not in loaded_gpd.columns:
-            name_col = name_col.lower()
+    # read the geojson dictionary into
 
-        if top_col not in loaded_gpd.columns:
-            top_col = top_col.lower()
+    for geo_dict in loaded_geo_dict['features']:
+        poly_type, [coords, *_] = geo_dict['geometry'].values()
 
-        if bottom_col:
-            if bottom_col not in loaded_gpd.columns:
-                bottom_col = bottom_col.lower()
-        else:
-            bottom_col = 'bottom'
-            loaded_gpd[bottom_col] = 0.0
+        # only support polygons
+        if not poly_type == 'Polygon':
+            continue
 
-    except:
-        bs.scr.echo(f'Columns not found.')
-        return
+        # get the name, top and bottom 
+        geo_props = geo_dict['properties'] 
 
-    for _, geofence in loaded_gpd.iterrows():
-
-        # extract coordiantes from geofence gdf
-        lons = geofence.geometry.boundary.xy[0]
-        lats = geofence.geometry.boundary.xy[1]
-
-        # convert into a list of lat/lon
-        coordinates = [None]*(len(lons)*2)
-        coordinates[::2] = lats
-        coordinates[1::2] = lons
         
-        Geofence(geofence[name_col], coordinates, geofence[top_col], geofence[bottom_col])
-        bs.scr.objappend("POLY", geofence[name_col], coordinates)
+        # lowercase the name if it is not in the dictionary
+        name_col = name_col.lower() if name_col not in geo_props.items() else name_col
+        top_col = top_col.lower() if top_col not in geo_props.items() else top_col
+        bottom_col = bottom_col.lower() if bottom_col not in geo_props.items() else bottom_col
+
+        # if key is not in dictionary, skip
+        try: 
+            name = geo_props[name_col]
+            top = geo_props[top_col]
+            bottom = geo_props[bottom_col]
+
+        except KeyError:
+            bs.scr.echo(f'Geofence has no {name_col}, {top_col} or {bottom_col} columns.')
+            break
+        
+        # get coordinates into lat1,lon1,lat2,lon2,lat3,lon3...
+        coordinates = [coord for xycoord in coords for coord in xycoord[::-1]]
+
+        Geofence(name, coordinates, top, bottom)
+
     bs.scr.echo(f'Geofences loaded from {filename}.')
+
+@stack.command()
+def drawgeofence(toggle: 'txt'='on'):
+    '''Draw all geofences.'''
+    if toggle.lower() == 'on':
+        for name, geo_obj in Geofence.geo_by_name.items():
+            bs.scr.objappend("POLY", name, geo_obj.coordinates)
+    elif toggle.lower() == 'off':
+        for name, geo_obj in Geofence.geo_by_name.items():
+            bs.scr.objappend("POLY", name, None)
 
 class Geofence(areafilter.Poly):
     ''' BlueSky Geofence class.
@@ -210,6 +220,9 @@ class Geofence(areafilter.Poly):
         cls.geo_tree.delete(geo_id, geo_to_delete.bbox)
         cls.geo_by_id.pop(geo_id)
         cls.geo_name2id.pop(name)
+
+    def __del__(self):
+        ...
 
     @classmethod
     def intersecting(cls, coordinates):
