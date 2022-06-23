@@ -84,7 +84,7 @@ def init(cfgfile=''):
         else:
             print(f'Reading config from {cfgfile}')
 
-    exec(compile(open(cfgfile).read(), cfgfile, 'exec'), globals())
+    exec(compile(open(cfgfile).read().replace('\\', '/'), cfgfile, 'exec'), globals())
 
     # Use the path specified in cfgfile if available
     if 'cache_path' in globals():
