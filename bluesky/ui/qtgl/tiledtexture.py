@@ -330,9 +330,18 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.glsurface.makeCurrent()
         self.indextexture.bind(2)
 
-        glh.gl.glTexSubImage2D_alt(glh.Texture.Target.Target2D.value, 0, 0, 0, nx, ny,
-                                   glh.Texture.PixelFormat.RGBA_Integer.value,
-                                   glh.Texture.PixelType.Int32.value, data.tobytes())
+        if QT_VERSION_STR[0] == '5':
+            target_value = glh.Texture.Target.Target2D
+            pixel_rgba_value = glh.Texture.PixelFormat.RGBA_Integer
+            pixel_type_value = glh.Texture.PixelType.Int32
+
+        if QT_VERSION_STR[0] == '6':
+            target_value = glh.Texture.Target.Target2D.value
+            pixel_rgba_value = glh.Texture.PixelFormat.RGBA_Integer.value
+            pixel_type_value = glh.Texture.PixelType.Int32.value
+
+        glh.gl.glTexSubImage2D_alt(target_value, 0, 0, 0, nx, ny,
+                                  pixel_rgba_value, pixel_type_value, data.tobytes())
 
     def load_tile(self, tile):
         ''' Send loaded image data to GPU texture array.
