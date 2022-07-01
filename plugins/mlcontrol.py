@@ -1,6 +1,6 @@
 """ External control plugin for Machine Learning applications. """
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import stack, sim, traf  #, settings, navdb, traf, sim, scr, tools
+from bluesky import stack, net, sim, traf  #, settings, navdb, traf, sim, scr, tools
 
 
 myclientrte = None
@@ -60,7 +60,7 @@ def update():
         lon=traf.lon,
         alt=traf.alt
     )
-    sim.send_event(b'MLSTATEREPLY', data, myclientrte)
+    net.send_event(b'MLSTATEREPLY', data, myclientrte)
     sim.hold()
 
 def preupdate():
