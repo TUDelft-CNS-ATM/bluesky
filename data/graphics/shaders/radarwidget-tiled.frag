@@ -16,6 +16,7 @@ layout (std140) uniform global_data {
     int screen_width;       // Screen width in pixels
     int screen_height;      // Screen height in pixels
     int vertex_scale_type;  // Vertex scale type
+    float screen_pixel_ratio; // > 1 for high-DPI screens
 };
 
 // Top-left tile offset and scale
@@ -30,7 +31,7 @@ void main()
 {
     // Fragment coordinates are integer pixel coordinates with (0,0) in top-left corner
     // Dividing by viewport gives glcoords from (0,0) top left to (1,1) bottom right
-    vec2 glcoords = gl_FragCoord.xy / vec2(screen_width, screen_height);
+    vec2 glcoords = gl_FragCoord.xy / vec2(screen_width * screen_pixel_ratio, screen_height * screen_pixel_ratio);
 
     // Step 1: convert GL screen coordinates to texture coordinates for the tile index texture
     vec2 idxcoords = glcoords * offset_scale.zw + offset_scale.xy;

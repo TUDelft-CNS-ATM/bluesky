@@ -14,6 +14,7 @@ float zoom;             // Screen zoom factor [-]
 int screen_width;       // Screen width in pixels
 int screen_height;      // Screen height in pixels
 int vertex_scale_type;  // Vertex scale type
+float screen_pixel_ratio; // > 1 for high-DPI screens
 };
 
 layout (location = 0) in vec2 vertex;

@@ -38,7 +38,8 @@ class RadarShaders(glh.ShaderSet):
 
         class GlobalData(Structure):
             _fields_ = [("wrapdir", c_int), ("wraplon", c_float), ("panlat", c_float), ("panlon", c_float),
-                        ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int)]
+                        ("zoom", c_float), ("screen_width", c_int), ("screen_height", c_int), ("vertex_scale_type", c_int),
+                        ("screen_pixel_ratio", c_float)]
         self.data = GlobalData()
 
     def create(self):
@@ -64,6 +65,9 @@ class RadarShaders(glh.ShaderSet):
         self.data.panlon = panlon
         self.data.zoom = zoom
 
+    def set_pixel_ratio(self, pxratio):
+        self.data.screen_pixel_ratio = pxratio
+
     def set_win_width_height(self, w, h):
         self.data.screen_width = w
         self.data.screen_height = h
@@ -87,6 +91,7 @@ class RadarWidget(glh.RenderWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.prevwidth = self.prevheight = 600
+        self.pxratio = 1
         self.panlat = 0.0
         self.panlon = 0.0
         self.zoom = 1.0
@@ -156,8 +161,9 @@ class RadarWidget(glh.RenderWidget):
         # Update width, height, and aspect ratio
         self.prevwidth, self.prevheight = width, height
         self.ar = float(width) / max(1, float(height))
+        self.pxratio = self.devicePixelRatio()
+        self.shaderset.set_pixel_ratio(self.pxratio)
         self.shaderset.set_win_width_height(width, height)
-
         # Update zoom
         self.panzoom(zoom=zoom, origin=origin)
 
@@ -356,6 +362,11 @@ class RadarWidget(glh.RenderWidget):
             bs.net.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
                                                zoom=self.zoom, ar=self.ar, absolute=True))
             self.panzoom_event.emit(True)
+        elif int(event.type()) == 216:
+            # 216 is screen change event, but doesn't exist (yet) in pyqt as enum
+            self.pxratio = self.devicePixelRatio()
+            self.shaderset.set_pixel_ratio(self.pxratio)
+            return super().event(event)
         else:
             return super().event(event)
         

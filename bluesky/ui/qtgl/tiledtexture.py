@@ -244,10 +244,15 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
             self.on_panzoom_changed(True)
 
     def on_panzoom_changed(self, finished=False):
-        ''' Update textures whenever pan/zoom changes. '''
+        ''' Update textures whenever pan/zoom changes. 
+            
+            Arguments:
+            - finished: False when still in the process of panning/zooming.
+        '''
         # Check if textures need to be updated
         viewport = self.glsurface.viewportlatlon()
         surfwidth_px = self.glsurface.width()
+
         # First determine floating-point, hypothetical values
         # to calculate the required tile zoom level
         # floating-point number of tiles that fit in the width of the view
@@ -277,6 +282,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         tilesize_latlon1 = np.abs(tile1_bottomright - tile1_topleft)
         offset_latlon1 = viewport[2:] - tile1_topleft
         tex_y1, tex_x1 = np.abs(offset_latlon1 / tilesize_latlon1) + [ny - 1, nx - 1]
+
         # Store global offset and scale for shader uniform
         self.offsetscale = np.array(
             [tex_x0, tex_y0, tex_x1 - tex_x0, tex_y1 - tex_y0], dtype=np.float32)
