@@ -111,7 +111,7 @@ class TrafficArrays:
 
     def istrafarray(self, name):
         ''' Returns true if parameter 'name' is a traffic array. '''
-        return name in self._LstVars or name in self._ArrVars
+        return name in self._LstVars or name in self._ArrVars or name in self._DFVars
 
     def create_children(self, n=1):
         ''' Call create (aircraft create) on all children. '''
@@ -154,4 +154,15 @@ class TrafficArrays:
             self.__dict__[v] = []
 
         # for v in self._DFVars:
-        #     self.__dict__[v] = pd.DataFrame([])
+
+            # TODO: enforce types somehow for empty dataframes
+            # or just always work with objects
+            # dtypes = self.__dict__[v].dtypes
+            # pd_series = []
+
+            # for index, dtype in dtypes.items():
+            #     # Get type without byte length
+            #     vartype = ''.join(c for c in str(dtype) if c.isalpha())
+            #     pd_series.append(pd.Series([], name=index, dtype=vartype))
+
+            # self.__dict__[v] = pd.DataFrame(pd_series, columns=self.__dict__[v].columns)
