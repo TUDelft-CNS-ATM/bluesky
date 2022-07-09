@@ -137,9 +137,10 @@ class TrafficArrays:
                 for v in self._LstVars:
                     del self.__dict__[v][idx]
 
-        for v in self._DFVars:
-            self.__dict__[v] = self.__dict__[v].drop(idx)
-            self.__dict__[v].reset_index(drop=True, inplace=True)
+        if self._DFVars:
+            for v in self._DFVars:
+                self.__dict__[v] = self.__dict__[v].drop(idx)
+                self.__dict__[v].reset_index(drop=True, inplace=True)
 
     def reset(self):
         ''' Delete all elements from arrays and start at 0 aircraft. '''
