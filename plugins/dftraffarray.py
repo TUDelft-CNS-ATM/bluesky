@@ -22,10 +22,10 @@ class DF_arrays(core.Entity):
         super().__init__()
 
         with self.settrafarrays():
-            self.npassengers = pd.DataFrame({
-                                            'a': pd.Series(dtype='int'),
-                                            'b': pd.Series(dtype='str'),
-                                            'c': pd.Series(dtype='float')
+            self.passenger_data = pd.DataFrame({
+                                            'fare': pd.Series(dtype=float),
+                                            'age':  pd.Series(dtype=int),
+                                            'connecting': pd.Series(dtype=bool)
                                             })
 
             self.geom_fun = gpd.GeoDataFrame({
@@ -35,11 +35,8 @@ class DF_arrays(core.Entity):
                                             })
 
     def create(self, n=1):
-        ''' This function gets called automatically when new aircraft are created. '''
-        # Don't forget to call the base class create when you reimplement this function!
         super().create(n)
-        # After base creation we can change the values in our own states for the new aircraft
 
-        self.npassengers.loc[-n:, 'a'] = 5
-        self.npassengers.loc[-n:, 'b'] = 'test'
-        self.npassengers.loc[-n:, 'c'] = 10.0
+        self.passenger_data.loc[-n:, 'fare'] = 100
+        self.passenger_data.loc[-n:, 'age'] = 20
+        self.passenger_data.loc[-n:, 'connecting'] = True
