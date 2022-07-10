@@ -101,13 +101,11 @@ class TrafficArrays:
             new_rows = pd.DataFrame(index=np.arange(n), columns=self.__dict__[v].columns)
 
             # append default values to dataframe
-            for index, dtype in dtypes.items():
+            for column, dtype in dtypes.items():
                 # Get type without byte length
                 vartype = ''.join(c for c in str(dtype) if c.isalpha())
-                new_rows.loc[:, index] = pd.DataFrame([defaults.get(vartype, 0)] * n, columns=[index])
-            
+                new_rows.loc[:, column] = pd.DataFrame([defaults.get(vartype, 0)] * n, columns=[column])
             self.__dict__[v] = pd.concat([self.__dict__[v], new_rows], ignore_index=True)
-
 
     def istrafarray(self, name):
         ''' Returns true if parameter 'name' is a traffic array. '''
@@ -153,16 +151,11 @@ class TrafficArrays:
         for v in self._LstVars:
             self.__dict__[v] = []
 
-        # for v in self._DFVars:
-
-            # TODO: enforce types somehow for empty dataframes
-            # or just always work with objects
-            # dtypes = self.__dict__[v].dtypes
-            # pd_series = []
-
-            # for index, dtype in dtypes.items():
-            #     # Get type without byte length
-            #     vartype = ''.join(c for c in str(dtype) if c.isalpha())
-            #     pd_series.append(pd.Series([], name=index, dtype=vartype))
-
-            # self.__dict__[v] = pd.DataFrame(pd_series, columns=self.__dict__[v].columns)
+        for v in self._DFVars:
+            dtypes = self.__dict__[v].dtypes
+            pd_series = {}
+            for column, dtype in dtypes.items():
+                # Get type without byte length
+                vartype = ''.join(c for c in str(dtype) if c.isalpha())
+                pd_series[column] = pd.Series([], dtype=vartype)
+            self.__dict__[v] = pd.DataFrame(pd_series)

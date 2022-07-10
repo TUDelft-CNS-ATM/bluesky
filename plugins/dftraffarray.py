@@ -31,10 +31,12 @@ class DF_arrays(core.Entity):
     def __init__(self):
         super().__init__()
 
-        column_names = ["a", "b", "c"]
-
         with self.settrafarrays():
-            self.npassengers = pd.DataFrame(columns = column_names, dtype=np.float64)
+            self.npassengers = pd.DataFrame({
+                                            'a': pd.Series(dtype='int'),
+                                            'b': pd.Series(dtype='str'),
+                                            'c': pd.Series(dtype='float')
+                                            })
 
     def create(self, n=1):
         ''' This function gets called automatically when new aircraft are created. '''
@@ -42,4 +44,6 @@ class DF_arrays(core.Entity):
         super().create(n)
         # After base creation we can change the values in our own states for the new aircraft
 
-        self.npassengers.loc[-n:, :] = 10
+        self.npassengers.loc[-n:, 'a'] = 5
+        self.npassengers.loc[-n:, 'b'] = 'test'
+        self.npassengers.loc[-n:, 'c'] = 10.0
