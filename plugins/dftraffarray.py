@@ -1,33 +1,23 @@
-""" BlueSky plugin template. The text you put here will be visible
-    in BlueSky as the description of your plugin. """
-from random import randint
-import pandas as pd
 import numpy as np
-# Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, stack, traf  #, settings, navdb, sim, scr, tools
+import pandas as pd
+import geopandas as gpd
 
-### Initialization function of your plugin. Do not change the name of this
-### function, as it is the way BlueSky recognises this file as a plugin.
+from bluesky import core 
+
 def init_plugin():
     ''' Plugin initialisation function. '''
-    # Instantiate our example entity
     example = DF_arrays()
 
-    # Configuration parameters
     config = {
-        # The name of your plugin
         'plugin_name':     'DFFUN',
-
-        # The type of this plugin. For now, only simulation plugins are possible.
         'plugin_type':     'sim',
         }
 
-    # init_plugin() should always return a configuration dict.
     return config
 
 
 class DF_arrays(core.Entity):
-    ''' Example new entity object for BlueSky. '''
+
     def __init__(self):
         super().__init__()
 
@@ -35,6 +25,12 @@ class DF_arrays(core.Entity):
             self.npassengers = pd.DataFrame({
                                             'a': pd.Series(dtype='int'),
                                             'b': pd.Series(dtype='str'),
+                                            'c': pd.Series(dtype='float')
+                                            })
+
+            self.geom_fun = gpd.GeoDataFrame({
+                                            'a': pd.Series(dtype='int'),
+                                            'geometry': gpd.GeoSeries(dtype=object),
                                             'c': pd.Series(dtype='float')
                                             })
 
