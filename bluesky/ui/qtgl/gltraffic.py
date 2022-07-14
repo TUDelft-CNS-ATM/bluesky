@@ -228,7 +228,7 @@ class Traffic(glh.RenderObject, layer=100):
                     # Speed
                     if spd < 0:
                         txt += "--- "
-                    elif spd > 2.0:
+                    elif spd > actdata.casmachthr:
                         txt += "%03d" % int(round(spd / kts))
                     else:
                         txt += f"M{spd:.2f}" # Mach number
@@ -260,6 +260,7 @@ class Traffic(glh.RenderObject, layer=100):
             data.rpz = data.rpz[idx]
         naircraft = len(data.lat)
         actdata.translvl = data.translvl
+        actdata.casmachthr = data.casmachthr
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
         # self.asas_vmax = data.vmax
 
