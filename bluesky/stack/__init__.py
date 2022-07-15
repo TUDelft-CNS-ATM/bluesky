@@ -12,6 +12,7 @@ from bluesky.stack.argparser import refdata, ArgumentError
 def init(mode='client'):
     if mode[:3] == 'sim':
         import bluesky.stack.simstack as simstack
+        from bluesky.stack.importer import Importer
         simstack.init()
     else:
         import bluesky.stack.clientstack as clientstack

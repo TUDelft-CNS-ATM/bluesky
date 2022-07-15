@@ -195,54 +195,59 @@ def pcall(fname, *pcall_arglst):
         pcall_arglst = [acid] + list(pcall_arglst[1:])
 
     # Check for relative or absolute time
-    absrel = "REL"  # default relative to the time of call
-    if pcall_arglst and pcall_arglst[0] in ("ABS", "REL"):
-        absrel = pcall_arglst[0]
+    isrelative = True  # default relative to the time of call
+    if pcall_arglst and pcall_arglst[0] in ('ABS', 'REL'):
+        isrelative = pcall_arglst[0] == 'ABS'
         pcall_arglst = pcall_arglst[1:]
 
-    # If timestamps in file should be interpreted as relative we need to add
-    # the current simtime to every timestamp
-    t_offset = bs.sim.simt if absrel == "REL" else 0.0
-
-    # Read the scenario file
-    # readscn(fname, pcall_arglst, t_offset)
-    insidx = 0
-    instime = bs.sim.simt
-
     try:
-        # All commands with timestamps at the current sim time or earlier should be called immediately
-        callnow = []
-        for (cmdtime, cmdline) in readscn(fname):
-
-            # Time offset correction
-            cmdtime += t_offset
-
-            # Replace %0, %1 with pcall_arglst[0], pcall_arglst[1], etc.
-            if pcall_arglst:
-                for i, argtxt in enumerate(pcall_arglst):
-                    cmdline = cmdline.replace(f"%{i}", argtxt)
-
-            if cmdtime <= bs.sim.simt:
-                callnow.append((cmdline, None))
-            elif not Stack.scentime or cmdtime >= Stack.scentime[-1]:
-                Stack.scentime.append(cmdtime)
-                Stack.scencmd.append(cmdline)
-            else:
-                if cmdtime > instime:
-                    insidx, instime = next(
-                        ((j, t) for j, t in enumerate(Stack.scentime) if t >= cmdtime),
-                        (len(Stack.scentime), Stack.scentime[-1]),
-                    )
-                Stack.scentime.insert(insidx, cmdtime)
-                Stack.scencmd.insert(insidx, cmdline)
-                insidx += 1
-
-        # execute any commands that are already due
-        if callnow:
-            process(callnow)
+        merge(readscn(fname), *pcall_arglst, isrelative=isrelative)
 
     except FileNotFoundError as e:
         return False, f"PCALL: File not found'{e.filename}'"
+
+
+def merge(source, *args, isrelative=True):
+    ''' Merge scenario commands from source to current scenario.'''
+
+    # If timestamps in file should be interpreted as relative we need to add
+    # the current simtime to every timestamp
+    t_offset = bs.sim.simt if isrelative else 0.0
+
+    # Read the scenario file
+    insidx = 0
+    instime = bs.sim.simt
+
+    # All commands with timestamps at the current sim time or earlier should be called immediately
+    callnow = []
+    for (cmdtime, cmdline) in source:
+
+        # Time offset correction
+        cmdtime += t_offset
+
+        # Replace %0, %1 with pcall_arglst[0], pcall_arglst[1], etc.
+        if args:
+            for i, argtxt in enumerate(args):
+                cmdline = cmdline.replace(f"%{i}", argtxt)
+
+        if cmdtime <= bs.sim.simt:
+            callnow.append((cmdline, None))
+        elif not Stack.scentime or cmdtime >= Stack.scentime[-1]:
+            Stack.scentime.append(cmdtime)
+            Stack.scencmd.append(cmdline)
+        else:
+            if cmdtime > instime:
+                insidx, instime = next(
+                    ((j, t) for j, t in enumerate(Stack.scentime) if t >= cmdtime),
+                    (len(Stack.scentime), Stack.scentime[-1]),
+                )
+            Stack.scentime.insert(insidx, cmdtime)
+            Stack.scencmd.insert(insidx, cmdline)
+            insidx += 1
+
+    # execute any commands that are already due
+    if callnow:
+        process(callnow)
 
 
 @command(aliases=('LOAD', 'OPEN'))
