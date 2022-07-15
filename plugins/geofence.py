@@ -206,7 +206,7 @@ class Geofence(areafilter.Poly):
         cls.geo_by_id.clear()
         cls.geo_name2id.clear()
         cls.geo_save_dict.clear()
-        cls.geo_tree = index.Index()
+        cls.geo_tree = Index()
         cls.hits.clear()
         cls.intrusions.clear()
         cls.unique_intrusions.clear()
