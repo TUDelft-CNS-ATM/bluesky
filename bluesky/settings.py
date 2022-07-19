@@ -57,6 +57,7 @@ def init(cfgfile=''):
 
 
 def populate_basedir():
+    ''' Populate bluesky folder in home directory when running bluesky as a package. '''
     # Create base path and copy default config
     print(f'Creating BlueSky base directory "{_basepath.absolute()}"')
     _basepath.mkdir()
