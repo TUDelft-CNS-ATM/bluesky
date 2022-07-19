@@ -28,7 +28,7 @@ extras_requirements.update({
 
 # Temporarily create resources folder
 if not path.exists('bluesky/resources'):
-    shutil.copytree('data', 'bluesky/resources/data')
+    shutil.copytree('data', 'bluesky/resources/data', ignore=shutil.ignore_patterns('cache'))
     shutil.copytree('plugins', 'bluesky/resources/plugins')
     shutil.copytree('scenario', 'bluesky/resources/scenario')
     with open('bluesky/resources/__init__.py', 'w') as f:
