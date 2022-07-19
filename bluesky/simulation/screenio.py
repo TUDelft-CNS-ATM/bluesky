@@ -55,7 +55,7 @@ class ScreenIO:
         self.fast_timer.timeout.connect(self.send_aircraft_data)
         self.fast_timer.start(int(1000 / self.acupdate_rate))
 
-    def step(self):
+    def update(self):
         if bs.sim.state == bs.OP:
             self.samplecount += 1
 

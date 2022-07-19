@@ -15,7 +15,7 @@ def main():
 
     # Main loop for BlueSky
     while not bs.sim.state == bs.END:
-        bs.sim.step()   # Update sim
+        bs.sim.update()   # Update sim
         bs.scr.update()   # GUI update
 
     bs.sim.quit()

@@ -19,8 +19,8 @@ class Node:
         self.event_port = event_port
         self.stream_port = stream_port
 
-    def step(self):
-        ''' Perform one iteration step. Reimplemented in Simulation. '''
+    def update(self):
+        ''' Update timers and perform I/O. '''
         # Process timers
         Timer.update_timers()
         # Get new events from the I/O thread
@@ -63,10 +63,10 @@ class Node:
         ''' Start the main loop of this node. '''
         while self.running:
             # Perform a simulation step
-            self.step()
-            bs.sim.step()
+            self.update()
+            bs.sim.update()
             # Update screen logic
-            bs.scr.step()
+            bs.scr.update()
 
     def addnodes(self, count=1):
         self.send_event(b'ADDNODES', count)

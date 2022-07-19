@@ -53,24 +53,16 @@ class Simulation:
         # Keep track of known clients
         self.clients = set()
 
-    def step(self):
-        ''' Perform a simulation timestep. '''
-        # Simulation starts as soon as there is traffic, or pending commands
+    def step(self, dt_increment=0):
+        ''' Perform one simulation timestep.
+        
+            Call this function instead of update if you don't want to run with a fixed
+            real-time rate.
+        '''
         if self.state == bs.INIT:
-            if self.syst < 0.0:
-                self.syst = time.time()
-
+            # Simulation starts as soon as there is traffic, or pending commands
             if bs.traf.ntraf > 0 or len(bs.stack.get_scendata()[0]) > 0:
                 self.op()
-                if self.benchdt > 0.0:
-                    self.fastforward(self.benchdt)
-                    self.bencht = time.time()
-
-        # When running at a fixed rate, or when in hold/init,
-        # increment system time with sysdt and calculate remainder to sleep.
-        remainder = self.syst - time.time()
-        if (not self.ffmode or self.state != bs.OP) and remainder > MINSLEEP:
-            time.sleep(remainder)
 
         # Always update stack
         simstack.process()
@@ -81,15 +73,8 @@ class Simulation:
             datalog.update()
             simtime.preupdate()
 
-            # Determine interval towards next timestep
-            if remainder < 0.0 and self.rtmode:
-                # Allow a variable timestep when we are running realtime
-                self.simt, self.simdt = simtime.step(-remainder)
-            else:
-                # Don't accumulate delay when we aren't running realtime
-                if remainder < 0.0:
-                    self.syst -= remainder
-                self.simt, self.simdt = simtime.step()
+            # Determine interval towards next timestep                
+            self.simt, self.simdt = simtime.step(dt_increment)
 
             # Update UTC time
             self.utc += datetime.timedelta(seconds=self.simdt)
@@ -97,6 +82,34 @@ class Simulation:
             # Update traffic and other update functions for the next timestep
             bs.traf.update()
             simtime.update()
+
+    def update(self):
+        ''' Perform a simulation update. 
+            This involves performing a simulation step, and when running in real-time mode
+            (or a multiple thereof), sleeping an appropriate time. '''
+        if self.state == bs.INIT:
+            if self.syst < 0.0:
+                self.syst = time.time()
+
+            if self.benchdt > 0.0:
+                self.fastforward(self.benchdt)
+                self.bencht = time.time()
+
+        # When running at a fixed rate, or when in hold/init,
+        # increment system time with sysdt and calculate remainder to sleep.
+        remainder = self.syst - time.time()
+        if (not self.ffmode or self.state != bs.OP) and remainder > MINSLEEP:
+            time.sleep(remainder)
+
+        # Perform one simulation timestep
+        if remainder < 0.0 and self.rtmode:
+            # Allow a variable timestep when we are running realtime
+            self.step(-remainder)
+        else:
+            # Don't accumulate delay when we aren't running realtime
+            if remainder < 0:
+                self.syst -= remainder
+            self.step()
 
         # Always update syst
         self.syst += self.simdt / self.dtmult
@@ -110,6 +123,7 @@ class Simulation:
                 self.hold()
             else:
                 self.op()
+
 
         # Inform main of our state change
         if self.state != self.prevstate:
@@ -179,6 +193,7 @@ class Simulation:
 
     def fastforward(self, nsec=None):
         ''' Run in fast-time (for nsec seconds if specified). '''
+        self.state = bs.OP
         self.ffmode = True
         self.ffstop = (self.simt + nsec) if nsec else None
 
