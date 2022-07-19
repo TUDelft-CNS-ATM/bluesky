@@ -26,7 +26,7 @@ def fileopen():
     if sys.platform == 'darwin':
        return ''
 
-    dirpath = settings.scenario_path 
+    dirpath = settings.resolve_path(settings.scenario_path)
     os.chdir(dirpath)
 
     master = Tk()

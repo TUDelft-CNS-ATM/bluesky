@@ -466,7 +466,7 @@ class metric_CoCa():
             self.reset()
             self.resettime = self.resettime + self.deltaresettime
             self.iteration = self.iteration + 1
-            filedata = settings.log_path + "/coca_20120727-78am-1hour.npy"
+            # filedata = settings.resolve_path(settings.log_path) / "coca_20120727-78am-1hour.npy"
             # self.cellPlot(traf)
             # np.save(filedata,self.cocametric)
             bs.sim.op()
@@ -1015,7 +1015,7 @@ class metric_HB():
         data = zip(acid,lat,lon,alt,spd,trk,ntraf,compl)
 
         step = str(self.step).zfill(3)
-        fname = settings.log_path + "/Metric-HB/"+step+"-BlueSky.csv"
+        fname = settings.resolve_path(settings.log_path) / "Metric-HB" / f"{step}-BlueSky.csv"
         f = csv.writer(open(fname, "wb"))
         for row in data:
             f.writerow(row)

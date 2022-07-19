@@ -7,12 +7,11 @@ from bluesky.traffic.performance.legacy.performance import esf, phases, calclimi
 from bluesky import settings
 from . import coeff_bada
 
-# Register settings defaults
-settings.set_variable_defaults(perf_path_bada='data/performance/BADA',
-                               performance_dt=1.0, verbose=False)
 
-if not coeff_bada.check(settings.perf_path_bada):
-    raise ImportError('BADA performance model: Error trying to find BADA files in ' + settings.perf_path_bada + '!')
+# Check if BADA is complete
+coeff_bada.check()
+# Register settings defaults
+settings.set_variable_defaults(performance_dt=1.0, verbose=False)
 
 
 class BADA(PerfBase):
@@ -34,7 +33,7 @@ class BADA(PerfBase):
     def __init__(self):
         super().__init__()
         # Load coefficient files if we haven't yet
-        coeff_bada.init(settings.perf_path_bada)
+        coeff_bada.init()
 
         self.warned = False     # Flag: Did we warn for default perf parameters yet?
         self.warned2 = False    # Flag: Use of piston engine aircraft?

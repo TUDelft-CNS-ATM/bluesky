@@ -493,7 +493,7 @@ def initdecl_data():
     # lat : 89 ... -90
     # Lon: -180 ... 179
     global decl_read, decl_lat_lon
-    dec_table = np.genfromtxt(Path(settings.navdata_path) / 'geo_declination_data.csv',
+    dec_table = np.genfromtxt(settings.resolve_path(settings.navdata_path) / 'geo_declination_data.csv',
                               comments='#',delimiter=",")
 
     decl = dec_table[:,4]

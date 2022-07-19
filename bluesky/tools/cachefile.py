@@ -19,7 +19,7 @@ class CacheError(Exception):
 class CacheFile():
     ''' Convenience class for loading and saving pickle cache files. '''
     def __init__(self, fname, version_ref='1'):
-        self.fname = Path(settings.cache_path) / fname
+        self.fname = settings.resolve_path(settings.cache_path) / fname
         self.version_ref = version_ref
         self.file = None
 

@@ -15,7 +15,7 @@ datadir = Path('')
 
 def init_plugin():
     global datadir
-    datadir = Path(settings.data_path) / 'NetCDF'
+    datadir = settings.resolve_path(settings.data_path) / 'NetCDF'
 
     if not datadir.is_dir():
         datadir.mkdir()

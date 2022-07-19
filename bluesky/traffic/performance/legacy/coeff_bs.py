@@ -9,7 +9,7 @@ from .performance import esf, phases, calclimits, PHASE
 from bluesky import settings
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/performance', verbose=False)
+settings.set_variable_defaults(perf_path='data/performance/BS', verbose=False)
 
 class CoeffBS:
     """
@@ -103,7 +103,7 @@ class CoeffBS:
 
         # parse AC files
 
-        path = Path(settings.perf_path) / 'BS/aircraft'
+        path = settings.resolve_path(settings.perf_path) / 'BS/aircraft'
         for fname in path.iterdir():
             acdoc = ElementTree.parse(fname)
 
@@ -282,7 +282,7 @@ class CoeffBS:
         self.PSFC_CR     = [] # SFC cruise
 
         # parse engine files
-        path = Path(settings.perf_path) / 'BS/engines/'
+        path = settings.resolve_path(settings.perf_path) / 'BS/engines/'
         for fname in path.iterdir():
             endoc = ElementTree.parse(fname)
             self.enlist.append(endoc.find('engines/engine').text)

@@ -138,11 +138,13 @@ def process(from_pcall=None):
 
 def readscn(fname):
     ''' Read a scenario file. '''
+    if not fname:
+        return
     # Ensure .scn suffix and specify path if necessary
     fname = Path(fname).with_suffix('.scn')
     if not fname.is_absolute():
-        fname = Path(settings.scenario_path) / fname
-    
+        fname = settings.resolve_path(settings.scenario_path) / fname
+
     with open(fname, "r") as fscen:
         prevline = ''
         for line in fscen:
@@ -264,31 +266,33 @@ def ic(filename : 'string' = ''):
     # Get the filename of new scenario
     if not filename:
         filename = bs.scr.show_file_dialog()
+        if not filename:
+            # Only PyGame returns a filename from the dialog here
+            return
 
     # Clean up filename
     filename = Path(filename)
 
     # Reset sim and open new scenario file
-    if filename:
-        try:
-            for (cmdtime, cmd) in readscn(filename):
-                Stack.scentime.append(cmdtime)
-                Stack.scencmd.append(cmd)
-            Stack.scenname = filename.stem
+    try:
+        for (cmdtime, cmd) in readscn(filename):
+            Stack.scentime.append(cmdtime)
+            Stack.scencmd.append(cmd)
+        Stack.scenname = filename.stem
 
-            # Remember this filename in IC.scn in scenario folder
-            with open(Path(settings.scenario_path) / "ic.scn", "w") as keepicfile:
-                keepicfile.write(
-                    "# This file is used by BlueSky to save the last used scenario file\n"
-                )
-                keepicfile.write(
-                    "# So in the console type 'IC IC' to restart the previously used scenario file\n"
-                )
-                keepicfile.write(f"00:00:00.00>IC {filename}\n")
+        # Remember this filename in IC.scn in scenario folder
+        with open(settings.resolve_path(settings.scenario_path) / "ic.scn", "w") as keepicfile:
+            keepicfile.write(
+                "# This file is used by BlueSky to save the last used scenario file\n"
+            )
+            keepicfile.write(
+                "# So in the console type 'IC IC' to restart the previously used scenario file\n"
+            )
+            keepicfile.write(f"00:00:00.00>IC {filename}\n")
 
-            return True, f"IC: Opened {filename}"
-        except FileNotFoundError:
-            return False, f"IC: File not found: {filename}"
+        return True, f"IC: Opened {filename}"
+    except FileNotFoundError:
+        return False, f"IC: File not found: {filename}"
 
 
 @command(aliases=('SCEN',))

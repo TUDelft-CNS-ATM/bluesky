@@ -3,6 +3,7 @@ import importlib
 from os import path
 from collections import namedtuple
 from collections import OrderedDict
+from pathlib import Path
 
 try:
     from PyQt5.QtCore import qCritical, QT_VERSION_STR
@@ -961,7 +962,8 @@ class Texture(QOpenGLTexture):
 
     def load(self, fname):
         ''' Load the texture into GPU memory. '''
-        if fname[-3:].lower() == 'dds':
+        fname = Path(fname)
+        if fname.suffix.lower() == '.dds':
             tex = DDSTexture(fname)
             self.setFormat(QOpenGLTexture.TextureFormat.RGB_DXT1)
             self.setSize(tex.width, tex.height)
@@ -969,7 +971,7 @@ class Texture(QOpenGLTexture):
             self.allocateStorage()
             self.setCompressedData(len(tex.data), tex.data)
         else:
-            self.setData(QImage(fname))
+            self.setData(QImage(fname.as_posix()))
             self.setWrapMode(QOpenGLTexture.WrapMode.Repeat)
 
     def bind(self, unit=0):
@@ -1006,7 +1008,8 @@ class Font(Texture):
         self.loc_block_size = txtshader.uniforms['block_size'].loc
 
         # Load the first image to get font size
-        img = QImage(path.join(settings.gfx_path, 'font/32.png'))
+        fname = (settings.resolve_path(settings.gfx_path) / 'font/{i}.png').as_posix()
+        img = QImage(fname.format(i=32))
         imgsize = (img.width(), img.height())
         self.char_ar = float(imgsize[1]) / imgsize[0]
 
@@ -1029,8 +1032,7 @@ class Font(Texture):
         # We're using the ASCII range 32-126; space, uppercase, lower case,
         # numbers, brackets, punctuation marks
         for i in range(30, 127):
-            img = QImage(path.join(settings.gfx_path, 'font/%d.png' %
-                                   i)).convertToFormat(QImage.Format.Format_ARGB32)
+            img = QImage(fname.format(i=i)).convertToFormat(QImage.Format.Format_ARGB32)
             self.setLayerData(i - 30, img)
 
     @classmethod

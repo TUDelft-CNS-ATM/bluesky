@@ -13,7 +13,7 @@ navdb_version = 'v20170101'
 ## Default settings
 settings.set_variable_defaults(navdata_path='data/navdata')
 
-sourcedir = settings.navdata_path
+sourcedir = settings.resolve_path(settings.navdata_path)
 
 
 def load_navdata():

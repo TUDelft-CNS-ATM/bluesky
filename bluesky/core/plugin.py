@@ -100,7 +100,7 @@ class Plugin:
     @classmethod
     def find_plugins(cls, reqtype):
         ''' Create plugin wrapper objects based on source code of potential plug-in files. '''
-        for fname in Path(settings.plugin_path).glob('**/*.py'):
+        for fname in settings.resolve_path(settings.plugin_path).glob('**/*.py'):
             with open(fname, 'rb') as f:
                 source = f.read()
                 try:
@@ -160,7 +160,7 @@ class Plugin:
 def init(mode):
     ''' Initialization function of the plugin system.'''
     # Add plugin path to module search path
-    sys.path.append(Path(settings.plugin_path).absolute().as_posix())
+    sys.path.append(settings.resolve_path(settings.plugin_path).absolute().as_posix())
     # Set plugin type for this instance of BlueSky
     req_type = 'sim' if mode[:3] == 'sim' else 'gui'
     oth_type = 'gui' if mode[:3] == 'sim' else 'sim'

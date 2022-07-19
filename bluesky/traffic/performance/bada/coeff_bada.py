@@ -10,6 +10,11 @@
 from pathlib import Path
 import re
 from .fwparser import FixedWidthParser, ParseError
+from bluesky import settings
+
+
+settings.set_variable_defaults(perf_path_bada='data/performance/BADA')
+
 
 # File formats of BADA data files. Uses fortran-like notation
 # Adapted from the BADA manual format lines. (page 61-81 in the BADA manual)
@@ -85,14 +90,15 @@ def getCoefficients(actype):
     return syn, coeff
 
 
-def check(bada_path=''):
+def check():
     ''' Import check for BADA performance model. '''
-    releasefile = Path(bada_path) / 'ReleaseSummary'
+    base = settings.resolve_path(settings.perf_path_bada)
+    releasefile = base / 'ReleaseSummary'
     if not releasefile.is_file():
-        return False
-    synonymfile = Path(bada_path) / 'SYNONYM.NEW'
+        raise ImportError(f'BADA performance model: Error trying to find BADA files in {base}!')
+    synonymfile = base / 'SYNONYM.NEW'
     if not synonymfile.is_file():
-        return False
+        raise ImportError(f'BADA performance model: Error trying to find BADA files in {base}!')
     return True
 
 
@@ -100,8 +106,8 @@ def init(bada_path=''):
     ''' init() loads the available BADA datafiles in the provided directory.'''
     if accoeffs:
         return True
-
-    releasefile = Path(bada_path) / 'ReleaseSummary'
+    bada_path = settings.resolve_path(settings.perf_path_bada)
+    releasefile = bada_path / 'ReleaseSummary'
     if releasefile.is_file():
         global release_date, bada_version
         re_reldate = re.compile(r'Summary Date:\s+(.+(?<!\s))\s*', re.IGNORECASE)
@@ -119,7 +125,7 @@ def init(bada_path=''):
     else:
         print('No BADA release summary found: can not determine version.')
 
-    synonymfile = Path(bada_path) / 'SYNONYM.NEW'
+    synonymfile = bada_path / 'SYNONYM.NEW'
     if not synonymfile.is_file():
         print('SYNONYM.NEW not found in BADA path, could not load BADA.')
         return False
@@ -136,7 +142,7 @@ def init(bada_path=''):
     print('%d aircraft entries loaded' % len(synonyms))
 
     # Load aircraft coefficient data
-    for fname in Path(bada_path).glob('*.OPF'):
+    for fname in bada_path.glob('*.OPF'):
         ac = ACData()
         try:
             ac.setOPFData(opf_parser.parse(fname))

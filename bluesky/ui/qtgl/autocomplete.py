@@ -25,7 +25,7 @@ def complete(cmd):
 
     if lcmd[0] in ['IC', 'BATCH', 'CALL', 'PCALL']:
         global previous_g
-        g = settings.scenario_path
+        g = settings.resolve_path(settings.scenario_path).as_posix()
         striplen = len(g)
         if g[-1] != '/':
             g += '/'

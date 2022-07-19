@@ -20,7 +20,7 @@ class Coefficient:
     def __init__(self):
         # Load synonyms.dat text file into dictionary
         self.synodict = {}
-        with open(Path(settings.perf_path_openap) / 'synonym.dat', "r") as f_syno:
+        with open(settings.resolve_path(settings.perf_path_openap) / 'synonym.dat', "r") as f_syno:
             for line in f_syno.readlines():
                 if line.count("#") > 0:
                     dataline, comment = line.split("#")
@@ -35,7 +35,7 @@ class Coefficient:
                 self.synodict[acmod] = synomod
 
         self.acs_fixwing = self._load_all_fixwing_flavor()
-        self.engines_fixwing = pd.read_csv(Path(settings.perf_path_openap) / "fixwing/engines.csv", encoding="utf-8")
+        self.engines_fixwing = pd.read_csv(settings.resolve_path(settings.perf_path_openap) / "fixwing/engines.csv", encoding="utf-8")
         self.limits_fixwing = self._load_all_fixwing_envelop()
 
         self.acs_rotor = self._load_all_rotor_flavor()
@@ -44,7 +44,7 @@ class Coefficient:
         self.actypes_fixwing = list(self.acs_fixwing.keys())
         self.actypes_rotor = list(self.acs_rotor.keys())
 
-        df = pd.read_csv(Path(settings.perf_path_openap) / "fixwing/dragpolar.csv", index_col="mdl")
+        df = pd.read_csv(settings.resolve_path(settings.perf_path_openap) / "fixwing/dragpolar.csv", index_col="mdl")
         self.dragpolar_fixwing = df.to_dict(orient="index")
         self.dragpolar_fixwing["NA"] = df.mean().to_dict()
 
@@ -54,9 +54,9 @@ class Coefficient:
         warnings.simplefilter("ignore")
 
         # read fixwing aircraft and engine files
-        allengines = pd.read_csv(Path(settings.perf_path_openap) / "fixwing/engines.csv", encoding="utf-8")
+        allengines = pd.read_csv(settings.resolve_path(settings.perf_path_openap) / "fixwing/engines.csv", encoding="utf-8")
         allengines["name"] = allengines["name"].str.upper()
-        acs = json.load(open(Path(settings.perf_path_openap) / "fixwing/aircraft.json", "r"))
+        acs = json.load(open(settings.resolve_path(settings.perf_path_openap) / "fixwing/aircraft.json", "r"))
         acs.pop("__comment")
         acs_ = {}
 
@@ -77,7 +77,7 @@ class Coefficient:
 
     def _load_all_rotor_flavor(self):
         # read rotor aircraft
-        acs = json.load(open(Path(settings.perf_path_openap) / "rotor/aircraft.json", "r"))
+        acs = json.load(open(settings.resolve_path(settings.perf_path_openap) / "rotor/aircraft.json", "r"))
         acs.pop("__comment")
         acs_ = {}
         for mdl, ac in acs.items():
@@ -90,7 +90,7 @@ class Coefficient:
         All unit in SI"""
         limits_fixwing = {}
         for mdl, ac in self.acs_fixwing.items():
-            fenv = Path(settings.perf_path_openap) / "fixwing/wrap" / (mdl.lower() + ".txt")
+            fenv = settings.resolve_path(settings.perf_path_openap) / "fixwing/wrap" / (mdl.lower() + ".txt")
 
             if fenv.is_file():
                 df = pd.read_fwf(fenv).set_index("variable")

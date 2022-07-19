@@ -47,7 +47,8 @@ bg = palette.stack_background
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        super().__init__(QPixmap(os.path.join(bs.settings.gfx_path, 'splash.gif')), Qt.WindowType.WindowStaysOnTopHint)
+        splashfile = bs.settings.resolve_path(bs.settings.gfx_path) / 'splash.gif'
+        super().__init__(QPixmap(splashfile.as_posix()), Qt.WindowType.WindowStaysOnTopHint)
 
 
 class DiscoveryDialog(QDialog):
@@ -123,12 +124,14 @@ class MainWindow(QMainWindow):
         # gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
-        if platform.system() == 'Darwin':
-            app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'bluesky.icns')))
-        else:
-            app.instance().setWindowIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icon.gif')))
+        gfxpath = bs.settings.resolve_path(bs.settings.gfx_path)
 
-        uic.loadUi(os.path.join(bs.settings.gfx_path, 'mainwindow.ui'), self)
+        if platform.system() == 'Darwin':
+            app.instance().setWindowIcon(QIcon((gfxpath / 'bluesky.icns').as_posix()))
+        else:
+            app.instance().setWindowIcon(QIcon((gfxpath / 'icon.gif').as_posix()))
+
+        uic.loadUi((gfxpath / 'mainwindow.ui').as_posix(), self)
 
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
@@ -155,7 +158,7 @@ class MainWindow(QMainWindow):
         for b in buttons.items():
             # Set icon
             if not b[1][0] is None:
-                icon = QIcon(os.path.join(bs.settings.gfx_path, 'icons/' + b[1][0]))
+                icon = QIcon((gfxpath / 'icons' / b[1][0]).as_posix())
                 b[0].setIcon(icon)
             # Set tooltip
             if not b[1][1] is None:
@@ -380,10 +383,11 @@ class MainWindow(QMainWindow):
         if platform.system().lower()=='windows':
             fname = fileopen()
         else:
+            scenpath = bs.settings.resolve_path(bs.settings.scenario_path).as_posix()
             if platform.system().lower() == 'darwin':
-                response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)')
+                response = QFileDialog.getOpenFileName(self, 'Open file', scenpath, 'Scenario files (*.scn)', filter='*.scn')
             else:
-                response = QFileDialog.getOpenFileName(self, 'Open file', bs.settings.scenario_path, 'Scenario files (*.scn)', options=QFileDialog.DontUseNativeDialog)
+                response = QFileDialog.getOpenFileName(self, 'Open file', scenpath, 'Scenario files (*.scn)', options=QFileDialog.DontUseNativeDialog, filter='*.scn')
             fname = response[0] if isinstance(response, tuple) else response
 
         # Send IC command to stack with filename if selected, else do nothing

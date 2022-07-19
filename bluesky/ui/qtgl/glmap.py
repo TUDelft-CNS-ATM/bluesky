@@ -42,10 +42,9 @@ class Map(glh.RenderObject, layer=-100):
         max_texture_size = glh.gl.glGetIntegerv(glh.gl.GL_MAX_TEXTURE_SIZE)
         print('Maximum supported texture size: %d' % max_texture_size)
         for i in [16384, 8192, 4096]:
-            fname = path.join(settings.gfx_path,
-                                  'world.%dx%d.dds' % (i, i // 2))
-            if max_texture_size >= i and path.exists(fname):
-                print('Loading texture ' + fname)
+            fname = settings.resolve_path(settings.gfx_path) / f'world.{i}x{i//2}.dds'
+            if max_texture_size >= i and fname.exists():
+                print(f'Loading texture {fname}')
                 self.map.create(vertex=mapvertices,
                                 texcoords=texcoords, texture=fname)
                 break

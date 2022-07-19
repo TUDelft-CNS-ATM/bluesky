@@ -44,7 +44,8 @@ class RadarShaders(glh.ShaderSet):
 
     def create(self):
         super().create()
-        self.set_shader_path(path.join(settings.gfx_path, 'shaders'))
+        shaderpath = (settings.resolve_path(settings.gfx_path) / 'shaders').as_posix()
+        self.set_shader_path(shaderpath)
         # Load all shaders for this shader set
         self.load_shader('normal', 'radarwidget-normal.vert',
                          'radarwidget-color.frag')

@@ -19,7 +19,7 @@ datadir = Path('')
 
 def init_plugin():
     global datadir
-    datadir = Path(settings.data_path) / 'grib'
+    datadir = settings.resolve_path(settings.data_path) / 'grib'
 
     if not datadir.is_dir():
         datadir.mkdir()

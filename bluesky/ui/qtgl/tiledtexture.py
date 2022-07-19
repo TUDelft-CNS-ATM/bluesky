@@ -1,7 +1,6 @@
 ''' Tile texture manager for BlueSky Qt/OpenGL gui. '''
 import traceback
 import math
-from os import makedirs, path
 import weakref
 from collections import OrderedDict
 from urllib.request import urlopen
@@ -62,13 +61,13 @@ class Tile:
 
         self.image = None
         # For the image data, check cache path first
-        fpath = path.join(bs.settings.cache_path, source, str(zoom), str(tilex))
-        fname = path.join(fpath, f'{tiley}{self.ext}')
-        if path.exists(fname):
-            self.image = QImage(fname).convertToFormat(QImage.Format.Format_ARGB32)
+        fpath = bs.settings.resolve_path(bs.settings.cache_path) / source / str(zoom) / str(tilex)
+        fname = fpath / f'{tiley}{self.ext}'
+        if fname.exists():
+            self.image = QImage(fname.as_posix()).convertToFormat(QImage.Format.Format_ARGB32)
         else:
             # Make sure cache directory exists
-            makedirs(fpath, exist_ok=True)
+            fpath.mkdir(parents=True, exist_ok=True)
             for url in bs.settings.tile_sources[source]['source']:
                 try:
                     url_request = urlopen(url.format(

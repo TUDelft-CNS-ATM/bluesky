@@ -5,7 +5,7 @@ settings.set_variable_defaults(colour_palette='bluesky-default', gfx_path='data/
 
 def init():
     # Load the palette file selected in settings
-    pfile = Path(settings.gfx_path) / 'palettes' / settings.colour_palette
+    pfile = settings.resolve_path(settings.gfx_path) / 'palettes' / settings.colour_palette
     if pfile.is_file():
         print('Loading palette ' + settings.colour_palette)
         exec(compile(open(pfile).read(), pfile, 'exec'), globals())

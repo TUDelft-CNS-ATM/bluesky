@@ -73,7 +73,7 @@ def makeLogfileName(logname, prefix: str = ''):
         fname = "%s_%s_%s.log" % (logname, stack.get_scenname(), timestamp)
     else:
         fname = "%s_%s_%s_%s.log" % (logname, stack.get_scenname(), prefix, timestamp)
-    return settings.log_path + '/' + fname
+    return settings.resolve_path(settings.log_path) / fname
 
 
 def col2txt(col, nrows):

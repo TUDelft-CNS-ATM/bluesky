@@ -23,7 +23,7 @@ def loadnavdata_txt():
     wptdata['wpdesc']  = []              # description
 
 
-    with open(Path(settings.navdata_path) / 'nav.dat', 'rb') as f:
+    with open(settings.resolve_path(settings.navdata_path) / 'nav.dat', 'rb') as f:
         print("Reading nav.dat")
 
         for line in f:
@@ -101,7 +101,7 @@ def loadnavdata_txt():
                 wptdata['wpdesc'].append("   ")  # Description
 
     #----------  Read  fix.dat file ----------
-    with open(Path(settings.navdata_path) / 'fix.dat', 'rb') as f:
+    with open(settings.resolve_path(settings.navdata_path) / 'fix.dat', 'rb') as f:
         print("Reading fix.dat")
         for line in f:
             line = line.decode(encoding="ascii", errors="ignore").strip()
@@ -152,7 +152,7 @@ def loadnavdata_txt():
     awydata['awupfl']      = []              # highest flight level (int)
 
 
-    with open(Path(settings.navdata_path) / 'awy.dat', 'rb') as f:
+    with open(settings.resolve_path(settings.navdata_path) / 'awy.dat', 'rb') as f:
         print("Reading awy.dat")
 
         for line in f:
@@ -220,7 +220,7 @@ def loadnavdata_txt():
     aptdata['aptype']    = []              # type (int, 1=large, 2=medium, 3=small)
     aptdata['apco']      = []              # two char country code (string)
     aptdata['apelev']    = []              # field elevation ft-> m
-    with open(Path(settings.navdata_path) / 'airports.dat', 'rb') as f:
+    with open(settings.resolve_path(settings.navdata_path) / 'airports.dat', 'rb') as f:
         types = {'L': 1, 'M': 2, 'S': 3}
         for line in f:
             line = line.decode(encoding="ascii", errors="ignore").strip()
@@ -277,7 +277,7 @@ def loadnavdata_txt():
     firdata['firlon1'] = []
 
     # Get fir names
-    for filname in (Path(settings.navdata_path) / 'fir').iterdir():
+    for filname in (settings.resolve_path(settings.navdata_path) / 'fir').iterdir():
         if filname.suffix == '.txt':
             firname = filname.stem
             firdata['fir'].append([firname, [], []])
@@ -323,7 +323,7 @@ def loadnavdata_txt():
     codata['cocode2']  = []              # 2 char code
     codata['cocode3']  = []              # 3 char code
     codata['conr']     = []              # country nr
-    with open(Path(settings.navdata_path) / 'icao-countries.dat', 'rb') as f:
+    with open(settings.resolve_path(settings.navdata_path) / 'icao-countries.dat', 'rb') as f:
         for line in f:
             line = line.decode(encoding="ascii", errors="ignore").strip()
             # Skip empty lines or comments
@@ -356,7 +356,7 @@ def loadthresholds_txt():
     ''' Runway threshold loader for navdatabase. '''
     rwythresholds = dict()
     curthresholds = None
-    zfile = ZipFile(Path(settings.navdata_path) / 'apt.zip')
+    zfile = ZipFile(settings.resolve_path(settings.navdata_path) / 'apt.zip')
     print("Reading apt.dat from apt.zip")
     with zfile.open('apt.dat', 'r') as f:
         for line in f:

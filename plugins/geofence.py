@@ -53,7 +53,7 @@ def savegeofences(filename: 'txt'):
     if filename[-5:] != '.json':
         filename = filename + '.json'
     
-    filepath = os.path.join(settings.data_path, 'geofences', filename)
+    filepath = settings.resolve_path(settings.data_path) / 'geofences' / filename
 
     with open(filepath, 'w') as f:
         json.dump(Geofence.geo_save_dict, f, indent=4)
@@ -66,7 +66,7 @@ def loadgeofences(filename: 'txt'):
     if filename[-5:] != '.json':
         filename = filename + '.json'
 
-    filepath = os.path.join(settings.data_path, 'geofences', filename)
+    filepath = settings.resolve_path(settings.data_path) / 'geofences' / filename
 
     with open(filepath, 'r') as f:
         try:
@@ -94,7 +94,7 @@ def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', b
     if filename[-5:] != '.geojson':
         filename = filename + '.geojson'
     
-    filepath = os.path.join(settings.data_path, 'geofences', filename)
+    filepath = settings.resolve_path(settings.data_path) / 'geofences' / filename
 
     with open(filepath, 'r') as f:
         try:

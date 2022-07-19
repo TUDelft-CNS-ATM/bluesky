@@ -15,8 +15,6 @@ aptsurf_version = 'v20171116'
 ## Default settings
 settings.set_variable_defaults(navdata_path='data/navdata')
 
-sourcedir = settings.navdata_path
-
 
 def load_coastlines():
     ''' Load coastline data for gui. '''

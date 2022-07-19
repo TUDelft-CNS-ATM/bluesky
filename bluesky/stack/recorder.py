@@ -1,5 +1,6 @@
 ''' BlueSky scenario recorder. '''
 import math
+from pathlib import Path
 
 import bluesky as bs
 from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
@@ -43,7 +44,7 @@ def saveic(filename: 'word' = ''):
     # No args? Give current status
     if not filename:
         if savefile is None:
-            return False
+            return False, "SAVEIC is not running"
         else:
             return True, "SAVEIC is already on\n" + "File: " + savefile.name
 
@@ -52,12 +53,10 @@ def saveic(filename: 'word' = ''):
         return False, "SAVEIC is already on\n" + "Savefile:  " + savefile.name
 
     # Add extension .scn if not already present
-    if filename.lower().find(".scn") < 0:
-        filename = filename + ".scn"
-
+    filename = Path(filename).with_suffix('.scn')
     # If it is with path don't touch it, else add path
-    if filename.find("/") < 0:
-        filename = bs.settings.scenario_path + "/" + filename
+    if not filename.is_absolute():
+        filename = bs.settings.resolve_path(bs.settings.scenario_path) / filename
 
     try:
         f = open(filename, "w")

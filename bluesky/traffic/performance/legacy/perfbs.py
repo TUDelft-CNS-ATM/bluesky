@@ -11,8 +11,7 @@ from bluesky import settings
 from bluesky.traffic.performance.legacy.coeff_bs import CoeffBS
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/performance/BS', 
-                               performance_dt=1.0, verbose=False)
+settings.set_variable_defaults(performance_dt=1.0, verbose=False)
 coeffBS = CoeffBS()
 
 
