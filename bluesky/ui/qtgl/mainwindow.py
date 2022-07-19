@@ -1,6 +1,5 @@
 """ Main window for the QTGL gui."""
 import platform
-import os
 
 try:
     from PyQt5.QtWidgets import QApplication as app
@@ -258,8 +257,8 @@ class MainWindow(QMainWindow):
                 btn.setText(hostname)
                 btn.setFlat(True)
                 btn.setStyleSheet('font-weight:bold')
-
-                btn.setIcon(QIcon(os.path.join(bs.settings.gfx_path, 'icons/addnode.svg')))
+                icon = bs.settings.resolve_path(bs.settings.gfx_path) / 'icons/addnode.svg'
+                btn.setIcon(QIcon(icon.as_posix()))
                 btn.setIconSize(QSize(24, 16))
                 btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 btn.setMaximumHeight(16)
