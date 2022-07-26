@@ -47,6 +47,13 @@ def init(cfgfile=''):
 
     if not cfgfile:
         cfgfile = _basepath / 'settings.cfg'
+
+        # check if config file exists
+        if not cfgfile.is_file():
+            # If not, create a default config file
+            print(f'Creating default config file "{cfgfile}"')
+            shutil.copyfile(_srcpath / 'data/default.cfg', cfgfile)
+  
     print(f'Reading config from {cfgfile}')
     exec(compile(open(cfgfile).read().replace('\\', '/'), cfgfile, 'exec'), globals())
 
