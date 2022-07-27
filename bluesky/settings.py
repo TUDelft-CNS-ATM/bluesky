@@ -60,6 +60,12 @@ def init(cfgfile=''):
     # Store name of config file
     globals()['_cfgfile'] = cfgfile
 
+    # populate some directories in case they don't exist if using from source 
+    for d in ('output', 'data/cache'):
+        if not (_basepath / d).is_dir():
+            print(f'Creating directory "{_basepath / d}"')
+            (_basepath / d).mkdir(parents=True, exist_ok=True)
+
     return True
 
 
