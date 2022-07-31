@@ -384,9 +384,9 @@ class MainWindow(QMainWindow):
         else:
             scenpath = bs.settings.resolve_path(bs.settings.scenario_path).as_posix()
             if platform.system().lower() == 'darwin':
-                response = QFileDialog.getOpenFileName(self, 'Open file', scenpath, 'Scenario files (*.scn)', filter='*.scn')
+                response = QFileDialog.getOpenFileName(self, 'Open file', scenpath, 'Scenario files (*.scn)')
             else:
-                response = QFileDialog.getOpenFileName(self, 'Open file', scenpath, 'Scenario files (*.scn)', options=QFileDialog.DontUseNativeDialog, filter='*.scn')
+                response = QFileDialog.getOpenFileName(self, 'Open file', scenpath, 'Scenario files (*.scn)', options=QFileDialog.DontUseNativeDialog)
             fname = response[0] if isinstance(response, tuple) else response
 
         # Send IC command to stack with filename if selected, else do nothing
