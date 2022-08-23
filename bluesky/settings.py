@@ -4,13 +4,18 @@ import sys
 import shutil
 import inspect
 from pathlib import Path
+from turtle import up
 
 
+# Flag indicating if BlueSky is running from source or packaged
+_packaged = (Path(__file__) != Path.cwd() / 'bluesky/settings.py')
+# Base path and source path depend on whether BlueSky is running from source
+# In this case, the run dir is a (to be created) bluesky folder in the user directory
+_basepath = (Path.home() / 'bluesky') if _packaged else Path('')
+# And the source dir resides in site-packages/bluesky/resources
+_srcpath = (Path(__file__).parent / 'resources') if _packaged else Path('')
 # Default config file path
-_cfgfile = Path('settings.cfg')
-# Base path and source path
-_basepath = Path('')
-_srcpath = Path('')
+_cfgfile = _basepath / 'settings.cfg'
 
 
 def resolve_path(path):
@@ -26,39 +31,35 @@ def resolve_path(path):
     return path if path.is_absolute() else (_basepath / path).resolve()
 
 
-def init(cfgfile=''):
+def init(cfgfile='', updatedirs=False):
     '''Initialize configuration.
        Import config settings from settings.cfg if this exists, if it doesn't
        create an initial config file'''
-       # When run from source (e.g., directly downloaded from git), both rundir and srcdir are the CWD
-    global _basepath, _srcpath
+
 
     # If BlueSky is run from a compiled bundle instead of from source, or installed as a package
     # adjust the startup path and change the path of configurable files to $home/bluesky
 
-    if Path(__file__) != Path.cwd() / 'bluesky/settings.py':
-        # In this case, the run dir is a (to be created) bluesky folder in the user directory
-        _basepath = Path.home() / 'bluesky'
-        # And the source dir resides in site-packages/bluesky/resources
-        _srcpath = Path(__file__).parent / 'resources'
-        # Check if basedir already exists. If not create it
-        if not _basepath.is_dir():
-            populate_basedir()
+    # Check if basedir already exists. If not create it.
+    # Also (re)populate directories if updatedirs is set
+    if _packaged and (updatedirs or not _basepath.is_dir()):
+        populate_basedir(updatedirs)
 
+    # If no alternative is given we'll use the default config file
     if not cfgfile:
-        cfgfile = _basepath / 'settings.cfg'
-
+        cfgfile = _cfgfile
         # check if config file exists
         if not cfgfile.is_file():
             # If not, create a default config file
             print(f'Creating default config file "{cfgfile}"')
             shutil.copyfile(_srcpath / 'data/default.cfg', cfgfile)
-  
+    else:
+        # Store name of config file
+        globals()['_cfgfile'] = Path(cfgfile)
+
+    # Read the configuration file
     print(f'Reading config from {cfgfile}')
     exec(compile(open(cfgfile).read().replace('\\', '/'), cfgfile, 'exec'), globals())
-
-    # Store name of config file
-    globals()['_cfgfile'] = cfgfile
 
     # populate some directories in case they don't exist if using from source 
     for d in ('output', 'data/cache'):
@@ -69,13 +70,31 @@ def init(cfgfile=''):
     return True
 
 
-def populate_basedir():
+def populate_basedir(updatedirs=False):
     ''' Populate bluesky folder in home directory when running bluesky as a package. '''
+    if _basepath.exists() and not updatedirs:
+        print(f'Error: directory {_basepath} already exists!')
+        return
+    def copyfn(src, dst, *args, follow_symlinks=True):
+        ''' Custom copy function that checks if file exists and is newer '''
+        dpath = Path(dst)
+        spath = Path(src)
+        if dpath.exists() and spath.stat().st_mtime > dpath.stat().st_mtime:
+            if not copyfn.replaceall:
+                res = input(f'Replace {dst} with newer {src}? [y/N/a]: ') or 'n'
+                copyfn.replaceall = (res.lower()[0] == 'a')
+                if res.lower()[0] not in 'ya':
+                    return
+        return shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+    # Replace all prompt only once per call of populate_basedir
+    copyfn.replaceall = False
+
     # Create base path and copy default config
-    print(f'Creating BlueSky base directory "{_basepath.absolute()}"')
-    _basepath.mkdir()
+    if not _basepath.exists():
+        print(f'Creating BlueSky base directory "{_basepath.absolute()}"')
+        _basepath.mkdir()
     print(f'Copying default configfile to {_basepath / "settings.cfg"}')
-    shutil.copyfile(_srcpath / 'data/default.cfg', _basepath / 'settings.cfg')
+    copyfn(_srcpath / 'data/default.cfg', _basepath / 'settings.cfg')
 
     # Paths to create
     for d in ('output', 'data/cache', 'data/performance'):
@@ -86,28 +105,31 @@ def populate_basedir():
     for d in ('scenario', 'plugins', 'data/performance/BADA'):
         print(f'Creating directory "{_basepath / d}", and copying default files')
         try:
-            shutil.copytree(_srcpath / d, _basepath / d)
+            shutil.copytree(_srcpath / d, _basepath / d, dirs_exist_ok=updatedirs, copy_function=copyfn)
         except FileNotFoundError:
                 print('Unable to copy "%s" files to "%s"' %(d[0], d[1]), file=sys.stderr)
+
+    def mklink(symlink):
+        if symlink.exists() and not symlink.is_symlink():
+            print(f'{symlink} exists as a file/folder, but should be a symbolic link to a package resource folder.')
+            ans = input('Do you want me to replace the file/folder with the symbolic link? [y/N]') or 'n'
+            if ans.lower()[0] == 'y':
+                shutil.rmtree(symlink, ignore_errors=True)
+        try:
+            if not symlink.exists():
+                symlink.symlink_to(d, target_is_directory=True)
+        except FileNotFoundError:
+                print(f'Unable to create symbolic link "{symlink}"', file=sys.stderr)
 
     # Performance paths to create symbolic links for
     for d in (_srcpath / 'data/performance').iterdir():
         # Skip BADA dir (which is copied), link others
-        if d.name.upper() != 'BADA':
-            symlink = _basepath / 'data/performance' / d.name
-            try:
-                symlink.symlink_to(d, target_is_directory=True)
-            except FileNotFoundError:
-                    print(f'Unable to create symbolic link "{symlink}"', file=sys.stderr)
+        if d.is_dir() and d.name.upper() != 'BADA':
+            mklink(_basepath / 'data/performance' / d.name)
 
     # Other data paths to create symbolic links for
     for d in ('data/graphics', 'data/navdata'):
-        symlink = _basepath / d
-        try:
-            symlink.symlink_to(_srcpath / d, target_is_directory=True)
-        except FileNotFoundError:
-                print(f'Unable to create symbolic link "{symlink}"', file=sys.stderr)
-
+        mklink(_basepath / d)
 
 _settings_hierarchy = dict()
 _settings = list()

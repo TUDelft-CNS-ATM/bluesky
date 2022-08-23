@@ -1,5 +1,6 @@
 ''' BlueSky command-line argument parsing. '''
 import argparse
+from bluesky import settings
 
 
 def parse():
@@ -44,6 +45,10 @@ def parse():
 
     parser.add_argument("--discoverable", dest="discoverable", action="store_const", const=True,
                         default=False, help="Make simulation server discoverable. (Default in headless mode).")
+    
+    parser.add_argument("--updatedirs", dest="updatedirs", action="store_const", const=True,
+                        default=False, help="Update files and folders in the local bluesky folder.")
+
     cmdargs = parser.parse_args()
 
     return vars(cmdargs)

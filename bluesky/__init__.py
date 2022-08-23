@@ -28,7 +28,7 @@ server = None
 
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
-         gui=None, detached=False, **kwargs):
+         gui=None, detached=False, updatedirs=False, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
@@ -60,7 +60,7 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     globals()['gui'] = gui
 
     # Initialize global settings first, possibly loading a custom config file
-    settings.init(configfile)
+    settings.init(configfile, updatedirs)
 
     # Initialise tools
     tools.init()

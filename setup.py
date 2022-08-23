@@ -83,11 +83,9 @@ setup(
     #               ('resources/utils', [f for f in glob.glob('utils/**/*') if path.isfile(f)])],
     entry_points={
         'console_scripts': [
-            'bluesky=BlueSky:main',
+            'bluesky=bluesky.__main__:main',
         ],
     },
-
-    scripts=['BlueSky.py'],
 
     project_urls={
         'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',
