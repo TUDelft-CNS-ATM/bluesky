@@ -81,25 +81,27 @@ class ActiveWaypoint(Entity, replaceable=True):
         # Turb dist iz ero for flyover, calculated distance for others
         self.turndist = np.logical_or(flyby,flyturn)*flybyturndist
 
-        # Avoid circling by checking for flying away on almost straight legs with small turndist
-        # difference between direction to and track larger than 90
-        # and close to waypoint based on ground speed, assumption using vicinity criterion:
+        # Avoid circling by checking too close to waypoint based on ground speed, assumption using vicinity criterion:
         # flying away and within 4 sec distance based on ground speed (4 sec = sensitivity tuning parameter)
 
         close2wp = dist/(np.maximum(0.0001,np.abs(bs.traf.gs)))<4.0 # Waypoint is within 4 seconds flight time
+        tooclose2turn = close2wp*(np.abs(degto180(bs.traf.trk % 360. - qdr % 360.)) > 90.)
 
-        # When close to waypoint or passing the last waypoint, switch when flying away from active waypoint
-        away  = np.logical_or(close2wp,swlastwp)*(np.abs(degto180(bs.traf.trk%360. - qdr%360.)) > 90.) # difference large than 90
+        # When too close to waypoint or we have passed the active waypoint, based on leg direction,switch active waypoint
+        # was:  away  = np.logical_or(close2wp,swlastwp)*(np.abs(degto180(bs.traf.trk%360. - qdr%360.)) > 90.) # difference large than 90
+        awayorpassed =  np.logical_or(tooclose2turn,np.abs(degto180(qdr-bs.traf.actwp.curlegdir))>90.)
 
+        # Should no longer be needed with leg direction
         # Ratio between distance close enough to switch to next wp when flying away
         # When within pro1 nm and flying away: switch also
-        proxfact = 1.02 # Turnradius scales this contant , factor => [turnrad]
-        incircle = dist<turnrad*proxfact
-        circling = away*incircle # [True/False] passed wp,used for flyover as well
+        #proxfact = 1.02 # Turnradius scales this contant , factor => [turnrad]
+        #incircle = dist<turnrad*proxfact
+        #circling = away*incircle # [True/False] passed wp,used for flyover as well
 
         # Check whether shift based dist is required, set closer than WP turn distance
         # Detect indices
-        swreached = np.where(bs.traf.swlnav * np.logical_or(away,np.logical_or(dist < self.turndist,circling)))[0]
+        #swreached = np.where(bs.traf.swlnav * np.logical_or(awayorpassed,np.logical_or(dist < self.turndist,circling)))[0]
+        swreached = np.where(bs.traf.swlnav * np.logical_or(awayorpassed,dist < self.turndist))[0]
 
         # Return indices for which condition is True/1.0 for a/c where we have reached waypoint
         return swreached

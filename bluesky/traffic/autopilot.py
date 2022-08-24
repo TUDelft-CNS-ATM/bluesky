@@ -160,6 +160,7 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.actwp.nextturnspd[i], bs.traf.actwp.nextturnrad[i], \
                 bs.traf.actwp.nextturnidx[i] = self.route[i].getnextturnwp()
 
+
             # Prevent trying to activate the next waypoint when it was already the last waypoint
             else:
                 bs.traf.swlnav[i] = False
@@ -248,7 +249,8 @@ class Autopilot(Entity, replaceable=True):
 
         
 
-        # End of per waypoint i switching loop
+        # End of reached-loop: the per waypoint i switching loop
+
         # Update qdr2wp with up-to-date qdr, now that we have checked passing wp
         self.qdr2wp = qdr%360.
 
@@ -348,21 +350,13 @@ class Autopilot(Entity, replaceable=True):
 
         # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
         dxturnspdchg = distaccel(turntas,bs.traf.perf.vmax, bs.traf.perf.axmax)
-#        dxturnspdchg = 0.5*np.abs(turntas*turntas-bs.traf.tas*bs.traf.tas)/(np.sign(turntas-bs.traf.tas)*np.maximum(0.01,np.abs(ax)))
-#        dxturnspdchg  = np.where(swturnspd, np.abs(turntasdiff)/np.maximum(0.01,ax)*(bs.traf.tas+0.5*np.abs(turntasdiff)),
-#                                                                   0.0*bs.traf.tas)
 
         # Decelerate or accelerate for next required speed because of speed constraint or RTA speed
         # Note that because nextspd comes from the stack, and can be either a mach number or
         # a calibrated airspeed, it can only be converted from Mach / CAS [kts] to TAS [m/s]
         # once the altitude is known.
         nexttas = vcasormach2tas(bs.traf.actwp.nextspd, bs.traf.alt)
-
-#        tasdiff   = (nexttas - bs.traf.tas)*(bs.traf.actwp.spd>=0.) # [m/s]
-
-
-        # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
-
+#
         dxspdconchg = distaccel(bs.traf.tas, nexttas, bs.traf.perf.axmax)
 
         qdrturn, dist2turn = geo.qdrdist(bs.traf.lat, bs.traf.lon,
@@ -379,6 +373,7 @@ class Autopilot(Entity, replaceable=True):
         # and same for turn logic
         usenextspdcon = (self.dist2wp < dxspdconchg)*(bs.traf.actwp.nextspd>-990.) * \
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
+
         useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,
                                    (self.dist2turn < (dxturnspdchg+bs.traf.actwp.turndist))) * \
                                         swturnspd*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
@@ -409,17 +404,6 @@ class Autopilot(Entity, replaceable=True):
                                   bs.traf.actwp.oldturnspd,bs.traf.selspd)
 
         self.inturn = np.logical_or(useturnspd,inoldturn)
-
-        #debug if inoldturn[0]:
-        #debug     print("inoldturn bs.traf.trk =",bs.traf.trk[0],"qdr =",qdr)
-        #debug elif usenextspdcon[0]:
-        #debug     print("usenextspdcon")
-        #debug elif useturnspd[0]:
-        #debug     print("useturnspd")
-        #debug elif bs.traf.actwp.spdcon>0:
-        #debug     print("using current speed constraint")
-        #debug else:
-        #debug     print("no speed given")
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)

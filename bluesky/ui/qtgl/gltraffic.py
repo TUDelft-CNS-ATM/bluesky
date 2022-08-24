@@ -81,7 +81,8 @@ class Traffic(glh.RenderObject, layer=100):
                              trk0=self.hdg, asasn=self.asasn,
                              asase=self.asase, instance_divisor=1)
 
-        self.protectedzone.create(radius=1.0)
+        #self.protectedzone.create(radius=1.0)
+        self.protectedzone.create(radius=0.5)
         self.protectedzone.set_attribs(lat=self.lat, lon=self.lon, scale=self.rpz,
                                        color=self.color, instance_divisor=1)
 

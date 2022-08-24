@@ -94,4 +94,5 @@ ssd.obj
 *-checkpoint.py
 *-checkpoint.ipynb
 .ropeproject/config.py
+/scenario/andu.scn
 plugins/invdKDtree.py
