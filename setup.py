@@ -29,12 +29,13 @@ extras_requirements.update({
 })
 
 # Temporarily create resources folder
-if not path.exists('bluesky/resources'):
-    shutil.copytree('data', 'bluesky/resources/data', ignore=shutil.ignore_patterns('cache'))
-    shutil.copytree('plugins', 'bluesky/resources/plugins')
-    shutil.copytree('scenario', 'bluesky/resources/scenario')
-    with open('bluesky/resources/__init__.py', 'w') as f:
-        f.write('')
+if path.exists('bluesky/resources'):
+    shutil.rmtree('bluesky/resources')
+shutil.copytree('data', 'bluesky/resources/data', ignore=shutil.ignore_patterns('cache'))
+shutil.copytree('plugins', 'bluesky/resources/plugins')
+shutil.copytree('scenario', 'bluesky/resources/scenario')
+with open('bluesky/resources/__init__.py', 'w') as f:
+    f.write('')
 
 setup(
     name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
