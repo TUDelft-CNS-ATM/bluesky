@@ -65,7 +65,7 @@ class Fastfont:
         # Set position
         if self.swposx <0:
             dest.left = x
-        elif sef.swposx>0:
+        elif self.swposx>0:
             dest.right = x
         else:
             dest.centerx = x
