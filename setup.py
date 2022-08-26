@@ -1,9 +1,11 @@
 # Always prefer setuptools over distutils
 from os import path
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 from codecs import open
 import shutil
 import configparser
+import numpy as np
+
 
 here = path.abspath(path.dirname(__file__))
 
@@ -90,6 +92,9 @@ setup(
     project_urls={
         'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',
     },
+    include_dirs=[np.get_include()],
+    ext_modules=[Extension('bluesky.tools.cgeo', ['bluesky/tools/src_cpp/cgeo.cpp']),
+                 Extension('bluesky.traffic.asas.cstatebased', ['bluesky/traffic/asas/src_cpp/cstatebased.cpp'], include_dirs=['bluesky/tools/src_cpp'])]
 )
 
 if path.exists('bluesky/resources'):
