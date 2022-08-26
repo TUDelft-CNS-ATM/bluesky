@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "asas.hpp"
+#include "cstatebased.hpp"
 #define DEG2RAD 0.017453292519943295
 #define RAD2DEG 57.29577951308232
 #define M2NM 0.0005399568034557236
@@ -9,7 +9,7 @@
 #define FT2M 0.3048
 #define FPM2MS 0.00508
 
-static PyObject* casas_detect(PyObject* self, PyObject* args)
+static PyObject* cstatebased_detect(PyObject* self, PyObject* args)
 {
     PyObject *ownship = NULL,
              *intruder = NULL,
@@ -118,7 +118,7 @@ static PyObject* casas_detect(PyObject* self, PyObject* args)
 };
 
 static PyMethodDef methods[] = {
-    {"detect", casas_detect, METH_VARARGS, "Detect conflicts for traffic"},
+    {"detect", cstatebased_detect, METH_VARARGS, "Detect conflicts for traffic"},
     {NULL}  /* Sentinel */
 };
 
@@ -126,24 +126,24 @@ static PyMethodDef methods[] = {
 #define PyMODINIT_FUNC void
 #endif
 #if PY_MAJOR_VERSION >= 3
-static struct PyModuleDef casasdef =
+static struct PyModuleDef cstatebased_def =
 {
     PyModuleDef_HEAD_INIT,
-    "casas",     /* name of module */
+    "cstatebased",     /* name of module */
     "",          /* module documentation, may be NULL */
     -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
     methods
 };
 
-PyMODINIT_FUNC PyInit_casas(void)
+PyMODINIT_FUNC PyInit_cstatebased(void)
 {
     import_array();
-    return PyModule_Create(&casasdef);
+    return PyModule_Create(&cstatebased_def);
 };
 #else
-PyMODINIT_FUNC initcasas(void)
+PyMODINIT_FUNC initcstatebased(void)
 {
-    Py_InitModule("casas", methods);
+    Py_InitModule("cstatebased", methods);
     import_array();
 };
 #endif

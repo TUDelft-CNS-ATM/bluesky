@@ -106,13 +106,13 @@ class StateBased(ConflictDetection):
 
 
 try:
-    from bluesky.traffic.asas import casas
+    from bluesky.traffic.asas import cstatebased
 
 
     class CStateBased(StateBased):
         def __init__(self):
             super().__init__()
-            self.detect = casas.detect
+            self.detect = cstatebased.detect
 
 except ImportError:
     pass
