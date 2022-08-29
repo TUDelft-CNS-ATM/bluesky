@@ -2,7 +2,6 @@
 import traceback
 import math
 import weakref
-import os
 from collections import OrderedDict
 from urllib.request import urlopen
 from urllib.error import URLError
