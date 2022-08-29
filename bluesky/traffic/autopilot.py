@@ -58,7 +58,8 @@ class Autopilot(Entity, replaceable=True):
             self.dist2turn   = np.array([]) # Distance to next turn [m]
 
             self.inturn = np.array([]) # If we're in a turn maneuver or not
-             # Traffic navigation information
+
+            # Traffic navigation information
             self.orig = []  # Four letter code of origin airport
             self.dest = []  # Four letter code of destination airport
 
@@ -107,17 +108,31 @@ class Autopilot(Entity, replaceable=True):
         self.swtod[-n:] = True
 
     #no longer timed @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
-    def update_fms(self, qdr, dist):
+    def wppassingcheck(self, qdr, dist):
         """
-        Waypoint switching function:
+        The actwp is the interface between the list of waypoint data in the route object and the autopilot guidance
+        when LNAV is on (heading) and optionally VNAV is on (spd & altitude)
+
+        actwp data contains traffic arrays, to allow vectorizing the guidance logic.
+
+        Waypoint switching (just like the adding, deletion in route) are event driven commands and
+        therefore not vectorized as they occur rarely compared to the guidance.
+
+        wppassingcheck contains the waypoint switching function:
         - Check which aircraft i have reached their active waypoint
         - Reached function return list of indices where reached logic is True
+        - Get the waypoint data to the actwp (active waypoint data)
         - Shift waypoint (last,next etc.) data for aircraft i where necessary
-        - Compute VNAV profile for this new leg
+        - Shift and maintain data (see last- and next- prefix in varubale name) e.g. to continue a special turn
+        - Prepare some VNAV triggers along the new leg for the VNAV profile (where to start descent/climb)
         """
-        # List of indices of aircraft which have reached their active waypoint
+
+        # Get list of indices of aircraft which have reached their active waypoint
+        # This vectorized function checks the passing of the waypoint using a.o. the current turn radius
         self.idxreached = bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
                                        bs.traf.actwp.flyturn,bs.traf.actwp.turnrad,bs.traf.actwp.swlastwp)
+
+        # For the one who have reached their active waypoint, update vectorized leg data for guidance
         for i in self.idxreached:
 
             # Save current wp speed for use on next leg when we pass this waypoint
@@ -282,29 +297,31 @@ class Autopilot(Entity, replaceable=True):
         self.qdr2wp  = qdr
         self.dist2wp = distinnm*nm  # Conversion to meters
 
-        # FMS route update and possibly waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
-        self.update_fms(qdr, self.dist2wp) # Updates self.qdr2wp when necessary
+        # Check possible waypoint shift. Note: qdr, dist2wp will be updated accordingly in case of wp switch
+        self.wppassingcheck(qdr, self.dist2wp) # Updates self.qdr2wp when necessary
 
         #================= Continuous FMS guidance ========================
 
         # Note that the code below is vectorized, with traffic arrays, so for all aircraft
-        # ComputeVNAV and inside waypoint loop of update_fms, it was scalar (per a/c with index i)
+        # ComputeVNAV and inside waypoint loop of wppassingcheck, it was scalar (per a/c with index i)
 
-        # VNAV guidance logic (using the variables prepared by ComputeVNAV when activating waypoint)
-        #
-        # Central question is:
+        # VNAV altitude guidance logic (using the variables prepared by ComputeVNAV when activating waypoint)
+
+        # First question is:
         # - Can we please we start to descend or to climb?
+        #
+        # The variable dist2vs indicates the distance to the active waypoint where we should start our climb/descend
+        # Only use this logic if there is a valid next altitude constraint (nextaltco).
         #
         # Well, when Top of Descent (ToD) switch is on, descend as late as possible,
         # But when Top of Climb switch is on or off, climb as soon as possible, only difference is steepness used in ComputeVNAV
         # to calculate bs.traf.actwp.vs
-        # Only use this logic if there is a valid next altitude constraint (nextaltco)
 
         startdescorclimb = (bs.traf.actwp.nextaltco>=-0.1) * \
-                           np.logical_or(self.swtod * (bs.traf.alt>bs.traf.actwp.nextaltco) * (self.dist2wp < self.dist2vs),
+                           np.logical_or((bs.traf.alt>bs.traf.actwp.nextaltco) * (self.dist2wp < self.dist2vs),
                                          bs.traf.alt<bs.traf.actwp.nextaltco)
 
-        #print("self.dist2vs =",self.dist2vs)
+        # print("self.dist2vs =",self.dist2vs)
 
         # If not lnav:Climb/descend if doing so before lnav/vnav was switched off
         #    (because there are no more waypoints). This is needed
@@ -486,6 +503,7 @@ class Autopilot(Entity, replaceable=True):
         # - Descend at the latest when necessary for next altitude constraint
         #   which can be many waypoints beyond current actual waypoint
         epsalt = 2.*ft # deadzone
+        #
         if bs.traf.alt[idx] > toalt + epsalt:
             # Stop potential current climb (e.g. due to not making it to previous altco)
             # then stop immediately, as in: do not make it worse.
@@ -510,7 +528,7 @@ class Autopilot(Entity, replaceable=True):
                                                  bs.traf.actwp.lon[idx])  # was not always up to date, so update first
 
                 # Distance to next waypoint where we need to start descent (top of descent) [m]
-                descdist = abs(bs.traf.alt[idx] - toalt) / self.steepness  # [m] required length for descent
+                descdist = abs(bs.traf.alt[idx] - toalt) / self.steepness  # [m] required length for descent, uses default steepness!
                 self.dist2vs[idx] = descdist - xtoalt   # [m] part of that length on this leg
 
                 #print(bs.traf.id[idx],"traf.alt =",bs.traf.alt[idx]/ft,"ft toalt = ",toalt/ft,"ft descdist =",descdist/nm,"nm")
@@ -535,11 +553,16 @@ class Autopilot(Entity, replaceable=True):
                     bs.traf.actwp.vs[idx] = 0.0
 
             else:
+
                 # We are higher but swtod = False, so there is no ToD descent logic, simply aim at next altco
-                steepness = (bs.traf.alt[idx]-bs.traf.actwp.nextaltco[idx])/(max(0.01,self.dist2wp[idx]+xtoalt))
-                bs.traf.actwp.vs[idx] = -abs(steepness) * (bs.traf.gs[idx] +
+                steepness_ = (bs.traf.alt[idx]-bs.traf.actwp.nextaltco[idx])/(max(0.01,self.dist2wp[idx]+xtoalt))
+                bs.traf.actwp.vs[idx] = -abs(steepness_) * (bs.traf.gs[idx] +
                                                            (bs.traf.gs[idx] < 0.2 * bs.traf.tas[idx]) * bs.traf.tas[
                                                                idx])
+                self.dist2vs[idx]      = 99999. #[m] Forces immediate descent as current distance to next wp will be less
+
+                # print("in else swtod for ", bs.traf.id[idx])
+
         # VNAV climb mode: climb as soon as possible (T/C logic)
         elif bs.traf.alt[idx] < toalt - 10. * ft:
             # Stop potential current descent (e.g. due to not making it to previous altco)
@@ -556,14 +579,13 @@ class Autopilot(Entity, replaceable=True):
             self.alt[idx]          = bs.traf.actwp.nextaltco[idx]  # dial in altitude of next waypoint as calculated
             self.dist2vs[idx]      = 99999. #[m] Forces immediate climb as current distance to next wp will be less
 
-
             t2go = max(0.1, self.dist2wp[idx]+xtoalt) / max(0.01, bs.traf.gs[idx])
             if self.swtoc[idx]:
-                steepness = self.steepness # default steepness
+                steepness_ = self.steepness # default steepness
             else:
-                steepness = (bs.traf.alt[idx] - bs.traf.actwp.nextaltco[idx]) / (max(0.01, self.dist2wp[idx] + xtoalt))
+                steepness_ = (bs.traf.alt[idx] - bs.traf.actwp.nextaltco[idx]) / (max(0.01, self.dist2wp[idx] + xtoalt))
 
-            bs.traf.actwp.vs[idx]  = np.maximum(steepness*bs.traf.gs[idx],
+            bs.traf.actwp.vs[idx]  = np.maximum(steepness_*bs.traf.gs[idx],
                                        (bs.traf.actwp.nextaltco[idx] - bs.traf.alt[idx]) / t2go) # [m/s]
         # Level leg: never start V/S
         else:
@@ -756,37 +778,6 @@ class Autopilot(Entity, replaceable=True):
         if iwp < 0:
             return False, (self.orig[acidx] + " not found.")
 
-    @stack.command(name='LNAV')
-    def setLNAV(self, idx: 'acid', flag: 'bool'=None):
-        """ LNAV acid,[ON/OFF]
-        
-            LNAV (lateral FMS mode) switch for autopilot """
-        if not isinstance(idx, Collection):
-            if idx is None:
-                # All aircraft are targeted
-                bs.traf.swlnav = np.array(bs.traf.ntraf * [flag])
-            else:
-                # Prepare for the loop
-                idx = np.array([idx])
-
-        # Set LNAV for all aircraft in idx array
-        output = []
-        for i in idx:
-            if flag is None:
-                output.append(bs.traf.id[i] + ": LNAV is " + ("ON" if bs.traf.swlnav[i] else "OFF"))
-
-            elif flag:
-                route = self.route[i]
-                if route.nwp <= 0:
-                    return False, ("LNAV " + bs.traf.id[i] + ": no waypoints or destination specified")
-                elif not bs.traf.swlnav[i]:
-                   bs.traf.swlnav[i] = True
-                   route.direct(i, route.wpname[route.findact(i)])
-            else:
-                bs.traf.swlnav[i] = False
-        if flag is None:
-            return True, '\n'.join(output)
-
     @stack.command(name='VNAV')
     def setVNAV(self, idx: 'acid', flag: 'bool'=None):
         """ VNAV acid,[ON/OFF]
@@ -831,6 +822,92 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.swvnavspd[i] = False
         if flag == None:
             return True, '\n'.join(output)
+
+    @stack.command(name='LNAV')
+    def setLNAV(self, idx: 'acid', flag: 'bool' = None):
+        """ LNAV acid,[ON/OFF]
+
+            LNAV (lateral FMS mode) switch for autopilot """
+        if not isinstance(idx, Collection):
+            if idx is None:
+                # All aircraft are targeted
+                bs.traf.swlnav = np.array(bs.traf.ntraf * [flag])
+            else:
+                # Prepare for the loop
+                idx = np.array([idx])
+
+        # Set LNAV for all aircraft in idx array
+        output = []
+        for i in idx:
+            if flag is None:
+                output.append(bs.traf.id[i] + ": LNAV is " + ("ON" if bs.traf.swlnav[i] else "OFF"))
+
+            elif flag:
+                route = self.route[i]
+                if route.nwp <= 0:
+                    return False, ("LNAV " + bs.traf.id[i] + ": no waypoints or destination specified")
+                elif not bs.traf.swlnav[i]:
+                    bs.traf.swlnav[i] = True
+                    route.direct(i, route.wpname[route.findact(i)])
+            else:
+                bs.traf.swlnav[i] = False
+        if flag is None:
+            return True, '\n'.join(output)
+
+
+    @stack.command(name='SWTOC')
+    def setswtoc(self, idx: 'acid', flag: 'bool' = None):
+        """ SWTOC acid,[ON/OFF]
+
+            Switch ToC logic (=climb early) on/off"""
+
+        if not isinstance(idx, Collection):
+            if idx is None:
+                # All aircraft are targeted
+                self.swtoc = np.array(bs.traf.ntraf * [flag])
+            else:
+                # Prepare for the loop
+                idx = np.array([idx])
+
+        # Set SWTOC for all aircraft in idx array
+        output = []
+        for i in idx:
+            if flag is None:
+                output.append(bs.traf.id[i] + ": SWTOC is " + ("ON" if self.swtoc[i] else "OFF"))
+
+            elif flag:
+                self.swtoc[i] = True
+            else:
+                self.swtoc[i] = False
+        if flag is None:
+            return True, '\n'.join(output)
+
+    @stack.command(name='SWTOD')
+    def setswtod(self, idx: 'acid', flag: 'bool' = None):
+        """ SWTOD acid,[ON/OFF]
+
+            Switch ToD logic (=climb early) on/off"""
+        if not isinstance(idx, Collection):
+            if idx is None:
+                # All aircraft are targeted
+                self.swtod = np.array(bs.traf.ntraf * [flag])
+            else:
+                # Prepare for the loop
+                idx = np.array([idx])
+
+        # Set SWTOD for all aircraft in idx array
+        output = []
+        for i in idx:
+            if flag is None:
+                output.append(bs.traf.id[i] + ": SWTOD is " + ("ON" if self.swtoc[i] else "OFF"))
+
+            elif flag:
+                self.swtod[i] = True
+            else:
+                self.swtod[i] = False
+        if flag is None:
+            return True, '\n'.join(output)
+
 
 def calcvrta(v0, dx, deltime, trafax):
     # Calculate required target ground speed v1 [m/s]

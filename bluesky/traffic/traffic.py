@@ -560,8 +560,6 @@ class Traffic(Entity):
         """POS command: Show info or an aircraft, airport, waypoint or navaid"""
         # Aircraft index
 
-
-
         if type(idxorwp)==int and idxorwp >= 0:
 
             idx           = idxorwp
