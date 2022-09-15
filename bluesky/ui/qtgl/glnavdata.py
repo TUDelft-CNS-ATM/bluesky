@@ -9,7 +9,7 @@ from bluesky.ui import palette
 
 # Register settings defaults
 settings.set_variable_defaults(
-    gfx_path='data/graphics',
+    gfx_path='graphics',
     text_size=13, apt_size=10,
     wpt_size=10)
 

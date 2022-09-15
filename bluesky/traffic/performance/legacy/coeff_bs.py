@@ -2,14 +2,13 @@
 from xml.etree import ElementTree
 from math import *
 import numpy as np
-from pathlib import Path
 from bluesky.tools.aero import ft, g0, rho0, kts, lbs, inch, sqft, fpm
 
 from .performance import esf, phases, calclimits, PHASE
-from bluesky import settings
+import bluesky as bs
 
 # Register settings defaults
-settings.set_variable_defaults(perf_path='data/performance/BS', verbose=False)
+bs.settings.set_variable_defaults(perf_path='performance/BS', verbose=False)
 
 class CoeffBS:
     """
@@ -103,7 +102,7 @@ class CoeffBS:
 
         # parse AC files
 
-        path = settings.resolve_path(settings.perf_path) / 'BS/aircraft'
+        path = bs.resource(bs.settings.perf_path) / 'BS/aircraft'
         for fname in path.iterdir():
             acdoc = ElementTree.parse(fname)
 
@@ -282,7 +281,7 @@ class CoeffBS:
         self.PSFC_CR     = [] # SFC cruise
 
         # parse engine files
-        path = settings.resolve_path(settings.perf_path) / 'BS/engines/'
+        path = bs.resource(bs.settings.perf_path) / 'BS/engines/'
         for fname in path.iterdir():
             endoc = ElementTree.parse(fname)
             self.enlist.append(endoc.find('engines/engine').text)

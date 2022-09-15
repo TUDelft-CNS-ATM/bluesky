@@ -77,11 +77,11 @@ jobs:
         asset_path: ./dist/${{ steps.get_release_info.outputs.file_name }}
         asset_name: ${{ steps.get_release_info.outputs.file_name }}
         asset_content_type: application/gzip
-    - name: Publish pypi source package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+    - name: Store the source package
+      uses: actions/upload-artifact@v2
       with:
-        user: __token__
-        password: ${{ secrets.PYPI_BLUESKY }}
+        name: python-package-distributions
+        path: dist
 
   buildbin:
     name: Build binary packages
@@ -134,7 +134,14 @@ jobs:
         asset_path: ./dist/${{ steps.get_release_info.outputs.file_name }}
         asset_name: ${{ steps.get_release_info.outputs.file_name }}
         asset_content_type: application/zip
-    - name: Publish pypi binary package for ${{matrix.TARGET}}
+    - name: Store the binary wheel
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-package-distributions
+        path: dist
+
+
+    - name: Publish pypi packages
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
         user: __token__

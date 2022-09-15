@@ -4,3 +4,5 @@ matplotlib
 msgpack >= 1.0.0
 zmq
 pandas
+bluesky-perfdata
+bluesky-navdata

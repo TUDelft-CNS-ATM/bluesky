@@ -31,7 +31,7 @@ class Menu:
         self.bmps  = []     # list with menu bitmpas
 
         for i in range(self.npages):
-            imgpath = "data/graphics/menu/menu"+str(i+1)+".jpg"
+            imgpath = "graphics/menu/menu"+str(i+1)+".jpg"
 
             im = pg.image.load(imgpath)
 
@@ -49,7 +49,7 @@ class Menu:
         self.rect = pg.Rect(self.x,self.y,self.dx,self.dy)
 
         # Read data
-        f = open("data/graphics/menu.dat")
+        f = open("graphics/menu.dat")
         self.cmd = []
         ipage = 0
         page = []

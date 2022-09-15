@@ -11,9 +11,7 @@ from .loadnavdata_txt import loadnavdata_txt, loadthresholds_txt
 navdb_version = 'v20170101'
 
 ## Default settings
-settings.set_variable_defaults(navdata_path='data/navdata')
-
-sourcedir = settings.resolve_path(settings.navdata_path)
+settings.set_variable_defaults(navdata_path='navdata')
 
 
 def load_navdata():

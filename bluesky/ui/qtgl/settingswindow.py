@@ -19,7 +19,7 @@ import bluesky as bs
 def sel_palette(value, changed_fun):
     wid = QComboBox()
     
-    palfiles = [path.basename(f) for f in (bs.settings.resolve_path(bs.settings.gfx_path) / 'palettes').glob('*')]
+    palfiles = [path.basename(f) for f in (bs.resource(bs.settings.gfx_path) / 'palettes').glob('*')]
     wid.addItems(palfiles)
     wid.setCurrentText(value)
     wid.currentTextChanged.connect(changed_fun)

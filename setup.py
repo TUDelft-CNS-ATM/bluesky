@@ -1,20 +1,19 @@
 # Always prefer setuptools over distutils
-from os import path
-from setuptools import setup, find_packages, Extension
-from codecs import open
-import shutil
+import os
+from pathlib import Path
+from setuptools import setup, find_packages, find_namespace_packages, Extension
 import configparser
 import numpy as np
 
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # Get base requirements from requirements.txt
-with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
+with open(os.path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     install_requires = f.readlines()
 
 
@@ -28,75 +27,65 @@ extras_requirements.update({
     'test': ['coverage', 'flake8', 'radon', 'nose'],
 })
 
-# Temporarily create resources folder
-if path.exists('bluesky/resources'):
-    shutil.rmtree('bluesky/resources')
-shutil.copytree('data', 'bluesky/resources/data', ignore=shutil.ignore_patterns('cache'))
-shutil.copytree('plugins', 'bluesky/resources/plugins')
-shutil.copytree('scenario', 'bluesky/resources/scenario')
-with open('bluesky/resources/__init__.py', 'w') as f:
-    f.write('')
+try:
+    os.symlink('../../scenario', 'bluesky/resources/scenario')
+    os.symlink('../../plugins', 'bluesky/resources/plugins')
+    print(list(Path('bluesky/resources').glob('*')))
+    setup(
+        name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
+        use_calver=True,
+        setup_requires=['calver'],
+        install_requires=install_requires,
+        extras_require=extras_requirements,
+        author='The BlueSky community',
+        license='GNU General Public License v3 (GPLv3)',
+        maintainer='Jacco Hoekstra and Joost Ellerbroek',
+        description='The Open Air Traffic Simulator',
+        long_description=long_description,
+        long_description_content_type="text/markdown",
+        url='https://github.com/TUDelft-CNS-ATM/bluesky',
+        classifiers=[
+            'Development Status :: 4 - Beta',
 
-setup(
-    name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
-    use_calver=True,
-    setup_requires=['calver'],
-    install_requires=install_requires,
-    extras_require=extras_requirements,
-    author='The BlueSky community',
-    license='GNU General Public License v3 (GPLv3)',
-    maintainer='Jacco Hoekstra and Joost Ellerbroek',
-    description='The Open Air Traffic Simulator',
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url='https://github.com/TUDelft-CNS-ATM/bluesky',
-    classifiers=[
-        'Development Status :: 4 - Beta',
+            # Indicate who your project is intended for
+            'Intended Audience :: Science/Research',
+            'Topic :: Scientific/Engineering',
 
-        # Indicate who your project is intended for
-        'Intended Audience :: Science/Research',
-        'Topic :: Scientific/Engineering',
+            # Pick your license as you wish
+            'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
-        # Pick your license as you wish
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10'
-    ],
-
-    # This field adds keywords for your project which will appear on the
-    keywords='atm transport simulation aviation aircraft',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),  # Required
-    include_package_data=True,
-    # package_data={
-    #       'bluesky.resources': [f for f in glob.glob('data/**/*') if path.isfile(f)] + ['data/default.cfg']
-    # },
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # `pip` to create the appropriate form of executable for the target
-    # platform.
-    # data_files = [('resources/data', [f for f in glob.glob('data/**/*') if path.isfile(f)
-    #               and path.basename(f) not in ('world.16384x8192.dds',
-    #                                            'world.8192x4096.dds')] + ['data/default.cfg']),
-    #               ('resources/plugins', [f for f in glob.glob('plugins/*.py') if path.isfile(f)]),
-    #               ('resources/utils', [f for f in glob.glob('utils/**/*') if path.isfile(f)])],
-    entry_points={
-        'console_scripts': [
-            'bluesky=bluesky.__main__:main',
+            # Specify the Python versions you support here. In particular, ensure
+            # that you indicate whether you support Python 2, Python 3 or both.
+            'Programming Language :: Python :: 3.7',
+            'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
+            'Programming Language :: Python :: 3.10'
         ],
-    },
 
-    project_urls={
-        'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',
-    },
-    include_dirs=[np.get_include()],
-    ext_modules=[Extension('bluesky.tools.cgeo', ['bluesky/tools/src_cpp/cgeo.cpp']),
-                 Extension('bluesky.traffic.asas.cstatebased', ['bluesky/traffic/asas/src_cpp/cstatebased.cpp'], include_dirs=['bluesky/tools/src_cpp'])]
-)
+        # This field adds keywords for your project which will appear on the
+        keywords='atm transport simulation aviation aircraft',
+        packages=find_packages(exclude=['contrib', 'docs', 'tests', 'bluesky/resources/graphics', 'bluesky/resources/html', 'bluesky/resources/navdata', 'bluesky/resources/performance']),# Required
+        include_package_data=True,
+        exclude_package_data={'bluesky': ['resources/graphics/*', 'resources/html/*', 'resources/navdata/*', 'resources/performance/*']},
+        package_data={
+            'bluesky': ['resources/*']
+        },
+        entry_points={
+            'console_scripts': [
+                'bluesky=bluesky.__main__:main',
+            ],
+            # 'bluesky.resources': [
+            #     'base = bluesky.resources'
+            # ]
+        },
 
-if path.exists('bluesky/resources'):
-    shutil.rmtree('bluesky/resources')
+        project_urls={
+            'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',
+        },
+        include_dirs=[np.get_include()],
+        ext_modules=[Extension('bluesky.tools.cgeo', ['bluesky/tools/src_cpp/cgeo.cpp']),
+                    Extension('bluesky.traffic.asas.cstatebased', ['bluesky/traffic/asas/src_cpp/cstatebased.cpp'], include_dirs=['bluesky/tools/src_cpp'])]
+    )
+finally:
+    os.unlink('bluesky/resources/scenario')
+    os.unlink('bluesky/resources/plugins')

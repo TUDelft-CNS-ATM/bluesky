@@ -87,7 +87,7 @@ class Screen:
         print()
         print("Setting up screen...")
 
-        lst = np.genfromtxt("data/graphics/scr_cfg.dat", comments='#', dtype='i4')
+        lst = np.genfromtxt("graphics/scr_cfg.dat", comments='#', dtype='i4')
 
         self.swfullscreen = int(lst[0]) == 0
 
@@ -116,12 +116,12 @@ class Screen:
         # Read graphics for acsymbol (normal = green) + amber
         self.acsymbol = []
         for i in range(60):
-            self.acsymbol.append(pg.image.load("data/graphics/acsymbol/acsymbol" \
+            self.acsymbol.append(pg.image.load("graphics/acsymbol/acsymbol" \
                                   + str(i) + ".png"))
 
         self.ambacsymbol = []
         for i in range(60):
-            self.ambacsymbol.append(pg.image.load("data/graphics/amb-acsymbol/amb-acsymbol" \
+            self.ambacsymbol.append(pg.image.load("graphics/amb-acsymbol/amb-acsymbol" \
                                      + str(i) + ".png"))
 
         # Lable lines& default no trails
@@ -129,12 +129,12 @@ class Screen:
 
 
         # Read and scale waypoint symbol
-        wptgif = pg.image.load("data/graphics/waypoint.gif")
+        wptgif = pg.image.load("graphics/waypoint.gif")
         self.wptsymbol = pg.transform.scale(wptgif, (10, 7))
         self.wpsw = 1  # 0=None, 1 = VOR 2 = non-digit ones, 3 =all
 
         # Read and scale airport symbol
-        aptgif = pg.image.load("data/graphics/airport.gif")
+        aptgif = pg.image.load("graphics/airport.gif")
         self.aptsymbol = pg.transform.scale(aptgif, (12, 9))
         self.apsw = 1  # 0 = None, 1 = Large, 2 = All
 
@@ -146,7 +146,7 @@ class Screen:
 
         #--------------------------------MAPS---------------------------------
         # Read map of world
-        self.mapbmp = pg.image.load("data/graphics/world.jpg")
+        self.mapbmp = pg.image.load("graphics/world.jpg")
         w, h = self.mapbmp.get_size()
 
         # Two ref positions for scaling, convert to scaling factors x=a*lat+b
@@ -191,7 +191,7 @@ class Screen:
             self.win = pg.display.set_mode(reso)
 
         pg.display.set_caption("BlueSky Open ATM Simulator (F11 = Full Screen)", "BlueSky")
-        iconpath = imgpath = "data/graphics/icon.gif"
+        iconpath = imgpath = "graphics/icon.gif"
         iconbmp = pg.image.load(iconpath)
         pg.display.set_icon(iconbmp)
 
@@ -218,7 +218,7 @@ class Screen:
 
         #-------------------------COASTLINE DATA--------------------------------------
         # Init geo (coastline)  data
-        f = open("data/navdata/coastlines.dat", 'r')
+        f = open("navdata/coastlines.dat", 'r')
         print("Reading coastlines.dat")
         lines = f.readlines()
         f.close()
@@ -1081,7 +1081,7 @@ class Screen:
 
         pg.display.set_caption("BlueSky Open ATM Simulator (F11 = Full Screen)",
                                "BlueSky")
-        iconpath = imgpath = "data/graphics/icon.gif"
+        iconpath = imgpath = "graphics/icon.gif"
         iconbmp = pg.image.load(iconpath)
         pg.display.set_icon(iconbmp)
 
@@ -1276,7 +1276,7 @@ class Screen:
         if not cmd:
             cmd = 'Command-Reference'
         curdir = os.getcwd()
-        os.chdir("data/html")
+        os.chdir("html")
         htmlfile = cmd.lower()+".html"
         if os.path.isfile(htmlfile):
             try:

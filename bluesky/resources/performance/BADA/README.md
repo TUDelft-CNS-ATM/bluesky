@@ -1,7 +1,7 @@
 This folder is empty by default, but if you have the appropriate license you can place BADA3.x files here to use BADA for aircraft performance calculations.
 
 
-Extract the bada zip, i.e. `bada_3131.zip`, in the `data/performance/BADA` directory.
+Extract the bada zip, i.e. `bada_3131.zip`, in the same folder as this readme file.
 It will contain all `.APF`, `.OPF`, `.PTD` plus `SYNONYM.NEW` and `ReleaseSummary` files.
 
 

@@ -10,7 +10,3 @@ include BlueSky*.py
 include check.py
 include requirements.txt
 include Makefile
-
-# reduce package size for PyPI
-exclude bluesky/resources/data/graphics/world.8192x4096.dds
-exclude bluesky/resources/data/graphics/world.16384x8192.dds

@@ -168,7 +168,7 @@ class BlipDriver(QGLWidget):
 
         # Use the same font as the radarwidget
         self.font = Font()
-        self.font.create_font_array('../../data/graphics/font/')
+        self.font.create_font_array('../../graphics/font/')
         self.font.init_shader(self.text_shader)
 
         edge = np.zeros(120, dtype=np.float32)

@@ -56,7 +56,7 @@ def saveic(filename: 'word' = ''):
     filename = Path(filename).with_suffix('.scn')
     # If it is with path don't touch it, else add path
     if not filename.is_absolute():
-        filename = bs.settings.resolve_path(bs.settings.scenario_path) / filename
+        filename = bs.resource(bs.settings.scenario_path) / filename
 
     try:
         f = open(filename, "w")

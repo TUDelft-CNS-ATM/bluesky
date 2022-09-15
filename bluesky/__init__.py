@@ -1,6 +1,7 @@
 ''' BlueSky: The open-source ATM simulator.'''
 from bluesky import settings
 from bluesky.core import Signal
+from bluesky.resourcepath import resource
 from bluesky import stack
 from bluesky import tools
 
@@ -28,7 +29,7 @@ server = None
 
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
-         gui=None, detached=False, updatedirs=False, **kwargs):
+         gui=None, detached=False, workdir=None, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
@@ -39,6 +40,7 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
           when this process is running a server) [True/False]
         - gui: Gui type (only when mode is client or server) [qtgl/pygame/console]
         - detached: Run with or without networking (only when mode is sim) [True/False]
+        - workdir: Pass a custom working directory (instead of cwd or ~/bluesky)
     '''
 
     # Argument checking
@@ -59,8 +61,12 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     globals()['mode'] = mode
     globals()['gui'] = gui
 
-    # Initialize global settings first, possibly loading a custom config file
-    settings.init(configfile, updatedirs)
+    # Initialise resource localisation, and set custom working directory if present
+    from bluesky import resourcepath
+    resourcepath.init(workdir)
+
+    # Initialize global settings, possibly loading a custom config file
+    settings.init(configfile)
 
     # Initialise tools
     tools.init()

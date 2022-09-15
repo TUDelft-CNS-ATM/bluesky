@@ -1,6 +1,5 @@
 """ Autocomplete filenames in the BlueSky console."""
-import glob
-from bluesky import settings
+import bluesky as bs
 
 previous_g = ''
 
@@ -9,7 +8,7 @@ previous_g = ''
 def iglob(pattern):
     def either(c):
         return '[%s%s]' % (c.lower(), c.upper()) if c.isalpha() else c
-    return glob.glob(''.join(map(either, pattern)))
+    return list(bs.resource('scenario').glob(''.join(map(either, pattern))))
 
 
 def reset():
@@ -25,28 +24,24 @@ def complete(cmd):
 
     if lcmd[0] in ['IC', 'BATCH', 'CALL', 'PCALL']:
         global previous_g
-        g = settings.resolve_path(settings.scenario_path).as_posix()
-        striplen = len(g)
-        if g[-1] != '/':
-            g += '/'
-            striplen += 1
+        g = ''
         if len(lcmd) == 2:
             g += lcmd[1].strip()
         files = iglob(g + '*')
 
         if len(files) > 0:
             if len(files) == 1:
-                newcmd = lcmd[0] + ' ' + files[0][striplen:]
+                newcmd = lcmd[0] + ' ' + files[0].name
             elif g == previous_g:
-                for f in files:
-                    displaytext += f[striplen:] + '  '
+                displaytext += ' '.join(f.name for f in files)
+
             else:
                 previous_g = g
                 idx        = len(g)
-                while idx < len(files[0]) and len(files) == len(iglob(g + files[0][idx] + '*')):
-                    g += files[0][idx].upper()
+                while idx < len(files[0].name) and len(files) == len(iglob(g + files[0].name[idx] + '*')):
+                    g += files[0].name[idx].upper()
                     idx += 1
 
-                newcmd = lcmd[0] + ' ' + g[striplen:]
+                newcmd = lcmd[0] + ' ' + g
 
     return newcmd, displaytext

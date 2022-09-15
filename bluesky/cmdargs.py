@@ -46,8 +46,8 @@ def parse():
     parser.add_argument("--discoverable", dest="discoverable", action="store_const", const=True,
                         default=False, help="Make simulation server discoverable. (Default in headless mode).")
     
-    parser.add_argument("--updatedirs", dest="updatedirs", action="store_const", const=True,
-                        default=False, help="Update files and folders in the local bluesky folder.")
+    parser.add_argument("--workdir", dest="workdir",
+                        help="Set BlueSky working directory (if other than cwd or ~/bluesky).")
 
     cmdargs = parser.parse_args()
 

@@ -92,4 +92,4 @@ class DocWindow(QWidget):
             cmd = 'Command-Reference'
         if not isinstance(self.view, QLabel):
             self.view.load(QUrl.fromLocalFile(
-                QFileInfo(f'data/html/{cmd.lower()}.html').absoluteFilePath()))
+                QFileInfo(f'html/{cmd.lower()}.html').absoluteFilePath()))

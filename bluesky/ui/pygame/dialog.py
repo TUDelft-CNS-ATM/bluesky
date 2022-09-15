@@ -16,7 +16,7 @@ except:
         import Tkinter.filedialog as filedialog
         
 import os
-from bluesky import settings
+import bluesky as bs
 
 def fileopen():
     """returns filename of scenariofile selected"""
@@ -26,7 +26,7 @@ def fileopen():
     if sys.platform == 'darwin':
        return ''
 
-    dirpath = settings.resolve_path(settings.scenario_path)
+    dirpath = bs.resource(bs.settings.scenario_path)
     os.chdir(dirpath)
 
     master = Tk()

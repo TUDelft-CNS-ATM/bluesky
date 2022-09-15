@@ -6,11 +6,11 @@ import datetime
 import requests
 import numpy as np
 import bluesky as bs
-from bluesky import settings, stack
+from bluesky import stack
 from bluesky.core import timed_function
 from bluesky.traffic.windsim import WindSim
 
-settings.set_variable_defaults(
+bs.settings.set_variable_defaults(
     windgfs_url="https://www.ncei.noaa.gov/data/global-forecast-system/access/historical/analysis/")
 
 # nlayer = 23
@@ -19,7 +19,7 @@ datadir = Path('')
 
 def init_plugin():
     global datadir
-    datadir = settings.resolve_path(settings.data_path) / 'grib'
+    datadir = bs.resource(bs.settings.data_path) / 'grib'
 
     if not datadir.is_dir():
         datadir.mkdir()
@@ -60,7 +60,7 @@ class WindGFS(WindSim):
         fname = "gfsanl_3_%s_%s_%s.grb2" % (ymd, hm, pred)
         fpath = datadir / fname
 
-        remote_url = settings.windgfs_url + remote_loc
+        remote_url = bs.settings.windgfs_url + remote_loc
 
         if not fpath.is_file():
             bs.scr.echo("Downloading file, please wait...")

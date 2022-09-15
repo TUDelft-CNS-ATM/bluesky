@@ -1,6 +1,6 @@
 from matplotlib.path import Path
 import json
-import os
+
 
 try:
     from rtree.index import Index
@@ -14,10 +14,10 @@ except ImportError:
     print('Geofence plugin needs shapely.')
 
 import bluesky as bs
-from bluesky import settings, stack
+from bluesky import stack
 from bluesky.tools import aero, areafilter, geo
 
-settings.set_variable_defaults(geofence_dtlookahead=30)
+bs.settings.set_variable_defaults(geofence_dtlookahead=30)
 
 def init_plugin():
     # Configuration parameters
@@ -53,7 +53,7 @@ def savegeofences(filename: 'txt'):
     if filename[-5:] != '.json':
         filename = filename + '.json'
     
-    filepath = settings.resolve_path(settings.data_path) / 'geofences' / filename
+    filepath = bs.resource(bs.settings.data_path) / 'geofences' / filename
 
     with open(filepath, 'w') as f:
         json.dump(Geofence.geo_save_dict, f, indent=4)
@@ -66,7 +66,7 @@ def loadgeofences(filename: 'txt'):
     if filename[-5:] != '.json':
         filename = filename + '.json'
 
-    filepath = settings.resolve_path(settings.data_path) / 'geofences' / filename
+    filepath = bs.resource(bs.settings.data_path) / 'geofences' / filename
 
     with open(filepath, 'r') as f:
         try:
@@ -94,7 +94,7 @@ def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', b
     if filename[-5:] != '.geojson':
         filename = filename + '.geojson'
     
-    filepath = settings.resolve_path(settings.data_path) / 'geofences' / filename
+    filepath = bs.resource(bs.settings.data_path) / 'geofences' / filename
 
     with open(filepath, 'r') as f:
         try:
@@ -233,7 +233,7 @@ class Geofence(areafilter.Poly):
     @classmethod
     def detect_all(cls, traf, dtlookahead=None):
         if dtlookahead is None:
-            dtlookahead = settings.geofence_dtlookahead
+            dtlookahead = bs.settings.geofence_dtlookahead
         # Reset the hits dict
         cls.hits.clear()
         # Linearly extrapolate current state to prefict future position
