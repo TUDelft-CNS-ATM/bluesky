@@ -73,7 +73,8 @@ def resource(*descendants):
           If arguments form an absolute path it is returned directly,
           otherwise a path relative to BlueSky's resource paths is returned.
     '''
-    if (ret:=Path(*descendants)).is_absolute():
+    ret = Path(*descendants)
+    if ret.is_absolute():
         return ret
 
     return resource.path.joinpath(*descendants)
