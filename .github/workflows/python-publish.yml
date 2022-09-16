@@ -11,6 +11,7 @@ name: Build and upload Python Packages
 
 # on: [push]
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
@@ -51,7 +52,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install numpy 
+        pip install numpy
     - name: Build source package with setuptools
       run: python setup.py sdist
 
@@ -140,7 +141,12 @@ jobs:
         name: python-package-distributions
         path: dist
 
-
+  upload_pypi:
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: python-package-distributions
+        path: dist
     - name: Publish pypi packages
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
