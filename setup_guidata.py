@@ -1,6 +1,5 @@
 from setuptools import setup
 from os import path
-import glob
 
 
 # Get the long description from the README file

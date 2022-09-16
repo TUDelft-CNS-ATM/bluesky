@@ -10,13 +10,13 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 
 setup(
-    name='bluesky-perfdata',
+    name='bluesky-simdata',
     use_calver=True,
     setup_requires=['calver'],
     author='The BlueSky community',
     license='GNU General Public License v3 (GPLv3)',
     maintainer='Jacco Hoekstra and Joost Ellerbroek',
-    description='The Open Air Traffic Simulator - GUI resources',
+    description='The Open Air Traffic Simulator - simulation resources',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/TUDelft-CNS-ATM/bluesky',
@@ -40,7 +40,7 @@ setup(
 
     # This field adds keywords for your project which will appear on the
     keywords='atm transport simulation aviation aircraft',
-    packages=['bluesky.resources.performance'],  # Required
+    packages=['bluesky.resources.performance', 'bluesky.resources.navdata'],  # Required
     include_package_data=True,
     project_urls={
         'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',
