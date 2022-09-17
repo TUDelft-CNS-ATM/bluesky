@@ -65,7 +65,7 @@ setup(
 
     # This field adds keywords for your project which will appear on the
     keywords='atm transport simulation aviation aircraft',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'bluesky/resources/graphics', 'bluesky/resources/html', 'bluesky/resources/navdata', 'bluesky/resources/performance']),# Required
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'bluesky.resources.graphics', 'bluesky.resources.html', 'bluesky.resources.navdata', 'bluesky.resources.performance']),# Required
     include_package_data=True,
     exclude_package_data={'bluesky': ['resources/graphics/*', 'resources/html/*', 'resources/navdata/*', 'resources/performance/*']},
     package_data={

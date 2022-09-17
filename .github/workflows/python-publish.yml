@@ -31,7 +31,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy
     - name: Build source package with setuptools
-      run: python setup.py sdist
+      run: |
+      echo "prune bluesky/resources/graphics\nprune bluesky/resources/html\nprune bluesky/resources/navdata\nprune bluesky/resources/performance" >> MANIFEST.in
+      python setup.py sdist
     - name: Store the source package
       uses: actions/upload-artifact@v2
       with:
