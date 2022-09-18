@@ -21,7 +21,7 @@ env:
   CIBW_TEST_SKIP: "*universal2:arm64"
 
 jobs:
-  buildsrc:
+  build_sdist:
     name: Build source package
     runs-on: ubuntu-latest
     steps:
@@ -63,7 +63,7 @@ jobs:
         name: python-package-distributions
         path: ./wheelhouse/*.whl
 
-  # buildbin:
+  # build_wheels:
   #   name: Build binary package for ${{ matrix.os }}
   #   runs-on: ${{ matrix.os }}
   #   strategy:
@@ -90,7 +90,7 @@ jobs:
   #       path: dist
 
   upload_pypi:
-    needs: [buildsrc, buildbin]
+    needs: [build_sdist, build_wheels]
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
