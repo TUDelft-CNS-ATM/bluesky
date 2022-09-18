@@ -1,6 +1,5 @@
-from setuptools import setup
+from setuptools import setup, findall
 from os import path
-import glob
 
 
 # Get the long description from the README file
@@ -41,7 +40,8 @@ setup(
     # This field adds keywords for your project which will appear on the
     keywords='atm transport simulation aviation aircraft',
     packages=['bluesky.resources.performance', 'bluesky.resources.navdata'],  # Required
-    include_package_data=True,
+    package_data={'bluesky.resources.performance': [f.replace('bluesky/resources/performance/', '', 1) for f in findall('bluesky/resources/performance')],
+                  'bluesky.resources.navdata':     [f.replace('bluesky/resources/navdata/', '', 1) for f in findall('bluesky/resources/navdata')]},
     project_urls={
         'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',
     },

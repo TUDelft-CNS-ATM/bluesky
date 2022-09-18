@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, findall
 from os import path
 
 
@@ -40,7 +40,8 @@ setup(
     # This field adds keywords for your project which will appear on the
     keywords='atm transport simulation aviation aircraft',
     packages=['bluesky.resources.graphics', 'bluesky.resources.html'],  # Required
-    include_package_data=True,
+    package_data={'bluesky.resources.graphics': [f.replace('bluesky/resources/graphics/', '', 1) for f in findall('bluesky/resources/graphics')],
+                  'bluesky.resources.html':     [f.replace('bluesky/resources/html/', '', 1) for f in findall('bluesky/resources/html')]},
     exclude_package_data={'bluesky.resources.graphics': ['world.jpg']},
     project_urls={
         'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',

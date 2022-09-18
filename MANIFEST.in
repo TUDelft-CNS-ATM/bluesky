@@ -6,7 +6,15 @@ recursive-exclude bluesky .DS_Store
 include LICENSE
 include README.md
 include setup.py
-include BlueSky*.py
 include check.py
 include requirements.txt
 include Makefile
+prune docs
+prune extra
+prune plugins
+prune scenario
+prune utils
+prune bluesky/resources/graphics
+prune bluesky/resources/html
+prune bluesky/resources/navdata
+prune bluesky/resources/performance
