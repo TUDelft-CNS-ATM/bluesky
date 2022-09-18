@@ -17,6 +17,7 @@ on:
       - published
 
 env:
+  CIBW_BUILD: cp38* cp39* cp310*
   CIBW_ARCHS_MACOS: auto universal2
   CIBW_TEST_SKIP: "*universal2:arm64"
 
