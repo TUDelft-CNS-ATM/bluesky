@@ -2,8 +2,13 @@
 import shutil
 import itertools
 from pathlib import Path
-from importlib.resources import files
-from importlib.readers import MultiplexedPath
+try:
+    from importlib.resources import files
+    from importlib.readers import MultiplexedPath
+except ImportError:
+    # Python < 3.9 only provides deprecated resources API
+    from importlib_resources import files
+    from importlib_resources.readers import MultiplexedPath
 
 
 class ResourcePath(MultiplexedPath):
