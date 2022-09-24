@@ -1,5 +1,4 @@
 ''' BlueSky OpenGL radar view. '''
-from os import path
 from ctypes import c_float, c_int, Structure
 import numpy as np
 
@@ -13,14 +12,13 @@ from bluesky.core import Signal
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
-from bluesky import settings
 from .gltraffic import Traffic
 from .glmap import Map
 from .glnavdata import Navdata
 from .glpoly import Poly
 from .gltiledmap import TiledMap
 # Register settings defaults
-settings.set_variable_defaults(gfx_path='data/graphics')
+bs.settings.set_variable_defaults(gfx_path='graphics')
 
 # Qt smaller than 5.6.2 needs a different approach to pinch gestures
 CORRECT_PINCH = False
@@ -44,7 +42,7 @@ class RadarShaders(glh.ShaderSet):
 
     def create(self):
         super().create()
-        shaderpath = (settings.resolve_path(settings.gfx_path) / 'shaders').as_posix()
+        shaderpath = (bs.resource(bs.settings.gfx_path) / 'shaders').as_posix()
         self.set_shader_path(shaderpath)
         # Load all shaders for this shader set
         self.load_shader('normal', 'radarwidget-normal.vert',

@@ -485,7 +485,7 @@ def setscenpath(newpath):
     newpath = Path(newpath)
     # If this is a relative path we need to prefix scenario folder
     if not newpath.is_absolute():
-        newpath = settings.resolve_path(settings.scenario_path) / newpath
+        newpath = bs.resource(settings.scenario_path) / newpath
 
     if not newpath.is_dir():
         return False, "Error: cannot find path: " + newpath

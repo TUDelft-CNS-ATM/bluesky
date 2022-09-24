@@ -36,14 +36,14 @@ import numpy as np
 
 
 
-from bluesky import settings
+import bluesky as bs
 from bluesky.core import Entity
 from bluesky.stack import command
 from bluesky.ui.qtgl.dds import DDSTexture
 
 
 # Register settings defaults
-settings.set_variable_defaults(gfx_path='data/graphics')
+bs.settings.set_variable_defaults(gfx_path='graphics')
 
 GLVariable = namedtuple('GLVariable', ['loc', 'size'])
 # Convenience object with all GL functions
@@ -1008,7 +1008,7 @@ class Font(Texture):
         self.loc_block_size = txtshader.uniforms['block_size'].loc
 
         # Load the first image to get font size
-        fname = (settings.resolve_path(settings.gfx_path) / 'font/{i}.png').as_posix()
+        fname = (bs.resource(bs.settings.gfx_path) / 'font/{i}.png').as_posix()
         img = QImage(fname.format(i=32))
         imgsize = (img.width(), img.height())
         self.char_ar = float(imgsize[1]) / imgsize[0]

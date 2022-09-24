@@ -13,7 +13,7 @@ navdb_version = 'v20170101'
 aptsurf_version = 'v20171116'
 
 ## Default settings
-settings.set_variable_defaults(navdata_path='data/navdata')
+settings.set_variable_defaults(navdata_path='navdata')
 
 
 def load_coastlines():

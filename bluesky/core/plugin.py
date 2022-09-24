@@ -6,6 +6,7 @@ import sys
 import importlib
 import bluesky as bs
 from bluesky import settings
+from bluesky.resourcepath import ResourcePath
 from bluesky.core import timed_function, varexplorer as ve
 from bluesky import stack
 
@@ -100,7 +101,7 @@ class Plugin:
     @classmethod
     def find_plugins(cls, reqtype):
         ''' Create plugin wrapper objects based on source code of potential plug-in files. '''
-        for fname in settings.resolve_path(settings.plugin_path).glob('**/*.py'):
+        for fname in bs.resource(settings.plugin_path).glob('**/*.py'):
             with open(fname, 'rb') as f:
                 source = f.read()
                 try:
@@ -160,7 +161,12 @@ class Plugin:
 def init(mode):
     ''' Initialization function of the plugin system.'''
     # Add plugin path to module search path
-    sys.path.append(settings.resolve_path(settings.plugin_path).absolute().as_posix())
+    plugin_path = bs.resource(settings.plugin_path)
+    if isinstance(plugin_path, ResourcePath):
+        for path in plugin_path.bases():
+            sys.path.append(path.absolute().as_posix())
+    else:
+        sys.path.append(plugin_path.absolute().as_posix())
     # Set plugin type for this instance of BlueSky
     req_type = 'sim' if mode[:3] == 'sim' else 'gui'
     oth_type = 'gui' if mode[:3] == 'sim' else 'sim'

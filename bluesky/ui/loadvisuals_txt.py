@@ -1,10 +1,9 @@
 ''' Load visual data from text files.'''
 from bluesky.navdatabase.loadnavdata_txt import thresholds, thrpoints
-from pathlib import Path
 from zipfile import ZipFile
 import numpy as np
 import bluesky as bs
-from bluesky import settings
+
 
 REARTH_INV = 1.56961231e-7
 
@@ -57,7 +56,7 @@ def load_coastline_txt():
     # coastlines to numpy arrays with lat/lon
     coast = []
     clat = clon = 0.0
-    with open(settings.resolve_path(settings.navdata_path) / 'coastlines.dat', 'r') as f:
+    with open(bs.resource(bs.settings.navdata_path) / 'coastlines.dat', 'r') as f:
         print("Reading coastlines.dat")
         for line in f:
             line = line.strip()
@@ -131,7 +130,7 @@ if bs.gui == 'qtgl':
         apt_bb = BoundingBox()
         count = 0
         bytecount = 0
-        zfile = ZipFile(settings.resolve_path(settings.navdata_path) / 'apt.zip')
+        zfile = ZipFile(bs.resource(bs.settings.navdata_path) / 'apt.zip')
         fsize = float(zfile.getinfo('apt.dat').file_size)
         print("Reading apt.dat from apt.zip")
         with zfile.open('apt.dat', 'r') as f:

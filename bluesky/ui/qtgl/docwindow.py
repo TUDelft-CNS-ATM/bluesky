@@ -53,6 +53,8 @@ except ImportError:
     except ImportError:
         DocView = None
 
+import bluesky as bs
+
 
 class DocWindow(QWidget):
     app = None
@@ -91,5 +93,5 @@ class DocWindow(QWidget):
         if not cmd:
             cmd = 'Command-Reference'
         if not isinstance(self.view, QLabel):
-            self.view.load(QUrl.fromLocalFile(
-                QFileInfo(f'data/html/{cmd.lower()}.html').absoluteFilePath()))
+            fname = bs.resource(f'html/{cmd.lower()}.html').as_posix()
+            self.view.load(QUrl.fromLocalFile(QFileInfo(fname).absoluteFilePath()))

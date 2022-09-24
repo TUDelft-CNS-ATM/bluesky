@@ -1,11 +1,10 @@
 from pathlib import Path
-import os
 import cdsapi
 import datetime
 import numpy as np
 import bluesky as bs
 import netCDF4 as nc
-from bluesky import settings, stack
+from bluesky import stack
 from bluesky.core import timed_function
 from bluesky.traffic.windsim import WindSim
 
@@ -15,7 +14,7 @@ datadir = Path('')
 
 def init_plugin():
     global datadir
-    datadir = settings.resolve_path(settings.data_path) / 'NetCDF'
+    datadir = bs.resource(bs.settings.data_path) / 'NetCDF'
 
     if not datadir.is_dir():
         datadir.mkdir()

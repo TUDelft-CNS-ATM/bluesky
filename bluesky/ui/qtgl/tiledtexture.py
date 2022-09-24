@@ -61,7 +61,7 @@ class Tile:
 
         self.image = None
         # For the image data, check cache path first
-        fpath = bs.settings.resolve_path(bs.settings.cache_path) / source / str(zoom) / str(tilex)
+        fpath = bs.resource(bs.settings.cache_path) / source / str(zoom) / str(tilex)
         fname = fpath / f'{tiley}{self.ext}'
         if fname.exists():
             self.image = QImage(fname.as_posix()).convertToFormat(QImage.Format.Format_ARGB32)

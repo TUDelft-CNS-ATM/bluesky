@@ -1,4 +1,5 @@
 """ Main window for the QTGL gui."""
+from pathlib import Path
 import platform
 
 try:
@@ -7,7 +8,7 @@ try:
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-        QDialogButtonBox
+        QDialogButtonBox, QMenu
     from PyQt5 import uic
 except ImportError:
     from PyQt6.QtWidgets import QApplication as app
@@ -15,11 +16,12 @@ except ImportError:
     from PyQt6.QtGui import QPixmap, QIcon
     from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-        QDialogButtonBox
+        QDialogButtonBox, QMenu
     from PyQt6 import uic
 
 # Local imports
 import bluesky as bs
+from bluesky.resourcepath import ResourcePath
 from bluesky.tools.misc import tim2txt
 from bluesky.network import get_ownip
 from bluesky.ui import palette
@@ -35,7 +37,7 @@ if platform.system().lower() == "windows":
     from bluesky.ui.pygame.dialog import fileopen
 
 # Register settings defaults
-bs.settings.set_variable_defaults(gfx_path='data/graphics')
+bs.settings.set_variable_defaults(gfx_path='graphics')
 
 palette.set_default_colours(stack_text=(0, 255, 0),
                             stack_background=(102, 102, 102))
@@ -46,7 +48,7 @@ bg = palette.stack_background
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
-        splashfile = bs.settings.resolve_path(bs.settings.gfx_path) / 'splash.gif'
+        splashfile = bs.resource(bs.settings.gfx_path) / 'splash.gif'
         super().__init__(QPixmap(splashfile.as_posix()), Qt.WindowType.WindowStaysOnTopHint)
 
 
@@ -123,7 +125,7 @@ class MainWindow(QMainWindow):
         # gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
 
-        gfxpath = bs.settings.resolve_path(bs.settings.gfx_path)
+        gfxpath = bs.resource(bs.settings.gfx_path)
 
         if platform.system() == 'Darwin':
             app.instance().setWindowIcon(QIcon((gfxpath / 'bluesky.icns').as_posix()))
@@ -164,6 +166,17 @@ class MainWindow(QMainWindow):
                 b[0].setToolTip(b[1][1])
             # Connect clicked signal
             b[0].clicked.connect(b[1][2])
+
+        # If multiple scenario paths exist, add 'Open From' menu
+        scenresource = bs.resource('scenario')
+        if isinstance(scenresource, ResourcePath) and scenresource.nbases > 1:
+            openfrom = QMenu('Open From', self.menuFile)
+            self.menuFile.insertMenu(self.action_Save, openfrom)
+
+            openpkg = openfrom.addAction('Package')
+            openpkg.triggered.connect(lambda: self.show_file_dialog(scenresource.base(-1)))
+            openusr = openfrom.addAction('User')
+            openusr.triggered.connect(lambda: self.show_file_dialog(scenresource.base(0)))
 
         # Link menubar buttons
         self.action_Open.triggered.connect(self.show_file_dialog)
@@ -257,7 +270,7 @@ class MainWindow(QMainWindow):
                 btn.setText(hostname)
                 btn.setFlat(True)
                 btn.setStyleSheet('font-weight:bold')
-                icon = bs.settings.resolve_path(bs.settings.gfx_path) / 'icons/addnode.svg'
+                icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
                 btn.setIcon(QIcon(icon.as_posix()))
                 btn.setIconSize(QSize(24, 16))
                 btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -377,12 +390,28 @@ class MainWindow(QMainWindow):
         elif hasattr(self.sender(), 'host_id'):
             bs.net.send_event(b'ADDNODES', 1)
 
-    def show_file_dialog(self):
+    def show_file_dialog(self, path=None):
         # Due to Qt5 bug in Windows, use temporarily Tkinter
         if platform.system().lower()=='windows':
             fname = fileopen()
         else:
-            scenpath = bs.settings.resolve_path(bs.settings.scenario_path).as_posix()
+            if path is None:
+                path = bs.resource(bs.settings.scenario_path)
+
+            if isinstance(path, ResourcePath):
+                def getscenpath(resource):
+                    # Find first path that contains scenario files
+                    for p in resource.bases():
+                        for f in p.glob('*.[Ss][Cc][Nn]'):
+                            if f.name.lower() != 'ic.scn':
+                                return p.as_posix()
+                    return p.as_posix()
+                scenpath = getscenpath(path)
+            elif isinstance(path, Path):
+                scenpath = path.as_posix()
+            else:
+                scenpath = path
+            
             if platform.system().lower() == 'darwin':
                 response = QFileDialog.getOpenFileName(self, 'Open file', scenpath, 'Scenario files (*.scn)')
             else:

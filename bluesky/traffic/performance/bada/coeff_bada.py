@@ -7,13 +7,11 @@
    report: EEC Technical/Scientific Report No. 14/04/24-44. This report can be obtained here:
    https://www.eurocontrol.int/sites/default/files/field_tabs/content/documents/sesar/user-manual-bada-3-12.pdf
 '''
-from pathlib import Path
 import re
 from .fwparser import FixedWidthParser, ParseError
-from bluesky import settings
+import bluesky as bs
 
-
-settings.set_variable_defaults(perf_path_bada='data/performance/BADA')
+bs.settings.set_variable_defaults(perf_path_bada='performance/BADA')
 
 
 # File formats of BADA data files. Uses fortran-like notation
@@ -92,7 +90,7 @@ def getCoefficients(actype):
 
 def check():
     ''' Import check for BADA performance model. '''
-    base = settings.resolve_path(settings.perf_path_bada)
+    base = bs.resource(bs.settings.perf_path_bada)
     releasefile = base / 'ReleaseSummary'
     if not releasefile.is_file():
         raise ImportError(f'BADA performance model: Error trying to find BADA files in {base}!')
@@ -106,7 +104,7 @@ def init(bada_path=''):
     ''' init() loads the available BADA datafiles in the provided directory.'''
     if accoeffs:
         return True
-    bada_path = settings.resolve_path(settings.perf_path_bada)
+    bada_path = bs.resource(bs.settings.perf_path_bada)
     releasefile = bada_path / 'ReleaseSummary'
     if releasefile.is_file():
         global release_date, bada_version

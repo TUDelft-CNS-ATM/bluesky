@@ -12,7 +12,7 @@ except ImportError:
     from PyQt6.QtCore import Qt, QTimer
     from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit
 
-from bluesky.network import Client
+from bluesky.network.client import Client
 
 
 # The echo textbox, command line, and bluesky network client as globals
@@ -54,7 +54,7 @@ class Echobox(QTextEdit):
         super().__init__(parent)
         self.setMinimumHeight(150)
         self.setReadOnly(True)
-        self.setFocusPolicy(Qt.NoFocus)
+        # self.setFocusPolicy(Qt.NoFocus)
 
     def echo(self, text, flags=None):
         ''' Add text to this echo box. '''
@@ -67,12 +67,12 @@ class Cmdline(QTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMaximumHeight(21)
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # self.setFocusPolicy(Qt.StrongFocus)
+        # self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
     def keyPressEvent(self, event):
         ''' Handle Enter keypress to send a command to BlueSky. '''
-        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+        if event.key() == Qt.Key.Key_Enter or event.key() == Qt.Key.Key_Return:
             if bsclient is not None:
                 bsclient.stack(self.toPlainText())
                 echobox.echo(self.toPlainText())

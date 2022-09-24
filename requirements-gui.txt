@@ -9,3 +9,5 @@ matplotlib
 msgpack
 zmq
 textual
+bluesky-simdata
+bluesky-guidata

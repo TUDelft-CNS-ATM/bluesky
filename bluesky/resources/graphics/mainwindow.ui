@@ -1161,7 +1161,6 @@
        <property name="font">
         <font>
          <pointsize>13</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -1233,7 +1232,7 @@
      <x>0</x>
      <y>0</y>
      <width>911</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1307,6 +1306,16 @@
   <action name="actionSettings">
    <property name="text">
     <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionpackage">
+   <property name="text">
+    <string>package</string>
+   </property>
+  </action>
+  <action name="actionuser">
+   <property name="text">
+    <string>user</string>
    </property>
   </action>
  </widget>

@@ -5,10 +5,9 @@ import numpy as np
 from bluesky.ui import palette
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.loadvisuals import load_coastlines
-from bluesky import settings
+import bluesky as bs
 
-
-settings.set_variable_defaults(gfx_path='data/graphics')
+bs.settings.set_variable_defaults(gfx_path='graphics')
 palette.set_default_colours(
     background=(0, 0, 0),
     coastlines=(85, 85, 115))
@@ -42,7 +41,7 @@ class Map(glh.RenderObject, layer=-100):
         max_texture_size = glh.gl.glGetIntegerv(glh.gl.GL_MAX_TEXTURE_SIZE)
         print('Maximum supported texture size: %d' % max_texture_size)
         for i in [16384, 8192, 4096]:
-            fname = settings.resolve_path(settings.gfx_path) / f'world.{i}x{i//2}.dds'
+            fname = bs.resource(bs.settings.gfx_path) / f'world.{i}x{i//2}.dds'
             if max_texture_size >= i and fname.exists():
                 print(f'Loading texture {fname}')
                 self.map.create(vertex=mapvertices,

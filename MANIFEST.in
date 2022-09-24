@@ -6,11 +6,15 @@ recursive-exclude bluesky .DS_Store
 include LICENSE
 include README.md
 include setup.py
-include BlueSky*.py
 include check.py
 include requirements.txt
 include Makefile
-
-# reduce package size for PyPI
-exclude bluesky/resources/data/graphics/world.8192x4096.dds
-exclude bluesky/resources/data/graphics/world.16384x8192.dds
+prune docs
+prune extra
+prune plugins
+prune scenario
+prune utils
+prune bluesky/resources/graphics
+prune bluesky/resources/html
+prune bluesky/resources/navdata
+prune bluesky/resources/performance

@@ -143,7 +143,7 @@ def readscn(fname):
     # Ensure .scn suffix and specify path if necessary
     fname = Path(fname).with_suffix('.scn')
     if not fname.is_absolute():
-        fname = settings.resolve_path(settings.scenario_path) / fname
+        fname = bs.resource(settings.scenario_path) / fname
 
     with open(fname, "r") as fscen:
         prevline = ''
@@ -281,7 +281,7 @@ def ic(filename : 'string' = ''):
         Stack.scenname = filename.stem
 
         # Remember this filename in IC.scn in scenario folder
-        with open(settings.resolve_path(settings.scenario_path) / "ic.scn", "w") as keepicfile:
+        with open(bs.resource(settings.scenario_path) / "ic.scn", "w") as keepicfile:
             keepicfile.write(
                 "# This file is used by BlueSky to save the last used scenario file\n"
             )
@@ -392,7 +392,7 @@ def makedoc():
     # Get unique set of commands
     cmdobjs = set(Command.cmddict.values())
     for o in cmdobjs:
-        if not Path(f"data/html/{o.name}.html").is_file():
+        if not bs.resource(f"html/{o.name}.html").is_file():
             with open(tmp / f"{o.name.lower()}.md", "w") as f:
                 f.write(
                     f"# {o.name}: {o.name.capitalize()}\n"

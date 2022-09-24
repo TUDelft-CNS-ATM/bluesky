@@ -1,22 +1,25 @@
 # Always prefer setuptools over distutils
-from os import path
+import os
+import sys
+from pathlib import Path
 from setuptools import setup, find_packages, Extension
-from codecs import open
-import shutil
 import configparser
 import numpy as np
 
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # Get base requirements from requirements.txt
-with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
+with open(os.path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     install_requires = f.readlines()
 
+# If Python version < 3.9, add importlib_resources requirement
+if sys.version_info.major == 3 and sys.version_info.minor < 9:
+    install_requires.append('importlib_resources')
 
 # get extra requirements from setup.cfg
 parser = configparser.ConfigParser()
@@ -28,14 +31,10 @@ extras_requirements.update({
     'test': ['coverage', 'flake8', 'radon', 'nose'],
 })
 
-# Temporarily create resources folder
-if path.exists('bluesky/resources'):
-    shutil.rmtree('bluesky/resources')
-shutil.copytree('data', 'bluesky/resources/data', ignore=shutil.ignore_patterns('cache'))
-shutil.copytree('plugins', 'bluesky/resources/plugins')
-shutil.copytree('scenario', 'bluesky/resources/scenario')
-with open('bluesky/resources/__init__.py', 'w') as f:
-    f.write('')
+if not Path('bluesky/resources/scenario').exists():
+    os.symlink('../../scenario', 'bluesky/resources/scenario')
+if not Path('bluesky/resources/plugins').exists():
+    os.symlink('../../plugins', 'bluesky/resources/plugins')
 
 setup(
     name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
@@ -70,20 +69,12 @@ setup(
 
     # This field adds keywords for your project which will appear on the
     keywords='atm transport simulation aviation aircraft',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),  # Required
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'bluesky.resources.graphics', 'bluesky.resources.html', 'bluesky.resources.navdata', 'bluesky.resources.performance']),# Required
     include_package_data=True,
-    # package_data={
-    #       'bluesky.resources': [f for f in glob.glob('data/**/*') if path.isfile(f)] + ['data/default.cfg']
-    # },
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # `pip` to create the appropriate form of executable for the target
-    # platform.
-    # data_files = [('resources/data', [f for f in glob.glob('data/**/*') if path.isfile(f)
-    #               and path.basename(f) not in ('world.16384x8192.dds',
-    #                                            'world.8192x4096.dds')] + ['data/default.cfg']),
-    #               ('resources/plugins', [f for f in glob.glob('plugins/*.py') if path.isfile(f)]),
-    #               ('resources/utils', [f for f in glob.glob('utils/**/*') if path.isfile(f)])],
+    exclude_package_data={'bluesky': ['resources/graphics/*', 'resources/html/*', 'resources/navdata/*', 'resources/performance/*']},
+    package_data={
+        'bluesky': ['resources/*']
+    },
     entry_points={
         'console_scripts': [
             'bluesky=bluesky.__main__:main',
@@ -95,8 +86,10 @@ setup(
     },
     include_dirs=[np.get_include()],
     ext_modules=[Extension('bluesky.tools.cgeo', ['bluesky/tools/src_cpp/cgeo.cpp']),
-                 Extension('bluesky.traffic.asas.cstatebased', ['bluesky/traffic/asas/src_cpp/cstatebased.cpp'], include_dirs=['bluesky/tools/src_cpp'])]
+                Extension('bluesky.traffic.asas.cstatebased', ['bluesky/traffic/asas/src_cpp/cstatebased.cpp'], include_dirs=['bluesky/tools/src_cpp'])]
 )
 
-if path.exists('bluesky/resources'):
-    shutil.rmtree('bluesky/resources')
+if Path('bluesky/resources/scenario').is_symlink():
+    os.unlink('bluesky/resources/scenario')
+if Path('bluesky/resources/plugins').is_symlink():
+    os.unlink('bluesky/resources/plugins')
