@@ -21,7 +21,28 @@ def init(cfgfile=''):
 
     # Read the configuration file
     print(f'Reading config from {_cfgfile}')
-    exec(compile(open(_cfgfile).read().replace('\\', '/'), _cfgfile, 'exec'), globals())
+    with open(_cfgfile) as fin:
+        config = fin.read()
+    # BlueSky resources have been moved since v2022.9.19. Update config file if necessary
+    matches = re.findall(r'.+_path.+=.*data[/\\].*', config)
+    if matches:
+        print(f'Old-style resource paths found in {_cfgfile}. Do you want to update it')
+        print('with the following changes?')
+        for line in matches:
+            var, p = line.split('=')
+            np = p.strip().replace('data/', '').replace('data\\', '')
+            print(f'{var.strip()}: from {p.strip()} to {np}')
+        resp = input('Make these changes? [Y/n]: ')
+        if (not resp) or 'y' in resp.lower():
+            # Update settings and store to file
+            print(f'Updating {_cfgfile}')
+            config = config.replace('data/', '').replace('data\\', '')
+            with open(_cfgfile, 'w') as fout:
+                fout.write(config)
+        else:
+            print('If bluesky doesn\'t load correctly, please update your config file manually')
+
+    exec(compile(config.replace('\\', '/'), _cfgfile, 'exec'), globals())
 
     return True
 
@@ -60,6 +81,7 @@ def set_variable_defaults(**kwargs):
     tree.update(kwargs)
 
 def save(fname=None, changes=None):
+    ''' Save BlueSky configuration to file. '''
     # Apply any changes that are passed for saving
     if changes:
         globals().update(changes)
