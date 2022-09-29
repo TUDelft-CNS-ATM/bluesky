@@ -6,15 +6,16 @@ from collections import OrderedDict
 from urllib.request import urlopen
 from urllib.error import URLError
 import numpy as np
+import gzip
 
 try:
     from PyQt5.Qt import Qt
     from PyQt5.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot, QT_VERSION_STR
-    from PyQt5.QtGui import QImage
+    from PyQt5.QtGui import QImage, qRgba
 except ImportError:
     from PyQt6.QtCore import Qt
     from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot, QT_VERSION_STR
-    from PyQt6.QtGui import QImage
+    from PyQt6.QtGui import QImage, qRgba
 
 import bluesky as bs
 from bluesky.core import Signal
@@ -58,6 +59,7 @@ class Tile:
         self.idxx = idxx
         self.idxy = idxy
         self.ext = source[source.rfind('.'):]
+        self.ext = '.' + bs.settings.tile_sources[source]['source'][0].split('.')[-1]
 
         self.image = None
         # For the image data, check cache path first
@@ -72,11 +74,24 @@ class Tile:
                 try:
                     url_request = urlopen(url.format(
                         zoom=zoom, x=tilex, y=tiley))
-                    data = url_request.read()
-                    self.image = QImage.fromData(
-                        data).convertToFormat(QImage.Format.Format_ARGB32)
-                    with open(fname, 'wb') as fout:
-                        fout.write(data)
+                    
+                    if url_request.status == 204:
+                        # if no content load a blank tile
+                        self.image = QImage(256, 256, QImage.Format.Format_ARGB32)
+                        self.image.fill(qRgba(255,255,255,0))
+
+                    else:
+                        data = url_request.read()
+
+                        if url_request.headers['Content-Encoding'] == 'gzip':
+                            # There is a chance that data may come as a gzip so decompress
+                            data = gzip.decompress(data)
+                                        
+                        self.image = QImage.fromData(
+                            data).convertToFormat(QImage.Format.Format_ARGB32)
+
+                        with open(fname, 'wb') as fout:
+                            fout.write(data)
                     break
                 except URLError as e:
                     print(f'Error loading {url.format(zoom=zoom, x=tilex, y=tiley)}:')
