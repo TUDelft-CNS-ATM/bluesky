@@ -67,7 +67,7 @@ class Example(core.Entity):
     def passengers(self, acid: 'acid', count: int = -1):
         ''' Set the number of passengers on aircraft 'acid' to 'count'. '''
         if count < 0:
-            return True, f'Aircraft {traf.id[acid]} currently has {self.npassengers[acid]} passengers on board.'
+            return True, f'Aircraft {traf.id[acid]} currently has {self.npassengers[acid]:.0f} passengers on board.'
 
         self.npassengers[acid] = count
         return True, f'The number of passengers on board {traf.id[acid]} is set to {count}.'
