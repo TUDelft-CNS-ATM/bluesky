@@ -1,5 +1,7 @@
 """ 3D Terrain and Skyline Plugin for BlueSky. 
+Version 1.0
 ToDo: GPWS
+ToDo: say 50, 40, 30, 20, 10, retard!
 Created by Yaofu Zhou"""
 import os
 import numpy as np
