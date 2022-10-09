@@ -107,6 +107,8 @@ class Elevation(core.Entity):
             = msl - terrain.point_terrain(traf.lat[acidx], traf.lon[acidx])
         agl = traf.agl[acidx]
         agl_in_feet = agl * meter2feet
+
+        os.system(f"say {agl_in_feet:.0f}.")
         return True, f"AGL of {acid.upper()} is {agl:.0f} meters or " \
             + f"{agl_in_feet:.0f} feet."
 
