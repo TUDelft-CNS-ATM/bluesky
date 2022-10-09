@@ -11,6 +11,7 @@ from osgeo import gdal
 
 from bluesky import resource
 from bluesky import settings
+# from bluesky import stack
 
 from .decorators import timer
 
