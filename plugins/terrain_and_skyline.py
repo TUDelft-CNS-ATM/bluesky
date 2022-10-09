@@ -108,7 +108,9 @@ class Elevation(core.Entity):
         agl = traf.agl[acidx]
         agl_in_feet = agl * meter2feet
 
-        os.system(f"say {agl_in_feet:.0f}.")
+        if not settings.agl_mute:
+            os.system(f"say {agl_in_feet:.0f}.")
+
         return True, f"AGL of {acid.upper()} is {agl:.0f} meters or " \
             + f"{agl_in_feet:.0f} feet."
 
