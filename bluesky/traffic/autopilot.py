@@ -17,9 +17,12 @@ from .route import Route
 
 #debug
 from inspect import stack as callstack
+from bluesky.tools.datalog import crelog
 
 bs.settings.set_variable_defaults(fms_dt=10.5)
 
+#debug
+flog = open("./output/logfile.txt","w")
 
 class Autopilot(Entity, replaceable=True):
     ''' BlueSky Autopilot implementation. '''
@@ -80,19 +83,23 @@ class Autopilot(Entity, replaceable=True):
         super().create(n)
 
         # FMS directions
-        self.tas[-n:] = bs.traf.tas[-n:]
         self.trk[-n:] = bs.traf.trk[-n:]
+        self.tas[-n:] = bs.traf.tas[-n:]
         self.alt[-n:] = bs.traf.alt[-n:]
+        self.vs[-n:]  = -999
 
-        # LNAV variables
-        self.qdr2wp[-n:] = -999.   # Direction to waypoint from the last time passing was checked
-        self.dist2wp[-n:]  = -999. # Distance to go to next waypoint [nm]
-
-        # to avoid 180 turns due to updated qdr shortly before passing wp
+        # Default ToC/ToD logic on
+        self.swtoc[-n:] = True
+        self.swtod[-n:] = True
 
         # VNAV Variables
         self.dist2vs[-n:] = -999.
         self.dist2accel[-n:] = -999.  # Distance to go to acceleration(decelaration) for turn next waypoint [nm]
+
+
+        # LNAV variables
+        self.qdr2wp[-n:] = -999.   # Direction to waypoint from the last time passing was checked
+        self.dist2wp[-n:]  = -999. # Distance to go to next waypoint [nm]
 
         # Traffic performance data
         #(temporarily default values)
@@ -103,12 +110,9 @@ class Autopilot(Entity, replaceable=True):
         for ridx, acid in enumerate(bs.traf.id[-n:]):
             self.route[ridx - n] = Route(acid)
 
-        # Default ToC/ToD logic on
-        self.swtoc[-n:] = True
-        self.swtod[-n:] = True
 
     #no longer timed @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
-    def wppassingcheck(self, qdr, dist):
+    def wppassingcheck(self, qdr, dist): # qdr [deg], dist [m[
         """
         The actwp is the interface between the list of waypoint data in the route object and the autopilot guidance
         when LNAV is on (heading) and optionally VNAV is on (spd & altitude)
@@ -135,18 +139,23 @@ class Autopilot(Entity, replaceable=True):
         # For the one who have reached their active waypoint, update vectorized leg data for guidance
         for i in self.idxreached:
 
+            #debug commands to check VNAV state while passing waypoint
+            #print("Passing waypoint",bs.traf.ap.route[i].wpname[bs.traf.ap.route[i].iactwp])
+            #print("dist2wp,dist2vs",self.dist2wp[i]/nm,self.dist2vs[i]/nm) # distance to wp & distance to ToD/ToC
+
             # Save current wp speed for use on next leg when we pass this waypoint
             # VNAV speeds are always FROM-speeds, so we accelerate/decellerate at the waypoint
             # where this speed is specified, so we need to save it for use now
             # before getting the new data for the next waypoint
 
-            # Get speed for next leg from the waypoint we pass now
+            # Get speed for next leg from the waypoint we pass now and set as active spd
             bs.traf.actwp.spd[i]    = bs.traf.actwp.nextspd[i]
             bs.traf.actwp.spdcon[i] = bs.traf.actwp.nextspd[i]
 
             # Execute stack commands for the still active waypoint, which we pass
             self.route[i].runactwpstack()
 
+            # Special turns: specified by turn radius or bank angle
             # If specified, use the given turn radius of passing wp for bank angle
             if bs.traf.actwp.flyturn[i]:
                 if bs.traf.actwp.turnspd[i]>=0.:
@@ -171,27 +180,28 @@ class Autopilot(Entity, replaceable=True):
                     bs.traf.actwp.next_qdr[i], bs.traf.actwp.swlastwp[i] =      \
                     self.route[i].getnextwp()  # [m] note: xtoalt,nextaltco are in meters
 
+
                 bs.traf.actwp.nextturnlat[i], bs.traf.actwp.nextturnlon[i], \
                 bs.traf.actwp.nextturnspd[i], bs.traf.actwp.nextturnrad[i], \
                 bs.traf.actwp.nextturnidx[i] = self.route[i].getnextturnwp()
 
-
-            # Prevent trying to activate the next waypoint when it was already the last waypoint
             else:
+                # Prevent trying to activate the next waypoint when it was already the last waypoint
+                # In case of end of route/no more waypoints: switch off LNAV using the lnavon
                 bs.traf.swlnav[i] = False
                 bs.traf.swvnav[i] = False
                 bs.traf.swvnavspd[i] = False
                 continue # Go to next a/c which reached its active waypoint
 
-            # End of route/no more waypoints: switch off LNAV using the lnavon
-            # switch returned by getnextwp
+            # Check LNAV switch returned by getnextwp
+            # Switch off LNAV if it failed to get next wpdata
             if not lnavon and bs.traf.swlnav[i]:
                 bs.traf.swlnav[i] = False
                 # Last wp: copy last wp values for alt and speed in autopilot
                 if bs.traf.swvnavspd[i] and bs.traf.actwp.nextspd[i]>= 0.0:
                     bs.traf.selspd[i] = bs.traf.actwp.nextspd[i]
 
-            # In case of no LNAV, do not allow VNAV mode on its own
+            # In case of no LNAV, do not allow VNAV mode to be active
             bs.traf.swvnav[i] = bs.traf.swvnav[i] and bs.traf.swlnav[i]
 
             bs.traf.actwp.lat[i] = lat  # [deg]
@@ -209,7 +219,7 @@ class Autopilot(Entity, replaceable=True):
             bs.traf.actwp.curlegdir[i] = qdr[i]
             bs.traf.actwp.curleglen[i] = self.dist2wp[i]
 
-            # User has entered an altitude for this waypoint
+            # User has entered an altitude for the new waypoint
             if alt >= -0.01: # positive alt on this waypoint means altitude constraint
                 bs.traf.actwp.nextaltco[i] = alt  # [m]
                 bs.traf.actwp.xtoalt[i] = 0.0
@@ -231,6 +241,11 @@ class Autopilot(Entity, replaceable=True):
             else:
                 local_next_qdr = bs.traf.actwp.next_qdr[i]
 
+            # Calculate turn dist (and radius which we do not use) now for scalar variable [i]
+            bs.traf.actwp.turndist[i], dummy = \
+                bs.traf.actwp.calcturn(bs.traf.tas[i], self.bankdef[i],
+                                        qdr[i], local_next_qdr,turnrad)  # update turn distance for VNAV
+
             # Get flyturn switches and data
             bs.traf.actwp.flyturn[i]     = flyturn
             bs.traf.actwp.turnrad[i]     = turnrad
@@ -247,11 +262,6 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.actwp.turnspd[i] = turnspd                  # new turnspd, turning by next waypoint
             else:
                 bs.traf.actwp.turnspd[i] = -990.
-
-            # Calculate turn dist (and radius which we do not use) now for scalar variable [i]
-            bs.traf.actwp.turndist[i], dummy = \
-                bs.traf.actwp.calcturn(bs.traf.tas[i], self.bankdef[i],
-                                        qdr[i], local_next_qdr,turnrad)  # update turn distance for VNAV
 
             # Reduce turn dist for reduced turnspd
             if bs.traf.actwp.flyturn[i] and bs.traf.actwp.turnrad[i]<0.0 and bs.traf.actwp.turnspd[i]>=0.:
@@ -318,7 +328,9 @@ class Autopilot(Entity, replaceable=True):
         # to calculate bs.traf.actwp.vs
 
         startdescorclimb = (bs.traf.actwp.nextaltco>=-0.1) * \
-                           np.logical_or((bs.traf.alt>bs.traf.actwp.nextaltco) * (self.dist2wp < self.dist2vs),
+                           np.logical_or((bs.traf.alt>bs.traf.actwp.nextaltco) *\
+                                         np.logical_or((self.dist2wp < self.dist2vs+bs.traf.actwp.turndist),\
+                                                       (np.logical_not(self.swtod))),\
                                          bs.traf.alt<bs.traf.actwp.nextaltco)
 
         # print("self.dist2vs =",self.dist2vs)
@@ -328,7 +340,7 @@ class Autopilot(Entity, replaceable=True):
         #    to continue descending when you get into a conflict
         #    while descending to the destination (the last waypoint)
         #    Use 0.1 nm (185.2 m) circle in case turndist might be zero
-        self.swvnavvs = bs.traf.swvnav * np.where(bs.traf.swlnav, startdescorclimb,
+        self.swvnavvs = bs.traf.swvnav * np.where(bs.traf.swlnav, startdescorclimb,\
                                         self.dist2wp <= np.maximum(0.1*nm,bs.traf.actwp.turndist))
 
         # Recalculate V/S based on current altitude and distance to next alt constraint
@@ -427,7 +439,7 @@ class Autopilot(Entity, replaceable=True):
 
     def ComputeVNAV(self, idx, toalt, xtoalt, torta, xtorta):
         """
-        This function to do VNAV (and RTA) calculations is only called only once per leg.
+        This function to do VNAV (and RTA) calculations is only called only once per leg for one aircraft idx.
         If:
          - switching to next waypoint
          - when VNAV is activated
@@ -535,14 +547,16 @@ class Autopilot(Entity, replaceable=True):
                 #print ("d2wp = ",self.dist2wp[idx]/nm,"nm d2vs = ",self.dist2vs[idx]/nm,"nm")
                 #print("xtoalt =",xtoalt/nm,"nm descdist =",descdist/nm,"nm")
 
-                # Exceptions: Descend now? Or never on this leg?
-                if self.dist2wp[idx] < self.dist2vs[idx]:  # Urgent descent, we're late![m]
+                # Exceptions: Descend now?
+                #print("Active WP:",bs.traf.ap.route[idx].wpname[bs.traf.ap.route[idx].iactwp])
+                #print("dist2wp,turndist, dist2vs= ",self.dist2wp[idx],bs.traf.actwp.turndist[idx],self.dist2vs[idx])
+                if self.dist2wp[idx] - 1.02*bs.traf.actwp.turndist[idx] < self.dist2vs[idx]:  # Urgent descent, we're late![m]
                     # Descend now using whole remaining distance on leg to reach altitude
                     self.alt[idx] = bs.traf.actwp.nextaltco[idx]  # dial in altitude of next waypoint as calculated
                     t2go = self.dist2wp[idx]/max(0.01,bs.traf.gs[idx])
                     bs.traf.actwp.vs[idx] = (bs.traf.alt[idx]-toalt)/max(0.01,t2go)
 
-                elif xtoalt<descdist: # Not even descending is needed at next waypoint
+                elif xtoalt<descdist: # Not on this leg, no descending is needed at next waypoint
                     # Top of decent needs to be on this leg, as next wp is in descent
                     bs.traf.actwp.vs[idx] = -abs(self.steepness) * (bs.traf.gs[idx] +
                                                                     (bs.traf.gs[idx] < 0.2 * bs.traf.tas[idx]) *
@@ -564,7 +578,7 @@ class Autopilot(Entity, replaceable=True):
                 # print("in else swtod for ", bs.traf.id[idx])
 
         # VNAV climb mode: climb as soon as possible (T/C logic)
-        elif bs.traf.alt[idx] < toalt - 10. * ft:
+        elif bs.traf.alt[idx] < toalt - 9.9 * ft:
             # Stop potential current descent (e.g. due to not making it to previous altco)
             # then stop immediately, as in: do not make it worse.
             if bs.traf.vs[idx] < -0.0001:
