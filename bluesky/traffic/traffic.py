@@ -97,6 +97,9 @@ class Traffic(Entity):
             self.hdg     = np.array([])  # traffic heading [deg]
             self.trk     = np.array([])  # track angle [deg]
 
+            # Requires the TERRAIN plugin to have meaningful values.
+            self.agl     = np.array([])  # above-ground level [m]
+
             # Velocities
             self.tas     = np.array([])  # true airspeed [m/s]
             self.gs      = np.array([])  # ground speed [m/s]
