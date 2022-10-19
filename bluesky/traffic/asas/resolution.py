@@ -30,8 +30,8 @@ class ConflictResolution(Entity, replaceable=True):
         self.resorrelative  = True # Size of resolution zone r, vertically, set relative to CD zone
 
         with self.settrafarrays():
-            self.resooffac = np.array([], dtype=np.bool)
-            self.noresoac = np.array([], dtype=np.bool)
+            self.resooffac = np.array([], dtype=bool)
+            self.noresoac = np.array([], dtype=bool)
             # whether the autopilot follows ASAS or not
             self.active = np.array([], dtype=bool)
             self.trk = np.array([])  # heading provided by the ASAS [deg]

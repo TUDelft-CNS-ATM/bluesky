@@ -32,7 +32,7 @@ class ActiveWaypoint(Entity, replaceable=True):
             self.torta      = np.array([])    # [s] Next req Time of Arrival (RTA) (-999. = None)
             self.xtorta     = np.array([])    # [m] distance to next RTA
             self.next_qdr   = np.array([])    # [deg] track angle of next leg
-            self.swlastwp   = np.array([],dtype=np.bool) # switch indicating this is the last waypoint
+            self.swlastwp   = np.array([],dtype=bool) # switch indicating this is the last waypoint
             self.curlegdir  = np.array([])    # [deg] direction to active waypoint upon activation
             self.curleglen  = np.array([])    # [deg] direction to active waypoint upon activation
 

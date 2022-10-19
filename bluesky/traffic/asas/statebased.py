@@ -86,7 +86,7 @@ class StateBased(ConflictDetection):
         toutconf = np.minimum(toutver, touthor)
 
         swconfl = np.array(swhorconf * (tinconf <= toutconf) * (toutconf > 0.0) *
-                           np.asarray(tinconf < np.asmatrix(dtlookahead).T) * (1.0 - I), dtype=np.bool)
+                           np.asarray(tinconf < np.asmatrix(dtlookahead).T) * (1.0 - I), dtype=bool)
 
         # --------------------------------------------------------------------------
         # Update conflict lists

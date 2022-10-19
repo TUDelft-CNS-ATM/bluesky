@@ -93,7 +93,7 @@ class Legacy(PerfBase):
 
             # limit settings
             self.limspd      = np.array([])  # limit speed
-            self.limspd_flag = np.array([], dtype=np.bool)  # flag for limit spd - we have to test for max and min
+            self.limspd_flag = np.array([], dtype=bool)  # flag for limit spd - we have to test for max and min
             self.limalt      = np.array([])  # limit altitude
             self.limalt_flag = np.array([])  # A need to limit altitude has been detected
             self.limvs       = np.array([])  # limit vertical speed due to thrust limitation
