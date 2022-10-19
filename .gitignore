@@ -1,8 +1,12 @@
+# Automatically generated directories and files
 output
-scenario/ic.scn
+plugins
 cache
+scenario/ic.scn
 bluesky/resources/grib
 bluesky/resources/netcdf
+
+# Potentially locally-copied BADA installation
 bluesky/resources/performance/BADA/*
 !bluesky/resources/performance/BADA/README.md
 
