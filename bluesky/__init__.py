@@ -1,7 +1,7 @@
 ''' BlueSky: The open-source ATM simulator.'''
 from bluesky import settings
 from bluesky.core import Signal
-from bluesky.resourcepath import resource
+from bluesky.pathfinder import resource
 from bluesky import stack
 from bluesky import tools
 
@@ -62,8 +62,8 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     globals()['gui'] = gui
 
     # Initialise resource localisation, and set custom working directory if present
-    from bluesky import resourcepath
-    resourcepath.init(workdir)
+    from bluesky import pathfinder
+    pathfinder.init(workdir)
 
     # Initialize global settings, possibly loading a custom config file
     settings.init(configfile)

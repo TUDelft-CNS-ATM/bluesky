@@ -1,7 +1,10 @@
 ''' BlueSky resource access '''
+import sys
 import shutil
 import itertools
 from pathlib import Path
+from importlib import import_module
+from importlib.abc import MetaPathFinder
 try:
     from importlib.resources import files
     from importlib.readers import MultiplexedPath
@@ -86,8 +89,18 @@ def resource(*descendants):
 resource.path = ResourcePath()
 
 
+class PluginFinder(MetaPathFinder):
+    def find_spec(self, fullname: str, path, target):
+        print("find_spec(fullname={}, path={}, target={})".format(fullname, path, target))
+        if fullname.startswith('plugins'):
+            fullname = f'bluesky.{fullname}'
+        
+        # return None to tell the python this finder can't find the module
+        return None
+
+
 def init(workdir=None):
-    ''' Initialise BlueSky resource paths. '''
+    ''' Initialise BlueSky search paths for resources and plugins. '''
     if workdir is None:
         if files('bluesky').parent == Path.cwd():
             # Assume BlueSky is running from source, e.g., cloned from GitHub
@@ -113,11 +126,18 @@ def init(workdir=None):
         if not subdir.exists():
             print(f'Creating directory "{subdir}"')
             subdir.mkdir()
+
     # Ensure existence of config file
     cfgfile = workdir.joinpath("settings.cfg")
     if not cfgfile.exists():
         print(f'Copying default configfile to {cfgfile}')
         shutil.copy(resource('default.cfg'), cfgfile)
+
+    # Set correct search paths for plugins
+    plugins = import_module('bluesky.plugins')
+    plugins.__spec__.submodule_search_locations.insert(0, workdir.joinpath('plugins').as_posix())
+    # sys.modules['plugins'] = plugins
+    # sys.meta_path.insert(0, PluginFinder())
 
     # Set correct search paths for resource function
     resource.path = ResourcePath(workdir)

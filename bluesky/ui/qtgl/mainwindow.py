@@ -21,7 +21,7 @@ except ImportError:
 
 # Local imports
 import bluesky as bs
-from bluesky.resourcepath import ResourcePath
+from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
 from bluesky.network import get_ownip
 from bluesky.ui import palette

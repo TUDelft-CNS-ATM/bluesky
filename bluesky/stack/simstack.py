@@ -1,5 +1,4 @@
 ''' Main simulation-side stack functions. '''
-from fnmatch import fnmatch
 import math
 from pathlib import Path
 import traceback

@@ -1,7 +1,7 @@
 '''BlueSky global configuration module'''
 import re
 import inspect
-from bluesky.resourcepath import resource
+from bluesky.pathfinder import resource
 
 # Default config file path
 _cfgfile = 'settings.cfg'

@@ -1,12 +1,10 @@
 """ Implementation of BlueSky's plugin system. """
 import ast
-
-from pathlib import Path
-import sys
 import importlib
+from pathlib import Path
 import bluesky as bs
+from bluesky import plugins
 from bluesky import settings
-from bluesky.resourcepath import ResourcePath
 from bluesky.core import timed_function, varexplorer as ve
 from bluesky import stack
 
@@ -27,10 +25,9 @@ class Plugin:
 
     loaded_plugins = dict()
 
-    def __init__(self, fname):
-        self.module_path = fname.parent.as_posix()
-        self.module_name = fname.stem
-        self.module_imp = (fname.parent / fname.stem).as_posix().replace('/', '.')
+    def __init__(self, fullname):
+        self.fullname = fullname
+
         self.plugin_doc   = ''
         self.plugin_name  = ''
         self.plugin_type  = ''
@@ -44,19 +41,8 @@ class Plugin:
             return False, f'Plugin {self.plugin_name} already loaded'
 
         try:
-            # Load the plugin
-            # First check if plugin is already locally imported by another plugin in the same directory
-            # In either case update the other import name to avoid double imports
-            self.imp = sys.modules.get(self.module_name)
-            if self.imp:
-                sys.modules[self.module_imp] = self.imp
-            else:
-                # self.imp = importlib.import_module(self.module_imp)
-                # sys.modules[self.module_name] = self.imp
-                spec = importlib.util.spec_from_file_location(self.module_name, Path(self.module_path) / (self.module_name + '.py'))
-                self.imp = importlib.util.module_from_spec(spec)
-                sys.modules[self.module_name] = self.imp
-                spec.loader.exec_module(self.imp)
+            # Load the plugin, or get already loaded module from sys modules
+            self.imp = importlib.import_module(self.fullname)
 
             # Initialize the plugin
             result = self.imp.init_plugin()
@@ -101,72 +87,71 @@ class Plugin:
     @classmethod
     def find_plugins(cls, reqtype):
         ''' Create plugin wrapper objects based on source code of potential plug-in files. '''
-        for fname in bs.resource(settings.plugin_path).glob('**/*.py'):
-            with open(fname, 'rb') as f:
-                source = f.read()
-                try:
-                    tree = ast.parse(source)
-                except:
-                    # Failed to parse source code, continue to next file
-                    continue
+        for path in (Path(p) for p in plugins.__spec__.submodule_search_locations):
+            for fname in path.glob('**/*.py'):
+                submod = fname.relative_to(path).parent.as_posix().replace('/', '.')
+                fullname = f'bluesky.plugins.{fname.stem}' if submod == '.' else \
+                           f'bluesky.plugins.{submod}.{fname.stem}'
+                with open(fname, 'rb') as f:
+                    source = f.read()
+                    try:
+                        tree = ast.parse(source)
+                    except:
+                        # Failed to parse source code, continue to next file
+                        continue
 
-                ret_dicts = []
-                ret_names = ['', '']
-                for item in tree.body:
-                    if isinstance(item, ast.FunctionDef) and item.name == 'init_plugin':
-                        for iitem in reversed(item.body):
-                            # Return value of init_plugin should always be a tuple of two dicts
-                            # The first dict is the plugin config dict, the second dict is the stack function dict
-                            if isinstance(iitem, ast.Return):
-                                if isinstance(iitem.value, ast.Tuple):
-                                    ret_dicts = iitem.value.elts
-                                else:
-                                    ret_dicts = [iitem.value]
-                                if len(ret_dicts) not in (1, 2):
-                                    print(f"{fname} looks like a plugin, but init_plugin() doesn't return one or two dicts")
-                                    continue
-                                ret_names = [el.id if isinstance(el, ast.Name) else '' for el in ret_dicts]
+                    ret_dicts = []
+                    ret_names = ['', '']
+                    for item in tree.body:
+                        if isinstance(item, ast.FunctionDef) and item.name == 'init_plugin':
+                            for iitem in reversed(item.body):
+                                # Return value of init_plugin should always be a tuple of two dicts
+                                # The first dict is the plugin config dict, the second dict is the stack function dict
+                                if isinstance(iitem, ast.Return):
+                                    if isinstance(iitem.value, ast.Tuple):
+                                        ret_dicts = iitem.value.elts
+                                    else:
+                                        ret_dicts = [iitem.value]
+                                    if len(ret_dicts) not in (1, 2):
+                                        print(f"{fname} looks like a plugin, but init_plugin() doesn't return one or two dicts")
+                                        continue
+                                    ret_names = [el.id if isinstance(el, ast.Name) else '' for el in ret_dicts]
 
-                            # Check if this is the assignment of one of the return values
-                            if isinstance(iitem, ast.Assign) and isinstance(iitem.value, ast.Dict):
-                                for i, name in enumerate(ret_names):
-                                    if iitem.targets[0].id == name:
-                                        ret_dicts[i] = iitem.value
+                                # Check if this is the assignment of one of the return values
+                                if isinstance(iitem, ast.Assign) and isinstance(iitem.value, ast.Dict):
+                                    for i, name in enumerate(ret_names):
+                                        if iitem.targets[0].id == name:
+                                            ret_dicts[i] = iitem.value
 
-                        # Parse the config dict
-                        cfgdict = {k.s:v for k,v in zip(ret_dicts[0].keys, ret_dicts[0].values)}
-                        plugintype = cfgdict.get('plugin_type')
-                        if plugintype is None:
-                            print(f'{fname} looks like a plugin, but no plugin type (sim/gui) is specified. ' 
-                                    'To fix this, add the element plugin_type to the configuration dictionary that is returned from init_plugin()')
-                            continue
-                        if plugintype.s == reqtype:
-                            # This is the initialization function of a bluesky plugin. Parse the contents
-                            plugin = Plugin(fname)
-                            plugin.plugin_doc = ast.get_docstring(tree)
-                            plugin.plugin_name = cfgdict['plugin_name'].s
-                            plugin.plugin_type = cfgdict['plugin_type'].s
+                            # Parse the config dict
+                            cfgdict = {k.s:v for k,v in zip(ret_dicts[0].keys, ret_dicts[0].values)}
+                            plugintype = cfgdict.get('plugin_type')
+                            if plugintype is None:
+                                print(f'{fname} looks like a plugin, but no plugin type (sim/gui) is specified. ' 
+                                        'To fix this, add the element plugin_type to the configuration dictionary that is returned from init_plugin()')
+                                continue
+                            if plugintype.s == reqtype:
+                                # This is the initialization function of a bluesky plugin. Parse the contents
+                                plugin = Plugin(fullname)
+                                plugin.plugin_doc = ast.get_docstring(tree)
+                                plugin.plugin_name = cfgdict['plugin_name'].s
+                                plugin.plugin_type = cfgdict['plugin_type'].s
 
-                            # Parse the stack function dict
-                            if len(ret_dicts) > 1:
-                                stack_keys       = [el.s for el in ret_dicts[1].keys]
-                                stack_docs       = [el.elts[-1].s for el in ret_dicts[1].values]
-                                plugin.plugin_stack = list(zip(stack_keys, stack_docs))
-                            # Add plugin to the dict of available plugins
-                            cls.plugins[plugin.plugin_name.upper()] = plugin
-                        else:
-                            cls.plugins_ext.append(cfgdict['plugin_name'].s.upper())
+                                print(f'Found plugin {plugin.plugin_name}, importable as {fullname}')
+
+                                # Parse the stack function dict
+                                if len(ret_dicts) > 1:
+                                    stack_keys       = [el.s for el in ret_dicts[1].keys]
+                                    stack_docs       = [el.elts[-1].s for el in ret_dicts[1].values]
+                                    plugin.plugin_stack = list(zip(stack_keys, stack_docs))
+                                # Add plugin to the dict of available plugins
+                                cls.plugins[plugin.plugin_name.upper()] = plugin
+                            else:
+                                cls.plugins_ext.append(cfgdict['plugin_name'].s.upper())
 
 
 def init(mode):
     ''' Initialization function of the plugin system.'''
-    # Add plugin path to module search path
-    plugin_path = bs.resource(settings.plugin_path)
-    if isinstance(plugin_path, ResourcePath):
-        for path in plugin_path.bases():
-            sys.path.append(path.absolute().as_posix())
-    else:
-        sys.path.append(plugin_path.absolute().as_posix())
     # Set plugin type for this instance of BlueSky
     req_type = 'sim' if mode[:3] == 'sim' else 'gui'
     oth_type = 'gui' if mode[:3] == 'sim' else 'sim'
