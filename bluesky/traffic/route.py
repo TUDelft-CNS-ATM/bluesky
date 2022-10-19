@@ -471,7 +471,6 @@ class Route(Replaceable):
     @staticmethod
     def at(acidx: 'acid', atwp : 'wpinroute', *args):
         ''' AT acid, wpinroute [DEL] ALT/SPD/DO alt/spd/stack command'''
-        # args = wpname,SPD/ALT, spd/alt(string)
         acid = bs.traf.id[acidx]
         acrte = Route._routes.get(acid)
         if atwp in acrte.wpname:
@@ -554,6 +553,7 @@ class Route(Replaceable):
                 else:
                     try:
                         acrte.wpalt[wpidx] = txt2alt(alttxt)
+                        acrte.calcfp()   # Recalculate VNAV axes
                     except ValueError as e:
                         success = False
 
@@ -615,14 +615,14 @@ class Route(Replaceable):
                             # Command found, check arguments
                             argtypes = cmdobj.annotations
 
-                            if argtypes[0]=="acid" and not (args[2].upper() in bs.traf.id):
+                            if len(argtypes)>0 and argtypes[0]=="acid" and not (len(args)>2 and args[2].upper() in bs.traf.id):
                                 # missing acid, so add ownship acid
                                 acrte.wpstack[wpidx].append(acid+" "+" ".join(args[1:]))
                             else:
                                 # This command does not need an acid or it is already first argument
                                 acrte.wpstack[wpidx].append(" ".join(args[1:]))
                         except:
-                            return False, "Stacked command "+cmd+"unknown"
+                            return False, "Stacked command "+cmd+" unknown or syntax error"
                     else:
                         # Command line starts with an aircraft id at the beginning of the command line, stack it
                         acrte.wpstack[wpidx].append(" ".join(args[1:]))
@@ -950,11 +950,12 @@ class Route(Replaceable):
 
     @stack.command
     @staticmethod
-    def listrte(acidx: 'acid', ipage=0):
+    def listrte(acidx: 'acid', ipagetxt="0"):
         """ LISTRTE acid, [pagenr]
 
             Show list of route in window per page of 5 waypoints/"""
         # First get the appropriate ac route
+        ipage = int(ipagetxt)
         acid = bs.traf.id[acidx]
         acrte = Route._routes.get(acid)
         if acrte.nwp <= 0:

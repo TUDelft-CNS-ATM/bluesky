@@ -17,7 +17,6 @@ MINSLEEP = 1e-3
 # Register settings defaults
 bs.settings.set_variable_defaults(simdt=0.05)
 
-
 class Simulation:
     ''' The simulation object. '''
     def __init__(self):
