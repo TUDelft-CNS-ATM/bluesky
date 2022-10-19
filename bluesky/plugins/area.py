@@ -108,8 +108,8 @@ class Area(Entity):
         self.conflog = datalog.crelog('CONFLOG', None, confheader)
 
         with self.settrafarrays():
-            self.insdel = np.array([], dtype=np.bool) # In deletion area or not
-            self.insexp = np.array([], dtype=np.bool) # In experiment area or not
+            self.insdel = np.array([], dtype=bool) # In deletion area or not
+            self.insexp = np.array([], dtype=bool) # In experiment area or not
             self.oldalt = np.array([])
             self.distance2D = np.array([])
             self.distance3D = np.array([])

@@ -4,7 +4,7 @@ import time
 from bluesky import stack, settings, traf
 from bluesky.tools.network import TcpSocket
 from bluesky.tools import aero
-import adsb_decoder as decoder
+import bluesky.plugins.adsb_decoder as decoder
 
 ## Default settings
 # Mode-S / ADS-B server hostname/ip, and server port

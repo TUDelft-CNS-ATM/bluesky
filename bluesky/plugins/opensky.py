@@ -17,7 +17,7 @@ import pickle
 import requests
 import numpy as np
 
-from bluesky import stack, settings, traf, scr
+from bluesky import stack, settings, traf
 from bluesky.core import Entity, timed_function
 from bluesky.tools import cachefile
 settings.set_variable_defaults(opensky_user=None, opensky_password=None,
@@ -71,7 +71,7 @@ class OpenSkyListener(Entity):
 
         with self.settrafarrays():
             self.upd_time = np.array([])
-            self.my_ac = np.array([], dtype=np.bool)
+            self.my_ac = np.array([], dtype=bool)
 
     def create(self, n=1):
         super().create(n)

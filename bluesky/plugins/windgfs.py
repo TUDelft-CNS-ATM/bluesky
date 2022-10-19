@@ -1,4 +1,3 @@
-from glob import glob
 from pathlib import Path
 import sys
 import pygrib

@@ -9,7 +9,7 @@ Make sure scenario can be saved
 
 
 from bluesky import stack,traf,sim,tools,navdb  #, settings, navdb, traf, sim, scr, tools
-from trafgenclasses import Source, Drain, setcircle
+from bluesky.plugins.trafgenclasses import Source, Drain, setcircle
 from bluesky.tools.position import txt2pos
 from bluesky.tools.geo import kwikpos
 #from bluesky.tools import areafilter
