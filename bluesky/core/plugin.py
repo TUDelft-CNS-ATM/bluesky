@@ -137,8 +137,6 @@ class Plugin:
                                 plugin.plugin_name = cfgdict['plugin_name'].s
                                 plugin.plugin_type = cfgdict['plugin_type'].s
 
-                                print(f'Found plugin {plugin.plugin_name}, importable as {fullname}')
-
                                 # Parse the stack function dict
                                 if len(ret_dicts) > 1:
                                     stack_keys       = [el.s for el in ret_dicts[1].keys]
