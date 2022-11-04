@@ -1,11 +1,13 @@
 # Always prefer setuptools over distutils
 import os
 import sys
-from pathlib import Path
 from setuptools import setup, find_packages, Extension
 import configparser
-import numpy as np
 
+
+def get_numpy_include():
+    import numpy
+    return numpy.get_include()
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -31,15 +33,10 @@ extras_requirements.update({
     'test': ['coverage', 'flake8', 'radon', 'nose'],
 })
 
-if not Path('bluesky/resources/scenario').exists():
-    os.symlink('../../scenario', 'bluesky/resources/scenario')
-if not Path('bluesky/resources/plugins').exists():
-    os.symlink('../../plugins', 'bluesky/resources/plugins')
-
 setup(
     name='bluesky-simulator',  # 'bluesky' package name already taken in PyPI
     use_calver=True,
-    setup_requires=['calver'],
+    setup_requires=['calver', 'numpy'],
     install_requires=install_requires,
     extras_require=extras_requirements,
     author='The BlueSky community',
@@ -84,12 +81,7 @@ setup(
     project_urls={
         'Source': 'https://github.com/TUDelft-CNS-ATM/bluesky',
     },
-    include_dirs=[np.get_include()],
+    include_dirs=[get_numpy_include()],
     ext_modules=[Extension('bluesky.tools.cgeo', ['bluesky/tools/src_cpp/cgeo.cpp']),
                 Extension('bluesky.traffic.asas.cstatebased', ['bluesky/traffic/asas/src_cpp/cstatebased.cpp'], include_dirs=['bluesky/tools/src_cpp'])]
 )
-
-if Path('bluesky/resources/scenario').is_symlink():
-    os.unlink('bluesky/resources/scenario')
-if Path('bluesky/resources/plugins').is_symlink():
-    os.unlink('bluesky/resources/plugins')
