@@ -21,8 +21,6 @@ from bluesky.tools.datalog import crelog
 
 bs.settings.set_variable_defaults(fms_dt=10.5)
 
-#debug
-flog = open("./output/logfile.txt","w")
 
 class Autopilot(Entity, replaceable=True):
     ''' BlueSky Autopilot implementation. '''
