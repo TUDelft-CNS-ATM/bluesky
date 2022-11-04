@@ -378,7 +378,7 @@ class Autopilot(Entity, replaceable=True):
         turntasdiff   = np.maximum(0.,(bs.traf.tas - turntas)*(turntas>0.0))
 
         # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
-        dxturnspdchg = distaccel(turntas,bs.traf.perf.vmax, bs.traf.perf.axmax)
+        dxturnspdchg = distaccel(turntas,bs.traf.tas, bs.traf.perf.axmax)
 
         # Decelerate or accelerate for next required speed because of speed constraint or RTA speed
         # Note that because nextspd comes from the stack, and can be either a mach number or
