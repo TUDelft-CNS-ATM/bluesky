@@ -36,7 +36,7 @@ class MVP(ConflictResolution):
         return super().setprio(flag, priocode)
 
     @stack.command(name="RMETHH")
-    def setresometh(self, value=''):
+    def setresometh(self, value:'txt'=''):
         """ Processes the RMETHH command. Sets swresovert = False"""
         # Acceptable arguments for this command
         options = ["BOTH", "SPD", "HDG", "NONE", "ON", "OFF", "OF"]
@@ -71,7 +71,7 @@ class MVP(ConflictResolution):
                 self.swresovert = False
 
     @stack.command(name='RMETHV')
-    def setresometv(self, value=''):
+    def setresometv(self, value:'txt'=''):
         """ Processes the RMETHV command. Sets swresohoriz = False."""
         # Acceptable arguments for this command
         options = ["NONE", "ON", "OFF", "OF", "V/S"]
@@ -80,7 +80,7 @@ class MVP(ConflictResolution):
                          "\nVertical resolution limitation is currently " + \
                 ("ON" if self.swresovert else "OFF")
         if value not in options:
-            return False, "RMETV Not Understood" + "\nRMETHV [ON / V/S / OFF / NONE]"
+            return False, f"RMETHV '{value}' Not Understood\nRMETHV [ON / V/S / OFF / NONE]"
 
         if value == "ON" or value == "V/S":
             self.swresovert = True
