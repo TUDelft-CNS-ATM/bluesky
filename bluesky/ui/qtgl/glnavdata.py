@@ -1,6 +1,7 @@
 ''' BlueSky navdata OpenGL visualisation object. '''
 import numpy as np
 import bluesky as bs
+from bluesky import Signal
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky import settings
 from bluesky.ui.loadvisuals import load_aptsurface
@@ -62,6 +63,10 @@ class Navdata(glh.RenderObject, layer=-10):
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
 
         bs.net.actnodedata_changed.connect(self.actdata_changed)
+        Signal('panzoom').connect(self.on_panzoom_signal)
+
+    def on_panzoom_signal(self, finished):
+        self.actdata_changed(0, bs.net.get_nodedata(), ('PANZOOM',))
 
     def actdata_changed(self, nodeid, nodedata, changed_elems):
         if 'PANZOOM' in changed_elems:
