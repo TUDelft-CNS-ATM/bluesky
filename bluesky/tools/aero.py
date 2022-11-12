@@ -208,7 +208,7 @@ def veas2tas(eas, h):
 
 
 def vtas2eas(tas, h):
-    """ True airspeed to equivent airspeed conversion for numpy arrays.
+    """ True airspeed to equivalent airspeed conversion for numpy arrays.
 
         Arguments:
         - tas: True airspeed [m/s]
