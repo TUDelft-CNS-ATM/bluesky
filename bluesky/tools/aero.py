@@ -43,7 +43,7 @@ def casmachthr(threshold:float=None):
         never be considered as Mach number (e.g., when simulating drones).
 
         Argument:
-        - threshold: CAS speed threshold [m/s] 
+        - threshold: CAS speed threshold [m/s]
     """
     if threshold is None:
         return True, f'CASMACHTHR: The current CAS/Mach threshold is {casmach_thr} m/s ({casmach_thr / kts} kts'
@@ -178,7 +178,7 @@ def vtas2mach(tas, h):
 
 
 def vmach2tas(mach, h):
-    """ True airspeed (tas) to mach number conversion for numpy arrays.
+    """ Mach number to True airspeed (tas) conversion for numpy arrays.
 
         Arguments:
         - mach: Mach number [-]
@@ -208,7 +208,7 @@ def veas2tas(eas, h):
 
 
 def vtas2eas(tas, h):
-    """ True airspeed to equivent airspeed conversion for numpy arrays.
+    """ True airspeed to equivalent airspeed conversion for numpy arrays.
 
         Arguments:
         - tas: True airspeed [m/s]
