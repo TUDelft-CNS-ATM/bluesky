@@ -1,7 +1,7 @@
 # A Simple UDP class
 import socket
 import msgpack
-from bluesky.network.common import get_ownip
+from bluesky.network.common import get_ownip, IDLEN
 from bluesky import settings
 
 settings.set_variable_defaults(discovery_port=11000)
@@ -52,12 +52,12 @@ class Discovery:
         self.send(self.own_id + data)
 
     def recv_reqreply(self):
-        msg, addr = self.recv(13) # The longest message is 13 bytes
+        msg, addr = self.recv(IDLEN + 8) # The longest message is IDLEN + 8 bytes
         class DiscoveryReply:
             def __init__(self, msg, addr):
                 self.conn_ip = addr[0]
-                self.conn_id = msg[:5]
-                data = msgpack.unpackb(msg[5:])
+                self.conn_id = msg[:IDLEN]
+                data = msgpack.unpackb(msg[IDLEN:])
                 self.is_client = data[0] & IS_CLIENT
                 self.is_server = not self.is_client
                 self.is_reply = data[0] & IS_REPLY
