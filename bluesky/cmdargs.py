@@ -1,6 +1,5 @@
 ''' BlueSky command-line argument parsing. '''
 import argparse
-from bluesky import settings
 
 
 def parse():
@@ -48,6 +47,9 @@ def parse():
     
     parser.add_argument("--workdir", dest="workdir",
                         help="Set BlueSky working directory (if other than cwd or ~/bluesky).")
+
+    parser.add_argument("--groupid", dest="connid",
+                        help="Explicitly set a group part, or the entire connection id instead of randomly generating it.")
 
     cmdargs = parser.parse_args()
 
