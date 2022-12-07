@@ -1,5 +1,4 @@
 ''' BlueSky resource access '''
-import sys
 import shutil
 import itertools
 from pathlib import Path
@@ -10,8 +9,25 @@ try:
     from importlib.readers import MultiplexedPath
 except ImportError:
     # Python < 3.9 only provides deprecated resources API
-    from importlib_resources import files
-    from importlib_resources.readers import MultiplexedPath
+    from importlib.resources import path
+    def files(package):
+        res = '.'
+        if '.' in package:
+            package, res = package.split('.', 1)
+        return path(package, res)
+
+    class MultiplexedPath:
+        def __init__(self, *paths) -> None:
+            self._paths = list(map(Path, paths))
+        def iterdir(self):
+            visited = []
+            for path in self._paths:
+                for file in path.iterdir():
+                    if file.name in visited:
+                        continue
+                    visited.append(file.name)
+                    yield file
+
 
 
 class ResourcePath(MultiplexedPath):

@@ -19,10 +19,6 @@ with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
 with open(os.path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     install_requires = f.readlines()
 
-# If Python version < 3.9, add importlib_resources requirement
-if sys.version_info.major == 3 and sys.version_info.minor < 9:
-    install_requires.append('importlib_resources')
-
 # get extra requirements from setup.cfg
 parser = configparser.ConfigParser()
 parser.read('%s/setup.cfg' % here)
