@@ -14,7 +14,8 @@ except ImportError:
         res = '.'
         if '.' in package:
             package, res = package.split('.', 1)
-        return path(package, res)
+        with path(package, res) as p:
+            return p
 
     class MultiplexedPath:
         def __init__(self, *paths) -> None:
@@ -33,7 +34,7 @@ except ImportError:
 class ResourcePath(MultiplexedPath):
     def __init__(self, *paths):
         base = files('bluesky.resources')
-        paths = list(paths) + base._paths if isinstance(base, MultiplexedPath) else base
+        paths = list(paths) + (base._paths if isinstance(base, MultiplexedPath) else [base])
         super().__init__(*paths)
 
     def appendpath(self, path):
