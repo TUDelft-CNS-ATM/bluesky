@@ -7,7 +7,7 @@ from bluesky.core.walltime import Timer
 class Node:
     def __init__(self, *args):
         self.node_id = b'\x00' + os.urandom(4)
-        self.host_id = b''
+        self.server_id = b''
         self.running = True
 
     def update(self):

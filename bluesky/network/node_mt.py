@@ -44,7 +44,7 @@ class IOThread(Thread):
 
 class Node:
     def __init__(self):
-        self.host_id = b''
+        self.server_id = b''
         self.node_id = b''
         self.running = True
         ctx = zmq.Context.instance()
@@ -73,7 +73,7 @@ class Node:
         self.iothread.start()
         self.send_event(b'REGISTER')
         self.node_id = self.event_io.recv_multipart()[-1]
-        self.host_id = self.node_id[:5]
+        self.server_id = self.node_id[:5]
         print(f'Node started, id={self.node_id}')
 
         # run() implements the main loop
