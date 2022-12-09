@@ -102,16 +102,18 @@ class Client:
             timeout: The polling timeout in milliseconds. '''
         try:
             events = dict(self.poller.poll(timeout))
-            # If we are in discovery mode, parse this message
-            if self.discovery and event.pop(self.discovery.handle.fileno()):
-                dmsg = self.discovery.recv_reqreply()
-                if dmsg.conn_id != self.client_id and dmsg.is_server:
-                    self.server_discovered.emit(dmsg.conn_ip, dmsg.ports)
 
             # The socket with incoming data
             for sock, event in events.items():
                 if event != zmq.POLLIN:
                     # The event does not refer to incoming data: skip for now
+                    continue
+
+                # If we are in discovery mode, parse this message
+                if self.discovery and sock == self.discovery.handle.fileno():
+                    dmsg = self.discovery.recv_reqreply()
+                    if dmsg.conn_id != self.client_id and dmsg.is_server:
+                        self.server_discovered.emit(dmsg.conn_ip, dmsg.ports)
                     continue
             
                 # Receive the message
