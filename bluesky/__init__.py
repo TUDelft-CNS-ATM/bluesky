@@ -29,7 +29,7 @@ server = None
 
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
-         gui=None, detached=False, workdir=None, **kwargs):
+         gui=None, detached=False, workdir=None, group_id=None, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
@@ -41,6 +41,8 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
         - gui: Gui type (only when mode is client or server) [qtgl/pygame/console]
         - detached: Run with or without networking (only when mode is sim) [True/False]
         - workdir: Pass a custom working directory (instead of cwd or ~/bluesky)
+        - group_id: Explicitly set (part of) the connection identifier string.
+                    Server does this when spawning a node
     '''
 
     # Argument checking
@@ -105,8 +107,7 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
         traf = Traffic()
         sim = Simulation()
         scr = Screen()
-        net = Node(settings.simevent_port,
-                   settings.simstream_port)
+        net = Node(group_id)
 
         # Initialize remaining modules
         varexplorer.init()
