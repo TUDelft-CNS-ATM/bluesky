@@ -19,20 +19,29 @@ ACTNODE_TOPICS = [b'ACDATA', b'PLOT*', b'ROUTEDATA*']
 
 class GuiClient(Client):
     def __init__(self):
-        super().__init__(ACTNODE_TOPICS)
+        super().__init__()#ACTNODE_TOPICS)
         self.nodedata = dict()
         self.ref_nodedata = nodeData()
         self.discovery_timer = None
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(20)
-        self.subscribe(b'SIMINFO')
-        self.subscribe(b'TRAILS')
-        self.subscribe(b'PLOT' + self.client_id)
-        self.subscribe(b'ROUTEDATA' + self.client_id)
+        self.subscribe(b'TRAILS').connect(lambda data: self.stream(b'TRAILS', data))
 
         # Signals
         self.actnodedata_changed = Signal('actnodedata_changed')
+
+        # Connect to signals. TODO: needs revision
+        Signal('SIMSTATE').connect(lambda data: self.event(b'SIMSTATE', data))
+        Signal('RESET').connect(lambda data: self.event(b'RESET', data))
+        Signal('COLOR').connect(lambda data: self.event(b'COLOR', data))
+        Signal('DISPLAYFLAG').connect(lambda data: self.event(b'DISPLAYFLAG', data))
+        Signal('DEFWPT').connect(lambda data: self.event(b'DEFWPT', data))
+        Signal('SHAPE').connect(lambda data: self.event(b'SHAPE', data))
+        Signal('ACDATA').connect(lambda data: self.stream(b'ACDATA', data))
+        Signal('ROUTEDATA').connect(lambda data: self.stream(b'ROUTEDATA', data))
+        self.subscribe(b'ECHO', to_group=b'C').connect(self.echo)
+        self.subscribe(b'PANZOOM', to_group=b'C').connect(lambda data: self.event(b'PANZOOM', data))
 
     def start_discovery(self):
         super().start_discovery()
@@ -45,10 +54,10 @@ class GuiClient(Client):
         self.discovery_timer = None
         super().stop_discovery()
 
-    def stream(self, name, data, sender_id):
+    def stream(self, name, data):
         ''' Guiclient stream handler. '''
         changed = ''
-        actdata = self.get_nodedata(sender_id)
+        actdata = self.get_nodedata(self.sender_id)
         if name == b'ACDATA':
             actdata.setacdata(data)
             changed = name.decode('utf8')
@@ -59,22 +68,22 @@ class GuiClient(Client):
             actdata.settrails(**data)
             changed = name.decode('utf8')
 
-        if sender_id == self.act and changed:
-            self.actnodedata_changed.emit(sender_id, actdata, changed)
+        if self.sender_id == self.act_id and changed:
+            self.actnodedata_changed.emit(self.sender_id, actdata, changed)
 
-        super().stream(name, data, sender_id)
-
-    def echo(self, text, flags=None, sender_id=None):
+    def echo(self, data):
         ''' Overloaded Client.echo function. '''
+        text = data['text']
+        flags = data['flags']
+        # If sender_id is None this is an echo command originating from the gui user, and therefore also meant for the active node
+        sender_id = self.sender_id or self.act_id
         sender_data = self.get_nodedata(sender_id)
         sender_data.echo(text, flags)
-        # If sender_id is None this is an echo command originating from the gui user, and therefore also meant for the active node
-        sender_id = sender_id or self.act
-        if sender_id == self.act:
+        if sender_id == self.act_id:
             self.actnodedata_changed.emit(sender_id, sender_data, ('ECHOTEXT',))
 
-    def event(self, name, data, sender_id):
-        sender_data = self.get_nodedata(sender_id)
+    def event(self, name, data):
+        sender_data = self.get_nodedata(self.sender_id)
         data_changed = []
         if name == b'RESET':
             sender_data.clear_scen_data()
@@ -91,26 +100,24 @@ class GuiClient(Client):
             data_changed.append('CUSTWPT')
         elif name == b'DISPLAYFLAG':
             sender_data.setflag(**data)
-        elif name == b'ECHO':
-            
-            data_changed.append('ECHOTEXT')
+
         elif name == b'PANZOOM':
             sender_data.panzoom(**data)
             data_changed.append('PANZOOM')
         elif name == b'SIMSTATE':
             sender_data.siminit(**data)
             data_changed = list(UPDATE_ALL)
-        else:
-            super().event(name, data, sender_id)
+        # else:
+        #     super().event(name, data, self.sender_id)
 
-        if sender_id == self.act and data_changed:
-            self.actnodedata_changed.emit(sender_id, sender_data, data_changed)
+        if self.sender_id == self.act_id and data_changed:
+            self.actnodedata_changed.emit(self.sender_id, sender_data, data_changed)
 
     def actnode_changed(self, newact):
         self.actnodedata_changed.emit(newact, self.get_nodedata(newact), UPDATE_ALL)
 
     def get_nodedata(self, nodeid=None):
-        nodeid = nodeid or self.act
+        nodeid = nodeid or self.act_id
         if not nodeid:
             return self.ref_nodedata
 
@@ -119,7 +126,7 @@ class GuiClient(Client):
             # If this is a node we haven't addressed yet: create dataset and
             # request node settings
             self.nodedata[nodeid] = data = nodeData()
-            self.send_event(b'GETSIMSTATE', target=nodeid)
+            self.send(b'GETSIMSTATE', to_group=nodeid)
 
         return data
 
@@ -209,7 +216,7 @@ class nodeData:
         for shape in shapes:
             self.update_poly_data(**shape)
 
-    def panzoom(self, pan=None, zoom=None, absolute=True):
+    def panzoom(self, pan=None, zoom=None, ar=1, absolute=True):
         if pan:
             if absolute:
                 self.pan  = list(pan)

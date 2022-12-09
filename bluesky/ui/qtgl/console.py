@@ -70,7 +70,7 @@ class Console(QWidget):
         self.command_line = ''
 
         # Connect to the io client's activenode changed signal
-        bs.net.event_received.connect(self.on_simevent_received)
+        Signal('CMDLINE').connect(self.set_cmdline)
         bs.net.actnodedata_changed.connect(self.actnodedataChanged)
 
         assert Console._instance is None, "Console constructor: console instance " + \
@@ -84,11 +84,6 @@ class Console(QWidget):
         ''' Save command history when BlueSky closes. '''
         with cachefile.openfile('console_history.p') as cache:
             cache.dump(self.command_history)
-
-    def on_simevent_received(self, eventname, eventdata, sender_id):
-        ''' Processing of events from simulation nodes. '''
-        if eventname == b'CMDLINE':
-            self.set_cmdline(eventdata)
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:

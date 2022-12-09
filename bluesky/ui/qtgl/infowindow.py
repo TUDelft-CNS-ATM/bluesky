@@ -28,7 +28,7 @@ except ImportError:
 
 import bluesky as bs
 from bluesky import stack
-from bluesky.core import Entity
+from bluesky.core import Entity, Signal
 
 
 class InfoWindow(Entity):
@@ -43,7 +43,7 @@ class InfoWindow(Entity):
         self.view.addTab(self.statetab, 'Simulation state')
 
         # Connect to sim data events
-        bs.net.stream_received.connect(self.on_simstream_received)
+        Signal('PLOT').connect(self.on_plot_received)
 
 
     @stack.command(name="INFO")
@@ -59,10 +59,7 @@ class InfoWindow(Entity):
         self.plottab = PlotTab()
         self.view.addTab(self.plottab, 'Graphs')
 
-    def on_simstream_received(self, streamname, data, sender_id):
-        if streamname[:4] != b'PLOT':
-            return
-
+    def on_plot_received(self, data):
         if not self.plottab:
             self.add_plot_tab()
 
@@ -73,9 +70,9 @@ class InfoWindow(Entity):
         # A reset flag is sent upon sim reset to indicate removal of sim plots
         if data.pop('reset', False):
             print('plotter gui reset')
-            self.plottab.remove_plots(sender_id)
+            self.plottab.remove_plots(bs.net.sender_id)
 
-        self.plottab.update_plots(data, sender_id)
+        self.plottab.update_plots(data, bs.net.sender_id)
 
 
 class StateTab(QScrollArea):

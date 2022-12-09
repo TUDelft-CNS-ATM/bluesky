@@ -8,7 +8,7 @@ try:
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-        QDialogButtonBox, QMenu
+        QDialogButtonBox, QMenu, QLabel
     from PyQt5 import uic
 except ImportError:
     from PyQt6.QtWidgets import QApplication as app
@@ -16,15 +16,16 @@ except ImportError:
     from PyQt6.QtGui import QPixmap, QIcon
     from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-        QDialogButtonBox, QMenu
+        QDialogButtonBox, QMenu, QLabel
     from PyQt6 import uic
 
 # Local imports
 import bluesky as bs
 from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
-from bluesky.network import get_ownip
+from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
 from bluesky.ui import palette
+from bluesky.core import Signal
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -57,7 +58,7 @@ class DiscoveryDialog(QDialog):
         super().__init__(parent)
         self.setModal(True)
         self.setMinimumSize(200,200) # To prevent Geometry error
-        self.hosts = []
+        self.servers = []
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.serverview = QTreeWidget()
@@ -74,26 +75,26 @@ class DiscoveryDialog(QDialog):
         bs.net.server_discovered.connect(self.add_srv)
 
     def add_srv(self, address, ports):
-        for host in self.hosts:
-            if address == host.address and ports == host.ports:
+        for server in self.servers:
+            if address == server.address and ports == server.ports:
                 # We already know this server, skip
                 return
-        host = QTreeWidgetItem(self.serverview)
-        host.address = address
-        host.ports = ports
-        host.hostname = 'This computer' if address == get_ownip() else address
-        host.setText(0, host.hostname)
+        server = QTreeWidgetItem(self.serverview)
+        server.address = address
+        server.ports = ports
+        server.hostname = 'This computer' if address == get_ownip() else address
+        server.setText(0, server.hostname)
 
-        host.setText(1, '{},{}'.format(*ports))
-        self.hosts.append(host)
+        server.setText(1, '{},{}'.format(*ports))
+        self.servers.append(server)
 
     def on_accept(self):
-        host = self.serverview.currentItem()
-        if host:
+        server = self.serverview.currentItem()
+        if server:
             bs.net.stop_discovery()
-            hostname = host.address
-            eport, sport = host.ports
-            bs.net.connect(hostname=hostname, event_port=eport, stream_port=sport)
+            hostname = server.address
+            rport, sport = server.ports
+            bs.net.connect(hostname=hostname, recv_port=rport, send_port=sport)
             self.close()
 
 
@@ -189,9 +190,9 @@ class MainWindow(QMainWindow):
         # Connect to io client's nodelist changed signal
         bs.net.nodes_changed.connect(self.nodesChanged)
         bs.net.actnodedata_changed.connect(self.actnodedataChanged)
-        bs.net.event_received.connect(self.on_simevent_received)
-        bs.net.stream_received.connect(self.on_simstream_received)
+        bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
         bs.net.signal_quit.connect(self.closeEvent)
+        Signal('SHOWDIALOG').connect(self.on_showdialog_received)
 
         self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
@@ -200,8 +201,8 @@ class MainWindow(QMainWindow):
         self.nodetree.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
-        self.maxhostnum = 0
-        self.hosts = dict()
+        self.maxservnum = 0
+        self.servers = dict()
         self.nodes = dict()
         self.actnode = ''
 
@@ -240,9 +241,9 @@ class MainWindow(QMainWindow):
         event.accept()
 
     def closeEvent(self, event=None):
-        # Send quit to server if we own the host
+        # Send quit to server if we own it
         if self.mode != 'client':
-            bs.net.send_event(b'QUIT')
+            bs.net.send(b'QUIT', to_group=bs.server.server_id)
         app.instance().closeAllWindows()
         # return True
 
@@ -250,83 +251,78 @@ class MainWindow(QMainWindow):
         if nodeid != self.actnode:
             self.actnode = nodeid
             node = self.nodes[nodeid]
-            self.nodelabel.setText(f'<b>Node</b> {node.host_num}:{node.node_num}')
+            self.nodelabel.setText(f'<b>Node</b> {node.serv_num}:{node.node_num}')
             self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.SelectionFlag.ClearAndSelect)
 
-    def nodesChanged(self, data):
-        for host_id, host_data in data.items():
-            host = self.hosts.get(host_id)
-            if not host:
-                host = QTreeWidgetItem(self.nodetree)
-                self.maxhostnum += 1
-                host.host_num = self.maxhostnum
-                host.host_id = host_id
-                hostname = 'This computer' if host_id == bs.net.get_hostid() else str(host_id)
-                f = host.font(0)
-                f.setBold(True)
-                host.setExpanded(True)
-                btn = QPushButton(self.nodetree)
-                btn.host_id = host_id
-                btn.setText(hostname)
-                btn.setFlat(True)
-                btn.setStyleSheet('font-weight:bold')
-                icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
-                btn.setIcon(QIcon(icon.as_posix()))
-                btn.setIconSize(QSize(24, 16))
-                btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-                btn.setMaximumHeight(16)
-                btn.clicked.connect(self.buttonClicked)
-                self.nodetree.setItemWidget(host, 0, btn)
-                self.hosts[host_id] = host
+    def nodesChanged(self, nodes, servers):
+        for node_id in nodes:
+            if node_id not in self.nodes:
+                server_id = node_id[:-1] + seqidx2id(0)
+                if server_id not in servers:
+                    server_id = b'0'
+                server = self.servers.get(server_id)
+                if not server:
+                    server = QTreeWidgetItem(self.nodetree)
+                    self.maxservnum += 1
+                    server.serv_num = self.maxservnum
+                    server.server_id = server_id
+                    hostname = 'Ungrouped' if server_id == b'0' else 'This computer'
+                    f = server.font(0)
+                    f.setBold(True)
+                    server.setExpanded(True)
+                    if server_id != b'0':
+                        btn = QPushButton(self.nodetree)
+                        btn.server_id = server_id
+                        btn.setText(hostname)
+                        btn.setFlat(True)
+                        btn.setStyleSheet('font-weight:bold')
+                        icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
+                        btn.setIcon(QIcon(icon.as_posix()))
+                        btn.setIconSize(QSize(40 if server_id == b'0' else 24, 16))
+                        btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                        btn.setMaximumHeight(16)
+                        btn.clicked.connect(self.buttonClicked)
+                        self.nodetree.setItemWidget(server, 0, btn)
+                    else:
+                        self.nodetree.setItemWidget(server, 0, QLabel(hostname))
+                    self.servers[server_id] = server
+                node_num = seqid2idx(node_id[-1])
+                node = QTreeWidgetItem(server)
+                node.setText(0, f'{server.serv_num}:{node_num} <init>')
+                node.setText(1, '00:00:00')
+                node.node_id  = node_id
+                node.node_num = node_num
+                node.serv_num = server.serv_num
 
-            for node_num, node_id in enumerate(host_data['nodes']):
-                if node_id not in self.nodes:
-                    # node_num = node_id[-2] * 256 + node_id[-1]
-                    node = QTreeWidgetItem(host)
-                    node.setText(0, f'{host.host_num}:{node_num + 1} <init>')
-                    node.setText(1, '00:00:00')
-                    node.node_id  = node_id
-                    node.node_num = node_num + 1
-                    node.host_num = host.host_num
+                self.nodes[node_id] = node
 
-                    self.nodes[node_id] = node
-
-    def on_simevent_received(self, eventname, eventdata, sender_id):
+    def on_showdialog_received(self, data):
         ''' Processing of events from simulation nodes. '''
-        # ND window for selected aircraft
-        if eventname == b'SHOWND':
-            return
-            if eventdata:
-                self.nd.setAircraftID(eventdata)
-            self.nd.setVisible(not self.nd.isVisible())
+        dialog = data.get('dialog')
+        args   = data.get('args')
+        if dialog == 'OPENFILE':
+            self.show_file_dialog()
+        elif dialog == 'DOC':
+            self.show_doc_window(args)
 
-        elif eventname == b'SHOWDIALOG':
-            dialog = eventdata.get('dialog')
-            args   = eventdata.get('args')
-            if dialog == 'OPENFILE':
-                self.show_file_dialog()
-            elif dialog == 'DOC':
-                self.show_doc_window(args)
-
-    def on_simstream_received(self, streamname, data, sender_id):
-        if streamname == b'SIMINFO':
-            speed, simdt, simt, simutc, ntraf, state, scenname = data
-            simt = tim2txt(simt)[:-3]
-            self.setNodeInfo(sender_id, simt, scenname)
-            if sender_id == bs.net.actnode():
-                acdata = bs.net.get_nodedata().acdata
-                self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
+    def on_siminfo_received(self, data):
+        speed, simdt, simt, simutc, ntraf, state, scenname = data
+        simt = tim2txt(simt)[:-3]
+        self.setNodeInfo(bs.net.sender_id, simt, scenname)
+        if bs.net.sender_id == bs.net.act_id:
+            acdata = bs.net.get_nodedata().acdata
+            self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
+                % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
 
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
         if node:
-            node.setText(0, f'{node.host_num}:{node.node_num} <{scenname}>')
+            node.setText(0, f'{node.serv_num}:{node.node_num} <{scenname}>')
             node.setText(1, time)
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
-        if item in self.hosts.values():
+        if item in self.servers.values():
             item.setSelected(False)
             item.child(0).setSelected(True)
             bs.net.actnode(item.child(0).node_id)
@@ -356,15 +352,15 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.ic:
             self.show_file_dialog()
         elif self.sender() == self.sameic:
-            bs.net.send_event(b'STACK', 'IC IC')
+            bs.net.send(b'STACK', 'IC IC')
         elif self.sender() == self.hold:
-            bs.net.send_event(b'STACK', 'HOLD')
+            bs.net.send(b'STACK', 'HOLD')
         elif self.sender() == self.op:
-            bs.net.send_event(b'STACK', 'OP')
+            bs.net.send(b'STACK', 'OP')
         elif self.sender() == self.fast:
-            bs.net.send_event(b'STACK', 'FF')
+            bs.net.send(b'STACK', 'FF')
         elif self.sender() == self.fast10:
-            bs.net.send_event(b'STACK', 'FF 0:0:10')
+            bs.net.send(b'STACK', 'FF 0:0:10')
         elif self.sender() == self.showac:
             actdata.show_traf = not actdata.show_traf
         elif self.sender() == self.showpz:
@@ -386,9 +382,9 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             actdata.show_map = not actdata.show_map
         elif self.sender() == self.action_Save:
-            bs.net.send_event(b'STACK', 'SAVEIC')
-        elif hasattr(self.sender(), 'host_id'):
-            bs.net.send_event(b'ADDNODES', 1)
+            bs.net.send(b'STACK', 'SAVEIC')
+        elif hasattr(self.sender(), 'server_id'):
+            bs.net.send(b'ADDNODES', 1, self.sender().server_id)
 
     def show_file_dialog(self, path=None):
         # Due to Qt5 bug in Windows, use temporarily Tkinter

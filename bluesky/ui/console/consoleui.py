@@ -39,8 +39,8 @@ class ConsoleClient(Client):
 
     def __init__(self, actnode_topics=b''):
         super().__init__(actnode_topics)
-        self.subscribe(b'SIMINFO')
-        self.subscribe(b'ACDATA')
+        self.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
+        self.subscribe(b'ACDATA').connect(self.on_acdata_received)
         
         self.count = 0
         self.nodes = dict()
@@ -57,13 +57,12 @@ class ConsoleClient(Client):
     def actnode_changed(self, newact):
         pass
 
-    def stream(self, name, data, sender_id):
-
-        if name == b'SIMINFO' and ConsoleUI.instance is not None:
+    def on_siminfo_received(self, data):
+        if ConsoleUI.instance is not None:
             speed, simdt, simt, simutc, ntraf, state, scenname = data
             simt = tim2txt(simt)[:-3]
-            self.setNodeInfo(sender_id, simt, scenname)
-            if sender_id == bs.net.actnode():
+            self.setNodeInfo(bs.net.sender_id, simt, scenname)
+            if bs.net.sender_id == bs.net.act_id:
                 ConsoleUI.instance.set_infoline(f'[b]t:[/b] {simt} [b]dt:[/b] {simdt} [b]Speed:[/b] {speed:.1f} [b]UTC:[/b] {simutc} [b]Mode:[/b] {self.modes[state]} [b]Aircraft:[/b] {ntraf}')
 
             # concate times of all nodes
@@ -71,12 +70,12 @@ class ConsoleClient(Client):
 
             # send to tui
             ConsoleUI.instance.set_nodes(copy.deepcopy(self.nodes), node_times)
-        
-        if name == b'ACDATA':
-            self.extend_node_data(data, sender_id)
-            if sender_id == bs.net.actnode():
-                gen_data, table_data = self.get_traffic(data)
-                ConsoleUI.instance.set_traffic(gen_data, table_data, sender_id)
+
+    def on_acdata_received(self, data):
+        self.extend_node_data(data, bs.net.sender_id)
+        if bs.net.sender_id == bs.net.act_id:
+            gen_data, table_data = self.get_traffic(data)
+            ConsoleUI.instance.set_traffic(gen_data, table_data, bs.net.sender_id)
 
     def extend_node_data(self, data, connid):
         # check if it is inside self.nodes

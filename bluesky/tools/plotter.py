@@ -18,7 +18,7 @@ def plot(*args, **params):
             plots.append(newplot)
         except IndexError as e:
             return False, e.args[0]
-    bs.net.send_stream(b'PLOT' + (bs.stack.sender() or b'*'), dict(show=True))
+    bs.net.send(b'PLOT', dict(show=True), (bs.stack.sender() or b'*'))
     return True
 
 
@@ -30,7 +30,7 @@ def legend(legend, fig=None):
             plot for plot in plots if plot.fig == str(fig))
 
         data = {p.fig: dict(legend=legend)}
-        bs.net.send_stream(p.stream_id, data)
+        bs.net.send(b'PLOT', data, to_group=p.to_group)
         return True
     except (IndexError, StopIteration) as e:
         return False, e.args[0]
@@ -38,9 +38,9 @@ def legend(legend, fig=None):
 def reset():
     ''' Remove plots when simulation is reset. '''
     # Notify clients of removal of plots
-    notify_ids = {p.stream_id for p in plots}
-    for stream_id in notify_ids:
-        bs.net.send_stream(stream_id, dict(reset=True))
+    notify_ids = {p.to_group for p in plots}
+    for to_group in notify_ids:
+        bs.net.send_stream(b'PLOT', dict(reset=True), to_group)
     plots.clear()
 
 
@@ -50,10 +50,10 @@ def update():
     for p in plots:
         if p.tnext <= bs.sim.simt:
             p.tnext += p.dt
-            streamdata[p.stream_id][p.fig] = dict(x=p.x.get(), y=p.y.get())
+            streamdata[p.to_group][p.fig] = dict(x=p.x.get(), y=p.y.get())
 
-    for streamname, data in streamdata.items():
-        bs.net.send_stream(streamname, data)
+    for to_group, data in streamdata.items():
+        bs.net.send(b'PLOT', data, to_group)
 
 
 class Plot:
@@ -77,15 +77,14 @@ class Plot:
 
         self.fig = str(fig)
 
-        self.stream_id = b'PLOT' + (bs.stack.sender() or b'*')
+        self.to_group = (bs.stack.sender() or b'*')
 
         if None in (self.x, self.y):
             raise IndexError('Variable {} not found'.format(varx if self.x is None else (vary or varx)))
 
         # if not self.x.is_num() or not self.y.is_num():
         #     raise IndexError('Variable {} not numeric'.format(varx if not self.x.is_num() else (vary or varx)))
-        print(self.stream_id, type(self.stream_id), {self.fig: params})
-        bs.net.send_stream(self.stream_id, {self.fig: params})
+        bs.net.send(b'PLOT', {self.fig: params}, self.to_group)
 
     def send(self):
-        bs.net.send_stream(self.stream_id, {self.fig : dict(x=self.x.get(), y=self.y.get())})
+        bs.net.send(b'PLOT', {self.fig : dict(x=self.x.get(), y=self.y.get())}, self.to_group)

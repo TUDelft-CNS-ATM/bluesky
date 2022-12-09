@@ -7,7 +7,7 @@ from random import seed
 # Local imports
 import bluesky as bs
 import bluesky.core as core
-from bluesky.core import plugin, simtime
+from bluesky.core import plugin, simtime, Signal
 from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
 
@@ -51,6 +51,11 @@ class Simulation:
 
         # Keep track of known clients
         self.clients = set()
+
+        # Connect incoming signals
+        Signal('BATCH').connect(self.start_batch_scenario)
+        Signal('STACK').connect(self.on_stack_received)
+        Signal('GETSIMSTATE').connect(self.on_getsimstate)
 
     def step(self, dt_increment=0):
         ''' Perform one simulation timestep.
@@ -126,7 +131,7 @@ class Simulation:
 
         # Inform main of our state change
         if self.state != self.prevstate:
-            bs.net.send_event(b'STATECHANGE', self.state)
+            bs.net.send(b'STATECHANGE', self.state, bs.net.server_id)
             self.prevstate = self.state
 
     def stop(self):
@@ -211,45 +216,34 @@ class Simulation:
         self.reset()
         try:
             scentime, scencmd = zip(*[tc for tc in simstack.readscn(fname)])
-            bs.net.send_event(b'BATCH', (scentime, scencmd))
+            bs.net.send(b'BATCH', (scentime, scencmd), bs.net.server_id)
         except FileNotFoundError:
             return False, f'BATCH: File not found: {fname}'
 
         return True
 
-    def event(self, eventname, eventdata, sender_rte):
-        ''' Handle events coming from the network. '''
-        # Keep track of event processing
-        event_processed = False
+    def start_batch_scenario(self, data):
+        ''' Start a scenario coming from the server batch. '''
+        # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
+        self.reset()
+        bs.stack.set_scendata(data['scentime'], data['scencmd'])
+        self.op()
 
-        if eventname == b'STACK':
-            # We received a single stack command. Add it to the existing stack
-            bs.stack.stack(eventdata, sender_id=sender_rte)
-            event_processed = True
+    def on_stack_received(self, data):
+        # We received a single stack command. Add it to the existing stack
+        bs.stack.stack(data, sender_id=bs.net.sender_id)
 
-        elif eventname == b'BATCH':
-            # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
-            self.reset()
-            bs.stack.set_scendata(eventdata['scentime'], eventdata['scencmd'])
-            self.op()
-            event_processed = True
-
-        elif eventname == b'GETSIMSTATE':
-            # Add this client to the list of known clients
-            self.clients.add(sender_rte[-1])
-            # Send list of stack functions available in this sim to gui at start
-            stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
-            shapes = [shape.raw for shape in areafilter.basic_shapes.values()]
-            simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
-                stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
-                custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
-                plugins=list(plugin.Plugin.plugins.keys()))
-            bs.net.send_event(b'SIMSTATE', simstate, target=sender_rte)
-        else:
-            # This is either an unknown event or a gui event.
-            event_processed = bs.scr.event(eventname, eventdata, sender_rte)
-
-        return event_processed
+    def on_getsimstate(self, data):
+        # Add this client to the list of known clients
+        self.clients.add(bs.net.sender_id)
+        # Send list of stack functions available in this sim to gui at start
+        stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
+        shapes = [shape.raw for shape in areafilter.basic_shapes.values()]
+        simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
+            stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
+            custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
+            plugins=list(plugin.Plugin.plugins.keys()))
+        bs.net.send(b'SIMSTATE', simstate, to_group=bs.net.sender_id)
 
     def setutc(self, *args):
         ''' Set simulated clock time offset. '''

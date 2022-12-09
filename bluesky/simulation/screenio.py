@@ -6,6 +6,7 @@ import numpy as np
 import bluesky as bs
 from bluesky import stack
 from bluesky.tools import areafilter, aero
+from bluesky.core import Signal
 from bluesky.core.walltime import Timer
 
 class ScreenIO:
@@ -55,6 +56,9 @@ class ScreenIO:
         self.fast_timer.timeout.connect(self.send_aircraft_data)
         self.fast_timer.start(int(1000 / self.acupdate_rate))
 
+        # Connect to incoming data
+        Signal('PANZOOM').connect(self.on_panzoom_received)
+
     def update(self):
         if bs.sim.state == bs.OP:
             self.samplecount += 1
@@ -75,13 +79,13 @@ class ScreenIO:
         self.def_zoom = 1.0
 
         # Communicate reset to gui
-        bs.net.send_event(b'RESET', b'ALL', target=[b'*'])
+        bs.net.send(b'RESET', b'ALL')
 
     def echo(self, text='', flags=0):
-        bs.net.send_event(b'ECHO', dict(text=text, flags=flags))
+        bs.net.send(b'ECHO', dict(text=text, flags=flags))
 
     def cmdline(self, text):
-        bs.net.send_event(b'CMDLINE', text)
+        bs.net.send(b'CMDLINE', text)
 
     def getviewctr(self):
         return self.client_pan.get(stack.sender()) or self.def_pan
@@ -110,7 +114,7 @@ class ScreenIO:
             self.def_zoom = zoom * (1.0 if absolute else self.def_zoom)
             self.client_zoom.clear()
 
-        bs.net.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
+        bs.net.send(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
 
     def color(self, name, r, g, b):
         ''' Set custom color for aircraft or shape. '''
@@ -127,7 +131,7 @@ class ScreenIO:
             areafilter.basic_shapes[name].raw['color'] = (r, g, b)
         else:
             return False, 'No object found with name ' + name
-        bs.net.send_event(b'COLOR', data, target=[b'*'])
+        bs.net.send(b'COLOR', data, b'C')
         return True
 
     def pan(self, *args):
@@ -158,19 +162,19 @@ class ScreenIO:
                                                        lon + self.def_pan[1])
             self.client_pan.clear()
 
-        bs.net.send_event(b'PANZOOM', dict(pan=(lat,lon), absolute=absolute))
+        bs.net.send(b'PANZOOM', dict(pan=(lat,lon), absolute=absolute))
 
     def shownd(self, acid):
-        bs.net.send_event(b'SHOWND', acid)
+        bs.net.send(b'SHOWND', acid)
 
     def symbol(self):
-        bs.net.send_event(b'DISPLAYFLAG', dict(flag='SYM'))
+        bs.net.send(b'DISPLAYFLAG', dict(flag='SYM'))
 
     def feature(self, switch, argument=None):
-        bs.net.send_event(b'DISPLAYFLAG', dict(flag=switch, args=argument))
+        bs.net.send(b'DISPLAYFLAG', dict(flag=switch, args=argument))
 
     def trails(self,sw):
-        bs.net.send_event(b'DISPLAYFLAG', dict(flag='TRAIL', args=sw))
+        bs.net.send(b'DISPLAYFLAG', dict(flag='TRAIL', args=sw))
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -183,19 +187,19 @@ class ScreenIO:
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        bs.net.send_event(b'DEFWPT', dict(
-            name=name, lat=lat, lon=lon), target=[b'*'])
+        bs.net.send(b'DEFWPT', dict(
+            name=name, lat=lat, lon=lon), b'C')
         return True
 
     def show_file_dialog(self):
-        bs.net.send_event(b'SHOWDIALOG', dict(dialog='OPENFILE'))
+        bs.net.send(b'SHOWDIALOG', dict(dialog='OPENFILE'))
         return ''
 
     def show_cmd_doc(self, cmd=''):
-        bs.net.send_event(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
+        bs.net.send(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
 
     def filteralt(self, *args):
-        bs.net.send_event(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
+        bs.net.send(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
 
     def objappend(self, objtype, objname, data):
         """Add a drawing object to the radar screen using the following inputs:
@@ -206,17 +210,14 @@ class ScreenIO:
                     BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
                     CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
         """
-        bs.net.send_event(b'SHAPE', dict(
-            name=objname, shape=objtype, coordinates=data), target=[b'*'])
+        bs.net.send(b'SHAPE', dict(
+            name=objname, shape=objtype, coordinates=data), b'C')
 
-    def event(self, eventname, eventdata, sender_rte):
-        if eventname == b'PANZOOM':
-            self.client_pan[sender_rte[-1]]  = eventdata['pan']
-            self.client_zoom[sender_rte[-1]] = eventdata['zoom']
-            self.client_ar[sender_rte[-1]]   = eventdata['ar']
-            return True
-
-        return False
+    def on_panzoom_received(self, data):
+        self.client_pan[bs.net.sender_id]  = data['pan']
+        self.client_zoom[bs.net.sender_id] = data['zoom']
+        self.client_ar[bs.net.sender_id]   = data['ar']
+        return True
 
     # =========================================================================
     # Slots
@@ -225,7 +226,7 @@ class ScreenIO:
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
-        bs.net.send_stream(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
+        bs.net.send(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
             str(bs.sim.utc.replace(microsecond=0)), bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
@@ -241,7 +242,7 @@ class ScreenIO:
                         # traillastlat=bs.traf.trails.lastlat,
                         # traillastlon=bs.traf.trails.lastlon)
             bs.traf.trails.clearnew()
-            bs.net.send_stream(b'TRAILS', data)
+            bs.net.send(b'TRAILS', data, to_group=b'C')
 
     def send_aircraft_data(self):
         data = dict()
@@ -276,7 +277,7 @@ class ScreenIO:
         data['asastas']  = bs.traf.cr.tas
         data['asastrk']  = bs.traf.cr.trk
 
-        bs.net.send_stream(b'ACDATA', data)
+        bs.net.send(b'ACDATA', data, to_group=b'C')
 
     def send_route_data(self):
         ''' Send route data to client(s) '''
@@ -317,4 +318,4 @@ def _sendrte(sender, acid):
 
         data['wpname'] = route.wpname
 
-    bs.net.send_stream(b'ROUTEDATA' + (sender or b'*'), data)  # Send route data to GUI
+    bs.net.send(b'ROUTEDATA', data, (sender or b'C'))  # Send route data to GUI

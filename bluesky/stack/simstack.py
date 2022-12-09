@@ -109,7 +109,7 @@ def process(from_pcall=None):
         # -------------------------------------------------------------------
         # Command not found
         # -------------------------------------------------------------------
-        elif Stack.sender_rte is None:
+        elif Stack.sender_id is None:
             # Command came from scenario file: assume it's a gui/client command and send it on
             forward()
         else:
@@ -123,7 +123,7 @@ def process(from_pcall=None):
         # Recording of actual validated commands
         if success:
             recorder.savecmd(cmdu, cmdline)
-        elif not Stack.sender_rte:
+        elif not Stack.sender_id:
             echotext = f'{cmdline}\n{echotext}'
 
         # Always return on command

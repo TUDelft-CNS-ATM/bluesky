@@ -358,8 +358,8 @@ class RadarWidget(glh.RenderWidget):
         elif (event.type() == QEvent.Type.MouseButtonRelease or
               event.type() == QEvent.Type.TouchEnd) and self.panzoomchanged:
             self.panzoomchanged = False
-            bs.net.send_event(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
-                                               zoom=self.zoom, ar=self.ar, absolute=True))
+            bs.net.send(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
+                                         zoom=self.zoom, ar=self.ar, absolute=True))
             self.panzoom_event.emit(True)
         elif int(event.type()) == 216:
             # 216 is screen change event, but doesn't exist (yet) in pyqt as enum

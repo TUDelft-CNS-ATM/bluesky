@@ -38,8 +38,8 @@ class Node:
     def addnodes(self, count=1):
         pass
 
-    def send_event(self, eventname, data=None, target=None):
+    def send(self, topic, data='', to_group=b''):
         pass
 
-    def send_stream(self, name, data):
+    def subscribe(self, topic, from_id=b'', to_group=b''):
         pass

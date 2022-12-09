@@ -42,7 +42,7 @@ def process():
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
 
-        elif Stack.sender_rte is None:
+        elif Stack.sender_id is None:
             # If sender_id is None, this stack command originated from the gui. Send it on to the sim
             forward()
         # -------------------------------------------------------------------
@@ -58,7 +58,7 @@ def process():
 
         # Always return on command
         if echotext:
-            bs.scr.echo(echotext, echoflags, Stack.sender_rte)
+            bs.scr.echo(echotext, echoflags, Stack.sender_id)
 
     # Clear the processed commands
     Stack.cmdstack.clear()
@@ -84,7 +84,7 @@ def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
         return True, cmdobj.helptext(subcmd)
 
     # If command is not a known Client command pass the help request on to the sim
-    bs.net.send_event(b'STACK', f'HELP {cmd} {subcmd}')
+    bs.net.send(b'STACK', f'HELP {cmd} {subcmd}', bs.net.act_id)
 
 
 @showhelp.subcommand

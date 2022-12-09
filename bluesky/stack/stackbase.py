@@ -15,7 +15,7 @@ class Stack:
     scencmd = []  # Commands from the scenario file
 
     # Current command details
-    sender_rte = None  # bs net route to sender
+    sender_id = None  # bs net route to sender
 
     @classmethod
     def reset(cls):
@@ -24,13 +24,13 @@ class Stack:
         cls.scenname = ""
         cls.scentime = []
         cls.scencmd = []
-        cls.sender_rte = None
+        cls.sender_id = None
 
     @classmethod
     def commands(cls, from_pcall=None):
         ''' Generator function to iterate over stack commands. '''
         # Return commands from PCALL if passed, otherwise own command stack
-        for cls.current, cls.sender_rte in from_pcall or cls.cmdstack:
+        for cls.current, cls.sender_id in from_pcall or cls.cmdstack:
             yield cls.current
 
     @classmethod
@@ -65,23 +65,16 @@ def forward(cmd=None, *args):
         Sends command on to the client if this stack is running sim-side,
         and vice-versa.
     '''
-    if Stack.sender_rte is None:
+    if Stack.sender_id is None:
         # Only forward if this command originated here
-        bs.net.send_event(b'STACK', f'{cmd} {",".join(args)}' if cmd else Stack.current)
+        bs.net.send(b'STACK', f'{cmd} {",".join(args)}' if cmd else Stack.current)
 
 
 def sender():
     """ Return the sender of the currently executed stack command.
         If there is no sender id (e.g., when the command originates
         from a scenario file), None is returned. """
-    return Stack.sender_rte[-1] if Stack.sender_rte else None
-
-
-def routetosender():
-    """ Return the route to the sender of the currently executed stack command.
-        If there is no sender id (e.g., when the command originates
-        from a scenario file), None is returned. """
-    return Stack.sender_rte
+    return Stack.sender_id
 
 
 def get_scenname():
