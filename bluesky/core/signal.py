@@ -12,6 +12,9 @@ class SignalFactory(type):
         # if no name is passed, return an anonymous Signal
         if not name:
             return super().__call__('anonymous')
+        # Convert name to string if necessary
+        if isinstance(name, bytes):
+            name = name.decode()
         # Check if this Signal already exists
         sig = cls.__signals.get(name)
         if sig is None:
