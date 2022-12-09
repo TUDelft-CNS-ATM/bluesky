@@ -21,15 +21,14 @@ class Client:
         self.acttopics = set()
         self.nodes = set()
         self.servers = set()
+        self.running = True
+        self.subscriptions = dict()
+        self.discovery = None
 
         ctx = zmq.Context.instance()
         self.sock_recv = ctx.socket(zmq.SUB)
         self.sock_send = ctx.socket(zmq.XPUB)
-        self.poller = zmq.Poller()
-        self.running = True
-        self.subscriptions = dict()
-        self.acttopics = list()
-        self.discovery = None
+        self.poller = zmq.Poller()        
 
         # Signals
         self.nodes_changed = Signal('nodes_changed')
@@ -76,9 +75,6 @@ class Client:
         self.poller.register(self.sock_send, zmq.POLLIN)
         # Register this client by subscribing to targeted messages
         self.subscribe(b'', to_group=self.client_id)
-        # Also subscribe to send-to-all messages
-        self.subscribe(b'', to_group=self.group_id)
-        self.subscribe(b'', to_group=b'*')
 
     def run(self):
         while self.running:
@@ -123,7 +119,7 @@ class Client:
                     continue
             
                 if sock == self.sock_recv:
-                    to_id, topic, self.sender_id = msg[0][:IDLEN], msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
+                    topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
                     sig = self.subscriptions.get(topic)
                     if sig is None:
@@ -211,7 +207,7 @@ class Client:
         if not to_group and topic in self.acttopics:
             self.acttopics.remove(topic)
             to_group = self.act_id
-        self.stream_in.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
     def actnode(self, newact=None):
         ''' Set the new active node, or return the current active node. '''

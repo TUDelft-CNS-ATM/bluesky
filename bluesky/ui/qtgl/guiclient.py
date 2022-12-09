@@ -19,7 +19,7 @@ ACTNODE_TOPICS = [b'ACDATA', b'PLOT*', b'ROUTEDATA*']
 
 class GuiClient(Client):
     def __init__(self):
-        super().__init__()#ACTNODE_TOPICS)
+        super().__init__()
         self.nodedata = dict()
         self.ref_nodedata = nodeData()
         self.discovery_timer = None
@@ -38,8 +38,9 @@ class GuiClient(Client):
         Signal('DISPLAYFLAG').connect(lambda data: self.event(b'DISPLAYFLAG', data))
         Signal('DEFWPT').connect(lambda data: self.event(b'DEFWPT', data))
         Signal('SHAPE').connect(lambda data: self.event(b'SHAPE', data))
-        Signal('ACDATA').connect(lambda data: self.stream(b'ACDATA', data))
-        Signal('ROUTEDATA').connect(lambda data: self.stream(b'ROUTEDATA', data))
+        
+        self.subscribe(b'ROUTEDATA', actonly=True).connect(lambda data: self.stream(b'ROUTEDATA', data))
+        self.subscribe(b'ACDATA', actonly=True).connect(lambda data: self.stream(b'ACDATA', data))
         self.subscribe(b'ECHO', to_group=b'C').connect(self.echo)
         self.subscribe(b'PANZOOM', to_group=b'C').connect(lambda data: self.event(b'PANZOOM', data))
 

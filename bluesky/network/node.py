@@ -44,9 +44,6 @@ class Node:
         self.poller.register(self.sock_recv, zmq.POLLIN)
         # Register this node by subscribing to targeted messages
         self.subscribe(b'', to_group=self.node_id)
-        # Also subscribe to send-to-all messages
-        self.subscribe(b'', to_group=self.group_id)
-        self.subscribe(b'', to_group=b'*')
 
     def run(self):
         ''' Start the main loop of this node. '''
@@ -143,4 +140,4 @@ class Node:
         topic = asbytestr(topic)
         from_id = asbytestr(from_id)
         to_group = asbytestr(to_group)
-        self.stream_in.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
