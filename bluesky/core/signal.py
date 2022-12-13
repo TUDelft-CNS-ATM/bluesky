@@ -1,51 +1,92 @@
 """ BlueSky implementation of signals that can trigger one or more functions
     when a signal is emitted. """
+import inspect
+from dataclasses import dataclass
+
+
+@dataclass(slots=True)
+class Subscriber:
+    ''' Functions that are connected to a Signal are stored as Subscribers. '''
+    func: callable
+    # TODO: add signal to dict in Subscriber
+
+    def notimplemented(self, *args, **kwargs):
+        pass
 
 
 class SignalFactory(type):
     ''' Factory meta-class for Signal objects in BlueSky. '''
     # Store all signal objects in process
-    __signals = dict()
+    __signals__ = dict()
 
-    def __call__(cls, name=''):
+    def __call__(cls, topic='', *args, **kwargs):
         ''' Factory function for Signal construction. '''
         # if no name is passed, return an anonymous Signal
-        if not name:
-            return super().__call__('anonymous')
+        if not topic:
+            return super().__call__('anonymous', *args, **kwargs)
         # Convert name to string if necessary
-        if isinstance(name, bytes):
-            name = name.decode()
+        if isinstance(topic, bytes):
+            topic = topic.decode()
         # Check if this Signal already exists
-        sig = cls.__signals.get(name)
+        sig = SignalFactory.__signals__.get(topic)
         if sig is None:
             # If it doesn't, create it
-            sig = super().__call__(name)
-            cls.__signals[name] = sig
+            sig = super().__call__(topic, *args, **kwargs)
+            SignalFactory.__signals__[topic] = sig
         return sig
+
 
 class Signal(metaclass=SignalFactory):
     """ A signal can trigger one or more functions when it is emitted. """
-    def __init__(self, name=''):
-        self.name = name
-        self.__subscribers = []
-
-    def get_subs(self):
-        """ Return the list of subscribers to this signal. """
-        return self.__subscribers
+    def __init__(self, topic=''):
+        self.topic = topic
+        self.subscribers = list()
 
     def emit(self, *args, **kwargs):
         """ Trigger the registered functions with passed arguments. """
-        for subs in self.__subscribers:
-            subs(*args, **kwargs)
+        for sub in self.subscribers:
+            sub.func(*args, **kwargs)
 
     def connect(self, func):
         """ Connect a new function to this signal. """
-        self.__subscribers.append(func)
+        if inspect.ismethod(func):
+            if not hasattr(func.__func__, '__subscription__'):
+                func.__func__.__subscription__ = Subscriber(func)
+            sub = func.__func__.__subscription__
+        else:
+            if not hasattr(func, '__subscription__'):
+                func.__subscription__ = Subscriber(func)
+            sub = func.__subscription__
+        self.subscribers.append(sub)
 
     def disconnect(self, func):
         """ Disconnect a function from this signal. """
         try:
-            self.__subscribers.remove(func)
+            sub = func.__func__.__subscription__ if inspect.ismethod(func) else func.__subscription__
+            self.subscribers.remove(sub)
+        except AttributeError:
+            print(f'Function {func.__name__} is not connected to a signal.')
         except ValueError:
-            print('Warning: function %s not removed '
-                  'from signal %s'%(func,self))
+            print(f'Function {func.__name__} is not connected to Signal {self.topic}.')
+
+
+def subscriber(func=None, topic=''):
+    ''' BlueSky Signal subscription decorator.
+
+        Functions decorated with this decorator will be called whenever the
+        corresponding Signal emits data.
+
+        Arguments:
+        - topic: The topic to subscribe to for this function
+    '''
+    def deco(func):
+        func = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
+            else func
+        
+        # Subscribe to topic.
+        Signal(topic or func.__name__.upper()).connect(func)
+
+        # Construct the subscription object, but return the original function
+        return func
+    # Allow both @command and @command(args)
+    return deco if func is None else deco(func)

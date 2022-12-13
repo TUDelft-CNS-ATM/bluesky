@@ -64,6 +64,10 @@ class EntityMeta(type):
                 for name, timedfun in cls._timedfuns.items():
                     timedfun.callback = getattr(
                         cls._instance, name, timedfun.notimplemented)
+                # Update the signal/network subscriptions of this class
+                for name, subscr in cls._subscribers.items():
+                    subscr.func = getattr(
+                        cls._instance, name, subscr.notimplemented)
             return cls._instance
         # check if the current instance is the same as the selected class
         if cls._proxy._selected() is not cls.selected():
@@ -80,6 +84,10 @@ class EntityMeta(type):
             # Update the timed functions of this class
             for name, timedfun in cls._timedfuns.items():
                 timedfun.callback = getattr(refobj, name, timedfun.notimplemented)
+            # Update the signal/network subscriptions of this class
+            for name, subscr in cls._subscribers.items():
+                print('Entity found subscriber', name, subscr)
+                subscr.func = getattr(refobj, name, subscr.notimplemented)
         return cls._proxy
 
 
@@ -112,11 +120,14 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
         # and instance management shoud skip one step in the class tree.
         if skipbase:
             return
+
         # Each Entity subclass keeps its own (single) instance.
         cls._instance = None
         if not hasattr(cls, '_stackcmds'):
             # Each first descendant of Entity keeps a dict of all stack commands
             cls._stackcmds = dict()
+            # All network-subscribing methods
+            cls._subscribers = dict()
             # All automatically-triggered timed methods
             cls._timedfuns = dict()
             # And all manually-triggered timed methods
@@ -150,3 +161,9 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
                 if not inspect.ismethod(timedfun.callback) and inspect.ismethod(obj):
                     # Update callback of the timed function with first bound method we encounter
                     timedfun.callback = obj
+            # And finally also for network subscriptions
+            sub = getattr(obj, '__subscription__', None)
+            if sub:
+                cls._subscribers[name] = sub
+                if obj is not sub.func and inspect.ismethod(obj):
+                    sub.func = obj

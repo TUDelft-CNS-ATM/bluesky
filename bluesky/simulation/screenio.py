@@ -5,11 +5,13 @@ import numpy as np
 # Local imports
 import bluesky as bs
 from bluesky import stack
+from bluesky.core import Entity
 from bluesky.tools import areafilter, aero
-from bluesky.core import Signal
 from bluesky.core.walltime import Timer
+from bluesky.network import subscriber
 
-class ScreenIO:
+
+class ScreenIO(Entity):
     """Class within sim task which sends/receives data to/from GUI task"""
 
     # =========================================================================
@@ -55,9 +57,6 @@ class ScreenIO:
         self.fast_timer = Timer()
         self.fast_timer.timeout.connect(self.send_aircraft_data)
         self.fast_timer.start(int(1000 / self.acupdate_rate))
-
-        # Connect to incoming data
-        Signal('PANZOOM').connect(self.on_panzoom_received)
 
     def update(self):
         if bs.sim.state == bs.OP:
@@ -213,7 +212,8 @@ class ScreenIO:
         bs.net.send(b'SHAPE', dict(
             name=objname, shape=objtype, coordinates=data), b'C')
 
-    def on_panzoom_received(self, data):
+    @subscriber
+    def panzoom(self, data):
         self.client_pan[bs.net.sender_id]  = data['pan']
         self.client_zoom[bs.net.sender_id] = data['zoom']
         self.client_ar[bs.net.sender_id]   = data['ar']

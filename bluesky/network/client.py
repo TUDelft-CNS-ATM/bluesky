@@ -1,18 +1,20 @@
 import zmq
 import msgpack
 import bluesky as bs
-from bluesky.core import Signal
 from bluesky import stack
+from bluesky.core import Entity, Signal
 from bluesky.stack.clientstack import process
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 from bluesky.network.discovery import Discovery
+from bluesky.network.subscription import Subscription
 from bluesky.network.common import genid, asbytestr, seqid2idx, MSG_SUBSCRIBE, MSG_UNSUBSCRIBE, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, IDLEN
 
 
 # Register settings defaults
 bs.settings.set_variable_defaults(recv_port=9000, send_port=9001)
 
-class Client:
+
+class Client(Entity):
     def __init__(self, group_id=GROUPID_CLIENT):
         self.group_id = asbytestr(group_id)
         self.client_id = genid(self.group_id)
@@ -22,13 +24,17 @@ class Client:
         self.nodes = set()
         self.servers = set()
         self.running = True
-        self.subscriptions = dict()
         self.discovery = None
 
         ctx = zmq.Context.instance()
         self.sock_recv = ctx.socket(zmq.SUB)
         self.sock_send = ctx.socket(zmq.XPUB)
         self.poller = zmq.Poller()        
+
+        # Subscribe to subscriptions that were already made before constructing
+        # this node
+        for sub in Subscription.subscriptions.values():
+            self.subscribe(sub.topic, sub.from_id, sub.to_group, sub.actonly)
 
         # Signals
         self.nodes_changed = Signal('nodes_changed')
@@ -76,13 +82,6 @@ class Client:
         # Register this client by subscribing to targeted messages
         self.subscribe(b'', to_group=self.client_id)
 
-    def run(self):
-        while self.running:
-            self.receive()
-        self.sock_recv.close()
-        self.sock_send.close()
-        zmq.Context.instance().destroy()
-
     def update(self):
         ''' Client periodic update function.
 
@@ -121,11 +120,8 @@ class Client:
                 if sock == self.sock_recv:
                     topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
-                    sig = self.subscriptions.get(topic)
-                    if sig is None:
-                        sig = Signal(topic)
-                        self.subscriptions[topic] = sig
-                    sig.emit(pydata)
+                    sub = Subscription.subscriptions.get(topic) or Subscription(topic)
+                    sub.emit(pydata)
 
                 elif sock == self.sock_send:
                     # This is an (un)subscribe message. If it's an id-only subscription
@@ -185,13 +181,10 @@ class Client:
             from_id = self.act_id
         self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
-        # Messages coming in that match this subscription will be emitted using a Signal
+        # Messages coming in that match this subscription will be emitted using a 
+        # subscription signal
         if topic:
-            sig = self.subscriptions.get(topic)
-            if sig is None:
-                sig = Signal(topic)
-                self.subscriptions[topic] = sig
-            return sig
+            return Subscription(topic, from_id, to_group, actonly)
     
     def unsubscribe(self, topic, from_id='', to_group=GROUPID_CLIENT):
         ''' Unsubscribe from a topic.

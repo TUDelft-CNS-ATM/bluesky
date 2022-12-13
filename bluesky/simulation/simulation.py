@@ -7,7 +7,7 @@ from random import seed
 # Local imports
 import bluesky as bs
 import bluesky.core as core
-from bluesky.core import plugin, simtime, Signal
+from bluesky.core import plugin, simtime, Signal, Entity
 from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
 
@@ -17,7 +17,7 @@ MINSLEEP = 1e-3
 # Register settings defaults
 bs.settings.set_variable_defaults(simdt=0.05)
 
-class Simulation:
+class Simulation(Entity):
     ''' The simulation object. '''
     def __init__(self):
         self.state = bs.INIT

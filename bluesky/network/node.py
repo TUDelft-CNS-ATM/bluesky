@@ -4,8 +4,9 @@ import zmq
 import msgpack
 import bluesky as bs
 from bluesky import stack
-from bluesky.core import Signal
+from bluesky.core import Entity
 from bluesky.core.walltime import Timer
+from bluesky.network.subscription import Subscription
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 from bluesky.network.common import genid, seqidx2id, asbytestr, hex2bin, GROUPID_NOGROUP, GROUPID_CLIENT, IDLEN
 
@@ -13,8 +14,9 @@ from bluesky.network.common import genid, seqidx2id, asbytestr, hex2bin, GROUPID
 # Register settings defaults
 bs.settings.set_variable_defaults(recv_port=9000, send_port=9001)
 
-class Node:
-    def __init__(self, group_id=GROUPID_NOGROUP) -> None:
+
+class Node(Entity):
+    def __init__(self, group_id=GROUPID_NOGROUP):
         self.node_id = genid(group_id)
         self.group_id = asbytestr(group_id)[:len(self.node_id)-1]
         self.server_id = self.node_id[:-1] + seqidx2id(0)
@@ -24,8 +26,12 @@ class Node:
         self.sock_send = ctx.socket(zmq.PUB)
         self.poller = zmq.Poller()
         self.running = True
-        self.subscriptions = dict()
         signal.signal(signal.SIGINT, lambda *args: self.quit())
+
+        # Subscribe to subscriptions that were already made before constructing
+        # this node
+        for sub in Subscription.subscriptions.values():
+            self.subscribe(sub.topic, sub.from_id, sub.to_group)
 
     def quit(self):
         ''' Quit the simulation process. '''
@@ -84,13 +90,10 @@ class Node:
                     continue
             
                 if sock == self.sock_recv:
-                    to_id, topic, self.sender_id = msg[0][:IDLEN], msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
+                    topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
-                    sig = self.subscriptions.get(topic)
-                    if sig is None:
-                        sig = Signal(topic)
-                        self.subscriptions[topic] = sig
-                    sig.emit(pydata)
+                    sub = Subscription.subscriptions.get(topic) or Subscription(topic)
+                    sub.emit(pydata)
 
         except zmq.ZMQError:
             return False
@@ -121,13 +124,10 @@ class Node:
         to_group = asbytestr(to_group)
         self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
-        # Messages coming in that match this subscription will be emitted using a Signal
+        # Messages coming in that match this subscription will be emitted using a 
+        # subscription signal
         if topic:
-            sig = self.subscriptions.get(topic)
-            if sig is None:
-                sig = Signal(topic)
-                self.subscriptions[topic] = sig
-            return sig
+            return Subscription(topic, from_id, to_group)
     
     def unsubscribe(self, topic, from_id='', to_group=''):
         ''' Unsubscribe from a topic.

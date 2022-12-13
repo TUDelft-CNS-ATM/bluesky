@@ -9,12 +9,12 @@ from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
 from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.network.client import Client
+from bluesky.network import subscriber
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
 
 # Globals
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT', 'ROUTEDATA']
-ACTNODE_TOPICS = [b'ACDATA', b'PLOT*', b'ROUTEDATA*']
 
 
 class GuiClient(Client):
@@ -34,15 +34,14 @@ class GuiClient(Client):
         # Connect to signals. TODO: needs revision
         Signal('SIMSTATE').connect(lambda data: self.event(b'SIMSTATE', data))
         Signal('RESET').connect(lambda data: self.event(b'RESET', data))
-        Signal('COLOR').connect(lambda data: self.event(b'COLOR', data))
+        self.subscribe('COLOR').connect(lambda data: self.event(b'COLOR', data))
         Signal('DISPLAYFLAG').connect(lambda data: self.event(b'DISPLAYFLAG', data))
         Signal('DEFWPT').connect(lambda data: self.event(b'DEFWPT', data))
-        Signal('SHAPE').connect(lambda data: self.event(b'SHAPE', data))
+        self.subscribe('SHAPE').connect(lambda data: self.event(b'SHAPE', data))
         
         self.subscribe(b'ROUTEDATA', actonly=True).connect(lambda data: self.stream(b'ROUTEDATA', data))
         self.subscribe(b'ACDATA', actonly=True).connect(lambda data: self.stream(b'ACDATA', data))
-        self.subscribe(b'ECHO', to_group=b'C').connect(self.echo)
-        self.subscribe(b'PANZOOM', to_group=b'C').connect(lambda data: self.event(b'PANZOOM', data))
+        self.subscribe(b'PANZOOM').connect(lambda data: self.event(b'PANZOOM', data))
 
     def start_discovery(self):
         super().start_discovery()
@@ -72,6 +71,7 @@ class GuiClient(Client):
         if self.sender_id == self.act_id and changed:
             self.actnodedata_changed.emit(self.sender_id, actdata, changed)
 
+    @subscriber
     def echo(self, data):
         ''' Overloaded Client.echo function. '''
         text = data['text']

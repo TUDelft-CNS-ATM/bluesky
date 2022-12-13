@@ -28,7 +28,8 @@ except ImportError:
 
 import bluesky as bs
 from bluesky import stack
-from bluesky.core import Entity, Signal
+from bluesky.core import Entity
+from bluesky.network import subscriber
 
 
 class InfoWindow(Entity):
@@ -41,10 +42,6 @@ class InfoWindow(Entity):
         self.plottab = None
         self.statetab = StateTab(self.view)
         self.view.addTab(self.statetab, 'Simulation state')
-
-        # Connect to sim data events
-        Signal('PLOT').connect(self.on_plot_received)
-
 
     @stack.command(name="INFO")
     def show(self) -> None:
@@ -59,7 +56,8 @@ class InfoWindow(Entity):
         self.plottab = PlotTab()
         self.view.addTab(self.plottab, 'Graphs')
 
-    def on_plot_received(self, data):
+    @subscriber
+    def plot(self, data):
         if not self.plottab:
             self.add_plot_tab()
 
