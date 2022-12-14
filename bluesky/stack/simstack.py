@@ -259,15 +259,15 @@ def ic(filename : 'string' = ''):
         - filename: The filename of the scenario to load. Call IC IC
           to load previous scenario again. '''
 
-    # reset sim always
-    bs.sim.reset()
-
     # Get the filename of new scenario
     if not filename:
         filename = bs.scr.show_file_dialog()
         if not filename:
             # Only PyGame returns a filename from the dialog here
             return
+
+    # reset sim always
+    bs.sim.reset()
 
     # Clean up filename
     filename = Path(filename)
