@@ -34,7 +34,9 @@ class Client(Entity):
         # Subscribe to subscriptions that were already made before constructing
         # this node
         for sub in Subscription.subscriptions.values():
-            self.subscribe(sub.topic, sub.from_id, sub.to_group, sub.actonly)
+            if not sub.targetonly:
+                kwargs = {k:getattr(sub, k) for k in ('topic', 'from_id', 'to_group', 'actonly') if getattr(sub, k) is not None}
+                self.subscribe(**kwargs)
 
         # Signals
         self.nodes_changed = Signal('nodes_changed')
@@ -179,6 +181,8 @@ class Client(Entity):
         if actonly and not from_id and topic not in self.acttopics:
             self.acttopics.add(topic)
             from_id = self.act_id
+        if topic == b'SIMINFO':
+            print('Client subscribing to', topic, from_id, to_group)
         self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
         # Messages coming in that match this subscription will be emitted using a 

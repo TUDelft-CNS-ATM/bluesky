@@ -31,7 +31,9 @@ class Node(Entity):
         # Subscribe to subscriptions that were already made before constructing
         # this node
         for sub in Subscription.subscriptions.values():
-            self.subscribe(sub.topic, sub.from_id, sub.to_group)
+            if not sub.targetonly:
+                kwargs = {k:getattr(sub, k) for k in ('topic', 'from_id', 'to_group') if getattr(sub, k) is not None}
+                self.subscribe(**kwargs)
 
     def quit(self):
         ''' Quit the simulation process. '''
