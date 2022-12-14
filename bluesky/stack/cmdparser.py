@@ -1,6 +1,6 @@
 ''' Stack Command implementation. '''
 import inspect
-import sys, os
+import os
 from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 
 
