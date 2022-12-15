@@ -39,7 +39,9 @@ class Command:
                                 f'A {type(cmdobj).__name__} cannot be '
                                 f'reimplemented as a {cls.__name__}')
         # Store reference to command object for function
-        if not inspect.ismethod(func):
+        if inspect.ismethod(func):
+            func.__func__.__stack_cmd__ = cmdobj
+        else:
             func.__stack_cmd__ = cmdobj
 
     def __init__(self, func, parent=None, name='', **kwargs):
