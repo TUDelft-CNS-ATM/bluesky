@@ -8,7 +8,7 @@ from bluesky.core import Entity
 from bluesky.core.walltime import Timer
 from bluesky.network.subscription import Subscription
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
-from bluesky.network.common import genid, seqidx2id, asbytestr, hex2bin, GROUPID_NOGROUP, GROUPID_CLIENT, IDLEN
+from bluesky.network.common import genid, seqidx2id, asbytestr, hex2bin, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, IDLEN
 
 
 # Register settings defaults
@@ -31,9 +31,7 @@ class Node(Entity):
         # Subscribe to subscriptions that were already made before constructing
         # this node
         for sub in Subscription.subscriptions.values():
-            if not sub.targetonly:
-                kwargs = {k:getattr(sub, k) for k in ('topic', 'from_id', 'to_group') if getattr(sub, k) is not None}
-                self.subscribe(**kwargs)
+            sub.subscribe_all()
 
     def quit(self):
         ''' Quit the simulation process. '''
@@ -113,7 +111,7 @@ class Node(Entity):
             ]
         )
 
-    def subscribe(self, topic, from_id='', to_group=''):
+    def subscribe(self, topic, from_id='', to_group=None):
         ''' Subscribe to a topic.
 
             Arguments:
@@ -121,17 +119,35 @@ class Node(Entity):
             - from_id: The id of the node from which to receive the topic (optional)
             - to_group: The group mask that this topic is sent to (optional)
         '''
-        topic = asbytestr(topic)
-        from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group)
-        self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+        sub = None
+        if topic:
+            sub = Subscription(topic)
+            if (from_id, to_group) in sub.subs:
+                # Subscription already active. Just return Subscription object
+                return sub
+            sub.subs.append((from_id, to_group))
+
+        self._subscribe(topic, from_id, to_group)
 
         # Messages coming in that match this subscription will be emitted using a 
         # subscription signal
-        if topic:
-            return Subscription(topic, from_id, to_group)
-    
-    def unsubscribe(self, topic, from_id='', to_group=''):
+        return sub
+
+    def unsubscribe(self, topic, from_id='', to_group=None):
+        ''' Unsubscribe from a topic.
+
+            Arguments:
+            - topic: The name of the stream to unsubscribe from.
+            - from_id: When subscribed to data from a specific node: The id of the node
+            - to_group: The group mask that this topic is sent to (optional)
+        '''
+        sub = None
+        if topic and (from_id or to_group is not None):
+            sub = Subscription(topic)
+            sub.subs.discard((from_id, to_group))
+        self._unsubscribe(topic, from_id, to_group)
+
+    def _unsubscribe(self, topic, from_id='', to_group=None):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -141,5 +157,12 @@ class Node(Entity):
         '''
         topic = asbytestr(topic)
         from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group)
+        to_group = asbytestr(to_group or GROUPID_SIM)
         self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+
+
+    def _subscribe(self, topic, from_id='', to_group=None):
+        topic = asbytestr(topic)
+        from_id = asbytestr(from_id)
+        to_group = asbytestr(to_group or GROUPID_SIM)
+        self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)

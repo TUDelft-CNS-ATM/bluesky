@@ -1,3 +1,4 @@
+from collections import defaultdict
 import zmq
 import msgpack
 import bluesky as bs
@@ -20,7 +21,7 @@ class Client(Entity):
         self.client_id = genid(self.group_id)
         self.sender_id = b''
         self.act_id = b''
-        self.acttopics = set()
+        self.acttopics = defaultdict(set)
         self.nodes = set()
         self.servers = set()
         self.running = True
@@ -34,9 +35,7 @@ class Client(Entity):
         # Subscribe to subscriptions that were already made before constructing
         # this node
         for sub in Subscription.subscriptions.values():
-            if not sub.targetonly:
-                kwargs = {k:getattr(sub, k) for k in ('topic', 'from_id', 'to_group', 'actonly') if getattr(sub, k) is not None}
-                self.subscribe(**kwargs)
+            sub.subscribe_all()
 
         # Signals
         self.nodes_changed = Signal('nodes_changed')
@@ -165,7 +164,7 @@ class Client(Entity):
             ]
         )
 
-    def subscribe(self, topic, from_id='', to_group=GROUPID_CLIENT, actonly=False):
+    def subscribe(self, topic, from_id='', to_group=None, actonly=False):
         ''' Subscribe to a topic.
 
             Arguments:
@@ -175,22 +174,42 @@ class Client(Entity):
             - actonly: Set to true if you only want to receive this topic from
               the active node.
         '''
-        topic = asbytestr(topic)
-        from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group)
-        if actonly and not from_id and topic not in self.acttopics:
-            self.acttopics.add(topic)
-            from_id = self.act_id
-        if topic == b'SIMINFO':
-            print('Client subscribing to', topic, from_id, to_group)
-        self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+        sub = None
+        if topic:
+            sub = Subscription(topic)
+            sub.actonly = (sub.actonly or actonly)
+            actonly = sub.actonly
+            if (from_id, to_group) in sub.subs:
+                # Subscription already active. Just return Subscription object
+                return sub
+            sub.subs.add((from_id, to_group))
+
+        self._subscribe(topic, from_id, to_group, actonly)
 
         # Messages coming in that match this subscription will be emitted using a 
         # subscription signal
-        if topic:
-            return Subscription(topic, from_id, to_group, actonly)
-    
-    def unsubscribe(self, topic, from_id='', to_group=GROUPID_CLIENT):
+        return sub
+
+    def _subscribe(self, topic, from_id='', to_group=None, actonly=False):
+        topic = asbytestr(topic)
+        from_id = asbytestr(from_id)
+        to_group = asbytestr(to_group or GROUPID_CLIENT)
+        if actonly and not from_id:
+            self.acttopics[topic].add(to_group)
+            from_id = self.act_id
+
+        self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+
+    def _unsubscribe(self, topic, from_id='', to_group=None):
+        topic = asbytestr(topic)
+        from_id = asbytestr(from_id)
+        to_group = asbytestr(to_group or GROUPID_CLIENT)
+        if not from_id and topic in self.acttopics:
+            self.acttopics[topic].discard(to_group)
+            from_id = self.act_id
+        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+
+    def unsubscribe(self, topic, from_id='', to_group=None):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -198,13 +217,11 @@ class Client(Entity):
             - from_id: When subscribed to data from a specific node: The id of the node
             - to_group: The group mask that this topic is sent to (optional)
         '''
-        topic = asbytestr(topic)
-        from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group)
-        if not to_group and topic in self.acttopics:
-            self.acttopics.remove(topic)
-            to_group = self.act_id
-        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+        sub = None
+        if topic and (from_id or to_group is not None):
+            sub = Subscription(topic)
+            sub.subs.discard((from_id, to_group))
+        self._unsubscribe(topic, from_id, to_group)
 
     def actnode(self, newact=None):
         ''' Set the new active node, or return the current active node. '''
@@ -214,10 +231,11 @@ class Client(Entity):
                 return None
             # Unsubscribe from previous node, subscribe to new one.
             if newact != self.act_id:
-                for topic in self.acttopics:
-                    if self.act_id:
-                        self.unsubscribe(topic, self.act_id)
-                    self.subscribe(topic, newact)
+                for topic, groupset in self.acttopics.items():
+                    for to_group in groupset:
+                        if self.act_id:
+                            self._unsubscribe(topic, self.act_id, to_group)
+                        self._subscribe(topic, newact, to_group)
                 self.act_id = newact
                 self.actnode_changed(newact)
 
