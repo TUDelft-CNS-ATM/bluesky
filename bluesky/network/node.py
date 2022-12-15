@@ -8,7 +8,7 @@ from bluesky.core import Entity
 from bluesky.core.walltime import Timer
 from bluesky.network.subscription import Subscription
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
-from bluesky.network.common import genid, seqidx2id, asbytestr, hex2bin, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, IDLEN
+from bluesky.network.common import genid, seqidx2id, asbytestr, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT, IDLEN
 
 
 # Register settings defaults
@@ -20,7 +20,8 @@ class Node(Entity):
         self.node_id = genid(group_id)
         self.group_id = asbytestr(group_id)[:len(self.node_id)-1]
         self.server_id = self.node_id[:-1] + seqidx2id(0)
-        self.sender_id = b''
+        self.sender_id = None
+        self.topic = None
         ctx = zmq.Context.instance()
         self.sock_recv = ctx.socket(zmq.SUB)
         self.sock_send = ctx.socket(zmq.PUB)
@@ -90,10 +91,11 @@ class Node(Entity):
                     continue
             
                 if sock == self.sock_recv:
-                    topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
+                    self.topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
-                    sub = Subscription.subscriptions.get(topic) or Subscription(topic)
+                    sub = Subscription.subscriptions.get(self.topic) or Subscription(self.topic)
                     sub.emit(pydata)
+                    self.topic = self.sender_id = None
 
         except zmq.ZMQError:
             return False
@@ -111,7 +113,7 @@ class Node(Entity):
             ]
         )
 
-    def subscribe(self, topic, from_id='', to_group=None):
+    def subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
         ''' Subscribe to a topic.
 
             Arguments:
@@ -125,7 +127,7 @@ class Node(Entity):
             if (from_id, to_group) in sub.subs:
                 # Subscription already active. Just return Subscription object
                 return sub
-            sub.subs.append((from_id, to_group))
+            sub.subs.add((from_id, to_group))
 
         self._subscribe(topic, from_id, to_group)
 
@@ -133,7 +135,7 @@ class Node(Entity):
         # subscription signal
         return sub
 
-    def unsubscribe(self, topic, from_id='', to_group=None):
+    def unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -141,13 +143,11 @@ class Node(Entity):
             - from_id: When subscribed to data from a specific node: The id of the node
             - to_group: The group mask that this topic is sent to (optional)
         '''
-        sub = None
-        if topic and (from_id or to_group is not None):
-            sub = Subscription(topic)
-            sub.subs.discard((from_id, to_group))
+        if topic:
+            Subscription(topic).subs.discard((from_id, to_group))
         self._unsubscribe(topic, from_id, to_group)
 
-    def _unsubscribe(self, topic, from_id='', to_group=None):
+    def _unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -160,8 +160,7 @@ class Node(Entity):
         to_group = asbytestr(to_group or GROUPID_SIM)
         self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
-
-    def _subscribe(self, topic, from_id='', to_group=None):
+    def _subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
         topic = asbytestr(topic)
         from_id = asbytestr(from_id)
         to_group = asbytestr(to_group or GROUPID_SIM)

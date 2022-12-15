@@ -26,22 +26,22 @@ class GuiClient(Client):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(20)
-        self.subscribe(b'TRAILS').connect(lambda data: self.stream(b'TRAILS', data))
+        self.subscribe(b'TRAILS').connect(self.stream)
 
         # Signals
         self.actnodedata_changed = Signal('actnodedata_changed')
 
         # Connect to signals. TODO: needs revision
-        Signal('SIMSTATE').connect(lambda data: self.event(b'SIMSTATE', data))
-        Signal('RESET').connect(lambda data: self.event(b'RESET', data))
-        self.subscribe('COLOR').connect(lambda data: self.event(b'COLOR', data))
-        Signal('DISPLAYFLAG').connect(lambda data: self.event(b'DISPLAYFLAG', data))
-        Signal('DEFWPT').connect(lambda data: self.event(b'DEFWPT', data))
-        self.subscribe('SHAPE').connect(lambda data: self.event(b'SHAPE', data))
+        Signal('SIMSTATE').connect(self.event)
+        self.subscribe('RESET').connect(self.event)
+        self.subscribe('COLOR').connect(self.event)
+        self.subscribe('DISPLAYFLAG').connect(self.event)
+        self.subscribe('DEFWPT').connect(self.event)
+        self.subscribe('SHAPE').connect(self.event)
         
-        self.subscribe(b'ROUTEDATA', actonly=True).connect(lambda data: self.stream(b'ROUTEDATA', data))
-        self.subscribe(b'ACDATA', actonly=True).connect(lambda data: self.stream(b'ACDATA', data))
-        self.subscribe(b'PANZOOM').connect(lambda data: self.event(b'PANZOOM', data))
+        self.subscribe(b'ROUTEDATA', actonly=True).connect(self.stream)
+        self.subscribe(b'ACDATA', actonly=True).connect(self.stream)
+        self.subscribe(b'PANZOOM').connect(self.event)
 
     def start_discovery(self):
         super().start_discovery()
@@ -54,19 +54,19 @@ class GuiClient(Client):
         self.discovery_timer = None
         super().stop_discovery()
 
-    def stream(self, name, data):
+    def stream(self, data):
         ''' Guiclient stream handler. '''
         changed = ''
         actdata = self.get_nodedata(self.sender_id)
-        if name == b'ACDATA':
+        if self.topic == b'ACDATA':
             actdata.setacdata(data)
-            changed = name.decode('utf8')
-        elif name.startswith(b'ROUTEDATA'):
+            changed = self.topic.decode('utf8')
+        elif self.topic.startswith(b'ROUTEDATA'):
             actdata.setroutedata(data)
             changed = 'ROUTEDATA'
-        elif name == b'TRAILS':
+        elif self.topic == b'TRAILS':
             actdata.settrails(**data)
-            changed = name.decode('utf8')
+            changed = self.topic.decode('utf8')
 
         if self.sender_id == self.act_id and changed:
             self.actnodedata_changed.emit(self.sender_id, actdata, changed)
@@ -83,33 +83,33 @@ class GuiClient(Client):
         if sender_id == self.act_id:
             self.actnodedata_changed.emit(sender_id, sender_data, ('ECHOTEXT',))
 
-    def event(self, name, data):
+    def event(self, data):
         sender_data = self.get_nodedata(self.sender_id)
         data_changed = []
-        if name == b'RESET':
+        if self.topic == b'RESET':
             sender_data.clear_scen_data()
             data_changed = list(UPDATE_ALL)
-        elif name == b'SHAPE':
+        elif self.topic == b'SHAPE':
             sender_data.update_poly_data(**data)
             data_changed.append('SHAPE')
-        elif name == b'COLOR':
+        elif self.topic == b'COLOR':
             sender_data.update_color_data(**data)
             if 'polyid' in data:
                 data_changed.append('SHAPE')
-        elif name == b'DEFWPT':
+        elif self.topic == b'DEFWPT':
             sender_data.defwpt(**data)
             data_changed.append('CUSTWPT')
-        elif name == b'DISPLAYFLAG':
+        elif self.topic == b'DISPLAYFLAG':
             sender_data.setflag(**data)
 
-        elif name == b'PANZOOM':
+        elif self.topic == b'PANZOOM':
             sender_data.panzoom(**data)
             data_changed.append('PANZOOM')
-        elif name == b'SIMSTATE':
+        elif self.topic == b'SIMSTATE':
             sender_data.siminit(**data)
             data_changed = list(UPDATE_ALL)
         # else:
-        #     super().event(name, data, self.sender_id)
+        #     super().event(self.topic, data, self.sender_id)
 
         if self.sender_id == self.act_id and data_changed:
             self.actnodedata_changed.emit(self.sender_id, sender_data, data_changed)

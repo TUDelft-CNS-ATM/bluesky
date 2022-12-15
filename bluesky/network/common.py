@@ -7,6 +7,7 @@ from os import urandom
 MSG_SUBSCRIBE = 1
 MSG_UNSUBSCRIBE = 0
 # Message headers (second byte): group identifiers
+GROUPID_DEFAULT = 0
 GROUPID_CLIENT = ord('C')
 GROUPID_SIM = ord('S')
 GROUPID_NOGROUP = ord('N')

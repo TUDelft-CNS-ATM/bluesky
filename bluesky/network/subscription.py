@@ -1,4 +1,5 @@
 from bluesky.core.signal import Signal, SignalFactory
+from bluesky.network.common import GROUPID_DEFAULT
 import bluesky as bs
 
 
@@ -6,7 +7,7 @@ class SubscriptionFactory(SignalFactory):
     # Individually keep track of all network subscriptions
     subscriptions = dict()
 
-    def __call__(cls, topic, from_id=None, to_group=None, actonly=None):
+    def __call__(cls, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=None, directonly=False):
         ''' Factory function for Signal construction. '''
         # # Convert name to string if necessary
         if isinstance(topic, bytes):
@@ -29,21 +30,19 @@ class SubscriptionFactory(SignalFactory):
             # Store subscription
             SubscriptionFactory.subscriptions[topic] = sub
 
-        if from_id or to_group is not None:
-            sub.requested.append((from_id, to_group))
+        if not directonly and (from_id, to_group) not in sub.subs:
+            sub.requested.add((from_id, to_group))
         if actonly is not None:
             sub.actonly = actonly
         return sub
 
 
 class Subscription(Signal, metaclass=SubscriptionFactory):
-    def __init__(self, topic, from_id='', to_group=None, actonly=False):
+    def __init__(self, topic):
         super().__init__(topic)
         self.subs = set()
         self.requested = set()
-        if from_id or to_group is not None:
-            self.requested.append((from_id, to_group))
-        self.actonly = actonly
+        self.actonly = False
 
     @property
     def active(self):
@@ -53,8 +52,8 @@ class Subscription(Signal, metaclass=SubscriptionFactory):
         self.subscribe_all()
         return super().connect(func)
 
-    def subscribe(self, from_id='', to_group=None):
-        if (from_id or to_group is not None) and (from_id, to_group) not in self.subs:
+    def subscribe(self, from_id='', to_group=GROUPID_DEFAULT):
+        if (from_id, to_group) not in self.subs:
             if bs.net is not None:
                 self.subs.add((from_id, to_group))
                 if self.actonly:
@@ -71,6 +70,7 @@ class Subscription(Signal, metaclass=SubscriptionFactory):
 
     def unsubscribe(self, from_id='', to_group=None):
         if (from_id or to_group is not None):
+            to_group = to_group or GROUPID_DEFAULT
             if (from_id, to_group) in self.subs:
                 self.subs.discard((from_id, to_group))
                 if bs.net is not None:
@@ -83,7 +83,7 @@ class Subscription(Signal, metaclass=SubscriptionFactory):
                     bs.net._unsubscribe(self.topic, *self.subs.pop())
 
 
-def subscriber(func=None, topic='', **kwargs):
+def subscriber(func=None, *, topic='', directonly=False, **kwargs):
     ''' BlueSky network subscription decorator.
 
         Functions decorated with this decorator will be called whenever data
@@ -101,9 +101,9 @@ def subscriber(func=None, topic='', **kwargs):
         
         # Create the subscription object. Network subscriptions will be made as
         # soon as the network connection is available
-        Subscription(topic or func.__name__.upper(), **kwargs).connect(func)
+        Subscription(topic or func.__name__.upper(), directonly=directonly, **kwargs).connect(func)
 
         # Construct the subscription object, but return the original function
         return func
-    # Allow both @command and @command(args)
+    # Allow both @subscriber and @subscriber(args)
     return deco if func is None else deco(func)

@@ -8,7 +8,7 @@ from bluesky.stack.clientstack import process
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 from bluesky.network.discovery import Discovery
 from bluesky.network.subscription import Subscription
-from bluesky.network.common import genid, asbytestr, seqid2idx, MSG_SUBSCRIBE, MSG_UNSUBSCRIBE, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, IDLEN
+from bluesky.network.common import genid, asbytestr, seqid2idx, MSG_SUBSCRIBE, MSG_UNSUBSCRIBE, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT, IDLEN
 
 
 # Register settings defaults
@@ -19,8 +19,9 @@ class Client(Entity):
     def __init__(self, group_id=GROUPID_CLIENT):
         self.group_id = asbytestr(group_id)
         self.client_id = genid(self.group_id)
-        self.sender_id = b''
-        self.act_id = b''
+        self.sender_id = None
+        self.act_id = None
+        self.topic = None
         self.acttopics = defaultdict(set)
         self.nodes = set()
         self.servers = set()
@@ -119,10 +120,11 @@ class Client(Entity):
                     continue
             
                 if sock == self.sock_recv:
-                    topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
+                    self.topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
-                    sub = Subscription.subscriptions.get(topic) or Subscription(topic)
+                    sub = Subscription.subscriptions.get(self.topic) or Subscription(self.topic)
                     sub.emit(pydata)
+                    self.topic = self.sender_id = None
 
                 elif sock == self.sock_send:
                     # This is an (un)subscribe message. If it's an id-only subscription
@@ -135,12 +137,14 @@ class Client(Entity):
                             if msg[0][0] == MSG_SUBSCRIBE:
                                 if sequence_idx > 0:
                                     self.nodes.add(sender_id)
+                                    self.nodes_changed.emit(self.nodes, self.servers)
                                     if not self.act_id:
-                                        self.act_id = sender_id
+                                        self.actnode(sender_id)
+                                    continue
                                 elif sequence_idx == 0:
                                     self.servers.add(sender_id)
                                 else:
-                                    return
+                                    continue
 
                             elif msg[0][0] == MSG_UNSUBSCRIBE:
                                 if sequence_idx > 0:
@@ -148,7 +152,7 @@ class Client(Entity):
                                 elif sequence_idx == 0:
                                     self.servers.discard(sender_id)
                                 else:
-                                    return
+                                    continue
                             self.nodes_changed.emit(self.nodes, self.servers)
 
         except zmq.ZMQError:
@@ -164,7 +168,7 @@ class Client(Entity):
             ]
         )
 
-    def subscribe(self, topic, from_id='', to_group=None, actonly=False):
+    def subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=False):
         ''' Subscribe to a topic.
 
             Arguments:
@@ -190,26 +194,30 @@ class Client(Entity):
         # subscription signal
         return sub
 
-    def _subscribe(self, topic, from_id='', to_group=None, actonly=False):
+    def _subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=False):
         topic = asbytestr(topic)
         from_id = asbytestr(from_id)
         to_group = asbytestr(to_group or GROUPID_CLIENT)
         if actonly and not from_id:
             self.acttopics[topic].add(to_group)
             from_id = self.act_id
+            if not from_id:
+                return
 
         self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
-    def _unsubscribe(self, topic, from_id='', to_group=None):
+    def _unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
         topic = asbytestr(topic)
         from_id = asbytestr(from_id)
         to_group = asbytestr(to_group or GROUPID_CLIENT)
         if not from_id and topic in self.acttopics:
             self.acttopics[topic].discard(to_group)
             from_id = self.act_id
+            if not from_id:
+                return
         self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
-    def unsubscribe(self, topic, from_id='', to_group=None):
+    def unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -217,10 +225,8 @@ class Client(Entity):
             - from_id: When subscribed to data from a specific node: The id of the node
             - to_group: The group mask that this topic is sent to (optional)
         '''
-        sub = None
-        if topic and (from_id or to_group is not None):
-            sub = Subscription(topic)
-            sub.subs.discard((from_id, to_group))
+        if topic:
+            Subscription(topic).subs.discard((from_id, to_group))
         self._unsubscribe(topic, from_id, to_group)
 
     def actnode(self, newact=None):
