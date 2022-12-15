@@ -13,6 +13,13 @@ class Subscriber:
     def notimplemented(self, *args, **kwargs):
         pass
 
+    @property
+    def valid(self):
+        spec = inspect.signature(self.func)
+        # Check if this is an unbound class/instance method
+        return spec.parameters.get('self') is None and \
+            spec.parameters.get('cls') is None
+
 
 class SignalFactory(type):
     ''' Factory meta-class for Signal objects in BlueSky. '''
@@ -88,5 +95,5 @@ def subscriber(func=None, topic=''):
 
         # Construct the subscription object, but return the original function
         return func
-    # Allow both @command and @command(args)
+    # Allow both @subscriber and @subscriber(args)
     return deco if func is None else deco(func)
