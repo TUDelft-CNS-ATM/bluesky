@@ -122,7 +122,7 @@ class Client(Entity):
                 if sock == self.sock_recv:
                     self.topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
-                    sub = Subscription.subscriptions.get(self.topic) or Subscription(self.topic)
+                    sub = Subscription.subscriptions.get(self.topic) or Subscription(self.topic, directonly=True)
                     sub.emit(pydata)
                     self.topic = self.sender_id = None
 
