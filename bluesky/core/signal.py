@@ -57,19 +57,19 @@ class Signal(metaclass=SignalFactory):
     def connect(self, func):
         """ Connect a new function to this signal. """
         if inspect.ismethod(func):
-            if not hasattr(func.__func__, '__subscription__'):
-                func.__func__.__subscription__ = Subscriber(func)
-            sub = func.__func__.__subscription__
+            if not hasattr(func.__func__, '__subscriber__'):
+                func.__func__.__subscriber__ = Subscriber(func)
+            sub = func.__func__.__subscriber__
         else:
-            if not hasattr(func, '__subscription__'):
-                func.__subscription__ = Subscriber(func)
-            sub = func.__subscription__
+            if not hasattr(func, '__subscriber__'):
+                func.__subscriber__ = Subscriber(func)
+            sub = func.__subscriber__
         self.subscribers.append(sub)
 
     def disconnect(self, func):
         """ Disconnect a function from this signal. """
         try:
-            sub = func.__func__.__subscription__ if inspect.ismethod(func) else func.__subscription__
+            sub = func.__func__.__subscriber__ if inspect.ismethod(func) else func.__subscriber__
             self.subscribers.remove(sub)
         except AttributeError:
             print(f'Function {func.__name__} is not connected to a signal.')

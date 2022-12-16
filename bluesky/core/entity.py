@@ -162,7 +162,7 @@ class Entity(Replaceable, TrafficArrays, metaclass=EntityMeta, replaceable=False
                     # Update callback of the timed function with first bound method we encounter
                     timedfun.callback = obj
             # And finally also for network subscriptions
-            sub = getattr(obj, '__subscription__', None)
+            sub = getattr(obj, '__subscriber__', None)
             if sub:
                 cls._subscribers[name] = sub
                 if obj is not sub.func and inspect.ismethod(obj):
