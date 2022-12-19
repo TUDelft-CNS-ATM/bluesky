@@ -14,8 +14,9 @@ except ImportError:
         res = '.'
         if '.' in package:
             package, res = package.split('.', 1)
-        with path(package, res) as p:
-            return p
+        #with path(package, res) as p:
+        p = path(package, res)
+        return Path(p.args[0].path).parent / p.args[1]
 
     class MultiplexedPath:
         def __init__(self, *paths) -> None:
