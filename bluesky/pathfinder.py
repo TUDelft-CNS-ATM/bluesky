@@ -14,7 +14,9 @@ except ImportError:
         res = '.'
         if '.' in package:
             package, res = package.split('.', 1)
-        return path(package, res)
+
+        p = path(package, res)
+        return Path(p.args[0].path).parent / p.args[1]
 
     class MultiplexedPath:
         def __init__(self, *paths) -> None:
@@ -33,7 +35,7 @@ except ImportError:
 class ResourcePath(MultiplexedPath):
     def __init__(self, *paths):
         base = files('bluesky.resources')
-        paths = list(paths) + base._paths if isinstance(base, MultiplexedPath) else base
+        paths = list(paths) + (base._paths if isinstance(base, MultiplexedPath) else [base])
         super().__init__(*paths)
 
     def appendpath(self, path):
@@ -105,16 +107,6 @@ def resource(*descendants):
 resource.path = ResourcePath()
 
 
-class PluginFinder(MetaPathFinder):
-    def find_spec(self, fullname: str, path, target):
-        print("find_spec(fullname={}, path={}, target={})".format(fullname, path, target))
-        if fullname.startswith('plugins'):
-            fullname = f'bluesky.{fullname}'
-        
-        # return None to tell the python this finder can't find the module
-        return None
-
-
 def init(workdir=None):
     ''' Initialise BlueSky search paths for resources and plugins. '''
     if workdir is None:
@@ -152,8 +144,6 @@ def init(workdir=None):
     # Set correct search paths for plugins
     plugins = import_module('bluesky.plugins')
     plugins.__spec__.submodule_search_locations.insert(0, workdir.joinpath('plugins').as_posix())
-    # sys.modules['plugins'] = plugins
-    # sys.meta_path.insert(0, PluginFinder())
 
     # Set correct search paths for resource function
     resource.path = ResourcePath(workdir)
