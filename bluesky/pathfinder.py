@@ -3,20 +3,27 @@ import shutil
 import itertools
 from pathlib import Path
 from importlib import import_module
-from importlib.abc import MetaPathFinder
+
 try:
     from importlib.resources import files
     from importlib.readers import MultiplexedPath
 except ImportError:
     # Python < 3.9 only provides deprecated resources API
-    from importlib.resources import path
+    # Previous alternatives to find resources seem to be difficult
+    # to get right on all platforms and python versions, so instead
+    # this approach based on the search locations from the package spec
+    from importlib.util import find_spec
     def files(package):
-        res = '.'
+        res = ''
         if '.' in package:
             package, res = package.split('.', 1)
+        s = find_spec(package)
+        if s.submodule_search_locations:
+            p = Path(s.submodule_search_locations[0])
+        else:
+            p = Path(package)
+        return p / res.replace('.', '/')
 
-        p = path(package, res)
-        return Path(p.args[0].path).parent / p.args[1]
 
     class MultiplexedPath:
         def __init__(self, *paths) -> None:
