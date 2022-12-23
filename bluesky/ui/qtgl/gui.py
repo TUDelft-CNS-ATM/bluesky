@@ -13,6 +13,8 @@ except ImportError:
     from PyQt6.QtWidgets import QApplication, QErrorMessage
     from PyQt6.QtGui import QFont
 
+import os
+
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
 from bluesky.ui.qtgl.mainwindow import MainWindow, Splash, DiscoveryDialog
@@ -37,6 +39,10 @@ def gui_msg_handler(msgtype, context, msg):
 def start(hostname=None):
     # Install message handler for Qt messages
     qInstallMessageHandler(gui_msg_handler)
+
+    # Avoid Window hidpi scaling of fonts affecting view of commands
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
 
     # Start the Qt main object
     app = QApplication([])
