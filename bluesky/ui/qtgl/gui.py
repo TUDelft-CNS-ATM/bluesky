@@ -43,6 +43,9 @@ def start(hostname=None):
     # Avoid Window hidpi scaling of fonts affecting view of commands
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+    #QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    #QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    # only pyqt5: QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     # Start the Qt main object
     app = QApplication([])
