@@ -1,5 +1,5 @@
 """ Autopilot Implementation."""
-from math import sin, cos, radians, sqrt, atan
+from math import sqrt, atan
 import numpy as np
 try:
     from collections.abc import Collection
@@ -15,7 +15,7 @@ from bluesky.tools.aero import ft, nm, fpm, vcasormach2tas, vcas2tas, tas2cas, c
 from bluesky.core import Entity, timed_function
 from .route import Route
 
-#debug
+# debug
 from inspect import stack as callstack
 from bluesky.tools.datalog import crelog
 
@@ -131,8 +131,9 @@ class Autopilot(Entity, replaceable=True):
 
         # Get list of indices of aircraft which have reached their active waypoint
         # This vectorized function checks the passing of the waypoint using a.o. the current turn radius
-        self.idxreached = bs.traf.actwp.Reached(qdr, dist, bs.traf.actwp.flyby,
-                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad,bs.traf.actwp.swlastwp)
+        self.idxreached = bs.traf.actwp.reached(qdr, dist, bs.traf.actwp.flyby,
+                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad,
+                                       bs.traf.actwp.turnhdgr,bs.traf.actwp.swlastwp)
 
         # For the one who have reached their active waypoint, update vectorized leg data for guidance
         for i in self.idxreached:
@@ -161,8 +162,14 @@ class Autopilot(Entity, replaceable=True):
                 else:
                     turnspd = bs.traf.tas[i]
 
+                # Heading rate overrides turnrad
+                if bs.traf.actwp.turnhdgr[i]>0:
+                    turnrad = bs.traf.tas[i]*360./(2*np.pi*bs.traf.actwp.turnhdgr[i])
+                    bs.traf.actwp.turnrad[i] = turnrad
+
+                # Use turn radius for bank angle
                 if bs.traf.actwp.turnrad[i] > 0.:
-                    self.turnphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*nm*g0)) # [rad]
+                    self.turnphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*g0)) # [rad]
                 else:
                     self.turnphi[i] = 0.0  # [rad] or leave untouched???
 
@@ -174,14 +181,15 @@ class Autopilot(Entity, replaceable=True):
                 lat, lon, alt, bs.traf.actwp.nextspd[i], \
                 bs.traf.actwp.xtoalt[i], toalt, \
                     bs.traf.actwp.xtorta[i], bs.traf.actwp.torta[i], \
-                    lnavon, flyby, flyturn, turnrad, turnspd,\
+                    lnavon, flyby, flyturn, turnrad, turnspd, turnhdgr,\
                     bs.traf.actwp.next_qdr[i], bs.traf.actwp.swlastwp[i] =      \
                     self.route[i].getnextwp()  # [m] note: xtoalt,nextaltco are in meters
 
 
                 bs.traf.actwp.nextturnlat[i], bs.traf.actwp.nextturnlon[i], \
                 bs.traf.actwp.nextturnspd[i], bs.traf.actwp.nextturnrad[i], \
-                bs.traf.actwp.nextturnidx[i] = self.route[i].getnextturnwp()
+                bs.traf.actwp.nextturnhdgr[i],bs.traf.actwp.nextturnidx[i] = \
+                    self.route[i].getnextturnwp()
 
             else:
                 # Prevent trying to activate the next waypoint when it was already the last waypoint
@@ -239,10 +247,10 @@ class Autopilot(Entity, replaceable=True):
             else:
                 local_next_qdr = bs.traf.actwp.next_qdr[i]
 
-            # Calculate turn dist (and radius which we do not use) now for scalar variable [i]
+            # Calculate turn dist (and radius which we do not use now, but later) now for scalar variable [i]
             bs.traf.actwp.turndist[i], dummy = \
                 bs.traf.actwp.calcturn(bs.traf.tas[i], self.bankdef[i],
-                                        qdr[i], local_next_qdr,turnrad)  # update turn distance for VNAV
+                                        qdr[i], local_next_qdr,turnrad,turnhdgr)  # update turn distance for VNAV
 
             # Get flyturn switches and data
             bs.traf.actwp.flyturn[i]     = flyturn
@@ -327,8 +335,8 @@ class Autopilot(Entity, replaceable=True):
 
         startdescorclimb = (bs.traf.actwp.nextaltco>=-0.1) * \
                            np.logical_or((bs.traf.alt>bs.traf.actwp.nextaltco) *\
-                                         np.logical_or((self.dist2wp < self.dist2vs+bs.traf.actwp.turndist),\
-                                                       (np.logical_not(self.swtod))),\
+                                         np.logical_or((self.dist2wp < self.dist2vs+bs.traf.actwp.turndist),
+                                                       (np.logical_not(self.swtod))),
                                          bs.traf.alt<bs.traf.actwp.nextaltco)
 
         # print("self.dist2vs =",self.dist2vs)
@@ -338,7 +346,7 @@ class Autopilot(Entity, replaceable=True):
         #    to continue descending when you get into a conflict
         #    while descending to the destination (the last waypoint)
         #    Use 0.1 nm (185.2 m) circle in case turndist might be zero
-        self.swvnavvs = bs.traf.swvnav * np.where(bs.traf.swlnav, startdescorclimb,\
+        self.swvnavvs = bs.traf.swvnav * np.where(bs.traf.swlnav, startdescorclimb,
                                         self.dist2wp <= np.maximum(0.1*nm,bs.traf.actwp.turndist))
 
         # Recalculate V/S based on current altitude and distance to next alt constraint

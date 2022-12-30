@@ -4,37 +4,40 @@ from bluesky.tools.aero import nm, g0
 from bluesky.tools.misc import degto180
 from bluesky.core import Entity
 
+
 class ActiveWaypoint(Entity, replaceable=True):
     def __init__(self):
         super().__init__()
         with self.settrafarrays():
-            self.lat        = np.array([])    # [deg] Active WP latitude
-            self.lon        = np.array([])    # [deg] Active WP longitude
-            self.nextturnlat= np.array([])    # [deg] Next turn WP latitude
-            self.nextturnlon= np.array([])    # [deg] Next turn WP longitude
-            self.nextturnspd= np.array([])    # [m/s] Next turn WP speed
-            self.nextturnrad= np.array([])    # [m]   Next turn WP turn radius
-            self.nextturnidx= np.array([])    # [-]   Next turn WP index
-            self.nextaltco  = np.array([])    # [m] Altitude to arrive at after distance xtoalt
-            self.xtoalt     = np.array([])    # [m] Distance to next altitude constraint
-            self.nextspd    = np.array([])    # [CAS[m/s]/Mach] save speed from next wp for next leg
-            self.spd        = np.array([])    # [CAS[m/s]/Mach]Active WP speed (constraint or calculated)
-            self.spdcon     = np.array([])    # [CAS[m/s]/Mach]Active WP speed constraint
-            self.vs         = np.array([])    # [m/s] Active vertical speed to use
-            self.turndist   = np.array([])    # [m] Distance when to turn to next waypoint
-            self.flyby      = np.array([])    # Flyby switch, when False, flyover (turndist=0.0)
-            self.flyturn    = np.array([])    # Flyturn switch, customised turn parameters; when False, use flyby/flyover
-            self.turnrad    = np.array([])    # Flyturn turn radius (<0 => not specified)
-            self.turnspd    = np.array([])    # [m/s, CAS] Flyturn turn speed for next turn (<=0 => not specified)
-            self.oldturnspd = np.array([])    # [TAS, m/s] Flyturn turn speed for previous turn (<=0 => not specified)
+            self.lat         = np.array([])    # [deg] Active WP latitude
+            self.lon         = np.array([])    # [deg] Active WP longitude
+            self.nextturnlat = np.array([])    # [deg] Next turn WP latitude
+            self.nextturnlon = np.array([])    # [deg] Next turn WP longitude
+            self.nextturnspd = np.array([])    # [m/s] Next turn WP speed
+            self.nextturnrad = np.array([])    # [m]   Next turn WP turn radius
+            self.nextturnhdgr= np.array([])  # [deg/s] Next turn WP heading rate (<0 => not specified)
+            self.nextturnidx = np.array([])    # [-]   Next turn WP index
+            self.nextaltco   = np.array([])    # [m] Altitude to arrive at after distance xtoalt
+            self.xtoalt      = np.array([])    # [m] Distance to next altitude constraint
+            self.nextspd     = np.array([])    # [CAS[m/s]/Mach] save speed from next wp for next leg
+            self.spd         = np.array([])    # [CAS[m/s]/Mach]Active WP speed (constraint or calculated)
+            self.spdcon      = np.array([])    # [CAS[m/s]/Mach]Active WP speed constraint
+            self.vs          = np.array([])    # [m/s] Active vertical speed to use
+            self.turndist    = np.array([])    # [m] Distance when to turn to next waypoint
+            self.flyby       = np.array([])    # Flyby switch, when False, flyover (turndist=0.0)
+            self.flyturn     = np.array([])    # Flyturn switch, customised turn parameters; when False, use flyby/flyover
+            self.turnrad     = np.array([])    # Flyturn turn radius (<0 => not specified)
+            self.turnspd     = np.array([])    # [m/s, CAS] Flyturn turn speed for next turn (<=0 => not specified)
+            self.turnhdgr    = np.array([])    # [deg/s]Flyturn turn heading rate (<0 => not specified)
+            self.oldturnspd  = np.array([])    # [TAS, m/s] Flyturn turn speed for previous turn (<=0 => not specified)
             self.turnfromlastwp = np.array([]) # Currently in flyturn-mode from last waypoint (old turn, beginning of leg)
             self.turntonextwp =  np.array([])  # Currently in flyturn-mode to next waypoint (new flyturn mode, end of leg)
-            self.torta      = np.array([])    # [s] Next req Time of Arrival (RTA) (-999. = None)
-            self.xtorta     = np.array([])    # [m] distance to next RTA
-            self.next_qdr   = np.array([])    # [deg] track angle of next leg
-            self.swlastwp   = np.array([],dtype=bool) # switch indicating this is the last waypoint
-            self.curlegdir  = np.array([])    # [deg] direction to active waypoint upon activation
-            self.curleglen  = np.array([])    # [deg] direction to active waypoint upon activation
+            self.torta       = np.array([])    # [s] Next req Time of Arrival (RTA) (-999. = None)
+            self.xtorta      = np.array([])    # [m] distance to next RTA
+            self.next_qdr    = np.array([])    # [deg] track angle of next leg
+            self.swlastwp    = np.array([],dtype=bool) # switch indicating this is the last waypoint
+            self.curlegdir   = np.array([])    # [deg] direction to active waypoint upon activation
+            self.curleglen   = np.array([])    # [deg] direction to active waypoint upon activation
 
     def create(self, n=1):
         super().create(n)
@@ -45,6 +48,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.nextturnlon[-n:]= 0        # [deg] Next turn WP longitude
         self.nextturnspd[-n:]= -999.    # [m/s] Next turn WP speed
         self.nextturnrad[-n:]= -999.    # [m]   Next turn WP radius
+        self.nextturnhdgr[-n:]= -999.   # [deg/s] Next turn WP heading rate (<0 => not specified)
         self.nextturnidx[-n:]= -999.    # [-] Next turn WP index
         self.nextaltco[-n]   = -999.    # [m] Altitude to arrive at after distance xtoalt
         self.xtoalt[-n:]     = 0.0      # [m] Distance to next altitude constraint
@@ -54,8 +58,9 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.turndist[-n:]   = 1.0      # [m] Distance to active waypoint where to turn
         self.flyby[-n:]      = 1.0      # Flyby/fly-over switch
         self.flyturn[-n:]    = False    # Flyturn switch, when False, when False, use flyby/flyover
-        self.turnrad[-n:]    = -999.    # Flyturn turn radius (<0 => not specified)
-        self.turnspd[-n:]    = -999.    # Flyturn turn speed (<0 => not specified)
+        self.turnrad[-n:]    = -999.    # [m] Flyturn turn radius (<0 => not specified)
+        self.turnspd[-n:]    = -999.    # [m/s]Flyturn turn speed (<0 => not specified)
+        self.turnhdgr[-n:]   = -999.    # [deg/s]Flyturn turn heading rate (<0 => not specified)
         self.oldturnspd[-n:] = -999.    # [TAS, m/s] Flyturn turn speed for previous turn (<=0 => not specified)
         self.turnfromlastwp[-n:] = False # Currently in flyturn-mode from last waypoint (old turn, beginning of leg)
         self.turntonextwp[-n:] = False  # Currently in flyturn-mode to next waypoint (new flyturn mode, end of leg)
@@ -66,7 +71,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.curlegdir[-n:]  = -999.0   # [deg] direction to active waypoint upon activation
         self.curleglen[-n:]  = -999.0   # [nm] distance to active waypoint upon activation
   
-    def Reached(self, qdr, dist, flyby, flyturn, turnradnm,swlastwp):
+    def reached(self, qdr, dist, flyby, flyturn, turnradnm, turnhdgr, swlastwp):
         # Calculate distance before waypoint where to start the turn
         # Note: this is a vectorized function, called with numpy traffic arrays
         # It returns the indices where the Reached criterion is True
@@ -77,8 +82,8 @@ class ActiveWaypoint(Entity, replaceable=True):
 
         # First calculate turn distance
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
-        turntas = np.where(bs.traf.actwp.turnspd<0.0,bs.traf.tas,bs.traf.actwp.turnspd)
-        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnradnm)
+        turntas = np.where(self.turnspd<0.0,bs.traf.tas,self.turnspd)
+        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnradnm,turnhdgr)
 
         # Turb dist iz ero for flyover, calculated distance for others
         self.turndist = np.logical_or(flyby,flyturn)*flybyturndist
@@ -109,16 +114,24 @@ class ActiveWaypoint(Entity, replaceable=True):
         return swreached
 
     # Calculate turn distance for array or scalar
-    def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnradnm=-999.):
+    def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnradnm=-999.,turnhdgr = -999.):
         """Calculate distance to wp where to start turn and turn radius in meters"""
 
-        # Calculate turn radius using current speed or use specified turnradius
-        turnrad = np.where(turnradnm+0.*tas<0.,
-                           tas * tas / (np.maximum(0.01, np.tan(bank)) * g0),
-                           turnradnm*nm)
+        # Calculate turn radius in meters using current speed or use specified turnradius in nm
+        turnrad = np.where(turnradnm+0.*tas<0., #no turn radius specified? (0.*tas for dimension)
+                           np.where(turnhdgr+0.*tas>0, # turn heading rate specified
+
+                                   # turn radius based on heading rateheading rate?
+                                   tas/(2*np.pi)*(360./turnhdgr),
+
+                                   # heading rate, tas => turn radius
+                                   tas * tas / (np.maximum(0.01, np.tan(bank)) * g0)), #else none specified, calculate
+
+                                   # user specified radius
+                                   turnradnm*nm)
+
 
         # turndist is in meters
         turndist = np.abs(turnrad *
            np.tan(np.radians(0.5 * np.abs(degto180(wpqdr%360. - next_wpqdr%360.)))))
-
         return turndist,turnrad

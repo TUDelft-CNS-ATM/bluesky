@@ -446,7 +446,8 @@ class Traffic(Entity):
         self.M = vtas2mach(self.tas, self.alt)
 
         # Turning
-        turnrate = np.degrees(g0 * np.tan(np.where(self.ap.turnphi>self.eps,self.ap.turnphi,self.ap.bankdef) \
+        turnrate = np.degrees(g0 * np.tan(np.where(self.ap.turnphi>self.eps*self.eps,
+                                                   self.ap.turnphi,self.ap.bankdef) \
                                           / np.maximum(self.tas, self.eps)))
         delhdg = (self.aporasas.hdg - self.hdg + 180) % 360 - 180  # [deg]
         self.swhdgsel = np.abs(delhdg) > np.abs(bs.sim.simdt * turnrate)

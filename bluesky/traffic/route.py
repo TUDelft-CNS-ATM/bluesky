@@ -56,9 +56,10 @@ class Route(Replaceable):
         self.wpstack = []   # Stack with command execured when passing this waypoint
 
         # Made for drones: fly turn mode, means use specified turn radius and optionally turn speed
-        self.wpflyturn = []   # Flyturn (True) or flyover/flyby (False) switch
-        self.wpturnrad = []   # [nm] Turn radius per waypoint (<0 = not specified)
-        self.wpturnspd = []   # [kts] Turn speed (IAS/CAS) per waypoint (<0 = not specified)
+        self.wpflyturn  = []   # Flyturn (True) or flyover/flyby (False) switch
+        self.wpturnrad  = []   # [nm] Turn radius per waypoint (<0 = not specified)
+        self.wpturnspd  = []   # [kts] Turn speed (IAS/CAS) per waypoint (<0 = not specified)
+        self.wpturnhdgr =[] # [deg/s] Heading rate, uses actual speed to calculate bank & radius (<0 = not specified)
 
         # Current actual waypoint
         self.iactwp = -1
@@ -66,11 +67,13 @@ class Route(Replaceable):
         # Set to default addwpt wpmode
         # Note that neither flyby nor flyturn means: flyover)
         self.swflyby   = True    # Default waypoints are flyby waypoint
-        self.swflyturn = False  # Default waypoints are flyby waypoint
+        self.swflyturn = False  # Default waypoints are waypoints w/o specified turn
 
         # Default turn values to be used in flyturn mode
-        self.turnrad  = -999. # Negative value indicating no value has been set
-        self.turnspd  = -999. # Dito, in this case bank angle of vehicle will be used with current speed
+        self.bank      = 25.   # [deg] Default bank angle
+        self.turnrad   = -999. # Negative value indicating no value has been set
+        self.turnspd   = -999. # Dito, in this case bank angle of vehicle will be used with current speed
+        self.turnhdgr  = -999. # Dito, in this case bank angle of vehicle will be used with current speed
 
         # if the aircraft lands on a runway, the aircraft should keep the
         # runway heading
@@ -190,7 +193,15 @@ class Route(Replaceable):
                 except:
                     return False, "Error in processing value of turn speed"
 
+            elif swwpmode == "TURNHDGRATE" or swwpmode == "TURNHDG" or swwpmode == "TURNHDGR":
+
+                try:
+                    acrte.turnhdgr = args[1]/ft # [deg/s] turn rate
+                except:
+                    return False, "Error in processing value of turn heading rate"
+
                 return True
+
 
         # Convert to positions
         name = args[0].upper().strip()
@@ -397,6 +408,11 @@ class Route(Replaceable):
 
             elif wpdata[4] in ['TURNRAD', 'TURNRADIUS']:
                 acrte.turnrad = float(wpdata[5])
+                acrte.swflyby   = False
+                acrte.swflyturn = True
+
+            elif wpdata[4] in ['TURNHDG', 'TURNHDGR','TURNHDGRATE']:
+                acrte.turnhdgr = float(wpdata[5])
                 acrte.swflyby   = False
                 acrte.swflyturn = True
 
@@ -694,6 +710,7 @@ class Route(Replaceable):
             self.wpflyturn[wpidx] = self.swflyturn
             self.wpturnrad[wpidx] = self.turnrad
             self.wpturnspd[wpidx] = self.turnspd
+            self.wpturnhdgr[wpidx] = self.turnhdgr
             self.wprta[wpidx]   = -999.0 # initially no RTA
             self.wpstack[wpidx] = []
 
@@ -708,6 +725,7 @@ class Route(Replaceable):
             self.wpflyturn.insert(wpidx, self.swflyturn)
             self.wpturnrad.insert(wpidx, self.turnrad)
             self.wpturnspd.insert(wpidx, self.turnspd)
+            self.wpturnhdgr.insert(wpidx, self.turnhdgr)
             self.wprta.insert(wpidx,-999.0)       # initially no RTA
             self.wpstack.insert(wpidx,[])
 
@@ -868,10 +886,12 @@ class Route(Replaceable):
         bs.traf.actwp.flyturn[acidx] = acrte.wpflyturn[wpidx]
         bs.traf.actwp.turnrad[acidx] = acrte.wpturnrad[wpidx]
         bs.traf.actwp.turnspd[acidx] = acrte.wpturnspd[wpidx]
+        bs.traf.actwp.turnhdgr[acidx] = acrte.wpturnhdgr[wpidx]
 
         bs.traf.actwp.nextturnlat[acidx], bs.traf.actwp.nextturnlon[acidx], \
         bs.traf.actwp.nextturnspd[acidx], bs.traf.actwp.nextturnrad[acidx], \
-        bs.traf.actwp.nextturnidx[acidx] = acrte.getnextturnwp()
+        bs.traf.actwp.nextturnhdgr[acidx] , bs.traf.actwp.nextturnidx[acidx]\
+            = acrte.getnextturnwp()
 
         # Determine next turn waypoint data
 
@@ -918,13 +938,16 @@ class Route(Replaceable):
         bs.traf.actwp.curlegdir[acidx] = qdr_      #[deg]
         bs.traf.actwp.curleglen[acidx] = dist_*nm  #[m]
 
-        if acrte.wpflyturn[wpidx] or acrte.wpturnrad[wpidx]<0.:
+        if acrte.wpflyturn[wpidx] and acrte.wpturnrad[wpidx]>0.: # turn radius specified
             turnrad = acrte.wpturnrad[wpidx]
-        else:
-            turnrad = bs.traf.tas[acidx]*bs.traf.tas[acidx]/tan(radians(25.)) / g0 / nm  # [nm]default bank angle 25 deg
+        # Overwrite is hdgrate  defined
+        if acrte.wpflyturn[wpidx] and acrte.wpturnhdgr[wpidx] > 0.: # heading rate specified
+            turnrad = bs.traf.tas[acidx]*360./(2*pi*acrte.wpturnhdgr[wpidx])
+        else:                                                          # nothing specified, use default bank ang;e
+            turnrad = bs.traf.tas[acidx]*bs.traf.tas[acidx]/tan(radians(acrte.bank)) / g0 / nm  # [nm]default bank angle e.g. 25 deg
 
-
-        bs.traf.actwp.turndist[acidx] = (bs.traf.actwp.flyby[acidx] > 0.5)  *   \
+        bs.traf.actwp.turndist[acidx] = logical_or(acrte.wpturnhdgr[wpidx]>0.,
+                                                      bs.traf.actwp.flyby[acidx] > 0.5)  *   \
                     turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr_ -
                     acrte.wpdirfrom[acrte.iactwp]))))))    # [nm]
 
@@ -1018,14 +1041,13 @@ class Route(Replaceable):
         argwhere_arr = argwhere(turnidx_all>=wpidx)
         if argwhere_arr.size == 0:
             # No turn waypoints, return default values
-            return [0., 0., -999., -999., -999.]
+            return [0., 0., -999., -999., -999, -999.]
 
         trnidx = turnidx_all[argwhere(turnidx_all>=wpidx)[0]][0]
 
 
-
         # Return the next turn waypoint info
-        return [self.wplat[trnidx], self.wplon[trnidx], self.wpturnspd[trnidx], self.wpturnrad[trnidx], trnidx]
+        return [self.wplat[trnidx], self.wplon[trnidx], self.wpturnspd[trnidx], self.wpturnrad[trnidx], self.wpturnhdgr[trnidx], trnidx]
 
     def getnextwp(self):
         """Go to next waypoint and return data"""
@@ -1075,8 +1097,8 @@ class Route(Replaceable):
                            self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp], \
                            self.wpxtorta[self.iactwp], self.wptorta[self.iactwp], \
                            lnavon,self.wpflyby[self.iactwp], \
-                           self.wpflyturn[self.iactwp],self.wpturnrad[self.iactwp],\
-                           self.wpturnspd[self.iactwp], \
+                           self.wpflyturn[self.iactwp],self.wpturnrad[self.iactwp], \
+                           self.wpturnspd[self.iactwp], self.wpturnhdgr[self.iactwp], \
                            nextqdr, swlastwp
 
         # Switch LNAV off when last waypoint has been passed
@@ -1111,7 +1133,7 @@ class Route(Replaceable):
                self.wpxtorta[self.iactwp],self.wptorta[self.iactwp],\
                lnavon,self.wpflyby[self.iactwp], \
                self.wpflyturn[self.iactwp], self.wpturnrad[self.iactwp], \
-               self.wpturnspd[self.iactwp], \
+               self.wpturnspd[self.iactwp], self.wpturnhdgr[self.iactwp],\
                nextqdr, swlastwp
 
     def runactwpstack(self):
