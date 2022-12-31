@@ -59,7 +59,7 @@ class Route(Replaceable):
         self.wpflyturn  = []   # Flyturn (True) or flyover/flyby (False) switch
         self.wpturnrad  = []   # [nm] Turn radius per waypoint (<0 = not specified)
         self.wpturnspd  = []   # [kts] Turn speed (IAS/CAS) per waypoint (<0 = not specified)
-        self.wpturnhdgr =[] # [deg/s] Heading rate, uses actual speed to calculate bank & radius (<0 = not specified)
+        self.wpturnhdgr = [] # [deg/s] Heading rate, uses actual speed to calculate bank & radius (<0 = not specified)
 
         # Current actual waypoint
         self.iactwp = -1
@@ -184,6 +184,11 @@ class Route(Replaceable):
                     acrte.turnrad = float(args[1])/ft # arg was originally parsed as wpalt
                 except:
                     return False,"Error in processing value of turn radius"
+
+                # Switch flyturn automatically when this is set
+                acrte.swflyby = False
+                acrte.swflyturn = True
+
                 return True
 
             elif swwpmode == "TURNSPD" or swwpmode == "TURNSPEED":
@@ -193,12 +198,22 @@ class Route(Replaceable):
                 except:
                     return False, "Error in processing value of turn speed"
 
+                # Switch flyturn automatically when this is set
+                acrte.swflyby = False
+                acrte.swflyturn = True
+
+
             elif swwpmode == "TURNHDGRATE" or swwpmode == "TURNHDG" or swwpmode == "TURNHDGR":
 
                 try:
                     acrte.turnhdgr = args[1]/ft # [deg/s] turn rate
                 except:
                     return False, "Error in processing value of turn heading rate"
+
+                # Switch flyturn automatically when this is set
+                acrte.swflyby = False
+                acrte.swflyturn = True
+
 
                 return True
 

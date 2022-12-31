@@ -83,7 +83,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         # First calculate turn distance
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
         turntas = np.where(self.turnspd<0.0,bs.traf.tas,self.turnspd)
-        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnradnm,turnhdgr)
+        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnradnm,turnhdgr,flyturn)
 
         # Turb dist iz ero for flyover, calculated distance for others
         self.turndist = np.logical_or(flyby,flyturn)*flybyturndist
@@ -114,21 +114,27 @@ class ActiveWaypoint(Entity, replaceable=True):
         return swreached
 
     # Calculate turn distance for array or scalar
-    def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnradnm=-999.,turnhdgr = -999.):
+    def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnradnm=-999.,turnhdgr = -999.,flyturn=False):
         """Calculate distance to wp where to start turn and turn radius in meters"""
 
-        # Calculate turn radius in meters using current speed or use specified turnradius in nm
-        turnrad = np.where(turnradnm+0.*tas<0., #no turn radius specified? (0.*tas for dimension)
-                           np.where(turnhdgr+0.*tas>0, # turn heading rate specified
+        # Tas is also used ti
 
-                                   # turn radius based on heading rateheading rate?
+        # Calculate turn radius in meters using current speed or use specified turnradius in nm
+        turnrad = np.where(np.logical_and(flyturn,turnradnm+0.*tas>0.), #turn radius specified? (0.*tas for dimension)
+
+                           # user specified radius
+                           turnradnm * nm +0.*tas,
+
+
+                           np.where(np.logical_and(flyturn,turnhdgr+0.*tas>0),
+
+                                   # turn radius based on heading rate?
                                    tas/(2*np.pi)*(360./turnhdgr),
 
-                                   # heading rate, tas => turn radius
-                                   tas * tas / (np.maximum(0.01, np.tan(bank)) * g0)), #else none specified, calculate
+                                   # bank, tas => turn radius
+                                   tas * tas / (np.maximum(0.01, np.tan(bank)) * g0)))#else none specified, calculate
 
-                                   # user specified radius
-                                   turnradnm*nm)
+
 
 
         # turndist is in meters

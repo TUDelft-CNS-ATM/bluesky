@@ -250,7 +250,7 @@ class Autopilot(Entity, replaceable=True):
             # Calculate turn dist (and radius which we do not use now, but later) now for scalar variable [i]
             bs.traf.actwp.turndist[i], dummy = \
                 bs.traf.actwp.calcturn(bs.traf.tas[i], self.bankdef[i],
-                                        qdr[i], local_next_qdr,turnrad,turnhdgr)  # update turn distance for VNAV
+                                        qdr[i], local_next_qdr,turnrad,turnhdgr,flyturn)  # update turn distance for VNAV
 
             # Get flyturn switches and data
             bs.traf.actwp.flyturn[i]     = flyturn
