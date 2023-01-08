@@ -154,28 +154,6 @@ class Autopilot(Entity, replaceable=True):
             # Execute stack commands for the still active waypoint, which we pass
             self.route[i].runactwpstack()
 
-            # Special turns: specified by turn radius or bank angle
-            # If specified, use the given turn radius of passing wp for bank angle
-            if bs.traf.actwp.flyturn[i]:
-                if bs.traf.actwp.turnspd[i]>=0.:
-                    turnspd = bs.traf.actwp.turnspd[i]
-                else:
-                    turnspd = bs.traf.tas[i]
-
-                # Heading rate overrides turnrad
-                if bs.traf.actwp.turnhdgr[i]>0:
-                    turnrad = bs.traf.tas[i]*360./(2*np.pi*bs.traf.actwp.turnhdgr[i])
-                    bs.traf.actwp.turnrad[i] = turnrad
-
-                # Use turn radius for bank angle
-                if bs.traf.actwp.turnrad[i] > 0.:
-                    self.turnphi[i] = atan(turnspd*turnspd/(bs.traf.actwp.turnrad[i]*g0)) # [rad]
-                else:
-                    self.turnphi[i] = 0.0  # [rad] or leave untouched???
-
-            else:
-                self.turnphi[i] = 0.0  #[rad] or leave untouched???
-
             # Get next wp, if there still is one
             if not bs.traf.actwp.swlastwp[i]:
                 lat, lon, alt, bs.traf.actwp.nextspd[i], \
@@ -198,6 +176,28 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.swvnav[i] = False
                 bs.traf.swvnavspd[i] = False
                 continue # Go to next a/c which reached its active waypoint
+
+            # Special turns: specified by turn radius or bank angle
+            # If specified, use the given turn radius of passing wp for bank angle
+            if flyturn:
+                if turnspd<=0.:
+                    turnspd = bs.traf.tas[i]
+
+                # Heading rate overrides turnrad
+                if turnhdgr>0:
+                    turnrad = bs.traf.tas[i]*360./(2*np.pi*turnhdgr)
+
+                # Use last turn radius for bank angle in current turn
+                if bs.traf.actwp.turnrad[i] > 0.:
+                    self.turnphi[i] = atan(bs.traf.actwp.turnspd[i]*bs.traf.actwp.turnspd[i]/ \
+                                           (bs.traf.actwp.turnrad[i]*g0)) # [rad]
+                else:
+                    self.turnphi[i] = 0.0  # [rad] or leave untouched???
+
+            else:
+                self.turnphi[i] = 0.0  #[rad] or leave untouched???
+
+
 
             # Check LNAV switch returned by getnextwp
             # Switch off LNAV if it failed to get next wpdata
@@ -253,8 +253,10 @@ class Autopilot(Entity, replaceable=True):
                                         qdr[i], local_next_qdr,turnrad,turnhdgr,flyturn)  # update turn distance for VNAV
 
             # Get flyturn switches and data
-            bs.traf.actwp.flyturn[i]     = flyturn
-            bs.traf.actwp.turnrad[i]     = turnrad
+            bs.traf.actwp.flyturn[i]      = flyturn
+            bs.traf.actwp.turnrad[i]      = turnrad
+            bs.traf.actwp.turnspd[i]      = turnspd
+            bs.traf.actwp.turnhdgr[i]     = turnhdgr
 
             # Pass on whether currently flyturn mode:
             # at beginning of leg,c copy tonextwp to lastwp

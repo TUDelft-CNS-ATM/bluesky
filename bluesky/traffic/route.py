@@ -71,9 +71,9 @@ class Route(Replaceable):
 
         # Default turn values to be used in flyturn mode
         self.bank      = 25.   # [deg] Default bank angle
-        self.turnrad   = -999. # Negative value indicating no value has been set
-        self.turnspd   = -999. # Dito, in this case bank angle of vehicle will be used with current speed
-        self.turnhdgr  = -999. # Dito, in this case bank angle of vehicle will be used with current speed
+        self.turnrad   = -999. # [m] Negative value indicating no value has been set
+        self.turnspd   = -999. # [kts] Dito, in this case bank angle of vehicle will be used with current speed
+        self.turnhdgr  = -999. # [deg/s] Dito, in this case bank angle of vehicle will be used with current speed
 
         # if the aircraft lands on a runway, the aircraft should keep the
         # runway heading
@@ -153,7 +153,7 @@ class Route(Replaceable):
         
         #debug print ("addwptStack:",args)
         #print("active = ",self.wpname[self.iactwp])
-        #print(args)
+        #print(argsnwp
         # Check FLYBY or FLYOVER switch, instead of adding a waypoint
 
         if len(args) == 1:
@@ -181,7 +181,10 @@ class Route(Replaceable):
             if swwpmode == "TURNRAD" or swwpmode == "TURNRADIUS":
 
                 try:
-                    acrte.turnrad = float(args[1])/ft # arg was originally parsed as wpalt
+                    if args[1]=="OFF":
+                        acrte.turnrad = -999
+                    else:
+                        acrte.turnrad = float(args[1]/ft*nm) #arg was originally parsed as wpalt
                 except:
                     return False,"Error in processing value of turn radius"
 
@@ -194,7 +197,10 @@ class Route(Replaceable):
             elif swwpmode == "TURNSPD" or swwpmode == "TURNSPEED":
 
                 try:
-                    acrte.turnspd = args[1]*kts/ft # [m/s] Arg was wpalt Keep it as IAS/CAS orig in kts, now in m/s
+                    if args[1] == "OFF":
+                        acrte.turnspd = -999
+                    else:
+                        acrte.turnspd = args[1]*kts/ft # [m/s] Arg was wpalt Keep it as IAS/CAS orig in kts, now in m/s
                 except:
                     return False, "Error in processing value of turn speed"
 
@@ -206,7 +212,10 @@ class Route(Replaceable):
             elif swwpmode == "TURNHDGRATE" or swwpmode == "TURNHDG" or swwpmode == "TURNHDGR":
 
                 try:
-                    acrte.turnhdgr = args[1]/ft # [deg/s] turn rate
+                    if args[1] == "OFF":
+                        acrte.turnhdgr = -999
+                    else:
+                        acrte.turnhdgr = args[1]/ft # [deg/s] turn rate
                 except:
                     return False, "Error in processing value of turn heading rate"
 
@@ -287,7 +296,6 @@ class Route(Replaceable):
             i      = 0
             while i<acrte.nwp and rwyrteidx<0:
                 if acrte.wpname[i].count("/") >0:
-#                   print (self.wpname[i])
                     rwyrteidx = i
                 i += 1
 
@@ -417,17 +425,26 @@ class Route(Replaceable):
 
             # Do flyby or flyturn processing
             if wpdata[4] in ['TURNSPD', 'TURNSPEED']: #
-                acrte.turnspd = txt2spd(wpdata[5])
+                if wpdata[4]=="OFF":
+                    acrte.turnspd = -999.
+                else:
+                    acrte.turnspd = txt2spd(wpdata[5])
                 acrte.swflyby   = False
                 acrte.swflyturn = True
 
             elif wpdata[4] in ['TURNRAD', 'TURNRADIUS']:
-                acrte.turnrad = float(wpdata[5])
+                if wpdata[4]=="OFF":
+                    acrte.turnrad = -999.
+                else:
+                    acrte.turnrad = float(wpdata[5])*nm
                 acrte.swflyby   = False
                 acrte.swflyturn = True
 
             elif wpdata[4] in ['TURNHDG', 'TURNHDGR','TURNHDGRATE']:
-                acrte.turnhdgr = float(wpdata[5])
+                if wpdata[4]=="OFF":
+                    acrte.turnhdgr = -999.
+                else:
+                    acrte.turnhdgr = float(wpdata[5])
                 acrte.swflyby   = False
                 acrte.swflyturn = True
 

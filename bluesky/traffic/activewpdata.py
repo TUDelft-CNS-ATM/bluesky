@@ -71,7 +71,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.curlegdir[-n:]  = -999.0   # [deg] direction to active waypoint upon activation
         self.curleglen[-n:]  = -999.0   # [nm] distance to active waypoint upon activation
   
-    def reached(self, qdr, dist, flyby, flyturn, turnradnm, turnhdgr, swlastwp):
+    def reached(self, qdr, dist, flyby, flyturn, turnrad, turnhdgr, swlastwp):
         # Calculate distance before waypoint where to start the turn
         # Note: this is a vectorized function, called with numpy traffic arrays
         # It returns the indices where the Reached criterion is True
@@ -83,7 +83,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         # First calculate turn distance
         next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
         turntas = np.where(self.turnspd<0.0,bs.traf.tas,self.turnspd)
-        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnradnm,turnhdgr,flyturn)
+        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnrad,turnhdgr,flyturn)
 
         # Turb dist iz ero for flyover, calculated distance for others
         self.turndist = np.logical_or(flyby,flyturn)*flybyturndist
@@ -114,16 +114,16 @@ class ActiveWaypoint(Entity, replaceable=True):
         return swreached
 
     # Calculate turn distance for array or scalar
-    def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnradnm=-999.,turnhdgr = -999.,flyturn=False):
+    def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnrad=-999.,turnhdgr = -999.,flyturn=False):
         """Calculate distance to wp where to start turn and turn radius in meters"""
 
         # Tas is also used ti
 
-        # Calculate turn radius in meters using current speed or use specified turnradius in nm
-        turnrad = np.where(np.logical_and(flyturn,turnradnm+0.*tas>0.), #turn radius specified? (0.*tas for dimension)
+        # Calculate turn radius in meters using current speed or use specified turnradius in m
+        turnrad = np.where(np.logical_and(flyturn,turnrad+0.*tas>0.), #turn radius specified? (0.*tas for dimension)
 
                            # user specified radius
-                           turnradnm * nm +0.*tas,
+                           turnrad +0.*tas,
 
 
                            np.where(np.logical_and(flyturn,turnhdgr+0.*tas>0),

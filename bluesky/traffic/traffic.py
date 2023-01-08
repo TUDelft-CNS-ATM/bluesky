@@ -445,7 +445,9 @@ class Traffic(Entity):
         self.cas = vtas2cas(self.tas, self.alt)
         self.M = vtas2mach(self.tas, self.alt)
 
-        # Turning
+        # Turning bank triangle
+        # tan phi = a centrigugal/a grav = omega^2 * R / g = omega * V /g
+        # => omega = (g tan phi)/V
         turnrate = np.degrees(g0 * np.tan(np.where(self.ap.turnphi>self.eps*self.eps,
                                                    self.ap.turnphi,self.ap.bankdef) \
                                           / np.maximum(self.tas, self.eps)))
