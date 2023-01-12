@@ -33,6 +33,9 @@ class Client(Entity):
         self.sock_send = ctx.socket(zmq.XPUB)
         self.poller = zmq.Poller()        
 
+        # Tell bluesky that this client will manage the network I/O
+        bs.net = self
+
         # Subscribe to subscriptions that were already made before constructing
         # this node
         for sub in Subscription.subscriptions.values():
@@ -43,8 +46,6 @@ class Client(Entity):
         self.server_discovered = Signal('server_discovered')
         self.signal_quit = Signal('quit')
 
-        # Tell bluesky that this client will manage the network I/O
-        bs.net = self
         # If no other object is taking care of this, let this client act as screen object as well
         if not bs.scr:
             bs.scr = self
@@ -203,7 +204,6 @@ class Client(Entity):
             from_id = self.act_id
             if not from_id:
                 return
-
         self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
     def _unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
