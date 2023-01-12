@@ -24,6 +24,7 @@ class Stack:
         cls.scenname = ""
         cls.scentime = []
         cls.scencmd = []
+        cls.current = ''
         cls.sender_id = None
 
     @classmethod
@@ -32,6 +33,9 @@ class Stack:
         # Return commands from PCALL if passed, otherwise own command stack
         for cls.current, cls.sender_id in from_pcall or cls.cmdstack:
             yield cls.current
+        # After processing commands, current command and sender id should be reset
+        cls.current = ''
+        cls.sender_id = None
 
     @classmethod
     def clear(cls):
