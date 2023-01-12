@@ -96,12 +96,12 @@ def subscriber(func=None, *, topic='', directonly=False, **kwargs):
         - actonly: Only receive this data for the active node (client only)
     '''
     def deco(func):
-        func = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
+        ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
             else func
         
         # Create the subscription object. Network subscriptions will be made as
         # soon as the network connection is available
-        Subscription(topic or func.__name__.upper(), directonly=directonly, **kwargs).connect(func)
+        Subscription(topic or ifunc.__name__.upper(), directonly=directonly, **kwargs).connect(ifunc)
 
         # Construct the subscription object, but return the original function
         return func
