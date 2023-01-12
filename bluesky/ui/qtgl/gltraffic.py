@@ -7,6 +7,8 @@ from bluesky.tools import geo
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
+from bluesky.network import sharedstate
+
 
 # Register settings defaults
 settings.set_variable_defaults(
@@ -168,8 +170,8 @@ class Traffic(glh.RenderObject, layer=100):
 
     def actdata_changed(self, nodeid, nodedata, changed_elems):
         ''' Process incoming traffic data. '''
-        if 'ACDATA' in changed_elems:
-            self.update_aircraft_data(nodedata.acdata)
+        # if 'ACDATA' in changed_elems:
+        #     self.update_aircraft_data(nodedata.acdata)
         if 'ROUTEDATA' in changed_elems:
             self.update_route_data(nodedata.routedata)
         if 'TRAILS' in changed_elems:
@@ -242,26 +244,27 @@ class Traffic(glh.RenderObject, layer=100):
             self.route.set_vertex_count(0)
             self.routelbl.n_instances = 0
 
+    @sharedstate.subscriber(topic='ACDATA', actonly=True)
     def update_aircraft_data(self, data):
         ''' Update GPU buffers with new aircraft simulation data. '''
         if not self.initialized:
             return
-
         self.glsurface.makeCurrent()
         actdata = bs.net.get_nodedata()
-        if actdata.filteralt:
-            idx = np.where(
-                (data.alt >= actdata.filteralt[0]) * (data.alt <= actdata.filteralt[1]))
-            data.lat = data.lat[idx]
-            data.lon = data.lon[idx]
-            data.trk = data.trk[idx]
-            data.alt = data.alt[idx]
-            data.tas = data.tas[idx]
-            data.vs = data.vs[idx]
-            data.rpz = data.rpz[idx]
+        # if actdata.filteralt:
+        #     idx = np.where(
+        #         (data.alt >= actdata.filteralt[0]) * (data.alt <= actdata.filteralt[1]))
+        #     data.lat = data.lat[idx]
+        #     data.lon = data.lon[idx]
+        #     data.trk = data.trk[idx]
+        #     data.alt = data.alt[idx]
+        #     data.tas = data.tas[idx]
+        #     data.vs = data.vs[idx]
+        #     data.rpz = data.rpz[idx]
         naircraft = len(data.lat)
         actdata.translvl = data.translvl
         actdata.casmachthr = data.casmachthr
+        actdata.naircraft = naircraft
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
         # self.asas_vmax = data.vmax
 
@@ -338,7 +341,6 @@ class Traffic(glh.RenderObject, layer=100):
 
             if len(actdata.ssd_ownship) > 0 or actdata.ssd_conflicts or actdata.ssd_all:
                 self.ssd.update(selssd=selssd)
-
             self.cpalines.update(vertex=cpalines)
             self.color.update(color)
             self.lbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))

@@ -10,6 +10,7 @@ from bluesky.tools import areafilter, aero
 from bluesky.core.walltime import Timer
 from bluesky.network import subscriber
 
+import bluesky.network.sharedstate as sharedstate
 
 class ScreenIO(Entity):
     """Class within sim task which sends/receives data to/from GUI task"""
@@ -277,7 +278,8 @@ class ScreenIO(Entity):
         data['asastas']  = bs.traf.cr.tas
         data['asastrk']  = bs.traf.cr.trk
 
-        bs.net.send(b'ACDATA', data, to_group=b'C')
+        # bs.net.send(b'ACDATA', data, to_group=b'C')
+        sharedstate.send_full(b'ACDATA', **data)
 
     def send_route_data(self):
         ''' Send route data to client(s) '''

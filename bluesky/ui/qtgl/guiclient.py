@@ -13,6 +13,8 @@ from bluesky.network import subscriber
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
 
+import bluesky.network.sharedstate as sharedstate
+
 # Globals
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT', 'ROUTEDATA']
 
@@ -40,7 +42,7 @@ class GuiClient(Client):
         self.subscribe('SHAPE').connect(self.event)
         
         self.subscribe(b'ROUTEDATA', actonly=True).connect(self.stream)
-        self.subscribe(b'ACDATA', actonly=True).connect(self.stream)
+        # self.subscribe(b'ACDATA', actonly=True).connect(self.stream)
         self.subscribe(b'PANZOOM').connect(self.event)
 
     def start_discovery(self):
