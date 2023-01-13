@@ -306,9 +306,6 @@ class Screen:
                 self.editwin.echo(m)
         return
 
-    def showssd(self, param):
-        return False,"SSD visualization only available in QtGL GUI"
-
     def cmdline(self, text):
         self.editwin.insert(text)
 
@@ -1216,9 +1213,6 @@ class Screen:
     def drawradbg(self): # redraw radar background
         self.redrawradbg = True
         return
-
-    def filteralt(self, *args):
-        return False, 'Filteralt not implemented in Pygame gui'
 
     def feature(self,sw,arg=""):
         # Switch/toggle/cycle radar screen features e.g. from SWRAD command

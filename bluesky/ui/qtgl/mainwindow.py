@@ -21,6 +21,7 @@ except ImportError:
 
 # Local imports
 import bluesky as bs
+from bluesky import stack
 from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
 from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
@@ -362,25 +363,17 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.fast10:
             bs.net.send(b'STACK', 'FF 0:0:10')
         elif self.sender() == self.showac:
-            actdata.show_traf = not actdata.show_traf
+            stack.stack('SHOWTRAF')
         elif self.sender() == self.showpz:
-            actdata.show_pz = not actdata.show_pz
+            stack.stack('SHOWPZ')
         elif self.sender() == self.showapt:
-            if actdata.show_apt < 3:
-                actdata.show_apt += 1
-            else:
-                actdata.show_apt = 0
+            stack.stack('SHOWAPT')
         elif self.sender() == self.showwpt:
-            if actdata.show_wpt < 2:
-                actdata.show_wpt += 1
-            else:
-                actdata.show_wpt = 0
+            stack.stack('SHOWWPT')
         elif self.sender() == self.showlabels:
-            actdata.show_lbl -= 1
-            if actdata.show_lbl < 0:
-                actdata.show_lbl = 2
+            stack.stack('LABEL')
         elif self.sender() == self.showmap:
-            actdata.show_map = not actdata.show_map
+            stack.stack('SHOWMAP')
         elif self.sender() == self.action_Save:
             bs.net.send(b'STACK', 'SAVEIC')
         elif hasattr(self.sender(), 'server_id'):

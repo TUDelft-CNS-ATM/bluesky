@@ -13,7 +13,6 @@ from bluesky.network import subscriber
 from bluesky.core import Signal
 from bluesky.tools.aero import ft
 
-import bluesky.network.sharedstate as sharedstate
 
 # Globals
 UPDATE_ALL = ['SHAPE', 'TRAILS', 'CUSTWPT', 'PANZOOM', 'ECHOTEXT', 'ROUTEDATA']
@@ -42,7 +41,6 @@ class GuiClient(Client):
         self.subscribe('SHAPE').connect(self.event)
         
         self.subscribe(b'ROUTEDATA', actonly=True).connect(self.stream)
-        # self.subscribe(b'ACDATA', actonly=True).connect(self.stream)
         self.subscribe(b'PANZOOM').connect(self.event)
 
     def start_discovery(self):
@@ -60,10 +58,7 @@ class GuiClient(Client):
         ''' Guiclient stream handler. '''
         changed = ''
         actdata = self.get_nodedata(self.sender_id)
-        if self.topic == b'ACDATA':
-            actdata.setacdata(data)
-            changed = self.topic.decode('utf8')
-        elif self.topic.startswith(b'ROUTEDATA'):
+        if self.topic.startswith(b'ROUTEDATA'):
             actdata.setroutedata(data)
             changed = 'ROUTEDATA'
         elif self.topic == b'TRAILS':
@@ -187,32 +182,11 @@ class nodeData:
         self.acdata = ACDataEvent()
         self.routedata = RouteDataEvent()
 
-        # Filteralt settings
-        self.filteralt = False
-
         # Create trail data
         self.traillat0 = []
         self.traillon0 = []
         self.traillat1 = []
         self.traillon1 = []
-
-        # Reset transition level
-        self.translvl = 4500.*ft
-
-        # Display flags
-        self.show_map      = True
-        self.show_coast    = True
-        self.show_traf     = True
-        self.show_pz       = False
-        self.show_fir      = True
-        self.show_lbl      = 2
-        self.show_wpt      = 1
-        self.show_apt      = 1
-        self.show_poly     = 1  # 0=invisible, 1=outline, 2=fill
-        self.ssd_all       = False
-        self.ssd_conflicts = False
-        self.ssd_ownship   = set()
-
 
     def siminit(self, shapes, **kwargs):
         self.__dict__.update(kwargs)
@@ -323,75 +297,6 @@ class nodeData:
         self.custwplat = np.append(self.custwplat, np.float32(lat))
         self.custwplon = np.append(self.custwplon, np.float32(lon))
 
-    def setflag(self, flag, args=None):
-        # Switch/toggle/cycle radar screen features e.g. from SWRAD command
-        if flag == 'SYM':
-            # For now only toggle PZ
-            self.show_pz = not self.show_pz
-        # Coastlines
-        elif flag == 'GEO':
-            self.show_coast = not self.show_coast
-
-        # FIR boundaries
-        elif flag == 'FIR':
-            self.show_fir = not self.show_fir
-
-        # Airport: 0 = None, 1 = Large, 2= All
-        elif flag == 'APT':
-            self.show_apt = not self.show_apt
-
-        # Waypoint: 0 = None, 1 = VOR, 2 = also WPT, 3 = Also terminal area wpts
-        elif flag == 'VOR' or flag == 'WPT' or flag == 'WP' or flag == 'NAV':
-            self.show_wpt = not self.show_wpt
-
-        # Satellite image background on/off
-        elif flag == 'SAT':
-            self.show_map = not self.show_map
-
-        # Satellite image background on/off
-        elif flag == 'TRAF':
-            self.show_traf = not self.show_traf
-
-        elif flag == 'POLY':
-            self.show_poly = 0 if self.show_poly == 2 else self.show_poly + 1
-
-        elif flag == 'LABEL':
-            # Cycle aircraft label through detail level 0,1,2
-            if args==None:
-                self.show_lbl = (self.show_lbl+1)%3
-
-            # Or use the argument if it is an integer
-            else:
-                try:
-                    self.show_lbl = min(2,max(0,int(args)))
-                except:
-                    self.show_lbl = (self.show_lbl + 1) % 3
-
-        elif flag == 'SSD':
-            self.show_ssd(args)
-
-        elif flag == 'FILTERALT':
-            # First argument is an on/off flag
-            if args[0]:
-                self.filteralt = args[1:]
-            else:
-                self.filteralt = False
-
-    def echo(self, text='', flags=0):
+    def echo(self, text='', flags=0, sender_id=None):
         if text:
             self.echo_text += ('\n' + text)
-
-    def show_ssd(self, arg):
-        if 'ALL' in arg:
-            self.ssd_all      = True
-            self.ssd_conflicts = False
-        elif 'CONFLICTS' in arg:
-            self.ssd_all      = False
-            self.ssd_conflicts = True
-        elif 'OFF' in arg:
-            self.ssd_all      = False
-            self.ssd_conflicts = False
-            self.ssd_ownship = set()
-        else:
-            remove = self.ssd_ownship.intersection(arg)
-            self.ssd_ownship = self.ssd_ownship.union(arg) - remove

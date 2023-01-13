@@ -198,9 +198,6 @@ class ScreenIO(Entity):
     def show_cmd_doc(self, cmd=''):
         bs.net.send(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
 
-    def filteralt(self, *args):
-        bs.net.send(b'DISPLAYFLAG', dict(flag='FILTERALT', args=args))
-
     def objappend(self, objtype, objname, data):
         """Add a drawing object to the radar screen using the following inputs:
            objtype: "LINE"/"POLY" /"BOX"/"CIRCLE" = string with type of object

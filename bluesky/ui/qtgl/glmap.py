@@ -1,7 +1,8 @@
 ''' BlueSky OpenGL map object. '''
-from os import path
 import numpy as np
 
+from bluesky.core.actdata import ActData
+from bluesky.stack import command
 from bluesky.ui import palette
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.loadvisuals import load_coastlines
@@ -15,6 +16,23 @@ palette.set_default_colours(
 
 class Map(glh.RenderObject, layer=-100):
     ''' Radar screen map OpenGL object. '''
+
+    # Per remote node attributes
+    show_map = ActData(True)
+    show_coast = ActData(True)
+
+    @command
+    def showmap(self, flag:bool=None):
+        ''' Show/hide satellite map '''
+        # TODO: add to SWRAD
+        self.show_map = not self.show_map if flag is None else flag
+
+    @command
+    def showcoast(self, flag:bool=None):
+        ''' Show/hide satellite map '''
+        # TODO: add to SWRAD (flag=GEO)
+        self.show_coast = not self.show_coast if flag is None else flag
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -56,9 +74,11 @@ class Map(glh.RenderObject, layer=-100):
         # Map and coastlines: don't wrap around in the shader
         self.shaderset.enable_wrap(False)
 
-        if not skipmap:
+        if self.show_map and not skipmap:
             self.map.draw()
         shaderset = glh.ShaderSet.selected
+        if not self.show_coast:
+            return
         if shaderset.data.wrapdir == 0:
             # Normal case, no wrap around
             self.coastlines.draw(

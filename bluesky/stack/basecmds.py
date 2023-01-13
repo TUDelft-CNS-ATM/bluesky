@@ -227,12 +227,7 @@ def initbasecmds():
             bs.sim.fastforward,
             "Fast forward the simulation",
         ],
-        "FILTERALT": [
-            "FILTERALT ON/OFF,[bottom,top]",
-            "bool,[alt,alt]",
-            bs.scr.filteralt,
-            "Display aircraft on only a selected range of altitudes",
-        ],
+
         "FIXDT": [
             "FIXDT ON/OFF [tend]",
             "onoff,[time]",
@@ -366,12 +361,6 @@ def initbasecmds():
             "int",
             bs.sim.setseed,
             "Set seed for all functions using a randomizer (e.g.mcre,noise)",
-        ],
-        "SSD": [
-            "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
-            "txt,[...]",
-            lambda *args: bs.scr.feature("SSD", args),
-            "Show state-space diagram (=conflict prevention display/predictive ASAS)",
         ],
         "SWRAD": [
             "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]",

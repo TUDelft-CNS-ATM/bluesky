@@ -3,6 +3,8 @@ import numpy as np
 from bluesky.ui.qtgl import glhelpers as glh
 
 import bluesky as bs
+from bluesky.core.actdata import ActData
+from bluesky.stack import command
 from bluesky.tools import geo
 from bluesky import settings
 from bluesky.ui import palette
@@ -31,6 +33,85 @@ TRAILS_SIZE = 1000000
 
 class Traffic(glh.RenderObject, layer=100):
     ''' Traffic OpenGL object. '''
+    # Per remote node attributes
+    show_pz = ActData(False)
+    show_traf = ActData(True)
+    show_lbl = ActData(2)
+    ssd_all = ActData(False)
+    ssd_conflicts = ActData(False)
+    ssd_ownship = ActData(set())
+    altrange = ActData(tuple())
+
+    @command
+    def showpz(self, flag:bool=None):
+        ''' Toggle drawing of aircraft protected zones. '''
+        # TODO: add to SWRAD (flag=SYM)
+        self.show_pz = not self.show_pz if flag is None else flag
+
+    @command
+    def showtraf(self, flag:bool=None):
+        ''' Toggle drawing of aircraft. '''
+        self.show_traf = not self.show_traf if flag is None else flag
+
+    @command
+    def label(self, flag:int=None):
+        ''' Toggle drawing of aircraft label. '''
+        # Cycle aircraft label through detail level 0,1,2
+        if flag is None:
+            self.show_lbl = (self.show_lbl + 1) % 3
+
+        # Or use the argument if it is an integer
+        else:
+            self.show_lbl = min(2,max(0,flag))
+
+    @command(name='SSD')
+    def showssd(self, *arg:'txt'):
+        ''' Show/hide SSD (state-space diagram) for one or more, or all aircraft.
+        
+            The SSD shows the vector space of conflicting vs. conflict-free aircraft
+            velocities.
+
+            Arguments:
+            ALL: Show SSD for all aircraft
+            CONFLICTS: Show SSD only for aircraft in conflict
+            OFF: Hide SSDs
+            acid(s): Show/hide SSD for given aircraft
+        '''
+        if 'ALL' in arg:
+            self.ssd_all      = True
+            self.ssd_conflicts = False
+        elif 'CONFLICTS' in arg:
+            self.ssd_all      = False
+            self.ssd_conflicts = True
+        elif 'OFF' in arg:
+            self.ssd_all      = False
+            self.ssd_conflicts = False
+            self.ssd_ownship = set()
+        else:
+            remove = self.ssd_ownship.intersection(arg)
+            self.ssd_ownship = self.ssd_ownship.union(arg) - remove
+
+    @command
+    def filteralt(self, flag:bool=None, bottom:'alt'=-1e99, top:'alt'=1e99):
+        ''' Display aircraft on only a selected range of altitudes
+
+            Arguments:
+            - flag: Turn altitude filtering ON/OFF
+            - bottom: The lowest altitude in the visible range (optional)
+            - top: The highest altitude in the visible range (optional)
+        '''
+        if flag is None:
+            if not self.altrange:
+                return True, f'The current altitude range is unlimited'
+            elif self.altrange[0] < -1e90:
+                return True, f'The current altitude range is limited below {self.altrange[1]} meters'
+            elif self.altrange[1] > 1e90:
+                return True, f'The current altitude range is limited above {self.altrange[0]} meters'
+            else:
+                return True, f'The current altitude range is limited between {self.altrange[0]} and {self.altrange[1]} meters'
+        if flag:
+            self.altrange = (bottom, top)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.initialized = False
@@ -125,7 +206,7 @@ class Traffic(glh.RenderObject, layer=100):
         ''' Draw all traffic graphics. '''
         # Get data for active node
         actdata = bs.net.get_nodedata()
-        if actdata.naircraft == 0 or not actdata.show_traf:
+        if actdata.naircraft == 0 or not self.show_traf:
             return
 
         # Send the (possibly) updated global uniforms to the buffer
@@ -141,7 +222,7 @@ class Traffic(glh.RenderObject, layer=100):
         self.shaderset.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if actdata.show_pz and actdata.zoom >= 0.15:
+        if self.show_pz and actdata.zoom >= 0.15:
             self.shaderset.set_vertex_scale_type(
                 self.shaderset.VERTEX_IS_METERS)
             self.protectedzone.draw(n_instances=actdata.naircraft)
@@ -155,11 +236,11 @@ class Traffic(glh.RenderObject, layer=100):
             self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.routelbl.draw()
 
-        if actdata.show_lbl:
+        if self.show_lbl:
             self.aclabels.draw(n_instances=actdata.naircraft)
 
         # SSD
-        if actdata.ssd_all or actdata.ssd_conflicts or len(actdata.ssd_ownship) > 0:
+        if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
             ssd_shader = glh.ShaderSet.get_shader('ssd')
             ssd_shader.bind()
             glh.gl.glUniform3f(ssd_shader.uniforms['Vlimits'].loc, self.asas_vmin **
@@ -222,7 +303,7 @@ class Traffic(glh.RenderObject, layer=100):
                     txt = wp[:12].ljust(12)  # Two lines
                     if alt < 0:
                         txt += "-----/"
-                    elif alt > actdata.translvl:
+                    elif alt > data.translvl:
                         FL = int(round((alt / (100. * ft))))
                         txt += "FL%03d/" % FL
                     else:
@@ -231,7 +312,7 @@ class Traffic(glh.RenderObject, layer=100):
                     # Speed
                     if spd < 0:
                         txt += "--- "
-                    elif spd > actdata.casmachthr:
+                    elif spd > data.casmachthr:
                         txt += "%03d" % int(round(spd / kts))
                     else:
                         txt += f"M{spd:.2f}" # Mach number
@@ -251,19 +332,17 @@ class Traffic(glh.RenderObject, layer=100):
             return
         self.glsurface.makeCurrent()
         actdata = bs.net.get_nodedata()
-        # if actdata.filteralt:
-        #     idx = np.where(
-        #         (data.alt >= actdata.filteralt[0]) * (data.alt <= actdata.filteralt[1]))
-        #     data.lat = data.lat[idx]
-        #     data.lon = data.lon[idx]
-        #     data.trk = data.trk[idx]
-        #     data.alt = data.alt[idx]
-        #     data.tas = data.tas[idx]
-        #     data.vs = data.vs[idx]
-        #     data.rpz = data.rpz[idx]
+        if self.altrange:
+            idx = np.where(
+                (data.alt >= self.altrange[0]) * (data.alt <= self.altrange[1]))
+            data.lat = data.lat[idx]
+            data.lon = data.lon[idx]
+            data.trk = data.trk[idx]
+            data.alt = data.alt[idx]
+            data.tas = data.tas[idx]
+            data.vs = data.vs[idx]
+            data.rpz = data.rpz[idx]
         naircraft = len(data.lat)
-        actdata.translvl = data.translvl
-        actdata.casmachthr = data.casmachthr
         actdata.naircraft = naircraft
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
         # self.asas_vmax = data.vmax
@@ -303,9 +382,9 @@ class Traffic(glh.RenderObject, layer=100):
                     break
 
                 # Make label: 3 lines of 8 characters per aircraft
-                if actdata.show_lbl >= 1:
+                if self.show_lbl >= 1:
                     rawlabel += '%-8s' % acid[:8]
-                    if actdata.show_lbl == 2:
+                    if self.show_lbl == 2:
                         if alt <= data.translvl:
                             rawlabel += '%-5d' % int(alt / ft + 0.5)
                         else:
@@ -317,7 +396,7 @@ class Traffic(glh.RenderObject, layer=100):
                         rawlabel += 16 * ' '
 
                 if inconf:
-                    if actdata.ssd_conflicts:
+                    if self.ssd_conflicts:
                         selssd[i] = 255
                     color[i, :] = palette.conflict + (255,)
                     lat1, lon1 = geo.qdrpos(lat, lon, trk, tcpa * gs / nm)
@@ -336,10 +415,10 @@ class Traffic(glh.RenderObject, layer=100):
                     color[i, :] = tuple(rgb) + (255,)
 
                 #  Check if aircraft is selected to show SSD
-                if actdata.ssd_all or acid in actdata.ssd_ownship:
+                if self.ssd_all or acid in self.ssd_ownship:
                     selssd[i] = 255
 
-            if len(actdata.ssd_ownship) > 0 or actdata.ssd_conflicts or actdata.ssd_all:
+            if len(self.ssd_ownship) > 0 or self.ssd_conflicts or self.ssd_all:
                 self.ssd.update(selssd=selssd)
             self.cpalines.update(vertex=cpalines)
             self.color.update(color)

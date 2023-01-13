@@ -1,6 +1,8 @@
 ''' BlueSky OpenGL line and polygon (areafilter) drawing. '''
 import numpy as np
 import bluesky as bs
+from bluesky.core.actdata import ActData
+from bluesky.stack import command
 from bluesky.ui import palette
 from bluesky.ui.qtgl import console
 from bluesky.ui.qtgl import glhelpers as glh
@@ -18,6 +20,20 @@ POLY_SIZE = 2000
 
 class Poly(glh.RenderObject, layer=-20):
     ''' Poly OpenGL object. '''
+
+    # Per remote node attributes
+    show_poly = ActData(1)
+
+    @command
+    def showpoly(self, flag:int=None):
+        ''' Toggle drawing of polygon shapes between off, outline, and outline+fill. '''
+        # Cycle aircraft label through detail level 0,1,2
+        if flag is None:
+            self.show_poly = (self.show_poly + 1) % 3
+
+        # Or use the argument if it is an integer
+        else:
+            self.show_poly = min(2,max(0,flag))
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -44,7 +60,6 @@ class Poly(glh.RenderObject, layer=-20):
                              color=np.append(palette.polys, 50))
 
     def draw(self):
-        actdata = bs.net.get_nodedata()
         # Send the (possibly) updated global uniforms to the buffer
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
@@ -56,9 +71,9 @@ class Poly(glh.RenderObject, layer=-20):
         self.polyprev.draw()
 
         # --- DRAW CUSTOM SHAPES (WHEN AVAILABLE) -----------------------------
-        if actdata.show_poly > 0:
+        if self.show_poly > 0:
             self.allpolys.draw()
-            if actdata.show_poly > 1:
+            if self.show_poly > 1:
                 self.allpfill.draw()
         
     def cmdline_stacked(self, cmd, args):

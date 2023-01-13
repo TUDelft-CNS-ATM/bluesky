@@ -1,6 +1,8 @@
 ''' BlueSky navdata OpenGL visualisation object. '''
 import numpy as np
 import bluesky as bs
+from bluesky.core.actdata import ActData
+from bluesky.stack import command
 from bluesky import Signal
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky import settings
@@ -31,6 +33,35 @@ CUSTWP_SIZE = 1000
 
 class Navdata(glh.RenderObject, layer=-10):
     ''' Navdata OpenGL object. '''
+
+    # Per remote node attributes
+    show_wpt = ActData(1)
+    show_apt = ActData(1)
+
+    @command
+    def showwpt(self, flag:int=None):
+        ''' Toggle drawing of waypoints. '''
+        # TODO: add to SWRAD
+        # flag == 'VOR' or flag == 'WPT' or flag == 'WP' or flag == 'NAV':
+        # Cycle waypoint visualisation through detail level 0,1,2
+        if flag is None:
+            self.show_wpt = (self.show_wpt + 1) % 3
+
+        # Or use the argument if it is an integer
+        else:
+            self.show_wpt = min(2,max(0,flag))
+
+    @command
+    def showapt(self, flag:int=None):
+        ''' Toggle drawing of waypoints. '''
+        # Cycle waypoint visualisation through detail level 0,1,2
+        # Airport: 0 = None, 1 = Large, 2= All
+        if flag is None:
+            self.show_apt = (self.show_apt + 1) % 3
+
+        # Or use the argument if it is an integer
+        else:
+            self.show_apt = min(2,max(0,flag))
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -179,32 +210,32 @@ class Navdata(glh.RenderObject, layer=-10):
         self.shaderset.enable_wrap(True)
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
 
-        if actdata.zoom >= 0.5 and actdata.show_apt == 1 or actdata.show_apt == 2:
+        if actdata.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
             nairports = self.nairports[2]
-        elif actdata.zoom >= 0.25 and actdata.show_apt == 1 or actdata.show_apt == 3:
+        elif actdata.zoom >= 0.25 and self.show_apt == 1 or self.show_apt == 3:
             nairports = self.nairports[1]
         else:
             nairports = self.nairports[0]
 
-        if actdata.zoom >= 3 and actdata.show_wpt == 1 or actdata.show_wpt == 2:
+        if actdata.zoom >= 3 and self.show_wpt == 1 or self.show_wpt == 2:
             nwaypoints = self.nwaypoints
         else:
             nwaypoints = self.nnavaids
 
         # Draw waypoint symbols
-        if actdata.show_wpt:
+        if self.show_wpt:
             self.waypoints.draw(n_instances=nwaypoints)
             if self.ncustwpts > 0:
                 self.customwp.draw(n_instances=self.ncustwpts)
 
         # Draw airport symbols
-        if actdata.show_apt:
+        if self.show_apt:
             self.airports.draw(n_instances=nairports)
 
         # Draw wpt/apt labels
-        if actdata.show_apt:
+        if self.show_apt:
             self.aptlabels.draw(n_instances=nairports)
-        if actdata.show_wpt:
+        if self.show_wpt:
             self.wptlabels.draw(n_instances=nwaypoints)
             if self.ncustwpts > 0:
                 self.customwplbl.draw(n_instances=self.ncustwpts)
