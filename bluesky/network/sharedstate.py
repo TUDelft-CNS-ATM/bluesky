@@ -2,11 +2,11 @@
 
     This class is used to keep a shared state across client(s) and simulation node(s)
 '''
+from types import SimpleNamespace
 import numpy as np
 
 import bluesky as bs
-from bluesky.core import signal
-from bluesky.core.actdata import remotes
+from bluesky.core import signal, actdata
 from bluesky.network.subscription import Subscription
 
 #TODO: trigger voor actnode changed?
@@ -19,15 +19,17 @@ topics = set()
 changed = signal.Signal('state-changed')
 
 
-def receive(data):
+def receive(actiondata):
     ''' Retrieve and process state data. '''
-    remote = remotes[bs.net.sender_id]
+    topic = bs.net.topic.decode()
+    remote = actdata.remotes[bs.net.sender_id]
+    store = getattr(remote, topic.lower())
 
-    action, actdata = data
+    action, data = actiondata
     if action == b'U':
         # Update
-        for key, item in actdata.items():
-            container = getattr(remote, key)
+        for key, item in data.items():
+            container = getattr(store, key)
             if isinstance(container, dict):
                 container.update(item)
             else:
@@ -35,12 +37,12 @@ def receive(data):
                     container[idx] = value
     elif action == b'D':
         # Delete
-        for key, item in actdata.items():
-            container = getattr(remote, key)
+        for key, item in data.items():
+            container = getattr(store, key)
             if isinstance(container, np.ndarray):
                 mask = np.ones_like(container, dtype=bool)
                 mask[item] = False
-                setattr(remote, key, container[mask])
+                setattr(store, key, container[mask])
             elif isinstance(container, list):
                 if isinstance(item, int):
                     container.pop(item)
@@ -57,19 +59,20 @@ def receive(data):
 
     elif action == b'A':
         # Append
-        for key, item in actdata.items():
+        for key, item in data.items():
             if isinstance(item, list):
-                getattr(remote, key).extend(item)
+                getattr(store, key).extend(item)
             else:
-                getattr(remote, key).append(item)
+                getattr(store, key).append(item)
 
     elif action == b'F':
         # Full replace
-        vars(remote).update(actdata)
+        vars(store).update(data)
 
     # Inform subscribers of state update
-    topic = bs.net.topic.decode()
-    changed[topic].emit(remote)
+    # TODO: what to do with act vs all?
+    if bs.net.sender_id == bs.net.act_id:
+        changed[topic].emit(store)
 
 
 def subscriber(func=None, *, topic='', actonly=False):
@@ -81,25 +84,28 @@ def subscriber(func=None, *, topic='', actonly=False):
         itopic = topic or ifunc.__name__.upper()
         # Create a new network subscription if 
         if itopic not in topics:
+            # Subscribe to this network topic
             Subscription(itopic, actonly=actonly).connect(receive)
             topics.add(itopic)
+            # Add data store default to actdata
+            actdata.adddefault(itopic.lower(), SimpleNamespace())
         changed[itopic].connect(ifunc)
         return func
 
     # Allow both @subscriber and @subscriber(args)
     return deco if func is None else deco(func)
 
-def send_update(topic, **data):
-    bs.net.send(topic, [b'U', data])
+def send_update(topic, to_group='', **data):
+    bs.net.send(topic, [b'U', data], to_group)
 
 
-def send_delete(topic, **keys):
-    bs.net.send(topic, [b'D', keys])
+def send_delete(topic, to_group='', **keys):
+    bs.net.send(topic, [b'D', keys], to_group)
 
 
-def send_append(topic, **data):
-    bs.net.send(topic, [b'A', data])
+def send_append(topic, to_group='', **data):
+    bs.net.send(topic, [b'A', data], to_group)
 
 
-def send_full(topic, **data):
-    bs.net.send(topic, [b'F', data])
+def send_full(topic, to_group='', **data):
+    bs.net.send(topic, [b'F', data], to_group)

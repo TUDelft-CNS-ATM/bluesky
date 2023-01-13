@@ -21,6 +21,10 @@ def get(remote_id=None):
     return remotes[remote_id or bs.net.act_id]
 
 
+def adddefault(name, default):
+    defaults[name] = default
+
+
 class ActData:
     def __init__(self, default):
         self.default = default
