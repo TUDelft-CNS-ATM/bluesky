@@ -2,28 +2,21 @@
 
     This class is used to keep a shared state across client(s) and simulation node(s)
 '''
-from types import SimpleNamespace
-from collections import defaultdict
 import numpy as np
 
 import bluesky as bs
 from bluesky.core import signal
+from bluesky.core.actdata import remotes
 from bluesky.network.subscription import Subscription
 
 #TODO: trigger voor actnode changed?
 
-# Keep a dict of remote state storage namespaces
-remotes = defaultdict(lambda: SimpleNamespace())
 
 # Keep track of the set of subscribed topics
 topics = set()
 
 # Signal to emit whenever a state update is received
 changed = signal.Signal('state-changed')
-
-
-def get(remote_id):
-    return remotes[remote_id]
 
 
 def receive(data):
