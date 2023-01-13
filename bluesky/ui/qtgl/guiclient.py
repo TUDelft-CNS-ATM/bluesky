@@ -30,7 +30,7 @@ class GuiClient(Client):
         self.subscribe(b'TRAILS').connect(self.stream)
 
         # Signals
-        self.actnodedata_changed = Signal('actnodedata_changed')
+        self.actnodedata_changed = Signal('actnode-changed')
 
         # Connect to signals. TODO: needs revision
         Signal('SIMSTATE').connect(self.event)
@@ -40,7 +40,7 @@ class GuiClient(Client):
         self.subscribe('DEFWPT').connect(self.event)
         self.subscribe('SHAPE').connect(self.event)
         
-        self.subscribe(b'ROUTEDATA', actonly=True).connect(self.stream)
+        # self.subscribe(b'ROUTEDATA', actonly=True).connect(self.stream)
         self.subscribe(b'PANZOOM').connect(self.event)
 
     def start_discovery(self):
@@ -58,10 +58,7 @@ class GuiClient(Client):
         ''' Guiclient stream handler. '''
         changed = ''
         actdata = self.get_nodedata(self.sender_id)
-        if self.topic.startswith(b'ROUTEDATA'):
-            actdata.setroutedata(data)
-            changed = 'ROUTEDATA'
-        elif self.topic == b'TRAILS':
+        if self.topic == b'TRAILS':
             actdata.settrails(**data)
             changed = self.topic.decode('utf8')
 

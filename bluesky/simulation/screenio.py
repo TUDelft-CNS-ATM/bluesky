@@ -317,4 +317,5 @@ def _sendrte(sender, acid):
 
         data['wpname'] = route.wpname
 
-    bs.net.send(b'ROUTEDATA', data, (sender or b'C'))  # Send route data to GUI
+    # bs.net.send(b'ROUTEDATA', data, (sender or b'C'))  # Send route data to GUI
+    sharedstate.send_full(b'ROUTEDATA', (sender or b'C'), **data)

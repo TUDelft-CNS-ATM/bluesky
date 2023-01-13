@@ -251,10 +251,8 @@ class Traffic(glh.RenderObject, layer=100):
 
     def actdata_changed(self, nodeid, nodedata, changed_elems):
         ''' Process incoming traffic data. '''
-        # if 'ACDATA' in changed_elems:
-        #     self.update_aircraft_data(nodedata.acdata)
-        if 'ROUTEDATA' in changed_elems:
-            self.update_route_data(nodedata.routedata)
+        # if 'ROUTEDATA' in changed_elems:
+        #     self.update_route_data(nodedata.routedata)
         if 'TRAILS' in changed_elems:
             self.update_trails_data(nodedata.traillat0,
                                     nodedata.traillon0,
@@ -272,13 +270,12 @@ class Traffic(glh.RenderObject, layer=100):
                     list(zip(lat0, lon0,
                              lat1, lon1)), dtype=np.float32))
 
+    @sharedstate.subscriber(topic='ROUTEDATA', actonly=True)
     def update_route_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
         self.glsurface.makeCurrent()
-        actdata = bs.net.get_nodedata()
-
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
             nsegments = len(data.wplat)
@@ -303,7 +300,8 @@ class Traffic(glh.RenderObject, layer=100):
                     txt = wp[:12].ljust(12)  # Two lines
                     if alt < 0:
                         txt += "-----/"
-                    elif alt > data.translvl:
+                    # TODO: get from sim
+                    elif alt > 5000.0 * ft:
                         FL = int(round((alt / (100. * ft))))
                         txt += "FL%03d/" % FL
                     else:
@@ -312,7 +310,8 @@ class Traffic(glh.RenderObject, layer=100):
                     # Speed
                     if spd < 0:
                         txt += "--- "
-                    elif spd > data.casmachthr:
+                    # TODO: get from sim
+                    elif spd > settings.casmach_threshold:
                         txt += "%03d" % int(round(spd / kts))
                     else:
                         txt += f"M{spd:.2f}" # Mach number
