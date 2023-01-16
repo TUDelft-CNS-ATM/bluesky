@@ -233,7 +233,7 @@ class Simulation(Entity):
         # We received a single stack command. Add it to the existing stack
         bs.stack.stack(data, sender_id=bs.net.sender_id)
 
-    def on_getsimstate(self, data):
+    def on_getsimstate(self):
         # Add this client to the list of known clients
         self.clients.add(bs.net.sender_id)
         # Send list of stack functions available in this sim to gui at start

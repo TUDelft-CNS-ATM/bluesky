@@ -57,7 +57,7 @@ class InfoWindow(Entity):
         self.view.addTab(self.plottab, 'Graphs')
 
     @subscriber
-    def plot(self, data):
+    def plot(self, **data):
         if not self.plottab:
             self.add_plot_tab()
 

@@ -27,7 +27,6 @@ class GuiClient(Client):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
         self.timer.start(20)
-        self.subscribe(b'TRAILS').connect(self.stream)
 
         # Signals
         self.actnodedata_changed = Signal('actnode-changed')
@@ -36,11 +35,8 @@ class GuiClient(Client):
         Signal('SIMSTATE').connect(self.event)
         self.subscribe('RESET').connect(self.event)
         self.subscribe('COLOR').connect(self.event)
-        self.subscribe('DISPLAYFLAG').connect(self.event)
         self.subscribe('DEFWPT').connect(self.event)
         self.subscribe('SHAPE').connect(self.event)
-        
-        # self.subscribe(b'ROUTEDATA', actonly=True).connect(self.stream)
         self.subscribe(b'PANZOOM').connect(self.event)
 
     def start_discovery(self):
@@ -54,22 +50,9 @@ class GuiClient(Client):
         self.discovery_timer = None
         super().stop_discovery()
 
-    def stream(self, data):
-        ''' Guiclient stream handler. '''
-        changed = ''
-        actdata = self.get_nodedata(self.sender_id)
-        if self.topic == b'TRAILS':
-            actdata.settrails(**data)
-            changed = self.topic.decode('utf8')
-
-        if self.sender_id == self.act_id and changed:
-            self.actnodedata_changed.emit(self.sender_id, actdata, changed)
-
     @subscriber
-    def echo(self, data):
+    def echo(self, text='', flags=None, sender_id=b''):
         ''' Overloaded Client.echo function. '''
-        text = data['text']
-        flags = data['flags']
         # If sender_id is None this is an echo command originating from the gui user, and therefore also meant for the active node
         sender_id = self.sender_id or self.act_id
         sender_data = self.get_nodedata(sender_id)
@@ -77,7 +60,7 @@ class GuiClient(Client):
         if sender_id == self.act_id:
             self.actnodedata_changed.emit(sender_id, sender_data, ('ECHOTEXT',))
 
-    def event(self, data):
+    def event(self, *args, **data):
         sender_data = self.get_nodedata(self.sender_id)
         data_changed = []
         if self.topic == b'RESET':
@@ -93,8 +76,6 @@ class GuiClient(Client):
         elif self.topic == b'DEFWPT':
             sender_data.defwpt(**data)
             data_changed.append('CUSTWPT')
-        elif self.topic == b'DISPLAYFLAG':
-            sender_data.setflag(**data)
 
         elif self.topic == b'PANZOOM':
             sender_data.panzoom(**data)
@@ -154,18 +135,6 @@ class nodeData:
     def setroutedata(self, data):
         self.routedata = RouteDataEvent(data)
 
-    def settrails(self, swtrails, traillat0, traillon0, traillat1, traillon1):
-        if not swtrails:
-            self.traillat0 = []
-            self.traillon0 = []
-            self.traillat1 = []
-            self.traillon1 = []
-        else:
-            self.traillat0.extend(traillat0)
-            self.traillon0.extend(traillon0)
-            self.traillat1.extend(traillat1)
-            self.traillon1.extend(traillon1)
-
     def clear_scen_data(self):
         # Clear all scenario-specific data for sender node
         self.polys = dict()
@@ -178,12 +147,6 @@ class nodeData:
         self.naircraft = 0
         self.acdata = ACDataEvent()
         self.routedata = RouteDataEvent()
-
-        # Create trail data
-        self.traillat0 = []
-        self.traillon0 = []
-        self.traillat1 = []
-        self.traillon1 = []
 
     def siminit(self, shapes, **kwargs):
         self.__dict__.update(kwargs)

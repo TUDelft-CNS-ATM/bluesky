@@ -119,12 +119,21 @@ class Client(Entity):
                 if not msg:
                     # In the rare case that a message is empty, skip remaning processing
                     continue
-            
+
+                # Regular incoming data
                 if sock == self.sock_recv:
                     self.topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
                     sub = Subscription.subscriptions.get(self.topic) or Subscription(self.topic, directonly=True)
-                    sub.emit(pydata)
+                    # Unpack dict or list, skip empty string
+                    if pydata == '':
+                        sub.emit()
+                    elif isinstance(pydata, dict):
+                        sub.emit(**pydata)
+                    elif isinstance(pydata, (list, tuple)):
+                        sub.emit(*pydata)
+                    else:
+                        sub.emit(pydata)
                     self.topic = self.sender_id = None
 
                 elif sock == self.sock_send:
