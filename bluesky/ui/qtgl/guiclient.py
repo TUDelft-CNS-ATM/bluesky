@@ -35,7 +35,6 @@ class GuiClient(Client):
         Signal('SIMSTATE').connect(self.event)
         self.subscribe('RESET').connect(self.event)
         self.subscribe('COLOR').connect(self.event)
-        self.subscribe('DEFWPT').connect(self.event)
         self.subscribe('SHAPE').connect(self.event)
         self.subscribe(b'PANZOOM').connect(self.event)
 
@@ -73,9 +72,6 @@ class GuiClient(Client):
             sender_data.update_color_data(**data)
             if 'polyid' in data:
                 data_changed.append('SHAPE')
-        elif self.topic == b'DEFWPT':
-            sender_data.defwpt(**data)
-            data_changed.append('CUSTWPT')
 
         elif self.topic == b'PANZOOM':
             sender_data.panzoom(**data)
@@ -140,9 +136,6 @@ class nodeData:
         self.polys = dict()
         self.custacclr = dict()
         self.custgrclr = dict()
-        self.custwplbl = ''
-        self.custwplat = np.array([], dtype=np.float32)
-        self.custwplon = np.array([], dtype=np.float32)
 
         self.naircraft = 0
         self.acdata = ACDataEvent()
@@ -251,11 +244,6 @@ class nodeData:
             # Store new or updated polygon by name, and concatenated with the
             # other polys
             self.polys[name] = (contourbuf, fillbuf, colorbuf)
-
-    def defwpt(self, name, lat, lon):
-        self.custwplbl += name[:10].ljust(10)
-        self.custwplat = np.append(self.custwplat, np.float32(lat))
-        self.custwplon = np.append(self.custwplon, np.float32(lon))
 
     def echo(self, text='', flags=0, sender_id=None):
         if text:

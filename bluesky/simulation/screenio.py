@@ -180,8 +180,8 @@ class ScreenIO(Entity):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        bs.net.send(b'DEFWPT', dict(
-            name=name, lat=lat, lon=lon), b'C')
+        sharedstate.send_append('DEFWPT', 
+            custwplbl=name, custwplat=lat, custwplon=lon)
         return True
 
     def show_file_dialog(self):

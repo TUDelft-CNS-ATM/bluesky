@@ -2,6 +2,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky.core.actdata import ActData
+from bluesky.network import sharedstate
 from bluesky.stack import command
 from bluesky import Signal
 from bluesky.ui.qtgl import glhelpers as glh
@@ -111,13 +112,17 @@ class Navdata(glh.RenderObject, layer=-10):
                 self.apt_inrange = self.apt_indices[indices]
             else:
                 self.apt_inrange = np.array([])
-        if 'CUSTWPT' in changed_elems:
-            if nodedata.custwplbl:
-                self.customwp.update(lat=nodedata.custwplat,
-                                     lon=nodedata.custwplon)
-                self.custwplblbuf.update(
-                    np.array(nodedata.custwplbl, dtype=np.string_))
-            self.ncustwpts = len(nodedata.custwplat)
+    
+    @sharedstate.subscriber
+    def defwpt(self, data):
+        ''' Receive custom waypoint data and add to visualisation. '''
+        if data.custwplbl:
+            self.customwp.update(lat=np.array(data.custwplat, dtype=np.float32),
+                                    lon=np.array(data.custwplon, dtype=np.float32))
+            lbl = [n[:10].ljust(10) for n in data.custwplbl]
+            self.custwplblbuf.update(
+                np.array(lbl, dtype=np.string_))
+        self.ncustwpts = len(data.custwplat)
 
     def create(self):
         apt_size = settings.apt_size

@@ -63,7 +63,7 @@ def receive(action, data):
         for key, item in data.items():
             container = getattr(store, key, None)
             if container is None:
-                setattr(store, key, item)
+                setattr(store, key, item if isinstance(item, (list, tuple, np.ndarray)) else [item])
             elif isinstance(item, list):
                 container.extend(item)
             else:
