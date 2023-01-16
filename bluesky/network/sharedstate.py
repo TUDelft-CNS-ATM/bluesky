@@ -19,13 +19,12 @@ topics = set()
 changed = signal.Signal('state-changed')
 
 
-def receive(actiondata):
+def receive(action, data):
     ''' Retrieve and process state data. '''
     topic = bs.net.topic.decode()
     remote = actdata.remotes[bs.net.sender_id]
     store = getattr(remote, topic.lower())
 
-    action, data = actiondata
     if action == b'U':
         # Update
         for key, item in data.items():
@@ -59,11 +58,16 @@ def receive(actiondata):
 
     elif action == b'A':
         # Append
+        # TODO: other types? (ndarray, ...)
+        # TODO: first reception is scalar? Allow scalars at all?
         for key, item in data.items():
-            if isinstance(item, list):
-                getattr(store, key).extend(item)
+            container = getattr(store, key, None)
+            if container is None:
+                setattr(store, key, item)
+            elif isinstance(item, list):
+                container.extend(item)
             else:
-                getattr(store, key).append(item)
+                container.append(item)
 
     elif action == b'F':
         # Full replace
