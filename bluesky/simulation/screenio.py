@@ -106,15 +106,16 @@ class ScreenIO(Entity):
     def zoom(self, zoom, absolute=True):
         sender    = stack.sender()
         if sender:
-            if absolute:
-                self.client_zoom[sender] = zoom
-            else:
-                self.client_zoom[sender] = zoom * self.client_zoom.get(sender, self.def_zoom)
+            if not absolute:
+                zoom *= self.client_zoom.get(sender, self.def_zoom)
+            self.client_zoom[sender] = zoom
+
         else:
-            self.def_zoom = zoom * (1.0 if absolute else self.def_zoom)
+            zoom *= (1.0 if absolute else self.def_zoom)
+            self.def_zoom = zoom
             self.client_zoom.clear()
 
-        bs.net.send(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
+        bs.net.send(b'PANZOOM', dict(zoom=zoom))
 
     def color(self, name, r, g, b):
         ''' Set custom color for aircraft or shape. '''
@@ -156,13 +157,17 @@ class ScreenIO(Entity):
                 self.client_pan[sender] = (lat, lon)
             else:
                 ll = self.client_pan.get(sender) or self.def_pan
-                self.client_pan[sender] = (lat + ll[0], lon + ll[1])
+                lat += ll[0]
+                lon += ll[1]
+                self.client_pan[sender] = (lat, lon)
         else:
-            self.def_pan = (lat,lon) if absolute else (lat + self.def_pan[0],
-                                                       lon + self.def_pan[1])
+            if not absolute:
+                lat += self.def_pan[0]
+                lon += self.def_pan[1]
+            self.def_pan = (lat,lon)
             self.client_pan.clear()
 
-        bs.net.send(b'PANZOOM', dict(pan=(lat,lon), absolute=absolute))
+        bs.net.send(b'PANZOOM', dict(pan=[lat,lon]))
 
     def shownd(self, acid):
         bs.net.send(b'SHOWND', acid)
@@ -211,10 +216,10 @@ class ScreenIO(Entity):
             name=objname, shape=objtype, coordinates=data), b'C')
 
     @subscriber
-    def panzoom(self, data):
-        self.client_pan[bs.net.sender_id]  = data['pan']
-        self.client_zoom[bs.net.sender_id] = data['zoom']
-        self.client_ar[bs.net.sender_id]   = data['ar']
+    def panzoom(self, pan, zoom, ar=1, absolute=True):
+        self.client_pan[bs.net.sender_id]  = pan
+        self.client_zoom[bs.net.sender_id] = zoom
+        self.client_ar[bs.net.sender_id]   = ar
         return True
 
     # =========================================================================
@@ -232,7 +237,7 @@ class ScreenIO(Entity):
     def send_trails(self):
         # Trails, send only new line segments to be added
         if bs.traf.trails.active and len(bs.traf.trails.newlat0) > 0:
-            data = dict(swtrails=bs.traf.trails.active,
+            data = dict(#swtrails=bs.traf.trails.active,
                         traillat0=bs.traf.trails.newlat0,
                         traillon0=bs.traf.trails.newlon0,
                         traillat1=bs.traf.trails.newlat1,
@@ -240,7 +245,8 @@ class ScreenIO(Entity):
                         # traillastlat=bs.traf.trails.lastlat,
                         # traillastlon=bs.traf.trails.lastlon)
             bs.traf.trails.clearnew()
-            bs.net.send(b'TRAILS', data, to_group=b'C')
+            # bs.net.send(b'TRAILS', data, to_group=b'C')
+            sharedstate.send_append('TRAILS', **data)
 
     def send_aircraft_data(self):
         data = dict()

@@ -139,7 +139,7 @@ class Traffic(glh.RenderObject, layer=100):
         self.rwaypoints = glh.VertexArrayObject(glh.gl.GL_LINE_LOOP)
         self.traillines = glh.VertexArrayObject(glh.gl.GL_LINES)
 
-        bs.net.actnodedata_changed.connect(self.actdata_changed)
+        # bs.net.actnodedata_changed.connect(self.actdata_changed)
 
     def create(self):
         ac_size = settings.ac_size
@@ -249,26 +249,20 @@ class Traffic(glh.RenderObject, layer=100):
             self.ssd.draw(vertex_count=actdata.naircraft,
                           n_instances=actdata.naircraft)
 
-    def actdata_changed(self, nodeid, nodedata, changed_elems):
-        ''' Process incoming traffic data. '''
-        # if 'ROUTEDATA' in changed_elems:
-        #     self.update_route_data(nodedata.routedata)
-        if 'TRAILS' in changed_elems:
-            self.update_trails_data(nodedata.traillat0,
-                                    nodedata.traillon0,
-                                    nodedata.traillat1,
-                                    nodedata.traillon1)
-
-    def update_trails_data(self, lat0, lon0, lat1, lon1):
+    @sharedstate.subscriber(topic='TRAILS')
+    def update_trails_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
-        self.glsurface.makeCurrent()
-        self.traillines.set_vertex_count(len(lat0))
-        if len(lat0) > 0:
-            self.traillines.update(vertex=np.array(
-                    list(zip(lat0, lon0,
-                             lat1, lon1)), dtype=np.float32))
+        if len(data.traillat0) > 0:
+            self.glsurface.makeCurrent()
+            self.traillines.set_vertex_count(len(data.traillat0))
+            if len(data.traillat0) > 0:
+                self.traillines.update(vertex=np.array(
+                        list(zip(data.traillat0, data.traillon0,
+                                data.traillat1, data.traillon1)), dtype=np.float32))
+        else:
+            self.traillines.set_vertex_count(0)
 
     @sharedstate.subscriber(topic='ROUTEDATA', actonly=True)
     def update_route_data(self, data):
