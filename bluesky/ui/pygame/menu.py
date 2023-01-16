@@ -1,5 +1,8 @@
 import pygame as pg
 
+import bluesky as bs
+
+
 white = (255, 255, 255)
 
 class Menu:
@@ -31,7 +34,7 @@ class Menu:
         self.bmps  = []     # list with menu bitmpas
 
         for i in range(self.npages):
-            imgpath = "graphics/menu/menu"+str(i+1)+".jpg"
+            imgpath = bs.resource("graphics/menu/menu"+str(i+1)+".jpg")
 
             im = pg.image.load(imgpath)
 
@@ -49,7 +52,7 @@ class Menu:
         self.rect = pg.Rect(self.x,self.y,self.dx,self.dy)
 
         # Read data
-        f = open("graphics/menu.dat")
+        f = open(bs.resource("graphics/menu.dat"))
         self.cmd = []
         ipage = 0
         page = []
