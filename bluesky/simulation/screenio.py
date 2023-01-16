@@ -169,18 +169,6 @@ class ScreenIO(Entity):
 
         bs.net.send(b'PANZOOM', dict(pan=[lat,lon]))
 
-    def shownd(self, acid):
-        bs.net.send(b'SHOWND', acid)
-
-    def symbol(self):
-        bs.net.send(b'DISPLAYFLAG', dict(flag='SYM'))
-
-    def feature(self, switch, argument=None):
-        bs.net.send(b'DISPLAYFLAG', dict(flag=switch, args=argument))
-
-    def trails(self,sw):
-        bs.net.send(b'DISPLAYFLAG', dict(flag='TRAIL', args=sw))
-
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
         if not stack.sender():
@@ -237,15 +225,11 @@ class ScreenIO(Entity):
     def send_trails(self):
         # Trails, send only new line segments to be added
         if bs.traf.trails.active and len(bs.traf.trails.newlat0) > 0:
-            data = dict(#swtrails=bs.traf.trails.active,
-                        traillat0=bs.traf.trails.newlat0,
+            data = dict(traillat0=bs.traf.trails.newlat0,
                         traillon0=bs.traf.trails.newlon0,
                         traillat1=bs.traf.trails.newlat1,
-                        traillon1=bs.traf.trails.newlon1)#,
-                        # traillastlat=bs.traf.trails.lastlat,
-                        # traillastlon=bs.traf.trails.lastlon)
+                        traillon1=bs.traf.trails.newlon1)
             bs.traf.trails.clearnew()
-            # bs.net.send(b'TRAILS', data, to_group=b'C')
             sharedstate.send_append('TRAILS', **data)
 
     def send_aircraft_data(self):
@@ -286,7 +270,6 @@ class ScreenIO(Entity):
 
     def send_route_data(self):
         ''' Send route data to client(s) '''
-        # print(self.client_route, self.route_all)
         # Case 1: A route is selected by one or more specific clients
         if self.client_route:
             for sender, acid in self.client_route.items():
@@ -294,7 +277,6 @@ class ScreenIO(Entity):
             # Check if there are other senders and also a scenario-selected route
             if self.route_all:
                 remclients = bs.sim.clients.difference(self.client_route.keys())
-                #print(bs.sim.clients, remclients)
                 for sender in remclients:
                     _sendrte(sender, self.route_all)
         # Case 2: only a route selected from scenario file:
@@ -323,5 +305,4 @@ def _sendrte(sender, acid):
 
         data['wpname'] = route.wpname
 
-    # bs.net.send(b'ROUTEDATA', data, (sender or b'C'))  # Send route data to GUI
     sharedstate.send_full(b'ROUTEDATA', (sender or b'C'), **data)

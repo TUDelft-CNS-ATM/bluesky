@@ -293,12 +293,6 @@ def initbasecmds():
             bs.traf.move,
             "Move an aircraft to a new position",
         ],
-        "ND": [
-            "ND acid",
-            "txt",
-            bs.scr.shownd,
-            "Show navigation display with CDTI"
-        ],
         "NOISE": [
             "NOISE [ON/OFF]",
             "[onoff]",
@@ -362,13 +356,6 @@ def initbasecmds():
             bs.sim.setseed,
             "Set seed for all functions using a randomizer (e.g.mcre,noise)",
         ],
-        "SWRAD": [
-            "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]",
-            "txt,[float]",
-            bs.scr.feature,
-            "Switch on/off elements and background of map/radar view",
-        ],
-        "SYMBOL": ["SYMBOL", "", bs.scr.symbol, "Toggle aircraft symbol"],
         "THR": [
             "THR acid, IDLE/0.0/throttlesetting/1.0/AUTO(default)",
             "acid[,txt]",

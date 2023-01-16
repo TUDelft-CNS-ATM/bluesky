@@ -9,6 +9,8 @@ import subprocess
 import numpy as np
 
 import bluesky as bs
+from bluesky.core import Entity
+from bluesky import stack
 from bluesky.tools import geo, areafilter
 from bluesky.tools.aero import ft, kts, nm
 from bluesky.tools.misc import tim2txt
@@ -35,7 +37,7 @@ lightcyan = (0, 255, 255)  # FIR boundaries
 amber    = (255,163,71)  # Conflicting aircraft
 magenta  = (255,0,255) # Used for route
 
-class Screen:
+class Screen(Entity):
     """
     Screen class definition : contains radar & edit screen data & methods
 
@@ -295,9 +297,6 @@ class Screen:
 
         self.apswbmp = len(bs.navdb.aptlat) * [False]
         self.aplabel = len(bs.navdb.aptlat) * [0]
-
-    def stack(self, cmdline):
-        self.echo(f'Unknown command: {cmdline}')
 
     def echo(self, msg='', flags=0):
         if msg:
@@ -1214,7 +1213,13 @@ class Screen:
         self.redrawradbg = True
         return
 
+    @stack.command
     def feature(self,sw,arg=""):
+        ''' Switch on/off elements and background of map/radar view 
+        
+            Usage:
+                SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]
+        '''
         # Switch/toggle/cycle radar screen features e.g. from SWRAD command
         # Coastlines
         if sw == "GEO":
@@ -1261,6 +1266,8 @@ class Screen:
 
     def show_file_dialog(self):
         return opendialog()
+    
+    @stack.command
     def symbol(self):
         self.swsep = not self.swsep
         return True
