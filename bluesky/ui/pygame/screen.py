@@ -87,7 +87,7 @@ class Screen:
         print()
         print("Setting up screen...")
 
-        lst = np.genfromtxt("graphics/scr_cfg.dat", comments='#', dtype='i4')
+        lst = np.genfromtxt(bs.resource("graphics/scr_cfg.dat"), comments='#', dtype='i4')
 
         self.swfullscreen = int(lst[0]) == 0
 
@@ -116,25 +116,25 @@ class Screen:
         # Read graphics for acsymbol (normal = green) + amber
         self.acsymbol = []
         for i in range(60):
-            self.acsymbol.append(pg.image.load("graphics/acsymbol/acsymbol" \
-                                  + str(i) + ".png"))
+            self.acsymbol.append(pg.image.load(bs.resource("graphics/acsymbol/acsymbol" \
+                                  + str(i) + ".png")))
 
         self.ambacsymbol = []
         for i in range(60):
-            self.ambacsymbol.append(pg.image.load("graphics/amb-acsymbol/amb-acsymbol" \
-                                     + str(i) + ".png"))
+            self.ambacsymbol.append(pg.image.load(bs.resource("graphics/amb-acsymbol/amb-acsymbol" \
+                                     + str(i) + ".png")))
 
         # Lable lines& default no trails
         self.swlabel = 3
 
 
         # Read and scale waypoint symbol
-        wptgif = pg.image.load("graphics/waypoint.gif")
+        wptgif = pg.image.load(bs.resource("graphics/waypoint.gif"))
         self.wptsymbol = pg.transform.scale(wptgif, (10, 7))
         self.wpsw = 1  # 0=None, 1 = VOR 2 = non-digit ones, 3 =all
 
         # Read and scale airport symbol
-        aptgif = pg.image.load("graphics/airport.gif")
+        aptgif = pg.image.load(bs.resource("graphics/airport.gif"))
         self.aptsymbol = pg.transform.scale(aptgif, (12, 9))
         self.apsw = 1  # 0 = None, 1 = Large, 2 = All
 
@@ -146,7 +146,7 @@ class Screen:
 
         #--------------------------------MAPS---------------------------------
         # Read map of world
-        self.mapbmp = pg.image.load("graphics/world.jpg")
+        self.mapbmp = pg.image.load(bs.resource("graphics/world.jpg"))
         w, h = self.mapbmp.get_size()
 
         # Two ref positions for scaling, convert to scaling factors x=a*lat+b
@@ -191,7 +191,7 @@ class Screen:
             self.win = pg.display.set_mode(reso)
 
         pg.display.set_caption("BlueSky Open ATM Simulator (F11 = Full Screen)", "BlueSky")
-        iconpath = imgpath = "graphics/icon.gif"
+        iconpath = bs.resource("graphics/icon.gif")
         iconbmp = pg.image.load(iconpath)
         pg.display.set_icon(iconbmp)
 
@@ -218,7 +218,7 @@ class Screen:
 
         #-------------------------COASTLINE DATA--------------------------------------
         # Init geo (coastline)  data
-        f = open("navdata/coastlines.dat", 'r')
+        f = open(bs.resource("navdata/coastlines.dat"), 'r')
         print("Reading coastlines.dat")
         lines = f.readlines()
         f.close()
@@ -305,9 +305,6 @@ class Screen:
             for m in msgs:
                 self.editwin.echo(m)
         return
-
-    def showssd(self, param):
-        return False,"SSD visualization only available in QtGL GUI"
 
     def cmdline(self, text):
         self.editwin.insert(text)
@@ -1081,7 +1078,7 @@ class Screen:
 
         pg.display.set_caption("BlueSky Open ATM Simulator (F11 = Full Screen)",
                                "BlueSky")
-        iconpath = imgpath = "graphics/icon.gif"
+        iconpath = bs.resource("graphics/icon.gif")
         iconbmp = pg.image.load(iconpath)
         pg.display.set_icon(iconbmp)
 
