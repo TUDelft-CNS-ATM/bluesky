@@ -219,13 +219,13 @@ class MainWindow(QMainWindow):
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
             if event.key() == Qt.Key.Key_Up:
-                self.radarwidget.panzoom(pan=(dlat, 0.0))
+                self.radarwidget.panzoom(pan=(dlat, 0.0), absolute=False)
             elif event.key() == Qt.Key.Key_Down:
-                self.radarwidget.panzoom(pan=(-dlat, 0.0))
+                self.radarwidget.panzoom(pan=(-dlat, 0.0), absolute=False)
             elif event.key() == Qt.Key.Key_Left:
-                self.radarwidget.panzoom(pan=(0.0, -dlon))
+                self.radarwidget.panzoom(pan=(0.0, -dlon), absolute=False)
             elif event.key() == Qt.Key.Key_Right:
-                self.radarwidget.panzoom(pan=(0.0, dlon))
+                self.radarwidget.panzoom(pan=(0.0, dlon), absolute=False)
 
         elif event.key() == Qt.Key.Key_Escape:
             self.closeEvent()
@@ -306,8 +306,7 @@ class MainWindow(QMainWindow):
         elif dialog == 'DOC':
             self.show_doc_window(args)
 
-    def on_siminfo_received(self, data):
-        speed, simdt, simt, simutc, ntraf, state, scenname = data
+    def on_siminfo_received(self, speed, simdt, simt, simutc, ntraf, state, scenname):
         simt = tim2txt(simt)[:-3]
         self.setNodeInfo(bs.net.sender_id, simt, scenname)
         if bs.net.sender_id == bs.net.act_id:
@@ -339,17 +338,17 @@ class MainWindow(QMainWindow):
             self.nodetree.setVisible(vis)
             self.shownodes.setText('>' if vis else '<')
         if self.sender() == self.zoomin:
-            self.radarwidget.panzoom(zoom=1.4142135623730951)
+            self.radarwidget.panzoom(zoom=1.4142135623730951, absolute=False)
         elif self.sender() == self.zoomout:
-            self.radarwidget.panzoom(zoom=0.70710678118654746)
+            self.radarwidget.panzoom(zoom=0.70710678118654746, absolute=False)
         elif self.sender() == self.pandown:
-            self.radarwidget.panzoom(pan=(-0.5,  0.0))
+            self.radarwidget.panzoom(pan=(-0.5,  0.0), absolute=False)
         elif self.sender() == self.panup:
-            self.radarwidget.panzoom(pan=( 0.5,  0.0))
+            self.radarwidget.panzoom(pan=( 0.5,  0.0), absolute=False)
         elif self.sender() == self.panleft:
-            self.radarwidget.panzoom(pan=( 0.0, -0.5))
+            self.radarwidget.panzoom(pan=( 0.0, -0.5), absolute=False)
         elif self.sender() == self.panright:
-            self.radarwidget.panzoom(pan=( 0.0,  0.5))
+            self.radarwidget.panzoom(pan=( 0.0,  0.5), absolute=False)
         elif self.sender() == self.ic:
             self.show_file_dialog()
         elif self.sender() == self.sameic:

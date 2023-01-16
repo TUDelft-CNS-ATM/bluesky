@@ -164,7 +164,7 @@ class RadarWidget(glh.RenderWidget):
         self.shaderset.set_pixel_ratio(self.pxratio)
         self.shaderset.set_win_width_height(width, height)
         # Update zoom
-        self.panzoom(zoom=zoom, origin=origin)
+        self.panzoom(zoom=zoom, origin=origin, absolute=False)
 
     def pixelCoordsToGLxy(self, x, y):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
@@ -192,7 +192,7 @@ class RadarWidget(glh.RenderWidget):
                 self.panlat - 1.0 / (self.zoom * self.ar),
                 self.panlon + 1.0 / (self.zoom * self.flat_earth))
 
-    def panzoom(self, pan=None, zoom=None, origin=None, absolute=False):
+    def panzoom(self, pan=None, zoom=None, origin=None, absolute=True):
         if not self.initialized:
             return False
 
