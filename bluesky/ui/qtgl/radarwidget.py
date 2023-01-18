@@ -348,7 +348,8 @@ class RadarWidget(glh.RenderWidget):
                     (self.zoom * self.flat_earth)
                 self.prevmousepos = (event.pos().x(), event.pos().y())
                 self.panzoomchanged = True
-                return self.panzoom(pan=(dlat, dlon))
+
+                return self.panzoom(pan=(dlat, dlon), absolute=False)
 
         elif event.type() == QEvent.Type.TouchBegin:
             # Accept touch start to enable reception of follow-on touch update and touch end events
