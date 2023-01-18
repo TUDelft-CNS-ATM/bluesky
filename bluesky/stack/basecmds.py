@@ -141,13 +141,7 @@ def initbasecmds():
             bs.traf.clrcrecmd,
             "CLRCRECMD will clear CRECMD list of commands a/c creation",
         ],
-        "COLOR": [
-            "COLOR name,color (named color or r,g,b)",
-            "txt,color",
-            bs.scr.color,
-            "Set a custom color for an aircraft or shape",
 
-        ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
             "txt,txt,latlon,[hdg,alt,spd]",
