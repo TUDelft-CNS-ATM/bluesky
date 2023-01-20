@@ -1,7 +1,7 @@
 ''' BlueSky OpenGL map object. '''
 import numpy as np
 
-from bluesky.core.actdata import ActData
+from bluesky.core.remotestore import ActData
 from bluesky.stack import command
 from bluesky.ui import palette
 from bluesky.ui.qtgl import glhelpers as glh
