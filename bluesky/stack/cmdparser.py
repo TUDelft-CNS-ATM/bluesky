@@ -19,17 +19,23 @@ class Command:
         # Stack command name
         name = (name or func.__name__).upper()
 
-        # When a parent is passed this function is a subcommand
-        target = parent.subcmds if isinstance(
-            parent, CommandGroup) else Command.cmddict
+        # When a parent is passed this function is a subcommand or alt command
+        target = Command.cmddict if parent is None else parent
 
         # Check if this command already exists
         cmdobj = target.get(name)
         if not cmdobj:
-            cmdobj = cls(func, parent, name, **kwargs)
+            cmdobj = cls(func, name, **kwargs)
             target[name] = cmdobj
             for alias in cmdobj.aliases:
                 target[alias] = cmdobj
+        elif cls is CommandGroup and isinstance(cmdobj, CommandGroup):
+            # Multiple calls to @commandgroup should add command alternatives
+            # TODO: @commandgroup repeated calls in subclasses should not create
+            # alt commands
+            altcmd = Command(func, name, parent=cmdobj, **kwargs)
+            cmdobj.altcmds[func.__name__.upper()] = altcmd
+            cmdobj = altcmd
         else:
             # for subclasses reimplementing stack functions we keep only one
             # Command object
@@ -44,7 +50,7 @@ class Command:
         else:
             func.__stack_cmd__ = cmdobj
 
-    def __init__(self, func, parent=None, name='', **kwargs):
+    def __init__(self, func, name='', parent=None, **kwargs):
         self.name = name
         self.help = inspect.cleandoc(kwargs.get('help', ''))
         self.brief = kwargs.get('brief', '')
@@ -53,7 +59,6 @@ class Command:
         self.valid = True
         self.annotations = get_annot(kwargs.get('annotations', ''))
         self.params = list()
-        self.parent = parent
         self.callback = func
 
     def __call__(self, argstring):
@@ -164,10 +169,14 @@ class Command:
         msg = f'<div style="white-space: pre;">{self.help}</div>\nUsage:\n{self.brief}'
         if self.aliases:
             msg += ('\nCommand aliases: ' + ','.join(self.aliases))
+        return msg + '\n' + self.helptext_cb()
+
+    def helptext_cb(self):
+        msg = ''
         if self._callback.__name__ == '<lambda>':
-            msg += '\nAnonymous (lambda) function, implemented in '
+            msg += 'Anonymous (lambda) function, implemented in '
         else:
-            msg += f'\nFunction {self._callback.__name__}(), implemented in '
+            msg += f'Function {self._callback.__name__}(), implemented in '
         if hasattr(self._callback, '__code__'):
             fname = self._callback.__code__.co_filename
             fname_stripped = fname.replace(os.getcwd(), '').lstrip('/')
@@ -187,13 +196,18 @@ class CommandGroup(Command):
     ''' Stack command group object.
         Command groups can have subcommands.
     '''
-    def __init__(self, func, parent=None, name='', **kwargs):
-        super().__init__(func, parent, name, **kwargs)
+    def __init__(self, func, name='', **kwargs):
+        super().__init__(func, name, **kwargs)
         self.subcmds = dict()
+        self.altcmds = dict()
 
         # Give the function a method to add subcommands
         func.subcommand = lambda fun=None, **kwargs: command(
-            fun, parent=self, **kwargs)
+            fun, parent=self.subcmds, **kwargs)
+
+        # Give the function a method to add alternative command implementations
+        func.altcommand = lambda fun=None, **kwargs: command(
+            fun, parent=self.altcmds, **kwargs)
 
     def __call__(self, strargs):
         # First check subcommand
@@ -202,7 +216,23 @@ class CommandGroup(Command):
             subcmdobj = self.subcmds.get(subcmd.upper())
             if subcmdobj:
                 return subcmdobj(subargs)
-        return super().__call__(strargs)
+
+        ret = super().__call__(strargs)
+        msg = ret[1] if isinstance(ret, tuple) else ''
+        success = ret[0] if isinstance(ret, tuple) else \
+                  ret if isinstance(ret, bool) else True
+
+        if not success:
+            for altcmdobj in self.altcmds.values():
+                ret = altcmdobj(strargs)
+                success = ret[0] if isinstance(ret, tuple) else \
+                          ret if isinstance(ret, bool) else True
+                if isinstance(ret, tuple):
+                    msg += '\n' + ret[1]
+                if success:
+                    return ret
+        return success, msg
+
 
     def helptext(self, subcmd=''):
         ''' Return complete help text. '''
@@ -210,11 +240,16 @@ class CommandGroup(Command):
             obj = self.subcmds.get(subcmd)
             return obj.helptext() if obj else f'{subcmd} is not a subcommand of {self.name}'
 
-        msg = f'{self.help}\nUsage:\n{self.brief}'
-        for subcmd in self.subcmds.values():
-            msg += f'\n{self.name} {subcmd.brief}'
-        if self.aliases:
-            msg += ('\nCommand aliases: ' + ','.join(self.aliases))
+        msg = super().helptext()
+        if self.subcmds:
+            msg += '\nSubcommands:'
+            for cmdobj in self.subcmds.values():
+                msg += f'\n{self.name} {cmdobj.brief} ({cmdobj.helptext_cb()})'
+        if self.altcmds:
+            msg += '\nAlternative command implementations:'
+            for cmdobj in self.altcmds.values():
+                msg += f'\n{self.name} {cmdobj.brief} ({cmdobj.helptext_cb()})'
+
         return msg
 
     def brieftext(self):
