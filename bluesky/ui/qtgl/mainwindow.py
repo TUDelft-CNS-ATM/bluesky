@@ -27,7 +27,7 @@ from bluesky.tools.misc import tim2txt
 from bluesky.network import context as ctx
 from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
 from bluesky.ui import palette
-from bluesky.core import Signal
+from bluesky.core import Signal, remotestore as rs
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -104,6 +104,12 @@ class MainWindow(QMainWindow):
     """ Qt window process: from .ui file read UI window-definition of main window """
 
     modes = ['Init', 'Hold', 'Operate', 'End']
+
+    # Per remote node attributes
+    nconf_cur = rs.ActData(0, group='acdata')
+    nconf_tot = rs.ActData(0, group='acdata')
+    nlos_cur = rs.ActData(0, group='acdata')
+    nlos_tot = rs.ActData(0, group='acdata')
 
     def __init__(self, mode):
         super().__init__()
@@ -311,9 +317,8 @@ class MainWindow(QMainWindow):
         simt = tim2txt(simt)[:-3]
         self.setNodeInfo(ctx.sender_id, simt, scenname)
         if ctx.sender_id == bs.net.act_id:
-            acdata = bs.net.get_nodedata().acdata
             self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
+                % (simt, simdt, speed, simutc, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
 
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
@@ -333,7 +338,6 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def buttonClicked(self):
-        actdata = bs.net.get_nodedata()
         if self.sender() == self.shownodes:
             vis = not self.nodetree.isVisible()
             self.nodetree.setVisible(vis)

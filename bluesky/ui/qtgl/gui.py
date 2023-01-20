@@ -18,7 +18,6 @@ import os
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
 from bluesky.ui.qtgl.mainwindow import MainWindow, Splash, DiscoveryDialog
-from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
@@ -61,13 +60,6 @@ def start(hostname=None):
         app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     splash = Splash()
-
-    # Register our custom pan/zoom event
-    for etype in range(1000, 1000 + NUMCUSTOMEVENTS):
-        reg_etype = QEvent.registerEventType(etype)
-        if reg_etype != etype:
-            print(('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype)))
-
     splash.show()
 
     # Install error message handler

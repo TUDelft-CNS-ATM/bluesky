@@ -8,7 +8,7 @@ except ImportError:
     from PyQt6.QtCore import Qt, QEvent, QT_VERSION
 
 import bluesky as bs
-from bluesky.core import Signal
+from bluesky.core import Signal, remotestore as rs
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
@@ -331,7 +331,7 @@ class RadarWidget(glh.RenderWidget):
         elif event.type() == QEvent.Type.MouseButtonRelease and \
                 event.button() & Qt.MouseButton.LeftButton and not self.mousedragged:
             lat, lon = self.pixelCoordsToLatLon(event.pos().x(), event.pos().y())
-            actdata = bs.net.get_nodedata()
+            actdata = rs.get()
             tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
                                             actdata.acdata, actdata.routedata)
 

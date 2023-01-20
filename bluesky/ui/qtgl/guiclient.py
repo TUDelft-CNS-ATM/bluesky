@@ -3,9 +3,7 @@ try:
     from PyQt5.QtCore import QTimer
 except ImportError:
     from PyQt6.QtCore import QTimer
-import numpy as np
 
-from bluesky.ui.qtgl.customevents import ACDataEvent, RouteDataEvent
 from bluesky.network.client import Client
 from bluesky.network import subscriber, context as ctx
 from bluesky.core import Signal
@@ -60,7 +58,6 @@ class GuiClient(Client):
         sender_data = self.get_nodedata(ctx.sender_id)
         data_changed = []
         if ctx.topic == 'RESET':
-            sender_data.clear_scen_data()
             data_changed = list(UPDATE_ALL)
         elif ctx.topic == 'PANZOOM':
             sender_data.panzoom(**data)
@@ -103,27 +100,8 @@ class nodeData:
         self.pan = [0.0, 0.0]
         self.zoom = 1.0
 
-        self.naircraft = 0
-        self.acdata = ACDataEvent()
-        self.routedata = RouteDataEvent()
-
-        # Per-scenario data
-        self.clear_scen_data()
-
         # Network route to this node
         self._route = route
-
-    def setacdata(self, data):
-        self.acdata = ACDataEvent(data)
-        self.naircraft = len(self.acdata.lat)
-
-    def setroutedata(self, data):
-        self.routedata = RouteDataEvent(data)
-
-    def clear_scen_data(self):
-        self.naircraft = 0
-        self.acdata = ACDataEvent()
-        self.routedata = RouteDataEvent()
 
     def siminit(self, shapes, **kwargs):
         self.__dict__.update(kwargs)
