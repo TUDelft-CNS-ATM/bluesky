@@ -3,13 +3,13 @@ import numpy as np
 from bluesky.ui.qtgl import glhelpers as glh
 
 import bluesky as bs
-from bluesky.core.actdata import ActData
-from bluesky.stack import command
+from bluesky.core import remotestore as rs
+from bluesky.stack import command, commandgroup
 from bluesky.tools import geo
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
-from bluesky.network import sharedstate
+from bluesky.network import sharedstate, context as ctx
 
 
 # Register settings defaults
@@ -34,13 +34,16 @@ TRAILS_SIZE = 1000000
 class Traffic(glh.RenderObject, layer=100):
     ''' Traffic OpenGL object. '''
     # Per remote node attributes
-    show_pz = ActData(False)
-    show_traf = ActData(True)
-    show_lbl = ActData(2)
-    ssd_all = ActData(False)
-    ssd_conflicts = ActData(False)
-    ssd_ownship = ActData(set())
-    altrange = ActData(tuple())
+    show_pz = rs.ActData(False)
+    show_traf = rs.ActData(True)
+    show_lbl = rs.ActData(2)
+    ssd_all = rs.ActData(False)
+    ssd_conflicts = rs.ActData(False)
+    ssd_ownship = rs.ActData(set())
+    altrange = rs.ActData(tuple())
+    custgrclr = rs.ActData(dict())
+    custacclr = rs.ActData(dict())
+    naircraft = rs.ActData(0)
 
     @command
     def showpz(self, flag:bool=None):
@@ -111,6 +114,20 @@ class Traffic(glh.RenderObject, layer=100):
                 return True, f'The current altitude range is limited between {self.altrange[0]} and {self.altrange[1]} meters'
         if flag:
             self.altrange = (bottom, top)
+
+    @commandgroup(name='COLOR', annotations='txt,color')
+    def set_color(self, name, r, g, b):
+        ''' Set custom color for visual objects. '''
+        data = rs.get(ctx.sender_id)
+        # TODO: group mask to name only exists on sim-side
+        # if name in data.acdata.groups:
+        #     groupmask = data.acdata.groups.groups[name]
+        #     data.custgrclr[groupmask] = (r, g, b)
+        if name in data.acdata.id:
+            data.custacclr[name] = (r, g, b)
+            return True
+        return False, 'No aircraft found with name ' + name
+        
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -205,8 +222,8 @@ class Traffic(glh.RenderObject, layer=100):
     def draw(self):
         ''' Draw all traffic graphics. '''
         # Get data for active node
-        actdata = bs.net.get_nodedata()
-        if actdata.naircraft == 0 or not self.show_traf:
+        oldact = bs.net.get_nodedata()
+        if self.naircraft == 0 or not self.show_traf:
             return
 
         # Send the (possibly) updated global uniforms to the buffer
@@ -222,22 +239,22 @@ class Traffic(glh.RenderObject, layer=100):
         self.shaderset.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if self.show_pz and actdata.zoom >= 0.15:
+        if self.show_pz and oldact.zoom >= 0.15:
             self.shaderset.set_vertex_scale_type(
                 self.shaderset.VERTEX_IS_METERS)
-            self.protectedzone.draw(n_instances=actdata.naircraft)
+            self.protectedzone.draw(n_instances=self.naircraft)
 
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
-        self.ac_symbol.draw(n_instances=actdata.naircraft)
+        self.ac_symbol.draw(n_instances=self.naircraft)
 
         if self.routelbl.n_instances:
             self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.routelbl.draw()
 
         if self.show_lbl:
-            self.aclabels.draw(n_instances=actdata.naircraft)
+            self.aclabels.draw(n_instances=self.naircraft)
 
         # SSD
         if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
@@ -245,9 +262,9 @@ class Traffic(glh.RenderObject, layer=100):
             ssd_shader.bind()
             glh.gl.glUniform3f(ssd_shader.uniforms['Vlimits'].loc, self.asas_vmin **
                            2, self.asas_vmax ** 2, self.asas_vmax)
-            glh.gl.glUniform1i(ssd_shader.uniforms['n_ac'].loc, actdata.naircraft)
-            self.ssd.draw(vertex_count=actdata.naircraft,
-                          n_instances=actdata.naircraft)
+            glh.gl.glUniform1i(ssd_shader.uniforms['n_ac'].loc, self.naircraft)
+            self.ssd.draw(vertex_count=self.naircraft,
+                          n_instances=self.naircraft)
 
     @sharedstate.subscriber(topic='TRAILS')
     def update_trails_data(self, data):
@@ -324,7 +341,6 @@ class Traffic(glh.RenderObject, layer=100):
         if not self.initialized:
             return
         self.glsurface.makeCurrent()
-        actdata = bs.net.get_nodedata()
         if self.altrange:
             idx = np.where(
                 (data.alt >= self.altrange[0]) * (data.alt <= self.altrange[1]))
@@ -336,7 +352,7 @@ class Traffic(glh.RenderObject, layer=100):
             data.vs = data.vs[idx]
             data.rpz = data.rpz[idx]
         naircraft = len(data.lat)
-        actdata.naircraft = naircraft
+        self.naircraft = naircraft
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
         # self.asas_vmax = data.vmax
 
@@ -400,11 +416,11 @@ class Traffic(glh.RenderObject, layer=100):
                     # Get custom color if available, else default
                     rgb = palette.aircraft
                     if ingroup:
-                        for groupmask, groupcolor in actdata.custgrclr.items():
+                        for groupmask, groupcolor in self.custgrclr.items():
                             if ingroup & groupmask:
                                 rgb = groupcolor
                                 break
-                    rgb = actdata.custacclr.get(acid, rgb)
+                    rgb = self.custacclr.get(acid, rgb)
                     color[i, :] = tuple(rgb) + (255,)
 
                 #  Check if aircraft is selected to show SSD
