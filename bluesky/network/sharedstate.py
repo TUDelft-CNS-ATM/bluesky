@@ -50,7 +50,8 @@ def receive(action, data):
             if container is None:
                 setattr(store, key, item)
             elif isinstance(container, dict):
-                container.update(item)
+                # container.update(item)
+                rec_update(container, item)
             else:
                 for idx, value in item.items():
                     container[idx] = value
@@ -103,6 +104,17 @@ def receive(action, data):
     # Reset context variables
     ctx.action = None
     ctx.action_content = None
+
+
+def rec_update(target, source):
+    for k, v in source.items():
+        if isinstance(v, dict):
+            inner = target.get(k)
+            if inner is not None:
+                rec_update(inner, v)
+                continue
+        target[k] = v
+
 
 def subscriber(func=None, *, topic='', actonly=False):
     ''' Decorator to subscribe to a state topic. '''
