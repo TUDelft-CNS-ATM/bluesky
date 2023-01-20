@@ -28,10 +28,23 @@ except (ImportError, OSError):
 
 
 import bluesky as bs
+from bluesky.stack import commandgroup
 from bluesky.tools.geo import kwikdist
+
 
 # Dictionary of all basic shapes (The shape classes defined in this file) by name
 basic_shapes = dict()
+
+
+@commandgroup(annotations='txt,color')
+def color(name, r, g, b):
+    ''' Set custom color for visual objects. '''
+    poly = basic_shapes.get(name)
+    if poly:
+        poly.color = (r, g, b)
+        bs.scr.objappend(name, color=(r, g, b))
+        return True
+    return False, 'No shape found with name ' + name
 
 
 def hasArea(areaname):
@@ -39,32 +52,32 @@ def hasArea(areaname):
     return areaname in basic_shapes
 
 
-def defineArea(areaname, areatype, coordinates, top=1e9, bottom=-1e9):
+def defineArea(name, shape, coordinates, top=1e9, bottom=-1e9):
     """Define a new area"""
-    if areaname == 'LIST':
+    if name == 'LIST':
         if not basic_shapes:
             return True, 'No shapes are currently defined.'
         else:
             return True, 'Currently defined shapes:\n' + \
                 ', '.join(basic_shapes)
     if not coordinates:
-        if areaname in basic_shapes:
-            return True, str(basic_shapes[areaname])
+        if name in basic_shapes:
+            return True, str(basic_shapes[name])
         else:
-            return False, f'Unknown shape: {areaname}'
-    if areatype == 'BOX':
-        basic_shapes[areaname] = Box(areaname, coordinates, top, bottom)
-    elif areatype == 'CIRCLE':
-        basic_shapes[areaname] = Circle(areaname, coordinates, top, bottom)
-    elif areatype[:4] == 'POLY':
-        basic_shapes[areaname] = Poly(areaname, coordinates, top, bottom)
-    elif areatype == 'LINE':
-        basic_shapes[areaname] = Line(areaname, coordinates)
+            return False, f'Unknown shape: {name}'
+    if shape == 'BOX':
+        basic_shapes[name] = Box(name, coordinates, top, bottom)
+    elif shape == 'CIRCLE':
+        basic_shapes[name] = Circle(name, coordinates, top, bottom)
+    elif shape[:4] == 'POLY':
+        basic_shapes[name] = Poly(name, coordinates, top, bottom)
+    elif shape == 'LINE':
+        basic_shapes[name] = Line(name, coordinates)
 
     # Pass the shape on to the screen object
-    bs.scr.objappend(areatype, areaname, coordinates)
+    bs.scr.objappend(name, shape=shape, coordinates=coordinates)
 
-    return True, f'Created {areatype} {areaname}'
+    return True, f'Created {shape} {name}'
 
 
 def checkInside(areaname, lat, lon, alt):
@@ -132,7 +145,6 @@ class Shape:
         cls.max_area_id = 0
 
     def __init__(self, name, coordinates, top=1e9, bottom=-1e9):
-        self.raw = dict(name=name, shape=self.kind(), coordinates=coordinates)
         self.name = name
         self.coordinates = coordinates
         self.top = np.maximum(bottom, top)
@@ -152,6 +164,13 @@ class Shape:
         # Objects are removed automatically from the weak-value dicts,
         # but need to be manually removed from the rtree
         Shape.areatree.delete(self.area_id, self.bbox)
+
+    @property
+    def raw(self):
+        ret = dict(name=self.name, shape=self.kind(), coordinates=self.coordinates)
+        if hasattr(self, 'color'):
+            ret['color'] = self.color
+        return ret
 
     def checkInside(self, lat, lon, alt):
         ''' Returns True (or boolean array) if coordinate lat, lon, alt lies

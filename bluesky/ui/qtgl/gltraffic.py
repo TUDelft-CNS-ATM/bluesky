@@ -4,12 +4,12 @@ from bluesky.ui.qtgl import glhelpers as glh
 
 import bluesky as bs
 from bluesky.core import remotestore as rs
-from bluesky.stack import command, commandgroup
+from bluesky.stack import command
 from bluesky.tools import geo
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
-from bluesky.network import sharedstate, context as ctx
+from bluesky.network import sharedstate
 
 
 # Register settings defaults
@@ -41,8 +41,6 @@ class Traffic(glh.RenderObject, layer=100):
     ssd_conflicts = rs.ActData(False)
     ssd_ownship = rs.ActData(set())
     altrange = rs.ActData(tuple())
-    custgrclr = rs.ActData(dict())
-    custacclr = rs.ActData(dict())
     naircraft = rs.ActData(0)
 
     @command
@@ -113,21 +111,7 @@ class Traffic(glh.RenderObject, layer=100):
             else:
                 return True, f'The current altitude range is limited between {self.altrange[0]} and {self.altrange[1]} meters'
         if flag:
-            self.altrange = (bottom, top)
-
-    @commandgroup(name='COLOR', annotations='txt,color')
-    def set_color(self, name, r, g, b):
-        ''' Set custom color for visual objects. '''
-        data = rs.get(ctx.sender_id)
-        # TODO: group mask to name only exists on sim-side
-        # if name in data.acdata.groups:
-        #     groupmask = data.acdata.groups.groups[name]
-        #     data.custgrclr[groupmask] = (r, g, b)
-        if name in data.acdata.id:
-            data.custacclr[name] = (r, g, b)
-            return True
-        return False, 'No aircraft found with name ' + name
-        
+            self.altrange = (bottom, top)        
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -383,6 +367,9 @@ class Traffic(glh.RenderObject, layer=100):
             selssd = np.zeros(naircraft, dtype=np.uint8)
             confidx = 0
 
+            custacclr = getattr(data, 'custacclr', dict())
+            custgrclr = getattr(data, 'custgrclr', dict())
+
             zdata = zip(data.id, data.ingroup, data.inconf, data.tcpamax, data.trk, data.gs,
                         data.cas, data.vs, data.alt, data.lat, data.lon)
             for i, (acid, ingroup, inconf, tcpa,
@@ -416,11 +403,11 @@ class Traffic(glh.RenderObject, layer=100):
                     # Get custom color if available, else default
                     rgb = palette.aircraft
                     if ingroup:
-                        for groupmask, groupcolor in self.custgrclr.items():
+                        for groupmask, groupcolor in custgrclr.items():
                             if ingroup & groupmask:
                                 rgb = groupcolor
                                 break
-                    rgb = self.custacclr.get(acid, rgb)
+                    rgb = custacclr.get(acid, rgb)
                     color[i, :] = tuple(rgb) + (255,)
 
                 #  Check if aircraft is selected to show SSD

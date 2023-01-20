@@ -173,7 +173,7 @@ class ScreenIO(Entity):
     def show_cmd_doc(self, cmd=''):
         bs.net.send(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
 
-    def objappend(self, objtype, objname, data):
+    def objappend(self, name, **kwargs):
         """Add a drawing object to the radar screen using the following inputs:
            objtype: "LINE"/"POLY" /"BOX"/"CIRCLE" = string with type of object
            objname: string with a name as key for reference
@@ -182,9 +182,16 @@ class ScreenIO(Entity):
                     BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
                     CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
         """
-        sharedstate.send_update('POLY', polys={objname:{'shape':objtype, 'coordinates':data}})
-        # bs.net.send(b'SHAPE', dict(
-        #     name=objname, shape=objtype, coordinates=data), b'C')
+        sharedstate.send_update('POLY', polys={name: kwargs})
+
+    @stack.commandgroup(annotations='txt,color')
+    def color(self, name, r, g, b):
+        ''' Set custom color for aircraft or shape. '''
+        if name in bs.traf.groups:
+            groupmask = bs.traf.groups.groups[name]
+            self.custgrclr[groupmask] = (r, g, b)
+        elif name in bs.traf.id:
+            self.custacclr[name] = (r, g, b)
 
     @subscriber
     def panzoom(self, pan, zoom, ar=1, absolute=True):
@@ -248,7 +255,12 @@ class ScreenIO(Entity):
         data['asastas']  = bs.traf.cr.tas
         data['asastrk']  = bs.traf.cr.trk
 
-        # bs.net.send(b'ACDATA', data, to_group=b'C')
+        # Aircraft (group) color
+        if self.custacclr:
+            data['custacclr'] = self.custacclr
+        if self.custgrclr:
+            data['custgrclr'] = self.custgrclr
+
         sharedstate.send_replace(b'ACDATA', **data)
 
     def send_route_data(self):

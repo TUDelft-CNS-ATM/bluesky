@@ -3,7 +3,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.core import remotestore as rs
 from bluesky.network import sharedstate, context as ctx
-from bluesky.stack import command, commandgroup
+from bluesky.stack import command
 from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
 from bluesky.ui.qtgl import console
@@ -38,23 +38,6 @@ class Poly(glh.RenderObject, layer=-20):
         # Or use the argument if it is an integer
         else:
             self.show_poly = min(2,max(0,flag))
-
-    @commandgroup(annotations='txt,color')
-    def color(self, name, r, g, b):
-        ''' Set custom color for visual objects. '''
-        # TODO client-side stack for non-active node: process only when becoming active?
-        data = rs.get(ctx.sender_id, group='poly')
-        polydata = data.polys.get(name)
-        bufdata = rs.get(ctx.sender_id).bufdata
-        if polydata:
-            polydata['color'] = (r, g, b)
-            contourbuf, fillbuf, colorbuf = bufdata.get(name)
-            colorbuf = np.array(len(contourbuf) // 2 * (r, g, b, 255), dtype=np.uint8)
-            bufdata[name] = (contourbuf, fillbuf, colorbuf)
-
-            self.actdata_changed(0, 0, ['SHAPE'])
-            return True
-        return False, 'No shape found with name ' + name
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -145,7 +128,7 @@ class Poly(glh.RenderObject, layer=-20):
                     pass
 
     @sharedstate.subscriber(topic='POLY')
-    def update_poly_data(self, data):#name, shape='', coordinates=None, color=None):
+    def update_poly_data(self, data):
         # We're either updating a polygon, or deleting it.
         for name in ctx.action_content['polys']:
             # Always delete the old processed data
@@ -153,10 +136,13 @@ class Poly(glh.RenderObject, layer=-20):
 
             if ctx.action != ctx.action.Delete:
                 polydata = data.polys[name]
-                shape = polydata['shape']
-                coordinates = polydata['coordinates']
-                color = polydata.get('color', palette.polys)
-                self.bufdata[name] = self.genbuffers(shape, coordinates, color)
+                try:
+                    shape = polydata['shape']
+                    coordinates = polydata['coordinates']
+                    color = polydata.get('color', palette.polys)
+                    self.bufdata[name] = self.genbuffers(shape, coordinates, color)
+                except:
+                    print(polydata.keys())
                 
         self.actdata_changed(0, 0, changed_elems=['SHAPE'])
 

@@ -1149,32 +1149,24 @@ class Screen(Entity):
         lat=dist/111319.
         return self.ltopix_eq(lat)
 
-    @stack.command(annotations='txt,color')
-    def color(self, name, r, g, b):
-        ''' Set custom color for aircraft or shape. '''
-        if areafilter.hasArea(name):
-            idx = self.objname.index(name)
-            self.objcolor[idx] = (r, g, b)
-        else:
-            return False, 'No object found with name ' + name
-
-        self.redrawradbg = True  # redraw background
-        return True
-
-    def objappend(self,itype,name,data):
+    def objappend(self, name, **kwargs):
         """Add user defined objects"""
-        if data is None:
+        if not kwargs:
             return self.objdel()
 
+        if name not in self.objname:
+            self.objname.append(name)
+            self.objtype.append(kwargs['shape'])
+            if self.objtype[-1]==1:
+                self.objtype[-1]="LINE" # Convert to string
 
-        self.objname.append(name)
-        self.objtype.append(itype)
-        if self.objtype[-1]==1:
-            self.objtype[-1]="LINE" # Convert to string
-
-        self.objcolor.append(cyan)
-        self.objdata.append(data)
-
+            self.objcolor.append(kwargs.get('color', cyan))
+            self.objdata.append(kwargs['coordinates'])
+        else:
+            idx = self.objname.index(name)
+            self.objtype[idx] = kwargs.get('shape', self.objtype[idx])
+            self.objcolor[idx] = kwargs.get('color', self.objcolor[idx])
+            self.objdata[idx] = kwargs.get('coordinates', self.objdata[idx])
 
         self.redrawradbg = True  # redraw background
 
