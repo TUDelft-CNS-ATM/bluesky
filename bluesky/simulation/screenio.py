@@ -6,9 +6,9 @@ import numpy as np
 import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity
-from bluesky.tools import areafilter, aero
+from bluesky.tools import aero
 from bluesky.core.walltime import Timer
-from bluesky.network import subscriber
+from bluesky.network import subscriber, context as ctx
 
 import bluesky.network.sharedstate as sharedstate
 
@@ -117,24 +117,6 @@ class ScreenIO(Entity):
 
         bs.net.send(b'PANZOOM', dict(zoom=zoom))
 
-    def color(self, name, r, g, b):
-        ''' Set custom color for aircraft or shape. '''
-        data = dict(color=(r, g, b))
-        if name in bs.traf.groups:
-            groupmask = bs.traf.groups.groups[name]
-            data['groupid'] = groupmask
-            self.custgrclr[groupmask] = (r, g, b)
-        elif name in bs.traf.id:
-            data['acid'] = name
-            self.custacclr[name] = (r, g, b)
-        elif areafilter.hasArea(name):
-            data['polyid'] = name
-            areafilter.basic_shapes[name].raw['color'] = (r, g, b)
-        else:
-            return False, 'No object found with name ' + name
-        bs.net.send(b'COLOR', data, b'C')
-        return True
-
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
         lat, lon = 0, 0
@@ -200,14 +182,15 @@ class ScreenIO(Entity):
                     BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
                     CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
         """
-        bs.net.send(b'SHAPE', dict(
-            name=objname, shape=objtype, coordinates=data), b'C')
+        sharedstate.send_update('POLY', polys={objname:{'shape':objtype, 'coordinates':data}})
+        # bs.net.send(b'SHAPE', dict(
+        #     name=objname, shape=objtype, coordinates=data), b'C')
 
     @subscriber
     def panzoom(self, pan, zoom, ar=1, absolute=True):
-        self.client_pan[bs.net.sender_id]  = pan
-        self.client_zoom[bs.net.sender_id] = zoom
-        self.client_ar[bs.net.sender_id]   = ar
+        self.client_pan[ctx.sender_id]  = pan
+        self.client_zoom[ctx.sender_id] = zoom
+        self.client_ar[ctx.sender_id]   = ar
         return True
 
     # =========================================================================
@@ -266,7 +249,7 @@ class ScreenIO(Entity):
         data['asastrk']  = bs.traf.cr.trk
 
         # bs.net.send(b'ACDATA', data, to_group=b'C')
-        sharedstate.send_full(b'ACDATA', **data)
+        sharedstate.send_replace(b'ACDATA', **data)
 
     def send_route_data(self):
         ''' Send route data to client(s) '''
@@ -305,4 +288,4 @@ def _sendrte(sender, acid):
 
         data['wpname'] = route.wpname
 
-    sharedstate.send_full(b'ROUTEDATA', (sender or b'C'), **data)
+    sharedstate.send_replace(b'ROUTEDATA', (sender or b'C'), **data)

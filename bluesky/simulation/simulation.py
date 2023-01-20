@@ -6,6 +6,7 @@ from random import seed
 
 # Local imports
 import bluesky as bs
+from bluesky.network import context as ctx
 import bluesky.core as core
 from bluesky.core import plugin, simtime, Signal, Entity
 from bluesky.stack import simstack, recorder
@@ -231,11 +232,11 @@ class Simulation(Entity):
 
     def on_stack_received(self, data):
         # We received a single stack command. Add it to the existing stack
-        bs.stack.stack(data, sender_id=bs.net.sender_id)
+        bs.stack.stack(data, sender_id=ctx.sender_id)
 
     def on_getsimstate(self):
         # Add this client to the list of known clients
-        self.clients.add(bs.net.sender_id)
+        self.clients.add(ctx.sender_id)
         # Send list of stack functions available in this sim to gui at start
         stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
         shapes = [shape.raw for shape in areafilter.basic_shapes.values()]
@@ -243,7 +244,7 @@ class Simulation(Entity):
             stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
             custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
             plugins=list(plugin.Plugin.plugins.keys()))
-        bs.net.send(b'SIMSTATE', simstate, to_group=bs.net.sender_id)
+        bs.net.send(b'SIMSTATE', simstate, to_group=ctx.sender_id)
 
     def setutc(self, *args):
         ''' Set simulated clock time offset. '''

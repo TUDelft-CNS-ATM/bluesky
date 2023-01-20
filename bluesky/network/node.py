@@ -6,6 +6,7 @@ import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity
 from bluesky.core.walltime import Timer
+from bluesky.network import context as ctx
 from bluesky.network.subscription import Subscription
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 from bluesky.network.common import genid, seqidx2id, asbytestr, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT, IDLEN
@@ -20,11 +21,9 @@ class Node(Entity):
         self.node_id = genid(group_id)
         self.group_id = asbytestr(group_id)[:len(self.node_id)-1]
         self.server_id = self.node_id[:-1] + seqidx2id(0)
-        self.sender_id = None
-        self.topic = None
-        ctx = zmq.Context.instance()
-        self.sock_recv = ctx.socket(zmq.SUB)
-        self.sock_send = ctx.socket(zmq.PUB)
+        zmqctx = zmq.Context.instance()
+        self.sock_recv = zmqctx.socket(zmq.SUB)
+        self.sock_send = zmqctx.socket(zmq.PUB)
         self.poller = zmq.Poller()
         self.running = True
         signal.signal(signal.SIGINT, lambda *args: self.quit())
@@ -85,15 +84,16 @@ class Node(Entity):
                     continue
             
                 # Receive the message
-                msg = sock.recv_multipart()
-                if not msg:
+                ctx.msg = sock.recv_multipart()
+                if not ctx.msg:
                     # In the rare case that a message is empty, skip remaning processing
                     continue
             
                 if sock == self.sock_recv:
-                    self.topic, self.sender_id = msg[0][IDLEN:-IDLEN], msg[0][-IDLEN:]
-                    pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
-                    sub = Subscription.subscriptions.get(self.topic) or Subscription(self.topic, directonly=True)
+                    ctx.topic = ctx.msg[0][IDLEN:-IDLEN].decode()
+                    ctx.sender_id = ctx.msg[0][-IDLEN:]
+                    pydata = msgpack.unpackb(ctx.msg[1], object_hook=decode_ndarray, raw=False)
+                    sub = Subscription.subscriptions.get(ctx.topic) or Subscription(ctx.topic, directonly=True)
                     # Unpack dict or list, skip empty string
                     if pydata == '':
                         sub.emit()
@@ -103,7 +103,7 @@ class Node(Entity):
                         sub.emit(*pydata)
                     else:
                         sub.emit(pydata)
-                    self.topic = self.sender_id = None
+                    ctx.msg = ctx.topic = ctx.sender_id = None
 
         except zmq.ZMQError:
             return False

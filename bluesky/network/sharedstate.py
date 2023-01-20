@@ -2,11 +2,12 @@
 
     This class is used to keep a shared state across client(s) and simulation node(s)
 '''
-from types import SimpleNamespace
+from enum import Enum
 import numpy as np
 
 import bluesky as bs
-from bluesky.core import signal, actdata
+from bluesky.core import signal, remotestore as rs
+from bluesky.network import context as ctx
 from bluesky.network.subscription import Subscription
 
 #TODO: trigger voor actnode changed?
@@ -19,17 +20,36 @@ topics = set()
 changed = signal.Signal('state-changed')
 
 
+class ActionType(Enum):
+    ''' Shared state action types. 
+    
+        An incoming shared state update can be of the following types:
+        Append: One or more items are appended to the state
+        Delete: One or more items are deleted from the state
+        Update: One or more items within the state are updated
+        Replace: The full state object is replaced
+    '''
+    Append = b'A'
+    Delete = b'D'
+    Update = b'U'
+    Replace = b'R'
+
+
 def receive(action, data):
     ''' Retrieve and process state data. '''
-    topic = bs.net.topic.decode()
-    remote = actdata.remotes[bs.net.sender_id]
-    store = getattr(remote, topic.lower())
+    store = rs.get(ctx.sender_id, ctx.topic.lower())
+
+    # Store sharedstate context
+    ctx.action = ActionType(action)
+    ctx.action_content = data
 
     if action == b'U':
         # Update
         for key, item in data.items():
-            container = getattr(store, key)
-            if isinstance(container, dict):
+            container = getattr(store, key, None)
+            if container is None:
+                setattr(store, key, item)
+            elif isinstance(container, dict):
                 container.update(item)
             else:
                 for idx, value in item.items():
@@ -37,7 +57,9 @@ def receive(action, data):
     elif action == b'D':
         # Delete
         for key, item in data.items():
-            container = getattr(store, key)
+            container = getattr(store, key, None)
+            if container is None:
+                continue
             if isinstance(container, np.ndarray):
                 mask = np.ones_like(container, dtype=bool)
                 mask[item] = False
@@ -69,18 +91,21 @@ def receive(action, data):
             else:
                 container.append(item)
 
-    elif action == b'F':
+    elif action == b'R':
         # Full replace
         vars(store).update(data)
 
     # Inform subscribers of state update
     # TODO: what to do with act vs all?
-    if bs.net.sender_id == bs.net.act_id:
-        changed[topic].emit(store)
+    if ctx.sender_id == bs.net.act_id:
+        changed[ctx.topic].emit(store)
 
+    # Reset context variables
+    ctx.action = None
+    ctx.action_content = None
 
 def subscriber(func=None, *, topic='', actonly=False):
-    ''' Subscribe to a state topic. '''
+    ''' Decorator to subscribe to a state topic. '''
     def deco(func):
         ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
             else func
@@ -92,7 +117,7 @@ def subscriber(func=None, *, topic='', actonly=False):
             Subscription(itopic, actonly=actonly).connect(receive)
             topics.add(itopic)
             # Add data store default to actdata
-            actdata.adddefault(itopic.lower(), SimpleNamespace())
+            rs.addgroup(itopic.lower())
         changed[itopic].connect(ifunc)
         return func
 
@@ -111,5 +136,5 @@ def send_append(topic, to_group='', **data):
     bs.net.send(topic, [b'A', data], to_group)
 
 
-def send_full(topic, to_group='', **data):
-    bs.net.send(topic, [b'F', data], to_group)
+def send_replace(topic, to_group='', **data):
+    bs.net.send(topic, [b'R', data], to_group)

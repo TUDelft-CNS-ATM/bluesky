@@ -23,6 +23,7 @@ import numpy as np
 import copy
 
 import bluesky as bs
+from bluesky.network import context as ctx
 from bluesky.network.client import Client
 from bluesky.tools.misc import tim2txt
 from bluesky.tools.aero import ft, kts, nm, fpm
@@ -61,8 +62,8 @@ class ConsoleClient(Client):
         if ConsoleUI.instance is not None:
             speed, simdt, simt, simutc, ntraf, state, scenname = data
             simt = tim2txt(simt)[:-3]
-            self.setNodeInfo(bs.net.sender_id, simt, scenname)
-            if bs.net.sender_id == bs.net.act_id:
+            self.setNodeInfo(ctx.sender_id, simt, scenname)
+            if ctx.sender_id == bs.net.act_id:
                 ConsoleUI.instance.set_infoline(f'[b]t:[/b] {simt} [b]dt:[/b] {simdt} [b]Speed:[/b] {speed:.1f} [b]UTC:[/b] {simutc} [b]Mode:[/b] {self.modes[state]} [b]Aircraft:[/b] {ntraf}')
 
             # concate times of all nodes
@@ -72,10 +73,10 @@ class ConsoleClient(Client):
             ConsoleUI.instance.set_nodes(copy.deepcopy(self.nodes), node_times)
 
     def on_acdata_received(self, data):
-        self.extend_node_data(data, bs.net.sender_id)
-        if bs.net.sender_id == bs.net.act_id:
+        self.extend_node_data(data, ctx.sender_id)
+        if ctx.sender_id == bs.net.act_id:
             gen_data, table_data = self.get_traffic(data)
-            ConsoleUI.instance.set_traffic(gen_data, table_data, bs.net.sender_id)
+            ConsoleUI.instance.set_traffic(gen_data, table_data, ctx.sender_id)
 
     def extend_node_data(self, data, connid):
         # check if it is inside self.nodes

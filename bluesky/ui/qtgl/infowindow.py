@@ -26,10 +26,9 @@ except ImportError:
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas, \
         NavigationToolbar2QT as NavigationToolbar
 
-import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity
-from bluesky.network import subscriber
+from bluesky.network import subscriber, context as ctx
 
 
 class InfoWindow(Entity):
@@ -68,9 +67,9 @@ class InfoWindow(Entity):
         # A reset flag is sent upon sim reset to indicate removal of sim plots
         if data.pop('reset', False):
             print('plotter gui reset')
-            self.plottab.remove_plots(bs.net.sender_id)
+            self.plottab.remove_plots(ctx.sender_id)
 
-        self.plottab.update_plots(data, bs.net.sender_id)
+        self.plottab.update_plots(data, ctx.sender_id)
 
 
 class StateTab(QScrollArea):

@@ -24,6 +24,7 @@ import bluesky as bs
 from bluesky import stack
 from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
+from bluesky.network import context as ctx
 from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
 from bluesky.ui import palette
 from bluesky.core import Signal
@@ -308,8 +309,8 @@ class MainWindow(QMainWindow):
 
     def on_siminfo_received(self, speed, simdt, simt, simutc, ntraf, state, scenname):
         simt = tim2txt(simt)[:-3]
-        self.setNodeInfo(bs.net.sender_id, simt, scenname)
-        if bs.net.sender_id == bs.net.act_id:
+        self.setNodeInfo(ctx.sender_id, simt, scenname)
+        if ctx.sender_id == bs.net.act_id:
             acdata = bs.net.get_nodedata().acdata
             self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
                 % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
