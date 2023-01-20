@@ -58,9 +58,7 @@ def process():
 
         # Always return on command
         if echotext:
-            # TEMP TODO: guiclient.echo is currently a net subscriber
-            bs.scr.echo(dict(text=echotext, flags=echoflags))
-            #bs.scr.echo(echotext, echoflags, Stack.sender_id)
+            bs.scr.echo(echotext, echoflags, Stack.sender_id)
 
     # Clear the processed commands
     Stack.cmdstack.clear()
