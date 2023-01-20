@@ -86,7 +86,6 @@ class EntityMeta(type):
                 timedfun.callback = getattr(refobj, name, timedfun.notimplemented)
             # Update the signal/network subscriptions of this class
             for name, subscr in cls._subscribers.items():
-                print('Entity found subscriber', name, subscr)
                 subscr.func = getattr(refobj, name, subscr.notimplemented)
         return cls._proxy
 
