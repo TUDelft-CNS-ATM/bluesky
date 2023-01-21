@@ -35,7 +35,10 @@ def setvalue(name, value, remote_id=None, group=None):
 
 def setdefault(name, default, group=None):
     ''' Set the default value for variable 'name' in group 'group' '''
-    setattr(defaults if group is None else getattr(defaults, group), name, default)
+    target = getattr(defaults, group, None) if group else defaults
+    if not target:
+        return setattr(defaults, group, SimpleNamespace(**{name:default}))
+    setattr(target, name, default)
 
 
 def addgroup(name):
