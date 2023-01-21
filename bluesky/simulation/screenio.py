@@ -115,7 +115,7 @@ class ScreenIO(Entity):
             self.def_zoom = zoom
             self.client_zoom.clear()
 
-        bs.net.send(b'PANZOOM', dict(zoom=zoom))
+        sharedstate.send_replace('PANZOOM', zoom=zoom)
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
@@ -149,7 +149,7 @@ class ScreenIO(Entity):
             self.def_pan = (lat,lon)
             self.client_pan.clear()
 
-        bs.net.send(b'PANZOOM', dict(pan=[lat,lon]))
+        sharedstate.send_replace('PANZOOM', pan=[lat,lon])
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''

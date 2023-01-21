@@ -1,7 +1,7 @@
 ''' BlueSky navdata OpenGL visualisation object. '''
 import numpy as np
 import bluesky as bs
-from bluesky.core.remotestore import ActData
+from bluesky.core import remotestore as rs
 from bluesky.network import sharedstate
 from bluesky.stack import command
 from bluesky import Signal
@@ -36,8 +36,10 @@ class Navdata(glh.RenderObject, layer=-10):
     ''' Navdata OpenGL object. '''
 
     # Per remote node attributes
-    show_wpt = ActData(1)
-    show_apt = ActData(1)
+    show_wpt = rs.ActData(1)
+    show_apt = rs.ActData(1)
+    pan = rs.ActData([0.0, 0.0], group='panzoom')
+    zoom = rs.ActData(1.0, group='panzoom')
 
     @command
     def showwpt(self, flag:int=None):
@@ -94,24 +96,23 @@ class Navdata(glh.RenderObject, layer=-10):
         self.vbuf_asphalt, self.vbuf_concrete, self.vbuf_runways, self.vbuf_rwythr, \
             self.apt_ctrlat, self.apt_ctrlon, self.apt_indices = load_aptsurface()
 
-        bs.net.actnodedata_changed.connect(self.actdata_changed)
-        Signal('panzoom').connect(self.on_panzoom_signal)
+        Signal('state-changed.panzoom').connect(self.panzoom)
 
-    def on_panzoom_signal(self, finished):
-        self.actdata_changed(0, bs.net.get_nodedata(), ('PANZOOM',))
-
-    def actdata_changed(self, nodeid, nodedata, changed_elems):
-        if 'PANZOOM' in changed_elems:
-            # TODO panzoom state should always go via nodedata
-            if nodedata.zoom >= 1.0:
-                # Airports may be visible when zoom > 1: in this case, update the list of indicates
-                # of airports that need to be drawn
-                ll_range = max(1.5 / nodedata.zoom, 1.0)
-                indices = np.logical_and(np.abs(self.apt_ctrlat - nodedata.pan[0])
-                                     <= ll_range, np.abs(self.apt_ctrlon - nodedata.pan[1]) <= ll_range)
-                self.apt_inrange = self.apt_indices[indices]
-            else:
-                self.apt_inrange = np.array([])
+    def panzoom(self, data, finished=True):
+        # TODO: need good way to set defaults!!
+        if not hasattr(data, 'zoom'):
+            data.zoom = 1.0
+        if not hasattr(data, 'pan'):
+            data.pan = [0.0, 0.0]
+        if data.zoom >= 1.0:
+            # Airports may be visible when zoom > 1: in this case, update the list of indicates
+            # of airports that need to be drawn
+            ll_range = max(1.5 / data.zoom, 1.0)
+            indices = np.logical_and(np.abs(self.apt_ctrlat - data.pan[0])
+                                    <= ll_range, np.abs(self.apt_ctrlon - data.pan[1]) <= ll_range)
+            self.apt_inrange = self.apt_indices[indices]
+        else:
+            self.apt_inrange = np.array([])
     
     @sharedstate.subscriber
     def defwpt(self, data):
@@ -197,7 +198,6 @@ class Navdata(glh.RenderObject, layer=-10):
                               instanced=True)
 
     def draw(self):
-        actdata = bs.net.get_nodedata()
         # Send the (possibly) updated global uniforms to the buffer
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
@@ -207,7 +207,7 @@ class Navdata(glh.RenderObject, layer=-10):
         self.runways.draw()
         self.thresholds.draw()
 
-        if actdata.zoom >= 1.0:
+        if self.zoom >= 1.0:
             for idx in self.apt_inrange:
                 self.taxiways.draw(first_vertex=idx[0], vertex_count=idx[1])
                 self.pavement.draw(first_vertex=idx[2], vertex_count=idx[3])
@@ -215,14 +215,14 @@ class Navdata(glh.RenderObject, layer=-10):
         self.shaderset.enable_wrap(True)
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
 
-        if actdata.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
+        if self.zoom >= 0.5 and self.show_apt == 1 or self.show_apt == 2:
             nairports = self.nairports[2]
-        elif actdata.zoom >= 0.25 and self.show_apt == 1 or self.show_apt == 3:
+        elif self.zoom >= 0.25 and self.show_apt == 1 or self.show_apt == 3:
             nairports = self.nairports[1]
         else:
             nairports = self.nairports[0]
 
-        if actdata.zoom >= 3 and self.show_wpt == 1 or self.show_wpt == 2:
+        if self.zoom >= 3 and self.show_wpt == 1 or self.show_wpt == 2:
             nwaypoints = self.nwaypoints
         else:
             nwaypoints = self.nnavaids

@@ -167,8 +167,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.indextexture = glh.Texture(target=glh.Texture.Target.Target2D)
         self.indexsampler_loc = 0
         self.arraysampler_loc = 0
-        bs.net.actnodedata_changed.connect(self.actdata_changed)
-        Signal('panzoom').connect(self.panzoom)
+        Signal('state-change.panzoom').connect(self.panzoom)
 
     def add_bounding_box(self, lat0, lon0, lat1, lon1):
         ''' Add the bounding box of a textured shape.
@@ -250,14 +249,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # Bind tile array texture to texture unit 1
         super().bind(4)
 
-    def actdata_changed(self, nodeid, nodedata, changed_elems):
-        ''' Update tile buffers when a different node is selected, or when
-            the data of the current node is updated. '''
-        # Update pan/zoom
-        if 'PANZOOM' in changed_elems:
-            self.on_panzoom_changed(True)
-
-    def panzoom(self, finished=False):
+    def panzoom(self, pzdata, finished=False):
         ''' Update textures whenever pan/zoom changes. 
             
             Arguments:

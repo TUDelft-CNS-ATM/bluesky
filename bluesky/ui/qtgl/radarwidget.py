@@ -9,6 +9,7 @@ except ImportError:
 
 import bluesky as bs
 from bluesky.core import Signal, remotestore as rs
+from bluesky.network import sharedstate as ss
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
@@ -87,13 +88,15 @@ class RadarShaders(glh.ShaderSet):
 
 class RadarWidget(glh.RenderWidget):
     ''' The BlueSky radar view. '''
+
+    # Per-remote attributes
+    pan = rs.ActData([0.0, 0.0], group='panzoom')
+    zoom = rs.ActData(1.0, group='panzoom')
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.prevwidth = self.prevheight = 600
         self.pxratio = 1
-        self.panlat = 0.0
-        self.panlon = 0.0
-        self.zoom = 1.0
         self.ar = 1.0
         self.flat_earth = 1.0
         self.wraplon = int(-999)
@@ -121,17 +124,10 @@ class RadarWidget(glh.RenderWidget):
         self.setMouseTracking(True)
 
         # Signals and slots
-        bs.net.actnodedata_changed.connect(self.actdata_changed)
         self.mouse_event = Signal('radarmouse')
-        self.panzoom_event = Signal('panzoom')
-
-    def actdata_changed(self, nodeid, nodedata, changed_elems):
-        ''' Update buffers when a different node is selected, or when
-            the data of the current node is updated. '''
-
-        # Update pan/zoom
-        if 'PANZOOM' in changed_elems:
-            self.panzoom(pan=nodedata.pan, zoom=nodedata.zoom, absolute=True)
+        self.panzoom_event = Signal('state-changed.panzoom')
+        print('rw panzoom_event topic =', self.panzoom_event.topic)
+        ss.subscriber(self.on_panzoom, topic='PANZOOM')
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
@@ -139,7 +135,7 @@ class RadarWidget(glh.RenderWidget):
 
         # Set initial values for the global uniforms
         self.shaderset.set_wrap(self.wraplon, self.wrapdir)
-        self.shaderset.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
+        self.shaderset.set_pan_and_zoom(self.pan[0], self.pan[1], self.zoom)
 
         # background color
         glh.gl.glClearColor(0.7, 0.7, 0.7, 0)
@@ -150,7 +146,7 @@ class RadarWidget(glh.RenderWidget):
 
 
     def resizeGL(self, width, height):
-        """Called upon window resizing: reinitialize the viewport."""
+        """ Called upon window resizing: reinitialize the viewport. """
         # update the window size
 
         # Calculate zoom so that the window resize doesn't affect the scale, but only enlarges or shrinks the view
@@ -164,7 +160,7 @@ class RadarWidget(glh.RenderWidget):
         self.shaderset.set_pixel_ratio(self.pxratio)
         self.shaderset.set_win_width_height(width, height)
         # Update zoom
-        self.panzoom(zoom=zoom, origin=origin, absolute=False)
+        self.setpanzoom(zoom=zoom, origin=origin, absolute=False)
 
     def pixelCoordsToGLxy(self, x, y):
         """Convert screen pixel coordinates to GL projection coordinates (x, y range -1 -- 1)
@@ -181,40 +177,62 @@ class RadarWidget(glh.RenderWidget):
 
         # glxy   = zoom * (latlon - pan)
         # latlon = pan + glxy / zoom
-        lat = self.panlat + gly / (self.zoom * self.ar)
-        lon = self.panlon + glx / (self.zoom * self.flat_earth)
+        lat = self.pan[0] + gly / (self.zoom * self.ar)
+        lon = self.pan[1] + glx / (self.zoom * self.flat_earth)
         return lat, lon
 
     def viewportlatlon(self):
         ''' Return the viewport bounds in lat/lon coordinates. '''
-        return (self.panlat + 1.0 / (self.zoom * self.ar),
-                self.panlon - 1.0 / (self.zoom * self.flat_earth),
-                self.panlat - 1.0 / (self.zoom * self.ar),
-                self.panlon + 1.0 / (self.zoom * self.flat_earth))
+        return (self.pan[0] + 1.0 / (self.zoom * self.ar),
+                self.pan[1] - 1.0 / (self.zoom * self.flat_earth),
+                self.pan[0] - 1.0 / (self.zoom * self.ar),
+                self.pan[1] + 1.0 / (self.zoom * self.flat_earth))
 
-    def panzoom(self, pan=None, zoom=None, origin=None, absolute=True):
+    def on_panzoom(self, data, finished=True):
+        print(data, finished, self.initialized)
         if not self.initialized:
             return False
 
-        if pan:
-            # Absolute pan operation
-            if absolute:
-                self.panlat = pan[0]
-                self.panlon = pan[1]
-            # Relative pan operation
-            else:
-                self.panlat += pan[0]
-                self.panlon += pan[1]
+        # Don't pan further than the poles in y-direction
+        self.pan[0] = min(max(self.pan[0], -90.0 + 1.0 /
+            (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
 
-            # Don't pan further than the poles in y-direction
-            self.panlat = min(max(self.panlat, -90.0 + 1.0 /
-                                  (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
+        # Update flat-earth factor and possibly zoom in case of very wide windows (> 2:1)
+        self.flat_earth = np.cos(np.deg2rad(self.pan[0]))
 
-            # Update flat-earth factor and possibly zoom in case of very wide windows (> 2:1)
-            self.flat_earth = np.cos(np.deg2rad(self.panlat))
-            self.zoom = max(self.zoom, 1.0 / (180.0 * self.flat_earth))
+        # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
+        self.zoom = max(self.zoom, 1.0 / min(90.0 *
+                                             self.ar, 180.0 * self.flat_earth))
 
-        if zoom:
+        # Check for necessity wrap-around in x-direction
+        self.wraplon = -999.9
+        self.wrapdir = 0
+        if self.pan[1] + 1.0 / (self.zoom * self.flat_earth) < -180.0:
+            # The left edge of the map has passed the right edge of the screen: we can just change the pan position
+            self.pan[1] += 360.0
+        elif self.pan[1] - 1.0 / (self.zoom * self.flat_earth) < -180.0:
+            # The left edge of the map has passed the left edge of the screen: we need to wrap around to the left
+            self.wraplon = float(
+                np.ceil(360.0 + self.pan[1] - 1.0 / (self.zoom * self.flat_earth)))
+            self.wrapdir = -1
+        elif self.pan[1] - 1.0 / (self.zoom * self.flat_earth) > 180.0:
+            # The right edge of the map has passed the left edge of the screen: we can just change the pan position
+            self.pan[1] -= 360.0
+        elif self.pan[1] + 1.0 / (self.zoom * self.flat_earth) > 180.0:
+            # The right edge of the map has passed the right edge of the screen: we need to wrap around to the right
+            self.wraplon = float(
+                np.floor(-360.0 + self.pan[1] + 1.0 / (self.zoom * self.flat_earth)))
+            self.wrapdir = 1
+
+        # update pan and zoom on GPU for all shaders
+        self.shaderset.set_wrap(self.wraplon, self.wrapdir)
+        self.shaderset.set_pan_and_zoom(self.pan[0], self.pan[1], self.zoom)
+
+    def setpanzoom(self, pan=None, zoom=None, origin=None, absolute=True, finished=True):
+        # Absolute or relative pan operation
+        if pan is not None:
+            self.pan = pan if absolute else [i + j for i, j in zip(self.pan, pan)]
+        if zoom is not None:
             if absolute:
                 # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
                 self.zoom = max(
@@ -227,50 +245,17 @@ class RadarWidget(glh.RenderWidget):
 
                 # Limit zoom extents in x-direction to [-180:180], and in y-direction to [-90:90]
                 self.zoom = max(self.zoom, 1.0 / min(90.0 *
-                                                     self.ar, 180.0 * self.flat_earth))
+                                                        self.ar, 180.0 * self.flat_earth))
 
                 # Correct pan so that zoom actions are around the mouse position, not around 0, 0
                 # glxy / zoom1 - pan1 = glxy / zoom2 - pan2
                 # pan2 = pan1 + glxy (1/zoom2 - 1/zoom1)
-                self.panlon = self.panlon - glx * \
+                self.pan[1] = self.pan[1] - glx * \
                     (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
-                self.panlat = self.panlat - gly * \
+                self.pan[0] = self.pan[0] - gly * \
                     (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
-
-            # Don't pan further than the poles in y-direction
-            self.panlat = min(max(self.panlat, -90.0 + 1.0 /
-                                  (self.zoom * self.ar)), 90.0 - 1.0 / (self.zoom * self.ar))
-
-            # Update flat-earth factor
-            self.flat_earth = np.cos(np.deg2rad(self.panlat))
-
-        # Check for necessity wrap-around in x-direction
-        self.wraplon = -999.9
-        self.wrapdir = 0
-        if self.panlon + 1.0 / (self.zoom * self.flat_earth) < -180.0:
-            # The left edge of the map has passed the right edge of the screen: we can just change the pan position
-            self.panlon += 360.0
-        elif self.panlon - 1.0 / (self.zoom * self.flat_earth) < -180.0:
-            # The left edge of the map has passed the left edge of the screen: we need to wrap around to the left
-            self.wraplon = float(
-                np.ceil(360.0 + self.panlon - 1.0 / (self.zoom * self.flat_earth)))
-            self.wrapdir = -1
-        elif self.panlon - 1.0 / (self.zoom * self.flat_earth) > 180.0:
-            # The right edge of the map has passed the left edge of the screen: we can just change the pan position
-            self.panlon -= 360.0
-        elif self.panlon + 1.0 / (self.zoom * self.flat_earth) > 180.0:
-            # The right edge of the map has passed the right edge of the screen: we need to wrap around to the right
-            self.wraplon = float(
-                np.floor(-360.0 + self.panlon + 1.0 / (self.zoom * self.flat_earth)))
-            self.wrapdir = 1
-
-        self.shaderset.set_wrap(self.wraplon, self.wrapdir)
-
-        # update pan and zoom on GPU for all shaders
-        self.shaderset.set_pan_and_zoom(self.panlat, self.panlon, self.zoom)
-        # Update pan and zoom in centralized nodedata
-        bs.net.get_nodedata().panzoom((self.panlat, self.panlon), self.zoom)
-        self.panzoom_event.emit(False)
+        rs.get().panzoom.zoom = self.zoom #  temp TODO
+        self.panzoom_event.emit(rs.get().panzoom, finished)
         return True
 
     def event(self, event):
@@ -290,7 +275,7 @@ class RadarWidget(glh.RenderWidget):
                 except AttributeError:
                     zoom *= (1.0 + 0.001 * event.delta())
                 self.panzoomchanged = True
-                return self.panzoom(zoom=zoom, origin=origin)
+                return self.setpanzoom(zoom=zoom, origin=origin, absolute=False, finished=False)
 
             # For touchpad scroll (2D) is used for panning
             else:
@@ -298,7 +283,7 @@ class RadarWidget(glh.RenderWidget):
                     dlat = 0.01 * event.pixelDelta().y() / (self.zoom * self.ar)
                     dlon = -0.01 * event.pixelDelta().x() / (self.zoom * self.flat_earth)
                     self.panzoomchanged = True
-                    return self.panzoom(pan=(dlat, dlon))
+                    return self.setpanzoom(pan=[dlat, dlon], absolute=False, finished=False)
                 except AttributeError:
                     pass
 
@@ -320,7 +305,7 @@ class RadarWidget(glh.RenderWidget):
                         pan = (dlat, dlon)
             if pan is not None or zoom is not None:
                 self.panzoomchanged = True
-                return self.panzoom(pan, zoom, self.mousepos)
+                return self.setpanzoom(pan, zoom, self.mousepos, absolute=False, finished=False)
 
         elif event.type() == QEvent.Type.MouseButtonPress and event.button() & Qt.MouseButton.LeftButton:
             self.mousedragged = False
@@ -349,7 +334,7 @@ class RadarWidget(glh.RenderWidget):
                 self.prevmousepos = (event.pos().x(), event.pos().y())
                 self.panzoomchanged = True
 
-                return self.panzoom(pan=(dlat, dlon), absolute=False)
+                return self.setpanzoom(pan=(dlat, dlon), absolute=False, finished=False)
 
         elif event.type() == QEvent.Type.TouchBegin:
             # Accept touch start to enable reception of follow-on touch update and touch end events
@@ -359,9 +344,9 @@ class RadarWidget(glh.RenderWidget):
         elif (event.type() == QEvent.Type.MouseButtonRelease or
               event.type() == QEvent.Type.TouchEnd) and self.panzoomchanged:
             self.panzoomchanged = False
-            bs.net.send(b'PANZOOM', dict(pan=(self.panlat, self.panlon),
+            bs.net.send(b'PANZOOM', dict(pan=(self.pan[0], self.pan[1]),
                                          zoom=self.zoom, ar=self.ar, absolute=True))
-            self.panzoom_event.emit(True)
+            self.panzoom_event.emit(rs.get().panzoom, True)
         elif int(event.type()) == 216:
             # 216 is screen change event, but doesn't exist (yet) in pyqt as enum
             self.pxratio = self.devicePixelRatio()
