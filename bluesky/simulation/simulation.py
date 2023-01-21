@@ -241,8 +241,7 @@ class Simulation(Entity):
         stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
         shapes = [shape.raw for shape in areafilter.basic_shapes.values()]
         simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
-            stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
-            custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
+            stackcmds=stackdict, shapes=shapes, settings=bs.settings._settings_hierarchy,
             plugins=list(plugin.Plugin.plugins.keys()))
         bs.net.send(b'SIMSTATE', simstate, to_group=ctx.sender_id)
 
