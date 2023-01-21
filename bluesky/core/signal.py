@@ -34,6 +34,8 @@ class SignalFactory(type):
         # Convert name to string if necessary
         if isinstance(topic, bytes):
             topic = topic.decode()
+        # Signal topics are case-insensitive
+        topic = topic.upper()
         # Check if this Signal already exists. If it doesn't, create it.
         return SignalFactory.__signals__.get(topic) or \
             cls.__create_sig__(topic, *args, **kwargs)
