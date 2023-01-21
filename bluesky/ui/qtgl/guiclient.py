@@ -5,7 +5,7 @@ except ImportError:
     from PyQt6.QtCore import QTimer
 
 from bluesky.network.client import Client
-from bluesky.network import subscriber, context as ctx
+from bluesky.network import context as ctx
 from bluesky.core import Signal
 
 
@@ -29,7 +29,6 @@ class GuiClient(Client):
         # Connect to signals. TODO: needs revision
         Signal('SIMSTATE').connect(self.event)
         self.subscribe('RESET').connect(self.event)
-        self.subscribe(b'PANZOOM').connect(self.event)
 
     def start_discovery(self):
         super().start_discovery()
@@ -42,26 +41,11 @@ class GuiClient(Client):
         self.discovery_timer = None
         super().stop_discovery()
 
-
-
-    @subscriber
-    def echo(self, text='', flags=None, sender_id=b''):
-        ''' Overloaded Client.echo function. '''
-        # If sender_id is None this is an echo command originating from the gui user, and therefore also meant for the active node
-        sender_id = ctx.sender_id or self.act_id
-        sender_data = self.get_nodedata(sender_id)
-        sender_data.echo(text, flags)
-        if sender_id == self.act_id:
-            self.actnodedata_changed.emit(sender_id, sender_data, ('ECHOTEXT',))
-
     def event(self, *args, **data):
         sender_data = self.get_nodedata(ctx.sender_id)
         data_changed = []
         if ctx.topic == 'RESET':
             data_changed = list(UPDATE_ALL)
-        elif ctx.topic == 'PANZOOM':
-            sender_data.panzoom(**data)
-            data_changed.append('PANZOOM')
         elif ctx.topic == 'SIMSTATE':
             sender_data.siminit(**data)
             data_changed = list(UPDATE_ALL)
@@ -90,32 +74,10 @@ class GuiClient(Client):
 
 
 class nodeData:
-    def __init__(self, route=None):
+    def __init__(self):
         # Stack window
-        self.echo_text = ''
         self.stackcmds = dict()
         self.stacksyn = dict()
 
-        # Display pan and zoom
-        self.pan = [0.0, 0.0]
-        self.zoom = 1.0
-
-        # Network route to this node
-        self._route = route
-
     def siminit(self, shapes, **kwargs):
         self.__dict__.update(kwargs)
-
-    def panzoom(self, pan=None, zoom=None, ar=1, absolute=True):
-        if pan:
-            if absolute:
-                self.pan  = list(pan)
-            else:
-                self.pan[0] += pan[0]
-                self.pan[1] += pan[1]
-        if zoom:
-            self.zoom = zoom * (1.0 if absolute else self.zoom)
-
-    def echo(self, text='', flags=0, sender_id=None):
-        if text:
-            self.echo_text += ('\n' + text)

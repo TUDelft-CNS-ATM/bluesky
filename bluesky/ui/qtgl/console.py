@@ -13,7 +13,8 @@ except ImportError:
 import bluesky as bs
 from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
-from bluesky.core.signal import Signal
+from bluesky.core import Signal, remotestore as rs
+from bluesky.network import subscriber, context as ctx
 from . import autocomplete
 
 
@@ -51,10 +52,23 @@ def process_cmdline(cmdlines):
             Console._instance.stack(cmd)
 
 
+@subscriber
+def echo(text, flags=None):
+    if ctx.sender_id == bs.net.act_id:
+        return Console._instance.echo(text, flags)
+    store = rs.get(ctx.sender_id)
+    store.echotext.append(text)
+    store.echoflags.append(flags)
+
+
 class Console(QWidget):
     lineEdit = None
     stackText = None
     _instance = None
+
+    # Per-remote data
+    echotext = rs.ActData(list())
+    echoflags = rs.ActData(list())
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -87,8 +101,8 @@ class Console(QWidget):
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if 'ECHOTEXT' in changed_elems:
-            # self.stackText.setPlainText(nodedata.echo_text)
-            self.stackText.setHtml(nodedata.echo_text.replace('\n', '<br>') + '<br>')
+            text = ('<br>'.join(self.echotext)).replace('\n', '<br>') + '<br>'
+            self.stackText.setHtml(text)
             self.stackText.verticalScrollBar().setValue(
                 self.stackText.verticalScrollBar().maximum())
 
@@ -103,10 +117,10 @@ class Console(QWidget):
         autocomplete.reset()
         self.history_pos = 0
 
-    def echo(self, text):
-        actdata = bs.net.get_nodedata()
-        actdata.echo(text)
-        # self.stackText.append(text)
+    def echo(self, text, flags=None):
+        self.echotext.append(text)
+        self.echoflags.append(flags)
+
         self.stackText.insertHtml(text.replace('\n', '<br>') + '<br>')
         self.stackText.verticalScrollBar().setValue(
             self.stackText.verticalScrollBar().maximum())
