@@ -126,7 +126,6 @@ class RadarWidget(glh.RenderWidget):
         # Signals and slots
         self.mouse_event = Signal('radarmouse')
         self.panzoom_event = Signal('state-changed.panzoom')
-        print('rw panzoom_event topic =', self.panzoom_event.topic)
         ss.subscriber(self.on_panzoom, topic='PANZOOM')
 
     def initializeGL(self):
