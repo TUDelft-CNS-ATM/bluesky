@@ -66,7 +66,6 @@ class InfoWindow(Entity):
 
         # A reset flag is sent upon sim reset to indicate removal of sim plots
         if data.pop('reset', False):
-            print('plotter gui reset')
             self.plottab.remove_plots(ctx.sender_id)
 
         self.plottab.update_plots(data, ctx.sender_id)

@@ -188,7 +188,6 @@ class RadarWidget(glh.RenderWidget):
                 self.pan[1] + 1.0 / (self.zoom * self.flat_earth))
 
     def on_panzoom(self, data, finished=True):
-        print(data, finished, self.initialized)
         if not self.initialized:
             return False
 
