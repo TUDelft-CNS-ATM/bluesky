@@ -19,20 +19,22 @@ import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
 from bluesky.ui.qtgl.mainwindow import MainWindow, Splash, DiscoveryDialog
 
+bs.settings.set_variable_defaults(qt_verbosity=1)
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
 def gui_msg_handler(msgtype, context, msg):
-    if msgtype == QtMsgType.QtWarningMsg:
+    if msgtype == QtMsgType.QtDebugMsg and bs.settings.qt_verbosity > 3:
+        print('Qt debug message:', msg)
+    elif msgtype == QtMsgType.QtInfoMsg and bs.settings.qt_verbosity > 2:
+        print('Qt information message:', msg)
+    elif msgtype == QtMsgType.QtWarningMsg and bs.settings.qt_verbosity > 1:
         print('Qt gui warning:', msg)
-    elif msgtype == QtMsgType.QtCriticalMsg:
+    elif msgtype == QtMsgType.QtCriticalMsg and bs.settings.qt_verbosity > 0:
         print('Qt gui critical error:', msg)
     elif msgtype == QtMsgType.QtFatalMsg:
         print('Qt gui fatal error:', msg)
-    elif msgtype == QtMsgType.QtInfoMsg:
-        print('Qt information message:', msg)
-    elif msgtype == QtMsgType.QtDebugMsg:
-        print('Qt debug message:', msg)
+    
 
 
 def start(hostname=None):
