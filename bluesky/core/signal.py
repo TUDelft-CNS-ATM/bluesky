@@ -76,7 +76,7 @@ class Signal(metaclass=SignalFactory):
             sub.func(*args, **kwargs)
 
         for sub in self.subtopics.values():
-            sub.emit(args=args, kwargs=kwargs)
+            sub.emit(*args, **kwargs)
 
     def connect(self, func):
         """ Connect a new function to this signal. """
