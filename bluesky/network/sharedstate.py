@@ -17,7 +17,7 @@ from bluesky.network.subscription import Subscription, subscriber as nwsub
 topics = set()
 
 # Signal to emit whenever a state update is received
-changed = signal.Signal('state-changed')
+changed = dict()
 
 
 class ActionType(Enum):
@@ -43,7 +43,9 @@ def reset(*args):
     if ctx.sender_id == bs.net.act_id:
         ctx.action = ActionType.Reset
         ctx.action_content = None
-        changed.emit(None)
+        for topic, sig in changed.items():
+            store = rs.get(group=topic.lower())
+            sig.emit(store)
         ctx.action = None
 
 
@@ -142,6 +144,7 @@ def subscriber(func=None, *, topic='', actonly=False):
             topics.add(itopic)
             # Add data store default to actdata
             rs.addgroup(itopic.lower())
+            changed[itopic] = signal.Signal(f'state-changed.{itopic.lower()}')
         changed[itopic].connect(ifunc)
         return func
 

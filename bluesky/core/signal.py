@@ -19,25 +19,10 @@ class SignalFactory(type):
         # Signal topics are case-insensitive
         topic = topic.upper()
         # Check if this Signal already exists. If it doesn't, create it.
-        return SignalFactory.__signals__.get(topic) or \
-            cls.__create_sig__(topic, *args, **kwargs)
-
-    def __create_sig__(cls, topic, *args, **kwargs):
-        # First check if a sub-topic is requested
-        if '.' in topic:
-            parenttopic, subtopic = topic.rsplit('.', 1)
-            parent = cls.__signals__.get(parenttopic) or \
-                cls.__create_sig__(parenttopic, *args, **kwargs)
-
-            sig = parent.subtopics.get(subtopic)
-            if not sig:
-                sig = super().__call__(topic)
-                parent.subtopics[subtopic] = sig
-                cls.__signals__[topic] = sig
-        else:
+        sig = SignalFactory.__signals__.get(topic)
+        if sig is None:
             sig = super().__call__(topic, *args, **kwargs)
             cls.__signals__[topic] = sig
-
         return sig
 
 
@@ -46,19 +31,11 @@ class Signal(metaclass=SignalFactory):
     def __init__(self, topic=''):
         self.topic = topic
         self.subscribers = list()
-        self.subtopics = dict()
-
-    def __getitem__(self, subtopic):
-        """ Return signal for specified sub-topic. """
-        return self.subtopics.get(subtopic) or Signal(f'{self.topic}.{subtopic}')
 
     def emit(self, *args, **kwargs):
         """ Trigger the registered functions with passed arguments. """
         for sub in self.subscribers:
             sub(*args, **kwargs)
-
-        for sub in self.subtopics.values():
-            sub.emit(*args, **kwargs)
 
     def connect(self, func):
         """ Connect a new function to this signal. """
