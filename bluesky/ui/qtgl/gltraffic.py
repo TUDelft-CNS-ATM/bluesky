@@ -9,7 +9,7 @@ from bluesky.tools import geo
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
-from bluesky.network import sharedstate
+from bluesky.network import sharedstate, context as ctx
 
 
 # Register settings defaults
@@ -255,6 +255,10 @@ class Traffic(glh.RenderObject, layer=100):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
+        if ctx.action == ctx.action.Reset:
+            # Simulation reset: Clear all entries
+            self.traillines.set_vertex_count(0)
+            return
         if len(data.traillat0) > 0:
             self.glsurface.makeCurrent()
             self.traillines.set_vertex_count(len(data.traillat0))
@@ -269,6 +273,11 @@ class Traffic(glh.RenderObject, layer=100):
     def update_route_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
+            return
+        if ctx.action == ctx.action.Reset:
+            # Simulation reset: Clear all entries
+            self.route.set_vertex_count(0)
+            self.routelbl.n_instances = 0
             return
         self.glsurface.makeCurrent()
         self.route_acid = data.acid
@@ -323,6 +332,10 @@ class Traffic(glh.RenderObject, layer=100):
     def update_aircraft_data(self, data):
         ''' Update GPU buffers with new aircraft simulation data. '''
         if not self.initialized:
+            return
+        if ctx.action == ctx.action.Reset:
+            # Simulation reset: Clear all entries
+            self.naircraft = 0
             return
         self.glsurface.makeCurrent()
         if self.altrange:

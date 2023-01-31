@@ -4,7 +4,7 @@ from weakref import WeakValueDictionary
 from numpy import *
 import bluesky as bs
 from bluesky.tools import geo
-from bluesky.core import Replaceable
+from bluesky.core import Base
 from bluesky.tools.aero import ft, kts, g0, nm, mach2cas, casormach2tas
 from bluesky.tools.misc import degto180, txt2tim, txt2alt, txt2spd
 from bluesky.tools.position import txt2pos
@@ -13,7 +13,7 @@ from bluesky.stack.cmdparser import Command, command, commandgroup
 
 
 
-class Route(Replaceable):
+class Route(Base):
     """
     Route class definition   : Route data for an aircraft
     (basic FMS functionality)

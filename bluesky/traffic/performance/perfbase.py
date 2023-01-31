@@ -51,7 +51,7 @@ class PerfBase(Entity, replaceable=True):
         self.vsmax[-n:] = 1e6
 
 
-    @timed_function(name="performance", dt=settings.performance_dt, manual=True)
+    @timed_function(name="performance", dt=settings.performance_dt, hook="preupdate")
     def update(self, dt=settings.performance_dt):
         """implement this method"""
         pass

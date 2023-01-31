@@ -17,6 +17,11 @@ defaults = SimpleNamespace()
 remotes = defaultdict(lambda: deepcopy(defaults))
 
 
+def reset(remote_id=None):
+    ''' Reset data for remote '''
+    remotes[remote_id or bs.net.act_id] = deepcopy(defaults)
+
+
 def get(remote_id=None, group=None):
     ''' Retrieve a remote store, or a group in a remote store.
         Returns the store of the active remote if no remote id is provided.

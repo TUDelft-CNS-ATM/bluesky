@@ -1,24 +1,6 @@
 """ BlueSky implementation of signals that can trigger one or more functions
     when a signal is emitted. """
-import inspect
-from dataclasses import dataclass
-
-
-@dataclass(slots=True)
-class Subscriber:
-    ''' Functions that are connected to a Signal are stored as Subscribers. '''
-    func: callable
-    # TODO: add signal to dict in Subscriber
-
-    def notimplemented(self, *args, **kwargs):
-        pass
-
-    @property
-    def valid(self):
-        spec = inspect.signature(self.func)
-        # Check if this is an unbound class/instance method
-        return spec.parameters.get('self') is None and \
-            spec.parameters.get('cls') is None
+from bluesky.core.funcobject import FuncObject
 
 
 class SignalFactory(type):
@@ -73,28 +55,19 @@ class Signal(metaclass=SignalFactory):
     def emit(self, *args, **kwargs):
         """ Trigger the registered functions with passed arguments. """
         for sub in self.subscribers:
-            sub.func(*args, **kwargs)
+            sub(*args, **kwargs)
 
         for sub in self.subtopics.values():
             sub.emit(*args, **kwargs)
 
     def connect(self, func):
         """ Connect a new function to this signal. """
-        if inspect.ismethod(func):
-            if not hasattr(func.__func__, '__subscriber__'):
-                func.__func__.__subscriber__ = Subscriber(func)
-            sub = func.__func__.__subscriber__
-        else:
-            if not hasattr(func, '__subscriber__'):
-                func.__subscriber__ = Subscriber(func)
-            sub = func.__subscriber__
-        self.subscribers.append(sub)
+        self.subscribers.append(FuncObject(func))
 
     def disconnect(self, func):
         """ Disconnect a function from this signal. """
         try:
-            sub = func.__func__.__subscriber__ if inspect.ismethod(func) else func.__subscriber__
-            self.subscribers.remove(sub)
+            self.subscribers.remove(FuncObject(func))
         except AttributeError:
             print(f'Function {func.__name__} is not connected to a signal.')
         except ValueError:
@@ -111,11 +84,8 @@ def subscriber(func=None, topic=''):
         - topic: The topic to subscribe to for this function
     '''
     def deco(func):
-        ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
-            else func
-        
         # Subscribe to topic.
-        Signal(topic or ifunc.__name__.upper()).connect(ifunc)
+        Signal(topic or func.__name__.upper()).connect(func)
 
         # Construct the subscription object, but return the original function
         return func

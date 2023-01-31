@@ -129,6 +129,13 @@ class Poly(glh.RenderObject, layer=-20):
 
     @sharedstate.subscriber(topic='POLY')
     def update_poly_data(self, data):
+        if ctx.action == ctx.action.Reset:
+            # Simulation reset: Clear all entries
+            self.bufdata.clear()
+            self.allpolys.set_vertex_count(0)
+            self.allpfill.set_vertex_count(0)
+            return
+
         # We're either updating a polygon, or deleting it.
         for name in ctx.action_content['polys']:
             # Always delete the old processed data
@@ -142,7 +149,7 @@ class Poly(glh.RenderObject, layer=-20):
                     color = polydata.get('color', palette.polys)
                     self.bufdata[name] = self.genbuffers(shape, coordinates, color)
                 except:
-                    print(polydata.keys())
+                    print("Could not process incoming poly data")
                 
         self.actdata_changed(0, 0, changed_elems=['SHAPE'])
 

@@ -2,7 +2,7 @@
 import numpy as np
 import bluesky as bs
 from bluesky.core import remotestore as rs
-from bluesky.network import sharedstate
+from bluesky.network import sharedstate, context as ctx
 from bluesky.stack import command
 from bluesky import Signal
 from bluesky.ui.qtgl import glhelpers as glh
@@ -99,6 +99,8 @@ class Navdata(glh.RenderObject, layer=-10):
         Signal('state-changed.panzoom').connect(self.panzoom)
 
     def panzoom(self, data, finished=True):
+        if ctx.action is None or ctx.action == ctx.action.Reset:
+            return
         # TODO: need good way to set defaults!!
         if not hasattr(data, 'zoom'):
             data.zoom = 1.0
@@ -117,6 +119,12 @@ class Navdata(glh.RenderObject, layer=-10):
     @sharedstate.subscriber
     def defwpt(self, data):
         ''' Receive custom waypoint data and add to visualisation. '''
+        if ctx.action == ctx.action.Reset:
+            # Simulation reset: Clear all entries
+            self.customwp.set_vertex_count(0)
+            self.ncustwpts = 0
+            return
+
         if data.custwplbl:
             self.customwp.update(lat=np.array(data.custwplat, dtype=np.float32),
                                     lon=np.array(data.custwplon, dtype=np.float32))

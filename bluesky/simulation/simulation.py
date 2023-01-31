@@ -9,6 +9,7 @@ import bluesky as bs
 from bluesky.network import context as ctx
 import bluesky.core as core
 from bluesky.core import plugin, simtime, Signal, Entity
+from bluesky.core.timedfunction import hooks
 from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
 
@@ -76,7 +77,7 @@ class Simulation(Entity):
             # Plot/log the current timestep, and call preupdate functions
             plotter.update()
             datalog.update()
-            simtime.preupdate()
+            hooks.preupdate.trigger()
 
             # Determine interval towards next timestep                
             self.simt, self.simdt = simtime.step(dt_increment)
@@ -86,7 +87,7 @@ class Simulation(Entity):
 
             # Update traffic and other update functions for the next timestep
             bs.traf.update()
-            simtime.update()
+            hooks.update.trigger()
 
     def update(self):
         ''' Perform a simulation update. 
@@ -176,7 +177,7 @@ class Simulation(Entity):
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.ffmode = False
         self.set_dtmult(1.0)
-        simtime.reset()
+        hooks.reset.trigger()
         core.reset()
         bs.navdb.reset()
         bs.traf.reset()

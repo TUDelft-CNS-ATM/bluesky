@@ -10,12 +10,12 @@ from random import randint
 import numpy as np
 
 import bluesky as bs
-from bluesky.core import Entity, timed_function
+from bluesky.core import Entity, Timer
 from bluesky.stack import refdata
 from bluesky.stack.recorder import savecmd
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
-from bluesky.tools.aero import cas2tas, casormach2tas, fpm, kts, ft, g0, Rearth, nm, tas2cas,\
+from bluesky.tools.aero import casormach2tas, fpm, kts, ft, g0, Rearth, nm, tas2cas,\
                          vatmos,  vtas2cas, vtas2mach, vcasormach
 
 
@@ -83,6 +83,9 @@ class Traffic(Entity):
 
         # Default commands issued for an aircraft after creation
         self.crecmdlist = []
+
+        # Manual timer for CD and CR
+        self.asastimer = Timer(name='asas', dt=bs.settings.asas_dt)
 
         with self.settrafarrays():
             # Aircraft Info
@@ -404,11 +407,13 @@ class Traffic(Entity):
 
         #---------- Fly the Aircraft --------------------------
         self.ap.update()  # Autopilot logic
-        self.update_asas()  # Airborne Separation Assurance
-        self.aporasas.update()   # Decide to use autopilot or ASAS for commands
 
-        #---------- Performance Update ------------------------
-        self.perf.update()
+        # Conflict detection and resolution
+        if self.asastimer.readynext():
+            self.cd.update(self, self)
+            self.cr.update(self.cd, self, self)
+
+        self.aporasas.update()   # Decide to use autopilot or ASAS for commands
 
         #---------- Limit commanded speeds based on performance ------------------------------
         self.aporasas.tas, self.aporasas.vs, self.aporasas.alt = \
@@ -428,12 +433,6 @@ class Traffic(Entity):
 
         #---------- Aftermath ---------------------------------
         self.trails.update()
-
-    @timed_function(name='asas', dt=bs.settings.asas_dt, manual=True)
-    def update_asas(self):
-        # Conflict detection and resolution
-        self.cd.update(self, self)
-        self.cr.update(self.cd, self, self)
 
     def update_airspeed(self):
         # Compute horizontal acceleration

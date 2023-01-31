@@ -8,7 +8,7 @@ import numpy as np
 import bluesky as bs
 from bluesky.core import signal, remotestore as rs
 from bluesky.network import context as ctx
-from bluesky.network.subscription import Subscription
+from bluesky.network.subscription import Subscription, subscriber as nwsub
 
 #TODO: trigger voor actnode changed?
 
@@ -33,6 +33,18 @@ class ActionType(Enum):
     Delete = b'D'
     Update = b'U'
     Replace = b'R'
+    Reset = b'X'
+
+
+@nwsub
+def reset(*args):
+    ''' Process incoming RESET events. '''
+    rs.reset(ctx.sender_id)
+    if ctx.sender_id == bs.net.act_id:
+        ctx.action = ActionType.Reset
+        ctx.action_content = None
+        changed.emit(None)
+        ctx.action = None
 
 
 def receive(action, data):
@@ -122,7 +134,7 @@ def subscriber(func=None, *, topic='', actonly=False):
         ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
             else func
 
-        itopic = topic or ifunc.__name__.upper()
+        itopic = (topic or ifunc.__name__).upper()
         # Create a new network subscription if 
         if itopic not in topics:
             # Subscribe to this network topic

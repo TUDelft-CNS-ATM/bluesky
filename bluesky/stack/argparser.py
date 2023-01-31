@@ -109,7 +109,10 @@ class Parameter:
     def canwrap(param):
         ''' Returns True if Parameter can be used to wrap given function parameter.
             Returns False if param is keyword-only. '''
-        return param.kind not in (param.VAR_KEYWORD, param.KEYWORD_ONLY)
+        return (
+            param.kind not in (param.VAR_KEYWORD, param.KEYWORD_ONLY) and
+            param.name not in ('self', 'cls')
+        )
 
 
 class ArgumentError(Exception):
