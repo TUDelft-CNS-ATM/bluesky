@@ -141,11 +141,11 @@ def initbasecmds():
             bs.traf.clrcrecmd,
             "CLRCRECMD will clear CRECMD list of commands a/c creation",
         ],
-        "COLOR": [
-            "COLOR name,color (named color or r,g,b)",
-            "txt,color",
-            bs.scr.color,
-            "Set a custom color for an aircraft or shape",
+        "COLOUR": [
+            "COLOUR name,colour (named colour or r,g,b)",
+            "txt,colour",
+            bs.scr.colour,
+            "Set a custom colour for an aircraft or shape",
 
         ],
         "CRE": [
@@ -323,7 +323,7 @@ def initbasecmds():
             "Pan screen (move view) to a waypoint, direction or aircraft",
         ],
         "PLOT": [
-            "PLOT [x], y [,dt,color,figure]",
+            "PLOT [x], y [,dt,colour,figure]",
             "[word,word,float,txt,int]",
             plotter.plot,
             "Create a graph of variables x versus y.",
@@ -393,7 +393,7 @@ def initbasecmds():
             "Set simulated clock time",
         ],
         "TRAIL": [
-            "TRAIL ON/OFF, [dt] OR TRAIL acid color",
+            "TRAIL ON/OFF, [dt] OR TRAIL acid colour",
             "[acid/bool],[float/txt]",
             bs.traf.trails.setTrails,
             "Toggle aircraft trails on/off",
@@ -429,8 +429,8 @@ def initbasecmds():
         "AIRWAYS": "AIRWAY",
         "BANKLIM": "BANK",
         "CHDIR": "CD",
-        "COL": "COLOR",
-        "COLOUR": "COLOR",
+        "COL": "COLOUR",
+        "COLOR": "COLOUR",
         "CONTINUE": "OP",
         "CREATE": "CRE",
         "CLOSE": "QUIT",

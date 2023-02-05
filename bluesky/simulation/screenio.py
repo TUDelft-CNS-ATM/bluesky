@@ -112,7 +112,7 @@ class ScreenIO:
 
         bs.net.send_event(b'PANZOOM', dict(zoom=zoom, absolute=absolute))
 
-    def color(self, name, r, g, b):
+    def colour(self, name, r, g, b):
         ''' Set custom color for aircraft or shape. '''
         data = dict(color=(r, g, b))
         if name in bs.traf.groups:

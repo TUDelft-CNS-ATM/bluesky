@@ -1153,8 +1153,8 @@ class Screen:
         lat=dist/111319.
         return self.ltopix_eq(lat)
 
-    def color(self, name, r, g, b):
-        ''' Set custom color for aircraft or shape. '''
+    def colour(self, name, r, g, b):
+        ''' Set custom colour for aircraft or shape. '''
         if areafilter.hasArea(name):
             idx = self.objname.index(name)
             self.objcolor[idx] = (r, g, b)

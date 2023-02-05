@@ -50,6 +50,6 @@ class MyVisual(RenderObject, layer=100):
     # - The color argument returns three integer values (r, g, b), which is why the 
     #   starred notation is used here.
     @stack.command
-    def mycolor(self, *color: 'color'):
+    def mycolor(self, *colour: 'colour'):
         ''' Set the color of my example shape. '''
-        self.shape.single_color[1:4] = color
+        self.shape.single_color[1:4] = colour
