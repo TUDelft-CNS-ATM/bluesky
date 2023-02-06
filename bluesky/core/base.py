@@ -153,7 +153,7 @@ class Base:
         # selected class. Explicitly calling a subclass constructor should
         # return an instance of that class
         generator = cls._generator if cls is cls.getbase() else cls
-        instance = object.__new__(generator)
+        instance = super().__new__(generator)
         if cls._selinstance is None and generator is cls.selected():
             cls.select(instance)
 
