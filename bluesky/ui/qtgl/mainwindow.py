@@ -31,7 +31,6 @@ from bluesky.core import Signal, remotestore as rs
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
-from bluesky.ui.qtgl.radarwidget import RadarWidget
 from bluesky.ui.qtgl.infowindow import InfoWindow
 from bluesky.ui.qtgl.settingswindow import SettingsWindow
 # from bluesky.ui.qtgl.nd import ND
@@ -119,7 +118,6 @@ class MainWindow(QMainWindow):
         #    server.
         self.mode = mode
 
-        self.radarwidget = RadarWidget()
         # self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
         self.settingswin = SettingsWindow()
@@ -129,10 +127,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print('Couldnt make docwindow:', e)
         # self.aman = AMANDisplay()
-        gltimer = QTimer(self)
-        gltimer.timeout.connect(self.radarwidget.update)
-        # gltimer.timeout.connect(self.nd.updateGL)
-        gltimer.start(50)
+        
 
         gfxpath = bs.resource(bs.settings.gfx_path)
 
@@ -142,28 +137,52 @@ class MainWindow(QMainWindow):
             app.instance().setWindowIcon(QIcon((gfxpath / 'icon.gif').as_posix()))
 
         uic.loadUi((gfxpath / 'mainwindow.ui').as_posix(), self)
+        gltimer = QTimer(self)
+        gltimer.timeout.connect(self.radarwidget.update)
+        # gltimer.timeout.connect(self.nd.updateGL)
+        gltimer.start(50)
 
+        # Define button stylesheet
+        p = app.instance().style().standardPalette()
+        isdark = (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
+        base = p.color(p.ColorGroup.Active, p.ColorRole.Window)
+        if isdark:
+            fill = base.lighter(120).name()
+            border = base.lighter(150).name()
+            hover = base.lighter(150).name()
+        else:
+            fill = base.name()
+            border = base.darker(120).name()
+            hover = base.darker(120).name()
+        ss = f'background-color: {fill}; border: 0.5px solid "{border}"; '
+        tl = 'border-top-left-radius: 10;'
+        tr = 'border-top-right-radius: 10;'
+        bl = 'border-bottom-left-radius: 10;'
+        br = 'border-bottom-right-radius: 10;'
         # list of buttons to connect to, give icons, and tooltips
         #           the button         the icon      the tooltip    the callback
-        buttons = { self.zoomin :     ['zoomin.svg', 'Zoom in', self.buttonClicked],
-                    self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked],
-                    self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked],
-                    self.panright :   ['panright.svg', 'Pan right', self.buttonClicked],
-                    self.panup :      ['panup.svg', 'Pan up', self.buttonClicked],
-                    self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked],
-                    self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked],
-                    self.op :         ['play.svg', 'Operate', self.buttonClicked],
-                    self.hold :       ['hold.svg', 'Hold', self.buttonClicked],
-                    self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked],
-                    self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked],
-                    self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked],
-                    self.showac :     ['AC.svg', 'Show/hide aircraft', self.buttonClicked],
-                    self.showpz :     ['PZ.svg', 'Show/hide PZ', self.buttonClicked],
-                    self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked],
-                    self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked],
-                    self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked],
-                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked],
-                    self.shownodes :  ['nodes.svg', 'Show/hide node list', self.buttonClicked]}
+        buttons = { self.zoomin :     ['zoomin.svg', 'Zoom in', self.buttonClicked, ss],
+                    self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked, ss],
+                    self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked, ss],
+                    self.panright :   ['panright.svg', 'Pan right', self.buttonClicked, ss],
+                    self.panup :      ['panup.svg', 'Pan up', self.buttonClicked, ss],
+                    self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked, ss],
+
+                    self.op :         ['play.svg', 'Operate', self.buttonClicked, ss + tl],
+                    self.hold :       ['hold.svg', 'Hold', self.buttonClicked, ss + tr],
+                    self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked, ss],
+                    self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked, ss],
+                    self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked, ss + bl],
+                    self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked, ss + br],
+
+                    self.showac :     ['AC.svg', 'Show/hide aircraft', self.buttonClicked, ss + tl],
+                    self.showpz :     ['PZ.svg', 'Show/hide PZ', self.buttonClicked, ss + tr],
+                    self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked, ss],
+                    self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked, ss],
+                    self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked, ss + bl],
+                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked, ss + br]}#,
+                    #self.shownodes :  ['nodes.svg', 'Show/hide node list', self.buttonClicked]}#,
+                    # self.showdata :   ['nodes.svg', 'Show/hide data views', self.buttonClicked]}
 
         for b in buttons.items():
             # Set icon
@@ -175,6 +194,8 @@ class MainWindow(QMainWindow):
                 b[0].setToolTip(b[1][1])
             # Connect clicked signal
             b[0].clicked.connect(b[1][2])
+            if len(b[1]) > 3:
+                b[0].setStyleSheet('QToolButton {' + b[1][3] + '} QToolButton:hover {' + f'background-color: {hover}' + '}')
 
         # If multiple scenario paths exist, add 'Open From' menu
         scenresource = bs.resource('scenario')
@@ -193,16 +214,17 @@ class MainWindow(QMainWindow):
         self.actionBlueSky_help.triggered.connect(self.show_doc_window)
         self.actionSettings.triggered.connect(self.settingswin.show)
 
-        self.radarwidget.setParent(self.centralwidget)
-        self.verticalLayout.insertWidget(0, self.radarwidget, 1)
+        # self.radarwidget.setParent(self.centralwidget)
+        # self.verticalLayout.insertWidget(0, self.radarwidget, 1)
+        # self.mainLayout.insertWidget(0, self.radarwidget, 1)
         # Connect to io client's nodelist changed signal
         bs.net.nodes_changed.connect(self.nodesChanged)
-        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        # bs.net.actnodedata_changed.connect(self.actnodedataChanged)
         bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
         bs.net.signal_quit.connect(self.closeEvent)
         Signal('SHOWDIALOG').connect(self.on_showdialog_received)
 
-        self.nodetree.setVisible(False)
+        # self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
         self.nodetree.setStyleSheet('padding:0px')
@@ -213,6 +235,9 @@ class MainWindow(QMainWindow):
         self.servers = dict()
         self.nodes = dict()
         self.actnode = ''
+
+        self.splitter.setSizes([1, 0])
+        self.splitter_2.setSizes([1, 0])
 
         fgcolor = '#%02x%02x%02x' % fg
         bgcolor = '#%02x%02x%02x' % bg
@@ -338,10 +363,14 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def buttonClicked(self):
-        if self.sender() == self.shownodes:
-            vis = not self.nodetree.isVisible()
-            self.nodetree.setVisible(vis)
-            self.shownodes.setText('>' if vis else '<')
+        # if self.sender() == self.shownodes:
+        #     vis = not self.nodetree.isVisible()
+        #     self.nodetree.setVisible(vis)
+        #     self.shownodes.setArrowType(Qt.ArrowType.RightArrow if vis else Qt.ArrowType.LeftArrow)
+        # elif self.sender() == self.showdata:
+        #     vis = not self.databox.isVisible()
+        #     self.databox.setVisible(vis)
+        #     self.showdata.setArrowType(Qt.ArrowType.RightArrow if vis else Qt.ArrowType.LeftArrow)
         if self.sender() == self.zoomin:
             self.radarwidget.panzoom(zoom=1.4142135623730951, absolute=False)
         elif self.sender() == self.zoomout:
