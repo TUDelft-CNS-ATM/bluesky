@@ -261,7 +261,7 @@ class PandirArg(Parser):
 
 
 class ColorArg(Parser):
-    ''' Parse colour cargument. '''
+    ''' Parse colour argument. '''
     def parse(self, argstring):
         arg, argstring = re_getarg.match(argstring).groups()
         try:
