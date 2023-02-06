@@ -14,17 +14,12 @@ from bluesky.ui import palette
 import bluesky as bs
 
 
-class AreaModel(QAbstractListModel):
+class AreaModel(Base, QAbstractListModel):
+    polys: dict = rs.ActData(group='poly')
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.polynames = list()
-        self.polydata = list()
-
-    def reset(self):
-        ''' Clear all data in model. '''
-        self.beginResetModel()
-        # self.items.clear()
-        self.endResetModel()
 
     def rowCount(self, parent=QModelIndex()):
         return len(self.polynames)
@@ -32,28 +27,35 @@ class AreaModel(QAbstractListModel):
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
             # if role == Qt.ItemDataRole.DisplayRole:
-            return QVariant((self.polynames[index.row()], self.polydata[index.row()]))
+            name = self.polynames[index.row()]
+            return QVariant((name, self.polys[name]))
         return QVariant()
-
-    def append(self, items):
-        polydata = items.get('polys', dict())
-        polydata = {k:v for k, v in polydata.items() if k not in self.polynames}
-        if polydata:
-            self.beginInsertRows(QModelIndex(), len(self.polynames), len(self.polynames) + len(polydata) - 1)
-            self.polynames.extend(list(polydata.keys()))
-            self.polydata.extend(list(polydata.values()))
-            self.endInsertRows()
 
     def itemsRemoved(self, items):
         # remove items from the list
         pass
 
+    @sharedstate.subscriber(topic='POLY')
+    def on_poly_update(self, data):
+        if ctx.action in (ctx.action.ActChange, ctx.action.Reset):
+            # Notify the gui that the entire list needs to be updated
+            self.beginResetModel()
+            self.polynames = list(self.polys)
+            self.endResetModel()
 
-class AreaList(Base, QListView):
-    model: AreaModel = rs.ActData(group='arealist')
+        elif ctx.action in (ctx.action.Append, ctx.action.Update):
+            newpolys = ctx.action_content.get('polys', dict())
+            newpolys = [name for name in newpolys if name not in self.polynames]
+            if newpolys:
+                self.beginInsertRows(QModelIndex(), len(self.polynames), len(self.polynames) + len(newpolys) - 1)
+                self.polynames.extend(newpolys)
+                self.endInsertRows()
 
+
+class AreaList(QListView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setModel(AreaModel())
         self.setBackgroundRole(QPalette.ColorRole.NoRole)
         self.setAutoFillBackground(True)
         self.setStyleSheet('background-color: transparent')
@@ -62,9 +64,6 @@ class AreaList(Base, QListView):
         self.setSpacing(3)
         self.setSelectionMode(QListView.SelectionMode.SingleSelection)
         self.setSelectionBehavior(QListView.SelectionBehavior.SelectRows)
-
-    def setModel(self, model):
-        super().setModel(model)
         self.selectionModel().selectionChanged.connect(
                 self.on_change_selection
         )
@@ -83,19 +82,6 @@ class AreaList(Base, QListView):
         lonrange = (lonrange[1] - lonrange[0]) * flat_earth
         zoom = 1 / (max(latrange, lonrange))
         bs.stack.stack(f'PAN {pan[0]} {pan[1]};ZOOM {zoom}')
-
-    @sharedstate.subscriber(topic='POLY')
-    def on_poly_update(self, data):
-        listmodel: AreaModel = rs.get(ctx.sender_id, 'arealist').model
-        if (ctx.action == ctx.action.ActChange or
-            ctx.action == ctx.action.Reset and ctx.sender_id == bs.net.act_id):
-            # On reset a new model is created, and on actchange the model
-            # needs to be switched
-            self.setModel(listmodel)
-
-        elif ctx.action in (ctx.action.Append, ctx.action.Update):
-            listmodel.append(ctx.action_content)
-            
 
 
 class AreaItem(QStyledItemDelegate):
@@ -157,56 +143,4 @@ class AreaItem(QStyledItemDelegate):
         """ Returns the size needed to display the item in a QSize object. """
         # index.data()
         return QSize(200, 45)
-        # else:
-        #     return QStyledItemDelegate.sizeHint(self, option, index)
 
-
-
-# try:
-#     from PyQt5.QtWidgets import QVBoxLayout, QLabel, QSizePolicy, QWidget
-# except ImportError:
-#     from PyQt6.QtWidgets import QVBoxLayout, QLabel, QSizePolicy, QWidget
-
-# from bluesky.network import sharedstate, context as ctx
-# from bluesky.ui import palette
-
-
-# class AreaList(QWidget):
-#     instance = None
-#     areas = dict()
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         AreaList.instance = self
-#         self.layout = QVBoxLayout(self)
-#         self.setLayout(self.layout)
-
-#     @staticmethod
-#     @sharedstate.subscriber(topic='POLY')
-#     def on_poly_update(data):
-#         if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
-#             # Simulation reset: Clear all entries
-#             while AreaList.areas:
-#                 AreaList.instance.layout.removeWidget(AreaList.areas.popitem()[1])
-#             return
-#         if ctx.action == ctx.action.ActChange:
-#             print('Active node change detected by AreaList')
-#         changed = ctx.action_content.get('polys')
-
-#         for name in changed:
-#             pdata = data.polys.get(name)
-#             area = AreaList.areas.get(name)
-#             if area and not pdata:
-#                 # Deleted area
-#                 AreaList.instance.layout.removeWidget(area)
-
-#             if area is None:
-#                 area = QLabel(AreaList.instance)
-#                 p = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-#                 area.setSizePolicy(p)
-#                 area.setMinimumHeight(60)
-#                 AreaList.instance.layout.addWidget(area)
-#                 AreaList.areas[name] = area
-#             color = '#' + ''.join([f'{c:02x}' for c in pdata.get('color', palette.polys)])
-#             area.setStyleSheet(f'background-color: white; border: 1px solid "{color}"; border-left-width: 8px solid "{color}"; color: black')
-#             area.setText(f"<b>ID:</b> {name}<br><b>Class:</b>{pdata['shape']}")
