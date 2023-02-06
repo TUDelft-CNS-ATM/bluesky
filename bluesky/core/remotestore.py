@@ -5,21 +5,32 @@ from types import SimpleNamespace
 from numbers import Number
 from copy import deepcopy
 from collections import defaultdict
+from functools import partial
 
 import bluesky as bs
+
+
+def _genstore():
+    store = deepcopy(defaults)
+    for g in generators:
+        g(store)
+    return store
 
 
 # Keep track of default attribute values of mutable type.
 # These always need to be stored per remote node.
 defaults = SimpleNamespace()
+# In some cases (such as for non-copyable types) a generator is specified
+# instead of a default value
+generators = list()
 
 # Keep a dict of remote state storage namespaces
-remotes = defaultdict(lambda: deepcopy(defaults))
+remotes = defaultdict(_genstore)
 
 
 def reset(remote_id=None):
     ''' Reset data for remote '''
-    remotes[remote_id or bs.net.act_id] = deepcopy(defaults)
+    remotes[remote_id or bs.net.act_id] = _genstore()
 
 
 def get(remote_id=None, group=None):
@@ -48,6 +59,8 @@ def setdefault(name, default, group=None):
 
 def addgroup(name):
     ''' Add a storage group to each remote data store. '''
+    if hasattr(defaults, name):
+        return
     # Add store to the defaults
     setattr(defaults, name, SimpleNamespace())
 
@@ -56,25 +69,51 @@ def addgroup(name):
         setattr(remote, name, SimpleNamespace())
 
 
+def _generator(store, name, objtype, args, kwargs, group=None):
+    setattr(getattr(store, group) if group else store, name, objtype(*args, **kwargs))
+
+
 class ActData:
     ''' Access data from the active remote as if it is a member variable. '''
     __slots__ = ('default', 'name', 'group')
 
-    def __init__(self, default, group=None):
-        self.default = default
+    def __init__(self, *args, group=None, **kwargs):
+        self.default = (args, kwargs)
         self.name = ''
         self.group = group
 
     def __set_name__(self, owner, name):
         self.name = name
+        args, kwargs = self.default
+        # Retrieve annotated object type if present
+        objtype = owner.__annotations__.get(name)
+        if objtype:
+            self.default = objtype(*args, **kwargs)
+        elif len(args) != 1:
+            raise AttributeError('A default value and/or a type annotation should be provided with ActData')
+        else:
+            self.default = args[0]
+
         # If underlying datatype is mutable, always immediately
         # store per remote node
         if not isinstance(self.default, (str, tuple, Number, frozenset, bytes)):
-            setdefault(name, self.default, self.group)
+            # If an annotated object type is specified create a generator for it
+            if objtype:                
+                generators.append(partial(_generator, name=name, objtype=objtype, args=args, kwargs=kwargs, group=self.group))
+                # Add group if it doesn't exist yet
+                if self.group is not None:
+                    addgroup(self.group)
 
-            # In case remote data already exists, update stores
-            for remote_id in remotes.keys():
-                setvalue(name, deepcopy(self.default), remote_id, self.group)
+                # In case remote data already exists, update stores
+                for remote_id in remotes.keys():
+                    setvalue(name, objtype(*args, **kwargs), remote_id, self.group)
+            # Otherwise assume deepcopy can be used to generate initial values per remote
+            else:
+                setdefault(name, self.default, self.group)
+
+                # In case remote data already exists, update stores
+                for remote_id in remotes.keys():
+                    setvalue(name, deepcopy(self.default), remote_id, self.group)
 
     def __get__(self, obj, objtype=None):
         ''' Return the actual value for the currently active node. '''
