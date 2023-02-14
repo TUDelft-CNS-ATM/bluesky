@@ -151,7 +151,7 @@ class Autopilot(Entity, replaceable=True):
             bs.traf.actwp.spd[i]    = bs.traf.actwp.nextspd[i]
             bs.traf.actwp.spdcon[i] = bs.traf.actwp.nextspd[i]
 
-            # Execute stack commands for the still active waypoint, which we pass
+            # Execute stack commands for the still active waypoint, which we pass now
             self.route[i].runactwpstack()
 
             # Get next wp, if there still is one

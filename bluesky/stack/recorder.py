@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 
 import bluesky as bs
-from bluesky.tools.aero import kts, ft, fpm, tas2cas, density
+from bluesky.tools.aero import kts, ft, fpm, tas2cas, density,casormach2tas
 from bluesky.tools.misc import tim2txt
 from bluesky.stack.cmdparser import command, commandgroup
 
@@ -75,22 +75,23 @@ def saveic(filename: 'word' = ''):
 
         f.write(timtxt + cmdline + "\n")
 
-        # VS acid,vs
-        if abs(bs.traf.vs[i]) > 0.05:  # 10 fpm dead band
-            if abs(bs.traf.ap.vs[i]) > 0.05:
-                vs_ = bs.traf.ap.vs[i] / fpm
-            else:
-                vs_ = bs.traf.vs[i] / fpm
-
-            cmdline = f'VS {bs.traf.id[i]},{vs_}'
-            f.write(timtxt + cmdline + "\n")
 
         # Autopilot commands
-        # Altitude
+        # Altitude & VS
         if abs(bs.traf.alt[i] - bs.traf.ap.alt[i]) > 10.0:
             cmdline = "ALT " + bs.traf.id[i] + \
                 "," + repr(bs.traf.ap.alt[i] / ft)
             f.write(timtxt + cmdline + "\n")
+
+            # VS acid,vs
+            if abs(bs.traf.vs[i]) > 0.05:  # 10 fpm dead band
+                if abs(bs.traf.ap.vs[i]) > 0.05:
+                    vs_ = bs.traf.ap.vs[i] / fpm
+                else:
+                    vs_ = bs.traf.vs[i] / fpm
+
+                cmdline = f'VS {bs.traf.id[i]},{vs_}'
+                f.write(timtxt + cmdline + "\n")
 
         # Heading as well when heading select
         delhdg = (bs.traf.hdg[i] - bs.traf.ap.trk[i] + 180.0) % 360.0 - 180.0
@@ -98,14 +99,18 @@ def saveic(filename: 'word' = ''):
             cmdline = "HDG " + bs.traf.id[i] + "," + repr(bs.traf.ap.trk[i])
             f.write(timtxt + cmdline + "\n")
 
-        # Speed select? => Record
-        rho = density(bs.traf.alt[i])  # alt in m!
-        aptas = math.sqrt(1.225 / rho) * bs.traf.ap.spd[i]
+        # Speed select mode? => Record a speed command
+        aptas = casormach2tas(bs.traf.selspd[i],bs.traf.ap.spd[i])
         delspd = aptas - bs.traf.tas[i]
 
-        if abs(delspd) > 0.4:
+        if abs(delspd) > 0.5*kts: # difference equal more than 1 knot (rounded), so 0.5* 0.514444 m/s
+            if not(0.001<bs.traf.selspd[i]<1.0): # Check for Mach
+                spdcmd = round(bs.traf.selspd[i]/kts,2)
+            else:
+                spdcmd = bs.traf.selspd[i]
+
             cmdline = "SPD " + bs.traf.id[i] + \
-                "," + repr(bs.traf.ap.spd[i] / kts)
+                "," + repr(spdcmd)
             f.write(timtxt + cmdline + "\n")
 
         # DEST acid,dest-apt
