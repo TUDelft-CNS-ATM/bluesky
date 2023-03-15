@@ -2,22 +2,25 @@
 
     This class is used to keep a shared state across client(s) and simulation node(s)
 '''
+from collections import defaultdict
 from enum import Enum
 import numpy as np
+from typing import Dict, Callable, Optional
 
 import bluesky as bs
 from bluesky.core import signal, remotestore as rs
+from bluesky.core.funcobject import FuncObject
+from bluesky.core.timedfunction import timed_function
+from bluesky.core.walltime import Timer
 from bluesky.network import context as ctx
 from bluesky.network.subscription import Subscription, subscriber as nwsub
 
 #TODO: trigger voor actnode changed?
 
 
-# Keep track of the set of subscribed topics
-topics = set()
-
-# Signal to emit whenever a state update is received
-changed = dict()
+# Keep track of the set of subscribed topics. Store signals to emit
+# whenever a state update of each topic is received
+changed: Dict[str, signal.Signal] = dict()
 
 
 class ActionType(Enum):
@@ -34,6 +37,7 @@ class ActionType(Enum):
     Update = b'U'
     Replace = b'R'
     Reset = b'X'
+    ActChange = b'C'
 
 
 @nwsub
@@ -49,6 +53,20 @@ def reset(*args):
         ctx.action = None
 
 
+@signal.subscriber(topic='actnode-changed')
+def on_actnode_changed(act_id):
+    ctx.action = ActionType.ActChange
+    ctx.action_content = None
+    for topic, sig in changed.items():
+            store = rs.get(group=topic.lower())
+            sig.emit(store)
+    ctx.action = None
+
+
+@signal.subscriber(topic='node-added')
+def on_node_added(node_id):
+    bs.net.send('REQUEST', list(changed.keys()), to_group=node_id)
+
 def receive(action, data):
     ''' Retrieve and process state data. '''
     store = rs.get(ctx.sender_id, ctx.topic.lower())
@@ -57,7 +75,7 @@ def receive(action, data):
     ctx.action = ActionType(action)
     ctx.action_content = data
 
-    if action == b'U':
+    if ctx.action == ActionType.Update:
         # Update
         for key, item in data.items():
             container = getattr(store, key, None)
@@ -69,7 +87,7 @@ def receive(action, data):
             else:
                 for idx, value in item.items():
                     container[idx] = value
-    elif action == b'D':
+    elif ctx.action == ActionType.Delete:
         # Delete
         for key, item in data.items():
             container = getattr(store, key, None)
@@ -93,7 +111,7 @@ def receive(action, data):
                 else:
                     container.pop(item, None)
 
-    elif action == b'A':
+    elif ctx.action == ActionType.Append:
         # Append
         # TODO: other types? (ndarray, ...)
         # TODO: first reception is scalar? Allow scalars at all?
@@ -106,7 +124,7 @@ def receive(action, data):
             else:
                 container.append(item)
 
-    elif action == b'R':
+    elif ctx.action == ActionType.Replace:
         # Full replace
         vars(store).update(data)
 
@@ -138,12 +156,14 @@ def subscriber(func=None, *, topic='', actonly=False):
 
         itopic = (topic or ifunc.__name__).upper()
         # Create a new network subscription if 
-        if itopic not in topics:
+        if itopic not in changed:
             # Subscribe to this network topic
             Subscription(itopic, actonly=actonly).connect(receive)
-            topics.add(itopic)
+
             # Add data store default to actdata
             rs.addgroup(itopic.lower())
+
+            # Create the signal to emit whenever data of the active remote changes
             changed[itopic] = signal.Signal(f'state-changed.{itopic.lower()}')
         changed[itopic].connect(ifunc)
         return func
@@ -152,16 +172,113 @@ def subscriber(func=None, *, topic='', actonly=False):
     return deco if func is None else deco(func)
 
 def send_update(topic, to_group='', **data):
-    bs.net.send(topic, [b'U', data], to_group)
+    bs.net.send(topic, [ActionType.Update.value, data], to_group)
 
 
 def send_delete(topic, to_group='', **keys):
-    bs.net.send(topic, [b'D', keys], to_group)
+    bs.net.send(topic, [ActionType.Delete.value, keys], to_group)
 
 
 def send_append(topic, to_group='', **data):
-    bs.net.send(topic, [b'A', data], to_group)
+    bs.net.send(topic, [ActionType.Append.value, data], to_group)
 
 
 def send_replace(topic, to_group='', **data):
-    bs.net.send(topic, [b'R', data], to_group)
+    bs.net.send(topic, [ActionType.Replace.value, data], to_group)
+
+
+class PublisherMeta(type):
+    __publishers__ = dict()
+    __timers__ = dict()
+
+    def __call__(cls, topic: str, dt=None, collect=False):
+        pub = PublisherMeta.__publishers__.get(topic)
+        if pub is None:
+            pub = PublisherMeta.__publishers__[topic] = super().__call__(topic, dt, collect)
+            # If dt is specified, also create a timer
+            if dt is not None:
+                if dt not in PublisherMeta.__timers__:
+                    timer = PublisherMeta.__timers__[dt] = Timer(dt)
+                else:
+                    timer = PublisherMeta.__timers__[dt]
+                timer.timeout.connect(pub.send_replace)
+        return pub
+
+    @nwsub
+    @staticmethod
+    def request(*topics):
+        for pub in (p for p in map(PublisherMeta.__publishers__.get, topics) if p is not None):
+            pub.send_replace(to_group=ctx.sender_id)
+
+
+class Publisher(metaclass=PublisherMeta):
+    __collect__ = defaultdict(list)
+
+    @classmethod
+    def collect(cls, topic: str, payload: list, to_group: str=''):
+        if payload[0] == ActionType.Replace:
+            cls.__collect__[(topic, to_group)] = payload
+            return
+        store = cls.__collect__[(topic, to_group)]
+        if not store or store[-2] not in (payload[0], ActionType.Replace.value):
+            store.extend(payload)
+        elif payload[0] == ActionType.Update.value:
+            rec_update(store[1], payload[1])
+        elif payload[0] == ActionType.Append.value:
+            for key, item in payload[1].items():
+                pass
+
+    @staticmethod
+    @timed_function(hook='update')
+    def send_collected():
+        while Publisher.__collect__:
+            (topic, to_group), payload = Publisher.__collect__.popitem()
+            bs.net.send(topic, payload, to_group)
+
+    def __init__(self, topic: str, dt=None, collect=False) -> None:
+        self.topic = topic
+        self.dt = dt
+        self.collects = collect
+
+
+    def send_update(self, to_group=b'', **data):
+        if data:
+            if self.collects:
+                self.collect(self.topic, [ActionType.Update.value, data], to_group)
+            else:
+                bs.net.send(self.topic, [ActionType.Update.value, data], to_group)
+
+
+    def send_delete(self, to_group=b'', **keys):
+        if keys:
+            bs.net.send(self.topic, [ActionType.Delete.value, keys], to_group)
+
+
+    def send_append(self, to_group=b'', **data):
+        if data:
+            bs.net.send(self.topic, [ActionType.Append.value, data], to_group)
+
+
+    def send_replace(self, to_group=b'', **data):
+        data = data or self.get_payload()
+        if data:
+            bs.net.send(self.topic, [ActionType.Replace.value, data], to_group)
+
+    def payload(self, func: Callable):
+        ''' Decorator method to specify payload getter for this Publisher. '''
+        self.get_payload = FuncObject(func)
+        return func
+
+
+# Publisher decorator?
+def publisher(func: Optional[Callable] = None, *, topic='', dt=None):
+    def deco(func):
+        ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
+            else func
+        itopic = (topic or ifunc.__name__).upper()
+
+        Publisher(itopic, dt).payload(func)
+        return func
+
+    # Allow both @publisher and @publisher(args)
+    return deco if func is None else deco(func)

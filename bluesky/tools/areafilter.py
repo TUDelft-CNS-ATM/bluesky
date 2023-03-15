@@ -30,10 +30,18 @@ except (ImportError, OSError):
 import bluesky as bs
 from bluesky.stack import commandgroup
 from bluesky.tools.geo import kwikdist
+from bluesky.network.sharedstate import Publisher
 
 
 # Dictionary of all basic shapes (The shape classes defined in this file) by name
 basic_shapes = dict()
+# Publisher object to manage publishing of states to clients
+polypub = Publisher('POLY', collect=True)
+
+
+@polypub.payload
+def puball():
+    return dict(polys={name: poly.raw for name, poly in basic_shapes.items()})
 
 
 @commandgroup(annotations='txt,color')
@@ -42,7 +50,7 @@ def color(name, r, g, b):
     poly = basic_shapes.get(name)
     if poly:
         poly.color = (r, g, b)
-        bs.scr.objappend(name, color=(r, g, b))
+        polypub.send_update(polys={name:dict(color=poly.color)})
         return True
     return False, 'No shape found with name ' + name
 
@@ -74,8 +82,8 @@ def defineArea(name, shape, coordinates, top=1e9, bottom=-1e9):
     elif shape == 'LINE':
         basic_shapes[name] = Line(name, coordinates)
 
-    # Pass the shape on to the screen object
-    bs.scr.objappend(name, shape=shape, coordinates=coordinates)
+    # Pass the shape on to the connected clients
+    polypub.send_update(polys={name:dict(shape=shape, coordinates=coordinates)})
 
     return True, f'Created {shape} {name}'
 
@@ -93,6 +101,7 @@ def deleteArea(areaname):
     if areaname in basic_shapes:
         basic_shapes.pop(areaname)
         bs.scr.objappend('', areaname, None)
+        polypub.send_delete(polys=[areaname])
 
 def reset():
     """ Clear all data. """

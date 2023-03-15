@@ -10,19 +10,22 @@ from bluesky.tools import aero
 from bluesky.core.walltime import Timer
 from bluesky.network import subscriber, context as ctx
 
-import bluesky.network.sharedstate as sharedstate
+import bluesky.network.sharedstate as ss
+
+# =========================================================================
+# Settings
+# =========================================================================
+# Update rate of simulation info messages [Hz]
+SIMINFO_RATE = 1
+
+# Update rate of aircraft update messages [Hz]
+ACUPDATE_RATE = 5
+
 
 class ScreenIO(Entity):
     """Class within sim task which sends/receives data to/from GUI task"""
 
-    # =========================================================================
-    # Settings
-    # =========================================================================
-    # Update rate of simulation info messages [Hz]
-    siminfo_rate = 1
-
-    # Update rate of aircraft update messages [Hz]
-    acupdate_rate = 5
+    pub_panzoom = ss.Publisher('PANZOOM')
 
     # =========================================================================
     # Functions
@@ -49,15 +52,9 @@ class ScreenIO(Entity):
         self.prevcount   = 0
 
         # Output event timers
-        self.slow_timer = Timer()
+        self.slow_timer = Timer(1000 // SIMINFO_RATE)
         self.slow_timer.timeout.connect(self.send_siminfo)
         self.slow_timer.timeout.connect(self.send_route_data)
-        self.slow_timer.timeout.connect(self.send_trails)
-        self.slow_timer.start(int(1000 / self.siminfo_rate))
-
-        self.fast_timer = Timer()
-        self.fast_timer.timeout.connect(self.send_aircraft_data)
-        self.fast_timer.start(int(1000 / self.acupdate_rate))
 
     def update(self):
         if bs.sim.state == bs.OP:
@@ -103,6 +100,10 @@ class ScreenIO(Entity):
         lon1 = lon + 1.0 / (zoom * np.cos(np.radians(lat)))
         return lat0, lat1, lon0, lon1
 
+    @pub_panzoom.payload
+    def senddefault(self):
+        return dict(pan=self.def_pan, zoom=self.def_zoom)
+
     def zoom(self, zoom, absolute=True):
         sender    = stack.sender()
         if sender:
@@ -115,7 +116,7 @@ class ScreenIO(Entity):
             self.def_zoom = zoom
             self.client_zoom.clear()
 
-        sharedstate.send_replace('PANZOOM', zoom=zoom)
+        self.pub_panzoom.send_replace(zoom=zoom)
 
     def pan(self, *args):
         ''' Move center of display, relative of to absolute position lat,lon '''
@@ -149,7 +150,7 @@ class ScreenIO(Entity):
             self.def_pan = (lat,lon)
             self.client_pan.clear()
 
-        sharedstate.send_replace('PANZOOM', pan=[lat,lon])
+        self.pub_panzoom.send_replace(pan=[lat,lon])
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
@@ -162,7 +163,7 @@ class ScreenIO(Entity):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        sharedstate.send_append('DEFWPT', 
+        ss.send_append('DEFWPT', 
             custwplbl=name, custwplat=lat, custwplon=lon)
         return True
 
@@ -172,17 +173,6 @@ class ScreenIO(Entity):
 
     def show_cmd_doc(self, cmd=''):
         bs.net.send(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
-
-    def objappend(self, name, **kwargs):
-        """Add a drawing object to the radar screen using the following inputs:
-           objtype: "LINE"/"POLY" /"BOX"/"CIRCLE" = string with type of object
-           objname: string with a name as key for reference
-           objdata: lat,lon data, depending on type:
-                    POLY/LINE: lat0,lon0,lat1,lon1,lat2,lon2,....
-                    BOX : lat0,lon0,lat1,lon1   (bounding box coordinates)
-                    CIRCLE: latctr,lonctr,radiusnm  (circle parameters)
-        """
-        sharedstate.send_update('POLY', polys={name: kwargs})
 
     @stack.commandgroup(annotations='txt,color')
     def color(self, name, r, g, b):
@@ -207,11 +197,13 @@ class ScreenIO(Entity):
         t  = time.time()
         dt = np.maximum(t - self.prevtime, 0.00001)  # avoid divide by 0
         speed = (self.samplecount - self.prevcount) / dt * bs.sim.simdt
-        bs.net.send(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
-            str(bs.sim.utc.replace(microsecond=0)), bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         self.prevtime  = t
         self.prevcount = self.samplecount
+        bs.net.send(b'SIMINFO', (speed, bs.sim.simdt, bs.sim.simt,
+            str(bs.sim.utc.replace(microsecond=0)), bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
+        
 
+    @ss.publisher(topic='TRAILS', dt=1000 // SIMINFO_RATE)
     def send_trails(self):
         # Trails, send only new line segments to be added
         if bs.traf.trails.active and len(bs.traf.trails.newlat0) > 0:
@@ -220,8 +212,9 @@ class ScreenIO(Entity):
                         traillat1=bs.traf.trails.newlat1,
                         traillon1=bs.traf.trails.newlon1)
             bs.traf.trails.clearnew()
-            sharedstate.send_append('TRAILS', **data)
+            return data
 
+    @ss.publisher(topic='ACDATA', dt=1000 // ACUPDATE_RATE)
     def send_aircraft_data(self):
         data = dict()
         data['simt']       = bs.sim.simt
@@ -261,7 +254,7 @@ class ScreenIO(Entity):
         if self.custgrclr:
             data['custgrclr'] = self.custgrclr
 
-        sharedstate.send_replace(b'ACDATA', **data)
+        return data
 
     def send_route_data(self):
         ''' Send route data to client(s) '''
@@ -300,4 +293,4 @@ def _sendrte(sender, acid):
 
         data['wpname'] = route.wpname
 
-    sharedstate.send_replace(b'ROUTEDATA', (sender or b'C'), **data)
+    ss.send_replace(b'ROUTEDATA', (sender or b'C'), **data)
