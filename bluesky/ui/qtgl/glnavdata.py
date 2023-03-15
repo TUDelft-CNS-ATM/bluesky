@@ -119,7 +119,7 @@ class Navdata(glh.RenderObject, layer=-10):
     @sharedstate.subscriber
     def defwpt(self, data):
         ''' Receive custom waypoint data and add to visualisation. '''
-        if ctx.action == ctx.action.Reset:
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
             # Simulation reset: Clear all entries
             self.customwp.set_vertex_count(0)
             self.ncustwpts = 0

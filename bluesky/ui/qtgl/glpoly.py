@@ -25,8 +25,8 @@ class Poly(glh.RenderObject, layer=-20):
 
     # Per remote node attributes
     show_poly = rs.ActData(1)
-    polys = rs.ActData(dict(), group='poly')
-    bufdata = rs.ActData(dict())
+    polys: dict = rs.ActData(group='poly')
+    bufdata: dict = rs.ActData()
 
     @command
     def showpoly(self, flag:int=None):
@@ -52,7 +52,6 @@ class Poly(glh.RenderObject, layer=-20):
 
         bs.Signal('cmdline_stacked').connect(self.cmdline_stacked)
         bs.Signal('radarmouse').connect(self.previewpoly)
-        bs.net.actnodedata_changed.connect(self.actdata_changed)
 
     def create(self):
         # self.polyprev.create(vertex=POLYPREV_SIZE * 8,
@@ -129,15 +128,17 @@ class Poly(glh.RenderObject, layer=-20):
 
     @sharedstate.subscriber(topic='POLY')
     def update_poly_data(self, data):
-        if ctx.action == ctx.action.Reset:
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
             # Simulation reset: Clear all entries
             self.bufdata.clear()
             self.allpolys.set_vertex_count(0)
             self.allpfill.set_vertex_count(0)
-            return
+            names = data.polys.keys()
+        else:
+            names = ctx.action_content['polys'].keys()
 
         # We're either updating a polygon, or deleting it.
-        for name in ctx.action_content['polys']:
+        for name in names:
             # Always delete the old processed data
             self.bufdata.pop(name, None)
 
@@ -151,25 +152,18 @@ class Poly(glh.RenderObject, layer=-20):
                 except:
                     print("Could not process incoming poly data")
                 
-        self.actdata_changed(0, 0, changed_elems=['SHAPE'])
+        if self.bufdata:
+            self.glsurface.makeCurrent()
+            contours, fills, colors = zip(*self.bufdata.values())
+            # Create contour buffer with color
+            self.allpolys.update(vertex=np.concatenate(contours),
+                                    color=np.concatenate(colors))
 
-    def actdata_changed(self, nodeid, nodedata, changed_elems):
-        ''' Update buffers when a different node is selected, or when
-            the data of the current node is updated. '''
-        # Shape data change
-        if 'SHAPE' in changed_elems:
-            if self.bufdata:
-                self.glsurface.makeCurrent()
-                contours, fills, colors = zip(*self.bufdata.values())
-                # Create contour buffer with color
-                self.allpolys.update(vertex=np.concatenate(contours),
-                                     color=np.concatenate(colors))
-
-                # Create fill buffer
-                self.allpfill.update(vertex=np.concatenate(fills))
-            else:
-                self.allpolys.set_vertex_count(0)
-                self.allpfill.set_vertex_count(0)
+            # Create fill buffer
+            self.allpfill.update(vertex=np.concatenate(fills))
+        else:
+            self.allpolys.set_vertex_count(0)
+            self.allpfill.set_vertex_count(0)
 
     @staticmethod
     def genbuffers(shape, coordinates, color=None):

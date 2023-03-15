@@ -85,7 +85,7 @@ class Console(QWidget):
 
         # Connect to the io client's activenode changed signal
         Signal('CMDLINE').connect(self.set_cmdline)
-        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        # bs.net.actnodedata_changed.connect(self.actnodedataChanged)
 
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
@@ -132,23 +132,22 @@ class Console(QWidget):
         if self.command_line == text:
             return
 
-        actdata = bs.net.get_nodedata()
-
         self.command_line = text
         self.cmd, self.args = cmdsplit(self.command_line)
         self.cmd = self.cmd.upper()
 
         hintline = ''
-        cmd = actdata.stacksyn.get(self.cmd, self.cmd)
-        allhints = actdata.stackcmds
-        if allhints:
-            hint = allhints.get(cmd)
-            if hint:
-                if len(self.args) > 0:
-                    hintargs = hint.split(',')
-                    hintline = ' ' + str.join(',', hintargs[len(self.args):])
-                else:
-                    hintline = ' ' + hint
+        # TODO: fix
+        # cmd = actdata.stacksyn.get(self.cmd, self.cmd)
+        # allhints = actdata.stackcmds
+        # if allhints:
+        #     hint = allhints.get(cmd)
+        #     if hint:
+        #         if len(self.args) > 0:
+        #             hintargs = hint.split(',')
+        #             hintline = ' ' + str.join(',', hintargs[len(self.args):])
+        #         else:
+        #             hintline = ' ' + hint
 
         self.lineEdit.set_cmdline(self.command_line, hintline, cursorpos)
 

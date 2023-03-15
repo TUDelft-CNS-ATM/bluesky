@@ -2,7 +2,6 @@
 import numpy as np
 from bluesky.ui.qtgl import glhelpers as glh
 
-import bluesky as bs
 from bluesky.core import remotestore as rs
 from bluesky.stack import command
 from bluesky.tools import geo
@@ -42,6 +41,7 @@ class Traffic(glh.RenderObject, layer=100):
     ssd_ownship = rs.ActData(set())
     altrange = rs.ActData(tuple())
     naircraft = rs.ActData(0)
+    zoom = rs.ActData(1, group='panzoom')
 
     @command
     def showpz(self, flag:bool=None):
@@ -140,8 +140,6 @@ class Traffic(glh.RenderObject, layer=100):
         self.rwaypoints = glh.VertexArrayObject(glh.gl.GL_LINE_LOOP)
         self.traillines = glh.VertexArrayObject(glh.gl.GL_LINES)
 
-        # bs.net.actnodedata_changed.connect(self.actdata_changed)
-
     def create(self):
         ac_size = settings.ac_size
         wpt_size = settings.wpt_size
@@ -206,7 +204,6 @@ class Traffic(glh.RenderObject, layer=100):
     def draw(self):
         ''' Draw all traffic graphics. '''
         # Get data for active node
-        oldact = bs.net.get_nodedata()
         if self.naircraft == 0 or not self.show_traf:
             return
 
@@ -223,7 +220,7 @@ class Traffic(glh.RenderObject, layer=100):
         self.shaderset.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if self.show_pz and oldact.zoom >= 0.15:
+        if self.show_pz and self.zoom >= 0.15:
             self.shaderset.set_vertex_scale_type(
                 self.shaderset.VERTEX_IS_METERS)
             self.protectedzone.draw(n_instances=self.naircraft)
@@ -255,7 +252,7 @@ class Traffic(glh.RenderObject, layer=100):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
-        if ctx.action == ctx.action.Reset:
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
             # Simulation reset: Clear all entries
             self.traillines.set_vertex_count(0)
             return
@@ -274,7 +271,7 @@ class Traffic(glh.RenderObject, layer=100):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
-        if ctx.action == ctx.action.Reset:
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
             # Simulation reset: Clear all entries
             self.route.set_vertex_count(0)
             self.routelbl.n_instances = 0
@@ -333,7 +330,7 @@ class Traffic(glh.RenderObject, layer=100):
         ''' Update GPU buffers with new aircraft simulation data. '''
         if not self.initialized:
             return
-        if ctx.action == ctx.action.Reset:
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
             # Simulation reset: Clear all entries
             self.naircraft = 0
             return
