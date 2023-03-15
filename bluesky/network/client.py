@@ -1,6 +1,8 @@
 from collections import defaultdict
+from typing import Union, Collection
 import zmq
 import msgpack
+
 import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity, Signal
@@ -41,8 +43,10 @@ class Client(Entity):
             sub.subscribe_all()
 
         # Signals
-        self.nodes_changed = Signal('nodes_changed')
-        self.server_discovered = Signal('server_discovered')
+        self.actnode_changed = Signal('actnode-changed')
+        self.node_added = Signal('node-added')
+        self.node_removed = Signal('node-removed')
+        self.server_discovered = Signal('server-discovered')
         self.signal_quit = Signal('quit')
 
         # If no other object is taking care of this, let this client act as screen object as well
@@ -147,28 +151,24 @@ class Client(Entity):
                             if ctx.msg[0][0] == MSG_SUBSCRIBE:
                                 if sequence_idx > 0:
                                     self.nodes.add(sender_id)
-                                    self.nodes_changed.emit(self.nodes, self.servers)
+                                    self.node_added.emit(sender_id)
                                     if not self.act_id:
                                         self.actnode(sender_id)
                                     continue
                                 elif sequence_idx == 0:
                                     self.servers.add(sender_id)
-                                else:
-                                    continue
 
                             elif ctx.msg[0][0] == MSG_UNSUBSCRIBE:
                                 if sequence_idx > 0:
                                     self.nodes.discard(sender_id)
+                                    self.node_removed.emit(sender_id)
                                 elif sequence_idx == 0:
                                     self.servers.discard(sender_id)
-                                else:
-                                    continue
-                            self.nodes_changed.emit(self.nodes, self.servers)
 
         except zmq.ZMQError:
             return False
 
-    def send(self, topic, data='', to_group=''):
+    def send(self, topic: str, data: Union[str, Collection]='', to_group: str=''):
         topic = asbytestr(topic)
         to_group = asbytestr(to_group or stack.sender() or self.act_id or GROUPID_SIM)
         self.sock_send.send_multipart(
@@ -252,14 +252,9 @@ class Client(Entity):
                             self._unsubscribe(topic, self.act_id, to_group)
                         self._subscribe(topic, newact, to_group)
                 self.act_id = newact
-                self.actnode_changed(newact)
+                self.actnode_changed.emit(newact)
 
         return self.act_id
-
-    def actnode_changed(self, newact):
-        ''' Default actnode change handler for Client. Override or monkey-patch this function
-            to implement actual actnode change handling. '''
-        print('Client active node changed.')
 
     def addnodes(self, count=1):
         ''' Tell the server to add 'count' nodes. '''
