@@ -40,7 +40,7 @@ def reset():
     # Notify clients of removal of plots
     notify_ids = {p.to_group for p in plots}
     for to_group in notify_ids:
-        bs.net.send_stream(b'PLOT', dict(reset=True), to_group)
+        bs.net.send(b'PLOT', dict(reset=True), to_group)
     plots.clear()
 
 
