@@ -93,9 +93,9 @@
         <number>0</number>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
-       <widget class="QWidget" name="acpage">
+       <widget class="TrafficList" name="acpage">
         <property name="geometry">
          <rect>
           <x>0</x>
@@ -1415,6 +1415,12 @@
    <class>AreaList</class>
    <extends>QWidget</extends>
    <header>bluesky/ui/qtgl/arealist</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TrafficList</class>
+   <extends>QWidget</extends>
+   <header>bluesky/ui/qtgl/trafficlist</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

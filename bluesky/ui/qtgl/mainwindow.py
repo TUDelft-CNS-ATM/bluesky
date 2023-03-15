@@ -4,7 +4,7 @@ import platform
 
 try:
     from PyQt5.QtWidgets import QApplication as app
-    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
+    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
@@ -12,7 +12,7 @@ try:
     from PyQt5 import uic
 except ImportError:
     from PyQt6.QtWidgets import QApplication as app
-    from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
+    from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
     from PyQt6.QtGui import QPixmap, QIcon
     from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
@@ -218,7 +218,7 @@ class MainWindow(QMainWindow):
         # self.verticalLayout.insertWidget(0, self.radarwidget, 1)
         # self.mainLayout.insertWidget(0, self.radarwidget, 1)
         # Connect to io client's nodelist changed signal
-        bs.net.nodes_changed.connect(self.nodesChanged)
+        bs.net.node_added.connect(self.nodesChanged)
         # bs.net.actnodedata_changed.connect(self.actnodedataChanged)
         bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
         bs.net.signal_quit.connect(self.closeEvent)
@@ -280,6 +280,52 @@ class MainWindow(QMainWindow):
         app.instance().closeAllWindows()
         # return True
 
+    def changeEvent(self, event: QEvent):
+        # Detect dark/light mode switch
+        if event.type() == event.Type.PaletteChange:
+            p = app.instance().style().standardPalette()
+            isdark = (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
+            base = p.color(p.ColorGroup.Active, p.ColorRole.Window)
+            if isdark:
+                fill = base.lighter(120).name()
+                border = base.lighter(150).name()
+                hover = base.lighter(150).name()
+            else:
+                fill = base.name()
+                border = base.darker(120).name()
+                hover = base.darker(120).name()
+            ss = f'background-color: {fill}; border: 0.5px solid "{border}"; '
+            tl = 'border-top-left-radius: 10;'
+            tr = 'border-top-right-radius: 10;'
+            bl = 'border-bottom-left-radius: 10;'
+            br = 'border-bottom-right-radius: 10;'
+            # TODO: remove hackish approach :)
+            buttons = { self.zoomin :     ['zoomin.svg', 'Zoom in', self.buttonClicked, ss],
+                    self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked, ss],
+                    self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked, ss],
+                    self.panright :   ['panright.svg', 'Pan right', self.buttonClicked, ss],
+                    self.panup :      ['panup.svg', 'Pan up', self.buttonClicked, ss],
+                    self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked, ss],
+
+                    self.op :         ['play.svg', 'Operate', self.buttonClicked, ss + tl],
+                    self.hold :       ['hold.svg', 'Hold', self.buttonClicked, ss + tr],
+                    self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked, ss],
+                    self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked, ss],
+                    self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked, ss + bl],
+                    self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked, ss + br],
+
+                    self.showac :     ['AC.svg', 'Show/hide aircraft', self.buttonClicked, ss + tl],
+                    self.showpz :     ['PZ.svg', 'Show/hide PZ', self.buttonClicked, ss + tr],
+                    self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked, ss],
+                    self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked, ss],
+                    self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked, ss + bl],
+                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked, ss + br]}#,
+            for b in buttons.items():
+                b[0].setStyleSheet('QToolButton {' + b[1][3] + '} QToolButton:hover {' + f'background-color: {hover}' + '}')
+            return True
+        return super().changeEvent(event)
+
+
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if nodeid != self.actnode:
             self.actnode = nodeid
@@ -287,47 +333,47 @@ class MainWindow(QMainWindow):
             self.nodelabel.setText(f'<b>Node</b> {node.serv_num}:{node.node_num}')
             self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.SelectionFlag.ClearAndSelect)
 
-    def nodesChanged(self, nodes, servers):
-        for node_id in nodes:
-            if node_id not in self.nodes:
-                server_id = node_id[:-1] + seqidx2id(0)
-                if server_id not in servers:
-                    server_id = b'0'
-                server = self.servers.get(server_id)
-                if not server:
-                    server = QTreeWidgetItem(self.nodetree)
-                    self.maxservnum += 1
-                    server.serv_num = self.maxservnum
-                    server.server_id = server_id
-                    hostname = 'Ungrouped' if server_id == b'0' else 'This computer'
-                    f = server.font(0)
-                    f.setBold(True)
-                    server.setExpanded(True)
-                    if server_id != b'0':
-                        btn = QPushButton(self.nodetree)
-                        btn.server_id = server_id
-                        btn.setText(hostname)
-                        btn.setFlat(True)
-                        btn.setStyleSheet('font-weight:bold')
-                        icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
-                        btn.setIcon(QIcon(icon.as_posix()))
-                        btn.setIconSize(QSize(40 if server_id == b'0' else 24, 16))
-                        btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-                        btn.setMaximumHeight(16)
-                        btn.clicked.connect(self.buttonClicked)
-                        self.nodetree.setItemWidget(server, 0, btn)
-                    else:
-                        self.nodetree.setItemWidget(server, 0, QLabel(hostname))
-                    self.servers[server_id] = server
-                node_num = seqid2idx(node_id[-1])
-                node = QTreeWidgetItem(server)
-                node.setText(0, f'{server.serv_num}:{node_num} <init>')
-                node.setText(1, '00:00:00')
-                node.node_id  = node_id
-                node.node_num = node_num
-                node.serv_num = server.serv_num
+    def nodesChanged(self, node_id):
+        if node_id not in self.nodes:
+            print(node_id, 'added to list')
+            server_id = node_id[:-1] + seqidx2id(0)
+            if server_id not in bs.net.servers:
+                server_id = b'0'
+            server = self.servers.get(server_id)
+            if not server:
+                server = QTreeWidgetItem(self.nodetree)
+                self.maxservnum += 1
+                server.serv_num = self.maxservnum
+                server.server_id = server_id
+                hostname = 'Ungrouped' if server_id == b'0' else 'This computer'
+                f = server.font(0)
+                f.setBold(True)
+                server.setExpanded(True)
+                if server_id != b'0':
+                    btn = QPushButton(self.nodetree)
+                    btn.server_id = server_id
+                    btn.setText(hostname)
+                    btn.setFlat(True)
+                    btn.setStyleSheet('font-weight:bold')
+                    icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
+                    btn.setIcon(QIcon(icon.as_posix()))
+                    btn.setIconSize(QSize(40 if server_id == b'0' else 24, 16))
+                    btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                    btn.setMaximumHeight(16)
+                    btn.clicked.connect(self.buttonClicked)
+                    self.nodetree.setItemWidget(server, 0, btn)
+                else:
+                    self.nodetree.setItemWidget(server, 0, QLabel(hostname))
+                self.servers[server_id] = server
+            node_num = seqid2idx(node_id[-1])
+            node = QTreeWidgetItem(server)
+            node.setText(0, f'{server.serv_num}:{node_num} <init>')
+            node.setText(1, '00:00:00')
+            node.node_id  = node_id
+            node.node_num = node_num
+            node.serv_num = server.serv_num
 
-                self.nodes[node_id] = node
+            self.nodes[node_id] = node
 
     def on_showdialog_received(self, data):
         ''' Processing of events from simulation nodes. '''

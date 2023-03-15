@@ -109,7 +109,7 @@ class SettingsWindow(QWidget):
         self.scrollarea.setWidget(container)
         self.scrollarea.setWidgetResizable(True)
 
-        bs.net.nodes_changed.connect(self.nodesChanged)
+        bs.net.node_added.connect(self.nodesChanged)
 
     def show(self):
         if not self.populated:
@@ -139,32 +139,32 @@ class SettingsWindow(QWidget):
         sim.layout().addWidget(self.nodesettings)
 
 
-    def nodesChanged(self, nodes, servers):
-        for node_id in nodes:
-            server_id = node_id[:-1] + seqidx2id(0)
-            server = self.servers.get(server_id)
-            if not server:
-                server = QTreeWidgetItem(self.nodetree)
-                self.maxservnum += 1
-                server.serv_num = self.maxservnum
-                server.serv_id = server_id
-                server.nodes = [i for i in nodes if i.startswith(server_id[:-1])]
-                hostname = 'This computer'# if serv_id == bs.net.get_hostid() else str(serv_id)
-                f = server.font(0)
-                f.setBold(True)
-                server.setExpanded(True)
-                server.setText(0, hostname)
-                server.setText(1, f'(nodes: {len(server.nodes)})')
-                self.servers[server_id] = server
+    def nodesChanged(self, node_id):
+        server_id = node_id[:-1] + seqidx2id(0)
+        server = self.servers.get(server_id)
+        if not server:
+            server = QTreeWidgetItem(self.nodetree)
+            self.maxservnum += 1
+            server.serv_num = self.maxservnum
+            server.serv_id = server_id
+            server.nodes = [i for i in bs.net.nodes if i.startswith(server_id[:-1])]
+            hostname = 'This computer'# if serv_id == bs.net.get_hostid() else str(serv_id)
+            f = server.font(0)
+            f.setBold(True)
+            server.setExpanded(True)
+            server.setText(0, hostname)
+            server.setText(1, f'(nodes: {len(server.nodes)})')
+            self.servers[server_id] = server
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
         if item in self.servers.values():
             simsettings = dict()
             plugins = list()
-            for node in item.nodes:
-                simsettings.update(bs.net.get_nodedata(node).settings)
-                plugins = bs.net.get_nodedata(node).plugins
+            # TODO: fix
+            # for node in item.nodes:
+            #     simsettings.update(bs.net.get_nodedata(node).settings)
+            #     plugins = bs.net.get_nodedata(node).plugins
 
             # First clear any old items in the node settings layout
             clear_layout(self.nodesettings.layout())
