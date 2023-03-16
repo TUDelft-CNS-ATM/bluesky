@@ -85,7 +85,7 @@ def defineArea(name, shape, coordinates, top=1e9, bottom=-1e9):
     # Pass the shape on to the connected clients
     polypub.send_update(polys={name:dict(shape=shape, coordinates=coordinates)})
 
-    return True, f'Created {shape} {name}'
+    return True  #, f'Created {shape} {name}'
 
 
 def checkInside(areaname, lat, lon, alt):
