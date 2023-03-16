@@ -28,7 +28,9 @@ class AreaModel(Base, QAbstractListModel):
         if index.isValid():
             # if role == Qt.ItemDataRole.DisplayRole:
             name = self.polynames[index.row()]
-            return QVariant((name, self.polys[name]))
+            data = self.polys.get(name)
+            if data:
+                return QVariant((name, self.polys[name]))
         return QVariant()
 
     def itemsRemoved(self, items):

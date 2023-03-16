@@ -40,14 +40,17 @@ class TrafficModel(Base, QAbstractTableModel):
         if orientation == Qt.Orientation.Horizontal:
             return ('ALT', 'TRK', 'CAS')[section]
         else:
-            # TODO: traffic resizing can give read errors if length reduces
-            return self.id[section]
+            # Qt is multi-threaded, so data model size can change during view update
+            return '' if section >= len(self.id) else self.id[section]
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
             # if role == Qt.ItemDataRole.DisplayRole:
             idx = index.row()
             col = index.column()
+            # Qt is multi-threaded, so data model size can change during view update
+            if idx >= len(self.id):
+                return ''
             if col == 0:
                 return f'FL{self.alt[idx] / aero.ft / 100:1.0f}'
             elif col == 1:
