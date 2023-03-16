@@ -40,6 +40,7 @@ class TrafficModel(Base, QAbstractTableModel):
         if orientation == Qt.Orientation.Horizontal:
             return ('ALT', 'TRK', 'CAS')[section]
         else:
+            # TODO: traffic resizing can give read errors if length reduces
             return self.id[section]
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
@@ -54,7 +55,7 @@ class TrafficModel(Base, QAbstractTableModel):
             else:
                 return f'{self.cas[idx] / aero.kts:1.0f}'
 
-    @ss.subscriber(topic='ACDATA', actonly=True)
+    # @ss.subscriber(topic='ACDATA', actonly=True)
     def on_data_update(self, data):
         if len(data.id) == 0:
             self.beginResetModel()
@@ -72,7 +73,7 @@ class TrafficModel(Base, QAbstractTableModel):
 class TrafficList(QTableView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setModel(TrafficModel())
+        # self.setModel(TrafficModel())
         self.setBackgroundRole(QPalette.ColorRole.NoRole)
         self.setAutoFillBackground(True)
         self.setStyleSheet('background-color: transparent')
