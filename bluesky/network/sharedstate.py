@@ -33,6 +33,7 @@ class ActionType(Enum):
         Replace: The full state object is replaced
     '''
     Append = b'A'
+    Extend = b'E'
     Delete = b'D'
     Update = b'U'
     Replace = b'R'
@@ -76,19 +77,16 @@ def receive(action, data):
     ctx.action_content = data
 
     if ctx.action == ActionType.Update:
-        # Update
         for key, item in data.items():
             container = getattr(store, key, None)
             if container is None:
                 setattr(store, key, item)
             elif isinstance(container, dict):
-                # container.update(item)
                 rec_update(container, item)
             else:
                 for idx, value in item.items():
                     container[idx] = value
     elif ctx.action == ActionType.Delete:
-        # Delete
         for key, item in data.items():
             container = getattr(store, key, None)
             if container is None:
@@ -112,20 +110,26 @@ def receive(action, data):
                     container.pop(item, None)
 
     elif ctx.action == ActionType.Append:
-        # Append
         # TODO: other types? (ndarray, ...)
         # TODO: first reception is scalar? Allow scalars at all?
         for key, item in data.items():
             container = getattr(store, key, None)
             if container is None:
-                setattr(store, key, item if isinstance(item, (list, tuple, np.ndarray)) else [item])
-            elif isinstance(item, list):
-                container.extend(item)
+                setattr(store, key, [item])
             else:
                 container.append(item)
 
+    elif ctx.action == ActionType.Extend:
+        # TODO: other types? (ndarray, ...)
+        # TODO: first reception is scalar? Allow scalars at all?
+        for key, item in data.items():
+            container = getattr(store, key, None)
+            if container is None:
+                setattr(store, key, item)
+            else:
+                container.extend(item)
+
     elif ctx.action == ActionType.Replace:
-        # Full replace
         vars(store).update(data)
 
     # Inform subscribers of state update
@@ -182,6 +186,8 @@ def send_delete(topic, to_group='', **keys):
 def send_append(topic, to_group='', **data):
     bs.net.send(topic, [ActionType.Append.value, data], to_group)
 
+def send_extend(topic, to_group='', **data):
+    bs.net.send(topic, [ActionType.Extend.value, data], to_group)
 
 def send_replace(topic, to_group='', **data):
     bs.net.send(topic, [ActionType.Replace.value, data], to_group)
@@ -220,13 +226,19 @@ class Publisher(metaclass=PublisherMeta):
             cls.__collect__[(topic, to_group)] = payload
             return
         store = cls.__collect__[(topic, to_group)]
-        if not store or store[-2] not in (payload[0], ActionType.Replace.value):
+        if not store or store[-2] not in (payload[0], ActionType.Replace.value, ActionType.Extend.value):
+            if payload[0] == ActionType.Append.value:
+                payload[0] = ActionType.Extend.value
+                payload[1] = {k:[v] for k, v in payload[1].items()}
             store.extend(payload)
         elif payload[0] == ActionType.Update.value:
             rec_update(store[1], payload[1])
         elif payload[0] == ActionType.Append.value:
             for key, item in payload[1].items():
-                pass
+                store[1][key].append(item)
+        elif payload[0] == ActionType.Extend.value:
+            for key, item in payload[1].items():
+                store[1][key].extend(item)
 
     @staticmethod
     @timed_function(hook='update')
@@ -240,6 +252,10 @@ class Publisher(metaclass=PublisherMeta):
         self.dt = dt
         self.collects = collect
 
+    @staticmethod
+    def get_payload():
+        ''' Default payload function returns None '''
+        return
 
     def send_update(self, to_group=b'', **data):
         if data:
@@ -256,8 +272,17 @@ class Publisher(metaclass=PublisherMeta):
 
     def send_append(self, to_group=b'', **data):
         if data:
-            bs.net.send(self.topic, [ActionType.Append.value, data], to_group)
+            if self.collects:
+                self.collect(self.topic, [ActionType.Append.value, data], to_group)
+            else:
+                bs.net.send(self.topic, [ActionType.Append.value, data], to_group)
 
+    def send_extend(self, to_group=b'', **data):
+        if data:
+            if self.collects:
+                self.collect(self.topic, [ActionType.Extend.value, data], to_group)
+            else:
+                bs.net.send(self.topic, [ActionType.Extend.value, data], to_group)
 
     def send_replace(self, to_group=b'', **data):
         data = data or self.get_payload()
