@@ -15,21 +15,25 @@ class FuncObject(metaclass=FuncObjectMeta):
         on implementation selectdion for replaceables, and on creation of
         instances.
     '''
-    __slots__ = ['func']
+    __slots__ = ['func', 'callback']
 
     def __init__(self, func) -> None:
-        self.func = func.__func__ if isinstance(func, (staticmethod, classmethod)) else func
+        self.update(func.__func__ if isinstance(func, (staticmethod, classmethod)) else func)
         ufunc = inspect.unwrap(func)
         setattr(getattr(ufunc, '__func__', ufunc), '__func_object__', self)
 
     def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+        return self.callback(*args, **kwargs)
 
     def __repr__(self) -> str:
         return repr(self.func)
 
     def notimplemented(self, *args, **kwargs):
         pass
+
+    def update(self, func):
+        self.func = func
+        self.callback = func if self.valid else self.notimplemented
 
     def info(self):
         msg = ''
@@ -57,6 +61,8 @@ class FuncObject(metaclass=FuncObjectMeta):
 
     @property
     def valid(self):
+        if self.func is None:
+            return False
         spec = inspect.signature(self.func)
         # Check if this is an unbound class/instance method
         return spec.parameters.get('self') is None and \

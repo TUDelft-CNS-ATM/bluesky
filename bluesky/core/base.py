@@ -9,10 +9,12 @@
       - signal subscribers
 '''
 import inspect
+from typing import Dict, Optional, Type, ClassVar
 
+from bluesky.core.funcobject import FuncObject
 
 # Global dictionary of replaceable BlueSky classes
-replaceables = dict()
+replaceables: Dict[str, Type['Base']] = dict()
 
 
 def reset():
@@ -54,6 +56,13 @@ class Base:
           - timed functions
           - signal subscribers
     '''
+    # Class variables that will be set for subclasses
+    _baseimpl: ClassVar[Type['Base']]
+    _default: ClassVar[str]
+    _generator: ClassVar[Type['Base']]
+    _selinstance: ClassVar[Optional['Base']]
+    __func_objects__: ClassVar[Dict[str, FuncObject]]
+
     @classmethod
     def setdefault(cls, name):
         ''' Set a default implementation. '''
@@ -98,7 +107,7 @@ class Base:
 
         for name, fobj in target.__func_objects__.items():
             if not inspect.ismethod(fobj.func):
-                fobj.func = getattr(target, name, fobj.notimplemented)
+                fobj.update(getattr(target, name, None))
 
     @classmethod
     def selected(cls):
@@ -144,7 +153,7 @@ class Base:
                         setattr(ufunc, '__func_object__', fobj)
                     if not inspect.ismethod(fobj.func) and inspect.ismethod(func):
                         # Update callback of function object with first bound method we encounter
-                        fobj.func = func
+                        fobj.update(func)
         return super().__init_subclass__()
 
     def __new__(cls, *args, **kwargs):

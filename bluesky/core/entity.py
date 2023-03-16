@@ -1,5 +1,6 @@
 ''' Entity is a base class for all BlueSky singleton entities. '''
 import inspect
+from typing import Optional
 from bluesky.core.base import Base
 from bluesky.core.trafficarrays import TrafficArrays
 
@@ -72,6 +73,10 @@ class EntityMeta(type):
 
 class Entity(Base, TrafficArrays, metaclass=EntityMeta, skipbase=True):
     ''' Super class for BlueSky singleton entities (such as Traffic, Autopilot, ...). '''
+    # Class variables that will be set for subclasses
+    _proxy: Optional[Proxy]
+    _instance: Optional['Entity']
+
     @classmethod
     def select(cls, instance=None):
         ''' Select this class as generator, and update
