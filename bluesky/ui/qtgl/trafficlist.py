@@ -55,7 +55,7 @@ class TrafficModel(Base, QAbstractTableModel):
             else:
                 return f'{self.cas[idx] / aero.kts:1.0f}'
 
-    # @ss.subscriber(topic='ACDATA', actonly=True)
+    @ss.subscriber(topic='ACDATA', actonly=True)
     def on_data_update(self, data):
         if len(data.id) == 0:
             self.beginResetModel()
