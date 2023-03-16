@@ -26,6 +26,7 @@ class ScreenIO(Entity):
     """Class within sim task which sends/receives data to/from GUI task"""
 
     pub_panzoom = ss.Publisher('PANZOOM')
+    pub_defwpt = ss.Publisher('DEFWPT', collect=True)
 
     # =========================================================================
     # Functions
@@ -163,8 +164,7 @@ class ScreenIO(Entity):
 
     def addnavwpt(self, name, lat, lon):
         ''' Add custom waypoint to visualization '''
-        ss.send_append('DEFWPT', 
-            custwplbl=name, custwplat=lat, custwplon=lon)
+        self.pub_defwpt.send_append(custwplbl=name, custwplat=lat, custwplon=lon)
         return True
 
     def show_file_dialog(self):
