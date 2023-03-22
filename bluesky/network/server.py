@@ -37,7 +37,7 @@ class Server(Thread):
         self.running = True
         self.max_nnodes = min(cpu_count(), bs.settings.max_nnodes)
         self.scenarios = []
-        self.server_id = genid(groupid=GROUPID_SIM)
+        self.server_id = genid(groupid=GROUPID_SIM, seqidx=0)
         self.max_group_idx = 0
         self.nodes = set()
         self.all_nodes = set()

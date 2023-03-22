@@ -17,9 +17,9 @@ bs.settings.set_variable_defaults(recv_port=9000, send_port=9001)
 
 
 class Node(Entity):
-    def __init__(self, group_id=GROUPID_NOGROUP):
-        self.node_id = genid(group_id)
-        self.group_id = asbytestr(group_id)[:len(self.node_id)-1]
+    def __init__(self, group_id=None):
+        self.node_id = genid(group_id or GROUPID_NOGROUP)
+        self.group_id = asbytestr(group_id or GROUPID_NOGROUP)[:len(self.node_id)-1]
         self.server_id = self.node_id[:-1] + seqidx2id(0)
         zmqctx = zmq.Context.instance()
         self.sock_recv = zmqctx.socket(zmq.SUB)
