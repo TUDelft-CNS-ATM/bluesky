@@ -82,7 +82,7 @@ def receive(action, data):
             if container is None:
                 setattr(store, key, item)
             elif isinstance(container, dict):
-                rec_update(container, item)
+                recursive_update(container, item)
             else:
                 for idx, value in item.items():
                     container[idx] = value
@@ -111,7 +111,6 @@ def receive(action, data):
 
     elif ctx.action == ActionType.Append:
         # TODO: other types? (ndarray, ...)
-        # TODO: first reception is scalar? Allow scalars at all?
         for key, item in data.items():
             container = getattr(store, key, None)
             if container is None:
@@ -121,7 +120,6 @@ def receive(action, data):
 
     elif ctx.action == ActionType.Extend:
         # TODO: other types? (ndarray, ...)
-        # TODO: first reception is scalar? Allow scalars at all?
         for key, item in data.items():
             container = getattr(store, key, None)
             if container is None:
@@ -142,12 +140,12 @@ def receive(action, data):
     ctx.action_content = None
 
 
-def rec_update(target, source):
+def recursive_update(target, source):
     for k, v in source.items():
         if isinstance(v, dict):
             inner = target.get(k)
             if inner is not None:
-                rec_update(inner, v)
+                recursive_update(inner, v)
                 continue
         target[k] = v
 
@@ -174,23 +172,6 @@ def subscriber(func=None, *, topic='', actonly=False):
 
     # Allow both @subscriber and @subscriber(args)
     return deco if func is None else deco(func)
-
-def send_update(topic, to_group='', **data):
-    bs.net.send(topic, [ActionType.Update.value, data], to_group)
-
-
-def send_delete(topic, to_group='', **keys):
-    bs.net.send(topic, [ActionType.Delete.value, keys], to_group)
-
-
-def send_append(topic, to_group='', **data):
-    bs.net.send(topic, [ActionType.Append.value, data], to_group)
-
-def send_extend(topic, to_group='', **data):
-    bs.net.send(topic, [ActionType.Extend.value, data], to_group)
-
-def send_replace(topic, to_group='', **data):
-    bs.net.send(topic, [ActionType.Replace.value, data], to_group)
 
 
 class PublisherMeta(type):
@@ -232,7 +213,7 @@ class Publisher(metaclass=PublisherMeta):
                 payload[1] = {k:[v] for k, v in payload[1].items()}
             store.extend(payload)
         elif payload[0] == ActionType.Update.value:
-            rec_update(store[1], payload[1])
+            recursive_update(store[1], payload[1])
         elif payload[0] == ActionType.Append.value:
             for key, item in payload[1].items():
                 store[1][key].append(item)
