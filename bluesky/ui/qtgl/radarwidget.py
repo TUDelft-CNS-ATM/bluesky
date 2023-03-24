@@ -303,7 +303,7 @@ class RadarWidget(glh.RenderWidget):
                         pan = (dlat, dlon)
             if pan is not None or zoom is not None:
                 self.panzoomchanged = True
-                return self.setpanzoom(pan, zoom, self.mousepos, absolute=False, finished=False)
+                return self.setpanzoom(pan, zoom, origin=self.mousepos, absolute=False, finished=False)
 
         elif event.type() == QEvent.Type.MouseButtonPress and event.button() & Qt.MouseButton.LeftButton:
             self.mousedragged = False
