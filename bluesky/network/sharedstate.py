@@ -27,10 +27,13 @@ class ActionType(Enum):
     ''' Shared state action types. 
     
         An incoming shared state update can be of the following types:
-        Append: One or more items are appended to the state
+        Append: An item is appended to the state
+        Extend: Two or more items are appended to the state
         Delete: One or more items are deleted from the state
         Update: One or more items within the state are updated
         Replace: The full state object is replaced
+        Reset: The entire object is reset to its (empty) default
+        ActChange: A new active remote is selected
     '''
     Append = b'A'
     Extend = b'E'
