@@ -77,13 +77,15 @@ class ActData:
     ''' Access data from the active remote as if it is a member variable. '''
     __slots__ = ('default', 'name', 'group')
 
-    def __init__(self, *args, group=None, **kwargs):
+    def __init__(self, *args, name='', group=None, **kwargs):
         self.default = (args, kwargs)
-        self.name = ''
+        self.name = name
         self.group = group
 
     def __set_name__(self, owner, name):
-        self.name = name
+        if not self.name:
+            # Get name from attribute name if not previously specified
+            self.name = name
         args, kwargs = self.default
         # Retrieve annotated object type if present
         objtype = owner.__annotations__.get(name)
