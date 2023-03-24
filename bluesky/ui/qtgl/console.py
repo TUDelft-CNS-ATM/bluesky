@@ -14,7 +14,7 @@ import bluesky as bs
 from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
 from bluesky.core import Signal, remotestore as rs
-from bluesky.network import subscriber, context as ctx
+from bluesky.network import subscriber, context as ctx, sharedstate as ss
 from . import autocomplete
 
 
@@ -67,8 +67,9 @@ class Console(QWidget):
     _instance = None
 
     # Per-remote data
-    echotext = rs.ActData(list())
-    echoflags = rs.ActData(list())
+    echotext: list = rs.ActData()
+    echoflags: list = rs.ActData()
+    cmddict: dict = rs.ActData(group='stackcmds')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -137,17 +138,13 @@ class Console(QWidget):
         self.cmd = self.cmd.upper()
 
         hintline = ''
-        # TODO: fix
-        # cmd = actdata.stacksyn.get(self.cmd, self.cmd)
-        # allhints = actdata.stackcmds
-        # if allhints:
-        #     hint = allhints.get(cmd)
-        #     if hint:
-        #         if len(self.args) > 0:
-        #             hintargs = hint.split(',')
-        #             hintline = ' ' + str.join(',', hintargs[len(self.args):])
-        #         else:
-        #             hintline = ' ' + hint
+        hint = self.cmddict.get(self.cmd)
+        if hint:
+            if len(self.args) > 0:
+                hintargs = hint.split(',')
+                hintline = ' ' + str.join(',', hintargs[len(self.args):])
+            else:
+                hintline = ' ' + hint
 
         self.lineEdit.set_cmdline(self.command_line, hintline, cursorpos)
 
@@ -209,6 +206,11 @@ class Console(QWidget):
 
         # Final processing of the command line
         self.set_cmdline(newcmd, cursorpos)
+
+    @ss.subscriber(topic='STACKCMDS')
+    def on_cmdlist_changed(self, data):
+        # TODO: make directly subscribable from ActData?
+        pass
 
 
 class Word:
