@@ -1,9 +1,6 @@
 ''' BlueSky: The open-source ATM simulator.'''
 from bluesky import settings
-from bluesky.core import Signal
 from bluesky.pathfinder import resource
-from bluesky import stack
-from bluesky import tools
 
 
 # Constants
@@ -68,9 +65,11 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     pathfinder.init(workdir)
 
     # Initialize global settings, possibly loading a custom config file
+    from bluesky import settings
     settings.init(configfile)
 
     # Initialise tools
+    from bluesky import tools
     tools.init()
 
     # Load navdatabase in all versions of BlueSky
