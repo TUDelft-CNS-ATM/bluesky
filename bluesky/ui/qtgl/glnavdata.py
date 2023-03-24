@@ -1,10 +1,9 @@
 ''' BlueSky navdata OpenGL visualisation object. '''
 import numpy as np
 import bluesky as bs
-from bluesky.core import remotestore as rs
+from bluesky.core import Signal, remotestore as rs
 from bluesky.network import sharedstate, context as ctx
 from bluesky.stack import command
-from bluesky import Signal
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky import settings
 from bluesky.ui.loadvisuals import load_aptsurface

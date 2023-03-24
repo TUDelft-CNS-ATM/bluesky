@@ -1,7 +1,6 @@
 ''' BlueSky OpenGL line and polygon (areafilter) drawing. '''
 import numpy as np
-import bluesky as bs
-from bluesky.core import remotestore as rs
+from bluesky.core import Signal, remotestore as rs
 from bluesky.network import sharedstate, context as ctx
 from bluesky.stack import command
 from bluesky.ui import palette
@@ -50,8 +49,8 @@ class Poly(glh.RenderObject, layer=-20):
 
         self.prevmousepos = (0, 0)
 
-        bs.Signal('cmdline_stacked').connect(self.cmdline_stacked)
-        bs.Signal('radarmouse').connect(self.previewpoly)
+        Signal('cmdline_stacked').connect(self.cmdline_stacked)
+        Signal('radarmouse').connect(self.previewpoly)
 
     def create(self):
         # self.polyprev.create(vertex=POLYPREV_SIZE * 8,
