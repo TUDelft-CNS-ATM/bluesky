@@ -3,8 +3,16 @@ import re
 import inspect
 from bluesky.pathfinder import resource
 
+
 # Default config file path
 _cfgfile = 'settings.cfg'
+
+
+def __getattr__(name):
+    raise AttributeError(f'Variable \'{name}\' not found in settings. '
+                         'You should specify a default value with '
+                         'bluesky.settings.set_variable_defaults()'
+                         'to avoid this error.')
 
 
 def init(cfgfile=''):
