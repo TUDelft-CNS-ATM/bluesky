@@ -1,7 +1,10 @@
 ''' BlueSky: The open-source ATM simulator.'''
-from bluesky import settings
+import importlib
+# from bluesky import settings, stack
 from bluesky.pathfinder import resource
 
+
+__all__ = ['settings', 'stack', 'tools']
 
 # Constants
 BS_OK = 0
@@ -115,4 +118,11 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
 
     from bluesky.core import plugin
     plugin.init(mode)
+    from bluesky import stack
     stack.init(mode)
+
+
+def __getattr__(name):
+    if name in __all__:
+        return importlib.import_module(f'.{name}', __name__)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
