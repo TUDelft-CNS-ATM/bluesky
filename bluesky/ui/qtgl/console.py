@@ -86,7 +86,6 @@ class Console(QWidget):
 
         # Connect to the io client's activenode changed signal
         Signal('CMDLINE').connect(self.set_cmdline)
-        # bs.net.actnodedata_changed.connect(self.actnodedataChanged)
 
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
