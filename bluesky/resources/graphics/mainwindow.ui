@@ -54,6 +54,9 @@
          <verstretch>1</verstretch>
         </sizepolicy>
        </property>
+       <property name="focusPolicy">
+        <enum>Qt::WheelFocus</enum>
+       </property>
       </widget>
       <widget class="QToolBox" name="databox">
        <property name="sizePolicy">
@@ -73,6 +76,9 @@
          <width>0</width>
          <height>0</height>
         </size>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::StrongFocus</enum>
        </property>
        <property name="autoFillBackground">
         <bool>true</bool>
@@ -104,6 +110,9 @@
           <height>345</height>
          </rect>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::StrongFocus</enum>
+        </property>
         <attribute name="label">
          <string>Aircraft</string>
         </attribute>
@@ -117,14 +126,28 @@
           <height>345</height>
          </rect>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::WheelFocus</enum>
+        </property>
         <property name="autoFillBackground">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <attribute name="label">
          <string>Areas</string>
         </attribute>
        </widget>
        <widget class="QWidget" name="stackpage">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>200</width>
+          <height>345</height>
+         </rect>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::WheelFocus</enum>
+        </property>
         <attribute name="label">
          <string>Stack</string>
         </attribute>
@@ -186,6 +209,9 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="toolTip">
+         <string>pan left</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -201,6 +227,9 @@
         </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="toolTip">
+         <string>pan right</string>
         </property>
         <property name="text">
          <string>...</string>
@@ -218,6 +247,9 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="toolTip">
+         <string>pan up</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -233,6 +265,9 @@
         </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="toolTip">
+         <string>pan down</string>
         </property>
         <property name="text">
          <string>...</string>
@@ -250,6 +285,9 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="toolTip">
+         <string>zoom in</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -265,6 +303,9 @@
         </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="toolTip">
+         <string>zoom out</string>
         </property>
         <property name="text">
          <string>...</string>
@@ -461,6 +502,9 @@
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
                </property>
+               <property name="toolTip">
+                <string>start simulation</string>
+               </property>
                <property name="text">
                 <string>Op</string>
                </property>
@@ -485,6 +529,9 @@
                </property>
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="toolTip">
+                <string>pause simulation</string>
                </property>
                <property name="text">
                 <string>Hold</string>
@@ -511,6 +558,9 @@
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
                </property>
+               <property name="toolTip">
+                <string>fast forward</string>
+               </property>
                <property name="text">
                 <string>FF</string>
                </property>
@@ -535,6 +585,9 @@
                </property>
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="toolTip">
+                <string>fast forward (10 sec)</string>
                </property>
                <property name="text">
                 <string>FF10</string>
@@ -561,6 +614,9 @@
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
                </property>
+               <property name="toolTip">
+                <string>open scenario file</string>
+               </property>
                <property name="text">
                 <string>IC</string>
                </property>
@@ -585,6 +641,9 @@
                </property>
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="toolTip">
+                <string>open previous scenario</string>
                </property>
                <property name="text">
                 <string>IC IC</string>
@@ -648,6 +707,9 @@
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
                </property>
+               <property name="toolTip">
+                <string>Show/hide aircraft</string>
+               </property>
                <property name="text">
                 <string>AC</string>
                </property>
@@ -672,6 +734,9 @@
                </property>
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="toolTip">
+                <string>Show/hide protected zones</string>
                </property>
                <property name="text">
                 <string>PZ</string>
@@ -698,6 +763,9 @@
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
                </property>
+               <property name="toolTip">
+                <string>Show airports (all/large/off)</string>
+               </property>
                <property name="text">
                 <string>APT</string>
                </property>
@@ -722,6 +790,9 @@
                </property>
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="toolTip">
+                <string>show waypoints (all/navaids/off)</string>
                </property>
                <property name="text">
                 <string>WPT</string>
@@ -748,6 +819,9 @@
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
                </property>
+               <property name="toolTip">
+                <string>Show/hide labels</string>
+               </property>
                <property name="text">
                 <string>LBL</string>
                </property>
@@ -772,6 +846,9 @@
                </property>
                <property name="focusPolicy">
                 <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="toolTip">
+                <string>Toggle sattelite background</string>
                </property>
                <property name="text">
                 <string>MAP</string>
@@ -1425,5 +1502,393 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>op</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>56</x>
+     <y>512</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>124</x>
+     <y>-11</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>hold</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>108</x>
+     <y>522</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>73</x>
+     <y>-72</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>fast</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>69</x>
+     <y>571</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>125</x>
+     <y>-29</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>fast10</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>119</x>
+     <y>570</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>142</x>
+     <y>-69</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ic</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>73</x>
+     <y>610</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>93</x>
+     <y>-7</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sameic</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>114</x>
+     <y>598</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-91</x>
+     <y>578</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>showac</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>76</x>
+     <y>517</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-103</x>
+     <y>479</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>showpz</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>112</x>
+     <y>507</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-133</x>
+     <y>499</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>showapt</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>66</x>
+     <y>556</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-185</x>
+     <y>534</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>showwpt</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>110</x>
+     <y>550</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-14</x>
+     <y>483</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>showlabels</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>67</x>
+     <y>602</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-38</x>
+     <y>472</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>showmap</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>114</x>
+     <y>598</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-31</x>
+     <y>419</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>custom1</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>67</x>
+     <y>512</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-29</x>
+     <y>454</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>custom2</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>107</x>
+     <y>516</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-38</x>
+     <y>391</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>custom3</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>74</x>
+     <y>567</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-55</x>
+     <y>439</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>custom4</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>118</x>
+     <y>560</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-78</x>
+     <y>403</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>custom5</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>74</x>
+     <y>599</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-84</x>
+     <y>332</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>custom6</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>117</x>
+     <y>608</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-78</x>
+     <y>369</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>panleft</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>847</x>
+     <y>486</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1019</x>
+     <y>404</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>panright</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>874</x>
+     <y>486</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>989</x>
+     <y>420</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>panup</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>895</x>
+     <y>481</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>977</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pandown</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>918</x>
+     <y>486</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>994</x>
+     <y>395</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>zoomin</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>932</x>
+     <y>486</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>996</x>
+     <y>361</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>zoomout</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>953</x>
+     <y>488</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>963</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>buttonClicked()</slot>
+ </slots>
 </ui>

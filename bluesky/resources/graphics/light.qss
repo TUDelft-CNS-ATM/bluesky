@@ -1,0 +1,21 @@
+QMainWindow, QToolBox, QWidget {
+    background-color: rgb(245, 245, 245);
+}
+
+QToolButton, QTreeWidget, QTreeWidget QLabel {
+    background-color:white;
+}
+
+Stackwin, Cmdline {
+    color: rgb(0, 81, 255); 
+    background-color: white;
+    border: 0.5px solid rgb(205,205,205);
+}
+
+QToolButton {
+    border: 0.5px solid rgb(205,205,205);
+}
+
+QToolButton:hover {
+    background-color: rgb(235, 235, 235);
+}

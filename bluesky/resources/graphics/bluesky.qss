@@ -1,0 +1,74 @@
+QToolButton#op {
+    border-top-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/play.svg)
+}
+
+QToolButton#hold {
+    border-top-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/hold.svg)
+}
+
+QToolButton#fast {
+    qproperty-icon: url(bluesky/resources/graphics/icons/fwd.svg)
+}
+
+QToolButton#fast10 {
+    qproperty-icon: url(bluesky/resources/graphics/icons/ffwd.svg)
+}
+
+QToolButton#ic {
+    border-bottom-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/stop.svg)
+}
+
+QToolButton#sameic {
+    border-bottom-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/frwd.svg)
+}
+
+QToolButton#showac {
+    border-top-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/AC.svg)
+}
+QToolButton#showpz {
+    border-top-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/PZ.svg)
+}
+QToolButton#showapt{
+    qproperty-icon: url(bluesky/resources/graphics/icons/apt.svg)
+}
+QToolButton#showwpt {
+    qproperty-icon: url(bluesky/resources/graphics/icons/wpt.svg)
+}
+QToolButton#showlabels {
+    border-bottom-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/lbl.svg)
+}
+QToolButton#showmap {
+    border-bottom-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/geo.svg)
+}
+
+QToolButton#custom1 { border-top-left-radius: 10 }
+QToolButton#custom2 { border-top-right-radius: 10 }
+QToolButton#custom5 { border-bottom-left-radius: 10 }
+QToolButton#custom6 { border-bottom-right-radius: 10 }
+
+QToolButton#zoomin {
+    qproperty-icon: url(bluesky/resources/graphics/icons/zoomin.svg)
+}
+QToolButton#zoomout {
+    qproperty-icon: url(bluesky/resources/graphics/icons/zoomout.svg)
+}
+QToolButton#panleft {
+    qproperty-icon: url(bluesky/resources/graphics/icons/panleft.svg)
+}
+QToolButton#panright {
+    qproperty-icon: url(bluesky/resources/graphics/icons/panright.svg)
+}
+QToolButton#panup {
+    qproperty-icon: url(bluesky/resources/graphics/icons/panup.svg)
+}
+QToolButton#pandown {
+    qproperty-icon: url(bluesky/resources/graphics/icons/pandown.svg)
+}
