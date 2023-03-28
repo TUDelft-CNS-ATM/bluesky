@@ -1,16 +1,16 @@
 from functools import partial
 import numpy as np
 
-from PyQt6.QtWidgets import QTableView, QStyledItemDelegate, QStyle, QApplication as app
+from PyQt6.QtWidgets import QListView, QStyledItemDelegate, QStyle, QApplication as app
 from PyQt6.QtGui import QColor, QPalette
-from PyQt6.QtCore import QSize, Qt, QRect, QAbstractTableModel, QModelIndex, Qt, QVariant, QTimer
+from PyQt6.QtCore import QSize, Qt, QRect, QAbstractListModel, QModelIndex, Qt, QVariant, QTimer
 
 from bluesky.core import Base, remotestore as rs
 from bluesky.network import sharedstate as ss
 from bluesky.tools import aero
 
 
-class TrafficModel(Base, QAbstractTableModel):
+class TrafficModel(Base, QAbstractListModel):
     id: list = rs.ActData(group='acdata')
     alt: np.ndarray = rs.ActData(0, group='acdata')
     trk: np.ndarray = rs.ActData(0, group='acdata')
@@ -26,37 +26,24 @@ class TrafficModel(Base, QAbstractTableModel):
 
     def notifyUpdate(self):
         if self.naircraft:
-            self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount(), self.columnCount()))
+            self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount(), 0))
 
     def rowCount(self, parent=QModelIndex()):
         return len(self.id)
-
-    def columnCount(self, parent=QModelIndex()):
-        return 3
-
-    def headerData(self, section, orientation, role):
-        if role != Qt.ItemDataRole.DisplayRole:
-            return None
-        if orientation == Qt.Orientation.Horizontal:
-            return ('ALT', 'TRK', 'CAS')[section]
-        else:
-            # Qt is multi-threaded, so data model size can change during view update
-            return '' if section >= len(self.id) else self.id[section]
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
             # if role == Qt.ItemDataRole.DisplayRole:
             idx = index.row()
-            col = index.column()
             # Qt is multi-threaded, so data model size can change during view update
             if idx >= len(self.id):
-                return ''
-            if col == 0:
-                return f'FL{self.alt[idx] / aero.ft / 100:1.0f}'
-            elif col == 1:
-                return f'{self.trk[idx]:1.0f}'
-            else:
-                return f'{self.cas[idx] / aero.kts:1.0f}'
+                return QVariant()
+            return QVariant((
+                self.id[idx],
+                f'FL{self.alt[idx] / aero.ft / 100:1.0f}',
+                f'{self.trk[idx]:1.0f}',
+                f'{self.cas[idx] / aero.kts:1.0f}'
+            ))
 
     @ss.subscriber(topic='ACDATA', actonly=True)
     def on_data_update(self, data):
@@ -73,15 +60,50 @@ class TrafficModel(Base, QAbstractTableModel):
         self.naircraft = len(data.id)
 
 
-class TrafficList(QTableView):
+class TrafficList(QListView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.setModel(TrafficModel())
+        self.setModel(TrafficModel())
         self.setBackgroundRole(QPalette.ColorRole.NoRole)
         self.setAutoFillBackground(True)
         self.setStyleSheet('background-color: transparent')
-        # self.set
+        self.setItemDelegate(TrafficItem())
     
 
+class TrafficItem(QStyledItemDelegate):
+    """ AreaItem is used to render area items in the area list """
+    def paint(self, painter, option, index):
+        # Determine dark mode
+        p = app.instance().style().standardPalette()
+        isdark = (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
 
+        if isdark:
+            bgcolor = p.color(p.ColorRole.Window).lighter(120)
+            bghover = p.color(p.ColorRole.Window).lighter(140)
+            txtcolor = Qt.GlobalColor.white
+        else:
+            bgcolor = QColor(250, 250, 250, 255)
+            bghover = Qt.GlobalColor.lightGray
+            txtcolor = Qt.GlobalColor.black
+
+        # Get polygon name and data
+        acid, alt, trk, cas = index.data()
+
+        r = QRect(option.rect)
+        r.setLeft(r.left() + 15)
+
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        painter.drawText(r, Qt.AlignmentFlag.AlignLeft, acid)
+        bb = painter.boundingRect(option.rect, Qt.AlignmentFlag.AlignLeft, acid)
+        font.setBold(False)
+        painter.setFont(font)
+        r.setLeft(r.left() + bb.width())
+        painter.drawText(r, Qt.AlignmentFlag.AlignLeft, ' '.join((alt, trk, cas)))
+
+    def sizeHint(self, option, index):
+        """ Returns the size needed to display the item in a QSize object. """
+        # index.data()
+        return QSize(200, 25)
     
