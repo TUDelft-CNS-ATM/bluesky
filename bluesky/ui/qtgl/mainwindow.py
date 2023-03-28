@@ -47,6 +47,12 @@ palette.set_default_colours(stack_text=(0, 255, 0),
 fg = palette.stack_text
 bg = palette.stack_background
 
+
+def isdark():
+    p = app.instance().style().standardPalette()
+    return (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
+
+
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
     def __init__(self):
@@ -73,6 +79,9 @@ class DiscoveryDialog(QDialog):
         btns.accepted.connect(self.on_accept)
         btns.rejected.connect(parent.closeEvent)
 
+        self.discovery_timer = QTimer()
+        self.discovery_timer.timeout.connect(bs.net.discovery.send_request)
+        self.discovery_timer.start(3000)
         bs.net.server_discovered.connect(self.add_srv)
 
     def add_srv(self, address, ports):
@@ -92,6 +101,7 @@ class DiscoveryDialog(QDialog):
     def on_accept(self):
         server = self.serverview.currentItem()
         if server:
+            self.discovery_timer.stop()
             bs.net.stop_discovery()
             hostname = server.address
             rport, sport = server.ports
@@ -121,6 +131,7 @@ class MainWindow(QMainWindow):
         # self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
         self.settingswin = SettingsWindow()
+        self.darkmode = isdark()
 
         try:
             self.docwin = DocWindow(self)
@@ -141,61 +152,6 @@ class MainWindow(QMainWindow):
         gltimer.timeout.connect(self.radarwidget.update)
         # gltimer.timeout.connect(self.nd.updateGL)
         gltimer.start(50)
-
-        # Define button stylesheet
-        p = app.instance().style().standardPalette()
-        isdark = (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
-        base = p.color(p.ColorGroup.Active, p.ColorRole.Window)
-        if isdark:
-            fill = base.lighter(120).name()
-            border = base.lighter(150).name()
-            hover = base.lighter(150).name()
-        else:
-            fill = base.name()
-            border = base.darker(120).name()
-            hover = base.darker(120).name()
-        ss = f'background-color: {fill}; border: 0.5px solid "{border}"; '
-        tl = 'border-top-left-radius: 10;'
-        tr = 'border-top-right-radius: 10;'
-        bl = 'border-bottom-left-radius: 10;'
-        br = 'border-bottom-right-radius: 10;'
-        # list of buttons to connect to, give icons, and tooltips
-        #           the button         the icon      the tooltip    the callback
-        buttons = { self.zoomin :     ['zoomin.svg', 'Zoom in', self.buttonClicked, ss],
-                    self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked, ss],
-                    self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked, ss],
-                    self.panright :   ['panright.svg', 'Pan right', self.buttonClicked, ss],
-                    self.panup :      ['panup.svg', 'Pan up', self.buttonClicked, ss],
-                    self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked, ss],
-
-                    self.op :         ['play.svg', 'Operate', self.buttonClicked, ss + tl],
-                    self.hold :       ['hold.svg', 'Hold', self.buttonClicked, ss + tr],
-                    self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked, ss],
-                    self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked, ss],
-                    self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked, ss + bl],
-                    self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked, ss + br],
-
-                    self.showac :     ['AC.svg', 'Show/hide aircraft', self.buttonClicked, ss + tl],
-                    self.showpz :     ['PZ.svg', 'Show/hide PZ', self.buttonClicked, ss + tr],
-                    self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked, ss],
-                    self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked, ss],
-                    self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked, ss + bl],
-                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked, ss + br]}#,
-                    #self.shownodes :  ['nodes.svg', 'Show/hide node list', self.buttonClicked]}#,
-                    # self.showdata :   ['nodes.svg', 'Show/hide data views', self.buttonClicked]}
-
-        for b in buttons.items():
-            # Set icon
-            if not b[1][0] is None:
-                icon = QIcon((gfxpath / 'icons' / b[1][0]).as_posix())
-                b[0].setIcon(icon)
-            # Set tooltip
-            if not b[1][1] is None:
-                b[0].setToolTip(b[1][1])
-            # Connect clicked signal
-            b[0].clicked.connect(b[1][2])
-            if len(b[1]) > 3:
-                b[0].setStyleSheet('QToolButton {' + b[1][3] + '} QToolButton:hover {' + f'background-color: {hover}' + '}')
 
         # If multiple scenario paths exist, add 'Open From' menu
         scenresource = bs.resource('scenario')
@@ -219,7 +175,6 @@ class MainWindow(QMainWindow):
         # self.mainLayout.insertWidget(0, self.radarwidget, 1)
         # Connect to io client's nodelist changed signal
         bs.net.node_added.connect(self.nodesChanged)
-        # bs.net.actnodedata_changed.connect(self.actnodedataChanged)
         bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
         bs.net.signal_quit.connect(self.closeEvent)
         Signal('SHOWDIALOG').connect(self.on_showdialog_received)
@@ -238,12 +193,15 @@ class MainWindow(QMainWindow):
 
         self.splitter.setSizes([1, 0])
         self.splitter_2.setSizes([1, 0])
+        self.setStyleSheet()
 
-        fgcolor = '#%02x%02x%02x' % fg
-        bgcolor = '#%02x%02x%02x' % bg
-
-        self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
-        self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
+    def setStyleSheet(self, contents=''):
+        if not contents:
+            gfxpath = bs.resource(bs.settings.gfx_path)
+            colfname = gfxpath / f"{'dark' if self.darkmode else 'light'}.qss"
+            with open(gfxpath / 'bluesky.qss') as style, open(colfname) as col:
+                contents = col.read() + style.read()
+        super().setStyleSheet(contents)
 
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier \
@@ -282,47 +240,10 @@ class MainWindow(QMainWindow):
 
     def changeEvent(self, event: QEvent):
         # Detect dark/light mode switch
-        if event.type() == event.Type.PaletteChange:
-            p = app.instance().style().standardPalette()
-            isdark = (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
-            base = p.color(p.ColorGroup.Active, p.ColorRole.Window)
-            if isdark:
-                fill = base.lighter(120).name()
-                border = base.lighter(150).name()
-                hover = base.lighter(150).name()
-            else:
-                fill = base.name()
-                border = base.darker(120).name()
-                hover = base.darker(120).name()
-            ss = f'background-color: {fill}; border: 0.5px solid "{border}"; '
-            tl = 'border-top-left-radius: 10;'
-            tr = 'border-top-right-radius: 10;'
-            bl = 'border-bottom-left-radius: 10;'
-            br = 'border-bottom-right-radius: 10;'
-            # TODO: remove hackish approach :)
-            buttons = { self.zoomin :     ['zoomin.svg', 'Zoom in', self.buttonClicked, ss],
-                    self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked, ss],
-                    self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked, ss],
-                    self.panright :   ['panright.svg', 'Pan right', self.buttonClicked, ss],
-                    self.panup :      ['panup.svg', 'Pan up', self.buttonClicked, ss],
-                    self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked, ss],
+        if event.type() == event.Type.PaletteChange and self.darkmode != isdark():
+            self.darkmode = isdark()
+            self.setStyleSheet()
 
-                    self.op :         ['play.svg', 'Operate', self.buttonClicked, ss + tl],
-                    self.hold :       ['hold.svg', 'Hold', self.buttonClicked, ss + tr],
-                    self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked, ss],
-                    self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked, ss],
-                    self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked, ss + bl],
-                    self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked, ss + br],
-
-                    self.showac :     ['AC.svg', 'Show/hide aircraft', self.buttonClicked, ss + tl],
-                    self.showpz :     ['PZ.svg', 'Show/hide PZ', self.buttonClicked, ss + tr],
-                    self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked, ss],
-                    self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked, ss],
-                    self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked, ss + bl],
-                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked, ss + br]}#,
-            for b in buttons.items():
-                b[0].setStyleSheet('QToolButton {' + b[1][3] + '} QToolButton:hover {' + f'background-color: {hover}' + '}')
-            return True
         return super().changeEvent(event)
 
 
@@ -363,7 +284,7 @@ class MainWindow(QMainWindow):
                     btn.clicked.connect(self.buttonClicked)
                     self.nodetree.setItemWidget(server, 0, btn)
                 else:
-                    self.nodetree.setItemWidget(server, 0, QLabel(hostname))
+                    self.nodetree.setItemWidget(server, 0, QLabel(hostname, parent=self.nodetree))
                 self.servers[server_id] = server
             node_num = seqid2idx(node_id[-1])
             node = QTreeWidgetItem(server)
@@ -409,38 +330,30 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def buttonClicked(self):
-        # if self.sender() == self.shownodes:
-        #     vis = not self.nodetree.isVisible()
-        #     self.nodetree.setVisible(vis)
-        #     self.shownodes.setArrowType(Qt.ArrowType.RightArrow if vis else Qt.ArrowType.LeftArrow)
-        # elif self.sender() == self.showdata:
-        #     vis = not self.databox.isVisible()
-        #     self.databox.setVisible(vis)
-        #     self.showdata.setArrowType(Qt.ArrowType.RightArrow if vis else Qt.ArrowType.LeftArrow)
         if self.sender() == self.zoomin:
-            self.radarwidget.panzoom(zoom=1.4142135623730951, absolute=False)
+            self.radarwidget.setpanzoom(zoom=1.4142135623730951, absolute=False)
         elif self.sender() == self.zoomout:
-            self.radarwidget.panzoom(zoom=0.70710678118654746, absolute=False)
+            self.radarwidget.setpanzoom(zoom=0.70710678118654746, absolute=False)
         elif self.sender() == self.pandown:
-            self.radarwidget.panzoom(pan=(-0.5,  0.0), absolute=False)
+            self.radarwidget.setpanzoom(pan=(-0.5,  0.0), absolute=False)
         elif self.sender() == self.panup:
-            self.radarwidget.panzoom(pan=( 0.5,  0.0), absolute=False)
+            self.radarwidget.setpanzoom(pan=( 0.5,  0.0), absolute=False)
         elif self.sender() == self.panleft:
-            self.radarwidget.panzoom(pan=( 0.0, -0.5), absolute=False)
+            self.radarwidget.setpanzoom(pan=( 0.0, -0.5), absolute=False)
         elif self.sender() == self.panright:
-            self.radarwidget.panzoom(pan=( 0.0,  0.5), absolute=False)
+            self.radarwidget.setpanzoom(pan=( 0.0,  0.5), absolute=False)
         elif self.sender() == self.ic:
             self.show_file_dialog()
         elif self.sender() == self.sameic:
-            bs.net.send(b'STACK', 'IC IC')
+            stack.stack('IC IC')
         elif self.sender() == self.hold:
-            bs.net.send(b'STACK', 'HOLD')
+            stack.stack('HOLD')
         elif self.sender() == self.op:
-            bs.net.send(b'STACK', 'OP')
+            stack.stack('OP')
         elif self.sender() == self.fast:
-            bs.net.send(b'STACK', 'FF')
+            stack.stack('FF')
         elif self.sender() == self.fast10:
-            bs.net.send(b'STACK', 'FF 0:0:10')
+            stack.stack('FF 0:0:10')
         elif self.sender() == self.showac:
             stack.stack('SHOWTRAF')
         elif self.sender() == self.showpz:
@@ -454,7 +367,7 @@ class MainWindow(QMainWindow):
         elif self.sender() == self.showmap:
             stack.stack('SHOWMAP')
         elif self.sender() == self.action_Save:
-            bs.net.send(b'STACK', 'SAVEIC')
+            stack.stack('SAVEIC')
         elif hasattr(self.sender(), 'server_id'):
             bs.net.send(b'ADDNODES', 1, self.sender().server_id)
 

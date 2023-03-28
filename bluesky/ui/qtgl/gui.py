@@ -1,12 +1,12 @@
 """ QTGL Gui for BlueSky."""
 try:
-    from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
+    from PyQt5.QtCore import Qt, QTimer, qInstallMessageHandler, \
         QtMsgType, QT_VERSION, QT_VERSION_STR
     from PyQt5.QtWidgets import QApplication, QErrorMessage
     from PyQt5.QtGui import QFont
     
 except ImportError:
-    from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, \
+    from PyQt6.QtCore import Qt, QTimer, qInstallMessageHandler, \
         QT_VERSION, QT_VERSION_STR
 
     from PyQt6.QtCore import QtMsgType
@@ -16,7 +16,7 @@ except ImportError:
 import os
 
 import bluesky as bs
-from bluesky.ui.qtgl.guiclient import GuiClient
+from bluesky.network.client import Client
 from bluesky.ui.qtgl.mainwindow import MainWindow, Splash, DiscoveryDialog
 
 bs.settings.set_variable_defaults(qt_verbosity=1)
@@ -55,7 +55,10 @@ def start(hostname=None):
     app.setFont(QFont('Sans'))
 
     # Start the bluesky network client
-    client = GuiClient()
+    client = Client()
+    network_timer = QTimer()
+    network_timer.timeout.connect(client.update)
+    network_timer.start(20)
 
     # Enable HiDPI support (Qt5 only)
     if QT_VERSION_STR[0] == '5' and QT_VERSION >= 0x050000:
@@ -80,7 +83,6 @@ def start(hostname=None):
     if bs.mode == 'client' and hostname is None:
         dialog = DiscoveryDialog(win)
         dialog.show()
-        bs.net.start_discovery()
 
     else:
         client.connect(hostname=hostname)
