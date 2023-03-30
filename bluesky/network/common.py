@@ -1,6 +1,7 @@
 import socket
 import binascii
 from os import urandom
+from typing import Union
 
 
 # Message headers (first byte): (un)subscribe
@@ -14,7 +15,7 @@ GROUPID_NOGROUP = ord('N')
 # Connection identifier string length
 IDLEN = 5
 
-def genid(groupid='', idlen=IDLEN, seqidx=1):
+def genid(groupid: Union[str, bytes, int]='', idlen=IDLEN, seqidx=1):
     ''' Generate a binary identifier string 
     
         The identifier string consists of a group identifier of idlen-1 bytes,

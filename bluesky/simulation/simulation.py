@@ -1,6 +1,7 @@
 ''' BlueSky simulation control object. '''
 import time
 import datetime
+import signal
 import numpy as np
 from random import seed
 
@@ -9,9 +10,11 @@ import bluesky as bs
 from bluesky.network import context as ctx
 import bluesky.core as core
 from bluesky.core import plugin, simtime, Signal, Entity
+from bluesky.core.walltime import Timer
 from bluesky.core.timedfunction import hooks
 from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
+
 
 # Minimum sleep interval
 MINSLEEP = 1e-3
@@ -51,13 +54,39 @@ class Simulation(Entity):
         # Flag indicating whether timestep can be varied to ensure realtime op
         self.rtmode = False
 
+        self.running = True
+
         # Keep track of known clients
         self.clients = set()
+
+        # Connect to system ABORT/INTERRUPT signal
+        signal.signal(signal.SIGINT, lambda *args: self.quit())
+
 
         # Connect incoming signals
         Signal('BATCH').connect(self.start_batch_scenario)
         Signal('STACK').connect(self.on_stack_received)
         Signal('GETSIMSTATE').connect(self.on_getsimstate)
+
+    def run(self):
+        ''' Start the main loop of this simulation. '''
+        while self.running:
+            # Process timers
+            Timer.update_timers()
+            # Update network connections
+            bs.net.update()
+            # Perform a simulation step
+            self.update()
+
+            # Update screen logic
+            bs.scr.update()
+
+        # Close up properly on exit
+        bs.net.close()
+        datalog.reset()
+
+        # Close savefile which may be open for recording
+        recorder.saveclose()  # Close reording file if it is on
 
     def step(self, dt_increment=0):
         ''' Perform one simulation timestep.
@@ -136,20 +165,13 @@ class Simulation(Entity):
             bs.net.send(b'STATECHANGE', self.state, bs.net.server_id)
             self.prevstate = self.state
 
-    def stop(self):
-        ''' Stack stop/quit command. '''
-        self.state = bs.END
-        bs.net.stop()
-
     def quit(self):
         ''' Quit simulation.
             This function is called when a QUIT signal is received from
-            the server. '''
-        bs.net.quit()
-        datalog.reset()
-
-        # Close savefile which may be open for recording
-        recorder.saveclose()  # Close reording file if it is on
+            the server, or when quit is called. '''
+        print('HIER WORDT GEQUIT')
+        self.state = bs.END
+        self.running = False
 
     def op(self):
         ''' Set simulation state to OPERATE. '''

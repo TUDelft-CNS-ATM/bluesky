@@ -1,11 +1,9 @@
 ''' Node test '''
-import signal
 import zmq
 import msgpack
 import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity
-from bluesky.core.walltime import Timer
 from bluesky.network import context as ctx
 from bluesky.network.subscription import Subscription
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
@@ -25,23 +23,11 @@ class Node(Entity):
         self.sock_recv = zmqctx.socket(zmq.SUB)
         self.sock_send = zmqctx.socket(zmq.PUB)
         self.poller = zmq.Poller()
-        self.running = True
-        signal.signal(signal.SIGINT, lambda *args: self.quit())
 
         # Subscribe to subscriptions that were already made before constructing
         # this node
         for sub in Subscription.subscriptions.values():
             sub.subscribe_all()
-
-    def quit(self):
-        ''' Quit the simulation process. '''
-        self.running = False
-
-    def stop(self):
-        ''' Stack stop/quit command. '''
-        # On a stack quit command, send quit signal to server to stop all
-        # simulations in this group.
-        self.send(b'QUIT', to_group=self.server_id)
 
     def connect(self):
         ''' Connect node to the BlueSky server. '''
@@ -51,23 +37,14 @@ class Node(Entity):
         # Register this node by subscribing to targeted messages
         self.subscribe(b'', to_group=self.node_id)
 
-    def run(self):
-        ''' Start the main loop of this node. '''
-        while self.running:
-            # Perform a simulation step
-            self.update()
-            bs.sim.update()
-            # Update screen logic
-            bs.scr.update()
-
+    def close(self):
+        ''' Close all network connections. '''
         self.sock_recv.close()
         self.sock_send.close()
         zmq.Context.instance().destroy()
 
     def update(self):
         ''' Update timers and perform I/O. '''
-        # Process timers
-        Timer.update_timers()
         # Check for incoming data
         self.receive()
 
