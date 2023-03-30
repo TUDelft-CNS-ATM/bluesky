@@ -2,6 +2,8 @@
 from pathlib import Path
 import platform
 
+from bluesky.core.base import Base
+
 try:
     from PyQt5.QtWidgets import QApplication as app
     from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
@@ -43,9 +45,6 @@ bs.settings.set_variable_defaults(gfx_path='graphics')
 
 palette.set_default_colours(stack_text=(0, 255, 0),
                             stack_background=(102, 102, 102))
-
-fg = palette.stack_text
-bg = palette.stack_background
 
 
 def isdark():
@@ -109,7 +108,7 @@ class DiscoveryDialog(QDialog):
             self.close()
 
 
-class MainWindow(QMainWindow):
+class MainWindow(Base, QMainWindow):
     """ Qt window process: from .ui file read UI window-definition of main window """
 
     modes = ['Init', 'Hold', 'Operate', 'End']
@@ -127,6 +126,7 @@ class MainWindow(QMainWindow):
         #  - client: starts only gui in client mode, can connect to existing
         #    server.
         self.mode = mode
+        self.running = True
 
         # self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
@@ -170,9 +170,6 @@ class MainWindow(QMainWindow):
         self.actionBlueSky_help.triggered.connect(self.show_doc_window)
         self.actionSettings.triggered.connect(self.settingswin.show)
 
-        # self.radarwidget.setParent(self.centralwidget)
-        # self.verticalLayout.insertWidget(0, self.radarwidget, 1)
-        # self.mainLayout.insertWidget(0, self.radarwidget, 1)
         # Connect to io client's nodelist changed signal
         bs.net.node_added.connect(self.nodesChanged)
         bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
@@ -231,12 +228,16 @@ class MainWindow(QMainWindow):
             self.console.keyPressEvent(event)
         event.accept()
 
+    @stack.command(name='QUIT', annotations='', aliases=('CLOSE', 'END', 'EXIT', 'Q', 'STOP'))
     def closeEvent(self, event=None):
-        # Send quit to server if we own it
-        if self.mode != 'client':
-            bs.net.send(b'QUIT', to_group=bs.server.server_id)
-        app.instance().closeAllWindows()
-        # return True
+        if self.running:
+            self.running = False
+            print('QUIT')
+            # Send quit to server if we own it
+            if self.mode != 'client':
+                bs.net.send(b'QUIT', to_group=bs.server.server_id)
+            app.instance().closeAllWindows()
+            # return True
 
     def changeEvent(self, event: QEvent):
         # Detect dark/light mode switch
