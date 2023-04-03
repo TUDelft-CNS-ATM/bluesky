@@ -113,13 +113,13 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
 
         # Initialize remaining modules
         varexplorer.init()
-        if scenfile:
-            stack.stack(f'IC {scenfile}')
 
     from bluesky.core import plugin
     plugin.init(mode)
     from bluesky import stack
     stack.init(mode)
+    if scenfile and mode == 'sim':
+        stack.stack(f'IC {scenfile}')
 
 
 def __getattr__(name):
