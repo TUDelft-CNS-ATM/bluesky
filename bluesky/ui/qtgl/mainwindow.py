@@ -3,6 +3,7 @@ from pathlib import Path
 import platform
 
 from bluesky.core.base import Base
+from bluesky.network.discovery import Discovery
 
 try:
     from PyQt5.QtWidgets import QApplication as app
@@ -60,7 +61,7 @@ class Splash(QSplashScreen):
 
 
 class DiscoveryDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, comm_id, parent=None):
         super().__init__(parent)
         self.setModal(True)
         self.setMinimumSize(200,200) # To prevent Geometry error
@@ -78,10 +79,13 @@ class DiscoveryDialog(QDialog):
         btns.accepted.connect(self.on_accept)
         btns.rejected.connect(parent.closeEvent)
 
+        self.discovery = Discovery(comm_id)
+
         self.discovery_timer = QTimer()
-        self.discovery_timer.timeout.connect(bs.net.discovery.send_request)
-        self.discovery_timer.start(3000)
-        bs.net.server_discovered.connect(self.add_srv)
+        self.discovery_timer.timeout.connect(self.discovery.update)
+        self.discovery_timer.start(1000)
+        self.discovery.server_discovered.connect(self.add_srv)
+        self.discovery.start()
 
     def add_srv(self, address, ports):
         for server in self.servers:
@@ -101,7 +105,7 @@ class DiscoveryDialog(QDialog):
         server = self.serverview.currentItem()
         if server:
             self.discovery_timer.stop()
-            bs.net.stop_discovery()
+            self.discovery.stop()
             hostname = server.address
             rport, sport = server.ports
             bs.net.connect(hostname=hostname, recv_port=rport, send_port=sport)
@@ -173,7 +177,6 @@ class MainWindow(Base, QMainWindow):
         # Connect to io client's nodelist changed signal
         bs.net.node_added.connect(self.nodesChanged)
         bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
-        bs.net.signal_quit.connect(self.closeEvent)
         Signal('SHOWDIALOG').connect(self.on_showdialog_received)
 
         # self.nodetree.setVisible(False)

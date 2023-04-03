@@ -81,7 +81,7 @@ def start(hostname=None):
     # If this instance of the gui is started in client-only mode, show
     # server selection dialog
     if bs.mode == 'client' and hostname is None:
-        dialog = DiscoveryDialog(win)
+        dialog = DiscoveryDialog(client.client_id, win)
         dialog.show()
 
     else:

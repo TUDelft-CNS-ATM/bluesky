@@ -9,7 +9,6 @@ from bluesky.core import Entity, Signal
 from bluesky.stack.clientstack import process
 from bluesky.network import context as ctx
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
-from bluesky.network.discovery import Discovery
 from bluesky.network.subscription import Subscription
 from bluesky.network.common import genid, asbytestr, seqid2idx, MSG_SUBSCRIBE, MSG_UNSUBSCRIBE, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT, IDLEN
 
@@ -26,7 +25,6 @@ class Client(Entity):
         self.acttopics = defaultdict(set)
         self.nodes = set()
         self.servers = set()
-        self.running = True
         self.discovery = None
 
         zmqctx = zmq.Context.instance()
@@ -46,28 +44,10 @@ class Client(Entity):
         self.actnode_changed = Signal('actnode-changed')
         self.node_added = Signal('node-added')
         self.node_removed = Signal('node-removed')
-        self.server_discovered = Signal('server-discovered')
-        self.signal_quit = Signal('quit')
 
         # If no other object is taking care of this, let this client act as screen object as well
         if not bs.scr:
             bs.scr = self
-
-    def quit(self):
-        self.running = False
-
-    def start_discovery(self):
-        ''' Start UDP-based discovery of available BlueSky servers. '''
-        if not self.discovery:
-            self.discovery = Discovery(self.client_id)
-            self.poller.register(self.discovery.handle, zmq.POLLIN)
-            self.discovery.send_request()
-
-    def stop_discovery(self):
-        ''' Stop UDP-based discovery. '''
-        if self.discovery:
-            self.poller.unregister(self.discovery.handle)
-            self.discovery = None
 
     def connect(self, hostname=None, recv_port=None, send_port=None, protocol='tcp'):
         ''' Connect client to a server.
@@ -108,13 +88,6 @@ class Client(Entity):
             for sock, event in events.items():
                 if event != zmq.POLLIN:
                     # The event does not refer to incoming data: skip for now
-                    continue
-
-                # If we are in discovery mode, parse this message
-                if self.discovery and sock == self.discovery.handle.fileno():
-                    dmsg = self.discovery.recv_reqreply()
-                    if dmsg.conn_id != self.client_id and dmsg.is_server:
-                        self.server_discovered.emit(dmsg.conn_ip, dmsg.ports)
                     continue
             
                 # Receive the message
