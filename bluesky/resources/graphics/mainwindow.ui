@@ -55,7 +55,7 @@
         </sizepolicy>
        </property>
        <property name="focusPolicy">
-        <enum>Qt::WheelFocus</enum>
+        <enum>Qt::NoFocus</enum>
        </property>
       </widget>
       <widget class="QToolBox" name="databox">
@@ -78,7 +78,7 @@
         </size>
        </property>
        <property name="focusPolicy">
-        <enum>Qt::StrongFocus</enum>
+        <enum>Qt::NoFocus</enum>
        </property>
        <property name="autoFillBackground">
         <bool>true</bool>
@@ -99,7 +99,7 @@
         <number>0</number>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="TrafficList" name="acpage">
         <property name="geometry">
@@ -111,7 +111,7 @@
          </rect>
         </property>
         <property name="focusPolicy">
-         <enum>Qt::StrongFocus</enum>
+         <enum>Qt::NoFocus</enum>
         </property>
         <attribute name="label">
          <string>Aircraft</string>
@@ -127,7 +127,7 @@
          </rect>
         </property>
         <property name="focusPolicy">
-         <enum>Qt::WheelFocus</enum>
+         <enum>Qt::NoFocus</enum>
         </property>
         <property name="autoFillBackground">
          <bool>true</bool>
@@ -146,7 +146,7 @@
          </rect>
         </property>
         <property name="focusPolicy">
-         <enum>Qt::WheelFocus</enum>
+         <enum>Qt::NoFocus</enum>
         </property>
         <attribute name="label">
          <string>Stack</string>
@@ -1188,7 +1188,7 @@
                </font>
               </property>
               <property name="focusPolicy">
-               <enum>Qt::NoFocus</enum>
+               <enum>Qt::ClickFocus</enum>
               </property>
               <property name="layoutDirection">
                <enum>Qt::LeftToRight</enum>
@@ -1200,7 +1200,7 @@
                <bool>true</bool>
               </property>
               <property name="textInteractionFlags">
-               <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse</set>
+               <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
               </property>
              </widget>
             </item>
@@ -1290,6 +1290,9 @@
               </property>
               <property name="cursor" stdset="0">
                <cursorShape>IBeamCursor</cursorShape>
+              </property>
+              <property name="focusPolicy">
+               <enum>Qt::ClickFocus</enum>
               </property>
               <property name="autoFillBackground">
                <bool>false</bool>
@@ -1501,6 +1504,11 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>radarwidget</tabstop>
+  <tabstop>databox</tabstop>
+  <tabstop>lineEdit</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
@@ -1868,22 +1876,6 @@
     <hint type="destinationlabel">
      <x>996</x>
      <y>361</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>zoomout</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>buttonClicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>953</x>
-     <y>488</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>963</x>
-     <y>383</y>
     </hint>
    </hints>
   </connection>
