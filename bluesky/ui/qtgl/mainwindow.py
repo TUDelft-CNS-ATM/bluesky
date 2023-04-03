@@ -235,7 +235,6 @@ class MainWindow(Base, QMainWindow):
     def closeEvent(self, event=None):
         if self.running:
             self.running = False
-            print('QUIT')
             # Send quit to server if we own it
             if self.mode != 'client':
                 bs.net.send(b'QUIT', to_group=bs.server.server_id)

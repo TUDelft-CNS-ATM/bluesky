@@ -169,7 +169,6 @@ class Simulation(Entity):
         ''' Quit simulation.
             This function is called when a QUIT signal is received from
             the server, or when quit is called. '''
-        print('HIER WORDT GEQUIT')
         self.state = bs.END
         self.running = False
 

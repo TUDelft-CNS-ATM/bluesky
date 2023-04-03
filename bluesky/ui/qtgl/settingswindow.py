@@ -117,7 +117,6 @@ class SettingsWindow(Base, QWidget):
     @ss.subscriber(topic='SIMSETTINGS')
     def on_simsettings_received(self, data):
         # TODO: how to neatly do subscriptions without function?
-        print('data:', data)
         pass
 
     def show(self):
