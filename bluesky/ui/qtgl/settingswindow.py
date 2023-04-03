@@ -1,5 +1,4 @@
 from os import path
-from glob import glob
 from collections import defaultdict
 try:
     from PyQt5.QtCore import Qt, pyqtSlot
@@ -16,6 +15,10 @@ except ImportError:
 
 import bluesky as bs
 from bluesky.network.common import seqidx2id
+from bluesky.core import Base
+import bluesky.network.sharedstate as ss
+import bluesky.core.remotestore as rs
+
 
 def sel_palette(value, changed_fun):
     wid = QComboBox()
@@ -55,7 +58,7 @@ class PluginCheckList(QListWidget):
             self.curvalue -= {item.name}
         self.changed_fun(list(self.curvalue))
 
-class SettingsWindow(QWidget):
+class SettingsWindow(Base, QWidget):
     customwids = {
         'colour_palette': sel_palette,
         'performance_model': sel_perf,
@@ -111,6 +114,12 @@ class SettingsWindow(QWidget):
 
         bs.net.node_added.connect(self.nodesChanged)
 
+    @ss.subscriber(topic='SIMSETTINGS')
+    def on_simsettings_received(self, data):
+        # TODO: how to neatly do subscriptions without function?
+        print('data:', data)
+        pass
+
     def show(self):
         if not self.populated:
             self.populate()
@@ -162,9 +171,10 @@ class SettingsWindow(QWidget):
             simsettings = dict()
             plugins = list()
             # TODO: fix
-            # for node in item.nodes:
-            #     simsettings.update(bs.net.get_nodedata(node).settings)
-            #     plugins = bs.net.get_nodedata(node).plugins
+            for node in item.nodes:
+                store = rs.get(node, 'simsettings')
+                simsettings.update(store.settings)
+                plugins = store.plugins
 
             # First clear any old items in the node settings layout
             clear_layout(self.nodesettings.layout())
@@ -192,7 +202,8 @@ class SettingsWindow(QWidget):
         if isinstance(value, dict):
             if depth < maxdepth:
                 line = QFrame()
-                line.setFrameShape(line.HLine)
+                
+                line.setFrameShape(QFrame.Shape.HLine)
                 box.layout().addRow(QLabel(f'<b>{name}</b>'), line)
             for cname, cvalue in value.items():
                 self.add_row(box, cname, cvalue, depth=depth+1, target=target, **kwargs)
@@ -281,7 +292,7 @@ class SettingsWindow(QWidget):
         pass
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.close()
 
 def clear_layout(layout):

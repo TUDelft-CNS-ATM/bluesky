@@ -14,6 +14,7 @@ from bluesky.core.walltime import Timer
 from bluesky.core.timedfunction import hooks
 from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
+import bluesky.network.sharedstate as ss
 
 
 # Minimum sleep interval
@@ -66,7 +67,6 @@ class Simulation(Entity):
         # Connect incoming signals
         Signal('BATCH').connect(self.start_batch_scenario)
         Signal('STACK').connect(self.on_stack_received)
-        Signal('GETSIMSTATE').connect(self.on_getsimstate)
 
     def run(self):
         ''' Start the main loop of this simulation. '''
@@ -257,14 +257,11 @@ class Simulation(Entity):
         # We received a single stack command. Add it to the existing stack
         bs.stack.stack(data, sender_id=ctx.sender_id)
 
-    def on_getsimstate(self):
-        # Add this client to the list of known clients
-        self.clients.add(ctx.sender_id)
-        # Send list of stack functions available in this sim to gui at start
-        stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
-        simstate = dict(stackcmds=stackdict, settings=bs.settings._settings_hierarchy,
+    @ss.publisher(topic='SIMSETTINGS')
+    def pub_simsettings(self):
+        ''' Publish simulation settings on request. '''
+        return dict(settings=bs.settings._settings_hierarchy,
             plugins=list(plugin.Plugin.plugins.keys()))
-        bs.net.send(b'SIMSTATE', simstate, to_group=ctx.sender_id)
 
     def setutc(self, *args):
         ''' Set simulated clock time offset. '''

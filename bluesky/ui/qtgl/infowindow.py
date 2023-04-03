@@ -43,13 +43,13 @@ class InfoWindow(Entity):
         self.view.addTab(self.statetab, 'Simulation state')
 
     @stack.command(name="INFO")
-    def show(self) -> None:
+    def show(self) -> bool:
         self.view.show()
         return True
 
     # def keyPressEvent(self, event):
-    #     if event.key() == Qt.Key_Escape:
-    #         self.close()
+    #     if event.key() == Qt.Key.Key_Escape:
+    #         self.view.close()
 
     def add_plot_tab(self):
         self.plottab = PlotTab()
