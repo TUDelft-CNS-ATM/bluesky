@@ -1,3 +1,4 @@
+from typing import Dict
 from bluesky.core.signal import Signal, SignalFactory
 from bluesky.network.common import GROUPID_DEFAULT
 import bluesky as bs
@@ -5,7 +6,7 @@ import bluesky as bs
 
 class SubscriptionFactory(SignalFactory):
     # Individually keep track of all network subscriptions
-    subscriptions = dict()
+    subscriptions: Dict[str, 'Subscription'] = dict()
 
     def __call__(cls, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=None, directonly=False):
         ''' Factory function for Signal construction. '''
