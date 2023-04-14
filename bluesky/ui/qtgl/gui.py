@@ -14,6 +14,7 @@ except ImportError:
     from PyQt6.QtGui import QFont
 
 import os
+import sys
 
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
@@ -48,7 +49,7 @@ def start(hostname=None):
     # only pyqt5: QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     # Start the Qt main object
-    app = QApplication([])
+    app = QApplication(sys.argv[:1])
 
     # Explicitly set font to avoid font loading warning dialogs
     app.setFont(QFont('Sans'))
