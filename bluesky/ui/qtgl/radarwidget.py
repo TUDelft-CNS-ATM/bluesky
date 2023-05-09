@@ -278,7 +278,7 @@ class RadarWidget(glh.RenderWidget):
         if event.type() == QEvent.Type.Wheel:
             # For mice we zoom with control/command and the scrolwheel
             if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-                origin = (event.pos().x(), event.pos().y())
+                origin = (event.position().x(), event.position().y())
                 zoom = 1.0
                 try:
                     if event.pixelDelta():
