@@ -14,7 +14,7 @@ from bluesky.network.common import genid, asbytestr, seqid2idx, MSG_SUBSCRIBE, M
 
 
 # Register settings defaults
-bs.settings.set_variable_defaults(recv_port=9000, send_port=9001)
+bs.settings.set_variable_defaults(recv_port=11000, send_port=11001)
 
 
 class Client(Entity):

@@ -11,7 +11,7 @@ from bluesky.network.common import genid, seqidx2id, asbytestr, GROUPID_NOGROUP,
 
 
 # Register settings defaults
-bs.settings.set_variable_defaults(recv_port=9000, send_port=9001)
+bs.settings.set_variable_defaults(recv_port=11000, send_port=11001)
 
 
 class Node(Entity):

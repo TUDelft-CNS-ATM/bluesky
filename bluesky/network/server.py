@@ -16,7 +16,7 @@ from bluesky.network.common import genid, bin2hex, MSG_SUBSCRIBE, MSG_UNSUBSCRIB
 
 # Register settings defaults
 bs.settings.set_variable_defaults(max_nnodes=cpu_count(),
-                                  recv_port=9000, send_port=9001,
+                                  recv_port=11000, send_port=11001,
                                   enable_discovery=False)
 
 def split_scenarios(scentime, scencmd):
