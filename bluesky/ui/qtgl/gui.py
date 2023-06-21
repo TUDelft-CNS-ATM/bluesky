@@ -13,7 +13,8 @@ except ImportError:
     from PyQt6.QtWidgets import QApplication, QErrorMessage
     from PyQt6.QtGui import QFont
 
-import os, sys
+import os
+import sys
 
 import bluesky as bs
 from bluesky.network.client import Client

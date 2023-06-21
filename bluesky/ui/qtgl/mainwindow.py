@@ -379,7 +379,7 @@ class MainWindow(Base, QMainWindow):
         if platform.system().lower()=='windows':
             fname = fileopen()
         else:
-            if path is None:
+            if path is None or isinstance(path, bool):
                 path = bs.resource(bs.settings.scenario_path)
 
             if isinstance(path, ResourcePath):

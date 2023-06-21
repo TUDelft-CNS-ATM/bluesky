@@ -1149,7 +1149,18 @@ class Screen(Entity):
         lat=dist/111319.
         return self.ltopix_eq(lat)
 
-    def objappend(self, name, **kwargs):
+    def colour(self, name, r, g, b):
+        ''' Set custom colour for aircraft or shape. '''
+        if areafilter.hasArea(name):
+            idx = self.objname.index(name)
+            self.objcolor[idx] = (r, g, b)
+        else:
+            return False, 'No object found with name ' + name
+
+        self.redrawradbg = True  # redraw background
+        return True
+
+    def objappend(self,itype,name,data):
         """Add user defined objects"""
         if not kwargs:
             return self.objdel()

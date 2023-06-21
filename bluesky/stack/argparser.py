@@ -264,7 +264,7 @@ class PandirArg(Parser):
 
 
 class ColorArg(Parser):
-    ''' Parse color commands. '''
+    ''' Parse colour argument. '''
     def parse(self, argstring):
         arg, argstring = re_getarg.match(argstring).groups()
         try:
@@ -275,7 +275,7 @@ class ColorArg(Parser):
             r, g, b = [int(255 * i) for i in colors.to_rgb(arg.upper())]
             return r, g, b, argstring
         except ValueError:
-            raise ArgumentError(f'Could not parse "{arg}" as color')
+            raise ArgumentError(f'Could not parse "{arg}" as colour')
 
 
 argparsers = {
@@ -299,4 +299,6 @@ argparsers = {
     'alt': Parser(txt2alt),
     'hdg': Parser(lambda txt: txt2hdg(txt, refdata.lat, refdata.lon)),
     'time': Parser(txt2tim),
-    'color': ColorArg()}
+    'colour': ColorArg(),
+    'color': ColorArg(),
+}

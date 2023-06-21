@@ -156,15 +156,13 @@ def col2rgb(txt):
 
     return rgb
 
-
 def degto180(angle):
-    """Change to domain -180,180 """
+    """Change to domain -180,180 degrees"""
     return (angle + 180.) % 360 - 180.
 
-def degtopi(angle):
-    """Change to domain -pi,pi """
+def radtopi(angle):
+    """Change to domain -pi,pi radians """
     return (angle + np.pi) % (2.0 * np.pi) - np.pi
-
 
 def findnearest(lat, lon, latarr, lonarr):
     """Find index of nearest postion in numpy arrays with lat and lon"""

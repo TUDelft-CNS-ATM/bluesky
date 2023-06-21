@@ -167,7 +167,7 @@ class Metrics(Entity):
                 self.sectorconv[idx] = 0
 
             self.fconv.write(f'{sim.simt}, {self.sectorconv[idx]}\n')
-            self.fsd.write('{sim.simt}, {self.sectorsd[idx]}\n')
+            self.fsd.write(f'{sim.simt}, {self.sectorsd[idx]}\n')
         if sendeff:
             self.effplot.send()
 
