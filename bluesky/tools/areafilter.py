@@ -44,8 +44,8 @@ def puball():
     return dict(polys={name: poly.raw for name, poly in basic_shapes.items()})
 
 
-@commandgroup(annotations='txt,color')
-def color(name, r, g, b):
+@commandgroup(annotations='txt,color', aliases=('COLOR', 'COL'))
+def colour(name, r, g, b):
     ''' Set custom color for visual objects. '''
     poly = basic_shapes.get(name)
     if poly:

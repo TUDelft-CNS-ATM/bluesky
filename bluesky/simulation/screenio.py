@@ -175,8 +175,8 @@ class ScreenIO(Entity):
     def show_cmd_doc(self, cmd=''):
         bs.net.send(b'SHOWDIALOG', dict(dialog='DOC', args=cmd))
 
-    @stack.commandgroup(annotations='txt,color')
-    def color(self, name, r, g, b):
+    @stack.commandgroup(annotations='txt,color', aliases=('COLOR', 'COL'))
+    def colour(self, name, r, g, b):
         ''' Set custom color for aircraft or shape. '''
         if name in bs.traf.groups:
             groupmask = bs.traf.groups.groups[name]

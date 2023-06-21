@@ -1149,6 +1149,7 @@ class Screen(Entity):
         lat=dist/111319.
         return self.ltopix_eq(lat)
 
+    @stack.commandgroup(annotations='txt,color')
     def colour(self, name, r, g, b):
         ''' Set custom colour for aircraft or shape. '''
         if areafilter.hasArea(name):
