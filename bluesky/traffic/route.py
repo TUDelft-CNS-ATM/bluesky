@@ -12,7 +12,6 @@ from bluesky import stack
 from bluesky.stack.cmdparser import Command, command, commandgroup
 
 
-
 class Route(Replaceable):
     """
     Route class definition   : Route data for an aircraft
@@ -57,6 +56,7 @@ class Route(Replaceable):
 
         # Made for drones: fly turn mode, means use specified turn radius and optionally turn speed
         self.wpflyturn  = []   # Flyturn (True) or flyover/flyby (False) switch
+        self.wpturnbank = []   # [deg] Bank angle per waypoint
         self.wpturnrad  = []   # [nm] Turn radius per waypoint (<0 = not specified)
         self.wpturnspd  = []   # [kts] Turn speed (IAS/CAS) per waypoint (<0 = not specified)
         self.wpturnhdgr = [] # [deg/s] Heading rate, uses actual speed to calculate bank & radius (<0 = not specified)
@@ -70,10 +70,18 @@ class Route(Replaceable):
         self.swflyturn = False  # Default waypoints are waypoints w/o specified turn
 
         # Default turn values to be used in flyturn mode
-        self.bank      = 25.   # [deg] Default bank angle
+        self.bank = 25.
+        self.turnbank  = -999.   # [deg] Negative value indicating no value has been set
         self.turnrad   = -999. # [m] Negative value indicating no value has been set
         self.turnspd   = -999. # [kts] Dito, in this case bank angle of vehicle will be used with current speed
         self.turnhdgr  = -999. # [deg/s] Dito, in this case bank angle of vehicle will be used with current speed
+        # The last two defined turn properties. The list will contain variable names, with the latest
+        # Changed being at index 1, and the oldest changed being at index 0.
+        # For example, I changed SPD and RAD in that order. The list will look like this:
+        # acrte_2_defined = ['acrte.turnspd', 'acrte.turnrad']
+        # I then change turnbank. The list will now look like this:
+        # acrte_2_defined = ['acrte.turnrad', 'acrte.turnbank']
+        self.last_2_defined = []
 
         # if the aircraft lands on a runway, the aircraft should keep the
         # runway heading
@@ -124,8 +132,9 @@ class Route(Replaceable):
             Route.addwptStack(acidx, mode)
             return True
         
-        elif mode in  ['TURNSPEED', 'TURNSPD', 'TURNRADIUS', 'TURNRAD']:
-            # We're changing the turn speed or radius
+        elif mode in  ['TURNSPEED', 'TURNSPD', 'TURNRADIUS', 'TURNRAD', 'TURNBANK', 'TURNPHI', \
+                       'TURNHDGRATE', 'TURNHDG','TURNHDGR']:
+            # We're changing the turn properties.
             Route.addwptStack(acidx, mode, value)
             return True
             
@@ -179,12 +188,32 @@ class Route(Replaceable):
             swwpmode = args[0].replace('-', '')
 
             if swwpmode == "TURNRAD" or swwpmode == "TURNRADIUS":
-
                 try:
                     if args[1]=="OFF":
                         acrte.turnrad = -999
+                        # If this is in last 2 defined, pop it
+                        if 'acrte.turnrad' in acrte.last_2_defined:
+                            acrte.last_2_defined.pop(acrte.last_2_defined.index('acrte.turnrad'))
                     else:
                         acrte.turnrad = float(args[1]/ft*nm) #arg was originally parsed as wpalt
+                        # Well, last we defined is turnrad, so append it to the list
+                        acrte.last_2_defined.append('turnrad')
+                        # Now, unless the first value is also acrte.turnrad, we set that var to -999 again
+                        if len(acrte.last_2_defined) > 2:
+                            # Reset first variable if one of the remaining 3
+                            if acrte.last_2_defined[0] == 'turnhdgr':
+                                acrte.turnhdgr = -999.
+                            elif acrte.last_2_defined[0] == 'turnbank':
+                                acrte.turnbank = -999.
+                            elif acrte.last_2_defined[0] == 'turnspd':
+                                acrte.turnspd = -999.
+                            # Pop the first one
+                            acrte.last_2_defined.pop(0)
+                        # Lastly, there is a possibility that we are left with a list of duplicates. Fix it
+                        if len(acrte.last_2_defined) == 2 and acrte.last_2_defined[0] == acrte.last_2_defined[1]:
+                            # Duplicates, pop the first one
+                            acrte.last_2_defined.pop(0)
+                        
                 except:
                     return False,"Error in processing value of turn radius"
 
@@ -201,21 +230,59 @@ class Route(Replaceable):
                         acrte.turnspd = -999
                     else:
                         acrte.turnspd = args[1]*kts/ft # [m/s] Arg was wpalt Keep it as IAS/CAS orig in kts, now in m/s
+                        # Well, last we defined is turnspd, so append it to the list
+                        acrte.last_2_defined.append('turnspd')
+                        # Now, unless the first value is also acrte.turnspd, we set that var to -999 again
+                        if len(acrte.last_2_defined) > 2:
+                            # Reset first variable if one of the remaining 3
+                            if acrte.last_2_defined[0] == 'turnhdgr':
+                                acrte.turnhdgr = -999.
+                            elif acrte.last_2_defined[0] == 'turnbank':
+                                acrte.turnbank = -999.
+                            elif acrte.last_2_defined[0] == 'turnrad':
+                                acrte.turnrad = -999.
+                            # Pop the first one
+                            acrte.last_2_defined.pop(0)
+                        # Lastly, there is a possibility that we are left with a list of duplicates. Fix it
+                        if len(acrte.last_2_defined) == 2 and acrte.last_2_defined[0] == acrte.last_2_defined[1]:
+                            # Duplicates, pop the first one
+                            acrte.last_2_defined.pop(0)
+                            
                 except:
                     return False, "Error in processing value of turn speed"
 
                 # Switch flyturn automatically when this is set
                 acrte.swflyby = False
                 acrte.swflyturn = True
+                
+                return True
 
 
             elif swwpmode == "TURNHDGRATE" or swwpmode == "TURNHDG" or swwpmode == "TURNHDGR":
-
+                
                 try:
                     if args[1] == "OFF":
                         acrte.turnhdgr = -999
                     else:
                         acrte.turnhdgr = args[1]/ft # [deg/s] turn rate
+                        # Well, last we defined is turnhdgr, so append it to the list
+                        acrte.last_2_defined.append('turnhdgr')
+                        # Now, unless the first value is also acrte.turnrad, we set that var to -999 again
+                        if len(acrte.last_2_defined) > 2:
+                            # Reset first variable if one of the remaining 3
+                            if acrte.last_2_defined[0] == 'turnbank':
+                                acrte.turnbank = -999.
+                            elif acrte.last_2_defined[0] == 'turnspd':
+                                acrte.turnspd = -999.
+                            elif acrte.last_2_defined[0] == 'turnrad':
+                                acrte.turnrad = -999.
+                            # Pop the first one
+                            acrte.last_2_defined.pop(0)
+                        # Lastly, there is a possibility that we are left with a list of duplicates. Fix it
+                        if len(acrte.last_2_defined) == 2 and acrte.last_2_defined[0] == acrte.last_2_defined[1]:
+                            # Duplicates, pop the first one
+                            acrte.last_2_defined.pop(0)
+                            
                 except:
                     return False, "Error in processing value of turn heading rate"
 
@@ -223,8 +290,45 @@ class Route(Replaceable):
                 acrte.swflyby = False
                 acrte.swflyturn = True
 
-
                 return True
+            
+            elif swwpmode == 'TURNBANK' or swwpmode == 'TURNPHI':
+
+                try:
+                    if args[1] == "OFF":
+                        acrte.turnbank = -999
+                    else:                    
+                        # Cap the bank angle between 0 and 90 degrees
+                        bankangle = max(0, min(args[1]/ft, 90))
+                        acrte.turnbank = bankangle # [deg] desired bank angle
+                        
+                        # Well, last we defined is turnbank, so append it to the list
+                        acrte.last_2_defined.append('turnbank')
+                        # Now, unless the first value is also acrte.turnbank, we set that var to -999 again
+                        if len(acrte.last_2_defined) > 2:
+                            # Reset first variable if one of the remaining 3
+                            if acrte.last_2_defined[0] == 'turnhdgr':
+                                acrte.turnhdgr = -999.
+                            elif acrte.last_2_defined[0] == 'turnspd':
+                                acrte.turnspd = -999.
+                            elif acrte.last_2_defined[0] == 'turnrad':
+                                acrte.turnrad = -999.
+                            # Pop the first one
+                            acrte.last_2_defined.pop(0)
+                        # Lastly, there is a possibility that we are left with a list of duplicates. Fix it
+                        if len(acrte.last_2_defined) == 2 and acrte.last_2_defined[0] == acrte.last_2_defined[1]:
+                            # Duplicates, pop the first one
+                            acrte.last_2_defined.pop(0)
+                            
+                except:
+                    return False, "Error in processing value of turn heading rate"
+
+                # Switch flyturn automatically when this is set
+                acrte.swflyby = False
+                acrte.swflyturn = True
+                
+                return True
+                    
 
 
         # Convert to positions
@@ -740,6 +844,7 @@ class Route(Replaceable):
             self.wptype[wpidx]  = wptype
             self.wpflyby[wpidx] = self.swflyby
             self.wpflyturn[wpidx] = self.swflyturn
+            self.wpturnbank[wpidx] = self.turnbank
             self.wpturnrad[wpidx] = self.turnrad
             self.wpturnspd[wpidx] = self.turnspd
             self.wpturnhdgr[wpidx] = self.turnhdgr
@@ -755,6 +860,7 @@ class Route(Replaceable):
             self.wptype.insert(wpidx, wptype)
             self.wpflyby.insert(wpidx, self.swflyby)
             self.wpflyturn.insert(wpidx, self.swflyturn)
+            self.wpturnbank.insert(wpidx,self.turnbank)
             self.wpturnrad.insert(wpidx, self.turnrad)
             self.wpturnspd.insert(wpidx, self.turnspd)
             self.wpturnhdgr.insert(wpidx, self.turnhdgr)
@@ -916,6 +1022,7 @@ class Route(Replaceable):
         bs.traf.actwp.lon[acidx]    = acrte.wplon[wpidx]
         bs.traf.actwp.flyby[acidx]  = acrte.wpflyby[wpidx]
         bs.traf.actwp.flyturn[acidx] = acrte.wpflyturn[wpidx]
+        bs.traf.actwp.turnbank[acidx] = acrte.wpturnbank[wpidx]
         bs.traf.actwp.turnrad[acidx] = acrte.wpturnrad[wpidx]
         bs.traf.actwp.turnspd[acidx] = acrte.wpturnspd[wpidx]
         bs.traf.actwp.turnhdgr[acidx] = acrte.wpturnhdgr[wpidx]
@@ -975,8 +1082,6 @@ class Route(Replaceable):
         # Overwrite is hdgrate  defined
         if acrte.wpflyturn[wpidx] and acrte.wpturnhdgr[wpidx] > 0.: # heading rate specified
             turnrad = bs.traf.tas[acidx]*360./(2*pi*acrte.wpturnhdgr[wpidx])
-        else:                                                          # nothing specified, use default bank ang;e
-            turnrad = bs.traf.tas[acidx]*bs.traf.tas[acidx]/tan(radians(acrte.bank)) / g0 / nm  # [nm]default bank angle e.g. 25 deg
 
         bs.traf.actwp.turndist[acidx] = logical_or(acrte.wpturnhdgr[wpidx]>0.,
                                                       bs.traf.actwp.flyby[acidx] > 0.5)  *   \
@@ -1077,9 +1182,23 @@ class Route(Replaceable):
 
         trnidx = turnidx_all[argwhere(turnidx_all>=wpidx)[0]][0]
 
-
-        # Return the next turn waypoint info
-        return [self.wplat[trnidx], self.wplon[trnidx], self.wpturnspd[trnidx], self.wpturnrad[trnidx], self.wpturnhdgr[trnidx], trnidx]
+        i = bs.traf.id.index(self.acid)
+        # Calculate the turn first. We need to assume  that the aircraft is
+        # coming from perfectly on the previous leg.
+        qdr, _ = geo.qdrdist(self.wplat[trnidx-1], self.wplon[trnidx-1],
+                                self.wplat[trnidx], self.wplon[trnidx])
+        if trnidx < len(self.wplat)-1:
+            local_next_qdr, _ = geo.qdrdist(self.wplat[trnidx], self.wplon[trnidx],
+                                self.wplat[trnidx+1], self.wplon[trnidx+1])
+        else:
+            local_next_qdr = qdr
+            
+        turndist, turnrad, turnspd, turnbank, turnhdgr = \
+        bs.traf.actwp.calcturn(bs.traf.tas[i], qdr, 
+                    local_next_qdr, self.wpturnbank[trnidx], 
+                    self.wpturnrad[trnidx],self.wpturnspd[trnidx],self.wpturnhdgr[trnidx])
+        
+        return [self.wplat[trnidx], self.wplon[trnidx], turnspd, turnrad, turnhdgr, trnidx]
 
     def getnextwp(self):
         """Go to next waypoint and return data"""
@@ -1131,7 +1250,7 @@ class Route(Replaceable):
                            lnavon,self.wpflyby[self.iactwp], \
                            self.wpflyturn[self.iactwp],self.wpturnrad[self.iactwp], \
                            self.wpturnspd[self.iactwp], self.wpturnhdgr[self.iactwp], \
-                           nextqdr, swlastwp
+                           self.wpturnbank[self.iactwp], nextqdr, swlastwp
 
         # Switch LNAV off when last waypoint has been passed
         lnavon = self.iactwp < self.nwp -1
@@ -1160,13 +1279,13 @@ class Route(Replaceable):
 
 
         return self.wplat[self.iactwp],self.wplon[self.iactwp],   \
-               self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
-               self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp],\
-               self.wpxtorta[self.iactwp],self.wptorta[self.iactwp],\
-               lnavon,self.wpflyby[self.iactwp], \
-               self.wpflyturn[self.iactwp], self.wpturnrad[self.iactwp], \
-               self.wpturnspd[self.iactwp], self.wpturnhdgr[self.iactwp],\
-               nextqdr, swlastwp
+                self.wpalt[self.iactwp],self.wpspd[self.iactwp],   \
+                self.wpxtoalt[self.iactwp],self.wptoalt[self.iactwp], \
+                self.wpxtorta[self.iactwp], self.wptorta[self.iactwp], \
+                lnavon,self.wpflyby[self.iactwp], \
+                self.wpflyturn[self.iactwp],self.wpturnrad[self.iactwp], \
+                self.wpturnspd[self.iactwp], self.wpturnhdgr[self.iactwp], \
+                self.wpturnbank[self.iactwp], nextqdr, swlastwp
 
     def runactwpstack(self):
         for cmdline in self.wpstack[self.iactwp]:

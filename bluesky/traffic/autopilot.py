@@ -131,9 +131,7 @@ class Autopilot(Entity, replaceable=True):
 
         # Get list of indices of aircraft which have reached their active waypoint
         # This vectorized function checks the passing of the waypoint using a.o. the current turn radius
-        self.idxreached = bs.traf.actwp.reached(qdr, dist, bs.traf.actwp.flyby,
-                                       bs.traf.actwp.flyturn,bs.traf.actwp.turnrad,
-                                       bs.traf.actwp.turnhdgr,bs.traf.actwp.swlastwp)
+        self.idxreached = bs.traf.actwp.reached(qdr, dist)
 
         # For the one who have reached their active waypoint, update vectorized leg data for guidance
         for i in self.idxreached:
@@ -159,7 +157,7 @@ class Autopilot(Entity, replaceable=True):
                 lat, lon, alt, bs.traf.actwp.nextspd[i], \
                 bs.traf.actwp.xtoalt[i], toalt, \
                     bs.traf.actwp.xtorta[i], bs.traf.actwp.torta[i], \
-                    lnavon, flyby, flyturn, turnrad, turnspd, turnhdgr,\
+                    lnavon, flyby, flyturn, turnrad, turnspd, turnhdgr, turnbank,\
                     bs.traf.actwp.next_qdr[i], bs.traf.actwp.swlastwp[i] =      \
                     self.route[i].getnextwp()  # [m] note: xtoalt,nextaltco are in meters
 
@@ -168,6 +166,10 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.actwp.nextturnspd[i], bs.traf.actwp.nextturnrad[i], \
                 bs.traf.actwp.nextturnhdgr[i],bs.traf.actwp.nextturnidx[i] = \
                     self.route[i].getnextturnwp()
+                    
+                print(bs.traf.actwp.nextturnlat[i], bs.traf.actwp.nextturnlon[i], \
+                bs.traf.actwp.nextturnspd[i], bs.traf.actwp.nextturnrad[i], \
+                bs.traf.actwp.nextturnhdgr[i],bs.traf.actwp.nextturnidx[i])
 
             else:
                 # Prevent trying to activate the next waypoint when it was already the last waypoint
@@ -177,25 +179,26 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.swvnavspd[i] = False
                 continue # Go to next a/c which reached its active waypoint
 
-            # Special turns: specified by turn radius or bank angle
-            # If specified, use the given turn radius of passing wp for bank angle
-            if flyturn:
-                if turnspd<=0.:
-                    turnspd = bs.traf.tas[i]
+            # Special turns: specified by one or two of the following variables:
+            # Turn speed, turn radius, turn bank angle, turn rate
+            # if flyturn:
+            #     # First situation, if turn rate is specified
+            #     if turnspd<=0.:
+            #         turnspd = bs.traf.tas[i]
 
-                # Heading rate overrides turnrad
-                if turnhdgr>0:
-                    turnrad = bs.traf.tas[i]*360./(2*np.pi*turnhdgr)
+            #     # Heading rate overrides turnrad
+            #     if turnhdgr>0:
+            #         turnrad = bs.traf.tas[i]*360./(2*np.pi*turnhdgr)
 
-                # Use last turn radius for bank angle in current turn
-                if bs.traf.actwp.turnrad[i] > 0.:
-                    self.turnphi[i] = atan(bs.traf.actwp.turnspd[i]*bs.traf.actwp.turnspd[i]/ \
-                                           (bs.traf.actwp.turnrad[i]*g0)) # [rad]
-                else:
-                    self.turnphi[i] = 0.0  # [rad] or leave untouched???
+            #     # Use last turn radius for bank angle in current turn
+            #     if bs.traf.actwp.turnrad[i] > 0.:
+            #         self.turnphi[i] = atan(bs.traf.actwp.turnspd[i]*bs.traf.actwp.turnspd[i]/ \
+            #                                (bs.traf.actwp.turnrad[i]*g0)) # [rad]
+            #     else:
+            #         self.turnphi[i] = 0.0  # [rad] or leave untouched???
 
-            else:
-                self.turnphi[i] = 0.0  #[rad] or leave untouched???
+            # else:
+            #     self.turnphi[i] = 0.0  #[rad] or leave untouched???
 
 
 
@@ -248,15 +251,17 @@ class Autopilot(Entity, replaceable=True):
                 local_next_qdr = bs.traf.actwp.next_qdr[i]
 
             # Calculate turn dist (and radius which we do not use now, but later) now for scalar variable [i]
-            bs.traf.actwp.turndist[i], dummy = \
-                bs.traf.actwp.calcturn(bs.traf.tas[i], self.bankdef[i],
-                                        qdr[i], local_next_qdr,turnrad,turnhdgr,flyturn)  # update turn distance for VNAV
+            bs.traf.actwp.turndist[i], turnrad, turnspd, turnbank, turnhdgr = \
+                bs.traf.actwp.calcturn(bs.traf.tas[i], qdr[i], 
+                                       local_next_qdr, turnbank, 
+                                       turnrad,turnspd,turnhdgr)  # update turn distance for VNAV
 
             # Get flyturn switches and data
             bs.traf.actwp.flyturn[i]      = flyturn
             bs.traf.actwp.turnrad[i]      = turnrad
             bs.traf.actwp.turnspd[i]      = turnspd
             bs.traf.actwp.turnhdgr[i]     = turnhdgr
+            self.turnphi[i] = np.deg2rad(turnbank)
 
             # Pass on whether currently flyturn mode:
             # at beginning of leg,c copy tonextwp to lastwp
@@ -381,6 +386,7 @@ class Autopilot(Entity, replaceable=True):
         # Is turn speed specified and are we not already slow enough? We only decelerate for turns, not accel.
         turntas       = np.where(bs.traf.actwp.nextturnspd>0.0, vcas2tas(bs.traf.actwp.nextturnspd, bs.traf.alt),
                                  -1.0+0.*bs.traf.tas)
+        
         # Switch is now whether the aircraft has any turn waypoints
         swturnspd     = bs.traf.actwp.nextturnidx > 0
         turntasdiff   = np.maximum(0.,(bs.traf.tas - turntas)*(turntas>0.0))
