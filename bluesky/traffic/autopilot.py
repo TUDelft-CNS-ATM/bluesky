@@ -67,6 +67,7 @@ class Autopilot(Entity, replaceable=True):
             # Default values
             self.bankdef = np.array([])  # nominal bank angle, [radians]
             self.vsdef = np.array([]) # [m/s]default vertical speed of autopilot
+            self.cruisespd = np.array([]) # Cruise speed to apply when exiting a turn
             
             # Currently used roll/bank angle [rad]
             self.turnphi = np.array([])  # [rad] bank angle setting of autopilot
@@ -102,7 +103,8 @@ class Autopilot(Entity, replaceable=True):
         # Traffic performance data
         #(temporarily default values)
         self.vsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
-        self.bankdef[-n:] = np.radians(25.)
+        self.bankdef[-n:] = np.radians(25.) # default bank angle
+        self.cruisespd[-n:] = -999. # default cruise speed
 
         # Route objects
         for ridx, acid in enumerate(bs.traf.id[-n:]):
@@ -166,10 +168,6 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.actwp.nextturnspd[i], bs.traf.actwp.nextturnrad[i], \
                 bs.traf.actwp.nextturnhdgr[i],bs.traf.actwp.nextturnidx[i] = \
                     self.route[i].getnextturnwp()
-                    
-                print(bs.traf.actwp.nextturnlat[i], bs.traf.actwp.nextturnlon[i], \
-                bs.traf.actwp.nextturnspd[i], bs.traf.actwp.nextturnrad[i], \
-                bs.traf.actwp.nextturnhdgr[i],bs.traf.actwp.nextturnidx[i])
 
             else:
                 # Prevent trying to activate the next waypoint when it was already the last waypoint
@@ -252,7 +250,7 @@ class Autopilot(Entity, replaceable=True):
 
             # Calculate turn dist (and radius which we do not use now, but later) now for scalar variable [i]
             bs.traf.actwp.turndist[i], turnrad, turnspd, turnbank, turnhdgr = \
-                bs.traf.actwp.calcturn(bs.traf.tas[i], qdr[i], 
+                bs.traf.actwp.calcturn(i, bs.traf.tas[i], qdr[i], 
                                        local_next_qdr, turnbank, 
                                        turnrad,turnspd,turnhdgr)  # update turn distance for VNAV
 
@@ -446,7 +444,20 @@ class Autopilot(Entity, replaceable=True):
         bs.traf.selspd = np.where(inoldturn*(bs.traf.actwp.oldturnspd>0.)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
                                   bs.traf.actwp.oldturnspd,bs.traf.selspd)
 
+        # Before updating inturn, save the old inturn
+        oldinturn = self.inturn
+        
         self.inturn = np.logical_or(useturnspd,inoldturn)
+        
+        # Turn was exited this time step
+        justexitedturn = np.logical_and(oldinturn, np.logical_not(self.inturn))
+        
+        # Apply the cruise speed if next waypoint doesn't have a speed constraint 
+        # and if there is actually a cruise speed to apply
+        usecruisespd = np.logical_and.reduce((self.cruisespd > 0,
+                                              bs.traf.actwp.nextspd < 0,
+                                              justexitedturn))
+        bs.traf.selspd = np.where(usecruisespd, self.cruisespd, bs.traf.selspd)
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
@@ -881,6 +892,7 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.swlnav[i] = False
         if flag is None:
             return True, '\n'.join(output)
+        
 
 
     @stack.command(name='SWTOC')

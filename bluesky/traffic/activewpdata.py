@@ -116,13 +116,13 @@ class ActiveWaypoint(Entity, replaceable=True):
         return swreached
 
     # Calculate turn distance for scalars
-    def calcturn(self, tas , wpqdr, next_wpqdr, turnbank, turnrad, turnspd, turnhdgr):
+    def calcturn(self, acidx, tas , wpqdr, next_wpqdr, turnbank, turnrad, turnspd, turnhdgr):
         """Calculate the properties of a turn in function of the input. Inputs are SCALARS."""
         # Calculate the sum of bools to figure out things more easily
         num_defined_values = sum([turnbank>0, turnrad>0, turnspd>0, turnhdgr>0])
         # Case 1: No value is given, use defaults
         if num_defined_values == 0:
-            turnbank = 25
+            turnbank = bs.traf.ap.bankdef[acidx]
             turnspd = tas
             # Calculate the radius
             turnrad = turnspd**2/(g0*np.tan(np.deg2rad(turnbank)))

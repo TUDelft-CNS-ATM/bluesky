@@ -1076,7 +1076,7 @@ class Route(Replaceable):
         # Save leg length & direction in actwp data
         bs.traf.actwp.curlegdir[acidx] = qdr_      #[deg]
         bs.traf.actwp.curleglen[acidx] = dist_*nm  #[m]
-
+        
         if acrte.wpflyturn[wpidx] and acrte.wpturnrad[wpidx]>0.: # turn radius specified
             turnrad = acrte.wpturnrad[wpidx]
         # Overwrite is hdgrate  defined
@@ -1194,7 +1194,7 @@ class Route(Replaceable):
             local_next_qdr = qdr
             
         turndist, turnrad, turnspd, turnbank, turnhdgr = \
-        bs.traf.actwp.calcturn(bs.traf.tas[i], qdr, 
+        bs.traf.actwp.calcturn(i, bs.traf.tas[i], qdr, 
                     local_next_qdr, self.wpturnbank[trnidx], 
                     self.wpturnrad[trnidx],self.wpturnspd[trnidx],self.wpturnhdgr[trnidx])
         
@@ -1571,3 +1571,18 @@ class Route(Replaceable):
         else:
             nextqdr = -999.
         return nextqdr
+    
+    @stack.command
+    @staticmethod
+    def setcruisespd(acidx: 'acid', spd: 'spd'):
+        """Sets the cruise speed of an aircraft in the autopilot. This speed is applied
+        after the aircraft exits a turn.
+        """
+        
+        # First, make sure that the velocity is within the performance limits of the aircraft.
+        minspd = bs.traf.perf.vmin[acidx]
+        maxspd = bs.traf.perf.vmax[acidx]
+        spd_to_apply = min(maxspd, max(spd , minspd))
+        # Apply the speed
+        bs.traf.ap.cruisespd[acidx] = spd_to_apply
+        return
