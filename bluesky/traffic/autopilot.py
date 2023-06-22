@@ -386,7 +386,7 @@ class Autopilot(Entity, replaceable=True):
                                  -1.0+0.*bs.traf.tas)
         
         # Switch is now whether the aircraft has any turn waypoints
-        swturnspd     = bs.traf.actwp.nextturnidx > 0
+        swturnspd     = bs.traf.actwp.nextturnidx >= 0
         turntasdiff   = np.maximum(0.,(bs.traf.tas - turntas)*(turntas>0.0))
 
         # t = (v1-v0)/a ; x = v0*t+1/2*a*t*t => dx = (v1*v1-v0*v0)/ (2a)
@@ -408,7 +408,7 @@ class Autopilot(Entity, replaceable=True):
 
         # Where we don't have a turn waypoint, as in turn idx is negative, then put distance
         # as Earth circumference.
-        self.dist2turn = np.where(bs.traf.actwp.nextturnidx > 0, dist2turn, 40075000)
+        self.dist2turn = np.where(bs.traf.actwp.nextturnidx >= 0, dist2turn, 40075000)
 
         # Check also whether VNAVSPD is on, if not, SPD SEL has override for next leg
         # and same for turn logic

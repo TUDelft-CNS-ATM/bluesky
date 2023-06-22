@@ -1001,9 +1001,12 @@ class Route(Replaceable):
             self.calcfp()
 
         # Update autopilot settings
+        # If we added a waypoint but iactwp is still -1, make it 0
+        if wpok and self.iactwp < 0:
+            self.iactwp = 0
+            
         if wpok and 0 <= self.iactwp < self.nwp:
             self.direct(iac, self.wpname[self.iactwp])
-
 
         return idx
 
@@ -1082,12 +1085,27 @@ class Route(Replaceable):
         # Overwrite is hdgrate  defined
         if acrte.wpflyturn[wpidx] and acrte.wpturnhdgr[wpidx] > 0.: # heading rate specified
             turnrad = bs.traf.tas[acidx]*360./(2*pi*acrte.wpturnhdgr[wpidx])
+        
+        wpqdr, _ = geo.qdrdist(bs.traf.lat[acidx], bs.traf.lon[acidx],
+                                          bs.traf.actwp.lat[wpidx], bs.traf.actwp.lon[wpidx])
+        # Update turndist so ComputeVNAV works, is there a next leg direction or not?
+        if bs.traf.actwp.next_qdr[acidx] < -900.:
+            local_next_qdr = wpqdr
+        else:
+            local_next_qdr = bs.traf.actwp.next_qdr[acidx]
 
-        bs.traf.actwp.turndist[acidx] = logical_or(acrte.wpturnhdgr[wpidx]>0.,
-                                                      bs.traf.actwp.flyby[acidx] > 0.5)  *   \
-                    turnrad*abs(tan(0.5*radians(max(5., abs(degto180(qdr_ -
-                    acrte.wpdirfrom[acrte.iactwp]))))))    # [nm]
+        # Calculate turn dist (and radius which we do not use now, but later) now for scalar variable [acidx]
+        bs.traf.actwp.turndist[acidx], turnrad, turnspd, turnbank, turnhdgr = \
+            bs.traf.actwp.calcturn(acidx, bs.traf.tas[acidx], wpqdr, 
+                                    local_next_qdr, bs.traf.actwp.turnbank[acidx], 
+                                    bs.traf.actwp.turnrad[acidx],bs.traf.actwp.turnspd[acidx] ,
+                                    bs.traf.actwp.turnhdgr[acidx])  # update turn distance for VNAV
 
+        # Update turn data
+        bs.traf.actwp.turnrad[acidx]      = turnrad
+        bs.traf.actwp.turnspd[acidx]      = turnspd
+        bs.traf.actwp.turnhdgr[acidx]     = turnhdgr
+        bs.traf.ap.turnphi[acidx] = deg2rad(turnbank)
 
         bs.traf.swlnav[acidx] = True
         return True
