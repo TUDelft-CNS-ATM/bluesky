@@ -546,7 +546,7 @@ class Route(Replaceable):
                 acrte.swflyby   = True
                 acrte.swflyturn = False
 
-            wpidx = acrte.addwpt(acidx, acid, Route.wplatlon, lat, lon, alt, spd)
+            wpidx = acrte.addwpt_simple(acidx, acid, Route.wplatlon, lat, lon, alt, spd)
         
         # Direct to first waypoint
         acrte.direct(acidx, acrte.wpname[0])  # 0 if no orig
@@ -589,6 +589,10 @@ class Route(Replaceable):
         if idx>=0:
             bs.traf.actwp.next_qdr[iac] = self.getnextqdr()
             bs.traf.actwp.swlastwp[iac] = (self.iactwp==self.nwp-1)
+            
+        # Update autopilot settings
+        if 0 <= self.iactwp < self.nwp:
+            self.direct(iac, self.wpname[self.iactwp])
 
         return idx
 
