@@ -116,16 +116,20 @@ class ActiveWaypoint(Entity, replaceable=True):
         return swreached
 
     # Calculate turn distance for scalars
-    def calcturn(self, acidx, tas , wpqdr, next_wpqdr, turnbank, turnrad, turnspd, turnhdgr):
+    def calcturn(self, acidx, tas , wpqdr, next_wpqdr, turnbank, turnrad, turnspd, turnhdgr, flyturn, flyby):
         """Calculate the properties of a turn in function of the input. Inputs are SCALARS."""
+        # If this is not a flyturn waypoint, just return standard values
         # Calculate the sum of bools to figure out things more easily
         num_defined_values = sum([turnbank>0, turnrad>0, turnspd>0, turnhdgr>0])
-        # Case 1: No value is given, use defaults
-        if num_defined_values == 0:
-            turnbank = bs.traf.ap.bankdef[acidx]
+        # Case 1: No value is given or not a flyturn, use defaults
+        if num_defined_values == 0 or not flyturn:
+            turnbank = np.rad2deg(bs.traf.ap.bankdef[acidx])
             turnspd = tas
             # Calculate the radius
             turnrad = turnspd**2/(g0*np.tan(np.deg2rad(turnbank)))
+            if not flyby:
+                # This is a flyover waypoint, so we have to fly OVER it, so turndist is 0
+                return 0, turnrad, turnspd, turnbank, turnhdgr
         # Case 2: only one value is given. We then want to keep the speed as TAS unless the speed is the one that isn't specified
         elif num_defined_values == 1:
             # If the velocity is the given one, take default bank and calculate remaining values

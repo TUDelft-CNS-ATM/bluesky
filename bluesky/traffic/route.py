@@ -512,7 +512,6 @@ class Route(Replaceable):
         # Get and reset current aircraft route
         acid = bs.traf.id[acidx]
         acrte = Route._routes.get(acid)
-        acrte.__init__(acid)
 
         args = reshape(args, (int(len(args)/5), 5))
 
@@ -535,8 +534,8 @@ class Route(Replaceable):
                 acrte.swflyturn = True
 
             elif wpdata[4] == 'FLYBY':
-                acrte.swflyby   = False
-                acrte.swflyturn = True
+                acrte.swflyby   = True
+                acrte.swflyturn = False
 
             elif wpdata[4] == 'FLYOVER':
                 acrte.swflyby   = False
@@ -547,22 +546,23 @@ class Route(Replaceable):
                 acrte.swflyby   = True
                 acrte.swflyturn = False
 
-
-            name    = acid
-            wptype  = Route.wplatlon
-
-            wpidx = acrte.addwpt_simple(acidx, name, wptype, lat, lon, alt, spd)
+            wpidx = acrte.addwpt(acidx, acid, Route.wplatlon, lat, lon, alt, spd)
+        
+        # Direct to first waypoint
+        acrte.direct(acidx, acrte.wpname[0])  # 0 if no orig
+        #print("direct ",self.wpname[norig])
+        bs.traf.swlnav[acidx] = True
 
         # Calculate flight plan
         acrte.calcfp()
 
         # Check for success by checking inserted location in flight plan >= 0
         if wpidx < 0:
-            return False, "Waypoint " + name + " not added."
+            return False, "Waypoint " + acid + " not added."
         
-        # Direct aircraft to first waypoint
-        acrte.iactwp = 0
-        acrte.direct(acidx, acrte.wpname[0])
+        # # Direct aircraft to first waypoint
+        # acrte.iactwp = 0
+        # acrte.direct(acidx, acrte.wpname[0])
         
 
     def addwpt_simple(self, iac, name, wptype, lat, lon, alt=-999., spd=-999.):
@@ -589,10 +589,6 @@ class Route(Replaceable):
         if idx>=0:
             bs.traf.actwp.next_qdr[iac] = self.getnextqdr()
             bs.traf.actwp.swlastwp[iac] = (self.iactwp==self.nwp-1)
-
-        # Update autopilot settings
-        if 0 <= self.iactwp < self.nwp:
-            self.direct(iac, self.wpname[self.iactwp])
 
         return idx
 
@@ -1081,20 +1077,19 @@ class Route(Replaceable):
         if acrte.wpflyturn[wpidx] and acrte.wpturnhdgr[wpidx] > 0.: # heading rate specified
             turnrad = bs.traf.tas[acidx]*360./(2*pi*acrte.wpturnhdgr[wpidx])
         
-        wpqdr, _ = geo.qdrdist(bs.traf.lat[acidx], bs.traf.lon[acidx],
-                                          bs.traf.actwp.lat[acidx], bs.traf.actwp.lon[acidx])
         # Update turndist so ComputeVNAV works, is there a next leg direction or not?
         if bs.traf.actwp.next_qdr[acidx] < -900.:
-            local_next_qdr = wpqdr
+            local_next_qdr = qdr_
         else:
             local_next_qdr = bs.traf.actwp.next_qdr[acidx]
 
         # Calculate turn dist (and radius which we do not use now, but later) now for scalar variable [acidx]
         bs.traf.actwp.turndist[acidx], turnrad, turnspd, turnbank, turnhdgr = \
-            bs.traf.actwp.calcturn(acidx, bs.traf.tas[acidx], wpqdr, 
+            bs.traf.actwp.calcturn(acidx, bs.traf.tas[acidx], qdr_, 
                                     local_next_qdr, bs.traf.actwp.turnbank[acidx], 
                                     bs.traf.actwp.turnrad[acidx],bs.traf.actwp.turnspd[acidx] ,
-                                    bs.traf.actwp.turnhdgr[acidx])  # update turn distance for VNAV
+                                    bs.traf.actwp.turnhdgr[acidx], bs.traf.actwp.flyturn[acidx],
+                                    bs.traf.actwp.flyby[acidx])  # update turn distance for VNAV
 
         # Update turn data
         bs.traf.actwp.turnrad[acidx]      = turnrad
@@ -1209,7 +1204,7 @@ class Route(Replaceable):
         turndist, turnrad, turnspd, turnbank, turnhdgr = \
         bs.traf.actwp.calcturn(i, bs.traf.tas[i], qdr, 
                     local_next_qdr, self.wpturnbank[trnidx], 
-                    self.wpturnrad[trnidx],self.wpturnspd[trnidx],self.wpturnhdgr[trnidx])
+                    self.wpturnrad[trnidx],self.wpturnspd[trnidx],self.wpturnhdgr[trnidx], True, False)
         
         return [self.wplat[trnidx], self.wplon[trnidx], turnspd, turnrad, turnhdgr, trnidx]
 

@@ -153,7 +153,7 @@ class Autopilot(Entity, replaceable=True):
 
             # Execute stack commands for the still active waypoint, which we pass now
             self.route[i].runactwpstack()
-
+            
             # Get next wp, if there still is one
             if not bs.traf.actwp.swlastwp[i]:
                 lat, lon, alt, bs.traf.actwp.nextspd[i], \
@@ -252,7 +252,7 @@ class Autopilot(Entity, replaceable=True):
             bs.traf.actwp.turndist[i], turnrad, turnspd, turnbank, turnhdgr = \
                 bs.traf.actwp.calcturn(i, bs.traf.tas[i], qdr[i], 
                                        local_next_qdr, turnbank, 
-                                       turnrad,turnspd,turnhdgr)  # update turn distance for VNAV
+                                       turnrad,turnspd,turnhdgr, flyturn, flyby)  # update turn distance for VNAV
 
             # Get flyturn switches and data
             bs.traf.actwp.flyturn[i]      = flyturn
@@ -458,6 +458,7 @@ class Autopilot(Entity, replaceable=True):
                                               bs.traf.actwp.spd < 0,
                                               np.logical_not(usenextspdcon),
                                               justexitedturn))
+        
         bs.traf.selspd = np.where(usecruisespd, self.cruisespd, bs.traf.selspd)
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
