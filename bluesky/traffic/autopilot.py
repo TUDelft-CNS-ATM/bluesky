@@ -452,12 +452,15 @@ class Autopilot(Entity, replaceable=True):
         # Turn was exited this time step
         justexitedturn = np.logical_and(oldinturn, np.logical_not(self.inturn))
         
-        # Apply the cruise speed if next waypoint doesn't have a speed constraint 
+        # Apply the cruise speed if the past or next waypoint doesn't have a speed constraint 
         # and if there is actually a cruise speed to apply
         usecruisespd = np.logical_and.reduce((self.cruisespd > 0,
-                                              bs.traf.actwp.nextspd < 0,
+                                              bs.traf.actwp.spd < 0,
+                                              np.logical_not(usenextspdcon),
                                               justexitedturn))
         bs.traf.selspd = np.where(usecruisespd, self.cruisespd, bs.traf.selspd)
+        
+        print(bs.traf.actwp.spd, bs.traf.actwp.nextspd)
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)

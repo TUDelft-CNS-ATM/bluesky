@@ -1592,7 +1592,7 @@ class Route(Replaceable):
     
     @stack.command
     @staticmethod
-    def setcruisespd(acidx: 'acid', spd: 'spd'):
+    def cruisespd(acidx: 'acid', spd: 'spd'):
         """Sets the cruise speed of an aircraft in the autopilot. This speed is applied
         after the aircraft exits a turn.
         """
