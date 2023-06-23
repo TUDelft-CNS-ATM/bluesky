@@ -503,16 +503,18 @@ class Route(Replaceable):
 
     @stack.command
     def addwaypoints(acidx: 'acid', *args):
-        # Args come in this order: lat, lon, alt, spd, TURNSPD/TURNRAD/FLYBY, turnspeed or turnrad value
-        # If turn is '0', then ignore turnspeed
-        if len(args)%6 !=0:
+        # Args come in this order: lat, lon, alt, spd, FLYTURN/FLYBY/FLYOVER
+        # For flyturn properties, use ADDWPTMODE
+        if len(args)%5 !=0:
             bs.scr.echo('You missed a waypoint value, arguement number must be a multiple of 6.')
             return
 
+        # Get and reset current aircraft route
         acid = bs.traf.id[acidx]
         acrte = Route._routes.get(acid)
+        acrte.__init__(acid)
 
-        args = reshape(args, (int(len(args)/6), 6))
+        args = reshape(args, (int(len(args)/5), 5))
 
         for wpdata in args:
             # Get needed values
@@ -527,30 +529,18 @@ class Route(Replaceable):
             else:
                 spd = -999
 
-            # Do flyby or flyturn processing
-            if wpdata[4] in ['TURNSPD', 'TURNSPEED']: #
-                if wpdata[4]=="OFF":
-                    acrte.turnspd = -999.
-                else:
-                    acrte.turnspd = txt2spd(wpdata[5])
+            # Do flyby or flyturn or flyover processing
+            if wpdata[4] == 'FLYTURN': #
                 acrte.swflyby   = False
                 acrte.swflyturn = True
 
-            elif wpdata[4] in ['TURNRAD', 'TURNRADIUS']:
-                if wpdata[4]=="OFF":
-                    acrte.turnrad = -999.
-                else:
-                    acrte.turnrad = float(wpdata[5])*nm
+            elif wpdata[4] == 'FLYBY':
                 acrte.swflyby   = False
                 acrte.swflyturn = True
 
-            elif wpdata[4] in ['TURNHDG', 'TURNHDGR','TURNHDGRATE']:
-                if wpdata[4]=="OFF":
-                    acrte.turnhdgr = -999.
-                else:
-                    acrte.turnhdgr = float(wpdata[5])
+            elif wpdata[4] == 'FLYOVER':
                 acrte.swflyby   = False
-                acrte.swflyturn = True
+                acrte.swflyturn = False
 
             else:
                 # Either it's a flyby, or a typo.
@@ -569,6 +559,11 @@ class Route(Replaceable):
         # Check for success by checking inserted location in flight plan >= 0
         if wpidx < 0:
             return False, "Waypoint " + name + " not added."
+        
+        # Direct aircraft to first waypoint
+        acrte.iactwp = 0
+        acrte.direct(acidx, acrte.wpname[0])
+        
 
     def addwpt_simple(self, iac, name, wptype, lat, lon, alt=-999., spd=-999.):
         """Adds waypoint in the most simple way possible"""
@@ -1087,7 +1082,7 @@ class Route(Replaceable):
             turnrad = bs.traf.tas[acidx]*360./(2*pi*acrte.wpturnhdgr[wpidx])
         
         wpqdr, _ = geo.qdrdist(bs.traf.lat[acidx], bs.traf.lon[acidx],
-                                          bs.traf.actwp.lat[wpidx], bs.traf.actwp.lon[wpidx])
+                                          bs.traf.actwp.lat[acidx], bs.traf.actwp.lon[acidx])
         # Update turndist so ComputeVNAV works, is there a next leg direction or not?
         if bs.traf.actwp.next_qdr[acidx] < -900.:
             local_next_qdr = wpqdr

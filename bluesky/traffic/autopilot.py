@@ -459,8 +459,6 @@ class Autopilot(Entity, replaceable=True):
                                               np.logical_not(usenextspdcon),
                                               justexitedturn))
         bs.traf.selspd = np.where(usecruisespd, self.cruisespd, bs.traf.selspd)
-        
-        print(bs.traf.actwp.spd, bs.traf.actwp.nextspd)
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
