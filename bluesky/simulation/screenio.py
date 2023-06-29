@@ -77,9 +77,6 @@ class ScreenIO(Entity):
         self.def_pan = (0.0, 0.0)
         self.def_zoom = 1.0
 
-        # Communicate reset to gui
-        bs.net.send(b'RESET', b'ALL')
-
     def echo(self, text='', flags=0):
         bs.net.send(b'ECHO', dict(text=text, flags=flags))
 
