@@ -120,7 +120,6 @@ class Navdata(glh.RenderObject, layer=-10):
         ''' Receive custom waypoint data and add to visualisation. '''
         if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
             # Simulation reset: Clear all entries
-            self.customwp.set_vertex_count(0)
             self.ncustwpts = 0
             return
 
