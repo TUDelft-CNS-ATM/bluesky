@@ -1,16 +1,15 @@
 """ QTGL Gui for BlueSky."""
 try:
     from PyQt5.QtCore import Qt, QTimer, qInstallMessageHandler, \
-        QtMsgType, QT_VERSION, QT_VERSION_STR
-    from PyQt5.QtWidgets import QApplication, QErrorMessage
+        QtMsgType, QT_VERSION_STR
+    from PyQt5.QtWidgets import QApplication
     from PyQt5.QtGui import QFont
     
 except ImportError:
     from PyQt6.QtCore import Qt, QTimer, qInstallMessageHandler, \
-        QT_VERSION, QT_VERSION_STR
+        QtMsgType, QT_VERSION_STR
 
-    from PyQt6.QtCore import QtMsgType
-    from PyQt6.QtWidgets import QApplication, QErrorMessage
+    from PyQt6.QtWidgets import QApplication
     from PyQt6.QtGui import QFont
 
 import os
@@ -62,15 +61,11 @@ def start(hostname=None):
     network_timer.start(20)
 
     # Enable HiDPI support (Qt5 only)
-    if QT_VERSION_STR[0] == '5' and QT_VERSION >= 0x050000:
+    if QT_VERSION_STR[0] == '5':
         app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     splash = Splash()
     splash.show()
-
-    # Install error message handler
-    # handler = QErrorMessage.qtHandler()
-    # handler.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
 
     splash.showMessage('Constructing main window')
     app.processEvents()

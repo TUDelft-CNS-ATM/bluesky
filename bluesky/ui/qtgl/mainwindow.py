@@ -27,7 +27,7 @@ import bluesky as bs
 from bluesky import stack
 from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
-from bluesky.network import context as ctx
+from bluesky.network import subscriber, context as ctx
 from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
 from bluesky.ui import palette
 from bluesky.core import Signal, remotestore as rs
@@ -179,6 +179,9 @@ class MainWindow(Base, QMainWindow):
         bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
         Signal('SHOWDIALOG').connect(self.on_showdialog_received)
 
+        # Tell BlueSky that this is the screen object for this client
+        bs.scr = self
+
         # self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
@@ -240,6 +243,17 @@ class MainWindow(Base, QMainWindow):
                 bs.net.send(b'QUIT', to_group=bs.server.server_id)
             app.instance().closeAllWindows()
             # return True
+
+    @subscriber
+    def echo(self, text, flags=None, sender_id=None):
+        refnode = sender_id or ctx.sender_id or bs.net.act_id
+        # Always update the store
+        store = rs.get(refnode)
+        store.echotext.append(text)
+        store.echoflags.append(flags)
+        # Directly echo if message corresponds to active node
+        if refnode == bs.net.act_id:
+            return self.console.echo(text, flags)
 
     def changeEvent(self, event: QEvent):
         # Detect dark/light mode switch
