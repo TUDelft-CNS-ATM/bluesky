@@ -17,6 +17,7 @@ class _Hook(OrderedDict):
 hooks = SimpleNamespace(
     update=_Hook(),
     preupdate=_Hook(),
+    hold=_Hook(),
     reset=_Hook()
 )
 
@@ -55,10 +56,14 @@ def timed_function(func=None, name='', dt=0, hook='update'):
                 if timer.counter == 0:
                     fobj(*args)
 
-        # Add automatically-triggered function to appropriate dict if not there yet.
-        target = getattr(hooks, hook)
-        if tname not in target:
-            target[tname] = callback
+        # Add automatically-triggered function to appropriate dict(s) if not there yet.
+        hooknames = hook if isinstance(hook, (list, tuple)) else (hook,)
+        for hookname in hooknames:
+            target = getattr(hooks, hookname)
+            if target is None:
+                raise KeyError(f'No timing hook found with name {hookname}')
+            if tname not in target:
+                target[tname] = fobj if hookname in ('reset', 'hold') else callback
 
         # Construct the timed function, but return the original function
         return func

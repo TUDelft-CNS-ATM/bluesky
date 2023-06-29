@@ -117,6 +117,8 @@ class Simulation(Entity):
             # Update traffic and other update functions for the next timestep
             bs.traf.update()
             hooks.update.trigger()
+        else:
+            hooks.hold.trigger()
 
     def update(self):
         ''' Perform a simulation update. 

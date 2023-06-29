@@ -225,7 +225,7 @@ class Publisher(metaclass=PublisherMeta):
                 store[1][key].extend(item)
 
     @staticmethod
-    @timed_function(hook='update')
+    @timed_function(hook=('update', 'hold'))
     def send_collected():
         while Publisher.__collect__:
             (topic, to_group), payload = Publisher.__collect__.popitem()
