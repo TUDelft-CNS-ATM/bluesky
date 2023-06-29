@@ -14,7 +14,7 @@ import bluesky as bs
 from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
 from bluesky.core import Signal, remotestore as rs
-from bluesky.network import subscriber, context as ctx, sharedstate as ss
+from bluesky.network import sharedstate as ss
 from . import autocomplete
 
 
@@ -52,18 +52,9 @@ def process_cmdline(cmdlines):
             Console._instance.stack(cmd)
 
 
-@subscriber
-def echo(text, flags=None):
-    if ctx.sender_id == bs.net.act_id:
-        return Console._instance.echo(text, flags)
-    store = rs.get(ctx.sender_id)
-    store.echotext.append(text)
-    store.echoflags.append(flags)
-
-
 class Console(QWidget):
-    lineEdit = None
-    stackText = None
+    lineEdit: QTextEdit = None
+    stackText: QTextEdit = None
     _instance = None
 
     # Per-remote data
@@ -86,6 +77,7 @@ class Console(QWidget):
 
         # Connect to the io client's activenode changed signal
         Signal('CMDLINE').connect(self.set_cmdline)
+        Signal('actnode-changed').connect(self.actnodeChanged)
 
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
@@ -99,12 +91,11 @@ class Console(QWidget):
         with cachefile.openfile('console_history.p') as cache:
             cache.dump(self.command_history)
 
-    def actnodedataChanged(self, nodeid, nodedata, changed_elems):
-        if 'ECHOTEXT' in changed_elems:
-            text = ('<br>'.join(self.echotext)).replace('\n', '<br>') + '<br>'
-            self.stackText.setHtml(text)
-            self.stackText.verticalScrollBar().setValue(
-                self.stackText.verticalScrollBar().maximum())
+    def actnodeChanged(self, nodeid):
+        text = ('<br>'.join(self.echotext)).replace('\n', '<br>') + '<br>'
+        self.stackText.setHtml(text)
+        self.stackText.verticalScrollBar().setValue(
+            self.stackText.verticalScrollBar().maximum())
 
     def stack(self, text):
         # Add command to the command history
@@ -118,9 +109,10 @@ class Console(QWidget):
         self.history_pos = 0
 
     def echo(self, text, flags=None):
-        self.echotext.append(text)
-        self.echoflags.append(flags)
-
+        cursor = self.stackText.textCursor()
+        cursor.clearSelection()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.stackText.setTextCursor(cursor)
         self.stackText.insertHtml(text.replace('\n', '<br>') + '<br>')
         self.stackText.verticalScrollBar().setValue(
             self.stackText.verticalScrollBar().maximum())
