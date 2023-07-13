@@ -8,7 +8,7 @@ class Command:
     ''' Stack command object. '''
 
     # Dictionary with all command objects
-    cmddict = dict()
+    cmddict: dict[str, 'Command'] = dict()
 
     @classmethod
     def addcommand(cls, func, parent=None, name='', **kwargs):
