@@ -1,7 +1,7 @@
 """ Route implementation for the BlueSky FMS."""
-from pathlib import Path
+import math
 from weakref import WeakValueDictionary
-from numpy import *
+import numpy as np
 import bluesky as bs
 from bluesky.tools import geo
 from bluesky.core import Replaceable
@@ -34,7 +34,7 @@ class Route(Replaceable):
     runway   = 5   # Runway: Copy name and positions
 
     # Aircraft route objects
-    _routes = WeakValueDictionary()
+    _routes: WeakValueDictionary[str, 'Route'] = WeakValueDictionary()
 
     def __init__(self, acid):
         # Add self to dictionary of all aircraft routes
@@ -124,7 +124,7 @@ class Route(Replaceable):
         TURNSPEED or TURNRADIUS.'''
         # Get aircraft route
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         # First, we want to check what 'mode' is, and then call addwptStack 
         # accordingly.
         if mode in ['FLYBY', 'FLYOVER', 'FLYTURN']:
@@ -158,7 +158,7 @@ class Route(Replaceable):
         """ADDWPT acid, (wpname/lat,lon),[alt],[spd],[afterwp],[beforewp]"""
         # First get the appropriate ac route
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         
         #debug print ("addwptStack:",args)
         #print("active = ",self.wpname[self.iactwp])
@@ -513,7 +513,7 @@ class Route(Replaceable):
         acid = bs.traf.id[acidx]
         acrte = Route._routes.get(acid)
 
-        args = reshape(args, (int(len(args)/5), 5))
+        args = np.reshape(args, (int(len(args)/5), 5))
 
         for wpdata in args:
             # Get needed values
@@ -619,7 +619,7 @@ class Route(Replaceable):
     def at(acidx: 'acid', atwp : 'wpinroute', *args):
         ''' AT acid, wpinroute [DEL] ALT/SPD/DO alt/spd/stack command'''
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         if atwp in acrte.wpname:
             wpidx = acrte.wpname.index(atwp)
 
@@ -757,7 +757,7 @@ class Route(Replaceable):
                     if not(cmd in bs.traf.id):
                         # Look up arg types
                         try:
-                            cmdobj = Command.cmddict.get(cmd)
+                            cmdobj = Command.cmddict[cmd]
 
                             # Command found, check arguments
                             argtypes = cmdobj.annotations
@@ -1012,7 +1012,7 @@ class Route(Replaceable):
         
             Go direct to specified waypoint in route (FMS)"""
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         wpidx = acrte.wpname.index(wpname)
 
         acrte.iactwp = wpidx
@@ -1079,7 +1079,7 @@ class Route(Replaceable):
             turnrad = acrte.wpturnrad[wpidx]
         # Overwrite is hdgrate  defined
         if acrte.wpflyturn[wpidx] and acrte.wpturnhdgr[wpidx] > 0.: # heading rate specified
-            turnrad = bs.traf.tas[acidx]*360./(2*pi*acrte.wpturnhdgr[wpidx])
+            turnrad = bs.traf.tas[acidx]*360./(2*np.pi*acrte.wpturnhdgr[wpidx])
         
         # Update turndist so ComputeVNAV works, is there a next leg direction or not?
         if bs.traf.actwp.next_qdr[acidx] < -900.:
@@ -1099,7 +1099,7 @@ class Route(Replaceable):
         bs.traf.actwp.turnrad[acidx]      = turnrad
         bs.traf.actwp.turnspd[acidx]      = turnspd
         bs.traf.actwp.turnhdgr[acidx]     = turnhdgr
-        bs.traf.ap.turnphi[acidx] = deg2rad(turnbank)
+        bs.traf.ap.turnphi[acidx] = np.deg2rad(turnbank)
 
         bs.traf.swlnav[acidx] = True
         return True
@@ -1111,7 +1111,7 @@ class Route(Replaceable):
         
             Add RTA to waypoint record"""
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         wpidx = acrte.wpname.index(wpname)
         acrte.wprta[wpidx] = time
 
@@ -1129,7 +1129,7 @@ class Route(Replaceable):
         # First get the appropriate ac route
         ipage = int(ipagetxt)
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         if acrte.nwp <= 0:
             return False, "Aircraft has no route."
 
@@ -1186,13 +1186,13 @@ class Route(Replaceable):
         # Starting point
         wpidx = self.iactwp
         # Find next turn waypoint index
-        turnidx_all = where(self.wpflyturn)[0]
-        argwhere_arr = argwhere(turnidx_all>=wpidx)
+        turnidx_all = np.where(self.wpflyturn)[0]
+        argwhere_arr = np.argwhere(turnidx_all>=wpidx)
         if argwhere_arr.size == 0:
             # No turn waypoints, return default values
             return [0., 0., -999., -999., -999, -999.]
 
-        trnidx = turnidx_all[argwhere(turnidx_all>=wpidx)[0]][0]
+        trnidx = turnidx_all[np.argwhere(turnidx_all>=wpidx)[0]][0]
 
         i = bs.traf.id.index(self.acid)
         # Calculate the turn first. We need to assume  that the aircraft is
@@ -1319,7 +1319,7 @@ class Route(Replaceable):
             acidx = 0
         # Simple re-initialize this route as empty
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         acrte.__init__(acid)
 
         # Also disable LNAV,VNAV if route is deleted
@@ -1341,7 +1341,7 @@ class Route(Replaceable):
 
         # Look up waypoint
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         try:
             wpidx = acrte.wpname.index(wpname.upper())
         except ValueError:
@@ -1463,7 +1463,7 @@ class Route(Replaceable):
 
         # RTA: calc next rta constraint: index, altitude and distance to it
         # If any RTA.
-        if any(array(self.wprta)>=0.0):
+        if any(np.array(self.wprta)>=0.0):
             #print("Yes, I found RTAs")
             irta = -1       # index of wp
             torta = -999.   # next rta value
@@ -1522,25 +1522,25 @@ class Route(Replaceable):
             return 0
 
         # Find closest
-        wplat  = array(self.wplat)
-        wplon  = array(self.wplon)
+        wplat  = np.array(self.wplat)
+        wplon  = np.array(self.wplon)
         dy = (wplat - bs.traf.lat[i])
         dx = (wplon - bs.traf.lon[i]) * bs.traf.coslat[i]
         dist2 = dx*dx + dy*dy
         # Note: the max() prevents walking back, even in cases when this might be apropriate,
         # such as when previous waypoints have been deleted
 
-        iwpnear = max(self.iactwp,argmin(dist2))
+        iwpnear = max(self.iactwp, np.argmin(dist2))
 
         #Unless behind us, next waypoint?
         if iwpnear+1<self.nwp:
-            qdr = degrees(arctan2(dx[iwpnear],dy[iwpnear]))
+            qdr = math.degrees(math.atan2(dx[iwpnear],dy[iwpnear]))
             delhdg = abs(degto180(bs.traf.trk[i]-qdr))
 
             # we only turn to the first waypoint if we can reach the required
             # heading before reaching the waypoint
-            time_turn = max(0.01,bs.traf.tas[i])*radians(delhdg)/(g0*tan(bs.traf.ap.bankdef[i]))
-            time_straight= sqrt(dist2[iwpnear])*60.*nm/max(0.01,bs.traf.tas[i])
+            time_turn = max(0.01,bs.traf.tas[i])*math.radians(delhdg)/(g0*math.tan(bs.traf.ap.bankdef[i]))
+            time_straight= math.sqrt(dist2[iwpnear])*60.*nm/max(0.01,bs.traf.tas[i])
 
             if time_turn > time_straight:
                 iwpnear += 1
@@ -1555,7 +1555,7 @@ class Route(Replaceable):
             Write route to output/routelog.txt.
         """
         acid = bs.traf.id[acidx]
-        acrte = Route._routes.get(acid)
+        acrte = Route._routes[acid]
         # Open file in append mode, write header
         with open(bs.resource(bs.settings.log_path) / 'routelog.txt', "a") as f:
             f.write("\nRoute "+acid+":\n")
