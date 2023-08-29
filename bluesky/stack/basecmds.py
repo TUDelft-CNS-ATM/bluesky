@@ -173,10 +173,10 @@ def initbasecmds():
             "Set simulation date",
         ],
         "DEFWPT": [
-            "DEFWPT wpname,lat,lon,[FIX/VOR/DME/NDB]",
+            "DEFWPT wpname,lat,lon,[DELETE/FIX/VOR/DME/NDB/DEL]",
             "txt,latlon,[txt]",
             bs.navdb.defwpt,
-            "Define a waypoint only for this scenario/run",
+            "Define (or delete) a waypoint only for this scenario/run",
         ],
         "DEL": [
             "DEL acid/ALL/WIND/shape",

@@ -103,14 +103,20 @@ class Navdatabase:
         elif name.isdigit():
             return False,"Name needs to start with an alphabetical character"
 
+        # DEL command: give info on waypoint (shudl work wit or without lat,lon, may be clicked by accident
+        elif (not wptype==None and (wptype.upper()=="DEL" or wptype.upper() =="DELETE")) or \
+            (type(lon)==str and (lon.upper()=="DEL" or lon.upper=="DELETE")):
+            return self.delwpt(name)
+
+
         # No data: give info on waypoint
         elif lat==None or lon==None:
             reflat, reflon = bs.scr.getviewctr()
             if self.wpid.count(name.upper()) > 0:
                 i = self.getwpidx(name.upper(),reflat,reflon)
                 txt = self.wpid[i]+" : "+str(self.wplat[i])+","+str(self.wplon[i])
-                if len(self.wptype[i]+self.wpco[i])>0:
-                    txt = txt+"  "+self.wptype[i]+" in "+self.wpco[i]
+                if len(self.wptype[i])>0:
+                    txt = txt+"  "+self.wptype[i]
                 return True,txt
 
             # Waypoint name is free
@@ -136,6 +142,28 @@ class Navdatabase:
         bs.scr.addnavwpt(name.upper(),lat,lon)
 
         return True,name.upper()+" added to navdb."
+    def delwpt(self,name=None):
+        """ Delete a waypoint"""
+        if self.wpid.count(name.upper()) <= 0:
+            return False,"Waypoint "+name.upper()+" does not exist."
+
+        idx = len(self.wpid)-self.wpid[::-1].index(name)-1 # Search from back of list
+
+        del self.wpid[idx]   # wp name
+
+        np.delete(self.wplat,idx)  # wp lat
+        np.delete (self.wplon,idx) # wp lon
+
+        del self.wptype[idx]        # Waypoint type
+        del self.wpelev[idx]        # elevation [m]
+        del self.wpvar[idx]         # magn variation [deg]
+        del self.wpfreq[idx]        # frequency [kHz/MHz]
+        del self.wpdesc[idx]        # description
+
+         # Update screen info 9delete necessary there?)
+        bs.scr.removenavwpt(name.upper())
+
+        return True,name.upper()+" deleted from navdb."
 
     def getwpidx(self, txt, reflat=999999., reflon=999999):
         """Get waypoint index to access data"""
