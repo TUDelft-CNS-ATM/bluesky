@@ -164,9 +164,10 @@ class ScreenIO(Entity):
         ''' Add custom waypoint to visualization '''
         self.pub_defwpt.send_append(custwplbl=name, custwplat=lat, custwplon=lon)
         return True
+
     def removenavwpt(self, name):
         ''' Remove custom waypoint to visualization '''
-        bs.net.send_event(b'DELWPT', dict(name=name), target=[b'*'])
+        self.pub_defwpt.send_delete(custwplbl=name)
         return True
 
     def show_file_dialog(self):

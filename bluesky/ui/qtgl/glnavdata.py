@@ -118,18 +118,17 @@ class Navdata(glh.RenderObject, layer=-10):
     @sharedstate.subscriber
     def defwpt(self, data):
         ''' Receive custom waypoint data and add to visualisation. '''
-        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
-            # Simulation reset: Clear all entries
+        if not data.valid():
             self.ncustwpts = 0
             return
 
-        if data.custwplbl:
-            self.customwp.update(lat=np.array(data.custwplat, dtype=np.float32),
-                                    lon=np.array(data.custwplon, dtype=np.float32))
-            lbl = [n[:10].ljust(10) for n in data.custwplbl]
-            self.custwplblbuf.update(
-                np.array(lbl, dtype=np.string_))
-        self.ncustwpts = len(data.custwplat)
+        self.ncustwpts = len(data.custwplbl)
+        self.customwp.update(lat=np.array(data.custwplat, dtype=np.float32),
+                                lon=np.array(data.custwplon, dtype=np.float32))
+        lbl = [n[:10].ljust(10) for n in data.custwplbl]
+        self.custwplblbuf.update(
+            np.array(lbl, dtype=np.string_))
+        
 
     def create(self):
         apt_size = settings.apt_size
