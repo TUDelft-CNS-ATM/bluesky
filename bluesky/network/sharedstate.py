@@ -14,6 +14,7 @@ from bluesky.core.timedfunction import timed_function
 from bluesky.core.walltime import Timer
 from bluesky.network import context as ctx
 from bluesky.network.subscription import Subscription, subscriber as nwsub
+from bluesky.plugins.trafgenclasses import incircle
 
 #TODO: trigger voor actnode changed?
 
@@ -90,27 +91,48 @@ def receive(action, data):
                 for idx, value in item.items():
                     container[idx] = value
     elif ctx.action == ActionType.Delete:
+        # We are expecting either an index, or a key value from a reference variable
         for key, item in data.items():
-            container = getattr(store, key, None)
-            if container is None:
+            idx = None
+            if key not in vars(store):
+                # Assume we are receiving an index to arrays/lists in our store
+                if not isinstance(item, int):
+                    raise ValueError(f"Expected integer index for delete {key} in topic {ctx.topic}") 
+                idx = item
+            else:
+                ref = getattr(store, key)
+                # If ref is a dict, this delete action should only act on the dict.
+                if isinstance(ref, dict):
+                    if isinstance(item, (list, tuple)):
+                        for key in item:
+                            ref.pop(key, None)
+                    else:
+                        ref.pop(item, None)
+                    continue
+                # Otherwise, assume we are receiving a lookup key for a reference value
+                elif isinstance(ref, np.ndarray):
+                    indices = np.where(ref == item)[0]
+                    if not indices:
+                        raise KeyError(f'Item with key {item} not found for variable {key} in topic {ctx.topic}')
+                    idx = indices[0] if len(indices) == 1 else indices
+                elif isinstance(ref, list):
+                    idx = ref.index(item)
+
+            if idx is None:
                 continue
-            if isinstance(container, np.ndarray):
-                mask = np.ones_like(container, dtype=bool)
-                mask[item] = False
-                setattr(store, key, container[mask])
-            elif isinstance(container, list):
-                if isinstance(item, int):
-                    container.pop(item)
-                else:
-                    # Assume a tuple or list
-                    for idx in reversed(sorted(item)):
+
+            for container in vars(store).values():
+                if isinstance(container, np.ndarray):
+                    mask = np.ones_like(container, dtype=bool)
+                    mask[idx] = False
+                    setattr(store, key, container[mask])
+                elif isinstance(container, list):
+                    if isinstance(idx, int):
                         container.pop(idx)
-            elif isinstance(container, dict):
-                if isinstance(item, (list, tuple)):
-                    for key in item:
-                        container.pop(key, None)
-                else:
-                    container.pop(item, None)
+                    else:
+                        # Assume a tuple or list
+                        for iidx in reversed(sorted(idx)):
+                            container.pop(iidx)
 
     elif ctx.action == ActionType.Append:
         # TODO: other types? (ndarray, ...)
