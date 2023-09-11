@@ -67,49 +67,32 @@ if qt:
             print('[FAIL]')
             print('OpenGL module version should be at least 3.1.0')
         print('OpenGL module version is         [%s]' % OpenGL.__version__)
-        print("Checking GL capabilities        ", end=' ')
+        print("Checking GL capabilities:")
         app = QApplication([])
-
-        if not QGLFormat.hasOpenGL():
-            print('[FAIL]')
-        else:
-            print('[OK]')
-            print('GL Version at least 3.3         ', end=' ')
-            try:
-                f = QGLFormat()
-                f.setVersion(3, 3)
-                f.setProfile(QGLFormat.OpenGLContextProfile.CoreProfile)
-                f.setDoubleBuffer(True)
-                QGLFormat.setDefaultFormat(f)
-
-                class GLTest(QGLWidget):
-                    gl_version = 0.0
-                    def initializeGL(self):
-                        GLTest.gl_version = float(ogl.glGetString(ogl.GL_VERSION)[:3])
-
-                test = GLTest()
-
-                test.show()
-
-                if GLTest.gl_version >= 3.3:
-                    print("[OK]")
-                    glhw = True
-                else:
-                    print("[FAIL]")
-
-                print("Supported GL version             [%.1f]" % GLTest.gl_version)
-            except:
-                print('[FAIL]')
-                print('Could not determine GL version')
-
-            print("Checking for pyopengl-accelerate", end=' ')
+        f = QGLFormat(QGLFormat.FormatOption.DeprecatedFunctions)
+        f.setVersion(4, 3)
+        f.setProfile(QGLFormat.OpenGLContextProfile.CoreProfile)
+        QGLFormat.setDefaultFormat(f)
+        print('GL Version at least 3.3         ', end=' ')
         try:
-            import OpenGL_accelerate
-        except ImportError:
-            print("[FAIL]")
-        else:
-            print('[OK]')
+            class GLTest(QGLWidget):
+                gl_version = 0.0
+                def initializeGL(self):
+                    GLTest.gl_version = float(ogl.glGetString(ogl.GL_VERSION)[:3])
 
+            test = GLTest()
+
+            test.show()
+            if GLTest.gl_version >= 3.3:
+                print("[OK]")
+                glhw = True
+            else:
+                print("[FAIL]")
+
+            print("Supported GL version             [%.1f]" % GLTest.gl_version)
+        except Exception as e:
+            print('[FAIL]')
+            print('Could not determine GL version', e)
 
 print("Checking for pygame             ", end=' ')
 try:

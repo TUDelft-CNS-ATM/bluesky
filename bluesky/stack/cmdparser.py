@@ -9,7 +9,7 @@ from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 class Command:
     ''' Stack command object. '''
     # Dictionary with all command objects
-    cmddict = dict()
+    cmddict: dict[str, 'Command'] = dict()
 
     @staticmethod
     @publisher(topic='STACKCMDS')
