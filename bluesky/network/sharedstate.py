@@ -144,13 +144,14 @@ def receive(action, data):
                 container.append(item)
 
     elif ctx.action == ActionType.Extend:
-        # TODO: other types? (ndarray, ...)
         for key, item in data.items():
             container = getattr(store, key, None)
             if container is None:
                 setattr(store, key, item)
-            else:
+            elif isinstance(container, list):
                 container.extend(item)
+            elif isinstance(container, np.ndarray):
+                setattr(store, key, np.concatenate([container, item]))
 
     elif ctx.action == ActionType.Replace:
         vars(store).update(data)
