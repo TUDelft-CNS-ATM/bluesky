@@ -17,9 +17,15 @@ def _genstore():
     return store
 
 
+class Store(SimpleNamespace):
+    def valid(self):
+        ''' Return True if this store has initialised attributes.'''
+        return all([bool(v) for v in vars(self).values()] or [False])
+
+
 # Keep track of default attribute values of mutable type.
 # These always need to be stored per remote node.
-defaults = SimpleNamespace()
+defaults = Store()
 # In some cases (such as for non-copyable types) a generator is specified
 # instead of a default value
 generators = list()
@@ -53,7 +59,7 @@ def setdefault(name, default, group=None):
     ''' Set the default value for variable 'name' in group 'group' '''
     target = getattr(defaults, group, None) if group else defaults
     if not target:
-        return setattr(defaults, group, SimpleNamespace(**{name:default}))
+        return setattr(defaults, group, Store(**{name:default}))
     setattr(target, name, default)
 
 
@@ -62,11 +68,11 @@ def addgroup(name):
     if hasattr(defaults, name):
         return
     # Add store to the defaults
-    setattr(defaults, name, SimpleNamespace())
+    setattr(defaults, name, Store())
 
     # Also add to existing stores if necessary
     for remote in remotes.values():
-        setattr(remote, name, SimpleNamespace())
+        setattr(remote, name, Store())
 
 
 def _generator(store, name, objtype, args, kwargs, group=None):
