@@ -86,6 +86,9 @@ class Console(QWidget):
         # Connect function to save command history on quit
         QApplication.instance().aboutToQuit.connect(self.close)
 
+        # Connect to stack command list SharedState
+        ss.subscribe('STACKCMDS')
+
     def close(self):
         ''' Save command history when BlueSky closes. '''
         with cachefile.openfile('console_history.p') as cache:
@@ -197,11 +200,6 @@ class Console(QWidget):
 
         # Final processing of the command line
         self.set_cmdline(newcmd, cursorpos)
-
-    @ss.subscriber(topic='STACKCMDS')
-    def on_cmdlist_changed(self, data):
-        # TODO: make directly subscribable from ActData?
-        pass
 
 
 class Word:
