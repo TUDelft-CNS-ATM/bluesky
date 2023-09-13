@@ -166,7 +166,7 @@ class SettingsWindow(Base, QWidget):
         if item in self.servers.values():
             simsettings = dict()
             plugins = list()
-            # TODO: fix
+
             for node in item.nodes:
                 store = rs.get(node, 'simsettings')
                 simsettings.update(store.settings)
