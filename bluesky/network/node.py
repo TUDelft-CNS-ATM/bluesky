@@ -19,6 +19,7 @@ class Node(Entity):
         self.node_id = genid(group_id or GROUPID_NOGROUP)
         self.group_id = asbytestr(group_id or GROUPID_NOGROUP)[:len(self.node_id)-1]
         self.server_id = self.node_id[:-1] + seqidx2id(0)
+        self.act_id = None
         zmqctx = zmq.Context.instance()
         self.sock_recv = zmqctx.socket(zmq.SUB)
         self.sock_send = zmqctx.socket(zmq.PUB)

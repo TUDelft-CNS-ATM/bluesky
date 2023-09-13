@@ -8,6 +8,7 @@ class Node:
     def __init__(self, *args):
         self.node_id = b'\x00' + os.urandom(4)
         self.server_id = b''
+        self.act_id = None
         self.running = True
 
     def update(self):
