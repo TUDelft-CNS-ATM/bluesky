@@ -70,7 +70,11 @@ def on_actnode_changed(act_id):
 
 @signal.subscriber(topic='node-added')
 def on_node_added(node_id):
+    ''' When a new node is announced, request the initial/current state of all 
+        subscribed shared states.
+    '''
     bs.net.send('REQUEST', list(changed.keys()), to_group=node_id)
+
 
 def receive(action, data):
     ''' Retrieve and process state data. '''
@@ -175,24 +179,37 @@ def recursive_update(target, source):
         target[k] = v
 
 
+def subscribe(topic:str, *, actonly=False) -> signal.Signal:
+    ''' Subscribe to a SharedState topic. 
+    
+        This function is called internally when a callback function is decorated
+        to subscribe to a SharedState topic, but can also be used to subscribe
+        to a SharedState topic when you don't wish to provide a callback function. 
+    '''
+    topic = topic.upper()
+    # Create a new network subscription only if it doesn't exist yet
+    if topic not in changed:
+        # Subscribe to this network topic
+        Subscription(topic, actonly=actonly).connect(receive)
+
+        # Add data store default to actdata
+        rs.addgroup(topic.lower())
+
+        # Create the signal to emit whenever data of the active remote changes
+        sig = signal.Signal(f'state-changed.{topic.lower()}')
+        changed[topic] = sig
+        return sig
+    return changed[topic]
+
+
 def subscriber(func=None, *, topic='', actonly=False):
     ''' Decorator to subscribe to a state topic. '''
     def deco(func):
         ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
             else func
 
-        itopic = (topic or ifunc.__name__).upper()
-        # Create a new network subscription if 
-        if itopic not in changed:
-            # Subscribe to this network topic
-            Subscription(itopic, actonly=actonly).connect(receive)
-
-            # Add data store default to actdata
-            rs.addgroup(itopic.lower())
-
-            # Create the signal to emit whenever data of the active remote changes
-            changed[itopic] = signal.Signal(f'state-changed.{itopic.lower()}')
-        changed[itopic].connect(ifunc)
+        # Subscribe to topic, and connect callback function to data change signal
+        subscribe((topic or ifunc.__name__).upper(), actonly=actonly).connect(ifunc)
         return func
 
     # Allow both @subscriber and @subscriber(args)
