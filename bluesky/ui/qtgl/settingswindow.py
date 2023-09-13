@@ -113,11 +113,8 @@ class SettingsWindow(Base, QWidget):
         self.scrollarea.setWidgetResizable(True)
 
         bs.net.node_added.connect(self.nodesChanged)
-
-    @ss.subscriber(topic='SIMSETTINGS')
-    def on_simsettings_received(self, data):
-        # TODO: how to neatly do subscriptions without function?
-        pass
+        # Subscribe to simulation settings SharedState
+        ss.subscribe('SIMSETTINGS')
 
     def show(self):
         if not self.populated:
