@@ -58,9 +58,9 @@ class AreaList(QListView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setModel(AreaModel())
-        # self.setBackgroundRole(QPalette.ColorRole.NoRole)
-        # self.setAutoFillBackground(True)
-        # self.setStyleSheet('background-color: transparent')
+        self.setBackgroundRole(QPalette.ColorRole.NoRole)
+        self.setAutoFillBackground(True)
+        self.setStyleSheet('background-color: transparent')
         self.setItemDelegate(AreaItem())
         self.setMouseTracking(True)
         self.setSpacing(3)
