@@ -11,7 +11,7 @@ try:
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-        QDialogButtonBox, QMenu, QLabel
+        QDialogButtonBox, QMenu, QLabel, QWidget
     from PyQt5 import uic
 except ImportError:
     from PyQt6.QtWidgets import QApplication as app
@@ -19,7 +19,7 @@ except ImportError:
     from PyQt6.QtGui import QPixmap, QIcon
     from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-        QDialogButtonBox, QMenu, QLabel
+        QDialogButtonBox, QMenu, QLabel, QWidget
     from PyQt6 import uic
 
 # Local imports
@@ -197,6 +197,14 @@ class MainWindow(Base, QMainWindow):
         self.splitter.setSizes([1, 0])
         self.splitter_2.setSizes([1, 0])
         self.setStyleSheet()
+
+        # Remove keyboard focus from all children of self.databox
+        # (not possible to do in QDesigner)
+        def recursiveNoFocus(w):
+            for child in w.findChildren(QWidget):
+                recursiveNoFocus(child)
+            w.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        recursiveNoFocus(self.databox)
 
     def setStyleSheet(self, contents=''):
         if not contents:
