@@ -136,7 +136,7 @@
          <string>Areas</string>
         </attribute>
        </widget>
-       <widget class="QWidget" name="stackpage">
+       <widget class="StackList" name="stackpage">
         <property name="geometry">
          <rect>
           <x>0</x>
@@ -1493,14 +1493,20 @@
   </customwidget>
   <customwidget>
    <class>AreaList</class>
-   <extends>QWidget</extends>
+   <extends>QListView</extends>
    <header>bluesky/ui/qtgl/arealist</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>TrafficList</class>
-   <extends>QWidget</extends>
+   <extends>QListView</extends>
    <header>bluesky/ui/qtgl/trafficlist</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>StackList</class>
+   <extends>QListView</extends>
+   <header>bluesky/ui/qtgl/stacklist</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
