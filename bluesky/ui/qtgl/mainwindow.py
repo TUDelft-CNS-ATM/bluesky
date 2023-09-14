@@ -220,13 +220,13 @@ class MainWindow(Base, QMainWindow):
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
             if event.key() == Qt.Key.Key_Up:
-                self.radarwidget.panzoom(pan=(dlat, 0.0), absolute=False)
+                self.radarwidget.setpanzoom(pan=(dlat, 0.0), absolute=False)
             elif event.key() == Qt.Key.Key_Down:
-                self.radarwidget.panzoom(pan=(-dlat, 0.0), absolute=False)
+                self.radarwidget.setpanzoom(pan=(-dlat, 0.0), absolute=False)
             elif event.key() == Qt.Key.Key_Left:
-                self.radarwidget.panzoom(pan=(0.0, -dlon), absolute=False)
+                self.radarwidget.setpanzoom(pan=(0.0, -dlon), absolute=False)
             elif event.key() == Qt.Key.Key_Right:
-                self.radarwidget.panzoom(pan=(0.0, dlon), absolute=False)
+                self.radarwidget.setpanzoom(pan=(0.0, dlon), absolute=False)
 
         elif event.key() == Qt.Key.Key_Escape:
             self.closeEvent()
