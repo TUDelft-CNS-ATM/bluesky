@@ -7,7 +7,7 @@ from bluesky.network.discovery import Discovery
 
 try:
     from PyQt5.QtWidgets import QApplication as app
-    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
+    from PyQt5.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent, pyqtProperty
     from PyQt5.QtGui import QPixmap, QIcon
     from PyQt5.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
@@ -15,7 +15,7 @@ try:
     from PyQt5 import uic
 except ImportError:
     from PyQt6.QtWidgets import QApplication as app
-    from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent
+    from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent, pyqtProperty
     from PyQt6.QtGui import QPixmap, QIcon
     from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
         QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
@@ -49,8 +49,9 @@ palette.set_default_colours(stack_text=(0, 255, 0),
 
 
 def isdark():
-    p = app.instance().style().standardPalette()
-    return (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
+        ''' Returns true if app is in dark mode, false otherwise. '''
+        p = app.instance().style().standardPalette()
+        return (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
 
 
 class Splash(QSplashScreen):
@@ -122,6 +123,11 @@ class MainWindow(Base, QMainWindow):
     nconf_tot = rs.ActData(0, group='acdata')
     nlos_cur = rs.ActData(0, group='acdata')
     nlos_tot = rs.ActData(0, group='acdata')
+
+    @pyqtProperty(str)
+    def style(self):
+        ''' Returns "dark"" if app is in dark mode, "light" otherwise. '''
+        return "dark" if self.darkmode else "light"
 
     def __init__(self, mode):
         super().__init__()
@@ -208,11 +214,8 @@ class MainWindow(Base, QMainWindow):
 
     def setStyleSheet(self, contents=''):
         if not contents:
-            gfxpath = bs.resource(bs.settings.gfx_path)
-            colfname = gfxpath / f"{'dark' if self.darkmode else 'light'}.qss"
-            with open(gfxpath / 'bluesky.qss') as style, open(colfname) as col:
-                contents = col.read() + style.read()
-        super().setStyleSheet(contents)
+            with open(bs.resource(bs.settings.gfx_path) / 'bluesky.qss') as style:
+                super().setStyleSheet(style.read())
 
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier \
