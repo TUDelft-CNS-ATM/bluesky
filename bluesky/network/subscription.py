@@ -8,8 +8,19 @@ class SubscriptionFactory(SignalFactory):
     # Individually keep track of all network subscriptions
     subscriptions: Dict[str, 'Subscription'] = dict()
 
-    def __call__(cls, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=None, directonly=False):
-        ''' Factory function for Signal construction. '''
+    def __call__(cls, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=None, directedonly=False):
+        ''' Factory function for Signal construction. 
+        
+            Arguments:
+            - topic: The topic to subscribe to
+            - from_id: When specified, only subscribe to the specified topic transmissions from a single origin.
+            - to_group: Subscribe to messages targeted at a specific group. By default, a subscription is
+              made to the top-level group (Simulation/Client group)
+            - actonly: When set to true, only messages from the currently active remote are subscribed to.
+              When the active remote is changed, all actonly subscriptions are automatically adjusted to this 
+              new active node.
+            - directedonly: Only subscribe to messages specifically directed at this network node.
+        '''
         # # Convert name to string if necessary
         if isinstance(topic, bytes):
             topic = topic.decode()
@@ -31,7 +42,7 @@ class SubscriptionFactory(SignalFactory):
             # Store subscription
             SubscriptionFactory.subscriptions[topic] = sub
 
-        if not directonly and (from_id, to_group) not in sub.subs:
+        if not directedonly and (from_id, to_group) not in sub.subs:
             sub.requested.add((from_id, to_group))
         if actonly is not None:
             sub.actonly = actonly
@@ -84,7 +95,7 @@ class Subscription(Signal, metaclass=SubscriptionFactory):
                     bs.net._unsubscribe(self.topic, *self.subs.pop())
 
 
-def subscriber(func=None, *, topic='', directonly=False, **kwargs):
+def subscriber(func=None, *, topic='', directedonly=False, **kwargs):
     ''' BlueSky network subscription decorator.
 
         Functions decorated with this decorator will be called whenever data
@@ -102,7 +113,7 @@ def subscriber(func=None, *, topic='', directonly=False, **kwargs):
         
         # Create the subscription object. Network subscriptions will be made as
         # soon as the network connection is available
-        Subscription(topic or ifunc.__name__.upper(), directonly=directonly, **kwargs).connect(ifunc)
+        Subscription(topic or ifunc.__name__.upper(), directedonly=directedonly, **kwargs).connect(ifunc)
 
         # Construct the subscription object, but return the original function
         return func

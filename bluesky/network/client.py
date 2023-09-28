@@ -30,7 +30,7 @@ class Client(Entity):
         zmqctx = zmq.Context.instance()
         self.sock_recv = zmqctx.socket(zmq.SUB)
         self.sock_send = zmqctx.socket(zmq.XPUB)
-        self.poller = zmq.Poller()        
+        self.poller = zmq.Poller()
 
         # Tell bluesky that this client will manage the network I/O
         bs.net = self
@@ -101,7 +101,7 @@ class Client(Entity):
                     ctx.topic = ctx.msg[0][IDLEN:-IDLEN].decode()
                     ctx.sender_id = ctx.msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(ctx.msg[1], object_hook=decode_ndarray, raw=False)
-                    sub = Subscription.subscriptions.get(ctx.topic) or Subscription(ctx.topic, directonly=True)
+                    sub = Subscription.subscriptions.get(ctx.topic) or Subscription(ctx.topic, directedonly=True)
                     # Unpack dict or list, skip empty string
                     if pydata == '':
                         sub.emit()
@@ -142,11 +142,11 @@ class Client(Entity):
             return False
 
     def send(self, topic: str, data: Union[str, Collection]='', to_group: str=''):
-        topic = asbytestr(topic)
-        to_group = asbytestr(to_group or stack.sender() or self.act_id or GROUPID_SIM)
+        btopic = asbytestr(topic)
+        btarget = asbytestr(to_group or stack.sender() or self.act_id or GROUPID_SIM)
         self.sock_send.send_multipart(
             [
-                to_group.ljust(IDLEN, b'*') + topic + self.client_id,
+                btarget.ljust(IDLEN, b'*') + btopic + self.client_id,
                 msgpack.packb(data, default=encode_ndarray, use_bin_type=True)
             ]
         )
@@ -177,6 +177,18 @@ class Client(Entity):
         # subscription signal
         return sub
 
+    def unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
+        ''' Unsubscribe from a topic.
+
+            Arguments:
+            - topic: The name of the stream to unsubscribe from.
+            - from_id: When subscribed to data from a specific node: The id of the node
+            - to_group: The group mask that this topic is sent to (optional)
+        '''
+        if topic:
+            Subscription(topic).subs.discard((from_id, to_group))
+        self._unsubscribe(topic, from_id, to_group)
+
     def _subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=False):
         topic = asbytestr(topic)
         from_id = asbytestr(from_id)
@@ -199,18 +211,6 @@ class Client(Entity):
                 return
         self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
 
-    def unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
-        ''' Unsubscribe from a topic.
-
-            Arguments:
-            - topic: The name of the stream to unsubscribe from.
-            - from_id: When subscribed to data from a specific node: The id of the node
-            - to_group: The group mask that this topic is sent to (optional)
-        '''
-        if topic:
-            Subscription(topic).subs.discard((from_id, to_group))
-        self._unsubscribe(topic, from_id, to_group)
-
     def actnode(self, newact=None):
         ''' Set the new active node, or return the current active node. '''
         if newact:
@@ -229,6 +229,9 @@ class Client(Entity):
 
         return self.act_id
 
-    def addnodes(self, count=1):
-        ''' Tell the server to add 'count' nodes. '''
-        self.send(b'ADDNODES', count)# TODO: get server_id in
+    def addnodes(self, count=1, *node_ids):
+        ''' Tell the server to add 'count' nodes. 
+        
+            If provided, create these nodes with the specified node ids.
+        '''
+        self.send(b'ADDNODES', dict(count=count, node_ids=node_ids))# TODO: get server_id in

@@ -69,11 +69,14 @@ class Server(Thread):
         scen = self.scenarios.pop(0)
         self.send(b'BATCH', scen, worker_id)
 
-    def addnodes(self, count=1, startscn=None):
+    def addnodes(self, count=1, node_ids=None, startscn=None):
         ''' Add [count] nodes to this server. '''
-        for _ in range(count):
-            self.max_group_idx += 1
-            newid = genid(self.server_id[:-1], seqidx=self.max_group_idx)
+        for idx in range(count):
+            if node_ids:
+                newid = genid(node_ids[idx])
+            else:
+                self.max_group_idx += 1
+                newid = genid(self.server_id[:-1], seqidx=self.max_group_idx)
             args = [sys.executable, '-m', 'bluesky', '--sim', '--groupid', bin2hex(newid)]
             if self.altconfig:
                 args.extend(['--configfile', self.altconfig])
@@ -162,7 +165,10 @@ class Server(Thread):
                         if topic == b'QUIT':
                             self.quit()
                         elif topic == b'ADDNODES':
-                            self.addnodes(count=data)
+                            if isinstance(data, int):
+                                self.addnodes(count=data)
+                            elif isinstance(data, dict):
+                                self.addnodes(**data)
                         elif topic == b'STATECHANGE':
                             state = data
                             if state < bs.OP:
