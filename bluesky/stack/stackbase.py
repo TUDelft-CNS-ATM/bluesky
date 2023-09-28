@@ -55,7 +55,9 @@ def checkscen():
 
 
 def stack(*cmdlines, sender_id=None):
-    """ Stack one or more commands separated by ";" """
+    """ Stack one or more commands.
+        Stacking multiple commands can be done as multiple comma-separated
+        arguments, and/or semicolon-separated within a single string. """
     for cmdline in cmdlines:
         cmdline = cmdline.strip()
         if cmdline:
@@ -63,15 +65,19 @@ def stack(*cmdlines, sender_id=None):
                 Stack.cmdstack.append((line, sender_id))
 
 
-def forward(cmd=None, *args):
-    ''' Forward a stack command. 
+def forward(*cmdlines, target_id=None):
+    ''' Forward one or more stack commands. 
 
-        Sends command on to the client if this stack is running sim-side,
-        and vice-versa.
+        By default, forward() sends command on to the client if this stack is
+        running sim-side, and vice-versa. Instead, a target id can be specified
+        to specifically send the stack command(s) to this node.
+    
+        Multiple commands can be specified as multiple comma-separated
+        arguments, and/or semicolon-separated within a single string.
     '''
     if Stack.sender_id is None:
         # Only forward if this command originated here
-        bs.net.send(b'STACK', f'{cmd} {",".join(args)}' if cmd else Stack.current)
+        bs.net.send(b'STACK', ';'.join(cmdlines) if cmdlines else Stack.current, target_id)
 
 
 def sender():

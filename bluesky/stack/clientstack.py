@@ -84,7 +84,7 @@ def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
         return True, cmdobj.helptext(subcmd)
 
     # If command is not a known Client command pass the help request on to the sim
-    bs.net.send(b'STACK', f'HELP {cmd} {subcmd}', bs.net.act_id)
+    forward(target_id=bs.net.act_id)
 
 
 @showhelp.subcommand
