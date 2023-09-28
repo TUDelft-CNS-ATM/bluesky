@@ -194,8 +194,7 @@ class Node(Entity):
         from_id = asbytestr(from_id)
         to_group = asbytestr(to_group or GROUPID_SIM)
         self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
-    
-    @stack.command
+
     def addnodes(self, count=1, *node_ids):
         ''' Tell the server to add 'count' nodes. 
         
