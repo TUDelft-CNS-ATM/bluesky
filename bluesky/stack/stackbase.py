@@ -75,7 +75,7 @@ def forward(*cmdlines, target_id=None):
         Multiple commands can be specified as multiple comma-separated
         arguments, and/or semicolon-separated within a single string.
     '''
-    if Stack.sender_id is None:
+    if target_id is not None or Stack.sender_id is None:
         # Only forward if this command originated here
         bs.net.send(b'STACK', ';'.join(cmdlines) if cmdlines else Stack.current, target_id)
 
