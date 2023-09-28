@@ -229,9 +229,12 @@ class Client(Entity):
 
         return self.act_id
 
-    def addnodes(self, count=1, *node_ids):
-        ''' Tell the server to add 'count' nodes. 
+    def addnodes(self, count=1, *node_ids, server_id=None):
+        ''' Tell the specified server to add 'count' nodes. 
         
             If provided, create these nodes with the specified node ids.
+
+            If no server_id is specified, the corresponding server of the
+            currently-active node is targeted.
         '''
-        self.send(b'ADDNODES', dict(count=count, node_ids=node_ids))# TODO: get server_id in
+        self.send(b'ADDNODES', dict(count=count, node_ids=node_ids), server_id or genid(self.act_id[:-1], seqidx=0))
