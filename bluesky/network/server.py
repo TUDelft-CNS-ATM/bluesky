@@ -60,6 +60,7 @@ class Server(Thread):
 
         # Connect to interrupt signal
         signal.signal(signal.SIGINT, lambda *args: self.quit())
+        signal.signal(signal.SIGTERM, lambda *args: self.quit())
 
     def quit(self):
         self.running = False
@@ -208,7 +209,7 @@ class Server(Thread):
         print('Server quit. Stopping nodes:')
         for pid, p in self.spawned_processes.items():
             print('Stopping node:', pid, end=' ')
-            p.send_signal(signal.SIGINT)
+            p.send_signal(signal.SIGTERM)
             p.wait()
             # Inform network that node is removed
             self.sock_recv.send_multipart([b'\x00' + pid])

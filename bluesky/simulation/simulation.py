@@ -62,6 +62,7 @@ class Simulation(Entity):
 
         # Connect to system ABORT/INTERRUPT signal
         signal.signal(signal.SIGINT, lambda *args: self.quit())
+        signal.signal(signal.SIGTERM, lambda *args: self.quit())
 
 
         # Connect incoming signals
