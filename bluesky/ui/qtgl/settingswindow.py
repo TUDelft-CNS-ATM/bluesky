@@ -58,7 +58,7 @@ class PluginCheckList(QListWidget):
             self.curvalue -= {item.name}
         self.changed_fun(list(self.curvalue))
 
-class SettingsWindow(Base, QWidget):
+class SettingsWindow(QWidget, Base):
     customwids = {
         'colour_palette': sel_palette,
         'performance_model': sel_perf,

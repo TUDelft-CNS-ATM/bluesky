@@ -14,7 +14,7 @@ from bluesky.ui import palette
 import bluesky as bs
 
 
-class AreaModel(Base, QAbstractListModel):
+class AreaModel(QAbstractListModel, Base):
     polys: dict = rs.ActData(group='poly')
 
     def __init__(self, *args, **kwargs):

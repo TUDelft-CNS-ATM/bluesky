@@ -10,7 +10,7 @@ from bluesky.network import sharedstate as ss
 from bluesky.tools import aero
 
 
-class TrafficModel(Base, QAbstractListModel):
+class TrafficModel(QAbstractListModel, Base):
     id: list = rs.ActData(group='acdata')
     alt: np.ndarray = rs.ActData(0, group='acdata')
     trk: np.ndarray = rs.ActData(0, group='acdata')

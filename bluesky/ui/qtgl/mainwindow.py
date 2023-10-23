@@ -113,7 +113,7 @@ class DiscoveryDialog(QDialog):
             self.close()
 
 
-class MainWindow(Base, QMainWindow):
+class MainWindow(QMainWindow, Base):
     """ Qt window process: from .ui file read UI window-definition of main window """
 
     modes = ['Init', 'Hold', 'Operate', 'End']
@@ -182,6 +182,7 @@ class MainWindow(Base, QMainWindow):
 
         # Connect to io client's nodelist changed signal
         bs.net.node_added.connect(self.nodesChanged)
+        bs.net.server_added.connect(self.serversChanged)
         bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
         Signal('SHOWDIALOG').connect(self.on_showdialog_received)
 
@@ -282,38 +283,58 @@ class MainWindow(Base, QMainWindow):
             self.nodelabel.setText(f'<b>Node</b> {node.serv_num}:{node.node_num}')
             self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.SelectionFlag.ClearAndSelect)
 
+    def serversChanged(self, server_id):
+        server = self.servers.get(server_id)
+        if not server:
+            server = QTreeWidgetItem(self.nodetree)
+            self.maxservnum += 1
+            server.serv_num = self.maxservnum
+            server.server_id = server_id
+            hostname = 'Ungrouped' if server_id == b'0' else 'This computer'
+            f = server.font(0)
+            f.setBold(True)
+            server.setExpanded(True)
+            if server_id != b'0':
+                btn = QPushButton(self.nodetree)
+                btn.server_id = server_id
+                btn.setText(hostname)
+                btn.setFlat(True)
+                btn.setStyleSheet('font-weight:bold')
+                icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
+                btn.setIcon(QIcon(icon.as_posix()))
+                btn.setIconSize(QSize(40 if server_id == b'0' else 24, 16))
+                btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                btn.setMaximumHeight(16)
+                btn.clicked.connect(self.buttonClicked)
+                self.nodetree.setItemWidget(server, 0, btn)
+
+                # Move nodes from ungrouped if they belong to this server
+                ungrouped: QTreeWidgetItem = self.servers.get(b'0')
+                ucount = 0
+                if ungrouped:
+                    for node in ungrouped.takeChildren():
+                        if node.node_id[:-1] + seqidx2id(0) == server_id:
+                            server.addChild(node)
+                        else:
+                            ungrouped.addChild()
+                            ucount += 1
+                    if not ucount:
+                        ungrouped.setHidden(True)
+            else:
+                self.nodetree.setItemWidget(server, 0, QLabel(hostname, parent=self.nodetree))
+            self.servers[server_id] = server
+
+
     def nodesChanged(self, node_id):
         if node_id not in self.nodes:
             print(node_id, 'added to list')
             server_id = node_id[:-1] + seqidx2id(0)
             if server_id not in bs.net.servers:
                 server_id = b'0'
+            if server_id not in self.servers:
+                self.serversChanged(server_id)
             server = self.servers.get(server_id)
-            if not server:
-                server = QTreeWidgetItem(self.nodetree)
-                self.maxservnum += 1
-                server.serv_num = self.maxservnum
-                server.server_id = server_id
-                hostname = 'Ungrouped' if server_id == b'0' else 'This computer'
-                f = server.font(0)
-                f.setBold(True)
-                server.setExpanded(True)
-                if server_id != b'0':
-                    btn = QPushButton(self.nodetree)
-                    btn.server_id = server_id
-                    btn.setText(hostname)
-                    btn.setFlat(True)
-                    btn.setStyleSheet('font-weight:bold')
-                    icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
-                    btn.setIcon(QIcon(icon.as_posix()))
-                    btn.setIconSize(QSize(40 if server_id == b'0' else 24, 16))
-                    btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-                    btn.setMaximumHeight(16)
-                    btn.clicked.connect(self.buttonClicked)
-                    self.nodetree.setItemWidget(server, 0, btn)
-                else:
-                    self.nodetree.setItemWidget(server, 0, QLabel(hostname, parent=self.nodetree))
-                self.servers[server_id] = server
+            server.setHidden(False)
             node_num = seqid2idx(node_id[-1])
             node = QTreeWidgetItem(server)
             node.setText(0, f'{server.serv_num}:{node_num} <init>')
