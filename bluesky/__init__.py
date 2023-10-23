@@ -4,7 +4,7 @@ import importlib
 from bluesky.pathfinder import resource
 
 
-__all__ = ['settings', 'stack', 'tools']
+__all__ = ['settings', 'stack', 'tools', 'cmdargs']
 
 # Constants
 BS_OK = 0
