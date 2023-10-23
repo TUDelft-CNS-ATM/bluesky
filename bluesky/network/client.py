@@ -44,6 +44,8 @@ class Client(Entity):
         self.actnode_changed = Signal('actnode-changed')
         self.node_added = Signal('node-added')
         self.node_removed = Signal('node-removed')
+        self.server_added = Signal('server-added')
+        self.server_removed = Signal('server-removed')
 
         # If no other object is taking care of this, let this client act as screen object as well
         if not bs.scr:
@@ -130,6 +132,7 @@ class Client(Entity):
                                     continue
                                 elif sequence_idx == 0:
                                     self.servers.add(sender_id)
+                                    self.server_added.emit(sender_id)
 
                             elif ctx.msg[0][0] == MSG_UNSUBSCRIBE:
                                 if sequence_idx > 0:
@@ -137,6 +140,7 @@ class Client(Entity):
                                     self.node_removed.emit(sender_id)
                                 elif sequence_idx == 0:
                                     self.servers.discard(sender_id)
+                                    self.server_removed.emit(sender_id)
 
         except zmq.ZMQError:
             return False
