@@ -16,6 +16,7 @@ bs.settings.set_variable_defaults(recv_port=11000, send_port=11001)
 
 class Node(Entity):
     def __init__(self, group_id=None):
+        super().__init__()
         self.node_id = genid(group_id or GROUPID_NOGROUP)
         self.group_id = asbytestr(group_id or GROUPID_NOGROUP)[:len(self.node_id)-1]
         self.server_id = self.node_id[:-1] + seqidx2id(0)

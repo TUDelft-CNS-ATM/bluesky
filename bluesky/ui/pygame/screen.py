@@ -58,6 +58,7 @@ class Screen(Entity):
 
     """
     def __init__(self):
+        super().__init__()
         # processes input from keyboard & mouse
         self.keyb = Keyboard()
 

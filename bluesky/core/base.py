@@ -156,14 +156,19 @@ class Base:
                         fobj.update(func)
         return super().__init_subclass__()
 
+    def __init__(self) -> None:
+        super().__init__()
+        # Make sure that the first constructed instance of the selected class is also selected, 
+        # even if select() isn't called explicitly
+        cls = type(self)
+        if cls._selinstance is None and cls is cls.selected():
+            cls.select(self)
+
     def __new__(cls, *args, **kwargs):
         ''' Replaced new to allow base class to construct selected derived instances. '''
         # Calling the base constructor should return an instance of the
         # selected class. Explicitly calling a subclass constructor should
         # return an instance of that class
         generator = cls._generator if cls is cls.getbase() else cls
-        instance = super().__new__(generator)
-        if cls._selinstance is None and generator is cls.selected():
-            cls.select(instance)
 
-        return instance
+        return super().__new__(generator)

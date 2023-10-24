@@ -19,6 +19,7 @@ bs.settings.set_variable_defaults(recv_port=11000, send_port=11001)
 
 class Client(Entity):
     def __init__(self, group_id=GROUPID_CLIENT):
+        super().__init__()
         self.group_id = asbytestr(group_id)
         self.client_id = genid(self.group_id)
         self.act_id = None

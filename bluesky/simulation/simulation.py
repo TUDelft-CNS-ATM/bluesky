@@ -26,6 +26,7 @@ bs.settings.set_variable_defaults(simdt=0.05)
 class Simulation(Entity):
     ''' The simulation object. '''
     def __init__(self):
+        super().__init__()
         self.state = bs.INIT
         self.prevstate = None
 

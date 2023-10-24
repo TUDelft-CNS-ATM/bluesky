@@ -33,6 +33,7 @@ class ScreenIO(Entity):
     # Functions
     # =========================================================================
     def __init__(self):
+        super().__init__()
         # Screen state defaults
         self.def_pan     = (0.0, 0.0)
         self.def_zoom    = 1.0

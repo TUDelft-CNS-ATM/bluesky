@@ -51,16 +51,9 @@ class EntityMeta(type):
     def __call__(cls, *args, **kwargs):
         ''' Object creation with proxy wrapping and ensurance of singleton
             behaviour. '''
-
         # Create singleton instance of this class if it doesn't exist yet
         if cls._instance is None:
             cls._instance = super().__call__(*args, **kwargs)
-
-            # Make sure that the first instance is also selected, even if select()
-            # isn't called explicitly
-            if (cls is cls.getbase() and
-                (cls._proxy is None and getproxied(cls._proxy) is None)):
-                cls.select(cls._instance)
 
         # When proxied, calling the base constructor returns the proxy object.
         # All derived constructors, and all non-proxied classes return the
