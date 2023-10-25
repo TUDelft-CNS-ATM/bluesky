@@ -7,9 +7,11 @@ from random import seed
 
 # Local imports
 import bluesky as bs
+from bluesky.core.base import Base
 from bluesky.network import context as ctx
 import bluesky.core as core
-from bluesky.core import plugin, simtime, Signal, Entity
+from bluesky.core import plugin, simtime, Entity
+from bluesky.core.signal import subscriber
 from bluesky.core.walltime import Timer
 from bluesky.core.timedfunction import hooks
 from bluesky.stack import simstack, recorder
@@ -23,7 +25,7 @@ MINSLEEP = 1e-3
 # Register settings defaults
 bs.settings.set_variable_defaults(simdt=0.05)
 
-class Simulation(Entity):
+class Simulation(Base):
     ''' The simulation object. '''
     def __init__(self):
         super().__init__()
@@ -64,11 +66,6 @@ class Simulation(Entity):
         # Connect to system ABORT/INTERRUPT signal
         signal.signal(signal.SIGINT, lambda *args: self.quit())
         signal.signal(signal.SIGTERM, lambda *args: self.quit())
-
-
-        # Connect incoming signals
-        Signal('BATCH').connect(self.start_batch_scenario)
-        Signal('STACK').connect(self.on_stack_received)
 
     def run(self):
         ''' Start the main loop of this simulation. '''
@@ -249,6 +246,7 @@ class Simulation(Entity):
 
         return True
 
+    @subscriber(topic='BATCH')
     def start_batch_scenario(self, data):
         ''' Start a scenario coming from the server batch. '''
         # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
@@ -256,6 +254,7 @@ class Simulation(Entity):
         bs.stack.set_scendata(data['scentime'], data['scencmd'])
         self.op()
 
+    @subscriber(topic='STACK')
     def on_stack_received(self, data):
         # We received a single stack command. Add it to the existing stack
         bs.stack.stack(data, sender_id=ctx.sender_id)
