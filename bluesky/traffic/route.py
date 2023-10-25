@@ -38,6 +38,7 @@ class Route(Base):
     _routes: WeakValueDictionary[str, 'Route'] = WeakValueDictionary()
 
     def __init__(self, acid):
+        super().__init__()
         # Add self to dictionary of all aircraft routes
         Route._routes[acid] = self
         # Aircraft id (callsign) of the aircraft to which this route belongs
