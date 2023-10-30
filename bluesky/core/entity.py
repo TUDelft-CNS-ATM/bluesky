@@ -52,15 +52,17 @@ class EntityMeta(type):
         ''' Object creation with proxy wrapping and ensurance of singleton
             behaviour. '''
         # Create singleton instance of this class if it doesn't exist yet
-        if cls._instance is None:
-            cls._instance = super().__call__(*args, **kwargs)
+        if not cls.is_instantiated():
+            super().__call__(*args, **kwargs)
 
         # When proxied, calling the base constructor returns the proxy object.
         # All derived constructors, and all non-proxied classes return the
         # actual instance.
         if cls._proxy and cls is cls.getbase():
+            if getproxied(cls._proxy) is None:
+                cls.select(cls._instance)
             return cls._proxy
-            
+
         return cls._instance
 
 
@@ -94,6 +96,12 @@ class Entity(Base, TrafficArrays, metaclass=EntityMeta, skipbase=True):
     def implinstance(cls):
         ''' Return the instance of this specific implementation. '''
         return cls._instance
+
+    def __init__(self) -> None:
+        super().__init__()
+        cls = type(self)
+        if cls._instance is None:
+            cls._instance = self
 
     def __init_subclass__(cls, replaceable=False, skipbase=False):
         super().__init_subclass__(replaceable, skipbase)
