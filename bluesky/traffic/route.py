@@ -124,7 +124,7 @@ class Route(Replaceable):
             Route.addwptStack(acidx, mode)
             return True
         
-        elif mode in  ['TURNSPEED', 'TURNSPD', 'TURNRADIUS', 'TURNRAD']:
+        elif mode in ['TURNSPEED', 'TURNSPD', 'TURNRADIUS', 'TURNRAD', 'TURNHDGRATE', 'TURNHDG', 'TURNHDGR']:
             # We're changing the turn speed or radius
             Route.addwptStack(acidx, mode, value)
             return True
