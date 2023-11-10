@@ -82,7 +82,7 @@ class TrafficArrays:
         ''' Append n elements (aircraft) to all lists and arrays. '''
 
         for v in self._LstVars:  # Lists (mostly used for strings)
-            lst = self.__dict__.get(v)
+            lst: list = self.__dict__[v]
             vartype = type(lst[0]).__name__ if lst else 'str'
             lst.extend([defaults.get(vartype)] * n)
 
