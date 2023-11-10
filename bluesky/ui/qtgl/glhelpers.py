@@ -619,6 +619,11 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
             # Update the buffer of the attribute
             attrib.update(data)
 
+    def bind(self):
+        shader = ShaderSet.get_shader(self.shader_type)
+        shader.bind()
+        super().bind()
+
     def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=None):
         ''' Draw this VAO. '''
         if primitive_type is None:
@@ -635,8 +640,6 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
 
         if vertex_count == 0:
             return
-        shader = ShaderSet.get_shader(self.shader_type)
-        shader.bind()
         self.bind()
 
         if self.single_color is not None:
@@ -645,7 +648,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
             self.texture.bind(0)
 
         if self.single_scale is not None:
-            shader.setAttributeValue(*self.single_scale)
+            ShaderSet.get_shader(self.shader_type).setAttributeValue(*self.single_scale)
 
         if n_instances > 0:
             gl.glDrawArraysInstanced(
