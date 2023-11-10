@@ -27,10 +27,6 @@ def init():
     # Initialise base commands
     initbasecmds()
 
-    # Display Help text on start of program
-    stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n"
-          "Or select IC to Open a scenario file.")
-
     # Pan to initial location
     stack("PAN " + settings.start_location)
     stack("ZOOM 0.4")
@@ -401,14 +397,14 @@ def makedoc():
                     + f"    {o.brief}\n\n"
                     + "**Arguments:**\n\n"
                 )
-                if not o.parsers:
+                if not o.params:
                     f.write("This command has no arguments.\n\n")
                 else:
                     f.write(
                         "|Name|Type|Optional|Description\n"
                         + "|--------|------|---|---------------------------------------------------\n"
                     )
-                    for arg in o.parsers:
+                    for arg in o.params:
                         f.write(str(arg).replace(':', '|') + f" |{arg.hasdefault()}|\n")
                 f.write("\n[[Back to command reference.|Command Reference]]\n")
 
