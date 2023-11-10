@@ -1885,6 +1885,22 @@
     </hint>
    </hints>
   </connection>
+    <connection>
+   <sender>zoomout</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>buttonClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>932</x>
+     <y>486</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>996</x>
+     <y>361</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>buttonClicked()</slot>
