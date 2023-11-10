@@ -11,6 +11,7 @@ except ImportError:
     from PyQt6.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
+from bluesky.stack.cmdparser import Command
 from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
 from bluesky.core import Signal, remotestore as rs
@@ -132,7 +133,8 @@ class Console(QWidget):
         self.cmd = self.cmd.upper()
 
         hintline = ''
-        hint = self.cmddict.get(self.cmd)
+        guicmd = Command.cmddict.get(self.cmd)
+        hint = guicmd.brief[len(self.cmd) + 1:] if guicmd else self.cmddict.get(self.cmd)
         if hint:
             if len(self.args) > 0:
                 hintargs = hint.split(',')
