@@ -8,7 +8,9 @@ from bluesky.stack import argparser
 
 def init():
     ''' client-side stack initialisation. '''
-    pass
+    # Display Help text on start of program
+    stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n"
+          "Or select IC to Open a scenario file.")
 
 
 def process():
