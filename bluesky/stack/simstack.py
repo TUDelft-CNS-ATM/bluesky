@@ -145,7 +145,7 @@ def readscn(fname):
         for line in fscen:
             line = line.strip()
             # Skip emtpy lines and comments
-            if len(line) < 12 or line[0] == "#":
+            if len(line) < 10 or line[0] == "#":
                 continue
             line = prevline + line
 
