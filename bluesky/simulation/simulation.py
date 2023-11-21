@@ -8,9 +8,8 @@ from random import seed
 # Local imports
 import bluesky as bs
 from bluesky.core.base import Base
-from bluesky.network import context as ctx
 import bluesky.core as core
-from bluesky.core import plugin, simtime, Entity
+from bluesky.core import plugin, simtime
 from bluesky.core.signal import subscriber
 from bluesky.core.walltime import Timer
 from bluesky.core.timedfunction import hooks
@@ -253,11 +252,6 @@ class Simulation(Base):
         self.reset()
         bs.stack.set_scendata(data['scentime'], data['scencmd'])
         self.op()
-
-    @subscriber(topic='STACK')
-    def on_stack_received(self, data):
-        # We received a single stack command. Add it to the existing stack
-        bs.stack.stack(data, sender_id=ctx.sender_id)
 
     @ss.publisher(topic='SIMSETTINGS')
     def pub_simsettings(self):

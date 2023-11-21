@@ -1,5 +1,6 @@
 ''' BlueSky Stack base data and functions. '''
 import bluesky as bs
+from bluesky.network import subscriber, context as ctx
 
 
 class Stack:
@@ -103,3 +104,9 @@ def set_scendata(newtime, newcmd):
     """ Set the scenario data. This is used by the batch logic. """
     Stack.scentime = newtime
     Stack.scencmd = newcmd
+
+# Register subscriber for stack commands coming from the network
+@subscriber(topic='STACK')
+def on_stack_received(data):
+    """ Add stack commands coming from the network to the stack. """
+    stack(data, sender_id=ctx.sender_id)
