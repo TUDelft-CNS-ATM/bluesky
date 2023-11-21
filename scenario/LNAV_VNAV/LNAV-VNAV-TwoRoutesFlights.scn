@@ -68,5 +68,5 @@
 #(LNAV is already on due to ADDWPT)
 00:00:00.00>KLM1705 VNAV on
 00:00:00.00>pos kl204
-00:00:00.00>plot alt
-00:00:00.00>ff 300
+#00:00:00.00>plot alt
+#00:00:00.00>ff 300
