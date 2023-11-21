@@ -44,3 +44,6 @@ class Node:
 
     def subscribe(self, topic, from_id=b'', to_group=b''):
         pass
+
+    def close(self):
+        pass
