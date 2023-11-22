@@ -2,6 +2,7 @@
 
     This class is used to keep a shared state across client(s) and simulation node(s)
 '''
+import inspect
 from collections import defaultdict
 from enum import Enum
 import numpy as np
@@ -205,8 +206,7 @@ def subscribe(topic:str, *, actonly=False) -> signal.Signal:
 def subscriber(func=None, *, topic='', actonly=False):
     ''' Decorator to subscribe to a state topic. '''
     def deco(func):
-        ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
-            else func
+        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
 
         # Subscribe to topic, and connect callback function to data change signal
         subscribe((topic or ifunc.__name__).upper(), actonly=actonly).connect(ifunc)
@@ -321,8 +321,7 @@ class Publisher(metaclass=PublisherMeta):
 # Publisher decorator?
 def publisher(func: Optional[Callable] = None, *, topic='', dt=None):
     def deco(func):
-        ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
-            else func
+        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
         itopic = (topic or ifunc.__name__).upper()
 
         Publisher(itopic, dt).payload(func)

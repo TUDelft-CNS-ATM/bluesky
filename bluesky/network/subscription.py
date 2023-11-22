@@ -1,3 +1,4 @@
+import inspect
 from typing import Dict
 from bluesky.core.signal import Signal, SignalFactory
 from bluesky.network.common import GROUPID_DEFAULT
@@ -108,8 +109,7 @@ def subscriber(func=None, *, topic='', directedonly=False, **kwargs):
         - actonly: Only receive this data for the active node (client only)
     '''
     def deco(func):
-        ifunc = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
-            else func
+        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
         
         # Create the subscription object. Network subscriptions will be made as
         # soon as the network connection is available
