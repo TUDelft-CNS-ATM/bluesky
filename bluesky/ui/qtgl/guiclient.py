@@ -86,13 +86,15 @@ class GuiClient(Client):
             sender_data.update_color_data(**data)
             if 'polyid' in data:
                 data_changed.append('SHAPE')
-        elif name == b'DEFWPT':
+        elif name == b'DEFWPT': # Add a custom waypoint
             sender_data.defwpt(**data)
+            data_changed.append('CUSTWPT')
+        elif name == b'DELWPT': # Remove a custom waypoint
+            sender_data.delwpt(**data)
             data_changed.append('CUSTWPT')
         elif name == b'DISPLAYFLAG':
             sender_data.setflag(**data)
         elif name == b'ECHO':
-            
             data_changed.append('ECHOTEXT')
         elif name == b'PANZOOM':
             sender_data.panzoom(**data)
@@ -309,9 +311,18 @@ class nodeData:
             self.polys[name] = (contourbuf, fillbuf, colorbuf)
 
     def defwpt(self, name, lat, lon):
-        self.custwplbl += name[:10].ljust(10)
+        self.custwplbl += name[:10].upper().ljust(10)
         self.custwplat = np.append(self.custwplat, np.float32(lat))
         self.custwplon = np.append(self.custwplon, np.float32(lon))
+    def delwpt(self, name):
+        namekey = name[:10].upper().ljust(10)
+        if self.custwplbl.count(namekey)<=0:
+            return
+        # Remove name from string with 10 chars per name
+        idx = self.custwplbl.index(namekey)//10
+        self.custwplbl = self.custwplbl.replace(namekey,"")
+        self.custwplat = np.delete(self.custwplat,idx)
+        self.custwplon = np.delete(self.custwplon,idx)
 
     def setflag(self, flag, args=None):
         # Switch/toggle/cycle radar screen features e.g. from SWRAD command

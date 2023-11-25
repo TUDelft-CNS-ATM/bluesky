@@ -186,6 +186,10 @@ class ScreenIO:
         bs.net.send_event(b'DEFWPT', dict(
             name=name, lat=lat, lon=lon), target=[b'*'])
         return True
+    def removenavwpt(self, name):
+        ''' Remove custom waypoint to visualization '''
+        bs.net.send_event(b'DELWPT', dict(name=name), target=[b'*'])
+        return True
 
     def show_file_dialog(self):
         bs.net.send_event(b'SHOWDIALOG', dict(dialog='OPENFILE'))
