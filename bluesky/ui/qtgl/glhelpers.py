@@ -188,6 +188,11 @@ def init_glcontext(ctx):
     funcptr = ctx.getProcAddress(b'glVertexAttrib4Nub')
     gl.glVertexAttrib4Nub = funtype(funcptr.__int__())
 
+    # void glVertexAttrib1f( GLuint index, GLfloat v0)
+    funtype = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_float)
+    funcptr = ctx.getProcAddress(b'glVertexAttrib1f')
+    gl.glVertexAttrib1f = funtype(funcptr.__int__())
+
     # void glTexImage2D( GLenum target,
     #                    GLint level,
     #                    GLint internalFormat,
@@ -645,7 +650,8 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
             self.texture.bind(0)
 
         if self.single_scale is not None:
-            shader.setAttributeValue(*self.single_scale)
+            gl.glVertexAttrib1f(*self.single_scale)
+            # shader.setAttributeValue(*self.single_scale)
 
         if n_instances > 0:
             gl.glDrawArraysInstanced(
