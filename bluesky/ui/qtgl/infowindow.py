@@ -1,8 +1,4 @@
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 import numpy as np
 import matplotlib
 matplotlib.rcParams['font.size'] = 5

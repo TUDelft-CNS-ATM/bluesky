@@ -10,7 +10,6 @@ Common test fixtures.
 NOTE - The test suite is written in Python3 only.
 It tests BlueSky running in either Python2 or 3.
 """
-from __future__ import print_function
 import socket
 import os
 import subprocess

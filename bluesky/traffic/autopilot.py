@@ -1,11 +1,7 @@
 """ Autopilot Implementation."""
 from math import sqrt, atan
 import numpy as np
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 import bluesky as bs
 from bluesky import stack
 from bluesky.tools import geo

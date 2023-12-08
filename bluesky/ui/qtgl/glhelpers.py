@@ -26,11 +26,7 @@ except ImportError:
     opengl_versions = ((4, 1), (2, 1), (2, 0))
 
 
-try:
-    from collections.abc import Collection, MutableMapping
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection, MutableMapping
+from collections.abc import Collection, MutableMapping
 import ctypes
 import numpy as np
 

@@ -1,11 +1,7 @@
 """ Classes that derive from TrafficArrays (like Traffic) get automated create,
     delete, and reset functionality for all registered child arrays."""
 # -*- coding: utf-8 -*-
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 import numpy as np
 
 defaults = {"float": 0.0, "int": 0, "uint":0, "bool": False, "S": "", "str": ""}

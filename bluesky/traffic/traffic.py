@@ -1,10 +1,5 @@
 """ BlueSky traffic implementation."""
-from __future__ import print_function
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 from math import *
 from random import randint
 import numpy as np
