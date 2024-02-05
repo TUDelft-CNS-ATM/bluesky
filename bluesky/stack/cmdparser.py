@@ -1,6 +1,7 @@
 ''' Stack Command implementation. '''
 import inspect
 import sys, os
+from typing import Dict
 from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 
 
@@ -8,7 +9,7 @@ class Command:
     ''' Stack command object. '''
 
     # Dictionary with all command objects
-    cmddict: dict[str, 'Command'] = dict()
+    cmddict: Dict[str, 'Command'] = dict()
 
     @classmethod
     def addcommand(cls, func, parent=None, name='', **kwargs):
