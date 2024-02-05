@@ -7,6 +7,7 @@ except ImportError:
     # In python <3.3 collections.abc doesn't exist
     from collections import Collection
 import numpy as np
+import pandas as pd
 
 defaults = {"float": 0.0, "int": 0, "uint":0, "bool": False, "S": "", "str": ""}
 
@@ -51,6 +52,7 @@ class TrafficArrays:
         self._children = []
         self._ArrVars  = []
         self._LstVars  = []
+        self._DFVars   = []
 
     def reparent(self, newparent):
         ''' Give TrafficArrays object a new parent. '''
@@ -69,6 +71,8 @@ class TrafficArrays:
                 self._LstVars.append(key)
             elif isinstance(self.__dict__[key], np.ndarray):
                 self._ArrVars.append(key)
+            elif isinstance(self.__dict__[key], pd.DataFrame):
+                self._DFVars.append(key)
             elif isinstance(self.__dict__[key], TrafficArrays):
                 self.__dict__[key].reparent(self)
 
@@ -91,9 +95,21 @@ class TrafficArrays:
             vartype = ''.join(c for c in str(self.__dict__[v].dtype) if c.isalpha())
             self.__dict__[v] = np.append(self.__dict__[v], [defaults.get(vartype, 0)] * n)
 
+        for v in self._DFVars:
+            # get types of all columns in dataframe
+            dtypes = self.__dict__[v].dtypes
+            new_rows = pd.DataFrame(index=np.arange(n), columns=self.__dict__[v].columns)
+
+            # append default values to dataframe
+            for column, dtype in dtypes.items():
+                # Get type without byte length
+                vartype = ''.join(c for c in str(dtype) if c.isalpha())
+                new_rows.loc[:, column] = pd.DataFrame([defaults.get(vartype, 0)] * n, columns=[column])
+            self.__dict__[v] = pd.concat([self.__dict__[v], new_rows], ignore_index=True)
+
     def istrafarray(self, name):
         ''' Returns true if parameter 'name' is a traffic array. '''
-        return name in self._LstVars or name in self._ArrVars
+        return name in self._LstVars or name in self._ArrVars or name in self._DFVars
 
     def create_children(self, n=1):
         ''' Call create (aircraft create) on all children. '''
@@ -119,6 +135,11 @@ class TrafficArrays:
                 for v in self._LstVars:
                     del self.__dict__[v][idx]
 
+        if self._DFVars:
+            for v in self._DFVars:
+                self.__dict__[v] = self.__dict__[v].drop(idx)
+                self.__dict__[v].reset_index(drop=True, inplace=True)
+
     def reset(self):
         ''' Delete all elements from arrays and start at 0 aircraft. '''
         for child in self._children:
@@ -129,3 +150,12 @@ class TrafficArrays:
 
         for v in self._LstVars:
             self.__dict__[v] = []
+
+        for v in self._DFVars:
+            dtypes = self.__dict__[v].dtypes
+            pd_series = {}
+            for column, dtype in dtypes.items():
+                # Get type without byte length
+                vartype = ''.join(c for c in str(dtype) if c.isalpha())
+                pd_series[column] = pd.Series([], dtype=vartype)
+            self.__dict__[v] = pd.DataFrame(pd_series)
