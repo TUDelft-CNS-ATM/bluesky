@@ -30,7 +30,7 @@ from bluesky.tools.misc import tim2txt
 from bluesky.network import subscriber, context as ctx
 from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
 from bluesky.ui import palette
-from bluesky.core import Signal, remotestore as rs
+from bluesky.core import remotestore as rs
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -183,8 +183,6 @@ class MainWindow(QMainWindow, Base):
         # Connect to io client's nodelist changed signal
         bs.net.node_added.connect(self.nodesChanged)
         bs.net.server_added.connect(self.serversChanged)
-        bs.net.subscribe(b'SIMINFO').connect(self.on_siminfo_received)
-        Signal('SHOWDIALOG').connect(self.on_showdialog_received)
 
         # Tell BlueSky that this is the screen object for this client
         bs.scr = self
@@ -316,7 +314,7 @@ class MainWindow(QMainWindow, Base):
                         if node.node_id[:-1] + seqidx2id(0) == server_id:
                             server.addChild(node)
                         else:
-                            ungrouped.addChild()
+                            ungrouped.addChild(node)
                             ucount += 1
                     if not ucount:
                         ungrouped.setHidden(True)
@@ -345,15 +343,17 @@ class MainWindow(QMainWindow, Base):
 
             self.nodes[node_id] = node
 
-    def on_showdialog_received(self, data):
+    @subscriber(topic='SHOWDIALOG')
+    def on_showdialog_received(self, dialog, args=''):
         ''' Processing of events from simulation nodes. '''
-        dialog = data.get('dialog')
-        args   = data.get('args')
+        # dialog = data.get('dialog')
+        # args   = data.get('args')
         if dialog == 'OPENFILE':
             self.show_file_dialog()
         elif dialog == 'DOC':
             self.show_doc_window(args)
 
+    @subscriber(topic='SIMINFO')
     def on_siminfo_received(self, speed, simdt, simt, simutc, ntraf, state, scenname):
         simt = tim2txt(simt)[:-3]
         self.setNodeInfo(ctx.sender_id, simt, scenname)
