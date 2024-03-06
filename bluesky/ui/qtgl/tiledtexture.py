@@ -18,7 +18,7 @@ except ImportError:
     from PyQt6.QtGui import QImage, qRgba
 
 import bluesky as bs
-from bluesky.core import Signal
+from bluesky.network import sharedstate as ss
 from bluesky.ui.qtgl import glhelpers as glh
 
 
@@ -167,7 +167,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.indextexture = glh.Texture(target=glh.Texture.Target.Target2D)
         self.indexsampler_loc = 0
         self.arraysampler_loc = 0
-        Signal('state-change.panzoom').connect(self.panzoom)
+        ss.subscriber(self.panzoom, topic='PANZOOM')
 
     def add_bounding_box(self, lat0, lon0, lat1, lon1):
         ''' Add the bounding box of a textured shape.
@@ -249,7 +249,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         # Bind tile array texture to texture unit 1
         super().bind(4)
 
-    def panzoom(self, pzdata, finished=False):
+    def panzoom(self, pzdata=None, finished=True):
         ''' Update textures whenever pan/zoom changes. 
             
             Arguments:

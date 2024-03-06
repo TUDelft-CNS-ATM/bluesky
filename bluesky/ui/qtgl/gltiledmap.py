@@ -38,7 +38,7 @@ class TiledMap(Map):
         self.offsetzoom_loc = glh.ShaderSet.get_shader(
             'tiled').uniformLocation('offset_scale')
         # Make sure that we have textures on first draw
-        self.texture.on_panzoom_changed(True)
+        self.texture.panzoom(finished=True)
 
     def draw(self):
         # Send the (possibly) updated global uniforms to the buffer
