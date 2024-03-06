@@ -12,7 +12,7 @@ class SignalFactory(type):
         ''' Factory function for Signal construction. '''
         # if no name is passed, return an anonymous Signal
         if not topic:
-            return super().__call__('anonymous', *args, **kwargs)
+            return super().__call__('ANONYMOUS', *args, **kwargs)
         # Convert name to string if necessary
         if isinstance(topic, bytes):
             topic = topic.decode()
