@@ -212,7 +212,7 @@ def initbasecmds():
         "ECHO": [
             "ECHO txt",
             "string",
-            bs.scr.echo,
+            lambda *args: bs.scr.echo(*args),
             "Show a text in command window for user to read",
         ],
         "FF": [
@@ -452,7 +452,7 @@ def setscenpath(newpath):
         newpath = bs.resource(settings.scenario_path) / newpath
 
     if not newpath.is_dir():
-        return False, "Error: cannot find path: " + newpath
+        return False, "Error: cannot find path: " + newpath.as_posix()
 
     # Change path
     settings.scenario_path = newpath
