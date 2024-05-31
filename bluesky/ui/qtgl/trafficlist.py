@@ -1,7 +1,6 @@
-from functools import partial
 import numpy as np
 
-from PyQt6.QtWidgets import QListView, QStyledItemDelegate, QStyle, QApplication as app
+from PyQt6.QtWidgets import QListView, QStyledItemDelegate, QApplication as app
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtCore import QSize, Qt, QRect, QAbstractListModel, QModelIndex, Qt, QVariant, QTimer
 

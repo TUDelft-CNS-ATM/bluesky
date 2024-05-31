@@ -1,12 +1,10 @@
 try:
-    from PyQt5.QtWidgets import QListView, QStyledItemDelegate, QStyle, QApplication as app
-    from PyQt5.QtGui import QColor, QPalette
-    from PyQt5.QtCore import QSize, Qt, QRect, QAbstractListModel, QModelIndex, Qt, QVariant
-except ImportError:
-    from PyQt6.QtWidgets import QListView, QStyledItemDelegate, QStyle, QApplication as app
-    from PyQt6.QtGui import QColor, QPalette
-    from PyQt6.QtCore import QSize, Qt, QRect, QAbstractListModel, QModelIndex, Qt, QVariant
+    from PyQt6.QtWidgets import QListView
+    from PyQt6.QtGui import QPalette
 
+except ImportError:
+    from PyQt5.QtWidgets import QListView
+    from PyQt5.QtGui import QPalette
 
 
 class StackList(QListView):
