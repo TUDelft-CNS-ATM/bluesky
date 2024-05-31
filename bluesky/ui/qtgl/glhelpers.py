@@ -325,11 +325,10 @@ class ShaderSet(MutableMapping):
     def update_ubo(self, uboname, *args, **kwargs):
         ''' Update an uniform buffer object of this shader set. '''
         ubo = self._ubos.get(uboname, None)
-        if not ubo:
+        if ubo is None:
             raise KeyError('Uniform Buffer Object', uboname,
                            'not found in shader set.')
         ubo.update(*args, **kwargs)
-
     def set_shader_path(self, shader_path):
         ''' Set a search path for shader files. '''
         self._spath = shader_path

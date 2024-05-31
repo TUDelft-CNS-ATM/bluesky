@@ -325,7 +325,7 @@ class MainWindow(QMainWindow, Base):
 
     def nodesChanged(self, node_id):
         if node_id not in self.nodes:
-            print(node_id, 'added to list')
+            #print(node_id, 'added to list')
             server_id = node_id[:-1] + seqidx2id(0)
             if server_id not in bs.net.servers:
                 server_id = b'0'
