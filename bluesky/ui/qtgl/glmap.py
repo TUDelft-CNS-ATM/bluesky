@@ -1,5 +1,4 @@
 ''' BlueSky OpenGL map object. '''
-from os import path
 import numpy as np
 
 from bluesky.ui import palette
@@ -49,6 +48,8 @@ class Map(glh.RenderObject, layer=-100):
                 break
 
     def draw(self, skipmap=False):
+        actdata = bs.net.get_nodedata()
+
         # Send the (possibly) updated global uniforms to the buffer
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_LATLON)
 
@@ -56,8 +57,13 @@ class Map(glh.RenderObject, layer=-100):
         # Map and coastlines: don't wrap around in the shader
         self.shaderset.enable_wrap(False)
 
-        if not skipmap:
+        if actdata.show_map and not skipmap:
             self.map.draw()
+        
+        # Skip coastlines if set to disabled
+        if not actdata.show_coast:
+            return
+
         shaderset = glh.ShaderSet.selected
         if shaderset.data.wrapdir == 0:
             # Normal case, no wrap around

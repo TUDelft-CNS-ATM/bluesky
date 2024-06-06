@@ -347,6 +347,7 @@ class nodeData:
 
         # Satellite image background on/off
         elif flag == 'SAT':
+            print('setting sat')
             self.show_map = not self.show_map
 
         # Satellite image background on/off
