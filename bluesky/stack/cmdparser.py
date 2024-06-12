@@ -1,5 +1,6 @@
 ''' Stack Command implementation. '''
 import inspect
+from typing import Dict
 
 from bluesky.core.funcobject import FuncObject
 from bluesky.network.sharedstate import publisher
@@ -9,7 +10,7 @@ from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 class Command:
     ''' Stack command object. '''
     # Dictionary with all command objects
-    cmddict: dict[str, 'Command'] = dict()
+    cmddict: Dict[str, 'Command'] = dict()
 
     @staticmethod
     @publisher(topic='STACKCMDS')
