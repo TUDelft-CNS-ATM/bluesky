@@ -19,6 +19,9 @@ tmxlist = ("BGPASAS", "DFFLEVEL", "FFLEVEL", "FILTCONF", "FILTTRED", "FILTTAMB",
            "GRAB", "HDGREF", "MOVIE", "NAVDB", "PREDASAS", "RENAME", "RETYPE",
            "SWNLRPASAS", "TRAFRECDT", "TRAFLOGDT", "TREACT", "WINDGRID")
 
+# filename for caching last used scenario file
+keepicfile_path = bs.resource(settings.scenario_path) / "ic.scn"
+
 
 def init():
     """ Initialization of the default stack commands. This function is called
@@ -268,6 +271,8 @@ def ic(filename : 'string' = ''):
         if not filename:
             # Only PyGame returns a filename from the dialog here
             return
+    elif filename.upper() == "IC":
+        return ic(keepicfile_path.as_posix())
 
     # Clean up filename
     filename = Path(filename)
@@ -280,7 +285,7 @@ def ic(filename : 'string' = ''):
         Stack.scenname = filename.stem
 
         # Remember this filename in IC.scn in scenario folder
-        with open(bs.resource(settings.scenario_path) / "ic.scn", "w") as keepicfile:
+        with open(keepicfile_path, "w") as keepicfile:
             keepicfile.write(
                 "# This file is used by BlueSky to save the last used scenario file\n"
             )
