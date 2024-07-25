@@ -18,7 +18,7 @@ import bluesky as bs
 
 def sel_palette(value, changed_fun):
     wid = QComboBox()
-    
+
     palfiles = [path.basename(f) for f in (bs.resource(bs.settings.gfx_path) / 'palettes').glob('*')]
     wid.addItems(palfiles)
     wid.setCurrentText(value)
@@ -279,7 +279,7 @@ class SettingsWindow(QWidget):
         pass
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.close()
 
 def clear_layout(layout):
