@@ -161,6 +161,8 @@ def readscn(fname):
 
             # Try reading timestamp and command
             try:
+                line = line.split("#")[0].strip()
+
                 icmdline = line.index(">")
                 tstamp = line[:icmdline]
                 ttxt = tstamp.strip().split(":")
