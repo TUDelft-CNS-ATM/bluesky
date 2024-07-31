@@ -416,7 +416,7 @@ class Autopilot(Entity, replaceable=True):
                             bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
 
         useturnspd = np.logical_or(bs.traf.actwp.turntonextwp,
-                                   (self.dist2turn < (dxturnspdchg+bs.traf.actwp.turndist))) * \
+                                   (self.dist2turn < (dxturnspdchg*1.1+np.maximum(bs.traf.actwp.turndist,bs.traf.actwp.nextturnrad)))) * \
                                         swturnspd*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav
 
         # Hold turn mode can only be switched on here, cannot be switched off here (happeps upon passing wp)
@@ -440,8 +440,9 @@ class Autopilot(Entity, replaceable=True):
                                            np.where((bs.traf.actwp.spdcon>=0)*bs.traf.swvnavspd,bs.traf.actwp.spd,
                                                                             bs.traf.selspd)))
 
-        # Temporary override when still in old turn
-        bs.traf.selspd = np.where(inoldturn*(bs.traf.actwp.oldturnspd>0.)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
+        # Temporary override speed when still in old turn
+        bs.traf.selspd = np.where(np.logical_and(inoldturn*(bs.traf.actwp.oldturnspd>0.)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
+                                    np.logical_not(useturnspd)),
                                   bs.traf.actwp.oldturnspd,bs.traf.selspd)
 
         # Before updating inturn, save the old inturn
@@ -460,6 +461,8 @@ class Autopilot(Entity, replaceable=True):
                                               justexitedturn))
         
         bs.traf.selspd = np.where(usecruisespd, self.cruisespd, bs.traf.selspd)
+        
+        print(bs.traf.selspd)
 
         # Below crossover altitude: CAS=const, above crossover altitude: Mach = const
         self.tas = vcasormach2tas(bs.traf.selspd, bs.traf.alt)
