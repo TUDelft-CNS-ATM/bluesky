@@ -8,6 +8,7 @@ from bluesky.core.timedfunction import timed_function
 from bluesky.core.walltime import Timer
 from bluesky.network.common import ActionType
 from bluesky.network.subscriber import subscriber
+from bluesky.network.sharedstate import _recursive_update
 import bluesky.network.context as ctx
 
 
@@ -57,7 +58,7 @@ class StatePublisher(metaclass=PublisherMeta):
                 payload[1] = {k:[v] for k, v in payload[1].items()}
             store.extend(payload)
         elif payload[0] == ActionType.Update.value:
-            recursive_update(store[1], payload[1])
+            _recursive_update(store[1], payload[1])
         elif payload[0] == ActionType.Append.value:
             for key, item in payload[1].items():
                 store[1][key].append(item)
