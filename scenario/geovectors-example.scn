@@ -19,5 +19,5 @@
 # Go west and descend
 00:00:01.00>geovector gowest,,,265,275,-450,-400
 00:00:01.00>geovector gosouth,,2,175,185
-Max 250 kts groundspeed below FL100
+# Max 250 kts groundspeed below FL100
 00:00:01.00>geovector max250,,250
