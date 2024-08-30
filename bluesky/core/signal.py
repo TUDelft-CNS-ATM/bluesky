@@ -34,7 +34,9 @@ class Signal(metaclass=SignalFactory):
 
     def emit(self, *args, **kwargs):
         """ Trigger the registered functions with passed arguments. """
-        for sub in self.subscribers:
+        # Iterate over shallow copy of subscriber list to avoid issues with connects/disconnects
+        # that are called within one of our subscribed callback functions
+        for sub in list(self.subscribers):
             sub(*args, **kwargs)
 
     def connect(self, func):
