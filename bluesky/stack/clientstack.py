@@ -102,3 +102,38 @@ def pdf():
         return pdfhelp.as_posix() + "does not exist."
 
     return "Pdf window opened"
+
+
+@command
+def makedoc():
+    ''' MAKEDOC: Make markdown templates for all stack functions
+        that don't have a doc page yet.
+    '''
+    tmp = Path('tmp')
+    if not tmp.is_dir():
+        tmp.mkdir()
+    # Get unique set of commands
+    cmdobjs = set(Command.cmddict.values())
+    for o in cmdobjs:
+        if not bs.resource(f"html/{o.name}.html").is_file():
+            with open(tmp / f"{o.name.lower()}.md", "w") as f:
+                f.write(
+                    f"# {o.name}: {o.name.capitalize()}\n"
+                    + o.help
+                    + "\n\n"
+                    + "**Usage:**\n\n"
+                    + f"    {o.brief}\n\n"
+                    + "**Arguments:**\n\n"
+                )
+                if not o.params:
+                    f.write("This command has no arguments.\n\n")
+                else:
+                    f.write(
+                        "|Name|Type|Optional|Description\n"
+                        + "|--------|------|---|---------------------------------------------------\n"
+                    )
+                    for arg in o.params:
+                        f.write(str(arg).replace(':', '|') + f" |{arg.hasdefault()}|\n")
+                f.write("\n[[Back to command reference.|Command Reference]]\n")
+    # To also get all of the sim stack commands, forward to sim
+    forward()
