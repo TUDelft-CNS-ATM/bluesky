@@ -803,10 +803,16 @@ class RenderObject(Entity, skipbase=True):
 
 @command(aliases=('ADDVIS',))
 def addvisual(objname: "txt" = "", target: "txt" = "RADARWIDGET"):
-    ''' Add a render object to a render target. 
+    ''' Add a new render object to a render target. 
+        Use this function to enable the drawing of new GL render objects
+        that are defined in plugins.
+
+        Note that if you are reimplementing an existing GL object you
+        should use the VIS command instead, to select alternate visualisations
+        of existing GL objects.
     
-        Argements:
-        - obj: The renderobject to add. 
+        Arguments:
+        - obj: The name of the renderobject to add. 
         - target: A render target such as the RadarWidget (the default) and the ND.
     '''
     if not target:
