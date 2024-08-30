@@ -109,12 +109,18 @@ class Route(Base):
             name_ = name_[:-len_]+fmt_.format(appi)
         return name_
     
-    @stack.command(name = 'ADDWPTMODE', annotations = 'acid, [wpt,alt]')
+    @stack.command(name = 'ADDWPTMODE')
     @staticmethod
-    def addwptMode(acidx, mode = None, value = None):
-        '''Changes the mode of the ADDWPT command to add waypoints of type 'mode'.
-        Available modes: FLYBY, FLYOVER, FLYTURN. Also used to specify 
-        TURNSPEED or TURNRADIUS.'''
+    def addwptMode(acidx: 'acid', mode: 'txt' = None, value: float = None):
+        ''' Changes the mode of the ADDWPT command to add waypoints of type 'mode'.
+            The mode specified will be used for all ADDWPT commands that are called
+            after this command.
+            
+            Arguments:
+            - acid: Aircraft id
+            - mode: The mode to use for future waypoints. Options are:
+                    FLYBY/FLYOVER/FLYTURN/TURNSPD/TURNRAD/TURNHDG
+        '''
         # Get aircraft route
         acid = bs.traf.id[acidx]
         acrte = Route._routes[acid]
@@ -400,6 +406,17 @@ class Route(Base):
 
     @stack.command
     def addwaypoints(acidx: 'acid', *args):
+        ''' ADDWAYPOINTS: Add multiple waypoints to the route of an aircraft.
+        
+            Arguments:
+            - acid: Aircraft id
+            - lat_i: Latitude of the ith waypoint
+            - lon_i: Longitude of the ith waypoint
+            - alt_i: Altitude constraint at the ith waypoint
+            - spd_i: Speed constraint at the ith waypoint
+            - type_i: Turn type of the ith waypoint. [TURNSPD/TURNRAD/FLYBY]
+            - turnspd_i/turnrad_i: Turn speed / turn radius constraint at the ith waypoint
+            '''
         # Args come in this order: lat, lon, alt, spd, TURNSPD/TURNRAD/FLYBY, turnspeed or turnrad value
         # If turn is '0', then ignore turnspeed
         if len(args)%6 !=0:
