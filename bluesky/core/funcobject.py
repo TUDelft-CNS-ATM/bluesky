@@ -4,15 +4,20 @@ import inspect
 
 class FuncObjectMeta(type):
     def __call__(cls, func, *args, **kwargs):
-        return getattr(inspect.unwrap(func),
-            '__func_object__',
-            super().__call__(func, *args, **kwargs)
-        )
+        # Retrieve preexisting FuncObject, if it exists
+        fobj = getattr(inspect.unwrap(func), '__func_object__', None)
+        # Don't return the preexisting FuncObject if func is a method bound to an instance that is
+        # not the first instance of its type.
+        if fobj is not None:
+            if not inspect.ismethod(fobj.func) or func is fobj.func:
+                return fobj
+        return super().__call__(func, *args, **kwargs)
+
 
 
 class FuncObject(metaclass=FuncObjectMeta):
     ''' Function reference object that is automatically updated
-        on implementation selectdion for replaceables, and on creation of
+        on implementation selection for replaceables, and on creation of
         instances.
     '''
     __slots__ = ['func', 'callback']
@@ -28,6 +33,10 @@ class FuncObject(metaclass=FuncObjectMeta):
 
     def __repr__(self) -> str:
         return repr(self.func)
+
+    def __eq__(self, value) -> bool:
+        return self is value or \
+            self.func == inspect.unwrap(value)
 
     def notimplemented(self, *args, **kwargs):
         pass
