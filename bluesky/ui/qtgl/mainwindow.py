@@ -29,8 +29,9 @@ from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
 from bluesky.network import subscriber, context as ctx
 from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
+import bluesky.network.sharedstate as ss
+
 from bluesky.ui import palette
-from bluesky.core import remotestore as rs
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
@@ -119,10 +120,10 @@ class MainWindow(QMainWindow, Base):
     modes = ['Init', 'Hold', 'Operate', 'End']
 
     # Per remote node attributes
-    nconf_cur = rs.ActData(0, group='acdata')
-    nconf_tot = rs.ActData(0, group='acdata')
-    nlos_cur = rs.ActData(0, group='acdata')
-    nlos_tot = rs.ActData(0, group='acdata')
+    nconf_cur = ss.ActData(0, group='acdata')
+    nconf_tot = ss.ActData(0, group='acdata')
+    nlos_cur = ss.ActData(0, group='acdata')
+    nlos_tot = ss.ActData(0, group='acdata')
 
     @pyqtProperty(str)
     def style(self):
@@ -258,7 +259,7 @@ class MainWindow(QMainWindow, Base):
     def echo(self, text, flags=None, sender_id=None):
         refnode = sender_id or ctx.sender_id or bs.net.act_id
         # Always update the store
-        store = rs.get(refnode)
+        store = ss.get(refnode)
         store.echotext.append(text)
         store.echoflags.append(flags)
         # Directly echo if message corresponds to active node

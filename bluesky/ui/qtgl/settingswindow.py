@@ -15,9 +15,9 @@ except ImportError:
 
 import bluesky as bs
 from bluesky.network.common import seqidx2id
-from bluesky.core import Base
+from bluesky.network.subscriber import subscribe
 import bluesky.network.sharedstate as ss
-import bluesky.core.remotestore as rs
+from bluesky.core import Base
 
 
 def sel_palette(value, changed_fun):
@@ -114,7 +114,7 @@ class SettingsWindow(QWidget, Base):
 
         bs.net.node_added.connect(self.nodesChanged)
         # Subscribe to simulation settings SharedState
-        ss.subscribe('SIMSETTINGS')
+        subscribe('SIMSETTINGS')
 
     def show(self):
         if not self.populated:
@@ -168,7 +168,7 @@ class SettingsWindow(QWidget, Base):
             plugins = list()
 
             for node in item.nodes:
-                store = rs.get(node, 'simsettings')
+                store = ss.get(node, 'simsettings')
                 simsettings.update(store.settings)
                 plugins = store.plugins
 

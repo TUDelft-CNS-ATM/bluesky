@@ -11,11 +11,12 @@ except ImportError:
     from PyQt6.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
+from bluesky.core.signal import Signal
 from bluesky.stack.cmdparser import Command
 from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
-from bluesky.core import Signal, remotestore as rs
-from bluesky.network import sharedstate as ss
+from bluesky.network import subscribe
+from bluesky.network.sharedstate import ActData
 from . import autocomplete
 
 
@@ -59,9 +60,9 @@ class Console(QWidget):
     _instance = None
 
     # Per-remote data
-    echotext: list = rs.ActData()
-    echoflags: list = rs.ActData()
-    cmddict: dict = rs.ActData(group='stackcmds')
+    echotext: list = ActData()
+    echoflags: list = ActData()
+    cmddict: dict = ActData(group='stackcmds')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -88,7 +89,7 @@ class Console(QWidget):
         QApplication.instance().aboutToQuit.connect(self.close)
 
         # Connect to stack command list SharedState
-        ss.subscribe('STACKCMDS')
+        subscribe('STACKCMDS')
 
     def close(self):
         ''' Save command history when BlueSky closes. '''

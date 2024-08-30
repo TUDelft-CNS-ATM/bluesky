@@ -8,8 +8,10 @@ except ImportError:
     from PyQt6.QtCore import Qt, QEvent, QT_VERSION
 
 import bluesky as bs
-from bluesky.core import Signal, remotestore as rs
-from bluesky.network import sharedstate as ss
+from bluesky.core import Signal
+from bluesky.network import subscribe
+import bluesky.network.context as ctx
+import bluesky.network.sharedstate as ss
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.radarclick import radarclick
 from bluesky.ui.qtgl import console
@@ -90,8 +92,8 @@ class RadarWidget(glh.RenderWidget):
     ''' The BlueSky radar view. '''
 
     # Per-remote attributes
-    pan = rs.ActData([0.0, 0.0], group='panzoom')
-    zoom = rs.ActData(1.0, group='panzoom')
+    pan = ss.ActData([0.0, 0.0], group='panzoom')
+    zoom = ss.ActData(1.0, group='panzoom')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -126,7 +128,7 @@ class RadarWidget(glh.RenderWidget):
         # Signals and slots
         self.mouse_event = Signal('radarmouse')
         self.panzoom_event = Signal('state-changed.panzoom')
-        ss.subscriber(self.on_panzoom, topic='PANZOOM')
+        subscribe('PANZOOM').connect(self.on_panzoom)
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
@@ -252,8 +254,10 @@ class RadarWidget(glh.RenderWidget):
                     (1.0 / self.zoom - 1.0 / prevzoom) / self.flat_earth
                 self.pan[0] = self.pan[0] - gly * \
                     (1.0 / self.zoom - 1.0 / prevzoom) / self.ar
-        rs.get().panzoom.zoom = self.zoom #  temp TODO
-        self.panzoom_event.emit(rs.get().panzoom, finished)
+        ss.get().panzoom.zoom = self.zoom #  temp TODO
+        ctx.topic = 'PANZOOM'
+        self.panzoom_event.emit(ss.get().panzoom, finished)
+        ctx.topic = None
         return True
 
     def event(self, event):
@@ -314,7 +318,7 @@ class RadarWidget(glh.RenderWidget):
         elif event.type() == QEvent.Type.MouseButtonRelease and \
                 event.button() & Qt.MouseButton.LeftButton and not self.mousedragged:
             lat, lon = self.pixelCoordsToLatLon(event.pos().x(), event.pos().y())
-            actdata = rs.get()
+            actdata = ss.get()
             tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
                                             actdata.acdata, actdata.routedata)
 
@@ -344,7 +348,7 @@ class RadarWidget(glh.RenderWidget):
             self.panzoomchanged = False
             bs.net.send(b'PANZOOM', dict(pan=(self.pan[0], self.pan[1]),
                                          zoom=self.zoom, ar=self.ar, absolute=True))
-            self.panzoom_event.emit(rs.get().panzoom, True)
+            self.panzoom_event.emit(ss.get().panzoom, True)
         elif int(event.type()) == 216:
             # 216 is screen change event, but doesn't exist (yet) in pyqt as enum
             self.pxratio = self.devicePixelRatio()

@@ -18,7 +18,7 @@ except ImportError:
     from PyQt6.QtGui import QImage, qRgba
 
 import bluesky as bs
-from bluesky.network import sharedstate as ss
+from bluesky.network.subscriber import subscribe
 from bluesky.ui.qtgl import glhelpers as glh
 
 
@@ -167,7 +167,7 @@ class TiledTexture(glh.Texture, metaclass=TiledTextureMeta):
         self.indextexture = glh.Texture(target=glh.Texture.Target.Target2D)
         self.indexsampler_loc = 0
         self.arraysampler_loc = 0
-        ss.subscriber(self.panzoom, topic='PANZOOM')
+        subscribe('PANZOOM').connect(self.panzoom)
 
     def add_bounding_box(self, lat0, lon0, lat1, lon1):
         ''' Add the bounding box of a textured shape.

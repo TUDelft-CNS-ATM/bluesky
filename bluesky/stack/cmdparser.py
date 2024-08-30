@@ -3,7 +3,7 @@ import inspect
 from typing import Dict
 
 from bluesky.core.funcobject import FuncObject
-from bluesky.network.sharedstate import publisher
+from bluesky.network.publisher import state_publisher
 from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 
 
@@ -13,7 +13,7 @@ class Command:
     cmddict: Dict[str, 'Command'] = dict()
 
     @staticmethod
-    @publisher(topic='STACKCMDS')
+    @state_publisher(topic='STACKCMDS')
     def pubcmdlist():
         ''' Send a dictionary with available stack commands when requested. '''
         return {'cmddict': {cmd : val.brief[len(cmd) + 1:] for cmd, val in Command.cmddict.items()}}

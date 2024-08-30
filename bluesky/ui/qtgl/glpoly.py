@@ -1,12 +1,14 @@
 ''' BlueSky OpenGL line and polygon (areafilter) drawing. '''
 import numpy as np
-from bluesky.core import Signal, remotestore as rs
-from bluesky.network import sharedstate, context as ctx
+from bluesky.core import Signal
+from bluesky.network import context as ctx
+from bluesky.network.subscriber import subscriber
 from bluesky.stack import command
 from bluesky.ui import palette
 from bluesky.ui.polytools import PolygonSet
 from bluesky.ui.qtgl import console
 from bluesky.ui.qtgl import glhelpers as glh
+from bluesky.network.sharedstate import ActData
 
 
 palette.set_default_colours(
@@ -23,9 +25,9 @@ class Poly(glh.RenderObject, layer=-20):
     ''' Poly OpenGL object. '''
 
     # Per remote node attributes
-    show_poly = rs.ActData(1)
-    polys: dict = rs.ActData(group='poly')
-    bufdata: dict = rs.ActData()
+    show_poly = ActData(1)
+    polys: dict = ActData(group='poly')
+    bufdata: dict = ActData()
 
     @command
     def showpoly(self, flag:int=None):
@@ -125,7 +127,7 @@ class Poly(glh.RenderObject, layer=-20):
                 except ValueError:
                     pass
 
-    @sharedstate.subscriber(topic='POLY')
+    @subscriber(topic='POLY')
     def update_poly_data(self, data):
         if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
             # Simulation reset: Clear all entries

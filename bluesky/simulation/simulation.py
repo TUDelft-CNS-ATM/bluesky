@@ -11,11 +11,11 @@ from bluesky.core.base import Base
 import bluesky.core as core
 from bluesky.core import plugin, simtime
 from bluesky.core.signal import subscriber
+from bluesky.network.publisher import state_publisher
 from bluesky.core.walltime import Timer
 from bluesky.core.timedfunction import hooks
 from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
-import bluesky.network.sharedstate as ss
 
 
 # Minimum sleep interval
@@ -115,6 +115,7 @@ class Simulation(Base):
             # Update traffic and other update functions for the next timestep
             bs.traf.update()
             hooks.update.trigger()
+
         else:
             hooks.hold.trigger()
 
@@ -253,7 +254,7 @@ class Simulation(Base):
         bs.stack.set_scendata(data['scentime'], data['scencmd'])
         self.op()
 
-    @ss.publisher(topic='SIMSETTINGS')
+    @state_publisher(topic='SIMSETTINGS')
     def pub_simsettings(self):
         ''' Publish simulation settings on request. '''
         return dict(settings=bs.settings._settings_hierarchy,

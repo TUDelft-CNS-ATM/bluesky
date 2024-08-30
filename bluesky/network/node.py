@@ -1,11 +1,12 @@
 ''' Node test '''
+import inspect
 import zmq
 import msgpack
 import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity, Signal
 from bluesky.network import context as ctx
-from bluesky.network.subscription import Subscription
+from bluesky.network.subscriber import Subscription
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 from bluesky.network.common import genid, asbytestr, seqidx2id, seqid2idx, MSG_SUBSCRIBE, MSG_UNSUBSCRIBE, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT, IDLEN
 
@@ -58,7 +59,7 @@ class Node(Entity):
         self.poller.register(self.sock_recv, zmq.POLLIN)
         self.poller.register(self.sock_send, zmq.POLLIN)
         # Register this node by subscribing to targeted messages
-        self.subscribe(b'', to_group=self.node_id)
+        self.subscribe('',  '', to_group=self.node_id)
 
     def close(self):
         ''' Close all network connections. '''
@@ -99,7 +100,11 @@ class Node(Entity):
                     ctx.topic = ctx.msg[0][IDLEN:-IDLEN].decode()
                     ctx.sender_id = ctx.msg[0][-IDLEN:]
                     pydata = msgpack.unpackb(ctx.msg[1], object_hook=decode_ndarray, raw=False)
-                    sub = Subscription.subscriptions.get(ctx.topic) or Subscription(ctx.topic, directedonly=True)
+                    sub = Subscription.subscriptions.get(ctx.topic, None) #or Subscription(ctx.topic, directedonly=True)
+                    if sub is None:
+                        print('No subscription known for', ctx.topic, 'on', self.node_id)
+                        continue
+
                     # Unpack dict or list, skip empty string
                     if pydata == '':
                         sub.emit()
@@ -141,16 +146,16 @@ class Node(Entity):
             return False
 
     def send(self, topic, data='', to_group=''):
-        topic = asbytestr(topic)
-        to_group = asbytestr(to_group or stack.sender() or GROUPID_CLIENT)
+        btopic = asbytestr(topic)
+        bto_group = asbytestr(to_group or stack.sender() or '')
         self.sock_send.send_multipart(
             [
-                to_group.ljust(IDLEN, b'*') + topic + self.node_id,
+                bto_group.ljust(IDLEN, b'*') + btopic + self.node_id,
                 msgpack.packb(data, default=encode_ndarray, use_bin_type=True)
             ]
         )
 
-    def subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
+    def subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
         ''' Subscribe to a topic.
 
             Arguments:
@@ -161,18 +166,18 @@ class Node(Entity):
         sub = None
         if topic:
             sub = Subscription(topic)
-            if (from_id, to_group) in sub.subs:
+            if (from_group, to_group) in sub.subs:
                 # Subscription already active. Just return Subscription object
                 return sub
-            sub.subs.add((from_id, to_group))
+            sub.subs.add((from_group, to_group))
 
-        self._subscribe(topic, from_id, to_group)
+        self._subscribe(topic, from_group, to_group)
 
         # Messages coming in that match this subscription will be emitted using a 
         # subscription signal
         return sub
 
-    def unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
+    def unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -181,20 +186,24 @@ class Node(Entity):
             - to_group: The group mask that this topic is sent to (optional)
         '''
         if topic:
-            Subscription(topic).subs.discard((from_id, to_group))
-        self._unsubscribe(topic, from_id, to_group)
+            Subscription(topic).subs.discard((from_group, to_group))
+        self._unsubscribe(topic, from_group, to_group)
 
-    def _subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
-        topic = asbytestr(topic)
-        from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group or GROUPID_SIM)
-        self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+    def _subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+        if from_group == GROUPID_DEFAULT:
+            from_group = GROUPID_CLIENT
+        btopic = asbytestr(topic)
+        bfrom_group = asbytestr(from_group)
+        bto_group = asbytestr(to_group)
+        self.sock_recv.setsockopt(zmq.SUBSCRIBE, bto_group.ljust(IDLEN, b'*') + btopic + bfrom_group)
 
-    def _unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
-        topic = asbytestr(topic)
-        from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group or GROUPID_SIM)
-        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+    def _unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+        if from_group == GROUPID_DEFAULT:
+            from_group = GROUPID_CLIENT
+        btopic = asbytestr(topic)
+        bfrom_group = asbytestr(from_group)
+        bto_group = asbytestr(to_group)
+        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, bto_group.ljust(IDLEN, b'*') + btopic + bfrom_group)
 
     def addnodes(self, count=1, *node_ids):
         ''' Tell the server to add 'count' nodes. 

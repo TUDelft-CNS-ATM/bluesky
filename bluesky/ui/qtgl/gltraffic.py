@@ -2,13 +2,14 @@
 import numpy as np
 from bluesky.ui.qtgl import glhelpers as glh
 
-from bluesky.core import remotestore as rs
 from bluesky.stack import command
 from bluesky.tools import geo
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
-from bluesky.network import sharedstate, context as ctx
+from bluesky.network import context as ctx
+from bluesky.network.subscriber import subscriber
+from bluesky.network.sharedstate import ActData
 
 
 # Register settings defaults
@@ -33,15 +34,15 @@ TRAILS_SIZE = 1000000
 class Traffic(glh.RenderObject, layer=100):
     ''' Traffic OpenGL object. '''
     # Per remote node attributes
-    show_pz = rs.ActData(False)
-    show_traf = rs.ActData(True)
-    show_lbl = rs.ActData(2)
-    ssd_all = rs.ActData(False)
-    ssd_conflicts = rs.ActData(False)
-    ssd_ownship = rs.ActData(set())
-    altrange = rs.ActData(tuple())
-    naircraft = rs.ActData(0)
-    zoom = rs.ActData(1, group='panzoom')
+    show_pz = ActData(False)
+    show_traf = ActData(True)
+    show_lbl = ActData(2)
+    ssd_all = ActData(False)
+    ssd_conflicts = ActData(False)
+    ssd_ownship = ActData(set())
+    altrange = ActData(tuple())
+    naircraft = ActData(0)
+    zoom = ActData(1, group='panzoom')
 
     @command
     def showpz(self, flag:bool=None):
@@ -247,7 +248,7 @@ class Traffic(glh.RenderObject, layer=100):
             self.ssd.draw(vertex_count=self.naircraft,
                           n_instances=self.naircraft)
 
-    @sharedstate.subscriber(topic='TRAILS')
+    @subscriber(topic='TRAILS')
     def update_trails_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
@@ -266,7 +267,7 @@ class Traffic(glh.RenderObject, layer=100):
         else:
             self.traillines.set_vertex_count(0)
 
-    @sharedstate.subscriber(topic='ROUTEDATA', actonly=True)
+    @subscriber(topic='ROUTEDATA', actonly=True)
     def update_route_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
@@ -325,7 +326,7 @@ class Traffic(glh.RenderObject, layer=100):
             self.route.set_vertex_count(0)
             self.routelbl.n_instances = 0
 
-    @sharedstate.subscriber(topic='ACDATA', actonly=True)
+    @subscriber(topic='ACDATA', actonly=True)
     def update_aircraft_data(self, data):
         ''' Update GPU buffers with new aircraft simulation data. '''
         if not self.initialized:

@@ -8,9 +8,10 @@ from bluesky import stack
 from bluesky.core import Entity
 from bluesky.tools import aero
 from bluesky.core.walltime import Timer
-from bluesky.network import subscriber, context as ctx
+from bluesky.network.subscriber import subscriber
+from bluesky.network.publisher import state_publisher, StatePublisher
+import bluesky.network.context as ctx
 
-import bluesky.network.sharedstate as ss
 
 # =========================================================================
 # Settings
@@ -25,9 +26,9 @@ ACUPDATE_RATE = 5
 class ScreenIO(Entity):
     """Class within sim task which sends/receives data to/from GUI task"""
 
-    pub_panzoom = ss.Publisher('PANZOOM')
-    pub_defwpt = ss.Publisher('DEFWPT', collect=True)
-    pub_route = ss.Publisher('ROUTEDATA')
+    pub_panzoom = StatePublisher('PANZOOM')
+    pub_defwpt = StatePublisher('DEFWPT', collect=True)
+    pub_route = StatePublisher('ROUTEDATA')
 
     # =========================================================================
     # Functions
@@ -207,7 +208,7 @@ class ScreenIO(Entity):
             str(bs.sim.utc.replace(microsecond=0)), bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         
 
-    @ss.publisher(topic='TRAILS', dt=1000 // SIMINFO_RATE)
+    @state_publisher(topic='TRAILS', dt=1000 // SIMINFO_RATE)
     def send_trails(self):
         # Trails, send only new line segments to be added
         if bs.traf.trails.active and len(bs.traf.trails.newlat0) > 0:
@@ -218,7 +219,7 @@ class ScreenIO(Entity):
             bs.traf.trails.clearnew()
             return data
 
-    @ss.publisher(topic='ACDATA', dt=1000 // ACUPDATE_RATE)
+    @state_publisher(topic='ACDATA', dt=1000 // ACUPDATE_RATE)
     def send_aircraft_data(self):
         data = dict()
         data['simt']       = bs.sim.simt

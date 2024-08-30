@@ -9,7 +9,7 @@ from bluesky.core import Entity, Signal
 from bluesky.stack.clientstack import process
 from bluesky.network import context as ctx
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
-from bluesky.network.subscription import Subscription
+from bluesky.network.subscriber import Subscription
 from bluesky.network.common import genid, asbytestr, seqid2idx, MSG_SUBSCRIBE, MSG_UNSUBSCRIBE, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT, IDLEN
 
 
@@ -69,7 +69,7 @@ class Client(Entity):
         self.poller.register(self.sock_recv, zmq.POLLIN)
         self.poller.register(self.sock_send, zmq.POLLIN)
         # Register this client by subscribing to targeted messages
-        self.subscribe(b'', to_group=self.client_id)
+        self.subscribe('', '', to_group=self.client_id)
 
     def update(self):
         ''' Client periodic update function.
@@ -103,8 +103,10 @@ class Client(Entity):
                 if sock == self.sock_recv:
                     ctx.topic = ctx.msg[0][IDLEN:-IDLEN].decode()
                     ctx.sender_id = ctx.msg[0][-IDLEN:]
-                    pydata = msgpack.unpackb(ctx.msg[1], object_hook=decode_ndarray, raw=False)
-                    sub = Subscription.subscriptions.get(ctx.topic) or Subscription(ctx.topic, directedonly=True)
+                    pydata = msgpack.unpackb(ctx.msg[1], object_hook=decode_ndarray, raw=False)                    
+                    sub = Subscription.subscriptions.get(ctx.topic, None)# or Subscription(ctx.topic, directedonly=True)
+                    if sub is None:
+                        continue
                     # Unpack dict or list, skip empty string
                     if pydata == '':
                         sub.emit()
@@ -148,7 +150,7 @@ class Client(Entity):
 
     def send(self, topic: str, data: Union[str, Collection]='', to_group: str=''):
         btopic = asbytestr(topic)
-        btarget = asbytestr(to_group or stack.sender() or self.act_id or GROUPID_SIM)
+        btarget = asbytestr(to_group or stack.sender() or self.act_id or '')
         self.sock_send.send_multipart(
             [
                 btarget.ljust(IDLEN, b'*') + btopic + self.client_id,
@@ -156,7 +158,7 @@ class Client(Entity):
             ]
         )
 
-    def subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=False):
+    def subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
         ''' Subscribe to a topic.
 
             Arguments:
@@ -171,18 +173,18 @@ class Client(Entity):
             sub = Subscription(topic)
             sub.actonly = (sub.actonly or actonly)
             actonly = sub.actonly
-            if (from_id, to_group) in sub.subs:
+            if (from_group, to_group) in sub.subs:
                 # Subscription already active. Just return Subscription object
                 return sub
-            sub.subs.add((from_id, to_group))
+            sub.subs.add((from_group, to_group))
 
-        self._subscribe(topic, from_id, to_group, actonly)
+        self._subscribe(topic, from_group, to_group, actonly)
 
         # Messages coming in that match this subscription will be emitted using a 
         # subscription signal
         return sub
 
-    def unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
+    def unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -191,30 +193,37 @@ class Client(Entity):
             - to_group: The group mask that this topic is sent to (optional)
         '''
         if topic:
-            Subscription(topic).subs.discard((from_id, to_group))
-        self._unsubscribe(topic, from_id, to_group)
+            Subscription(topic).subs.discard((from_group, to_group))
+        self._unsubscribe(topic, from_group, to_group)
 
-    def _subscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT, actonly=False):
-        topic = asbytestr(topic)
-        from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group or GROUPID_CLIENT)
-        if actonly and not from_id:
-            self.acttopics[topic].add(to_group)
-            from_id = self.act_id
-            if not from_id:
-                return
-        self.sock_recv.setsockopt(zmq.SUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+    def _subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
+        if from_group == GROUPID_DEFAULT:
+            from_group = GROUPID_SIM
+            if actonly:
+                self.acttopics[topic].add(to_group)
+                if self.act_id is not None:
+                    bfrom_group = self.act_id
+                else:
+                    return
+        btopic = asbytestr(topic)
+        bfrom_group = asbytestr(from_group)
+        bto_group = asbytestr(to_group)
 
-    def _unsubscribe(self, topic, from_id='', to_group=GROUPID_DEFAULT):
-        topic = asbytestr(topic)
-        from_id = asbytestr(from_id)
-        to_group = asbytestr(to_group or GROUPID_CLIENT)
-        if not from_id and topic in self.acttopics:
+        self.sock_recv.setsockopt(zmq.SUBSCRIBE, bto_group.ljust(IDLEN, b'*') + btopic + bfrom_group)
+
+    def _unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+        if from_group == GROUPID_DEFAULT:
+            from_group = GROUPID_SIM
+        btopic = asbytestr(topic)
+        bfrom_group = asbytestr(from_group)
+        bto_group = asbytestr(to_group)
+        if from_group == GROUPID_DEFAULT and topic in self.acttopics:
             self.acttopics[topic].discard(to_group)
-            from_id = self.act_id
-            if not from_id:
+            if self.act_id is not None:
+                bfrom_group = self.act_id
+            else:
                 return
-        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, to_group.ljust(IDLEN, b'*') + topic + from_id)
+        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, bto_group.ljust(IDLEN, b'*') + btopic + bfrom_group)
 
     def actnode(self, newact=None):
         ''' Set the new active node, or return the current active node. '''

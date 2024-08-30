@@ -8,14 +8,16 @@ except ImportError:
     from PyQt6.QtGui import QColor, QPalette
     from PyQt6.QtCore import QSize, Qt, QRect, QAbstractListModel, QModelIndex, Qt, QVariant
 
-from bluesky.network import sharedstate, context as ctx
-from bluesky.core import Base, remotestore as rs
+from bluesky.network import context as ctx
+from bluesky.network.subscriber import subscriber
+from bluesky.network.sharedstate import ActData
+from bluesky.core import Base
 from bluesky.ui import palette
 import bluesky as bs
 
 
 class AreaModel(QAbstractListModel, Base):
-    polys: dict = rs.ActData(group='poly')
+    polys: dict = ActData(group='poly')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,7 +39,7 @@ class AreaModel(QAbstractListModel, Base):
         # remove items from the list
         pass
 
-    @sharedstate.subscriber(topic='POLY')
+    @subscriber(topic='POLY')
     def on_poly_update(self, data):
         if ctx.action in (ctx.action.ActChange, ctx.action.Reset):
             # Notify the gui that the entire list needs to be updated

@@ -4,16 +4,17 @@ from PyQt6.QtWidgets import QListView, QStyledItemDelegate, QApplication as app
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtCore import QSize, Qt, QRect, QAbstractListModel, QModelIndex, Qt, QVariant, QTimer
 
-from bluesky.core import Base, remotestore as rs
-from bluesky.network import sharedstate as ss
+from bluesky.core import Base
+from bluesky.network.subscriber import subscriber
+from bluesky.network.sharedstate import ActData
 from bluesky.tools import aero
 
 
 class TrafficModel(QAbstractListModel, Base):
-    id: list = rs.ActData(group='acdata')
-    alt: np.ndarray = rs.ActData(0, group='acdata')
-    trk: np.ndarray = rs.ActData(0, group='acdata')
-    cas: np.ndarray = rs.ActData(0, group='acdata')
+    id: list = ActData(group='acdata')
+    alt: np.ndarray = ActData(0, group='acdata')
+    trk: np.ndarray = ActData(0, group='acdata')
+    cas: np.ndarray = ActData(0, group='acdata')
 
     def __init__(self) -> None:
         super().__init__()
@@ -44,7 +45,7 @@ class TrafficModel(QAbstractListModel, Base):
                 f'{self.cas[idx] / aero.kts:1.0f}'
             ))
 
-    @ss.subscriber(topic='ACDATA', actonly=True)
+    @subscriber(topic='ACDATA', actonly=True)
     def on_data_update(self, data):
         if len(data.id) == 0:
             self.beginResetModel()

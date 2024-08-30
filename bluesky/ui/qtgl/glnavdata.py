@@ -1,8 +1,10 @@
 ''' BlueSky navdata OpenGL visualisation object. '''
 import numpy as np
 import bluesky as bs
-from bluesky.core import Signal, remotestore as rs
-from bluesky.network import sharedstate, context as ctx
+from bluesky.core import Signal
+from bluesky.network import context as ctx
+from bluesky.network.subscriber import subscriber
+from bluesky.network.sharedstate import ActData
 from bluesky.stack import command
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky import settings
@@ -35,10 +37,10 @@ class Navdata(glh.RenderObject, layer=-10):
     ''' Navdata OpenGL object. '''
 
     # Per remote node attributes
-    show_wpt = rs.ActData(1)
-    show_apt = rs.ActData(1)
-    pan = rs.ActData([0.0, 0.0], group='panzoom')
-    zoom = rs.ActData(1.0, group='panzoom')
+    show_wpt = ActData(1)
+    show_apt = ActData(1)
+    pan = ActData([0.0, 0.0], group='panzoom')
+    zoom = ActData(1.0, group='panzoom')
 
     @command
     def showwpt(self, flag:int=None):
@@ -115,7 +117,7 @@ class Navdata(glh.RenderObject, layer=-10):
         else:
             self.apt_inrange = np.array([])
     
-    @sharedstate.subscriber
+    @subscriber
     def defwpt(self, data):
         ''' Receive custom waypoint data and add to visualisation. '''
         if not data.valid():

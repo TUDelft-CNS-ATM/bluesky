@@ -30,13 +30,13 @@ except (ImportError, OSError):
 import bluesky as bs
 from bluesky.stack import commandgroup
 from bluesky.tools.geo import kwikdist
-from bluesky.network.sharedstate import Publisher
+from bluesky.network.publisher import StatePublisher
 
 
 # Dictionary of all basic shapes (The shape classes defined in this file) by name
 basic_shapes = dict()
 # Publisher object to manage publishing of states to clients
-polypub = Publisher('POLY', collect=True)
+polypub = StatePublisher('POLY', collect=True)
 
 
 @polypub.payload

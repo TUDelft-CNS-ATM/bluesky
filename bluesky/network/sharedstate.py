@@ -1,111 +1,125 @@
-''' BlueSky shared state class.
+''' BlueSky shared state classes and functions.
 
-    This class is used to keep a shared state across client(s) and simulation node(s)
+    BlueSky's sharedstate is used to keep a shared state 
+    across client(s) and simulation node(s)
 '''
 import inspect
-from collections import defaultdict
-from enum import Enum
 import numpy as np
-from typing import Dict, Callable, Optional
+from numbers import Number
+from functools import partial
+from types import SimpleNamespace
+from copy import deepcopy
+from collections import defaultdict
 
 import bluesky as bs
-from bluesky.core import signal, remotestore as rs
-from bluesky.core.funcobject import FuncObject
-from bluesky.core.timedfunction import timed_function
-from bluesky.core.walltime import Timer
 from bluesky.network import context as ctx
-from bluesky.network.subscription import Subscription, subscriber as nwsub
-from bluesky.plugins.trafgenclasses import incircle
-
-#TODO: trigger voor actnode changed?
 
 
-# Keep track of the set of subscribed topics. Store signals to emit
-# whenever a state update of each topic is received
-changed: Dict[str, signal.Signal] = dict()
+def reset(remote_id=None):
+    ''' Reset shared state data to defaults for remote simulation. '''
+    remotes[remote_id or bs.net.act_id] = _genstore()
 
 
-class ActionType(Enum):
-    ''' Shared state action types. 
+def get(remote_id=None, group=None):
+    ''' Retrieve a remote store, or a group in a remote store.
+        Returns the store of the active remote if no remote id is provided.
+    '''
+    return (remotes[remote_id or bs.net.act_id] if group is None else
+            getattr(remotes[remote_id or bs.net.act_id], group))
+
+
+def setvalue(name, value, remote_id=None, group=None):
+    ''' Set the value of attribute 'name' in group 'group' for remote store with id 'remote_id' 
+        Sets value in store of the active remote if no remote_id is provided.
+    '''
+    setattr(remotes[remote_id or bs.net.act_id] if group is None else
+            getattr(remotes[remote_id or bs.net.act_id], group), name, value)
+
+
+def setdefault(name, default, group=None):
+    ''' Set the default value for variable 'name' in group 'group' '''
+    target = getattr(defaults, group, None) if group else defaults
+    if not target:
+        return setattr(defaults, group, Store(**{name:default}))
+    setattr(target, name, default)
+
+
+def addtopic(topic):
+    ''' Add a sharedstate topic if it doesn't yet exist.
     
-        An incoming shared state update can be of the following types:
-        Append: An item is appended to the state
-        Extend: Two or more items are appended to the state
-        Delete: One or more items are deleted from the state
-        Update: One or more items within the state are updated
-        Replace: The full state object is replaced
-        Reset: The entire object is reset to its (empty) default
-        ActChange: A new active remote is selected
+        This creates a storage group for this topic, which is added to each 
+        remote data store.
+        
+        Arguments:
+        - topic:  The sharedstate topic to add
     '''
-    Append = b'A'
-    Extend = b'E'
-    Delete = b'D'
-    Update = b'U'
-    Replace = b'R'
-    Reset = b'X'
-    ActChange = b'C'
+    topic = topic.lower()
+    # No creation needed if topic is already known
+    if hasattr(defaults, topic):
+        return
+
+    # Add store to the defaults
+    setattr(defaults, topic, Store())
+
+    # Also add to existing stores if necessary
+    for remote in remotes.values():
+        setattr(remote, topic, Store())
 
 
-@nwsub
-def reset(*args):
-    ''' Process incoming RESET events. '''
-    rs.reset(ctx.sender_id)
-    if ctx.sender_id == bs.net.act_id:
-        ctx.action = ActionType.Reset
-        ctx.action_content = None
-        for topic, sig in changed.items():
-            store = rs.get(group=topic.lower())
-            sig.emit(store)
-        ctx.action = None
+class Store(SimpleNamespace):
+    ''' Simple storage object for nested storage of state data per simulation node. '''
+    def valid(self):
+        ''' Return True if this store has initialised attributes.'''
+        return all([bool(v) for v in vars(self).values()] or [False])
 
-
-@signal.subscriber(topic='actnode-changed')
-def on_actnode_changed(act_id):
-    ctx.action = ActionType.ActChange
-    ctx.action_content = None
-    for topic, sig in changed.items():
-            store = rs.get(group=topic.lower())
-            sig.emit(store)
-    ctx.action = None
-
-
-@signal.subscriber(topic='node-added')
-def on_node_added(node_id):
-    ''' When a new node is announced, request the initial/current state of all 
-        subscribed shared states.
-    '''
-    bs.net.send('REQUEST', list(changed.keys()), to_group=node_id)
-
-
-def receive(action, data):
-    ''' Retrieve and process state data. '''
-    store = rs.get(ctx.sender_id, ctx.topic.lower())
-
-    # Store sharedstate context
-    ctx.action = ActionType(action)
-    ctx.action_content = data
-
-    if ctx.action == ActionType.Update:
+    def update(self, data):
+        ''' Update a value in this store. '''
         for key, item in data.items():
-            container = getattr(store, key, None)
+            container = getattr(self, key, None)
             if container is None:
-                setattr(store, key, item)
+                setattr(self, key, item)
             elif isinstance(container, dict):
-                recursive_update(container, item)
+                _recursive_update(container, item)
             else:
                 for idx, value in item.items():
                     container[idx] = value
-    elif ctx.action == ActionType.Delete:
+
+    def append(self, data):
+        ''' Append data to (lists/arrays in) this store. '''
+        for key, item in data.items():
+            container = getattr(self, key, None)
+            if container is None:
+                setattr(self, key, [item])
+            elif isinstance(container, np.ndarray):
+                setattr(self, key, np.append(container, item))
+
+    def extend(self, data):
+        ''' Extend data in (lists/arrays in) this store. '''
+        for key, item in data.items():
+            container = getattr(self, key, None)
+            if container is None:
+                setattr(self, key, item)
+            elif isinstance(container, list):
+                container.extend(item)
+            elif isinstance(container, np.ndarray):
+                setattr(self, key, np.concatenate([container, item]))
+
+    def replace(self, data):
+        ''' Replace data containers in this store. '''
+        vars(self).update(data)
+
+    def delete(self, data):
+        ''' Delete data from this store. '''
         # We are expecting either an index, or a key value from a reference variable
         for key, item in data.items():
             idx = None
-            if key not in vars(store):
-                # Assume we are receiving an index to arrays/lists in our store
+            if key not in vars(self):
+                # Assume we are receiving an index to arrays/lists in this store
                 if not isinstance(item, int):
                     raise ValueError(f"Expected integer index for delete {key} in topic {ctx.topic}") 
                 idx = item
             else:
-                ref = getattr(store, key)
+                ref = getattr(self, key)
                 # If ref is a dict, this delete action should only act on the dict.
                 if isinstance(ref, dict):
                     if isinstance(item, (list, tuple)):
@@ -126,11 +140,11 @@ def receive(action, data):
             if idx is None:
                 continue
 
-            for container in vars(store).values():
+            for container in vars(self).values():
                 if isinstance(container, np.ndarray):
                     mask = np.ones_like(container, dtype=bool)
                     mask[idx] = False
-                    setattr(store, key, container[mask])
+                    setattr(self, key, container[mask])
                 elif isinstance(container, list):
                     if isinstance(idx, int):
                         container.pop(idx)
@@ -139,193 +153,97 @@ def receive(action, data):
                         for iidx in reversed(sorted(idx)):
                             container.pop(iidx)
 
-    elif ctx.action == ActionType.Append:
-        for key, item in data.items():
-            container = getattr(store, key, None)
-            if container is None:
-                setattr(store, key, [item])
-            elif isinstance(container, np.ndarray):
-                setattr(store, key, np.append(container, item))
 
-    elif ctx.action == ActionType.Extend:
-        for key, item in data.items():
-            container = getattr(store, key, None)
-            if container is None:
-                setattr(store, key, item)
-            elif isinstance(container, list):
-                container.extend(item)
-            elif isinstance(container, np.ndarray):
-                setattr(store, key, np.concatenate([container, item]))
+class ActData:
+    ''' Access shared state data from the active remote as if it is a member variable. '''
+    __slots__ = ('default', 'name', 'group')
 
-    elif ctx.action == ActionType.Replace:
-        vars(store).update(data)
+    def __init__(self, *args, name='', group=None, **kwargs):
+        self.default = (args, kwargs)
+        self.name = name
+        self.group = group
 
-    # Inform subscribers of state update
-    # TODO: what to do with act vs all?
-    if ctx.sender_id == bs.net.act_id:
-        changed[ctx.topic].emit(store)
+    def __set_name__(self, owner, name):
+        if not self.name:
+            # Get name from attribute name if not previously specified
+            self.name = name
+        args, kwargs = self.default
+        # Retrieve annotated object type if present
+        objtype = owner.__annotations__.get(name)
+        if objtype:
+            self.default = objtype(*args, **kwargs)
+        elif len(args) != 1:
+            raise AttributeError('A default value and/or a type annotation should be provided with ActData')
+        else:
+            self.default = args[0]
 
-    # Reset context variables
-    ctx.action = None
-    ctx.action_content = None
+        # If underlying datatype is mutable, always immediately
+        # store per remote node
+        if not isinstance(self.default, (str, tuple, Number, frozenset, bytes)):
+            # If an annotated object type is specified create a generator for it
+            if objtype:                
+                generators.append(partial(_generator, name=name, objtype=objtype, args=args, kwargs=kwargs, group=self.group))
+                # Add group if it doesn't exist yet
+                if self.group is not None:
+                    addtopic(self.group)
+
+                # In case remote data already exists, update stores
+                for remote_id in remotes.keys():
+                    setvalue(name, objtype(*args, **kwargs), remote_id, self.group)
+            # Otherwise assume deepcopy can be used to generate initial values per remote
+            else:
+                setdefault(name, self.default, self.group)
+
+                # In case remote data already exists, update stores
+                for remote_id in remotes.keys():
+                    setvalue(name, deepcopy(self.default), remote_id, self.group)
+
+    def __get__(self, obj, objtype=None):
+        ''' Return the actual value for the currently active node. '''
+        if not bs.net.act_id:
+            return self.default
+        return getattr(
+            remotes[bs.net.act_id] if self.group is None else getattr(remotes[bs.net.act_id], self.group),
+            self.name, self.default)
+        # TODO: What is the active (client) node on the sim-side? Is this always within a currently processed stack command? -> stack.sender_id
+
+    def __set__(self, obj, value):
+        if not bs.net.act_id:
+            self.default = value
+        else:
+            setattr(remotes[bs.net.act_id] if self.group is None else getattr(remotes[bs.net.act_id], self.group), self.name, value)
 
 
-def recursive_update(target, source):
+def _recursive_update(target, source):
+    ''' Recursively update nested dicts/lists/arrays in a Store. '''
     for k, v in source.items():
         if isinstance(v, dict):
             inner = target.get(k)
             if inner is not None:
-                recursive_update(inner, v)
+                _recursive_update(inner, v)
                 continue
         target[k] = v
 
 
-def subscribe(topic:str, *, actonly=False) -> signal.Signal:
-    ''' Subscribe to a SharedState topic. 
-    
-        This function is called internally when a callback function is decorated
-        to subscribe to a SharedState topic, but can also be used to subscribe
-        to a SharedState topic when you don't wish to provide a callback function. 
-    '''
-    topic = topic.upper()
-    # Create a new network subscription only if it doesn't exist yet
-    if topic not in changed:
-        # Subscribe to this network topic
-        Subscription(topic, actonly=actonly).connect(receive)
-
-        # Add data store default to actdata
-        rs.addgroup(topic.lower())
-
-        # Create the signal to emit whenever data of the active remote changes
-        sig = signal.Signal(f'state-changed.{topic.lower()}')
-        changed[topic] = sig
-        return sig
-    return changed[topic]
+def _genstore():
+    ''' Generate a store object for a remote simulation from defaults. '''
+    store = deepcopy(defaults)
+    for g in generators:
+        g(store)
+    return store
 
 
-def subscriber(func=None, *, topic='', actonly=False):
-    ''' Decorator to subscribe to a state topic. '''
-    def deco(func):
-        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
-
-        # Subscribe to topic, and connect callback function to data change signal
-        subscribe((topic or ifunc.__name__).upper(), actonly=actonly).connect(ifunc)
-        return func
-
-    # Allow both @subscriber and @subscriber(args)
-    return deco if func is None else deco(func)
+def _generator(store, name, objtype, args, kwargs, group=None):
+    ''' Custom generator for non-base types. '''
+    setattr(getattr(store, group) if group else store, name, objtype(*args, **kwargs))
 
 
-class PublisherMeta(type):
-    __publishers__ = dict()
-    __timers__ = dict()
+# Keep track of default attribute values of mutable type.
+# These always need to be stored per remote node.
+defaults = Store()
+# In some cases (such as for non-copyable types) a generator is specified
+# instead of a default value
+generators = list()
 
-    def __call__(cls, topic: str, dt=None, collect=False):
-        pub = PublisherMeta.__publishers__.get(topic)
-        if pub is None:
-            pub = PublisherMeta.__publishers__[topic] = super().__call__(topic, dt, collect)
-            # If dt is specified, also create a timer
-            if dt is not None:
-                if dt not in PublisherMeta.__timers__:
-                    timer = PublisherMeta.__timers__[dt] = Timer(dt)
-                else:
-                    timer = PublisherMeta.__timers__[dt]
-                timer.timeout.connect(pub.send_replace)
-        return pub
-
-    @nwsub
-    @staticmethod
-    def request(*topics):
-        for pub in (p for p in map(PublisherMeta.__publishers__.get, topics) if p is not None):
-            pub.send_replace(to_group=ctx.sender_id)
-
-
-class Publisher(metaclass=PublisherMeta):
-    __collect__ = defaultdict(list)
-
-    @classmethod
-    def collect(cls, topic: str, payload: list, to_group: str=''):
-        if payload[0] == ActionType.Replace:
-            cls.__collect__[(topic, to_group)] = payload
-            return
-        store = cls.__collect__[(topic, to_group)]
-        if not store or store[-2] not in (payload[0], ActionType.Replace.value, ActionType.Extend.value):
-            if payload[0] == ActionType.Append.value:
-                payload[0] = ActionType.Extend.value
-                payload[1] = {k:[v] for k, v in payload[1].items()}
-            store.extend(payload)
-        elif payload[0] == ActionType.Update.value:
-            recursive_update(store[1], payload[1])
-        elif payload[0] == ActionType.Append.value:
-            for key, item in payload[1].items():
-                store[1][key].append(item)
-        elif payload[0] == ActionType.Extend.value:
-            for key, item in payload[1].items():
-                store[1][key].extend(item)
-
-    @staticmethod
-    @timed_function(hook=('update', 'hold'))
-    def send_collected():
-        while Publisher.__collect__:
-            (topic, to_group), payload = Publisher.__collect__.popitem()
-            bs.net.send(topic, payload, to_group)
-
-    def __init__(self, topic: str, dt=None, collect=False) -> None:
-        self.topic = topic
-        self.dt = dt
-        self.collects = collect
-
-    @staticmethod
-    def get_payload():
-        ''' Default payload function returns None '''
-        return
-
-    def send_update(self, to_group=b'', **data):
-        if data:
-            if self.collects:
-                self.collect(self.topic, [ActionType.Update.value, data], to_group)
-            else:
-                bs.net.send(self.topic, [ActionType.Update.value, data], to_group)
-
-
-    def send_delete(self, to_group=b'', **keys):
-        if keys:
-            bs.net.send(self.topic, [ActionType.Delete.value, keys], to_group)
-
-
-    def send_append(self, to_group=b'', **data):
-        if data:
-            if self.collects:
-                self.collect(self.topic, [ActionType.Append.value, data], to_group)
-            else:
-                bs.net.send(self.topic, [ActionType.Append.value, data], to_group)
-
-    def send_extend(self, to_group=b'', **data):
-        if data:
-            if self.collects:
-                self.collect(self.topic, [ActionType.Extend.value, data], to_group)
-            else:
-                bs.net.send(self.topic, [ActionType.Extend.value, data], to_group)
-
-    def send_replace(self, to_group=b'', **data):
-        data = data or self.get_payload()
-        if data:
-            bs.net.send(self.topic, [ActionType.Replace.value, data], to_group)
-
-    def payload(self, func: Callable):
-        ''' Decorator method to specify payload getter for this Publisher. '''
-        self.get_payload = FuncObject(func)
-        return func
-
-
-# Publisher decorator?
-def publisher(func: Optional[Callable] = None, *, topic='', dt=None):
-    def deco(func):
-        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
-        itopic = (topic or ifunc.__name__).upper()
-
-        Publisher(itopic, dt).payload(func)
-        return func
-
-    # Allow both @publisher and @publisher(args)
-    return deco if func is None else deco(func)
+# Keep a dict of remote state storage namespaces
+remotes = defaultdict(_genstore)
