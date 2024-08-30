@@ -2,6 +2,7 @@ import socket
 import binascii
 from os import urandom
 from typing import Union
+from enum import Enum, auto
 
 
 # Message headers (first byte): (un)subscribe
@@ -14,6 +15,39 @@ GROUPID_SIM = ord('S')
 GROUPID_NOGROUP = ord('N')
 # Connection identifier string length
 IDLEN = 5
+
+class ActionType(Enum):
+    ''' Shared state action types. 
+    
+        An incoming shared state update can be of the following types:
+        Append: An item is appended to the state
+        Extend: Two or more items are appended to the state
+        Delete: One or more items are deleted from the state
+        Update: One or more items within the state are updated
+        Replace: The full state object is replaced
+        Reset: The entire object is reset to its (empty) default
+        ActChange: A new active remote is selected
+    '''
+    Append = b'A'
+    Extend = b'E'
+    Delete = b'D'
+    Update = b'U'
+    Replace = b'R'
+    Reset = b'X'
+    ActChange = b'C'
+
+    @classmethod
+    def isaction(cls, data):
+        ''' Returns True if passed data is an ActionType '''
+        return any([data == a.value for a in cls])
+
+
+class MessageType(Enum):
+    ''' BlueSky network message type indicator. '''
+    Unknown = auto()
+    Regular = auto()
+    SharedState = auto()
+
 
 def genid(groupid: Union[str, bytes, int]='', idlen=IDLEN, seqidx=1):
     ''' Generate a binary identifier string 
