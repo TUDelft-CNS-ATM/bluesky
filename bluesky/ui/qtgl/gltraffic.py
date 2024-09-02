@@ -341,7 +341,7 @@ class Traffic(glh.RenderObject, layer=100):
 
             self.cpalines.update(vertex=cpalines)
             self.color.update(color)
-            self.lbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))
+            self.lbl.update(np.array(rawlabel.encode('utf8'), dtype=np.bytes_))
             
             # If there is a visible route, update the start position
             if self.route_acid in data.id:
