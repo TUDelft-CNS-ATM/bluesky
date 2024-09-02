@@ -2,8 +2,6 @@
 from bluesky import settings
 from bluesky.core import Signal
 from bluesky.pathfinder import resource
-from bluesky import stack
-from bluesky import tools
 
 
 # Constants
@@ -67,6 +65,8 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
 
     # Initialize global settings, possibly loading a custom config file
     settings.init(configfile)
+
+    from bluesky import stack, tools
 
     # Initialise tools
     tools.init()

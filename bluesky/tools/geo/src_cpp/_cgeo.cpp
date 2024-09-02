@@ -674,25 +674,17 @@ static struct PyMethodDef methods[] = {
 #define PyMODINIT_FUNC void
 #endif
 
-#if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef cgeodef =
 {
     PyModuleDef_HEAD_INIT,
-    "cgeo",      /* name of module */
+    "_cgeo",      /* name of module */
     "",          /* module documentation, may be NULL */
     -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
     methods
 };
 
-PyMODINIT_FUNC PyInit_cgeo(void)
+PyMODINIT_FUNC PyInit__cgeo(void)
 {
     import_array();
     return PyModule_Create(&cgeodef);
 };
-#else
-PyMODINIT_FUNC initcgeo()
-{
-    Py_InitModule("cgeo", methods);
-    import_array();
-};
-#endif
