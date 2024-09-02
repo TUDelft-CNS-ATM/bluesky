@@ -319,8 +319,9 @@ class RadarWidget(glh.RenderWidget):
                 event.button() & Qt.MouseButton.LeftButton and not self.mousedragged:
             lat, lon = self.pixelCoordsToLatLon(event.pos().x(), event.pos().y())
             actdata = ss.get()
+            # TODO routedata isn't really a sharedstate, it only gives a selected route
             tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
-                                            actdata.acdata, actdata.routedata)
+                                            actdata.acdata, getattr(actdata, 'routedata', None))
 
             console.process_cmdline((tostack + '\n' + tocmdline) if tostack else tocmdline)
 
