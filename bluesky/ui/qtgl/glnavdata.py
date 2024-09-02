@@ -129,8 +129,7 @@ class Navdata(glh.RenderObject, layer=-10):
                                 lon=np.array(data.custwplon, dtype=np.float32))
         lbl = [n[:10].ljust(10) for n in data.custwplbl]
         self.custwplblbuf.update(
-            np.array(lbl, dtype=np.string_))
-        
+            np.array(lbl, dtype=np.bytes_))
 
     def create(self):
         apt_size = settings.apt_size
@@ -164,7 +163,7 @@ class Navdata(glh.RenderObject, layer=-10):
             if len(wptid) <= 3:
                 self.nnavaids += 1
             wptids += wptid[:5].ljust(5)
-        npwpids = np.array(wptids, dtype=np.string_)
+        npwpids = np.array(wptids, dtype=np.bytes_)
         self.wptlabels.create(npwpids, self.waypoints.lat,
                               self.waypoints.lon, palette.wptlabel,
                               (wpt_size, 0.5 * wpt_size), instanced=True)
@@ -199,7 +198,7 @@ class Navdata(glh.RenderObject, layer=-10):
         aptids = ''
         for aptid in apnames:
             aptids += aptid.ljust(4)
-        self.aptlabels.create(np.array(aptids, dtype=np.string_),
+        self.aptlabels.create(np.array(aptids, dtype=np.bytes_),
                               self.airports.lat, self.airports.lon,
                               palette.aptlabel, (apt_size, 0.5 * apt_size),
                               instanced=True)

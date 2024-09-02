@@ -71,6 +71,8 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     from bluesky import settings
     settings.init(configfile)
 
+    from bluesky import stack, tools
+
     # Initialise tools
     from bluesky import tools
     tools.init()

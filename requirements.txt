@@ -1,7 +1,7 @@
-numpy
-scipy
-matplotlib
+numpy >= 2.0.0
+scipy >= 1.13.0
+matplotlib >= 3.9.0
 msgpack >= 1.0.0
 zmq
-pandas
+pandas >= 2.2.0
 bluesky-simdata
