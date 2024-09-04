@@ -13,8 +13,7 @@ from bluesky.network import subscribe
 import bluesky.network.context as ctx
 import bluesky.network.sharedstate as ss
 from bluesky.ui.qtgl import glhelpers as glh
-from bluesky.ui.radarclick import radarclick
-from bluesky.ui.qtgl import console
+
 from .gltraffic import Traffic
 from .glmap import Map
 from .glnavdata import Navdata
@@ -127,6 +126,7 @@ class RadarWidget(glh.RenderWidget):
 
         # Signals and slots
         self.mouse_event = Signal('radarmouse')
+        self.radarclick_event = Signal('radarclick')
         self.panzoom_event = Signal('state-changed.panzoom')
         subscribe('PANZOOM').connect(self.on_panzoom)
 
@@ -318,12 +318,7 @@ class RadarWidget(glh.RenderWidget):
         elif event.type() == QEvent.Type.MouseButtonRelease and \
                 event.button() & Qt.MouseButton.LeftButton and not self.mousedragged:
             lat, lon = self.pixelCoordsToLatLon(event.pos().x(), event.pos().y())
-            actdata = ss.get()
-            # TODO routedata isn't really a sharedstate, it only gives a selected route
-            tostack, tocmdline = radarclick(console.get_cmdline(), lat, lon,
-                                            actdata.acdata, getattr(actdata, 'routedata', None))
-
-            console.process_cmdline((tostack + '\n' + tocmdline) if tostack else tocmdline)
+            self.radarclick_event.emit(lat, lon)
 
         elif event.type() == QEvent.Type.MouseMove:
             self.mousedragged = True

@@ -16,8 +16,9 @@ from bluesky.stack.cmdparser import Command
 from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
 from bluesky.network import subscribe
-from bluesky.network.sharedstate import ActData
-from . import autocomplete
+from bluesky.network.sharedstate import ActData, get
+from bluesky.ui.qtgl import autocomplete
+from bluesky.ui.radarclick import radarclick
 
 
 cmdline_stacked = Signal('cmdline_stacked')
@@ -80,6 +81,7 @@ class Console(QWidget):
         # Connect to the io client's activenode changed signal
         Signal('CMDLINE').connect(self.set_cmdline)
         Signal('actnode-changed').connect(self.actnodeChanged)
+        Signal('radarclick').connect(self.on_radarclick)
 
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
@@ -121,6 +123,15 @@ class Console(QWidget):
         self.stackText.insertHtml(text.replace('\n', '<br>') + '<br>')
         self.stackText.verticalScrollBar().setValue(
             self.stackText.verticalScrollBar().maximum())
+
+    def on_radarclick(self, lat, lon):
+        actdata = get()
+        # TODO routedata isn't really a sharedstate, it only gives a selected route
+        tostack, tocmdline = radarclick(get_cmdline(), lat, lon,
+                                        actdata.acdata, getattr(actdata, 'routedata', None))
+
+        process_cmdline((tostack + '\n' + tocmdline) if tostack else tocmdline)
+
 
     def append_cmdline(self, text):
         self.set_cmdline(self.command_line + text)
