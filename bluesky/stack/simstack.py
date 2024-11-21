@@ -139,8 +139,13 @@ def readscn(fname):
     ''' Read a scenario file. '''
     if not fname:
         return
+    fname = Path(fname)
+
     # Ensure .scn suffix and specify path if necessary
-    fname = Path(fname).with_suffix('.scn')
+    scn_file_suffix = '.scn'
+    if fname.suffix.lower() != scn_file_suffix:
+        fname = fname.with_suffix(scn_file_suffix)
+
     if not fname.is_absolute():
         fname = bs.resource(settings.scenario_path) / fname
 
