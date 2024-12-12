@@ -17,6 +17,7 @@
 - auto separation margin by sector
 - time-based separation / RECAT WTC
 - Add Metric class to extend logger with more complex metrics?
+- Create batch gui tool?
 
 ## Stack
 STACK signal is used for inter-process STACK commands, but not locally called stack.stack(). Make it so that calling this function also 
