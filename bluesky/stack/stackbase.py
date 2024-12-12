@@ -1,6 +1,7 @@
 ''' BlueSky Stack base data and functions. '''
 import bluesky as bs
 from bluesky.network import subscriber, context as ctx
+from bluesky.stack.cmdparser import command
 
 
 class Stack:
@@ -105,8 +106,15 @@ def set_scendata(newtime, newcmd):
     Stack.scentime = newtime
     Stack.scencmd = newcmd
 
+
 # Register subscriber for stack commands coming from the network
 @subscriber(topic='STACK')
 def on_stack_received(data):
     """ Add stack commands coming from the network to the stack. """
     stack(data, sender_id=ctx.sender_id)
+
+
+@command
+def stackat(targetid, cmdline: 'string'):
+    """ Send a stack command to a specific node (client or simulation) or group. """
+    forward(cmdline, target_id=targetid)
