@@ -1,0 +1,95 @@
+[project]
+name = "bluesky-simulator"
+# dynamic = ["version"]
+version = "1.0.0"
+dependencies = [
+    "numpy >= 2.0.0",
+    "scipy >= 1.13.0",
+    "matplotlib >= 3.9.0",
+    "pandas >= 2.2.0",
+    "msgpack >= 1.0.0",
+    "zmq"
+]
+
+authors = [
+  { name="Joost Ellerbroek", email="j.ellerbroek@tudelft.nl" },
+  { name="Jacco Hoekstra", email="j.m.hoekstra@tudelft.nl" }
+]
+
+description = "The Open Air Traffic Simulator."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+
+    "Operating System :: OS Independent",
+]
+keywords = ['ATM', 'transport', 'simulation', 'aviation', 'aircraft']
+
+[project.optional-dependencies]
+pygame = ["pygame"]
+qt6 = [
+    "pyopengl",
+    "PyQt6",
+    "PyQt6-WebEngine",
+    "bluesky-guidata"
+]
+console = ["textual"]
+full =[
+    "pygame",
+    "pyopengl",
+    "PyQt6",
+    "PyQt6-WebEngine",
+    "textual",
+    "bluesky-guidata",
+]
+# For headless (server-only) bluesky environment: pip install bluesky-simulator[headless]
+headless = [
+  # no extra dependencies
+]
+
+[project.scripts]
+bluesky = "bluesky.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/TUDelft-CNS-ATM/bluesky"
+Issues = "https://github.com/TUDelft-CNS-ATM/bluesky/issues"
+Documentation = "https://github.com/TUDelft-CNS-ATM/bluesky/wiki"
+Repository = "https://github.com/TUDelft-CNS-ATM/bluesky"
+# Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+  "bluesky/*",
+]
+exclude = [
+    'docs',
+    'utils',
+    'bluesky/test',
+    'bluesky/resources/graphics',
+    'bluesky/resources/html'
+]
+
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+dependencies = ["setuptools>=69.1.1", "numpy"]
+
+# [tool.hatch.build.targets.wheel.hooks.cython]
+# dependencies = ["hatch-cython"]
+
+# [tool.hatch.build.targets.wheel.hooks.cython.options]
+# # include .h or .cpp directories
+# includes = []
+# # include numpy headers
+# include_numpy = true
