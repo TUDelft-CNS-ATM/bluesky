@@ -27,7 +27,6 @@ except (ImportError, OSError):
             return
 
 
-import bluesky as bs
 from bluesky.stack import commandgroup
 from bluesky.tools.geo import kwikdist
 from bluesky.network.publisher import StatePublisher
@@ -100,7 +99,7 @@ def deleteArea(areaname):
     """ Delete area with name 'areaname'. """
     if areaname in basic_shapes:
         basic_shapes.pop(areaname)
-        bs.scr.objappend('', areaname, None)
+        # bs.scr.objappend('', areaname, None)
         polypub.send_delete(polys=[areaname])
 
 def reset():

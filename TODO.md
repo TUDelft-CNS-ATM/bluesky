@@ -1,7 +1,6 @@
 # TODO items
 ## Network branch
 - Move ECHO to client
-- DEL (in areafilter) looks for screenIO.objappend
 - What to do with sharedstates that make changes both ways (like pan/zoom)? Is there more than pan/zoom? Otherwise a different approach can also be taken
     Where are pan/zoom used in sim?
     = implemented in screen(io).getviewctr() and getviewbounds()
