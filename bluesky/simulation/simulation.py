@@ -209,6 +209,9 @@ class Simulation(Base):
         bs.scr.reset()
         plotter.reset()
 
+        # Communicate that this simulation has reset
+        bs.net.send(b'RESET')
+
     def set_dtmult(self, mult):
         ''' Set simulation speed multiplier. '''
         self.dtmult = mult

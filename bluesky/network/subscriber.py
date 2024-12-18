@@ -149,7 +149,6 @@ class Subscription(signal.Signal, metaclass=SubscriptionFactory):
         super().connect(self._detect_type)
 
     def _detect_type(self, *args, **kwargs):
-        # if self.topic.lower() == 'panzoom':
         # First disconnect this function, it is only needed once
         super().disconnect(self._detect_type)
         # This function responds to the first incoming message for topic
@@ -241,7 +240,7 @@ def reset(*args):
         ctx.action = ActionType.Reset
         ctx.action_content = None
         for topic, sig in changed.items():
-            store = get(group=topic.lower())
+            store = ss.get(group=topic.lower())
             sig.emit(store)
         ctx.action = None
 
