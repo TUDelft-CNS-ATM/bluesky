@@ -1,14 +1,14 @@
 [project]
 name = "bluesky-simulator"
-# dynamic = ["version"]
-version = "1.0.0"
+dynamic = ["version"]
 dependencies = [
     "numpy >= 2.0.0",
     "scipy >= 1.13.0",
     "matplotlib >= 3.9.0",
     "pandas >= 2.2.0",
     "msgpack >= 1.0.0",
-    "zmq"
+    "zmq",
+    "bluesky-navdata"
 ]
 
 authors = [
@@ -66,8 +66,12 @@ Repository = "https://github.com/TUDelft-CNS-ATM/bluesky"
 # Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.26.3", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
 
 [tool.hatch.build]
 include = [
@@ -77,19 +81,10 @@ exclude = [
     'docs',
     'utils',
     'bluesky/test',
+    'bluesky/resources/navdata',
     'bluesky/resources/graphics',
     'bluesky/resources/html'
 ]
 
-
 [tool.hatch.build.targets.wheel.hooks.custom]
 dependencies = ["setuptools>=69.1.1", "numpy"]
-
-# [tool.hatch.build.targets.wheel.hooks.cython]
-# dependencies = ["hatch-cython"]
-
-# [tool.hatch.build.targets.wheel.hooks.cython.options]
-# # include .h or .cpp directories
-# includes = []
-# # include numpy headers
-# include_numpy = true

@@ -1,5 +1,5 @@
 [project]
-name = "bluesky-guidata"
+name = "bluesky-navdata"
 dynamic = ["version"]
 
 authors = [
@@ -7,7 +7,7 @@ authors = [
   { name="Jacco Hoekstra", email="j.m.hoekstra@tudelft.nl" }
 ]
 
-description = "Resources for the BlueSky Open ATM Simulator GUI"
+description = "Navigation data files for the BlueSky Open ATM Simulator"
 readme = "../../README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -33,8 +33,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.version]
 scheme = "calver"
-path = "../../bluesky/resources/graphics/__init__.py"
+path = "../../bluesky/resources/navdata/__init__.py"
 
 [tool.hatch.build.force-include]
-"../../bluesky/resources/graphics" = "bluesky/resources/graphics"
-"../../bluesky/resources/html" = "bluesky/resources/html"
+"../../bluesky/resources/navdata" = "bluesky/resources/navdata"
+
