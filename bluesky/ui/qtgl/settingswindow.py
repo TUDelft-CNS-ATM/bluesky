@@ -22,7 +22,7 @@ from bluesky.core import Base
 
 def sel_palette(value, changed_fun):
     wid = QComboBox()
-    
+
     palfiles = [path.basename(f) for f in (bs.resource(bs.settings.gfx_path) / 'palettes').glob('*')]
     wid.addItems(palfiles)
     wid.setCurrentText(value)
