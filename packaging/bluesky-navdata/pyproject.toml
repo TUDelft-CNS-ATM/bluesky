@@ -1,0 +1,40 @@
+[project]
+name = "bluesky-navdata"
+dynamic = ["version"]
+
+authors = [
+  { name="Joost Ellerbroek", email="j.ellerbroek@tudelft.nl" },
+  { name="Jacco Hoekstra", email="j.m.hoekstra@tudelft.nl" }
+]
+
+description = "Navigation data files for the BlueSky Open ATM Simulator"
+readme = "../../README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+
+    "Operating System :: OS Independent",
+]
+keywords = ['ATM', 'transport', 'simulation', 'aviation', 'aircraft']
+
+[project.urls]
+Homepage = "https://github.com/TUDelft-CNS-ATM/bluesky"
+Issues = "https://github.com/TUDelft-CNS-ATM/bluesky/issues"
+
+[build-system]
+requires = ["hatchling==1.26.3", "hatch-calver"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+scheme = "calver"
+path = "../../bluesky/resources/navdata/__init__.py"
+
+[tool.hatch.build.force-include]
+"../../bluesky/resources/navdata" = "bluesky/resources/navdata"
+

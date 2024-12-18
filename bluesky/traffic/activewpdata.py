@@ -14,6 +14,7 @@ class ActiveWaypoint(Entity, replaceable=True):
             self.nextturnlat = np.array([])    # [deg] Next turn WP latitude
             self.nextturnlon = np.array([])    # [deg] Next turn WP longitude
             self.nextturnspd = np.array([])    # [m/s] Next turn WP speed
+            self.nextturnbank= np.array([])    # [deg] Next turn WP bank angle
             self.nextturnrad = np.array([])    # [m]   Next turn WP turn radius
             self.nextturnhdgr= np.array([])  # [deg/s] Next turn WP heading rate (<0 => not specified)
             self.nextturnidx = np.array([])    # [-]   Next turn WP index
@@ -26,6 +27,7 @@ class ActiveWaypoint(Entity, replaceable=True):
             self.turndist    = np.array([])    # [m] Distance when to turn to next waypoint
             self.flyby       = np.array([])    # Flyby switch, when False, flyover (turndist=0.0)
             self.flyturn     = np.array([])    # Flyturn switch, customised turn parameters; when False, use flyby/flyover
+            self.turnbank    = np.array([])    # Flyturn turn bank angle [deg]
             self.turnrad     = np.array([])    # Flyturn turn radius (<0 => not specified)
             self.turnspd     = np.array([])    # [m/s, CAS] Flyturn turn speed for next turn (<=0 => not specified)
             self.turnhdgr    = np.array([])    # [deg/s]Flyturn turn heading rate (<0 => not specified)
@@ -47,6 +49,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.nextturnlat[-n:]= 0        # [deg] Next turn WP latitude
         self.nextturnlon[-n:]= 0        # [deg] Next turn WP longitude
         self.nextturnspd[-n:]= -999.    # [m/s] Next turn WP speed
+        self.nextturnbank[-n:] = -999.  # [deg] Next turb WP bank angle
         self.nextturnrad[-n:]= -999.    # [m]   Next turn WP radius
         self.nextturnhdgr[-n:]= -999.   # [deg/s] Next turn WP heading rate (<0 => not specified)
         self.nextturnidx[-n:]= -999.    # [-] Next turn WP index
@@ -58,6 +61,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.turndist[-n:]   = 1.0      # [m] Distance to active waypoint where to turn
         self.flyby[-n:]      = 1.0      # Flyby/fly-over switch
         self.flyturn[-n:]    = False    # Flyturn switch, when False, when False, use flyby/flyover
+        self.turnbank[-n:]   = -999.    # Flyturn turn bank angle [deg]
         self.turnrad[-n:]    = -999.    # [m] Flyturn turn radius (<0 => not specified)
         self.turnspd[-n:]    = -999.    # [m/s]Flyturn turn speed (<0 => not specified)
         self.turnhdgr[-n:]   = -999.    # [deg/s]Flyturn turn heading rate (<0 => not specified)
@@ -71,7 +75,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         self.curlegdir[-n:]  = -999.0   # [deg] direction to active waypoint upon activation
         self.curleglen[-n:]  = -999.0   # [nm] distance to active waypoint upon activation
   
-    def reached(self, qdr, dist, flyby, flyturn, turnrad, turnhdgr, swlastwp):
+    def reached(self, qdr, dist):
         # Calculate distance before waypoint where to start the turn
         # Note: this is a vectorized function, called with numpy traffic arrays
         # It returns the indices where the Reached criterion is True
@@ -79,14 +83,12 @@ class ActiveWaypoint(Entity, replaceable=True):
         # Turn radius:      R = V2 tan phi / g
         # Distance to turn: wpturn = R * tan (1/2 delhdg) but max 4 times radius
         # using default bank angle per flight phase
+        # Gather required data
+        flyby = self.flyby
+        flyturn = self.flyturn
 
-        # First calculate turn distance
-        next_qdr = np.where(self.next_qdr < -900., qdr, self.next_qdr)
-        turntas = np.where(self.turnspd<0.0,bs.traf.tas,self.turnspd)
-        flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnrad,turnhdgr,flyturn)
-
-        # Turb dist iz ero for flyover, calculated distance for others
-        self.turndist = np.logical_or(flyby,flyturn)*flybyturndist
+        # Turn dist is zero for flyover, and it is previously calculated in autopilot for others
+        self.turndist = np.logical_or(flyby,flyturn)*self.turndist
 
         # Avoid circling by checking too close to waypoint based on ground speed, assumption using vicinity criterion:
         # flying away and within 4 sec distance based on ground speed (4 sec = sensitivity tuning parameter)
@@ -113,31 +115,61 @@ class ActiveWaypoint(Entity, replaceable=True):
         # Return indices for which condition is True/1.0 for a/c where we have reached waypoint
         return swreached
 
-    # Calculate turn distance for array or scalar
-    def calcturn(self,tas,bank,wpqdr,next_wpqdr,turnrad=-999.,turnhdgr = -999.,flyturn=False):
-        """Calculate distance to wp where to start turn and turn radius in meters"""
-
-        # Tas is also used ti
-
-        # Calculate turn radius in meters using current speed or use specified turnradius in m
-        turnrad = np.where(np.logical_and(flyturn,turnrad+0.*tas>0.), #turn radius specified? (0.*tas for dimension)
-
-                           # user specified radius
-                           turnrad +0.*tas,
-
-
-                           np.where(np.logical_and(flyturn,turnhdgr+0.*tas>0),
-
-                                   # turn radius based on heading rate?
-                                   tas/(2*np.pi)*(360./turnhdgr),
-
-                                   # bank, tas => turn radius
-                                   tas * tas / (np.maximum(0.01, np.tan(bank)) * g0)))#else none specified, calculate
-
-
-
-
+    # Calculate turn distance for scalars
+    def calcturn(self, acidx, tas , wpqdr, next_wpqdr, turnbank, turnrad, turnspd, turnhdgr, flyturn, flyby):
+        """Calculate the properties of a turn in function of the input. Inputs are SCALARS."""
+        # If this is not a flyturn waypoint, just return standard values
+        # Calculate the sum of bools to figure out things more easily
+        num_defined_values = sum([turnbank>0, turnrad>0, turnspd>0, turnhdgr>0])
+        # Case 1: No value is given or not a flyturn, use defaults
+        if num_defined_values == 0 or not flyturn:
+            turnbank = np.rad2deg(bs.traf.ap.bankdef[acidx])
+            turnspd = tas
+            # Calculate the radius
+            turnrad = turnspd**2/(g0*np.tan(np.deg2rad(turnbank)))
+            if not flyby:
+                # This is a flyover waypoint, so we have to fly OVER it, so turndist is 0
+                return 0, turnrad, turnspd, turnbank, turnhdgr
+        # Case 2: only one value is given. We then want to keep the speed as TAS unless the speed is the one that isn't specified
+        elif num_defined_values == 1:
+            # If the velocity is the given one, take default bank and calculate remaining values
+            if turnspd>0:
+                turnbank = 25
+                turnrad = turnspd**2/(g0*np.tan(np.deg2rad(turnbank)))
+            #Otherwise, keep velocity constant and calculate the remaining values
+            elif turnrad>0:
+                turnspd = tas
+                turnbank = np.arctan(turnspd**2/(turnrad * g0))
+                
+            elif turnbank>0:
+                turnspd = tas
+                turnrad = turnspd**2 / (g0 * np.tan(np.deg2rad(turnbank)))
+                
+            elif turnhdgr>0:
+                turnspd = tas
+                #Calculate the other two
+                turnbank = np.arctan(turnhdgr*turnspd/g0)
+                turnrad = turnspd / turnhdgr
+        # Case 3: We have two defined values and need to calculate the other
+        elif num_defined_values == 2:
+            # Need to figure out which ones and calculate the remaining
+            if turnrad>0 and turnbank>0:
+                turnspd = np.sqrt(g0*turnrad*np.tan(np.deg2rad(turnbank)))
+            elif turnrad>0 and turnspd>0:
+                turnbank = np.arctan(turnspd**2/(turnrad*g0))
+            elif turnspd>0 and turnbank>0:
+                turnrad = turnspd**2/(g0*np.tan(np.deg2rad(turnbank)))
+            # Now the cases where one of the known vars is heading rate
+            elif turnhdgr>0 and turnspd>0:
+                turnbank = np.arctan(turnhdgr*turnspd/g0)
+                turnrad = turnspd / turnhdgr
+            elif turnhdgr>0 and turnbank>0:
+                turnspd = g0*np.tan(np.deg2rad(turnbank))/turnhdgr
+                turnrad = turnspd / turnhdgr
+            elif turnhdgr>0 and turnrad>0:
+                turnspd = turnhdgr * turnrad
+                turnbank = np.arctan(turnhdgr*turnspd/g0)
+        
         # turndist is in meters
-        turndist = np.abs(turnrad *
-           np.tan(np.radians(0.5 * np.abs(degto180(wpqdr%360. - next_wpqdr%360.)))))
-        return turndist,turnrad
+        turndist = np.abs(turnrad * np.tan(np.radians(0.5 * np.abs(degto180(wpqdr%360. - next_wpqdr%360.)))))
+        return turndist, turnrad, turnspd, turnbank, turnhdgr
