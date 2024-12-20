@@ -2,18 +2,21 @@
 
     Gives access to original message context for connected functions.
 '''
+from typing import Any, Optional
+from bluesky.network.common import ActionType
 
-# The node id of the sender of the current message
-sender_id = None
-
-# The topic of the current message
-topic = None
-
-# The raw message
-msg = None
 
 # For shared state messages: the action type
-action = None
+action: ActionType = ActionType.NoAction
 
 # For shared state messages: the action content
-action_content = None
+action_content: Optional[Any] = None
+
+# The node id of the sender of the current message
+sender_id = b''
+
+# The topic of the current message
+topic = ''
+
+# The raw message
+msg = b''
