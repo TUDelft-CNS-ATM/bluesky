@@ -3,7 +3,7 @@
     BlueSky's sharedstate is used to keep a shared state 
     across client(s) and simulation node(s)
 '''
-import inspect
+from typing import Any, Generic, Optional, TypeVar
 import numpy as np
 from numbers import Number
 from functools import partial
@@ -36,11 +36,13 @@ def setvalue(name, value, remote_id=None, group=None):
             getattr(remotes[remote_id or bs.net.act_id], group), name, value)
 
 
-def setdefault(name, default, group=None):
+def setdefault(name: str, default: Any, group: Optional[str]=None):
     ''' Set the default value for variable 'name' in group 'group' '''
     target = getattr(defaults, group, None) if group else defaults
     if not target:
-        return setattr(defaults, group, Store(**{name:default}))
+        if group is not None:
+            setattr(defaults, group, Store(**{name:default}))
+        return
     setattr(target, name, default)
 
 
@@ -154,42 +156,45 @@ class Store(SimpleNamespace):
                             container.pop(iidx)
 
 
-class ActData:
+# Type template variable for ActData accessor class
+T = TypeVar('T')
+
+class ActData(Generic[T]):
     ''' Access shared state data from the active remote as if it is a member variable. '''
     __slots__ = ('default', 'name', 'group')
 
-    def __init__(self, *args, name='', group=None, **kwargs):
-        self.default = (args, kwargs)
-        self.name = name
-        self.group = group
+    def __init__(self, default=None, name='', group=None):
+        self.default = default
+        self.name: str = name
+        self.group: Optional[str] = group
+
+    def __class_getitem__(cls, key):
+        ''' Make sure that the final annotation is equal to the wrapped type '''
+        return key
 
     def __set_name__(self, owner, name):
         if not self.name:
             # Get name from attribute name if not previously specified
             self.name = name
-        args, kwargs = self.default
+
         # Retrieve annotated object type if present
         objtype = owner.__annotations__.get(name)
         if objtype:
-            self.default = objtype(*args, **kwargs)
-        elif len(args) != 1:
-            raise AttributeError('A default value and/or a type annotation should be provided with ActData')
-        else:
-            self.default = args[0]
+            self.default = objtype() if self.default is None else objtype(self.default)
 
         # If underlying datatype is mutable, always immediately
         # store per remote node
         if not isinstance(self.default, (str, tuple, Number, frozenset, bytes)):
             # If an annotated object type is specified create a generator for it
             if objtype:                
-                generators.append(partial(_generator, name=name, objtype=objtype, args=args, kwargs=kwargs, group=self.group))
+                generators.append(partial(_generator, name=name, objtype=objtype, ctor_arg=self.default, group=self.group))
                 # Add group if it doesn't exist yet
                 if self.group is not None:
                     addtopic(self.group)
 
                 # In case remote data already exists, update stores
                 for remote_id in remotes.keys():
-                    setvalue(name, objtype(*args, **kwargs), remote_id, self.group)
+                    setvalue(name, objtype(self.default), remote_id, self.group)
             # Otherwise assume deepcopy can be used to generate initial values per remote
             else:
                 setdefault(name, self.default, self.group)
@@ -198,16 +203,19 @@ class ActData:
                 for remote_id in remotes.keys():
                     setvalue(name, deepcopy(self.default), remote_id, self.group)
 
-    def __get__(self, obj, objtype=None):
+    def __get__(self, obj, objtype=None) -> T:
         ''' Return the actual value for the currently active node. '''
-        if not bs.net.act_id:
+        # print('GETTER:', self, self.default)
+        if not bs.net.act_id and self.default is not None:
             return self.default
-        return getattr(
-            remotes[bs.net.act_id] if self.group is None else getattr(remotes[bs.net.act_id], self.group),
-            self.name, self.default)
+        if self.default is not None:
+            return getattr(
+                remotes[bs.net.act_id] if self.group is None else getattr(remotes[bs.net.act_id], self.group),
+                self.name, self.default)
+        raise KeyError(f'ActData: {self.name} not found, group={self.group}, active node id={bs.net.act_id}')
         # TODO: What is the active (client) node on the sim-side? Is this always within a currently processed stack command? -> stack.sender_id
 
-    def __set__(self, obj, value):
+    def __set__(self, obj, value: T):
         if not bs.net.act_id:
             self.default = value
         else:
@@ -233,9 +241,9 @@ def _genstore():
     return store
 
 
-def _generator(store, name, objtype, args, kwargs, group=None):
+def _generator(store, name, objtype, ctor_arg, group=None):
     ''' Custom generator for non-base types. '''
-    setattr(getattr(store, group) if group else store, name, objtype(*args, **kwargs))
+    setattr(getattr(store, group) if group else store, name, objtype(ctor_arg))
 
 
 # Keep track of default attribute values of mutable type.
