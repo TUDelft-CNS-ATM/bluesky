@@ -7,6 +7,7 @@ import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity, Signal
 from bluesky.stack.clientstack import process
+from bluesky.traffic.trafficproxy import TrafficProxy
 from bluesky.network import context as ctx
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
 from bluesky.network.subscriber import Subscription
@@ -35,6 +36,8 @@ class Client(Entity):
 
         # Tell bluesky that this client will manage the network I/O
         bs.net = self
+        # And create a proxy object for easy traffic data access
+        bs.traf = TrafficProxy()
 
         # Subscribe to subscriptions that were already made before constructing
         # this node
