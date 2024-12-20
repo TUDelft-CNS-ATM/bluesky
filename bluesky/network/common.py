@@ -35,6 +35,7 @@ class ActionType(Enum):
     Replace = b'R'
     Reset = b'X'
     ActChange = b'C'
+    NoAction = b''
 
     @classmethod
     def isaction(cls, data):
