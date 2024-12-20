@@ -9,7 +9,6 @@ except ImportError:
 
 import bluesky as bs
 from bluesky.core import Signal
-from bluesky.network import subscribe
 import bluesky.network.context as ctx
 import bluesky.network.sharedstate as ss
 from bluesky.ui.qtgl import glhelpers as glh
@@ -19,6 +18,8 @@ from .glmap import Map
 from .glnavdata import Navdata
 from .glpoly import Poly
 from .gltiledmap import TiledMap
+
+
 # Register settings defaults
 bs.settings.set_variable_defaults(gfx_path='graphics')
 
@@ -128,7 +129,7 @@ class RadarWidget(glh.RenderWidget):
         self.mouse_event = Signal('radarmouse')
         self.radarclick_event = Signal('radarclick')
         self.panzoom_event = Signal('state-changed.panzoom')
-        subscribe('PANZOOM').connect(self.on_panzoom)
+        self.panzoom_event.connect(self.on_panzoom)
 
     def initializeGL(self):
         """Initialize OpenGL, VBOs, upload data on the GPU, etc."""
@@ -189,7 +190,7 @@ class RadarWidget(glh.RenderWidget):
                 self.pan[0] - 1.0 / (self.zoom * self.ar),
                 self.pan[1] + 1.0 / (self.zoom * self.flat_earth))
 
-    def on_panzoom(self, data, finished=True):
+    def on_panzoom(self, data=None, finished=True):
         if not self.initialized:
             return False
 

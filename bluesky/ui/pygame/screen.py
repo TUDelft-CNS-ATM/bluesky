@@ -956,12 +956,24 @@ class Screen(Entity):
 
         return sw
 
-
-
-    def zoom(self, factor, absolute = False):
-        """Zoom function"""
+    @stack.command(annotations='float/txt', brief='ZOOM IN/OUT/factor')
+    def zoom(self, factor):
+        ''' ZOOM: Zoom in and out in the radar view. 
+        
+            Arguments:
+            - factor: IN/OUT to zoom in/out by a factor sqrt(2), or
+                      'factor' to set zoom to specific value.
+        '''
         oldvalues = self.lat0, self.lat1, self.lon0, self.lon1
-
+        absolute = True
+        if isinstance(factor, str):
+            absolute = False
+            if factor == 'IN':
+                factor = 1.4142135623730951
+            elif factor == 'OUT':
+                factor = 0.7071067811865475
+            else:
+                return False, f'ZOOM: argument {factor} not recognised'
 
         # Zoom factor: 2.0 means halving the display size in degrees lat/lon
         # ZOom out with e.g. 0.5
@@ -1002,41 +1014,12 @@ class Screen(Entity):
         self.satsel = ()
         self.geosel = ()
 
-        return
+        return True
 
+    @stack.command(annotations="pandir/latlon", brief="PAN latlon/acid/airport/waypoint/LEFT/RIGHT/UP/DOWN")
     def pan(self, *args):
-        """Pan function:
-               absolute: lat,lon;
-               relative: ABOVE/DOWN/LEFT/RIGHT"""
-        lat, lon = self.ctrlat, self.ctrlon
-        if type(args[0])==str:
-            if args[0].upper() == "LEFT":
-                lon = lon - 0.5 * (self.lon1 - self.lon0)
-            elif args[0].upper() == "RIGHT":
-                lon = lon + 0.5 * (self.lon1 - self.lon0)
-            elif args[0].upper() == "ABOVE" or args[0].upper() == "UP":
-                lat = lat + 0.5 * (self.lat1 - self.lat0)
-            elif args[0].upper() == "DOWN":
-                lat = lat - 0.5 * (self.lat1 - self.lat0)
-            else:
-                i = bs.navdb.getwpidx(args[0],self.ctrlat,self.ctrlon)
-                if i<0:
-                    i = bs.navdb.getaptidx(args[0],self.ctrlat,self.ctrlon)
-                    if i>0:
-                        lat = bs.navdb.aptlat[i]
-                        lon = bs.navdb.aptlon[i]
-                else:
-                    lat = bs.navdb.wplat[i]
-                    lon = bs.navdb.wplon[i]
-
-                if i<0:
-                    return False,args[0]+"not found."
-
-        else:
-            if len(args)>1:
-                lat, lon = args[:2]
-            else:
-                return False
+        "Pan screen (move view) to a waypoint, direction or aircraft"
+        lat, lon = args
 
         # Maintain size & avoid getting out of range
         dellat2 = (self.lat1 - self.lat0) * 0.5
@@ -1059,13 +1042,7 @@ class Screen(Entity):
         self.satsel = ()
         self.geosel = ()
 
-        # print "Pan lat,lon:",lat,lon
-        # print "Latitude  range:",int(self.lat0),int(self.ctrlat),int(self.lat1)
-        # print "Longitude range:",int(self.lon0),int(self.ctrlon),int(self.lon1)
-        # print "dellon2 =",dellon2
-
         return True
-
 
     def fullscreen(self, switch):  # full screen switch
         """Switch to (True) /from (False) full screen mode"""

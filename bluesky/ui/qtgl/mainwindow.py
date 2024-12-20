@@ -2,7 +2,7 @@
 from pathlib import Path
 import platform
 
-from bluesky.core.base import Base
+from bluesky.core import Base, Signal
 from bluesky.network.discovery import Discovery
 
 try:
@@ -25,6 +25,7 @@ except ImportError:
 # Local imports
 import bluesky as bs
 from bluesky import stack
+from bluesky.stack.argparser import PosArg
 from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
 from bluesky.network import subscriber, context as ctx
@@ -42,8 +43,9 @@ from bluesky.ui.qtgl.settingswindow import SettingsWindow
 if platform.system().lower() == "windows":
     from bluesky.ui.pygame.dialog import fileopen
 
+
 # Register settings defaults
-bs.settings.set_variable_defaults(gfx_path='graphics')
+bs.settings.set_variable_defaults(gfx_path='graphics', start_location='EHAM')
 
 palette.set_default_colours(stack_text=(0, 255, 0),
                             stack_background=(102, 102, 102))
@@ -188,6 +190,14 @@ class MainWindow(QMainWindow, Base):
         # Tell BlueSky that this is the screen object for this client
         bs.scr = self
 
+        # Signals we want to emit
+        self.panzoom_event = Signal('state-changed.panzoom')
+
+        # Set position default from settings
+        lat, lon, _ = PosArg().parse(bs.settings.start_location)
+        ss.setdefault('pan', [lat, lon], group='panzoom')
+
+
         # self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
@@ -216,6 +226,40 @@ class MainWindow(QMainWindow, Base):
         if not contents:
             with open(bs.resource(bs.settings.gfx_path) / 'bluesky.qss') as style:
                 super().setStyleSheet(style.read())
+
+    @stack.command(annotations='pandir/latlon', brief='PAN latlon/acid/airport/waypoint/LEFT/RIGHT/UP/DOWN')
+    def pan(self, *args):
+        "Pan screen (move view) to a waypoint, direction or aircraft"
+        store = ss.get(group='panzoom')
+        store.pan = list(args)
+        self.panzoom_event.emit(store)
+        return True
+
+    @stack.command(annotations='float/txt', brief='ZOOM IN/OUT/factor')
+    def zoom(self, factor):
+        ''' ZOOM: Zoom in and out in the radar view. 
+        
+            Arguments:
+            - factor: IN/OUT to zoom in/out by a factor sqrt(2), or
+                      'factor' to set zoom to specific value.
+        '''
+        store = ss.get(group='panzoom')
+        if isinstance(factor, float):
+            store.zoom = factor
+        elif factor == 'IN':
+            store.zoom *= 1.4142135623730951
+        elif factor == 'OUT':
+            store.zoom *= 0.7071067811865475
+        else:
+            return False, f'ZOOM: argument {factor} not recognised'
+        self.panzoom_event.emit(store)
+        return True
+
+    def getviewctr(self):
+        return self.radarwidget.pan
+
+    def getviewbounds(self): # Return current viewing area in lat, lon
+        return self.radarwidget.viewportlatlon()
 
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier \

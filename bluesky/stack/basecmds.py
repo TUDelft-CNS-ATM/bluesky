@@ -299,12 +299,6 @@ def initbasecmds():
             bs.sim.op,
             "Start/Run simulation or continue after hold"
         ],
-        "PAN": [
-            "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
-            "pandir/latlon",
-            bs.scr.pan,
-            "Pan screen (move view) to a waypoint, direction or aircraft",
-        ],
         "PLOT": [
             "PLOT [x], y [,dt,colour,figure]",
             "[word,word,float,txt,int]",
@@ -372,17 +366,6 @@ def initbasecmds():
             "txt,acid,...",
             bs.traf.groups.ungroup,
             "Remove aircraft from a group",
-        ],
-
-        "ZOOM": [
-            "ZOOM IN/OUT or factor",
-            "float/txt",
-            lambda a: bs.scr.zoom(1.4142135623730951)
-            if a == "IN"
-            else bs.scr.zoom(0.7071067811865475)
-            if a == "OUT"
-            else bs.scr.zoom(a, True),
-            "Zoom display in/out, you can also use +++ or -----",
         ],
     }
 

@@ -26,7 +26,6 @@ ACUPDATE_RATE = 5
 class ScreenIO(Entity):
     """Class within sim task which sends/receives data to/from GUI task"""
 
-    pub_panzoom = StatePublisher('PANZOOM')
     pub_defwpt = StatePublisher('DEFWPT', collect=True)
     pub_route = StatePublisher('ROUTEDATA')
 
@@ -65,9 +64,6 @@ class ScreenIO(Entity):
             self.samplecount += 1
 
     def reset(self):
-        self.client_pan = dict()
-        self.client_zoom = dict()
-        self.client_ar = dict()
         self.client_route = dict()
         self.route_all = ''
         self.custacclr = dict()
@@ -100,58 +96,6 @@ class ScreenIO(Entity):
         lon0 = lon - 1.0 / (zoom * np.cos(np.radians(lat)))
         lon1 = lon + 1.0 / (zoom * np.cos(np.radians(lat)))
         return lat0, lat1, lon0, lon1
-
-    @pub_panzoom.payload
-    def senddefault(self):
-        return dict(pan=self.def_pan, zoom=self.def_zoom)
-
-    def zoom(self, zoom, absolute=True):
-        sender    = stack.sender()
-        if sender:
-            if not absolute:
-                zoom *= self.client_zoom.get(sender, self.def_zoom)
-            self.client_zoom[sender] = zoom
-
-        else:
-            zoom *= (1.0 if absolute else self.def_zoom)
-            self.def_zoom = zoom
-            self.client_zoom.clear()
-
-        self.pub_panzoom.send_replace(zoom=zoom)
-
-    def pan(self, *args):
-        ''' Move center of display, relative of to absolute position lat,lon '''
-        lat, lon = 0, 0
-        absolute = False
-        if args[0] == "LEFT":
-            lon = -0.5
-        elif args[0] == "RIGHT":
-            lon = 0.5
-        elif args[0] == "UP":
-            lat = 0.5
-        elif args[0] == "DOWN":
-            lat = -0.5
-        else:
-            absolute = True
-            lat, lon = args
-
-        sender    = stack.sender()
-        if sender:
-            if absolute:
-                self.client_pan[sender] = (lat, lon)
-            else:
-                ll = self.client_pan.get(sender) or self.def_pan
-                lat += ll[0]
-                lon += ll[1]
-                self.client_pan[sender] = (lat, lon)
-        else:
-            if not absolute:
-                lat += self.def_pan[0]
-                lon += self.def_pan[1]
-            self.def_pan = (lat,lon)
-            self.client_pan.clear()
-
-        self.pub_panzoom.send_replace(pan=[lat,lon])
 
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
