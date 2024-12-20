@@ -11,10 +11,10 @@ from bluesky.tools import aero
 
 
 class TrafficModel(QAbstractListModel, Base):
-    id: list = ActData(group='acdata')
-    alt: np.ndarray = ActData(0, group='acdata')
-    trk: np.ndarray = ActData(0, group='acdata')
-    cas: np.ndarray = ActData(0, group='acdata')
+    id: ActData[list] = ActData(group='acdata')
+    alt: ActData[np.ndarray] = ActData(0, group='acdata')
+    trk: ActData[np.ndarray] = ActData(0, group='acdata')
+    cas: ActData[np.ndarray] = ActData(0, group='acdata')
 
     def __init__(self) -> None:
         super().__init__()

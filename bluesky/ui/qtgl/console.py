@@ -61,9 +61,9 @@ class Console(QWidget):
     _instance = None
 
     # Per-remote data
-    echotext: list = ActData()
-    echoflags: list = ActData()
-    cmddict: dict = ActData(group='stackcmds')
+    echotext: ActData[list] = ActData()
+    echoflags: ActData[list] = ActData()
+    cmddict: ActData[dict] = ActData(group='stackcmds')
 
     def __init__(self, parent=None):
         super().__init__(parent)

@@ -91,8 +91,8 @@ class RadarWidget(glh.RenderWidget):
     ''' The BlueSky radar view. '''
 
     # Per-remote attributes
-    pan = ss.ActData([0.0, 0.0], group='panzoom')
-    zoom = ss.ActData(1.0, group='panzoom')
+    pan: ss.ActData[list[float]] = ss.ActData([0.0, 0.0], group='panzoom')
+    zoom: ss.ActData[float] = ss.ActData(1.0, group='panzoom')
 
     def __init__(self, parent=None):
         super().__init__(parent)

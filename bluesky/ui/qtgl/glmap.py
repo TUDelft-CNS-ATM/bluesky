@@ -18,8 +18,8 @@ class Map(glh.RenderObject, layer=-100):
     ''' Radar screen map OpenGL object. '''
 
     # Per remote node attributes
-    show_map = ActData(True)
-    show_coast = ActData(True)
+    show_map: ActData[bool] = ActData(True)
+    show_coast: ActData[bool] = ActData(True)
 
     @command
     def showmap(self, flag:bool=None):

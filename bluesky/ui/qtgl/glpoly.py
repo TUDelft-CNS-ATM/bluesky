@@ -25,9 +25,9 @@ class Poly(glh.RenderObject, layer=-20):
     ''' Poly OpenGL object. '''
 
     # Per remote node attributes
-    show_poly = ActData(1)
-    polys: dict = ActData(group='poly')
-    bufdata: dict = ActData()
+    show_poly: ActData[int] = ActData(1)
+    polys: ActData[dict] = ActData(group='poly')
+    bufdata: ActData[dict] = ActData()
 
     @command
     def showpoly(self, flag:int=None):

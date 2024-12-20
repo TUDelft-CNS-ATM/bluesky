@@ -120,10 +120,10 @@ class MainWindow(QMainWindow, Base):
     modes = ['Init', 'Hold', 'Operate', 'End']
 
     # Per remote node attributes
-    nconf_cur = ss.ActData(0, group='acdata')
-    nconf_tot = ss.ActData(0, group='acdata')
-    nlos_cur = ss.ActData(0, group='acdata')
-    nlos_tot = ss.ActData(0, group='acdata')
+    nconf_cur: ss.ActData[int] = ss.ActData(0, group='acdata')
+    nconf_tot: ss.ActData[int] = ss.ActData(0, group='acdata')
+    nlos_cur: ss.ActData[int] = ss.ActData(0, group='acdata')
+    nlos_tot: ss.ActData[int] = ss.ActData(0, group='acdata')
 
     @pyqtProperty(str)
     def style(self):

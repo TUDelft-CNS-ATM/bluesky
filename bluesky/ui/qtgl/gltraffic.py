@@ -34,15 +34,15 @@ TRAILS_SIZE = 1000000
 class Traffic(glh.RenderObject, layer=100):
     ''' Traffic OpenGL object. '''
     # Per remote node attributes
-    show_pz = ActData(False)
-    show_traf = ActData(True)
-    show_lbl = ActData(2)
-    ssd_all = ActData(False)
-    ssd_conflicts = ActData(False)
-    ssd_ownship = ActData(set())
-    altrange = ActData(tuple())
-    naircraft = ActData(0)
-    zoom = ActData(1, group='panzoom')
+    show_pz: ActData[bool] = ActData(False)
+    show_traf: ActData[bool] = ActData(True)
+    show_lbl: ActData[int] = ActData(2)
+    ssd_all: ActData[bool] = ActData(False)
+    ssd_conflicts: ActData[bool] = ActData(False)
+    ssd_ownship: ActData[set] = ActData(set())
+    altrange: ActData[tuple] = ActData(tuple())
+    naircraft: ActData[int] = ActData(0)
+    zoom: ActData[float] = ActData(1.0, group='panzoom')
 
     @command
     def showpz(self, flag:bool=None):

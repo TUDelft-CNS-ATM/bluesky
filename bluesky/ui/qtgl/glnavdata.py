@@ -37,10 +37,10 @@ class Navdata(glh.RenderObject, layer=-10):
     ''' Navdata OpenGL object. '''
 
     # Per remote node attributes
-    show_wpt = ActData(1)
-    show_apt = ActData(1)
-    pan = ActData([0.0, 0.0], group='panzoom')
-    zoom = ActData(1.0, group='panzoom')
+    show_wpt: ActData[int] = ActData(1)
+    show_apt: ActData[int] = ActData(1)
+    pan: ActData[list[float]] = ActData([0.0, 0.0], group='panzoom')
+    zoom: ActData[float] = ActData(1.0, group='panzoom')
 
     @command
     def showwpt(self, flag:int=None):

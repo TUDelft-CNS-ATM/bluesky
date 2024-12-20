@@ -17,7 +17,7 @@ import bluesky as bs
 
 
 class AreaModel(QAbstractListModel, Base):
-    polys: dict = ActData(group='poly')
+    polys: ActData[dict] = ActData(group='poly')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
