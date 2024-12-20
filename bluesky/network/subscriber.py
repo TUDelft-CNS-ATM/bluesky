@@ -1,5 +1,4 @@
 import inspect
-from typing import Dict
 
 import bluesky as bs
 from bluesky.core.funcobject import FuncObject
@@ -11,10 +10,6 @@ from bluesky.network.common import GROUPID_DEFAULT, ActionType, MessageType
 
 #TODO:
 # trigger voor actnode changed?
-
-# Keep track of the set of subscribed sharedstate topics. Store signals to emit
-# whenever a state update of each topic is received
-changed: Dict[str, signal.Signal] = dict()
 
 
 def subscriber(func=None, *, topic='', broadcast=True, actonly=False, raw=False, from_group=GROUPID_DEFAULT, to_group=''):
@@ -158,16 +153,14 @@ class Subscription(signal.Signal, metaclass=SubscriptionFactory):
             self.msg_type = MessageType.SharedState
             # In this case, all (non-raw) subscribers will be configured
             # as sharedstate subscribers
-            ss.addtopic(self.topic)
-            sig = signal.Signal(f'state-changed.{self.topic}')
-            changed[self.topic] = sig
+            sig = ss.addtopic(self.topic)
             while self.deferred_subs:
                 sig.connect(self.deferred_subs.pop())
 
             # Finally send the sharedstate message on to the subscribers,
             # and subscribe the sharedstate processing function to this topic
-            super().connect(on_sharedstate_received)
-            on_sharedstate_received(*args, **kwargs)
+            super().connect(ss.on_sharedstate_received)
+            ss.on_sharedstate_received(*args, **kwargs)
 
         else:
             self.msg_type = MessageType.Regular
@@ -235,25 +228,6 @@ def reset(*args):
     # Clear state data to defaults for this simulation node
     ss.reset(ctx.sender_id)
 
-    # If this is the active node, also emit a signal about this change
-    if ctx.sender_id == bs.net.act_id:
-        ctx.action = ActionType.Reset
-        ctx.action_content = None
-        for topic, sig in changed.items():
-            store = ss.get(group=topic.lower())
-            sig.emit(store)
-        ctx.action = None
-
-
-@signal.subscriber(topic='actnode-changed')
-def on_actnode_changed(act_id):
-    ctx.action = ActionType.ActChange
-    ctx.action_content = None
-    for topic, sig in changed.items():
-            store = ss.get(group=topic.lower())
-            sig.emit(store)
-    ctx.action = None
-
 
 @signal.subscriber(topic='node-added')
 def on_node_added(node_id):
@@ -263,36 +237,3 @@ def on_node_added(node_id):
     topics = [topic for topic, sub in SubscriptionFactory.subscriptions.items() 
               if sub.msg_type in (MessageType.Unknown, MessageType.SharedState)]
     bs.net.send('REQUEST', topics, to_group=node_id)
-
-
-def on_sharedstate_received(action, data):
-    ''' Retrieve and process state data. '''
-    store = ss.get(ctx.sender_id, ctx.topic.lower())
-
-    # Store sharedstate context
-    ctx.action = ActionType(action)
-    ctx.action_content = data
-
-    if ctx.action == ActionType.Update:
-        store.update(data)
-
-    elif ctx.action == ActionType.Append:
-        store.append(data)
-
-    elif ctx.action == ActionType.Extend:
-        store.extend(data)
-
-    elif ctx.action == ActionType.Replace:
-        store.replace(data)
-
-    elif ctx.action == ActionType.Delete:
-        store.delete(data)
-
-    # Inform subscribers of state update
-    # TODO: what to do with act vs all?
-    if ctx.sender_id == bs.net.act_id:
-        changed[ctx.topic].emit(store)
-
-    # Reset context variables
-    ctx.action = None
-    ctx.action_content = None
