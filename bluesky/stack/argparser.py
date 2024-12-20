@@ -257,10 +257,14 @@ class PandirArg(Parser):
     ''' Parse pan direction commands. '''
     def parse(self, argstring):
         arg, argstring = re_getarg.match(argstring).groups()
-        pandir = arg.upper()
-        if pandir not in ('LEFT', 'RIGHT', 'UP', 'ABOVE', 'RIGHT', 'DOWN'):
+        
+        lat, lon = bs.scr.getviewctr()
+        panmap = {'LEFT': (0.0, -0.5), 'RIGHT': (0.0, 0.5), 'UP': (0.5, 0.0), 'DOWN': (-0.5, 0.0)}
+        delta = panmap.get(arg.upper(), None)
+        if delta is None:
             raise ArgumentError(f'{arg} is not a valid pan direction')
-        return pandir, argstring
+
+        return lat + delta[0], lon + delta[1], argstring
 
 
 class ColorArg(Parser):
