@@ -39,18 +39,16 @@ def reset():
 
     # Close recording file and reset scenario recording settings
     recorder.reset()
-    # Reset parser reference values
-    argparser.reset()
 
 
-def process(from_pcall=None):
+def process(ext_cmds=None):
     ''' Sim-side stack processing. '''
-    # First check for commands in scenario file
-    if from_pcall is None:
+    # If no commands are passed, check for commands in scenario file
+    if ext_cmds is None:
         checkscen()
 
     # Process stack of commands
-    for cmdline in Stack.commands(from_pcall):
+    for cmdline in Stack.commands(ext_cmds):
         success = True
         echotext = ''
         echoflags = bs.BS_OK
@@ -127,7 +125,7 @@ def process(from_pcall=None):
             bs.scr.echo(echotext, echoflags)
 
     # Clear the processed commands
-    if from_pcall is None:
+    if ext_cmds is None:
         Stack.clear()
 
 

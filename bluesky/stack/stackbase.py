@@ -1,4 +1,6 @@
 ''' BlueSky Stack base data and functions. '''
+from itertools import repeat
+
 import bluesky as bs
 from bluesky.network import subscriber, context as ctx
 from bluesky.stack.cmdparser import command
@@ -30,10 +32,14 @@ class Stack:
         cls.sender_id = None
 
     @classmethod
-    def commands(cls, from_pcall=None):
+    def commands(cls, ext_cmds=None):
         ''' Generator function to iterate over stack commands. '''
-        # Return commands from PCALL if passed, otherwise own command stack
-        for cls.current, cls.sender_id in from_pcall or cls.cmdstack:
+        # Return explicitly passed commands if given, otherwise own command stack
+        if isinstance(ext_cmds, str):
+            # If argument is a single string convert it to an appropriate list
+            ext_cmds = zip(ext_cmds.split(';'), repeat(cls.sender_id))
+
+        for cls.current, cls.sender_id in ext_cmds or cls.cmdstack:
             yield cls.current
         # After processing commands, current command and sender id should be reset
         cls.current = ''
