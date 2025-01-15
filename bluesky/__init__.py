@@ -20,6 +20,7 @@ mode = ''
 gui = ''
 
 # Main singleton objects in BlueSky
+ref = None
 net = None
 traf = None
 navdb = None
@@ -76,6 +77,10 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     # Initialise tools
     from bluesky import tools
     tools.init()
+
+    # Initialise reference data object
+    from bluesky import refdata
+    globals()['ref'] = refdata.RefData()
 
     # Load navdatabase in all versions of BlueSky
     # Only the headless server doesn't need this

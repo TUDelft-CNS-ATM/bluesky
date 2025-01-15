@@ -1,7 +1,6 @@
 ''' Stack argument parsers. '''
 import inspect
 import re
-from types import SimpleNamespace
 from matplotlib import colors
 from bluesky.tools.misc import txt2bool, txt2lat, txt2lon, txt2alt, txt2tim, \
     txt2hdg, txt2vs, txt2spd
@@ -19,23 +18,10 @@ re_getarg = re.compile(
     r'\s*[\'"]?((?<=[\'"])[^\'"]*|(?<![\'"])[^\s,]*)[\'"]?\s*,?\s*(.*)')
 # re_getarg = re.compile(r'[\'"]?((?<=[\'"])[^\'"]+|(?<![\'"])[^\s,]+)[\'"]?\s*,?\s*')
 
-# Stack reference data namespace
-refdata = SimpleNamespace(lat=None, lon=None, alt=None, acidx=-1, hdg=None, cas=None)
-
 
 def getnextarg(cmdstring):
     ''' Return first argument and remainder of command string from cmdstring. '''
     return re_getarg.match(cmdstring).groups()
-
-
-def reset():
-    ''' Reset reference data. '''
-    refdata.lat = None
-    refdata.lon = None
-    refdata.alt = None
-    refdata.acidx = -1
-    refdata.hdg = None
-    refdata.cas = None
 
 
 class Parameter:
@@ -154,9 +140,9 @@ class AcidArg(Parser):
                 raise ArgumentError(f'Aircraft with callsign {acid} not found')
 
             # Update ref position for navdb lookup
-            refdata.lat = bs.traf.lat[idx]
-            refdata.lon = bs.traf.lon[idx]
-            refdata.acidx = idx
+            bs.ref.lat = bs.traf.lat[idx]
+            bs.ref.lon = bs.traf.lon[idx]
+            bs.ref.acidx = idx
         return idx, argstring
 
 
@@ -165,9 +151,9 @@ class WpinrouteArg(Parser):
     def parse(self, argstring):
         arg, argstring = re_getarg.match(argstring).groups()
         wpname = arg.upper()
-        if refdata.acidx >= 0 and wpname in bs.traf.ap.route[refdata.acidx].wpname or wpname == '*':
+        if bs.ref.acidx >= 0 and wpname in bs.traf.ap.route[bs.ref.acidx].wpname or wpname == '*':
             return wpname, argstring
-        raise ArgumentError(f'{wpname} not found in the route of {bs.traf.id[refdata.acidx]}')
+        raise ArgumentError(f'{wpname} not found in the route of {bs.traf.id[bs.ref.acidx]}')
 
 class WptArg(Parser):
     ''' Argument parser for waypoints.
@@ -229,8 +215,8 @@ class PosArg(Parser):
         # Check if lat/lon combination
         if islat(argu):
             nextarg, argstring = re_getarg.match(argstring).groups()
-            refdata.lat = txt2lat(argu)
-            refdata.lon = txt2lon(nextarg)
+            bs.ref.lat = txt2lat(argu)
+            bs.ref.lon = txt2lon(nextarg)
             return txt2lat(argu), txt2lon(nextarg), argstring
 
         # apt,runway ? Combine into one string with a slash as separator
@@ -238,17 +224,14 @@ class PosArg(Parser):
             arg, argstring = re_getarg.match(argstring).groups()
             argu = argu + "/" + arg.upper()
 
-        if refdata.lat is None:
-            refdata.lat, refdata.lon = bs.scr.getviewctr()
-
-        posobj = Position(argu, refdata.lat, refdata.lon)
+        posobj = Position(argu, bs.ref.lat, bs.ref.lon)
         if posobj.error:
             raise ArgumentError(f'{argu} is not a valid waypoint, airport, runway, or aircraft id.')
 
         # Update reference lat/lon
-        refdata.lat = posobj.lat
-        refdata.lon = posobj.lon
-        refdata.hdg = posobj.refhdg
+        bs.ref.lat = posobj.lat
+        bs.ref.lon = posobj.lon
+        bs.ref.hdg = posobj.refhdg
 
         return posobj.lat, posobj.lon, argstring
 
@@ -301,7 +284,7 @@ argparsers = {
     'spd': Parser(txt2spd),
     'vspd': Parser(txt2vs),
     'alt': Parser(txt2alt),
-    'hdg': Parser(lambda txt: txt2hdg(txt, refdata.lat, refdata.lon)),
+    'hdg': Parser(lambda txt: txt2hdg(txt, bs.ref.lat, bs.ref.lon)),
     'time': Parser(txt2tim),
     'colour': ColorArg(),
     'color': ColorArg(),

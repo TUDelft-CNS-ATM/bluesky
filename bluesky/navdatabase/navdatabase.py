@@ -96,12 +96,11 @@ class Navdatabase:
         self.rwythresholds = rwythresholds
 
     def defwpt(self,name=None,lat=None,lon=None,wptype=None):
-
         # Prevent polluting the database: check arguments
-        if name==None or name=="":
-            return False,"Insufficient arguments"
+        if name is None or name == "":
+            return False, "Insufficient arguments"
         elif name.isdigit():
-            return False,"Name needs to start with an alphabetical character"
+            return False, "Name needs to start with an alphabetical character"
 
         # DEL command: give info on waypoint (shudl work wit or without lat,lon, may be clicked by accident
         elif (not wptype==None and (wptype.upper()=="DEL" or wptype.upper() =="DELETE")) or \
@@ -111,17 +110,16 @@ class Navdatabase:
 
         # No data: give info on waypoint
         elif lat==None or lon==None:
-            reflat, reflon = bs.scr.getviewctr()
             if self.wpid.count(name.upper()) > 0:
-                i = self.getwpidx(name.upper(),reflat,reflon)
-                txt = self.wpid[i]+" : "+str(self.wplat[i])+","+str(self.wplon[i])
-                if len(self.wptype[i])>0:
-                    txt = txt+"  "+self.wptype[i]
-                return True,txt
+                i = self.getwpidx(name.upper(), bs.ref.lat, bs.ref.lon)
+                txt = f"{self.wpid[i]} : {self.wplat[i]}, {self.wplon[i]}"
+                if len(self.wptype[i]) > 0:
+                    txt = txt + "  " + self.wptype[i]
+                return True, txt
 
             # Waypoint name is free
             else:
-                return True,"Waypoint "+name.upper()+" does not yet exist."
+                return True, f"Waypoint {name.upper()} does not yet exist."
 
         # Still here? So there is data, then we add this waypoint
         self.wpid.append(name.upper())
@@ -143,12 +141,12 @@ class Navdatabase:
 
         return True #,name.upper()+" added to navdb."
 
-    def delwpt(self,name=None):
+    def delwpt(self,name=''):
         """ Delete a waypoint"""
         if self.wpid.count(name.upper()) <= 0:
-            return False,"Waypoint "+name.upper()+" does not exist."
+            return False,"Waypoint " + name.upper() + " does not exist."
 
-        idx = len(self.wpid)-self.wpid[::-1].index(name)-1 # Search from back of list
+        idx = len(self.wpid) - self.wpid[::-1].index(name) - 1 # Search from back of list
 
         del self.wpid[idx]   # wp name
 
@@ -161,12 +159,12 @@ class Navdatabase:
         del self.wpfreq[idx]        # frequency [kHz/MHz]
         del self.wpdesc[idx]        # description
 
-         # Update screen info 9delete necessary there?)
+         # Update screen info (delete necessary there?)
         bs.scr.removenavwpt(name.upper())
 
         return True #,name.upper()+" deleted from navdb."
 
-    def getwpidx(self, txt, reflat=999999., reflon=999999):
+    def getwpidx(self, txt, reflat: float|None = None, reflon: float|None = None):
         """Get waypoint index to access data"""
         name = txt.upper()
         try:
@@ -175,7 +173,7 @@ class Navdatabase:
             return -1
 
         # if no pos is specified, get first occurence
-        if not reflat < 99999.:
+        if reflat is None:
             return i
 
         # If pos is specified check for more and return closest
@@ -201,7 +199,7 @@ class Navdatabase:
                         dmin = d
                 return imin
 
-    def getwpindices(self, txt, reflat=999999., reflon=999999,crit=1852.0):
+    def getwpindices(self, txt, reflat: float|None = None, reflon: float|None = None, crit=1852.0):
         """Get waypoint index to access data"""
         name = txt.upper()
         try:
@@ -210,7 +208,7 @@ class Navdatabase:
             return [-1]
 
         # if no pos is specified, get first occurence
-        if not reflat < 99999.:
+        if reflat is None:
             return [i]
 
         # If pos is specified check for more and return closest

@@ -1042,6 +1042,10 @@ class Screen(Entity):
         self.satsel = ()
         self.geosel = ()
 
+        # Use new centre lat/lon to update reference position
+        bs.ref.lat = self.ctrlat
+        bs.ref.lon = self.ctrlon
+
         return True
 
     def fullscreen(self, switch):  # full screen switch

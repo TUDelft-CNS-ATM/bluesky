@@ -227,6 +227,18 @@ class MainWindow(QMainWindow, Base):
             with open(bs.resource(bs.settings.gfx_path) / 'bluesky.qss') as style:
                 super().setStyleSheet(style.read())
 
+    @stack.command
+    def mcre(self, args: 'string'):
+        """ Create one or more random aircraft in a specified area 
+        
+            When called from the client (gui), MCRE will use the current screen bounds as area to create aircraft in.
+            When called from a scenario, the simulation reference area will be used.
+        """
+        if not args:
+            return stack.forward('MCRE')
+
+        stack.forward(f'INSIDE {" ".join(str(el) for el in bs.ref.area.bbox)} MCRE {args}')
+
     @stack.command(annotations='pandir/latlon', brief='PAN latlon/acid/airport/waypoint/LEFT/RIGHT/UP/DOWN')
     def pan(self, *args):
         "Pan screen (move view) to a waypoint, direction or aircraft"

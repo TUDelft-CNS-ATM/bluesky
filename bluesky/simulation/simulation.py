@@ -201,6 +201,7 @@ class Simulation(Base):
         self.set_dtmult(1.0)
         hooks.reset.trigger()
         core.reset()
+        bs.ref.reset()
         bs.navdb.reset()
         bs.traf.reset()
         simstack.reset()

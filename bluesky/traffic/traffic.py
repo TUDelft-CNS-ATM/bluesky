@@ -6,7 +6,6 @@ import numpy as np
 
 import bluesky as bs
 from bluesky.core import Entity, Timer
-from bluesky.stack import refdata
 from bluesky.stack.recorder import savecmd
 from bluesky.tools import geo
 from bluesky.tools.misc import latlon2txt
@@ -184,15 +183,15 @@ class Traffic(Entity):
 
     def mcre(self, n, actype="B744", acalt=None, acspd=None, dest=None):
         """ Create one or more random aircraft in a specified area """
-        area = bs.scr.getviewbounds()
+        area = bs.ref.area.bbox
 
         # Generate random callsigns
         idtmp = chr(randint(65, 90)) + chr(randint(65, 90)) + '{:>05}'
         acid = [idtmp.format(i) for i in range(n)]
 
         # Generate random positions
-        aclat = np.random.rand(n) * (area[1] - area[0]) + area[0]
-        aclon = np.random.rand(n) * (area[3] - area[2]) + area[2]
+        aclat = np.random.rand(n) * (area[2] - area[0]) + area[0]
+        aclon = np.random.rand(n) * (area[3] - area[1]) + area[1]
         achdg = np.random.randint(1, 360, n)
         acalt = acalt or np.random.randint(2000, 39000, n) * ft
         acspd = acspd or np.random.randint(250, 450, n) * kts
@@ -228,7 +227,7 @@ class Traffic(Entity):
         aclon[aclon > 180.0] -= 360.0
         aclon[aclon < -180.0] += 360.0
 
-        achdg = (refdata.hdg or 0.0) if achdg is None else achdg
+        achdg = (bs.ref.hdg or 0.0) if achdg is None else achdg
 
         # Aircraft Info
         self.id[-n:]   = acid
@@ -554,66 +553,11 @@ class Traffic(Entity):
             self.vs[idx]     = vspd
             self.swvnav[idx] = False
 
-    def poscommand(self, idxorwp):# Show info on aircraft(int) or waypoint or airport (str)
+    def poscommand(self, idxorwp: int|str):
         """POS command: Show info or an aircraft, airport, waypoint or navaid"""
-        # Aircraft index
-
-        if type(idxorwp)==int and idxorwp >= 0:
-
-            idx           = idxorwp
-            acid          = self.id[idx]
-            actype        = self.type[idx]
-            latlon        = latlon2txt(self.lat[idx], self.lon[idx])
-            alt           = round(self.alt[idx] / ft)
-            hdg           = round(self.hdg[idx])
-            trk           = round(self.trk[idx])
-            cas           = round(self.cas[idx] / kts)
-            tas           = round(self.tas[idx] / kts)
-            gs            = round(self.gs[idx]/kts)
-            M             = self.M[idx]
-            VS            = round(self.vs[idx]/ft*60.)
-            route         = self.ap.route[idx]
-
-            # Position report
-            lines = "Info on %s %s index = %d\n" %(acid, actype, idx)     \
-                  + "Pos: "+latlon+ "\n"                                  \
-                  + "Hdg: %03d   Trk: %03d\n"        %(hdg, trk)              \
-                  + "Alt: %d ft  V/S: %d fpm\n"  %(alt,VS)                \
-                  + "CAS/TAS/GS: %d/%d/%d kts   M: %.3f\n"%(cas,tas,gs,M)
-
-            # FMS AP modes
-            if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
-
-                if self.swvnav[idx]:
-                    if self.swvnavspd[idx]:
-                        lines = lines + "VNAV (incl.VNAVSPD), "
-                    else:
-                        lines = lines + "VNAV (NOT VNAVSPD), "
-
-                lines += "LNAV to " + route.wpname[route.iactwp] + "\n"
-
-            # Flight info: Destination and origin
-            if self.ap.orig[idx] != "" or self.ap.dest[idx] != "":
-                lines = lines +  "Flying"
-
-                if self.ap.orig[idx] != "":
-                    lines = lines +  " from " + self.ap.orig[idx]
-
-                if self.ap.dest[idx] != "":
-                    lines = lines +  " to " + self.ap.dest[idx]
-
-            # Show a/c info and highlight route of aircraft in radar window
-            # and pan to a/c (to show route)
-            bs.scr.showroute(acid)
-            return True, lines
-
-        # Waypoint: airport, navaid or fix
-        else:
+        if isinstance(idxorwp, str):
+            # Argument is a waypoint: airport, navaid or fix
             wp = idxorwp.upper()
-
-            # Reference position for finding nearest
-            reflat, reflon = bs.scr.getviewctr()
-
             lines = "Info on "+wp+":\n"
 
             # First try airports (most used and shorter, hence faster list)
@@ -646,7 +590,7 @@ class Traffic(Entity):
 
             # Not found as airport, try waypoints & navaids
             else:
-                iwps = bs.navdb.getwpindices(wp,reflat,reflon)
+                iwps = bs.navdb.getwpindices(wp,bs.ref.lat,bs.ref.lon)
                 if iwps[0]>=0:
                     typetxt = ""
                     desctxt = ""
@@ -723,19 +667,65 @@ class Traffic(Entity):
                     else:
                         return False,idxorwp+" not found as a/c, airport, navaid or waypoint"
 
-            # Show what we found on airport and navaid/waypoint
-            return True, lines
+        elif idxorwp >= 0:
+            # Argument is an aircraft id
+            idx           = idxorwp
+            acid          = self.id[idx]
+            actype        = self.type[idx]
+            latlon        = latlon2txt(self.lat[idx], self.lon[idx])
+            alt           = round(self.alt[idx] / ft)
+            hdg           = round(self.hdg[idx])
+            trk           = round(self.trk[idx])
+            cas           = round(self.cas[idx] / kts)
+            tas           = round(self.tas[idx] / kts)
+            gs            = round(self.gs[idx]/kts)
+            M             = self.M[idx]
+            VS            = round(self.vs[idx]/ft*60.)
+            route         = self.ap.route[idx]
+
+            # Position report
+            lines = "Info on %s %s index = %d\n" %(acid, actype, idx)     \
+                  + "Pos: "+latlon+ "\n"                                  \
+                  + "Hdg: %03d   Trk: %03d\n"        %(hdg, trk)              \
+                  + "Alt: %d ft  V/S: %d fpm\n"  %(alt,VS)                \
+                  + "CAS/TAS/GS: %d/%d/%d kts   M: %.3f\n"%(cas,tas,gs,M)
+
+            # FMS AP modes
+            if self.swlnav[idx] and route.nwp > 0 and route.iactwp >= 0:
+
+                if self.swvnav[idx]:
+                    if self.swvnavspd[idx]:
+                        lines = lines + "VNAV (incl.VNAVSPD), "
+                    else:
+                        lines = lines + "VNAV (NOT VNAVSPD), "
+
+                lines += "LNAV to " + route.wpname[route.iactwp] + "\n"
+
+            # Flight info: Destination and origin
+            if self.ap.orig[idx] != "" or self.ap.dest[idx] != "":
+                lines = lines +  "Flying"
+
+                if self.ap.orig[idx] != "":
+                    lines = lines +  " from " + self.ap.orig[idx]
+
+                if self.ap.dest[idx] != "":
+                    lines = lines +  " to " + self.ap.dest[idx]
+
+            # Show a/c info and highlight route of aircraft in radar window
+            # and pan to a/c (to show route)
+            bs.scr.showroute(acid)
+
+        # Show what we found on aircraft, airport and navaid/waypoint
+        return True, lines
 
     def airwaycmd(self, key):
         ''' Show conections of a waypoint or airway. '''
-        reflat, reflon = bs.scr.getviewctr()
-
         if bs.navdb.awid.count(key) > 0:
             return self.poscommand(key)
 
         # Find connecting airway legs
         wpid = key
-        iwp = bs.navdb.getwpidx(wpid,reflat,reflon)
+        iwp = bs.navdb.getwpidx(wpid, bs.ref.lat, bs.ref.lon)
         if iwp < 0:
             return False,key + " not found."
 
@@ -745,9 +735,9 @@ class Traffic(Entity):
         if connect:
             lines = ""
             for c in connect:
-                if len(c)>=2:
+                if len(c) >= 2:
                     # Add airway, direction, waypoint
-                    lines = lines+ c[0]+": to "+c[1]+"\n"
+                    lines = lines + c[0] + ": to " + c[1] + "\n"
             return True, lines[:-1]  # exclude final newline
         return False, f"No airway legs found for {key}"
 

@@ -59,6 +59,11 @@ def hasArea(areaname):
     return areaname in basic_shapes
 
 
+def getArea(areaname):
+    ''' Return the area object corresponding to name '''
+    return basic_shapes.get(areaname, None)
+
+
 def defineArea(name, shape, coordinates, top=1e9, bottom=-1e9):
     """Define a new area"""
     if name == 'LIST':

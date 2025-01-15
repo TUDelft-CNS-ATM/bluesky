@@ -2,6 +2,8 @@
 from ctypes import c_float, c_int, Structure
 import numpy as np
 
+from bluesky.tools import areafilter
+
 try:
     from PyQt5.QtCore import Qt, QEvent, QT_VERSION
 except ImportError:
@@ -224,6 +226,11 @@ class RadarWidget(glh.RenderWidget):
             self.wraplon = float(
                 np.floor(-360.0 + self.pan[1] + 1.0 / (self.zoom * self.flat_earth)))
             self.wrapdir = 1
+
+        # Use new centre lat/lon to update reference position
+        bs.ref.lat = self.pan[0]
+        bs.ref.lon = self.pan[1]
+        bs.ref.area = areafilter.Box('refarea', self.viewportlatlon())
 
         # update pan and zoom on GPU for all shaders
         self.shaderset.set_wrap(self.wraplon, self.wrapdir)

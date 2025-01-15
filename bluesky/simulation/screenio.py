@@ -81,22 +81,6 @@ class ScreenIO(Entity):
     def cmdline(self, text):
         bs.net.send(b'CMDLINE', text)
 
-    def getviewctr(self):
-        return self.client_pan.get(stack.sender()) or self.def_pan
-
-    def getviewbounds(self):
-        # Get appropriate lat/lon/zoom/aspect ratio
-        sender   = stack.sender()
-        lat, lon = self.client_pan.get(sender) or self.def_pan
-        zoom     = self.client_zoom.get(sender) or self.def_zoom
-        ar       = self.client_ar.get(sender) or 1.0
-
-        lat0 = lat - 1.0 / (zoom * ar)
-        lat1 = lat + 1.0 / (zoom * ar)
-        lon0 = lon - 1.0 / (zoom * np.cos(np.radians(lat)))
-        lon1 = lon + 1.0 / (zoom * np.cos(np.radians(lat)))
-        return lat0, lat1, lon0, lon1
-
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
         if not stack.sender():
