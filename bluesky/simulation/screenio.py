@@ -8,9 +8,7 @@ from bluesky import stack
 from bluesky.core import Entity
 from bluesky.tools import aero
 from bluesky.core.walltime import Timer
-from bluesky.network.subscriber import subscriber
 from bluesky.network.publisher import state_publisher, StatePublisher
-import bluesky.network.context as ctx
 
 
 # =========================================================================
@@ -40,9 +38,6 @@ class ScreenIO(Entity):
         self.route_all   = ""
 
         # Screen state overrides per client
-        self.client_pan  = dict()
-        self.client_zoom = dict()
-        self.client_ar   = dict()
         self.client_route = dict()
 
         # Dicts of custom aircraft and group colors
@@ -115,13 +110,6 @@ class ScreenIO(Entity):
             self.custgrclr[groupmask] = (r, g, b)
         elif name in bs.traf.id:
             self.custacclr[name] = (r, g, b)
-
-    @subscriber
-    def panzoom(self, pan, zoom, ar=1, absolute=True):
-        self.client_pan[ctx.sender_id]  = pan
-        self.client_zoom[ctx.sender_id] = zoom
-        self.client_ar[ctx.sender_id]   = ar
-        return True
 
     # =========================================================================
     # Slots
