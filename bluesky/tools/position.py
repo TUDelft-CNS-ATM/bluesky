@@ -34,15 +34,15 @@ class Position():
     # position types: "latlon","nav","apt","rwy"
 
     # Initialize using text
-    def __init__(self,name,reflat,reflon):
+    def __init__(self, name, reflat, reflon):
 
         self.name = name # default: copy source name
         self.error = False # we're optmistic about our succes
         self.refhdg = None
 
         # lat,lon type ?
-        if name.count(",")>0: #lat,lon or apt,rwy type
-            txt1,txt2 = name.split(",")
+        if name.count(",") > 0: #lat,lon or apt,rwy type
+            txt1, txt2 = name.split(",")
             if islat(txt1):
                 self.lat = txt2lat(txt1)
                 self.lon = txt2lon(txt2)
@@ -50,11 +50,11 @@ class Position():
                 self.type ="latlon"
 
         # runway type ? "EHAM/RW06","EHGG/RWY27"
-        elif name.count("/RW")>0:
+        elif name.count("/RW") > 0:
             try:
-                aptname,rwytxt = name.split("/RW")
+                aptname, rwytxt = name.split("/RW")
                 rwyname = rwytxt.lstrip("Y").upper() # remove Y and spaces
-                self.lat,self.lon, self.refhdg = bs.navdb.rwythresholds[aptname][rwyname]
+                self.lat, self.lon, self.refhdg = bs.navdb.rwythresholds[aptname][rwyname]
             except KeyError:
                 self.error = True
             self.type = "rwy"
@@ -68,11 +68,11 @@ class Position():
             self.type ="apt"
 
         # fix or navaid?
-        elif bs.navdb.wpid.count(name)>0:
-            idx = bs.navdb.getwpidx(name,reflat,reflon)
+        elif bs.navdb.wpid.count(name) > 0:
+            idx = bs.navdb.getwpidx(name, reflat, reflon)
             self.lat = bs.navdb.wplat[idx]
             self.lon = bs.navdb.wplon[idx]
-            self.type ="nav"
+            self.type = "nav"
 
         # aircraft id?
         elif name in bs.traf.id:
