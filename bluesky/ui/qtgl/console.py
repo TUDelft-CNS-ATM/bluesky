@@ -1,14 +1,8 @@
 """ Console interface for the QTGL implementation."""
-try:
-    from PyQt5.QtCore import Qt
-    from PyQt5.Qt import QDesktopServices, QUrl, QApplication
-    from PyQt5.QtWidgets import QWidget, QTextEdit
-    
-except ImportError:
-    from PyQt6.QtCore import Qt, QUrl
-    from PyQt6.QtGui import QDesktopServices
-    from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtWidgets import QWidget, QTextEdit
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
 from bluesky.core.signal import Signal

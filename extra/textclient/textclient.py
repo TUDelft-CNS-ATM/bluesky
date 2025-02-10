@@ -5,12 +5,8 @@
 
     PYTHONPATH=/path/to/your/bluesky python textclient.py
 '''
-try:
-    from PyQt5.QtCore import Qt, QTimer
-    from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit
-except ImportError:
-    from PyQt6.QtCore import Qt, QTimer
-    from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit
 
 from bluesky.network.client import Client
 

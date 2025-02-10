@@ -1,17 +1,10 @@
 from os import path
 from collections import defaultdict
-try:
-    from PyQt5.QtCore import Qt, pyqtSlot
-    from PyQt5.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
-        QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
-            QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
-            QListWidget, QListWidgetItem
-except ImportError:
-    from PyQt6.QtCore import Qt, pyqtSlot
-    from PyQt6.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
-        QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
-            QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
-            QListWidget, QListWidgetItem
+from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
+    QFormLayout, QLabel, QSpinBox, QCheckBox, QLineEdit, QHBoxLayout, \
+        QTreeWidget, QTreeWidgetItem, QFrame, QPushButton, QLayout, QComboBox, \
+        QListWidget, QListWidgetItem
 
 import bluesky as bs
 from bluesky.network.common import seqidx2id
