@@ -3,7 +3,7 @@ from ctypes import c_float, c_int, Structure
 import numpy as np
 
 from bluesky.tools import areafilter
-from PyQt6.QtCore import Qt, QEvent, QT_VERSION
+from PyQt6.QtCore import Qt, QEvent
 
 import bluesky as bs
 from bluesky.core import Signal
@@ -20,12 +20,6 @@ from .gltiledmap import TiledMap
 
 # Register settings defaults
 bs.settings.set_variable_defaults(gfx_path='graphics')
-
-# Qt smaller than 5.6.2 needs a different approach to pinch gestures
-CORRECT_PINCH = False
-if QT_VERSION <= 0x050600:
-    import platform
-    CORRECT_PINCH = platform.system() == 'Darwin'
 
 
 class RadarShaders(glh.ShaderSet):
