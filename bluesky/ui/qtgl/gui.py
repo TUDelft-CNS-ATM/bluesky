@@ -2,7 +2,7 @@
 import os
 import sys
 
-from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, QT_VERSION_STR
+from PyQt6.QtCore import QTimer, qInstallMessageHandler, QT_VERSION_STR
 
 from PyQt6.QtCore import QtMsgType
 from PyQt6.QtWidgets import QApplication

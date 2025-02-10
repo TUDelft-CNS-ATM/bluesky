@@ -295,8 +295,7 @@ class RadarWidget(glh.RenderWidget):
                 if g.gestureType() == Qt.GestureType.PinchGesture:
                     event.accept(g)
                     zoom = g.scaleFactor() * (zoom or 1.0)
-                    if CORRECT_PINCH:
-                        zoom /= g.lastScaleFactor()
+
                 elif g.gestureType() == Qt.GestureType.PanGesture:
                     event.accept(g)
                     if abs(g.delta().y() + g.delta().x()) > 1e-1:

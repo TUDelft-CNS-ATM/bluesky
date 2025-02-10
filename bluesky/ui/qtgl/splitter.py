@@ -1,11 +1,5 @@
-try:
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtWidgets import QSplitter, QSplitterHandle, QVBoxLayout, QToolButton
-
-except ImportError:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QSplitter, QSplitterHandle, QVBoxLayout, QToolButton
-
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QSplitter, QSplitterHandle, QVBoxLayout, QToolButton
 
 
 class Handle(QSplitterHandle):

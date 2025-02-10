@@ -1,10 +1,5 @@
-try:
-    from PyQt6.QtWidgets import QListView
-    from PyQt6.QtGui import QPalette
-
-except ImportError:
-    from PyQt5.QtWidgets import QListView
-    from PyQt5.QtGui import QPalette
+from PyQt6.QtWidgets import QListView
+from PyQt6.QtGui import QPalette
 
 
 class StackList(QListView):
