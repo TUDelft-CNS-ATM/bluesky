@@ -10,21 +10,13 @@ matplotlib.rcParams['font.size'] = 5
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import key_press_handler
 import matplotlib.pyplot as plt
-try:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea, QWidget
-    matplotlib.use('Qt5Agg')
-    
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, \
-        NavigationToolbar2QT as NavigationToolbar
-        
-except ImportError:
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea, QWidget
-    matplotlib.use('QtAgg')
 
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas, \
-        NavigationToolbar2QT as NavigationToolbar
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QTabWidget, QVBoxLayout, QScrollArea, QWidget
+matplotlib.use('QtAgg')
+
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas#, \
+    #NavigationToolbar2QT as NavigationToolbar
 
 import bluesky as bs
 from bluesky import stack

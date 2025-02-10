@@ -3,38 +3,17 @@ import importlib
 from os import path
 from collections import namedtuple
 from collections import OrderedDict
-from pathlib import Path
-
-try:
-    from PyQt5.QtCore import qCritical, QT_VERSION_STR
-    from PyQt5.QtWidgets import QOpenGLWidget
-    from PyQt5.QtGui import (QSurfaceFormat, QOpenGLShader, QOpenGLShaderProgram,
-                            QOpenGLVertexArrayObject, QOpenGLBuffer,
-                            QOpenGLContext, QOpenGLVersionProfile,
-                            QOpenGLTexture, QImage)
-    opengl_versions = ((4, 5), (4, 4), (4, 3), (4, 2), (4, 1), (4, 0), (3, 3))
-
-
-except ImportError:
-    from PyQt6.QtCore import qCritical, QT_VERSION_STR
-    from PyQt6.QtOpenGLWidgets import QOpenGLWidget
-    from PyQt6.QtOpenGL import (QOpenGLShader, QOpenGLShaderProgram,
-                         QOpenGLVertexArrayObject, QOpenGLBuffer,
-                         QOpenGLVersionProfile, QOpenGLTexture, QOpenGLVersionFunctionsFactory)
-    from PyQt6.QtGui import QSurfaceFormat, QOpenGLContext, QImage
-    
-    opengl_versions = ((4, 1), (2, 1), (2, 0))
-
-
-try:
-    from collections.abc import Collection, MutableMapping
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection, MutableMapping
+from collections.abc import Collection, MutableMapping
 import ctypes
 import numpy as np
+from pathlib import Path
 
-
+from PyQt6.QtCore import qCritical
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6.QtOpenGL import (QOpenGLShader, QOpenGLShaderProgram,
+                        QOpenGLVertexArrayObject, QOpenGLBuffer,
+                        QOpenGLVersionProfile, QOpenGLTexture, QOpenGLVersionFunctionsFactory)
+from PyQt6.QtGui import QSurfaceFormat, QOpenGLContext, QImage
 
 import bluesky as bs
 from bluesky.core import Entity
@@ -46,6 +25,9 @@ from bluesky.ui.qtgl.dds import DDSTexture
 bs.settings.set_variable_defaults(gfx_path='graphics')
 
 GLVariable = namedtuple('GLVariable', ['loc', 'size'])
+
+opengl_versions = ((4, 1), (2, 1), (2, 0))
+
 # Convenience object with all GL functions
 gl = None
 _glvar_sizes = dict()
@@ -55,10 +37,7 @@ def get_profile_settings():
     for version in opengl_versions:
         for profile in ('Core', 'Compatibility'):
             try:
-                if QT_VERSION_STR[0] == '5':
-                    importlib.import_module(f'PyQt5._QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
-                elif QT_VERSION_STR[0] == '6':
-                    importlib.import_module(f'PyQt6.QtOpenGL', package=f'QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
+                importlib.import_module(f'PyQt6.QtOpenGL', package=f'QOpenGLFunctions_{version[0]}_{version[1]}_{profile}')
                 
                 print(f'Found Qt-provided OpenGL functions for OpenGL {version} {profile}')
                 return version, QSurfaceFormat.OpenGLContextProfile.CoreProfile if profile == 'Core' else QSurfaceFormat.OpenGLContextProfile.CompatibilityProfile
@@ -83,11 +62,8 @@ def init():
             # Use a dummy context to get GL functions
             glprofile = QOpenGLVersionProfile(fmt)
             ctx = QOpenGLContext()
-            if QT_VERSION_STR[0] == '5':
-                globals()['gl'] = ctx.versionFunctions(glprofile)
-            elif QT_VERSION_STR[0] == '6':
-                function_factory = QOpenGLVersionFunctionsFactory()
-                globals()['gl'] = function_factory.get(glprofile, ctx)
+            function_factory = QOpenGLVersionFunctionsFactory()
+            globals()['gl'] = function_factory.get(glprofile, ctx)
             # Check and set OpenGL capabilities
             if not glprofile.hasProfiles():
                 raise RuntimeError(
@@ -123,11 +99,8 @@ def init_glcontext(ctx):
         # The OpenGL functions are provided by the Qt library. Update them from the current context
         fmt = QSurfaceFormat.defaultFormat()
         glprofile = QOpenGLVersionProfile(fmt)
-        if QT_VERSION_STR[0] == '5':
-            globals()['gl'] = ctx.versionFunctions(glprofile)
-        elif QT_VERSION_STR[0] == '6':
-            function_factory = QOpenGLVersionFunctionsFactory()
-            globals()['gl'] = function_factory.get(glprofile, ctx)
+        function_factory = QOpenGLVersionFunctionsFactory()
+        globals()['gl'] = function_factory.get(glprofile, ctx)
     # QtOpenGL doesn't wrap all necessary functions. We can do this manually
 
     # void glGetActiveUniformBlockName(	GLuint program,

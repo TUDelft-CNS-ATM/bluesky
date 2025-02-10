@@ -1,20 +1,12 @@
 """ QTGL Gui for BlueSky."""
-try:
-    from PyQt5.QtCore import Qt, QEvent, qInstallMessageHandler, \
-        QtMsgType, QT_VERSION, QT_VERSION_STR
-    from PyQt5.QtWidgets import QApplication, QErrorMessage
-    from PyQt5.QtGui import QFont
-    
-except ImportError:
-    from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, \
-        QT_VERSION, QT_VERSION_STR
-
-    from PyQt6.QtCore import QtMsgType
-    from PyQt6.QtWidgets import QApplication, QErrorMessage
-    from PyQt6.QtGui import QFont
-
 import os
 import sys
+
+from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, QT_VERSION_STR
+
+from PyQt6.QtCore import QtMsgType
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QFont
 
 import bluesky as bs
 from bluesky.ui.qtgl.guiclient import GuiClient
@@ -45,8 +37,6 @@ def start(hostname=None):
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     #QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    #QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    # only pyqt5: QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     # Start the Qt main object
     app = QApplication(sys.argv[:1])
@@ -56,10 +46,6 @@ def start(hostname=None):
 
     # Start the bluesky network client
     client = GuiClient()
-
-    # Enable HiDPI support (Qt5 only)
-    if QT_VERSION_STR[0] == '5' and QT_VERSION >= 0x050000:
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     splash = Splash()
 

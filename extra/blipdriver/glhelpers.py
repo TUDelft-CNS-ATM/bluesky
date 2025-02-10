@@ -20,13 +20,10 @@ By            :
 Date          :
 ------------------------------------------------------------------
 """
-try:
-    from PyQt5.QtGui import QImage
-except ImportError:
-    from PyQt6.QtGui import QImage
-import OpenGL.GL as gl
-import numpy as np
 from ctypes import c_void_p, pointer, sizeof
+import numpy as np
+import OpenGL.GL as gl
+from PyQt6.QtGui import QImage
 
 
 def load_texture(fname):
