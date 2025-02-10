@@ -2,10 +2,10 @@
 name = "bluesky-simulator"
 dynamic = ["version"]
 dependencies = [
-    "numpy >= 2.0.0",
-    "scipy >= 1.13.0",
-    "matplotlib >= 3.9.0",
-    "pandas >= 2.2.0",
+    "numpy", # >= 2.0.0",
+    "scipy", # >= 1.13.0",
+    "matplotlib", # >= 3.9.0",
+    "pandas", # >= 2.2.0",
     "msgpack >= 1.0.0",
     "zmq",
     "bluesky-navdata"
