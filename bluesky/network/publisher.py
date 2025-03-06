@@ -16,7 +16,7 @@ class PublisherMeta(type):
     __publishers__ = dict()
     __timers__ = dict()
 
-    def __call__(cls, topic: str, dt=None, collect=False):
+    def __call__(cls, topic: str, dt=None, collect=False, send_type='replace'):
         pub = PublisherMeta.__publishers__.get(topic)
         if pub is None:
             pub = PublisherMeta.__publishers__[topic] = super().__call__(topic, dt, collect)
@@ -26,7 +26,8 @@ class PublisherMeta(type):
                     timer = PublisherMeta.__timers__[dt] = Timer(dt)
                 else:
                     timer = PublisherMeta.__timers__[dt]
-                timer.timeout.connect(pub.send_replace)
+                callback = getattr(pub, f'send_{send_type}')
+                timer.timeout.connect(callback)
         return pub
 
     @subscriber
@@ -73,7 +74,7 @@ class StatePublisher(metaclass=PublisherMeta):
             (topic, to_group), payload = StatePublisher.__collect__.popitem()
             bs.net.send(topic, payload, to_group)
 
-    def __init__(self, topic: str, dt=None, collect=False) -> None:
+    def __init__(self, topic: str, dt=None, collect=False, send_type='replace') -> None:
         self.topic = topic
         self.dt = dt
         self.collects = collect
@@ -84,6 +85,7 @@ class StatePublisher(metaclass=PublisherMeta):
         return
 
     def send_update(self, to_group=b'', **data):
+        data = data or self.get_payload()
         if data:
             if self.collects:
                 self.collect(self.topic, [ActionType.Update.value, data], to_group)
@@ -97,6 +99,7 @@ class StatePublisher(metaclass=PublisherMeta):
 
 
     def send_append(self, to_group=b'', **data):
+        data = data or self.get_payload()
         if data:
             if self.collects:
                 self.collect(self.topic, [ActionType.Append.value, data], to_group)
@@ -104,6 +107,7 @@ class StatePublisher(metaclass=PublisherMeta):
                 bs.net.send(self.topic, [ActionType.Append.value, data], to_group)
 
     def send_extend(self, to_group=b'', **data):
+        data = data or self.get_payload()
         if data:
             if self.collects:
                 self.collect(self.topic, [ActionType.Extend.value, data], to_group)
@@ -121,21 +125,32 @@ class StatePublisher(metaclass=PublisherMeta):
         return func
 
 
-def state_publisher(func: Optional[Callable] = None, *, topic='', dt=None):
+def state_publisher(func: Optional[Callable] = None, *, topic='', dt=None, send_type='replace'):
     ''' BlueSky shared state publisher decorator.
 
-        Use this decorator instead of a StatePublisher object if you only want to send full updates.
+        Convenience decorator to create a periodically called state publisher.
         Functions decorated with this decorator will be:
         - periodically called at interval dt
         - called when a subscriber requests a full state
 
         Decorated function should return a dictionary with all relevant state data.
+
+        Arguments:
+        - func: The payload function that returns the data to be published in a dictionary
+        - topic: The message topic that clients can subscribe to. If no topic is given, the name of the
+          decorated function is used.
+        - dt: Time interval between successive periodic broadcasts of this state publisher
+        - send_type: Type of update sent by this publisher. This can be:
+          - replace (the default): Each state package sent by this publisher fully replaces previous data
+          - append: Each state package sent should be appended to the previously received data
+          - extend: Each state package sent should be used to extend the previously received data
+          - update: Each state package sent should be used to update the previously received data
     '''
     def deco(func):
         ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
         itopic = (topic or ifunc.__name__).upper()
 
-        StatePublisher(itopic, dt).payload(func)
+        StatePublisher(itopic, dt, send_type=send_type).payload(func)
         return func
 
     # Allow both @publisher and @publisher(args)
