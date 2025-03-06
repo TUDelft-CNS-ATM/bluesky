@@ -124,7 +124,7 @@ class ScreenIO(Entity):
             str(bs.sim.utc.replace(microsecond=0)), bs.traf.ntraf, bs.sim.state, stack.get_scenname()))
         
 
-    @state_publisher(topic='TRAILS', dt=1000 // SIMINFO_RATE)
+    @state_publisher(topic='TRAILS', dt=1000 // SIMINFO_RATE, send_type='extend')
     def send_trails(self):
         # Trails, send only new line segments to be added
         if bs.traf.trails.active and len(bs.traf.trails.newlat0) > 0:
