@@ -12,7 +12,8 @@ on:
 
 env:
   CIBW_BUILD: cp310* cp311* cp312* cp313*
-  CIBW_ARCHS_LINUX: x86_64 aarch64
+  CIBW_ARCHS_WINDOWS: auto64
+  CIBW_ARCHS_LINUX: auto64 aarch64
   CIBW_ARCHS_MACOS: universal2
   # CIBW_ARCHS_MACOS: auto universal2
   CIBW_TEST_SKIP: "*universal2:arm64"
