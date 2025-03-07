@@ -1,133 +1,78 @@
-''' BlueSky client base class. '''
-import os
+from collections import defaultdict
+from typing import Union, Collection
 import zmq
 import msgpack
-import bluesky
-from bluesky import settings
-from bluesky.core import Signal
-from bluesky.stack.clientstack import stack, process
-from bluesky.network.discovery import Discovery
+
+import bluesky as bs
+from bluesky import stack
+from bluesky.core import Entity, Signal
+from bluesky.stack.clientstack import process
+from bluesky.traffic.trafficproxy import TrafficProxy
+from bluesky.network import context as ctx
 from bluesky.network.npcodec import encode_ndarray, decode_ndarray
+from bluesky.network.subscriber import Subscription
+from bluesky.network.common import genid, asbytestr, seqid2idx, MSG_SUBSCRIBE, MSG_UNSUBSCRIBE, GROUPID_NOGROUP, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT, IDLEN
 
 
-class Client:
-    ''' Base class for (GUI) clients of a BlueSky server. '''
-    def __init__(self, actnode_topics=b''):
-        ctx = zmq.Context.instance()
-        self.event_io = ctx.socket(zmq.DEALER)
-        self.stream_in = ctx.socket(zmq.SUB)
-        self.poller = zmq.Poller()
-        self.host_id = b''
-        self.client_id = b'\x00' + os.urandom(4)
-        self.sender_id = b''
-        self.servers = dict()
-        self.act = b''
-        self.actroute = []
-        self.acttopics = actnode_topics
+# Register settings defaults
+bs.settings.set_variable_defaults(recv_port=11000, send_port=11001)
+
+
+class Client(Entity):
+    def __init__(self, group_id=GROUPID_CLIENT):
+        super().__init__()
+        self.group_id = asbytestr(group_id)
+        self.client_id = genid(self.group_id)
+        self.act_id = None
+        self.acttopics = defaultdict(set)
+        self.nodes = set()
+        self.servers = set()
         self.discovery = None
 
-        # Signals
-        self.nodes_changed = Signal('nodes_changed')
-        self.server_discovered = Signal('server_discovered')
-        self.signal_quit = Signal('quit')
-        self.event_received = Signal('event_received')
-        self.stream_received = Signal('stream_received')
+        zmqctx = zmq.Context.instance()
+        self.sock_recv = zmqctx.socket(zmq.SUB)
+        self.sock_send = zmqctx.socket(zmq.XPUB)
+        self.poller = zmq.Poller()
 
         # Tell bluesky that this client will manage the network I/O
-        bluesky.net = self
+        bs.net = self
+        # And create a proxy object for easy traffic data access
+        bs.traf = TrafficProxy()
+
+        # Subscribe to subscriptions that were already made before constructing
+        # this node
+        for sub in Subscription.subscriptions.values():
+            sub.subscribe_all()
+
+        # Signals
+        self.actnode_changed = Signal('actnode-changed')
+        self.node_added = Signal('node-added')
+        self.node_removed = Signal('node-removed')
+        self.server_added = Signal('server-added')
+        self.server_removed = Signal('server-removed')
+
         # If no other object is taking care of this, let this client act as screen object as well
-        if not bluesky.scr:
-            bluesky.scr = self
+        if not bs.scr:
+            bs.scr = self
 
-    def start_discovery(self):
-        ''' Start UDP-based discovery of available BlueSky servers. '''
-        if not self.discovery:
-            self.discovery = Discovery(self.client_id)
-            self.poller.register(self.discovery.handle, zmq.POLLIN)
-            self.discovery.send_request()
-
-    def stop_discovery(self):
-        ''' Stop UDP-based discovery. '''
-        if self.discovery:
-            self.poller.unregister(self.discovery.handle)
-            self.discovery = None
-
-    def get_hostid(self):
-        ''' Return the id of the host that this client is connected to. '''
-        return self.host_id
-
-    def sender(self):
-        ''' Return the id of the sender of the most recent event. '''
-        return self.sender_id
-
-    def event(self, name, data, sender_id):
-        ''' Default event handler for Client. Override this function for added
-            functionality. '''
-        self.event_received.emit(name, data, sender_id)
-
-    def stream(self, name, data, sender_id):
-        ''' Default stream handler for Client. Override this function for added
-            functionality. '''
-        self.stream_received.emit(name, data, sender_id)
-
-    def actnode_changed(self, newact):
-        ''' Default actnode change handler for Client. Override or monkey-patch this function
-            to implement actual actnode change handling. '''
-        print('Client active node changed.')
-
-    def subscribe(self, streamname, node_id=b'', actonly=False):
-        ''' Subscribe to a stream.
-
-            Arguments:
-            - streamname: The name of the stream to subscribe to
-            - node_id: The id of the node from which to receive the stream (optional)
-            - actonly: Set to true if you only want to receive this stream from
-              the active node.
-        '''
-        if actonly and not node_id and streamname not in self.acttopics:
-            self.acttopics.append(streamname)
-            node_id = self.act
-        self.stream_in.setsockopt(zmq.SUBSCRIBE, streamname + node_id)
-
-    def unsubscribe(self, streamname, node_id=b''):
-        ''' Unsubscribe from a stream.
-
-            Arguments:
-            - streamname: The name of the stream to unsubscribe from.
-            - node_id: ID of the specific node to unsubscribe from.
-                       This is also used when switching active nodes.
-        '''
-        if not node_id and streamname in self.acttopics:
-            self.acttopics.remove(streamname)
-            node_id = self.act
-        self.stream_in.setsockopt(zmq.UNSUBSCRIBE, streamname + node_id)
-
-    def connect(self, hostname=None, event_port=None, stream_port=None, protocol='tcp'):
+    def connect(self, hostname=None, recv_port=None, send_port=None, protocol='tcp'):
         ''' Connect client to a server.
 
             Arguments:
             - hostname: Network name or ip of the server to connect to
-            - event_port: Network port to use for event communication
-            - stream_port: Network port to use for stream communication
+            - recv_port: Network port to use for incoming communication
+            - send_port: Network port to use for outgoing communication
             - protocol: Network protocol to use
         '''
         conbase = f'{protocol}://{hostname or "localhost"}'
-        econ = conbase + f':{event_port or settings.event_port}'
-        scon = conbase + f':{stream_port or settings.stream_port}'
-        self.event_io.setsockopt(zmq.IDENTITY, self.client_id)
-        self.event_io.connect(econ)
-        self.send_event(b'REGISTER')
-        self.host_id = self.event_io.recv_multipart()[0]
-        print(f'Client {self.client_id} connected to host {self.host_id}')
-        self.stream_in.connect(scon)
-
-        self.poller.register(self.event_io, zmq.POLLIN)
-        self.poller.register(self.stream_in, zmq.POLLIN)
-
-    def echo(self, text, flags=None, sender_id=None):
-        ''' Default client echo function. Prints to console.
-            Overload this function to process echo text in your GUI. '''
-        print(text)
+        rcon = conbase + f':{recv_port or bs.settings.recv_port}'
+        scon = conbase + f':{send_port or bs.settings.send_port}'
+        self.sock_recv.connect(rcon)
+        self.sock_send.connect(scon)
+        self.poller.register(self.sock_recv, zmq.POLLIN)
+        self.poller.register(self.sock_send, zmq.POLLIN)
+        # Register this client by subscribing to targeted messages
+        self.subscribe('', '', to_group=self.client_id)
 
     def update(self):
         ''' Client periodic update function.
@@ -143,96 +88,170 @@ class Client:
             Arguments:
             timeout: The polling timeout in milliseconds. '''
         try:
-            socks = dict(self.poller.poll(timeout))
-            if socks.get(self.event_io) == zmq.POLLIN:
-                msg = self.event_io.recv_multipart()
-                # Remove send-to-all flag if present
-                if msg[0] == b'*':
-                    msg.pop(0)
-                self.sender_id, *_, eventname, data = msg
-                pydata = msgpack.unpackb(data, object_hook=decode_ndarray, raw=False)
-                if eventname == b'STACK':
-                    stack(pydata, sender_id=self.sender_id)
-                elif eventname == b'ECHO':
-                    self.echo(**pydata, sender_id=self.sender_id)
-                elif eventname == b'NODESCHANGED':
-                    self.servers.update(pydata)
-                    self.nodes_changed.emit(pydata)
+            events = dict(self.poller.poll(timeout))
 
-                    # If this is the first known node, select it as active node
-                    nodes_myserver = next(iter(pydata.values())).get('nodes')
-                    if not self.act and nodes_myserver:
-                        self.actnode(nodes_myserver[0])
-                elif eventname == b'QUIT':
-                    self.signal_quit.emit()
-                else:
-                    self.event(eventname, pydata, self.sender_id)
+            # The socket with incoming data
+            for sock, event in events.items():
+                if event != zmq.POLLIN:
+                    # The event does not refer to incoming data: skip for now
+                    continue
+            
+                # Receive the message
+                ctx.msg = sock.recv_multipart()
+                if not ctx.msg:
+                    # In the rare case that a message is empty, skip remaning processing
+                    continue
 
-            if socks.get(self.stream_in) == zmq.POLLIN:
-                msg = self.stream_in.recv_multipart()
+                # Regular incoming data
+                if sock == self.sock_recv:
+                    ctx.topic = ctx.msg[0][IDLEN:-IDLEN].decode()
+                    ctx.sender_id = ctx.msg[0][-IDLEN:]
+                    pydata = msgpack.unpackb(ctx.msg[1], object_hook=decode_ndarray, raw=False)                    
+                    sub = Subscription.subscriptions.get(ctx.topic, None)# or Subscription(ctx.topic, directedonly=True)
+                    if sub is None:
+                        continue
+                    # Unpack dict or list, skip empty string
+                    if pydata == '':
+                        sub.emit()
+                    elif isinstance(pydata, dict):
+                        sub.emit(**pydata)
+                    elif isinstance(pydata, (list, tuple)):
+                        sub.emit(*pydata)
+                    else:
+                        sub.emit(pydata)
+                    ctx.msg = ctx.topic = ctx.sender_id = None
 
-                strmname = msg[0][:-5]
-                sender_id = msg[0][-5:]
-                if self._getroute(sender_id) is None:
-                    print('Client: Skipping stream data from unknown node')
-                    return False
-                pydata = msgpack.unpackb(msg[1], object_hook=decode_ndarray, raw=False)
-                self.stream(strmname, pydata, sender_id)
+                elif sock == self.sock_send:
+                    # This is an (un)subscribe message. If it's an id-only subscription
+                    # this is also a registration message
+                    if len(ctx.msg[0]) == IDLEN + 1:
+                        sender_id = ctx.msg[0][1:]
+                        sequence_idx = seqid2idx(sender_id[-1])
+                        if sender_id[0] in (GROUPID_SIM, GROUPID_NOGROUP):
+                            # This is an initial simulation node subscription
+                            if ctx.msg[0][0] == MSG_SUBSCRIBE:
+                                if sequence_idx > 0:
+                                    self.nodes.add(sender_id)
+                                    self.node_added.emit(sender_id)
+                                    if not self.act_id:
+                                        self.actnode(sender_id)
+                                    continue
+                                elif sequence_idx == 0:
+                                    self.servers.add(sender_id)
+                                    self.server_added.emit(sender_id)
 
-            # If we are in discovery mode, parse this message
-            if self.discovery and socks.get(self.discovery.handle.fileno()):
-                dmsg = self.discovery.recv_reqreply()
-                if dmsg.conn_id != self.client_id and dmsg.is_server:
-                    self.server_discovered.emit(dmsg.conn_ip, dmsg.ports)
+                            elif ctx.msg[0][0] == MSG_UNSUBSCRIBE:
+                                if sequence_idx > 0:
+                                    self.nodes.discard(sender_id)
+                                    self.node_removed.emit(sender_id)
+                                elif sequence_idx == 0:
+                                    self.servers.discard(sender_id)
+                                    self.server_removed.emit(sender_id)
+
         except zmq.ZMQError:
             return False
 
-    def _getroute(self, target):
-        for srv in self.servers.values():
-            if target in srv['nodes']:
-                return srv['route']
-        return None
+    def send(self, topic: str, data: Union[str, Collection]='', to_group: str=''):
+        btopic = asbytestr(topic)
+        btarget = asbytestr(to_group or stack.sender() or self.act_id or '')
+        self.sock_send.send_multipart(
+            [
+                btarget.ljust(IDLEN, b'*') + btopic + self.client_id,
+                msgpack.packb(data, default=encode_ndarray, use_bin_type=True)
+            ]
+        )
+
+    def subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
+        ''' Subscribe to a topic.
+
+            Arguments:
+            - topic: The name of the topic to subscribe to
+            - from_id: The id of the node from which to receive the topic (optional)
+            - to_group: The group mask that this topic is sent to (optional)
+            - actonly: Set to true if you only want to receive this topic from
+              the active node.
+        '''
+        sub = None
+        if topic:
+            sub = Subscription(topic)
+            sub.actonly = (sub.actonly or actonly)
+            actonly = sub.actonly
+            if (from_group, to_group) in sub.subs:
+                # Subscription already active. Just return Subscription object
+                return sub
+            sub.subs.add((from_group, to_group))
+
+        self._subscribe(topic, from_group, to_group, actonly)
+
+        # Messages coming in that match this subscription will be emitted using a 
+        # subscription signal
+        return sub
+
+    def unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+        ''' Unsubscribe from a topic.
+
+            Arguments:
+            - topic: The name of the stream to unsubscribe from.
+            - from_id: When subscribed to data from a specific node: The id of the node
+            - to_group: The group mask that this topic is sent to (optional)
+        '''
+        if topic:
+            Subscription(topic).subs.discard((from_group, to_group))
+        self._unsubscribe(topic, from_group, to_group)
+
+    def _subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
+        if from_group == GROUPID_DEFAULT:
+            from_group = GROUPID_SIM
+            if actonly:
+                self.acttopics[topic].add(to_group)
+                if self.act_id is not None:
+                    bfrom_group = self.act_id
+                else:
+                    return
+        btopic = asbytestr(topic)
+        bfrom_group = asbytestr(from_group)
+        bto_group = asbytestr(to_group)
+
+        self.sock_recv.setsockopt(zmq.SUBSCRIBE, bto_group.ljust(IDLEN, b'*') + btopic + bfrom_group)
+
+    def _unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+        if from_group == GROUPID_DEFAULT:
+            from_group = GROUPID_SIM
+        btopic = asbytestr(topic)
+        bfrom_group = asbytestr(from_group)
+        bto_group = asbytestr(to_group)
+        if from_group == GROUPID_DEFAULT and topic in self.acttopics:
+            self.acttopics[topic].discard(to_group)
+            if self.act_id is not None:
+                bfrom_group = self.act_id
+            else:
+                return
+        self.sock_recv.setsockopt(zmq.UNSUBSCRIBE, bto_group.ljust(IDLEN, b'*') + btopic + bfrom_group)
 
     def actnode(self, newact=None):
         ''' Set the new active node, or return the current active node. '''
         if newact:
-            route = self._getroute(newact)
-            if route is None:
+            if newact not in self.nodes:
                 print('Error selecting active node (unknown node)')
                 return None
             # Unsubscribe from previous node, subscribe to new one.
-            if newact != self.act:
-                for topic in self.acttopics:
-                    if self.act:
-                        self.unsubscribe(topic, self.act)
-                    self.subscribe(topic, newact)
-                self.actroute = route
-                self.act = newact
-                self.actnode_changed(newact)
+            if newact != self.act_id:
+                for topic, groupset in self.acttopics.items():
+                    for to_group in groupset:
+                        if self.act_id:
+                            self._unsubscribe(topic, self.act_id, to_group)
+                        self._subscribe(topic, newact, to_group)
+                self.act_id = newact
+                self.actnode_changed.emit(newact)
 
-        return self.act
+        return self.act_id
 
-    def addnodes(self, count=1):
-        ''' Tell the server to add 'count' nodes. '''
-        self.send_event(b'ADDNODES', count)
+    def addnodes(self, count=1, *node_ids, server_id=None):
+        ''' Tell the specified server to add 'count' nodes. 
+        
+            If provided, create these nodes with the specified node ids.
 
-    def send_event(self, name, data=None, target=None):
-        ''' Send an event to one or all simulation node(s).
-
-            Arguments:
-            - name: Name of the event
-            - data: Data to send as payload
-            - target: Destination of this event. Event is sent to all nodes
-              if * is specified as target.
+            If no server_id is specified, the corresponding server of the
+            currently-active node is targeted.
         '''
-        pydata = msgpack.packb(data, default=encode_ndarray, use_bin_type=True)
-        if not target:
-            self.event_io.send_multipart(self.actroute + [self.act, name, pydata])
-        elif target == b'*':
-            self.event_io.send_multipart([target, name, pydata])
-        else:
-            rte = self._getroute(target)
-            if rte is None:
-                print(f'Client: Not sending event {name} to unknown target {target}')
-                return
-            self.event_io.send_multipart(rte + [target, name, pydata])
+        self.send(b'ADDNODES', dict(count=count, node_ids=node_ids), server_id or genid(self.act_id[:-1], seqidx=0))

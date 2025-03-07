@@ -1,18 +1,14 @@
 """ Autopilot Implementation."""
 from math import sqrt, atan
 import numpy as np
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 import bluesky as bs
 from bluesky import stack
 from bluesky.tools import geo
 from bluesky.tools.misc import degto180
 from bluesky.tools.position import txt2pos
 from bluesky.tools.aero import ft, nm, fpm, vcasormach2tas, vcas2tas, tas2cas, cas2tas, g0
-from bluesky.core import Entity, timed_function
+from bluesky.core import Entity
 from .route import Route
 
 # debug
@@ -110,8 +106,6 @@ class Autopilot(Entity, replaceable=True):
         for ridx, acid in enumerate(bs.traf.id[-n:]):
             self.route[ridx - n] = Route(acid)
 
-
-    #no longer timed @timed_function(name='fms', dt=bs.settings.fms_dt, manual=True)
     def wppassingcheck(self, qdr, dist): # qdr [deg], dist [m[
         """
         The actwp is the interface between the list of waypoint data in the route object and the autopilot guidance

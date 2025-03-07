@@ -1,15 +1,22 @@
 ''' BlueSky simulation control object. '''
 import time
 import datetime
+import signal
 import numpy as np
 from random import seed
 
 # Local imports
 import bluesky as bs
+from bluesky.core.base import Base
 import bluesky.core as core
 from bluesky.core import plugin, simtime
+from bluesky.core.signal import subscriber
+from bluesky.network.publisher import state_publisher
+from bluesky.core.walltime import Timer
+from bluesky.core.timedfunction import hooks
 from bluesky.stack import simstack, recorder
 from bluesky.tools import datalog, areafilter, plotter
+
 
 # Minimum sleep interval
 MINSLEEP = 1e-3
@@ -17,9 +24,10 @@ MINSLEEP = 1e-3
 # Register settings defaults
 bs.settings.set_variable_defaults(simdt=0.05)
 
-class Simulation:
+class Simulation(Base):
     ''' The simulation object. '''
     def __init__(self):
+        super().__init__()
         self.state = bs.INIT
         self.prevstate = None
 
@@ -49,8 +57,34 @@ class Simulation:
         # Flag indicating whether timestep can be varied to ensure realtime op
         self.rtmode = False
 
+        self.running = True
+
         # Keep track of known clients
         self.clients = set()
+
+        # Connect to system ABORT/INTERRUPT signal
+        signal.signal(signal.SIGINT, lambda *args: self.quit())
+        signal.signal(signal.SIGTERM, lambda *args: self.quit())
+
+    def run(self):
+        ''' Start the main loop of this simulation. '''
+        while self.running:
+            # Process timers
+            Timer.update_timers()
+            # Update network connections
+            bs.net.update()
+            # Perform a simulation step
+            self.update()
+
+            # Update screen logic
+            bs.scr.update()
+
+        # Close up properly on exit
+        bs.net.close()
+        datalog.reset()
+
+        # Close savefile which may be open for recording
+        recorder.saveclose()  # Close reording file if it is on
 
     def step(self, dt_increment=0):
         ''' Perform one simulation timestep.
@@ -70,7 +104,7 @@ class Simulation:
             # Plot/log the current timestep, and call preupdate functions
             plotter.update()
             datalog.update()
-            simtime.preupdate()
+            hooks.preupdate.trigger()
 
             # Determine interval towards next timestep                
             self.simt, self.simdt = simtime.step(dt_increment)
@@ -80,7 +114,10 @@ class Simulation:
 
             # Update traffic and other update functions for the next timestep
             bs.traf.update()
-            simtime.update()
+            hooks.update.trigger()
+
+        else:
+            hooks.hold.trigger()
 
     def update(self):
         ''' Perform a simulation update. 
@@ -126,23 +163,15 @@ class Simulation:
 
         # Inform main of our state change
         if self.state != self.prevstate:
-            bs.net.send_event(b'STATECHANGE', self.state)
+            bs.net.send(b'STATECHANGE', self.state, bs.net.server_id)
             self.prevstate = self.state
-
-    def stop(self):
-        ''' Stack stop/quit command. '''
-        self.state = bs.END
-        bs.net.stop()
 
     def quit(self):
         ''' Quit simulation.
             This function is called when a QUIT signal is received from
-            the server. '''
-        bs.net.quit()
-        datalog.reset()
-
-        # Close savefile which may be open for recording
-        recorder.saveclose()  # Close reording file if it is on
+            the server, or when quit is called. '''
+        self.state = bs.END
+        self.running = False
 
     def op(self):
         ''' Set simulation state to OPERATE. '''
@@ -170,8 +199,9 @@ class Simulation:
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.ffmode = False
         self.set_dtmult(1.0)
-        simtime.reset()
+        hooks.reset.trigger()
         core.reset()
+        bs.ref.reset()
         bs.navdb.reset()
         bs.traf.reset()
         simstack.reset()
@@ -179,6 +209,9 @@ class Simulation:
         areafilter.reset()
         bs.scr.reset()
         plotter.reset()
+
+        # Communicate that this simulation has reset
+        bs.net.send(b'RESET')
 
     def set_dtmult(self, mult):
         ''' Set simulation speed multiplier. '''
@@ -211,45 +244,25 @@ class Simulation:
         self.reset()
         try:
             scentime, scencmd = zip(*[tc for tc in simstack.readscn(fname)])
-            bs.net.send_event(b'BATCH', (scentime, scencmd))
+            bs.net.send(b'BATCH', (scentime, scencmd), bs.net.server_id)
         except FileNotFoundError:
             return False, f'BATCH: File not found: {fname}'
 
         return True
 
-    def event(self, eventname, eventdata, sender_rte):
-        ''' Handle events coming from the network. '''
-        # Keep track of event processing
-        event_processed = False
+    @subscriber(topic='BATCH')
+    def start_batch_scenario(self, data):
+        ''' Start a scenario coming from the server batch. '''
+        # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
+        self.reset()
+        bs.stack.set_scendata(data['scentime'], data['scencmd'])
+        self.op()
 
-        if eventname == b'STACK':
-            # We received a single stack command. Add it to the existing stack
-            bs.stack.stack(eventdata, sender_id=sender_rte)
-            event_processed = True
-
-        elif eventname == b'BATCH':
-            # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
-            self.reset()
-            bs.stack.set_scendata(eventdata['scentime'], eventdata['scencmd'])
-            self.op()
-            event_processed = True
-
-        elif eventname == b'GETSIMSTATE':
-            # Add this client to the list of known clients
-            self.clients.add(sender_rte[-1])
-            # Send list of stack functions available in this sim to gui at start
-            stackdict = {cmd : val.brief[len(cmd) + 1:] for cmd, val in bs.stack.get_commands().items()}
-            shapes = [shape.raw for shape in areafilter.basic_shapes.values()]
-            simstate = dict(pan=bs.scr.def_pan, zoom=bs.scr.def_zoom,
-                stackcmds=stackdict, shapes=shapes, custacclr=bs.scr.custacclr,
-                custgrclr=bs.scr.custgrclr, settings=bs.settings._settings_hierarchy,
-                plugins=list(plugin.Plugin.plugins.keys()))
-            bs.net.send_event(b'SIMSTATE', simstate, target=sender_rte)
-        else:
-            # This is either an unknown event or a gui event.
-            event_processed = bs.scr.event(eventname, eventdata, sender_rte)
-
-        return event_processed
+    @state_publisher(topic='SIMSETTINGS')
+    def pub_simsettings(self):
+        ''' Publish simulation settings on request. '''
+        return dict(settings=bs.settings._settings_hierarchy,
+            plugins=list(plugin.Plugin.plugins.keys()))
 
     def setutc(self, *args):
         ''' Set simulated clock time offset. '''

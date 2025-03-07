@@ -1,0 +1,119 @@
+QToolButton#op {
+    border-top-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/play.svg)
+}
+
+QToolButton#hold {
+    border-top-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/hold.svg)
+}
+
+QToolButton#fast {
+    qproperty-icon: url(bluesky/resources/graphics/icons/fwd.svg)
+}
+
+QToolButton#fast10 {
+    qproperty-icon: url(bluesky/resources/graphics/icons/ffwd.svg)
+}
+
+QToolButton#ic {
+    border-bottom-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/stop.svg)
+}
+
+QToolButton#sameic {
+    border-bottom-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/frwd.svg)
+}
+
+QToolButton#showac {
+    border-top-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/AC.svg)
+}
+QToolButton#showpz {
+    border-top-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/PZ.svg)
+}
+QToolButton#showapt{
+    qproperty-icon: url(bluesky/resources/graphics/icons/apt.svg)
+}
+QToolButton#showwpt {
+    qproperty-icon: url(bluesky/resources/graphics/icons/wpt.svg)
+}
+QToolButton#showlabels {
+    border-bottom-left-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/lbl.svg)
+}
+QToolButton#showmap {
+    border-bottom-right-radius: 10;
+    qproperty-icon: url(bluesky/resources/graphics/icons/geo.svg)
+}
+
+QToolButton#custom1 { border-top-left-radius: 10 }
+QToolButton#custom2 { border-top-right-radius: 10 }
+QToolButton#custom5 { border-bottom-left-radius: 10 }
+QToolButton#custom6 { border-bottom-right-radius: 10 }
+
+QToolButton#zoomin {
+    qproperty-icon: url(bluesky/resources/graphics/icons/zoomin.svg)
+}
+QToolButton#zoomout {
+    qproperty-icon: url(bluesky/resources/graphics/icons/zoomout.svg)
+}
+QToolButton#panleft {
+    qproperty-icon: url(bluesky/resources/graphics/icons/panleft.svg)
+}
+QToolButton#panright {
+    qproperty-icon: url(bluesky/resources/graphics/icons/panright.svg)
+}
+QToolButton#panup {
+    qproperty-icon: url(bluesky/resources/graphics/icons/panup.svg)
+}
+QToolButton#pandown {
+    qproperty-icon: url(bluesky/resources/graphics/icons/pandown.svg)
+}
+
+/* Palette settings for Dark mode */
+QMainWindow[style="dark"], QMainWindow[style="dark"] QToolBox, QMainWindow[style="dark"] QWidget {
+    background-color: rgb(40, 40, 40);
+}
+
+QMainWindow[style="dark"] QToolButton, QMainWindow[style="dark"] QTreeWidget, QMainWindow[style="dark"] QTreeWidget QLabel {
+    background-color:rgb(60, 60, 60);
+}
+
+QMainWindow[style="dark"] Stackwin, QMainWindow[style="dark"] Cmdline {
+    color: lightgreen; 
+    background-color: rgb(90, 90, 90)
+}
+
+QMainWindow[style="dark"] QToolButton {
+    border: 0.5px solid rgb(75, 75, 75);
+}
+
+QMainWindow[style="dark"] QToolButton:hover {
+    background-color: rgb(75, 75, 75);
+}
+
+/* Palette settings for Light mode */
+QMainWindow[style="light"], QMainWindow[style="light"] QToolBox, QMainWindow[style="light"] QWidget {
+    background-color: rgb(245, 245, 245);
+}
+
+QMainWindow[style="light"] QToolButton, QMainWindow[style="light"] QTreeWidget, QMainWindow[style="light"] QTreeWidget QLabel {
+    background-color:white;
+}
+
+QMainWindow[style="light"] Stackwin, QMainWindow[style="light"] Cmdline {
+    color: rgb(0, 81, 255); 
+    background-color: white;
+    border: 0.5px solid rgb(205,205,205);
+}
+
+QMainWindow[style="light"] QToolButton {
+    border: 0.5px solid rgb(205,205,205);
+}
+
+QMainWindow[style="light"] QToolButton:hover {
+    background-color: rgb(235, 235, 235);
+}

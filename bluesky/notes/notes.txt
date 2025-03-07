@@ -1,0 +1,20 @@
+common subscriber:
+
+sharedstate/non-sharedstate: auto. explicit non-state -> keyword raw
+network: default. only local: keyword local  (of iets als netsubscribe?)
+
+on-node-added -> state request: 
+Request for:
+- all known state topics
+- all undecided topics
+
+detect sharedstate/non-sharedstate at first send:
+- subscribe initially creates subscription for a detection function. At the first message this function detects, 
+and sets up the final subscription.
+
+- broadcast is nu bijv. C***** TOPIC sender_id. verander naar:
+ ****** TOPIC C 
+ ****** TOPIC S
+
+enz.
+TODO: should net.send have a broadcast flag?

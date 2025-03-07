@@ -306,7 +306,6 @@ class ShaderSet(MutableMapping):
             raise KeyError('Uniform Buffer Object', uboname,
                            'not found in shader set.')
         ubo.update(*args, **kwargs)
-
     def set_shader_path(self, shader_path):
         ''' Set a search path for shader files. '''
         self._spath = shader_path
@@ -592,6 +591,11 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
             # Update the buffer of the attribute
             attrib.update(data)
 
+    def bind(self):
+        shader = ShaderSet.get_shader(self.shader_type)
+        shader.bind()
+        super().bind()
+
     def draw(self, primitive_type=None, first_vertex=None, vertex_count=None, n_instances=None):
         ''' Draw this VAO. '''
         if primitive_type is None:
@@ -608,8 +612,6 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
 
         if vertex_count == 0:
             return
-        shader = ShaderSet.get_shader(self.shader_type)
-        shader.bind()
         self.bind()
 
         if self.single_color is not None:
@@ -618,7 +620,7 @@ class VertexArrayObject(QOpenGLVertexArrayObject):
             self.texture.bind(0)
 
         if self.single_scale is not None:
-            shader.setAttributeValue(*self.single_scale)
+            ShaderSet.get_shader(self.shader_type).setAttributeValue(*self.single_scale)
 
         if n_instances > 0:
             gl.glDrawArraysInstanced(
@@ -754,6 +756,7 @@ class RenderObject(Entity, skipbase=True):
         return super().__init_subclass__(replaceable=True, skipbase=skipbase)
 
     def __init__(self, parent=None):
+        super().__init__()
         self.parent = parent or self.getdefault().implinstance().parent
         self.glsurface = self.parent.glsurface if isinstance(self.parent, RenderObject) else self.parent
         self.children = list()
@@ -777,10 +780,16 @@ class RenderObject(Entity, skipbase=True):
 
 @command(aliases=('ADDVIS',))
 def addvisual(objname: "txt" = "", target: "txt" = "RADARWIDGET"):
-    ''' Add a render object to a render target. 
+    ''' Add a new render object to a render target. 
+        Use this function to enable the drawing of new GL render objects
+        that are defined in plugins.
+
+        Note that if you are reimplementing an existing GL object you
+        should use the VIS command instead, to select alternate visualisations
+        of existing GL objects.
     
-        Argements:
-        - obj: The renderobject to add. 
+        Arguments:
+        - obj: The name of the renderobject to add. 
         - target: A render target such as the RadarWidget (the default) and the ND.
     '''
     if not target:

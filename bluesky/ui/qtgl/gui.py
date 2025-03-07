@@ -2,31 +2,32 @@
 import os
 import sys
 
-from PyQt6.QtCore import Qt, QEvent, qInstallMessageHandler, QT_VERSION_STR
+from PyQt6.QtCore import QTimer, qInstallMessageHandler, QT_VERSION_STR
 
 from PyQt6.QtCore import QtMsgType
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QFont
 
 import bluesky as bs
-from bluesky.ui.qtgl.guiclient import GuiClient
+from bluesky.network.client import Client
 from bluesky.ui.qtgl.mainwindow import MainWindow, Splash, DiscoveryDialog
-from bluesky.ui.qtgl.customevents import NUMCUSTOMEVENTS
 
+bs.settings.set_variable_defaults(qt_verbosity=1)
 
 print(('Using Qt ' + QT_VERSION_STR + ' for windows and widgets'))
 
 def gui_msg_handler(msgtype, context, msg):
-    if msgtype == QtMsgType.QtWarningMsg:
+    if msgtype == QtMsgType.QtDebugMsg and bs.settings.qt_verbosity > 3:
+        print('Qt debug message:', msg)
+    elif msgtype == QtMsgType.QtInfoMsg and bs.settings.qt_verbosity > 2:
+        print('Qt information message:', msg)
+    elif msgtype == QtMsgType.QtWarningMsg and bs.settings.qt_verbosity > 1:
         print('Qt gui warning:', msg)
-    elif msgtype == QtMsgType.QtCriticalMsg:
+    elif msgtype == QtMsgType.QtCriticalMsg and bs.settings.qt_verbosity > 0:
         print('Qt gui critical error:', msg)
     elif msgtype == QtMsgType.QtFatalMsg:
         print('Qt gui fatal error:', msg)
-    elif msgtype == QtMsgType.QtInfoMsg:
-        print('Qt information message:', msg)
-    elif msgtype == QtMsgType.QtDebugMsg:
-        print('Qt debug message:', msg)
+    
 
 
 def start(hostname=None):
@@ -45,21 +46,13 @@ def start(hostname=None):
     app.setFont(QFont('Sans'))
 
     # Start the bluesky network client
-    client = GuiClient()
+    client = Client()
+    network_timer = QTimer()
+    network_timer.timeout.connect(client.update)
+    network_timer.start(20)
 
     splash = Splash()
-
-    # Register our custom pan/zoom event
-    for etype in range(1000, 1000 + NUMCUSTOMEVENTS):
-        reg_etype = QEvent.registerEventType(etype)
-        if reg_etype != etype:
-            print(('Warning: Registered event type differs from requested type id (%d != %d)' % (reg_etype, etype)))
-
     splash.show()
-
-    # Install error message handler
-    # handler = QErrorMessage.qtHandler()
-    # handler.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
 
     splash.showMessage('Constructing main window')
     app.processEvents()
@@ -71,9 +64,8 @@ def start(hostname=None):
     # If this instance of the gui is started in client-only mode, show
     # server selection dialog
     if bs.mode == 'client' and hostname is None:
-        dialog = DiscoveryDialog(win)
+        dialog = DiscoveryDialog(client.client_id, win)
         dialog.show()
-        bs.net.start_discovery()
 
     else:
         client.connect(hostname=hostname)

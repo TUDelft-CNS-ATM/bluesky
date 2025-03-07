@@ -9,6 +9,8 @@ import subprocess
 import numpy as np
 
 import bluesky as bs
+from bluesky.core import Entity
+from bluesky import stack
 from bluesky.tools import geo, areafilter
 from bluesky.tools.aero import ft, kts, nm
 from bluesky.tools.misc import tim2txt
@@ -35,7 +37,7 @@ lightcyan = (0, 255, 255)  # FIR boundaries
 amber    = (255,163,71)  # Conflicting aircraft
 magenta  = (255,0,255) # Used for route
 
-class Screen:
+class Screen(Entity):
     """
     Screen class definition : contains radar & edit screen data & methods
 
@@ -56,6 +58,7 @@ class Screen:
 
     """
     def __init__(self):
+        super().__init__()
         # processes input from keyboard & mouse
         self.keyb = Keyboard()
 
@@ -295,9 +298,6 @@ class Screen:
 
         self.apswbmp = len(bs.navdb.aptlat) * [False]
         self.aplabel = len(bs.navdb.aptlat) * [0]
-
-    def stack(self, cmdline):
-        self.echo(f'Unknown command: {cmdline}')
 
     def echo(self, msg='', flags=0):
         if msg:
@@ -956,12 +956,24 @@ class Screen:
 
         return sw
 
-
-
-    def zoom(self, factor, absolute = False):
-        """Zoom function"""
+    @stack.command(annotations='float/txt', brief='ZOOM IN/OUT/factor')
+    def zoom(self, factor):
+        ''' ZOOM: Zoom in and out in the radar view. 
+        
+            Arguments:
+            - factor: IN/OUT to zoom in/out by a factor sqrt(2), or
+                      'factor' to set zoom to specific value.
+        '''
         oldvalues = self.lat0, self.lat1, self.lon0, self.lon1
-
+        absolute = True
+        if isinstance(factor, str):
+            absolute = False
+            if factor == 'IN':
+                factor = 1.4142135623730951
+            elif factor == 'OUT':
+                factor = 0.7071067811865475
+            else:
+                return False, f'ZOOM: argument {factor} not recognised'
 
         # Zoom factor: 2.0 means halving the display size in degrees lat/lon
         # ZOom out with e.g. 0.5
@@ -1002,41 +1014,12 @@ class Screen:
         self.satsel = ()
         self.geosel = ()
 
-        return
+        return True
 
+    @stack.command(annotations="pandir/latlon", brief="PAN latlon/acid/airport/waypoint/LEFT/RIGHT/UP/DOWN")
     def pan(self, *args):
-        """Pan function:
-               absolute: lat,lon;
-               relative: ABOVE/DOWN/LEFT/RIGHT"""
-        lat, lon = self.ctrlat, self.ctrlon
-        if type(args[0])==str:
-            if args[0].upper() == "LEFT":
-                lon = lon - 0.5 * (self.lon1 - self.lon0)
-            elif args[0].upper() == "RIGHT":
-                lon = lon + 0.5 * (self.lon1 - self.lon0)
-            elif args[0].upper() == "ABOVE" or args[0].upper() == "UP":
-                lat = lat + 0.5 * (self.lat1 - self.lat0)
-            elif args[0].upper() == "DOWN":
-                lat = lat - 0.5 * (self.lat1 - self.lat0)
-            else:
-                i = bs.navdb.getwpidx(args[0],self.ctrlat,self.ctrlon)
-                if i<0:
-                    i = bs.navdb.getaptidx(args[0],self.ctrlat,self.ctrlon)
-                    if i>0:
-                        lat = bs.navdb.aptlat[i]
-                        lon = bs.navdb.aptlon[i]
-                else:
-                    lat = bs.navdb.wplat[i]
-                    lon = bs.navdb.wplon[i]
-
-                if i<0:
-                    return False,args[0]+"not found."
-
-        else:
-            if len(args)>1:
-                lat, lon = args[:2]
-            else:
-                return False
+        "Pan screen (move view) to a waypoint, direction or aircraft"
+        lat, lon = args
 
         # Maintain size & avoid getting out of range
         dellat2 = (self.lat1 - self.lat0) * 0.5
@@ -1059,13 +1042,11 @@ class Screen:
         self.satsel = ()
         self.geosel = ()
 
-        # print "Pan lat,lon:",lat,lon
-        # print "Latitude  range:",int(self.lat0),int(self.ctrlat),int(self.lat1)
-        # print "Longitude range:",int(self.lon0),int(self.ctrlon),int(self.lon1)
-        # print "dellon2 =",dellon2
+        # Use new centre lat/lon to update reference position
+        bs.ref.lat = self.ctrlat
+        bs.ref.lon = self.ctrlon
 
         return True
-
 
     def fullscreen(self, switch):  # full screen switch
         """Switch to (True) /from (False) full screen mode"""
@@ -1150,6 +1131,7 @@ class Screen:
         lat=dist/111319.
         return self.ltopix_eq(lat)
 
+    @stack.commandgroup(annotations='txt,color', aliases=('COLOR', 'COL'))
     def colour(self, name, r, g, b):
         ''' Set custom colour for aircraft or shape. '''
         if areafilter.hasArea(name):
@@ -1163,18 +1145,22 @@ class Screen:
 
     def objappend(self,itype,name,data):
         """Add user defined objects"""
-        if data is None:
+        if not kwargs:
             return self.objdel()
 
+        if name not in self.objname:
+            self.objname.append(name)
+            self.objtype.append(kwargs['shape'])
+            if self.objtype[-1]==1:
+                self.objtype[-1]="LINE" # Convert to string
 
-        self.objname.append(name)
-        self.objtype.append(itype)
-        if self.objtype[-1]==1:
-            self.objtype[-1]="LINE" # Convert to string
-
-        self.objcolor.append(cyan)
-        self.objdata.append(data)
-
+            self.objcolor.append(kwargs.get('color', cyan))
+            self.objdata.append(kwargs['coordinates'])
+        else:
+            idx = self.objname.index(name)
+            self.objtype[idx] = kwargs.get('shape', self.objtype[idx])
+            self.objcolor[idx] = kwargs.get('color', self.objcolor[idx])
+            self.objdata[idx] = kwargs.get('coordinates', self.objdata[idx])
 
         self.redrawradbg = True  # redraw background
 
@@ -1214,10 +1200,13 @@ class Screen:
         self.redrawradbg = True
         return
 
-    def filteralt(self, *args):
-        return False, 'Filteralt not implemented in Pygame gui'
-
+    @stack.command
     def feature(self,sw,arg=""):
+        ''' Switch on/off elements and background of map/radar view 
+        
+            Usage:
+                SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]
+        '''
         # Switch/toggle/cycle radar screen features e.g. from SWRAD command
         # Coastlines
         if sw == "GEO":
@@ -1264,6 +1253,8 @@ class Screen:
 
     def show_file_dialog(self):
         return opendialog()
+    
+    @stack.command
     def symbol(self):
         self.swsep = not self.swsep
         return True

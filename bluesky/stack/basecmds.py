@@ -141,13 +141,7 @@ def initbasecmds():
             bs.traf.clrcrecmd,
             "CLRCRECMD will clear CRECMD list of commands a/c creation",
         ],
-        "COLOUR": [
-            "COLOUR name,colour (named colour or r,g,b)",
-            "txt,colour",
-            bs.scr.colour,
-            "Set a custom colour for an aircraft or shape",
 
-        ],
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
             "txt,txt,latlon,[hdg,alt,spd]",
@@ -218,7 +212,7 @@ def initbasecmds():
         "ECHO": [
             "ECHO txt",
             "string",
-            bs.scr.echo,
+            lambda *args: bs.scr.echo(*args),
             "Show a text in command window for user to read",
         ],
         "FF": [
@@ -227,12 +221,7 @@ def initbasecmds():
             bs.sim.fastforward,
             "Fast forward the simulation",
         ],
-        "FILTERALT": [
-            "FILTERALT ON/OFF,[bottom,top]",
-            "bool,[alt,alt]",
-            bs.scr.filteralt,
-            "Display aircraft on only a selected range of altitudes",
-        ],
+
         "FIXDT": [
             "FIXDT ON/OFF [tend]",
             "onoff,[time]",
@@ -298,12 +287,6 @@ def initbasecmds():
             bs.traf.move,
             "Move an aircraft to a new position",
         ],
-        "ND": [
-            "ND acid",
-            "txt",
-            bs.scr.shownd,
-            "Show navigation display with CDTI"
-        ],
         "NOISE": [
             "NOISE [ON/OFF]",
             "[onoff]",
@@ -315,12 +298,6 @@ def initbasecmds():
             "",
             bs.sim.op,
             "Start/Run simulation or continue after hold"
-        ],
-        "PAN": [
-            "PAN latlon/acid/airport/waypoint/LEFT/RIGHT/ABOVE/DOWN",
-            "pandir/latlon",
-            bs.scr.pan,
-            "Pan screen (move view) to a waypoint, direction or aircraft",
         ],
         "PLOT": [
             "PLOT [x], y [,dt,colour,figure]",
@@ -354,7 +331,6 @@ def initbasecmds():
             bs.traf.poscommand,
             "Get info on aircraft, airport or waypoint",
         ],
-        "QUIT": ["QUIT", "", bs.sim.stop, "Quit program/Stop simulation"],
         "REALTIME": [
             "REALTIME [ON/OFF]",
             "[bool]",
@@ -367,19 +343,6 @@ def initbasecmds():
             bs.sim.setseed,
             "Set seed for all functions using a randomizer (e.g.mcre,noise)",
         ],
-        "SSD": [
-            "SSD ALL/CONFLICTS/OFF or SSD acid0, acid1, ...",
-            "txt,[...]",
-            lambda *args: bs.scr.feature("SSD", args),
-            "Show state-space diagram (=conflict prevention display/predictive ASAS)",
-        ],
-        "SWRAD": [
-            "SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]",
-            "txt,[float]",
-            bs.scr.feature,
-            "Switch on/off elements and background of map/radar view",
-        ],
-        "SYMBOL": ["SYMBOL", "", bs.scr.symbol, "Toggle aircraft symbol"],
         "THR": [
             "THR acid, IDLE/0.0/throttlesetting/1.0/AUTO(default)",
             "acid[,txt]",
@@ -404,17 +367,6 @@ def initbasecmds():
             bs.traf.groups.ungroup,
             "Remove aircraft from a group",
         ],
-
-        "ZOOM": [
-            "ZOOM IN/OUT or factor",
-            "float/txt",
-            lambda a: bs.scr.zoom(1.4142135623730951)
-            if a == "IN"
-            else bs.scr.zoom(0.7071067811865475)
-            if a == "OUT"
-            else bs.scr.zoom(a, True),
-            "Zoom display in/out, you can also use +++ or -----",
-        ],
     }
 
     #
@@ -433,12 +385,9 @@ def initbasecmds():
         "COLOR": "COLOUR",
         "CONTINUE": "OP",
         "CREATE": "CRE",
-        "CLOSE": "QUIT",
         "DEBUG": "CALC",
         "DELETE": "DEL",
         "DISP": "SWRAD",
-        "END": "QUIT",
-        "EXIT": "QUIT",
         "FWD": "FF",
         "IMPL": "IMPLEMENTATION",
         "IMPLEMENT": "IMPLEMENTATION",
@@ -449,10 +398,8 @@ def initbasecmds():
         "POLYGON": "POLY",
         "POLYLINES": "POLYLINE",
         "PRINT": "ECHO",
-        "Q": "QUIT",
         "RT": "REALTIME",
         "RTF": "DTMULT",
-        "STOP": "QUIT",
         "RUN": "OP",
         "RUNWAYS": "POS",
         "SAVE": "SAVEIC",
@@ -488,7 +435,7 @@ def setscenpath(newpath):
         newpath = bs.resource(settings.scenario_path) / newpath
 
     if not newpath.is_dir():
-        return False, "Error: cannot find path: " + newpath
+        return False, "Error: cannot find path: " + newpath.as_posix()
 
     # Change path
     settings.scenario_path = newpath

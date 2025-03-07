@@ -7,7 +7,8 @@ from bluesky.core.walltime import Timer
 class Node:
     def __init__(self, *args):
         self.node_id = b'\x00' + os.urandom(4)
-        self.host_id = b''
+        self.server_id = b''
+        self.act_id = None
         self.running = True
 
     def update(self):
@@ -38,8 +39,11 @@ class Node:
     def addnodes(self, count=1):
         pass
 
-    def send_event(self, eventname, data=None, target=None):
+    def send(self, topic, data='', to_group=b''):
         pass
 
-    def send_stream(self, name, data):
+    def subscribe(self, topic, from_id=b'', to_group=b''):
+        pass
+
+    def close(self):
         pass

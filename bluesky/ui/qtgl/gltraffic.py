@@ -2,11 +2,15 @@
 import numpy as np
 from bluesky.ui.qtgl import glhelpers as glh
 
-import bluesky as bs
+from bluesky.stack import command
 from bluesky.tools import geo
 from bluesky import settings
 from bluesky.ui import palette
 from bluesky.tools.aero import ft, nm, kts
+from bluesky.network import context as ctx
+from bluesky.network.subscriber import subscriber
+from bluesky.network.sharedstate import ActData
+
 
 # Register settings defaults
 settings.set_variable_defaults(
@@ -29,6 +33,87 @@ TRAILS_SIZE = 1000000
 
 class Traffic(glh.RenderObject, layer=100):
     ''' Traffic OpenGL object. '''
+    # Per remote node attributes
+    show_pz: ActData[bool] = ActData(False)
+    show_traf: ActData[bool] = ActData(True)
+    show_lbl: ActData[int] = ActData(2)
+    ssd_all: ActData[bool] = ActData(False)
+    ssd_conflicts: ActData[bool] = ActData(False)
+    ssd_ownship: ActData[set] = ActData(set())
+    altrange: ActData[tuple] = ActData(tuple())
+    naircraft: ActData[int] = ActData(0)
+    zoom: ActData[float] = ActData(1.0, group='panzoom')
+
+    @command
+    def showpz(self, flag:bool=None):
+        ''' Toggle drawing of aircraft protected zones. '''
+        # TODO: add to SWRAD (flag=SYM)
+        self.show_pz = not self.show_pz if flag is None else flag
+
+    @command
+    def showtraf(self, flag:bool=None):
+        ''' Toggle drawing of aircraft. '''
+        self.show_traf = not self.show_traf if flag is None else flag
+
+    @command
+    def label(self, flag:int=None):
+        ''' Toggle drawing of aircraft label. '''
+        # Cycle aircraft label through detail level 0,1,2
+        if flag is None:
+            self.show_lbl = (self.show_lbl + 1) % 3
+
+        # Or use the argument if it is an integer
+        else:
+            self.show_lbl = min(2,max(0,flag))
+
+    @command(name='SSD')
+    def showssd(self, *arg:'txt'):
+        ''' Show/hide SSD (state-space diagram) for one or more, or all aircraft.
+        
+            The SSD shows the vector space of conflicting vs. conflict-free aircraft
+            velocities.
+
+            Arguments:
+            ALL: Show SSD for all aircraft
+            CONFLICTS: Show SSD only for aircraft in conflict
+            OFF: Hide SSDs
+            acid(s): Show/hide SSD for given aircraft
+        '''
+        if 'ALL' in arg:
+            self.ssd_all      = True
+            self.ssd_conflicts = False
+        elif 'CONFLICTS' in arg:
+            self.ssd_all      = False
+            self.ssd_conflicts = True
+        elif 'OFF' in arg:
+            self.ssd_all      = False
+            self.ssd_conflicts = False
+            self.ssd_ownship = set()
+        else:
+            remove = self.ssd_ownship.intersection(arg)
+            self.ssd_ownship = self.ssd_ownship.union(arg) - remove
+
+    @command
+    def filteralt(self, flag:bool=None, bottom:'alt'=-1e99, top:'alt'=1e99):
+        ''' Display aircraft on only a selected range of altitudes
+
+            Arguments:
+            - flag: Turn altitude filtering ON/OFF
+            - bottom: The lowest altitude in the visible range (optional)
+            - top: The highest altitude in the visible range (optional)
+        '''
+        if flag is None:
+            if not self.altrange:
+                return True, f'The current altitude range is unlimited'
+            elif self.altrange[0] < -1e90:
+                return True, f'The current altitude range is limited below {self.altrange[1]} meters'
+            elif self.altrange[1] > 1e90:
+                return True, f'The current altitude range is limited above {self.altrange[0]} meters'
+            else:
+                return True, f'The current altitude range is limited between {self.altrange[0]} and {self.altrange[1]} meters'
+        if flag:
+            self.altrange = (bottom, top)        
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.initialized = False
@@ -55,8 +140,6 @@ class Traffic(glh.RenderObject, layer=100):
         self.routelbl = glh.Text(settings.text_size, (12, 2))
         self.rwaypoints = glh.VertexArrayObject(glh.gl.GL_LINE_LOOP)
         self.traillines = glh.VertexArrayObject(glh.gl.GL_LINES)
-
-        bs.net.actnodedata_changed.connect(self.actdata_changed)
 
     def create(self):
         ac_size = settings.ac_size
@@ -122,8 +205,7 @@ class Traffic(glh.RenderObject, layer=100):
     def draw(self):
         ''' Draw all traffic graphics. '''
         # Get data for active node
-        actdata = bs.net.get_nodedata()
-        if actdata.naircraft == 0 or not actdata.show_traf:
+        if self.naircraft == 0 or not self.show_traf:
             return
 
         # Send the (possibly) updated global uniforms to the buffer
@@ -139,63 +221,63 @@ class Traffic(glh.RenderObject, layer=100):
         self.shaderset.enable_wrap(True)
 
         # PZ circles only when they are bigger than the A/C symbols
-        if actdata.show_pz and actdata.zoom >= 0.15:
+        if self.show_pz and self.zoom >= 0.15:
             self.shaderset.set_vertex_scale_type(
                 self.shaderset.VERTEX_IS_METERS)
-            self.protectedzone.draw(n_instances=actdata.naircraft)
+            self.protectedzone.draw(n_instances=self.naircraft)
 
         self.shaderset.set_vertex_scale_type(self.shaderset.VERTEX_IS_SCREEN)
 
         # Draw traffic symbols
-        self.ac_symbol.draw(n_instances=actdata.naircraft)
+        self.ac_symbol.draw(n_instances=self.naircraft)
 
         if self.routelbl.n_instances:
             self.rwaypoints.draw(n_instances=self.routelbl.n_instances)
             self.routelbl.draw()
 
-        if actdata.show_lbl:
-            self.aclabels.draw(n_instances=actdata.naircraft)
+        if self.show_lbl:
+            self.aclabels.draw(n_instances=self.naircraft)
 
         # SSD
-        if actdata.ssd_all or actdata.ssd_conflicts or len(actdata.ssd_ownship) > 0:
+        if self.ssd_all or self.ssd_conflicts or len(self.ssd_ownship) > 0:
             ssd_shader = glh.ShaderSet.get_shader('ssd')
             ssd_shader.bind()
             glh.gl.glUniform3f(ssd_shader.uniforms['Vlimits'].loc, self.asas_vmin **
                            2, self.asas_vmax ** 2, self.asas_vmax)
-            glh.gl.glUniform1i(ssd_shader.uniforms['n_ac'].loc, actdata.naircraft)
-            self.ssd.draw(vertex_count=actdata.naircraft,
-                          n_instances=actdata.naircraft)
+            glh.gl.glUniform1i(ssd_shader.uniforms['n_ac'].loc, self.naircraft)
+            self.ssd.draw(vertex_count=self.naircraft,
+                          n_instances=self.naircraft)
 
-    def actdata_changed(self, nodeid, nodedata, changed_elems):
-        ''' Process incoming traffic data. '''
-        if 'ACDATA' in changed_elems:
-            self.update_aircraft_data(nodedata.acdata)
-        if 'ROUTEDATA' in changed_elems:
-            self.update_route_data(nodedata.routedata)
-        if 'TRAILS' in changed_elems:
-            self.update_trails_data(nodedata.traillat0,
-                                    nodedata.traillon0,
-                                    nodedata.traillat1,
-                                    nodedata.traillon1)
-
-    def update_trails_data(self, lat0, lon0, lat1, lon1):
+    @subscriber(topic='TRAILS')
+    def update_trails_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
-        self.glsurface.makeCurrent()
-        self.traillines.set_vertex_count(len(lat0))
-        if len(lat0) > 0:
-            self.traillines.update(vertex=np.array(
-                    list(zip(lat0, lon0,
-                             lat1, lon1)), dtype=np.float32))
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
+            # Simulation reset: Clear all entries
+            self.traillines.set_vertex_count(0)
+            return
+        if len(data.traillat0) > 0:
+            self.glsurface.makeCurrent()
+            self.traillines.set_vertex_count(len(data.traillat0))
+            if len(data.traillat0) > 0:
+                self.traillines.update(vertex=np.array(
+                        list(zip(data.traillat0, data.traillon0,
+                                data.traillat1, data.traillon1)), dtype=np.float32))
+        else:
+            self.traillines.set_vertex_count(0)
 
+    @subscriber(topic='ROUTEDATA', actonly=True)
     def update_route_data(self, data):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
+            # Simulation reset: Clear all entries
+            self.route.set_vertex_count(0)
+            self.routelbl.n_instances = 0
+            return
         self.glsurface.makeCurrent()
-        actdata = bs.net.get_nodedata()
-
         self.route_acid = data.acid
         if data.acid != "" and len(data.wplat) > 0:
             nsegments = len(data.wplat)
@@ -220,7 +302,8 @@ class Traffic(glh.RenderObject, layer=100):
                     txt = wp[:12].ljust(12)  # Two lines
                     if alt < 0:
                         txt += "-----/"
-                    elif alt > actdata.translvl:
+                    # TODO: get from sim
+                    elif alt > 5000.0 * ft:
                         FL = int(round((alt / (100. * ft))))
                         txt += "FL%03d/" % FL
                     else:
@@ -229,7 +312,8 @@ class Traffic(glh.RenderObject, layer=100):
                     # Speed
                     if spd < 0:
                         txt += "--- "
-                    elif spd > actdata.casmachthr:
+                    # TODO: get from sim
+                    elif spd > settings.casmach_threshold:
                         txt += "%03d" % int(round(spd / kts))
                     else:
                         txt += f"M{spd:.2f}" # Mach number
@@ -242,16 +326,19 @@ class Traffic(glh.RenderObject, layer=100):
             self.route.set_vertex_count(0)
             self.routelbl.n_instances = 0
 
+    @subscriber(topic='ACDATA', actonly=True)
     def update_aircraft_data(self, data):
         ''' Update GPU buffers with new aircraft simulation data. '''
         if not self.initialized:
             return
-
+        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
+            # Simulation reset: Clear all entries
+            self.naircraft = 0
+            return
         self.glsurface.makeCurrent()
-        actdata = bs.net.get_nodedata()
-        if actdata.filteralt:
+        if self.altrange:
             idx = np.where(
-                (data.alt >= actdata.filteralt[0]) * (data.alt <= actdata.filteralt[1]))
+                (data.alt >= self.altrange[0]) * (data.alt <= self.altrange[1]))
             data.lat = data.lat[idx]
             data.lon = data.lon[idx]
             data.trk = data.trk[idx]
@@ -260,8 +347,7 @@ class Traffic(glh.RenderObject, layer=100):
             data.vs = data.vs[idx]
             data.rpz = data.rpz[idx]
         naircraft = len(data.lat)
-        actdata.translvl = data.translvl
-        actdata.casmachthr = data.casmachthr
+        self.naircraft = naircraft
         # self.asas_vmin = data.vmin # TODO: array should be attribute not uniform
         # self.asas_vmax = data.vmax
 
@@ -292,6 +378,9 @@ class Traffic(glh.RenderObject, layer=100):
             selssd = np.zeros(naircraft, dtype=np.uint8)
             confidx = 0
 
+            custacclr = getattr(data, 'custacclr', dict())
+            custgrclr = getattr(data, 'custgrclr', dict())
+
             zdata = zip(data.id, data.ingroup, data.inconf, data.tcpamax, data.trk, data.gs,
                         data.cas, data.vs, data.alt, data.lat, data.lon)
             for i, (acid, ingroup, inconf, tcpa,
@@ -300,9 +389,9 @@ class Traffic(glh.RenderObject, layer=100):
                     break
 
                 # Make label: 3 lines of 8 characters per aircraft
-                if actdata.show_lbl >= 1:
+                if self.show_lbl >= 1:
                     rawlabel += '%-8s' % acid[:8]
-                    if actdata.show_lbl == 2:
+                    if self.show_lbl == 2:
                         if alt <= data.translvl:
                             rawlabel += '%-5d' % int(alt / ft + 0.5)
                         else:
@@ -314,7 +403,7 @@ class Traffic(glh.RenderObject, layer=100):
                         rawlabel += 16 * ' '
 
                 if inconf:
-                    if actdata.ssd_conflicts:
+                    if self.ssd_conflicts:
                         selssd[i] = 255
                     color[i, :] = palette.conflict + (255,)
                     lat1, lon1 = geo.qdrpos(lat, lon, trk, tcpa * gs / nm)
@@ -325,20 +414,19 @@ class Traffic(glh.RenderObject, layer=100):
                     # Get custom color if available, else default
                     rgb = palette.aircraft
                     if ingroup:
-                        for groupmask, groupcolor in actdata.custgrclr.items():
+                        for groupmask, groupcolor in custgrclr.items():
                             if ingroup & groupmask:
                                 rgb = groupcolor
                                 break
-                    rgb = actdata.custacclr.get(acid, rgb)
+                    rgb = custacclr.get(acid, rgb)
                     color[i, :] = tuple(rgb) + (255,)
 
                 #  Check if aircraft is selected to show SSD
-                if actdata.ssd_all or acid in actdata.ssd_ownship:
+                if self.ssd_all or acid in self.ssd_ownship:
                     selssd[i] = 255
 
-            if len(actdata.ssd_ownship) > 0 or actdata.ssd_conflicts or actdata.ssd_all:
+            if len(self.ssd_ownship) > 0 or self.ssd_conflicts or self.ssd_all:
                 self.ssd.update(selssd=selssd)
-
             self.cpalines.update(vertex=cpalines)
             self.color.update(color)
             self.lbl.update(np.array(rawlabel.encode('utf8'), dtype=np.bytes_))

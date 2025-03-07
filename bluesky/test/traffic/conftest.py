@@ -9,7 +9,6 @@ Common test fixtures.
 
 NOTE - The test suite is written in Python3 only.
 """
-from __future__ import print_function
 import pytest
 import bluesky
 

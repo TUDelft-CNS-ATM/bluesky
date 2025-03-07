@@ -36,7 +36,7 @@ class TextClient(Client):
 
     def stack(self, text):
         ''' Stack function to send stack commands to BlueSky. '''
-        self.send_event(b'STACK', text)
+        self.send(b'STACK', text)
 
     def echo(self, text, flags=None):
         ''' Overload Client's echo function. '''
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     # Create and start BlueSky client
     bsclient = TextClient()
-    bsclient.connect(event_port=11000, stream_port=11001)
+    bsclient.connect(recv_port=11000, send_port=11001)
 
     # Start the Qt main loop
     app.exec()

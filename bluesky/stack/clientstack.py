@@ -8,7 +8,9 @@ from bluesky.stack import argparser
 
 def init():
     ''' client-side stack initialisation. '''
-    pass
+    # Display Help text on start of program
+    stack("ECHO BlueSky Console Window: Enter HELP or ? for info.\n"
+          "Or select IC to Open a scenario file.")
 
 
 def process():
@@ -42,7 +44,7 @@ def process():
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
 
-        elif Stack.sender_rte is None:
+        elif Stack.sender_id is None:
             # If sender_id is None, this stack command originated from the gui. Send it on to the sim
             forward()
         # -------------------------------------------------------------------
@@ -58,7 +60,7 @@ def process():
 
         # Always return on command
         if echotext:
-            bs.scr.echo(echotext, echoflags, Stack.sender_rte)
+            bs.scr.echo(echotext, echoflags, Stack.sender_id)
 
     # Clear the processed commands
     Stack.cmdstack.clear()
@@ -84,7 +86,7 @@ def showhelp(cmd: 'txt' = '', subcmd: 'txt' = ''):
         return True, cmdobj.helptext(subcmd)
 
     # If command is not a known Client command pass the help request on to the sim
-    bs.net.send_event(b'STACK', f'HELP {cmd} {subcmd}')
+    forward(target_id=bs.net.act_id)
 
 
 @showhelp.subcommand
@@ -100,3 +102,38 @@ def pdf():
         return pdfhelp.as_posix() + "does not exist."
 
     return "Pdf window opened"
+
+
+@command
+def makedoc():
+    ''' MAKEDOC: Make markdown templates for all stack functions
+        that don't have a doc page yet.
+    '''
+    tmp = Path('tmp')
+    if not tmp.is_dir():
+        tmp.mkdir()
+    # Get unique set of commands
+    cmdobjs = set(Command.cmddict.values())
+    for o in cmdobjs:
+        if not bs.resource(f"html/{o.name}.html").is_file():
+            with open(tmp / f"{o.name.lower()}.md", "w") as f:
+                f.write(
+                    f"# {o.name}: {o.name.capitalize()}\n"
+                    + o.help
+                    + "\n\n"
+                    + "**Usage:**\n\n"
+                    + f"    {o.brief}\n\n"
+                    + "**Arguments:**\n\n"
+                )
+                if not o.params:
+                    f.write("This command has no arguments.\n\n")
+                else:
+                    f.write(
+                        "|Name|Type|Optional|Description\n"
+                        + "|--------|------|---|---------------------------------------------------\n"
+                    )
+                    for arg in o.params:
+                        f.write(str(arg).replace(':', '|') + f" |{arg.hasdefault()}|\n")
+                f.write("\n[[Back to command reference.|Command Reference]]\n")
+    # To also get all of the sim stack commands, forward to sim
+    forward()

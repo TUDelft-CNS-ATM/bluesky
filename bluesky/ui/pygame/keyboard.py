@@ -38,7 +38,7 @@ class Keyboard:
         # Get events
         for event in pg.event.get():
             if event.type==pg.QUIT:
-                bs.sim.stop()
+                bs.sim.quit()
 
             elif event.type==pg.KEYDOWN:
 
@@ -57,7 +57,7 @@ class Keyboard:
                     bs.scr.editwin.backspace()
 
                 elif event.key==27: # ESCAPE
-                    bs.sim.stop()
+                    bs.sim.quit()
 
                 elif event.key ==pg.K_F3: # F3: Insert last command
                     bs.scr.editwin.insert(self.lastcmd.strip()+" ") # strip().upper()+" ")

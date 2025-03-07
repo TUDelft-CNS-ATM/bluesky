@@ -1,36 +1,49 @@
 ''' Stack Command implementation. '''
 import inspect
-import sys, os
 from typing import Dict
+
+from bluesky.core.funcobject import FuncObject
+from bluesky.network.publisher import state_publisher
 from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 
 
 class Command:
     ''' Stack command object. '''
-
     # Dictionary with all command objects
     cmddict: Dict[str, 'Command'] = dict()
+
+    @staticmethod
+    @state_publisher(topic='STACKCMDS')
+    def pubcmdlist():
+        ''' Send a dictionary with available stack commands when requested. '''
+        return {'cmddict': {cmd : val.brief[len(cmd) + 1:] for cmd, val in Command.cmddict.items()}}
 
     @classmethod
     def addcommand(cls, func, parent=None, name='', **kwargs):
         ''' Add 'func' as a stack command. '''
-        # Get function object if it's decorated as static or classmethod
-        func = func.__func__ if isinstance(func, (staticmethod, classmethod)) \
-            else func
         # Stack command name
-        name = (name or func.__name__).upper()
+        fname = inspect.unwrap(func).__name__.upper()
+        name = (name.upper() or fname)
 
-        # When a parent is passed this function is a subcommand
-        target = parent.subcmds if isinstance(
-            parent, CommandGroup) else Command.cmddict
+        # When a parent is passed this function is a subcommand or alt command
+        target = Command.cmddict if parent is None else parent
 
         # Check if this command already exists
         cmdobj = target.get(name)
         if not cmdobj:
-            cmdobj = cls(func, parent, name, **kwargs)
+            # If command doesn't exist yet create it, and put it in the command
+            # dict under its name and all its aliases
+            cmdobj = cls(func, name, **kwargs)
             target[name] = cmdobj
             for alias in cmdobj.aliases:
                 target[alias] = cmdobj
+        elif cls is CommandGroup and isinstance(cmdobj, CommandGroup):
+            # Multiple calls to @commandgroup should add command alternatives
+            # TODO: @commandgroup repeated calls in subclasses should not create
+            # alt commands
+            altcmd = Command(func, name, parent=cmdobj, **kwargs)
+            cmdobj.altcmds[func.__name__.upper()] = altcmd
+            cmdobj = altcmd
         else:
             # for subclasses reimplementing stack functions we keep only one
             # Command object
@@ -39,20 +52,14 @@ class Command:
                 raise TypeError(f'Error reimplementing {name}: '
                                 f'A {type(cmdobj).__name__} cannot be '
                                 f'reimplemented as a {cls.__name__}')
-        # Store reference to command object for function
-        if not inspect.ismethod(func):
-            func.__stack_cmd__ = cmdobj
 
-    def __init__(self, func, parent=None, name='', **kwargs):
+    def __init__(self, func, name='', parent=None, **kwargs):
         self.name = name
         self.help = inspect.cleandoc(kwargs.get('help', ''))
         self.brief = kwargs.get('brief', '')
         self.aliases = kwargs.get('aliases', tuple())
-        self.impl = ''
-        self.valid = True
         self.annotations = get_annot(kwargs.get('annotations', ''))
         self.params = list()
-        self.parent = parent
         self.callback = func
 
     def __call__(self, argstring):
@@ -102,7 +109,14 @@ class Command:
             selected Entity implementation doesn't provide the stack function of
             this command.
         '''
-        impl = self.impl or inspect.getmodule(self.callback).__name__
+        func = inspect.unwrap(self.callback)
+        if inspect.ismethod(func):
+            if inspect.isclass(func.__self__):
+                impl = func.__self__.__name__
+            else:
+                impl = func.__self__.__class__.__name__
+        else:
+            impl = inspect.getmodule(func).__name__
         return False, f'The current {self.name} implementation doesn\'t' +\
             f'provide this function (function was originally declared in {impl})'
 
@@ -115,67 +129,41 @@ class Command:
 
     @callback.setter
     def callback(self, function):
-        self._callback = function
+        self._callback = FuncObject(function)
         spec = inspect.signature(function)
-        # Check if this is an unbound class/instance method
-        self.valid = spec.parameters.get('self') is None and \
-            spec.parameters.get('cls') is None
+        self.brief = self.brief or (
+            self.name + ' ' + ','.join(spec.parameters))
+        self.help = self.help or inspect.cleandoc(
+            inspect.getdoc(function) or '')
+        paramspecs = list(filter(Parameter.canwrap, spec.parameters.values()))
+        if self.annotations:
+            self.params = list()
+            pos = 0
+            for annot, isopt in self.annotations:
+                if annot == '...':
+                    if paramspecs[-1].kind != paramspecs[-1].VAR_POSITIONAL:
+                        raise IndexError('Repeating arguments (...) given for function'
+                                            ' not ending in starred (variable-length) argument')
+                    self.params[-1].gobble = True
+                    break
 
-        if self.valid:
-            # Store implementation origin
-            if not self.impl:
-                # Check if this is a bound (class or object) method
-                if inspect.ismethod(function):
-                    if inspect.isclass(function.__self__):
-                        self.impl = function.__self__.__name__
-                    else:
-                        self.impl = function.__self__.__class__.__name__
-
-            self.brief = self.brief or (
-                self.name + ' ' + ','.join(spec.parameters))
-            self.help = self.help or inspect.cleandoc(
-                inspect.getdoc(function) or '')
-            paramspecs = list(filter(Parameter.canwrap, spec.parameters.values()))
-            if self.annotations:
-                self.params = list()
-                pos = 0
-                for annot, isopt in self.annotations:
-                    if annot == '...':
-                        if paramspecs[-1].kind != paramspecs[-1].VAR_POSITIONAL:
-                            raise IndexError('Repeating arguments (...) given for function'
-                                             ' not ending in starred (variable-length) argument')
-                        self.params[-1].gobble = True
-                        break
-
-                    param = Parameter(paramspecs[pos], annot, isopt)
-                    if param:
-                        pos = min(pos + param.size(), len(paramspecs) - 1)
-                        self.params.append(param)
-                if len(self.params) > len(paramspecs) and \
-                    paramspecs[-1].kind != paramspecs[-1].VAR_POSITIONAL:
-                    raise IndexError(f'More annotations given than function '
-                                     f'{self.callback.__name__} has arguments.')
-            else:
-                self.params = [p for p in map(Parameter, paramspecs) if p]
+                param = Parameter(paramspecs[pos], annot, isopt)
+                if param:
+                    pos = min(pos + param.size(), len(paramspecs) - 1)
+                    self.params.append(param)
+            if len(self.params) > len(paramspecs) and \
+                paramspecs[-1].kind != paramspecs[-1].VAR_POSITIONAL:
+                raise IndexError(f'More annotations given than function '
+                                    f'{self.callback.__name__} has arguments.')
+        else:
+            self.params = [p for p in map(Parameter, paramspecs) if p]
 
     def helptext(self, subcmd=''):
         ''' Return complete help text. '''
         msg = f'<div style="white-space: pre;">{self.help}</div>\nUsage:\n{self.brief}'
         if self.aliases:
             msg += ('\nCommand aliases: ' + ','.join(self.aliases))
-        if self._callback.__name__ == '<lambda>':
-            msg += '\nAnonymous (lambda) function, implemented in '
-        else:
-            msg += f'\nFunction {self._callback.__name__}(), implemented in '
-        if hasattr(self._callback, '__code__'):
-            fname = self._callback.__code__.co_filename
-            fname_stripped = fname.replace(os.getcwd(), '').lstrip('/')
-            firstline = self._callback.__code__.co_firstlineno
-            msg += f'<a href="file://{fname}">{fname_stripped} on line {firstline}</a>'
-        else:
-            msg += f'module {self._callback.__module__}'
-
-        return msg
+        return msg + '\n' + self.callback.info()
 
     def brieftext(self):
         ''' Return the brief usage text. '''
@@ -186,13 +174,18 @@ class CommandGroup(Command):
     ''' Stack command group object.
         Command groups can have subcommands.
     '''
-    def __init__(self, func, parent=None, name='', **kwargs):
-        super().__init__(func, parent, name, **kwargs)
+    def __init__(self, func, name='', **kwargs):
+        super().__init__(func, name, **kwargs)
         self.subcmds = dict()
+        self.altcmds = dict()
 
         # Give the function a method to add subcommands
         func.subcommand = lambda fun=None, **kwargs: command(
-            fun, parent=self, **kwargs)
+            fun, parent=self.subcmds, **kwargs)
+
+        # Give the function a method to add alternative command implementations
+        func.altcommand = lambda fun=None, **kwargs: command(
+            fun, parent=self.altcmds, **kwargs)
 
     def __call__(self, strargs):
         # First check subcommand
@@ -201,7 +194,23 @@ class CommandGroup(Command):
             subcmdobj = self.subcmds.get(subcmd.upper())
             if subcmdobj:
                 return subcmdobj(subargs)
-        return super().__call__(strargs)
+
+        ret = super().__call__(strargs)
+        msg = ret[1] if isinstance(ret, tuple) else ''
+        success = ret[0] if isinstance(ret, tuple) else \
+                  ret if isinstance(ret, bool) else True
+
+        if not success:
+            for altcmdobj in self.altcmds.values():
+                ret = altcmdobj(strargs)
+                success = ret[0] if isinstance(ret, tuple) else \
+                          ret if isinstance(ret, bool) else True
+                if isinstance(ret, tuple):
+                    msg += '\n' + ret[1]
+                if success:
+                    return ret
+        return success, msg
+
 
     def helptext(self, subcmd=''):
         ''' Return complete help text. '''
@@ -209,11 +218,16 @@ class CommandGroup(Command):
             obj = self.subcmds.get(subcmd)
             return obj.helptext() if obj else f'{subcmd} is not a subcommand of {self.name}'
 
-        msg = f'{self.help}\nUsage:\n{self.brief}'
-        for subcmd in self.subcmds.values():
-            msg += f'\n{self.name} {subcmd.brief}'
-        if self.aliases:
-            msg += ('\nCommand aliases: ' + ','.join(self.aliases))
+        msg = super().helptext()
+        if self.subcmds:
+            msg += '\nSubcommands:'
+            for cmdobj in self.subcmds.values():
+                msg += f'\n{self.name} {cmdobj.brief} ({cmdobj.callback.info()})'
+        if self.altcmds:
+            msg += '\nAlternative command implementations:'
+            for cmdobj in self.altcmds.values():
+                msg += f'\n{self.name} {cmdobj.brief} ({cmdobj.callback.info()})'
+
         return msg
 
     def brieftext(self):
@@ -243,7 +257,7 @@ def command(fun=None, cls=Command, parent=None, **kwargs):
         cls.addcommand(fun, parent, **kwargs)
         return fun
     # Allow both @command and @command(args)
-    return deco if fun is None else deco(fun)
+    return deco(fun) if fun else deco
 
 
 def append_commands(newcommands, syndict=None):
@@ -254,7 +268,7 @@ def append_commands(newcommands, syndict=None):
         else:
             aliases = tuple()
         # Use the command decorator function to register each new command
-        command(fun, name=name, annotations=annotations, brief=brief, help=hlp, aliases=aliases)
+        Command.addcommand(fun, name=name, annotations=annotations, brief=brief, help=hlp, aliases=aliases)
 
 
 def remove_commands(commands):

@@ -1,8 +1,4 @@
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 import numpy as np
 import matplotlib
 matplotlib.rcParams['font.size'] = 5
@@ -18,9 +14,9 @@ matplotlib.use('QtAgg')
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas#, \
     #NavigationToolbar2QT as NavigationToolbar
 
-import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity
+from bluesky.network import subscriber, context as ctx
 
 
 class InfoWindow(Entity):
@@ -34,27 +30,21 @@ class InfoWindow(Entity):
         self.statetab = StateTab(self.view)
         self.view.addTab(self.statetab, 'Simulation state')
 
-        # Connect to sim data events
-        bs.net.stream_received.connect(self.on_simstream_received)
-
-
     @stack.command(name="INFO")
-    def show(self) -> None:
+    def show(self) -> bool:
         self.view.show()
         return True
 
     # def keyPressEvent(self, event):
-    #     if event.key() == Qt.Key_Escape:
-    #         self.close()
+    #     if event.key() == Qt.Key.Key_Escape:
+    #         self.view.close()
 
     def add_plot_tab(self):
         self.plottab = PlotTab()
         self.view.addTab(self.plottab, 'Graphs')
 
-    def on_simstream_received(self, streamname, data, sender_id):
-        if streamname[:4] != b'PLOT':
-            return
-
+    @subscriber
+    def plot(self, **data):
         if not self.plottab:
             self.add_plot_tab()
 
@@ -64,10 +54,9 @@ class InfoWindow(Entity):
 
         # A reset flag is sent upon sim reset to indicate removal of sim plots
         if data.pop('reset', False):
-            print('plotter gui reset')
-            self.plottab.remove_plots(sender_id)
+            self.plottab.remove_plots(ctx.sender_id)
 
-        self.plottab.update_plots(data, sender_id)
+        self.plottab.update_plots(data, ctx.sender_id)
 
 
 class StateTab(QScrollArea):

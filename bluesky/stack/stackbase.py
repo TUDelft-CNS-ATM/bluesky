@@ -1,5 +1,9 @@
 ''' BlueSky Stack base data and functions. '''
+from itertools import repeat
+
 import bluesky as bs
+from bluesky.network import subscriber, context as ctx
+from bluesky.stack.cmdparser import command
 
 
 class Stack:
@@ -15,7 +19,7 @@ class Stack:
     scencmd = []  # Commands from the scenario file
 
     # Current command details
-    sender_rte = None  # bs net route to sender
+    sender_id = None  # bs net route to sender
 
     @classmethod
     def reset(cls):
@@ -24,14 +28,22 @@ class Stack:
         cls.scenname = ""
         cls.scentime = []
         cls.scencmd = []
-        cls.sender_rte = None
+        cls.current = ''
+        cls.sender_id = None
 
     @classmethod
-    def commands(cls, from_pcall=None):
+    def commands(cls, ext_cmds=None):
         ''' Generator function to iterate over stack commands. '''
-        # Return commands from PCALL if passed, otherwise own command stack
-        for cls.current, cls.sender_rte in from_pcall or cls.cmdstack:
+        # Return explicitly passed commands if given, otherwise own command stack
+        if isinstance(ext_cmds, str):
+            # If argument is a single string convert it to an appropriate list
+            ext_cmds = zip(ext_cmds.split(';'), repeat(cls.sender_id))
+
+        for cls.current, cls.sender_id in ext_cmds or cls.cmdstack:
             yield cls.current
+        # After processing commands, current command and sender id should be reset
+        cls.current = ''
+        cls.sender_id = None
 
     @classmethod
     def clear(cls):
@@ -51,7 +63,9 @@ def checkscen():
 
 
 def stack(*cmdlines, sender_id=None):
-    """ Stack one or more commands separated by ";" """
+    """ Stack one or more commands.
+        Stacking multiple commands can be done as multiple comma-separated
+        arguments, and/or semicolon-separated within a single string. """
     for cmdline in cmdlines:
         cmdline = cmdline.strip()
         if cmdline:
@@ -59,29 +73,26 @@ def stack(*cmdlines, sender_id=None):
                 Stack.cmdstack.append((line, sender_id))
 
 
-def forward(cmd=None, *args):
-    ''' Forward a stack command. 
+def forward(*cmdlines, target_id=None):
+    ''' Forward one or more stack commands. 
 
-        Sends command on to the client if this stack is running sim-side,
-        and vice-versa.
+        By default, forward() sends command on to the client if this stack is
+        running sim-side, and vice-versa. Instead, a target id can be specified
+        to specifically send the stack command(s) to this node.
+    
+        Multiple commands can be specified as multiple comma-separated
+        arguments, and/or semicolon-separated within a single string.
     '''
-    if Stack.sender_rte is None:
+    if target_id is not None or Stack.sender_id is None:
         # Only forward if this command originated here
-        bs.net.send_event(b'STACK', f'{cmd} {",".join(args)}' if cmd else Stack.current)
+        bs.net.send(b'STACK', ';'.join(cmdlines) if cmdlines else Stack.current, target_id)
 
 
 def sender():
     """ Return the sender of the currently executed stack command.
         If there is no sender id (e.g., when the command originates
         from a scenario file), None is returned. """
-    return Stack.sender_rte[-1] if Stack.sender_rte else None
-
-
-def routetosender():
-    """ Return the route to the sender of the currently executed stack command.
-        If there is no sender id (e.g., when the command originates
-        from a scenario file), None is returned. """
-    return Stack.sender_rte
+    return Stack.sender_id
 
 
 def get_scenname():
@@ -100,3 +111,16 @@ def set_scendata(newtime, newcmd):
     """ Set the scenario data. This is used by the batch logic. """
     Stack.scentime = newtime
     Stack.scencmd = newcmd
+
+
+# Register subscriber for stack commands coming from the network
+@subscriber(topic='STACK')
+def on_stack_received(data):
+    """ Add stack commands coming from the network to the stack. """
+    stack(data, sender_id=ctx.sender_id)
+
+
+@command
+def stackat(targetid, cmdline: 'string'):
+    """ Send a stack command to a specific node (client or simulation) or group. """
+    forward(cmdline, target_id=targetid)

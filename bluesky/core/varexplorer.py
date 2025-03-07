@@ -4,11 +4,7 @@
 '''
 from numbers import Number
 from collections import OrderedDict
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 import re
 import numpy as np
 import bluesky as bs

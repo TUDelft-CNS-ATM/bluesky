@@ -1,5 +1,4 @@
 from os import path
-from glob import glob
 from collections import defaultdict
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
@@ -8,6 +7,11 @@ from PyQt6.QtWidgets import QVBoxLayout, QScrollArea, QGroupBox, QWidget, \
         QListWidget, QListWidgetItem
 
 import bluesky as bs
+from bluesky.network.common import seqidx2id
+from bluesky.network.subscriber import subscribe
+import bluesky.network.sharedstate as ss
+from bluesky.core import Base
+
 
 def sel_palette(value, changed_fun):
     wid = QComboBox()
@@ -47,7 +51,7 @@ class PluginCheckList(QListWidget):
             self.curvalue -= {item.name}
         self.changed_fun(list(self.curvalue))
 
-class SettingsWindow(QWidget):
+class SettingsWindow(QWidget, Base):
     customwids = {
         'colour_palette': sel_palette,
         'performance_model': sel_perf,
@@ -57,8 +61,8 @@ class SettingsWindow(QWidget):
         super().__init__()
         self.resize(600, 500)
         self.populated = False
-        self.maxhostnum = 0
-        self.hosts = dict()
+        self.maxservnum = 0
+        self.servers = dict()
         self.changed = defaultdict(dict)
         self.setLayout(QVBoxLayout())
         self.layout().setSpacing(0)
@@ -101,7 +105,9 @@ class SettingsWindow(QWidget):
         self.scrollarea.setWidget(container)
         self.scrollarea.setWidgetResizable(True)
 
-        bs.net.nodes_changed.connect(self.nodesChanged)
+        bs.net.node_added.connect(self.nodesChanged)
+        # Subscribe to simulation settings SharedState
+        subscribe('SIMSETTINGS')
 
     def show(self):
         if not self.populated:
@@ -131,43 +137,45 @@ class SettingsWindow(QWidget):
         sim.layout().addWidget(self.nodesettings)
 
 
-    def nodesChanged(self, data):
-        for host_id, host_data in data.items():
-            host = self.hosts.get(host_id)
-            if not host:
-                host = QTreeWidgetItem(self.nodetree)
-                self.maxhostnum += 1
-                host.host_num = self.maxhostnum
-                host.host_id = host_id
-                hostname = 'This computer' if host_id == bs.net.get_hostid() else str(host_id)
-                f = host.font(0)
-                f.setBold(True)
-                host.setExpanded(True)
-                host.setText(0, hostname)
-                host.setText(1, f'(nodes: {len(host_data["nodes"])})')
-                host.nodes = host_data['nodes']
-                self.hosts[host_id] = host
+    def nodesChanged(self, node_id):
+        server_id = node_id[:-1] + seqidx2id(0)
+        server = self.servers.get(server_id)
+        if not server:
+            server = QTreeWidgetItem(self.nodetree)
+            self.maxservnum += 1
+            server.serv_num = self.maxservnum
+            server.serv_id = server_id
+            server.nodes = [i for i in bs.net.nodes if i.startswith(server_id[:-1])]
+            hostname = 'This computer'# if serv_id == bs.net.get_hostid() else str(serv_id)
+            f = server.font(0)
+            f.setBold(True)
+            server.setExpanded(True)
+            server.setText(0, hostname)
+            server.setText(1, f'(nodes: {len(server.nodes)})')
+            self.servers[server_id] = server
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
-        if item in self.hosts.values():
+        if item in self.servers.values():
             simsettings = dict()
             plugins = list()
+
             for node in item.nodes:
-                simsettings.update(bs.net.get_nodedata(node).settings)
-                plugins = bs.net.get_nodedata(node).plugins
+                store = ss.get(node, 'simsettings')
+                simsettings.update(store.settings)
+                plugins = store.plugins
 
             # First clear any old items in the node settings layout
             clear_layout(self.nodesettings.layout())
 
             top = simsettings['bluesky']
-            traf = self.make_settings_box('Traffic', top['traffic'], target=item.host_id)
+            traf = self.make_settings_box('Traffic', top['traffic'], target=item.serv_id)
             stack = self.make_settings_box(
-                'Stack', top['stack'], target=item.host_id)
+                'Stack', top['stack'], target=item.serv_id)
             sim = self.make_settings_box(
-                'Simulation', top['simulation'], maxdepth=0, target=item.host_id)
+                'Simulation', top['simulation'], maxdepth=0, target=item.serv_id)
 
-            misc = self.make_settings_box('Misc', top['tools'], maxdepth=0, target=item.host_id, avail_plugins=plugins)
+            misc = self.make_settings_box('Misc', top['tools'], maxdepth=0, target=item.serv_id, avail_plugins=plugins)
             self.nodesettings.layout().addWidget(traf)
             self.nodesettings.layout().addWidget(stack)
             self.nodesettings.layout().addWidget(sim)
@@ -176,14 +184,15 @@ class SettingsWindow(QWidget):
                 if name == 'bluesky':
                     continue
                 pbox = self.make_settings_box(
-                    name.capitalize(), plugin, target=item.host_id)
+                    name.capitalize(), plugin, target=item.serv_id)
                 self.nodesettings.layout().addWidget(pbox)
 
     def add_row(self, box, name, value, depth=0, maxdepth=1, target='common', **kwargs):
         if isinstance(value, dict):
             if depth < maxdepth:
                 line = QFrame()
-                line.setFrameShape(line.HLine)
+                
+                line.setFrameShape(QFrame.Shape.HLine)
                 box.layout().addRow(QLabel(f'<b>{name}</b>'), line)
             for cname, cvalue in value.items():
                 self.add_row(box, cname, cvalue, depth=depth+1, target=target, **kwargs)
@@ -246,7 +255,7 @@ class SettingsWindow(QWidget):
 
     def save(self):
         common = self.changed.pop('common', {})
-        localchanges = {**self.changed.pop('gui', {}), **self.changed.pop(bs.net.get_hostid(), {}), **common}
+        localchanges = {**self.changed.pop('gui', {}), **self.changed.pop(bs.net.server_id, {}), **common}
         remotechanges = dict(self.changed)
         self.changed.clear()
 

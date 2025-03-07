@@ -1,7 +1,7 @@
 ''' BlueSky command-line argument parsing. '''
 import argparse
-from bluesky import settings
 
+from bluesky.network.common import hex2bin
 
 def parse():
     parser = argparse.ArgumentParser(prog="BlueSky", description="   *****   BlueSky Open ATM simulator *****")
@@ -19,6 +19,9 @@ def parse():
 
         return ModeGuiAction
 
+    class GroupidAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string):
+            namespace.group_id = hex2bin(values)
 
     # Add all possible arguments to bluesky here
     mode = parser.add_mutually_exclusive_group()
@@ -48,6 +51,9 @@ def parse():
     
     parser.add_argument("--workdir", dest="workdir",
                         help="Set BlueSky working directory (if other than cwd or ~/bluesky).")
+
+    parser.add_argument("--groupid", dest="group_id", action=GroupidAction,
+                        help="Explicitly set a group part, or the entire connection id instead of randomly generating it.")
 
     cmdargs = parser.parse_args()
 

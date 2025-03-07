@@ -1,8 +1,10 @@
 ''' BlueSky: The open-source ATM simulator.'''
-from bluesky import settings
-from bluesky.core import Signal
+import importlib
+# from bluesky import settings, stack
 from bluesky.pathfinder import resource
 
+
+__all__ = ['settings', 'stack', 'tools', 'cmdargs']
 
 # Constants
 BS_OK = 0
@@ -18,6 +20,7 @@ mode = ''
 gui = ''
 
 # Main singleton objects in BlueSky
+ref = None
 net = None
 traf = None
 navdb = None
@@ -27,7 +30,7 @@ server = None
 
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
-         gui=None, detached=False, workdir=None, **kwargs):
+         gui=None, detached=False, workdir=None, group_id=None, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
@@ -39,6 +42,8 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
         - gui: Gui type (only when mode is client or server) [qtgl/pygame/console]
         - detached: Run with or without networking (only when mode is sim) [True/False]
         - workdir: Pass a custom working directory (instead of cwd or ~/bluesky)
+        - group_id: Explicitly set (part of) the connection identifier string.
+                    Server does this when spawning a node
     '''
 
     # Argument checking
@@ -64,12 +69,18 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     pathfinder.init(workdir)
 
     # Initialize global settings, possibly loading a custom config file
+    from bluesky import settings
     settings.init(configfile)
 
     from bluesky import stack, tools
 
     # Initialise tools
+    from bluesky import tools
     tools.init()
+
+    # Initialise reference data object
+    from bluesky import refdata
+    globals()['ref'] = refdata.RefData()
 
     # Load navdatabase in all versions of BlueSky
     # Only the headless server doesn't need this
@@ -105,14 +116,20 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
         traf = Traffic()
         sim = Simulation()
         scr = Screen()
-        net = Node(settings.simevent_port,
-                   settings.simstream_port)
+        net = Node(group_id)
 
         # Initialize remaining modules
         varexplorer.init()
-        if scenfile:
-            stack.stack(f'IC {scenfile}')
 
     from bluesky.core import plugin
     plugin.init(mode)
+    from bluesky import stack
     stack.init(mode)
+    if scenfile and mode == 'sim':
+        stack.stack(f'IC {scenfile}')
+
+
+def __getattr__(name):
+    if name in __all__:
+        return importlib.import_module(f'.{name}', __name__)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

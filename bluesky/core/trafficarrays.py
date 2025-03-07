@@ -1,11 +1,7 @@
 """ Classes that derive from TrafficArrays (like Traffic) get automated create,
     delete, and reset functionality for all registered child arrays."""
 # -*- coding: utf-8 -*-
-try:
-    from collections.abc import Collection
-except ImportError:
-    # In python <3.3 collections.abc doesn't exist
-    from collections import Collection
+from collections.abc import Collection
 import numpy as np
 
 defaults = {"float": 0.0, "int": 0, "uint":0, "bool": False, "S": "", "str": ""}
@@ -82,7 +78,7 @@ class TrafficArrays:
         ''' Append n elements (aircraft) to all lists and arrays. '''
 
         for v in self._LstVars:  # Lists (mostly used for strings)
-            lst = self.__dict__.get(v)
+            lst: list = self.__dict__[v]
             vartype = type(lst[0]).__name__ if lst else 'str'
             lst.extend([defaults.get(vartype)] * n)
 

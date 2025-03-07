@@ -8,6 +8,7 @@ from bluesky.core import Entity
 class Turbulence(Entity, replaceable=True):
     """ Simple turbulence implementation."""
     def __init__(self):
+        super().__init__()
         self.active = False
         self.sd = np.array([])
 

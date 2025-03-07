@@ -4,7 +4,7 @@ from weakref import WeakValueDictionary
 import numpy as np
 import bluesky as bs
 from bluesky.tools import geo
-from bluesky.core import Replaceable
+from bluesky.core import Base
 from bluesky.tools.aero import ft, kts, g0, nm, mach2cas, casormach2tas
 from bluesky.tools.misc import degto180, txt2tim, txt2alt, txt2spd
 from bluesky.tools.position import txt2pos
@@ -12,7 +12,8 @@ from bluesky import stack
 from bluesky.stack.cmdparser import Command, command, commandgroup
 
 
-class Route(Replaceable):
+
+class Route(Base):
     """
     Route class definition   : Route data for an aircraft
     (basic FMS functionality)
@@ -37,6 +38,7 @@ class Route(Replaceable):
     _routes: WeakValueDictionary[str, 'Route'] = WeakValueDictionary()
 
     def __init__(self, acid):
+        super().__init__()
         # Add self to dictionary of all aircraft routes
         Route._routes[acid] = self
         # Aircraft id (callsign) of the aircraft to which this route belongs
@@ -116,12 +118,18 @@ class Route(Replaceable):
             name_ = name_[:-len_]+fmt_.format(appi)
         return name_
     
-    @stack.command(name = 'ADDWPTMODE', annotations = 'acid, [wpt,alt]')
+    @stack.command(name = 'ADDWPTMODE')
     @staticmethod
-    def addwptMode(acidx, mode = None, value = None):
-        '''Changes the mode of the ADDWPT command to add waypoints of type 'mode'.
-        Available modes: FLYBY, FLYOVER, FLYTURN. Also used to specify 
-        TURNSPEED or TURNRADIUS.'''
+    def addwptMode(acidx: 'acid', mode: 'txt' = None, value: float = None):
+        ''' Changes the mode of the ADDWPT command to add waypoints of type 'mode'.
+            The mode specified will be used for all ADDWPT commands that are called
+            after this command.
+            
+            Arguments:
+            - acid: Aircraft id
+            - mode: The mode to use for future waypoints. Options are:
+                    FLYBY/FLYOVER/FLYTURN/TURNSPD/TURNRAD/TURNHDG
+        '''
         # Get aircraft route
         acid = bs.traf.id[acidx]
         acrte = Route._routes[acid]
@@ -503,9 +511,20 @@ class Route(Replaceable):
 
     @stack.command
     def addwaypoints(acidx: 'acid', *args):
-        # Args come in this order: lat, lon, alt, spd, FLYTURN/FLYBY/FLYOVER
-        # For flyturn properties, use ADDWPTMODE
-        if len(args)%5 !=0:
+        ''' ADDWAYPOINTS: Add multiple waypoints to the route of an aircraft.
+        
+            Arguments:
+            - acid: Aircraft id
+            - lat_i: Latitude of the ith waypoint
+            - lon_i: Longitude of the ith waypoint
+            - alt_i: Altitude constraint at the ith waypoint
+            - spd_i: Speed constraint at the ith waypoint
+            - type_i: Turn type of the ith waypoint. [TURNSPD/TURNRAD/FLYBY]
+            - turnspd_i/turnrad_i: Turn speed / turn radius constraint at the ith waypoint
+            '''
+        # Args come in this order: lat, lon, alt, spd, TURNSPD/TURNRAD/FLYBY, turnspeed or turnrad value
+        # If turn is '0', then ignore turnspeed
+        if len(args)%6 !=0:
             bs.scr.echo('You missed a waypoint value, arguement number must be a multiple of 6.')
             return
 

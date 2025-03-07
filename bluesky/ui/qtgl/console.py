@@ -5,10 +5,14 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWidgets import QWidget, QTextEdit
 
 import bluesky as bs
+from bluesky.core.signal import Signal
+from bluesky.stack.cmdparser import Command
 from bluesky.tools import cachefile
 from bluesky.tools.misc import cmdsplit
-from bluesky.core.signal import Signal
-from . import autocomplete
+from bluesky.network import subscribe
+from bluesky.network.sharedstate import ActData, get
+from bluesky.ui.qtgl import autocomplete
+from bluesky.ui.radarclick import radarclick
 
 
 cmdline_stacked = Signal('cmdline_stacked')
@@ -46,9 +50,14 @@ def process_cmdline(cmdlines):
 
 
 class Console(QWidget):
-    lineEdit = None
-    stackText = None
+    lineEdit: QTextEdit = None
+    stackText: QTextEdit = None
     _instance = None
+
+    # Per-remote data
+    echotext: ActData[list] = ActData()
+    echoflags: ActData[list] = ActData()
+    cmddict: ActData[dict] = ActData(group='stackcmds')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -64,8 +73,9 @@ class Console(QWidget):
         self.command_line = ''
 
         # Connect to the io client's activenode changed signal
-        bs.net.event_received.connect(self.on_simevent_received)
-        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
+        Signal('CMDLINE').connect(self.set_cmdline)
+        Signal('actnode-changed').connect(self.actnodeChanged)
+        Signal('radarclick').connect(self.on_radarclick)
 
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
@@ -74,22 +84,19 @@ class Console(QWidget):
         # Connect function to save command history on quit
         QApplication.instance().aboutToQuit.connect(self.close)
 
+        # Connect to stack command list SharedState
+        subscribe('STACKCMDS')
+
     def close(self):
         ''' Save command history when BlueSky closes. '''
         with cachefile.openfile('console_history.p') as cache:
             cache.dump(self.command_history)
 
-    def on_simevent_received(self, eventname, eventdata, sender_id):
-        ''' Processing of events from simulation nodes. '''
-        if eventname == b'CMDLINE':
-            self.set_cmdline(eventdata)
-
-    def actnodedataChanged(self, nodeid, nodedata, changed_elems):
-        if 'ECHOTEXT' in changed_elems:
-            # self.stackText.setPlainText(nodedata.echo_text)
-            self.stackText.setHtml(nodedata.echo_text.replace('\n', '<br>') + '<br>')
-            self.stackText.verticalScrollBar().setValue(
-                self.stackText.verticalScrollBar().maximum())
+    def actnodeChanged(self, nodeid):
+        text = ('<br>'.join(self.echotext)).replace('\n', '<br>') + '<br>'
+        self.stackText.setHtml(text)
+        self.stackText.verticalScrollBar().setValue(
+            self.stackText.verticalScrollBar().maximum())
 
     def stack(self, text):
         # Add command to the command history
@@ -102,13 +109,23 @@ class Console(QWidget):
         autocomplete.reset()
         self.history_pos = 0
 
-    def echo(self, text):
-        actdata = bs.net.get_nodedata()
-        actdata.echo(text)
-        # self.stackText.append(text)
+    def echo(self, text, flags=None):
+        cursor = self.stackText.textCursor()
+        cursor.clearSelection()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.stackText.setTextCursor(cursor)
         self.stackText.insertHtml(text.replace('\n', '<br>') + '<br>')
         self.stackText.verticalScrollBar().setValue(
             self.stackText.verticalScrollBar().maximum())
+
+    def on_radarclick(self, lat, lon):
+        actdata = get()
+        # TODO routedata isn't really a sharedstate, it only gives a selected route
+        tostack, tocmdline = radarclick(get_cmdline(), lat, lon,
+                                        actdata.acdata, getattr(actdata, 'routedata', None))
+
+        process_cmdline((tostack + '\n' + tocmdline) if tostack else tocmdline)
+
 
     def append_cmdline(self, text):
         self.set_cmdline(self.command_line + text)
@@ -117,23 +134,19 @@ class Console(QWidget):
         if self.command_line == text:
             return
 
-        actdata = bs.net.get_nodedata()
-
         self.command_line = text
         self.cmd, self.args = cmdsplit(self.command_line)
         self.cmd = self.cmd.upper()
 
         hintline = ''
-        cmd = actdata.stacksyn.get(self.cmd, self.cmd)
-        allhints = actdata.stackcmds
-        if allhints:
-            hint = allhints.get(cmd)
-            if hint:
-                if len(self.args) > 0:
-                    hintargs = hint.split(',')
-                    hintline = ' ' + str.join(',', hintargs[len(self.args):])
-                else:
-                    hintline = ' ' + hint
+        guicmd = Command.cmddict.get(self.cmd)
+        hint = guicmd.brief[len(self.cmd) + 1:] if guicmd else self.cmddict.get(self.cmd)
+        if hint:
+            if len(self.args) > 0:
+                hintargs = hint.split(',')
+                hintline = ' ' + str.join(',', hintargs[len(self.args):])
+            else:
+                hintline = ' ' + hint
 
         self.lineEdit.set_cmdline(self.command_line, hintline, cursorpos)
 

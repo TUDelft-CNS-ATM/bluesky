@@ -2,24 +2,30 @@
 from pathlib import Path
 import platform
 
-from PyQt6.QtWidgets import QApplication as app
-from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize
+from PyQt6.QtWidgets import QApplication as app, QWidget, QMainWindow, \
+    QSplashScreen, QTreeWidgetItem, QPushButton, QFileDialog, QDialog, \
+    QTreeWidget, QVBoxLayout, QDialogButtonBox, QMenu, QLabel
+from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent, pyqtProperty
 from PyQt6.QtGui import QPixmap, QIcon
-from PyQt6.QtWidgets import QMainWindow, QSplashScreen, QTreeWidgetItem, \
-    QPushButton, QFileDialog, QDialog, QTreeWidget, QVBoxLayout, \
-    QDialogButtonBox, QMenu
 from PyQt6 import uic
 
 # Local imports
 import bluesky as bs
+from bluesky.core import Base, Signal
+from bluesky.network.discovery import Discovery
+
+from bluesky import stack
+from bluesky.stack.argparser import PosArg
 from bluesky.pathfinder import ResourcePath
 from bluesky.tools.misc import tim2txt
-from bluesky.network import get_ownip
+from bluesky.network import subscriber, context as ctx
+from bluesky.network.common import get_ownip, seqidx2id, seqid2idx
+import bluesky.network.sharedstate as ss
+
 from bluesky.ui import palette
 
 # Child windows
 from bluesky.ui.qtgl.docwindow import DocWindow
-from bluesky.ui.qtgl.radarwidget import RadarWidget
 from bluesky.ui.qtgl.infowindow import InfoWindow
 from bluesky.ui.qtgl.settingswindow import SettingsWindow
 # from bluesky.ui.qtgl.nd import ND
@@ -27,14 +33,19 @@ from bluesky.ui.qtgl.settingswindow import SettingsWindow
 if platform.system().lower() == "windows":
     from bluesky.ui.pygame.dialog import fileopen
 
+
 # Register settings defaults
-bs.settings.set_variable_defaults(gfx_path='graphics')
+bs.settings.set_variable_defaults(gfx_path='graphics', start_location='EHAM')
 
 palette.set_default_colours(stack_text=(0, 255, 0),
                             stack_background=(102, 102, 102))
 
-fg = palette.stack_text
-bg = palette.stack_background
+
+def isdark():
+        ''' Returns true if app is in dark mode, false otherwise. '''
+        p = app.instance().style().standardPalette()
+        return (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
+
 
 class Splash(QSplashScreen):
     """ Splash screen: BlueSky logo during start-up"""
@@ -44,11 +55,11 @@ class Splash(QSplashScreen):
 
 
 class DiscoveryDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, comm_id, parent=None):
         super().__init__(parent)
         self.setModal(True)
         self.setMinimumSize(200,200) # To prevent Geometry error
-        self.hosts = []
+        self.servers = []
         layout = QVBoxLayout()
         self.setLayout(layout)
         self.serverview = QTreeWidget()
@@ -62,36 +73,54 @@ class DiscoveryDialog(QDialog):
         btns.accepted.connect(self.on_accept)
         btns.rejected.connect(parent.closeEvent)
 
-        bs.net.server_discovered.connect(self.add_srv)
+        self.discovery = Discovery(comm_id)
+
+        self.discovery_timer = QTimer()
+        self.discovery_timer.timeout.connect(self.discovery.update)
+        self.discovery_timer.start(1000)
+        self.discovery.server_discovered.connect(self.add_srv)
+        self.discovery.start()
 
     def add_srv(self, address, ports):
-        for host in self.hosts:
-            if address == host.address and ports == host.ports:
+        for server in self.servers:
+            if address == server.address and ports == server.ports:
                 # We already know this server, skip
                 return
-        host = QTreeWidgetItem(self.serverview)
-        host.address = address
-        host.ports = ports
-        host.hostname = 'This computer' if address == get_ownip() else address
-        host.setText(0, host.hostname)
+        server = QTreeWidgetItem(self.serverview)
+        server.address = address
+        server.ports = ports
+        server.hostname = 'This computer' if address == get_ownip() else address
+        server.setText(0, server.hostname)
 
-        host.setText(1, '{},{}'.format(*ports))
-        self.hosts.append(host)
+        server.setText(1, '{},{}'.format(*ports))
+        self.servers.append(server)
 
     def on_accept(self):
-        host = self.serverview.currentItem()
-        if host:
-            bs.net.stop_discovery()
-            hostname = host.address
-            eport, sport = host.ports
-            bs.net.connect(hostname=hostname, event_port=eport, stream_port=sport)
+        server = self.serverview.currentItem()
+        if server:
+            self.discovery_timer.stop()
+            self.discovery.stop()
+            hostname = server.address
+            rport, sport = server.ports
+            bs.net.connect(hostname=hostname, recv_port=rport, send_port=sport)
             self.close()
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, Base):
     """ Qt window process: from .ui file read UI window-definition of main window """
 
     modes = ['Init', 'Hold', 'Operate', 'End']
+
+    # Per remote node attributes
+    nconf_cur: ss.ActData[int] = ss.ActData(0, group='acdata')
+    nconf_tot: ss.ActData[int] = ss.ActData(0, group='acdata')
+    nlos_cur: ss.ActData[int] = ss.ActData(0, group='acdata')
+    nlos_tot: ss.ActData[int] = ss.ActData(0, group='acdata')
+
+    @pyqtProperty(str)
+    def style(self):
+        ''' Returns "dark"" if app is in dark mode, "light" otherwise. '''
+        return "dark" if self.darkmode else "light"
 
     def __init__(self, mode):
         super().__init__()
@@ -100,21 +129,19 @@ class MainWindow(QMainWindow):
         #  - client: starts only gui in client mode, can connect to existing
         #    server.
         self.mode = mode
+        self.running = True
 
-        self.radarwidget = RadarWidget()
         # self.nd = ND(shareWidget=self.radarwidget)
         self.infowin = InfoWindow()
         self.settingswin = SettingsWindow()
+        self.darkmode = isdark()
 
         try:
             self.docwin = DocWindow(self)
         except Exception as e:
             print('Couldnt make docwindow:', e)
         # self.aman = AMANDisplay()
-        gltimer = QTimer(self)
-        gltimer.timeout.connect(self.radarwidget.update)
-        # gltimer.timeout.connect(self.nd.updateGL)
-        gltimer.start(50)
+        
 
         gfxpath = bs.resource(bs.settings.gfx_path)
 
@@ -124,39 +151,10 @@ class MainWindow(QMainWindow):
             app.instance().setWindowIcon(QIcon((gfxpath / 'icon.gif').as_posix()))
 
         uic.loadUi((gfxpath / 'mainwindow.ui').as_posix(), self)
-
-        # list of buttons to connect to, give icons, and tooltips
-        #           the button         the icon      the tooltip    the callback
-        buttons = { self.zoomin :     ['zoomin.svg', 'Zoom in', self.buttonClicked],
-                    self.zoomout :    ['zoomout.svg', 'Zoom out', self.buttonClicked],
-                    self.panleft :    ['panleft.svg', 'Pan left', self.buttonClicked],
-                    self.panright :   ['panright.svg', 'Pan right', self.buttonClicked],
-                    self.panup :      ['panup.svg', 'Pan up', self.buttonClicked],
-                    self.pandown :    ['pandown.svg', 'Pan down', self.buttonClicked],
-                    self.ic :         ['stop.svg', 'Initial condition', self.buttonClicked],
-                    self.op :         ['play.svg', 'Operate', self.buttonClicked],
-                    self.hold :       ['hold.svg', 'Hold', self.buttonClicked],
-                    self.fast :       ['fwd.svg', 'Enable fast-time', self.buttonClicked],
-                    self.fast10 :     ['ffwd.svg', 'Fast-forward 10 seconds', self.buttonClicked],
-                    self.sameic :     ['frwd.svg', 'Restart same IC', self.buttonClicked],
-                    self.showac :     ['AC.svg', 'Show/hide aircraft', self.buttonClicked],
-                    self.showpz :     ['PZ.svg', 'Show/hide PZ', self.buttonClicked],
-                    self.showapt :    ['apt.svg', 'Show/hide airports', self.buttonClicked],
-                    self.showwpt :    ['wpt.svg', 'Show/hide waypoints', self.buttonClicked],
-                    self.showlabels : ['lbl.svg', 'Show/hide text labels', self.buttonClicked],
-                    self.showmap :    ['geo.svg', 'Show/hide satellite image', self.buttonClicked],
-                    self.shownodes :  ['nodes.svg', 'Show/hide node list', self.buttonClicked]}
-
-        for b in buttons.items():
-            # Set icon
-            if not b[1][0] is None:
-                icon = QIcon((gfxpath / 'icons' / b[1][0]).as_posix())
-                b[0].setIcon(icon)
-            # Set tooltip
-            if not b[1][1] is None:
-                b[0].setToolTip(b[1][1])
-            # Connect clicked signal
-            b[0].clicked.connect(b[1][2])
+        gltimer = QTimer(self)
+        gltimer.timeout.connect(self.radarwidget.update)
+        # gltimer.timeout.connect(self.nd.updateGL)
+        gltimer.start(50)
 
         # If multiple scenario paths exist, add 'Open From' menu
         scenresource = bs.resource('scenario')
@@ -175,32 +173,95 @@ class MainWindow(QMainWindow):
         self.actionBlueSky_help.triggered.connect(self.show_doc_window)
         self.actionSettings.triggered.connect(self.settingswin.show)
 
-        self.radarwidget.setParent(self.centralwidget)
-        self.verticalLayout.insertWidget(0, self.radarwidget, 1)
         # Connect to io client's nodelist changed signal
-        bs.net.nodes_changed.connect(self.nodesChanged)
-        bs.net.actnodedata_changed.connect(self.actnodedataChanged)
-        bs.net.event_received.connect(self.on_simevent_received)
-        bs.net.stream_received.connect(self.on_simstream_received)
-        bs.net.signal_quit.connect(self.closeEvent)
+        bs.net.node_added.connect(self.nodesChanged)
+        bs.net.server_added.connect(self.serversChanged)
 
-        self.nodetree.setVisible(False)
+        # Tell BlueSky that this is the screen object for this client
+        bs.scr = self
+
+        # Signals we want to emit
+        self.panzoom_event = Signal('state-changed.panzoom')
+
+        # Set position default from settings
+        lat, lon, _ = PosArg().parse(bs.settings.start_location)
+        ss.setdefault('pan', [lat, lon], group='panzoom')
+
+
+        # self.nodetree.setVisible(False)
         self.nodetree.setIndentation(0)
         self.nodetree.setColumnCount(2)
         self.nodetree.setStyleSheet('padding:0px')
         self.nodetree.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         self.nodetree.header().resizeSection(0, 130)
         self.nodetree.itemClicked.connect(self.nodetreeClicked)
-        self.maxhostnum = 0
-        self.hosts = dict()
+        self.maxservnum = 0
+        self.servers = dict()
         self.nodes = dict()
         self.actnode = ''
 
-        fgcolor = '#%02x%02x%02x' % fg
-        bgcolor = '#%02x%02x%02x' % bg
+        self.splitter.setSizes([1, 0])
+        self.splitter_2.setSizes([1, 0])
+        self.setStyleSheet()
 
-        self.stackText.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
-        self.lineEdit.setStyleSheet('color:' + fgcolor + '; background-color:' + bgcolor)
+        # Remove keyboard focus from all children of self.databox
+        # (not possible to do in QDesigner)
+        def recursiveNoFocus(w):
+            for child in w.findChildren(QWidget):
+                recursiveNoFocus(child)
+            w.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        recursiveNoFocus(self.databox)
+
+    def setStyleSheet(self, contents=''):
+        if not contents:
+            with open(bs.resource(bs.settings.gfx_path) / 'bluesky.qss') as style:
+                super().setStyleSheet(style.read())
+
+    @stack.command
+    def mcre(self, args: 'string'):
+        """ Create one or more random aircraft in a specified area 
+        
+            When called from the client (gui), MCRE will use the current screen bounds as area to create aircraft in.
+            When called from a scenario, the simulation reference area will be used.
+        """
+        if not args:
+            return stack.forward('MCRE')
+
+        stack.forward(f'INSIDE {" ".join(str(el) for el in bs.ref.area.bbox)} MCRE {args}')
+
+    @stack.command(annotations='pandir/latlon', brief='PAN latlon/acid/airport/waypoint/LEFT/RIGHT/UP/DOWN')
+    def pan(self, *args):
+        "Pan screen (move view) to a waypoint, direction or aircraft"
+        store = ss.get(group='panzoom')
+        store.pan = list(args)
+        self.panzoom_event.emit(store)
+        return True
+
+    @stack.command(annotations='float/txt', brief='ZOOM IN/OUT/factor')
+    def zoom(self, factor):
+        ''' ZOOM: Zoom in and out in the radar view. 
+        
+            Arguments:
+            - factor: IN/OUT to zoom in/out by a factor sqrt(2), or
+                      'factor' to set zoom to specific value.
+        '''
+        store = ss.get(group='panzoom')
+        if isinstance(factor, float):
+            store.zoom = factor
+        elif factor == 'IN':
+            store.zoom *= 1.4142135623730951
+        elif factor == 'OUT':
+            store.zoom *= 0.7071067811865475
+        else:
+            return False, f'ZOOM: argument {factor} not recognised'
+        self.panzoom_event.emit(store)
+        return True
+
+    def getviewctr(self):
+        return self.radarwidget.pan
+
+    def getviewbounds(self): # Return current viewing area in lat, lon
+        return self.radarwidget.viewportlatlon()
 
     def keyPressEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier \
@@ -208,13 +269,13 @@ class MainWindow(QMainWindow):
             dlat = 1.0 / (self.radarwidget.zoom * self.radarwidget.ar)
             dlon = 1.0 / (self.radarwidget.zoom * self.radarwidget.flat_earth)
             if event.key() == Qt.Key.Key_Up:
-                self.radarwidget.panzoom(pan=(dlat, 0.0))
+                self.radarwidget.setpanzoom(pan=(dlat, 0.0), absolute=False)
             elif event.key() == Qt.Key.Key_Down:
-                self.radarwidget.panzoom(pan=(-dlat, 0.0))
+                self.radarwidget.setpanzoom(pan=(-dlat, 0.0), absolute=False)
             elif event.key() == Qt.Key.Key_Left:
-                self.radarwidget.panzoom(pan=(0.0, -dlon))
+                self.radarwidget.setpanzoom(pan=(0.0, -dlon), absolute=False)
             elif event.key() == Qt.Key.Key_Right:
-                self.radarwidget.panzoom(pan=(0.0, dlon))
+                self.radarwidget.setpanzoom(pan=(0.0, dlon), absolute=False)
 
         elif event.key() == Qt.Key.Key_Escape:
             self.closeEvent()
@@ -230,94 +291,132 @@ class MainWindow(QMainWindow):
             self.console.keyPressEvent(event)
         event.accept()
 
+    @stack.command(name='QUIT', annotations='', aliases=('CLOSE', 'END', 'EXIT', 'Q', 'STOP'))
     def closeEvent(self, event=None):
-        # Send quit to server if we own the host
-        if self.mode != 'client':
-            bs.net.send_event(b'QUIT')
-        app.instance().closeAllWindows()
-        # return True
+        if self.running:
+            self.running = False
+            # Send quit to server if we own it
+            if self.mode != 'client':
+                bs.net.send(b'QUIT', to_group=bs.server.server_id)
+            app.instance().closeAllWindows()
+            # return True
+
+    @subscriber
+    def echo(self, text, flags=None, sender_id=None):
+        refnode = sender_id or ctx.sender_id or bs.net.act_id
+        # Always update the store
+        store = ss.get(refnode)
+        store.echotext.append(text)
+        store.echoflags.append(flags)
+        # Directly echo if message corresponds to active node
+        if refnode == bs.net.act_id:
+            return self.console.echo(text, flags)
+
+    def changeEvent(self, event: QEvent):
+        # Detect dark/light mode switch
+        if event.type() == event.Type.PaletteChange and self.darkmode != isdark():
+            self.darkmode = isdark()
+            self.setStyleSheet()
+
+        return super().changeEvent(event)
+
 
     def actnodedataChanged(self, nodeid, nodedata, changed_elems):
         if nodeid != self.actnode:
             self.actnode = nodeid
             node = self.nodes[nodeid]
-            self.nodelabel.setText(f'<b>Node</b> {node.host_num}:{node.node_num}')
+            self.nodelabel.setText(f'<b>Node</b> {node.serv_num}:{node.node_num}')
             self.nodetree.setCurrentItem(node, 0, QItemSelectionModel.SelectionFlag.ClearAndSelect)
 
-    def nodesChanged(self, data):
-        for host_id, host_data in data.items():
-            host = self.hosts.get(host_id)
-            if not host:
-                host = QTreeWidgetItem(self.nodetree)
-                self.maxhostnum += 1
-                host.host_num = self.maxhostnum
-                host.host_id = host_id
-                hostname = 'This computer' if host_id == bs.net.get_hostid() else str(host_id)
-                f = host.font(0)
-                f.setBold(True)
-                host.setExpanded(True)
+    def serversChanged(self, server_id):
+        server = self.servers.get(server_id)
+        if not server:
+            server = QTreeWidgetItem(self.nodetree)
+            self.maxservnum += 1
+            server.serv_num = self.maxservnum
+            server.server_id = server_id
+            hostname = 'Ungrouped' if server_id == b'0' else 'This computer'
+            f = server.font(0)
+            f.setBold(True)
+            server.setExpanded(True)
+            if server_id != b'0':
                 btn = QPushButton(self.nodetree)
-                btn.host_id = host_id
+                btn.server_id = server_id
                 btn.setText(hostname)
                 btn.setFlat(True)
                 btn.setStyleSheet('font-weight:bold')
                 icon = bs.resource(bs.settings.gfx_path) / 'icons/addnode.svg'
                 btn.setIcon(QIcon(icon.as_posix()))
-                btn.setIconSize(QSize(24, 16))
+                btn.setIconSize(QSize(40 if server_id == b'0' else 24, 16))
                 btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 btn.setMaximumHeight(16)
                 btn.clicked.connect(self.buttonClicked)
-                self.nodetree.setItemWidget(host, 0, btn)
-                self.hosts[host_id] = host
+                self.nodetree.setItemWidget(server, 0, btn)
 
-            for node_num, node_id in enumerate(host_data['nodes']):
-                if node_id not in self.nodes:
-                    # node_num = node_id[-2] * 256 + node_id[-1]
-                    node = QTreeWidgetItem(host)
-                    node.setText(0, f'{host.host_num}:{node_num + 1} <init>')
-                    node.setText(1, '00:00:00')
-                    node.node_id  = node_id
-                    node.node_num = node_num + 1
-                    node.host_num = host.host_num
+                # Move nodes from ungrouped if they belong to this server
+                ungrouped: QTreeWidgetItem = self.servers.get(b'0')
+                ucount = 0
+                if ungrouped:
+                    for node in ungrouped.takeChildren():
+                        if node.node_id[:-1] + seqidx2id(0) == server_id:
+                            server.addChild(node)
+                        else:
+                            ungrouped.addChild(node)
+                            ucount += 1
+                    if not ucount:
+                        ungrouped.setHidden(True)
+            else:
+                self.nodetree.setItemWidget(server, 0, QLabel(hostname, parent=self.nodetree))
+            self.servers[server_id] = server
 
-                    self.nodes[node_id] = node
 
-    def on_simevent_received(self, eventname, eventdata, sender_id):
+    def nodesChanged(self, node_id):
+        if node_id not in self.nodes:
+            #print(node_id, 'added to list')
+            server_id = node_id[:-1] + seqidx2id(0)
+            if server_id not in bs.net.servers:
+                server_id = b'0'
+            if server_id not in self.servers:
+                self.serversChanged(server_id)
+            server = self.servers.get(server_id)
+            server.setHidden(False)
+            node_num = seqid2idx(node_id[-1])
+            node = QTreeWidgetItem(server)
+            node.setText(0, f'{server.serv_num}:{node_num} <init>')
+            node.setText(1, '00:00:00')
+            node.node_id  = node_id
+            node.node_num = node_num
+            node.serv_num = server.serv_num
+
+            self.nodes[node_id] = node
+
+    @subscriber(topic='SHOWDIALOG')
+    def on_showdialog_received(self, dialog, args=''):
         ''' Processing of events from simulation nodes. '''
-        # ND window for selected aircraft
-        if eventname == b'SHOWND':
-            return
-            if eventdata:
-                self.nd.setAircraftID(eventdata)
-            self.nd.setVisible(not self.nd.isVisible())
+        # dialog = data.get('dialog')
+        # args   = data.get('args')
+        if dialog == 'OPENFILE':
+            self.show_file_dialog()
+        elif dialog == 'DOC':
+            self.show_doc_window(args)
 
-        elif eventname == b'SHOWDIALOG':
-            dialog = eventdata.get('dialog')
-            args   = eventdata.get('args')
-            if dialog == 'OPENFILE':
-                self.show_file_dialog()
-            elif dialog == 'DOC':
-                self.show_doc_window(args)
-
-    def on_simstream_received(self, streamname, data, sender_id):
-        if streamname == b'SIMINFO':
-            speed, simdt, simt, simutc, ntraf, state, scenname = data
-            simt = tim2txt(simt)[:-3]
-            self.setNodeInfo(sender_id, simt, scenname)
-            if sender_id == bs.net.actnode():
-                acdata = bs.net.get_nodedata().acdata
-                self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
-                    % (simt, simdt, speed, simutc, self.modes[state], ntraf, acdata.nconf_cur, acdata.nconf_tot, acdata.nlos_cur, acdata.nlos_tot))
+    @subscriber(topic='SIMINFO')
+    def on_siminfo_received(self, speed, simdt, simt, simutc, ntraf, state, scenname):
+        simt = tim2txt(simt)[:-3]
+        self.setNodeInfo(ctx.sender_id, simt, scenname)
+        if ctx.sender_id == bs.net.act_id:
+            self.siminfoLabel.setText(u'<b>t:</b> %s, <b>\u0394t:</b> %.2f, <b>Speed:</b> %.1fx, <b>UTC:</b> %s, <b>Mode:</b> %s, <b>Aircraft:</b> %d, <b>Conflicts:</b> %d/%d, <b>LoS:</b> %d/%d'
+                % (simt, simdt, speed, simutc, self.modes[state], ntraf, self.nconf_cur, self.nconf_tot, self.nlos_cur, self.nlos_tot))
 
     def setNodeInfo(self, connid, time, scenname):
         node = self.nodes.get(connid)
         if node:
-            node.setText(0, f'{node.host_num}:{node.node_num} <{scenname}>')
+            node.setText(0, f'{node.serv_num}:{node.node_num} <{scenname}>')
             node.setText(1, time)
 
     @pyqtSlot(QTreeWidgetItem, int)
     def nodetreeClicked(self, item, column):
-        if item in self.hosts.values():
+        if item in self.servers.values():
             item.setSelected(False)
             item.child(0).setSelected(True)
             bs.net.actnode(item.child(0).node_id)
@@ -327,59 +426,46 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def buttonClicked(self):
-        actdata = bs.net.get_nodedata()
-        if self.sender() == self.shownodes:
-            vis = not self.nodetree.isVisible()
-            self.nodetree.setVisible(vis)
-            self.shownodes.setText('>' if vis else '<')
         if self.sender() == self.zoomin:
-            self.radarwidget.panzoom(zoom=1.4142135623730951)
+            self.radarwidget.setpanzoom(zoom=1.4142135623730951, absolute=False)
         elif self.sender() == self.zoomout:
-            self.radarwidget.panzoom(zoom=0.70710678118654746)
+            self.radarwidget.setpanzoom(zoom=0.70710678118654746, absolute=False)
         elif self.sender() == self.pandown:
-            self.radarwidget.panzoom(pan=(-0.5,  0.0))
+            self.radarwidget.setpanzoom(pan=(-0.5,  0.0), absolute=False)
         elif self.sender() == self.panup:
-            self.radarwidget.panzoom(pan=( 0.5,  0.0))
+            self.radarwidget.setpanzoom(pan=( 0.5,  0.0), absolute=False)
         elif self.sender() == self.panleft:
-            self.radarwidget.panzoom(pan=( 0.0, -0.5))
+            self.radarwidget.setpanzoom(pan=( 0.0, -0.5), absolute=False)
         elif self.sender() == self.panright:
-            self.radarwidget.panzoom(pan=( 0.0,  0.5))
+            self.radarwidget.setpanzoom(pan=( 0.0,  0.5), absolute=False)
         elif self.sender() == self.ic:
             self.show_file_dialog()
         elif self.sender() == self.sameic:
-            bs.net.send_event(b'STACK', 'IC IC')
+            stack.stack('IC IC')
         elif self.sender() == self.hold:
-            bs.net.send_event(b'STACK', 'HOLD')
+            stack.stack('HOLD')
         elif self.sender() == self.op:
-            bs.net.send_event(b'STACK', 'OP')
+            stack.stack('OP')
         elif self.sender() == self.fast:
-            bs.net.send_event(b'STACK', 'FF')
+            stack.stack('FF')
         elif self.sender() == self.fast10:
-            bs.net.send_event(b'STACK', 'FF 0:0:10')
+            stack.stack('FF 0:0:10')
         elif self.sender() == self.showac:
-            actdata.show_traf = not actdata.show_traf
+            stack.stack('SHOWTRAF')
         elif self.sender() == self.showpz:
-            actdata.show_pz = not actdata.show_pz
+            stack.stack('SHOWPZ')
         elif self.sender() == self.showapt:
-            if actdata.show_apt < 3:
-                actdata.show_apt += 1
-            else:
-                actdata.show_apt = 0
+            stack.stack('SHOWAPT')
         elif self.sender() == self.showwpt:
-            if actdata.show_wpt < 2:
-                actdata.show_wpt += 1
-            else:
-                actdata.show_wpt = 0
+            stack.stack('SHOWWPT')
         elif self.sender() == self.showlabels:
-            actdata.show_lbl -= 1
-            if actdata.show_lbl < 0:
-                actdata.show_lbl = 2
+            stack.stack('LABEL')
         elif self.sender() == self.showmap:
-            actdata.show_map = not actdata.show_map
+            stack.stack('SHOWMAP')
         elif self.sender() == self.action_Save:
-            bs.net.send_event(b'STACK', 'SAVEIC')
-        elif hasattr(self.sender(), 'host_id'):
-            bs.net.send_event(b'ADDNODES', 1)
+            stack.stack('SAVEIC')
+        elif hasattr(self.sender(), 'server_id'):
+            bs.net.send(b'ADDNODES', 1, self.sender().server_id)
 
     def show_file_dialog(self, path=None):
         # Due to Qt5 bug in Windows, use temporarily Tkinter

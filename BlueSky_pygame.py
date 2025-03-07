@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """ Pygame BlueSky start script """
-from __future__ import print_function
 import pygame as pg
 import bluesky as bs
 from bluesky.ui.pygame import splash
