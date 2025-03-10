@@ -8,7 +8,7 @@ authors = [
 ]
 
 description = "Resources for the BlueSky Open ATM Simulator GUI"
-readme = "../../README.md"
+readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -28,11 +28,10 @@ Homepage = "https://github.com/TUDelft-CNS-ATM/bluesky"
 Issues = "https://github.com/TUDelft-CNS-ATM/bluesky/issues"
 
 [build-system]
-requires = ["hatchling==1.26.3", "hatch-calver"]
+requires = ["hatchling==1.26.3"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-scheme = "calver"
 path = "../../bluesky/resources/graphics/__init__.py"
 
 [tool.hatch.build.force-include]
