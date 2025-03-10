@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import traceback
 
 import bluesky as bs
 from bluesky.stack.stackbase import Stack, forward, stack
@@ -43,7 +44,7 @@ def process():
                 echoflags = bs.BS_ARGERR
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
-
+                traceback.print_exc()
         elif Stack.sender_id is None:
             # If sender_id is None, this stack command originated from the gui. Send it on to the sim
             forward()
