@@ -1,5 +1,5 @@
 ''' Node test '''
-import inspect
+from typing import Union, Collection
 import zmq
 import msgpack
 import bluesky as bs
@@ -41,6 +41,8 @@ class Node(Entity):
         # Signals
         self.node_added = Signal('node-added')
         self.node_removed = Signal('node-removed')
+        self.server_added = Signal('server-added')
+        self.server_removed = Signal('server-removed')
 
     def connect(self, hostname=None, recv_port=None, send_port=None, protocol='tcp'):
         ''' Connect node to a server.
@@ -129,11 +131,10 @@ class Node(Entity):
                                     self.nodes.add(sender_id)
                                     if sender_id != self.node_id:
                                         self.node_added.emit(sender_id)
-                                    # if not self.act_id:
-                                    #     self.actnode(sender_id)
                                     continue
                                 elif sequence_idx == 0:
                                     self.servers.add(sender_id)
+                                    self.server_added.emit(sender_id)
 
                             elif ctx.msg[0][0] == MSG_UNSUBSCRIBE:
                                 if sequence_idx > 0:
@@ -141,11 +142,12 @@ class Node(Entity):
                                     self.node_removed.emit(sender_id)
                                 elif sequence_idx == 0:
                                     self.servers.discard(sender_id)
+                                    self.server_removed.emit(sender_id)
 
         except zmq.ZMQError:
             return False
 
-    def send(self, topic, data='', to_group=''):
+    def send(self, topic: str, data: Union[str, Collection]='', to_group: str=''):
         btopic = asbytestr(topic)
         bto_group = asbytestr(to_group or stack.sender() or '')
         self.sock_send.send_multipart(
@@ -155,23 +157,27 @@ class Node(Entity):
             ]
         )
 
-    def subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+    def subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
         ''' Subscribe to a topic.
 
             Arguments:
             - topic: The name of the topic to subscribe to
             - from_id: The id of the node from which to receive the topic (optional)
             - to_group: The group mask that this topic is sent to (optional)
+            - actonly: Set to true if you only want to receive this topic from
+              the active node. This only has effect when this Node is a Client.
         '''
         sub = None
         if topic:
             sub = Subscription(topic)
+            sub.actonly = (sub.actonly or actonly)
+            actonly = sub.actonly
             if (from_group, to_group) in sub.subs:
                 # Subscription already active. Just return Subscription object
                 return sub
             sub.subs.add((from_group, to_group))
 
-        self._subscribe(topic, from_group, to_group)
+        self._subscribe(topic, from_group, to_group, actonly)
 
         # Messages coming in that match this subscription will be emitted using a 
         # subscription signal
@@ -189,7 +195,7 @@ class Node(Entity):
             Subscription(topic).subs.discard((from_group, to_group))
         self._unsubscribe(topic, from_group, to_group)
 
-    def _subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+    def _subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
         if from_group == GROUPID_DEFAULT:
             from_group = GROUPID_CLIENT
         btopic = asbytestr(topic)
@@ -210,4 +216,4 @@ class Node(Entity):
         
             If provided, create these nodes with the specified node ids.
         '''
-        self.send(b'ADDNODES', dict(count=count, node_ids=node_ids), self.server_id)
+        self.send('ADDNODES', dict(count=count, node_ids=node_ids), self.server_id)
