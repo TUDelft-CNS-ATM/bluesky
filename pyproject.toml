@@ -22,12 +22,17 @@ license = {file = "LICENSE"}
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+
     "Development Status :: 4 - Beta",
 
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering",
 
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: MIT License",
 
     "Operating System :: OS Independent",
 ]
@@ -63,7 +68,6 @@ Homepage = "https://github.com/TUDelft-CNS-ATM/bluesky"
 Issues = "https://github.com/TUDelft-CNS-ATM/bluesky/issues"
 Documentation = "https://github.com/TUDelft-CNS-ATM/bluesky/wiki"
 Repository = "https://github.com/TUDelft-CNS-ATM/bluesky"
-# Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling==1.26.3", "hatch-vcs"]
