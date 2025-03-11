@@ -1,25 +1,16 @@
 ''' BlueSky Client class. '''
 from collections import defaultdict
 
-import bluesky as bs
 from bluesky.core.signal import Signal
 from bluesky.stack.clientstack import process
 from bluesky.network.node import Node
 from bluesky.network.common import genid, GROUPID_CLIENT, GROUPID_SIM, GROUPID_DEFAULT
-from bluesky.core.trafficproxy import TrafficProxy
 
 class Client(Node):
     def __init__(self, group_id=GROUPID_CLIENT):
         super().__init__(group_id)
         self.acttopics = defaultdict(set)
         self.discovery = None
-        print('client init', self.node_id)
-        # And create a proxy object for easy traffic data access
-        bs.traf = TrafficProxy()
-
-        # If no other object is taking care of this, let this client act as screen object as well
-        if not bs.scr:
-            bs.scr = self
 
         # Signals
         self.actnode_changed = Signal('actnode-changed')

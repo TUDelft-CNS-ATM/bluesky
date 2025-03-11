@@ -64,6 +64,8 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     globals()['mode'] = mode
     globals()['gui'] = gui
 
+    global server, traf, sim, scr, net, navdb
+
     # Initialise resource localisation, and set custom working directory if present
     from bluesky import pathfinder
     pathfinder.init(workdir)
@@ -86,12 +88,10 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     # Only the headless server doesn't need this
     if mode == "sim" or gui is not None:
         from bluesky.navdatabase import Navdatabase
-        global navdb
         navdb = Navdatabase()
 
     # If mode is server-gui or server-headless start the networking server
     if mode == 'server':
-        global server
         from bluesky.network.server import Server
         server = Server(discoverable, configfile, scenfile)
 
@@ -111,8 +111,7 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
 
         from bluesky.core import varexplorer
 
-        # Initialize singletons
-        global traf, sim, scr, net
+        # Initialise singletons
         traf = Traffic()
         sim = Simulation()
         scr = Screen()
@@ -120,6 +119,14 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
 
         # Initialize remaining modules
         varexplorer.init()
+    elif mode == 'client' or (mode == 'server' and gui is not None):
+        # For clients we initialise the traffic object as a network
+        # proxy. When BlueSky is run as a full application, server
+        # and client share one process.
+        from bluesky.core.trafficproxy import TrafficProxy
+
+        # Initialise singletons
+        traf = TrafficProxy()
 
     from bluesky.core import plugin
     plugin.init(mode)
