@@ -32,6 +32,21 @@ from bluesky.ui.qtgl.settingswindow import SettingsWindow
 
 if platform.system().lower() == "windows":
     from bluesky.ui.pygame.dialog import fileopen
+    import winreg
+    def isdark():
+        ''' Returns true if app is in dark mode, false otherwise. '''
+        try:
+            registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+            key = winreg.OpenKey(registry, r"Software\\Microsoft\\\Windows\\CurrentVersion\\Themes\\Personalize")
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            return value == 0
+        except FileNotFoundError:
+            return False
+else:
+    def isdark():
+        ''' Returns true if app is in dark mode, false otherwise. '''
+        p = app.instance().style().standardPalette()
+        return (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
 
 
 # Register settings defaults
@@ -39,12 +54,6 @@ bs.settings.set_variable_defaults(gfx_path='graphics', start_location='EHAM')
 
 palette.set_default_colours(stack_text=(0, 255, 0),
                             stack_background=(102, 102, 102))
-
-
-def isdark():
-        ''' Returns true if app is in dark mode, false otherwise. '''
-        p = app.instance().style().standardPalette()
-        return (p.color(p.ColorRole.Window).value() < p.color(p.ColorRole.WindowText).value())
 
 
 class Splash(QSplashScreen):
