@@ -9,6 +9,7 @@ from bluesky.ui.polytools import PolygonSet
 from bluesky.ui.qtgl import console
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.network.sharedstate import ActData
+from bluesky.network.common import ActionType
 
 
 palette.set_default_colours(
@@ -129,13 +130,21 @@ class Poly(glh.RenderObject, layer=-20):
 
     @subscriber(topic='POLY')
     def update_poly_data(self, data):
-        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
+        if ctx.action in (ActionType.Reset, ActionType.ActChange):
             # Simulation reset: Clear all entries
             self.bufdata.clear()
             self.allpolys.set_vertex_count(0)
             self.allpfill.set_vertex_count(0)
             names = data.polys.keys()
+        
+        # The data argument passed to this subscriber contains all poly
+        # data. We only need the current updates, which are in ctx.action_content
+        elif ctx.action == ActionType.Delete:
+            # Delete action contains a list of poly names to delete
+            names = ctx.action_content['polys']
         else:
+            # All other updates contain a dict with names as keys
+            # and updated/new polys as items
             names = ctx.action_content['polys'].keys()
 
         # We're either updating a polygon, or deleting it.
