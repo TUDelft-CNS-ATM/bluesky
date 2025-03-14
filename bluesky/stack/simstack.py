@@ -83,6 +83,7 @@ def process(ext_cmds=None):
                 echoflags = bs.BS_ARGERR
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
+                traceback.print_exc()
             except Exception as e:
                 echoflags = bs.BS_FUNERR
                 header = '' if not argstring else e.args[0] if e.args else 'Function error.'
