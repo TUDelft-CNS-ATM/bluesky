@@ -9,7 +9,7 @@ from .windfield import Windfield
 
 class WindSim(Entity, Windfield, replaceable=True):      
     @command(name='WIND')
-    def add(self, lat: 'lat', lon: 'lon', *winddata: 'float'):
+    def add(self, lat: 'lat', lon: 'lon', *winddata: 'float/alt'):
         """ Define a wind vector as part of the 2D or 3D wind field.
         
             Arguments:
