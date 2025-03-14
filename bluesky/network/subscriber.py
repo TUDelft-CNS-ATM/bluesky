@@ -112,6 +112,10 @@ class SubscriptionFactory(signal.SignalFactory):
                     sub.__class__ = Subscription
                     sub.subs = set()
                     sub.requested = set()
+                    sub.actonly = False
+                    sub.msg_type = MessageType.Unknown
+                    sub.deferred_subs = []
+                    signal.Signal.connect(sub, sub._detect_type)
                 else:
                     raise TypeError(f'Trying to connect network subscription to signal with incompatible type {type(sub).__name__}')
 
