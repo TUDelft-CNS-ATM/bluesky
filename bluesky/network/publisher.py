@@ -147,7 +147,7 @@ def state_publisher(func: Optional[Callable] = None, *, topic='', dt=None, send_
           - update: Each state package sent should be used to update the previously received data
     '''
     def deco(func):
-        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
+        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(f, (staticmethod, classmethod)))
         itopic = (topic or ifunc.__name__).upper()
 
         StatePublisher(itopic, dt, send_type=send_type).payload(func)

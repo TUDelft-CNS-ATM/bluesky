@@ -23,7 +23,7 @@ class FuncObject(metaclass=FuncObjectMeta):
     __slots__ = ['func', 'callback']
 
     def __init__(self, func) -> None:
-        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
+        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(f, (staticmethod, classmethod)))
         self.update(ifunc)
         ufunc = inspect.unwrap(func)
         setattr(getattr(ufunc, '__func__', ufunc), '__func_object__', self)

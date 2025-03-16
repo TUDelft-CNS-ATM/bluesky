@@ -37,7 +37,7 @@ def subscriber(func=None, *, topic='', broadcast=True, actonly=False, raw=False,
     '''
     def deco(func):
         # Unwrap wrapped functions, static and class methods
-        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(func, (staticmethod, classmethod)))
+        ifunc = inspect.unwrap(func, stop=lambda f:not isinstance(f, (staticmethod, classmethod)))
         
         # Create the subscription object. Network subscriptions will be made as
         # soon as the network connection is available
