@@ -39,7 +39,10 @@ class FuncObject(metaclass=FuncObjectMeta):
             self.func == inspect.unwrap(value)
 
     def notimplemented(self, *args, **kwargs):
-        pass
+        if self.func is None:
+            print('Trying to call callback without assigned function or method')
+        else:
+            print(f'Trying to call method {self.func.__name__} for uninstantiated object')
 
     def update(self, func):
         self.func = func

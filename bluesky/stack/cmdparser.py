@@ -60,6 +60,7 @@ class Command:
         self.aliases = kwargs.get('aliases', tuple())
         self.annotations = get_annot(kwargs.get('annotations', ''))
         self.params = list()
+        self._callback = None
         self.callback = func
 
     def __call__(self, argstring):
@@ -103,22 +104,6 @@ class Command:
         if self.valid:
             return f'<Stack Command {self.name}, callback={self.callback}>'
         return f'<Stack Command {self.name} (invalid), callback=unbound method {self.callback}'
-
-    def notimplemented(self, *args, **kwargs):
-        ''' Stub for stack functions based on Entity methods, when a currently
-            selected Entity implementation doesn't provide the stack function of
-            this command.
-        '''
-        func = inspect.unwrap(self.callback)
-        if inspect.ismethod(func):
-            if inspect.isclass(func.__self__):
-                impl = func.__self__.__name__
-            else:
-                impl = func.__self__.__class__.__name__
-        else:
-            impl = inspect.getmodule(func).__name__
-        return False, f'The current {self.name} implementation doesn\'t' +\
-            f'provide this function (function was originally declared in {impl})'
 
     @property
     def callback(self):
