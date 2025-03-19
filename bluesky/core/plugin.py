@@ -113,7 +113,6 @@ class Plugin:
                                     else:
                                         ret_dicts = [iitem.value]
                                     if len(ret_dicts) not in (1, 2):
-                                        print(f"{fname} looks like a plugin, but init_plugin() doesn't return one or two dicts")
                                         continue
                                     ret_names = [el.id if isinstance(el, ast.Name) else '' for el in ret_dicts]
 
@@ -124,6 +123,10 @@ class Plugin:
                                             ret_dicts[i] = iitem.value
 
                             # Parse the config dict
+                            if len(ret_dicts) not in (1, 2):
+                                print(f"{fname} looks like a plugin, but init_plugin() doesn't return one or two dicts")
+                                continue
+
                             cfgdict = {k.s:v for k,v in zip(ret_dicts[0].keys, ret_dicts[0].values)}
                             plugintype = cfgdict.get('plugin_type')
                             if plugintype is None:
