@@ -1,6 +1,7 @@
 """ BlueSky plugin template. The text you put here will be visible
     in BlueSky as the description of your plugin. """
 
+# flake8: noqa
 
 # Developed by Julia and Jerom, superteam!
 
@@ -10,6 +11,15 @@ from bluesky.tools.aero import kts, ft, fpm, vcas2tas
 from bluesky.tools import geo
 import numpy as np
 
+
+# Globals
+commandnames = []
+# Make a list of testing functions
+fnumber = 0
+teststart = True
+timer = 0.0
+
+
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
@@ -18,8 +28,7 @@ def init_plugin():
     # Run the time
     stack.stack("OP")
     stack.stack("FF")
-    # Reset the traffic simulation
-    traf.reset()
+    
     commandnames = list(stack.cmddict.keys())
     # Make a list of testing functions
     fnumber = 0
