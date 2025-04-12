@@ -6,7 +6,7 @@ Generate traffic at edges and at airports
 Make sure scenario can be saved
 
 """
-
+# flake8: noqa
 
 from bluesky import stack,traf,sim,tools,navdb  #, settings, navdb, traf, sim, scr, tools
 from bluesky.plugins.trafgenclasses import Source, Drain, setcircle
