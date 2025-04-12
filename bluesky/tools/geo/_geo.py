@@ -11,6 +11,8 @@ nm  = 1852.  # m       1 nautical mile
 
 # Read data for declination switch
 decl_read = False
+decl_lat_lon = np.array([])
+
 
 def rwgs84(latd):
     """ Calculate the earths radius with WGS'84 geoid definition
