@@ -46,6 +46,9 @@ autopilot, conflict detection and resolution and airborne separation assurance s
 containing the same commands with a time stamp before the command ("HH:MM:SS.hh>")
 - Mouse clicks in traffic window are use in console for lat/lon/heading and position inputs
 
+## Questions or suggestions?
+Visit us on [Discord](https://discord.gg/wkBKgXCHYN), open a topic on the GitHub discussion board, or open an issue.
+
 ## Contributions
 BlueSky can be considered 'perpetual beta'. We would like to encourage anyone with a strong interest in
 ATM and/or Python to join us. Please feel free to comment, criticise, and contribute to this project. Please send suggestions, proposed changes or contributions through GitHub pull requests, preferably after debugging it and optimising it for run-time performance.
