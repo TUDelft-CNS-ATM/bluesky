@@ -10,8 +10,8 @@ import bluesky as bs
 from bluesky.core.base import Base
 import bluesky.core as core
 from bluesky.core import plugin, simtime
-from bluesky.core.signal import subscriber
-from bluesky.network.publisher import state_publisher
+from bluesky.network import subscriber
+from bluesky.network.publisher import state_publisher, StatePublisher
 from bluesky.core.walltime import Timer
 from bluesky.core.timedfunction import hooks
 from bluesky.stack import simstack, recorder
@@ -26,6 +26,8 @@ bs.settings.set_variable_defaults(simdt=0.05)
 
 class Simulation(Base):
     ''' The simulation object. '''
+    pub_simstate = StatePublisher('STATECHANGE')
+
     def __init__(self):
         super().__init__()
         self.state = bs.INIT
@@ -57,8 +59,6 @@ class Simulation(Base):
         # Flag indicating whether timestep can be varied to ensure realtime op
         self.rtmode = False
 
-        self.running = True
-
         # Keep track of known clients
         self.clients = set()
 
@@ -66,9 +66,13 @@ class Simulation(Base):
         signal.signal(signal.SIGINT, lambda *args: self.quit())
         signal.signal(signal.SIGTERM, lambda *args: self.quit())
 
+    @pub_simstate.payload
+    def get_state(self):
+        return dict(simstate=self.state)
+
     def run(self):
         ''' Start the main loop of this simulation. '''
-        while self.running:
+        while self.state != bs.END:
             # Process timers
             Timer.update_timers()
             # Update network connections
@@ -160,18 +164,17 @@ class Simulation(Base):
             else:
                 self.op()
 
-
         # Inform main of our state change
         if self.state != self.prevstate:
-            bs.net.send(b'STATECHANGE', self.state, bs.net.server_id)
+            self.pub_simstate.send_replace(to_group=bs.net.server_id)
             self.prevstate = self.state
 
     def quit(self):
         ''' Quit simulation.
             This function is called when a QUIT signal is received from
             the server, or when quit is called. '''
+        print(f'Simulation node {bs.net.node_id} quitting.')
         self.state = bs.END
-        self.running = False
 
     def op(self):
         ''' Set simulation state to OPERATE. '''
@@ -250,12 +253,12 @@ class Simulation(Base):
 
         return True
 
-    @subscriber(topic='BATCH')
-    def start_batch_scenario(self, data):
+    @subscriber(topic='BATCH', broadcast=False)
+    def start_batch_scenario(self, name, scentime, scencmd):
         ''' Start a scenario coming from the server batch. '''
         # We are in a batch simulation, and received an entire scenario. Assign it to the stack.
         self.reset()
-        bs.stack.set_scendata(data['scentime'], data['scencmd'])
+        bs.stack.set_scendata(scentime, scencmd)
         self.op()
 
     @state_publisher(topic='SIMSETTINGS')
