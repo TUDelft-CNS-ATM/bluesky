@@ -88,7 +88,7 @@ def seqidx2id(seqidx):
     return chr(128 + seqidx).encode('charmap')
 
 
-def asbytestr(val):
+def asbytestr(val:int|str|bytes) -> bytes:
     return chr(val).encode('charmap') if isinstance(val, int) else \
               val.encode('charmap') if isinstance(val, str) else \
               val

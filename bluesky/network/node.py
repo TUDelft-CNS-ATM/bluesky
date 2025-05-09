@@ -1,5 +1,5 @@
 ''' Node test '''
-from typing import Union, Collection
+from collections.abc import Collection
 import zmq
 import msgpack
 import bluesky as bs
@@ -65,6 +65,8 @@ class Node(Entity):
 
     def close(self):
         ''' Close all network connections. '''
+        self.poller.unregister(self.sock_recv)
+        self.poller.unregister(self.sock_send)
         self.sock_recv.close()
         self.sock_send.close()
         zmq.Context.instance().destroy()
@@ -147,7 +149,7 @@ class Node(Entity):
         except zmq.ZMQError:
             return False
 
-    def send(self, topic: str, data: Union[str, Collection]='', to_group: str=''):
+    def send(self, topic: str, data: str|Collection='', to_group: int|str|bytes=''):
         btopic = asbytestr(topic)
         bto_group = asbytestr(to_group or stack.sender() or '')
         self.sock_send.send_multipart(
@@ -157,7 +159,7 @@ class Node(Entity):
             ]
         )
 
-    def subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
+    def subscribe(self, topic, from_group: int|str|bytes=GROUPID_DEFAULT, to_group: int|str|bytes='', actonly=False):
         ''' Subscribe to a topic.
 
             Arguments:
@@ -183,7 +185,7 @@ class Node(Entity):
         # subscription signal
         return sub
 
-    def unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+    def unsubscribe(self, topic, from_group: int|str|bytes=GROUPID_DEFAULT, to_group: int|str|bytes=''):
         ''' Unsubscribe from a topic.
 
             Arguments:
@@ -195,7 +197,7 @@ class Node(Entity):
             Subscription(topic).subs.discard((from_group, to_group))
         self._unsubscribe(topic, from_group, to_group)
 
-    def _subscribe(self, topic, from_group=GROUPID_DEFAULT, to_group='', actonly=False):
+    def _subscribe(self, topic, from_group: int|str|bytes=GROUPID_DEFAULT, to_group: int|str|bytes='', actonly=False):
         if from_group == GROUPID_DEFAULT:
             from_group = GROUPID_CLIENT
         btopic = asbytestr(topic)
@@ -203,7 +205,7 @@ class Node(Entity):
         bto_group = asbytestr(to_group)
         self.sock_recv.setsockopt(zmq.SUBSCRIBE, bto_group.ljust(IDLEN, b'*') + btopic + bfrom_group)
 
-    def _unsubscribe(self, topic, from_group=GROUPID_DEFAULT, to_group=''):
+    def _unsubscribe(self, topic, from_group: int|str|bytes=GROUPID_DEFAULT, to_group: int|str|bytes=''):
         if from_group == GROUPID_DEFAULT:
             from_group = GROUPID_CLIENT
         btopic = asbytestr(topic)

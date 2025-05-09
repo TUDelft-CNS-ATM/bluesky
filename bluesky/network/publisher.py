@@ -1,6 +1,6 @@
 import inspect
 from collections import defaultdict
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import bluesky as bs
 from bluesky.core.funcobject import FuncObject
@@ -125,7 +125,7 @@ class StatePublisher(metaclass=PublisherMeta):
         return func
 
 
-def state_publisher(func: Optional[Callable] = None, *, topic='', dt=None, send_type='replace'):
+def state_publisher(func: Callable|None = None, *, topic='', dt=None, send_type='replace'):
     ''' BlueSky shared state publisher decorator.
 
         Convenience decorator to create a periodically called state publisher.
