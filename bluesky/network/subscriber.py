@@ -123,10 +123,11 @@ class SubscriptionFactory(signal.SignalFactory):
             SubscriptionFactory.subscriptions[topic] = sub
 
         # Keep track of all broadcast topic orig/dest combinations
-        if broadcast:
-            sub.subscribe(from_group, to_group)
         if actonly is not None:
             sub.actonly = actonly
+        if broadcast or sub.actonly:
+            sub.subscribe(from_group, to_group)
+
         return sub
 
 
