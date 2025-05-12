@@ -1,4 +1,6 @@
 ''' Simulation clock with guaranteed decimal precision. '''
+import time
+from collections.abc import Collection
 from types import SimpleNamespace
 from decimal import Decimal
 
@@ -65,7 +67,7 @@ def reset():
 
 
 class TimerMeta(type):
-    __timers__ = dict()
+    __timers__: dict[str, 'Timer'] = dict()
 
     def __call__(cls, name, dt):
         timer = TimerMeta.__timers__.get(name)
@@ -74,11 +76,11 @@ class TimerMeta(type):
         return timer
 
     @classmethod
-    def timers(cls):
+    def timers(cls) -> Collection['Timer']:
         return cls.__timers__.values()
 
     @classmethod
-    def gettimer(cls, name):
+    def gettimer(cls, name) -> 'Timer|None':
         return cls.__timers__.get(name)
 
 
@@ -93,6 +95,8 @@ class Timer(metaclass=TimerMeta):
         self.rel_freq = 0
         self.counter = 0
         self.tprev = _clock.t
+        self.readynext = True
+
         self.setdt()
 
     def reset(self):
@@ -131,10 +135,7 @@ class Timer(metaclass=TimerMeta):
     def step(self):
         ''' Step is called each base timestep to update this timer. '''
         self.counter = (self.counter or self.rel_freq) - 1
-
-    def readynext(self):
-        ''' Returns True if a time interval of this timer has passed. '''
-        return self.counter == 0
+        self.readynext = self.counter == 0
 
     def elapsed(self):
         ''' Return the time elapsed since the last time this timer was triggered. '''

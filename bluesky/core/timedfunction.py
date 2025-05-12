@@ -39,22 +39,26 @@ def timed_function(func=None, name='', dt=0, hook='update'):
         else:
             tname = name
         fobj = FuncObject(func)
-        timer = None if hook == 'reset' else Timer(tname, dt)
-
-        # Generate the wrapped timed callback
-        # Create the appropriate call method
-        if 'dt' in inspect.signature(func).parameters:
-            # Callback for functions that have dt as argument
-            @functools.wraps(fobj)
-            def callback(*args):
-                if timer.counter == 0:
-                    fobj(*args, dt=float(timer.dt_act))
+        if 'update' in hook or 'preupdate' in hook:
+            # Generate the wrapped timed callback
+            timer = Timer(tname, dt)
+            # Create the appropriate call method
+            if 'dt' in inspect.signature(func).parameters:
+                # Callback for functions that have dt as argument
+                @functools.wraps(fobj)
+                def callback(*args):
+                    if timer.readynext:
+                        fobj(*args, dt=float(timer.dt_act))
+            else:
+                # Callback for functions without dt as argument
+                @functools.wraps(fobj)
+                def callback(*args):
+                    if timer.readynext:
+                        fobj(*args)
         else:
-            # Callback for functions without dt as argument
             @functools.wraps(fobj)
             def callback(*args):
-                if timer.counter == 0:
-                    fobj(*args)
+                fobj(*args)
 
         # Add automatically-triggered function to appropriate dict(s) if not there yet.
         hooknames = hook if isinstance(hook, (list, tuple)) else (hook,)

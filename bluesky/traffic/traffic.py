@@ -403,7 +403,7 @@ class Traffic(Entity):
         self.ap.update()  # Autopilot logic
 
         # Conflict detection and resolution
-        if self.asastimer.readynext():
+        if self.asastimer.readynext:
             self.cd.update(self, self)
             self.cr.update(self.cd, self, self)
 
