@@ -36,7 +36,7 @@ class Client(Node):
                 # This is the first time an active node is selected
                 # We can now unsubscribe this method from the node-added signal
                 self.node_added.disconnect(self.actnode)
-    
+
             # Unsubscribe from previous node, subscribe to new one.
             if newact != self.act_id:
                 for topic, groupset in self.acttopics.items():
