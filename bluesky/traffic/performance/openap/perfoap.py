@@ -112,7 +112,7 @@ class OpenAP(PerfBase):
             all_ac_engs = list(self.coeff.acs_fixwing[actype]["engines"].keys())
             self.engthrmax[-n:] = self.coeff.acs_fixwing[actype]["engines"][
                 all_ac_engs[0]
-            ]["thr"]
+            ]["max_thrust"]
             self.engbpr[-n:] = self.coeff.acs_fixwing[actype]["engines"][
                 all_ac_engs[0]
             ]["bpr"]
