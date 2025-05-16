@@ -100,7 +100,7 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
         from bluesky.traffic import Traffic
         from bluesky.simulation import Simulation
         if gui == 'pygame':
-            from bluesky.ui.pygame import Screen
+            from bluesky.ui.pygame.screen import Screen
             from bluesky.network.detached import Node
         else:
             from bluesky.simulation import ScreenIO as Screen
