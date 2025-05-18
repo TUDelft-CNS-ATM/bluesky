@@ -1,6 +1,8 @@
 ''' Stack argument parsers. '''
 import inspect
 import re
+from types import UnionType, NoneType
+import typing
 from matplotlib import colors
 from bluesky.tools.misc import txt2bool, txt2lat, txt2lon, txt2alt, txt2tim, \
     txt2hdg, txt2vs, txt2spd
@@ -46,9 +48,17 @@ class Parameter:
         elif isinstance(param.annotation, type) and issubclass(param.annotation, Parser):
             # If the paramter annotation is a class derived from Parser
             self.parsers = [self.annotation()]
+
+        # All other annotation types are expected to have default behaviour
+        # and are wrapped in Parser
+        elif isinstance(self.annotation, UnionType):
+            self.parsers = []
+            for tp in typing.get_args(self.annotation):
+                if tp is NoneType:
+                    self.optional = True
+                else:
+                    self.parsers.append(Parser(tp))
         else:
-            # All other annotation types are expected to have default behaviour
-            # and are wrapped in Parser
             self.parsers = [Parser(self.annotation)]
 
         # This parameter is not valid if it has no parsers, or is keyword-only.
