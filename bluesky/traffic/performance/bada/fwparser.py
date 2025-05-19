@@ -22,11 +22,11 @@ import re
 
 # Define regular expressions for finding:
 # The types in a dataformat string
-re_types = re.compile('[.*[fis]]*', re.IGNORECASE)
+re_types = re.compile(r'[.*[fis]]*', re.IGNORECASE)
 # The ranges that need to be skipped (indicated with [0-9]X)
-re_skip  = re.compile('[\s,]*(\d+)x[\s,]*', re.IGNORECASE)
+re_skip  = re.compile(r'[\s,]*(\d+)x[\s,]*', re.IGNORECASE)
 # The ranges that contain data (indicated with [0-9][fis])
-re_data  = re.compile('[\s,]*(\d+)[fis][\s,]*', re.IGNORECASE)
+re_data  = re.compile(r'[\s,]*(\d+)[fis][\s,]*', re.IGNORECASE)
 
 
 class FixedWidthParser:
