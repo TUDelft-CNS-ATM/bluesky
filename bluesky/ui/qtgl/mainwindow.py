@@ -288,7 +288,7 @@ class MainWindow(QMainWindow, Base):
         return True
 
     @stack.command(annotations='float/txt', brief='ZOOM IN/OUT/factor')
-    def zoom(self, factor):
+    def zoom(self, factor, absolute=True):
         ''' ZOOM: Zoom in and out in the radar view. 
         
             Arguments:
@@ -297,7 +297,7 @@ class MainWindow(QMainWindow, Base):
         '''
         store = ss.get(group='panzoom')
         if isinstance(factor, float):
-            store.zoom = factor
+            store.zoom = factor * (1.0 if absolute else store.zoom)
         elif factor == 'IN':
             store.zoom *= 1.4142135623730951
         elif factor == 'OUT':

@@ -1,6 +1,7 @@
 from pathlib import Path
 import subprocess
 import traceback
+import math
 
 import bluesky as bs
 from bluesky.stack.stackbase import Stack, forward, stack
@@ -45,6 +46,17 @@ def process():
                 header = '' if not argstring else e.args[0] if e.args else 'Argument error.'
                 echotext = f'{header}\nUsage:\n{cmdobj.brieftext()}'
                 traceback.print_exc()
+
+        # ----------------------------------------------------------------------
+        # ZOOM command (or use ++++  or --  to zoom in or out)
+        # ----------------------------------------------------------------------
+        elif cmdu[0] in ("+", "=", "-"):
+            # = equals + (same key)
+            nplus = cmdu.count("+") + cmdu.count("=")
+            nmin = cmdu.count("-")
+            bs.scr.zoom(math.sqrt(2) ** (nplus - nmin), absolute=False)
+            cmdu = 'ZOOM'
+
         elif Stack.sender_id is None:
             # If sender_id is None, this stack command originated from the gui. Send it on to the sim
             forward()

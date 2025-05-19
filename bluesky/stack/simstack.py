@@ -1,7 +1,7 @@
 ''' Main simulation-side stack functions. '''
-import math
 from pathlib import Path
 import traceback
+
 import bluesky as bs
 from bluesky.stack.stackbase import Stack, stack, checkscen, forward
 from bluesky.stack.cmdparser import Command, command
@@ -90,16 +90,6 @@ def process(ext_cmds=None):
                 echotext = f'Error calling function implementation of {cmdu}: {header}\n' + \
                     'Traceback printed to terminal.'
                 traceback.print_exc()
-
-        # ----------------------------------------------------------------------
-        # ZOOM command (or use ++++  or --  to zoom in or out)
-        # ----------------------------------------------------------------------
-        elif cmdu[0] in ("+", "=", "-"):
-            # = equals + (same key)
-            nplus = cmdu.count("+") + cmdu.count("=")
-            nmin = cmdu.count("-")
-            bs.scr.zoom(math.sqrt(2) ** (nplus - nmin), absolute=False)
-            cmdu = 'ZOOM'
 
         # -------------------------------------------------------------------
         # Command not found
