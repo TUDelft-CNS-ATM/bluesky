@@ -142,11 +142,16 @@ class Subscription(signal.Signal, metaclass=SubscriptionFactory):
         self.subs = set()
         self.requested = set()
         self.actonly = actonly
-        # Start out uninitialised so we can detect whether incoming data is
-        # a shared state or a regular message
-        self.msg_type = MessageType.Unknown
         self.deferred_subs = []
-        super().connect(self._detect_type)
+        if ss.is_sharedstate(topic):
+            # We already know this is a sharedstate topic. subscribe as such
+            self.msg_type = MessageType.SharedState
+            super().connect(ss.on_sharedstate_received)
+        else:
+            # Start out uninitialised so we can detect whether incoming data is
+            # a shared state or a regular message
+            self.msg_type = MessageType.Unknown
+            super().connect(self._detect_type)
 
     def _detect_type(self, *args, **kwargs):
         # First disconnect this function, it is only needed once

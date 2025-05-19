@@ -135,6 +135,11 @@ def addtopic(topic: str) -> signal.Signal:
     return sig
 
 
+def is_sharedstate(topic):
+    ''' Inform whether 'topic' is (already) known as sharedstate. '''
+    return topic.lower() in sigchanged
+
+
 class Store(SimpleNamespace):
     ''' Simple storage object for nested storage of state data per simulation node. '''
     def valid(self):
