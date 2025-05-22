@@ -66,7 +66,7 @@ class OpenAP(PerfBase):
             if actype in self.coeff.synodict.keys():
                 # warn = f"Warning: {actype} replaced by {self.coeff.synodict[actype]}"
                 # print(warn)
-                # bs.scr.echo(warn)
+                # stack.echo(warn)
                 actype = self.coeff.synodict[actype]
 
         # initialize aircraft / engine performance parameters
@@ -85,7 +85,7 @@ class OpenAP(PerfBase):
             if actype not in self.coeff.actypes_fixwing:
                 # warn = f"Warning: {actype} replaced by B744"
                 # print(warn)
-                # bs.scr.echo(warn)
+                # stack.echo(warn)
                 actype = "B744"
 
             # populate fuel flow model

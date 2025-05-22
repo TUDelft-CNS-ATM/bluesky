@@ -113,7 +113,7 @@ def process(ext_cmds=None):
 
         # Always return on command
         if echotext:
-            bs.scr.echo(echotext, echoflags)
+            echo(echotext, echoflags)
 
     # Clear the processed commands
     if ext_cmds is None:
@@ -236,6 +236,21 @@ def merge(source, *args, isrelative=True):
     # execute any commands that are already due
     if callnow:
         process(callnow)
+
+
+@command(annotations='string')
+def echo(text='', flags=0, to_group=b''):
+        ''' Echo
+
+            Simulation-side implementation of ECHO sends echo message on to client.    
+        '''
+        bs.net.send('ECHO', dict(text=text, flags=flags), to_group=to_group)
+
+
+@command(name='INSEDIT')
+def cmdline(text: 'string'):
+    ''' Insert text op edit line in command window. '''
+    bs.net.send(b'CMDLINE', text)
 
 
 @command(aliases=('LOAD', 'OPEN'))

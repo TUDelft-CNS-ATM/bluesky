@@ -5,6 +5,7 @@ from bluesky.tools.aero import kts, ft, g0, vtas2cas, vcas2tas
 from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.legacy.performance import esf, phases, calclimits, PHASE
 from bluesky import settings
+from bluesky import stack
 from . import coeff_bada
 
 
@@ -604,12 +605,10 @@ class BADA(PerfBase):
 
     def show_performance(self, acid):
         # PERF acid command
-        bs.scr.echo("Flight phase: %s" % self.phase[acid])
-        bs.scr.echo("Thrust: %d kN" % (self.thrust[acid] / 1000))
-        bs.scr.echo("Drag: %d kN" % (self.D[acid] / 1000))
-        bs.scr.echo("Fuel flow: %.2f kg/s" % self.fuelflow[acid])
-        bs.scr.echo("Speed envelope: Min: %d MMO: %d kts M %.2f" % (int(self.vmin[acid] / kts), int(self.vmo[acid] / kts),
-                                                      self.mmo[acid]))
-        bs.scr.echo("Ceiling: %d ft" % (int(self.hmax[acid] / ft)))
-        # self.drag.astype(int)
-        return True
+        return True, \
+            f"Flight phase: {self.phase[acid]}\n" + \
+            f"Thrust: {self.thrust[acid] / 1000} kN\n" + \
+            f"Drag: {self.D[acid] / 1000:.0f} kN\n" + \
+            f"Fuel flow: {self.fuelflow[acid]:.2f} kg/s\n" + \
+            f"Speed envelope: Min: {self.vmin[acid] / kts:.0f} MMO: {self.vmo[acid] / kts:.0f} kts M {self.mmo[acid]:.2f}\n" + \
+            f"Ceiling: {self.hmax[acid] / ft:.0f} ft"

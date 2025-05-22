@@ -55,7 +55,7 @@ class WindECMWF(WindSim):
         fpath = datadir / fname
         
         if not fpath.is_file():
-            bs.scr.echo("Downloading file, please wait...")
+            stack.echo("Downloading file, please wait...")
     
             # Set client
             c = cdsapi.Client()
@@ -89,7 +89,7 @@ class WindECMWF(WindSim):
                 },
                 fpath)
     
-        bs.scr.echo("Download completed.")
+        stack.echo("Download completed.")
         netcdf = nc.Dataset(fpath, mode='r')
     
         return netcdf
@@ -165,7 +165,7 @@ class WindECMWF(WindSim):
             self.hour  = 0
 
         txt = "Loading wind field for %s-%s-%s..." % (self.year, self.month, self.day)
-        bs.scr.echo("%s" % txt)
+        stack.echo("%s" % txt)
 
         netcdf = self.fetch_nc(self.year, self.month, self.day)
 
@@ -202,4 +202,4 @@ class WindECMWF(WindSim):
     def update(self):
         if self.autoload:
             _, txt = self.loadwind(self.lat0, self.lon0, self.lat1, self.lon1)
-            bs.scr.echo("%s" % txt)
+            stack.echo("%s" % txt)

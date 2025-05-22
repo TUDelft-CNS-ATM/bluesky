@@ -1,7 +1,7 @@
 """ BlueSky sector occupancy count plugin. """
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import traf, scr  #, stack, settings, navdb, traf, sim, scr, tools
+from bluesky import traf, stack #, settings, navdb, traf, sim, scr, tools
 from bluesky.tools import areafilter, datalog
 
 # List of sectors known to this plugin.
@@ -68,11 +68,11 @@ def update():
 
         # Print to console
         if n_left > 0:
-            scr.echo('%s aircraft that have left: %s' % (name, left))
+            stack.echo('%s aircraft that have left: %s' % (name, left))
         if n_arrived > 0:
-            scr.echo('%s aircraft that have arrived: %s' % (name, arrived))
+            stack.echo('%s aircraft that have arrived: %s' % (name, arrived))
         if n_left + n_arrived > 0:
-            scr.echo('%s occupancy count: %d' % (name, n_tot))
+            stack.echo('%s occupancy count: %d' % (name, n_tot))
             previnside[idx] = ids
 
     # Log data if enabled

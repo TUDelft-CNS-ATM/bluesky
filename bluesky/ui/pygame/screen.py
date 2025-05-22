@@ -299,14 +299,18 @@ class Screen(Entity):
         self.apswbmp = len(bs.navdb.aptlat) * [False]
         self.aplabel = len(bs.navdb.aptlat) * [0]
 
+    @stack.command(annotations='string')
     def echo(self, msg='', flags=0):
+        ''' Echo a message to the BlueSky console window. '''
         if msg:
             msgs = msg.split('\n')
             for m in msgs:
                 self.editwin.echo(m)
         return
 
-    def cmdline(self, text):
+    @stack.command(name='INSEDIT')
+    def cmdline(self, text: 'string'):
+        ''' Insert text op edit line in command window. '''
         self.editwin.insert(text)
 
     def update(self):

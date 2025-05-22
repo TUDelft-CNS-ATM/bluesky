@@ -58,7 +58,7 @@ def savegeofences(filename: 'txt'):
     with open(filepath, 'w') as f:
         json.dump(Geofence.geo_save_dict, f, indent=4)
 
-    bs.scr.echo(f'Geofences saved to {filename}.')
+    stack.echo(f'Geofences saved to {filename}.')
 
 @stack.command()
 def loadgeofences(filename: 'txt'):
@@ -72,13 +72,13 @@ def loadgeofences(filename: 'txt'):
         try:
             loaded_geo_dict = json.loads(f.read())
         except FileNotFoundError:
-            bs.scr.echo(f'File empty or does not exist.')
+            stack.echo(f'File empty or does not exist.')
             return
         
     for geofence in loaded_geo_dict.values():
         Geofence(geofence['name'], geofence['coordinates'], geofence['top'], geofence['bottom'])
 
-    bs.scr.echo(f'Geofences loaded from {filename}.')
+    stack.echo(f'Geofences loaded from {filename}.')
 
 @stack.command()
 def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', bottom_col: 'txt'='bottom'):
@@ -87,7 +87,7 @@ def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', b
         import geopandas as gpd
         from fiona.errors import DriverError
     except ImportError:
-        bs.scr.echo('Geopandas is not installed. Cannot load geofences from geojson.')
+        stack.echo('Geopandas is not installed. Cannot load geofences from geojson.')
         return
 
     # Load the geojson file into a geopandas dataframe
@@ -100,7 +100,7 @@ def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', b
         try:
             loaded_geo_dict = json.loads(f.read())
         except FileNotFoundError:
-            bs.scr.echo(f'File empty or does not exist.')
+            stack.echo(f'File empty or does not exist.')
 
     # read the geojson dictionary into
 
@@ -127,7 +127,7 @@ def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', b
             bottom = geo_props[bottom_col]
 
         except KeyError:
-            bs.scr.echo(f'Geofence has no {name_col}, {top_col} or {bottom_col} columns.')
+            stack.echo(f'Geofence has no {name_col}, {top_col} or {bottom_col} columns.')
             break
         
         # get coordinates into lat1,lon1,lat2,lon2,lat3,lon3...
@@ -135,7 +135,7 @@ def loadgeojson(filename: 'txt', name_col: 'txt'='name', top_col: 'txt'='top', b
 
         Geofence(name, coordinates, top, bottom)
 
-    bs.scr.echo(f'Geofences loaded from {filename}.')
+    stack.echo(f'Geofences loaded from {filename}.')
 
 @stack.command()
 def drawgeofence(toggle: 'txt'='on'):

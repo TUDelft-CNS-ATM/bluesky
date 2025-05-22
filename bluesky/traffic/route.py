@@ -149,15 +149,15 @@ class Route(Base):
         elif mode == None:
             # Just echo the current wptmode
             if acrte.swflyby == True and acrte.swflyturn == False:
-                bs.scr.echo('Current ADDWPT mode is FLYBY.')
+                stack.echo('Current ADDWPT mode is FLYBY.')
                 return True
 
             elif acrte.swflyby == False and acrte.swflyturn == False:
-                bs.scr.echo('Current ADDWPT mode is FLYOVER.')
+                stack.echo('Current ADDWPT mode is FLYOVER.')
                 return True
 
             else:
-                bs.scr.echo('Current ADDWPT mode is FLYTURN.')
+                stack.echo('Current ADDWPT mode is FLYTURN.')
                 return True
             
     @stack.command(name='ADDWPT', annotations='acid,wpt,[alt,spd,wpinroute,wpinroute]', aliases=("WPTYPE",))
@@ -525,7 +525,7 @@ class Route(Base):
         # Args come in this order: lat, lon, alt, spd, TURNSPD/TURNRAD/FLYBY, turnspeed or turnrad value
         # If turn is '0', then ignore turnspeed
         if len(args)%6 !=0:
-            bs.scr.echo('You missed a waypoint value, arguement number must be a multiple of 6.')
+            stack.echo('You missed a waypoint value, arguement number must be a multiple of 6.')
             return
 
         # Get and reset current aircraft route
@@ -1193,12 +1193,12 @@ class Route(Base):
 
 
                 # Display message
-                bs.scr.echo(txt)
+                stack.echo(txt)
 
         # Add command for next page to screen command line
         npages = int((acrte.nwp + 6) / 7)
         if ipage + 1 < npages:
-            bs.scr.cmdline("LISTRTE " + acid + "," + str(ipage + 1))
+            stack.stack(f'INSEDIT LISTRTE {acid},{ipage + 1}')
 
     def getnextturnwp(self):
         """Give the next turn waypoint data."""

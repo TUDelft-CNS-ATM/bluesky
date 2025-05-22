@@ -62,7 +62,7 @@ class WindGFS(WindSim):
         remote_url = bs.settings.windgfs_url + remote_loc
 
         if not fpath.is_file():
-            bs.scr.echo("Downloading file, please wait...")
+            stack.echo("Downloading file, please wait...")
             print("Downloading %s" % remote_url)
 
             response = requests.get(remote_url, stream=True)
@@ -86,7 +86,7 @@ class WindGFS(WindSim):
                         sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50-done)) )
                         sys.stdout.flush()
 
-        bs.scr.echo("Download completed.")
+        stack.echo("Download completed.")
         grb = pygrib.open(fpath)
 
         return grb
@@ -173,7 +173,7 @@ class WindGFS(WindSim):
             pred = 0
 
         txt = "Loading wind field for %s-%s-%s %s:00..." % (self.year, self.month, self.day, self.hour)
-        bs.scr.echo("%s" % txt)
+        stack.echo("%s" % txt)
 
         grb = self.fetch_grb(self.year, self.month, self.day, self.hour, pred)
 
@@ -210,4 +210,4 @@ class WindGFS(WindSim):
     def update(self):
         if self.autoload:
             _, txt = self.loadwind(self.lat0, self.lon0, self.lat1, self.lon1)
-            bs.scr.echo("%s" % txt)
+            stack.echo("%s" % txt)

@@ -2,6 +2,7 @@
 import json
 import pandas as pd
 import bluesky as bs
+from bluesky import stack
 
 
 bs.settings.set_variable_defaults(perf_path_openap="performance/OpenAP")
@@ -163,7 +164,6 @@ class Coefficient:
                 pass
             else:
                 warn = f"Warning: Some performance parameters for {mdl} are not found, default values used."
-                print(warn)
-                bs.scr.echo(warn)
+                stack.echo(warn)
 
         return limits_rotor

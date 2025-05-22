@@ -209,12 +209,6 @@ def initbasecmds():
             bs.sim.set_dtmult,
             "Sel multiplication factor for fast-time simulation",
         ],
-        "ECHO": [
-            "ECHO txt",
-            "string",
-            lambda *args: bs.scr.echo(*args),
-            "Show a text in command window for user to read",
-        ],
         "FF": [
             "FF [timeinsec]",
             "[time]",
@@ -244,12 +238,6 @@ def initbasecmds():
             "[txt,txt]",
             select_implementation,
             "Select an alternate implementation for a Bluesky base class"
-        ],
-        "INSEDIT": [
-            "INSEDIT txt",
-            "string",
-            bs.scr.cmdline,
-            "Insert text op edit line in command window",
         ],
         "LEGEND": [
             "LEGEND label1, ..., labeln",

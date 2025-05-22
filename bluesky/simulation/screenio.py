@@ -70,12 +70,6 @@ class ScreenIO(Entity):
         self.def_pan = (0.0, 0.0)
         self.def_zoom = 1.0
 
-    def echo(self, text='', flags=0):
-        bs.net.send(b'ECHO', dict(text=text, flags=flags))
-
-    def cmdline(self, text):
-        bs.net.send(b'CMDLINE', text)
-
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
         if not stack.sender():

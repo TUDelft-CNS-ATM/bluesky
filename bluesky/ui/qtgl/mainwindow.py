@@ -287,8 +287,8 @@ class MainWindow(QMainWindow, Base):
         self.panzoom_event.emit(store)
         return True
 
-    @stack.command(annotations='float/txt', brief='ZOOM IN/OUT/factor')
-    def zoom(self, factor, absolute=True):
+    @stack.commandgroup(annotations='float/txt', brief='ZOOM IN/OUT/factor')
+    def zoom(self, factor: float):
         ''' ZOOM: Zoom in and out in the radar view. 
         
             Arguments:
@@ -296,14 +296,23 @@ class MainWindow(QMainWindow, Base):
                       'factor' to set zoom to specific value.
         '''
         store = ss.get(group='panzoom')
-        if isinstance(factor, float):
-            store.zoom = factor * (1.0 if absolute else store.zoom)
-        elif factor == 'IN':
-            store.zoom *= 1.4142135623730951
-        elif factor == 'OUT':
-            store.zoom *= 0.7071067811865475
-        else:
-            return False, f'ZOOM: argument {factor} not recognised'
+        store.zoom = factor
+        self.panzoom_event.emit(store)
+        return True
+
+    @zoom.subcommand(name='IN')
+    def zoomin(self, factor:float|None=None):
+        ''' ZOOM IN: change zoom level up, relative to previous value '''
+        store = ss.get(group='panzoom')
+        store.zoom *= (factor or 1.4142135623730951)
+        self.panzoom_event.emit(store)
+        return True
+
+    @zoom.subcommand(name='OUT')
+    def zoomout(self, factor:float|None=None):
+        ''' ZOOM OUT: change zoom level down, relative to previous value '''
+        store = ss.get(group='panzoom')
+        store.zoom *= (factor or 0.7071067811865475)
         self.panzoom_event.emit(store)
         return True
 

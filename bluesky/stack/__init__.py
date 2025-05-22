@@ -13,13 +13,25 @@ def process(ext_cmds):
     pass
 
 
+def echo(self, text='', flags=0):
+    ''' Echo
+
+        This base implementation just prints to the terminal, and is used in sim-detached mode. It is replaced
+        by sim or client implementation during init.
+    '''
+    print(text)
+
+
 def init(mode='client'):
     if mode[:3] == 'sim':
         import bluesky.stack.simstack as simstack
         from bluesky.stack.importer import Importer
         simstack.init()
         globals()['process'] = simstack.process
+        if 'detached' not in mode:
+            globals()['echo'] = simstack.echo
     else:
         import bluesky.stack.clientstack as clientstack
         clientstack.init()
         globals()['process'] = clientstack.process
+        globals()['echo'] = clientstack.echo

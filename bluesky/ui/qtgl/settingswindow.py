@@ -263,7 +263,7 @@ class SettingsWindow(QWidget, Base):
 
         # Save local settings
         success, msg = bs.settings.save(changes=localchanges)
-        # bs.scr.echo(msg)
+        # stack.echo(msg)
 
     def btnclicked(self):
         self.resetbtn.setEnabled(False)
