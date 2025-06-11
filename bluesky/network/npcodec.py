@@ -12,5 +12,5 @@ def encode_ndarray(o):
 def decode_ndarray(o):
     '''Msgpack decoder for numpy arrays.'''
     if o.get(b'numpy'):
-        return np.fromstring(o[b'data'], dtype=np.dtype(o[b'type'])).reshape(o[b'shape'])
+        return np.frombuffer(o[b'data'], dtype=np.dtype(o[b'type'])).reshape(o[b'shape'])
     return o
