@@ -14,6 +14,7 @@ from bluesky.network.sharedstate import ActData, get
 from bluesky.ui.qtgl import autocomplete
 from bluesky.ui.radarclick import radarclick
 
+import html
 
 cmdline_stacked = Signal('cmdline_stacked')
 
@@ -247,8 +248,12 @@ class Cmdline(QTextEdit):
 
     def set_cmdline(self, cmdline, hints='', cursorpos=None):
         ''' Set the command line with possible hints. '''
-        self.setHtml('>>' + cmdline + '<font color="#aaaaaa">' +
-                     hints + '</font>')
+        self.setHtml('>>' +
+                    html.escape(cmdline).replace(' ', '&nbsp;') +
+                    '<font color="#aaaaaa">' +
+                    html.escape(hints).replace(' ', '&nbsp;') +
+                    '</font>'
+        )
         self.cmdline = cmdline
         cursor = self.textCursor()
         if cursorpos is None:
