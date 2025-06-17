@@ -164,7 +164,12 @@ class Console(QWidget):
 
         newcmd = self.command_line
         cursorpos = None
-        if event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            if event.key() == Qt.Key.Key_Left:
+                self.lineEdit.cursor_word_left()
+            elif event.key() == Qt.Key.Key_Right:
+                self.lineEdit.cursor_word_right()
+        elif event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde:
             pos = self.lineEdit.cursor_pos()
             newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
             # Update the cursor position with the length of the added text
@@ -199,10 +204,8 @@ class Console(QWidget):
                         newcmd = self.command_mem
                     else:
                         newcmd = self.command_history[-self.history_pos]
-
             elif event.key() == Qt.Key.Key_Left:
                 self.lineEdit.cursor_left()
-
             elif event.key() == Qt.Key.Key_Right:
                 self.lineEdit.cursor_right()
             elif event.key() == Qt.Key.Key_Home:
@@ -287,6 +290,27 @@ class Cmdline(QTextEdit):
         cursor = self.textCursor()
         cursor.setPosition(len(self.cmdline) + 2)
         self.setTextCursor(cursor)
+
+    def cursor_word_left(self):
+        cursor = self.textCursor()
+        pos = cursor.position() - 2
+        while pos > 0 and self.cmdline[pos - 1] == ' ':
+            pos -= 1 # skip initial spaces
+        while pos > 0 and self.cmdline[pos - 1] != ' ':
+            pos -= 1
+        cursor.setPosition(pos + 2)
+        self.setTextCursor(cursor)
+
+    def cursor_word_right(self):
+        cursor = self.textCursor()
+        pos = cursor.position() - 2
+        while pos < len(self.cmdline) and self.cmdline[pos] == ' ':
+            pos += 1 # skip initial spaces
+        while pos < len(self.cmdline) and self.cmdline[pos] != ' ':
+            pos += 1
+        cursor.setPosition(pos + 2)
+        self.setTextCursor(cursor)
+
 
 class Stackwin(QTextEdit):
     ''' Wrapper class for the stack output textbox. '''
