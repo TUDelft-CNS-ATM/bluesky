@@ -169,6 +169,17 @@ class Console(QWidget):
                 self.lineEdit.cursor_word_left()
             elif event.key() == Qt.Key.Key_Right:
                 self.lineEdit.cursor_word_right()
+            elif event.key() == Qt.Key.Key_V:
+                pos = self.lineEdit.cursor_pos()
+                clipboardText = QApplication.clipboard().text()
+                newcmd = newcmd[:pos] + clipboardText + newcmd[pos:]
+                cursorpos = pos + len(clipboardText)
+            elif event.key() == Qt.Key.Key_X:
+                QApplication.clipboard().setText(self.command_line)
+                newcmd = ""
+                cursorpos = 0
+            elif event.key() == Qt.Key.Key_C:
+                QApplication.clipboard().setText(self.command_line)
         elif event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde:
             pos = self.lineEdit.cursor_pos()
             newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
