@@ -242,7 +242,9 @@ class Cmdline(QTextEdit):
                      hints + '</font>')
         self.cmdline = cmdline
         cursor = self.textCursor()
-        cursor.setPosition((cursorpos or len(cmdline)) + 2)
+        if cursorpos is None:
+            cursorpos = len(cmdline)
+        cursor.setPosition(cursorpos + 2)
         self.setTextCursor(cursor)
         # TODO: word objects with possible list of checker functions?
 
