@@ -62,16 +62,19 @@ class Simulation(Base):
         # Keep track of known clients
         self.clients = set()
 
-        # Connect to system ABORT/INTERRUPT signal
-        signal.signal(signal.SIGINT, lambda *args: self.quit())
-        signal.signal(signal.SIGTERM, lambda *args: self.quit())
-
     @pub_simstate.payload
     def get_state(self):
         return dict(simstate=self.state)
 
     def run(self):
         ''' Start the main loop of this simulation. '''
+        # When This function is run, BlueSky controls the main loop
+        # In this case, connect to system ABORT/INTERRUPT signal to 
+        # allow BlueSky to quit cleanly when an interrupt/kill signal
+        # is received
+        signal.signal(signal.SIGINT, lambda *args: self.quit())
+        signal.signal(signal.SIGTERM, lambda *args: self.quit())
+
         while self.state != bs.END:
             # Process timers
             Timer.update_timers()
