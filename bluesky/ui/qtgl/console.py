@@ -50,7 +50,7 @@ def process_cmdline(cmdlines):
 
 
 class Console(QWidget):
-    lineEdit: QTextEdit = None
+    lineEdit: 'Cmdline' = None
     stackText: QTextEdit = None
     _instance = None
 
@@ -182,7 +182,7 @@ class Console(QWidget):
                 newcmd, displaytext = autocomplete.complete(newcmd)
                 if displaytext:
                     self.echo(displaytext)
-        elif not event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier | 
+        elif not event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier |
                                         Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier):
             if event.key() == Qt.Key.Key_Up:
                 if self.history_pos == 0:
@@ -204,6 +204,10 @@ class Console(QWidget):
 
             elif event.key() == Qt.Key.Key_Right:
                 self.lineEdit.cursor_right()
+            elif event.key() == Qt.Key.Key_Home:
+                self.lineEdit.cursor_home()
+            elif event.key() == Qt.Key.Key_End:
+                self.lineEdit.cursor_end()
             else:
                 # Remaining keys are things like sole modifier keys, and function keys
                 super().keyPressEvent(event)
@@ -269,6 +273,15 @@ class Cmdline(QTextEdit):
         cursor.setPosition(min(len(self.cmdline) + 2, cursor.position() + 1))
         self.setTextCursor(cursor)
 
+    def cursor_home(self):
+        cursor = self.textCursor()
+        cursor.setPosition(2)
+        self.setTextCursor(cursor)
+
+    def cursor_end(self):
+        cursor = self.textCursor()
+        cursor.setPosition(len(self.cmdline) + 2)
+        self.setTextCursor(cursor)
 
 class Stackwin(QTextEdit):
     ''' Wrapper class for the stack output textbox. '''
