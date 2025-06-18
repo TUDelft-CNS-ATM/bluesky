@@ -204,10 +204,18 @@ class Console(QWidget):
             newcmd = newcmd[:pos - 1] + newcmd[pos:]
             cursorpos = pos - 1
         elif event.key() == Qt.Key.Key_Delete:
-            pos = self.lineEdit.cursor_pos()
-            if pos < len(newcmd):
-                newcmd = newcmd[:pos] + newcmd[pos + 1:]
-                cursorpos = pos
+            cursor = self.lineEdit.textCursor()
+            anchor = cursor.anchor()-2
+            pos = cursor.position()-2
+
+            begin = min(anchor, pos)
+            end = max(anchor, pos)
+            if begin == end:
+                end += 1
+
+            if begin < len(newcmd):
+                newcmd = newcmd[:begin] + newcmd[end:]
+                cursorpos = begin
         elif event.key() == Qt.Key.Key_Tab:
             if newcmd:
                 newcmd, displaytext = autocomplete.complete(newcmd)
