@@ -1,6 +1,6 @@
 """ Console interface for the QTGL implementation."""
 from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QDesktopServices, QTextCursor
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWidgets import QWidget, QTextEdit
 
@@ -164,12 +164,26 @@ class Console(QWidget):
 
         newcmd = self.command_line
         cursorpos = None
-        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            if event.key() == Qt.Key.Key_Left:
-                self.lineEdit.cursor_word_left()
-            elif event.key() == Qt.Key.Key_Right:
-                self.lineEdit.cursor_word_right()
-            elif event.key() == Qt.Key.Key_V:
+        if event.key() == Qt.Key.Key_Left:
+            self.lineEdit.cursor_left(
+                word_level=event.modifiers() & Qt.KeyboardModifier.ControlModifier,
+                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
+            )
+        elif event.key() == Qt.Key.Key_Right:
+            self.lineEdit.cursor_right(
+                word_level=event.modifiers() & Qt.KeyboardModifier.ControlModifier,
+                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
+            )
+        elif event.key() == Qt.Key.Key_Home:
+            self.lineEdit.cursor_home(
+                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
+            )
+        elif event.key() == Qt.Key.Key_End:
+            self.lineEdit.cursor_end(
+                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
+            )
+        elif event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            if event.key() == Qt.Key.Key_V:
                 pos = self.lineEdit.cursor_pos()
                 clipboardText = QApplication.clipboard().text()
                 newcmd = newcmd[:pos] + clipboardText + newcmd[pos:]
@@ -207,7 +221,6 @@ class Console(QWidget):
                 if len(self.command_history) >= self.history_pos + 1:
                     self.history_pos += 1
                     newcmd = self.command_history[-self.history_pos]
-
             elif event.key() == Qt.Key.Key_Down:
                 if self.history_pos > 0:
                     self.history_pos -= 1
@@ -215,14 +228,6 @@ class Console(QWidget):
                         newcmd = self.command_mem
                     else:
                         newcmd = self.command_history[-self.history_pos]
-            elif event.key() == Qt.Key.Key_Left:
-                self.lineEdit.cursor_left()
-            elif event.key() == Qt.Key.Key_Right:
-                self.lineEdit.cursor_right()
-            elif event.key() == Qt.Key.Key_Home:
-                self.lineEdit.cursor_home()
-            elif event.key() == Qt.Key.Key_End:
-                self.lineEdit.cursor_end()
             else:
                 # Remaining keys are things like sole modifier keys, and function keys
                 super().keyPressEvent(event)
@@ -280,46 +285,48 @@ class Cmdline(QTextEdit):
         ''' Get the cursor position. '''
         return self.textCursor().position() - 2
 
-    def cursor_left(self):
+    def cursor_left(self, word_level: bool = False, select: bool = False):
         ''' Move the cursor one position to the left. '''
         cursor = self.textCursor()
-        cursor.setPosition(max(2, cursor.position() - 1))
-        self.setTextCursor(cursor)
+        if word_level:
+            pos = cursor.position() - 2
+            while pos > 0 and self.cmdline[pos - 1] == ' ':
+                pos -= 1 # skip initial spaces
+            while pos > 0 and self.cmdline[pos - 1] != ' ':
+                pos -= 1
+            pos += 2
+        else:
+            pos = max(2, cursor.position() - 1)
 
-    def cursor_right(self):
+        self.cursor_set_pos(pos, select)
+
+    def cursor_right(self, word_level: bool = False, select: bool = False):
         ''' Move the cursor one position to the right. '''
         cursor = self.textCursor()
-        cursor.setPosition(min(len(self.cmdline) + 2, cursor.position() + 1))
-        self.setTextCursor(cursor)
+        if word_level:
+            pos = cursor.position() - 2
+            while pos < len(self.cmdline) and self.cmdline[pos] == ' ':
+                pos += 1 # skip initial spaces
+            while pos < len(self.cmdline) and self.cmdline[pos] != ' ':
+                pos += 1
+            pos += 2
+        else:
+            pos = min(len(self.cmdline) + 2, cursor.position() + 1)
 
-    def cursor_home(self):
-        cursor = self.textCursor()
-        cursor.setPosition(2)
-        self.setTextCursor(cursor)
+        self.cursor_set_pos(pos, select)
 
-    def cursor_end(self):
-        cursor = self.textCursor()
-        cursor.setPosition(len(self.cmdline) + 2)
-        self.setTextCursor(cursor)
+    def cursor_home(self, select: bool = False):
+        self.cursor_set_pos(2, select)
 
-    def cursor_word_left(self):
-        cursor = self.textCursor()
-        pos = cursor.position() - 2
-        while pos > 0 and self.cmdline[pos - 1] == ' ':
-            pos -= 1 # skip initial spaces
-        while pos > 0 and self.cmdline[pos - 1] != ' ':
-            pos -= 1
-        cursor.setPosition(pos + 2)
-        self.setTextCursor(cursor)
+    def cursor_end(self, select: bool = False):
+        self.cursor_set_pos(len(self.cmdline) + 2, select)
 
-    def cursor_word_right(self):
+    def cursor_set_pos(self, pos, select: bool=False):
         cursor = self.textCursor()
-        pos = cursor.position() - 2
-        while pos < len(self.cmdline) and self.cmdline[pos] == ' ':
-            pos += 1 # skip initial spaces
-        while pos < len(self.cmdline) and self.cmdline[pos] != ' ':
-            pos += 1
-        cursor.setPosition(pos + 2)
+        if select:
+            cursor.setPosition(pos, QTextCursor.MoveMode.KeepAnchor)
+        else:
+            cursor.setPosition(pos)
         self.setTextCursor(cursor)
 
 
