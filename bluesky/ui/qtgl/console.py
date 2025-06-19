@@ -57,13 +57,6 @@ class Console(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        with cachefile.openfile('console_history.p') as cache:
-            try:
-                self.command_history = cache.load()
-            except:
-                self.command_history = []
-        self.history_pos = 0
-        self.command_mem = ''
 
         # Connect to the io client's activenode changed signal
         Signal('CMDLINE').connect(self.set_cmdline)
@@ -73,9 +66,6 @@ class Console(QWidget):
         assert Console._instance is None, "Console constructor: console instance " + \
             "already exists! Cannot have more than one console."
         Console._instance = self
-
-        # Connect function to save command history on quit
-        QApplication.instance().aboutToQuit.connect(self.close)
 
         # Connect to stack command list SharedState
         subscribe('STACKCMDS')
@@ -94,14 +84,7 @@ class Console(QWidget):
             self.lineEdit = event.child()
             self.lineEdit.commandEntered.connect(self.stack)
             self.lineEdit.tabCompletion.connect(self.tabCompletion)
-            self.lineEdit.historyNext.connect(self.historyNext)
-            self.lineEdit.historyPrevious.connect(self.historyPrevious)
         return super().childEvent(event)
-
-    def close(self):
-        ''' Save command history when BlueSky closes. '''
-        with cachefile.openfile('console_history.p') as cache:
-            cache.dump(self.command_history)
 
     def actnodeChanged(self, nodeid):
         text = ('<br>'.join(self.echotext)).replace('\n', '<br>') + '<br>'
@@ -111,9 +94,6 @@ class Console(QWidget):
         )
 
     def stack(self, text):
-        # Add command to the command history
-        self.command_history.append(text)
-
         # Output command to stack pane, add to command stack, and inform subscribers
         self.echo(text)
         bs.stack.stack(text)
@@ -156,52 +136,49 @@ class Console(QWidget):
             if displaytext:
                 self.echo(displaytext)
 
-    def historyPrevious(self, newcmd):
-        if self.history_pos == 0:
-            self.command_mem = newcmd
-        if len(self.command_history) >= self.history_pos + 1:
-            self.history_pos += 1
-            newcmd = self.command_history[-self.history_pos]
-            self.set_cmdline(newcmd)
-
-    def historyNext(self, newcmd):
-        if self.history_pos > 0:
-            self.history_pos -= 1
-            if self.history_pos == 0:
-                newcmd = self.command_mem
-            else:
-                newcmd = self.command_history[-self.history_pos]
-            self.set_cmdline(newcmd)
-
 
 class Cmdline(QTextEdit):
-    ''' Wrapper class for the command line. '''
+    """Wrapper class for the command line."""
 
     PROMPT = ">> "
 
-    cmddict: ActData[dict] = ActData(group='stackcmds')
+    cmddict: ActData[dict] = ActData(group="stackcmds")
 
     commandEntered = pyqtSignal(str)
     tabCompletion = pyqtSignal(str)
-    historyPrevious = pyqtSignal(str)
-    historyNext = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMaximumHeight(21)
         self.setUndoRedoEnabled(False)
         self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+
+        with cachefile.openfile("console_history.p") as cache:
+            try:
+                self.command_history = cache.load()
+            except:
+                self.command_history = []
+        self.history_pos = 0
+        self.command_mem = ""
+        # Connect function to save command history on quit
+        QApplication.instance().aboutToQuit.connect(self._cache_history)
+
         self.hint_text = ""
-        self.insertPrompt()
+        self.clear()
         self.textChanged.connect(self.setText)
 
-    def insertPrompt(self):
+    def _cache_history(self):
+        """Save command history when BlueSky closes."""
+        with cachefile.openfile("console_history.p") as cache:
+            cache.dump(self.command_history)
+
+    def clear(self):
+        self.history_pos = 0
         self._updateText(self.PROMPT, "", "")
         self.moveCursor(QTextCursor.MoveOperation.End)
 
     def keyPressEvent(self, event: QKeyEvent):
-        cursor = self.textCursor()
-        current_text = self.getInputText()
+        current_text = self.getInputText().strip()
 
         if (
             event.key() == Qt.Key.Key_C
@@ -210,34 +187,24 @@ class Cmdline(QTextEdit):
         ):
             # Clear command on ctrl-c only if nothing is selected.
             # Else, handle as copy shortcut by default QTextEdit implementation.
-            self.insertPrompt()
+            self.clear()
         elif event.key() == Qt.Key.Key_Home:
-            move_mode = (
-                QTextCursor.MoveMode.KeepAnchor
-                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier
-                else QTextCursor.MoveMode.MoveAnchor
-            )
-            cursor.setPosition(len(self.PROMPT), move_mode)
-            self.setTextCursor(cursor)
+            self._moveCursorBegin(event.modifiers())
         elif event.key() == Qt.Key.Key_End:
-            move_mode = (
-                QTextCursor.MoveMode.KeepAnchor
-                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier
-                else QTextCursor.MoveMode.MoveAnchor
-            )
-            cursor.setPosition(len(self.PROMPT + current_text), move_mode)
-            self.setTextCursor(cursor)
+            self._moveCursorEnd(event.modifiers())
         elif event.key() == Qt.Key.Key_Up:
-            self.historyPrevious.emit(current_text)
+            self._historyPrevious()
         elif event.key() == Qt.Key.Key_Down:
-            self.historyNext.emit(current_text)
+            self._historyNext()
         elif event.key() == Qt.Key.Key_Tab:
             self.tabCompletion.emit(current_text)
         elif event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
-            command = current_text.strip()
+            command = current_text
             if command:
+                # Add command to the command history
+                self.command_history.append(command)
                 self.commandEntered.emit(command)
-            self.insertPrompt()
+            self.clear()
         else:
             super().keyPressEvent(event)
 
@@ -258,6 +225,47 @@ class Cmdline(QTextEdit):
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
         self._ensureCursorAtValidPos()
+
+    def _moveCursorBegin(self, modifiers):
+        cursor = self.textCursor()
+        move_mode = (
+            QTextCursor.MoveMode.KeepAnchor
+            if modifiers & Qt.KeyboardModifier.ShiftModifier
+            else QTextCursor.MoveMode.MoveAnchor
+        )
+        cursor.setPosition(len(self.PROMPT), move_mode)
+        self.setTextCursor(cursor)
+
+    def _moveCursorEnd(
+        self, modifiers: Qt.KeyboardModifier = Qt.KeyboardModifier.NoModifier
+    ):
+        cursor = self.textCursor()
+        move_mode = (
+            QTextCursor.MoveMode.KeepAnchor
+            if modifiers & Qt.KeyboardModifier.ShiftModifier
+            else QTextCursor.MoveMode.MoveAnchor
+        )
+        cursor.setPosition(len(self.PROMPT + self.getInputText()), move_mode)
+        self.setTextCursor(cursor)
+
+    def _historyPrevious(self):
+        if self.history_pos == 0:
+            self.command_mem = self.getInputText()
+        if len(self.command_history) >= self.history_pos + 1:
+            self.history_pos += 1
+            newcmd = self.command_history[-self.history_pos]
+            self.setText(newcmd)
+            self._moveCursorEnd()
+
+    def _historyNext(self):
+        if self.history_pos > 0:
+            self.history_pos -= 1
+            if self.history_pos == 0:
+                newcmd = self.command_mem
+            else:
+                newcmd = self.command_history[-self.history_pos]
+            self.setText(newcmd)
+            self._moveCursorEnd()
 
     def _ensureCursorAtValidPos(self):
         min_pos = len(self.PROMPT)
@@ -297,19 +305,18 @@ class Cmdline(QTextEdit):
         cursor.setPosition(min(max(cursor_position, min_pos), max_pos))
         self.setTextCursor(cursor)
 
-
     def _updateText(self, prompt, command, hint):
         self.hint_text = hint
         # blocking signals to prevent recursion
         self.blockSignals(True)
-        self.clear()
+        super().clear()
         cursor = self.textCursor()
 
         fmt_blue = QTextCharFormat()
-        fmt_blue.setForeground(QColor("#0051ff")) # TODO - account for light/dark mode
+        fmt_blue.setForeground(QColor("#0051ff"))  # TODO - account for light/dark mode
 
         fmt_hint = QTextCharFormat()
-        fmt_hint.setForeground(QColor("#aaaaaa")) # TODO - account for light/dark mode
+        fmt_hint.setForeground(QColor("#aaaaaa"))  # TODO - account for light/dark mode
 
         cursor.setCharFormat(fmt_blue)
         cursor.insertText(prompt + command)
