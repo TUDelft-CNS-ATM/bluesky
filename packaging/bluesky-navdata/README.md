@@ -1,5 +1,5 @@
 # BlueSky Navdata - Navigation data for the Open Air Traffic Simulator
-BlueSky is meant as a tool to perform research on Air Traffic Management and Air Traffic Flows, and is distributed under the GNU General Public License v3.
+BlueSky is meant as a tool to perform research on Air Traffic Management and Air Traffic Flows, and is distributed under the MIT license.
 
 The goal of BlueSky is to provide everybody who wants to visualize, analyze or simulate air
 traffic with a tool to do so without any restrictions, licenses or limitations. It can be copied,
