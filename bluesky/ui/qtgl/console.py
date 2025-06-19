@@ -1,6 +1,6 @@
 """ Console interface for the QTGL implementation."""
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QDesktopServices, QTextCursor
+from PyQt6.QtCore import QChildEvent, Qt, QUrl, pyqtSignal
+from PyQt6.QtGui import QDesktopServices, QTextCursor, QKeyEvent, QTextCharFormat, QColor
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtWidgets import QWidget, QTextEdit
 
@@ -14,30 +14,26 @@ from bluesky.network.sharedstate import ActData, get
 from bluesky.ui.qtgl import autocomplete
 from bluesky.ui.radarclick import radarclick
 
-import html
-
 cmdline_stacked = Signal('cmdline_stacked')
 
 
-def get_cmd():
-    """ Return the current command in the console's command line."""
-    if not Console._instance:
-        return ''
-    return Console._instance.cmd
-
-
 def get_cmdline():
-    """ Return the current text in the console's command line."""
+    """ Return the current text in the console's command line without prompt and hint."""
     if not Console._instance:
         return ''
     return Console._instance.command_line
 
 
+def get_cmd():
+    """ Return the current command in the console's command line."""
+    cmd, _ = cmdsplit(get_cmdline())
+    return cmd
+
+
 def get_args():
     """ Return the current command arguments in the console's command line."""
-    if not Console._instance:
-        return []
-    return Console._instance.args
+    _, args = cmdsplit(get_cmdline())
+    return args
 
 
 def process_cmdline(cmdlines):
@@ -58,7 +54,6 @@ class Console(QWidget):
     # Per-remote data
     echotext: ActData[list] = ActData()
     echoflags: ActData[list] = ActData()
-    cmddict: ActData[dict] = ActData(group='stackcmds')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -67,11 +62,8 @@ class Console(QWidget):
                 self.command_history = cache.load()
             except:
                 self.command_history = []
-        self.cmd = ''
-        self.args = []
         self.history_pos = 0
         self.command_mem = ''
-        self.command_line = ''
 
         # Connect to the io client's activenode changed signal
         Signal('CMDLINE').connect(self.set_cmdline)
@@ -88,6 +80,24 @@ class Console(QWidget):
         # Connect to stack command list SharedState
         subscribe('STACKCMDS')
 
+    @property
+    def command_line(self):
+        return self.lineEdit.getInputText()
+
+    def childEvent(self, event: QChildEvent | None) -> None:
+        if (
+            event
+            and isinstance(event.child(), Cmdline)
+            and event.type()
+            in (QChildEvent.Type.ChildAdded, QChildEvent.Type.ChildPolished)
+        ):
+            self.lineEdit = event.child()
+            self.lineEdit.commandEntered.connect(self.stack)
+            self.lineEdit.tabCompletion.connect(self.tabCompletion)
+            self.lineEdit.historyNext.connect(self.historyNext)
+            self.lineEdit.historyPrevious.connect(self.historyPrevious)
+        return super().childEvent(event)
+
     def close(self):
         ''' Save command history when BlueSky closes. '''
         with cachefile.openfile('console_history.p') as cache:
@@ -97,15 +107,21 @@ class Console(QWidget):
         text = ('<br>'.join(self.echotext)).replace('\n', '<br>') + '<br>'
         self.stackText.setHtml(text)
         self.stackText.verticalScrollBar().setValue(
-            self.stackText.verticalScrollBar().maximum())
+            self.stackText.verticalScrollBar().maximum()
+        )
 
     def stack(self, text):
         # Add command to the command history
         self.command_history.append(text)
+
+        # Output command to stack pane, add to command stack, and inform subscribers
         self.echo(text)
         bs.stack.stack(text)
-        cmdline_stacked.emit(self.cmd, self.args)
+        cmd, args = cmdsplit(self.command_line)
+        cmdline_stacked.emit(cmd, args)
+
         # reset commandline and the autocomplete history
+
         self.set_cmdline('')
         autocomplete.reset()
         self.history_pos = 0
@@ -117,225 +133,206 @@ class Console(QWidget):
         self.stackText.setTextCursor(cursor)
         self.stackText.insertHtml(text.replace('\n', '<br>') + '<br>')
         self.stackText.verticalScrollBar().setValue(
-            self.stackText.verticalScrollBar().maximum())
+            self.stackText.verticalScrollBar().maximum()
+        )
 
     def on_radarclick(self, lat, lon):
         actdata = get()
         # TODO routedata isn't really a sharedstate, it only gives a selected route
-        tostack, tocmdline = radarclick(get_cmdline(), lat, lon,
+        tostack, tocmdline = radarclick(self.command_line, lat, lon,
                                         actdata.acdata, getattr(actdata, 'routedata', None))
 
         process_cmdline((tostack + '\n' + tocmdline) if tostack else tocmdline)
 
-
     def append_cmdline(self, text):
         self.set_cmdline(self.command_line + text)
 
-    def set_cmdline(self, text, cursorpos=None):
-        if self.command_line == text:
-            return
+    def set_cmdline(self, text):
+        self.lineEdit.setText(text)
 
-        self.command_line = text
-        self.cmd, self.args = cmdsplit(self.command_line)
-        self.cmd = self.cmd.upper()
+    def tabCompletion(self, newcmd):
+        if newcmd:
+            newcmd, displaytext = autocomplete.complete(newcmd)
+            if displaytext:
+                self.echo(displaytext)
 
-        hintline = ''
-        guicmd = Command.cmddict.get(self.cmd)
-        hint = guicmd.brief[len(self.cmd) + 1:] if guicmd else self.cmddict.get(self.cmd)
-        if hint:
-            if len(self.args) > 0:
-                hintargs = hint.split(',')
-                hintline = ' ' + str.join(',', hintargs[len(self.args):])
+    def historyPrevious(self, newcmd):
+        if self.history_pos == 0:
+            self.command_mem = newcmd
+        if len(self.command_history) >= self.history_pos + 1:
+            self.history_pos += 1
+            newcmd = self.command_history[-self.history_pos]
+            self.set_cmdline(newcmd)
+
+    def historyNext(self, newcmd):
+        if self.history_pos > 0:
+            self.history_pos -= 1
+            if self.history_pos == 0:
+                newcmd = self.command_mem
             else:
-                hintline = ' ' + hint
-
-        self.lineEdit.set_cmdline(self.command_line, hintline, cursorpos)
-
-    def keyPressEvent(self, event):
-        ''' Handle keyboard input for bluesky. '''
-        # Enter-key: enter command
-        if event.key() == Qt.Key.Key_Enter or event.key() == Qt.Key.Key_Return:
-            if self.command_line:
-                # emit a signal with the command for the simulation thread
-                self.stack(self.command_line)
-                # Clear any shape command preview on the radar display
-                # self.radarwidget.previewpoly(None)
-                return
-
-        newcmd = self.command_line
-        cursorpos = None
-        if event.key() == Qt.Key.Key_Left:
-            self.lineEdit.cursor_left(
-                word_level=event.modifiers() & Qt.KeyboardModifier.ControlModifier,
-                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
-            )
-        elif event.key() == Qt.Key.Key_Right:
-            self.lineEdit.cursor_right(
-                word_level=event.modifiers() & Qt.KeyboardModifier.ControlModifier,
-                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
-            )
-        elif event.key() == Qt.Key.Key_Home:
-            self.lineEdit.cursor_home(
-                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
-            )
-        elif event.key() == Qt.Key.Key_End:
-            self.lineEdit.cursor_end(
-                select=event.modifiers() & Qt.KeyboardModifier.ShiftModifier,
-            )
-        elif event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            if event.key() == Qt.Key.Key_V:
-                pos = self.lineEdit.cursor_pos()
-                clipboardText = QApplication.clipboard().text()
-                newcmd = newcmd[:pos] + clipboardText + newcmd[pos:]
-                cursorpos = pos + len(clipboardText)
-            elif event.key() == Qt.Key.Key_X:
-                QApplication.clipboard().setText(self.command_line)
-                newcmd = ""
-                cursorpos = 0
-            elif event.key() == Qt.Key.Key_C:
-                QApplication.clipboard().setText(self.command_line)
-        elif event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde:
-            pos = self.lineEdit.cursor_pos()
-            newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
-            # Update the cursor position with the length of the added text
-            cursorpos = pos + len(event.text())
-        elif event.key() == Qt.Key.Key_Backspace:
-            pos = self.lineEdit.cursor_pos()
-            newcmd = newcmd[:pos - 1] + newcmd[pos:]
-            cursorpos = pos - 1
-        elif event.key() == Qt.Key.Key_Delete:
-            cursor = self.lineEdit.textCursor()
-            anchor = cursor.anchor()-2
-            pos = cursor.position()-2
-
-            begin = min(anchor, pos)
-            end = max(anchor, pos)
-            if begin == end:
-                end += 1
-
-            if begin < len(newcmd):
-                newcmd = newcmd[:begin] + newcmd[end:]
-                cursorpos = begin
-        elif event.key() == Qt.Key.Key_Tab:
-            if newcmd:
-                newcmd, displaytext = autocomplete.complete(newcmd)
-                if displaytext:
-                    self.echo(displaytext)
-        elif not event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier |
-                                        Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier):
-            if event.key() == Qt.Key.Key_Up:
-                if self.history_pos == 0:
-                    self.command_mem = newcmd
-                if len(self.command_history) >= self.history_pos + 1:
-                    self.history_pos += 1
-                    newcmd = self.command_history[-self.history_pos]
-            elif event.key() == Qt.Key.Key_Down:
-                if self.history_pos > 0:
-                    self.history_pos -= 1
-                    if self.history_pos == 0:
-                        newcmd = self.command_mem
-                    else:
-                        newcmd = self.command_history[-self.history_pos]
-            else:
-                # Remaining keys are things like sole modifier keys, and function keys
-                super().keyPressEvent(event)
-        else:
-            event.ignore()
-            return
-
-        # Final processing of the command line
-        self.set_cmdline(newcmd, cursorpos)
-
-
-class Word:
-    def __init__(self, w='', type='str'):
-        self.word = w
-
-    def append(self, w):
-        self.word = self.word + w
-        # TODO do checks
-
-    def __str__(self):
-        ''' Word with color markup. '''
-        return ''
+                newcmd = self.command_history[-self.history_pos]
+            self.set_cmdline(newcmd)
 
 
 class Cmdline(QTextEdit):
     ''' Wrapper class for the command line. '''
 
+    PROMPT = ">> "
+
+    cmddict: ActData[dict] = ActData(group='stackcmds')
+
+    commandEntered = pyqtSignal(str)
+    tabCompletion = pyqtSignal(str)
+    historyPrevious = pyqtSignal(str)
+    historyNext = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        Console.lineEdit = self
-        self.cmdline = ''
-        # self.setFocusPolicy(Qt.NoFocus)
-        self.set_cmdline('')
+        self.setMaximumHeight(21)
+        self.setUndoRedoEnabled(False)
+        self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.hint_text = ""
+        self.insertPrompt()
+        self.textChanged.connect(self.setText)
 
-    def keyPressEvent(self, event):
-        event.ignore()
+    def insertPrompt(self):
+        self._updateText(self.PROMPT, "", "")
+        self.moveCursor(QTextCursor.MoveOperation.End)
 
-    def set_cmdline(self, cmdline, hints='', cursorpos=None):
-        ''' Set the command line with possible hints. '''
-        self.setHtml('>>' +
-                    html.escape(cmdline).replace(' ', '&nbsp;') +
-                    '<font color="#aaaaaa">' +
-                    html.escape(hints).replace(' ', '&nbsp;') +
-                    '</font>'
+    def keyPressEvent(self, event: QKeyEvent):
+        cursor = self.textCursor()
+        current_text = self.getInputText()
+
+        if (
+            event.key() == Qt.Key.Key_C
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+            and not self.textCursor().hasSelection()
+        ):
+            # Clear command on ctrl-c only if nothing is selected.
+            # Else, handle as copy shortcut by default QTextEdit implementation.
+            self.insertPrompt()
+        elif event.key() == Qt.Key.Key_Home:
+            move_mode = (
+                QTextCursor.MoveMode.KeepAnchor
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+                else QTextCursor.MoveMode.MoveAnchor
+            )
+            cursor.setPosition(len(self.PROMPT), move_mode)
+            self.setTextCursor(cursor)
+        elif event.key() == Qt.Key.Key_End:
+            move_mode = (
+                QTextCursor.MoveMode.KeepAnchor
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+                else QTextCursor.MoveMode.MoveAnchor
+            )
+            cursor.setPosition(len(self.PROMPT + current_text), move_mode)
+            self.setTextCursor(cursor)
+        elif event.key() == Qt.Key.Key_Up:
+            self.historyPrevious.emit(current_text)
+        elif event.key() == Qt.Key.Key_Down:
+            self.historyNext.emit(current_text)
+        elif event.key() == Qt.Key.Key_Tab:
+            self.tabCompletion.emit(current_text)
+        elif event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
+            command = current_text.strip()
+            if command:
+                self.commandEntered.emit(command)
+            self.insertPrompt()
+        else:
+            super().keyPressEvent(event)
+
+        self._ensureCursorAtValidPos()
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def _ensureCursorAtValidPos(self):
+        min_pos = len(self.PROMPT)
+        max_pos = len(self.PROMPT + self.getInputText())
+
+        cursor = self.textCursor()
+        anchor = cursor.anchor()
+        position = cursor.position()
+
+        anchor = min(max(anchor, min_pos), max_pos)
+        position = min(max(position, min_pos), max_pos)
+
+        cursor.setPosition(anchor, QTextCursor.MoveMode.MoveAnchor)
+        cursor.setPosition(position, QTextCursor.MoveMode.KeepAnchor)
+
+        self.setTextCursor(cursor)
+
+    def getInputText(self):
+        text = self.toPlainText()
+        return (
+            text[len(self.PROMPT) : len(text) - len(self.hint_text)]
+            if text.startswith(self.PROMPT) and text.endswith(self.hint_text)
+            else ""
         )
-        self.cmdline = cmdline
+
+    def setText(self, text: str | None = None):
+        if text is None:
+            text = self.getInputText()
+        self.hint_text = self._getHint(text.strip())
+        cursor_position = self.textCursor().position()
+
+        self._updateText(self.PROMPT, text, self.hint_text)
+
         cursor = self.textCursor()
-        if cursorpos is None:
-            cursorpos = len(cmdline)
-        cursor.setPosition(cursorpos + 2)
+        min_pos = len(self.PROMPT)
+        max_pos = len(self.PROMPT + text)
+        cursor.setPosition(min(max(cursor_position, min_pos), max_pos))
         self.setTextCursor(cursor)
-        # TODO: word objects with possible list of checker functions?
 
-    def cursor_pos(self):
-        ''' Get the cursor position. '''
-        return self.textCursor().position() - 2
 
-    def cursor_left(self, word_level: bool = False, select: bool = False):
-        ''' Move the cursor one position to the left. '''
+    def _updateText(self, prompt, command, hint):
+        self.hint_text = hint
+        # blocking signals to prevent recursion
+        self.blockSignals(True)
+        self.clear()
         cursor = self.textCursor()
-        if word_level:
-            pos = cursor.position() - 2
-            while pos > 0 and self.cmdline[pos - 1] == ' ':
-                pos -= 1 # skip initial spaces
-            while pos > 0 and self.cmdline[pos - 1] != ' ':
-                pos -= 1
-            pos += 2
-        else:
-            pos = max(2, cursor.position() - 1)
 
-        self.cursor_set_pos(pos, select)
+        fmt_blue = QTextCharFormat()
+        fmt_blue.setForeground(QColor("#0051ff")) # TODO - account for light/dark mode
 
-    def cursor_right(self, word_level: bool = False, select: bool = False):
-        ''' Move the cursor one position to the right. '''
-        cursor = self.textCursor()
-        if word_level:
-            pos = cursor.position() - 2
-            while pos < len(self.cmdline) and self.cmdline[pos] == ' ':
-                pos += 1 # skip initial spaces
-            while pos < len(self.cmdline) and self.cmdline[pos] != ' ':
-                pos += 1
-            pos += 2
-        else:
-            pos = min(len(self.cmdline) + 2, cursor.position() + 1)
+        fmt_hint = QTextCharFormat()
+        fmt_hint.setForeground(QColor("#aaaaaa")) # TODO - account for light/dark mode
 
-        self.cursor_set_pos(pos, select)
+        cursor.setCharFormat(fmt_blue)
+        cursor.insertText(prompt + command)
 
-    def cursor_home(self, select: bool = False):
-        self.cursor_set_pos(2, select)
+        cursor.setCharFormat(fmt_hint)
+        cursor.insertText(hint)
+        self._ensureCursorAtValidPos()
+        self.blockSignals(False)
 
-    def cursor_end(self, select: bool = False):
-        self.cursor_set_pos(len(self.cmdline) + 2, select)
+    def _getHint(self, text):
+        cmd, args = cmdsplit(text)
+        cmd = cmd.upper()
 
-    def cursor_set_pos(self, pos, select: bool=False):
-        cursor = self.textCursor()
-        if select:
-            cursor.setPosition(pos, QTextCursor.MoveMode.KeepAnchor)
-        else:
-            cursor.setPosition(pos)
-        self.setTextCursor(cursor)
+        hintline = ""
+        guicmd = Command.cmddict.get(cmd)
+        hint = guicmd.brief[len(cmd) + 1 :] if guicmd else self.cmddict.get(cmd)
+        if hint:
+            if len(args) > 0:
+                hintargs = hint.split(",")
+                hintline = " " + str.join(",", hintargs[len(args) :])
+            else:
+                hintline = " " + hint
+        return hintline
 
 
 class Stackwin(QTextEdit):
