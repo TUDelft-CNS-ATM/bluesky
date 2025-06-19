@@ -6,7 +6,8 @@
     PYTHONPATH=/path/to/your/bluesky python textclient.py
 '''
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLabel, QTextEdit
+from PyQt6.QtGui import QTextCursor, QKeyEvent
 
 import bluesky as bs
 from bluesky.core import Base
@@ -39,20 +40,58 @@ class InfoLine(QLabel, Base):
         ''' Example subscriber to aircraft state data '''
         self.setText(f"There are {len(data.lat)} aircraft in the simulation.")
 
+
 class Cmdline(QTextEdit):
     ''' Wrapper class for the command line. '''
+    PROMPT = ">> "
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMaximumHeight(21)
+        self.setUndoRedoEnabled(False)
+        self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.insertPrompt()
 
-    def keyPressEvent(self, event):
+    def insertPrompt(self):
+        self.setText(self.PROMPT)
+        self.moveCursor(QTextCursor.MoveOperation.End)
+
+    def keyPressEvent(self, event: QKeyEvent):
         ''' Handle Enter keypress to send a command to BlueSky. '''
-        if event.key() == Qt.Key.Key_Enter or event.key() == Qt.Key.Key_Return:
-            stack(self.toPlainText())
-            echobox.echo(self.toPlainText())
-            self.setText('')
+        cursor = self.textCursor()
+        current_text = self.toPlainText()
+
+        self._ensureCursorAtValidPos()
+
+        if event.key() in (Qt.Key.Key_Backspace, Qt.Key.Key_Left):
+            if cursor.position() <= len(self.PROMPT):
+                return
+
+        if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
+            command = current_text[len(self.PROMPT):].strip()
+            if command:
+                stack(command)  # replace with your command handling function
+                echobox.echo(command)  # replace with your echo function
+            self.setText(self.PROMPT)
         else:
             super().keyPressEvent(event)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def contextMenuEvent(self, event):
+        pass  # Disable context menu
+
+    def _ensureCursorAtValidPos(self):
+        cursor = self.textCursor()
+        if cursor.position() < len(self.PROMPT):
+            cursor.setPosition(len(self.PROMPT))
+            self.setTextCursor(cursor)
 
 
 if __name__ == '__main__':
