@@ -7,7 +7,7 @@
 '''
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLabel, QTextEdit
-from PyQt6.QtGui import QTextCursor, QKeyEvent
+from PyQt6.QtGui import QTextCursor, QKeyEvent, QTextCharFormat, QColor
 
 import bluesky as bs
 from bluesky.core import Base
@@ -43,6 +43,7 @@ class InfoLine(QLabel, Base):
 
 class Cmdline(QTextEdit):
     ''' Wrapper class for the command line. '''
+
     PROMPT = ">> "
 
     def __init__(self, parent=None):
@@ -50,48 +51,139 @@ class Cmdline(QTextEdit):
         self.setMaximumHeight(21)
         self.setUndoRedoEnabled(False)
         self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.hint_text = ""
         self.insertPrompt()
+        self.textChanged.connect(self._updateHint)
 
     def insertPrompt(self):
-        self.setText(self.PROMPT)
+        self._updateText(self.PROMPT, "", "")
         self.moveCursor(QTextCursor.MoveOperation.End)
 
     def keyPressEvent(self, event: QKeyEvent):
-        ''' Handle Enter keypress to send a command to BlueSky. '''
         cursor = self.textCursor()
-        current_text = self.toPlainText()
+        current_text = self._getInputText()
 
-        self._ensureCursorAtValidPos()
+        if (
+            event.key() == Qt.Key.Key_C
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+            and not self.textCursor().hasSelection()
+        ):
+            # Clear command on ctrl-c only if nothing is selected.
+            # Else, handle as copy shortcut by default QTextEdit implementation.
+            self.insertPrompt()
+            return
 
-        if event.key() in (Qt.Key.Key_Backspace, Qt.Key.Key_Left):
-            if cursor.position() <= len(self.PROMPT):
-                return
+        if event.key() == Qt.Key.Key_Home:
+            move_mode = (
+                QTextCursor.MoveMode.KeepAnchor
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+                else QTextCursor.MoveMode.MoveAnchor
+            )
+            cursor.setPosition(len(self.PROMPT), move_mode)
+            self.setTextCursor(cursor)
+            return
+
+        if event.key() == Qt.Key.Key_End:
+            move_mode = (
+                QTextCursor.MoveMode.KeepAnchor
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+                else QTextCursor.MoveMode.MoveAnchor
+            )
+            cursor.setPosition(len(self.PROMPT + current_text), move_mode)
+            self.setTextCursor(cursor)
+            return
 
         if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
-            command = current_text[len(self.PROMPT):].strip()
+            command = current_text.strip()
             if command:
-                stack(command)  # replace with your command handling function
-                echobox.echo(command)  # replace with your echo function
-            self.setText(self.PROMPT)
+                stack(command)
+                echobox.echo(command)
+            self.insertPrompt()
         else:
             super().keyPressEvent(event)
 
+        self._ensureCursorAtValidPos()
+
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        self._ensureCursorAtValidPos()
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
         self._ensureCursorAtValidPos()
 
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
         self._ensureCursorAtValidPos()
 
-    def contextMenuEvent(self, event):
-        pass  # Disable context menu
-
     def _ensureCursorAtValidPos(self):
+        min_pos = len(self.PROMPT)
+        max_pos = len(self.PROMPT + self._getInputText())
+
         cursor = self.textCursor()
-        if cursor.position() < len(self.PROMPT):
-            cursor.setPosition(len(self.PROMPT))
-            self.setTextCursor(cursor)
+        anchor = cursor.anchor()
+        position = cursor.position()
+
+        anchor = min(max(anchor, min_pos), max_pos)
+        position = min(max(position, min_pos), max_pos)
+
+        cursor.setPosition(anchor, QTextCursor.MoveMode.MoveAnchor)
+        cursor.setPosition(position, QTextCursor.MoveMode.KeepAnchor)
+
+        self.setTextCursor(cursor)
+
+    def _getInputText(self):
+        text = self.toPlainText()
+        return (
+            text[len(self.PROMPT) : len(text) - len(self.hint_text)]
+            if text.startswith(self.PROMPT) and text.endswith(self.hint_text)
+            else ""
+        )
+
+    def _updateHint(self):
+        current_input = self._getInputText()
+        self.hint_text = self._getHint(current_input.strip())
+        cursor_position = self.textCursor().position()
+
+        self._updateText(self.PROMPT, current_input, self.hint_text)
+
+        cursor = self.textCursor()
+        min_pos = len(self.PROMPT)
+        max_pos = len(self.PROMPT + current_input)
+        cursor.setPosition(min(max(cursor_position, min_pos), max_pos))
+        self.setTextCursor(cursor)
+
+    def _updateText(self, prompt, command, hint):
+        # blocking signals to prevent recursion
+        self.blockSignals(True)
+        self.clear()
+        cursor = self.textCursor()
+
+        fmt_blue = QTextCharFormat()
+        fmt_blue.setForeground(QColor("blue"))
+
+        fmt_hint = QTextCharFormat()
+        fmt_hint.setForeground(QColor("lightgray"))
+
+        cursor.setCharFormat(fmt_blue)
+        cursor.insertText(prompt + command)
+
+        cursor.setCharFormat(fmt_hint)
+        cursor.insertText(hint)
+        self.blockSignals(False)
+
+    def _getHint(self, input_text):
+        if input_text == "":
+            return ""
+        elif input_text == "help":
+            return " (shows help menu)"
+        elif input_text.startswith("load"):
+            return " <filename>"
+        return ""
 
 
 if __name__ == '__main__':
