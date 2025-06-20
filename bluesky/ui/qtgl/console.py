@@ -43,6 +43,7 @@ def process_cmdline(cmdlines):
     if lines:
         Console._instance.append_cmdline(lines[-1])
         for cmd in lines[:-1]:
+            Console._instance.lineEdit.appendHistory(cmd)
             Console._instance.stack(cmd)
 
 
@@ -125,7 +126,7 @@ class Console(QWidget):
         process_cmdline((tostack + '\n' + tocmdline) if tostack else tocmdline)
 
     def append_cmdline(self, text):
-        self.set_cmdline(self.command_line + text)
+        self.lineEdit.append(text)
 
     def set_cmdline(self, text):
         self.lineEdit.setText(text)
@@ -202,7 +203,7 @@ class Cmdline(QTextEdit):
             command = current_text
             if command:
                 # Add command to the command history
-                self.command_history.append(command)
+                self.appendHistory(command)
                 self.commandEntered.emit(command)
             self.clear()
         else:
@@ -283,6 +284,12 @@ class Cmdline(QTextEdit):
 
         self.setTextCursor(cursor)
 
+    def appendHistory(self, text: str) -> None:
+        if len(text.strip()) == 0:
+            return
+        self.command_history.append(text)
+        self.history_pos = 0
+
     def getInputText(self):
         text = self.toPlainText()
         return (
@@ -291,7 +298,13 @@ class Cmdline(QTextEdit):
             else ""
         )
 
-    def setText(self, text: str | None = None):
+    def append(self, text: str | None) -> None:
+        if text is None:
+            return
+        self.setText(self.getInputText() + text)
+        self._moveCursorEnd()
+
+    def setText(self, text: str | None = None) -> None:
         if text is None:
             text = self.getInputText()
         self.hint_text = self._getHint(text.strip())
