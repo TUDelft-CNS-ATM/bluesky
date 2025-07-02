@@ -129,11 +129,12 @@ class Console(QWidget):
         self.lineEdit.append(text)
 
     def set_cmdline(self, text):
-        self.lineEdit.setText(text)
+        self.lineEdit.setText(text, reposition_cursor=True)
 
     def tabCompletion(self, newcmd):
         if newcmd:
             newcmd, displaytext = autocomplete.complete(newcmd)
+            self.set_cmdline(newcmd)
             if displaytext:
                 self.echo(displaytext)
 
@@ -255,8 +256,7 @@ class Cmdline(QTextEdit):
         if len(self.command_history) >= self.history_pos + 1:
             self.history_pos += 1
             newcmd = self.command_history[-self.history_pos]
-            self.setText(newcmd)
-            self._moveCursorEnd()
+            self.setText(newcmd, reposition_cursor=True)
 
     def _historyNext(self):
         if self.history_pos > 0:
@@ -265,8 +265,7 @@ class Cmdline(QTextEdit):
                 newcmd = self.command_mem
             else:
                 newcmd = self.command_history[-self.history_pos]
-            self.setText(newcmd)
-            self._moveCursorEnd()
+            self.setText(newcmd, reposition_cursor=True)
 
     def _ensureCursorAtValidPos(self):
         min_pos = len(self.PROMPT)
@@ -301,10 +300,10 @@ class Cmdline(QTextEdit):
     def append(self, text: str | None) -> None:
         if text is None:
             return
-        self.setText(self.getInputText() + text)
-        self._moveCursorEnd()
+        self.setText(self.getInputText() + text, reposition_cursor=True)
+        
 
-    def setText(self, text: str | None = None) -> None:
+    def setText(self, text: str | None = None, *, reposition_cursor=False) -> None:
         if text is None:
             text = self.getInputText()
         self.hint_text = self._getHint(text.strip())
@@ -312,11 +311,14 @@ class Cmdline(QTextEdit):
 
         self._updateText(self.PROMPT, text, self.hint_text)
 
-        cursor = self.textCursor()
-        min_pos = len(self.PROMPT)
-        max_pos = len(self.PROMPT + text)
-        cursor.setPosition(min(max(cursor_position, min_pos), max_pos))
-        self.setTextCursor(cursor)
+        if reposition_cursor:
+            self._moveCursorEnd()
+        else:
+            cursor = self.textCursor()
+            min_pos = len(self.PROMPT)
+            max_pos = len(self.PROMPT + text)
+            cursor.setPosition(min(max(cursor_position, min_pos), max_pos))
+            self.setTextCursor(cursor)
 
     def _updateText(self, prompt, command, hint):
         self.hint_text = hint
@@ -325,15 +327,10 @@ class Cmdline(QTextEdit):
         super().clear()
         cursor = self.textCursor()
 
-        fmt_blue = QTextCharFormat()
-        fmt_blue.setForeground(QColor("#0051ff"))  # TODO - account for light/dark mode
+        cursor.insertText(prompt + command)
 
         fmt_hint = QTextCharFormat()
         fmt_hint.setForeground(QColor("#aaaaaa"))  # TODO - account for light/dark mode
-
-        cursor.setCharFormat(fmt_blue)
-        cursor.insertText(prompt + command)
-
         cursor.setCharFormat(fmt_hint)
         cursor.insertText(hint)
         self._ensureCursorAtValidPos()
