@@ -229,6 +229,8 @@ class MainWindow(QMainWindow, Base):
             w.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         recursiveNoFocus(self.databox)
 
+        self.lineEdit.setFocus()
+
     def setStyleSheet(self, contents=''):
         if not contents:
             with open(bs.resource(bs.settings.gfx_path) / 'bluesky.qss') as style:
