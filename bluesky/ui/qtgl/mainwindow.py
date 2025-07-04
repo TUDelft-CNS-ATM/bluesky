@@ -5,7 +5,7 @@ import platform
 from PyQt6.QtWidgets import QApplication as app, QWidget, QMainWindow, \
     QSplashScreen, QTreeWidgetItem, QPushButton, QFileDialog, QDialog, \
     QTreeWidget, QVBoxLayout, QDialogButtonBox, QMenu, QLabel
-from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent, pyqtProperty
+from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent, pyqtProperty, QDir
 from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6 import uic
 
@@ -231,6 +231,7 @@ class MainWindow(QMainWindow, Base):
 
     def setStyleSheet(self, contents=''):
         if not contents:
+            QDir.addSearchPath("icons", (bs.resource(bs.settings.gfx_path) / "icons").as_posix())
             with open(bs.resource(bs.settings.gfx_path) / 'bluesky.qss') as style:
                 super().setStyleSheet(style.read())
 
