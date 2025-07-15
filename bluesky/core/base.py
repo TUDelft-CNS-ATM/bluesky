@@ -106,8 +106,7 @@ class Base:
             target = cls
 
         for name, fobj in target.__func_objects__.items():
-            if not inspect.ismethod(fobj.func): # TODO: doesn't this disallow e.g., selecting different stack function implementations?
-                fobj.update(getattr(target, name, None))
+            fobj.update(getattr(target, name, None))
 
     @classmethod
     def selected(cls):
